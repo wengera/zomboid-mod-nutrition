@@ -1950,3 +1950,19 @@ x244c-20261007-182845,phases.burst3.client_read.admin,the world.posring read rep
 x244c-20261007-182845,phases.burst3.client_docs.admin,the client ring document's header,"The same header copied from the client document (frames, other, zombies, paceQueued over the whole ring); not the arm's client population.",`summaries.clients.burst3.admin`
 x244c-20261007-182845,phases.burst3.client_read.bob,the world.posring read reply,"The harness's own header over every frame of the client ring, frames outside the server ring's kept span included; the arm's client population is the frames inside that span.",`summaries.clients.burst3.bob`
 x244c-20261007-182845,phases.burst3.client_docs.bob,the client ring document's header,"The same header copied from the client document (frames, other, zombies, paceQueued over the whole ring); not the arm's client population.",`summaries.clients.burst3.bob`
+x245-20261007-192340,session,the driver's text,Written before the run; not a reading.,
+x245-20261007-192340,predictions,the driver's predictions,Written before the run; not readings.,`verdicts`
+x245-20261007-192340,constants,the driver's constants,Written before the run; not readings.,
+x245-20261007-192340,meta,the driver's notes and the ini lines,"Written by the driver; the ini lines are the run copy's settings, not a reading.",
+x245-20261007-192340,verdicts.J.predicted,the prediction,Written before the run.,`verdicts.J.observed`
+x245-20261007-192340,verdicts.L,unmeasured,No window had a player online; nothing was measured.,
+x245-20261007-192340,verdicts.H,not run,The hold never ran (nobody online).,
+x245-20261007-192340,verdicts.arms,not run,The driver's text: the scheduler arms were not part of this session.,
+x245-20261007-192340,windows.*.N_target,5 or 10,"Fake clients the scenario had scheduled by then, not players: nobody was online at any read.",`online`
+x245-20261007-192340,summaries.by_N.*.N_target,"0, 5 or 10","Scheduled fake clients, not players: nobody was online at any read.",`summaries.by_N.*.online_after`
+x245-20261007-192340,windows.*.perf_doc,the perf.local result document,"The harness's own document over every sample, read frames included; a copy, not the window's population.",`windows.*.summary.perf_window_max`
+x245-20261007-192340,windows.*.ring_read,the tick.ring read reply,"The harness's own header over every frame, the read frames included; the window's population is the summary.",`windows.*.summary`
+x245-20261007-192340,windows.*.perf_read,the perf.local read reply,The harness's own header over every sample; the window's population is the summary.,`windows.*.summary.perf_window_max`
+x245-20261007-192340,windows.*.ring_arm,the arm reply,"A reply, not a reading.",
+x245-20261007-192340,windows.*.perf_arm,the arm reply,"A reply, not a reading.",
+x245-20261007-192340,server_join_lines,the server-stdout.log grep,"Boot-time AdvancedAnimator file-walk noise only: the login events are in the server's Logs folder, copied as connections.txt and user.txt.",`connections.txt`

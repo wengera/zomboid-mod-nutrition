@@ -1,0 +1,156 @@
+ INFO : 19:26:08.554 , [ 1] > Start client (0) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 0"
+ INFO : 19:26:08.555 , [ 2] > Start client (1) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 0"
+ INFO : 19:26:08.555 , [ 3] > Start client (2) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 0"
+ INFO : 19:26:08.555 , [ 4] > Start client (3) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 0"
+ INFO : 19:26:08.555 , [ 5] > Start client (4) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 0"
+ INFO : 19:26:08.555 , [ 6] > Start client (5) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 1"
+ INFO : 19:26:08.556 , [ 7] > Start client (6) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 1"
+ INFO : 19:26:08.556 , [ 8] > Start client (7) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 1"
+ INFO : 19:26:08.556 , [ 9] > Start client (8) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 1"
+ INFO : 19:26:08.556 , [10] > Start client (9) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 1"
+ INFO : 19:26:08.557 , [11] > Start client (10) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 2"
+ INFO : 19:26:08.557 , [12] > Start client (11) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 2"
+ INFO : 19:26:08.557 , [13] > Start client (12) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 2"
+ INFO : 19:26:08.557 , [14] > Start client (13) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 2"
+ INFO : 19:26:08.558 , [15] > Start client (14) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 2"
+ INFO : 19:26:08.558 , [16] > Start client (15) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 3"
+ INFO : 19:26:08.558 , [17] > Start client (16) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 3"
+ INFO : 19:26:08.558 , [18] > Start client (17) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 3"
+ INFO : 19:26:08.559 , [19] > Start client (18) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 3"
+ INFO : 19:26:08.559 , [20] > Start client (19) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 3"
+ INFO : 19:26:08.559 , [21] > Start client (20) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 4"
+ INFO : 19:26:08.560 , [22] > Start client (21) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 4"
+ INFO : 19:26:08.560 , [23] > Start client (22) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 4"
+ INFO : 19:26:08.560 , [24] > Start client (23) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 4"
+ INFO : 19:26:08.560 , [25] > Start client (24) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 4"
+ INFO : 19:26:08.561 , [26] > Start client (25) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 5"
+ INFO : 19:26:08.561 , [27] > Start client (26) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 5"
+ INFO : 19:26:08.561 , [28] > Start client (27) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 5"
+ INFO : 19:26:08.562 , [29] > Start client (28) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 5"
+ INFO : 19:26:08.562 , [30] > Start client (29) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 5"
+ INFO : 19:26:08.562 , [31] > Start client (30) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 6"
+ INFO : 19:26:08.562 , [32] > Start client (31) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 6"
+ INFO : 19:26:08.562 , [33] > Start client (32) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 6"
+ INFO : 19:26:08.563 , [34] > Start client (33) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 6"
+ INFO : 19:26:08.563 , [35] > Start client (34) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 6"
+ INFO : 19:26:08.563 , [36] > Start client (35) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 7"
+ INFO : 19:26:08.564 , [37] > Start client (36) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 7"
+ INFO : 19:26:08.564 , [38] > Start client (37) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 7"
+ INFO : 19:26:08.564 , [39] > Start client (38) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 7"
+ INFO : 19:26:08.564 , [40] > Start client (39) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 7"
+ INFO : 19:26:08.565 , [41] > Start client (40) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 8"
+ INFO : 19:26:08.565 , [42] > Start client (41) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 8"
+ INFO : 19:26:08.565 , [43] > Start client (42) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 8"
+ INFO : 19:26:08.565 , [44] > Start client (43) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 8"
+ INFO : 19:26:08.566 , [45] > Start client (44) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 8"
+ INFO : 19:26:08.566 , [46] > Start client (45) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 9"
+ INFO : 19:26:08.566 , [47] > Start client (46) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 9"
+ INFO : 19:26:08.566 , [48] > Start client (47) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 9"
+ INFO : 19:26:08.566 , [49] > Start client (48) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 9"
+ INFO : 19:26:08.568 , [50] > Start client (49) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 9"
+ INFO : 19:26:08.568 , [51] > Start client (50) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 10"
+ INFO : 19:26:08.568 , [52] > Start client (51) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 10"
+ INFO : 19:26:08.569 , [53] > Start client (52) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 10"
+ INFO : 19:26:08.569 , [54] > Start client (53) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 10"
+ INFO : 19:26:08.569 , [55] > Start client (54) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 10"
+ INFO : 19:26:08.569 , [56] > Start client (55) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 11"
+ INFO : 19:26:08.570 , [57] > Start client (56) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 11"
+ INFO : 19:26:08.570 , [58] > Start client (57) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 11"
+ INFO : 19:26:08.570 , [59] > Start client (58) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 11"
+ INFO : 19:26:08.570 , [60] > Start client (59) 0.0.0.0:17500 => 127.0.0.1:16261 / "x245 group 11"
+ERROR : 19:26:28.557 , [ 4] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:26:28.557 , [ 5] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:26:28.557 , [ 1] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:26:28.557 , [ 3] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:26:34.711 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:26:34.745 , [ 1] > Player  -1 disconnect in 6.188s
+ INFO : 19:26:50.562 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:26:50.573 , [ 1] > Player  -1 disconnect in 5.824s
+ INFO : 19:27:05.806 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:27:05.816 , [ 1] > Player  -1 disconnect in 5.240s
+ INFO : 19:27:21.415 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:27:21.426 , [ 1] > Player  -1 disconnect in 5.606s
+ INFO : 19:27:28.559 , [ 4] > Player  -1 disconnect in 60.002s
+ INFO : 19:27:28.559 , [ 3] > Player  -1 disconnect in 60.002s
+ INFO : 19:27:28.559 , [ 2] > Player  -1 disconnect in 60.002s
+ INFO : 19:27:28.559 , [ 5] > Player  -1 disconnect in 60.002s
+ INFO : 19:27:36.916 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:27:36.926 , [ 1] > Player  -1 disconnect in 5.496s
+ERROR : 19:27:38.563 , [ 2] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:27:38.563 , [ 3] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:27:38.563 , [ 5] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:27:44.030 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:27:44.041 , [ 1] > Player  -1 disconnect in 7.115s
+ INFO : 19:27:59.372 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:27:59.381 , [ 1] > Player  -1 disconnect in 5.335s
+ INFO : 19:28:14.851 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:28:14.859 , [ 1] > Player  -1 disconnect in 5.472s
+ INFO : 19:28:30.353 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:28:30.365 , [ 1] > Player  -1 disconnect in 5.503s
+ INFO : 19:28:38.565 , [ 4] > Player  -1 disconnect in 60.002s
+ INFO : 19:28:38.565 , [ 5] > Player  -1 disconnect in 60.002s
+ INFO : 19:28:38.565 , [ 3] > Player  -1 disconnect in 60.002s
+ INFO : 19:28:38.565 , [ 2] > Player  -1 disconnect in 60.002s
+ INFO : 19:28:45.818 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:28:45.829 , [ 1] > Player  -1 disconnect in 5.461s
+ERROR : 19:28:48.569 , [ 3] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:28:48.569 , [ 4] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:28:48.569 , [ 5] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:28:54.128 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:28:54.137 , [ 1] > Player  -1 disconnect in 8.308s
+ INFO : 19:29:09.774 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:29:09.784 , [ 1] > Player  -1 disconnect in 5.643s
+ INFO : 19:29:25.211 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:29:25.221 , [ 1] > Player  -1 disconnect in 5.433s
+ERROR : 19:29:28.557 , [ 7] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:29:28.558 , [ 9] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:29:28.558 , [10] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:29:28.558 , [ 8] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:29:34.079 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:29:34.091 , [ 1] > Player  -1 disconnect in 8.869s
+ INFO : 19:29:48.570 , [ 4] > Player  -1 disconnect in 60.001s
+ INFO : 19:29:48.571 , [ 2] > Player  -1 disconnect in 60.002s
+ INFO : 19:29:48.571 , [ 3] > Player  -1 disconnect in 60.002s
+ INFO : 19:29:48.571 , [ 5] > Player  -1 disconnect in 60.002s
+ INFO : 19:29:49.564 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:29:49.574 , [ 1] > Player  -1 disconnect in 5.478s
+ERROR : 19:29:58.575 , [ 3] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:29:58.575 , [ 5] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:29:58.575 , [ 4] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:30:04.040 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:30:04.050 , [ 1] > Player  -1 disconnect in 14.476s
+ INFO : 19:30:19.615 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:30:19.625 , [ 1] > Player  -1 disconnect in 5.571s
+ INFO : 19:30:28.558 , [ 6] > Player  -1 disconnect in 60.001s
+ INFO : 19:30:28.558 , [ 7] > Player  -1 disconnect in 60.001s
+ INFO : 19:30:28.560 , [ 8] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:28.560 , [ 9] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:28.560 , [10] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:35.205 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:30:35.217 , [ 1] > Player  -1 disconnect in 5.588s
+ERROR : 19:30:38.562 , [ 6] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:30:38.564 , [ 9] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:30:38.564 , [ 8] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:30:38.564 , [10] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:30:43.772 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:30:43.781 , [ 1] > Player  -1 disconnect in 8.564s
+ INFO : 19:30:58.577 , [ 3] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:58.577 , [ 5] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:58.577 , [ 4] > Player  -1 disconnect in 60.002s
+ INFO : 19:30:58.577 , [ 2] > Player  -1 disconnect in 60.002s
+ INFO : 19:31:00.384 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:31:00.396 , [ 1] > Player  -1 disconnect in 6.610s
+ERROR : 19:31:08.580 , [ 3] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:31:08.580 , [ 5] > Client connection to 127.0.0.1:16261 failed: 4
+ERROR : 19:31:08.580 , [ 4] > Client connection to 127.0.0.1:16261 failed: 4
+ INFO : 19:31:14.108 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:31:14.118 , [ 1] > Player  -1 disconnect in 13.722s
+ INFO : 19:31:29.709 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:31:29.719 , [ 1] > Player  -1 disconnect in 5.598s
+ INFO : 19:31:38.562 , [ 7] > Player  -1 disconnect in 60.001s
+ INFO : 19:31:38.564 , [ 6] > Player  -1 disconnect in 60.002s
+ INFO : 19:31:38.565 , [ 9] > Player  -1 disconnect in 60.001s
+ INFO : 19:31:38.565 , [10] > Player  -1 disconnect in 60.001s
+ INFO : 19:31:38.565 , [ 8] > Player  -1 disconnect in 60.001s
+ INFO : 19:31:45.332 , [ 1] > Client kicked. Reason: UI_LoadPlayerProfileError
+ INFO : 19:31:45.341 , [ 1] > Player  -1 disconnect in 5.619s

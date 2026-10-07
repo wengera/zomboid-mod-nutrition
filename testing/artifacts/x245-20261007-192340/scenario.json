@@ -1,0 +1,762 @@
+{
+ "version": "x245",
+ "config": {
+  "client": {
+   "connection": {
+    "serverHost": "127.0.0.1",
+    "interval": 1000,
+    "timeout": 60000,
+    "delay": 10000
+   },
+   "statistics": {
+    "period": 0,
+    "id": 0
+   }
+  },
+  "player": {
+   "fps": 10,
+   "predict": 1000
+  },
+  "movement": {
+   "radius": 10,
+   "motion": {
+    "aim": 2,
+    "sneak": 3,
+    "sneakrun": 4,
+    "walk": 3,
+    "run": 5,
+    "sprint": 7,
+    "pedestrian": {
+     "min": 5,
+     "max": 20
+    },
+    "vehicle": {
+     "min": 10,
+     "max": 30
+    }
+   }
+  }
+ },
+ "movements": [
+  {
+   "id": 1,
+   "description": "x245 group 0",
+   "spawn": {
+    "x": 10580,
+    "y": 9700
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 20000
+  },
+  {
+   "id": 2,
+   "description": "x245 group 0",
+   "spawn": {
+    "x": 11750,
+    "y": 6850
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 20000
+  },
+  {
+   "id": 3,
+   "description": "x245 group 0",
+   "spawn": {
+    "x": 6400,
+    "y": 5300
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 20000
+  },
+  {
+   "id": 4,
+   "description": "x245 group 0",
+   "spawn": {
+    "x": 8050,
+    "y": 11550
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 20000
+  },
+  {
+   "id": 5,
+   "description": "x245 group 0",
+   "spawn": {
+    "x": 10620,
+    "y": 9700
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 20000
+  },
+  {
+   "id": 6,
+   "description": "x245 group 1",
+   "spawn": {
+    "x": 11790,
+    "y": 6850
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 200000
+  },
+  {
+   "id": 7,
+   "description": "x245 group 1",
+   "spawn": {
+    "x": 6440,
+    "y": 5300
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 200000
+  },
+  {
+   "id": 8,
+   "description": "x245 group 1",
+   "spawn": {
+    "x": 8090,
+    "y": 11550
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 200000
+  },
+  {
+   "id": 9,
+   "description": "x245 group 1",
+   "spawn": {
+    "x": 10660,
+    "y": 9700
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 200000
+  },
+  {
+   "id": 10,
+   "description": "x245 group 1",
+   "spawn": {
+    "x": 11830,
+    "y": 6850
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 200000
+  },
+  {
+   "id": 11,
+   "description": "x245 group 2",
+   "spawn": {
+    "x": 6480,
+    "y": 5300
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 380000
+  },
+  {
+   "id": 12,
+   "description": "x245 group 2",
+   "spawn": {
+    "x": 8130,
+    "y": 11550
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 380000
+  },
+  {
+   "id": 13,
+   "description": "x245 group 2",
+   "spawn": {
+    "x": 10700,
+    "y": 9700
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 380000
+  },
+  {
+   "id": 14,
+   "description": "x245 group 2",
+   "spawn": {
+    "x": 11870,
+    "y": 6850
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 380000
+  },
+  {
+   "id": 15,
+   "description": "x245 group 2",
+   "spawn": {
+    "x": 6520,
+    "y": 5300
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 380000
+  },
+  {
+   "id": 16,
+   "description": "x245 group 3",
+   "spawn": {
+    "x": 8170,
+    "y": 11550
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 560000
+  },
+  {
+   "id": 17,
+   "description": "x245 group 3",
+   "spawn": {
+    "x": 10740,
+    "y": 9700
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 560000
+  },
+  {
+   "id": 18,
+   "description": "x245 group 3",
+   "spawn": {
+    "x": 11910,
+    "y": 6850
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 560000
+  },
+  {
+   "id": 19,
+   "description": "x245 group 3",
+   "spawn": {
+    "x": 6560,
+    "y": 5300
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 560000
+  },
+  {
+   "id": 20,
+   "description": "x245 group 3",
+   "spawn": {
+    "x": 8210,
+    "y": 11550
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 560000
+  },
+  {
+   "id": 21,
+   "description": "x245 group 4",
+   "spawn": {
+    "x": 10580,
+    "y": 9740
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 740000
+  },
+  {
+   "id": 22,
+   "description": "x245 group 4",
+   "spawn": {
+    "x": 11750,
+    "y": 6890
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 740000
+  },
+  {
+   "id": 23,
+   "description": "x245 group 4",
+   "spawn": {
+    "x": 6400,
+    "y": 5340
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 740000
+  },
+  {
+   "id": 24,
+   "description": "x245 group 4",
+   "spawn": {
+    "x": 8050,
+    "y": 11590
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 740000
+  },
+  {
+   "id": 25,
+   "description": "x245 group 4",
+   "spawn": {
+    "x": 10620,
+    "y": 9740
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 740000
+  },
+  {
+   "id": 26,
+   "description": "x245 group 5",
+   "spawn": {
+    "x": 11790,
+    "y": 6890
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 920000
+  },
+  {
+   "id": 27,
+   "description": "x245 group 5",
+   "spawn": {
+    "x": 6440,
+    "y": 5340
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 920000
+  },
+  {
+   "id": 28,
+   "description": "x245 group 5",
+   "spawn": {
+    "x": 8090,
+    "y": 11590
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 920000
+  },
+  {
+   "id": 29,
+   "description": "x245 group 5",
+   "spawn": {
+    "x": 10660,
+    "y": 9740
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 920000
+  },
+  {
+   "id": 30,
+   "description": "x245 group 5",
+   "spawn": {
+    "x": 11830,
+    "y": 6890
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 920000
+  },
+  {
+   "id": 31,
+   "description": "x245 group 6",
+   "spawn": {
+    "x": 6480,
+    "y": 5340
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1100000
+  },
+  {
+   "id": 32,
+   "description": "x245 group 6",
+   "spawn": {
+    "x": 8130,
+    "y": 11590
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1100000
+  },
+  {
+   "id": 33,
+   "description": "x245 group 6",
+   "spawn": {
+    "x": 10700,
+    "y": 9740
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1100000
+  },
+  {
+   "id": 34,
+   "description": "x245 group 6",
+   "spawn": {
+    "x": 11870,
+    "y": 6890
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1100000
+  },
+  {
+   "id": 35,
+   "description": "x245 group 6",
+   "spawn": {
+    "x": 6520,
+    "y": 5340
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1100000
+  },
+  {
+   "id": 36,
+   "description": "x245 group 7",
+   "spawn": {
+    "x": 8170,
+    "y": 11590
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1280000
+  },
+  {
+   "id": 37,
+   "description": "x245 group 7",
+   "spawn": {
+    "x": 10740,
+    "y": 9740
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1280000
+  },
+  {
+   "id": 38,
+   "description": "x245 group 7",
+   "spawn": {
+    "x": 11910,
+    "y": 6890
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1280000
+  },
+  {
+   "id": 39,
+   "description": "x245 group 7",
+   "spawn": {
+    "x": 6560,
+    "y": 5340
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1280000
+  },
+  {
+   "id": 40,
+   "description": "x245 group 7",
+   "spawn": {
+    "x": 8210,
+    "y": 11590
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1280000
+  },
+  {
+   "id": 41,
+   "description": "x245 group 8",
+   "spawn": {
+    "x": 10580,
+    "y": 9780
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1460000
+  },
+  {
+   "id": 42,
+   "description": "x245 group 8",
+   "spawn": {
+    "x": 11750,
+    "y": 6930
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1460000
+  },
+  {
+   "id": 43,
+   "description": "x245 group 8",
+   "spawn": {
+    "x": 6400,
+    "y": 5380
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1460000
+  },
+  {
+   "id": 44,
+   "description": "x245 group 8",
+   "spawn": {
+    "x": 8050,
+    "y": 11630
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1460000
+  },
+  {
+   "id": 45,
+   "description": "x245 group 8",
+   "spawn": {
+    "x": 10620,
+    "y": 9780
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1460000
+  },
+  {
+   "id": 46,
+   "description": "x245 group 9",
+   "spawn": {
+    "x": 11790,
+    "y": 6930
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1640000
+  },
+  {
+   "id": 47,
+   "description": "x245 group 9",
+   "spawn": {
+    "x": 6440,
+    "y": 5380
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1640000
+  },
+  {
+   "id": 48,
+   "description": "x245 group 9",
+   "spawn": {
+    "x": 8090,
+    "y": 11630
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1640000
+  },
+  {
+   "id": 49,
+   "description": "x245 group 9",
+   "spawn": {
+    "x": 10660,
+    "y": 9780
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1640000
+  },
+  {
+   "id": 50,
+   "description": "x245 group 9",
+   "spawn": {
+    "x": 11830,
+    "y": 6930
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1640000
+  },
+  {
+   "id": 51,
+   "description": "x245 group 10",
+   "spawn": {
+    "x": 6480,
+    "y": 5380
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1820000
+  },
+  {
+   "id": 52,
+   "description": "x245 group 10",
+   "spawn": {
+    "x": 8130,
+    "y": 11630
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1820000
+  },
+  {
+   "id": 53,
+   "description": "x245 group 10",
+   "spawn": {
+    "x": 10700,
+    "y": 9780
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1820000
+  },
+  {
+   "id": 54,
+   "description": "x245 group 10",
+   "spawn": {
+    "x": 11870,
+    "y": 6930
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1820000
+  },
+  {
+   "id": 55,
+   "description": "x245 group 10",
+   "spawn": {
+    "x": 6520,
+    "y": 5380
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 1820000
+  },
+  {
+   "id": 56,
+   "description": "x245 group 11",
+   "spawn": {
+    "x": 8170,
+    "y": 11630
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 2000000
+  },
+  {
+   "id": 57,
+   "description": "x245 group 11",
+   "spawn": {
+    "x": 10740,
+    "y": 9780
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 2000000
+  },
+  {
+   "id": 58,
+   "description": "x245 group 11",
+   "spawn": {
+    "x": 11910,
+    "y": 6930
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 2000000
+  },
+  {
+   "id": 59,
+   "description": "x245 group 11",
+   "spawn": {
+    "x": 6560,
+    "y": 5380
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 2000000
+  },
+  {
+   "id": 60,
+   "description": "x245 group 11",
+   "spawn": {
+    "x": 8210,
+    "y": 11630
+   },
+   "type": "Circle",
+   "radius": 10,
+   "motion": "Walk",
+   "connect": 2000000
+  }
+ ]
+}
