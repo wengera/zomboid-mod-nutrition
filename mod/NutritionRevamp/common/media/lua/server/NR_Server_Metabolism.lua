@@ -58,36 +58,17 @@ MET.BUILD_TRAITS = {
 
 local finite = NR.finite
 
-
-
 -- The world age, or nil when it cannot be read (the minute is then skipped and counted, never stamped 0).
 local worldAge = NR.worldAge
-
-
-
-
-
-
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
 local num = NR.num
 
-
-
-
-
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
 local flag = NR.flag
 
-
-
-
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
-
-
-
-
 
 -- The nutrient scalars dmod, rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
 -- writes record.nutrients, record.fluids and record.acute). Its step runs after this one, so these are
@@ -284,85 +265,6 @@ local function heal(username, body, ageH, player)
         NR.log.say(2, MET.lastError)
     end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 local function step(username, player, record, pipe)
     local ageH = worldAge()

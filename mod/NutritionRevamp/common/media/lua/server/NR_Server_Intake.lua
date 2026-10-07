@@ -97,40 +97,8 @@ IN.shareEaten = K.intake.shareEaten
 -- takes them from its raw thirst and the type's script thirst.
 IN.fractionOf = K.intake.fractionOf
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- A finite number: a number, not NaN (the one value unequal to itself) and not an infinity. Pure.
 IN.isFinite = NR.finite
-
-
 
 -- The raw reading after the original, normalised: a finished item reads NaN, not 0 (#2832) -- Eat
 -- sets hungChange to 0, then Food.setCurrentUses calls consumeHunger(0), whose 0/0 writes NaN into
@@ -245,13 +213,6 @@ end
 -- The vector's source: dish > craft > the eaten item's own chain step (K.intake.sourceOf).
 IN.sourceOf = K.intake.sourceOf
 
-
-
-
-
-
-
-
 -- The NR_Nutrients default-modData string of an item (the declared-nutrients contract, ruling 14: an
 -- unrecognised script key lands in default modData as a String unless it parses as a Double, #0212,
 -- #1281), or nil. modData is a Lua-shaped table.
@@ -268,29 +229,6 @@ IN.chainOne = K.intake.chainOne
 -- A fresh per-eat trace of the chain (K.intake.newTrace), and one chain step recorded in it (K.intake.traceStep).
 IN.newTrace = K.intake.newTrace
 IN.traceStep = K.intake.traceStep
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 -- The chained lookup a dish ingredient or a craft input goes through: lookup(fullType) -> vec or nil
 -- over IN.chainOne, info(fullType) giving the type's declared string, macros and FoodType (nil info:
@@ -337,68 +275,6 @@ function IN.assemble(b, rawAfter, lookup, thirstAfter, templates, info)
         IN.chainedLookup(lookup, templates, info, trace), trace)
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- ---------------------------------------------------------------------------------------------------
 -- The engine edge: every Java member through the index-first guard (NR.call), nothing assumed.
 
@@ -414,12 +290,6 @@ local function num(v)
 end
 
 local function worldAge() return NR.worldAge() or 0 end
-
-
-
-
-
-
 
 -- A Food's FoodType string (Food.getFoodType, the script's FoodType), or nil when absent or empty.
 function IN.foodTypeOf(item)

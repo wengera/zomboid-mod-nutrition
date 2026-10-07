@@ -82,9 +82,9 @@ def test_day_index_ages_and_creation_masses(host):
     body.lastCloseAgeH = INF
     body.fm0 = NAN
     body.lm0 = NAN
-    bad = heal(h, body, 130.0)
-    assert body["dayIndex"] == 5
-    assert body["lastAgeH"] == 130.0 and body["lastCloseAgeH"] == 130.0
+    bad = heal(h, body, 168.0)
+    assert body["dayIndex"] == 7
+    assert body["lastAgeH"] == 168.0 and body["lastCloseAgeH"] == 168.0
     assert body["fm0"] == body["fm"] and body["lm0"] == body["lm"]
     assert names(bad) == ["fm0", "lm0", "dayIndex", "lastAgeH", "lastCloseAgeH"]
 
