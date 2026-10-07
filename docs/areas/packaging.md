@@ -55,9 +55,9 @@ Such a copy is deleted or kept building against the live copy's interface, becau
 As shipped, the mod's folder holds `42.20.4/`, which carries `mod.info` and `media/sandbox-options.txt`, and `common/`, which carries every Lua file and the translation file, with no file at a vanilla relative path.
 The version dir is named for the build its files were verified on, `42.20.4`, because the resolver scores a name as the major times 1000 plus the minor and ignores the third component, so that dir is read on this build and on every later one until a newer-named dir ships [#0826/C/C-only].
 That shape, a version dir shipping a file that collides with nothing, booted clean on both sides in the acceptance session [#2746/M/n=1].
-The staged 1.0.0 build, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [T4.4/M/n=1].
-Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [T4.1/M/n=1].
-Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [T4.2/M/n=1].
+The staged 1.0.0 build, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
+Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1].
+Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
 
 The version dir's name is read as a build number, and the resolver's rules decide which dir a later build takes, which the [shelf-life reading](#shelf-life) below follows through ([#0825/C/C-only], [#0826/C/C-only]).
 Two names the resolver scores alike have no declared winner, the tie going to the directory listing, so the layout never ships two version dirs that a third version component alone separates [#0880/C/C-only].
@@ -113,7 +113,7 @@ Whichever way the unread arms turn out, nothing this mod ships differs between t
 
 The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
-The staged 1.0.0 build met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect [T4.3/M/n=1].
+The staged 1.0.0 build met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect [#3314/M/n=1].
 
 <a id="resident-stack"></a>
 ### The mods beside it on a live server
