@@ -3,7 +3,7 @@
 -- Plain assignment on every load: a reload of this file resets the sub-tables, so no sentinel
 -- for a wrapped vanilla function may live here (lua-platform rule #0943).
 NutritionRevamp = {
-    version = "0.1.0",
+    version = "1.0.0",
     build = "42.20.4",
     kernel = {},   -- pure functions, tables in and tables out, no Java (NR_Kernel*.lua)
     server = {},   -- server adapters (server/NR_Server_*.lua), gated by NutritionRevamp.isServer()
@@ -41,4 +41,21 @@ end
 -- 2 normal, 3 verbose. The level is set from the sandbox option at event time (NR_Server_Options).
 function NR.log.say(level, msg)
     if level <= NR.log.level then print("[NutritionRevamp] " .. tostring(msg)) end
+end
+
+-- The item-pass sentinel (Plan 9 ruling 5), read by both sides' self-reports: the generated pass file's first item,
+-- Base.Acorn, is re-based to 109.71 kcal (vanilla's script says 55.0). zombie.scripting.objects.Item keeps its macro
+-- fields private and declares no calorie getter (#2679), so the read is a fresh instance through the instanceItem
+-- global (LuaManager$GlobalObject.instanceItem(String), #2680) and its zombie.inventory.types.Food.getCalories().
+-- Returns "true" or "false", or "unread" when the global, the item or the getter is absent or a call raises.
+-- Called once per boot per side, never on a hot path. A regenerated pass file that moves the sentinel moves this
+-- number too (testing/tests/test_mod_shipped_docs.py holds the two equal).
+NR.itemPassSentinel = { fullType = "Base.Acorn", calories = 109.71 }
+function NR.itemPassActive()
+    if instanceItem == nil then return "unread" end
+    local ok, item = pcall(instanceItem, NR.itemPassSentinel.fullType)
+    if not ok or item == nil then return "unread" end
+    local okC, present, v = pcall(NR.call, item, "getCalories")
+    if not okC or not present or type(v) ~= "number" then return "unread" end
+    return tostring(math.abs(v - NR.itemPassSentinel.calories) < 0.01)
 end

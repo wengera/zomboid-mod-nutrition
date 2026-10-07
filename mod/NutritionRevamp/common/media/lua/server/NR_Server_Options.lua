@@ -74,7 +74,7 @@ end
 
 function NR.selfReport(side)
     return "NutritionRevamp v" .. NR.version .. " build " .. NR.build .. " side=" .. tostring(side)
-        .. " mode=" .. NR.modeName(O.mode) .. " log=" .. tostring(O.logLevel) .. " frameworks=none" .. " hook=" .. tostring(NR.server.fast ~= nil and NR.server.fast.registered) .. " limitations=" .. tostring(NR.server.fast and #NR.server.fast.limitations or 0) .. " nutritionOn=" .. tostring(O.nutritionOn == true)
+        .. " mode=" .. NR.modeName(O.mode) .. " itemPass=" .. tostring(NR.itemPassActive ~= nil and NR.itemPassActive() or "unread") .. " legacyMirror=" .. (O.legacyMirror and "on" or "off") .. " frameworks=n/a" .. " hook=" .. tostring(NR.server.fast ~= nil and NR.server.fast.registered) .. " limitations=" .. tostring(NR.server.fast and #NR.server.fast.limitations or 0) .. " nutritionOn=" .. tostring(O.nutritionOn == true) .. " log=" .. tostring(O.logLevel)
 end
 
 if Events ~= nil and Events.OnServerStarted ~= nil then

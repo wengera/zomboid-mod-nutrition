@@ -1,5 +1,5 @@
 def test_kernel_version_is_the_mod_version(host):
-    assert host.K.version == host.G.NutritionRevamp.version == "0.1.0"
+    assert host.K.version == host.G.NutritionRevamp.version == "1.0.0"
 
 
 def test_clamp_min_max(host):
