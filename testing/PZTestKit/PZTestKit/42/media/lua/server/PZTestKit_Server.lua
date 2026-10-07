@@ -2829,8 +2829,8 @@ end)
 --   PerformanceStatistic.addUpdate(ms) once a frame from GameServer.main (L1113-L1126) and copies the counters into
 --   that flat Lua table once a MultiplayerStatisticsPeriod (default 1 s; StatisticManager.update L179-L181), then
 --   clears them (Statistic.update: every 6-argument Counter is perishable), so `max-update-period` and
---   `min-update-period` are per-window figures and `avg-update-period` is a 5 % running mean restarted from 0 each
---   window (addUpdate L44: avg += (ms - avg) * 0.05), not a window mean. The table is read on every OnTick and a
+--   `min-update-period` are per-window figures, while `avg-update-period` is no mean: addUpdate L44 SETS it to
+--   (long)((ms - avg) * 0.05), about a 21st of the period (x241 read 3 to 8). The table is read on every OnTick and a
 --   sample is kept only when the window's figures (the four periods and memory-used) changed, so each window is
 --   sampled once unless two windows read identically on all five; a sample carries the
 --   wall ms and the ring's frame number at which it was seen, so a driver can line it up with the frames the
