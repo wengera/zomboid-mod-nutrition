@@ -1,0 +1,50 @@
+# testing/profiles/x22-globals2.toml - Plan 10 Task S1b (run x224): the zeroed-rates route's unmeasured seats.
+# PZTestKit + the FROZEN 1.0.0 spike copy (release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged by Task 0 at 42784ff; release/ is gitignored; mod/ is never booted) + TKX_GlobalsProbe2. The frozen copy
+# is here so its NR.* sandbox options exist (seat 1); with NR.Mode = 2 its takeover does not register, so vanilla's
+# updaters run under the probe's zeroing. The probe zeroes the six non-zero ZomboidGlobals rise keys in the
+# server's OnGameBoot (reading SandboxVars.NR.Mode and NR.Severity there first) and writes HUNGER 0.3,
+# THIRST 0.05 (driver-settable), FATIGUE 0.1 to every online player once a game minute on the server.
+# Fixture `two`, both clients (`admin` -debug, then `bob` release), Nutrition false (ruling T18-1), DayLength 4
+# (a game minute is 3.75 s wall at speed 1, so a 0.5 s poll lands about seven times between two writes),
+# Severity 1.5 (a non-default value, so the OnGameBoot read tells the server's value from the default), sleep
+# allowed and needed (so the server's fatigue reset does not run, #2723).
+# The driver is testing/experiments/x224_globals2.py.
+# The verify rows are load gates only: the probe's version on the server and on both clients and the frozen
+# copy's version on the server. The readings are measurements and are never verify rows.
+fixture = "two"
+description = "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy (Mode 2) + TKX_GlobalsProbe2, fixture two, admin and bob, Nutrition off, DayLength 4, Severity 1.5, sleep on - the zeroed-rates route's unmeasured seats."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_G2.version", expect = '"value": "1"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "TKX_G2.version", expect = '"value": "1"' },
+  { side = "client:bob", cmd = "lua.global", args = "TKX_G2.version", expect = '"value": "1"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_GlobalsProbe2"
+path = "testing/experiments/TKX_GlobalsProbe2"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 4                # a game minute is 3.75 s wall at speed 1 (37.46 ticks, x222)
+
+[sandbox.NR]
+Mode = 2                     # Overlay: the frozen copy's takeover does not register (seat 1 reads it at OnGameBoot)
+Severity = 1.5               # non-default, read at OnGameBoot beside Mode

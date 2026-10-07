@@ -1,0 +1,5 @@
+name=TKX Globals Probe 2
+id=TKX_GlobalsProbe2
+description=Plan 10 Task S1b experiment: zero the ZomboidGlobals hunger, thirst and fatigue rise rates in the server's OnGameBoot (recording the mod's own NR sandbox options read there), write HUNGER, THIRST and FATIGUE to every online player once a game minute on the server with driver-settable targets, sample one player every server tick in armed windows, and time a public character update with and without a CalculateStats hook. Test profiles only.
+modversion=1.0
+versionMin=42.0.0
