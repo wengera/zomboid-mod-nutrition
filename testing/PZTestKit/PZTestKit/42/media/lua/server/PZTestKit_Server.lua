@@ -2831,7 +2831,8 @@ end)
 --   clears them (Statistic.update: every 6-argument Counter is perishable), so `max-update-period` and
 --   `min-update-period` are per-window figures and `avg-update-period` is a 5 % running mean restarted from 0 each
 --   window (addUpdate L44: avg += (ms - avg) * 0.05), not a window mean. The table is read on every OnTick and a
---   sample is kept only when the window's figures changed, so each window is sampled once; a sample carries the
+--   sample is kept only when the window's figures (the four periods and memory-used) changed, so each window is
+--   sampled once unless two windows read identically on all five; a sample carries the
 --   wall ms and the ring's frame number at which it was seen, so a driver can line it up with the frames the
 --   window covered (the frames from the previous sample's frame to this sample's frame minus one).
 --   `read` writes pzt-results/perf-local-<tag>.json; `now` replies the table as it stands.
@@ -3035,8 +3036,9 @@ function H0.perfPoll(now)
     local t = H0.perfTable()
     if t == nil then return end
     local mn, mx, av, cur = t["min-update-period"], t["max-update-period"], t["avg-update-period"], t["fps"]
-    if mn == P.lmn and mx == P.lmx and av == P.lav and cur == P.lcur then return end
-    P.lmn, P.lmx, P.lav, P.lcur = mn, mx, av, cur
+    local mem = t["memory-used"]
+    if mn == P.lmn and mx == P.lmx and av == P.lav and cur == P.lcur and mem == P.lmem then return end
+    P.lmn, P.lmx, P.lav, P.lcur, P.lmem = mn, mx, av, cur, mem
     local i = P.next
     P.wall[i] = now
     P.frame[i] = H0.frameNo
@@ -3044,7 +3046,7 @@ function H0.perfPoll(now)
     P.max[i] = mx
     P.avg[i] = av
     P.cur[i] = cur
-    P.mem[i] = t["memory-used"]
+    P.mem[i] = mem
     P.count = P.count + 1
     P.next = i + 1
     if P.next > P.cap then P.next = 1 end
