@@ -437,7 +437,7 @@ The design's own risk register names seven risks and what is done about each [#1
 | `-nosteam` ignores the workshop folder | The **profile builder** copies every mod a `testing/profiles/<name>.toml` names into the run cache's `mods/`, on both sides, from one source map. There is no alternative: both workshop roots are gated on Steam mode, there is **no** server `-modfolders`, and `WorkshopItems=` needs Steam and is written empty |
 | Time acceleration side effects in MP | Only in L2/L3 with explicit multiplier; nutrition tests assert against game-seconds, not wall-clock |
 
-Not covered: what a release client does with a raise, a Linux dedicated-server image or any continuous-integration host, a second client's copy of another player, a client-side scenario, a save-and-reload cycle beyond the persistence readings of [server-lifecycle.md](server-lifecycle.md#global-moddata), and any reading of the game through a channel other than this harness — every number on this page was taken on one Windows machine driving one dedicated server and at most one debug client, with one release client beside it in the two-client session.
+Not covered: a Linux dedicated-server image or any continuous-integration host, a second client's copy of another player, a client-side scenario, a save-and-reload cycle beyond the persistence readings of [server-lifecycle.md](server-lifecycle.md#global-moddata), and any reading of the game through a channel other than this harness — every number on this page was taken on one Windows machine driving one dedicated server and at most one debug client, with one release client beside it in the two-client session.
 
 ## Open
 <a id="open"></a>
