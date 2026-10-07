@@ -54,6 +54,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/claims_check.py --staged` → 0 findings before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/`, `tools/bus_inventory.py`, `tools/reference_gen.py` or `references/wiki-mirrors/` (it says so and skips when nothing staged is under those paths).
 - `python tools/science_check.py --staged` → 0 findings before every commit that touches `docs/reference/science.tsv` (it says so and skips otherwise); `python tools/science_check.py --scan mod` → 0 findings before any commit that touches `mod/`, and it is never pointed at `tools/` or `docs/`.
 - `python tools/mod_lint.py mod/NutritionRevamp` → 0 ERROR before any commit that touches `mod/`.
+- `python tools/release_pack.py check mod/NutritionRevamp` → 0 ERROR before any commit that touches `mod/`.
 - `python tools/kahlua_lint.py mod testing/experiments testing/PZTestKit` → 0 findings and `python tools/hotpath_lint.py mod` → 0 findings before any commit that touches `mod/`, an experiment mod or the harness mod.
 - `python tools/page_lint.py <the pages touched>` → 0 before any commit that touches a page under `docs/areas/`, `docs/platform/` or `docs/facts/`, or `docs/reference/datasets.md` or `docs/reference/tools.md` (those two under its reference profile).
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
@@ -61,7 +62,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
 - `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
-- `python -m pytest tools/tests testing/tests -q` green: 2506 passed on 2026-10-06 (2416 at the Plan 7 close; 2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 2543 passed on 2026-10-06 (2506 at the Plan 8 close; 2416 at the Plan 7 close; 2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -83,6 +84,8 @@ A claim is minted in the commit that lands its evidence, never later.
 The instrument is [platform/harness](docs/platform/harness.md) (the run procedure is its [`## Procedure`](docs/platform/harness.md#procedure)); the command table is [reference/harness-commands](docs/reference/harness-commands.md).
 
 - `python testing/pzt doctor` before every boot.
+- A release profile boots the STAGED copy (`tools/release_pack.py stage`), never `mod/` directly, so the bytes a server would download are the bytes under test (x201).
+- A raising probe on a release client answers through the raise; only a `-debug` client parks (x202).
 - One live game session at a time, repository-wide.
 - A two-client run is one session: `pzt run` attaches the profile's `clients` one at a time, each ready before the next (Plan 8 Task 1).
 - Never `-safemode`.
@@ -134,6 +137,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 
 ## 7. Environment gotchas
 
+- `release/` is gitignored staging; `preview.png` beside the mod folder is Angus's, 256×256.
 - The Bash tool's cwd resets between calls: `cd /c/Users/Angus/repos/project_zomboid` in every call, or edits land in the home directory.
 - Long Bash heredocs with apostrophes fail to parse: write briefs and long files with the Write tool, and keep Bash-embedded Python apostrophe-free.
 - CRLF survivors in the working tree: `tools/README.md` (CRLF with a few LF lines), `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `testing/experiments/s03_body.py`, `testing/fixtures/default/fixture.json` (which `file` reports as JSON without naming its endings) and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.

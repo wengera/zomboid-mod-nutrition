@@ -478,6 +478,7 @@ Not covered: what a release client does with a raise, a Linux dedicated-server i
 The doctor command is the cold-start gate before any boot: it reports a stray game Java process and never kills it, checks three ports are free, checks the fixture is present and build-matched, checks the workshop index is reachable and that the test runner is available, and exits 1 on a failure [#1703].
 The port check counts only listening and established local sockets, so a lingering closed connection does not false-fail it [#1703].
 `pzt run` and `pzt provision` lint every `path=` mod folder with the layout lint before they seed a fixture and stop on an ERROR, so a malformed mod folder never reaches a boot [#3311/C/inference].
+A release profile boots the staged copy: `python tools/release_pack.py stage mod/NutritionRevamp --out release` runs first and the profile's `path=` names the staged folder, so the bytes a server would download are the bytes under test, and the folder the tool wrote held every file equal to its repository twin [#3315/M/n=1].
 A staged release build boots the same way, its profile naming the staged folder by `path=`: the `x20-release` session attached `admin` and then the release client `bob` to it, and all three sides read the mod's version `1.0.0` and build `42.20.4` [#3316/M/n=1].
 
 What a reading costs depends on which of five layers it needs, and every layer's failure is a hard fail of the run; the layer names and what each is are the design's own, while the last column reads back the cost and host it annotates each layer with [#1842].
