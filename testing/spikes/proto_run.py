@@ -744,7 +744,7 @@ def _row(adapter, label, what, inject=None, lua=None):
         if mut is not None:
             mtext, mlines, mbad = _run_injected(Tree(v, edits=[mut]), inject, lua)
             res["mutant"] = {"removes": "the %s heal %s keeps" % (adapter, v),
-                             "killed": (mtext != text) or (mlines != lines) or bool(mbad),
+                             "killed": (mtext != text) or (mlines != lines) or (mbad != bad),
                              "trace_differs": mtext != text, "heal_lines": mlines, "nonfinite_after_minute": mbad}
         row["variants"][v] = res
     return row
