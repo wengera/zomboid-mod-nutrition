@@ -1,69 +1,282 @@
 # Plan 11 decisions — what Plan 10's spikes and refactor found
 
-Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) asked six questions the 2026-10-07 review left under the fixes, and restructured the server adapters behind a golden trace. This memo is what Plan 11 is written from. Each spike's full section, with every reading and its register row, is in the appendices; the sections below give the answer, the recommendation and what it changes in the fixes draft (`docs/superpowers/plans/2026-10-07-plan-11-review-fixes-DRAFT.md`). Five decisions are Angus's and are listed last.
+Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran six spikes on questions the 2026-10-07 review left open under the fixes. It also restructured the server adapters behind a golden trace. This memo is what Plan 11 is written from. The sections below give each spike's answer, its recommendation and what it changes in the fixes draft (`docs/superpowers/plans/2026-10-07-plan-11-review-fixes-DRAFT.md`). Each spike's full section, with every reading and its register row, is in the appendices. Five decisions are Angus's and are listed last.
+
+## How to read this memo
+
+- A `#nnnn` is a row of the claims register, `docs/reference/claims.tsv`. Every number in the front sections is at its row or in the appendix named beside it.
+- **The takeover** is the mod's shipped `Hook.CalculateStats` handler. Registering it stops vanilla's seven stat updaters for every player (#2238), and the handler computes hunger, thirst, fatigue and the other stats itself, every tick.
+- **The zeroed-rates route** sets vanilla's hunger, thirst and fatigue rise rates to zero at boot and lets vanilla's updaters run. The mod then writes the three stats itself once a game minute.
+- **The hybrid** is the zeroed-rates route plus a small per-tick (`OnTick`) writer that holds PANIC, which vanilla decays every update.
+- **The slow minute** is the mod's once-a-game-minute work per player. **The stagger** spreads that work over the server's ticks so no tick runs every player.
+- **The floors** are minimum values the mod's effects hold a vanilla stat at: PANIC, UNHAPPINESS, FOOD_SICKNESS and STRESS, plus the INTOXICATION target.
+- **`rmod`** is the mod's endurance-regeneration modifier. It scales vanilla's endurance recovery by the character's nutrition state (among its inputs glycogen, protein, iron, dehydration, sleep debt and alcohol).
+- **Draft ruling 2** is the draft's rule for the stagger: how many queued players run per tick. **Draft ruling 4** is the draft's rule for a respawn or a reconnect: which `IsoPlayer` object the mod keeps for a username.
+- **Day lengths.** DayLength 1, 2, 3 and 4 are 15-, 30-, 60- and 90-minute days (Appendix D). The acceptance profile runs DayLength 1, the fixture DayLength 4, and vanilla's default is DayLength 3.
 
 ## The spikes
 
-### S1 and S1b — can the takeover go? (rows #3362–#3373; X30 settled, #1296 → #3368)
+### S1 and S1b — can the takeover go? (rows #3362–#3373, #3380–#3386; X30 answered, #1296 superseded by #3368)
 
-**Answer.** Yes, by a route nobody had tried. Vanilla's hunger, thirst and fatigue rise rates are seven engine values copied once from the Lua `ZomboidGlobals` table at server boot, one instruction after `OnGameBoot` fires. A mod that assigns them to zero there (or at file scope) leaves the three stats bit-flat while every other vanilla updater runs, and a once-a-minute server write of the three holds exactly and reaches the owner's client (x221). The route's Lua cost is about 11 µs per player per game minute against the takeover's 121 µs (113–132) at a 15-minute day — but the takeover also stops vanilla's seven Java updaters, which the route hands back, and their cost is untimed.
+**Answer.** Yes, by the route X30 asked about. Vanilla's hunger, thirst and fatigue rise rates are seven engine values (#3362). The engine copies them once from the Lua `ZomboidGlobals` table at server boot, one instruction after `OnGameBoot` fires (#3364). A mod that assigns them zero in an `OnGameBoot` handler or at file scope leaves the three stats flat (#3368). Every other vanilla updater keeps running (#3368). A once-a-minute server write of the three stats holds exactly between writes and reaches the owner's client (#3369, #3370).
 
-**What the route reproduces, approximates and loses.** Reproduced within one minute: hunger from the stomach, thirst from the pool, INTOXICATION, UNHAPPINESS. Approximated: fatigue asleep (vanilla's sleep recovery still runs between writes, a sawtooth), the STRESS and FOOD_SICKNESS floors, the rmod on sleep endurance, the auto-drink capture. Lost: the PANIC hold (vanilla decays panic every update) and the TEMPERATURE target (vanilla copies the core temperature into the stat every update) — a thin `OnTick` writer keeps PANIC, as #3048 shows a per-tick write outside the hook survives.
+**Cost.** Per player per game minute at a 15-minute day:
+- The takeover handler costs about 121 µs, 113–132 over three runs (#3353; Appendix A § 7).
+- The route's own Lua writer costs about 11 µs (#3373).
+- The route also hands back vanilla's seven updaters, which the takeover had stopped. S1b timed them at about 1 to 11 µs per player per update (#3386). That is 6–66 µs per player per game minute (Appendix B § 5).
+- So the route costs about 17–77 µs against the takeover's 121 µs. The saving is a third to six-sevenths, about 0.57 at the mean (Appendix B § 5).
+- The hybrid's per-tick PANIC hold comes on top and is unmeasured.
+- The slow minute's own work, about 377 µs per player (#3354), is the same under every option.
 
-**S1b** — the route's seats, run live (x224). The server's `OnGameBoot` reads the mod's own `NR.Mode` at the operator's value, so a boot-time mode works on the server; a client's `OnGameBoot` reads the defaults, so the mode is never read there. Auto-drink still fires under zeroed rates and its drop holds until the next write — so the writer must fold each sip into its THIRST target, or (by inference from vanilla's drink amount) it drinks twice the target at every write while water lasts. An eat between writes moves HUNGER at once and the next write erases it, so the writer must run after the minute's eats land. HUNGER stayed flat on a sprint leg whose run flag reached the server on 11 of 188 ticks (which also narrows #2877); the squats were unread and the swing branch undriven. Vanilla's updaters, timed as the difference an empty hook makes to one player's `update()`, cost about 1 to 11 µs per player per update (three noisy pairs, hook-off first) — so the route's total is about 17 to 77 µs per player per game minute at a 15-minute day against the takeover's 121 µs: a saving of a third to six-sevenths, about 0.57 at the mean, not nine-tenths. (rows #3380–#3386)
+**What the route reproduces, approximates and loses** (Appendix A § 5):
+- **Reproduces:** hunger from the stomach; thirst from the pool; INTOXICATION; UNHAPPINESS; the HUNGER and THIRST caps under moodle level 4 (by inference, no run read them). Each lags by up to one write interval.
+- **Approximates:**
+  - fatigue asleep: vanilla's sleep recovery still runs between writes, so FATIGUE saw-tooths (#3372);
+  - the STRESS and FOOD_SICKNESS floors, which vanilla decays between writes;
+  - `rmod` on sleep endurance, applied one interval late.
+- **Loses unless rewritten:** the sleep-onset terms `solMul` and `solAddH`. The writer could re-set vanilla's sleep delay through `setDelayToSleep` (#2787), one interval late; this is unmeasured.
+- **Loses:**
+  - the PANIC hold, because vanilla decays PANIC every update (#3116). A per-tick write outside the hook survives (#3048), so the hybrid's `OnTick` writer can keep it.
+  - the TEMPERATURE target, because vanilla sets it every update. The takeover's own hold is itself unmeasured (X81).
+  - the auto-drink bracket. The takeover throttled auto-drink inside its handler. Under the route the writer reads THIRST before each write, and that read holds the whole sip (#3382). S1b showed the sip must also be folded into the next THIRST target (below).
+- **Unchanged and moot:** the frozen-FATIGUE arm. On a server where sleep is not both allowed and needed, vanilla resets FATIGUE before the hook on every update, so neither route holds FATIGUE there.
+- **Gets better:** the arms the takeover re-implements (the idle timer, the sleep-delay mirrors, the tripping angle) are vanilla's own again.
 
-**Recommendation.** The hybrid: zero the rates at the server's `OnGameBoot`, write the stats and floors once a slow minute stepping by elapsed world age, keep a thin `OnTick` PANIC (and optionally TEMPERATURE) hold, and remove `Hook.CalculateStats` with its failover. The fork is Angus's (below).
+**S1b** ran the route's open seats live (x224):
+- The server's `OnGameBoot` reads the mod's own `NR.Mode` at the operator's value (#3380). So a boot-time mode works on the server.
+- A client's `OnGameBoot` reads the defaults (#3381). So a client must never read the mode there.
+- Auto-drink still fires under zeroed rates, and its drop holds until the next write (#3382). The writer must fold each sip into its THIRST target. Otherwise, by inference from vanilla's drink size (#2770, #2939), vanilla drinks twice the target at every write while water lasts.
+- An eat between writes moves HUNGER at once, and the next write erases it (#3383). So the writer must run after the minute's eats land.
+- HUNGER stayed flat on a sprint leg whose run flag reached the server on 11 of 188 ticks (#3384). That reading also narrows #2877 to x141a's arms. The squats' exertion was not read, and the swing branch was never driven.
 
-**Changes to the draft.** Task 3 (takeover resilience) goes if the hook goes. Task 6 becomes the main build: the zeroing at the server's `OnGameBoot` behind the mode, the per-minute writer stepping by elapsed world age and running after the minute's eats, each auto-drink sip folded into the THIRST target, and the `OnTick` PANIC hold. Task 13 measures the writer, the hold and vanilla's updaters at 20+ players instead of the handler.
+**Recommendation.** The hybrid: zero the rates at the server's `OnGameBoot`; write the stats and the floors once a slow minute, stepping by elapsed world age; keep a thin `OnTick` PANIC hold (TEMPERATURE optionally); remove `Hook.CalculateStats` and its failover. The fork is Angus's (Decision 1). It is coupled to the hunger-feel choice (Decision 2).
+
+**Changes to the draft under Decision 1's (b) or (c).**
+- **Task 3** (takeover resilience) goes, with draft rulings 6 (the failover's strikes and re-arm) and 7 (the per-tick trim).
+- **Task 6** becomes the main build. Draft ruling 10 ("Overlay is nutrients only") and Task 6's drafted body (the dehydration terms read zero while vanilla owns thirst) go with the hook. The new Task 6:
+  - zeroes the rates at the server's `OnGameBoot`, behind the mode, setting each key to `0`, never `nil` (#3366);
+  - never reads the mode at the client's `OnGameBoot` (#3381);
+  - writes HUNGER, THIRST and FATIGUE and the UNHAPPINESS, FOOD_SICKNESS, STRESS and INTOXICATION floors once a slow minute, stepping by elapsed world age, not by the event count (#3371);
+  - runs the writer after the minute's eats land (#3383);
+  - folds each auto-drink sip into the THIRST target before the write (#3382);
+  - adds the `OnTick` PANIC hold (and TEMPERATURE if kept);
+  - adds a test that the takeover's arithmetic is gone or moved.
+- **Task 13** measures the writer, the hold and vanilla's updaters at 20 or more players, instead of the handler.
+- **Task 12**'s CHANGELOG line "the stat takeover recovers after a fault" and the README sentence on the re-arm schedule go. The Overlay line is rewritten to say what the mode now chooses.
+- **Draft ruling 4**'s concern that `FAST.byChar` may be keyed by an object the online list never shows (Appendix C S3.3) leaves with the handler. The `OnTick` hold's per-player handle inherits it.
+
+**Changes to the draft under Decision 1's (a).** Task 3 stays as drafted. Task 6 stays as drafted (Overlay is nutrients only). Draft ruling 4's fix must also re-key `FAST.byChar` to the object the list shows. No constant snapshot is needed, because nothing is zeroed.
 
 ### S2 and S3 — the real cost, the clock, the lifecycle (rows #3346–#3361)
 
 **Answer.**
-- The takeover handler costs 19.33 µs per player per tick; one player's slow-minute work about 377 µs (a lower bound: measured at an unchanged world age); the kernel's fast step 4.36 µs. The tick rate (10.07 under either mode) cannot see these costs at the server's 10-tick lock, so #2822–#2824 measured the wrong thing; their narrowing is in the S2+S3 appendix.
-- A game minute is 6.27 ticks at a 15-minute day and 37.46 at a 90-minute day, and **a fast clock never fires more than one minute event per tick** — under `settimespeed 30` each tick's ~4.7 game minutes reach Lua as one call. The stagger starvation was measured live: at speed 30 with two players, one player's minute work ran per event.
-- The respawn bug reproduced live, in an order the draft did not expect: `OnNewGame` fires while the online list still holds only the dead body, the pending drain then marks the new record dead, and the new object enters the list two ticks later — so the draft's fix (store the new object at `OnNewGame`) is wrong.
-- A rejoin makes a new `IsoPlayer`; a rejoin inside one game minute is unmeasured.
-- The version folder's `sandbox-options.txt` loads (X22's first half settled for that shape).
+- The takeover handler costs 19.33 µs per player per tick (#3353, the mean of 19, 21 and 18).
+- One player's slow-minute work costs about 377 µs (#3354). That is a lower bound: it was measured at an unchanged world age.
+- The kernel's fast step alone costs 4.36 µs (#3356).
+- The tick rate read 10.07 under either mode (#3355). At the server's 10-tick lock it cannot see these costs. So #2822–#2824 measured the wrong thing; their narrowing is in Appendix C.
+- A game minute is 6.27 ticks at a 15-minute day (#3346) and 37.46 at a 90-minute day (#3347).
+- **A fast clock never fires more than one minute event per tick** (#3348). Under `settimespeed 30` each tick's ~4.7 game minutes reach Lua as one call (#3349).
+- The stagger's starvation was measured live: at speed 30 with two players, one player's minute work ran per event (#3352).
+- The respawn bug reproduced live, in an order the draft did not expect (#3358, #3359). `OnNewGame` fires while the online list still holds only the dead body. The pending queue then marks the new record dead. The new object enters the list three ticks after `OnNewGame`. So the draft's fix (store the new object at `OnNewGame`) is wrong.
+- A rejoin makes a new `IsoPlayer` (#3360). A rejoin inside one game minute is unmeasured.
+- The version folder's `sandbox-options.txt` loads (#3361). That answers X22's first half for that shape.
 
-**Recommendation.** For the stagger: keep the persistent queue, but size the per-tick share from a wall-time cycle — `perTick = ceil(N / CYCLE_TICKS)`, `CYCLE_TICKS = (ticksLastMinute <= 1) and 10 or min(ticksLastMinute, 10)` — so every player runs once per wall second under a fast clock, at a peak of about 57 µs per player per tick (17, 35 or 87 players at 1, 2 or 5 % of a tick). Every step must then accept a 60-game-minute interval; a test belongs in Task 2. For the respawn: `OnNewGame` evicts the dead object from the online table, and the dead mark is guarded by the record's reset count.
+**Recommendation.**
+- **The stagger (draft ruling 2).** Keep the persistent queue. Size the per-tick share from a wall-time cycle: `perTick = ceil(N / CYCLE_TICKS)`, with `CYCLE_TICKS = (ticksLastMinute <= 1) and 10 or min(ticksLastMinute, 10)`. Every player then runs once per wall second under a fast clock.
+  - The peak is about 57 µs per player per tick, which allows 17, 35 or 87 players at 1, 2 or 5 % of a tick (Appendix C S2.4).
+  - That 57 µs includes the takeover handler's 19.33 µs. Under the hybrid the handler leaves the per-tick figure, and the writer's 11 µs and the unmeasured PANIC hold enter it.
+  - Every step must then accept a 60-game-minute interval. A test of that belongs in Task 2.
+- **The respawn (draft ruling 4).** `OnNewGame` evicts the dead object from the online table instead of storing the new one. The dead mark is guarded by the record's reset count, carried in the queue entry.
 
-**Changes to the draft.** Task 2's rulings 2 and 4 are rewritten as above. Task 13's acceptance reads `drained` per wall second.
+**Changes to the draft.**
+- **Task 2:** draft rulings 2 and 4 are rewritten as above. Its tests change with them (Appendix C).
+- **Task 13:** A's options-file reading is done for this shape; it is re-read only for 1.0.1. B reads `drained` per wall second, not per event. F can copy the bench entries x222 used, and its budget is Appendix C's table.
+- **Task 14:** the lessons rule says "size the share from wall ticks, not from game-minute events: a fast clock delivers one event per tick". The narrowing of #2822–#2824 rests on #3353 and #3354.
+- **Task 3** (only under Decision 1's (a)): its cost case is now measured at 19 µs per player per tick (#3353), not the review's 60–130 µs estimate.
 
 ### S4 — hunger feel (rows #3341–#3345)
 
-**Answer.** No stomach half-time reproduces vanilla's hunger: at 4.25 h or less a character goes Very Hungry overnight, at 5 h or more a character on three meals is never hungry, and the shipped 2 h spends 783 of 1,440 minutes at level 3 on a 60-minute day. A satiety scalar raised by vanilla's eat relief and decaying at vanilla's rates, with vanilla's food-eaten freeze, matches vanilla exactly at every day length — because it *is* vanilla's hunger, scaled by the energy balance (an identity of the model, not a measurement). Under it, a meal's bulk, fibre and fat stop affecting hunger; the stomach then times absorption only. Two live risks for any option: the intake reads a food's raw hunger value, which leaves out vanilla's cooked ×1.3 and its stale, rotten and burnt reductions; and the freeze gate would read the mod's own hunger.
+**Answer.**
+- **No stomach half-time reproduces vanilla.** The sweep's best value moves with the day length: 4.5 h on a 15-minute day, 4.25 h on the 30-, 60- and 90-minute days (Appendix D). At its best the stomach holds hunger at exactly 0 for 1142 to 1221 minutes a day, against vanilla's 669, 290, 144 and 96. On the light menu it reaches level 3 and is hungrier than vanilla for 683 to 795 minutes at every day length.
+- The shipped 2 h half-time spends 783 of 1,440 minutes at level 3 on a 60-minute day, where vanilla spends 0 (#3344).
+- **A satiety scalar matches vanilla exactly at every day length** (#3345). The scalar is raised by vanilla's eat relief, decays at vanilla's rates and keeps vanilla's food-eaten freeze. It matches because it *is* vanilla's hunger, scaled by the energy balance. The match is an identity of the model, not a measurement.
+- Under that scalar a meal's bulk, fibre and fat stop affecting hunger. The stomach then times absorption only.
+- Two risks hold for any option. The intake reads a food's raw hunger value, which leaves out vanilla's cooked ×1.3 and its stale, rotten and burnt reductions. And vanilla's freeze gate reads the HUNGER the mod last wrote.
 
-**Changes to the draft.** Task 9 is rewritten around the option Angus picks.
+**Recommendation.** Option (a), vanilla's hunger plus the energy term, if the goal is "feels like vanilla, reads the energy balance" (Appendix D). It is the only option exact at every day length. If bulk must matter, option (c)'s relief scaling at a β chosen for taste. The choice is Angus's (Decision 2), and it is coupled to the takeover fork (Decision 1).
+
+**Changes to the draft under every option.**
+- `IN.readBefore` also captures the laddered `getHungerChange()`, and the relief uses it.
+- Plan 11 re-blesses the golden trace for hunger: every option changes the HUNGER the mod writes.
+- The satiety test names its day lengths. A single tolerance cannot be written, because vanilla's own hunger moves with the day length.
+- `record.stomachFill` stays: the acute dose test, the last-fed clock and the mirror read it (Appendix D Question 4).
+
+**Changes under (a) or (c).** Task 9 is rewritten around a satiety scalar S.
+- S is a new persisted field, so the store version bumps.
+- A loaded record without S seeds `S = 1 − current HUNGER`. Only a new record seeds S = 1.
+- `K.fast.hungerTarget` takes S instead of the stomach fill.
+- S's home depends on Decision 1 (the coupling below).
+- The design names the freeze gate's two differences from vanilla: under a calorie deficit the gate fires less often, and at the 0.69 cap a starving character can earn a freeze S did not.
+- Draft ruling 13's half-time dial goes. Under (c) a β option replaces it.
+
+**Changes under (b).** Task 9 keeps the half-time dial. Its default comes from the sweep at the day length Angus picks (4.5 h at DayLength 1; 4.25 h at DayLength 2 to 4), not from draft ruling 13's derivation.
+
+**The coupling with Decision 1.** Appendix D recommends homing S in `K.fast.step`, the takeover's per-tick kernel step. There S tracks vanilla tick for tick, and the exact match is testable to 1e-6. Decision 1's (b) and (c) remove the takeover hook, and with it that per-tick step. S would then step once per slow minute. It would lag vanilla by up to one game minute, at most 5.8e-4 hunger idle and 1.2e-3 exercising (Appendix D). The exact equality would be lost, so the test would need a tolerance. A per-tick home under the hybrid would be the `OnTick` hold; no spike has costed that. Under every Decision 1 option, vanilla's freeze gate reads the HUNGER the mod last wrote: the handler's under the takeover, the writer's under the hybrid.
 
 ### S5 — food instance semantics (rows #3326–#3340)
 
-**Answer.** A partial eat lowers an item's stored calories, macros and hunger but never its base hunger; caught fish scale macros by weight and hunger by a separate factor (the 0.606 skew confirmed); butchering keeps neither ratio; split and replaced outputs hold script values unless `InheritFood`; only `InheritFood` carries food values. One rule covers every family: **scale an eaten item's micronutrients to the calories the eat delivered** (`b.cal × frac ÷ table kcal`), with the hunger ratio only when there are no calories to anchor on (rule #3340). A vanilla bug surfaced: the fishing code's bait exemption compares against the wrong item name and never fires.
+**Answer.**
+- A partial eat lowers an item's stored calories, macros and hunger, but never its base hunger (#3326).
+- A caught fish scales its macros by weight and its hunger by a separate factor (#3328). The 0.606 skew between the two is confirmed (Appendix E Q2).
+- A butchered cut's hunger and calories are scaled from its script by independent random draws, so neither ratio predicts the other (Appendix E Q3).
+- A split output holds its script values unless its recipe sets `InheritFood`, and a `ReplaceOnCooked` item always holds its own script values. Only `InheritFood` carries food values from inputs to outputs (Appendix E Q4–Q5).
+- One rule covers every family: **scale an eaten item's micronutrients to the calories the eat delivered** (`b.cal × frac ÷ table kcal`). Fall back to the hunger ratio only when there are no calories to anchor on (#3340).
+- A vanilla bug surfaced: the fishing code's bait exemption compares against the wrong item name and never fires (#3328).
 
-**Changes to the draft.** Task 7 Step 1 is answered (`b.calFull = b.cal × b.instBase ÷ b.rawBefore`); its scale also needs the thirst-only form and a craft-path normaliser (guarded for zero calories).
+**Changes to the draft.**
+- **Task 7:**
+  - Step 1 is answered: `b.calFull = b.cal × b.instBase ÷ b.rawBefore`, guarded on `rawBefore ~= 0` (#3326).
+  - Prefer the direct form `vec × (b.cal × frac ÷ vec.calories)` with factor 1. It needs no `calFull` and survives a later clamp on the scale.
+  - Add the thirst-only-with-calories form (`calFull = b.cal × b.scriptThirst ÷ b.thirstBefore`, or the direct form).
+  - Add two shape tests: a thirst-only Food with calories, and a fish fillet.
+  - Correct the comment above the `K.vector.meat` call, or remove the function. "1/amount for a split output" holds only for an `InheritFood` split.
+- **Task 8:** owns the OpenHotdogPack energy creation and the MakeHotDog output (Appendix E). It also decides whether the craft-map path normalises to the output's delivered calories (`b.cal × frac ÷ craftVec.kcal`, guarded for zero calories).
+- **Register (controller):** #0143 narrows its bound. Every spawn and craft writer read sets base hunger equal to hunger. The row stays open, because `ItemStatsPacket.applyItemStats` is unread.
 
 ### S6 — the Lua checksum arm (rows #3374–#3379)
 
-**Answer.** It gates exactly like the script arm. One changed byte inside a comment of one Lua file disconnects a user-role client at the join, before it reaches the game; a copy differing only in line endings joins. So **any update that touches a script or Lua file is a server event**, which in practice is every code release.
+**Answer.** The Lua arm gates exactly like the script arm (#3377). One changed byte inside a comment of one Lua file disconnects a user-role client at the join, before it reaches the game (#3374). A copy differing only in line endings joins (#3376). So **any update that touches a script or Lua file is a server event** (#3378). In practice that is every code release.
 
-**Changes to the draft.** Task 12's README update procedure takes the S6 appendix's text; the release tool's manifest diff should cover `.lua` files too.
+**Changes to the draft.**
+- Task 12's README update procedure takes Appendix F's text.
+- The release tool's manifest diff covers `.lua` files too, with the same CR-dropping hash.
+- The harness's `kicked` marker misses a Lua kick, which only the client's connections log records. A Plan 11 run that needs a kick reads that log.
 
 ## The refactor (R0–R4) — what Plan 11 builds on
 
-- **The golden trace** (`testing/tests/kernel/test_golden_trace.py`, golden `df7806d8…daa9e8b3`): six stand-in players over 240 game minutes through meals, second bites, a butchered cut, a dish, alcohol and caffeine, a drink, an outside store write, a death and respawn, a departure and return, a NaN injection and a day close. Every mutation the reviews aimed at the refactor fails it or a pinned unit test. **Plan 11 changes behaviour on purpose, so it re-records the trace — once per task that names the behaviour change it records** (the proposed CLAUDE.md rule).
+- **The golden trace** (`testing/tests/kernel/test_golden_trace.py`, golden `df7806d8…daa9e8b3`): six stand-in players over 240 game minutes through meals, second bites, a butchered cut, a dish, alcohol and caffeine, a drink, an outside store write, a death and respawn, a departure and return, a NaN injection and a day close. Every mutation the reviews aimed at the refactor fails it or a pinned unit test. **Plan 11 changes behaviour on purpose, so it re-records the trace once per task, in the task that names the behaviour change** (the proposed CLAUDE.md rule).
 - **Interfaces Plan 11's code samples must use** (the draft predates them):
-  - `NR.worldAge()` (nil on a failed read; `NR.finite` on the value), `NR.finite`, `NR.num`, `NR.obj`, `NR.flag` in `NR_Core.lua`. Four adapters keep `worldAge() or 0` wrappers on purpose — Plan 11's zero-age fix changes exactly those.
-  - The slow minute is `NR.server.minute` (`ORDER`, `register(name, fn)`, `run`); steps take `(username, player, record, ctx)`; `ctx.absorbed`, `ctx.mealCa`, `ctx.body`, `ctx.dtM`, `ctx.ageH` replace the hand-off globals. `P.onMinute` still fires, after the pipeline.
-  - `K.intake.fractionOf`, `macrosEaten`, `assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, trace)`; `K.heal.body(body, ageH, l0)`.
+  - `NR.worldAge()` (nil on a failed or non-finite read), `NR.finite`, `NR.num`, `NR.obj` and `NR.flag` in `NR_Core.lua`.
+  - The slow minute is `NR.server.minute` (`ORDER`, `register(name, fn)`, `run`). Steps take `(username, player, record, ctx)`.
+  - `ctx.absorbed` and `ctx.mealCa` replace `KIN.lastAbsorbed` and `KIN.lastMealCa`. `ctx.body`, `ctx.dtM` and `ctx.ageH` replace Nutrients' hand call of `EFF.minute`.
+  - Two hand-offs outside the minute remain: `IN.pendingAlc` and `IN.pendingCaf` (eat time to the Nutrients step, `NR_Server_Intake.lua:205-206`, `NR_Server_Nutrients.lua:371-375`), and `FAST.lastInp` (the per-tick handler to the Effects step, `NR_Server_Fast.lua:183`, `NR_Server_Effects.lua:230`).
+  - `P.onMinute` still fires, after the pipeline.
+  - `K.intake.fractionOf`, `macrosEaten` and `assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, trace)`; `K.heal.body(body, ageH, l0)`.
   - The store kernel takes `records` as its last argument and never falls back to a global.
-- **Accepted changes the trace cannot see** (rulings R1-1, R2-1): a shared helper now returns its default where an old copy raised on a throwing getter (unreachable on 42.20.4); a step raising outside its own guard logs `minute: <step> failed for <user>` and counts `NR.server.minute.stats.failures`; a third-party minute listener added at file load now runs after the pipeline.
+- **The zero-age sites Plan 11's fix must change.** Six sites still turn a failed clock read into age 0:
+  - the four `worldAge()` wrappers that return `NR.worldAge() or 0`: `NR_Server_Fast.lua:83`, `NR_Server_Intake.lua:292`, `NR_Server_Kinetics.lua:38`, `NR_Server_Players.lua:12`;
+  - `NR_Server_Metabolism.lua:202` (`ageH or worldAge() or 0`);
+  - `NR_Server_Bus.lua:51-53`, which reads `getWorldAgeHours` itself and passes `okA and age or 0` (a non-finite age passes through).
+- **Changes the trace cannot see, accepted by ruling** (R1-1, R2-1, R3-1):
+  - R1-1, first difference: a shared helper now returns its default where an old copy raised on a throwing getter.
+  - R1-1, second difference: a non-finite world age now reads 0 in the four wrappers, where the old copies passed NaN or infinity through.
+  - Both are unreachable on 42.20.4 (the R1 review's jar reads).
+  - R2-1: a step raising outside its own guard logs `minute: <step> failed for <user>` and counts `NR.server.minute.stats.failures`.
+  - R2-1: a third-party minute listener added at file load now runs after the pipeline, not before it.
+  - R2-1's two changes go into Task 12's operator notes (the CHANGELOG and the README).
+  - R3-1: the intake's `IN.fractionOf`, `IN.macrosEaten` and kin are bound to `K.intake` when the file loads, and `K.intake.assemble` calls the kernel functions directly, so a third party that wraps `IN.fractionOf` no longer reaches the eaten item's own chain (nothing in the mod, the harness or the installed corpus wraps them).
+  - R0-1: the golden trace was recorded three times in R0's own review rounds, each from the frozen 1.0.0 tree and before the first refactor commit; Plan 11 re-records it only in a task that names the behaviour change it records.
+
+### Re-basing the draft
+
+The draft's code samples predate the refactor. Per task:
+- **Task 1.** The helper set, `server_host.py` and `test_core_helpers.py` landed in Plan 10 R1; Steps 2, 3 and 5's `NR_Core.lua` append are done. What remains is the zero-age fix at the six sites above. Step 5's Kinetics sample is re-based: the step is `step(username, player, record, pipe)` (`NR_Server_Kinetics.lua:46`), and a nil age clears `pipe.absorbed` and `pipe.mealCa`, not `KIN.lastAbsorbed` and `KIN.lastMealCa`. Intake's `num(v)` was kept under its name, not renamed `numv`.
+- **Task 2.** `P.minute`'s `NR.worldAge() or 0` becomes the Players wrapper that Task 1 fixes. `P.work(username, player)` keeps calling `NR.server.minute.run` and then `P.onMinute`. `K.stagger.perTick` takes the wall-cycle form, and its "no tick in the last minute" tests go: that case never happens (#3348–#3350). The `OnNewGame` sample evicts instead of storing. The queue entry carries the record's `resets`. The respawn test brings the new object in three ticks after `OnNewGame` (#3358). A 60-game-minute step test is added. Step 9's dead options branch is at `NR_Server_Options.lua:88-110`.
+- **Task 3** (only under Decision 1's (a)). `onMinute` is now the pipeline's `"fast"` step, registered with `NR.server.minute.register("fast", onMinute)` (`NR_Server_Fast.lua:563`), with the signature `(username, player, record, ctx)`. A raise there outside its own `pcall` is caught by the pipeline, logged and counted. `FAST.stampSlow` is called from that step. The line ranges in its file list are re-read.
+- **Task 4.** `B.flushEffects` is the pipeline's `"bus"` step (`NR_Server_Bus.lua:113`), with the signature `(username, player, record)`. The `mirror.request` listener it rewrites holds one zero-age site (`NR_Server_Bus.lua:51-53`).
+- **Task 6.** Rewritten by Decision 1.
+- **Task 7.** The scale call moved into the kernel: `K.intake.assemble` calls `K.vector.meat(vec, b.instBase, b.scriptHunger)` at `NR_Kernel_Intake.lua:165`. `IN.readBefore` is at `NR_Server_Intake.lua:334`. Step 1 is answered (S5).
+- **Task 9.** Rewritten by Decision 2. The Kinetics call to `K.stomach.empty` is at `NR_Server_Kinetics.lua:63`.
+- **Task 10.** `S.prune` already guards a nil age; the sample stands.
+- **Task 12.** Adds R2-1's operator notes and the lines each decision changes.
+- **Task 13.** `bench.minute` still calls `NR.server.players.work(u, p)`. `bench.handler` exists only under Decision 1's (a).
+- **Tasks 5, 8 and 11** touch no refactored interface.
+
+### Refactor follow-ups for Plan 11
+
+- `test_core_helpers.py` does not pin `NR.obj`, `NR.flag`, `NR.worldAge`'s rejection of infinity, or the four wrappers (R1 review).
+- Metabolism's limitation string at `NR_Server_Metabolism.lua:35` is still true, but its reason ("NR_Server_Nutrients sorts after this file") is wrong since R2: the pipeline's `ORDER` sets the order. The string is shipped and pinned by `testing/tests/kernel/test_metabolism_shape.py:922`, so the rewording changes both.
+- Stale sentences for the doc track: any page or comment saying an adapter appends to `P.onMinute`, or that Nutrients calls `EFF.minute` by hand. One is the comment at `NR_Server_Options.lua:88-91`.
+- The Options append to `P.onMinute` (`NR_Server_Options.lua:92-110`) is dead: Options loads before Players, so the branch is never taken. Draft Task 2 Step 9 removes it.
+- `testing/experiments/x151_records2.py:160` reads `NutritionRevamp.server.kinetics.lastMealCa`, which no longer exists. A driver is never edited after its run (CLAUDE.md § 5), so a re-run needs a new driver.
+- The six zero-age sites (above).
+- `IN.pendingAlc`, `IN.pendingCaf` and `FAST.lastInp` remain outside the context. `FAST.lastInp` leaves with the handler under Decision 1's (b) or (c).
+- `NR_Server_Effects.lua:47` carries a 142-character comment line (R2 review).
 
 ## Angus's decisions
 
-1. **The takeover fork.** (a) Keep the takeover and harden it (draft Task 3). (b) Switch to zeroed rates with per-minute writes, losing the PANIC hold and the TEMPERATURE target. (c) The hybrid (recommended). Weigh: the cost gap is real on the Lua side but vanilla's updaters come back untimed (measured in S1b at about 1–11 µs per player per update, which makes the saving roughly a half rather than nine-tenths); the mode becomes a restart-only choice; a writer outage means players stop getting hungry rather than falling back to vanilla; any other mod reading the rates sees zero.
-2. **Hunger feel.** (a) Vanilla's hunger plus the energy term (exact vanilla feel; bulk stops mattering). (b) A stomach-driven feel at a tuned half-time (closest at about 4.5 h on a 15-minute day; poor on a 60-minute day). (c) A blend in which bulk modulates relief (only distinguishable on a light diet; strength chosen by taste). And separately: **which day length the feel is tuned for** (the fixture runs 90 minutes, the acceptance profile 15, vanilla's default 60).
-3. **Record pruning default.** The draft proposes off by default (operators opt in).
-4. **Internal ids in shipped comments.** Keep (the maintainers' route to the evidence) or strip (opaque to a Workshop reader).
-5. **Subscribing to the five Workshop neighbours** (still the gate on the deferred code reads).
+### 1. The takeover fork
+
+**(a) Keep the takeover and harden it** (draft Task 3).
+- Cost: about 121 µs per player per game minute at a 15-minute day and 724 µs at a 90-minute day (#3353; Appendix A § 7).
+- For it: the mode switches live, with no restart (#3357). A fault fails over to vanilla's own update, so players keep getting hungry. PANIC and TEMPERATURE are held every tick inside the hook. Other mods that read the `ZomboidGlobals` rates, QualityCooking among them (#2564), read their real values.
+- Against it: the highest cost of the three. Task 3's strike and re-arm work. The re-implemented vanilla arms stay limitations.
+
+**(b) Zeroed rates with per-minute writes, no per-tick hold.**
+- Cost: about 17–77 µs per player per game minute at a 15-minute day (#3373, #3386; Appendix B § 5). That saves a third to six-sevenths against (a), about 0.57 at the mean. At a 90-minute day it is 48–408 µs against 724 µs (Appendix B § 5).
+- For it: the lowest cost. Vanilla runs its own arms again.
+- Against it: the PANIC hold and the TEMPERATURE target are lost.
+
+**(c) The hybrid: (b) plus a thin `OnTick` PANIC hold** (and TEMPERATURE optionally).
+- Cost: (b)'s 17–77 µs plus the hold, which is unmeasured.
+- For it: (b)'s saving, with PANIC kept (#3048 shows a per-tick write outside the hook survives).
+- Against it: the hold's cost is unknown until Task 13.
+
+**What (b) and (c) share.**
+- The mode becomes a restart-only choice. It can be read at the server's `OnGameBoot` (#3380), but no mod route re-runs the engine's load of the rates (#3365).
+- A writer outage is not a vanilla fallback. With the rates zeroed and the writer stopped, players stop getting hungry, thirsty or tired.
+- Any other mod reading the rates reads zero (#2564).
+- Fatigue asleep, the STRESS and FOOD_SICKNESS floors and `rmod` are approximated, one write interval late (Appendix A § 5).
+- Still unmeasured: the exercise arm's swing branch, the `setDelayToSleep` rewrite, and the updaters' cost under non-zero rates and many players.
+- Obligations on the build: fold each auto-drink sip into the THIRST target (#3382); run the writer after the minute's eats (#3383); never read the mode at the client's `OnGameBoot` (#3381); step by elapsed world age (#3371); set each rate to `0`, never `nil` (#3366).
+
+**Coupled with Decision 2.** Under Decision 2's (a) or (c) the satiety scalar S needs a home. Under (a) here it lives in the takeover's per-tick step and matches vanilla exactly. Under (b) or (c) here it steps once a slow minute, lags by up to a minute and loses the exact match (the S4 coupling above).
+
+**Recommendation:** (c), the hybrid, as S1 and S1b recommend. It rests on the measured boot-time mode read, the measured auto-drink and eat behaviour, and a cost margin of roughly half. It asks Angus to accept a restart-only mode and an outage with no vanilla fallback.
+
+### 2. Hunger feel
+
+**(a) Vanilla's hunger plus the energy term.**
+- Evidence: it matches vanilla's HUNGRY level in all 1440 minutes on every day length, by the model's identity (#3345; Appendix D).
+- For it: no tuning, on any day length. The energy deficit is the realism coupling on hunger.
+- Cost: bulk, fibre and fat no longer touch hunger. It needs the laddered relief getter, a migration of S with a store version bump, and the freeze gate's two differences named.
+
+**(b) A stomach-driven feel at a tuned half-time.**
+- Evidence: it is closest on a 15-minute day (4.5 h: MAD 0.0304, 1344 minutes agreeing) and drifts as the day lengthens (4.25 h: MAD 0.0626, 0.0785, 0.0850) (Appendix D). Its plateau at hunger 0 runs 1142–1221 minutes a day, against vanilla's 96–669.
+- Cost: it fails the light menu at every day length. It reaches level 3 and is hungrier than vanilla for 683–795 minutes (Appendix D). The shipped 2 h is far off: MAD 0.31–0.38 and 1067 minutes hungrier.
+- For it: no migration, and bulk shapes hunger.
+
+**(c) A blend in which bulk shapes relief.**
+- Evidence: it equals (a) wherever a meal covers the hunger it meets. On the light menu β 0.25 makes the character less hungry than vanilla for 111 minutes (MAD 0.0348), and β 1 for 894 minutes (MAD 0.1372) (Appendix D). The fill-floor form is inert below w 1.
+- For it: a bulky meal sates more.
+- Cost: a vanilla-relative feel that varies with the menu, at a β chosen by taste. It carries (a)'s migration too.
+
+**Which day length the feel is tuned for.** This matters for (b) and for (c)'s β. It does not matter for (a), which reads the same timer vanilla reads. The acceptance profile runs a 15-minute day, the fixture a 90-minute day and vanilla's default a 60-minute day. A (b) tuned at 15 minutes (4.5 h) is not the best at 60 minutes (4.25 h).
+
+**Coupled with Decision 1.** (a) and (c) are exact only where S updates every tick, in the takeover's step. Under Decision 1's hybrid, S steps once a slow minute and the match is within a minute's lag, not exact (the S4 coupling above). (b) does not depend on Decision 1.
+
+**Recommendation:** (a), if the goal is "feels like vanilla, reads the energy balance" (Appendix D). If bulk must matter, (c)'s relief scaling at a β Angus picks.
+
+### 3. Record pruning default
+
+- **Off by default, operators opt in** (the draft's ruling 14). Cost: the record table grows with every player who ever joined.
+- **On by default, with a keep of N game days.** Cost: a player away longer than N days returns to a fresh record.
+- No spike measured this; it is a judgement.
+- **Recommendation:** off, as the draft proposes.
+
+### 4. Internal ids in shipped comments
+
+- **Keep.** The ids are the maintainers' route to the evidence (the draft's ruling 15). Cost: they are opaque to a Workshop reader.
+- **Strip.** Cost: the route to the evidence is lost from the code. The edit touches every commented Lua file, so it is a server event like any code release (#3378), and it changes lines that the register's `repo:mod/` pointers quote.
+- No spike measured this beyond S6's server-event reading; it is a judgement.
+- **Recommendation:** keep.
+
+### 5. Subscribing to the five Workshop neighbours
+
+- **Subscribe.** The five deferred code reads can then run. Cost: Angus's time to subscribe.
+- **Do not subscribe.** The five reads stay deferred, and the compatibility notes stay as they are.
+- No spike touched this.
+- **Recommendation:** subscribe when convenient; nothing in Plan 11 waits on it.
 
 ## Appendices
 
@@ -380,7 +593,7 @@ The record then read `dead` true, `resets` 1, at three reads over 8.6 s [T103.8]
 **Draft ruling 4 — confirmed in its aim, corrected in its mechanism.**
 - A respawn is a new `IsoPlayer` under the username (confirmed), and so is a reconnect (S3.4).
 - But at `OnNewGame` the new object is **not yet** in `getOnlinePlayers` (it enters three ticks later), and the object handed to `OnNewGame` took a different identity number in the bench's Lua identity table from the one that entered the list (`#4` against `#5`; one Java object keyed twice or two objects is not settled by this instrument). So "`OnNewGame` stores the new object in `P.online`" may store an object the list never shows, and `FAST.byChar` keyed by it would miss.
-- Recommended: `OnNewGame` **evicts** instead of storing — `P.online[u] = nil` and the username dropped from the queue (or the queue entry made to re-read `P.online[u]` at drain time, which then finds nil and skips) — so no drain can reach the dead object after the reset; `P.minute`'s identity comparison (ruling 4's second clause) then adopts the list's object at the next event and fires first sight. The "dead" mark must also never be written onto a record whose `resets` changed since the queue entry was made (a cheap guard: carry the record's `resets` in the queue entry). Test: the golden-trace host's respawn at minute 101 with the new object appearing two ticks after `OnNewGame`.
+- Recommended: `OnNewGame` **evicts** instead of storing — `P.online[u] = nil` and the username dropped from the queue (or the queue entry made to re-read `P.online[u]` at drain time, which then finds nil and skips) — so no drain can reach the dead object after the reset; `P.minute`'s identity comparison (ruling 4's second clause) then adopts the list's object at the next event and fires first sight. The "dead" mark must also never be written onto a record whose `resets` changed since the queue entry was made (a cheap guard: carry the record's `resets` in the queue entry). Test: the golden-trace host's respawn at minute 101 with the new object appearing three ticks after `OnNewGame`.
 
 ### S3.4 — the reconnect
 

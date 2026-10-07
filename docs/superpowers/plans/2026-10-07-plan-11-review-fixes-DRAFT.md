@@ -1,6 +1,21 @@
 # Plan 11 — The Review Fixes Implementation Plan (DRAFT)
 
-> **DRAFT, not for execution.** Written 2026-10-07 as Plan 10, then held back so research spikes and a behaviour-preserving refactor run first (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`). Plan 11 is rewritten from this draft and the decision memo `docs/superpowers/specs/2026-10-07-plan-11-decisions.md` after Angus reviews the memo. The memo landed 2026-10-07; its "Changes to the draft" lines per spike and its five decisions for Angus govern the rewrite. Known rewrites: Task 1's helper set moves to Plan 10 R1 (its zero-age fix stays here); every code sample assuming `P.onMinute`, `KIN.lastAbsorbed` or local helpers is re-based on Plan 10 R2's pipeline; Tasks 3, 6 and 13 follow S1 and S2; Task 2 follows S3; Task 7 follows S5; Task 9 follows S4; Task 12's update procedure follows S6; plan numbering, ids and the ledger path move to Plan 11.
+> **DRAFT, not for execution.** Written 2026-10-07 as Plan 10, then held back so research spikes and a behaviour-preserving refactor run first (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`). Plan 11 is rewritten from this draft and the decision memo `docs/superpowers/specs/2026-10-07-plan-11-decisions.md` after Angus decides the memo's five decisions. The memo's per-spike "Changes to the draft" lines, its "Re-basing the draft" list and its "Refactor follow-ups for Plan 11" list govern the rewrite. Plan numbering, ids and the ledger path move to Plan 11.
+>
+> **What each decision rewrites.**
+> - **Decision 1, the takeover fork.** Under (a), keep the takeover: Task 3 and rulings 6-7 stay; Task 6 and ruling 10 stay; ruling 4's fix also re-keys `FAST.byChar`; Task 13 F benches the handler; Task 12 keeps its recovery and Overlay lines. Under (b) or (c), zeroed rates: Task 3 and rulings 6-7 go; Task 6 becomes the main build (the boot-time zeroing, the per-minute writer, the sip fold, the after-the-eats order, the client rule, the `OnTick` PANIC hold under (c)) and ruling 10 and Task 6's drafted body go; Task 13 measures the writer, the hold and vanilla's updaters; Task 12's CHANGELOG and README lines on the takeover and Overlay are rewritten; Task 14 documents the route. Under every option, Task 9's home for the satiety scalar follows this decision (the coupling).
+> - **Decision 2, hunger feel.** Task 9 and ruling 13 are rewritten around the option chosen: a satiety scalar with a store version bump under (a) or (c), a sweep-tuned half-time dial under (b). Under every option `IN.readBefore` captures the laddered `getHungerChange()`, the golden trace is re-blessed for hunger, and the satiety test names its day lengths. Task 12's "new options" line follows.
+> - **Decision 3, the pruning default.** Task 10 and ruling 14 (the option's default); Task 12's options line.
+> - **Decision 4, ids in shipped comments.** Ruling 15's clause; a strip adds a task, and it is a server event like any code release.
+> - **Decision 5, the subscription.** Ruling 15's clause on the five Workshop code reads; no task until Angus subscribes.
+>
+> **What each spike and the refactor rewrite.**
+> - **S1 and S1b:** Tasks 3, 6, 12 and 13, by Decision 1.
+> - **S2 and S3:** Task 2 (rulings 2 and 4: the wall-cycle share, the 60-game-minute step test, the eviction at `OnNewGame`, the `resets` guard); Task 13 (A's options reading done, B per wall second, F's bench entries and budget); Task 14 (the lessons rule sized from wall ticks; #2822-#2824 narrowed onto #3353 and #3354).
+> - **S4:** Task 9, by Decision 2.
+> - **S5:** Task 7 (Step 1 answered; the direct form; the thirst-only form; the fillet and thirst-only shape tests; the `K.vector.meat` comment); Task 8 (the OpenHotdogPack and MakeHotDog items; the craft-map normaliser, guarded for zero calories); #0143 narrowed by the controller.
+> - **S6:** Task 12's README update procedure; the release tool's manifest diff covers `.lua` files.
+> - **The refactor (R0-R4):** Task 1's helper set landed in R1, and its zero-age fix now covers six sites; every code sample is re-based on R2's pipeline and R3's kernels (the memo's "Re-basing the draft"); Task 12 adds R2-1's operator notes.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
