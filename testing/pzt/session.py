@@ -103,7 +103,7 @@ def profile_args(a):
     mods = {"mods": prof.mods if prof else None,
             "mod_sources": prof.sources if prof else None,
             "mod_skip": prof.skip if prof else (),
-            "sandbox": prof.sandbox if prof else None, "ini": prof.ini if prof else None}
+            "sandbox": prof.sandbox if prof else None, "ini": prof.ini if prof else None, **({"gclog": True} if prof is not None and getattr(prof, "gclog", False) else {})}
     return prof, flag, mods
 
 
@@ -126,7 +126,7 @@ def mark_profile(tl, prof, flag=None):
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
-                workshop=True, workshop_items=(), mod_sources=None, mod_skip=(), reuse=False, ini=None):
+                workshop=True, workshop_items=(), mod_sources=None, mod_skip=(), reuse=False, ini=None, gclog=False):
     """`mod_sources`/`mod_skip` come from a profile (see profile.py): a folder to copy in for
     a given mod id, and the ids named in Mods= that are deliberately not placed."""
     if rec:
@@ -146,7 +146,7 @@ def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="p
                log_path=os.path.join(run_dir, "server-stdout.log"), echo=say,
                workshop=workshop, workshop_items=workshop_items,
                mod_sources=mod_sources, mod_skip=mod_skip)
-    s.ini_overrides = dict(ini or {}); s.seed(sandbox=sandbox)   # a profile's [server] ini keys
+    s.ini_overrides = dict(ini or {}); s.gclog = bool(gclog); s.seed(sandbox=sandbox)   # a profile's [server] ini keys and gclog flag
     if s.missing_mods:
         say(f"  [server] mods not placed in mods/: {s.missing_mods}")
     return s

@@ -241,7 +241,7 @@ class Server:
                     self.echo(f"  [server] sandbox written fresh: {sorted(sandbox)}")
 
     def start(self, timeout=420):
-        cmd = [JAVA, *JVM, "zombie.network.GameServer", "-nosteam", "-servername", self.name,
+        cmd = [JAVA, *JVM, *gclog_args(self), "zombie.network.GameServer", "-nosteam", "-servername", self.name,
                "-adminpassword", self.admin_pw, f"-cachedir={self.cache}",
                "-port", str(self.port), "-udpport", str(self.port + 1)]
         self.cmd = cmd
@@ -320,3 +320,13 @@ class Server:
     def kill(self):
         if self.alive:
             subprocess.run(["taskkill", "/PID", str(self.proc.pid), "/T", "/F"], capture_output=True)
+
+
+def gclog_args(server):
+    """The opt-in JVM GC log (Plan 10c H0; a profile's `[server] gclog = true`): `-Xlog:gc*` written to
+    `<run>/gc.log`, the run dir being the server cache's parent, so ZGC's pauses and allocation stalls can be
+    lined up with a frame ring. Empty unless the server carries `gclog = True`. HotSpot's -Xlog parser on
+    Windows skips the drive colon of a `file=C:/...` path, so the absolute path needs no quoting."""
+    if not getattr(server, "gclog", False):
+        return []
+    return ["-Xlog:gc*:file=" + os.path.join(os.path.dirname(server.cache), "gc.log")]

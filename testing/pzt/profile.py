@@ -49,7 +49,7 @@ HARNESS_ID = "PZTestKit"
 
 TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify", "clients", "client_overrides"}
 MOD_KEYS = {"id", "workshop_id", "path", "copy"}
-SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded"}   # the last two are server-ini booleans
+SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded", "gclog"}   # SleepAllowed/SleepNeeded: server-ini booleans; gclog: a launch flag
 CLIENT_KEYS = {"timeout", "users", "safemode", "launcher"}
 RUN_KEYS = {"hold"}
 VERIFY_KEYS = {"side", "cmd", "args", "expect"}
@@ -91,7 +91,7 @@ class Profile:
                 "description": self.description, "mods": list(self.mods),
                 "sources": dict(self.sources), "skip": list(self.skip),
                 "workshop_items": dict(self.items), "sandbox": dict(self.sandbox),
-                "users": list(self.users), "client_overrides": dict(getattr(self, "client_overrides", {}))}
+                "users": list(self.users), "client_overrides": dict(getattr(self, "client_overrides", {})), "gclog": getattr(self, "gclog", False)}
 
 
 def _check_keys(what, table, known):
@@ -387,7 +387,7 @@ def load(name):
         client_timeout=_int(name, "[client] timeout", clt.get("timeout", DEFAULTS["client_timeout"])),
         description=doc.get("description", ""))
     # server-ini overrides (booleans, written verbatim by Server.seed); empty leaves the fixture's ini alone
-    prof.ini = {k: _bool(name, f"[server] {k}", srv[k]) for k in ("SleepAllowed", "SleepNeeded") if k in srv}
+    prof.ini = {k: _bool(name, f"[server] {k}", srv[k]) for k in ("SleepAllowed", "SleepNeeded") if k in srv}; prof.gclog = _bool(name, "[server] gclog", srv.get("gclog", False))   # Plan 10c H0: -Xlog:gc* to <run>/gc.log
     prof.clients = list(users)             # the Plan 8 name for the same list (`users` kept)
     return _with_overrides(name, doc, prof)   # [client_overrides.<user>] (Plan 10 S6; appended below)
 

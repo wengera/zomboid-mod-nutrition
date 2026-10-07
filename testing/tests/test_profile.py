@@ -648,3 +648,32 @@ def test_seed_without_ini_keys_leaves_the_fixture_values(tmp_path, monkeypatch):
     for ini in (None, {}):
         vals = _seeded_ini(tmp_path, monkeypatch, ini)
         assert vals["SleepAllowed"] == "false" and vals["SleepNeeded"] == "false"
+
+
+# ---- [server] gclog: the opt-in -Xlog:gc* launch flag (Plan 10c H0) -----------------------
+
+def test_gclog_is_parsed_as_a_boolean_and_defaults_off():
+    with workspace('server = { gclog = true }\n[[mods]]\nid = "PZTestKit"\n'):
+        p = profile.load("p")
+    assert p.gclog is True and p.ini == {} and p.report()["gclog"] is True
+    with workspace('[[mods]]\nid = "PZTestKit"\n'):
+        p = profile.load("p")
+    assert p.gclog is False
+
+
+def test_a_non_boolean_gclog_is_a_profile_error():
+    with workspace('server = { gclog = "yes" }\n[[mods]]\nid = "PZTestKit"\n'):
+        with pytest.raises(profile.ProfileError) as e:
+            profile.load("p")
+    assert "must be true or false" in str(e.value)
+
+
+def test_gclog_args_name_the_run_dir_and_sit_before_the_main_class(tmp_path):
+    cache = tmp_path / "run" / "server"
+    s = server.Server(str(cache), name="pzt", mods=["PZTestKit"])
+    assert server.gclog_args(s) == []
+    s.gclog = True
+    assert server.gclog_args(s) == ["-Xlog:gc*:file=" + os.path.join(str(tmp_path / "run"), "gc.log")]
+    with open(server.__file__, encoding="utf-8") as fh:
+        src = fh.read()
+    assert '*JVM, *gclog_args(self), "zombie.network.GameServer"' in src
