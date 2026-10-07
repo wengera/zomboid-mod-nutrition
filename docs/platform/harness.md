@@ -171,7 +171,7 @@ A fixture can carry a second account, and the debug flag is then a per-account r
 A driver or a verification row names a client's side `client:<user>`: the bare `client` still means `admin`, so every driver and row written before a second client existed reads as it did, and a user the run did not attach is an error that names the attached users [#3303/C/snapshot].
 A profile lists the accounts a run attaches in a top-level `clients` key, `["admin"]` by default, each name a client the fixture provisioned, and the run launches them one at a time with each ready before the next is launched [#3304/C/snapshot]; the two-client session attached `admin` and then `bob` that way, each reaching ready, `bob` 40.9 s after its own launch [#3298/M/n=1].
 A release client in that session answered the bus, read its debug flags false and its debugger error count 0, and had the mod's tooltip hook installed [#3297/M/n=1], and `event.trigger` addressed to the named client toggled that client's own panel [#3296/M/n=1].
-Two clients on one `pzt run` are one session: one run folder, one server process and one teardown, and the profile's `clients` list is the whole set of client processes the run starts.
+Two clients on one `pzt run` are one session: the profile's `clients` list is the whole set of client processes the run starts, launched one at a time with each ready before the next [#3304/C/snapshot].
 A client reads only its own player, so a second client's copy of the other player's character is not reachable from the bus [#3292/C/C-only].
 
 <a id="bus"></a>

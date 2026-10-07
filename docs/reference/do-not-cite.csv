@@ -543,6 +543,7 @@ x192-20261006-194648,boots.2.death.reduce.after,100,"Read in the call's own tick
 x192-20261006-194648,boots.1.A.set_vitC.after,0.05,"The driver's own write read back.",cite `verdicts.A.observed.record.vitC.p`
 x192-20261006-194648,boots.1.A.set_buffer.after,123.5,"The driver's own write read back.",cite `verdicts.A.observed.record.buffer.calories`
 x192-20261006-194648,boots.2.kill.set_vitC.after,0.07,"The driver's own write read back; the reading is its absence after the kill.",cite `verdicts.KILL.observed.pre3`
+x192-20261006-194648,verdicts.KILL.observed.write.after,0.07,"The driver's own write read back; the reading is its absence after the kill.",cite `verdicts.KILL.observed.pre3.resets`
 x192-20261006-194648,log_lines.*.wall_seen,walls,"When the tail first saw the line, an upper bound on its time.",
 x192-20261006-194648,boots.*.*.plant_*.after,the planted values,"The driver's own writes read back; not readings of the mod.",
 x192-20261006-194648,boots.1.C.bob_*.after,the planted values,"The driver's own writes read back; not readings of the mod.",
