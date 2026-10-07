@@ -1,0 +1,32 @@
+# testing/profiles/x22-luasum-a.toml - Plan 10 Task S6, boot a (run prefix x223a): the Lua checksum arm.
+# PZTestKit + the FROZEN 1.0.0 spike copy (release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged by Task 0 at 42784ff; release/ is gitignored) on the server and on admin, while bob alone gets
+# release/spike-luasum-a (gitignored): copy a (one byte changed inside the first comment line of common/media/lua/shared/NR_Core.lua: 'version' -> 'versiom').
+# The driver records each file's sha256 against the frozen file's. Fixture two: admin -debug (admin role, which
+# bypasses the checksum gate, #3139), bob release (user role). A kicked or never-ready bob is the reading: the
+# driver watches bob itself on its own deadline and does not fail on a disconnect (the raising-probe precedent);
+# [client] timeout bounds admin's ready wait only. The driver is testing/experiments/x223_luasum.py --boot a.
+fixture = "two"
+description = "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy on the server and admin; bob gets spike-luasum-a (one Lua file differing) - the Lua checksum arm, boot a."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[client_overrides.bob]
+NutritionRevamp = "release/spike-luasum-a/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
