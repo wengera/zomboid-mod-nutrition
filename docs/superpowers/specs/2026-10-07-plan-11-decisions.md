@@ -1,6 +1,6 @@
 # Plan 11 decisions — what Plan 10's spikes and refactor found
 
-Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran six spikes on questions the 2026-10-07 review left open under the fixes. It also restructured the server adapters behind a golden trace. This memo is what Plan 11 is written from. The sections below give each spike's answer, its recommendation and what it changes in the fixes draft (`docs/superpowers/plans/2026-10-07-plan-11-review-fixes-DRAFT.md`). Each spike's full section, with every reading and its register row, is in the appendices. Five decisions are Angus's and are listed last.
+Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran six spikes on questions the 2026-10-07 review left open under the fixes. It also restructured the server adapters behind a golden trace. This memo is what Plan 11 is written from. The sections below give each spike's answer, its recommendation and what it changes in the fixes draft (`docs/superpowers/plans/2026-10-07-plan-11-review-fixes-DRAFT.md`). Each spike's full section, with every reading and its register row, is in the appendices. Six decisions are Angus's and are listed last (the sixth added by Plan 10b at the 60-player design load).
 
 ## How to read this memo
 
@@ -360,6 +360,39 @@ Each item names its reading and its expected saving per player per game minute, 
    - The saving: none; this is correctness.
    - It is a precondition of item 2. It already matters under a fast clock, where one run integrates several game minutes (#3389) (inference).
 
+### The 60-player design load (Angus, 2026-10-07)
+
+Angus set the design load at a 60-player average. Every figure below is arithmetic on the measured per-player costs (two players measured; linear extrapolation, unmeasured at 60). It assumes a 100 ms tick (10 ticks a second), a game minute of 6.27 ticks at DayLength 1 and 37.46 at DayLength 4 (#3346, #3347), and these per-player-run costs:
+- 1.583 ms for one player's minute in play (#3387);
+- 1.23 to 1.58 ms on the burst basis;
+- 1.23 to 1.72 ms on the round-robin basis (#3391).
+
+**The average load is affordable.** 60 players' minutes cost about 95 ms a game minute: about 15 % of the server's time at DayLength 1 and about 2.5 % at DayLength 4. The writer (#3373) and vanilla's updaters (#3386) add under 1 % at 60 players.
+
+**The spike is not.** Under rule 6 the minute's work runs inside one `EveryOneMinute` event, and one event fires at most once a tick (#3348). So it cannot be spread across the ticks of a minute.
+
+| round-robin period m | players a event | the event's cost (ms) | average a game minute (ms) | drift (P2) |
+|---|---|---|---|---|
+| 1 | 60 | 73.8 to 103.2 | 95 | exact |
+| 2 | 30 | 36.9 to 51.6 | 47.5 | unsafe under ruling 4; clean only under Appendix H's fairer band |
+| 5 | 12 | 14.8 to 20.6 | 19 | player-visible (#3396, #3397) |
+| 10 | 6 | 7.4 to 10.3 | 9.5 | 26 discrete mismatches (#3396) |
+
+- At m = 1 one tick in every game minute costs about a whole tick's budget before vanilla's own work. At DayLength 1 that is once every 0.63 s.
+- No period that the drift study passes brings the event under a quarter of a tick.
+
+**What closing the gap needs.**
+- **A cheaper minute.**
+  - To keep the event under 10 ms, a player-run must cost about 0.167 ms at m = 1, or 0.333 ms at m = 2: 9.5 or 4.75 times cheaper than today.
+  - Under 25 ms, it must cost 0.417 ms or 0.833 ms.
+  - Deleting the Nutrients step outright leaves 0.783 ms, so the Nutrients step alone cannot close the gap. The whole pipeline must get cheaper.
+- **Or spreading the minute across ticks.**
+  - The per-tick drain spreads it: 10 players a tick at DayLength 1 is 12.3 to 15.8 ms every tick, and 2 at DayLength 4 is 2.5 to 3.2 ms. That is a flat load with no spike.
+  - The drain does no simulation per tick; it only schedules the minute's work.
+  - Rule 6 as written excludes it. Whether a budgeted scheduler counts as the per-tick anti-pattern is Angus's call (a new decision, 6, below).
+
+**What it changes in the ranked list.** At 60 players, item 1 (the Nutrients step) becomes a cost target for the whole pipeline: about 0.33 ms a player-run, against 1.583 today. Plan 11's first performance task, the profile below the step, is a blocker for a 60-player release, not insurance. A live run at 20 or more players (Task 13) is needed before any 60-player figure is trusted.
+
 ## Angus's decisions
 
 ### 1. The takeover fork
@@ -475,6 +508,12 @@ Each item names its reading and its expected saving per player per game minute, 
 - **Do not subscribe.** The five reads stay deferred, and the compatibility notes stay as they are.
 - No spike touched this.
 - **Recommendation:** subscribe when convenient; nothing in Plan 11 waits on it.
+
+### 6. Spreading the minute at 60 players
+
+- At the 60-player design load, no per-tick work leaves a one-tick spike of 73.8 to 103.2 ms every game minute (arithmetic; The 60-player design load, above).
+- Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat); or (c) accept the spike.
+- Recommendation: (b) now, and (a) as Plan 11's performance target either way. (b) is the standard mitigation for a fixed per-minute workload. (a) depends on a profile that has not been run.
 
 ## Appendices
 
