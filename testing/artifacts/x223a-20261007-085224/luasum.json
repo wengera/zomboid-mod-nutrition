@@ -1,0 +1,916 @@
+{
+ "run_id": "x223a-20261007-085224",
+ "session": "Plan 10 Task S6: the Lua arm of the join checksum -- the server and admin on the frozen 1.0.0 spike copy, bob on a copy whose NR_Core.lua differs by one byte inside a comment; one boot of x22-luasum-a",
+ "boot": "a",
+ "users": [
+  "admin",
+  "bob"
+ ],
+ "profile": {
+  "name": "x22-luasum-a",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x22-luasum-a.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy on the server and admin; bob gets spike-luasum-a (one Lua file differing) - the Lua checksum arm, boot a.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\spike-1.0.0\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false
+  },
+  "users": [
+   "admin",
+   "bob"
+  ],
+  "client_overrides": {
+   "bob": {
+    "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\spike-luasum-a\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+   }
+  }
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261006-182552",
+  "clients": {
+   "admin": {
+    "debug": true
+   },
+   "bob": {
+    "debug": false
+   }
+  }
+ },
+ "argv": [
+  "--boot",
+  "a"
+ ],
+ "commit": "c494d70",
+ "harness_py_commit": "aaa51f4",
+ "harness_lua_commit": "fadf698",
+ "harness_lua_dirty": false,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "frozen_mod": "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "frozen_at": "42784ff",
+  "copy_mod": "release/spike-luasum-a/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "changed_file": "common/media/lua/shared/NR_Core.lua",
+  "harness_commit": "aaa51f4",
+  "edit": "one byte inside the first comment line of NR_Core.lua: 'its version' -> 'its versiom' (same length, LF kept)",
+  "frozen_file": {
+   "size": 3272,
+   "cr": 0,
+   "sha256": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+   "md5_cr_dropped": "1283f1708c35f2e5ec01349c3414a594"
+  },
+  "copy_file": {
+   "size": 3272,
+   "cr": 0,
+   "sha256": "f67e15e9d45025848f745a9d4a5050d0aa2ea83d7834fc8468ead295f7201ab4",
+   "md5_cr_dropped": "927032ae83b78bdd28b5804b984f456a"
+  },
+  "frozen_manifest_sha256": "b22ba31ba686fc15f73a320a8e0ba91c704a34c99225be4ef32a39e225c207a9",
+  "tree_diff": {
+   "files_frozen": 65,
+   "files_copy": 65,
+   "differ": [
+    {
+     "path": "common/media/lua/shared/NR_Core.lua"
+    }
+   ]
+  }
+ },
+ "constants": {
+  "OBS_S": 180.0,
+  "HOLD_AFTER_READY_S": 90.0,
+  "LINE_CAP": 300,
+  "TAIL_LINES": 120,
+  "CHK_SRV": "checksum|AntiCheat|Anti-cheat|LuaChecksum|kick|disconnect|File doesn|File status|ConnectionManager|logged|login|connected|access ?level",
+  "CHK_CLI": "checksum|kick|disconnect|File doesn|File status|AntiCheat|Anti-cheat|forceDisconnect|serverDisconnected|STATE: enter|ConnectionManager|connection lost|Connection failed|LuaChecksum",
+  "MISMATCH_RX": "will be kicked|checksums do not match|ChecksumUpdate|File doesn't match|File doesn't exist|File status unknown|Timed out connection because checksum|LuaChecksum",
+  "ECHO_RX": "PZTK: "
+ },
+ "predictions": {
+  "bob ready": false,
+  "bob disconnect line": true,
+  "server warning": "will be kicked ... checksums do not match",
+  "userlog": "a LuaChecksum row for bob",
+  "admin": "stays connected"
+ },
+ "deviations": [
+  "One profile per boot (x22-luasum-a, x22-luasum-b) rather than one x22-luasum.toml: a profile's client_overrides names one folder per user, and the two boots give bob two different folders.",
+  "bob is started by this driver rather than session.attach_clients, so a kick is a recorded reading and not a raise out of wait_ready; it is made with session.override_kw, the same call attach_clients makes."
+ ],
+ "phases": {
+  "boot": {
+   "server_started_wall": 37.635,
+   "ini": {
+    "Open": "true",
+    "DoLuaChecksum": "true",
+    "AntiCheatSafety": "2",
+    "AntiCheatSpeed": "2",
+    "AntiCheatNoClip": "4",
+    "AntiCheatHit": "2",
+    "AntiCheatPacketException": "4",
+    "AntiCheatPermission": "2",
+    "AntiCheatXP": "2",
+    "AntiCheatSafeHouse": "2",
+    "AntiCheatPlayer": "2",
+    "AntiCheatChecksum": "2"
+   },
+   "admin_ready_wall": 78.486,
+   "bob_restored": true,
+   "bob_debug": false,
+   "bob_mod_source": "release/spike-luasum-a/NutritionRevamp/Contents/mods/NutritionRevamp",
+   "deployed_NR_Core": {
+    "clients/admin/mods/NutritionRevamp/common/media/lua/shared/NR_Core.lua": {
+     "size": 3272,
+     "cr": 0,
+     "sha256": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+     "md5_cr_dropped": "1283f1708c35f2e5ec01349c3414a594"
+    },
+    "clients/bob/mods/NutritionRevamp/common/media/lua/shared/NR_Core.lua": {
+     "size": 3272,
+     "cr": 0,
+     "sha256": "f67e15e9d45025848f745a9d4a5050d0aa2ea83d7834fc8468ead295f7201ab4",
+     "md5_cr_dropped": "927032ae83b78bdd28b5804b984f456a"
+    },
+    "server/mods/NutritionRevamp/common/media/lua/shared/NR_Core.lua": {
+     "size": 3272,
+     "cr": 0,
+     "sha256": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+     "md5_cr_dropped": "1283f1708c35f2e5ec01349c3414a594"
+    }
+   },
+   "bob_start_wall": 79.621,
+   "window_end_wall": 259.7,
+   "bob_alive_at_end": true,
+   "bob_seen": {},
+   "bob_events": [
+    {
+     "t": 9.6,
+     "kind": "harness",
+     "msg": "core loaded (sp)"
+    },
+    {
+     "t": 9.6,
+     "kind": "harness",
+     "msg": "test layer loaded (sp)"
+    },
+    {
+     "t": 10.6,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 10.6,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 10.6,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 17.6,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 17.6,
+     "kind": "harness",
+     "msg": "manifest loaded: user=bob server=127.0.0.1:27261"
+    },
+    {
+     "t": 17.6,
+     "kind": "harness",
+     "msg": "popup visible; connecting as bob to 127.0.0.1:27261"
+    },
+    {
+     "t": 23.2,
+     "kind": "harness",
+     "msg": "core loaded (client)"
+    },
+    {
+     "t": 23.2,
+     "kind": "harness",
+     "msg": "test layer loaded (client)"
+    },
+    {
+     "t": 23.7,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 23.7,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 23.7,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 23.7,
+     "kind": "harness",
+     "msg": "main menu entered"
+    }
+   ],
+   "bob_t0_wall": 79.617
+  }
+ },
+ "notes": [],
+ "reads": [
+  {
+   "tag": "players_at_end",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "wall": 259.7,
+   "wall_after": 260.714,
+   "reply": [
+    "admin"
+   ]
+  },
+  {
+   "tag": "admin_tk_at_end",
+   "side": "client:admin",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "wall": 260.714,
+   "wall_after": 260.97,
+   "reply": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "lint_errors": [],
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 37.6,
+   "phase": "server_started"
+  },
+  {
+   "t": 37.7,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 78.5,
+   "phase": "client_ready",
+   "took": 40.4,
+   "user": "admin"
+  },
+  {
+   "t": 79.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 79.5,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 79.6,
+   "phase": "client_launch",
+   "user": "bob",
+   "restored": true
+  },
+  {
+   "t": 263.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 323.8,
+   "phase": "client_quit",
+   "user": "bob",
+   "rc": null
+  },
+  {
+   "t": 331.8,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "live": {
+  "server": {
+   "file": "server-stdout.log",
+   "lines_read": 2094,
+   "cap": 300,
+   "capped": false,
+   "echo_lines_dropped": 0,
+   "hits": [
+    {
+     "wall": 79.602,
+     "n": 44,
+     "text": "LOG  : General      f:0 st:1,720,294,720>     Checksum: Warning"
+    },
+    {
+     "wall": 79.602,
+     "n": 99,
+     "text": "LOG  : General      f:0 st:1,720,300,075> scriptChecksum: 93e43c2fc2ea0f3850cad0a2445ba456"
+    },
+    {
+     "wall": 79.602,
+     "n": 1416,
+     "text": "LOG  : Lua          f:0 st:1,720,326,465> luaChecksum: 6191c643de0fc74cb1503a69ff655be3"
+    },
+    {
+     "wall": 79.602,
+     "n": 2059,
+     "text": "WARN : Packet       f:105 st:1,720,341,990 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, StartRain, StopRain, ClimateManagerPacket, IsoRegionServerPacket, IsoRegionClientRequestFullUpdate, SyncIsoObject, ClientCommand, BloodSplat"
+    },
+    {
+     "wall": 79.602,
+     "n": 2060,
+     "text": "LOG  : Network      f:105 st:1,720,342,007> Connected new client 765613656987253769 ID # 0"
+    },
+    {
+     "wall": 97.524,
+     "n": 2069,
+     "text": "WARN : Packet       f:584 st:1,720,389,869 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, StartRain, StopRain, ClimateManagerPacket, IsoRegionServerPacket, IsoRegionClientRequestFullUpdate, SyncIsoObject, ClientCommand, BloodSplat"
+    },
+    {
+     "wall": 97.524,
+     "n": 2070,
+     "text": "LOG  : Network      f:584 st:1,720,389,890> Connected new client 427843684975847997 ID # 4"
+    },
+    {
+     "wall": 104.628,
+     "n": 2071,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,051 at ChecksumPacket.parseServer          > user bob will be kicked in 60000ms because Lua/script checksums do not match"
+    },
+    {
+     "wall": 104.628,
+     "n": 2072,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,052 at AntiCheat.log                       > Anti-cheat=\"ChecksumUpdate\" is triggered for connection=\"bob\" server-option=\"AntiCheatChecksum\" reason=\"Lua incorrect checksum\" counter=1/1 action=\"Kick\" ping=0"
+    }
+   ]
+  },
+  "bob": {
+   "file": "clients\\bob\\console.txt",
+   "lines_read": 530,
+   "cap": 300,
+   "capped": false,
+   "echo_lines_dropped": 0,
+   "hits": [
+    {
+     "wall": 103.088,
+     "n": 441,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay"
+    },
+    {
+     "wall": 103.088,
+     "n": 455,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+    },
+    {
+     "wall": 103.088,
+     "n": 464,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety"
+    },
+    {
+     "wall": 103.088,
+     "n": 465,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed"
+    },
+    {
+     "wall": 103.088,
+     "n": 466,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip"
+    },
+    {
+     "wall": 103.088,
+     "n": 467,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit"
+    },
+    {
+     "wall": 103.088,
+     "n": 468,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException"
+    },
+    {
+     "wall": 103.088,
+     "n": 469,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission"
+    },
+    {
+     "wall": 103.088,
+     "n": 470,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP"
+    },
+    {
+     "wall": 103.088,
+     "n": 471,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse"
+    },
+    {
+     "wall": 103.088,
+     "n": 472,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer"
+    },
+    {
+     "wall": 103.088,
+     "n": 473,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+    },
+    {
+     "wall": 104.637,
+     "n": 527,
+     "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+    },
+    {
+     "wall": 105.896,
+     "n": 530,
+     "text": "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnDisconnect\""
+    }
+   ]
+  }
+ },
+ "logs": {
+  "patterns": {
+   "mismatch": "will be kicked|checksums do not match|ChecksumUpdate|File doesn't match|File doesn't exist|File status unknown|Timed out connection because checksum|LuaChecksum",
+   "server": "checksum|AntiCheat|Anti-cheat|LuaChecksum|kick|disconnect|File doesn|File status|ConnectionManager|logged|login|connected|access ?level",
+   "client": "checksum|kick|disconnect|File doesn|File status|AntiCheat|Anti-cheat|forceDisconnect|serverDisconnected|STATE: enter|ConnectionManager|connection lost|Connection failed|LuaChecksum",
+   "echo_dropped": "PZTK: "
+  },
+  "server_mismatch": {
+   "hits": [
+    {
+     "n": 1416,
+     "text": "LOG  : Lua          f:0 st:1,720,326,465> luaChecksum: 6191c643de0fc74cb1503a69ff655be3"
+    },
+    {
+     "n": 2071,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,051 at ChecksumPacket.parseServer          > user bob will be kicked in 60000ms because Lua/script checksums do not match"
+    },
+    {
+     "n": 2072,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,052 at AntiCheat.log                       > Anti-cheat=\"ChecksumUpdate\" is triggered for connection=\"bob\" server-option=\"AntiCheatChecksum\" reason=\"Lua incorrect checksum\" counter=1/1 action=\"Kick\" ping=0"
+    }
+   ],
+   "echo_lines_dropped": 0
+  },
+  "server_checksum_and_connection": {
+   "hits": [
+    {
+     "n": 44,
+     "text": "LOG  : General      f:0 st:1,720,294,720>     Checksum: Warning"
+    },
+    {
+     "n": 99,
+     "text": "LOG  : General      f:0 st:1,720,300,075> scriptChecksum: 93e43c2fc2ea0f3850cad0a2445ba456"
+    },
+    {
+     "n": 1416,
+     "text": "LOG  : Lua          f:0 st:1,720,326,465> luaChecksum: 6191c643de0fc74cb1503a69ff655be3"
+    },
+    {
+     "n": 2059,
+     "text": "WARN : Packet       f:105 st:1,720,341,990 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, StartRain, StopRain, ClimateManagerPacket, IsoRegionServerPacket, IsoRegionClientRequestFullUpdate, SyncIsoObject, ClientCommand, BloodSplat"
+    },
+    {
+     "n": 2060,
+     "text": "LOG  : Network      f:105 st:1,720,342,007> Connected new client 765613656987253769 ID # 0"
+    },
+    {
+     "n": 2069,
+     "text": "WARN : Packet       f:584 st:1,720,389,869 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, StartRain, StopRain, ClimateManagerPacket, IsoRegionServerPacket, IsoRegionClientRequestFullUpdate, SyncIsoObject, ClientCommand, BloodSplat"
+    },
+    {
+     "n": 2070,
+     "text": "LOG  : Network      f:584 st:1,720,389,890> Connected new client 427843684975847997 ID # 4"
+    },
+    {
+     "n": 2071,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,051 at ChecksumPacket.parseServer          > user bob will be kicked in 60000ms because Lua/script checksums do not match"
+    },
+    {
+     "n": 2072,
+     "text": "WARN : Multiplayer  f:655 st:1,720,397,052 at AntiCheat.log                       > Anti-cheat=\"ChecksumUpdate\" is triggered for connection=\"bob\" server-option=\"AntiCheatChecksum\" reason=\"Lua incorrect checksum\" counter=1/1 action=\"Kick\" ping=0"
+    }
+   ],
+   "echo_lines_dropped": 0
+  },
+  "bob_mismatch": {
+   "hits": [
+    {
+     "n": 527,
+     "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+    }
+   ],
+   "echo_lines_dropped": 0
+  },
+  "bob_checksum_and_state": {
+   "hits": [
+    {
+     "n": 441,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay"
+    },
+    {
+     "n": 455,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+    },
+    {
+     "n": 464,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety"
+    },
+    {
+     "n": 465,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed"
+    },
+    {
+     "n": 466,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip"
+    },
+    {
+     "n": 467,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit"
+    },
+    {
+     "n": 468,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException"
+    },
+    {
+     "n": 469,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission"
+    },
+    {
+     "n": 470,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP"
+    },
+    {
+     "n": 471,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse"
+    },
+    {
+     "n": 472,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer"
+    },
+    {
+     "n": 473,
+     "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+    },
+    {
+     "n": 527,
+     "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+    },
+    {
+     "n": 530,
+     "text": "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnDisconnect\""
+    }
+   ],
+   "echo_lines_dropped": 0
+  },
+  "bob_console_tail": {
+   "total_lines": 530,
+   "tail": [
+    "\t\tzombie.core.skinnedmodel.advancedanimation.AdvancedAnimator.loadModMedia(AdvancedAnimator.java:869)",
+    "\t\tzombie.core.skinnedmodel.advancedanimation.AdvancedAnimator.collectModFiles(AdvancedAnimator.java:889)",
+    "\t\tzombie.core.skinnedmodel.advancedanimation.AdvancedAnimator.load(AdvancedAnimator.java:928)",
+    "\t\tzombie.core.Core.ResetLua(Core.java:4193)",
+    "\t\tzombie.gameStates.ConnectToServerState.receiveServerOptions(ConnectToServerState.java:135)",
+    "\t\tzombie.gameStates.ConnectToServerState.Finish(ConnectToServerState.java:696)",
+    "\t\tzombie.gameStates.ConnectToServerState.update(ConnectToServerState.java:104)",
+    "\t\tzombie.gameStates.MainScreenState.update(MainScreenState.java:778)",
+    "\t\tzombie.gameStates.GameStateMachine.update(GameStateMachine.java:65)",
+    "\t\tzombie.GameWindow.logic(GameWindow.java:390)",
+    "\t\tzombie.GameWindow.frameStep(GameWindow.java:790)",
+    "\t\tzombie.GameWindow.mainThreadStep(GameWindow.java:567)",
+    "\t\tzombie.MainThread.mainLoop(MainThread.java:69)",
+    "\t\tjava.base/java.lang.Thread.run(Unknown Source)",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).corpseStorageCheck     > require(\"ISUI/ISInventoryPaneContextMenu\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).corpseStorageCheck     > require(\"ISUI/ISVehicleMenu\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).corpseStorageCheck     > require(\"ISUI/ISContextMenu\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).ISCampingMenu          > require(\"Camping/CCampfireSystem\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).ISInventoryTransferUtil> require(\"TimedActions/ISInventoryTransferAction\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).ISInventoryTransferUtil> require(\"ISUI/PlayerData/ISPlayerData\") failed",
+    "LOG  : Lua          f:0 st:0> PZTK: core loaded (client)",
+    "LOG  : Lua          f:0 st:0> PZTK: test layer loaded (client)",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).ISAnimalContextMenu    > require(\"BuildingObjects/ISAnimalPickMateCursor\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).TakeSameType           > require(\"ISUI/InventoryWindow/ISLootWindowControlHandler\") failed",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).FloorTakeSameType      > require(\"ISUI/InventoryWindow/ISLootWindowControlHandler\") failed",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: PVPLogToolChat",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: PVPLogToolFile",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: ChatStreams",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SwitchZombiesOwnershipEachUpdate",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SpawnPoint",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: Mods",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: Map",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: DenyLoginOnOverloadedServer",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: MaxSafezoneSize",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: WebhookAddress",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: KnockedDownAllowed",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SneakModeHideFromOtherPlayers",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: UltraSpeedDoesnotAffectToAnimals",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: WorkshopItems",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SteamVAC",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: LoginQueueEnabled",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: LoginQueueConnectTimeout",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: server_browser_announced_ip",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: CarEngineAttractionModifier",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: DisableVehicleTowing",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: DisableTrailerTowing",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: DisableBurntTowing",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BadWordListFile",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: GoodWordListFile",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BadWordPolicy",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BadWordReplacement",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: MultiplayerStatisticsPeriod",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: DisableScoreboard",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: HideAdminsInPlayerList",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: MaxPacketsPerSecond",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: ShowCoordinates",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: Seed",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: UsePhysicsHitReaction",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: StartYear",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AlarmDecayModifier",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: InsaneLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: ExtremeLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: RareLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: NormalLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: CommonLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AbundantLootFactor",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: Farming",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: PlantAbundance",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: NightLength",
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AnimalMetaStatsModifier",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).testUI                 > require(\"pzapi/ui/ui\") failed",
+    "LOG  : Lua          f:0 st:0> PZTK: client harness loaded",
+    "LOG  : Lua          f:0 st:0> PZTK: client harness Task 7 commands loaded",
+    "LOG  : Lua          f:0 st:0> PZTK: client body harness loaded",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).namedColorToTable      > env.lua-> namedColorToTable color not found: ProgressYellow",
+    "LOG  : Lua          f:0 st:0> PZTK: main menu entered",
+    "LOG  : General      f:0 st:0> STATE: exit zombie.gameStates.MainScreenState",
+    "LOG  : General      f:0 st:0> LOADED UP A TOTAL OF 616 TEXTURES",
+    "LOG  : General      f:0 st:0> STATE: exit zombie.gameStates.LoadingQueueState",
+    "LOG  : Lua          f:0 st:0> Initializing Randomized World Tabletop Clutter Tables",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).Features               > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).Biomes                 > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).Selection              > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).Veins                  > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).Roads                  > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua",
+    "WARN : Lua          f:0 st:0 at Lua(Vanilla).WorldGen               > recursive require(): D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/server/WorldGen/attachments/Priorities.lua",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "ERROR: General      f:0 st:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.",
+    "LOG  : General      f:0 st:0> SafeMode is off",
+    "LOG  : General      f:0 st:0> IsoMetaGrid.Create: begin scanning directories",
+    "LOG  : General      f:0 st:0> Looking in these map folders:",
+    "LOG  : General      f:0 st:0> <End of map-folders list>",
+    "LOG  : General      f:0 st:0> IsoMetaGrid.Create: X: [ -250 250 ], Y: [ -250 250 ]",
+    "LOG  : General      f:0 st:0> World seed: LjqlpITWiQrnBlzc -41344724",
+    "LOG  : General      f:0 st:0> IsoMetaGrid.Create: finished scanning directories in 0.019 seconds",
+    "LOG  : General      f:0 st:0> IsoMetaGrid.Create: begin loading",
+    "LOG  : General      f:0 st:0> VehiclesDB2.init() start",
+    "LOG  : General      f:0 st:0> VehiclesDB2.init() end",
+    "LOG  : General      f:0 st:0> triggerEvent OnInitWorld",
+    "LOG  : General      f:0 st:0> ItemPickerJava.Parse() start",
+    "LOG  : General      f:0 st:0> ItemPickerJava.Parse() end",
+    "LOG  : General      f:0 st:0> client: DoLuaChecksum start",
+    "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnPreUIDraw\"",
+    "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnPostUIDraw\"",
+    "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnDisconnect\""
+   ]
+  },
+  "admin_mismatch": {
+   "hits": [
+    {
+     "n": 663,
+     "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+    },
+    {
+     "n": 664,
+     "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+    },
+    {
+     "n": 3440,
+     "text": "LOG  : General      f:1622 st:1,720,397,066> [07-10-26 08:54:08.853][info] Got message from server: ChatMessage{chat=Admin chat, author='Server', text='Anti-cheat=\"ChecksumUpdate\" is triggered for connection=\"bob\" server-option=\"AntiCheatChecksum\" reason=\"Lua incorrect checksum\" counter=1/1 action=\"Kick\" ping=0'}."
+    }
+   ],
+   "echo_lines_dropped": 0
+  }
+ },
+ "mod_error_lines": [],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 37.8,
+   "ready": 40.4
+  },
+  {
+   "user": "bob"
+  }
+ ],
+ "db": [
+  {
+   "db": "server/db/pzt.db",
+   "tables": [
+    "whitelist",
+    "sqlite_sequence",
+    "bannedip",
+    "role",
+    "capabilities",
+    "defaultRoles",
+    "allowedsteamid",
+    "bannedid",
+    "userlog",
+    "tickets"
+   ],
+   "whitelist": {
+    "cols": [
+     "id",
+     "username",
+     "lastConnection",
+     "role",
+     "authType"
+    ],
+    "rows": [
+     [
+      "1",
+      "admin",
+      "2026-10-07 08:53:13",
+      "7",
+      "1"
+     ],
+     [
+      "2",
+      "bob",
+      "2026-10-07 08:54:01",
+      "2",
+      "1"
+     ]
+    ]
+   },
+   "role": {
+    "cols": [
+     "id",
+     "name"
+    ],
+    "rows": [
+     [
+      "1",
+      "banned"
+     ],
+     [
+      "2",
+      "user"
+     ],
+     [
+      "3",
+      "priority"
+     ],
+     [
+      "4",
+      "observer"
+     ],
+     [
+      "5",
+      "gm"
+     ],
+     [
+      "6",
+      "moderator"
+     ],
+     [
+      "7",
+      "admin"
+     ]
+    ]
+   },
+   "userlog": {
+    "cols": [
+     "id",
+     "username",
+     "type",
+     "text",
+     "issuedBy",
+     "amount",
+     "lastUpdate"
+    ],
+    "rows": [
+     [
+      "1",
+      "bob",
+      "LuaChecksum",
+      "Lua",
+      "ChecksumPacket",
+      "1",
+      "2026-10-07 08:54:08"
+     ]
+    ]
+   }
+  }
+ ],
+ "verdicts": {
+  "a": {
+   "predicted": {
+    "bob ready": false,
+    "bob disconnect line": true,
+    "server warning": "will be kicked ... checksums do not match",
+    "userlog": "a LuaChecksum row for bob",
+    "admin": "stays connected"
+   },
+   "observed": {
+    "bob_ready": false,
+    "bob_answered_at_end": false,
+    "bob_alive_at_end": true,
+    "bob_disconnect_evidence": true,
+    "server_mismatch_lines": 3,
+    "bob_mismatch_lines": 1,
+    "admin_mismatch_lines": 3,
+    "userlog_rows_bob_or_luachecksum": [
+     [
+      "1",
+      "bob",
+      "LuaChecksum",
+      "Lua",
+      "ChecksumPacket",
+      "1",
+      "2026-10-07 08:54:08"
+     ]
+    ],
+    "admin_tk_at_end": 1
+   },
+   "verdict": "as_predicted"
+  }
+ },
+ "wall_seconds": 331.9
+}

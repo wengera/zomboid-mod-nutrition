@@ -1,0 +1,17 @@
+[07-10-26 08:53:13.777] event="RakNet" message="new-incoming-connection" guid="765613656987253769" ip="null" steam-id="0" role="" username="null" connection-type="UDPRakNet".
+[07-10-26 08:53:13.782] event="receive-packet" message="login" guid="765613656987253769" ip="null" steam-id="0" role="" username="null" connection-type="UDPRakNet".
+[07-10-26 08:53:13.785] event="receive-packet" message="client-connect" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:53:13.801] event="send-packet" message="connection-details" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:53:20.225] event="receive-packet" message="login-queue-request" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:53:39.502] event="receive-packet" message="login-queue-done" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:53:40.800] event="receive-packet" message="player-connect" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:53:40.964] event="fully-connected" message="" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".
+[07-10-26 08:54:01.654] event="RakNet" message="new-incoming-connection" guid="427843684975847997" ip="null" steam-id="0" role="" username="null" connection-type="UDPRakNet".
+[07-10-26 08:54:01.669] event="receive-packet" message="login" guid="427843684975847997" ip="null" steam-id="0" role="" username="null" connection-type="UDPRakNet".
+[07-10-26 08:54:01.673] event="receive-packet" message="client-connect" guid="427843684975847997" ip="127.0.0.1" steam-id="0" role="user" username="bob" connection-type="UDPRakNet".
+[07-10-26 08:54:01.675] event="send-packet" message="connection-details" guid="427843684975847997" ip="127.0.0.1" steam-id="0" role="user" username="bob" connection-type="UDPRakNet".
+[07-10-26 08:54:07.882] event="receive-packet" message="login-queue-request" guid="427843684975847997" ip="127.0.0.1" steam-id="0" role="user" username="bob" connection-type="UDPRakNet".
+[07-10-26 08:54:10.088] event="RakNet" message="disconnection-notification" guid="427843684975847997".
+[07-10-26 08:54:10.101] event="disconnect" message="receive-disconnect" guid="427843684975847997" ip="127.0.0.1" steam-id="0" role="user" username="bob" connection-type="UDPRakNet".
+[07-10-26 08:56:45.872] event="RakNet" message="disconnection-notification" guid="765613656987253769".
+[07-10-26 08:56:45.899] event="disconnect" message="receive-disconnect" guid="765613656987253769" ip="127.0.0.1" steam-id="0" role="admin" username="admin" connection-type="UDPRakNet".

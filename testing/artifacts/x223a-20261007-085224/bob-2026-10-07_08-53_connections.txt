@@ -1,0 +1,15 @@
+[07-10-26 08:54:01.656] event="RakNet" message="connection-request-accepted" guid=891714446514099987.
+[07-10-26 08:54:01.657] event="send-packet" message="login" guid=891714446514099987.
+[07-10-26 08:54:01.736] event="receive-packet" message="connection-details" guid=891714446514099987.
+[07-10-26 08:54:01.737] event="connect-state" message="start" guid=891714446514099987.
+[07-10-26 08:54:01.739] event="connect-state-start" message="testtcp" guid=891714446514099987.
+[07-10-26 08:54:01.752] event="connect-state-testtcp" message="checkmods" guid=891714446514099987.
+[07-10-26 08:54:01.768] event="connect-state-checkmods" message="finish" guid=891714446514099987.
+[07-10-26 08:54:07.523] event="connect-state-finish" message="lua-connected" guid=891714446514099987.
+[07-10-26 08:54:07.576] event="connect-state-finish" message="exit" guid=891714446514099987.
+[07-10-26 08:54:07.878] event="send-packet" message="login-queue-request" guid=891714446514099987.
+[07-10-26 08:54:10.064] event="force-disconnect" message="checksum-File doesn't match the one on the server:
+media/lua/shared/nr_core.lua
+C:\Users\Angus\repos\project_zomboid\testing\runs\x223a-20261007-085224\clients\bob\mods\NutritionRevamp\common\media\lua\shared\NR_Core.lua" guid=891714446514099987.
+[07-10-26 08:54:10.088] event="RakNet" message="disconnection-notification" guid="891714446514099987".
+[07-10-26 08:54:10.088] event="disconnect" message="21" guid="0".
