@@ -1,0 +1,34 @@
+# testing/profiles/x24-notice-a.toml - Plan 10c Task H4 (run x244a): does a player notice the minute burst, and Decision 6's three draws, at DayLength 1, N = 60.
+# PZTestKit (e15a9ca: world.posring on the clients; tick.ring, perf.local, ghost.load/stats/stop, the gclog key) + the
+# UNINSTRUMENTED staged copy of the tree at 9578eb9 (release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged by Task 0, MANIFEST sha256 c86e295a...b389; release/ is gitignored; mod/ is never booted). The x24-smoke shape:
+# fixture `two`, both clients (`admin` -debug, then `bob` release), Nutrition false (ruling T18-1), DayLength 1, gclog on.
+# The driver is testing/experiments/x244a_notice.py.
+# The verify rows are load gates only: the version on the server and both clients, and the harness's ring cap.
+fixture = "two"
+description = "PZTestKit (e15a9ca) + the uninstrumented staged NutritionRevamp copy at 9578eb9, fixture two, admin and bob, Nutrition off, DayLength 1, gclog on - x244a: an idle baseline, then burst, budget15, burst, budget15, budget15, burst at N = 60, both clients recording world.posring while pacing."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, #3346)
