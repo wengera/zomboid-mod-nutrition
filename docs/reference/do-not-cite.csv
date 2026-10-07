@@ -578,3 +578,13 @@ x201-20261006-215125,verdicts.*.predicted,the driver's predictions,Copies of `pr
 x201-20261006-215125,verdicts.F.observed.acorn_calories,null on each side,The item.script reply carries no Calories key; null is an absent key and not a reading of the pass.,cite the self-reports' itemPass in `verdicts.A.observed.pairs` and `verdicts.B.observed.pairs`
 x201-20261006-215125,verdicts.F.verdict,unmeasured,The pass's calories were not read through the script getter route.,cite `verdicts.F.observed.server_itemPassActive_type` for the function only
 x201-20261006-215125,verdicts.C.observed.checksum_lines,3 and 3,"Counts of every line holding checksum, the boot's own prints included.",cite `verdicts.C.observed.checksum_bad`
+x202-20261006-220437,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x202-20261006-220437,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x202-20261006-220437,deviations,the driver's list,Written before the run; not readings.,
+x202-20261006-220437,world_changes,the driver's text,Written before the run; not readings.,
+x202-20261006-220437,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<phase>.observed`
+x202-20261006-220437,verdicts.X23_admin.observed.before_last,null,No read answered; null is an absent reply.,cite `verdicts.X23_admin.observed.reads_timed_out`
+x202-20261006-220437,verdicts.X23_admin.observed.raw_tail_last,null,No read answered; null is an absent reply.,cite `verdicts.X23_admin.observed.reads_timed_out`
+x202-20261006-220437,verdicts.X23_admin.observed.behind_last,null,No read answered; null is an absent reply.,cite `verdicts.X23_admin.observed.reads_timed_out`
+x202-20261006-220437,verdicts.X23.observed.console_flagged_count,8,"A count of flagged lines, a trace's header lines counted apiece.",cite `phases.B.console.flagged`
+x202-20261006-220437,verdicts.X23_admin.observed.console_flagged_count,4,"A count of flagged lines, a trace's header lines counted apiece.",cite `phases.C.console.flagged`

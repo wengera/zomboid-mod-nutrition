@@ -129,6 +129,7 @@ A client-side console grep sees each engine load line once per Lua state, so a c
 Every named experiment inherits the same six clauses of profile, driver, provenance and verdict discipline, and a rider on an existing session is preferred to a session of its own ([`harness.md`](harness.md#experiment-contract), [`../reference/experiments.md`](../reference/experiments.md)).
 A probe built to raise makes the run report failure by construction, which is the harness working rather than the probe failing, so the grade comes off the artifact and not off the console line ([`harness.md`](harness.md#driver-rules)).
 The one rule that belongs to both this page and that one is the last of the imperatives above, the server-side gate and the low client timeout a raising probe is given [#1963/M/n=2].
+Its release-client half is measured: a release client given the same unguarded raise did not park, so the gate guards the debug client and a release client's survival is itself readable over the bus [T5.1/M/n=1] [T5.2/M/n=1].
 
 <a id="corpus-drift"></a>
 ### The corpus moves while you are counting it
@@ -193,7 +194,7 @@ The counts those rules quote are dated for the same reason, and re-running the s
 The layout rule is bounded to a version directory that ships colliding files, or none at all; a version directory that ships files colliding with nothing is untested, and the sound shape it endorses is an entry point in `common/` calling a version-folder body [#1073/M/n=2].
 The script-first rule rests on one session: one build, one fixture, one mod, one item, one player and one cook transition [#1074/M/n=1].
 The `server/` guard rests on one session, the reading was incidental to a run aimed at other questions, and the mechanism is untraced — no loader pass has been read that maps a `server/` file into the client's state [#0855/M/n=1, #1075/M/n=1].
-The debug-break rule is two boots of one build on one raise family, and a release client, booted once and answering the bus [#3297/M/n=1], has not been raised on, so its behaviour on a raise is unmeasured [#1963/M/n=2].
+The debug-break rule is two boots of one build on one raise family [#1963/M/n=2], and it binds the debug client the harness drives: a release client raised on in one session kept answering the bus with the raising handler's body ended and the handlers around it run, while the debug client beside it, given the same raise, parked [T5.1/M/n=1] [T5.2/M/n=1].
 The stat-hook rule rests on code readings that one live session has since exercised: a registrant skipped the updaters whatever it returned, a second registrant did not restore them, and the hook never fired on the client, while the debug-setter rule is still read from the bytecode only [#2238/C/C-only, #2119/C/C-only] [#2100/M/n=1] [#2086/M/n=1].
 The hook-target rule and the index-first rule are code readings rather than measurements: the global-name resolution and the guard's three reasons are read out of the engine, and the practice exists so that the failure is never exercised [#0927/C/C-only, #0935/C/C-only].
 The uncarried-field rule and the shadowed-`common/` rule each rest on one session on one mod, on the dedicated-server path [#1076/M/n=1, #1086/M/n=1].
