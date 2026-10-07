@@ -1,5 +1,5 @@
 -- NR_Server_Store.lua -- the durable per-player store: one global modData table keyed by
--- username (server-lifecycle rules #2410, #2417; spec § 4.8), cached server-side, inputs only,
+-- username (server-lifecycle rules #2410, #3287; spec § 4.8), cached server-side, inputs only,
 -- never transmitted (#2416) and never player modData (#1042). Runs in both Lua states; every
 -- write below is behind NutritionRevamp.isServer().
 --
@@ -18,7 +18,7 @@ NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}
 local S = NR.server.store
 
 -- ModData.getOrCreate creates the table when the file did not hold it; OnInitGlobalModData's
--- boolean says the WORLD is new, not the table (#2417), so the table is fetched whenever it is
+-- boolean is the world dictionary's new-game flag, which read true on reload boots too (#3287, #3284), so the table is fetched whenever it is
 -- found missing, not only on a new world.
 function S.attach()
     if S.records ~= nil then return S.records end
