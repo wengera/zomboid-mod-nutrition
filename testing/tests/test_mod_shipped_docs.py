@@ -18,7 +18,7 @@ NEIGHBOURS = [
 # The loader's mod.info branches test `contains` on the token (#0806), so none may sit inside a value.
 KEY_TOKENS = ["name=", "id=", "description=", "poster=", "require=", "url=", "icon=", "pack=", "tiledef=",
               "versionMin=", "versionMax=", "modversion=", "incompatible=", "loadModAfter=", "loadModBefore=",
-              "category=", "authors="]
+              "category=", "author=", "type="]
 FORBIDDEN_WORDS = ["require", "poster", "icon", "url"]
 
 

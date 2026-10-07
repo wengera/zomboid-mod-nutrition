@@ -37,7 +37,7 @@ The server re-reads the options every in-game minute, so a change made while the
 
 ## Takeover and overlay
 
-In takeover mode (the default) the mod installs the server's stat-update hook and runs the stat update itself for the stats it models, so a mod that only tunes the vanilla update's rates has no effect on them, while a mod that writes a stat directly is read as an outside change. In overlay mode the vanilla stat update runs as usual and the mod writes its own values after it; choose it when another mod needs the hook. The self-report says which mode is running and whether the hook was installed.
+In takeover mode (the default) the mod installs the server's stat-update hook and runs the stat update itself for the stats it models, so a rate tuning made through `ZomboidGlobals` or the sandbox multipliers is followed by the mod's handler the same way, while a mod that writes a stat directly is read as an outside change; awake endurance stays vanilla's in this build. In overlay mode the vanilla stat update runs as usual and the mod writes its own values after it; choose it when another mod needs the hook. The self-report says which mode is running and whether the hook was installed.
 
 ## The self-report
 
@@ -50,7 +50,7 @@ At boot the server console prints one line, and each client console prints one w
 
 - `itemPass` is `true` when the mod's food values are loaded (it reads one food, the acorn, and compares its calories with the mod's value), `false` when the vanilla value or another mod's value won, and `unread` when the read could not be made.
 - `legacyMirror` is the `NR.LegacyMirror` option. `frameworks` names MoodleFramework on a client that has it, else `none`; the server prints `n/a` because the framework is client-side.
-- `hook` says whether the takeover hook was installed and `limitations` counts the known limitations this release's takeover hook ships with (9 in 1.0.0); a different number means a different build of the mod. `nutritionOn=true` means the vanilla Nutrition option is on (see above).
+- `hook` says whether the takeover hook was installed and `limitations` counts the known limitations this release's takeover hook ships with (9 in 1.0.0, the count of the handler's limitation list in this build); a different number means a different build of the mod. `nutritionOn=true` means the vanilla Nutrition option is on (see above).
 
 When you report a bug that involves food, eating, weight or stats, paste both lines — the server's from the server console log and the client's from the player's `console.txt` — with the mod list. A large nutrition mod is the usual first suspect for an unrelated food bug, and the two lines settle most of those at once.
 
