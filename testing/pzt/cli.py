@@ -6,9 +6,10 @@ import time
 
 from . import doctor
 from . import fixture as fx
+from . import harness
 from . import scenario
 from . import spikes
-from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
+from .paths import ADMIN_PW, ADMIN_USER, HARNESS_MODS, PZ_DIR, new_run_dir
 from .profile import DEFAULTS as PROFILE_DEFAULTS
 from .server import Server
 from .session import (Timeline, attach_clients, check_mods_loaded, fault_reasons, hold, make_client,
@@ -28,7 +29,21 @@ def parse_kv(items):
     return out
 
 
+def lint_gate(sources):
+    """The layout lint before any seed: 0 when clean, 2 (lines printed) on an ERROR."""
+    lines = harness.lint_paths(sources)
+    for line in lines:
+        say(line)
+    if lines:
+        say("pzt: layout lint failed; the boot is not started")
+        return 2
+    return 0
+
+
 def cmd_provision(a):
+    # A provision has no profile: it places the harness mod and workshop ids only.
+    if lint_gate(dict(HARNESS_MODS)):
+        return 2
     run_id, run_dir = new_run_dir("prov")
     tl = Timeline()
     say(f"run: {run_dir}")
@@ -128,6 +143,8 @@ def cmd_run(a):
     # Everything a profile asks for is resolved and validated before a process starts (see
     # profile.py), so a bad mod id or a misspelt sandbox key costs a second, not a boot.
     prof, flag, mod_kw = profile_args(a)
+    if lint_gate(mod_kw["mod_sources"]):
+        return 2
     rec = fx.load(a.fixture)
     run_id, run_dir = new_run_dir("run")
     tl = Timeline()

@@ -477,6 +477,7 @@ Not covered: what a release client does with a raise, a Linux dedicated-server i
 
 The doctor command is the cold-start gate before any boot: it reports a stray game Java process and never kills it, checks three ports are free, checks the fixture is present and build-matched, checks the workshop index is reachable and that the test runner is available, and exits 1 on a failure [#1703].
 The port check counts only listening and established local sockets, so a lingering closed connection does not false-fail it [#1703].
+`pzt run` and `pzt provision` lint every `path=` mod folder with the layout lint before they seed a fixture and stop on an ERROR, so a malformed mod folder never reaches a boot [T3.1].
 
 What a reading costs depends on which of five layers it needs, and every layer's failure is a hard fail of the run; the layer names and what each is are the design's own, while the last column reads back the cost and host it annotates each layer with [#1842].
 
