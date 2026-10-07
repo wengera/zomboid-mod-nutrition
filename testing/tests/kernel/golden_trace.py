@@ -19,17 +19,22 @@ and a catch-a-cold rise.
 Each minute m = 1..240: the world age is START_AGE + m/60 (118.5 -> 122.5: minute 90 closes a day); the engine
 step; the minute's events; every EveryOneMinute listener (h.minute()), then 25 OnTick frames (h.tick(25)); at every
 30th minute a snapshot.
-Events: meals at minutes 10, 70 and 130 through IN.readAfterAndLand (so IN.assemble) over a fixed before-snapshot
-per player -- g1 a whole Apple, g2 half a Bread, g3 an inferred type (no table entry), g4 a burnt and cooked Steak,
-g5 a Sandwich with a two-type craft map, g6 a thirst-only hot tea (half); g6's macro stores raised by an external
-writer at minute 45 (the reconciliation lands it); Wine for g1 and Tea for g5 at minute 50 and 0.25 L of water for
-g2 at minute 60 (K.vector.fluid, IN.land); g3 dies at minute 100 and at 101 OnNewGame fires for a new g3 object; a
+Events: meals at minutes 10, 70 and 130 (NR_T.meals) through IN.readAfterAndLand (so IN.assemble), one per round
+(g4's Steak at 10, g1's dish at 70, g3's at 130) first through IN.readBefore over a stand-in Food (NR_T.food); the
+rest over a fixed before-snapshot. Minute 70 is a round of second bites (frac, the share of what was left, differs
+from share, the share of the whole): g1's dish (K.vector.dish, extraTypes), g2's Bread, g4's butchered Steak
+(instBase -0.36 over the script's -0.30), g5's craft Sandwich, g6's thirst-only tea (a declared vector, thirst over
+scriptThirst). The dish and craft inputs instance through an instanceItem global (NR_T.types, so IN.typeInfo and
+IN.foodInfo run, a first-sight type each round: table, inferred and declared inputs). g3's minute-130 item answers
+NaN for its carbohydrates: Intake's num keeps it and the landing guard rejects the vector (intake.failures).
+g6's macro stores raised by an external writer at minute 45 (the reconciliation lands it); Wine for g1 and Tea for
+g5 at minute 50 and 0.25 L of water for g2 at minute 60 (K.vector.fluid, IN.land); g3 dies at minute 100 and at 101 OnNewGame fires for a new g3 object; a
 NaN written into g2's body (at, inDay) at minute 115 (the heal); g4 departs at 150 and returns as a new object at
 180; at 200 the bus answers one "mirror.request" by g5.
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
 body-damage counters and parts, the Nutrition stores), the counters of a FIXED list of NR.server adapters
 (STATS_NAMES; a new module's stats never move the trace), the sendServerCommand counts by command name and the
-sync counts. The printed lines are counted, never kept.
+sync counts and the instanceItem counts by type. The printed lines are counted, never kept.
 
 serialize(trace) is deterministic JSON: keys sorted, one value per line, every number written "%.17g" (a
 non-finite one as a quoted string), a table key that is a number written the same way.
@@ -229,29 +234,142 @@ NR_T.engine = function()
     end
 end
 
--- The fixed before-snapshots (IN.readBefore's shape) and the raw readings after the original ran.
+-- The meals, by minute and player. A `via = "item"` meal goes through IN.readBefore over a stand-in Food (NR_T.food)
+-- and then IN.readAfterAndLand; every other meal is a fixed before-snapshot (IN.readBefore's shape) handed to
+-- IN.readAfterAndLand with an item stub that answers only the after readings. A second bite (minute 70: g1's dish,
+-- g2's Bread, g4's Steak, g5's Sandwich, g6's tea) reads rawBefore (or thirstBefore) below the whole instance's
+-- instBase (or scriptThirst), so frac (the share of what was left) and share (the share of the whole) differ. g4's
+-- Steak is butchered: instBase -0.36 against the script's -0.30 (K.vector.meat's scale 1.2), its live macros at that
+-- scale. The minute-130 item meal answers NaN for its carbohydrates: Intake's local num keeps it, the macros carry
+-- it and the landing guard rejects the vector (intake.failures).
 NR_T.meals = {
-    g1 = { fullType = "Base.Apple", rawBefore = -0.16, rawAfter = 0, instBase = -0.16, thirstBefore = -0.07,
-           thirstAfter = 0, cal = 95, carb = 25.13, lip = 0.31, pro = 0.47, scriptHunger = -0.16,
-           scriptThirst = -0.07, foodType = "Fruits" },
-    g2 = { fullType = "Base.Bread", rawBefore = -0.30, rawAfter = -0.15, instBase = -0.30, thirstBefore = 0,
-           thirstAfter = 0, cal = 532, carb = 99, lip = 6.66, pro = 17.7, scriptHunger = -0.30, scriptThirst = 0,
-           foodType = "Bread" },
-    g3 = { fullType = "NRTrace.TrailMix", rawBefore = -0.20, rawAfter = 0, instBase = -0.20, thirstBefore = 0,
-           thirstAfter = 0, cal = 300, carb = 30, lip = 18, pro = 9, scriptHunger = -0.20, scriptThirst = 0,
-           foodType = "Seed" },
-    g4 = { fullType = "Base.Steak", rawBefore = -0.40, rawAfter = 0, instBase = -0.40, thirstBefore = 0,
-           thirstAfter = 0, cal = 220, carb = 0, lip = 9.35, pro = 31.62, scriptHunger = -0.40, scriptThirst = 0,
-           foodType = "Beef", cooked = true, burnt = true },
-    g5 = { fullType = "Base.Sandwich", rawBefore = -0.10, rawAfter = 0, instBase = -0.10, thirstBefore = 0,
-           thirstAfter = 0, cal = 360, carb = 42, lip = 8.5, pro = 5.8, scriptHunger = -0.10, scriptThirst = 0,
-           craftMap = { ["Base.Bread"] = 1, ["Base.Cheese"] = 2 } },
-    g6 = { fullType = "Base.HotDrinkTea", rawBefore = 0, rawAfter = 0, instBase = 0, thirstBefore = -0.20,
-           thirstAfter = -0.10, cal = 0, carb = 0, lip = 0, pro = 0, scriptHunger = 0, scriptThirst = -0.20 },
+    [10] = {
+        g1 = { fullType = "Base.Salad", rawBefore = -0.20, rawAfter = -0.10, instBase = -0.20, thirstBefore = 0,
+               thirstAfter = 0, cal = 80, carb = 12, lip = 4, pro = 3, scriptHunger = -0.20, scriptThirst = 0,
+               extraTypes = { "Base.Lettuce", "Base.Tomato", "NRTrace.Crouton" } },
+        g2 = { fullType = "Base.Bread", rawBefore = -0.30, rawAfter = -0.15, instBase = -0.30, thirstBefore = 0,
+               thirstAfter = 0, cal = 532, carb = 99, lip = 6.66, pro = 17.7, scriptHunger = -0.30, scriptThirst = 0,
+               foodType = "Bread" },
+        g3 = { fullType = "NRTrace.TrailMix", rawBefore = -0.20, rawAfter = 0, instBase = -0.20, thirstBefore = 0,
+               thirstAfter = 0, cal = 300, carb = 30, lip = 18, pro = 9, scriptHunger = -0.20, scriptThirst = 0,
+               foodType = "Seed" },
+        g4 = { via = "item", fullType = "Base.Steak", hungBefore = -0.36, hungAfter = -0.18, baseHunger = -0.36,
+               thirstBefore = 0, thirstAfter = 0, cal = 264, carb = 0, lip = 11.22, pro = 37.944,
+               scriptHungerPts = -30, scriptThirstPts = 0, foodType = "Beef", cooked = true, burnt = true,
+               modData = {} },
+        g5 = { fullType = "Base.Sandwich", rawBefore = -0.10, rawAfter = -0.05, instBase = -0.10, thirstBefore = 0,
+               thirstAfter = 0, cal = 360, carb = 42, lip = 8.5, pro = 5.8, scriptHunger = -0.10, scriptThirst = 0,
+               craftMap = { ["Base.Bread"] = 1, ["Base.Cheese"] = 2 } },
+        g6 = { fullType = "Base.HotDrinkTea", rawBefore = 0, rawAfter = 0, instBase = 0, thirstBefore = -0.20,
+               thirstAfter = -0.10, cal = 4, carb = 1, lip = 0, pro = 0, scriptHunger = 0, scriptThirst = -0.20,
+               declared = "water:237;caffeine:47;potassium:88;folate:12" },
+    },
+    [70] = {
+        g1 = { via = "item", fullType = "Base.Salad", hungBefore = -0.10, hungAfter = 0, baseHunger = -0.20,
+               thirstBefore = 0, thirstAfter = 0, cal = 40, carb = 6, lip = 2, pro = 1.5, scriptHungerPts = -20,
+               scriptThirstPts = 0, extra = { "Base.Lettuce", "Base.Tomato", "NRTrace.Crouton" }, modData = {} },
+        g2 = { fullType = "Base.Bread", rawBefore = -0.15, rawAfter = 0, instBase = -0.30, thirstBefore = 0,
+               thirstAfter = 0, cal = 266, carb = 49.5, lip = 3.33, pro = 8.85, scriptHunger = -0.30,
+               scriptThirst = 0, foodType = "Bread" },
+        g3 = { fullType = "NRTrace.Stew", rawBefore = -0.25, rawAfter = 0, instBase = -0.25, thirstBefore = 0,
+               thirstAfter = 0, cal = 210, carb = 24, lip = 7, pro = 12, scriptHunger = -0.25, scriptThirst = 0,
+               extraTypes = { "Base.Carrots", "Base.Cabbage", "NRTrace.Dressing" } },
+        g4 = { fullType = "Base.Steak", rawBefore = -0.18, rawAfter = 0, instBase = -0.36, thirstBefore = 0,
+               thirstAfter = 0, cal = 132, carb = 0, lip = 5.61, pro = 18.972, scriptHunger = -0.30, scriptThirst = 0,
+               foodType = "Beef", cooked = true, burnt = true },
+        g5 = { fullType = "Base.Sandwich", rawBefore = -0.05, rawAfter = -0.02, instBase = -0.10, thirstBefore = 0,
+               thirstAfter = 0, cal = 180, carb = 21, lip = 4.25, pro = 2.9, scriptHunger = -0.10, scriptThirst = 0,
+               craftMap = { ["Base.Bread"] = 1, ["Base.Cheese"] = 2 } },
+        g6 = { fullType = "Base.HotDrinkTea", rawBefore = 0, rawAfter = 0, instBase = 0, thirstBefore = -0.10,
+               thirstAfter = 0, cal = 2, carb = 0.5, lip = 0, pro = 0, scriptHunger = 0, scriptThirst = -0.20,
+               declared = "water:237;caffeine:47;potassium:88;folate:12" },
+    },
+    [130] = {
+        g1 = { fullType = "Base.Apple", rawBefore = -0.16, rawAfter = 0, instBase = -0.16, thirstBefore = -0.07,
+               thirstAfter = 0, cal = 95, carb = 25.13, lip = 0.31, pro = 0.47, scriptHunger = -0.16,
+               scriptThirst = -0.07, foodType = "Fruits" },
+        g2 = { fullType = "Base.Bread", rawBefore = -0.30, rawAfter = -0.20, instBase = -0.30, thirstBefore = 0,
+               thirstAfter = 0, cal = 532, carb = 99, lip = 6.66, pro = 17.7, scriptHunger = -0.30, scriptThirst = 0,
+               foodType = "Bread" },
+        g3 = { via = "item", fullType = "NRTrace.TrailMix", hungBefore = -0.20, hungAfter = 0, baseHunger = -0.20,
+               thirstBefore = 0, thirstAfter = 0, cal = 300, carb = 0, lip = 18, pro = 9, scriptHungerPts = -20,
+               scriptThirstPts = 0, foodType = "Seed", modData = {}, nan = "getCarbohydrates" },
+        g4 = { fullType = "Base.Steak", rawBefore = -0.36, rawAfter = 0, instBase = -0.36, thirstBefore = 0,
+               thirstAfter = 0, cal = 264, carb = 0, lip = 11.22, pro = 37.944, scriptHunger = -0.30,
+               scriptThirst = 0, foodType = "Beef", cooked = true },
+        g5 = { fullType = "Base.Sandwich", rawBefore = -0.10, rawAfter = 0, instBase = -0.10, thirstBefore = 0,
+               thirstAfter = 0, cal = 330, carb = 40, lip = 7.5, pro = 6.2, scriptHunger = -0.10, scriptThirst = 0,
+               craftMap = { ["Base.Bread"] = 1, ["Base.Cheese"] = 1, ["NRTrace.Pickle"] = 1 } },
+        g6 = { fullType = "Base.HotDrinkTea", rawBefore = 0, rawAfter = 0, instBase = 0, thirstBefore = -0.20,
+               thirstAfter = -0.05, cal = 4, carb = 1, lip = 0, pro = 0, scriptHunger = 0, scriptThirst = -0.20,
+               declared = "water:237;caffeine:47;potassium:88;folate:12" },
+    },
 }
 
-NR_T.eat = function(username)
-    local m = NR_T.meals[username]
+-- The input types a dish or a craft names, as instanceItem builds them (IN.typeInfo -> IN.foodInfo): three in
+-- the table, two inferred (no table entry, the chain reads foodInfo's macros and FoodType) and one declared
+-- (an NR_Nutrients string in its modData). A type absent here instances to nil (IN.typeInfo caches false).
+NR_T.types = {
+    ["Base.Bread"] = { cal = 532, carb = 99, lip = 6.66, pro = 17.7, foodType = "Bread" },
+    ["Base.Cheese"] = { cal = 113, carb = 0.4, lip = 9.3, pro = 7, foodType = "Cheese" },
+    ["Base.Lettuce"] = { cal = 20, carb = 3.9, lip = 0.2, pro = 1.8, foodType = "Vegetables" },
+    ["Base.Tomato"] = { cal = 16.38, carb = 3.54, lip = 0.18, pro = 0.8, foodType = "Vegetables" },
+    ["Base.Carrots"] = { cal = 41, carb = 9.6, lip = 0.24, pro = 0.93, foodType = "Vegetables" },
+    ["NRTrace.Crouton"] = { cal = 60, carb = 11, lip = 1, pro = 2, foodType = "Bread" },
+    ["NRTrace.Pickle"] = { cal = 12, carb = 2.6, lip = 0.1, pro = 0.3, foodType = "Vegetables" },
+    ["NRTrace.Dressing"] = { cal = 90, carb = 1, lip = 9.5, pro = 0.2,
+                             modData = { NR_Nutrients = "vitE:2.1;vitK:24;sodium:310;efa:4.6" } },
+}
+NR_T.instanced = {}
+
+-- A stand-in Food: the getters IN.readBefore and IN.foodInfo read. The hunger and thirst getters answer the
+-- before value until NR_T.eat marks the item eaten, then the after value. `nan` names one getter that answers NaN.
+NR_T.food = function(fullType, spec)
+    local item = { eaten = false }
+    local function pick(b, a) if item.eaten then return a end return b end
+    item.getFullType = function(s) return fullType end
+    item.getHungChange = function(s) return pick(spec.hungBefore or 0, spec.hungAfter or 0) end
+    item.getThirstChangeUnmodified = function(s) return pick(spec.thirstBefore or 0, spec.thirstAfter or 0) end
+    item.getBaseHunger = function(s) return spec.baseHunger or 0 end
+    item.getCalories = function(s) return spec.cal end
+    item.getCarbohydrates = function(s) return spec.carb end
+    item.getLipids = function(s) return spec.lip end
+    item.getProteins = function(s) return spec.pro end
+    if spec.nan ~= nil then item[spec.nan] = function(s) return 0 / 0 end end
+    item.isCooked = function(s) return spec.cooked == true end
+    item.isBurnt = function(s) return spec.burnt == true end
+    item.isRotten = function(s) return false end
+    item.isFrozen = function(s) return false end
+    local script = { getHungerChange = function(s) return spec.scriptHungerPts or 0 end,
+                     getThirstChange = function(s) return spec.scriptThirstPts or 0 end }
+    item.getScriptItem = function(s) return script end
+    local extra = spec.extra or {}
+    local list = { size = function(s) return #extra end, get = function(s, i) return extra[i + 1] end }
+    item.haveExtraItems = function(s) return #extra > 0 end
+    item.getExtraItems = function(s) return list end
+    local md = spec.modData or {}
+    item.getModData = function(s) return md end
+    item.getFoodType = function(s) return spec.foodType end
+    return item
+end
+
+instanceItem = function(fullType)
+    local spec = NR_T.types[fullType]
+    if spec == nil then return nil end
+    NR_T.instanced[fullType] = (NR_T.instanced[fullType] or 0) + 1
+    return NR_T.food(fullType, spec)
+end
+
+NR_T.eat = function(minute, username)
+    local m = NR_T.meals[minute][username]
+    local IN = NutritionRevamp.server.intake
+    if m.via == "item" then
+        local item = NR_T.food(m.fullType, m)
+        local character = { getUsername = function(s) return username end }
+        local b = IN.readBefore({ item = item, character = character })
+        item.eaten = true
+        return IN.readAfterAndLand(b)
+    end
     local item = {}
     item.getHungChange = function(s) return m.rawAfter end
     item.getThirstChangeUnmodified = function(s) return m.thirstAfter end
@@ -259,13 +377,14 @@ NR_T.eat = function(username)
                 instBase = m.instBase, thirstBefore = m.thirstBefore, cal = m.cal, carb = m.carb, lip = m.lip,
                 pro = m.pro, cooked = m.cooked == true, burnt = m.burnt == true, rotten = false, frozen = false,
                 scriptHunger = m.scriptHunger, scriptThirst = m.scriptThirst, extraTypes = {},
-                craftMap = nil, declared = nil, foodType = m.foodType }
+                craftMap = nil, declared = m.declared, foodType = m.foodType }
+    for i, t in ipairs(m.extraTypes or {}) do b.extraTypes[i] = t end
     if m.craftMap ~= nil then
         b.craftMap = {}
         for k, v in pairs(m.craftMap) do b.craftMap[k] = v end
     end
     b.macros = { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
-    return NutritionRevamp.server.intake.readAfterAndLand(b)
+    return IN.readAfterAndLand(b)
 end
 """ % SEED
 
@@ -409,6 +528,7 @@ def _snapshot(h, minute, players):
         "stats": _stats(h),
         "sent": walk(h.T.sent),
         "syncs": walk(h.T.syncs),
+        "instanced": walk(h.T.instanced),
     }
 
 
@@ -429,11 +549,11 @@ def _new_player(h, name, macros):
     return h.T.decorate(p, lcfg)
 
 
-def _meal(h, name):
+def _meal(h, minute, name):
     rec = h.record(name)
     if rec is None or rec["stomach"] is None:
         raise AssertionError("no record or stomach for %s at a meal" % name)
-    h.T.eat(name)
+    h.T.eat(minute, name)
 
 
 def _fluid(h, name, fluid, litres):
@@ -463,7 +583,7 @@ def run(host):
         h.T.engine()
         if m in MEAL_MINUTES:
             for n in order:
-                _meal(h, n)
+                _meal(h, m, n)
         if m == 45:
             nut = players["g6"].nut
             nut.cal = nut.cal + STORE_RAISE_G6[0]
