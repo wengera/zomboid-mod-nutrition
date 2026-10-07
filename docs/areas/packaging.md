@@ -13,6 +13,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 - Use `require=` when one mod must load before another: it is the only load-order declaration the loader acts on, and `loadModBefore=` and `loadModAfter=` only arrange rows in the client's mod selector [#0811/C/C-only, #0814/C/C-only].
 - Ship byte-identical script files on both sides of a multiplayer session: the gate hashes file content with every CR byte dropped, so a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only, #1231/C/C-only].
 - Treat every Workshop update that changes a shipped script file as a server event: a client holding the new bytes and a server still running the old ones fail the join checksum against each other, a reading no run has exercised [#1182/C/C-only, #2077/C/inference].
+- Treat every Workshop update that changes any shipped `.lua` file, a comment or whitespace included, as a server event exactly as a script file: a user-role client whose copy of one Lua file differs by one byte is kicked at the join, and only a line-ending-only difference is forgiven [#3378/C/inference, #3374/M/n=1, #3376/M/n=1, #3377/C/C-only].
 - Never rely on a checksum-bypass role to seat a client whose script files differ: the bypass clears the gate's flags but not the difference, and each side keeps the definitions it loaded with nothing reconciling them, so that client plays on item values the server does not hold [#1230/C/C-only, #0648/C/inference, #2073/C/inference].
 - Keep every Lua file off the vanilla relative paths a resident mod already replaces: the file map keeps one file per relative path, so this mod and that neighbour would each lose the whole file to the other on load order [#1173/C/C-only, #1457/C/snapshot, #2074/C/inference].
 - Give the mod's command-bus module a name no other mod on the server uses: the bus is one namespace shared with every other mod's command sites on that server [#1153/C/C-only, #2055/C/inference].
@@ -96,7 +97,7 @@ Before any server boots, the layout lint checks the folder against these rules, 
 
 Every script file this mod ships is hashed at load and compared at the join, so the item pass reaches a multiplayer server only on the gate's terms ([#1182/C/C-only], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 What the gate hashes, the one difference it forgives, how each side acts on a mismatch and what a bypass role clears are the anatomy page's, and this section is the plan against them.
-The gate has three arms, one per checksum flag a bypass role clears, and the anatomy page reads the script arm and leaves the Lua and animation arms outside its coverage ([#1230/C/C-only], [mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
+The gate has three arms, one per checksum flag a bypass role clears; the anatomy page reads the script and Lua arms and leaves the animation arm outside its coverage ([#1230/C/C-only], [#3374/M/n=1], [mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
 The plan is one answer applied to all three: the server and every client load the same bytes, from one build of the mod, so no arm has a difference to find.
 
 The script arm is the one this mod is certain to meet, because the item pass is script data by design, and script data is free at run time only at the price of this gate ([#1243/M/n=1], [loader-and-scripts.md#per-side-load](../platform/loader-and-scripts.md#per-side-load)).
@@ -117,9 +118,9 @@ The bypass role is an operator's lever, and the plan never leans on it.
 A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
 The bypass turns a loud failure into a silent disagreement over exactly the numbers this mod exists to set.
 
-The Lua and animation arms are unread, so the plan treats them as if they gated.
-The mod's Lua ships under the same one-build discipline as its scripts, and a nutrition overhaul has no reason to ship an animation at all.
-Whichever way the unread arms turn out, nothing this mod ships differs between the two sides.
+The Lua arm gates as the script arm does: one byte changed inside a comment of one of this mod's Lua files disconnected a `user`-role client at the join, while a copy differing only in line endings joined ([#3374/M/n=1], [#3376/M/n=1]).
+The mod's Lua ships under the same one-build discipline as its scripts, so an update touching any `.lua` file is a server event too [#3378/C/inference, #3374/M/n=1].
+The animation arm is unread, so the plan treats it as if it gated, and a nutrition overhaul has no reason to ship an animation at all.
 
 The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
@@ -257,7 +258,7 @@ Which approach does this mod take toward each resident it shares a file or a key
 - A mod can rely on the replay order, which is the stored script path rather than `require=` or `Mods=`, so a patch mod wins a contested key only through its own file names [#1183/M/n=2].
 - Every reading of the resident stack is a static read of a dated snapshot of an installed tree that drifts, and no two resident mods were booted together ([#1964/C/snapshot], [catalog.md#walls](../facts/other-mods/catalog.md#walls)).
 
-Not covered: the Steam Workshop upload, subscription and update surface, including any version check the Workshop makes of its own; the Lua and animation arms of the checksum gate; a listen server and the client's own mod selector; any Lua route to the running build number; and every neighbour that is not installed — this library read none of them.
+Not covered: the Steam Workshop upload, subscription and update surface, including any version check the Workshop makes of its own; the animation arm of the checksum gate, and the Lua arm beyond one file, the `user` role and the two differences read; a listen server and the client's own mod selector; any Lua route to the running build number; and every neighbour that is not installed — this library read none of them.
 
 ## Open
 <a id="open"></a>
