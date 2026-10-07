@@ -562,3 +562,7 @@ x193-20261006-201004,verdicts.B.observed.bob.keys,{},The empty Lua table the enc
 x193-20261006-201004,verdicts.B.observed.admin.keys,{},The empty Lua table the encoder writes as an object; an empty list.,cite `verdicts.B.observed.admin.keyCount`
 x193-20261006-201004,phases.B.bob.census.keys,{},The empty Lua table the encoder writes as an object; an empty list.,cite `verdicts.B.observed.bob.keyCount`
 x193-20261006-201004,phases.B.admin.census.keys,{},The empty Lua table the encoder writes as an object; an empty list.,cite `verdicts.B.observed.admin.keyCount`
+x193-20261006-201004,verdicts.A.observed.setpath.after,0.05,The driver's own write read back by its globalmoddata.setpath; not a reading.,cite `verdicts.A.observed.setpath.before` or the record's later read
+x193-20261006-201004,verdicts.A.observed.setpath.requested,0.05,The driver's own requested value; not a reading.,cite `verdicts.A.observed.setpath.before` or the record's later read
+x193-20261006-201004,verdicts.D.observed.target,150.41702270507812,The driver's own write (the store read plus its RISE_KCAL); not a reading.,cite `verdicts.D.observed.store_before` and the landing in `verdicts.D.observed.lastIntake`
+x193-20261006-201004,verdicts.D.observed.set_reply,the written store,The driver's own write read back in the set reply; not a reading.,cite `verdicts.D.observed.store_before` and the landing in `verdicts.D.observed.lastIntake`

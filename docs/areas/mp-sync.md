@@ -174,8 +174,7 @@ What each bit of each mask selects is the field contract of [the player-fields p
 All three reach one client.
 A server send addressed to a player reaches that player's own connection only, and the three globals, the engine's timed per-player pushes and the eat packet all send that way, so each refreshes the affected player's own client and no other client's copy of that player [#2603/C/C-only].
 A value this mod shows on another player's character therefore needs a send the mod addresses to each client that draws it, because none of these pushes reaches a second client.
-On a live server with two clients attached, this mod's own mirror reached each player's own client carrying that player's username [T7.1/M/n=1], a clinical state forced on one player's record reached that player's client on the effects push while the other client received nothing [T7.2/M/n=1], and a server trait add with its trait-block push reached the owner's list while the other client's own list and view did not move [T7.4/M/n=1].
-The two-client session ticked at the one-client server rate [T7.12/M/n=1].
+On a live server with two clients attached, this mod's own mirror reached each player's own client carrying that player's username [#3288/M/n=1], a clinical state forced on one player's record reached that player's client on the effects push while the other client received nothing [#3289/M/n=1], and a server trait add with its trait-block push reached the owner's list while the other client's own list and view did not move [#3291/M/n=1].
 The injury diff a watching player asks for is a server channel that does reach a second client, and its send is triggered by a change in health, pain or infection only [#2610/C/C-only].
 A `SyncXp` from a connection holding the stats-panel capability is relayed to every other fully connected client [#2612/C/C-only], and a global modData table the server transmits reaches every connection, as [Global modData](#global-moddata) states.
 
@@ -211,7 +210,7 @@ The store's rules are [server-lifecycle.md](../platform/server-lifecycle.md)'s; 
 
 `ModData.transmit(name)` on the server sends the whole named table to every connection, with no per-player target, so a table keyed by username and transmitted is every player's values on every client [#2398/C/C-only].
 A per-player mirror of this mod's nutrient store cannot ride a transmitted global table without reaching every client, and the per-player push a mod controls is the bus's server send ([mp-model.md#command-bus](../platform/mp-model.md#command-bus)).
-With two clients attached, this mod's untransmitted table existed on the server alone: neither client held a table of that name [T7.3/M/n=1].
+With two clients attached, this mod's untransmitted table existed on the server alone: neither client held a table of that name [#3290/M/n=1].
 On the receiving side `OnReceiveGlobalModData` hands over a freshly loaded table, or `false` when the packet carries none, and installs nothing itself, so a client copy exists only where the mod's own handler installs it [#2399/C/C-only].
 A client's request for a table fires a server event that names no player, so a server handler cannot tell which client asked [#2406/C/C-only].
 A key in a player's modData and one in a global table both survived a clean save and reload on a live server [#1294/M/n=1].
@@ -259,7 +258,6 @@ Which route does each quantity this mod owns travel on: the command bus, a playe
 - No ordinary player's client can push its own experience or traits to the server: the one route is capability-gated [#2612/C/C-only, #2595/C/C-only].
 - Every measured reading this page cites was taken on the dedicated-server path with one real client, one fixture, and one character or one item per arm, and none of them speaks for single player.
 - No arm was taken with more than one client attached, so nothing here measures what a second client's copy holds; which client each push reaches is a code reading, under [Pushes server Lua can cause](#server-pushes).
-- No harness read reaches another player's character from a client, so what a second client's copy of a player holds after a push stays unmeasured [T7.5/C/C-only].
 
 Not covered: the transport beneath every packet, the save and load round trip that an item's serialised blob and item modData travel on, the player and global modData scopes beyond one clean reload and one hard kill, the contents of the engine's timed health push, every packet outside the food, nutrition, item-fields, player-modData, player-fields, experience, body-part and global-modData set, and anything a listen server or a second attached client would change.
 
