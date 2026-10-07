@@ -120,8 +120,8 @@ def run(a):
     # over --fixture (that is the fixture its sandbox keys were checked against) and its first
     # client is the test's subject unless --user says otherwise.
     prof, flag, mod_kw = profile_args(a)
-    from .cli import lint_gate      # the layout lint before any seed (imported here: cli imports this module)
-    if lint_gate(mod_kw["mod_sources"]):
+    from .cli import lint_gate, lint_sources   # the layout lint before any seed (imported here: cli imports this module)
+    if lint_gate(lint_sources(prof, mod_kw["mod_sources"])):
         return 2
     a.user = a.user or (prof.users[0] if prof else ADMIN_USER)
     rec = fx.load(a.fixture)

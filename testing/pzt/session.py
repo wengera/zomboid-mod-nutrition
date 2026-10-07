@@ -331,7 +331,7 @@ def attach_clients(run_dir, prof, server, rec, tl, users=None, started=None, saf
     timeout = pick(timeout, "client_timeout")
     out = {}
     for user in users:
-        c, restored = make(run_dir, user, server, rec, safemode=safemode, launcher=launcher)
+        c, restored = make(run_dir, user, server, rec, safemode=safemode, launcher=launcher, **override_kw(prof, user, server))
         c.start()
         out[user] = c
         if started is not None:
@@ -339,3 +339,16 @@ def attach_clients(run_dir, prof, server, rec, tl, users=None, started=None, saf
         tl.mark("client_launch", user=user, restored=restored)
         tl.mark("client_ready", user=user, took=c.wait_ready(timeout=timeout))
     return out
+
+
+# ---- Plan 10 Task S6: a per-client mod source override ------------------------------------------
+
+def override_kw(prof, user, server):
+    """`{}` unless the profile's `client_overrides` names `user`; then `{"mod_sources": ...}`, the
+    server's own map with that user's folders laid over it (a fresh dict: the server's map and
+    every other client's stay as they were). A profile without the key passes nothing extra, so
+    every caller's `make_client` sees exactly the arguments it saw before."""
+    table = (getattr(prof, "client_overrides", None) or {}).get(user) if prof is not None else None
+    if not table:
+        return {}
+    return {"mod_sources": {**dict(getattr(server, "mod_sources", None) or {}), **table}}

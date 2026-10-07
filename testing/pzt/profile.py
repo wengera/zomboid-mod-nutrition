@@ -47,7 +47,7 @@ PROFILES, REPO = os.path.join(TESTING, "profiles"), os.path.dirname(TESTING)
 # first in Mods= (load order is the ini's order).
 HARNESS_ID = "PZTestKit"
 
-TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify", "clients"}
+TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify", "clients", "client_overrides"}
 MOD_KEYS = {"id", "workshop_id", "path", "copy"}
 SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded"}   # the last two are server-ini booleans
 CLIENT_KEYS = {"timeout", "users", "safemode", "launcher"}
@@ -91,7 +91,7 @@ class Profile:
                 "description": self.description, "mods": list(self.mods),
                 "sources": dict(self.sources), "skip": list(self.skip),
                 "workshop_items": dict(self.items), "sandbox": dict(self.sandbox),
-                "users": list(self.users)}
+                "users": list(self.users), "client_overrides": dict(getattr(self, "client_overrides", {}))}
 
 
 def _check_keys(what, table, known):
@@ -389,7 +389,7 @@ def load(name):
     # server-ini overrides (booleans, written verbatim by Server.seed); empty leaves the fixture's ini alone
     prof.ini = {k: _bool(name, f"[server] {k}", srv[k]) for k in ("SleepAllowed", "SleepNeeded") if k in srv}
     prof.clients = list(users)             # the Plan 8 name for the same list (`users` kept)
-    return prof
+    return _with_overrides(name, doc, prof)   # [client_overrides.<user>] (Plan 10 S6; appended below)
 
 
 def _clients(name, doc, clt, fixture, rec):
@@ -421,3 +421,60 @@ def _clients(name, doc, clt, fixture, rec):
         raise ProfileError(f"profile '{name}': clients {clients!r} and [client] users {users!r} "
                            "disagree; keep one (clients is the Plan 8 key)")
     return list(clients)
+
+
+# ---- Plan 10 Task S6: a per-client mod source override ----------------------------------------
+# Appended at the end of the file: the claims register holds `repo:` pointers into this file by
+# line number, so new sites go here and the edits above keep every line where it was.
+
+def _with_overrides(name, doc, prof):
+    """`[client_overrides.<user>] <ModId> = "path"`: ONE attached client gets a different folder
+    for one mod the profile already places, so the server and every other client keep the
+    profile's own source (the Lua checksum arm, Plan 10 S6, needs one client whose bytes differ).
+
+    Sets `prof.client_overrides = {user: {mod_id: abs_folder}}` (empty without the key) and
+    returns `prof`. Every miss is a ProfileError before a process starts: a user the profile does
+    not attach, a mod the profile does not place (absent from `[[mods]]` or `copy = false`), a
+    path that is not a folder (relative paths are from the repo root, as `[[mods]] path`), or a
+    folder whose mod.info declares another id."""
+    raw = doc.get("client_overrides")
+    out = {}
+    if raw is None:
+        prof.client_overrides = out
+        return prof
+    if not isinstance(raw, dict):
+        raise ProfileError(f"profile '{name}': client_overrides must be a table of "
+                           f"[client_overrides.<user>] tables, got {raw!r}")
+    for user, table in raw.items():
+        if user not in prof.users:
+            raise ProfileError(f"profile '{name}': [client_overrides.{user}] names a client this profile "
+                               f"does not attach (clients: {', '.join(prof.users)})")
+        if not isinstance(table, dict):
+            raise ProfileError(f"profile '{name}': client_overrides.{user} must be a table of "
+                               f"<ModId> = \"path\", got {table!r}")
+        for mod_id, src in table.items():
+            if mod_id not in prof.sources:
+                raise ProfileError(f"profile '{name}': [client_overrides.{user}] {mod_id} is not a mod this "
+                                   f"profile places (placed: {', '.join(sorted(prof.sources))})")
+            if not isinstance(src, str) or not src:
+                raise ProfileError(f"profile '{name}': client_overrides.{user}.{mod_id} must be a folder "
+                                   f"path, got {src!r}")
+            path = src if os.path.isabs(src) else os.path.join(REPO, src)
+            path = os.path.normpath(path)
+            if not os.path.isdir(path):
+                raise ProfileError(f"profile '{name}': [client_overrides.{user}] {mod_id} = '{src}' is not "
+                                   f"a directory (resolved to {path}; relative paths are from {REPO})")
+            _mod_id_of(path, mod_id)
+            out.setdefault(user, {})[mod_id] = path
+    prof.client_overrides = out
+    return prof
+
+
+def lint_sources(prof, sources):
+    """The folders the layout lint gates before a boot: the profile's `sources` plus every
+    `client_overrides` folder, keyed `<ModId>@<user>` so an override never hides its base."""
+    out = dict(sources or {})
+    for user, table in (getattr(prof, "client_overrides", None) or {}).items():
+        for mod_id, path in table.items():
+            out[f"{mod_id}@{user}"] = path
+    return out

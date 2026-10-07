@@ -10,7 +10,7 @@ from . import harness
 from . import scenario
 from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, HARNESS_MODS, PZ_DIR, new_run_dir
-from .profile import DEFAULTS as PROFILE_DEFAULTS
+from .profile import DEFAULTS as PROFILE_DEFAULTS, lint_sources
 from .server import Server
 from .session import (Timeline, attach_clients, check_mods_loaded, fault_reasons, hold, make_client,
                       make_server, mark_profile, opt, profile_args, say, teardown, verify, write_report)
@@ -143,7 +143,7 @@ def cmd_run(a):
     # Everything a profile asks for is resolved and validated before a process starts (see
     # profile.py), so a bad mod id or a misspelt sandbox key costs a second, not a boot.
     prof, flag, mod_kw = profile_args(a)
-    if lint_gate(mod_kw["mod_sources"]):
+    if lint_gate(lint_sources(prof, mod_kw["mod_sources"])):   # + any client_overrides folder
         return 2
     rec = fx.load(a.fixture)
     run_id, run_dir = new_run_dir("run")
