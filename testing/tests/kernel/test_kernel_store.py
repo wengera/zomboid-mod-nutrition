@@ -46,6 +46,16 @@ def order(h):
     return arr(h, ORDER)
 
 
+@pytest.fixture(autouse=True)
+def _records_loaded(host):
+    """Every test sees the data tables loaded, whatever ran before it: no test depends on another's side effect."""
+    data = host.G.NutritionRevamp.data
+    if data is None or data.records is None:
+        for name in ("NR_Data_Nutrients.lua", "NR_Data_Records.lua"):
+            with open(os.path.join(SHARED, name), encoding="utf-8") as fh:
+                host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@" + name)()
+
+
 def recs(h):
     return h.G.NutritionRevamp.data.records
 
