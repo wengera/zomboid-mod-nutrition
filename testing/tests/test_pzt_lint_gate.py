@@ -56,3 +56,17 @@ def test_provision_exits_2_before_any_seed(monkeypatch):
     monkeypatch.setattr(cli, "make_server", boom)
     monkeypatch.setattr(cli, "new_run_dir", boom)
     assert cli.cmd_provision(argparse.Namespace()) == 2
+
+
+def test_scenario_exits_2_before_any_seed(monkeypatch):
+    from pzt import scenario
+
+    def boom(*a, **k):
+        raise AssertionError("seeded after a failed lint")
+    monkeypatch.setattr(scenario, "profile_args",
+                        lambda a: (None, None, {"mod_sources": {"X": "/x"}}))
+    monkeypatch.setattr(harness, "lint_paths", lambda s: ["X: ERROR: version-dir: none"])
+    monkeypatch.setattr(fx, "load", boom)
+    monkeypatch.setattr(scenario, "make_server", boom)
+    monkeypatch.setattr(scenario, "new_run_dir", boom)
+    assert scenario.run(argparse.Namespace(user=None)) == 2
