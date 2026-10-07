@@ -75,7 +75,7 @@ Player modData is a table both sides hold a copy of, and it does not cross until
 The server is the only side that can own that store, because the intake that changes it completes there.
 A server-side table or global modData is set up on the global-mod-data init hook or the server-started hook, the pair read as surviving a dedicated server where `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire [#0895/C/one-side].
 `OnNewGame` does fire on a dedicated server, with the new `IsoPlayer`, for every character a client creates, so a new character's row can be seeded there, and a row missing for an older character is created when first needed ([#2387/C/C-only], [server-lifecycle.md#creation](../platform/server-lifecycle.md#creation)).
-A world-scoped table is created whenever it is missing rather than only when the world is new, as [Global modData](#global-moddata) states.
+A world-scoped table is created whenever it is missing rather than only when the new-world flag says so, as [Global modData](#global-moddata) states.
 The client's copy is then a display mirror, and how that mirror is refreshed is exactly the choice the options table puts.
 This mod's own global-modData store attaches on the global-mod-data init hook and a mirror of its record reaches the client's server-command handler within the session: in the acceptance re-run the server's store held the player's record at version 1 and the client's mirror read that player's name, version 1 and mode 1, one mirror received, though the run does not say whether the first-sight send or the answer to the client's own request carried it [#2748/M/n=1].
 A mirror refreshed on the mod's own command is late by one round trip, while a mirror refreshed by a server-side transmit is as current as the server's last call, and any transmit from that client in the meantime writes the client's copy back over the server's [#1042/M/n=2].
@@ -204,8 +204,8 @@ Every authoritative write this mod makes to a player's state is therefore made o
 
 Global modData is the one durable store this mod can key on the world rather than on a character or an item, and its mechanism is [server-lifecycle.md](../platform/server-lifecycle.md#global-moddata)'s.
 It lives in one file per save, and on a dedicated server one save is one world, so a table there outlives every connection [#2397/C/C-only].
-`OnInitGlobalModData` passes whether the world is new, not whether the table is, and fires after the file has loaded, so a mod added to an existing world finds its own table absent [#2396/C/C-only].
-The store's rules are [server-lifecycle.md](../platform/server-lifecycle.md)'s; the one that decides where this mod's table comes from creates it whenever it is missing, with `ModData.getOrCreate`, and never only when the world is new [#2417/C/inference].
+`OnInitGlobalModData` passes the world dictionary's new-game flag, not whether the table is new, and fires after the file has loaded, so a mod added to an existing world finds its own table absent [#2396/C/C-only]; on a dedicated server the flag read true on reload boots of one world [#3284/M/n=1].
+The store's rules are [server-lifecycle.md](../platform/server-lifecycle.md)'s; the one that decides where this mod's table comes from creates it whenever it is missing, with `ModData.getOrCreate`, and never only when the flag says so [#3287/C/inference].
 
 `ModData.transmit(name)` on the server sends the whole named table to every connection, with no per-player target, so a table keyed by username and transmitted is every player's values on every client [#2398/C/C-only].
 A per-player mirror of this mod's nutrient store cannot ride a transmitted global table without reaching every client, and the per-player push a mod controls is the bus's server send ([mp-model.md#command-bus](../platform/mp-model.md#command-bus)).
@@ -214,7 +214,7 @@ A client's request for a table fires a server event that names no player, so a s
 A key in a player's modData and one in a global table both survived a clean save and reload on a live server [#1294/M/n=1].
 With the world autosave off the server wrote the file only on a console save and a clean quit, never on a write or a transmit [#2097/M/n=1], and a value written a game-minute before a hard kill was gone after the restart [#2098/M/n=1].
 A world-scoped value is therefore as durable as the last save, and a write between saves is lost to a crash [#2097/M/n=1] [#2098/M/n=1].
-This mod's first-sight load runs in place on the stored record: at a reconnect it migrated a version-1 record with every input kept and a field outside the input list dropped [T6.2/M/n=1], after a reload it dropped that field again and carried the inputs with no migration [T6.4/M/n=1], and a version-1 record's first load kept its inputs and dropped a derived field [T6.5/M/n=1].
+This mod's first-sight load runs in place on the stored record: at a reconnect it migrated a version-1 record with every input kept and a field outside the input list dropped [#3274/M/n=1], after a reload it dropped that field again and carried the inputs with no migration [#3276/M/n=1], and a version-1 record's first load kept its inputs and dropped a derived field [#3277/M/n=1].
 
 ## Options
 
