@@ -170,8 +170,10 @@ def diff(old_manifest, new_manifest):
     script = [k for k in changed
               if ("gate_sha256" in new[k] or "gate_sha256" in old[k])
               and old[k].get("gate_sha256") != new[k].get("gate_sha256")]
-    return {"added": sorted(set(new) - set(old)), "removed": sorted(set(old) - set(new)),
-            "changed": changed, "script_changed": script}
+    added, removed = sorted(set(new) - set(old)), sorted(set(old) - set(new))
+    # A script file that appears or disappears moves the join checksum as surely as an edit.
+    script += [k for k in added if "gate_sha256" in new[k]] + [k for k in removed if "gate_sha256" in old[k]]
+    return {"added": added, "removed": removed, "changed": changed, "script_changed": sorted(script)}
 
 
 def _workshop_txt(mod, item_name):

@@ -197,3 +197,11 @@ def test_cli_check_fails_on_error(mod, capsys):
 def test_check_real_mod():
     errors = [f for f in rp.check(ROOT / "mod" / "NutritionRevamp") if f.level == "ERROR"]
     assert errors == []
+
+
+def test_diff_added_or_removed_script_is_a_server_event():
+    old = {"common/media/scripts/gone.txt": {"sha256": "1", "gate_sha256": "g1", "bytes": 1}}
+    new = {"common/media/scripts/fresh.txt": {"sha256": "1", "gate_sha256": "g1", "bytes": 1},
+           "x.lua": {"sha256": "1", "bytes": 1}}
+    d = rp.diff(old, new)
+    assert d["script_changed"] == ["common/media/scripts/fresh.txt", "common/media/scripts/gone.txt"]
