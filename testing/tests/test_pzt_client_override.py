@@ -108,10 +108,10 @@ def test_an_override_folder_declaring_another_id_is_a_profile_error():
             profile.load("p")
 
 
-@pytest.mark.parametrize("value", ['"x"', '{{ TKX_A = 3 }}'])
-def test_an_override_that_is_not_a_table_of_paths_is_a_profile_error(value):
+@pytest.mark.parametrize("value,message", [('"x"', "must be a table"), ('{{ TKX_A = 3 }}', "must be a folder")])
+def test_an_override_that_is_not_a_table_of_paths_is_a_profile_error(value, message):
     with workspace(HEAD + "client_overrides = {{ bob = " + value + " }}\n" + MODS):
-        with pytest.raises(profile.ProfileError, match="client_overrides"):
+        with pytest.raises(profile.ProfileError, match=message):
             profile.load("p")
 
 
