@@ -75,7 +75,7 @@ A claim is minted in the commit that lands its evidence, never later.
 6. **A rule line edit** re-syncs the skills that quote it in the same commit; the checker fails otherwise.
 7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
 8. **A science number:** a value the mod ships rests on a `settled` row of `docs/reference/science.tsv`; a writer files rows in a part file the controller applies with `tools/science_delta.py`, and every settled row's citation was resolved against its record before minting; the page is [reference/science](docs/reference/science.md).
-9. **A live row's text:** every number in a claim sits at a path its pointer names, unrounded beyond the sample; a mechanism read off the mod's own code is written in the bound as inference, never as the claim; the checker does not match a wildcard `do-not-cite` key (`phases.*.watch.raw`), so a wildcard is a review check (the five Plan 4 live reviews each returned five to nine such defects).
+9. **A live row's text:** every number in a claim sits at a path its pointer names, unrounded beyond the sample; a mechanism read off the mod's own code is written in the bound as inference, never as the claim; the checker does not match a wildcard `do-not-cite` key (`phases.*.watch.raw`), so a wildcard is a review check (the five Plan 4 live reviews each returned five to nine such defects). A pointer never names a parent of a do-not-cite key nor a verdict-level copy of one (the checker flags neither): the reviewer checks parents by hand, and every Plan 8 live review found such parents on the first pass.
 10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included. The controller's regex runs over the touched pages only, never the register (old bounds carry stale provisional refs) and never `docs/superpowers/` (a plan record carries its own T-numbering, Plan 7 Task 4), and its `[##` cleanup matches tag brackets only (it hit a heading link once).
 
 ## 5. Harness rules
@@ -88,7 +88,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Never `-safemode`.
 - A harness change lands before the run that uses it, in its own commit, with the balance check (`python tools/luabalance.py <lua files>`, the HEAD copies first, then the working tree) and the command table regenerated (`python tools/bus_inventory.py`); the next acceptance run is its smoke test.
 - A driver (`testing/experiments/*.py`) is never edited after its run; a post-run edit is a skew note.
-- A driver's store read precedes its write by at most one slow minute when the legacy mirror is on, or the landing measures the mirror's rewrite (x193's D, falsified on its amount by a seven-minute gap).
+- A driver's store read precedes its write by at most one slow minute when the legacy mirror is on, or the landing measures the mirror's rewrite (x193's D; the rule is on [areas/testing-your-mod#rules](docs/areas/testing-your-mod.md#rules)).
 - A reading that comes back trivial, unmeasured or falsified is written as such and never re-run to make a number prettier.
 - An aborted boot that took no reading is not a run: its driver runs unchanged and its run folder is left as is (ruling B3-1, x151r2's first attempt, killed by the host for memory).
 - A driver that crashes before any reading is taken (a TypeError at its first phase) is not a run either, and the one edit that fixes the crash is allowed before the real run, named in the artifact's reading guide — distinct from a host kill, where the driver runs unchanged (ruling B3-2, x171p's first attempt).
@@ -128,6 +128,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A skill's quoted rule line keeps the row's numbers; the skill's own text carries none.
 - A register `source` cell is harvest provenance and is never renumbered when the doc it names is rewritten.
 - A subagent never runs `git stash`, `git checkout --`, `git reset` or any index-wide command in the shared worktree; it commits by pathspec only, and retries once after two seconds on `.git/index.lock`.
+- A controller fix after a FAIL takes a scoped re-review unless the fix is a pointer-only, comment-only or tag-only edit that the full checker and the gate it fell under verify mechanically; a wording change to a claim always takes one (ruling T9-1, Plan 8).
 - A `C/inference` row whose evidence is the mod's own line may own an area-page sentence when the sentence states what a mod can do and the mod's line is the worked example (ruling T12-1, Plan 7).
 - The controller runs a test in its own call and never chains a commit after it in one command: a chained command commits past a red test (Plan 7's icon_gen residual took three commits).
 
