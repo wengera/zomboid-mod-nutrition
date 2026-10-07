@@ -716,3 +716,38 @@ x231-20261007-111042,verdicts.C1.observed.amp_panic_max,0.5,"PANIC runs 0 to 100
 x231-20261007-111042,verdicts.C1.observed.amp_panic_min,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C1.t.rows`
 x231-20261007-111042,verdicts.C4.observed.amp_panic_max,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C4.t.rows`
 x231-20261007-111042,verdicts.C4.observed.amp_panic_min,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C4.t.rows`
+x232-20261007-121312,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x232-20261007-121312,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x232-20261007-121312,deviations,the driver's list,Written before the run; not readings.,
+x232-20261007-121312,world_changes,the driver's text,Written before the run; not readings.,
+x232-20261007-121312,meta.moodle_note,the driver's text,The driver's own text; not a reading.,
+x232-20261007-121312,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x232-20261007-121312,verdicts.Z.verdict,as_predicted,The mod-error pattern matched only the first line of each server error; the 516 server errors are the nil TEMPERATURE write raising inside its pcall.,the run's server console
+x232-20261007-121312,verdicts.Z.observed.server_mod_error_lines,empty,The mod-error pattern matched only the first line of each server error; the 516 server errors are the nil TEMPERATURE write raising inside its pcall.,the run's server console
+x232-20261007-121312,phases.C.C1.stats.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,verdicts.C1.observed.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,phases.C.C1.stats.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,verdicts.C1.observed.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,phases.C.C1.stats.gaps.*.inferred_levels,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,phases.C.C1.stats.gaps.*.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C1.t.rows`
+x232-20261007-121312,phases.C.C3.stats.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,verdicts.C3.observed.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,phases.C.C3.stats.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,verdicts.C3.observed.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,phases.C.C3.stats.gaps.*.inferred_levels,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,phases.C.C3.stats.gaps.*.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3.t.rows`
+x232-20261007-121312,phases.C.C2.stats.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,verdicts.C2.observed.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,phases.C.C2.stats.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,verdicts.C2.observed.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,phases.C.C2.stats.gaps.*.inferred_levels,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,phases.C.C2.stats.gaps.*.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C2.t.rows`
+x232-20261007-121312,phases.C.C3s.stats.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,verdicts.C3s.observed.inferred_levels_seen,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,phases.C.C3s.stats.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,verdicts.C3s.observed.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,phases.C.C3s.stats.gaps.*.inferred_levels,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,phases.C.C3s.stats.gaps.*.inferred_level_changes,inferred,Inferred from the stat against the #2369 thresholds; the PANIC moodle was not read.,`phases.C.C3s.t.rows`
+x232-20261007-121312,phases.C.tpm_slow.ticks_per_minute,40.0,A 10 s probe of three game minutes just after the multiplier change.,`verdicts.C2.observed.ticks_per_gap_mean` (37.4)
+x232-20261007-121312,phases.C.mult_set.raw,mult=0.8016318678855896,"The read-back of the per-tick game-time multiplier at that tick, not the value set.",
+x232-20261007-121312,phases.C.mult_restore.raw,mult=4.788897514343262,"The read-back of the per-tick game-time multiplier at that tick, not the value set.",
