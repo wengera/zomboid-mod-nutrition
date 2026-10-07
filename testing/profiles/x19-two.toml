@@ -1,0 +1,40 @@
+# testing/profiles/x19-two.toml - the Plan 8 live 3 boot (Task 7, run x193): PZTestKit + NutritionRevamp (by path)
+# + TKX_DeclaredFood on fixture `two`, both provisioned clients attached in order (`admin` -debug, then `bob` release,
+# each ready before the next launches), Nutrition = false, DayLength 1, no [sandbox.NR] block (the Bands default).
+# What the boot reads (x193_two_clients.py): each client's mirror its own, a forced deficiency on bob reaching bob's
+# mirror and not admin's, the global table on no client, the trait push to its owner, a server-side calorie rise with
+# no eat reconciled, bob's panel through event.trigger, the release client's own reads, the tick rate with two clients.
+# A mod Lua error parks the -debug client, hence the 180 s client timeout.
+# The verify rows are load gates only, each certain to pass if the mod loaded: the server version global, then the
+# client view level (a number) on the bare `client` (admin) and on `client:bob`.
+fixture = "two"
+description = "PZTestKit + NutritionRevamp + TKX_DeclaredFood on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, no NR.VisibilityMode - the Plan 8 two-client session."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.client.view.level", expect = '"type": "number"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.client.view.level", expect = '"type": "number"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_DeclaredFood"
+path = "testing/experiments/TKX_DeclaredFood"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
