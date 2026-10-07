@@ -218,6 +218,8 @@ The draft's code samples predate the refactor. Per task:
 
 ## Performance (Plan 10b)
 
+**Rule 6, as Angus restated it on 2026-10-07.** The rule's goal is no noticeable performance degradation or hitching, which Angus names the mod's primary point of potential failure. Per-tick work is the default suspect, not banned: it is admitted where a measurement proves it alleviates hitching rather than aggravating it. Every "rule 6" below that reads "no per-tick work" is read this way. A design is judged by its worst tick and how often that tick comes, at the 60-player design load. An architecture review pass and a further experiment plan follow, and they supersede Decision 6.
+
 Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) asked where the mod's server time goes, before Plan 11 is written. P1 profiled the slow minute by step in live play. P2 ran the minute every k game minutes offline against the golden trace. P3 measured what a design with no per-tick work gives up and pays (rule 6, Angus 2026-10-07: no per-tick work). P4, the caching of Java reads, was gated on P1 and did not trigger.
 - The live run is `x231-20261007-111042` on the tree staged at `dc619d0`, with fixture `two`, Nutrition false and DayLength 1; its rows are #3387–#3394. P2's rows are #3395–#3399.
 - The full sections, with every reading, are Appendix G (P1 and P3) and Appendix H (P2).
@@ -511,6 +513,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 
 ### 6. Spreading the minute at 60 players
 
+- **Answered in principle by Angus (2026-10-07):** a per-tick site is allowed when measured to reduce hitching. The choice between (a), (b) and (c) now waits on the hitching experiments that follow the architecture review.
 - At the 60-player design load, no per-tick work leaves a one-tick spike of 73.8 to 103.2 ms every game minute (arithmetic; The 60-player design load, above).
 - Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat; each player still runs every game minute, so it adds none of P2's drift, which is inference: P2 measured only coarser minutes); or (c) accept the spike.
 - Recommendation: (b) now, and (a) as Plan 11's performance target either way. (b) is the standard mitigation for a fixed per-minute workload. (a) depends on a profile that has not been run.
