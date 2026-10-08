@@ -19,7 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item o
 - The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and the client's counters stayed at 0 when the game's own drink action ran, the client's install not witnessed [#2825/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
-- Vanilla has no overeating effect in Java: `Eat` and `JustAteFood` add no stat for eating while full, and the one cap, the refusal at FOOD_EATEN level 3, is checked in client Lua alone [T11705.1] [T11705.2] [T11705.4] [#0522/C/C-only].
+- Vanilla has no overeating effect in Java: `Eat` and `JustAteFood` add no stat for eating while full, and the one cap, the refusal at FOOD_EATEN level 3, is checked in client Lua alone [#3596/C/C-only] [#3597/C/C-only] [#3599/C/C-only] [#0522/C/C-only].
 
 ## How it works
 
@@ -347,16 +347,16 @@ A measurement that needs a known quantity of intake therefore drives the store o
 <a id="overeating"></a>
 ### Eating when full
 
-`IsoGameCharacter.Eat` refuses only an item that is not `Food`: it has no branch on the eater's HUNGER, and the only character stat it reads is FOOD_SICKNESS, for the sickness cure [T11705.1].
+`IsoGameCharacter.Eat` refuses only an item that is not `Food`: it has no branch on the eater's HUNGER, and the only character stat it reads is FOOD_SICKNESS, for the sickness cure [#3596/C/C-only].
 An eat at HUNGER 0 therefore still adds every macro in full, while the stat clamp discards the hunger it would have removed [#0021/M/one-fixture].
-`JustAteFood` reads HUNGER once, at the health-from-food timer's gate, and its other stat writes are poison, pain, boredom and unhappiness [T11705.2], beside an alcoholic item's intoxication through `JustDrankBooze` [#2924/C/C-only].
-Neither method names DISCOMFORT, so vanilla adds no sickness, discomfort or other stat for eating while full [T11705.2].
-`Eat` adds the item's hunger change before it calls `JustAteFood`, so the gate reads the HUNGER the eat leaves behind [T11705.3].
-An eat fills the timer, and so can raise the FOOD_EATEN moodle, only when `abs(getHungerChange() * f)` is at least the HUNGER it found, whatever wrote that HUNGER last [T11705.3].
-A mod that writes HUNGER on the server therefore decides which eats raise the moodle, because HUNGER left above an item's hunger change keeps that item from filling the timer at all [T11705.3].
-The refusal at FOOD_EATEN level 3 lives in client Lua alone: the inventory menus hide the eat [#0522/C/C-only] and the action queue refuses a queued one [T11705.4].
-The eat and drink actions' `isValidStart` is called only by the client's action queue when it starts the next queued action, an action queued into an empty queue begins without it, and no class in the jar names `isValidStart` [T11705.4].
-A server-side `Eat`, whether another mod's or one a mod drives directly, meets no cap [T11705.4].
+`JustAteFood` reads HUNGER once, at the health-from-food timer's gate, and its other stat writes are poison, pain, boredom and unhappiness [#3597/C/C-only], beside an alcoholic item's intoxication through `JustDrankBooze` [#2924/C/C-only].
+Neither method names DISCOMFORT, so vanilla adds no sickness, discomfort or other stat for eating while full [#3597/C/C-only].
+`Eat` adds the item's hunger change before it calls `JustAteFood`, so the gate reads the HUNGER the eat leaves behind [#3598/C/inference].
+An eat fills the timer, and so can raise the FOOD_EATEN moodle, only when `abs(getHungerChange() * f)` is at least the HUNGER it found, whatever wrote that HUNGER last [#3598/C/inference].
+A mod that writes HUNGER on the server therefore decides which eats raise the moodle, because HUNGER left above an item's hunger change keeps that item from filling the timer at all [#3598/C/inference].
+The refusal at FOOD_EATEN level 3 lives in client Lua alone: the inventory menus hide the eat [#0522/C/C-only] and the action queue refuses a queued one [#3599/C/C-only].
+The eat and drink actions' `isValidStart` is called only by the client's action queue when it starts the next queued action, an action queued into an empty queue begins without it, and no class in the jar names `isValidStart` [#3599/C/C-only].
+A server-side `Eat`, whether another mod's or one a mod drives directly, meets no cap [#3599/C/C-only].
 
 <a id="script-scale"></a>
 ### The script-to-instance scale

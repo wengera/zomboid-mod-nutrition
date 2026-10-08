@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 - On a multiplayer client the player's stat update returns before calling the character's, so the fatigue reset, the hook and the seven updaters run only on the server for players [#2236/C/C-only].
 - Each side recomputes its own moodles from its own copy of the stats [#0563].
 - Intoxication decays on the body-damage tick, by its reduction value times the game-time multiplier on every server update, ahead of the `CalculateStats` hook and outside any Lua hook, so a handler's intoxication write is the later one in the update [#2918/C/C-only] [#2921/C/C-only].
-- DISCOMFORT is relaxed toward vanilla's own target on the server alone, awake, at time speed 1, with a half-life of about 2.9 real seconds, and reaches the client on the once-a-second player-stats packet, so a once-a-minute server floor does not hold there [T11705.8] [T11705.11] [T11705.5] [T11705.12].
+- DISCOMFORT is relaxed toward vanilla's own target on the server alone, awake, at time speed 1, with a half-life of about 2.9 real seconds, and reaches the client on the once-a-second player-stats packet, so a once-a-minute server floor does not hold there [#3603/C/C-only] [#3606/C/arith.] [#3600/C/C-only] [#3607/C/inference].
 
 ## How it works
 
@@ -217,18 +217,18 @@ Which side runs the player's endurance model, and for whom it returns early, is 
 <a id="discomfort"></a>
 ### DISCOMFORT: the body-damage updater and the client's copy
 
-DISCOMFORT runs on `[0,100]` with a default of 0 at index 2 of the fixed order, and the player-stats packet writes and reads the whole fixed order, so the server's value reaches the owning client [T11705.5].
-`BodyDamage.UpdateDiscomfort` computes a target on every call from the dragged corpse, the worn clothing, the bed while asleep, the HYPOTHERMIA, HYPERTHERMIA and WET moodle levels and the vehicle, scaled down by intoxication, clamped and times 100 [T11705.6].
-The target reads no hunger, food or stomach state [T11705.6].
-Awake, the stat moves toward the target by `lerp(D, target, r)` per call, with `r = 0.005 * GameTime.getMultiplier()` cut to a fortieth when the target lies above the stat, and it snaps to the target once the two are within `r` [T11705.7].
-Asleep, the stat is set to the target on every call [T11705.7].
-The relaxation is exponential and fast: with the target at 0 a value keeps about 0.79 of itself per real second at time speed 1 whatever the day length, and about 0.55 over one game minute of the 60-minute default day [T11705.11].
-For players the updater runs on the server only, because the body-damage tick returns on a multiplayer client before it, and the only methods in the jar that name the stat outside its registration are the updater and the moodle update [T11705.8].
-The UNCOMFORTABLE moodle reads DISCOMFORT against 20, 40, 60 and 80 for its four levels, on each side from its own copy [T11705.9] [#0563].
-While that moodle is up and STRESS is below its maximum, the updater adds `StressFromDiscomfort * DISCOMFORT * k` to STRESS per game-second, with `StressFromDiscomfort` at 1.3e-7 and `k` at 3 unless the target's raw sum exceeds 1 [T11705.10].
-A floor written on the server once a game minute therefore does not hold on the client [T11705.12].
-The client stores each packet's value and recomputes the moodle from it, so a floor of 100 reads about 100, 79 and 62 at the next three packets on the 60-minute day, and the moodle steps from level 4 to 3 before the next write [T11705.12].
-While the character sleeps, the next server update overwrites the floor with vanilla's own target [T11705.12].
+DISCOMFORT runs on `[0,100]` with a default of 0 at index 2 of the fixed order, and the player-stats packet writes and reads the whole fixed order, so the server's value reaches the owning client [#3600/C/C-only].
+`BodyDamage.UpdateDiscomfort` computes a target on every call from the dragged corpse, the worn clothing, the bed while asleep, the HYPOTHERMIA, HYPERTHERMIA and WET moodle levels and the vehicle, scaled down by intoxication, clamped and times 100 [#3601/C/C-only].
+The target reads no hunger, food or stomach state [#3601/C/C-only].
+Awake, the stat moves toward the target by `lerp(D, target, r)` per call, with `r = 0.005 * GameTime.getMultiplier()` cut to a fortieth when the target lies above the stat, and it snaps to the target once the two are within `r` [#3602/C/C-only].
+Asleep, the stat is set to the target on every call [#3602/C/C-only].
+The relaxation is exponential and fast: with the target at 0 a value keeps about 0.79 of itself per real second at time speed 1 whatever the day length, and about 0.55 over one game minute of the 60-minute default day [#3606/C/arith.].
+For players the updater runs on the server only, because the body-damage tick returns on a multiplayer client before it, and the only methods in the jar that name the stat outside its registration are the updater and the moodle update [#3603/C/C-only].
+The UNCOMFORTABLE moodle reads DISCOMFORT against 20, 40, 60 and 80 for its four levels, on each side from its own copy [#3604/C/C-only] [#0563].
+While that moodle is up and STRESS is below its maximum, the updater adds `StressFromDiscomfort * DISCOMFORT * k` to STRESS per game-second, with `StressFromDiscomfort` at 1.3e-7 and `k` at 3 unless the target's raw sum exceeds 1 [#3605/C/C-only].
+A floor written on the server once a game minute therefore does not hold on the client [#3607/C/inference].
+The client stores each packet's value and recomputes the moodle from it, so a floor of 100 reads about 100, 79 and 62 at the next three packets on the 60-minute day, and the moodle steps from level 4 to 3 before the next write [#3607/C/inference].
+While the character sleeps, the next server update overwrites the floor with vanilla's own target [#3607/C/inference].
 
 ## Walls and bounds
 <a id="walls"></a>
