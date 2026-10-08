@@ -16,10 +16,13 @@ local NR = NutritionRevamp
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
 -- The Plan 11 option (Decision 3, ruling 8): recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
 -- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
+-- The Plan 11 option (Decision 2 (c), ruling 9): satietyBulk, a double 0.25-0.5 (default 0.25), beta, how much a meal's
+-- bulk scales the hunger relief it books on the satiety scalar (NR_Server_Intake reads it at call time, so it fires no
+-- changed hook); an out-of-range value is clamped to its nearest bound.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30 }
+                      recordKeepDays = 30, satietyBulk = 0.25 }
 local O = NR.server.options
 
 local MODE_NAMES = { "managed", "overlay" }
@@ -56,6 +59,7 @@ function NR.server.readOptions(where)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
+    O.satietyBulk = readLeaf(sv, "SatietyBulk", 0.25, 0.25, 0.5, true)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed

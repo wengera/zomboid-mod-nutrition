@@ -71,3 +71,11 @@ option NR.RecordKeepDays
     type = integer, min = 0, max = 3650, default = 30,
     page = NutritionRevamp, translation = NR_RecordKeepDays,
 }
+
+/* Plan 11 option (Decision 2 (c), ruling 9). SatietyBulk: how much a meal's bulk scales the hunger it relieves; 0.25
+   (the default) leaves a normal menu as vanilla feels it and makes a bulky meal sate a little more. */
+option NR.SatietyBulk
+{
+    type = double, min = 0.25, max = 0.5, default = 0.25,
+    page = NutritionRevamp, translation = NR_SatietyBulk,
+}

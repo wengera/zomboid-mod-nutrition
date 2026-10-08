@@ -5,6 +5,7 @@ THIRST and FATIGUE written once a minute in Mode 1 only; the auto-drink sip fold
 handed to the pool; the floors stepped by elapsed world age; the writer after the eats and the effects in ORDER;
 the boot warning beside Nutrition Makes Sense.
 """
+import math
 import os
 
 import pytest
@@ -105,7 +106,7 @@ def test_a_client_boot_changes_nothing():
 def test_a_minute_writes_hunger_thirst_and_fatigue():
     h = boot()
     p = player(h)
-    rec = record(h)
+    rec = record(h, satiety=0.6)
     step(h, p, rec, 1)
     s = p.st.sets
     assert s.HUNGER == pytest.approx(0.4) and s.THIRST == pytest.approx(0.3) and s.FATIGUE == pytest.approx(0.26)
@@ -113,13 +114,13 @@ def test_a_minute_writes_hunger_thirst_and_fatigue():
     assert h.NR.server.writer.stats.writes == 1
 
 
-def test_a_non_finite_fill_reads_full():
+def test_the_stomach_fill_no_longer_drives_hunger():
     h = boot()
     p = player(h)
-    rec = record(h)
+    rec = record(h, satiety=0.6)
     rec.stomachFill = float("nan")
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == 0
+    assert p.st.sets.HUNGER == pytest.approx(0.4)
 
 
 def test_an_auto_drink_sip_is_folded_and_handed_to_the_pool():
@@ -213,7 +214,7 @@ def test_a_sip_adds_to_a_drop_still_pending():
 def test_a_frozen_sleep_state_leaves_fatigue_alone():
     h = boot()
     p = player(h)
-    rec = record(h)
+    rec = record(h, satiety=0.6)
     rec.acute.frozen = True
     step(h, p, rec, 1)
     assert p.st.sets.FATIGUE is None and p.st.sets.HUNGER == pytest.approx(0.4)
@@ -276,7 +277,7 @@ def test_a_player_with_no_stats_object_is_left_alone():
 
 def test_a_new_player_object_is_hoisted_again():
     h = boot()
-    rec = record(h)
+    rec = record(h, satiety=0.6)
     p1 = player(h)
     step(h, p1, rec, 1)
     p2 = player(h)
@@ -356,3 +357,153 @@ def test_the_self_report_names_the_boot_mode_not_the_polled_one():
     line = h.NR.selfReport("server")
     assert " mode=managed " in line and " rates=zeroed " in line
     assert " limitations=%d " % len(h.NR.server.writer.limitations) in line and " hook=" not in line
+
+
+# --- Plan 11 Task 15: the satiety scalar in the writer ----------------------------------------------------------
+
+def moodle(h, p, level):
+    p.getMoodles = h.rt.eval("function(n) return function(s) return { getMoodleLevel = function(m, k) return n end } end end")(level)
+
+
+def test_a_record_with_satiety_writes_one_minus_s_through_the_energy_term():
+    h = boot()
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(0.3)
+
+
+def test_the_energy_term_raises_the_hunger_of_a_deficit():
+    h = boot()
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    rec.body.energyState = 1.5
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(0.3 * 1.5 + 0.15 * 0.5)
+
+
+def test_a_record_without_satiety_seeds_it_from_hunger():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.31
+    rec = record(h)
+    step(h, p, rec, 1)
+    assert rec.satiety == pytest.approx(0.69) and h.NR.server.writer.stats.seeded == 1
+    assert p.st.sets.HUNGER == pytest.approx(0.31)
+
+
+def test_a_new_record_keeps_its_full_scalar():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.31
+    rec = record(h, satiety=1)
+    step(h, p, rec, 1)
+    assert rec.satiety == 1 and h.NR.server.writer.stats.seeded == 0
+    assert p.st.sets.HUNGER == 0
+
+
+def test_a_non_finite_scalar_is_seeded_again_from_hunger():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.31
+    rec = record(h, satiety=float("nan"))
+    step(h, p, rec, 1)
+    assert rec.satiety == pytest.approx(0.69) and p.st.sets.HUNGER == pytest.approx(0.31)
+
+
+def test_the_food_eaten_moodle_freezes_the_decay():
+    h = boot()
+    p = player(h)
+    moodle(h, p, 1)                                        # before the first step: the hoist keeps the handle
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)                                    # thirty game minutes, the moodle up throughout
+    assert rec.satiety == pytest.approx(0.7)
+
+
+def test_with_the_moodle_down_the_scalar_decays_at_vanillas_idle_rate():
+    h = boot()
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 1800))
+    assert p.st.sets.HUNGER == pytest.approx(1 - 0.7 * math.exp(-9.6e-6 * 1800))
+
+
+def test_the_decay_reads_the_rates_saved_at_boot():
+    h = Host(extra_env="NR_T = NR_T or {}\nNR_T.mode = 1\n" + ENV + "\nZomboidGlobals.HungerIncrease = 2.0e-5\n")
+    h.fire("OnGameBoot")
+    assert h.NR.server.writer.rates.idle == 2.0e-5 and h.G.ZomboidGlobals.HungerIncrease == 0
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-2.0e-5 * 1800))
+
+
+def test_asleep_the_scalar_decays_at_the_sleeping_rate():
+    h = boot()
+    p = player(h)
+    p.asleep = True
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-1.0e-6 * 1800))
+
+
+def test_running_decays_at_a_third_of_the_exercise_rate_and_never_freezes():
+    h = boot()
+    p = player(h)
+    p.IsRunning = h.rt.eval("function(s) return true end")
+    p.isPlayerMoving = h.rt.eval("function(s) return true end")
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-1.92e-5 / 3 * 1800))
+    moodle(h, p, 1)
+    p2 = player(h)                                         # a new object: the hoist reads the moodle handle again
+    p2.IsRunning, p2.isPlayerMoving, p2.getMoodles = p.IsRunning, p.isPlayerMoving, p.getMoodles
+    rec2 = record(h, satiety=0.7)
+    step(h, p2, rec2, 40)
+    step(h, p2, rec2, 70)
+    assert rec2.satiety == pytest.approx(0.7 * math.exp(-1.92e-5 * 1800))
+
+
+def test_hearty_appetite_scales_the_decay_by_one_and_a_half():
+    h = boot()
+    p = player(h)
+    p.getCharacterTraits = h.rt.eval("function(s) return { get = function(c, t) return t == 'HA' end } end")
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 1.5 * 1800))
+
+
+def test_the_sandbox_decrease_multiplier_scales_the_decay():
+    h = boot()
+    h.G.getSandboxOptions = h.rt.eval("function() return { getStatsDecreaseMultiplier = function(s) return 2 end } end")
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 2 * 1800))
+
+def test_the_satiety_bulk_option_reads_its_range():
+    h = boot()
+    assert h.NR.server.options.satietyBulk == 0.25
+    for given, want in ((0.4, 0.4), (0.9, 0.5), (0.1, 0.25), (0.25, 0.25), (0.5, 0.5)):
+        h.G.SandboxVars.NR.SatietyBulk = given
+        h.NR.server.readOptions("poll")
+        assert h.NR.server.options.satietyBulk == pytest.approx(want), given
+    h.G.SandboxVars.NR.SatietyBulk = float("nan")
+    h.NR.server.readOptions("poll")
+    assert h.NR.server.options.satietyBulk == 0.25
+
+
+def test_limitation_four_names_the_overwrite_and_the_scalar():
+    lim = list(Host().NR.server.writer.limitations.values())
+    assert len(lim) == 11                                  # the self-report prints the count: unchanged by Task 15
+    four = lim[3]
+    assert "the next write keeps it" not in four
+    assert "overwrites" in four and "satiety scalar" in four and "up to a minute" in four

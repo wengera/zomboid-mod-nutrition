@@ -27,5 +27,7 @@
     "Sandbox_NR_VisibilityModeValues_option2": "Bands",
     "Sandbox_NR_VisibilityModeValues_option3": "Numbers",
     "Sandbox_NR_RecordKeepDays": "Keep records for (real days)",
-    "Sandbox_NR_RecordKeepDays_tooltip": "Delete a player's nutrition record after this many real days without them online; a returning player then starts a fresh record, and the vanilla character is untouched. 0 keeps every record. Counted in real time, because game days pass at each server's own speed."
+    "Sandbox_NR_RecordKeepDays_tooltip": "Delete a player's nutrition record after this many real days without them online; a returning player then starts a fresh record, and the vanilla character is untouched. 0 keeps every record. Counted in real time, because game days pass at each server's own speed.",
+    "Sandbox_NR_SatietyBulk": "Meal bulk and fullness",
+    "Sandbox_NR_SatietyBulk_tooltip": "How much a meal's bulk changes the hunger it relieves. Hunger otherwise follows vanilla's own timing, with a calorie deficit making a character hungrier. 0.25, the default, leaves a normal menu as vanilla feels it; 0.5 makes bulky meals sate noticeably more."
 }

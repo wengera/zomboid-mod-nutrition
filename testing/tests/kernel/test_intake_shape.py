@@ -1673,3 +1673,86 @@ def test_type_info_reads_a_fresh_instance_once_per_type(intake_host):
     assert rock is None and rock2 is None                # not a Food: no calories getter
     assert raised is None and absent is None
     assert made == 4                                     # Kiwi, Rock, Raise and BadGetter, each once
+
+
+# --- Plan 11 Task 15: an eat raises the satiety scalar by its laddered relief times the bulk factor -----------
+
+SATIETY_EAT = r"""
+function(satiety, after, hungerChange, beta)
+    local IN = NutritionRevamp.server.intake
+    local S = NutritionRevamp.server
+    local oldO = S.options
+    S.options = { satietyBulk = beta }
+    local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
+    rec.satiety = satiety
+    NutritionRevamp.server.store.records.admin = rec
+    local hung = -0.2
+    local item = {}
+    item.getHungChange = function(self) return hung end
+    item.getHungerChange = function(self) return hungerChange end
+    item.getFullType = function(self) return "Base.Apple" end
+    item.getBaseHunger = function(self) return -0.2 end
+    item.getCalories = function(self) return 95 end
+    item.getCarbohydrates = function(self) return 25.13 end
+    item.getLipids = function(self) return 0.31 end
+    item.getProteins = function(self) return 0.47 end
+    item.isCooked = function(self) return false end
+    item.isBurnt = function(self) return false end
+    item.isRotten = function(self) return false end
+    item.isFrozen = function(self) return false end
+    item.getThirstChangeUnmodified = function(self) return 0 end
+    item.haveExtraItems = function(self) return false end
+    item.getModData = function(self) return {} end
+    item.getScriptItem = function(self)
+        return { getHungerChange = function(s) return -20 end, getThirstChange = function(s) return 0 end }
+    end
+    local char = { getUsername = function(self) return "admin" end }
+    local b = IN.readBefore({ item = item, character = char })
+    hung = after
+    local vec = IN.readAfterAndLand(b)
+    S.options = oldO
+    return rec, vec, IN.lastError
+end
+"""
+
+
+def test_an_eat_raises_the_satiety_scalar_by_its_relief_times_the_bulk_factor(server_host):
+    h = server_host
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, -0.2, None)
+    assert vec is not None, err
+    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.25)
+    assert f != 1                                           # the apple's bulk moves it off the menu's mean
+    assert rec["satiety"] == pytest.approx(0.5 + 0.2 * f)
+
+
+def test_the_relief_reads_the_laddered_getter_times_eats_fraction(server_host):
+    # a cooked item's getHungerChange is 1.3 x its raw hunger (#0029); half of what was left was eaten (#3556)
+    h = server_host
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.2, -0.1, -0.26, None)
+    assert vec is not None, err
+    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.13, 0.25)
+    assert rec["satiety"] == pytest.approx(0.2 + 0.13 * f)
+
+
+def test_the_option_sets_beta(server_host):
+    h = server_host
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.2, 0, -0.2, 0.5)
+    assert vec is not None, err
+    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.5)
+    assert f != h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.25)
+    assert rec["satiety"] == pytest.approx(0.2 + 0.2 * f)
+
+
+def test_a_non_finite_relief_leaves_the_scalar(server_host):
+    h = server_host
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, float("nan"), None)
+    assert vec is not None, err
+    assert rec["satiety"] == 0.5
+
+
+def test_an_eat_on_a_record_without_satiety_leaves_it_for_the_writers_seed(server_host):
+    # follow-up pin: passes on the pre-change tree (nothing reads satiety there)
+    h = server_host
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(None, 0, -0.2, None)
+    assert vec is not None, err
+    assert rec["satiety"] is None

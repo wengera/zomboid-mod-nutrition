@@ -347,6 +347,7 @@ function IN.readBefore(action)
     local b = { item = item, username = username, rawBefore = rawBefore }
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
+    b.hungerChange = read(item, "getHungerChange")   -- the laddered relief getter (cooked x1.3, stale, rotten, burnt; J1)
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
     b.cal = num(read(item, "getCalories"))
     b.carb = num(read(item, "getCarbohydrates"))
@@ -431,12 +432,27 @@ function IN.readAfterAndLand(b)
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
+    IN.sate(record, b, vec, frac)
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. b.fullType .. " for " .. tostring(b.username) .. " source " .. source
         .. " share " .. tostring(share))
     return vec
+end
+
+-- Decision 2 (c), Task 15: the meal's relief raises the satiety scalar, its bulk scaling the APPLIED relief (never
+-- the item's hungChange, the portion reservoir, J1: half and quarter eating and evolved recipes read it); a record
+-- not yet seeded takes the eat through the HUNGER the writer's seed reads. The relief is the before-eat laddered
+-- getHungerChange times Eat's fraction of what was left (#3556), an opening recipe that eats included (it reaches
+-- ISEatFoodAction with eatPercentage / 100). A non-finite relief books nothing. NR.SatietyBulk is read at call time.
+function IN.sate(record, b, vec, frac)
+    if record.satiety == nil or not IN.isFinite(b.hungerChange) then return end
+    local O = NR.server.options
+    local beta = K.satiety.BETA
+    if O ~= nil and IN.isFinite(O.satietyBulk) then beta = O.satietyBulk end
+    local r = K.satiety.relief(b.hungerChange, frac)
+    record.satiety = K.satiety.add(record.satiety, r, K.satiety.bulkFactor(K.stomach.bulkOf(vec), K.stomach.FULL_BULK, r, beta))
 end
 
 -- A rejected landing: nothing lands, the failure is counted and named. Returns nil.

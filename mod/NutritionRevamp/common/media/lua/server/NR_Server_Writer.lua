@@ -4,7 +4,8 @@
 -- a client never reads the mode at its OnGameBoot (#3381) and never zeroes. Once a player-minute, as the pipeline's
 -- step after weight and before store (after the minute's eats and the effects build, #3383), it writes HUNGER,
 -- THIRST and FATIGUE and the floors, PANIC, TEMPERATURE and INTOXICATION through K.hybrid.write, stepping by elapsed
--- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). It registers no stat hook.
+-- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). The HUNGER target is 1 - S, the
+-- satiety scalar (Task 15; NR_Kernel_Satiety.lua), stepped here at the rates saved at boot. It registers no stat hook.
 -- Every Java read goes through NR.num / NR.obj / NR.flag; every Java global is named inside a function behind a
 -- nil check, so the file loads with no engine. Slow-clock code: no @fastpath region.
 local NR = NutritionRevamp
@@ -16,7 +17,7 @@ NR.server.writer = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write keeps it",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat shows at once and the next write overwrites it with 1 - S, so the eat stays only through the satiety scalar it raised; hunger is that scalar stepped once a game minute, so it lags vanilla by up to a minute (5.8e-4 idle, 1.2e-3 exercising; Appendix D); under a calorie deficit vanilla's food-eaten freeze fires less often, and at the 0.69 cap a starving character can earn a freeze its scalar did not (Appendix D Question 4)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -67,6 +68,11 @@ function W.boot()
         local k = W.RATE_KEYS[i]
         if type(zg[k]) == "number" then W.saved[k] = zg[k] end
     end
+    -- the satiety scalar's rates (Task 15): the saved values, each unread one vanilla's defines.lua default
+    local d = K.satiety.defaults()
+    W.rates = { idle = W.saved.HungerIncrease or d.idle, wellFed = W.saved.HungerIncreaseWhenWellFed or d.wellFed,
+                asleep = W.saved.HungerIncreaseWhileAsleep or d.asleep,
+                exercise = W.saved.HungerIncreaseWhenExercise or d.exercise }
     if W.mode ~= 1 then
         NR.log.say(1, "writer: Mode 2 (Overlay): vanilla's hunger, thirst and fatigue rates stand")
         return
@@ -100,10 +106,14 @@ end
 function W.hoist(username, p)
     local stats = NR.obj(p, "getStats")
     if stats == nil or CharacterStat == nil then return nil end
-    local h = { p = p, stats = stats, bd = NR.obj(p, "getBodyDamage"),
+    local h = { p = p, stats = stats, moodles = NR.obj(p, "getMoodles"), bd = NR.obj(p, "getBodyDamage"),
                 traits = NR.obj(p, "getCharacterTraits"), ageH = nil, lastThirst = nil, lastEnd = nil,
-                unhappyLast = 0 }
+                unhappyLast = 0, swipe = nil }
     h.thermo = NR.obj(h.bd, "getThermoregulator")
+    if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
+        local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: exercise for the satiety rate
+        if ok then h.swipe = sw end
+    end
     pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- ruling 19 kept: the writer owns INTOXICATION
     if W.so == nil and getSandboxOptions ~= nil then
         local ok, so = pcall(getSandboxOptions)
@@ -139,6 +149,28 @@ local function finiteOr(v, dflt)
     return dflt
 end
 
+-- Task 15: the satiety scalar (Decision 2 (c)): seeded 1 - HUNGER on a record without it (a migrated v2) or with a
+-- non-finite one, stepped by elapsed world age at the rates saved at boot with the FOOD_EATEN freeze, and read
+-- through the energy term. The eats of the minute raised it before this step (NR_Server_Intake).
+function W.satiety(h, player, record, eng, inp, es)
+    if not NR.finite(record.satiety) then
+        record.satiety = K.satiety.seed(inp.hunger)
+        W.stats.seeded = W.stats.seeded + 1
+    end
+    local fed = false
+    if MoodleType ~= nil and MoodleType.FOOD_EATEN ~= nil then
+        fed = NR.num(h.moodles, "getMoodleLevel", 0, MoodleType.FOOD_EATEN) > 0
+    end
+    local exercising = (NR.flag(player, "IsRunning") and NR.flag(player, "isPlayerMoving"))
+        or (h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe))
+    local T = CharacterTrait
+    local tr = K.satiety.trait(T ~= nil and trait(h, T.HEARTY_APPETITE), T ~= nil and trait(h, T.LIGHT_EATER))
+    local rates = W.rates or K.satiety.defaults()
+    local rate = K.satiety.rate(rates, inp.asleep, exercising, fed)
+    record.satiety = K.satiety.step(record.satiety, K.clamp(inp.dtS, 0, W.c.maxStepS), rate, eng.sd, tr)
+    inp.hungerTarget = K.hybrid.hungerTarget(record.satiety, es)
+end
+
 function W.step(username, player, record, ctx)
     if record == nil or player == nil then return end
     local h = W.h[username]
@@ -163,7 +195,7 @@ function W.step(username, player, record, ctx)
     inp.hunger = get(h, CS.HUNGER) or 0
     local body = record.body or {}
     local es = finiteOr(body.energyState, 1)
-    inp.hungerTarget = K.hybrid.hungerTarget(finiteOr(record.stomachFill, 1), es)  -- Task 15: the satiety scalar
+    W.satiety(h, player, record, eng, inp, es)
     inp.thirst = get(h, CS.THIRST) or 0
     local fl = record.fluids
     inp.thirstTarget = fl and fl.thirstTarget or nil
