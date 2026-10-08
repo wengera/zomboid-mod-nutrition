@@ -155,6 +155,27 @@ function K.view.classes(m)
     return c
 end
 
+-- The live class rungs as one integer (Plan 11 Task 4; the draft's ruling 8): a change in any of energy, hydration,
+-- stimulant or sleep moves it. Deficiency and excess move with the nutrient epoch, which already marks a push. nil
+-- reads 0.
+function K.view.pushSignature(energyState, dehydPct, caf, debtH)
+    local e = K.view.rung(energyState or 0, K.view.ENERGY_AT)
+    local hy = K.view.rung(dehydPct or 0, K.view.HYDRATION_AT)
+    local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
+    local sl = K.view.rung(debtH or 0, K.view.SLEEP_AT)
+    return e * 1000 + hy * 100 + s * 10 + sl
+end
+
+-- A player's push phase inside the gap (Plan 11 Task 4; rule #3498): a rolling hash of the username modulo the gap,
+-- so players first seen together push in different frames ever after (#3456).
+function K.view.pushOffset(username, gapMs)
+    local h = 0
+    for i = 1, string.len(username) do
+        h = (h * 31 + string.byte(username, i)) % 1000003
+    end
+    return h % gapMs
+end
+
 -- One mirror entry into the deficiency and excess classes: a numeric nut_<key>_g raises deficiency to g - 1, a
 -- numeric nut_<key>_x raises excess to x, each capped at RUNG_MAX; anything else is skipped.
 function K.view.scan(c, k, v)

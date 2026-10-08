@@ -499,3 +499,22 @@ def test_moodle_thresholds_sit_between_the_values(host, cls):
             continue
         # the bad side: strictly below the value of level k - 1 and above the value of level k
         assert v.moodleValue(k - 1, cls) > t > v.moodleValue(k, cls)
+
+
+def test_the_push_signature_moves_with_any_live_class(host):
+    s0 = host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0)
+    assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0) == s0
+    for args in ((1.6, 0.0, 0.0, 0.0), (1.0, 5.0, 0.0, 0.0), (1.0, 0.0, 400.0, 0.0), (1.0, 0.0, 0.0, 30.0)):
+        assert host.call("view.pushSignature", *args) != s0, args
+
+
+def test_the_push_signature_reads_nil_as_zero(host):
+    assert host.call("view.pushSignature", None, None, None, None) == host.call("view.pushSignature", 0, 0, 0, 0)
+
+
+def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
+    a = host.call("view.pushOffset", "admin", 60000)
+    b = host.call("view.pushOffset", "bob", 60000)
+    assert 0 <= a < 60000 and 0 <= b < 60000 and a != b
+    assert host.call("view.pushOffset", "admin", 60000) == a
+    assert host.call("view.pushOffset", "", 60000) == 0

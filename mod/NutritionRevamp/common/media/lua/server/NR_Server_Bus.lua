@@ -18,12 +18,19 @@ local K = NR.kernel
 NR.server.bus = {
     module = "NutritionRevamp",
     PUSH_GAP_MS = 60000,       -- game choice: at most one effects push per player per real minute
+    REQUEST_GAP_MS = 5000,     -- game choice: at most one answered mirror request per player per 5 s of wall clock
     wired = false,
     effects = { dirty = {}, last = {}, stats = { marks = 0, pushes = 0, deferred = 0, failed = 0, bandMarks = 0 } },
+    requests = { last = {}, stats = { answered = 0, denied = 0 } },
+    lastSig = {},              -- username -> K.view.pushSignature at the player's last flush
+    build = { failed = 0 },    -- mirror builds that raised (outside effects.stats, which the golden trace walks)
     limitations = {
         "an effects change (B.markEffects) or a body band change (B.markBand, the same mark) is pushed at most once per player per 60 s of server wall clock; a change inside the gap waits for the first slow minute after it",
         "the push rides the player's next slow minute: a change made in one game minute reaches the client with the next one's flush",
         "with no getTimestampMs the gap is the slow minute itself",
+        "a mirror request is answered at most once per player per 5 s of server wall clock; a denied request is counted and dropped",
+        "a class change (energy, hydration, stimulant or sleep rung) marks a push at the next slow minute, inside the push gap",
+        "each player's first push waits a per-player offset inside the 60 s gap, so pushes first made together spread over the gap",
     },
 }
 local B = NR.server.bus
@@ -33,10 +40,23 @@ function B.meta()
     return { mode = o and o.mode or 1, version = NR.version, build = NR.build }
 end
 
+local function nowMs()
+    if getTimestampMs == nil then return nil end
+    local ok, v = pcall(getTimestampMs)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end
     if sendServerCommand == nil then return false end
-    local ok = pcall(sendServerCommand, player, B.module, "mirror", K.mirror.build(record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER))
+    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER)
+    if not okB then
+        B.build.failed = B.build.failed + 1
+        NR.log.say(2, "bus: mirror build failed for " .. tostring(record.username) .. ": " .. tostring(m))
+        return false
+    end
+    local ok = pcall(sendServerCommand, player, B.module, "mirror", m)
     if not ok then NR.log.say(2, "bus: sendServerCommand failed for " .. tostring(record.username)) end
     return ok
 end
@@ -48,6 +68,14 @@ if Events ~= nil and Events.OnClientCommand ~= nil then
         if command == "mirror.request" then
             local okU, username = NR.call(player, "getUsername")
             if not okU or username == nil then return end
+            local now = nowMs()
+            local last = B.requests.last[username]
+            if now ~= nil and last ~= nil and now >= last and now - last < B.REQUEST_GAP_MS then
+                B.requests.stats.denied = B.requests.stats.denied + 1
+                return
+            end
+            B.requests.last[username] = now
+            B.requests.stats.answered = B.requests.stats.answered + 1
             local r = NR.server.store.get(username, NR.worldAge())
             if r ~= nil then B.sendMirror(player, r) end
         end
@@ -61,22 +89,23 @@ function B.markEffects(username)
     B.effects.stats.marks = B.effects.stats.marks + 1
 end
 
-local function nowMs()
-    if getTimestampMs == nil then return nil end
-    local ok, v = pcall(getTimestampMs)
-    if ok and type(v) == "number" then return v end
-    return nil
-end
-
 -- One player's flush, from the slow minute. Returns true when it pushed.
 function B.flushEffects(username, player, record)
     if username == nil or record == nil then return false end
     if not NR.isServer() then return false end
+    local body, fl, ac = record.body, record.fluids, record.acute
+    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH)
+    if B.lastSig[username] ~= nil and B.lastSig[username] ~= sig then B.effects.dirty[username] = true end
+    B.lastSig[username] = sig
     local E = record.effects
     local recDirty = type(E) == "table" and E.dirty == true
     if B.effects.dirty[username] ~= true and not recDirty then return false end
     local now = nowMs()
     local last = B.effects.last[username]
+    if now ~= nil and last == nil then
+        last = now - B.PUSH_GAP_MS + K.view.pushOffset(username, B.PUSH_GAP_MS)  -- the first gap is this player's phase
+        B.effects.last[username] = last
+    end
     if now ~= nil and last ~= nil and now >= last and now - last < B.PUSH_GAP_MS then
         B.effects.stats.deferred = B.effects.stats.deferred + 1
         return false
@@ -98,6 +127,8 @@ function B.forgetEffects(username, player, record)
     if username == nil then return end
     B.effects.dirty[username] = nil
     B.effects.last[username] = nil
+    B.lastSig[username] = nil
+    B.requests.last[username] = nil
     if record ~= nil and type(record.effects) == "table" then record.effects.dirty = false end
 end
 
