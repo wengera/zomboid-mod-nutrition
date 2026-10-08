@@ -76,11 +76,6 @@ def test_the_unweighable_are_skipped_with_their_reason():
     assert skipped == {"tags-only": 1, "not-in-dataset": 1, "drainable": 1}
 
 
-def test_creators_carry_the_scale_back_to_the_inputs():
-    rows, _ = rc.measure([recipe("make", [line("A", 1)], [("C", 1)])], FOOD)
-    assert rc.creators(rows) == {"make": 100.0 / 260.0}
-
-
 def test_the_open_hotdog_pack_conserves_on_the_shipped_data():
     _files, rows, _skipped = rc.texts()
     by = {r["recipe"]: r for r in rows}
@@ -158,7 +153,7 @@ def test_the_shipped_data_conserves_the_hot_dog_the_patty_and_the_mac_and_cheese
 
 def test_the_one_creator_left_on_the_shipped_data_is_the_tortilla_chips():
     _files, rows, _skipped = rc.texts()
-    assert sorted(rc.creators(rows)) == ["MakeTortillaChips"]
+    assert sorted(r["recipe"] for r in rows if r["class"] == "creates") == ["MakeTortillaChips"]
 
 
 def test_the_json_carries_the_class_and_split_counts():
@@ -195,7 +190,7 @@ def test_the_shipped_tortilla_chips_carry_the_partial_use_note_and_keep_their_fa
     chips = {r["recipe"]: r for r in rows}["MakeTortillaChips"]
     assert "partial-use input: Base.Tortilla spends 1 of its 5 uses (no ItemCount flag, #0701), so the craft " \
            "charges 0.2 of the item" in chips["notes"], chips["notes"]
-    assert round(rc.creators(rows)["MakeTortillaChips"], 6) == 0.242611
+    assert chips["ratio"] == 4.121831, chips
 
 
 def test_the_shipped_hot_dog_and_hotdog_pack_conserve_at_one():
@@ -203,3 +198,23 @@ def test_the_shipped_hot_dog_and_hotdog_pack_conserve_at_one():
     by = {r["recipe"]: r for r in rows}
     assert by["OpenHotdogPack"]["ratio"] == 1.0, by["OpenHotdogPack"]
     assert abs(by["MakeHotDog"]["ratio"] - 1.0) < 0.001, by["MakeHotDog"]
+
+
+# Ruling T17-1 (Plan 11a Task 16 fix 3): the craft-time rescale is dropped, so the tool writes the report alone and
+# no mod file; data/recipe-conservation.json is the only output --write and --check know.
+
+def test_no_mod_file_is_emitted():
+    files, _rows, _skipped = rc.texts()
+    assert [path for path, _text in files] == [rc.OUT_JSON]
+    mod = os.path.join(rc.REPO, "mod") + os.sep
+    assert not [path for path, _text in files if path.startswith(mod)]
+    assert not hasattr(rc, "OUT_LUA") and not hasattr(rc, "emit_lua") and not hasattr(rc, "creators")
+
+
+def test_write_writes_the_report_alone(tmp_path, monkeypatch):
+    out = tmp_path / "recipe-conservation.json"
+    monkeypatch.setattr(rc, "OUT_JSON", str(out))
+    monkeypatch.setattr(rc, "OUT_LUA", str(tmp_path / "NR_Data_Recipes.lua"), raising=False)  # never the mod's
+    assert rc.main(["--write"]) == 0
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["recipe-conservation.json"]
+    assert rc.main(["--check"]) == 0
