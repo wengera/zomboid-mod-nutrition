@@ -23,7 +23,7 @@
 --  risk 3: whether PZAPI.ModOptions:load() called this early (OnGameStart) finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
 --
 -- Shape (the client-file discipline):
---  * Load order inside client/ is by path (#1055): _Effects, _Mirror, _ModOptions, _Moodles, _Options, _Panel, _Tab,
+--  * Load order inside client/ is by path (#1055): _Mirror, _ModOptions, _Moodles, _Options, _Panel, _Tab,
 --    _Tooltip, _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
 --    table (never replacing it), so the accessors attach() sets at file scope stay; attach() runs again from this
 --    file's OnGameStart handler, and the accessors read the page through the global sentinel per call, never

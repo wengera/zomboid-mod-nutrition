@@ -9,7 +9,7 @@
 -- visibility level the row belongs to (1 Symptoms, 2 Bands, 3 Numbers). Labels: a class row UI_NR_Class_<cls>; a
 -- grade row UI_NR_Row_<nutrient>; every other row UI_NR_Row_<mirror key without the nut_ prefix> (vitC_p,
 -- vitC_x, body_weight, acute_caf ...); a tooltip line UI_NR_Tip_Source_<source> or UI_NR_Row_<vector key>.
--- Texts: UI_NR_Class_<cls>_<0-4>, UI_NR_Band_<band or none>, UI_NR_Grade_<1-4>, UI_NR_Tip_Rich, UI_NR_Tip_Low.
+-- Texts: UI_NR_Class_<cls>_<0-4> (deficiency and excess stop at 3), UI_NR_Band_<band or none>, UI_NR_Grade_<1-4>, UI_NR_Tip_Rich, UI_NR_Tip_Low.
 local K = NutritionRevamp.kernel
 K.view = {}
 
@@ -170,7 +170,7 @@ function K.view.pushSignature(energyState, dehydPct, caf, debtH)
 end
 
 -- A player's push phase inside the gap (Plan 11 Task 4; rule #3498): a rolling hash of the username modulo the gap,
--- so players first seen together push in different frames ever after (#3456).
+-- so players first seen together make their first push in different frames (#3456); it spreads only that first gap.
 function K.view.pushOffset(username, gapMs)
     local h = 0
     for i = 1, string.len(username) do
