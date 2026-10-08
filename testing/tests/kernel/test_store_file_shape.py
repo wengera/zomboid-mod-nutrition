@@ -578,7 +578,13 @@ def test_a_failed_first_read_never_resets_the_record():
     h2 = boot(files=files_of(h))
     h2.T.readerNil = 2                                                          # both slots locked at first sight
     h2.online(h2.player("admin"))
-    run_minutes(h2, 4, start=10)
+    seen = []
+    for m in range(10, 14):
+        before, rec = len(h2.T.opened), h2.NR.server.store.file.stats.recovered
+        run_minutes(h2, 1, start=m)
+        if h2.NR.server.store.file.stats.recovered > rec:
+            seen.append(len(h2.T.opened) - before)
+    assert seen == [0]                                                          # the recovery minute opened no file
     assert h2.NR.server.store.stats.created == 1                                # the failed read made a fresh one
     assert h2.record("admin").resets == 6                                       # the file's record came back
     assert any("admin recovered from file after a failed first read" in p for p in h2.printed())
@@ -667,3 +673,45 @@ def test_a_clean_index_is_not_written_again():
     n = len(h.T.opened)
     run_minutes(h, 15, start=8)                                                 # saves move stamps, nothing dirties
     assert opened_with(h, ROOT + "index_", n) == []
+
+
+def test_a_save_over_indexed_but_unreadable_files_is_deferred_never_a_reset():
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 4                                                           # first sight and the first save's preload
+    h.online(h.player("admin"))
+    st = h.NR.server.store
+    m = 1
+    while st.file.stats.deferred == 0 and m < 6:                                # up to the save phase
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert st.stats.created == 1
+    assert opened_with(h, ROOT + "p_") == []                                    # no file opened while the reads fail
+    assert st.file.stats.deferred >= 1
+    assert st.fresh["admin"] is True                                            # the next minute tries again
+    run_minutes(h, 4, start=m)
+    assert h.record("admin").resets == 6                                        # recovered once the reads succeed
+    assert any("admin save deferred: files indexed but unreadable" in p for p in h.printed())
+    h2 = boot(files=files_of(h))
+    assert h2.NR.server.store.file.load("admin").resets == 6
+
+
+def test_a_player_absent_from_the_index_whose_read_fails_is_saved_normally():
+    h = boot(files={ROOT + "index_a.json": index_doc(1, {"bob": 990})})
+    h.T.readerNil = 4
+    h.online(h.player("admin"))
+    run_minutes(h, 3)
+    assert opened_with(h, ROOT + "p_")                                          # a new player: saved, not deferred
+    assert h.NR.server.store.file.stats.deferred == 0
+
+
+def test_a_reset_over_indexed_unreadable_files_is_saved_not_deferred():
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 2
+    S = h.NR.server.store
+    S.get("admin", 100.0)                                                       # fresh: both slots read nil
+    r = S.reset("admin", 101.0)                                                 # a new character clears the flag
+    h.T.readerNil = 2                                                           # the save's preload fails too
+    assert S.file.save("admin", r)
+    assert S.file.stats.deferred == 0

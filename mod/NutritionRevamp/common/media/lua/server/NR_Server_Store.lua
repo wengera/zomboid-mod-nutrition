@@ -26,9 +26,12 @@
 -- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
 -- store.file.stats.repaired and logged once per player. The cost is one file read per save (a player's slot at most
 -- once a real minute) and per index write.
--- A transient read failure never resets a record: a record S.get created fresh this sight (S.fresh) whose files the
--- save's preload then finds is filled from the file in place and that save skipped, so the fresh record never
--- overwrites the real one (logged at level 2); the flag clears at the first save and at a reset.
+-- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
+-- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
+-- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
+-- store.file.stats.deferred, logged once, the flag kept so the next save tries again), so the fresh record never
+-- overwrites the real one (logged at level 2); the flag clears at the first save and at a reset. A player first seen
+-- after the last index write has no such protection: the index does not name them, so two failed reads save them new.
 --
 -- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
@@ -58,7 +61,7 @@ NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0 } } }
+                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0 }, deferWarned = {} } }
 local S = NR.server.store
 local F = S.file
 
@@ -258,6 +261,14 @@ function F.save(username, record)
         local raw = F.load(username)
         if raw ~= nil and S.fresh[username] == true then
             S.recover(username, record, raw)
+            return false
+        end
+        if raw == nil and S.fresh[username] == true and F.index[username] ~= nil then
+            F.stats.deferred = F.stats.deferred + 1
+            if not F.deferWarned[username] then
+                F.deferWarned[username] = true
+                NR.log.say(2, "store: " .. tostring(username) .. " save deferred: files indexed but unreadable")
+            end
             return false
         end
     end
