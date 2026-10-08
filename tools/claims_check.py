@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The claims checker (spec § The checker and the generator).
 
-Rules: schema (0) · owner (1) · tag (2) · pointer (3; 3b `pointer-line`: a `repo:` pointer's quoted text must be on its cited line or range) · untagged (4, warning only; a digit inside a
+Rules: schema (0) · owner (1) · tag (2) · pointer (3; 3b `pointer-line`: a `repo:` pointer's quoted text must be on its cited line or range; `repo:<path>@<commit>:<line> "<quote>"` pins a commit and is read through `git show`, for code since removed) · untagged (4, warning only; a digit inside a
 markdown link target is not a number) · generator (5) · skill (6) · example (7) · fix-tags and views
 (8: --fix-tags writes each tag's suffix from the register; --view LAYER|LAYER/PAGE.md prints a
 register slice) · rules-dup (9: for each pair of pages under docs/areas and docs/platform and each
@@ -235,6 +235,27 @@ def _restricted_key(key, listed):
 
 
 REPO_LINE_RX = re.compile(r'^(\S+?):(\d+)(?:-(\d+))?\s+"(.*)"\s*$')
+PINNED_RX = re.compile(r'^(.+?)@([0-9A-Fa-f]{7,40})$')
+_SHOW_CACHE = {}
+
+
+def _split_pin(path):
+    """'mod/x.lua@abc1234' -> ('mod/x.lua', 'abc1234'); an unpinned path -> (path, None)."""
+    m = PINNED_RX.match(path)
+    return (m.group(1), m.group(2)) if m else (path, None)
+
+
+def _git_show(root, commit, path):
+    """The text of `path` at `commit` through `git show`, or None when the commit or the path does not
+    resolve. Read-only; cached per (root, commit, path) so each pinned pointer costs one call."""
+    key = (root, commit, path)
+    if key not in _SHOW_CACHE:
+        try:
+            p = subprocess.run(["git", "-C", root, "show", "%s:%s" % (commit, path)], capture_output=True, timeout=60)
+            _SHOW_CACHE[key] = p.stdout.decode("utf-8", errors="replace").replace("\r\n", "\n") if p.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError):
+            _SHOW_CACHE[key] = None
+    return _SHOW_CACHE[key]
 
 
 def _pointer_line_finding(r, text, n, root, register_rel):
@@ -248,17 +269,25 @@ def _pointer_line_finding(r, text, n, root, register_rel):
     if not m or m.group(1).startswith("testing/artifacts/"):
         return None
     path, lo, hi, quoted = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2)), m.group(4)
-    full = os.path.join(root, *path.split("/"))
-    if _doomed(path) or not os.path.isfile(full):
-        return None
-    with open(full, encoding="utf-8", errors="replace", newline="") as fh:
-        lines = fh.read().replace("\r\n", "\n").split("\n")
+    path, commit = _split_pin(path)
+    if commit:
+        body = _git_show(root, commit, path)
+        if _doomed(path) or body is None:
+            return None    # rule 3 reports an unresolvable pin
+        lines = body.split("\n")
+    else:
+        full = os.path.join(root, *path.split("/"))
+        if _doomed(path) or not os.path.isfile(full):
+            return None
+        with open(full, encoding="utf-8", errors="replace", newline="") as fh:
+            lines = fh.read().replace("\r\n", "\n").split("\n")
     if quoted in "\n".join(lines[lo - 1:hi]):
         return None
     hits = [i for i, ln in enumerate(lines, 1) if quoted in ln]
     where = "found at %d" % min(hits, key=lambda i: abs(i - lo)) if hits else "not found"
     cited = "%d-%d" % (lo, hi) if hi != lo else "%d" % lo
-    return Finding(register_rel, n, "pointer-line", '#%s repo:%s:%s — "%s" not on that line (%s)' % (r["id"].lstrip("#"), path, cited, quoted, where))
+    shown = "%s@%s" % (path, commit) if commit else path
+    return Finding(register_rel, n, "pointer-line", '#%s repo:%s:%s — "%s" not on that line (%s)' % (r["id"].lstrip("#"), shown, cited, quoted, where))
 
 
 def rule_pointer(rows, root, register_rel):
@@ -299,7 +328,18 @@ def rule_pointer(rows, root, register_rel):
                     out.append(Finding(register_rel, n, "pointer", detail))
             elif form == "repo":
                 path = text.split('"')[0].strip().rsplit(":", 1)[0]
-                if _doomed(path):
+                path, commit = _split_pin(path)
+                if commit:
+                    if _doomed(path):
+                        out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
+                                                                       "research-program-v1); cite the underlying evidence" % (r["id"], path)))
+                    elif _git_show(root, commit, path) is None:
+                        out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not resolve at commit %s (unknown commit or no such path there)" % (r["id"], path, commit)))
+                    else:
+                        f = _pointer_line_finding(r, text, n, root, register_rel)
+                        if f:
+                            out.append(f)
+                elif _doomed(path):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
                                                                    "research-program-v1); cite the underlying evidence" % (r["id"], path)))
                 elif not os.path.exists(os.path.join(root, *path.split("/"))):

@@ -509,3 +509,55 @@ def test_pointer_line_exempts_a_superseded_row():
         _write(d, "mod/x.lua", "a = 1\n")
         _tree(d, [_row(1, pointer='repo:mod/x.lua:1 "gone"', status="superseded", successor="#0002"), _row(2)])
         assert [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"] == []
+
+# --- Rule 3 / 3b, pinned form: repo:<path>@<commit>:<line> resolves through `git show` in the root.
+
+def _git(d, *a):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", d, *a], check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
+BODY = "a = 1\nlocal function f()\n  return 2\nend\n"
+
+
+def _pinned(pointer_fmt, body_then=BODY, mutate=True):
+    """A tmp repo whose mod/x.lua holds body_then at commit C1 and is deleted in the working tree after;
+    the pointer is pointer_fmt.format(c=<C1 abbreviation>)."""
+    with tempfile.TemporaryDirectory() as d:
+        _git(d, "init", "-q")
+        _write(d, "mod/x.lua", body_then)
+        _git(d, "add", "mod/x.lua")
+        _git(d, "commit", "-q", "-m", "c1")
+        c1 = _git(d, "rev-parse", "--short=10", "HEAD")
+        if mutate:
+            os.remove(os.path.join(d, "mod", "x.lua"))
+        _tree(d, [_row(1, pointer=pointer_fmt.format(c=c1))])
+        return [x for x in cc.check(d, register_only=True) if x.rule in ("pointer", "pointer-line")]
+
+
+def test_pinned_pointer_passes_when_the_quote_is_on_the_line_at_that_commit():
+    assert _pinned('repo:mod/x.lua@{c}:2 "local function f()"') == []
+    assert _pinned('repo:mod/x.lua@{c}:1-3 "return 2"') == []
+
+
+def test_pinned_pointer_wrong_line_names_the_found_line_and_the_commit():
+    f = _pinned('repo:mod/x.lua@{c}:3 "local function f()"')
+    assert len(f) == 1 and f[0].rule == "pointer-line" and "found at 2" in f[0].detail and "@" in f[0].detail
+    f = _pinned('repo:mod/x.lua@{c}:2 "local function g()"')
+    assert len(f) == 1 and f[0].rule == "pointer-line" and f[0].detail.endswith("not on that line (not found)")
+
+
+def test_pinned_pointer_unknown_commit_is_a_pointer_finding():
+    f = _pinned('repo:mod/x.lua@deadbeef1:2 "a = 1"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "deadbeef1" in f[0].detail
+
+
+def test_pinned_pointer_path_absent_at_that_commit_is_a_pointer_finding():
+    f = _pinned('repo:mod/y.lua@{c}:2 "a = 1"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "mod/y.lua" in f[0].detail
+
+
+def test_unpinned_pointer_still_reads_the_working_tree():
+    f = _pinned('repo:mod/x.lua:2 "local function f()"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "does not exist" in f[0].detail
+    assert _pinned('repo:mod/x.lua:2 "local function f()"', mutate=False) == []
