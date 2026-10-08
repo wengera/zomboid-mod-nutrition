@@ -1,8 +1,8 @@
 {
- "created": "2026-09-09T14:36:57",
- "build": "42.20.4",
+ "created": "2026-10-08T07:34:44",
+ "build": "42.21.0",
  "game_dir": "D:\\SteamLibrary\\steamapps\\common\\ProjectZomboid",
- "provision_run": "prov-20260909-143529",
+ "provision_run": "prov-20261008-073315",
  "server": {
   "name": "pzt",
   "port": 27261,
@@ -23,10 +23,12 @@
   }
  },
  "timings": {
-  "server_start": 41.4,
-  "client_admin_ready": 35.8
+  "server_start": 41.0,
+  "client_admin_ready": 37.8
  },
- "boot_errors": [],
+ "boot_errors": [
+  "LOG  : General      f:0 st:1,801,979,961> 111ERROR: not adding suspicious zone \"\" \"Nav\" 8343,12316,0 2244x18"
+ ],
  "name": "default",
- "size_mb": 10.9
+ "size_mb": 9.9
 }
