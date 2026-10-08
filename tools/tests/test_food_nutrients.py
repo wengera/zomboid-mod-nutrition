@@ -2202,6 +2202,24 @@ def test_check_generated_lists_every_stale_file(tmp_path):
     assert sorted(p for p, _m in stale) == sorted([lua_path, script_path, infer_path])
 
 
+def test_check_generated_lists_the_build_and_the_emitted_files_together(tmp_path):
+    out_json, out_csv = str(tmp_path / "food-nutrients.json"), str(tmp_path / "food-nutrients.csv")
+    shutil.copyfile(fn.NUTRIENTS_JSON, out_json)
+    shutil.copyfile(fn.NUTRIENTS_CSV, out_csv)
+    for path in (out_json, out_csv):
+        with open(path, "a", encoding="utf-8", newline="") as handle:
+            handle.write("\n")                            # the build's output no longer matches the disk
+    lua_path, script_path = str(tmp_path / "NR_Data_Nutrients.lua"), str(tmp_path / "s.txt")
+    infer_path = str(tmp_path / "NR_Data_Infer.lua")
+    paths = dict(lua_path=lua_path, script_path=script_path, infer_path=infer_path)
+    for path, text in fn.generated_texts(nutrients_json=fn.NUTRIENTS_JSON, **paths):
+        fn.write_text(path, text + "-- edited\n")
+    stale = fn.check_generated(build_fresh=True, nutrients_json=out_json, nutrients_csv=out_csv, **paths)
+    listed = sorted(p for p, _m in stale)
+    assert out_json in listed and out_csv in listed
+    assert {lua_path, script_path, infer_path} <= set(listed)
+
+
 def test_check_prints_a_refusal_and_exits_1(capsys, monkeypatch):
     def refuse(*a, **k):
         raise fn.BuildRefused("the mapping does not check clean")
