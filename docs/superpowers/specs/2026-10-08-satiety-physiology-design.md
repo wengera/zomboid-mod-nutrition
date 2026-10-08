@@ -92,6 +92,31 @@ The plan's first task is an Opus harvest. It writes science part files, which th
 
 Each constant's comment names its science row. A component with no settled row ships at the neutral value, and its limitation string says so.
 
+### 5a. The harvest's outcome (rows S1222–S1272, minted 2026-10-08) and the design rulings it forces
+
+The harvest and its Opus review settled what follows; the plan builds to it. It overrides § 3 where they disagree.
+
+- **Solid emptying is linear, not first-order** (S1272, which supersedes S0130: Moore 1981, 77/146/277 min half-emptying for 300/900/1692 g). The energy-delivery rate is about 2–3 kcal/min (S0131 settled: Hunt 1985, an overall mean of 2.5 kcal/min). It rises with load and energy density (Hunt 1985, Hunt & Stubbs, Calbet).
+  - The kcal/min figures come from liquid carbohydrate meals. Applying them to solids is a **labelled inference**, not a settled constant.
+  - Calbet did not test fat. Whether fat, protein and carbohydrate slow emptying equally per kcal is unsettled, and the model treats them equally as the neutral choice.
+  - **Ruling 11c-4:** the solid lane empties energy at a zero-order rate that rises with the buffered energy, calibrated to the rows. It replaces `K.stomach.emptyFraction`'s first-order half-time. A component with no energy (water, fibre) leaves in proportion as the energy does.
+- **The liquid phase follows the meal.** Water drunk alone half-empties in about 13 min (Mudie). The liquid phase of a meal takes 40–178 min and grows with meal size (Moore 1981). An energy-dense drink empties by its energy (Camps 2016: 26.5 min at 100 kcal against 69.5 min at 500 kcal).
+  - **Ruling 11c-5:** the liquid lane exists. Its rate is fast when the stomach holds no solid energy and slows as the solid lane's energy rises. A drink's own energy goes to the solid lane's energy budget, so a sugary drink empties at the energy rate. A fixed 13-min water lane inside a meal is not built.
+- **Fibre is neutral** (ruling 11c-6). Clark & Slavin 2013 (78 % of 107 treatments null) and Wolever stand against Salleh, S0487 and Benini. Fibre counts only through its mass. Neutral is a named game choice resting on those paired rows.
+- **Macronutrient weights** (ruling 11c-7):
+  - Protein satiates more per kcal (Kohanmoo 2020, Dhillon 2016, Marmonier 2000, de Castro 1988), against Raben's null and the long-term nulls.
+  - Carbohydrate against fat is disputed (Woodend, Melanson, Rolls 1999, Holt). The neutral ruling is to weight them equally. That is not an evidenced tie.
+  - The size of the protein weight is a game choice, because S1268 is open, calibrated so the oracle's protein preload lands inside its studies' range.
+- **Time to returning hunger** after a mixed meal is 247–321 min (Callahan 2004) and 320–425 min time-blinded (Cummings 2004). The 4–5 h anchor holds and is slightly conservative. P's half-life is a game choice (S1270 open) fitted jointly with P50 and the protein weight against these rows.
+- **Capacity:**
+  - 428 mL to satiation and 734 mL to maximum, for water drunk fast by young women (van Dyck 2016).
+  - 937–1048 mL for slow nutrient drinks, measured while the stomach empties.
+  - 1100 mL for a balloon (n = 4).
+  - Tack 2003: volume, not kcal, sets maximum satiety. No solid-mass capacity exists.
+  - **Ruling 11c-8:** comfortable capacity is about 430 mL of stomach mass and the soft cap's threshold about 730 mL. Each is a labelled inference from the water-load rows, applied to stomach mass at density 1. The nutrient-drink figures bound the cap from above.
+- **The deficit floor stays a game choice.** The direction is settled (Polidori 2016, COH: about 100 kcal/d of appetite per kg lost; CALERIE 2 hunger < 10 mm over 2 y; ghrelin rises in non-RCTs, Jin 2025). S1271 (VAS per % deficit) is open. `hungerTarget`'s 0.15 keeps its label.
+- **Contested effects ship neutral:** sugar against starch (absent), liquid against solid calories (mixed), fat per kcal (mixed). Each counts only through its energy and mass.
+
 ## 6. Validation (the oracle)
 
 - `testing/tests/kernel/test_satiety_meal_studies.py` replays at least three published protocols through the kernels, in game hours:
