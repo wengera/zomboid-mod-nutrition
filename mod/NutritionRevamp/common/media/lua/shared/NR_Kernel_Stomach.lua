@@ -22,7 +22,7 @@ local K = NutritionRevamp.kernel
 K.stomach = {}
 
 -- The half-time of a mixed solid meal, in game hours (a mixed solid meal half-empties in about 2 h).
-K.stomach.HALF_TIME_H = 2.0 -- S0130 design-phase-v1: open row, a game choice until it settles (spec § 7 item 37)
+K.stomach.HALF_TIME_H = 2.0 -- a game choice until Plan 11c: S1272 finds solid emptying linear, not first-order
 
 -- The bulk at which the stomach reads full (judgement: a game choice in bulkOf's units).
 K.stomach.FULL_BULK = 8.0
@@ -117,7 +117,7 @@ function K.stomach.emptyFraction(halfTimeH, compScale, dtH)
     if dtH <= 0 then
         return 0
     end
-    return 1 - math.exp(-0.6931471805599453 * dtH / (halfTimeH * compScale)) -- S0130 design-phase-v1: open row, a game choice until it settles (spec § 7 item 37)
+    return 1 - math.exp(-0.6931471805599453 * dtH / (halfTimeH * compScale)) -- a game choice until Plan 11c (S1272: solid emptying is linear)
 end
 
 -- Empty the stomach over dtH hours: the emptied fraction of every buffered key moves out as a fresh

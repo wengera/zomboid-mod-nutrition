@@ -11,10 +11,10 @@
 -- term, stubbed at 1 in Plan 2, is NR_Server_Metabolism's per-minute stamp (record.body.energyState;
 -- the writer reads nil or NaN as 1). Thirst is
 -- untouched in this plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
--- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S0130,
+-- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S1272,
 -- design-phase-v1) makes hunger run from 0 to 0.5 in 2 game-hours, ~0.875 by 6 h and ~0.94 across an
 -- 8 h sleep -- hours, where vanilla's drain takes ~29 game-hours to reach 1 -- and a litre of drink
--- (bulk >= 9 against FULL_BULK 8) sates fully; a balance choice re-read when S0130 settles (Plan 2
+-- (bulk >= 9 against FULL_BULK 8) sates fully; a balance choice re-read in Plan 11c (S1272) (Plan 2
 -- ruling T11).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
