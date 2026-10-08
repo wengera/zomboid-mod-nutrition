@@ -29,7 +29,7 @@ The resolver's fallback is `42.0`, not `42` ([#3505/C/C-only], [`../../platform/
 
 Undiscovered, StatsAPI shares nothing with a server mod on 42.21, and a port in the same layout still could not contest a server's stat hook, because a dedicated server never runs `client/` Lua [T1101.22].
 A port's client-side stat writes would also be erased by the next player stats packet ([#0568/M/n=2], [`../../platform/mp-model.md#routes-client-to-server`](../../platform/mp-model.md#routes-client-to-server)).
-The one idea worth taking is the first key fact: once a mod zeroes vanilla's rates, other mods read zero from `ZomboidGlobals`, and a saved copy is the only way to keep the vanilla number available.
+Its file-scope save is the technique of the first key fact: it keeps each rate it zeroes in a Lua copy, so the vanilla number stays readable once `ZomboidGlobals` holds zero [T1101.20].
 
 ## Walls and bounds
 
@@ -39,14 +39,14 @@ Every line on this page is a reading of the installed copy's code and of the 42.
 ### Licence
 
 None of its 32 files carries a licence text, and its `mod.info` names the author only [T1101.23].
-With no grant the default is all rights reserved: this repository learns from the code and copies none of it.
+With no grant the default is all rights reserved: copying its code into another mod needs the author's permission.
 
-Not covered: its moodle UI, its sleep handling and its over-time effects beyond a read for stat writes; whether its author has published a separate Build 42 version [T1101.19]; and the Workshop page and its terms.
+Not covered: its moodle UI, its sleep handling and its over-time effects beyond a read for stat writes; whether its author has published a separate version for this build; and the Workshop page and its terms.
 
 ## Open
 <a id="open"></a>
 
-- Whether a Build 42 StatsAPI exists under another Workshop id [T1101.19] — settled by a Workshop search for the author's items; no `X` id.
+- Whether a StatsAPI for this build exists under another Workshop id — settled by a Workshop search for the author's items; no `X` id.
 
 ## See also
 

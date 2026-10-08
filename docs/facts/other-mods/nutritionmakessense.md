@@ -58,14 +58,14 @@ Each of those sends serialises its table on the main thread once per receiver ([
 
 ## Walls and bounds
 
-Every line on this page is a reading of the installed copy's code on 2026-10-08, and nothing here was booted; the mod updates often, so its line cites drift [T1101.1].
+Every line on this page is a reading of the installed copy's code on 2026-10-08, and nothing here was booted; the Workshop copy drifts, so its line cites drift [T1101.1].
 The food-pass counts come from an uncommitted scratch script over the installed script and the 42.21 food dataset [T1101.13].
 
 <a id="licence"></a>
 ### Licence
 
 None of its 36 files carries a licence, permission or credits text, and its `mod.info` names the author only [T1101.16].
-With no grant the default is all rights reserved: this repository learns from the code and copies none of it, its food values, curves, art or strings.
+With no grant the default is all rights reserved: copying its code, art or strings into another mod needs the author's permission.
 
 Not covered: its client UI (the tooltip rows, the health-panel lines, the Nutrition window, the moodle and the weight trend) beyond a grep for writes; its single-player path; its recipe overrides and the split-recipe `OnCreate` that rescales cut outputs; the Workshop page and its terms; and any live reading of the two mods together.
 

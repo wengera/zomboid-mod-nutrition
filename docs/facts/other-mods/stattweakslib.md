@@ -39,7 +39,7 @@ Every line on this page is a reading of the installed copy's code and of the 42.
 ### Licence
 
 None of its three files carries a licence text, and its `mod.info` names no author [T1101.30].
-With no grant the default is all rights reserved: this repository learns from the code and copies none of it.
+With no grant the default is all rights reserved: copying its code into another mod needs the author's permission.
 
 Not covered: the Workshop page and its terms, any mod that registers modifiers with it, and a booted reading of the raise on either client kind.
 
