@@ -28,7 +28,7 @@ TOPICS = ("vitamin-a", "vitamin-d", "vitamin-e", "vitamin-k", "vitamin-c", "thia
           "alcohol", "caffeine", "phytate", "sweat", "digestion",
           "energy", "body-composition", "lean-mass", "strength", "aerobic-capacity", "glycogen", "protein",
           "fatigue-sleep", "cognition", "mood", "perception", "healing", "immunity", "thermal", "toxicity",
-          "starvation", "refeeding", "general")
+          "starvation", "refeeding", "satiety", "general")
 ID_RX = re.compile(r"^S\d{4}$")
 PROVISIONAL_RX = re.compile(r"^S\d+\.\d+$")
 TOKEN_RX = re.compile(r"\bS\d{4}\b")
@@ -105,7 +105,7 @@ def validate_row(row, provisional=False):
         errs.append("status %r not in %s" % (status, STATUSES))
     if not row.get("parameter", "").strip():
         errs.append("parameter is empty")
-    gap_closed = status == "superseded" and not any(row.get(c, "").strip() for c in ("topic", "grade", "value", "citation"))
+    gap_closed = status == "superseded" and not any(row.get(c, "").strip() for c in ("grade", "value", "citation"))
     if status != "open" and not gap_closed:
         if row.get("topic") not in TOPICS:
             errs.append("topic %r not in TOPICS" % row.get("topic"))

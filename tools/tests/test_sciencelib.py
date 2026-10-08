@@ -77,7 +77,18 @@ def test_a_superseded_gap_may_be_empty_but_names_a_successor():
     gap = dict(GOOD, topic="", grade="", value="", range="", citation="", status="superseded", successor="S0002")
     assert sl.validate_row(gap) == []
     assert any("successor" in e for e in sl.validate_row(dict(gap, successor="")))
-    assert any("grade" in e for e in sl.validate_row(dict(gap, topic="protein")))
+    assert any("grade" in e for e in sl.validate_row(dict(gap, grade="XX")))
+    assert any("grade" in e for e in sl.validate_row(dict(gap, value="1 g", grade="")))
+
+
+def test_a_superseded_former_open_row_may_keep_its_topic():
+    gap = dict(GOOD, topic="satiety", grade="", value="", range="", citation="", status="superseded", successor="S0002")
+    assert sl.validate_row(gap) == []
+    assert any("topic" in e for e in sl.validate_row(dict(gap, topic="not-a-slug")))
+
+
+def test_satiety_is_a_topic():
+    assert "satiety" in sl.TOPICS
 
 
 def test_an_unrewritten_record_beside_a_good_one_is_flagged():
