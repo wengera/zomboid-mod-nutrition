@@ -33,7 +33,11 @@ def test_mirror_requests_inside_the_gap_are_denied():
         h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
     assert len(h.T.sent) - n0 == 1
     assert h.NR.server.bus.requests.stats.denied == 4
-    h.T.now = h.T.now + 5001
+    h.T.now = h.T.now + 4999                             # still inside the 5 s window: denied, nothing sent
+    h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
+    assert len(h.T.sent) - n0 == 1
+    assert h.NR.server.bus.requests.stats.denied == 5
+    h.T.now = h.T.now + 2                                # 5001 after the first answer
     h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
     assert len(h.T.sent) - n0 == 2
 

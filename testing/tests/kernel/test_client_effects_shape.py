@@ -3,7 +3,7 @@
 Both files are loaded into a FRESH Lua 5.1 runtime per test (NR_Core.lua first, then the file under test), with
 Lua stand-ins for the engine: an Events table whose Add records each listener, isClient/isServer, getPlayer with
 a fake local player (getAimingDelay, and setAimingDelay/setVariable stubs that only count, so a write would show),
-getTimestampMs on a settable clock, sendServerCommand counting sends, and a stub K.mirror.build. Nothing here
+getTimestampMs on a settable clock, sendServerCommand counting sends, and a stub K.mirror.build. It also stubs K.view with a constant signature and a zero phase; the push offset is pinned in test_bus_shape.py and test_kernel_view.py. Nothing here
 loads a kernel file, so the session host's coverage gate is untouched. A stub proves the wiring, the guards and
 the dedupe, never the engine: whether OnWeaponSwing passes the local player, and what the delay reads while a
 player really aims, are the live runs' (X86, #3061-#3063).
