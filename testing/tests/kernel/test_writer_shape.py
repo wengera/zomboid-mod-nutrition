@@ -667,3 +667,6 @@ def test_a_limitation_names_another_mod_re_assigning_the_rates():
     hits = [x for x in lim if "another mod" in x and "OnGameBoot" in x and "ZomboidGlobals" in x]
     assert len(hits) == 1
     assert "vanilla's drift" in hits[0] and "between the writer's minute writes" in hits[0]
+    assert hits[0].startswith("another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, "
+                              "thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's "
+                              "drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb")

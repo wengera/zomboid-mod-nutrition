@@ -10,7 +10,7 @@ This guide is for the person running the server. The release notes are `CHANGELO
 - The server's mod list is the one that counts: a joining client loads what the server lists, whatever its own mod menu holds.
 - The mod declares no dependency. MoodleFramework is optional: when a client has it, the mod's moodles use it; without it the mod draws its own icon column.
 - The mod is built and tested for game build 42.20.4. Its folder has one version directory, `42.20.4/`, holding `mod.info` and the sandbox options, and `common/` holding everything else.
-- A clean stop or restart loses at most the last real minute of each player's digestion drift, because the game gives a mod no save or stop event on a dedicated server, while eats and drinks are saved within a game minute.
+- A clean stop or restart loses at most the last real minute of each player's digestion drift, because the game gives a mod no save or stop event on a dedicated server, while eats, drinks and respawns are saved within a game minute.
 
 ## Set the vanilla Nutrition option off
 

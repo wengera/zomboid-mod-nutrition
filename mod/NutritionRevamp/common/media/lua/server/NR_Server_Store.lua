@@ -25,16 +25,18 @@
 -- believes holds the newest copy back and compares it as a string, with no decode. A mismatch means that write was
 -- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
 -- store.file.stats.repaired and logged once per player. The cost is one file read per save (a player's slot at most
--- once a real minute, and after an eat or a drink) and per index write.
+-- once a real minute, and after an eat, a drink or a respawn's reset) and per index write.
 -- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
 -- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
 -- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
--- store.file.stats.deferred, logged once, the flag kept so the next save tries again) for at most S.DEFER_MAX
--- deferred saves per player (a game choice: about ten real minutes at the 60 s save gap; the next save then gives
--- up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation), so
--- the fresh record never overwrites the real one for a transient failure (logged at level 2); the flag and the
--- count clear at the first save, at a recovery and at a reset. A player first seen
--- after the last index write has no such protection: the index does not name them, so two failed reads save them new.
+-- store.file.stats.deferred, logged once, the flag kept so the next store step tries again) for S.DEFER_MAX_MS of
+-- real time from the player's first deferral (F.deferSince; ruling T11-1a: a deferred save retries at every store
+-- step, once a game minute, so a count of steps would be seconds at a short day). The first save past the window
+-- gives up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation;
+-- a clock that does not read never gives up. So the fresh record never overwrites the real one for a transient
+-- failure (logged at level 2); the flag and the window clear at the first save, at a recovery and at a reset. A
+-- player first seen after the last index write has no such protection: the index does not name them, so two failed
+-- reads save them new.
 --
 -- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
@@ -59,21 +61,22 @@
 --
 -- The stop window (ruling T20-1): a dedicated server fires no Lua event around a world save or a stop, so nothing
 -- flushes the store there; the window a clean stop can lose is narrowed instead. A landed eat or drink (IN.land
--- calls S.mark) marks the player's slot dirty, and the store step writes a dirty slot at the player's next queue
--- slot whatever S.SAVE_GAP_MS says, for that one save (the read-before-truncate and the deferral still apply; the
--- mark is consumed by the attempt, so a deferral keeps its own pace). A username new to the index is written
+-- calls S.mark) and a respawn's reset (S.reset, ruling T20-3) mark the player's slot dirty, and the store step writes
+-- a dirty slot at the player's next queue slot whatever S.SAVE_GAP_MS says, for that one save (the
+-- read-before-truncate and the deferral still apply; a save that writes nothing -- a failed write, a deferral, a
+-- recovery -- keeps the mark, so it is tried again at the next step). A username new to the index is written
 -- promptly: its first save queues the store.index task into the live queue, so it runs at the next tick, not
 -- S.INDEX_GAP_MS later. A clean stop then loses at most the last S.SAVE_GAP_MS of digestion drift; a hard kill
 -- loses what ruling 8 says.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}, loadedFor = nil, wired = false,
-                    fresh = {}, DEFER_MAX = 10, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
+                    fresh = {}, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferN = {},
+                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferSince = {},
                              dirty = {} } }
 local S = NR.server.store
 local F = S.file
@@ -81,6 +84,7 @@ local F = S.file
 S.SAVE_GAP_MS = 60000      -- game choice (ruling 8): a player's slot is written at most once a real minute
 S.PRUNE_GAP_MS = 3600000   -- game choice (ruling 8): the prune walks the index once a real hour
 S.INDEX_GAP_MS = 300000    -- game choice (Task 11 fix 1): a dirty index is written at most once every 5 real minutes
+S.DEFER_MAX_MS = 600000    -- game choice (ruling T11-1a): ten real minutes, so a briefly locked file is never overwritten
 
 local function nowMs()
     if getTimestampMs == nil then return nil end
@@ -269,7 +273,7 @@ end
 -- failure at first sight): the file's record is laid into the in-memory one in place. Returns nothing.
 function S.recover(username, record, raw)
     S.fresh[username] = nil
-    F.deferN[username] = nil
+    F.deferSince[username] = nil
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records)
     if not ok then
@@ -294,9 +298,10 @@ function F.save(username, record)
             return false
         end
         if raw == nil and S.fresh[username] == true and F.index[username] ~= nil then
-            local n = (F.deferN[username] or 0) + 1
-            if n <= S.DEFER_MAX then
-                F.deferN[username] = n
+            local now = nowMs()
+            if F.deferSince[username] == nil then F.deferSince[username] = now end
+            local since = F.deferSince[username]
+            if since == nil or now == nil or now - since < S.DEFER_MAX_MS then  -- an unread clock never gives up
                 F.stats.deferred = F.stats.deferred + 1
                 if not F.deferWarned[username] then
                     F.deferWarned[username] = true
@@ -305,12 +310,12 @@ function F.save(username, record)
                 return false
             end
             F.stats.deferGiveUps = F.stats.deferGiveUps + 1
-            NR.log.say(1, "store: " .. tostring(username) .. " files indexed but unreadable for " .. tostring(S.DEFER_MAX)
-                .. " minutes; saving the session record")
+            NR.log.say(1, "store: " .. tostring(username) .. " files indexed but unreadable for "
+                .. tostring(math.floor((now - since) / 60000)) .. " real minutes; saving the session record")
         end
     end
     S.fresh[username] = nil
-    F.deferN[username] = nil
+    F.deferSince[username] = nil
     local gen = (F.gen[username] or 0) + 1
     local which = target(F.at[username], F.slot(username, F.at[username] or "a"), F.last[username], username)
     local text = K.json.encode({ gen = gen, rec = K.store.inputsOnly(record), done = true }, F.fmt)
@@ -414,7 +419,7 @@ function S.reset(username, worldAgeHours)
     if old == nil then old = F.load(username) end
     local r = S.new(username, worldAgeHours)
     S.fresh[username] = nil
-    F.deferN[username] = nil                               -- a reset record is meant to replace the file's
+    F.deferSince[username] = nil                           -- a reset record is meant to replace the file's
     if old ~= nil then
         r.resets = (old.resets or 0) + 1                   -- ruling 4: every OnNewGame over an existing record
     else
@@ -422,12 +427,14 @@ function S.reset(username, worldAgeHours)
     end
     t[username] = r
     sights(t)[username] = true
+    -- a reset reaches the file at the next store step (ruling T20-3)
+    S.mark(username)
     NR.log.say(2, "store: reset record for " .. tostring(username) .. " (reset " .. tostring(r.resets) .. ")")
     return r
 end
 
--- A landed eat or drink (IN.land): the player's slot is written at its next store step, past the save gap. A
--- skipped name is never marked.
+-- A landed eat or drink (IN.land) or a respawn's reset (S.reset): the player's slot is written at its next store
+-- step, past the save gap. A skipped name is never marked.
 function S.mark(username)
     if username == nil then return end
     if S.skip ~= nil and S.skip(username) == true then return end
@@ -435,8 +442,8 @@ function S.mark(username)
 end
 
 -- The pipeline's store step: the player's slot written when a real minute has passed since its last write, or at
--- once when an eat or a drink marked it dirty; the first write after a boot falls at the player's phase over that
--- minute (K.store.firstLast).
+-- once when an eat, a drink or a reset marked it dirty (a dirty save that writes nothing keeps the mark); the first
+-- write after a boot falls at the player's phase over that minute (K.store.firstLast).
 function S.step(username, player, record, ctx)
     -- The skip seam (Plan 11 Task 19, ruling 15): S.skip is nil in production; only the test harness sets it, to a
     -- function of a username answering true for its ghost names, whose store step then does nothing at all (no
@@ -447,8 +454,8 @@ function S.step(username, player, record, ctx)
     if F.lastWrite[username] == nil then F.lastWrite[username] = K.store.firstLast(username, now, S.SAVE_GAP_MS) end
     local dirty = F.dirty[username] == true
     if not dirty and not K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then return end
-    F.dirty[username] = nil                                -- consumed by the attempt: a deferral keeps its own pace
-    F.save(username, record)
+    F.dirty[username] = nil
+    if not F.save(username, record) and dirty then F.dirty[username] = true end  -- retried at the next step
 end
 
 -- The prune: offline players unseen for more than keepDays real days lose their record. Both slots are EMPTIED, not

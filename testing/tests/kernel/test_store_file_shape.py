@@ -725,17 +725,20 @@ def test_a_deferral_over_files_that_never_read_gives_up_after_the_bound_and_save
     h.online(h.player("admin"))
     st = h.NR.server.store
     m = 1
-    while st.file.stats.deferred < st.DEFER_MAX and m < 40:
+    while st.file.stats.deferred == 0 and m < 6:                                # up to the save phase
         run_minutes(h, 1, start=m)
         m += 1
-    assert st.file.stats.deferred == st.DEFER_MAX
-    assert st.file.stats.deferGiveUps == 0 and st.fresh["admin"] is True
-    assert opened_with(h, ROOT + "p_") == []                                    # ten minutes with no file opened
-    run_minutes(h, 1, start=m)                                                  # the next save gives up
+    t0 = st.file.deferSince["admin"]
+    assert t0 == h.T.now                                                        # the first deferral's real time
+    while st.file.stats.deferGiveUps == 0 and m < 40:                           # 61 real s a store step
+        assert opened_with(h, ROOT + "p_") == [] and st.fresh["admin"] is True  # no file opened while deferring
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert h.T.now - t0 == 610000                                               # the first step past ten real minutes
     assert opened_with(h, ROOT + "p_")                                          # a file is opened
-    assert st.file.stats.deferred == st.DEFER_MAX and st.file.stats.deferGiveUps == 1
-    assert st.fresh["admin"] is None and st.file.deferN["admin"] is None
-    assert any("admin files indexed but unreadable for 10 minutes; saving the session record" in p
+    assert st.file.stats.deferred == 10 and st.file.stats.deferGiveUps == 1     # deferred at 0 s to 549 s
+    assert st.fresh["admin"] is None and st.file.deferSince["admin"] is None
+    assert any("admin files indexed but unreadable for 10 real minutes; saving the session record" in p
                for p in h.printed())
     h.T.readerNil = 0
     h2 = boot(files=files_of(h))
@@ -749,14 +752,17 @@ def test_a_player_whose_reads_fail_three_times_then_succeed_is_recovered_and_the
     h.online(h.player("admin"))
     st = h.NR.server.store
     m = 1
+    t0 = None
     while st.file.stats.deferred < 3 and m < 12:
         run_minutes(h, 1, start=m)
         m += 1
-    assert st.file.deferN["admin"] == 3
+        if t0 is None and st.file.stats.deferred == 1:
+            t0 = h.T.now
+    assert st.file.deferSince["admin"] == t0                                    # the first deferral's, not the last
     h.T.readerNil = 0
     run_minutes(h, 3, start=m)
     assert st.file.stats.recovered == 1 and h.record("admin").resets == 6
-    assert st.file.deferN["admin"] is None and st.file.stats.deferGiveUps == 0
+    assert st.file.deferSince["admin"] is None and st.file.stats.deferGiveUps == 0
 
 
 # --- Plan 11 Task 19: the skip seam the harness's ghost names use -------------------------------------------------
@@ -807,7 +813,7 @@ def test_a_skipped_name_over_indexed_unreadable_files_counts_no_deferral():
     for _ in range(3):
         S.step("ghost1", None, r, None)
         h.T.now = h.T.now + 61000
-    assert S.file.stats.deferred == 0 and S.file.deferN["ghost1"] is None       # no deferral counted
+    assert S.file.stats.deferred == 0 and S.file.deferSince["ghost1"] is None   # no deferral counted
     assert S.file.deferWarned["ghost1"] is None
     assert opened_with(h, ROOT, n) == []
 
@@ -913,7 +919,7 @@ def test_a_known_players_saves_queue_no_index_write():
     assert opened_with(h, ROOT + "index_", n) == []
 
 
-def test_a_recovery_after_three_deferrals_clears_the_count_so_a_later_failure_starts_at_one():
+def test_a_recovery_after_three_deferrals_clears_the_window_so_a_later_failure_starts_a_new_one():
     files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
     h = boot(files=files)
     h.T.readerNil = 8                                                           # first sight, then three saves' preloads
@@ -923,18 +929,19 @@ def test_a_recovery_after_three_deferrals_clears_the_count_so_a_later_failure_st
     while st.file.stats.deferred < 3 and m < 12:
         run_minutes(h, 1, start=m)
         m += 1
-    assert st.file.deferN["admin"] == 3
+    assert st.file.deferSince["admin"] is not None
     h.T.readerNil = 0
     while st.file.stats.recovered == 0 and m < 20:
         run_minutes(h, 1, start=m)
         m += 1
     assert st.file.stats.recovered == 1
-    assert st.file.deferN["admin"] is None                                      # cleared at the recovery itself
+    assert st.file.deferSince["admin"] is None                                  # cleared at the recovery itself
     st.file.gen["admin"] = None                                                 # a later failed first read: the
     st.fresh["admin"] = True                                                    # state a fresh S.get leaves
     h.T.readerNil = 2
+    h.T.now = h.T.now + 3600000                                                 # an hour later
     assert not st.file.save("admin", h.record("admin"))
-    assert st.file.deferN["admin"] == 1                                         # counted from 1, not 4
+    assert st.file.deferSince["admin"] == h.T.now                               # a new window, not the old one's
 
 
 def test_a_departure_flush_after_an_eat_consumes_the_mark():
@@ -952,3 +959,114 @@ def test_a_departure_flush_after_an_eat_consumes_the_mark():
     for m in range(13, 16):
         game_minute(h, m, 1000)
     assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # no second write for that eat
+
+
+# --- Task 20 fix 2 (rulings T20-3, T11-1a): a respawn saved promptly, a failed dirty save retried, the deferral's
+# bound in real time (S.DEFER_MAX_MS from the first deferral), not in store steps.
+
+def test_a_reset_five_seconds_after_a_save_is_written_at_the_next_queue_slot():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)                                                 # a due save: the slot written now
+    S = h.NR.server.store
+    F = S.file
+    g = F.gen["admin"]
+    n = len(h.T.opened)
+    h.T.now = h.T.now + 5000
+    r = S.reset("admin", h.T.age)                                               # a respawn 5 s after the save
+    assert F.dirty["admin"] is True
+    game_minute(h, 11, 0)                                                       # the player's next queue slot
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # not 55 s later
+    assert F.gen["admin"] == g + 1 and F.dirty["admin"] is None
+    h2 = boot(files=files_of(h))
+    assert h2.NR.server.store.file.load("admin").resets == r.resets == 1        # the reset record is on file
+
+
+def test_a_dirty_save_that_fails_once_is_written_at_the_following_step():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    F = h.NR.server.store.file
+    g, fails = F.gen["admin"], F.stats.writeFailures
+    n = len(h.T.opened)
+    h.T.now = h.T.now + 5000
+    land(h, "admin")
+    h.T.nilWriter = True                                                        # the dirty save's writer fails
+    game_minute(h, 11, 0)
+    h.T.nilWriter = False
+    assert F.stats.writeFailures == fails + 1 and F.gen["admin"] == g
+    assert F.dirty["admin"] is True                                             # the mark kept
+    game_minute(h, 12, 5000)                                                    # 10 s after the last write
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # retried, not 50 s later
+    assert F.gen["admin"] == g + 1 and F.dirty["admin"] is None
+
+
+def deferring():
+    """admin fresh over indexed files that never read (the state a failed first read leaves), and the record."""
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 100000                                                      # the files never read
+    S = h.NR.server.store
+    r = S.get("admin", 100.0)
+    assert S.fresh["admin"] is True and S.file.index["admin"] is not None
+    return h, S, r
+
+
+def test_deferrals_spread_over_nine_real_minutes_never_give_up():
+    h, S, r = deferring()
+    t0 = h.T.now
+    n = len(h.T.opened)
+    for k in range(10):                                                         # 0 s to 540 s after the first
+        h.T.now = t0 + k * 60000
+        assert not S.file.save("admin", r)
+    h.T.now = t0 + S.DEFER_MAX_MS - 1                                           # the window's last millisecond
+    assert not S.file.save("admin", r)
+    assert S.file.stats.deferred == 11 and S.file.stats.deferGiveUps == 0
+    assert S.file.deferSince["admin"] == t0 and S.fresh["admin"] is True
+    assert opened_with(h, ROOT + "p_", n) == []
+
+
+def test_a_deferral_ten_real_minutes_after_the_first_gives_up_once():
+    h, S, r = deferring()
+    t0 = h.T.now
+    assert not S.file.save("admin", r)
+    h.T.now = t0 + S.DEFER_MAX_MS
+    n = len(h.T.opened)
+    assert S.file.save("admin", r)                                              # the session record saved
+    assert opened_with(h, ROOT + ADMIN, n)
+    assert S.file.stats.deferred == 1 and S.file.stats.deferGiveUps == 1
+    assert S.fresh["admin"] is None and S.file.deferSince["admin"] is None
+    assert any("admin files indexed but unreadable for 10 real minutes; saving the session record" in p
+               for p in h.printed())
+    for k in range(1, 4):                                                       # given up once, not again
+        h.T.now = t0 + S.DEFER_MAX_MS + k * 60000
+        assert S.file.save("admin", r)
+    assert S.file.stats.deferred == 1 and S.file.stats.deferGiveUps == 1
+
+
+def test_a_nil_clock_read_never_gives_up_and_keeps_deferring():
+    h, S, r = deferring()
+    t0 = h.T.now
+    n = len(h.T.opened)
+    h.T.now = None                                                              # getTimestampMs answers nil
+    for _ in range(5):
+        assert not S.file.save("admin", r)
+    assert S.file.deferSince["admin"] is None                                   # no window opened without a clock
+    h.T.now = t0 + 10 * S.DEFER_MAX_MS
+    assert not S.file.save("admin", r)                                          # the window opens at the first read
+    assert S.file.deferSince["admin"] == t0 + 10 * S.DEFER_MAX_MS
+    h.T.now = None
+    for _ in range(5):
+        assert not S.file.save("admin", r)                                      # an open window, an unread clock
+    assert S.file.stats.deferred == 11 and S.file.stats.deferGiveUps == 0
+    assert opened_with(h, ROOT + "p_", n) == []
+
+
+def test_a_reset_clears_the_deferral_window():
+    h, S, r = deferring()
+    assert not S.file.save("admin", r)
+    assert S.file.deferSince["admin"] == h.T.now
+    S.reset("admin", 101.0)
+    assert S.file.deferSince["admin"] is None
