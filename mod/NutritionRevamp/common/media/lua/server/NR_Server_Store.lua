@@ -20,6 +20,15 @@
 -- carrying done = true and its gen is a read failure and the other file of the pair wins. The server name is passed
 -- through K.store.safeName (it is not sanitised, and a name holding .. would make every write nil); a nil writer is
 -- counted every time and logged once.
+-- A swallowed write never costs the newest copy (Task 11 fix 1): the text last written (or read) per file pair is
+-- kept (F.last[username], F.lastIndex), and before the writer opens the other file of a pair it reads the file it
+-- believes holds the newest copy back and compares it as a string, with no decode. A mismatch means that write was
+-- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
+-- store.file.stats.repaired and logged once per player. The cost is one file read per save (a player's slot at most
+-- once a real minute) and per index write.
+-- A transient read failure never resets a record: a record S.get created fresh this sight (S.fresh) whose files the
+-- save's preload then finds is filled from the file in place and that save skipped, so the fresh record never
+-- overwrites the real one (logged at level 2); the flag clears at the first save and at a reset.
 --
 -- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
@@ -28,27 +37,34 @@
 -- record's OWN table, so every handle held on it reads the loaded record with no re-point. The load is idempotent
 -- and runs at every first sight (derived on read); a record whose version moved logs
 -- "store: migrated <username> v<old> -> v<new>" once (a record with no version is v1). A departure forgets the sight,
--- so a return loads again, and queues the record's flush and an index write as one task. A load that raises leaves
--- the record as it was, logged.
+-- so a return loads again, and queues the record's flush as one task. A load that raises leaves the record as it
+-- was, logged.
 --
 -- The writes ride the players' queue (Decision 6 (b)): a player's slot is written at most once a real minute from
--- its own minute (the pipeline's "store" step); a departure's flush and the hourly prune are one-shot tasks. A task
--- name carries a "." ("store.flush.<hex>", "store.prune"), which no username can: ServerWorldDatabase.isValidUserName
--- refuses a name holding "." (42.21 @75-@81 L776) and authClient refuses an invalid name (@61-@84 L1041-L1044), and a
--- task named like an online user would be merged into that user's queue entry and never run.
+-- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
+-- (K.store.savePhase), so the players seen at a boot do not all save in one drain; a departure's flush, the index
+-- write and the hourly prune are one-shot tasks. The index is debounced (Task 11 fix 1): a departure flush writes
+-- only the player's slot and a first save of a username the index lacks marks the index dirty, and the one task
+-- "store.index" writes it at most once every S.INDEX_GAP_MS while dirty; the hourly prune writes it too. A task
+-- name carries a "." ("store.flush.<hex>", "store.index", "store.prune"), which no username can:
+-- ServerWorldDatabase.isValidUserName refuses a name holding "." (42.21 @75-@81 L776) and authClient refuses an
+-- invalid name (@61-@84 L1041-L1044), and a task named like an online user would be merged into that user's queue
+-- entry and never run.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}, loadedFor = nil, wired = false,
-                    stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
+                    fresh = {}, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
+                             last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0 } } }
+                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0 } } }
 local S = NR.server.store
 local F = S.file
 
 S.SAVE_GAP_MS = 60000      -- game choice (ruling 8): a player's slot is written at most once a real minute
 S.PRUNE_GAP_MS = 3600000   -- game choice (ruling 8): the prune walks the index once a real hour
+S.INDEX_GAP_MS = 300000    -- game choice (Task 11 fix 1): a dirty index is written at most once every 5 real minutes
 
 local function nowMs()
     if getTimestampMs == nil then return nil end
@@ -162,9 +178,9 @@ function F.read(path)
     return table.concat(parts, "\n")
 end
 
--- One file of a pair decoded: the object, or nil. A missing or empty file is nil and uncounted; one that does not
--- decode (torn, or nested past the decoder's stack: the decode runs under pcall) or lacks done, gen or its body
--- table is a read failure, logged.
+-- One file of a pair decoded: the object and its text, or nil. A missing or empty file is nil and uncounted; one
+-- that does not decode (torn, or nested past the decoder's stack: the decode runs under pcall) or lacks done, gen
+-- or its body table is a read failure, logged.
 local function readDoc(path, body)
     local text = F.read(path)
     if text == nil or text == "" then return nil end
@@ -178,54 +194,114 @@ local function readDoc(path, body)
         NR.log.say(2, "store: " .. tostring(path) .. " unreadable: " .. tostring(err))
         return nil
     end
-    return t
+    return t, text
+end
+
+-- Whether the file at path still holds last, the text last written to it or read from it (nil: nothing known, so
+-- nothing to compare). A string compare, no decode: one read.
+function F.intact(path, last)
+    if last == nil then return true end
+    return F.read(path) == last
+end
+
+-- The file of a pair a write opens: the other file than at, the one holding the newest copy -- unless at's file no
+-- longer reads back as last (a swallowed write), when at's own file is rewritten and the other one, the last
+-- complete copy, is left alone.
+local function target(at, atPath, last, who)
+    if at == nil or F.intact(atPath, last) then return other(at) end
+    F.stats.repaired = F.stats.repaired + 1
+    if not F.repairWarned[who] then
+        F.repairWarned[who] = true
+        NR.log.say(1, "store: " .. tostring(atPath) .. " did not read back as written (a swallowed write); it is "
+            .. "rewritten and the other file, the last complete copy, kept (counted in store.file.stats.repaired; "
+            .. "logged once for " .. tostring(who) .. ")")
+    end
+    return at
 end
 
 -- The newest complete slot's raw record, or nil; it remembers which slot holds it, so the next save opens the other.
 function F.load(username)
-    local docs = { a = readDoc(F.slot(username, "a"), "rec"), b = readDoc(F.slot(username, "b"), "rec") }
+    local a, ta = readDoc(F.slot(username, "a"), "rec")
+    local b, tb = readDoc(F.slot(username, "b"), "rec")
+    local docs = { a = a, b = b }
+    local texts = { a = ta, b = tb }
     local which = K.store.newest(docs.a, docs.b)
     if which == nil then return nil end
     F.gen[username] = docs[which].gen
+    F.last[username] = texts[which]
     F.at[username] = which
     return docs[which].rec
 end
 
--- One player's record into the slot that does NOT hold the newest complete copy: { gen, rec = the inputs,
--- done = true } on one line. A failed write leaves the newest where it was, so the next save opens the same slot.
+-- A record S.get created fresh this sight whose files the save's preload found after all (a transient read
+-- failure at first sight): the file's record is laid into the in-memory one in place. Returns nothing.
+function S.recover(username, record, raw)
+    S.fresh[username] = nil
+    local records = NR.data and NR.data.records
+    local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records)
+    if not ok then
+        S.stats.failures = S.stats.failures + 1
+        NR.log.say(2, "store: recovery failed for " .. tostring(username) .. ": " .. tostring(err))
+        return
+    end
+    F.stats.recovered = F.stats.recovered + 1
+    NR.log.say(2, "store: " .. tostring(username) .. " recovered from file after a failed first read")
+end
+
+-- One player's record into the slot that does NOT hold the newest complete copy (target: unless a swallowed write
+-- left the newest slot unreadable): { gen, rec = the inputs, done = true } on one line. A failed write leaves the
+-- newest where it was, so the next save opens the same slot. A record created fresh this sight whose files the
+-- preload finds is recovered from them instead of written over them (false: nothing written).
 function F.save(username, record)
     if record == nil then return false end
-    if F.gen[username] == nil then F.load(username) end
+    if F.gen[username] == nil then
+        local raw = F.load(username)
+        if raw ~= nil and S.fresh[username] == true then
+            S.recover(username, record, raw)
+            return false
+        end
+    end
+    S.fresh[username] = nil
     local gen = (F.gen[username] or 0) + 1
-    local which = other(F.at[username])
+    local which = target(F.at[username], F.slot(username, F.at[username] or "a"), F.last[username], username)
     local text = K.json.encode({ gen = gen, rec = K.store.inputsOnly(record), done = true }, F.fmt)
     if not F.write(F.slot(username, which), text) then return false end
     F.gen[username] = gen
+    F.last[username] = text
     F.at[username] = which
     local now = nowMs()
     if now ~= nil then
         F.lastWrite[username] = now
+        if F.index[username] == nil then F.indexDirty = true end   -- a first-time player reaches the index file
         F.index[username] = K.store.seconds(now)
     end
     return true
 end
 
--- The index into the file of its pair that does not hold the newest complete copy.
+-- The index into the file of its pair that does not hold the newest complete copy (target, as F.save). A written
+-- index is clean.
 function F.writeIndex()
     local gen = F.indexGen + 1
-    local which = other(F.indexAt)
+    local which = target(F.indexAt, F.indexPath(F.indexAt or "a"), F.lastIndex, "the index")
     local text = K.json.encode({ v = 1, gen = gen, players = F.index, done = true }, F.fmt)
     if not F.write(F.indexPath(which), text) then return false end
     F.indexGen = gen
     F.indexAt = which
+    F.lastIndex = text
+    F.indexDirty = false
+    F.lastIndexWrite = nowMs()
     return true
 end
 
 function F.readIndex()
-    local docs = { a = readDoc(F.indexPath("a"), "players"), b = readDoc(F.indexPath("b"), "players") }
+    local a, ta = readDoc(F.indexPath("a"), "players")
+    local b, tb = readDoc(F.indexPath("b"), "players")
+    local docs = { a = a, b = b }
+    local texts = { a = ta, b = tb }
     local which = K.store.newest(docs.a, docs.b)
     if which == nil then return end
     F.index = docs[which].players
+    F.lastIndex = texts[which]
     F.indexGen = docs[which].gen
     F.indexAt = which
 end
@@ -244,6 +320,7 @@ function S.get(username, worldAgeHours)
         r = S.new(username, worldAgeHours)
         t[username] = r
         seen[username] = true
+        S.fresh[username] = true
         S.stats.created = S.stats.created + 1
         NR.log.say(3, "store: new record for " .. tostring(username))
         return r
@@ -255,16 +332,16 @@ function S.get(username, worldAgeHours)
     return r
 end
 
--- A departure flush: the record held now (a pruned one is gone and only the index is written), then the index.
+-- A departure flush: the record held now (a pruned one is gone and nothing is written), and the index marked dirty
+-- for the debounced store.index task (ten departures in a minute write it once, not ten times).
 local function flush(username)
     local r = S.records and S.records[username]
     if r ~= nil then F.save(username, r) end
-    F.writeIndex()
+    F.indexDirty = true -- the departure's stamp reaches the file at the next store.index task
 end
 
--- A departure: the sight forgotten, so the next first sight loads the record again, and the record's flush and an
--- index write queued as one task (it rides the budget), so the index never trails the slot files by more than one
--- departure.
+-- A departure: the sight forgotten, so the next first sight loads the record again, and the record's flush queued
+-- as a task (it rides the budget); the index follows within S.INDEX_GAP_MS.
 function S.forget(username)
     if username == nil then return end
     if S.loaded ~= nil then S.loaded[username] = nil end
@@ -282,6 +359,7 @@ function S.reset(username, worldAgeHours)
     local old = t[username]
     if old == nil then old = F.load(username) end
     local r = S.new(username, worldAgeHours)
+    S.fresh[username] = nil                                -- a reset record is meant to replace the file's
     if old ~= nil then
         r.resets = (old.resets or 0) + 1                   -- ruling 4: every OnNewGame over an existing record
     else
@@ -293,10 +371,12 @@ function S.reset(username, worldAgeHours)
     return r
 end
 
--- The pipeline's store step: the player's slot written when a real minute has passed since its last write.
+-- The pipeline's store step: the player's slot written when a real minute has passed since its last write; the
+-- first write after a boot falls at the player's phase over that minute (K.store.firstLast).
 function S.step(username, player, record, ctx)
     local now = nowMs()
     if now == nil or record == nil then return end
+    if F.lastWrite[username] == nil then F.lastWrite[username] = K.store.firstLast(username, now, S.SAVE_GAP_MS) end
     if not K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then return end
     F.save(username, record)
 end
@@ -317,6 +397,7 @@ function S.prune(now, keepDays)
         F.index[u] = nil
         F.gen[u] = nil
         F.at[u] = nil
+        F.last[u] = nil
         F.lastWrite[u] = nil
         if S.records ~= nil then S.records[u] = nil end
         if S.loaded ~= nil then S.loaded[u] = nil end
@@ -375,6 +456,21 @@ local function pruneNow()
     S.prune(nowMs(), keepDays())
 end
 
+-- The debounced index write: a clean index (the prune wrote it since) is left alone.
+local function indexNow()
+    if F.indexDirty then F.writeIndex() end
+end
+
+-- A one-shot task on the players' queue, or inline when the queue is absent.
+local function queue(name, fn)
+    local P = NR.server.players
+    if P ~= nil and P.task ~= nil then
+        P.task(name, fn)
+    else
+        fn()
+    end
+end
+
 -- Wiring at OnServerStarted (this file sorts after NR_Server_Options and NR_Server_Players): the index read, the
 -- migration and a first prune (no player is online yet), the departure hook and the pipeline's "store" step.
 if Events ~= nil and Events.OnServerStarted ~= nil then
@@ -392,12 +488,15 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The hourly prune, queued as a one-shot task so it runs in a queue slot under the budget, not in the minute event.
+-- The dirty index's write and the hourly prune, each queued as a one-shot task so it runs in a queue slot under
+-- the budget, not in the minute event.
 if Events ~= nil and Events.EveryOneMinute ~= nil then
     Events.EveryOneMinute.Add(function()
         if not NR.isServer() then return end
         local now = nowMs()
-        if now == nil or not K.store.due(F.lastPrune, now, S.PRUNE_GAP_MS) then return end
+        if now == nil then return end
+        if F.indexDirty and K.store.due(F.lastIndexWrite, now, S.INDEX_GAP_MS) then queue("store.index", indexNow) end
+        if not K.store.due(F.lastPrune, now, S.PRUNE_GAP_MS) then return end
         F.lastPrune = now
         local P = NR.server.players
         if P ~= nil and P.task ~= nil then

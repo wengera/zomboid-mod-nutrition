@@ -548,3 +548,28 @@ def test_due_is_true_with_no_last_stamp_or_a_full_gap(host):
 
 def test_seconds_and_keep_seconds(host):
     assert S(host).seconds(1999) == 1 and S(host).keepSeconds(30) == 2592000
+
+
+def test_expired_keeps_an_entry_at_exactly_the_keep(host):
+    index = host.rt.eval("{ edge = 5000, past = 4999 }")
+    out = S(host).expired(index, 10000, 5000, host.rt.eval("{}"))
+    assert [out[i] for i in range(1, len(out) + 1)] == ["past"]
+
+
+def test_newest_reads_a_file_with_no_numeric_gen_as_absent(host):
+    good = host.rt.eval("{ gen = 1 }")
+    for bad in ("{}", "{ gen = 'x' }"):
+        assert S(host).newest(host.rt.eval(bad), good) == "b"
+        assert S(host).newest(good, host.rt.eval(bad)) == "a"
+        assert S(host).newest(host.rt.eval(bad), host.rt.eval(bad)) is None
+
+
+def test_the_save_phase_is_inside_the_gap_differs_by_name_and_seeds_the_first_write(host):
+    a = S(host).savePhase("admin", 60000)
+    b = S(host).savePhase("bob", 60000)
+    assert 0 <= a < 60000 and 0 <= b < 60000 and abs(a - b) >= 20000
+    assert S(host).savePhase("admin", 60000) == a
+    assert S(host).savePhase("", 60000) == 30000
+    last = S(host).firstLast("admin", 1000000, 60000)
+    assert last == 1000000 - 60000 + a
+    assert not S(host).due(last, 1000000 + a - 1, 60000) and S(host).due(last, 1000000 + a, 60000)

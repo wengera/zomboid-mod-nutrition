@@ -504,9 +504,12 @@ function K.store.expired(index, nowS, keepS, online)
     return out
 end
 
--- Which of a pair of decoded files { gen = n, ... } is the newer: "a", "b", or nil when both are nil; a tie reads
--- "a". The store's writer opens the OTHER file of the pair, never this one (getFileWriter truncates at the call, T1102.4).
+-- Which of a pair of decoded files { gen = n, ... } is the newer: "a", "b", or nil when both are absent; a tie reads
+-- "a"; a file whose gen is not a number reads as absent, so no comparison can raise. The store's writer opens the
+-- OTHER file of the pair, never this one (getFileWriter truncates at the call, T1102.4).
 function K.store.newest(a, b)
+    a = K.store.withGen(a)
+    b = K.store.withGen(b)
     if b == nil then
         if a == nil then
             return nil
@@ -532,4 +535,29 @@ end
 -- A keep in real days as seconds.
 function K.store.keepSeconds(days)
     return days * 86400 -- seconds a day; no row needed
+end
+
+-- A decoded file when its gen is a number, else nil (K.store.newest's guard).
+function K.store.withGen(d)
+    if d == nil or type(d.gen) ~= "number" then
+        return nil
+    end
+    return d
+end
+
+-- A player's save phase in [0, gapMs): a hash of the username (string.byte's code units), half a gap away from
+-- K.view.pushOffset's push phase, so the saves of players first seen together after a boot spread over the gap
+-- instead of falling into one drain.
+function K.store.savePhase(username, gapMs)
+    local h = 0
+    for i = 1, string.len(username) do
+        h = (h * 31 + string.byte(username, i)) % 1000003 -- the push offset's hash: a prime modulus, no row needed
+    end
+    return (h + math.floor(gapMs / 2)) % gapMs
+end
+
+-- The lastWrite a player's first save is timed from: one gap before now plus its phase, so the first save falls
+-- savePhase ms after now (K.store.due).
+function K.store.firstLast(username, now, gapMs)
+    return now - gapMs + K.store.savePhase(username, gapMs)
 end
