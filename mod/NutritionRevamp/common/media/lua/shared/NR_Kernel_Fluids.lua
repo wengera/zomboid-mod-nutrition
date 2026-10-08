@@ -1,6 +1,6 @@
 -- NR_Kernel_Fluids.lua -- the fast pools (Plan 4): body water and the sodium and potassium balances, the
 -- per-minute loss terms that charge them, the surplus clearance, the derived scalars (dehydration per cent
--- of body mass, the plasma-sodium index) and the THIRST view the fast clock writes (rulings 7, 8, T1-1).
+-- of body mass, the plasma-sodium index) and the THIRST view the writer writes (rulings 7, 8, T1-1).
 -- The model (formulas briefing B1-B6): water is a gram balance against euhydration (< 0 a deficit, > 0 a
 -- surplus); na and k are mmol balances against baseline; total body water is TBW_PER_LM x lean mass; the
 -- plasma-sodium index follows the Edelman form, plasma Na proportional to (exchangeable Na + K) over total

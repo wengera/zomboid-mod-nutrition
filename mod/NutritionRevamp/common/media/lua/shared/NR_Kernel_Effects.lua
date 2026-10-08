@@ -522,7 +522,7 @@ function K.effects.coldCredit(vitCg, vitCe24, band1Day, band2Day, coldH)
     return band1Day >= E.CREDIT_B1
 end
 
--- The fatigue offset the fast clock adds to S + circ (B1): the felt debt, less caffeine's offset blunted by
+-- The fatigue offset the writer adds to S + circ (B1): the felt debt, less caffeine's offset blunted by
 -- tolerance, plus the nutritional offset.
 function K.effects.fOff(debtH, caf, cafTol, fOffNut)
     local E = K.effects
@@ -631,7 +631,7 @@ function K.effects.intoxTarget(bac)
     return K.clamp(E.INTOX_MAX * bac / E.INTOX_FULL_BAC, 0, E.INTOX_MAX)
 end
 
--- The temperature offset the fast handler targets (G): the composed surface.
+-- The temperature offset the writer targets (G): the composed surface.
 function K.effects.tempOffset(E)
     return E.tempOffset
 end

@@ -1,5 +1,5 @@
 {
- "printed_count": 25,
+ "printed_count": 16,
  "snapshots": [
   {
    "age": 119,
@@ -5185,12 +5185,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -10473,12 +10468,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -15772,12 +15762,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -21059,12 +21044,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -26347,12 +26327,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -31626,12 +31601,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -36905,12 +36875,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,
@@ -42184,12 +42149,7 @@
      "traitAdds": 0,
      "traitRemoves": 0
     },
-    "fast": {
-     "byCharHits": 0,
-     "calls": 0,
-     "failures": 0,
-     "perPlayer": {}
-    },
+    "fast": null,
     "intake": {
      "acuteFailures": 0,
      "acuteFlags": 0,

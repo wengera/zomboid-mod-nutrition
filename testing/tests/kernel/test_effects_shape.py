@@ -27,7 +27,7 @@ SETUP = r"""
 function()
     local names = { "CharacterTrait", "ZombRandFloat", "sendSyncPlayerFields", "syncBodyPart", "SandboxVars" }
     local saved = { names = names, vals = {}, options = NutritionRevamp.server.options,
-                    effects = NutritionRevamp.server.effects, fast = NutritionRevamp.server.fast,
+                    effects = NutritionRevamp.server.effects, writer = NutritionRevamp.server.writer,
                     bus = NutritionRevamp.server.bus }
     for i = 1, #names do saved.vals[i] = _G[names[i]] end
     CharacterTrait = { NIGHT_VISION = "NIGHT_VISION", SHORT_SIGHTED = "SHORT_SIGHTED" }
@@ -44,7 +44,7 @@ function()
     NR_TEST_SYNCS = {}
     syncBodyPart = function(part, mask) NR_TEST_SYNCS[#NR_TEST_SYNCS + 1] = { part = part.idx, mask = mask } end
     SandboxVars = { NR = {} }
-    NutritionRevamp.server.fast = nil
+    NutritionRevamp.server.writer = nil
     NutritionRevamp.server.bus = nil
     return saved
 end
@@ -55,7 +55,7 @@ function(saved)
     for i = 1, #saved.names do _G[saved.names[i]] = saved.vals[i] end
     NutritionRevamp.server.options = saved.options
     NutritionRevamp.server.effects = saved.effects
-    NutritionRevamp.server.fast = saved.fast
+    NutritionRevamp.server.writer = saved.writer
     NutritionRevamp.server.bus = saved.bus
 end
 """
@@ -335,7 +335,7 @@ def test_the_minute_scalars_are_stamped(eff_host):
     assert abs(E["solAddH"] - 0.15) < TOL                        # satC(107) = 1
     assert E["solMul"] == 1
     assert abs(E["intoxTarget"] - 25.0) < TOL                    # 100 x 0.05 / 0.20
-    assert E["mAcc"] == h.K.clamp(E["mNut"], 0.2, 5.0)            # no fast handle: the engine part reads 1
+    assert E["mAcc"] == h.K.clamp(E["mNut"], 0.2, 5.0)            # no writer reads: the engine part reads 1
     assert E["rRec"] == h.K.clamp(E["rNut"], 0.25, 2.0)
     assert E["tempTarget"] == 0                                  # no set point and no offset
 
@@ -355,18 +355,18 @@ def test_the_vigorous_and_alcohol_sleep_onset_terms(eff_host):
     assert E["solAddH"] == 0
 
 
-def test_the_engine_factors_come_from_the_fast_handlers_last_input(eff_host):
+def test_the_engine_factors_come_from_the_writers_engine_reads(eff_host):
     h = eff_host
     rec = record(h)
     p, _ = player(h, rec)
     inp = h.table(dict(endurance=0.5, sitting=True, resting=False, thermoFatigue=1.2, sd=1.0, needsMore=True,
                        needsLess=False, insomniac=True, nightOwl=False, bedFactor=1.1))
-    h.G.NutritionRevamp.server.fast = h.table({"h": {"admin": {}}})
-    h.G.NutritionRevamp.server.fast.h["admin"]["inp"] = inp
+    h.G.NutritionRevamp.server.writer = h.table({"inp": {}})
+    h.G.NutritionRevamp.server.writer.inp["admin"] = inp
     try:
         minute(h, p, rec)
     finally:
-        h.G.NutritionRevamp.server.fast = None
+        h.G.NutritionRevamp.server.writer = None
     E = rec["effects"]
     m_eng = 0.5 / 0.3 / 1.5 * 1.2 * 1.3                          # B3: endDef, rest, thermo, NEEDS_MORE 1.3
     r_eng = 1.1 * (0.5 / 1.18)                                   # B4: bed x ff / t
@@ -790,9 +790,8 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
                    "not saved (#3020)", "natively held", "Cat Eyes"):
         assert needle in joined, needle
     # ruling T16-1: the sleep-onset latency terms ship unapplied
-    assert ("the sleep-onset latency terms (solAddH, solMul) reach only the fast kernel's delay mirror, which gates "
-            "nothing while the record owns FATIGUE (the acute kernel decays S from the first asleep minute): caffeine's, "
-            "exercise's and alcohol's onset latency is unapplied — a Plan 6 reading") in lims
+    assert ("the sleep-onset latency terms (solAddH, solMul) are stamped and unapplied: under the hybrid vanilla sets "
+            "the sleep delay (Plan 11)") in lims
     assert any("the cold fold" in s and "X105" in s and "0.1 gate" in s for s in lims)
     assert any("melee swings would drain scaled by dmod" in s and "shipped, they are unscaled" in s for s in lims)
     assert any("X81" in s and "0.45 °C under the set point (x161b)" in s for s in lims)

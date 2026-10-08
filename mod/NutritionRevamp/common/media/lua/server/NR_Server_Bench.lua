@@ -1,70 +1,45 @@
--- NR_Server_Bench.lua -- the cost-budget entry point (spec § 6, Plan 2 entry gate).
--- bench.global calls a resolved global N times with no arguments; the fast kernel step needs a
--- fully filled input and output, so this file owns one filled input, one output and the constants,
--- builds them once at file scope, and runs NutritionRevamp.kernel.fast.step once per call. The
--- tables are reused, never re-allocated, so bench.global measures the step and not a constructor.
--- This file exists only for the § 6 cost reading and ships with the mod. It is not a kernel file:
--- it defines no NutritionRevamp.kernel function (it only calls the kernel's K.fast.* helpers). It
--- names no Java global -- at file scope or in its functions -- so it loads with no engine (it only
--- reads NutritionRevamp.kernel, loaded before it).
+-- NR_Server_Bench.lua -- the cost-budget entry point (spec § 6, Plan 2 entry gate; Plan 11 Task 14: the writer).
+-- bench.global calls a resolved global N times with no arguments; the writer's arithmetic needs a fully filled
+-- input and output, so this file owns one filled input, one output and the constants, builds them once at file
+-- scope, and runs NutritionRevamp.kernel.hybrid.write once per call. The tables are reused, never re-allocated,
+-- so bench.global measures the write and not a constructor. This file exists only for the § 6 cost reading and
+-- ships with the mod. It is not a kernel file: it defines no NutritionRevamp.kernel function. It names no Java
+-- global, so it loads with no engine.
 local NR = NutritionRevamp
 local K = NR.kernel
 
--- Built once: the constants, one output and one input filled to a steady-state awake tick.
-local BENCH_C = K.fast.defaults()
-local BENCH_OUT = K.fast.output()
-local BENCH_INP = K.fast.input()
+-- Built once: the constants, one output and one input filled to a steady awake game minute.
+local BENCH_C = K.hybrid.defaults()
+local BENCH_OUT = K.hybrid.output()
+local BENCH_INP = K.hybrid.input()
 
--- A steady-state awake update: one game-minute (M = 1, D = 24 -> sixty game-seconds), not asleep,
--- not a ghost, mid-range stats, the optional multipliers neutral except dmod and rmod (below), a real day length and a mid
--- fitness level. Every trait and flag K.fast.input() seeds false stays false, except the two Plan 5
--- ownership flags (fOwned, endFold) set below.
-BENCH_INP.M = 1
-BENCH_INP.D = 24
-BENCH_INP.sd = 1
-BENCH_INP.asleep = false
-BENCH_INP.ghost = false
+BENCH_INP.dtS = 60
+BENCH_INP.mode = 1
 BENCH_INP.hunger = 0.3
+BENCH_INP.hungerTarget = 0.3
 BENCH_INP.thirst = 0.3
-BENCH_INP.fatigue = 0.2
-BENCH_INP.endurance = 1
-BENCH_INP.stress = 0
-BENCH_INP.anger = 0
-BENCH_INP.idleness = 0
-BENCH_INP.morale = 1
-BENCH_INP.nicotine = 0
-BENCH_INP.thermoFatigue = 1
-BENCH_INP.thermoFluids = 1
-BENCH_INP.endRegen = 1
-BENCH_INP.recoveryMod = 1
-BENCH_INP.bedFactor = 1
-BENCH_INP.minutesPerDay = 60
-BENCH_INP.fitnessLevel = 5
-BENCH_INP.energyState = 1
-BENCH_INP.rmod = 0.9
 BENCH_INP.thirstTarget = 0.3
--- Plan 5 (Tasks 7, 11): the shipped steady state. The record owns FATIGUE (the writer runs with a slow sleep
--- pressure, a circadian term and an offset), the endurance fold is on and takes its regeneration arm (a one-tick regeneration
--- of 0.0005 at rmod 0.9), dmod and rmod sit off neutral, and a stress floor of 0.1 holds.
+BENCH_INP.lastThirst = 0.3
 BENCH_INP.fOwned = true
-BENCH_INP.fFrozen = false
 BENCH_INP.fS = 0.3
 BENCH_INP.fCirc = 0.05
 BENCH_INP.fOff = 0.02
-BENCH_INP.solAddH = 0
-BENCH_INP.solMul = 1
-BENCH_INP.endFold = true
-BENCH_INP.endLast = 0.9995
-BENCH_INP.dmod = 1.1
+BENCH_INP.stress = 0.05
 BENCH_INP.stressTarget = 0.1
+BENCH_INP.panic = 9
+BENCH_INP.panicTarget = 10
+BENCH_INP.temp = 37.0
+BENCH_INP.tempTarget = 37.5
+BENCH_INP.tempAdj = 0.5
+BENCH_INP.intoxTarget = 0
+BENCH_INP.endurance = 1
+BENCH_INP.lastEndurance = 1
 
--- One fast step over the reused tables; returns the output table. The target of bench.global.
-function NR.bench_fast()
-    K.fast.step(BENCH_INP, BENCH_OUT, BENCH_C)
+function NR.bench_writer()
+    K.hybrid.write(BENCH_INP, BENCH_OUT, BENCH_C)
     return BENCH_OUT
 end
 
--- The filled input, for a test to read the steady-state tick it benchmarks.
-function NR.bench_fast_input()
+function NR.bench_writer_input()
     return BENCH_INP
 end

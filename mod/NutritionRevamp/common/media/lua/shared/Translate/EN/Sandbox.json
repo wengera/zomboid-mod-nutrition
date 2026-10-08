@@ -1,8 +1,8 @@
 {
     "Sandbox_NutritionRevamp": "Nutrition Revamp",
-    "Sandbox_NR_Mode": "Stat update mode",
-    "Sandbox_NR_Mode_tooltip": "Takeover: the mod replaces the vanilla stat update on the server through the CalculateStats hook. Overlay: the vanilla update runs and the mod writes after it. Choose Overlay when another mod claims the hook.",
-    "Sandbox_NR_ModeValues_option1": "Takeover",
+    "Sandbox_NR_Mode": "Stat mode (restart to change)",
+    "Sandbox_NR_Mode_tooltip": "Managed: vanilla's hunger, thirst and fatigue rates are set to zero when the server starts, and the mod writes those stats once a game minute from its own model, with its effects. Overlay: vanilla's rates and stats stand; the mod tracks nutrients and writes only its effects. Read once at server start: a change takes effect after a restart.",
+    "Sandbox_NR_ModeValues_option1": "Managed",
     "Sandbox_NR_ModeValues_option2": "Overlay",
     "Sandbox_NR_LogLevel": "Server log detail",
     "Sandbox_NR_LogLevel_tooltip": "How much Nutrition Revamp prints to the server console.",

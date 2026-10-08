@@ -3,7 +3,7 @@
 -- first sight, bills the minute's expenditure off the server's metabolic rate, banks the absorbed intake
 -- Kinetics handed off, samples the training signal, steps the neural term, closes each elapsed game day
 -- (the partition, the strength bookkeeping, adaptive thermogenesis, TAC, the rings), and stamps the
--- drain and regeneration coefficients and the energy state the fast clock reads.
+-- drain and regeneration coefficients and the energy state the writer reads.
 --
 -- The activity read (ruling T5-2, run x141a-20261005-111005): the server's thermoregulator TARGET reads
 -- -1 at every tick, so it is never read; the RATE classifies but lags activity by tens of seconds and
@@ -58,7 +58,7 @@ MET.BUILD_TRAITS = {
 }
 
 -- The post-step guard (Plan 11 Task 12, ruling 10): the body fields something reads before the next minute's
--- pre-step heal -- the later steps of the minute, the fast clock between minutes, the bus step (first in ORDER) and
+-- pre-step heal -- the later steps of the minute (the writer among them), the bus step (first in ORDER) and
 -- the store step -- are copied after the pre-step heal and re-stamped from the copy when the step leaves them
 -- non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read). A ring takes this minute's values only
 -- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded.

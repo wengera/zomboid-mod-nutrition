@@ -3,7 +3,7 @@
 -- read to classify the thermoregulator's target, and the Compendium METs expenditure bills), the
 -- timed-action band METs, the Compendium load-walking floors, the engine load factor divided out, the
 -- per-minute expenditure and intake accumulators on record.body, the trailing-24 h balance and the
--- energy state the fast clock's hunger term reads.
+-- energy state the writer's hunger term reads.
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.exp, math.abs and the bounded numeric `for` over the kernel's own tables are
 -- allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.max reference is at call time.

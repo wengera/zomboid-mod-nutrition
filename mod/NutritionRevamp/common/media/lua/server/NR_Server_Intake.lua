@@ -64,6 +64,7 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                                passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0,
                                declaredMalformed = 0, creditFailures = 0 },
                      lastIngested = {},
+                     landed = {},
                      pendingAlc = {},
                      pendingCaf = {},
                      typeInfoCache = {},
@@ -192,6 +193,7 @@ end
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
 function IN.land(record, username, vec)
+    IN.landed[username] = true                     -- the writer's sip fold skips this minute (Plan 11 ruling 7)
     IN.addIngested(username, vec)
     local ok, flagged = pcall(IN.acuteAtEat, record, vec)
     if ok then
@@ -764,7 +766,7 @@ end
 -- The cap: readWorldBefore lands min(step, source, waterUnit - action.nrLanded); nrLanded is a field on the
 -- vanilla action object for its lifetime, never on the record.
 -- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (stated
--- here; Fast's respawn limitation names only stomachFill); if the slow clock never clears autoDrop for a
+-- here; the takeover's respawn limitation named only stomachFill); if the slow clock never clears autoDrop for a
 -- player (a repeated raise), auto-drink stays skipped for that player -- the heal is Plan 8's.
 
 -- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no

@@ -1,15 +1,15 @@
 -- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach (spec § 4.2, § 4.4): once per player
 -- per game minute, on the players' OnTick stagger, the stomach empties over the game hours since the
 -- last run, the emptied vector is absorbed, the absorbed vector accumulates into the pool, and the
--- fill is stamped on the record as record.stomachFill for the fast clock to read
--- (NR_Server_Fast.lua hands it to the kernel as inp.stomachFill).
+-- fill is stamped on the record as record.stomachFill for the writer (NR_Server_Writer.lua) and the mirror to read
+-- (the writer hands it to K.hybrid.hungerTarget once a minute).
 -- Plan 2 ruling: hunger derives from stomach fill and is written to HUNGER every tick, so vanilla's
 -- eat-time hunger write is overwritten within one push -- the stomach is the state, hunger the view.
 -- Two companion game choices make that playable: (1) a record with no stomach yet is seeded FULL
 -- (K.stomach.seedFull) -- judgement: the character ate before the apocalypse, so a new or respawned
 -- character starts at vanilla's hunger 0 and empties on the gastric half-time; (2) the energy-state
 -- term, stubbed at 1 in Plan 2, is NR_Server_Metabolism's per-minute stamp (record.body.energyState;
--- the fast adapter reads nil or NaN as 1). Thirst is
+-- the writer reads nil or NaN as 1). Thirst is
 -- untouched in this plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
 -- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S0130,
 -- design-phase-v1) makes hunger run from 0 to 0.5 in 2 game-hours, ~0.875 by 6 h and ~0.94 across an

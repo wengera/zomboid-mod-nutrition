@@ -1,6 +1,6 @@
 -- NR_Server_Effects.lua -- the effects layer's slow adapter (Plan 5, spec § 4.5; rulings 2, 6-8, 12-13, 16-17,
 -- 19, 22-23; T1-1, T1-3, T4-1, T6-1, T6-2): once per player per game minute it builds record.effects, the
--- coefficient set the fast handler and the mirror read, and applies the slow channels itself -- the trait
+-- coefficient set the writer and the mirror read, and applies the slow channels itself -- the trait
 -- toggles (Night Vision, Short Sighted), the four regeneration setters, the per-part wound, bleeding and
 -- infection folds, the catchACold fold, the health drains and the spontaneous bruise.
 --
@@ -35,7 +35,7 @@ NR.server.effects = {
     last = {},
     limitations = {
         "the one-minute lag: mAcc and rRec feed the NEXT minute's sleep-pressure step (Nutrients runs the sleep step before this file builds them)",
-        "the engine part of mAcc and rRec reads the fast handler's last input table (its endurance read, resting, the thermoregulator's fatigue multiplier, the sleep traits, StatsDecrease, the bed); before the first tick, or in Overlay mode, it reads the hoist defaults",
+        "the engine part of mAcc and rRec reads the writer's engine reads of the previous minute (its endurance read, resting, the thermoregulator's fatigue multiplier, the sleep traits, StatsDecrease, the bed); before the writer's first minute it reads the neutrals",
         "the vitamin D effect rows ship gated off (VITD_EFFECTS false, ruling 8): no sun term exists (kSun 0, S1064 open)",
         "omega-3 drives no mood row: S0919 is EPA-specific and the vector carries no EPA key (ruling 8)",
         "speedMul is computed and stamped but no speed write is applied (X47 open: the WalkSpeed write is gone at the first 266 ms sample)",
@@ -54,7 +54,7 @@ NR.server.effects = {
         "the refeeding sickness floor holds for the refeeding event's day (record.acute.refeedEvent is set at a day close and held to the next)",
         "a spontaneous bruise rolls with ZombRandFloat; with no ZombRandFloat the roll reads 1.0 and no bruise fires",
         "a dead character's record is stepped but no trait, body or health write is made",
-        "the sleep-onset latency terms (solAddH, solMul) reach only the fast kernel's delay mirror, which gates nothing while the record owns FATIGUE (the acute kernel decays S from the first asleep minute): caffeine's, exercise's and alcohol's onset latency is unapplied — a Plan 6 reading",
+        "the sleep-onset latency terms (solAddH, solMul) are stamped and unapplied: under the hybrid vanilla sets the sleep delay (Plan 11)",
         "the cold fold (catchACold's rise × coldMul) is unmeasured (X105): on the x161b fixture the thermoregulator's catch-a-cold delta stayed under the engine's 0.1 gate, so no rise was folded",
         "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal (Plan 11 ruling 10)",
     },
@@ -106,7 +106,7 @@ EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = 
 -- The heal reference, made once on first use.
 EFF.ref = nil
 -- The post-step guard (Plan 11 Task 12, ruling 10): the per-minute scalars and the mirrored numbers something reads
--- before the next minute's pre-step heal -- the fast clock between minutes, Nutrients' sleep step (it runs before
+-- before the next minute's pre-step heal -- the writer after weight, Nutrients' sleep step (it runs before
 -- this file's heal) and the bus step (first in ORDER) -- copied after the pre-step heal and re-stamped from the copy
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
@@ -221,22 +221,20 @@ local function closeDay(E, record, body, closing)
     EFF.stats.closes = EFF.stats.closes + 1
 end
 
--- The fast handler's last input table for this player, or nil (no handle yet).
-local function fastInput(username)
-    local F = NR.server.fast
-    if F == nil then return nil end
-    if type(F.lastInp) == "table" and type(F.lastInp[username]) == "table" then return F.lastInp[username] end
-    if type(F.h) == "table" and type(F.h[username]) == "table" and type(F.h[username].inp) == "table" then
-        return F.h[username].inp
-    end
+-- The writer's engine reads for this player (NR_Server_Writer: one minute old), or nil before its first minute.
+local function writerInput(username)
+    local Wr = NR.server.writer
+    if Wr == nil or type(Wr.inp) ~= "table" then return nil end
+    local i = Wr.inp[username]
+    if type(i) == "table" then return i end
     return nil
 end
 
--- The engine parts of accrual and recovery (B3, B4) off the fast handler's last input: mEngine(endurance,
+-- The engine parts of accrual and recovery (B3, B4) off the writer's engine reads: mEngine(endurance,
 -- resting, thermoFatigue, sleepTrait, StatsDecrease) and rEngine(bed, ff / t). A missing or non-finite
 -- input reads its neutral.
 local function engineFactors(username)
-    local inp = fastInput(username)
+    local inp = writerInput(username)
     if inp == nil then
         return K.effects.mEngine(1, false, 1, 1, 1), K.effects.rEngine(1, 1)
     end

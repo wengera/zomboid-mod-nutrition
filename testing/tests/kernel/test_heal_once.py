@@ -4,10 +4,13 @@ Metabolism, Nutrients and Effects heal their record sub-tables once, before the 
 heals are gone; in their place a post-step guard re-stamps, from its pre-step value, every field the step's own
 arithmetic left non-finite that something reads before the next minute's pre-step heal. CROSS is Step 1's
 enumeration of those reads: (producer step, record sub-table, field, consumer). The consumers are the steps after
-the producer in NR.server.minute.ORDER (nutrients, effects, strength, weight, store), and the readers that run
-before the next minute's pre-step heals: the fast clock's per-tick handler between minutes ("fast"), and the bus
-step, which runs FIRST in ORDER and so reads a step-made NaN of the last minute before any heal ("bus": the push
-signature and K.mirror.build); Nutrients reads record.effects at the next minute before Effects' pre-step heal.
+the producer in NR.server.minute.ORDER (nutrients, effects, strength, weight, writer, store), and the readers that
+run before the next minute's pre-step heals: the bus step, which runs FIRST in ORDER and so reads a step-made NaN
+of the last minute before any heal ("bus": the push signature and K.mirror.build); Nutrients reads record.effects
+at the next minute before Effects' pre-step heal. The writer (Plan 11 Task 14) replaced the takeover's per-tick
+handler ("fast"); its rows are exactly the guarded fields it reads (test_the_writers_cross_rows_are_its_reads).
+"kept" marks the two sleep-onset scalars no step reads since the takeover left: Effects still guards them (the
+Task 14 amendment keeps EFF.GUARD intact), and the writer applies no onset term (its limitation string).
 A ring slot is a sub-table path ("body.eb7", field 7): a day close shifts slots 1-6 from pre-step-healed values,
 so only slot 7 (and bandWeek's slot 7) can take a value this minute's arithmetic made.
 
@@ -42,7 +45,7 @@ CROSS = (
         ("strength", ("fm", "lm", "dayIndex", "n", "nPeak", "tPeakD", "cumDef", "tDisuse")),
         ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay", "lastCloseAgeH")),
         ("kinetics", ("energyState",)),
-        ("fast", ("energyState", "dmod", "rmod")),
+        ("writer", ("energyState", "rmod")),
         ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
         ("store", ("fm", "lm", "lastAgeH", "dayIndex", "lastCloseAgeH", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
@@ -57,22 +60,23 @@ CROSS = (
     + _rows("nutrients", "fluids", [
         ("effects", ("dehydPct", "naPlasma")),
         ("strength", ("dehydPct",)),
-        ("fast", ("thirstTarget",)),
+        ("writer", ("thirstTarget",)),
         ("bus", ("dehydPct", "naPlasma", "thirstTarget")),
     ])
     + _rows("nutrients", "acute", [
         ("effects", ("caf", "wd", "cafTol", "bac", "alcPeak", "hang", "bg", "iuSleep", "debtH", "iu", "exEma",
                      "bmi", "starvedDays", "coldH", "lastVigAgeH", "retEma")),
         ("strength", ("awakeH", "caf")),
-        ("fast", ("S", "circ")),
+        ("writer", ("S", "circ")),
         ("bus", ("awakeH", "bac", "bg", "caf", "debtH", "g", "iu", "refeedRisk")),
         ("store", ("caf", "cafTol", "alcPeak", "hang", "bg", "awakeH", "debtH", "S", "starvedDays", "bmi", "exEma",
                    "lastVigAgeH", "coldH", "retEma", "refeedRisk")),
     ])
     + _rows("nutrients", "nutrients", [("effects", ("epoch",)), ("store", ("epoch",))])
     + _rows("effects", "effects", [
-        ("fast", ("fOff", "solAddH", "solMul", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
-                  "tempTarget", "tempAdj", "intoxTarget")),
+        ("writer", ("fOff", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "tempTarget", "tempAdj",
+                    "intoxTarget")),
+        ("kept", ("solAddH", "solMul")),
         ("nutrients", ("mAcc", "rRec")),
         ("bus", ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
                  "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
@@ -264,3 +268,44 @@ def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
     next_minute(h, 4)
     m = build_mirror(h, rec)
     assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
+
+
+# --- the writer's rows (Plan 11 Task 14): every CROSS consumer is a step that runs; the writer's rows are its reads --
+
+SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients", "effects": "effects"}
+# Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
+# which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads).
+WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop"}
+
+PROXY = r"""
+function(rec, log)
+    for _, sub in ipairs({ "body", "fluids", "acute", "effects" }) do
+        local real = rec[sub]
+        rec[sub] = setmetatable({}, {
+            __index = function(t, k) log[#log + 1] = sub .. "." .. tostring(k); return real[k] end,
+            __newindex = function(t, k, v) real[k] = v end })
+    end
+end
+"""
+
+
+def test_every_consumer_is_a_step_that_runs():
+    h = Host()
+    order = set(h.NR.server.minute.ORDER.values())
+    assert {c for _, _, _, c in CROSS} - order == {"kept"}
+
+
+def test_the_writers_cross_rows_are_its_reads():
+    from .test_writer_shape import ENV, STATS, record
+    h = Host(extra_env="NR_T = NR_T or {}\nNR_T.mode = 1\n" + ENV)
+    h.fire("OnGameBoot")
+    p = h.rt.eval("NR_T.statsPlayer")(h.player("a"), h.rt.eval(STATS))
+    rec = record(h)
+    log = h.rt.table()
+    h.rt.eval(PROXY)(rec, log)
+    h.T.age = 100.0
+    h.NR.server.writer.step("a", p, rec, None)
+    reads = set(log.values()) - WRITER_UNGUARDED
+    rows = {s + "." + str(f) for p_, s, f, c in CROSS if c == "writer"}
+    assert reads == rows
+    assert all(SUB_PRODUCER[s] == p_ for p_, s, f, c in CROSS if c == "writer")

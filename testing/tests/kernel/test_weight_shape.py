@@ -606,7 +606,7 @@ def test_weight_runs_last_in_the_players_list():
     assert same(S.minute.steps["strength"], S.strength.minute)
     assert same(S.minute.steps["weight"], S.weight.minute)
     order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
-    assert order[-2:] == ["weight", "store"] and order.index("strength") < order.index("weight")
+    assert order[-3:] == ["weight", "writer", "store"] and order.index("strength") < order.index("weight")
     assert S.weight.wired is True
 
 

@@ -415,21 +415,6 @@ def test_a_v2_record_reloads_at_every_first_sight_without_a_migration_line(h):
     assert not [s for s in h.printed() if "store: migrated" in s]
 
 
-def test_the_fast_handle_reads_the_loaded_record(h):
-    t = h.NR.server.store.records
-    raw = h.table({"username": "admin", "firstSeen": 1.0, "stomachFill": 0.1, "stomach": {"bulk": 0}})
-    t["admin"] = raw
-    p = h.player()
-    # a handle hoisted on the old table before the load (the stand-in player cannot be hoisted for real; the
-    # handle's p is the player, so the fast adapter's first-sight hook keeps it)
-    hd = h.table({"record": raw, "moodFloor": {"unhappy": 0}})
-    hd.p = p
-    h.NR.server.fast.h["admin"] = hd
-    h.first_sight(p)
-    assert h.G.rawequal(h.NR.server.fast.h["admin"], hd) and h.G.rawequal(hd.record, raw)
-    assert hd.record["v"] == 3 and hd.record["stomachFill"] == 0
-
-
 def test_a_new_record_is_made_by_the_kernel_at_the_current_version(h):
     p = h.player(name="carol")
     rec = h.first_sight(p, "carol")

@@ -15,9 +15,9 @@
 -- (no `v`, or v = 1) and a v2 record pass through the same copy: the copy IS the migration, and it is
 -- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
 -- constructor's neutral values (the mirror's dmod, rmod, energyState, band, dehydPct, iu, ... and the
--- effects set), except stomachFill, which load recomputes from the stomach's inputs (the fast clock's hunger
--- reads it every tick), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the
--- fast clock's pass-through for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
+-- effects set), except stomachFill, which load recomputes from the stomach's inputs (the writer reads it each
+-- minute), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
+-- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
 -- Pure: Lua tables in, Lua tables out, no Java. Slow-clock and join-time code with no fast region. This file
 -- sorts before NR_Kernel_Strength.lua, NR_Kernel_Vector.lua and NR_Kernel_View.lua and after the body,
 -- acute, effects, fluids, nutrients and stomach kernels; every K.* reference outside K.store is at call time.
@@ -90,7 +90,7 @@ K.store.INPUTS = {
     "acute.bmi", "acute.refeedRisk", "acute.refeedDayN", "acute.refeedEvent", "acute.exEma",
     "acute.lastVigAgeH", "acute.boutVig", "acute.coldH", "acute.retEma", "acute.alc7", "acute.alcDayG",
     "acute.lastFedAgeH", "acute.lastB1", "acute.lastB2",
-    -- fluids (K.fluids.intake, losses and clearance; NR_Server_Fast's autoDrink bracket): the water, sodium
+    -- fluids (K.fluids.intake, losses and clearance; the writer's sip fold): the water, sodium
     -- and potassium balances, the once-per-character sweat draws, the 6 h EMAs and the pending sip. dehydPct,
     -- c, naPlasma, thirstTarget, sweatActive, sweatLmin, viewPct and fv are recomputed each minute: derived.
     "fluids.water", "fluids.na", "fluids.k", "fluids.sweatK", "fluids.naSweat", "fluids.sweat6h",
@@ -334,7 +334,7 @@ function K.store.load(raw, order, records)
 end
 
 -- Load raw (any version) and lay the result into target in place (ruling T4-1): every key target holds is
--- cleared and the loaded record's keys are set on it, so a handle held on target (NR_Server_Fast's h.record)
+-- cleared and the loaded record's keys are set on it, so a handle held on target (the takeover's h.record, 1.0.0)
 -- reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
 function K.store.fillInPlace(target, raw, order, records)

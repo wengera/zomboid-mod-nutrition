@@ -43,7 +43,7 @@ NR.server.nutrients = {
         "liver glycogen is not modelled (S0110 open)",
         "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets FATIGUE ahead of the hook",
         "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1); the performance dehydration is the pool alone",
-        "auto-drink litres land in the stomach once per slow minute (the fast handler skips its call while a drop is pending: Task 12)",
+        "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target (Plan 11 ruling 7)",
         "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (Plan 3's pPrevKg backfill)",
@@ -74,7 +74,7 @@ NUT.refFluids = nil
 NUT.refAcute = nil
 NUT.refNut = nil
 -- The post-step guard (Plan 11 Task 12, ruling 10): the fluids, acute and state fields something reads before the
--- next minute's pre-step heal -- Effects, Strength, the fast clock between minutes, the bus step (first in ORDER) and
+-- next minute's pre-step heal -- Effects, Strength, the writer (after weight), the bus step (first in ORDER) and
 -- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite
 -- (testing/tests/kernel/test_heal_once.py CROSS names each read). viewPct and c are read inside this step only.
 NUT.GUARD_FLUIDS = { "dehydPct", "thirstTarget", "naPlasma" }
@@ -437,7 +437,7 @@ local function step(username, player, record, ctx)
     K.fluids.clearance(f, dtM)
     local stomach = record.stomach
     if f.autoDrop > 0 then
-        -- ruling 9: the fast handler's bracketed THIRST drop, converted to litres, lands as a water drink
+        -- the writer's sip (THIRST's fall below its last write), converted to litres, lands as a water drink
         if stomach == nil then
             stomach = K.stomach.seedFull(K.stomach.new())
             record.stomach = stomach

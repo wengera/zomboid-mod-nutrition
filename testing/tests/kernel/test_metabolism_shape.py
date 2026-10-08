@@ -20,7 +20,6 @@ SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", 
 METABOLISM = os.path.join(SERVER, "NR_Server_Metabolism.lua")
 KINETICS = os.path.join(SERVER, "NR_Server_Kinetics.lua")
 INTAKE = os.path.join(SERVER, "NR_Server_Intake.lua")
-FAST = os.path.join(SERVER, "NR_Server_Fast.lua")
 CORE = os.path.join(SHARED, "NR_Core.lua")
 TOL = 1e-9
 
@@ -1174,21 +1173,6 @@ def test_self_report_reads_nutrition_off_by_default():
     G = rt.globals()
     assert G.NutritionRevamp.server.options.nutritionOn is False
     assert "nutritionOn=false" in G.NutritionRevamp.selfReport("server")
-
-
-# --- the fast adapter's two scalars (the file names Java at hoist, so it is read, not loaded) ----------
-
-def test_fast_adapter_reads_the_two_body_scalars():
-    with open(FAST, encoding="utf-8") as fh:
-        src = fh.read()
-    region = src[src.index("-- @fastpath"):src.index("-- @endfastpath")]
-    assert "inp.energyState = 1 " not in region
-    assert "local rec_body = h.record.body" in region          # never shadows the function body
-    assert "local body =" not in region
-    assert "es = rec_body.energyState" in region and "inp.energyState = es" in region
-    assert "rm = rec_body.rmod" in region and "inp.rmod = rm" in region
-    assert "if es == nil or es ~= es then" in region
-    assert "if rm == nil or rm ~= rm then" in region
 
 
 # --- the Plan 4 scalars: the record's nutrients, fluids and acute sub-tables feed dmod, rmod, TAC and E --

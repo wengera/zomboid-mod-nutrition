@@ -1,14 +1,13 @@
-"""NR_Server_Bench.lua must load with no engine and expose NutritionRevamp.bench_fast().
+"""NR_Server_Bench.lua must load with no engine and expose NutritionRevamp.bench_writer() (Plan 11 Task 14).
 
-The file is a server/ file the kernel host does not load (the host loads NR_Core.lua and the
-NR_Kernel*.lua files only), so this test loads it on top of the session host itself. The file names
-no Java global at file scope or in its functions -- it only reads NutritionRevamp.kernel, which the
-host has -- so it loads with no engine. bench_fast() runs kernel.fast.step once over module-level
-tables it fills once, so bench.global measures the step and not a constructor (spec § 6).
+The file is a server/ file the kernel host does not load, so this test loads it on top of the session host. It
+names no Java global, so it loads with no engine. bench_writer() runs kernel.hybrid.write once over module-level
+tables it fills once, so bench.global measures the write and not a constructor (spec § 6).
 """
 import os
-import pytest
+
 import lupa.lua51 as lua51
+import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 BENCH = os.path.join(
@@ -25,62 +24,22 @@ def bench_host(host):
     return host
 
 
-def test_file_reads_only_the_kernel_global(bench_host):
-    assert bench_host.G.NutritionRevamp is not None
+def test_bench_writer_is_a_function(bench_host):
+    assert lua51.lua_type(bench_host.G.NutritionRevamp.bench_writer) == "function"
+    assert lua51.lua_type(bench_host.G.NutritionRevamp.bench_writer_input) == "function"
 
 
-def test_bench_fast_is_a_function(bench_host):
-    assert lua51.lua_type(bench_host.G.NutritionRevamp.bench_fast) == "function"
-    assert lua51.lua_type(bench_host.G.NutritionRevamp.bench_fast_input) == "function"
+def test_bench_writer_writes_a_steady_minute(bench_host):
+    out = bench_host.G.NutritionRevamp.bench_writer()
+    assert out["hunger"] == pytest.approx(0.3)
+    assert out["fatigue"] == pytest.approx(0.37)
+    assert out["panic"] == 10
+    assert out["stress"] == pytest.approx(min(0.1, 0.05 + 5.0e-5 * 60))
 
 
-def test_bench_fast_returns_a_clamped_hunger(bench_host):
-    out = bench_host.G.NutritionRevamp.bench_fast()
-    assert lua51.lua_type(out) == "table"
-    h = out["hunger"]
-    assert isinstance(h, (int, float))
-    assert 0.0 <= h <= 1.0
-
-
-def test_bench_fast_input_is_a_steady_state_awake_tick(bench_host):
-    inp = bench_host.G.NutritionRevamp.bench_fast_input()
-    assert lua51.lua_type(inp) == "table"
-    assert inp["asleep"] is False
-    assert inp["M"] > 0
-    assert inp["D"] > 0
-
-
-def test_bench_fast_reuses_the_same_tables(bench_host):
-    # lupa wraps each return in a fresh proxy, so identity is checked on the Lua side: the module
-    # owns one output and one input table and never re-allocates, so bench measures the step only.
+def test_bench_writer_reuses_the_same_tables(bench_host):
     same_out = bench_host.rt.eval(
-        "function() local NR = NutritionRevamp return NR.bench_fast() == NR.bench_fast() end"
-    )()
-    assert same_out is True
+        "function() local NR = NutritionRevamp return NR.bench_writer() == NR.bench_writer() end")()
     same_in = bench_host.rt.eval(
-        "function() local NR = NutritionRevamp return NR.bench_fast_input() == NR.bench_fast_input() end"
-    )()
-    assert same_in is True
-
-
-def test_bench_inputs_name_the_plan3_fields_and_hunger_follows_the_fill(bench_host):
-    NR = bench_host.G.NutritionRevamp
-    inp = NR.bench_fast_input()
-    assert inp["energyState"] == 1 and inp["rmod"] == 0.9
-    out = NR.bench_fast()
-    h = out["hunger"]
-    assert h == h and abs(h) != float("inf")
-    assert abs(h - (1 - inp["stomachFill"])) < 1e-9
-
-
-def test_bench_inputs_name_the_plan5_fields(bench_host):
-    NR = bench_host.G.NutritionRevamp
-    inp = NR.bench_fast_input()
-    assert inp["fOwned"] is True and inp["fFrozen"] is False and inp["endFold"] is True
-    assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1.1 and inp["stressTarget"] == 0.1
-    out = NR.bench_fast()
-    assert abs(out["fatigue"] - (inp["fS"] + inp["fCirc"] + inp["fOff"])) < 1e-9      # the owned FATIGUE writer runs
-    # the fold takes its regeneration arm (a delta under extEps 0.1) with rmod off neutral, so the arithmetic runs
-    assert 0 < inp["endurance"] - inp["endLast"] < 0.1
-    assert abs(out["endurance"] - (inp["endLast"] + (inp["endurance"] - inp["endLast"]) * inp["rmod"])) < 1e-15
-    assert out["endurance"] != inp["endurance"]
+        "function() local NR = NutritionRevamp return NR.bench_writer_input() == NR.bench_writer_input() end")()
+    assert same_out is True and same_in is True

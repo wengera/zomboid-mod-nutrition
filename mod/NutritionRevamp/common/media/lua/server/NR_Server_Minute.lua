@@ -1,7 +1,7 @@
 -- NR_Server_Minute.lua -- the slow minute's pipeline (Plan 10 Task R2): one declared order, one context table,
 -- each step guarded so a raise is logged and the steps after it still run. Adapters register by name at
--- OnServerStarted; NR_Server_Players' P.work calls run. The order is the order 1.0.0 ran in (the Reconcile splice
--- and the Nutrients hand call of Effects made explicit); the golden trace holds it byte for byte.
+-- OnServerStarted; NR_Server_Players' P.work calls run. The order is 1.0.0's (the Reconcile splice and the Nutrients
+-- hand call of Effects made explicit); the writer (Plan 11) runs after the eats and effects; the takeover's fast step is gone.
 --
 -- The context (ctx): one table reused per call and cleared at the start of each player's run, so nothing in it
 -- outlives one player's minute. Its fields: absorbed and mealCa (Kinetics writes them; Metabolism and Nutrients
@@ -15,7 +15,7 @@
 -- engine.
 local NR = NutritionRevamp
 NR.server.minute = {
-    ORDER = { "bus", "fast", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "store" },
+    ORDER = { "bus", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "writer", "store" },
     steps = {},
     ctx = {},
     stats = { runs = 0, failures = 0 },
