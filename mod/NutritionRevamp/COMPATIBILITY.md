@@ -18,7 +18,7 @@ Release 1.0.0, game build 42.20.4. A sweep of 234 installed mod folders on 2026-
 | Nutrition Tweaker Enhanced and nine endurance tweaks | followed as rate tunings | a tweak to `ZomboidGlobals` or the sandbox multipliers moves the mod's handler the same way; a tweak that writes a stat directly is read as an outside change; awake endurance stays vanilla's in this build | unread |
 | hunger and thirst tweaks that only edit `ZomboidGlobals` | followed as rate tunings | the same as the row above: the handler reads the constants at install and the sandbox multipliers each minute | unread |
 | mods that replace the hunger, energy or weight model, fatigue writers (five), body-weight and metabolism mods (three) | incompatible, said plainly | the mod owns those stats and the weight slot | unread |
-| ApocalipseBR Nutrition Sync Fix (3736275816) | unavailable | removed from the Workshop before 2026-10-08; nothing to read | — |
+| ApocalipseBR Nutrition Sync Fix (3736275816) | unavailable | its Workshop page returns an access error and no copy is installed (2026-10-08); nothing to read | — |
 | Reasonable Nutrition, Realistic Nutrition (rival item passes) | load-order rule | the per-key merge of item blocks resolves by script path, not by `Mods=` order | unread |
 | eat and drink action wrappers (five) | coexist | the mod's wrappers save and call the original, guarded against a second install | QualityCooking's composition: `x132b-20261005-071013`, `x132b-20261005-071959` |
 | eat and drink action replacers and portion changers (four) | rule | intakes their actions hide are reconciled as macros | unread |

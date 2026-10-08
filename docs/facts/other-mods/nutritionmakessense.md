@@ -27,7 +27,7 @@ The model is therefore a second writer on top of vanilla's, and what it does wit
 
 It hooks no intake: a rise of the calorie store above 0.5 kcal since its own last write is booked as a meal, sized as the rise plus its running estimate of vanilla's burn over the step, and the fat and protein eaten are the rises in those two stores [T1101.5].
 It keeps 70 % of an eat's hunger drop by scaling the applied drop at its next tick and leaves the items' `HungerChange` alone, because, its own comment says, that key is also the portion reservoir that gates Eat Half and Eat Quarter and evolved-recipe ingredient use [T1101.6].
-A hunger value it did not write is taken when it fell, scaled to 70 % of the fall when the same tick booked a meal, or when it rose by more than 0.02 plus three times its ceiling on vanilla's own rise, `0.105 * (1 - hunger)` per hour; any smaller rise is overwritten by its own last write plus its own rate [T1101.7].
+A hunger value it did not write is taken when it fell by more than 0.0005, scaled to 70 % of the fall when the same tick booked a meal, or when it rose by more than 0.02 plus three times its ceiling on vanilla's own rise, `0.105 * (1 - hunger)` per hour; any smaller rise is overwritten by its own last write plus its own rate [T1101.7].
 It takes a weight it did not write only when the weight moved more than 0.2 kg since its own last write, and overwrites a smaller change [T1101.8].
 It scales the three natural-recovery `HealthAddition` fields from a captured baseline and stops writing a field once it sees another writer change it [T1101.12].
 
@@ -39,7 +39,7 @@ It sends each player a ten-key display snapshot through `sendServerCommand` when
 <a id="food-pass"></a>
 ### The food pass
 
-Its one food script restates 519 `module Base` item blocks of about 18.8 keys each, 517 of them naming a food of the 42.21 dataset's 722, and its `Calories` differ from vanilla's on 487 of those, its other three macros on 449 to 457 and its `HungerChange` on 82 [T1101.13].
+Its one food script restates 519 `module Base` item blocks of about 18.8 keys each, 517 of them naming a food of the 42.21 dataset's 722; compared only where the vanilla record carries the key, its `Calories` differ from vanilla's on 487 of those, its other three macros on 449 to 457 and its `HungerChange` on 82, and 10 more blocks set the four macros on a vanilla record that carries none of them [T1101.13].
 438 of its item blocks name an item this repository's generated item pass also re-bases, and on those 438 its `Calories` over this pass's read a median of 1.14, within 20 % on 114 items and more than a factor of two apart on 139 [T1101.14].
 Which of the two passes wins a key both set is decided by the stored script path, not by `Mods=` order ([#1055/M/n=2], [`../../platform/loader-and-scripts.md#sorted-replay`](../../platform/loader-and-scripts.md#sorted-replay)), and which way that falls for these two files is unread.
 
@@ -49,7 +49,6 @@ Which of the two passes wins a key both set is decided by the stored script path
 Nutrition Makes Sense cannot share a server with a mod that writes `HUNGER`, the calorie store and weight each minute and books any calorie rise as a missed intake: each reads the other's calorie writes as meals, and its tick overwrites a hunger or weight write it did not make unless the change crosses its own thresholds [T1101.15].
 Against a mod that zeroes vanilla's hunger rate, its own rate still runs, because it never reads the rate it would be zeroed through [T1101.4].
 Both mods would also re-base 438 of the same foods, with calorie values that disagree by more than a factor of two on 139 of them [T1101.14].
-The stance that follows is to say the two are incompatible and to name it where an operator will see it, not to arbitrate between two complete models.
 
 <a id="hitching"></a>
 ### Server cost
@@ -59,7 +58,7 @@ Each of those sends serialises its table on the main thread once per receiver ([
 
 ## Walls and bounds
 
-Every line on this page is a reading of the installed copy's code on 2026-10-08, and nothing here was booted; the mod updates often, so its line cites drift.
+Every line on this page is a reading of the installed copy's code on 2026-10-08, and nothing here was booted; the mod updates often, so its line cites drift [T1101.1].
 The food-pass counts come from an uncommitted scratch script over the installed script and the 42.21 food dataset [T1101.13].
 
 <a id="licence"></a>
@@ -73,7 +72,7 @@ Not covered: its client UI (the tooltip rows, the health-panel lines, the Nutrit
 ## Open
 <a id="open"></a>
 
-- Which of the two item passes wins the 438 shared foods on a server loading both — settled by a co-boot reading one shared food's `Calories` on the server; no `X` id.
+- Which of the two item passes wins the 438 shared foods [T1101.14] on a server loading both — settled by a co-boot reading one shared food's `Calories` on the server; no `X` id.
 - Whether its malnutrition value survives a reconnect, given its player-modData store — settled by a session that plants a value, reconnects the client and reads the server's table; no `X` id.
 
 ## See also

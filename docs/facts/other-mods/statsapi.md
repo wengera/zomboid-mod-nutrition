@@ -12,11 +12,11 @@ Verified against 42.21.0 (4a0e9546ec) · 2026-10-08 · scope: whether Build 42.2
 <a id="what-it-does"></a>
 ### What it does
 
-StatsAPI is a Build 41 library that recalculates the character's stats in Lua so that other mods can add multipliers, named rate sources and over-time effects to them.
+StatsAPI is a Build 41 library that recalculates the character's stats in Lua [T1101.18, T1101.20].
 Workshop item `2997722072` ships the mod `StatsAPI`, modversion 0.4.15 by albion with `versionMin=41.78.16`, as a root `mod.info` beside `media/`, with no `common/` and no version folder [T1101.18].
 Its stat code is a Lua rewrite of the stat update under `client/`: it registers `Hook.CalculateStats`, reads `HungerIncrease`, `ThirstIncrease` and `FatigueIncrease` from `ZomboidGlobals`, and at file scope saves then zeroes `BoredomIncrease`, `BoredomDecrease` and `UnhappinessIncrease` [T1101.20].
-It calls Build 41 members the 42.21 jar lacks: `getStressFromCigarettes`, a name no class carries, and `HasTrait` with a string, where the character carries only `hasTrait(CharacterTrait)` [T1101.21].
-So even a folder the game did find would raise on its first stat update; the question is moot only because the game never finds it.
+It calls Build 41 members the 42.21 jar lacks: `getStressFromCigarettes`, a name no class carries, and `HasTrait` with a string, where the character carries only `hasTrait` overloads taking `CharacterTrait` [T1101.21].
+So its stat code names members this build lacks, and the game never finds the folder that holds it [T1101.21, T1101.19].
 
 <a id="discovery"></a>
 ### Why 42.21 never runs it
@@ -33,7 +33,7 @@ The one idea worth taking is the first key fact: once a mod zeroes vanilla's rat
 
 ## Walls and bounds
 
-Every line on this page is a reading of the installed copy's code and of the 42.21 jar on 2026-10-08; nothing was booted.
+Every line on this page is a reading of the installed copy's code and of the 42.21 jar on 2026-10-08; nothing was booted [T1101.21].
 
 <a id="licence"></a>
 ### Licence
@@ -41,16 +41,16 @@ Every line on this page is a reading of the installed copy's code and of the 42.
 None of its 32 files carries a licence text, and its `mod.info` names the author only [T1101.23].
 With no grant the default is all rights reserved: this repository learns from the code and copies none of it.
 
-Not covered: its moodle UI, its sleep handling and its over-time effects beyond a read for stat writes; whether its author has published a separate Build 42 version; and the Workshop page and its terms.
+Not covered: its moodle UI, its sleep handling and its over-time effects beyond a read for stat writes; whether its author has published a separate Build 42 version [T1101.19]; and the Workshop page and its terms.
 
 ## Open
 <a id="open"></a>
 
-- Whether a Build 42 StatsAPI exists under another Workshop id — settled by a Workshop search for the author's items; no `X` id.
+- Whether a Build 42 StatsAPI exists under another Workshop id [T1101.19] — settled by a Workshop search for the author's items; no `X` id.
 
 ## See also
 
 - [`../../platform/mod-anatomy.md#mod-discovery`](../../platform/mod-anatomy.md#mod-discovery) — the discovery gate that skips this folder.
 - [`../../platform/lua-platform.md#events`](../../platform/lua-platform.md#events) — which VM runs which Lua tree, and the server's `client/` skip.
-- [`stattweakslib.md`](stattweakslib.md) — the other stat library read the same day, which 42.21 does load.
+- [`stattweakslib.md`](stattweakslib.md) — the other stat library read the same day, which 42.21 does load [T1101.25].
 - [`catalog.md#status`](catalog.md#status) — the Workshop page reading and the code-read status of this and the other neighbours.

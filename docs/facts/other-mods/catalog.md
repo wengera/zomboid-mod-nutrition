@@ -150,7 +150,7 @@ The Sweep 3 load-bearing table is 9 Workshop rows, each with its id, title, inst
 | `3078272807` | Nutrition Tweaker Enhanced | no | 503.836 KB | Jul 22, 2025 @ 1:35pm | the B41-era ancestor still carrying the `Build 42` tag |
 
 Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is a 453.434 KB not-installed mod shipping a fix for the multiplayer nutrition-sync problem this library exists to characterise [#1605/W/snapshot].
-That item no longer exists on the Workshop (2026-10-08): its questions close as unavailable, not unread [T1101.43].
+Its Workshop page returned an access error on 2026-10-08 and no copy is installed, so its questions close as unavailable, not unread [T1101.43].
 Workshop item `3796644824`, a 471.224 KB not-installed patch to Long Term Preservation, claims the preservation mod launders nutrition — a claim about a mod that is installed and readable here [#1606/W/snapshot].
 Three of the sweep's 180 distinct ids are installed locally: `2932547723` '93 Lincoln Town Car matched `diet` and is a car mod, `3759421894` Big Bottles matched `hydration` and is a container-capacity tweak with no nutrition signal, and `3765241705` BeyondTen is the only installed hit carrying one [#1607/C/snapshot].
 
@@ -242,7 +242,7 @@ Workshop item `3782835400`, Realistic Nutrition, is 636.708 KB, posted `13 Aug @
 Workshop item `3078272807`, Nutrition Tweaker Enhanced, is 503.836 KB, posted `10 Nov, 2023 @ 2:19am` and updated `22 Jul, 2025 @ 1:35pm`, at the 2026-09-30 14:10 fetch [#2588/W/snapshot].
 Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is 453.434 KB, posted `31 May @ 7:55am` and updated `31 May @ 11:18am` at the 2026-09-30 14:10 fetch, and its page states — quoted faithful in substance, not byte-exact — that a client's calorie counter overwrites the server's on each eat, so players only gain weight [#2589/W/snapshot].
 That stated mechanism is contradicted by the measured client write, which never reaches the server and is erased by the next player stats packet [#0119/M/n=1] [#0568/M/n=2], and public threads report the multiplayer weight drift in both directions on different builds [#2589/W/snapshot].
-The item no longer exists on the Workshop (2026-10-08): its page answered with an access error and the workshop folder holds no copy, so its questions close as unavailable, not unread [T1101.43].
+Its Workshop page returned an access error on 2026-10-08 and the workshop folder holds no copy, so its questions close as unavailable, not unread [T1101.43].
 Workshop item `2997722072`, StatsAPI, is 133.814 KB, posted `2 Jul, 2023 @ 1:13am` and updated `18 Nov, 2024 @ 3:29pm`, at the 2026-09-30 14:11 fetch [#2590/W/snapshot].
 Its code was read on 2026-10-08 from the installed copy, modversion 0.4.15 ([statsapi.md](statsapi.md#discovery)) [T1101.18].
 Workshop item `3415375593`, Stat Tweaks Lib, is 87.724 KB, posted `26 Jan, 2025 @ 2:42pm` and updated `1 Feb, 2025 @ 6:55am`, at the 2026-09-30 14:11 fetch [#2591/W/snapshot].
@@ -434,7 +434,7 @@ Not covered: apart from the QualityCooking and BeyondTen co-boot above, no mod h
 - Evolving Traits World's code was read from its author's repository at commit 0d9c059e on 2026-10-06, not from the Workshop copy: it grants Night Vision and never removes it, skips the grant while the trait is held and never touches Short Sighted, so a mod's own night-vision machine composes with it when the mod never removes a trait it did not add [#3132/W/snapshot]; the Workshop copy [#2592/W/snapshot] stays unread and undiffed against that commit [#1600], and the one other runtime trait removal the census's trait names find runs on both sides [#2573/C/snapshot].
 - Tooltiplib's code was read on 2026-10-08, before the tooltip's guards are written: it wraps the render at `OnGameStart`, outside a wrap made at file load, so the two compose and overlap only with a third framework owning `DoTooltip` ([tooltiplib.md](tooltiplib.md#collisions)) [T1101.32] [T1101.39]; the tooltip render stays a sentinel-free wrap chain in the installed corpus [#2568/C/snapshot].
 - Nutrition Makes Sense, StatsAPI and Stat Tweaks Lib were read on 2026-10-08, so the server's stat hook is unclaimed by them as by the installed corpus [#2558/C/snapshot]: StatsAPI is never discovered on 42.21 [T1101.19], Stat Tweaks Lib never runs on a server [T1101.29], and Nutrition Makes Sense claims no hook but writes hunger, the calorie store and weight each minute on the server ([nutritionmakessense.md](nutritionmakessense.md#collisions)) [T1101.4] [T1101.15].
-- The ApocalipseBR sync fix closes as unavailable, not unread: the item is gone from the Workshop [T1101.43], and its page's stated mechanism stays contradicted by the library's measurements [#2589/W/snapshot].
+- The ApocalipseBR sync fix closes as unavailable, not unread: its Workshop page returned an access error on 2026-10-08 and no copy is installed [T1101.43], and its page's stated mechanism stays contradicted by the library's measurements [#2589/W/snapshot].
 
 ## See also
 

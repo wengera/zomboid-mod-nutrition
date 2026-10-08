@@ -35,24 +35,23 @@ Both are cheap to carry in any tooltip wrapper: the first bounds the cost of a c
 <a id="mp"></a>
 ### The world-object server command
 
-Its server file answers a `readObject` client command by calling, on the object at the client's coordinates, any requested method whose name starts `get`, `has`, `is` or `check`, and replies through `sendServerCommand` with no rate limit and no distance check; the sandbox option `TooltipLib.EnableMPSync`, default true, switches it off [T1101.37].
+Its server file answers a `readObject` client command by calling, on the object at the client's coordinates, any requested method whose name starts `get`, `has`, `is` or `check`, or the whitelisted `Activated`, and replies through `sendServerCommand` with no rate limit and no distance check; the sandbox option `TooltipLib.EnableMPSync`, default true, switches it off [T1101.37].
 It does nothing until some mod registers a world-object provider that asks for server fields, and each request costs one `sendServerCommand` on the server's main thread ([#3437/C/C-only], [`../../platform/performance.md#budget`](../../platform/performance.md#budget)).
 
 <a id="collisions"></a>
 ### How it composes
 
 With this repository's tooltip, which wraps the same render at file load, TooltipLib is the outer wrapper and both draw; only a third framework owning `DoTooltip` while a TooltipLib food provider runs in deferred mode lets its appended rows and its height write overdraw the band below the box [T1101.39].
-So the stance is to stay compatible and not to depend on it: the two-mod case composes, and the three-mod case is a named overlap rather than a fault in either.
 
 ## Walls and bounds
 
-Every line on this page is a reading of the installed 1.7.0 copy's code on 2026-10-08; the copy updated at 06:35 that day, after the neighbour report read 1.6.3, so its line cites were re-read here and drift again with the next update.
+Every line on this page is a reading of the installed 1.7.0 copy's code on 2026-10-08; the copy updated at 06:35 that day, after the neighbour report read 1.6.3, so its line cites were re-read here and drift again with the next update [T1101.37].
 
 <a id="licence"></a>
 ### Licence
 
 None of its 21 files carries a licence text, and its `mod.info` names the author only [T1101.40].
-With no grant the default is all rights reserved: this repository may call its public API and copies none of its code.
+With no grant the default is all rights reserved, which leaves any other mod free to call its public API at runtime but not to copy its code.
 
 Not covered: its skill, vehicle, recipe and world-object surfaces beyond a grep for writes; its Starlit and Eury adapters; its client cost per frame, which no run here measured; and the three-framework overlap, which is untested.
 

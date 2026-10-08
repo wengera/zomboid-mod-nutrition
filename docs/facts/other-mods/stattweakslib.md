@@ -20,7 +20,7 @@ It registers `LazoloLibMain` on `OnPlayerUpdate`, which keeps closures over the 
 <a id="raise"></a>
 ### Why it raises on 42.21
 
-On 42.21 it raises on every local-player update before it writes anything: each of its nine getters names a member the jar lacks, such as `Stats:getEndurance`, where `Stats` carries `get(CharacterStat)`, so its first read raises, and because that read never stores a value the same read raises again on the next update [T1101.27].
+On 42.21 it raises on every local-player update before it writes any stat: each of its nine getters names a member the jar lacks, such as `Stats:getEndurance`, where `Stats` carries `get(CharacterStat)`, so its first read raises, and because that read never stores a value the same read raises again on the next update [T1101.27].
 A debug client parks on the first such raise ([#0954/M/n=2], [`../../platform/lua-platform.md#debug-break`](../../platform/lua-platform.md#debug-break)), while a release client aborts only the raising handler and keeps running the handlers behind it ([#3317/M/n=1], [`../../platform/lua-platform.md#raises`](../../platform/lua-platform.md#raises)).
 Its gradual-change path calls `LazDir`, which nothing in the file defines [T1101.28].
 That path runs only once another mod has queued a change, so it is a second raise waiting behind the first.
@@ -52,5 +52,5 @@ Not covered: the Workshop page and its terms, any mod that registers modifiers w
 
 - [`../../platform/lua-platform.md#raises`](../../platform/lua-platform.md#raises) — what an unguarded raise aborts.
 - [`../../platform/mp-model.md#routes-client-to-server`](../../platform/mp-model.md#routes-client-to-server) — why a client's stat write does not last.
-- [`statsapi.md`](statsapi.md) — the other stat library read the same day, which 42.21 never discovers.
+- [`statsapi.md`](statsapi.md) — the other stat library read the same day, which 42.21 never discovers [T1101.19].
 - [`catalog.md#status`](catalog.md#status) — the Workshop page reading and the code-read status of this and the other neighbours.
