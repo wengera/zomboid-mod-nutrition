@@ -1083,6 +1083,10 @@ function C.latStart(L)
         L.done, L.reason = true, "no item " .. tostring(L.fullType)
         return
     end
+    if not instanceof(it, "Food") then   -- no pcall: a caught raise still parks a debug client
+        L.done, L.reason = true, "not a Food item"
+        return
+    end
     local _, cont = TK.call(it, "getContainer")
     L.cont = cont or p:getInventory()
     local act = ISEatFoodAction:new(p, it, 1.0)

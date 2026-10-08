@@ -166,3 +166,41 @@ def test_feed_points_a_ghosts_engine_reads_at_its_carriers_writer_inputs():
     cmd(h, "ghost.stop")
     for name in ghost_names(h):
         assert W.inp[name] is None                                 # ghost.stop clears what the feed left
+
+
+def test_a_raising_ghost_run_still_restores_both_seams():
+    h = boot()
+    W, S = h.NR.server.writer, h.NR.server.store
+    cmd(h, "ghost.load", "4", "burst")
+    h.minute()
+    h.tick(5)
+    G = h.H0.g
+    assert G.failures == 0
+    G.failures = 0
+    h.rt.eval("""function(NR)
+        NR.server.minute.runReal = NR.server.minute.run
+        NR.server.minute.run = function() error("boom") end
+    end""")(h.NR)
+    h.H0.runOne(G.ghosts[1])
+    assert G.failures == 1 and "boom" in G.lastError
+    assert W.dry is None and S.skip is None                        # restored on the raising path too
+
+
+def test_modrun_idles_after_ghost_stop_without_modq_off_and_a_burst_load():
+    h = boot()
+    P = h.NR.server.players
+    cmd(h, "ghost.load", "4", "mod")
+    cmd(h, "ghost.modq", "on")
+    stale = h.rt.eval("function(P) return P.extra.run end")(P)
+    cmd(h, "ghost.stop")                                           # modq never turned off: P.extra stays
+    assert P.extra is not None
+    cmd(h, "ghost.load", "4", "burst")                             # a new load with the same ghost names
+    G = h.H0.g
+    h.minute()
+    h.tick(5)                                                      # the store's skip seam fills G.byName
+    assert G.byName is not None
+    runs0 = G.runs
+    for name in ghost_names(h):
+        stale(name)                                                # the mod's queue draining a stale name
+    assert G.runs == runs0                                         # the burst load's ghosts ran nothing from it
+    assert h.H0.modOpen is False

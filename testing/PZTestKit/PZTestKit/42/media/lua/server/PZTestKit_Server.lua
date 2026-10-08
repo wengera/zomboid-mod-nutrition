@@ -3933,6 +3933,7 @@ H0.modOpen = false
 function H0.modRun(name)
     local G = H0.g
     if G == nil or not G.active or G.byName == nil then return end
+    if G.sched == nil or G.sched.kind ~= "mod" then return end   -- idle outside the mod arm (a stale P.extra after ghost.stop)
     local g = G.byName[name]
     if g == nil then return end
     if not H0.modOpen then
