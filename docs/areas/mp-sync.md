@@ -103,7 +103,7 @@ The ownership reading, one line per quantity:
 | the vanilla nutrition store and the player stats | server | a mirror the next player-stats snapshot overwrites | [#0125/M/one-fixture, #0568/M/n=2] |
 | weight | server | the three direction flags, computed on each side, and never a weight of its own | [#1238/M/n=1, #0900/M/n=1] |
 | the weight-band traits | server | the trait list as of the last experience push or trait-block push, the experience push measured landing within about half a second of a server write | [#2595/C/C-only] [#2759/M/n=3] |
-| item state in the item packet | server | the last push, stale in any zero-valued conditional field | [#1240/C/C-only, #0343] |
+| item state in the item packet | server, except an item outside the player's inventory that the recipe manager uses: the client's own Java sends that item's values and the server applies them unchecked | the last push, stale in any zero-valued conditional field | [#1240/C/C-only, #0343] |
 | item aging | server | nothing: the fields never cross | [#1242/M/n=1] |
 | a per-item mod value in the item script | neither: both sides load it | the same value | [#1124/M/n=1] |
 | a per-item mod value in item modData | the last writer | a wholesale copy, measured client to server only | [#1241/M/one-side] |
