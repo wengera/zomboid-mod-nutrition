@@ -1756,3 +1756,77 @@ def test_an_eat_on_a_record_without_satiety_leaves_it_for_the_writers_seed(serve
     rec, vec, err = h.rt.eval(SATIETY_EAT)(None, 0, -0.2, None)
     assert vec is not None, err
     assert rec["satiety"] is None
+
+
+# --- Task 15 fix 1: a drink raises the satiety scalar by its fluid's |hungerChange| x f, factor 1 -------------------
+# Vanilla's DrinkFluid adds FluidConsume.getHungerChange to HUNGER: the container's litres-weighted properties
+# (#0630) times the share removed (a cola can moved HUNGER -0.036, #0634; a juice box -0.020, #0636). In Mode 1 the
+# next write would erase that drop unless the drink raised S.
+
+SATIETY_DRINK = r"""
+function(satiety, hungerChange, amountAfter, props)
+    local IN = NutritionRevamp.server.intake
+    local amount = 0.3
+    local fluid = { getFluidTypeString = function(self) return "Cola" end }
+    local sample = {
+        size = function(self) return 1 end,
+        getFluid = function(self, i) return fluid end,
+        getPercentage = function(self, i) return 1.0 end,
+        release = function(self) end,
+    }
+    local fc = {
+        getAmount = function(self) return amount end,
+        createFluidSample = function(self) return sample end,
+    }
+    if props then
+        fc.getProperties = function(self)
+            return { getHungerChange = function(s) return hungerChange end }
+        end
+    end
+    local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
+    rec.satiety = satiety
+    NutritionRevamp.server.store.records.admin = rec
+    local item = { getFullType = function(self) return "Base.Pop2" end }
+    local char = { getUsername = function(self) return "admin" end }
+    local cls = {}
+    cls.updateEat = function(self, delta) amount = amountAfter return "orig" end
+    ISDrinkFluidAction = cls
+    IN.installDrink()
+    local r = cls.updateEat({ item = item, fluidContainer = fc, character = char }, 1)
+    return rec, r, IN.lastError
+end
+"""
+
+
+def test_a_cola_raises_the_satiety_scalar_by_its_hunger_change(server_host):
+    h = server_host
+    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, True)
+    assert r == "orig" and rec["lastIntake"] is not None, err
+    assert rec["satiety"] == pytest.approx(0.5 + 0.036, abs=1e-12)  # f 1, no food bulk: factor 1
+
+
+def test_a_partial_drink_raises_it_by_the_share_drunk(server_host):
+    h = server_host
+    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0.1, True)  # 0.2 of 0.3 litres
+    assert rec["lastIntake"] is not None, err
+    assert rec["satiety"] == pytest.approx(0.5 + 0.036 * 0.2 / 0.3, abs=1e-12)
+
+
+def test_a_drink_with_no_hunger_change_raises_nothing(server_host):
+    h = server_host
+    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, 0, 0, True)
+    assert rec["lastIntake"] is not None, err
+    assert rec["satiety"] == 0.5
+
+
+def test_a_drink_with_unreadable_properties_raises_nothing(server_host):
+    h = server_host
+    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, False)
+    assert rec["lastIntake"] is not None, err
+    assert rec["satiety"] == 0.5
+
+
+def test_the_bulk_factor_is_one_with_no_food_bulk(server_host):
+    h = server_host
+    assert h.K.satiety.bulkFactor(0, h.K.stomach.FULL_BULK, 0.036, 0.25) == 1
+    assert h.K.satiety.bulkFactor(0, h.K.stomach.FULL_BULK, 0.036, 0.5) == 1

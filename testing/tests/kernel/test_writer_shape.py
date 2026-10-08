@@ -60,7 +60,7 @@ def player(h, name="a"):
 
 
 def record(h, **over):
-    r = h.rt.eval("""{ stomachFill = 0.6, body = { energyState = 1, rmod = 1 },
+    r = h.rt.eval("""{ stomachFill = 0.6, satietyStepped = true, body = { energyState = 1, rmod = 1 },
         fluids = { thirstTarget = 0.3, autoDrop = 0 }, acute = { S = 0.2, circ = 0.05, frozen = false },
         effects = { fOff = 0.01, panicTarget = 10, stressTarget = 0, unhappyTarget = 0, foodSickTarget = 0,
                     tempTarget = 0, tempAdj = 0, intoxTarget = 0 } }""")
@@ -392,14 +392,48 @@ def test_a_record_without_satiety_seeds_it_from_hunger():
     assert p.st.sets.HUNGER == pytest.approx(0.31)
 
 
-def test_a_new_record_keeps_its_full_scalar():
+def test_a_new_record_for_a_hungry_character_seeds_from_hunger_never_zero():
+    # ruling T15-1: K.store.new's S = 1 is never stepped as is; a pruned record, a mod added mid-save or a failed
+    # first read gives a hungry character a fresh record, and its first minute writes its own HUNGER back
     h = boot()
     p = player(h)
-    p.st.v.HUNGER = 0.31
-    rec = record(h, satiety=1)
+    p.st.v.HUNGER = 0.4
+    rec = h.K.store.new("a", 100.0)
+    assert rec.satiety == 1 and rec.satietyStepped is None
     step(h, p, rec, 1)
-    assert rec.satiety == 1 and h.NR.server.writer.stats.seeded == 0
-    assert p.st.sets.HUNGER == 0
+    assert p.st.sets.HUNGER == pytest.approx(0.4)
+    assert rec.satiety == pytest.approx(0.6) and rec.satietyStepped is True
+    assert h.NR.server.writer.stats.seeded == 1
+
+
+def test_a_stepped_record_keeps_its_scalar_across_a_restart():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.4
+    rec = h.K.store.new("a", 100.0)
+    step(h, p, rec, 1)
+    rec.satiety = 0.9                                      # an eat since
+    raw = h.K.store.inputsOnly(rec)
+    assert raw.satietyStepped is True
+    back = h.K.store.load(raw, None, None)
+    p2 = player(h)                                         # the restart: a new object, a new hoist
+    p2.st.v.HUNGER = 0.4
+    step(h, p2, back, 2)
+    assert back.satiety == pytest.approx(0.9) and h.NR.server.writer.stats.seeded == 1
+    assert p2.st.sets.HUNGER == pytest.approx(0.1)
+
+
+def test_a_v3_record_saved_without_the_mark_seeds_once():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.35
+    raw = h.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 1 }")
+    rec = h.K.store.load(raw, None, None)
+    assert rec.satietyStepped is None
+    step(h, p, rec, 1)
+    assert rec.satiety == pytest.approx(0.65) and p.st.sets.HUNGER == pytest.approx(0.35)
+    step(h, p, rec, 2)
+    assert h.NR.server.writer.stats.seeded == 1
 
 
 def test_a_non_finite_scalar_is_seeded_again_from_hunger():
@@ -501,9 +535,57 @@ def test_the_satiety_bulk_option_reads_its_range():
     assert h.NR.server.options.satietyBulk == 0.25
 
 
+LIMITATION_FOUR = (
+    "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
+    "overwrites it with the satiety target (1 - S through the energy term, capped at 0.69), so the eat or drink stays "
+    "only through the satiety scalar it raised; an eat or a drink another mod makes through a direct Eat or "
+    "DrinkFluid call, outside the intake's wraps, raises no S, so the next write takes its hunger relief back; "
+    "hunger is that scalar stepped once a game minute, so it lags vanilla by up to a minute (5.8e-4 idle, 1.2e-3 "
+    "exercising; Appendix D); under a calorie deficit vanilla's food-eaten freeze fires less often, and at the 0.69 "
+    "cap a starving character can earn a freeze its scalar did not (Appendix D Question 4)")
+
+
 def test_limitation_four_names_the_overwrite_and_the_scalar():
     lim = list(Host().NR.server.writer.limitations.values())
     assert len(lim) == 11                                  # the self-report prints the count: unchanged by Task 15
-    four = lim[3]
-    assert "the next write keeps it" not in four
-    assert "overwrites" in four and "satiety scalar" in four and "up to a minute" in four
+    assert lim[3] == LIMITATION_FOUR
+
+
+# --- Task 15 fix 1: the exercise branches and the step clamp ----------------------------------------------------
+
+def test_moving_without_running_decays_at_the_idle_rate():
+    h = boot()
+    p = player(h)
+    p.IsRunning = h.rt.eval("function(s) return false end")
+    p.isPlayerMoving = h.rt.eval("function(s) return true end")
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 1800))
+
+
+def test_a_melee_swing_decays_at_the_exercise_rate():
+    h = boot()
+    h.G.SwipeStatePlayer = h.rt.eval("{ instance = function() return NR_T end }")   # any unique handle
+    p = player(h)
+    p.isCurrentState = h.rt.eval("function(s, st) return st == NR_T end")
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-1.92e-5 / 3 * 1800))
+    moodle(h, p, 1)
+    p2 = player(h)
+    p2.isCurrentState, p2.getMoodles = p.isCurrentState, p.getMoodles
+    rec2 = record(h, satiety=0.7)
+    step(h, p2, rec2, 40)
+    step(h, p2, rec2, 70)
+    assert rec2.satiety == pytest.approx(0.7 * math.exp(-1.92e-5 * 1800))   # exercise never freezes
+
+
+def test_a_gap_over_sixty_minutes_decays_over_3600_seconds_only():
+    h = boot()
+    p = player(h)
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 1 + 180)                               # three game hours since the last write
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 3600))

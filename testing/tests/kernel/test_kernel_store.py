@@ -474,6 +474,15 @@ def test_satiety_is_an_input(host):
     assert S(host).isInput("satiety")
 
 
+def test_the_stepped_mark_is_an_input_a_new_record_lacks(host):
+    # Task 15 fix 1 (ruling T15-1): the writer marks S stepped; a missing mark (a new record, a v3 record saved
+    # before the mark) reads not stepped, and the writer seeds S from HUNGER
+    assert S(host).isInput("satietyStepped")
+    assert S(host).new("a", 1.0).satietyStepped is None
+    raw = host.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.4, satietyStepped = true }")
+    assert S(host).load(raw, None, None).satietyStepped is True
+
+
 def test_a_loaded_record_without_satiety_keeps_it_unset(host):
     raw = host.rt.eval("{ v = 2, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false }")
     rec = S(host).load(raw, None, None)

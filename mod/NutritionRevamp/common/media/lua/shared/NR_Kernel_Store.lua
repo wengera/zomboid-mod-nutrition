@@ -33,8 +33,8 @@ K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the version field the save holds (load rewrites it to
     -- VERSION after the copy), the key, the first and last world age seen, the respawn count, the death flag
     "v", "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- the satiety scalar S (Decision 2; Task 15 steps it; a v2 record has none and the writer seeds it from HUNGER)
-    "satiety",
+    -- the satiety scalar S (Decision 2) and the writer's mark that it stepped S (absent on a new record, a v2 or a v3 saved before the mark: the writer seeds S from HUNGER, ruling T15-1)
+    "satiety", "satietyStepped",
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the buffer and
     -- its bulk (ingest adds, empty drains), the absorbed pool (toPool accumulates; a diagnostic no step reads
     -- back, kept because it cannot be rebuilt)
@@ -157,7 +157,7 @@ function K.store.new(username, worldAgeHours)
     r.lastSeen = worldAgeHours
     r.resets = 0 -- a count: no respawn yet
     r.dead = false
-    r.satiety = 1 -- a new record seeds S full (Appendix D Question 4)
+    r.satiety = 1 -- a placeholder: no satietyStepped mark, so the writer's first step seeds S from HUNGER (ruling T15-1)
     return r
 end
 

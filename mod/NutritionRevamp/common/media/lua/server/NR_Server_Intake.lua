@@ -432,7 +432,7 @@ function IN.readAfterAndLand(b)
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
-    IN.sate(record, b, vec, frac)
+    IN.sate(record, b.hungerChange, frac, K.stomach.bulkOf(vec))
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
@@ -441,18 +441,18 @@ function IN.readAfterAndLand(b)
     return vec
 end
 
--- Decision 2 (c), Task 15: the meal's relief raises the satiety scalar, its bulk scaling the APPLIED relief (never
--- the item's hungChange, the portion reservoir, J1: half and quarter eating and evolved recipes read it); a record
--- not yet seeded takes the eat through the HUNGER the writer's seed reads. The relief is the before-eat laddered
--- getHungerChange times Eat's fraction of what was left (#3556), an opening recipe that eats included (it reaches
--- ISEatFoodAction with eatPercentage / 100). A non-finite relief books nothing. NR.SatietyBulk is read at call time.
-function IN.sate(record, b, vec, frac)
-    if record.satiety == nil or not IN.isFinite(b.hungerChange) then return end
+-- Decision 2 (c), Task 15: an eat's or a drink's relief raises the satiety scalar, the landed food bulk scaling the
+-- APPLIED relief (never the item's hungChange, J1); a drink passes no food bulk (factor 1). A record not yet stepped
+-- takes it through the HUNGER the writer's seed reads. An eat's relief is the before-eat laddered getHungerChange
+-- times Eat's fraction of what was left (#3556; an opening recipe that eats included), a drink's its container's
+-- hunger times the share drunk. A non-finite relief books nothing. NR.SatietyBulk is read at call time.
+function IN.sate(record, hungerChange, frac, landedBulk)
+    if record.satiety == nil or not IN.isFinite(hungerChange) or not IN.isFinite(frac) then return end
     local O = NR.server.options
     local beta = K.satiety.BETA
     if O ~= nil and IN.isFinite(O.satietyBulk) then beta = O.satietyBulk end
-    local r = K.satiety.relief(b.hungerChange, frac)
-    record.satiety = K.satiety.add(record.satiety, r, K.satiety.bulkFactor(K.stomach.bulkOf(vec), K.stomach.FULL_BULK, r, beta))
+    local r = K.satiety.relief(hungerChange, frac)
+    record.satiety = K.satiety.add(record.satiety, r, K.satiety.bulkFactor(landedBulk, K.stomach.FULL_BULK, r, beta))
 end
 
 -- A rejected landing: nothing lands, the failure is counted and named. Returns nil.
@@ -704,6 +704,9 @@ function IN.readDrinkBefore(action)
     if type(litresBefore) ~= "number" or litresBefore <= 0 then return nil end
     local d = { item = item, fc = fc, username = username, litresBefore = litresBefore, mix = {} }
     d.fullType = tostring(read(item, "getFullType"))
+    -- the container's hunger, litres-weighted like its macros (#0630): DrinkFluid adds the removed share of it to
+    -- HUNGER (FluidConsume.getHungerChange, IsoGameCharacter.DrinkFluid L5896); nil when unreadable
+    d.hungerChange = read(read(fc, "getProperties"), "getHungerChange")
     -- the mix: getPercentage(i) is the fluid's proportion 0..1 of the container's amount (the
     -- instance amount over the container total); getFluidTypeString is never null on a Fluid (#2684),
     -- the key the per-fluid table uses
@@ -744,6 +747,7 @@ function IN.readDrinkAfterAndLand(d)
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
     IN.land(record, d.username, vec)
+    IN.sate(record, d.hungerChange, litres / d.litresBefore, 0)  -- Task 15 fix: the drink's share of its hunger
     record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. d.fullType .. " for " .. tostring(d.username) .. " source fluid litres "

@@ -17,7 +17,7 @@ NR.server.writer = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat shows at once and the next write overwrites it with 1 - S, so the eat stays only through the satiety scalar it raised; hunger is that scalar stepped once a game minute, so it lags vanilla by up to a minute (5.8e-4 idle, 1.2e-3 exercising; Appendix D); under a calorie deficit vanilla's food-eaten freeze fires less often, and at the 0.69 cap a starving character can earn a freeze its scalar did not (Appendix D Question 4)",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target (1 - S through the energy term, capped at 0.69), so the eat or drink stays only through the satiety scalar it raised; an eat or a drink another mod makes through a direct Eat or DrinkFluid call, outside the intake's wraps, raises no S, so the next write takes its hunger relief back; hunger is that scalar stepped once a game minute, so it lags vanilla by up to a minute (5.8e-4 idle, 1.2e-3 exercising; Appendix D); under a calorie deficit vanilla's food-eaten freeze fires less often, and at the 0.69 cap a starving character can earn a freeze its scalar did not (Appendix D Question 4)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -149,11 +149,11 @@ local function finiteOr(v, dflt)
     return dflt
 end
 
--- Task 15: the satiety scalar (Decision 2 (c)): seeded 1 - HUNGER on a record without it (a migrated v2) or with a
--- non-finite one, stepped by elapsed world age at the rates saved at boot with the FOOD_EATEN freeze, and read
--- through the energy term. The eats of the minute raised it before this step (NR_Server_Intake).
+-- Task 15: the satiety scalar (Decision 2 (c)): seeded 1 - HUNGER on a record whose S the writer never stepped (no
+-- satietyStepped mark: new, pruned, migrated, saved before the mark; ruling T15-1) or with a non-finite S, stepped by
+-- elapsed world age at the saved rates with the FOOD_EATEN freeze, read through the energy term. Eats raised it first.
 function W.satiety(h, player, record, eng, inp, es)
-    if not NR.finite(record.satiety) then
+    if record.satietyStepped ~= true or not NR.finite(record.satiety) then
         record.satiety = K.satiety.seed(inp.hunger)
         W.stats.seeded = W.stats.seeded + 1
     end
@@ -168,6 +168,7 @@ function W.satiety(h, player, record, eng, inp, es)
     local rates = W.rates or K.satiety.defaults()
     local rate = K.satiety.rate(rates, inp.asleep, exercising, fed)
     record.satiety = K.satiety.step(record.satiety, K.clamp(inp.dtS, 0, W.c.maxStepS), rate, eng.sd, tr)
+    record.satietyStepped = true
     inp.hungerTarget = K.hybrid.hungerTarget(record.satiety, es)
 end
 
