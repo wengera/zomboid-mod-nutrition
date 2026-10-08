@@ -32,11 +32,11 @@ function K.hybrid.output()
     return { sip = 0, unhappyTarget = 0 }
 end
 
--- The hunger target from a fill-like scalar x (0 empty .. 1 full: the stomach fill, then the satiety scalar S) and
--- the energy state (Plan 3 ruling 14, moved from the takeover's K.fast.hungerTarget): (1 - x) x energyState, plus a
--- deficit floor 0.15 x (energyState - 1), clamped to [0, 1].
+-- The hunger target from a fill-like scalar x (0 empty .. 1 sated: since Plan 11c the satiety read Z) and the energy
+-- state (Plan 3 ruling 14, moved from the takeover's K.fast.hungerTarget): (1 - x) x energyState, plus a deficit
+-- floor DEFICIT_FLOOR x (energyState - 1), clamped to [0, 1].
 function K.hybrid.hungerTarget(x, energyState)
-    return K.clamp((1 - x) * energyState + 0.15 * K.max(0, energyState - 1), 0, 1)
+    return K.clamp((1 - x) * energyState + K.hybrid.DEFICIT_FLOOR * K.max(0, energyState - 1), 0, 1)
 end
 
 -- The auto-drink sip since the last write: THIRST's fall below the value written, when no intake landed this
@@ -117,3 +117,5 @@ function K.hybrid.write(inp, out, c)
         out.endurance = K.clamp(e0 + (inp.endurance - e0) * inp.rmod, 0, 1)
     end
 end
+
+K.hybrid.DEFICIT_FLOOR = 0.15 -- game choice (S1271 open; Plan 3 ruling 14): the deficit floor's coefficient; S1254 sets its direction and S1255 bounds it (CALERIE 2: < 10 mm over 2 y at a 25 % deficit), which the oracle checks
