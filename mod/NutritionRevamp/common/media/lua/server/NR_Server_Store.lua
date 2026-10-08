@@ -101,7 +101,11 @@ function S.reset(username, worldAgeHours)
     if t == nil then return nil end
     local old = t[username]
     local r = S.new(username, worldAgeHours)
-    r.resets = (old and old.resets or 0) + 1
+    if old ~= nil then
+        r.resets = (old.resets or 0) + 1                   -- ruling 4: every OnNewGame over an existing record
+    else
+        r.resets = 0                                       -- a first character
+    end
     t[username] = r
     sights(t)[username] = true
     NR.log.say(2, "store: reset record for " .. tostring(username) .. " (reset " .. tostring(r.resets) .. ")")

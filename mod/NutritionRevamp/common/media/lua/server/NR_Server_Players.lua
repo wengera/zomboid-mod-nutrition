@@ -1,12 +1,17 @@
--- NR_Server_Players.lua -- the slow clock (spec § 4.1): EveryOneMinute snapshots the online
--- list, initialises a player on first sight (the server fires no join event, #2412), drops a
--- player who left (no disconnect event either, #2403), reads death off the dead flag, and queues
--- the per-player minute work so OnTick drains one player per frame (the stagger). OnNewGame
--- fires server-side for every character a client creates, respawns included (#2411): the record
--- is reset there. Java lists are walked with size()/get(i) (#0940).
+-- NR_Server_Players.lua -- the slow clock (spec § 4.1): the minute event snapshots the online list, marks each new
+-- sight (a first join, a reconnect, a respawn's new object; the server fires no join event, #2412), drops the
+-- departed (no disconnect event either, #2403) and merges the queue (K.sched.merge: unserved names carried forward,
+-- never doubled); OnTick drains it under a per-tick budget sized to the minute's work (K.sched; Decision 6 (b), rule
+-- #3497); first sight, one-shot tasks (the store's flushes) and the harness's extra names ride the same queue; death
+-- is read off the dead flag. OnNewGame fires server-side for every character a client creates, respawns included
+-- (#2411): it resets the record and evicts the username (#3358); a reset that met no readable clock stays pending
+-- and is made in the player's next queue slot. Java lists are walked with size()/get(i) (#0940).
 local NR = NutritionRevamp
+local K = NR.kernel
 NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {},
-                      minutes = 0, drained = 0 }
+                      minutes = 0, drained = 0, served = 0, sight = {}, resetsAt = {}, resetPending = {},
+                      tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
+                      budgetMs = 15, runCap = 1, wired = false }
 local P = NR.server.players
 
 local function fire(list, username, player, record)
@@ -16,8 +21,15 @@ local function fire(list, username, player, record)
     end
 end
 
--- One player's minute work: refresh lastSeen and the dead flag, then the slow minute's pipeline
--- (NR_Server_Minute.lua), then P.onMinute, kept empty by the mod for a third party's append.
+local function nowMs()
+    if getTimestampMs == nil then return nil end
+    local ok, v = pcall(getTimestampMs)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
+-- One player's minute work: refresh lastSeen and the dead flag (never on a record reset since the queue entry,
+-- #3358), then the slow minute's pipeline (NR_Server_Minute.lua), then P.onMinute, kept for a third party's append.
 P.onMinute = {}
 function P.work(username, player)
     local age = NR.worldAge()
@@ -26,12 +38,41 @@ function P.work(username, player)
     if r == nil then return end
     r.lastSeen = age
     local okD, dead = NR.call(player, "isDead")
-    if okD and dead == true and r.dead ~= true then
+    local same = P.resetsAt[username] == nil or P.resetsAt[username] == r.resets
+    if okD and dead == true and r.dead ~= true and same then
         r.dead = true
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
     end
     NR.server.minute.run(username, player, r)
     fire(P.onMinute, username, player, r)
+end
+
+-- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends
+-- the one first-sight mirror). False when the clock cannot be read (the sight is retried at the next minute).
+function P.firstSight(username, player)
+    local age = NR.worldAge()
+    if age == nil then return false end
+    local r = NR.server.store.get(username, age)
+    NR.log.say(2, "players: first sight of " .. tostring(username))
+    fire(P.onFirstSight, username, player, r)
+    return true
+end
+
+-- A respawn's reset that OnNewGame could not make (no clock read there), made in the player's queue slot. False
+-- while the clock or the store cannot be read: the reset stays pending for the next slot, never dropped.
+function P.makeReset(username)
+    local age = NR.worldAge()
+    if age == nil then return false end
+    if NR.server.store.reset(username, age) == nil then return false end
+    P.resetPending[username] = nil
+    P.resetsAt[username] = nil
+    NR.log.say(2, "players: the pending reset of " .. tostring(username) .. " is made")
+    return true
+end
+
+-- A one-shot task carried in the queue until it runs (the store's departure flush).
+function P.task(name, fn)
+    P.tasks[name] = fn
 end
 
 function P.minute()
@@ -41,10 +82,10 @@ function P.minute()
     local okS, n = NR.call(list, "size")
     if not okS or type(n) ~= "number" then return end
     P.minutes = P.minutes + 1
-    P.queue = {}                      -- a fresh queue each minute: a slow drain never doubles a player (review-t4 I1)
-    P.queueHead = 1
-    local seen = {}
     local age = NR.worldAge()
+    local records = NR.server.store.records
+    local roster = {}
+    local seen = {}
     local i = 0
     while i < n do
         local okG, player = NR.call(list, "get", i)
@@ -54,13 +95,12 @@ function P.minute()
             -- the queue, so no record is made at a nil age and the sight is retried
             if okU and username ~= nil and (P.online[username] ~= nil or age ~= nil) then
                 seen[username] = player
-                if P.online[username] == nil then
-                    local r = NR.server.store.get(username, age)
-                    NR.log.say(2, "players: first sight of " .. tostring(username))
-                    fire(P.onFirstSight, username, player, r)
-                    -- no mirror here: NR_Server_Metabolism's onFirstSight hook sends the one first-sight mirror
+                if P.online[username] ~= player then
+                    P.sight[username] = player          -- first sight, a reconnect or a respawn's new object
                 end
-                P.queue[#P.queue + 1] = username
+                local rec = records and records[username]
+                if rec ~= nil then P.resetsAt[username] = rec.resets end
+                roster[#roster + 1] = username
             end
         end
         i = i + 1
@@ -68,50 +108,125 @@ function P.minute()
     for username, _ in pairs(P.online) do
         if seen[username] == nil then
             NR.log.say(2, "players: " .. tostring(username) .. " left")
+            P.sight[username] = nil
+            P.resetsAt[username] = nil
             fire(P.onDeparture, username, nil, nil)
         end
     end
     P.online = seen
+    if P.extra ~= nil then
+        local okX, extra = pcall(P.extra.names)
+        if okX and type(extra) == "table" then
+            for j = 1, #extra do
+                roster[#roster + 1] = extra[j]
+            end
+        end
+    end
+    for name, _ in pairs(P.tasks) do
+        roster[#roster + 1] = name
+    end
+    P.queue = K.sched.merge(P.queue, P.queueHead, roster)
     P.queueHead = 1
+    P.ticksPrev = P.ticksLast
+    P.ticksLast = P.ticks
+    P.ticks = 0
+    if P.meanMs == nil then P.meanMs = K.sched.SEED_MS end
+    P.budgetMs = K.sched.budgetMs(P.meanMs, #P.queue, K.sched.ticksPerMinute(P.ticksLast, P.ticksPrev))
+    P.runCap = K.sched.runCap(P.budgetMs, P.meanMs)
 end
 
--- The stagger: one queued player per tick; a cheap early-out when the queue is empty, which is
--- what keeps this off the expensive tier (lessons #1071, #1080).
-function P.drain()
-    local username = P.queue[P.queueHead]
-    if username == nil then
-        if #P.queue > 0 then P.queue = {}; P.queueHead = 1 end
+-- One queued name: an online player (its pending reset, then its first sight, when marked), else a one-shot task,
+-- else an extra name.
+function P.runOne(name)
+    local player = P.online[name]
+    if player ~= nil then
+        if P.resetPending[name] == true and not P.makeReset(name) then
+            P.online[name] = nil                        -- no clock: seen again, and sighted, at the next minute
+            return
+        end
+        local sp = P.sight[name]
+        if sp ~= nil then
+            P.sight[name] = nil
+            if not P.firstSight(name, sp) then
+                P.online[name] = nil                    -- no clock: seen again, and sighted, at the next minute
+                return
+            end
+        end
+        P.drained = P.drained + 1
+        P.work(name, player)
         return
     end
-    P.queueHead = P.queueHead + 1
-    local player = P.online[username]
-    if player ~= nil then
-        P.drained = P.drained + 1
-        P.work(username, player)
+    local task = P.tasks[name]
+    if task ~= nil then
+        P.tasks[name] = nil
+        local okT, errT = pcall(task)
+        if not okT then NR.log.say(2, "players: task " .. tostring(name) .. " failed: " .. tostring(errT)) end
+        return
     end
+    if P.extra ~= nil then
+        local okX, errX = pcall(P.extra.run, name)
+        if not okX then NR.log.say(2, "players: extra " .. tostring(name) .. " failed: " .. tostring(errX)) end
+    end
+end
+
+-- The drain: queued names until the run cap or the budget's wall time is spent; the tick's cost a run feeds the mean.
+function P.drain()
+    local t0 = nowMs()
+    local ran = 0
+    local spent = 0
+    while ran < P.runCap do
+        local name = P.queue[P.queueHead]
+        if name == nil then break end
+        P.queueHead = P.queueHead + 1
+        P.runOne(name)
+        ran = ran + 1
+        if t0 ~= nil then
+            local t1 = nowMs()
+            if t1 ~= nil then spent = t1 - t0 end
+            if spent >= P.budgetMs then break end
+        end
+    end
+    P.served = P.served + ran
+    if t0 ~= nil and ran > 0 then P.meanMs = K.sched.ema(P.meanMs, spent / ran) end
+end
+
+-- The OnTick listener, registered server-side only at OnServerStarted: one add and one compare when the queue is
+-- empty (the empty-queue clause of ruling 2: at most 0.1 ms a frame).
+function P.tick()
+    P.ticks = P.ticks + 1
+    if P.queueHead > #P.queue then return end
+    P.drain()
 end
 
 if Events ~= nil then
     if Events.EveryOneMinute ~= nil then
         Events.EveryOneMinute.Add(function() if NR.isServer() then P.minute() end end)
     end
-    if Events.OnTick ~= nil then
-        Events.OnTick.Add(function() if NR.isServer() then P.drain() end end)
+    if Events.OnServerStarted ~= nil then
+        Events.OnServerStarted.Add(function()
+            if not NR.isServer() then return end
+            if P.wired then return end
+            P.wired = true
+            if Events.OnTick ~= nil then Events.OnTick.Add(P.tick) end
+        end)
     end
     if Events.OnNewGame ~= nil then
         Events.OnNewGame.Add(function(player, square)
             if not NR.isServer() then return end
             local okU, username = NR.call(player, "getUsername")
-            if okU and username ~= nil then
-                local age = NR.worldAge()
-                if age == nil then
-                    NR.log.say(2, "players: no world age at OnNewGame for " .. tostring(username)
-                        .. "; the reset waits for a readable clock")
-                    return
-                end
-                local r = NR.server.store.reset(username, age)
-                if r ~= nil then fire(P.onFirstSight, username, player, r) end   -- Metabolism's hook: the body, then the one mirror
+            if not okU or username == nil then return end
+            P.online[username] = nil                    -- #3358: evict; the next minute adopts the new object
+            P.sight[username] = nil
+            P.resetsAt[username] = nil
+            local age = NR.worldAge()
+            if age == nil then
+                P.resetPending[username] = true         -- made in the player's next queue slot with a clock read
+                NR.log.say(2, "players: no world age at OnNewGame for " .. tostring(username)
+                    .. "; the reset waits in the queue for a readable clock")
+                return
             end
+            P.resetPending[username] = nil
+            NR.server.store.reset(username, age)
         end)
     end
 end

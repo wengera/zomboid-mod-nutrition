@@ -1065,20 +1065,25 @@ def test_first_sight_sends_one_mirror_with_the_body():
     rt = _players_runtime()
     G = rt.globals()
     rt.execute("NR_HANDLERS.EveryOneMinute[1]()")
+    assert list(G.NR_SENT.values()) == []      # Plan 11 Task 9: the minute marks the sight; the drain runs it
+    rt.execute("NR_HANDLERS.OnTick[1]()")
     assert list(G.NR_SENT.values()) == [True]  # one send, carrying the body
     assert G.NR_RECORDS.admin.body is not None
     assert G.NutritionRevamp.server.metabolism.stats.firstSightMirrors == 1
     rt.execute("NR_HANDLERS.EveryOneMinute[1]()")   # seen: no second first sight
+    rt.execute("NR_HANDLERS.OnTick[1]()")
     assert list(G.NR_SENT.values()) == [True]
 
 
 def test_a_respawn_reset_fires_first_sight_and_sends_one_mirror_with_the_new_body():
     rt = _players_runtime()
     G = rt.globals()
-    rt.execute("NR_HANDLERS.EveryOneMinute[1]()")
+    rt.execute("NR_HANDLERS.EveryOneMinute[1](); NR_HANDLERS.OnTick[1]()")
     old = G.NR_RECORDS.admin.body
     rt.execute("NR_AGE = 130.0; NR_HANDLERS.OnNewGame[1](NR_PLAYER, nil)")
-    assert list(G.NR_SENT.values()) == [True, True]   # one send per reset, with the body
+    assert list(G.NR_SENT.values()) == [True]         # Plan 11 Task 9: OnNewGame resets and evicts (#3358)
+    rt.execute("NR_HANDLERS.EveryOneMinute[1](); NR_HANDLERS.OnTick[1]()")
+    assert list(G.NR_SENT.values()) == [True, True]   # one send per reset, with the body, at the next minute
     body = G.NR_RECORDS.admin.body
     assert body is not None and body != old and body.lastAgeH == 130.0
     assert G.NutritionRevamp.server.metabolism.stats.firstSightMirrors == 2

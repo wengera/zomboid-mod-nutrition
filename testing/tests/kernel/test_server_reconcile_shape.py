@@ -118,7 +118,12 @@ class Host:
         """The players' walk sees the player for the first time (P.minute with one online player)."""
         self.G.getOnlinePlayers = self.rt.eval(
             "function(p) return function() return { size = function(s) return 1 end, get = function(s, i) return p end } end end")(player)
-        self.NR.server.players.minute()
+        P = self.NR.server.players
+        P.minute()
+        sp = P.sight[name]
+        if sp is not None:                    # Plan 11 Task 9: the minute marks the sight; its queue slot runs it
+            P.sight[name] = None
+            P.firstSight(name, sp)
         return self.NR.server.store.records[name]
 
 
@@ -437,7 +442,9 @@ def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):
     for fn in h.T.adds["OnNewGame"].values():
         fn(p, None)
     new = h.NR.server.store.records["admin"]
-    assert new["resets"] == 1 and new["v"] == 2
+    assert new["resets"] == 1 and new["v"] == h.K.store.VERSION
+    assert h.NR.server.players.online["admin"] is None        # Plan 11 Task 9: evicted at OnNewGame (#3358)
+    h.first_sight(p)                                          # the next minute re-sights it in its queue slot
     assert new["reconcile"]["baseline"]["calories"] == 400.0
     new["junk"] = 1
     h.NR.server.store.get("admin", 101.0)
