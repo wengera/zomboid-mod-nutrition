@@ -546,3 +546,37 @@ def test_with_a_clock_a_fresh_depth_is_a_reentry_and_an_old_one_is_stale():
     rt.execute("NutritionRevamp.client.tooltip.depthAt = 3000")
     render(rt, "NR_T.food('Base.Apple')")                    # 2000 ms: an original that raised; stale
     assert T(rt).stats.stale == 1 and T(rt).depth == 0
+
+
+def test_a_clean_band_resets_the_count_after_a_raising_linesFor():
+    rt = rt_with(view=True)
+    rt.execute("""NR_T.n = 0
+    NutritionRevamp.client.tooltip.linesFor = function()
+        NR_T.n = NR_T.n + 1
+        if NR_T.n % 2 == 1 then error('boom') end
+        return { 'a line', width = 0 }
+    end""")
+    for _ in range(30):
+        render(rt, "NR_T.food('Base.Apple')")
+    t = T(rt)
+    assert t.fails == 0 and t.broken is not True       # only T.after's success path resets: linesFor returned lines
+    assert t.stats.errors == 15 and t.stats.draws == 15 and t.stats.breaks == 0
+
+
+def test_a_real_reentry_from_inside_the_original_calls_the_saved_original_only():
+    rt = rt_with(view=True)
+    rt.execute("""NR_T.ms = 5000; getTimestampMs = function() return NR_T.ms end
+    ISToolTipInv = { render = function(self)
+        NR_T.renders = NR_T.renders + 1
+        self.height = 120
+        if not NR_T.inner then
+            NR_T.inner = true
+            ISToolTipInv.render(self)                          -- the original calls back into the wrapped chain
+        end
+    end }""")
+    _load(rt, TOOLTIP)                                           # the recreated class is wrapped afresh
+    render(rt, "NR_T.food('Base.Apple')")
+    assert T(rt).stats.reentries == 1 and T(rt).stats.stale == 0
+    assert rt.globals().NR_T.renders == 2                       # the inner call ran the saved original only
+    assert len(draws(rt, "rect")) == 1                          # the outer draws the one band; the inner none
+    assert T(rt).stats.draws == 1 and T(rt).depth == 0
