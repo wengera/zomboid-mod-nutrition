@@ -1678,7 +1678,7 @@ def test_type_info_reads_a_fresh_instance_once_per_type(intake_host):
 # --- Plan 11 Task 15: an eat raises the satiety scalar by its laddered relief times the bulk factor -----------
 
 SATIETY_EAT = r"""
-function(satiety, after, hungerChange, beta)
+function(satiety, after, hungerChange, beta, cal)
     local IN = NutritionRevamp.server.intake
     local S = NutritionRevamp.server
     local oldO = S.options
@@ -1690,12 +1690,12 @@ function(satiety, after, hungerChange, beta)
     local item = {}
     item.getHungChange = function(self) return hung end
     item.getHungerChange = function(self) return hungerChange end
-    item.getFullType = function(self) return "Base.Apple" end
+    item.getFullType = function(self) if cal == 0 then return "Base.Salt" end return "Base.Apple" end
     item.getBaseHunger = function(self) return -0.2 end
-    item.getCalories = function(self) return 95 end
-    item.getCarbohydrates = function(self) return 25.13 end
-    item.getLipids = function(self) return 0.31 end
-    item.getProteins = function(self) return 0.47 end
+    item.getCalories = function(self) if cal ~= nil then return cal end return 95 end
+    item.getCarbohydrates = function(self) if cal == 0 then return 0 end return 25.13 end
+    item.getLipids = function(self) if cal == 0 then return 0 end return 0.31 end
+    item.getProteins = function(self) if cal == 0 then return 0 end return 0.47 end
     item.isCooked = function(self) return false end
     item.isBurnt = function(self) return false end
     item.isRotten = function(self) return false end
@@ -1826,7 +1826,21 @@ def test_a_drink_with_unreadable_properties_raises_nothing(server_host):
     assert rec["satiety"] == 0.5
 
 
-def test_the_bulk_factor_is_one_with_no_food_bulk(server_host):
+def test_a_zero_calorie_eat_keeps_the_bulk_floor(server_host):
+    # Task 15 fix 2 (ruling T15-3): salt, pepper, vinegar, pet food carry a hunger change and no calories; their landed
+    # bulk is 0, so the factor is Appendix D's floor 0.25^beta, never 1
     h = server_host
-    assert h.K.satiety.bulkFactor(0, h.K.stomach.FULL_BULK, 0.036, 0.25) == 1
-    assert h.K.satiety.bulkFactor(0, h.K.stomach.FULL_BULK, 0.036, 0.5) == 1
+    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, -0.2, 0.5, 0)
+    assert vec is not None, err
+    assert h.K.stomach.bulkOf(vec) == 0
+    assert rec["satiety"] == pytest.approx(0.5 + 0.2 * 0.25 ** 0.5)
+
+
+def test_a_drink_books_its_relief_whole(server_host):
+    # a drink passes no food bulk (nil): the factor is 1 at any option beta
+    h = server_host
+    S = h.rt.eval("NutritionRevamp.server")
+    S["options"] = h.rt.eval("{ satietyBulk = 0.5 }")
+    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, True)
+    assert rec["lastIntake"] is not None, err
+    assert rec["satiety"] == pytest.approx(0.5 + 0.036, abs=1e-12)

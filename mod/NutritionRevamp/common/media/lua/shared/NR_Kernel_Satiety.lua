@@ -62,9 +62,10 @@ function K.satiety.relief(hungerChange, frac)
 end
 
 -- The bulk factor on the applied relief: (landed bulk / FULL_BULK) / relief over r0, clamped, to the power beta.
--- 1 when there is no relief, no food bulk (a drink passes 0), no bulk scale or beta 0 (option (a)).
+-- 1 when there is no relief, no bulk scale or beta 0 (option (a)); a zero landed bulk floors at 0.25^beta (a drink never
+-- reaches here: IN.sate skips the factor for a nil bulk).
 function K.satiety.bulkFactor(landedBulk, fullBulk, relief, beta)
-    if relief <= 0 or landedBulk <= 0 or beta <= 0 or fullBulk <= 0 then
+    if relief <= 0 or beta <= 0 or fullBulk <= 0 then
         return 1
     end
     local r = K.clamp((landedBulk / fullBulk) / relief / K.satiety.R0, K.satiety.LO, K.satiety.HI)

@@ -436,6 +436,19 @@ def test_a_v3_record_saved_without_the_mark_seeds_once():
     assert h.NR.server.writer.stats.seeded == 1
 
 
+def test_a_mark_present_but_not_true_seeds_from_hunger():
+    # Task 15 fix 2: only a true mark means stepped; satietyStepped = false is seeded like a missing one
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.35
+    raw = h.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 1, satietyStepped = false }")
+    rec = h.K.store.load(raw, None, None)
+    assert rec.satietyStepped is False
+    step(h, p, rec, 1)
+    assert rec.satiety == pytest.approx(0.65) and p.st.sets.HUNGER == pytest.approx(0.35)
+    assert h.NR.server.writer.stats.seeded == 1
+
+
 def test_a_non_finite_scalar_is_seeded_again_from_hunger():
     h = boot()
     p = player(h)

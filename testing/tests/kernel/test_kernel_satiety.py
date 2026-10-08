@@ -41,13 +41,8 @@ def test_relief_and_the_bulk_factor(host):
 
 def test_the_bulk_factor_is_clamped_below_at_a_quarter(host):
     assert host.call("satiety.bulkFactor", 0.01, 8.0, 0.36, 0.5) == pytest.approx(0.25 ** 0.5)
+    assert host.call("satiety.bulkFactor", 0.0, 8.0, 0.36, 0.5) == pytest.approx(0.25 ** 0.5)   # zero bulk: the floor, never 1
     assert host.call("satiety.bulkFactor", 8.0, 0.0, 0.36, 0.25) == 1
-
-
-def test_no_food_bulk_leaves_the_relief_whole(host):
-    # Task 15 fix 1: a drink passes no food bulk, so its relief is vanilla's own (factor 1), never the floor's
-    assert host.call("satiety.bulkFactor", 0.0, 8.0, 0.36, 0.5) == 1
-    assert host.call("satiety.bulkFactor", 0.0, 8.0, 0.036, 0.25) == 1
 
 
 def test_the_constants_are_appendix_ds(host):
