@@ -25,6 +25,7 @@ NR.server.writer = {
         "the sleep-onset latency terms (solAddH, solMul) are not applied: vanilla sets the sleep delay",
         "the Effects step reads the writer's engine reads of the previous minute",
         "in Overlay (Mode 2) vanilla owns HUNGER, THIRST and FATIGUE; the floors, PANIC, TEMPERATURE and INTOXICATION are still written; auto-drink is not captured",
+        "another mod that sets ZomboidGlobals' hunger, thirst or fatigue rise keys after our OnGameBoot restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the satiety scalar keeps the rates saved at boot)",
     },
 }
 local W = NR.server.writer

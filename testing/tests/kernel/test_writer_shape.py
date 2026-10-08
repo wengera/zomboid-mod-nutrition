@@ -560,7 +560,7 @@ LIMITATION_FOUR = (
 
 def test_limitation_four_names_the_overwrite_and_the_scalar():
     lim = list(Host().NR.server.writer.limitations.values())
-    assert len(lim) == 11                                  # the self-report prints the count: unchanged by Task 15
+    assert len(lim) == 12                                  # the self-report prints the count (Task 20 fix: 12)
     assert lim[3] == LIMITATION_FOUR
 
 
@@ -648,7 +648,7 @@ def test_a_dry_seam_set_to_anything_but_true_leaves_the_writer_live():
     assert p.st.sets.HUNGER == pytest.approx(0.4) and h.NR.server.writer.stats.writes == 1
 
 
-# --- Task 20 fix: the well-fed rate from the saved table (review A's F4) ---------------------------------------
+# --- Task 20 fix: the well-fed rate from the saved table (review A's F4), another mod re-assigning the rates -------
 
 def test_the_well_fed_rate_is_the_one_saved_at_boot_not_the_default():
     h = Host(extra_env="NR_T = NR_T or {}\nNR_T.mode = 1\n" + ENV + "\nZomboidGlobals.HungerIncreaseWhenWellFed = 3.0e-6\n")
@@ -661,3 +661,9 @@ def test_the_well_fed_rate_is_the_one_saved_at_boot_not_the_default():
     step(h, p, rec, 31)
     assert rec.satiety == pytest.approx(0.7 * math.exp(-3.0e-6 * 1800))
 
+
+def test_a_limitation_names_another_mod_re_assigning_the_rates():
+    lim = list(Host().NR.server.writer.limitations.values())
+    hits = [x for x in lim if "another mod" in x and "OnGameBoot" in x and "ZomboidGlobals" in x]
+    assert len(hits) == 1
+    assert "vanilla's drift" in hits[0] and "between the writer's minute writes" in hits[0]
