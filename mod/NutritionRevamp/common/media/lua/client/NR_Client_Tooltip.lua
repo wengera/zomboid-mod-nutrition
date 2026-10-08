@@ -76,11 +76,17 @@
 local NR = NutritionRevamp
 
 NR.client.tooltip = {
-    stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0, above = 0 },
+    stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0, above = 0, reentries = 0, breaks = 0, stale = 0 },
     cache = {},
     R = {},
     last = nil,
     lastError = nil,
+    BREAK_AT = 10, -- TooltipLib's breaker figure (#3546, Core.lua:207; its re-entry guard #3547)
+    REENTRY_MS = 1000, -- a depth older than this is stale: the render that raised it raised before resetting it
+    fails = 0, -- consecutive failures; a clean render resets it
+    broken = false, -- true once BREAK_AT failures ran in a row: the saved original only until a reload
+    depth = 0, -- 0 outside a render, 1 while linesFor runs, 2 while the original draws
+    depthAt = 0, -- T.now() when the depth was last set
     LINE_SPACING = 14, -- the band's line step when the tooltip object's getLineSpacing cannot be read
     PAD = 6, -- the band's vertical padding, 3 above the first line and 3 below the last
     INSET = 8, -- the text's left inset inside the band
@@ -392,9 +398,10 @@ end
 -- The wrapper body after the original: the band under one pcall, a failure counted and kept.
 function T.after(el, lines)
     local ok, err = pcall(T.band, el, lines)
-    if not ok then
-        T.stats.errors = T.stats.errors + 1
-        T.lastError = tostring(err)
+    if ok then
+        T.fails = 0
+    else
+        T.failed(err)
     end
 end
 
@@ -420,24 +427,68 @@ function T.probe(fullType)
     return #entry.lines, entry.source
 end
 
--- The wrapper over one original: linesFor first under a pcall, the original exactly once, then the band.
+-- The clock in ms, or 0 where there is none (only a test host has none).
+function T.now()
+    if getTimestampMs == nil then return 0 end
+    local ok, v = pcall(getTimestampMs)
+    if ok and type(v) == "number" then return v end
+    return 0
+end
+
+-- A failure (linesFor or the band raised): counted; at BREAK_AT in a row the breaker opens until the next reload.
+function T.failed(err)
+    T.stats.errors = T.stats.errors + 1
+    T.lastError = tostring(err)
+    T.fails = T.fails + 1
+    if T.fails >= T.BREAK_AT and not T.broken then
+        T.broken = true
+        T.stats.breaks = T.stats.breaks + 1
+        print("[NutritionRevamp] tooltip: " .. tostring(T.fails) .. " failures in a row; the band is off until a reload: " .. T.lastError)
+    end
+end
+
+-- The wrapper over one original: linesFor first under a pcall, the original exactly once (outside any pcall),
+-- then the band. The depth says where the render is: 1 while linesFor runs (pcall'd, so a raise never leaves 1
+-- behind), 2 while the original draws; a 2 left by a raising original is honoured as a re-entry only within
+-- REENTRY_MS, and is reset at once when older or when there is no clock.
 local function makeWrapper(original)
     return function(self)
         local t = nil
         local nr = NutritionRevamp
         if nr ~= nil and nr.client ~= nil then t = nr.client.tooltip end
+        if t == nil or t.broken then
+            return original(self) -- an open breaker, or no table: the saved original only
+        end
+        local now = t.now()
+        if t.depth == 1 then
+            t.stats.reentries = t.stats.reentries + 1
+            return original(self) -- re-entered from our own linesFor
+        end
+        if t.depth == 2 then
+            if now > 0 and now - t.depthAt <= t.REENTRY_MS then
+                t.stats.reentries = t.stats.reentries + 1
+                return original(self) -- re-entered while the original draws
+            end
+            t.depth = 0
+            t.stats.stale = t.stats.stale + 1
+        end
+        t.depth = 1
+        t.depthAt = now
         local lines = nil
-        if t ~= nil and t.linesFor ~= nil then
+        if t.linesFor ~= nil then
             local ok, l = pcall(t.linesFor, self.item)
             if ok then
                 lines = l
+                if l == nil then t.fails = 0 end
             else
-                t.stats.errors = t.stats.errors + 1
-                t.lastError = tostring(l)
+                t.failed(l)
             end
         end
+        t.depth = 2
+        t.depthAt = t.now()
         original(self)
         if lines ~= nil and t.after ~= nil then t.after(self, lines) end
+        t.depth = 0
     end
 end
 

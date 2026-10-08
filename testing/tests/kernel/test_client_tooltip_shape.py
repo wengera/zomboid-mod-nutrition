@@ -490,3 +490,59 @@ def test_a_box_with_room_below_keeps_the_band_below():
     rects = draws(rt, "rect")
     assert rects[0][2] == 120
     assert p.height > 120 and T(rt).stats.above == 0
+
+
+# --- Plan 11 Task 18: the breaker and the re-entry guard ----------------------------------------------------------
+
+def test_ten_consecutive_failures_open_the_breaker():
+    rt = rt_with(view=True)
+    rt.execute("NutritionRevamp.client.tooltip.linesFor = function() error('boom') end")
+    for _ in range(12):
+        render(rt, "NR_T.food('Base.Apple')")
+    t = T(rt)
+    assert t.broken is True and t.stats.errors == 10 and t.stats.breaks == 1
+    assert rt.globals().NR_T.renders == 12                  # the original ran every frame
+
+
+def test_a_success_resets_the_count():
+    rt = rt_with(view=True)
+    rt.execute("NR_T.fail = function() error('boom') end; NR_T.ok = function() return nil end")
+    for i in range(30):
+        rt.execute("NutritionRevamp.client.tooltip.linesFor = NR_T.%s" % ("ok" if i % 5 == 4 else "fail"))
+        render(rt, "NR_T.food('Base.Apple')")
+    t = T(rt)
+    assert t.broken is not True and t.fails == 0 and t.stats.errors == 24
+
+
+def test_a_reentrant_render_calls_the_saved_original():
+    rt = rt_with(view=True)
+    rt.execute("""NutritionRevamp.client.tooltip.linesFor = function(item)
+        NR_ClientTooltip_Installed.wrapper(NR_T.panel(item))      -- a third mod's render calling back into the chain
+        return nil
+    end""")
+    render(rt, "NR_T.food('Base.Apple')")
+    assert T(rt).stats.reentries == 1
+    assert rt.globals().NR_T.renders == 2                   # the inner call drew the original only, then the outer
+    assert len(draws(rt, "rect")) == 0                      # and neither drew the band
+
+
+def test_a_depth_left_by_a_raising_original_never_sticks_without_a_clock():
+    rt = rt_with(view=True)
+    rt.execute("getTimestampMs = nil")                       # T.now() reads 0: only a test host has no clock
+    rt.execute("NutritionRevamp.client.tooltip.depth = 2; NutritionRevamp.client.tooltip.depthAt = 0")
+    render(rt, "NR_T.food('Base.Apple')")                    # the depth an original that raised left behind
+    t = T(rt)
+    assert t.stats.reentries == 0 and t.stats.stale == 1 and t.depth == 0
+    render(rt, "NR_T.food('Base.Apple')")
+    assert T(rt).stats.reentries == 0 and rt.globals().NR_T.renders == 2
+
+
+def test_with_a_clock_a_fresh_depth_is_a_reentry_and_an_old_one_is_stale():
+    rt = rt_with(view=True)
+    rt.execute("NR_T.ms = 5000; getTimestampMs = function() return NR_T.ms end")
+    rt.execute("NutritionRevamp.client.tooltip.depth = 2; NutritionRevamp.client.tooltip.depthAt = 4500")
+    render(rt, "NR_T.food('Base.Apple')")                    # 500 ms after the original began: inside it
+    assert T(rt).stats.reentries == 1 and T(rt).depth == 2
+    rt.execute("NutritionRevamp.client.tooltip.depthAt = 3000")
+    render(rt, "NR_T.food('Base.Apple')")                    # 2000 ms: an original that raised; stale
+    assert T(rt).stats.stale == 1 and T(rt).depth == 0
