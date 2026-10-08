@@ -602,6 +602,31 @@ Angus answered the six decisions on 2026-10-08, in a brainstorming pass that set
      - the harness gains a route that feeds ghost records into the mod's own queue, so the mod's scheduler is measured against `budget15` at both spacings.
    - Open items 1 to 9 below are Plan 11's scheduler task.
 
+7. **What the neighbour reads add to Plan 11** (Angus, 2026-10-08).
+   - **Source.** Four reads ran on 2026-10-08, kept in the workspace `.superpowers/sdd/2026-10-08-neighbour-reads/`. The lens was long-term operability, maintainability, control of our mod, and accuracy or realism.
+   - **The compatibility picture.**
+     - StatsAPI is a Build 41 mod that 42.20.4 never discovers, so it is inert.
+     - Stat Tweaks Lib loads but raises on every client update on 42.20.4, and never runs on a dedicated server.
+     - Tooltiplib chains cleanly with our tooltip.
+     - Nutrition Makes Sense is incompatible: write wars over HUNGER, calories and weight, each mod booking the other's calorie writes as meals, and overrides of 438 shared food items.
+   - **Into Plan 11:**
+     1. **A jar read of how a food's HungerChange drives half and quarter eating and recipe ingredients**, before Decision 2's bulk scaling. The scaling acts on the applied hunger drop, not on the item value.
+     2. **Vanilla's rates saved before they are zeroed, and exposed read-only**, so nothing that reads them gets zero.
+     3. **A boot-time warning to the operator when Nutrition Makes Sense is installed.** The mod warns and does not refuse to run.
+     4. **Two tooltip guards:** stop retrying after repeated errors, and fall back to the saved original on re-entry.
+     5. **Nutrition conserved through recipes that split food.**
+        - First, measure which recipes break conservation and by how much.
+        - Then fix the material ones server-side, where the eat is booked, driven by data rather than a hand-kept recipe list.
+        - The client tooltip may still show the unscaled values in multiplayer, because a Lua item write does not reach the client (#1074). Document that limit.
+   - **Left out, with the reason:**
+     - **A public rate-source API for other mods.** It would be a permanent contract that lets outside code change our model, and it has no consumer today. Add it when one appears.
+     - **Recovery fields that yield to other mods' edits.** Another mod could silently switch off our malnutrition effects. Our effects stay authoritative, the behaviour goes in the compatibility notes, and a later conflict is answered by applying our factor on top of the other mod's value.
+     - **Sending player state only when it changes.** More state, stale-detection and a re-request spam vector, to save bandwidth we have not shown we need. The fixed staggered cadence stays.
+     - **The UX ideas:** display modes, time hints, a kg/week trend and a moodle that names its cause. They go to a later plan.
+   - **The durable record.** The four mods' pages and catalog rows, the compatibility notes, and two new jar facts go into the reference library with register rows (Plan 11's first task):
+     - a dedicated server never runs `client/` Lua;
+     - the discovery rule that hides a mod with no `common/` or version folder.
+
 ### 1. The takeover fork
 
 **The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #3423, #1080). Plan 10b measured the fork under that target (Performance, above). Under the restated rule 6 the takeover stays withdrawn, because a per-tick hook is not measured to reduce hitching. The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
