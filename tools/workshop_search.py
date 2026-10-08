@@ -98,7 +98,7 @@ ITEM_MARKERS = ("workshopItemTitle", "detailsStatRight")
 BROWSE_TEMPLATE_ERR = "unrecognised browse-page template (no browsesort control)"
 ITEM_TEMPLATE_ERR = "unrecognised item-page template (no workshopItemTitle / detailsStatRight)"
 
-BUILD = "42.20.4 (b0bbce05d5)"
+BUILD = "42.21.0 (4a0e9546ec)"
 PAUSE = 1.0          # seconds between browse requests -- one page a second, politely
 DETAIL_PAUSE = 4.0   # item pages are the scarce read; the spacing the recorded runs used
 RETRY_PAUSE = 5.0    # one retry per failure mode, then the failure is recorded on the row

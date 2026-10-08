@@ -1069,7 +1069,7 @@ class ExtractTest(ExtractFixture):
     def test_the_meta(self):
         meta = self.build()["meta"]
         self.assertEqual((meta["build"], meta["jar_hash"], meta["tool"]),
-                         ("42.20.4", "b0bbce05d5", "tools/food_nutrients.py"))
+                         ("42.21.0", "4a0e9546ec", "tools/food_nutrients.py"))  # 42.21.0 (2026-10-08 scan); 42.20.4 read 42.20.4, b0bbce05d5
         self.assertEqual(meta["generated"], datetime.datetime.now(datetime.timezone.utc).date().isoformat())
         self.assertEqual([s["name"] for s in meta["sources"]], [s["name"] for s in fn.fdc_fetch.sources()])
         sr = meta["sources"][0]
@@ -1436,7 +1436,7 @@ class BuildTest(BuildFixture, OutputShape):
         result = self.run_build()
         meta = result["meta"]
         self.assertEqual((meta["build"], meta["jar_hash"], meta["tool"]),
-                         ("42.20.4", "b0bbce05d5", "tools/food_nutrients.py"))
+                         ("42.21.0", "4a0e9546ec", "tools/food_nutrients.py"))  # 42.21.0 (2026-10-08 scan); 42.20.4 read 42.20.4, b0bbce05d5
         self.assertEqual(meta["generated"], datetime.datetime.now(datetime.timezone.utc).date().isoformat())
         with open(self.out, encoding="utf-8") as handle:
             extract = json.load(handle)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Vanilla food/drink dataset builder, on a shared reader for the script DSL.
 
-`python tools/food_scan.py` parses the 42.20.4 scripts and writes
+`python tools/food_scan.py` parses the installed build's scripts (42.21.0 at the 2026-10-08 scan) and writes
 `data/food-items.json` + `data/food-items.csv`. See `select` for the selection rule (what is
 and is not in the dataset), `build` for the joins, and data/README.md for the columns.
 
@@ -288,8 +288,8 @@ def _load_json(path):
 # The dataset: data/food-items.json + data/food-items.csv
 # --------------------------------------------------------------------------------------------
 
-BUILD = "42.20.4"
-JAR_HASH = "b0bbce05d5"
+BUILD = "42.21.0"
+JAR_HASH = "4a0e9546ec"
 SCRIPTS = "scripts/generated"                  # under MEDIA; every source path is relative to it
 FOOD_FILE = "items/food.txt"
 DRAINABLE_FILE = "items/drainable.txt"

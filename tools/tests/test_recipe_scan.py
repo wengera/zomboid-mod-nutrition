@@ -788,7 +788,7 @@ def test_json_is_sorted_and_byte_stable():
         assert raw == open(second, encoding="utf-8", newline="").read()
         assert "\r" not in raw and raw.endswith("\n")
         payload = json.loads(raw)
-    assert payload["meta"]["build"] == "42.20.4 (b0bbce05d5)"
+    assert payload["meta"]["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
     assert [r["name"] for r in payload["recipes"]] == ["MakeToast", "MillCornflour"]
 
 
@@ -1330,8 +1330,8 @@ def test_real_install_counts():
     assert counts["recipesWithDestroyWaste"] == 0
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
     assert len({r["name"] for r in recipes}) == 969        # every craftRecipe name is unique
-    assert meta["build"] == "42.20.4 (b0bbce05d5)"
-    assert meta["sources"]["food_items"]["build"] == "42.20.4"
+    assert meta["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
+    assert meta["sources"]["food_items"]["build"] == "42.21.0"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4"
     # acceptance 3: every output type `items/food.txt` defines has a `data/food-items.json` row
     assert meta["foodJoinMisses"] == [] and counts["foodJoinMisses"] == 0
     # one output mapper resolves to no type at all: `SmeltMapper` writes only a `default`, so
@@ -1477,8 +1477,8 @@ def test_real_install_evolved_counts():
     assert len(cinnamon) == 1 and cinnamon[0]["key"] == "ConeIceCream:1"
     assert cinnamon[0]["resolvedVia"] == "template" and cinnamon[0]["spice"] is True
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
-    assert meta["build"] == "42.20.4 (b0bbce05d5)"
-    assert meta["sources"]["food_items"]["build"] == "42.20.4"
+    assert meta["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
+    assert meta["sources"]["food_items"]["build"] == "42.21.0"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4"
     assert counts["duplicateRecipeNames"] == 0 and counts["hungerClampRows"] == 59
 
 

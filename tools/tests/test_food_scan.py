@@ -501,7 +501,7 @@ def test_real_install_repeated_keys():
     assert sum(len(values(b, "fluid")) for b in pools) == 145      # props alone would keep 68 …
     assert sum(1 for b in pools if len(values(b, "fluid")) > 1) == 9   # … losing 77 lines, from 9
     hairdye = [b for b in normal if b["kind"] == "item" and b["name"] == "HairDyeCommon"][0]
-    assert hairdye["line"] == 2653
+    assert hairdye["line"] == 2654  # 42.21.0 (2026-10-08 scan); 42.20.4 read 2653
     assert len(values(named(hairdye["blocks"][0], "Fluids"), "fluid")) == 8
 
     drainable = list(food_scan.iter_blocks(_roots_of("items/drainable.txt")))
@@ -528,7 +528,7 @@ def test_real_install_has_no_anonymous_blocks():
                     multi_word += 1
                 elif block["kind"] == "block" and not block["name"].isidentifier():
                     numbered += 1
-    assert total == 34683                    # == the 34683 `{` lines these files contain
+    assert total == 34691                    # == the 34691 `{` lines these files contain; 42.21.0 (2026-10-08 scan); 42.20.4 read 34683
     assert multi_word == 114                 # 87 vehicles, 19 `fixing Fix …`, 6 evolved, 2 traits
     assert numbered == 42                    # vehicle templates' `items { 1 { … } }` step indices
     assert multi_word + numbered == 156       # the whole set the old header regex made anonymous
@@ -1125,7 +1125,7 @@ def test_real_dataset_counts():
     assert [r["id"] for r in items] == sorted(r["id"] for r in items)     # stable ordering
     assert [r["id"] for r in fluids] == sorted(r["id"] for r in fluids)
     assert len(meta["sources"]) == 18                     # 15 items/*.txt + 3 fluid files
-    assert meta["build"] == "42.20.4" and meta["jar_hash"] == "b0bbce05d5"
+    assert meta["build"] == "42.21.0" and meta["jar_hash"] == "4a0e9546ec"  # 42.21.0 (2026-10-08 scan); 42.20.4 read 42.20.4, b0bbce05d5
 
 
 @unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)

@@ -1,7 +1,7 @@
 {
  "meta": {
-  "build": "42.20.4 (b0bbce05d5)",
-  "generated": "2026-09-10",
+  "build": "42.21.0 (4a0e9546ec)",
+  "generated": "2026-10-08",
   "tool": "tools/recipe_scan.py",
   "sources": {
    "scripts": "media/scripts",
@@ -83,9 +83,9 @@
    ],
    "food_items": {
     "path": "data/food-items.json",
-    "build": "42.20.4",
-    "jar_hash": "b0bbce05d5",
-    "generated": "2026-09-10"
+    "build": "42.21.0",
+    "jar_hash": "4a0e9546ec",
+    "generated": "2026-10-08"
    }
   },
   "counts": {
@@ -90927,7 +90927,7 @@
    "sourceFile": "recipes/recipes_tailoring.txt",
    "sourceLine": 790,
    "time": 200,
-   "timedAction": "MakingHammer_Surface",
+   "timedAction": "HammerBoneStanding",
    "category": "Tailoring",
    "tags": [
     "AnySurfaceCraft"

@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: the committed data
 <a id="columns"></a>
 ## Columns
 
-The generated datasets are `data/food-items.*`, `data/recipes.*` and `data/evolved-recipes.*`, each a CSV and JSON pair read off the `42.20.4` scripts and never hand-edited; `data/mod-inventory.json` and `data/workshop-search.*` are dated snapshots of a live tree and a live website, whose columns are [Mod inventory](#mod-inventory) and [Workshop rows](#workshop-rows). The food-nutrients pipeline's three datasets, `data/food-nutrient-map/`, `data/fdc-extract.json` and `data/food-nutrients.*`, are [Food nutrients](#food-nutrients), and the pipeline's side tables, `data/iodine-db-r4.csv`, `data/phytate-literature.csv` and `data/insect-literature.csv`, are described there too.
+The generated datasets are `data/food-items.*`, `data/recipes.*` and `data/evolved-recipes.*`, each a CSV and JSON pair read off the installed build's scripts (`42.21.0` since the 2026-10-08 scan, `42.20.4` before it) and never hand-edited; `data/mod-inventory.json` and `data/workshop-search.*` are dated snapshots of a live tree and a live website, whose columns are [Mod inventory](#mod-inventory) and [Workshop rows](#workshop-rows). The food-nutrients pipeline's three datasets, `data/food-nutrient-map/`, `data/fdc-extract.json` and `data/food-nutrients.*`, are [Food nutrients](#food-nutrients), and the pipeline's side tables, `data/iodine-db-r4.csv`, `data/phytate-literature.csv` and `data/insect-literature.csv`, are described there too.
 This section is the column authority for the generated three: what the load-bearing columns mean, which are derived and which are read, and how absence is written.
 The full column lists, one table per file, are [Schemas](#schemas); the scanners that write the files are [`food_scan.py`](tools.md#food-scan) and [`recipe_scan.py`](tools.md#recipe-scan).
 
@@ -368,7 +368,7 @@ The JSON twin is written in the same run from the same metadata, so the provenan
 
 ### Food items
 
-`data/food-items.csv` is 1 006 lines (header plus 1 005 rows) and 61 columns — 59 declared plus `source_file` and `source_line` — with one row per item, zero quoted cells, LF endings and no build stamp, while the JSON is 2.35 MB against the CSV's 237 KB, 41 126 of its lines being a null column value and `props_raw` another 474 KB, in the 2026-09-10 scan [#0639/C/snapshot].
+`data/food-items.csv` is 1 006 lines (header plus 1 005 rows) and 61 columns — 59 declared plus `source_file` and `source_line` — with one row per item, zero quoted cells, LF endings and no build stamp, while the JSON is 2.36 MB against the CSV's 239 KB, 41 099 of its lines being a null column value and `props_raw` another 476 KB, in the 2026-10-08 scan of `42.21.0` [T1199.1].
 Fluids are joined into their container's row and also kept whole under the JSON's `fluids` key; they are never rows of their own [#0617].
 The food dataset's JSON is a `meta` block, an item array and a fluid array, both sorted by id — 1 005 items and 61 fluids in the 2026-09-10 scan of `42.20.4` — where an item record carries every declared column, absent as `null`, plus `props_raw`: the item block's own key-and-value lines verbatim, untyped and unsplit, with a key written twice becoming a list [#0640, #1899/C/snapshot].
 Nested blocks are not flattened into `props_raw`, so a container's `Capacity` reaches the record only as `fluid_capacity` [#0640, #1899/C/snapshot].

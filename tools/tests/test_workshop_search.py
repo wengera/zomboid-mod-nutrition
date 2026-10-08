@@ -395,7 +395,7 @@ def test_meta_carries_the_build_terms_url_patterns_and_a_fetch_stamp(tmp_path):
     meta = ws.build_meta({"nutrition": {"results": 30, "error": None}}, {"terms": 1},
                          {"1": ["A", "B"]},        # the index the join used, not a second read
                          now=datetime.datetime(2026, 9, 10, 15, 41))
-    assert meta["build"] == "42.20.4 (b0bbce05d5)"
+    assert meta["build"] == "42.21.0 (4a0e9546ec)"
     assert meta["tool"] == "tools/workshop_search.py"
     assert meta["generated"] == "2026-09-10" and meta["fetched"] == "2026-09-10 15:41"
     assert meta["terms"] == ["nutrition"]
@@ -535,7 +535,7 @@ def test_catalog_meta_says_it_is_item_pages_only():
     import datetime
     meta = ws.build_catalog_meta({"requested": 9, "fetched": 9, "failed": 0, "incomplete": 0},
                                  ["3774789651"], now=datetime.datetime(2026, 9, 10, 17, 5))
-    assert meta["build"] == "42.20.4 (b0bbce05d5)"
+    assert meta["build"] == "42.21.0 (4a0e9546ec)"
     assert meta["tool"] == "tools/workshop_search.py --catalog-ids"
     assert meta["catalog_ids"] == ["3774789651"]
     assert set(meta["source_url_pattern"]) == {"item"}, "no browse pass ran"
