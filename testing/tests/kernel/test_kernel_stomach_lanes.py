@@ -111,6 +111,10 @@ def test_drain_moves_the_solid_share_of_every_key_and_the_liquids_share_of_water
     assert em.water == pytest.approx(300 * f + 250 * fl)
     assert st.buffer.calories == pytest.approx(650 * (1 - f)) and st.buffer.water == pytest.approx(300 * (1 - f))
     assert st.liquid == pytest.approx(250 * (1 - fl))
+    assert em.fibre == pytest.approx(6 * f) and st.buffer.fibre == pytest.approx(6 * (1 - f))
+    loaded = {"calories": 650, "proteins": 24.375, "carbs": 81.25, "lipids": 25.0, "fibre": 6, "iron": 4}
+    for key, amount in loaded.items():
+        assert em[key] + st.buffer[key] == pytest.approx(amount)
 
 
 def test_drain_over_no_time_moves_nothing(host):

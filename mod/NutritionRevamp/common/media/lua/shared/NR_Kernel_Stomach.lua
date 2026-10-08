@@ -241,7 +241,7 @@ K.stomach.CAPACITY_G = 430 -- S1250 (labelled inference, ruling 11c-8): the comf
 K.stomach.CAPACITY_MAX_G = 730 -- S1250 (labelled inference, ruling 11c-8): the soft cap, 734 mL of water to maximum fullness; S1251's slow nutrient drinks (937-1048 mL) bound it above
 K.stomach.CAPACITY_HARD_G = 1100 -- S1253 (labelled inference): the soft cap's full scale, a balloon at maximal discomfort in lean subjects (1100 mL, n = 4)
 
--- A vector's mass in grams: its water, macronutrients and fibre (the vector's gram keys; calories are energy, not mass).
+-- A vector's mass in grams: its water, macronutrients and fibre (the gram keys of the buffer's mass, efa inside lipids, ethanol left out by ruling T17-2; calories are energy, not mass).
 function K.stomach.massOf(vector)
     return vector.water + vector.proteins + vector.carbs + vector.lipids + vector.fibre
 end
