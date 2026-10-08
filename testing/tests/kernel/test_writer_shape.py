@@ -602,3 +602,47 @@ def test_a_gap_over_sixty_minutes_decays_over_3600_seconds_only():
     step(h, p, rec, 1)
     step(h, p, rec, 1 + 180)                               # three game hours since the last write
     assert rec.satiety == pytest.approx(0.7 * math.exp(-9.6e-6 * 3600))
+
+
+# --- Plan 11 Task 19: the dry seam the harness's ghost runs use --------------------------------------------------
+
+def test_a_dry_writer_computes_and_sets_nothing():
+    h = boot()
+    W = h.NR.server.writer
+    p = player(h)
+    rec = record(h, satiety=0.6)
+    rec.fluids.autoDrop = 0.05
+    h.NR.server.intake.landed["a"] = True
+    W.dry = True
+    step(h, p, rec, 1)
+    p.st.v.THIRST = 0.1                                    # a fall a live writer would book as a sip
+    step(h, p, rec, 2)
+    assert len(list(p.st.sets.keys())) == 0                # no stat written
+    assert rec.satiety == 0.6 and rec.satietyStepped is True   # the scalar neither stepped nor re-marked
+    assert rec.fluids.autoDrop == 0.05                     # no sip folded into the pool
+    assert h.NR.server.intake.landed["a"] is True          # the landing mark left for the real step
+    assert W.h["a"] is None and W.inp["a"] is None         # nothing hoisted, no engine read
+    assert W.stats.writes == 0 and W.stats.seeded == 0 and W.stats.skipped == 0
+    assert W.stats.dry == 2                                # the dry minutes are counted on their own
+
+
+def test_the_dry_seam_is_nil_by_default_and_a_cleared_seam_writes_again():
+    h = boot()
+    W = h.NR.server.writer
+    assert W.dry is None and W.stats.dry == 0
+    p = player(h)
+    rec = record(h, satiety=0.6)
+    W.dry = True
+    step(h, p, rec, 1)
+    W.dry = None
+    step(h, p, rec, 2)
+    assert p.st.sets.HUNGER is not None and W.stats.writes == 1
+
+
+def test_a_dry_seam_set_to_anything_but_true_leaves_the_writer_live():
+    h = boot()
+    p = player(h)
+    rec = record(h, satiety=0.6)
+    h.NR.server.writer.dry = 1                             # only true dries the writer
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(0.4) and h.NR.server.writer.stats.writes == 1

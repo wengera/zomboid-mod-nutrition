@@ -12,7 +12,7 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.writer = {
     h = {}, inp = {}, saved = nil, rates = nil, zeroed = false, mode = 1, wired = false, so = nil,
-    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, nms = false },
+    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, nms = false, dry = 0 },
     limitations = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
@@ -173,6 +173,14 @@ function W.satiety(h, player, record, eng, inp, es)
 end
 
 function W.step(username, player, record, ctx)
+    -- The dry seam (Plan 11 Task 19, ruling 15): nil in production, set true only by the test harness around its
+    -- ghost runs. A dry minute computes and sets nothing -- no stat write, no hoist, no engine read, and no record
+    -- mutation (the satiety step and its mark, the sip fold, the landing mark) -- and is counted in stats.dry. It
+    -- sits first, so every step added here later inherits it.
+    if W.dry == true then
+        W.stats.dry = W.stats.dry + 1
+        return
+    end
     if record == nil or player == nil then return end
     local h = W.h[username]
     if h == nil or h.p ~= player then

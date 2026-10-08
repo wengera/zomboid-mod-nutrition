@@ -758,3 +758,60 @@ def test_a_player_whose_reads_fail_three_times_then_succeed_is_recovered_and_the
     assert st.file.stats.recovered == 1 and h.record("admin").resets == 6
     assert st.file.deferN["admin"] is None and st.file.stats.deferGiveUps == 0
 
+
+# --- Plan 11 Task 19: the skip seam the harness's ghost names use -------------------------------------------------
+
+GHOST_SKIP = "function(name) return name == 'ghost1' end"
+
+
+def test_a_skipped_name_writes_no_slot_and_never_enters_the_index():
+    h = boot()
+    S = h.NR.server.store
+    F = S.file
+    S.skip = h.rt.eval(GHOST_SKIP)
+    ghost = h.K.store.new("ghost1", 100.0)
+    n, writes, reads = len(h.T.opened), F.stats.writes, F.stats.reads           # after the boot's own index write
+    for _ in range(3):                                                          # three real minutes: past any phase
+        S.step("ghost1", None, ghost, None)
+        h.T.now = h.T.now + 61000
+    assert opened_with(h, ROOT, n) == []                                        # no slot, no index file opened
+    assert F.stats.writes == writes and F.stats.reads == reads                  # not even the save's preload read
+    assert F.lastWrite["ghost1"] is None                                        # no phase seeded
+    assert F.index["ghost1"] is None and F.indexDirty is False                  # never indexed, never dirtied
+    assert F.gen["ghost1"] is None and F.last["ghost1"] is None
+
+
+def test_a_skip_seam_leaves_every_other_name_saved():
+    h = boot()
+    S = h.NR.server.store
+    S.skip = h.rt.eval(GHOST_SKIP)
+    admin = h.K.store.new("admin", 100.0)
+    for _ in range(3):
+        S.step("admin", None, admin, None)
+        h.T.now = h.T.now + 61000
+    assert opened_with(h, ROOT + ADMIN)                                         # the real name is saved
+    assert S.file.index["admin"] is not None and S.file.indexDirty is True
+
+
+def test_a_skipped_name_over_indexed_unreadable_files_counts_no_deferral():
+    hexg = "p_00670068006f007300740031_"                                       # hexName("ghost1")
+    files = {ROOT + hexg + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"ghost1": 990})}
+    h = boot(files=files)
+    assert "p_" + h.K.store.hexName("ghost1") + "_" == hexg
+    S = h.NR.server.store
+    h.T.readerNil = 100000                                                      # the files never read
+    r = S.get("ghost1", 100.0)                                                  # fresh: both slots read nil
+    assert S.fresh["ghost1"] is True
+    S.skip = h.rt.eval(GHOST_SKIP)
+    n = len(h.T.opened)
+    for _ in range(3):
+        S.step("ghost1", None, r, None)
+        h.T.now = h.T.now + 61000
+    assert S.file.stats.deferred == 0 and S.file.deferN["ghost1"] is None       # no deferral counted
+    assert S.file.deferWarned["ghost1"] is None
+    assert opened_with(h, ROOT, n) == []
+
+
+def test_the_skip_seam_is_nil_by_default():
+    h = boot()
+    assert h.NR.server.store.skip is None

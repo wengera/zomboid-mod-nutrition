@@ -398,6 +398,10 @@ end
 -- The pipeline's store step: the player's slot written when a real minute has passed since its last write; the
 -- first write after a boot falls at the player's phase over that minute (K.store.firstLast).
 function S.step(username, player, record, ctx)
+    -- The skip seam (Plan 11 Task 19, ruling 15): S.skip is nil in production; only the test harness sets it, to a
+    -- function of a username answering true for its ghost names, whose store step then does nothing at all (no
+    -- phase seed, no preload read, no deferral, no save, no index entry or dirty mark).
+    if S.skip ~= nil and S.skip(username) == true then return end
     local now = nowMs()
     if now == nil or record == nil then return end
     if F.lastWrite[username] == nil then F.lastWrite[username] = K.store.firstLast(username, now, S.SAVE_GAP_MS) end
