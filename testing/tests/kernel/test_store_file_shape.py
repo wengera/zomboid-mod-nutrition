@@ -715,3 +715,46 @@ def test_a_reset_over_indexed_unreadable_files_is_saved_not_deferred():
     h.T.readerNil = 2                                                           # the save's preload fails too
     assert S.file.save("admin", r)
     assert S.file.stats.deferred == 0
+    assert h.NR.server.store.file.load("admin").resets == 1                     # what was written: the reset record (the fresh one, 0, plus one), not the file's 6
+
+
+def test_a_deferral_over_files_that_never_read_gives_up_after_the_bound_and_saves_the_session():
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 100000                                                      # the files never read
+    h.online(h.player("admin"))
+    st = h.NR.server.store
+    m = 1
+    while st.file.stats.deferred < st.DEFER_MAX and m < 40:
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert st.file.stats.deferred == st.DEFER_MAX
+    assert st.file.stats.deferGiveUps == 0 and st.fresh["admin"] is True
+    assert opened_with(h, ROOT + "p_") == []                                    # ten minutes with no file opened
+    run_minutes(h, 1, start=m)                                                  # the next save gives up
+    assert opened_with(h, ROOT + "p_")                                          # a file is opened
+    assert st.file.stats.deferred == st.DEFER_MAX and st.file.stats.deferGiveUps == 1
+    assert st.fresh["admin"] is None and st.file.deferN["admin"] is None
+    assert any("admin files indexed but unreadable for 10 minutes; saving the session record" in p
+               for p in h.printed())
+    h.T.readerNil = 0
+    h2 = boot(files=files_of(h))
+    assert h2.NR.server.store.file.load("admin").resets == 0                    # the session record
+
+
+def test_a_player_whose_reads_fail_three_times_then_succeed_is_recovered_and_the_count_cleared():
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 8                                                           # first sight, then three saves' preloads
+    h.online(h.player("admin"))
+    st = h.NR.server.store
+    m = 1
+    while st.file.stats.deferred < 3 and m < 12:
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert st.file.deferN["admin"] == 3
+    h.T.readerNil = 0
+    run_minutes(h, 3, start=m)
+    assert st.file.stats.recovered == 1 and h.record("admin").resets == 6
+    assert st.file.deferN["admin"] is None and st.file.stats.deferGiveUps == 0
+

@@ -29,8 +29,11 @@
 -- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
 -- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
 -- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
--- store.file.stats.deferred, logged once, the flag kept so the next save tries again), so the fresh record never
--- overwrites the real one (logged at level 2); the flag clears at the first save and at a reset. A player first seen
+-- store.file.stats.deferred, logged once, the flag kept so the next save tries again) for at most S.DEFER_MAX
+-- deferred saves per player (a game choice: about ten real minutes at the 60 s save gap; the next save then gives
+-- up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation), so
+-- the fresh record never overwrites the real one for a transient failure (logged at level 2); the flag and the
+-- count clear at the first save, at a recovery and at a reset. A player first seen
 -- after the last index write has no such protection: the index does not name them, so two failed reads save them new.
 --
 -- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
@@ -56,12 +59,12 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}, loadedFor = nil, wired = false,
-                    fresh = {}, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
+                    fresh = {}, DEFER_MAX = 10, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0 }, deferWarned = {} } }
+                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferN = {} } }
 local S = NR.server.store
 local F = S.file
 
@@ -240,6 +243,7 @@ end
 -- failure at first sight): the file's record is laid into the in-memory one in place. Returns nothing.
 function S.recover(username, record, raw)
     S.fresh[username] = nil
+    F.deferN[username] = nil
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records)
     if not ok then
@@ -264,15 +268,23 @@ function F.save(username, record)
             return false
         end
         if raw == nil and S.fresh[username] == true and F.index[username] ~= nil then
-            F.stats.deferred = F.stats.deferred + 1
-            if not F.deferWarned[username] then
-                F.deferWarned[username] = true
-                NR.log.say(2, "store: " .. tostring(username) .. " save deferred: files indexed but unreadable")
+            local n = (F.deferN[username] or 0) + 1
+            if n <= S.DEFER_MAX then
+                F.deferN[username] = n
+                F.stats.deferred = F.stats.deferred + 1
+                if not F.deferWarned[username] then
+                    F.deferWarned[username] = true
+                    NR.log.say(2, "store: " .. tostring(username) .. " save deferred: files indexed but unreadable")
+                end
+                return false
             end
-            return false
+            F.stats.deferGiveUps = F.stats.deferGiveUps + 1
+            NR.log.say(1, "store: " .. tostring(username) .. " files indexed but unreadable for " .. tostring(S.DEFER_MAX)
+                .. " minutes; saving the session record")
         end
     end
     S.fresh[username] = nil
+    F.deferN[username] = nil
     local gen = (F.gen[username] or 0) + 1
     local which = target(F.at[username], F.slot(username, F.at[username] or "a"), F.last[username], username)
     local text = K.json.encode({ gen = gen, rec = K.store.inputsOnly(record), done = true }, F.fmt)
@@ -370,7 +382,8 @@ function S.reset(username, worldAgeHours)
     local old = t[username]
     if old == nil then old = F.load(username) end
     local r = S.new(username, worldAgeHours)
-    S.fresh[username] = nil                                -- a reset record is meant to replace the file's
+    S.fresh[username] = nil
+    F.deferN[username] = nil                               -- a reset record is meant to replace the file's
     if old ~= nil then
         r.resets = (old.resets or 0) + 1                   -- ruling 4: every OnNewGame over an existing record
     else
