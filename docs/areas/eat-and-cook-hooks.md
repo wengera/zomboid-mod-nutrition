@@ -5,7 +5,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 <a id="rules"></a>
 
 - Run the mod's intake math where the eat completes: a multiplayer client never reaches the eat action's completion step, so nothing a mod hangs off the client side of that path ever runs [#0109, #0110].
-- Name a script hook's target as a bare global function: the eat path resolves the script's name through the Lua manager's function-object lookup, which never finds a local or a table member [#0921/C/C-only].
+- Name a script hook's target as a bare global function: the eat path resolves the script's name through the Lua manager's function-object lookup, which never finds a local, and the cook path looks a dotted name up exactly two levels, so a bare global is the one form every path resolves [T1199.2, T1199.3].
 - Define that global in a `shared/` file and branch on the side inside it: the folder decides nothing, and the eat hook fires on both sides [#0922/M/n=1, #1031/M/n=1].
 - Nil-check `isServer` and `isClient` before the protected call that reads them: a protected call on a nil comes back as a failure that names nothing, which turns absence into an error string instead of a branch [#0937/M/n=1].
 - Keep every write an `OnEat` handler makes on its server arm: the client arm is the packet twin's notification, and the store it would write belongs to the server [#1131/M/n=1, #2061/C/inference].

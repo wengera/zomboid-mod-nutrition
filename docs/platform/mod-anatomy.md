@@ -106,7 +106,7 @@ Reading that body as the live chain is the commonest way to get this wrong: it s
 <a id="version-dirs"></a>
 ### The version dir against `common/`
 
-`getModVersionDirName` lists the mod folder and keeps the entry name whose parsed version is at least `ChooseGameInfo.minRequiredVersion`, which is `GameVersion(42,0)`, and at most the running build, defaulting to `42` when nothing qualifies [#0825/C/C-only].
+`getModVersionDirName` lists the mod folder and keeps the entry name whose parsed version is at least `ChooseGameInfo.minRequiredVersion`, which is `GameVersion(42,0)`, and at most the running build, and when nothing qualifies returns that version's string, which `GameVersion`'s constructor formats as `42.0` [T1199.6].
 `getGameVersionIntFromName` parses a version folder name as major times 1000 plus the minor capped at 999, so the third component is ignored — `42.20.1` and `42.20` both score 42020 — and a non-numeric entry scores 0 and is skipped [#0826/C/C-only].
 A tie in `getModVersionDirName` resolves by directory-listing order rather than by precision: the comparison keeps an entry whose score is greater than or equal to the best so far, so on a tie the last entry listed wins, and `42.20` and `42.20.1` score identically [#0880/C/C-only].
 A mod that ships both names therefore has no declared winner, and on this machine's sorted listing the later name wins by accident of the file system rather than by design.
