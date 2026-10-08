@@ -58,8 +58,6 @@ TRN.pairOpen = {}
 
 local finite = NR.finite
 
-
-
 -- The username of a player owner, or nil (a zombie or a nil owner has none).
 local function username(owner)
     local ok, name = NR.call(owner, "getUsername")
@@ -145,12 +143,11 @@ end
 local function hitStep(owner, weapon)
     local body = bodyOf(username(owner))
     if body == nil then return end
+    if NR.flag(weapon, "isRanged") then return end        -- vanilla grants Strength xp for melee only
     local okW, w = NR.call(weapon, "getWeight")
     local class = "moderate"
     if okW and finite(w) and w > TRN.HEAVY_WEAPON then class = "high" end
-    local okH, hits = NR.call(owner, "getLastHitCount")
-    if not okH or not finite(hits) then hits = 1 end
-    K.training.event(body, K.training.S_HIT, class, hits)
+    K.training.event(body, K.training.S_HIT, class, 1)     -- the server fires once per target (WeaponHit.process)
     TRN.stats.hits = TRN.stats.hits + 1
 end
 
@@ -167,8 +164,8 @@ function TRN.onXp(player, perk, amount)
     if not ok then fail(err) end
 end
 
--- OnWeaponHitXp(owner, weapon, victim, damage, hitCount) (#2193-#2195): the literal hitCount is 1, so
--- the count is owner:getLastHitCount().
+-- OnWeaponHitXp(owner, weapon, victim, damage, hitCount) (#2193-#2195): the server fires it once per target, so each
+-- event is one hit; a ranged weapon banks nothing (vanilla grants Strength xp for melee only).
 function TRN.onHit(owner, weapon, victim, damage, hitCount)
     local ok, err = pcall(hitStep, owner, weapon)
     if not ok then fail(err) end

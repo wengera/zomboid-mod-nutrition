@@ -262,11 +262,11 @@ def test_exercise_class_table_matches_the_install():
 
 # --- the hits and the trees ------------------------------------------------------------------------------
 
-def test_heavy_weapon_hit_two_targets(h):
+def test_a_heavy_weapon_hit_event_banks_one_hit(h):
     p = h.player()
-    p["hits"] = 2
+    p["hits"] = 2                                    # a two-target swing: this is one of its two events
     h.handler("OnWeaponHitXp")(p, h.G.NR_WEAPON(3), None, 1.0, 1)
-    assert close(h.banked(), (0.10, 0.10, 0.10))
+    assert close(h.banked(), (0.05, 0.05, 0.05))
     assert h.stats()["hits"] == 1
 
 
@@ -322,3 +322,25 @@ def test_limitations_name_the_rep_and_the_climb():
             "fires no Strength event, and its reps are counted on the Fitness event instead; a Fitness-only rep "
             "after a stale open pair is read as the partner") in lim
     assert not any("Task 12" in x for x in lim)
+
+
+# --- Plan 11 Task 5: the server fires OnWeaponHitXp once per target, and a ranged hit banks nothing -------------
+
+RANGED = "function(w) return { getWeight = function(self) return w end, isRanged = function(self) return true end } end"
+
+
+def test_a_three_target_swing_banks_three_hits_not_nine(h):
+    p = h.player()
+    p["hits"] = 3                                    # getLastHitCount() answers 3 during the swing
+    for _ in range(3):                               # the server fires the event once per target (WeaponHit.process)
+        h.handler("OnWeaponHitXp")(p, h.G.NR_WEAPON(3), None, 1.0, 1)
+    assert close(h.banked(), (0.15, 0.15, 0.15))     # 3 x S_HIT 0.05, high class; 1.0.0 banked 3 x 3 x 0.05
+    assert h.stats()["hits"] == 3
+
+
+def test_a_ranged_hit_banks_nothing(h):
+    p = h.player()
+    p["hits"] = 1
+    h.handler("OnWeaponHitXp")(p, h.rt.eval(RANGED)(3), None, 1.0, 1)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["hits"] == 0
