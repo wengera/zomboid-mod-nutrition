@@ -226,3 +226,102 @@ end
 function K.stomach.fill(stomach)
     return K.clamp(stomach.bulk / K.stomach.FULL_BULK, 0, 1)
 end
+
+-- Plan 11c (spec § 5a rulings 11c-4, 11c-5 and 11c-8): fill by mass and the stomach's two lanes. Appended below the
+-- Plan 2 code so no line above moves; the first-order pieces above (HALF_TIME_H, FULL_BULK, bulkOf, seedFull,
+-- compositionScale, emptyFraction, empty) retire in Task 6 once nothing calls them. The solid lane (stomach.buffer)
+-- empties energy at a zero-order rate that rises with the energy it holds, every other key leaving in the same
+-- proportion, never faster than water; the liquid lane (stomach.liquid, grams of drunk water) half-empties in
+-- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal in the solid lane. stomach.liquid is read `or 0` (ruling 11c-10).
+K.stomach.RATE_BASE = 1.25 -- S0131 (labelled inference, ruling 11c-4): kcal/min at no load, fitted so the rate reads Hunt 1985's overall 2.5 kcal/min at its mean load; liquid carbohydrate meals applied to solids
+K.stomach.RATE_PER_KCAL = 0.0025 -- S0131 (labelled inference, ruling 11c-4): per min, the rise with load (+0.72 kcal/min for +300 kcal of volume, +0.62 for +240 kcal of density: 0.0024 and 0.0026 per kcal)
+K.stomach.WATER_HALF_MIN = 13 -- S1245 (Mudie 2014: 240 mL of water half-empties in 13 +/- 1 min, fasted); the fastest either lane empties
+K.stomach.LIQUID_PER_KCAL = 0.12 -- S1234 over S1245 (labelled inference, ruling 11c-5): min of liquid half-time per kcal in the solid lane, fitted to Camps 2016's thin 100 and 500 kcal shakes (26.5 and 69.5 min) over water's 13 min
+K.stomach.CAPACITY_G = 430 -- S1250 (labelled inference, ruling 11c-8): the comfortable capacity, van Dyck 2016's 428 mL of water to satiation taken as stomach mass at density 1
+K.stomach.CAPACITY_MAX_G = 730 -- S1250 (labelled inference, ruling 11c-8): the soft cap, 734 mL of water to maximum fullness; S1251's slow nutrient drinks (937-1048 mL) bound it above
+K.stomach.CAPACITY_HARD_G = 1100 -- S1253 (labelled inference): the soft cap's full scale, a balloon at maximal discomfort in lean subjects (1100 mL, n = 4)
+
+-- A vector's mass in grams: its water, macronutrients and fibre (the vector's gram keys; calories are energy, not mass).
+function K.stomach.massOf(vector)
+    return vector.water + vector.proteins + vector.carbs + vector.lipids + vector.fibre
+end
+
+-- The stomach's mass: the solid buffer's mass plus the liquid lane.
+function K.stomach.mass(stomach)
+    return K.stomach.massOf(stomach.buffer) + (stomach.liquid or 0)
+end
+
+-- The stomach's still-unabsorbed water in both lanes (the thirst view's pending water, ruling T1-1).
+function K.stomach.water(stomach)
+    return stomach.buffer.water + (stomach.liquid or 0)
+end
+
+-- A drink: its water into the liquid lane, every other key (its energy among them, ruling 11c-5) into the solid
+-- buffer, whose own water is kept bit for bit. The vector is not changed. Returns the stomach.
+function K.stomach.ingestLiquid(stomach, vector)
+    local own = stomach.buffer.water
+    K.vector.add(stomach.buffer, vector, 1)
+    stomach.buffer.water = own
+    stomach.liquid = (stomach.liquid or 0) + (vector.water or 0)
+    return stomach
+end
+
+-- The solid lane's energy delivery at energy E: RATE_BASE + RATE_PER_KCAL x E kcal a minute.
+function K.stomach.solidRate(energy)
+    return K.stomach.RATE_BASE + K.stomach.RATE_PER_KCAL * energy
+end
+
+-- A first-order lane's emptied fraction over dtM minutes at a half-time of halfMin minutes; nothing for no time.
+function K.stomach.waterFraction(dtM, halfMin)
+    if dtM <= 0 then
+        return 0
+    end
+    return 1 - math.exp(-0.6931471805599453 * dtM / halfMin)
+end
+
+-- The liquid lane's half-time with E kcal in the solid lane (ruling 11c-5).
+function K.stomach.liquidHalfMin(energy)
+    return K.stomach.WATER_HALF_MIN + K.stomach.LIQUID_PER_KCAL * K.max(energy, 0)
+end
+
+-- The solid lane's emptied fraction over dtM minutes holding E kcal: the closed form of dE/dt = -(a + k E) over the
+-- step (a whole buffer when the step outlasts its energy), never more than water's fraction; a lane with no energy
+-- (salt, a pill, fibre alone) empties like water.
+function K.stomach.solidFraction(energy, dtM)
+    local fw = K.stomach.waterFraction(dtM, K.stomach.WATER_HALF_MIN)
+    if energy <= 0 then
+        return fw
+    end
+    local a = K.stomach.RATE_BASE
+    local k = K.stomach.RATE_PER_KCAL
+    local left = energy - a * dtM
+    if k > 0 then
+        left = (energy + a / k) * math.exp(-k * dtM) - a / k
+    end
+    local fe = 1
+    if left > 0 then
+        fe = K.max(0, 1 - left / energy)
+    end
+    return K.min(fe, fw)
+end
+
+-- Empty both lanes over dtH game hours: the solid fraction of every buffered key and the liquid lane's share of its
+-- water move out as a fresh vector (the liquid's share added to its water); the buffer and the lane keep the rest.
+-- The solid lane's energy before the step sets both fractions.
+function K.stomach.drain(stomach, dtH)
+    local dtM = dtH * 60
+    local energy = stomach.buffer.calories
+    local f = K.stomach.solidFraction(energy, dtM)
+    local fl = K.stomach.waterFraction(dtM, K.stomach.liquidHalfMin(energy))
+    local emptied = K.vector.add(K.vector.new(), stomach.buffer, f)
+    local keys = K.vector.KEYS
+    for i = 1, #keys do
+        local k = keys[i]
+        stomach.buffer[k] = stomach.buffer[k] * (1 - f)
+    end
+    local liquid = stomach.liquid or 0
+    local lw = liquid * fl
+    stomach.liquid = liquid - lw
+    emptied.water = emptied.water + lw
+    return emptied
+end
