@@ -1067,3 +1067,65 @@ TK.register("lua.setpath", function(argv)
     out.ok = true
     return out
 end)
+
+-- ---- Plan 11 Task 19: a player's own-action latency (Decision 6 open item 3) ---------------------------------
+-- action.latency <fullType> <n> queues n eats of a fresh <fullType>, one after another, and records for each the
+-- client wall ms from the queue to the item leaving the container it was found in (the server's completion
+-- reaching this client); a sample that has not completed in 30 s is recorded as timed out (done false).
+-- action.latency read replies them. findOrSpawn's trap holds: a "client" spawn is an item the server never heard
+-- of, so spawn the items server-side (RCON additem) first. ItemContainer.containsID(int) is on the 42.21 jar.
+C.lat = nil
+
+function C.latStart(L)
+    local p = getPlayer()
+    local it = findOrSpawn(L.fullType)
+    if not it then
+        L.done, L.reason = true, "no item " .. tostring(L.fullType)
+        return
+    end
+    local _, cont = TK.call(it, "getContainer")
+    L.cont = cont or p:getInventory()
+    local act = ISEatFoodAction:new(p, it, 1.0)
+    ISTimedActionQueue.add(act)
+    L.id = it:getID()
+    L.t0 = getTimestampMs()
+    L.maxTime = act.maxTime
+end
+
+function C.latTick()
+    local L = C.lat
+    if L == nil or L.done then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = getTimestampMs()
+    if L.id == nil then
+        C.latStart(L)
+        return
+    end
+    local gone = not L.cont:containsID(L.id)
+    if gone or now - L.t0 > 30000 then
+        L.samples[#L.samples + 1] = { ms = now - L.t0, done = gone, maxTime = L.maxTime }
+        L.id = nil
+        if #L.samples >= L.n then
+            L.done = true
+            L.doneAt = now
+        end
+    end
+end
+
+if Events ~= nil and Events.OnTick ~= nil then Events.OnTick.Add(function() C.latTick() end) end
+
+-- @args <fullType> <n> | read
+-- @reply {ok, armed, fullType, n} | {ok, done, n, samples, reason} | string
+-- @purpose Test-only: queues n sequential eats of a fresh <fullType> and records each eat's client wall ms from the queue to the item leaving its container; read replies the samples.
+TK.register("action.latency", function(argv)
+    if argv[1] == "read" then
+        local L = C.lat
+        if L == nil then return { ok = false, reason = "not armed" } end
+        return { ok = true, done = L.done, n = L.n, samples = L.samples, reason = L.reason }
+    end
+    local n = tonumber(argv[2])
+    if argv[1] == nil or n == nil or n < 1 then return "usage: action.latency <fullType> <n> | read" end
+    C.lat = { fullType = argv[1], n = n, samples = {}, done = false, id = nil }
+    return { ok = true, armed = true, fullType = argv[1], n = n }
+end)

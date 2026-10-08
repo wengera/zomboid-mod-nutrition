@@ -2766,7 +2766,7 @@ end)
 
 -- <a.b.c> <value>. TEST-ONLY INSTRUMENT: the harness mod is installed only by test profiles and is never
 -- shipped. Assigns a scalar to a field of any server-side Lua table reached by a dotted path from the
--- globals, e.g. `NR.server.fast.endFoldOn false`, so an acceptance driver can reach a plain Lua field
+-- globals, e.g. `NR.server.store.SAVE_GAP_MS 1000`, so an acceptance driver can reach a plain Lua field
 -- that `globalmoddata.setpath` cannot (it assigns modData leaves only). It stands in for a chunk runner
 -- because `loadstring` is removed on 42.20.x (docs/platform/lessons.md). The value is `true`, `false`,
 -- `nil`, a number or else the string as given; every path segment but the last must already be a table
@@ -2837,7 +2837,7 @@ end)
 --   window covered (the frames from the previous sample's frame to this sample's frame minus one).
 --   `read` writes pzt-results/perf-local-<tag>.json; `now` replies the table as it stands.
 --
--- ghost.load <N> <burst|rr<m>|drainTicks|budget<ms>|shipped> [feed] [tpm<n>], ghost.stop, ghost.stats [reset],
+-- ghost.load <N> <burst|rr<m>|drainTicks|budget<ms>|shipped|mod> [feed] [tpm<n>], ghost.stop, ghost.stats [reset],
 --   ghost.bench <n> | read. N - (online players) ghost records, so the two real players plus the ghosts make N. THE CHOICE (Plan 10c H0 Step 1): a ghost reaches the
 --   pipeline through NutritionRevamp.server.minute.run(ghostName, carrier, ghostRecord) -- the call P.work makes
 --   -- with P.work's own two lines kept here on the ghost's record (record.lastSeen = the world age, and the dead
@@ -2883,9 +2883,9 @@ end)
 --                 <ms> or the run count reaches floor(<ms> / mean), the mean a running mean (0.8/0.2) of the
 --                 per-run ms of each tick's batch (1 ms resolution: the ms cap is coarse, the run cap does the
 --                 metering).
---   feed (optional): each ghost's fast-tier input is its carrier's: NR.server.fast.lastInp[ghost] is pointed at
---   lastInp[carrier] (the same table, re-pointed before each run), which NR_Server_Effects' fastInput reads for the
---   engine part of accrual and recovery; without it a ghost reads the hoist defaults. ghost.stop clears it.
+--   feed (optional): each ghost's engine reads are its carrier's: NR.server.writer.inp[ghost] is pointed at
+--   inp[carrier] (the same table, re-pointed before each run), which NR_Server_Effects' writerInput reads for the
+--   engine part of accrual and recovery; without it a ghost reads the neutral defaults. ghost.stop clears it.
 --   ghost.stats: runs, failures, ms in ghost runs (1 ms resolution, summed per batch), the minute events seen,
 --   starved = ghosts not run successfully within their period (1 minute event; m for rr<m>) counted at each
 --   minute event (starvedEvents, starvedMinutes, maxStaleMinutes): a run stamps lastRunMinute and lastRunAge only
@@ -3235,11 +3235,11 @@ function H0.work(g)
     end
 end
 
--- feed: the ghost's fast-tier input is its carrier's input table (the same table, re-pointed each run)
+-- feed: the ghost's engine reads are its carrier's (the writer's inp table, re-pointed each run; Plan 11 Task 19)
 function H0.feedOne(g)
     local NR = NutritionRevamp
-    local F = NR ~= nil and NR.server ~= nil and NR.server.fast or nil
-    if F ~= nil and type(F.lastInp) == "table" then F.lastInp[g.name] = F.lastInp[g.carrierName] end
+    local W = NR ~= nil and NR.server ~= nil and NR.server.writer or nil
+    if W ~= nil and type(W.inp) == "table" then W.inp[g.name] = W.inp[g.carrierName] end
 end
 
 function H0.runOne(g)
@@ -3484,11 +3484,11 @@ function H0.online()
     return out
 end
 
--- @args <N> <burst|rr<m>|drainTicks|budget<ms>|shipped> [feed] [tpm<n>]
+-- @args <N> <burst|rr<m>|drainTicks|budget<ms>|shipped|mod> [feed] [tpm<n>]
 -- @reply {ok, side, N, ghosts, online, scheduler, period, feed, tpmSeed, tpmSource, carriers, names, hooks [, reason]} | string
--- @purpose Test-only: makes N minus the online count ghost records (deep copies of the online players' store records, held in the harness) and runs each ghost's minute pipeline against its real carrier under the named scheduler, its mirror send suppressed; feed points each ghost's fast-tier input at its carrier's, tpm<n> seeds drainTicks' ticks per minute.
+-- @purpose Test-only: makes N minus the online count ghost records (deep copies of the online players' store records, held in the harness) and runs each ghost's minute pipeline against its real carrier under the named scheduler (mod: the mod's own queue, through ghost.modq), every ghost run with the writer dry and the store step skipped, its mirror send suppressed; feed points each ghost's engine reads at its carrier's, tpm<n> seeds drainTicks' ticks per minute.
 TK.register("ghost.load", function(argv)
-    local usage = "usage: ghost.load <N> <burst|rr<m>|drainTicks|budget<ms>|shipped> [feed] [tpm<n>]"
+    local usage = "usage: ghost.load <N> <burst|rr<m>|drainTicks|budget<ms>|shipped|mod> [feed] [tpm<n>]"
     local N = tonumber(argv[1])
     local sched = H0.parseSched(argv[2])
     if N == nil or N ~= math.floor(N) or N < 1 or N > 500 or sched == nil then return usage end
@@ -3687,7 +3687,7 @@ TK.register("ghost.stop", function()
             tabs[#tabs + 1] = S.bus.effects.last
         end
         if S.effects ~= nil then tabs[#tabs + 1] = S.effects.last end
-        if S.fast ~= nil then tabs[#tabs + 1] = S.fast.lastInp end
+        if S.writer ~= nil then tabs[#tabs + 1] = S.writer.inp end
         if S.intake ~= nil then
             tabs[#tabs + 1] = S.intake.lastIngested
             tabs[#tabs + 1] = S.intake.pendingAlc
@@ -3857,4 +3857,150 @@ TK.register("ghost.bench", function(argv)
                  C = { suppressed = 0, syncs = 0, bodySyncs = 0 }, armedAt = H0.now(), doneAt = nil, done = false,
                  firstMinute = nil, lastMinute = nil, reason = nil }
     return { ok = true, side = TK.side, armed = true, n = n, reals = reals, feed = G.feed }
+end)
+
+-- ---- Plan 11 Task 19: ghost runs carry the same seams in every arm, and the mod's own queue as a scheduler ----
+-- Every ghost minute, whatever scheduler drives it (burst, rr<m>, drainTicks, budget<ms>, shipped, mod) and the
+-- bench's ghost half, goes through H0.work (H0.runOne and H0.benchWork look it up at call time); the wrapper below
+-- runs it with the writer dry (NutritionRevamp.server.writer.dry: the writer step computes, sets and mutates
+-- nothing) and the store step skipped for ghost names (NutritionRevamp.server.store.skip = H0.isGhost: no slot
+-- file, no index entry), so a mod arm and a budget arm carry the same work (Plan 11 ruling 15). Both seams are
+-- restored to what they held before the run, so outside a ghost run the mod sees them as production does (nil).
+-- A ghost minute so costs less than a real one by the whole writer step, the same in every arm.
+local workBase = H0.work
+
+function H0.isGhost(name)
+    local G = H0.g
+    if G == nil or not G.active or G.ghosts == nil then return false end
+    if G.byName == nil then
+        G.byName = {}
+        for i = 1, #G.ghosts do
+            G.byName[G.ghosts[i].name] = G.ghosts[i]
+        end
+    end
+    return G.byName[name] ~= nil
+end
+
+function H0.work(g)
+    local NR = NutritionRevamp
+    local W = NR ~= nil and NR.server ~= nil and NR.server.writer or nil
+    local S = NR ~= nil and NR.server ~= nil and NR.server.store or nil
+    local dry0, skip0 = nil, nil
+    if W ~= nil then
+        dry0 = W.dry
+        W.dry = true
+    end
+    if S ~= nil then
+        skip0 = S.skip
+        S.skip = H0.isGhost
+    end
+    local ok, err = pcall(workBase, g)
+    if W ~= nil then W.dry = dry0 end
+    if S ~= nil then S.skip = skip0 end
+    if not ok then error(err, 0) end
+end
+
+-- ghost.load <N> mod [feed] builds the ghosts as for any scheduler (kind "mod": the harness neither queues nor
+-- drains them; its minute event still counts their starvation); ghost.modq on hands their names to
+-- NutritionRevamp.server.players.extra, so the mod's budgeted queue runs them beside the real players, batch-timed
+-- with their sends suppressed as in every other arm. ghost.modq off removes the names and the wrappers; run it
+-- before ghost.stop (a ghost name still queued after either runs nothing: the mod's P.runOne finds no extra set
+-- entry, or H0.modRun no active load).
+--
+-- The batching: the mod's queue runs ghosts one at a time from P.runOne, interleaved with the real players, so a
+-- batch per ghost run would pay the swap and the two clock reads once a run where the budget arm pays them once a
+-- tick. Instead one batch stays open across a drain's contiguous ghost runs: the first ghost run of a drain opens
+-- it; a real player's run, a one-shot task or the drain's end closes it, so a real player's sends are never
+-- suppressed. A tick whose drain interleaves a real player between ghosts pays two batches, so a residual bias
+-- against the mod arm remains, at most one extra swap per real player a tick; the shoot-out's reading guides say so.
+local parseSchedBase = H0.parseSched
+function H0.parseSched(s)
+    if s == "mod" then return { kind = "mod", period = 1 } end
+    return parseSchedBase(s)
+end
+
+-- the harness's own queue stays empty under kind "mod" (H0.onMinuteLate enqueues for every other kind it does not
+-- run at the minute; the mod's queue holds the ghosts instead, so ghost.stats' queued reads 0)
+local enqueueAllBase = H0.enqueueAll
+function H0.enqueueAll()
+    local G = H0.g
+    if G ~= nil and G.sched ~= nil and G.sched.kind == "mod" then return end
+    return enqueueAllBase()
+end
+
+H0.modOpen = false
+
+function H0.modRun(name)
+    local G = H0.g
+    if G == nil or not G.active or G.byName == nil then return end
+    local g = G.byName[name]
+    if g == nil then return end
+    if not H0.modOpen then
+        H0.beginBatch()
+        H0.modOpen = true
+    end
+    H0.runOne(g)                     -- pcalls H0.work; a raise elsewhere is caught by P.runOne's pcall, and the
+                                     -- batch still closes at the drain's end (P.drain's wrapper)
+end
+
+function H0.modClose()
+    if H0.modOpen then
+        H0.modOpen = false
+        H0.endBatch()
+    end
+end
+
+-- P.runOne and P.drain are looked up on the table at each call (P.tick calls P.drain(), P.drain calls
+-- P.runOne(name)), so these wrappers see every queued name; modUnwrap restores the originals.
+function H0.modWrap(P)
+    if P.runOneBase ~= nil then return end
+    P.runOneBase = P.runOne
+    P.drainBase = P.drain
+    P.runOne = function(name)
+        if not H0.isGhost(name) then H0.modClose() end
+        return P.runOneBase(name)
+    end
+    P.drain = function()
+        local ok, err = pcall(P.drainBase)
+        H0.modClose()
+        if not ok then error(err, 0) end
+    end
+end
+
+function H0.modUnwrap(P)
+    H0.modClose()
+    if P.runOneBase == nil then return end
+    P.runOne = P.runOneBase
+    P.drain = P.drainBase
+    P.runOneBase = nil
+    P.drainBase = nil
+end
+
+-- @args <on|off>
+-- @reply {ok, side, on, ghosts [, reason]} | string
+-- @purpose Test-only: with a ghost.load <N> mod load, hands the ghosts' names to the mod's own queue (NutritionRevamp.server.players.extra) so the mod's budgeted scheduler runs them, each run dry and store-skipped; off removes them and restores the queue's functions.
+TK.register("ghost.modq", function(argv)
+    local a = argv ~= nil and argv[1] or nil
+    if a ~= "on" and a ~= "off" then return "usage: ghost.modq <on|off>" end
+    local NR = NutritionRevamp
+    local P = NR ~= nil and NR.server ~= nil and NR.server.players or nil
+    if P == nil then return { ok = false, side = TK.side, reason = "NutritionRevamp.server.players is absent" } end
+    if a == "off" then
+        H0.modUnwrap(P)
+        P.extra = nil
+        return { ok = true, side = TK.side, on = false }
+    end
+    local G = H0.g
+    if G == nil or not G.active or G.sched.kind ~= "mod" then
+        return { ok = false, side = TK.side, reason = "load ghosts with ghost.load <N> mod first" }
+    end
+    G.byName = {}
+    local names = {}
+    for i = 1, #G.ghosts do
+        G.byName[G.ghosts[i].name] = G.ghosts[i]
+        names[#names + 1] = G.ghosts[i].name
+    end
+    P.extra = { names = function() return names end, run = function(name) H0.modRun(name) end }
+    H0.modWrap(P)
+    return { ok = true, side = TK.side, on = true, ghosts = #names }
 end)
