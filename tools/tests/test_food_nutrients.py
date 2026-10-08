@@ -1144,13 +1144,18 @@ class RealExtractTest(unittest.TestCase):
 
     def test_the_cited_ids_codes_and_keys(self):
         rows = self.rows
+        # a composite row cites its parts, `<fdc_id>:<grams>` joined by +, and one reference per part
+        def refs(r, col):
+            return [x for x in (r[col].split("+") if r["fdc_source"] == "composite" else [r[col]]) if x]
         self.assertEqual(set(self.extract["foods"]),
-                         {r["fdc_id"] for r in rows if r["fdc_source"] == "sr_legacy"})
+                         {r["fdc_id"] for r in rows if r["fdc_source"] == "sr_legacy"}
+                         | {part.split(":")[0] for r in rows if r["fdc_source"] == "composite"
+                            for part in r["fdc_id"].split("+")})
         self.assertEqual(set(self.extract["retention"]), {r["cook_retention_code"] for r in rows if r["cook_retention_code"]})
-        self.assertEqual(set(self.extract["iodine"]), {r["iodine_ref"][len("iodine:"):] for r in rows if r["iodine_ref"]})
+        self.assertEqual(set(self.extract["iodine"]), {x[len("iodine:"):] for r in rows for x in refs(r, "iodine_ref")})
         self.assertEqual(set(self.extract["phytate"]),
-                         {r["phytate_source"].split(":", 1)[1] for r in rows
-                          if r["phytate_source"].startswith(("schlemmer2009:", "phyfoodcomp2019:"))})
+                         {x.split(":", 1)[1] for r in rows for x in refs(r, "phytate_source")
+                          if x.startswith(("schlemmer2009:", "phyfoodcomp2019:"))})
         self.assertEqual(set(self.extract["insects"]), {r["fdc_id"] for r in rows if r["fdc_source"] == "literature"})
 
     def test_the_counts(self):
@@ -2232,6 +2237,154 @@ def test_the_lua_headers_carry_no_date():
     for path, text in fn.generated_texts():
         if path.endswith(".lua"):
             assert not re.search(r"generated \d{4}-\d{2}-\d{2}", "\n".join(text.splitlines()[:5])), path
+
+
+# ---- Plan 11a Task 16 fix 1: the composite source (a dish summed from its parts) ----
+
+class CompositeParserTest(unittest.TestCase):
+
+    def test_the_parts(self):
+        self.assertEqual(fn.composite_parts("172796:63.4+172968:52"), [("172796", 63.4), ("172968", 52.0)])
+        self.assertEqual(fn.composite_parts("1:1+2:2.5+3:10"), [("1", 1.0), ("2", 2.5), ("3", 10.0)])
+
+    def test_the_refusals(self):
+        for text in ("172796:63.4", "172796", "abc:1+2:3", "1:0+2:3", "1:-1+2:1", "1:2+", "1:2++3:4",
+                     "1:2 + 3:4", "1:2;3:4", ""):
+            with self.assertRaises(ValueError, msg=text):
+                fn.composite_parts(text)
+
+    def test_the_source_is_in_the_enum(self):
+        self.assertIn("composite", fn.FDC_SOURCES)
+        self.assertIn("composite", fn.EXTRACT_SOURCES)
+
+
+COMBO = 171688, 182.0, 171287, 50.0           # the apple and the egg, a synthetic dish of the two
+COMBO_DATA = dict(BUILD_DATA, items=BUILD_DATA["items"] + [
+    _item("Base.Combo", "food", "Combo", "Sausage", "per_item", (166.0, 26.0, 5.0, 7.0))])
+
+
+def _combo_cells(**over):
+    cells = dict(fdc_id="%d:182+%d:50" % (COMBO[0], COMBO[2]), fdc_source="composite",
+                 fdc_description="composite: 182 g %s + 50 g Egg, whole, raw, fresh" % APPLE_DESCRIPTION,
+                 confidence="close", portion_grams="232", portion_source="judgement", state_baseline="prepared",
+                 iodine_ref="+iodine:egg-whole-raw", phytate_source="zero:fruit+schlemmer2009:lentils",
+                 notes="a synthetic dish: the apple and the egg")
+    cells.update(over)
+    return cells
+
+
+class CompositeTest(BuildFixture, OutputShape):
+
+    DATA = COMBO_DATA
+
+    def prepare(self):
+        self.edit("meat-fish-egg-dairy", "Base.Combo", **_combo_cells())
+
+    def test_the_mapping_checks_clean(self):
+        self.assertEqual(self.check(allow_unfilled=False)["violations"], [])
+
+    def test_the_sum(self):
+        result = self.run_build()
+        self.assert_shape(result, self.records)
+        self.assert_round_trip(result, self.records)
+        combo, apple = self.rec(result, "Base.Combo"), self.rec(result, "Base.Apple")
+        with open(self.out, encoding="utf-8") as handle:
+            egg = json.load(handle)["foods"][str(EGG)]["nutrients"]
+        self.assertEqual((combo["fdc_source"], combo["basis"], combo["portion_grams"]),
+                         ("composite", "per_item", 232.0))
+        for key in fn.KEYS:
+            if key in ("iodine", "phytate"):
+                continue
+            want = [v for v in (apple["per_item"][key], None if egg[key]["amount"] is None
+                                else egg[key]["amount"] * 0.5) if v is not None]
+            if not want:
+                self.assertIsNone(combo["per_item"][key], key)
+            else:
+                self.assertAlmostEqual(combo["per_item"][key], sum(want), delta=1e-5, msg=key)
+        self.assertAlmostEqual(combo["per_item"]["calories"], 52 * 1.82 + 143 * 0.5, delta=1e-5)
+        # the sum survives the rounding: per_100g carries nine places, so per_item is the parts' sum at six
+        self.assertEqual(combo["per_item"]["calories"], round(52 * 1.82 + 143 * 0.5, 6))
+        self.assertAlmostEqual(combo["per_100g"]["calories"], (52 * 1.82 + 143 * 0.5) * 100 / 232, delta=1e-6)
+
+    def test_the_side_tables_are_summed_from_the_parts_references(self):
+        combo = self.rec(self.run_build(), "Base.Combo")
+        self.assertAlmostEqual(combo["per_item"]["iodine"], 49 * 0.5, delta=1e-6)       # the egg part's only
+        # zero:fruit on the apple, the lentil family's 890 mg dry on the egg part's 23.85 g dry matter
+        self.assertAlmostEqual(combo["per_item"]["phytate"], 0.0 + 890 * (100 - 76.15) / 100 * 0.5, delta=1e-5)
+        notes = " ".join(combo["checks"]["notes"])
+        self.assertIn("composite:", notes)
+        self.assertIn("iodine", notes)
+
+    def test_a_part_missing_from_the_extract_is_refused(self):
+        self.edit("meat-fish-egg-dairy", "Base.Combo", **_combo_cells(fdc_id="%d:182+174158:50" % COMBO[0]))
+        with self.assertRaises(fn.BuildRefused) as caught:
+            self.run_build()
+        self.assertIn("Base.Combo: composite part 174158", str(caught.exception))
+
+    def test_the_check_rules(self):
+        cases = (
+            (dict(portion_grams="230"), "portion_grams 230 is not the composite parts' sum 232"),
+            (dict(fdc_id="%d:182" % COMBO[0], portion_grams="182"), "a composite names two or more parts"),
+            (dict(fdc_id="%d:182+x:50" % COMBO[0]), "composite part 'x:50'"),
+            (dict(iodine_ref="iodine:egg-whole-raw"),
+             "iodine_ref 'iodine:egg-whole-raw' names 1 reference(s) for 2 composite parts"),
+            (dict(phytate_source="zero:fruit"), "phytate_source 'zero:fruit' names 1 reference(s) for 2 composite parts"),
+            (dict(iodine_ref="+iodine:egg-boiled"), "iodine_ref 'iodine:egg-boiled'"),
+            (dict(phytate_source="zero:fruit+zero:grain"), "phytate_source 'zero:grain'"),
+            (dict(phytate_mg_100g="10"), "phytate_mg_100g on a composite"),
+            (dict(fdc_description="composite: an apple and an egg"), "names no part description"),
+        )
+        for cells, needle in cases:
+            self.edit("meat-fish-egg-dairy", "Base.Combo", **_combo_cells(**cells))
+            with mock.patch.dict(fn.REF_SOURCES, {"sr_legacy": self.zip}):
+                self.assert_violation(self.check(allow_unfilled=False), needle)
+
+    def test_a_part_absent_from_food_csv(self):
+        self.edit("meat-fish-egg-dairy", "Base.Combo", **_combo_cells(fdc_id="%d:182+174158:50" % COMBO[0]))
+        with mock.patch.dict(fn.REF_SOURCES, {"sr_legacy": self.zip}):
+            self.assert_violation(self.check(allow_unfilled=False), "composite part 174158 is not in food.csv")
+
+    def test_check_sees_a_stale_composite(self):
+        self.run_build()
+        with mock.patch.object(fn, "generated_texts", lambda *a, **k: []):
+            stale = fn.check_generated(self.map, self.dataset, self.out, self.json_out, self.csv_out)
+            self.assertEqual(stale, [])
+            self.edit("meat-fish-egg-dairy", "Base.Combo", **_combo_cells(
+                fdc_id="%d:182+%d:60" % (COMBO[0], COMBO[2]), portion_grams="242"))
+            stale = fn.check_generated(self.map, self.dataset, self.out, self.json_out, self.csv_out)
+        self.assertEqual(sorted(p for p, _m in stale), sorted([self.json_out, self.csv_out]))
+
+
+class CompositeExtractTest(ExtractFixture):
+    """The extract cites a composite's parts: the egg's only citation made a part of a composite."""
+
+    def test_the_parts_are_cited(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id="%d:100+%d:50" % (APPLE, EGG), fdc_source="composite",
+                  fdc_description="composite: 100 g %s + 50 g Egg, whole, raw, fresh" % APPLE_DESCRIPTION,
+                  portion_grams="150", portion_source="judgement", iodine_ref="+iodine:egg-whole-raw",
+                  phytate_source="zero:fruit+schlemmer2009:peas", phytate_mg_100g="")
+        got = self.build()
+        self.assertEqual(sorted(got["foods"]), [str(EGG), str(APPLE)])
+        self.assertEqual(sorted(got["iodine"]), ["egg-whole-raw"])
+        self.assertIn("peas", got["phytate"])
+
+
+class RealCompositeTest(unittest.TestCase):
+    """The committed hot dog: one bun and one wiener (ruling T16-1)."""
+
+    def test_the_hot_dog_is_its_bun_and_its_wiener(self):
+        with open(fn.NUTRIENTS_JSON, encoding="utf-8") as handle:
+            items = {r["pz_id"]: r for r in json.load(handle)["items"]}
+        dog, bun, wiener = items["Base.Hotdog"], items["Base.BunsHotdog_single"], items["Base.Hotdog_single"]
+        self.assertEqual((dog["fdc_source"], dog["fdc_id"]), ("composite", "172796:63.4+172968:52"))
+        self.assertEqual((bun["portion_grams"], wiener["portion_grams"]), (63.4, 52.0))
+        for key in fn.KEYS:
+            parts = [v for v in (bun["per_item"][key], wiener["per_item"][key]) if v is not None]
+            if parts:
+                self.assertAlmostEqual(dog["per_item"][key], sum(parts), delta=1e-5, msg=key)
+            else:
+                self.assertIsNone(dog["per_item"][key], key)
+        self.assertEqual(dog["per_item"]["calories"], round(bun["per_item"]["calories"] + wiener["per_item"]["calories"], 6))
 
 
 if __name__ == "__main__":

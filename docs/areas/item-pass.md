@@ -122,11 +122,11 @@ The pass is weighed against the craft recipes it feeds, because a crafted output
 `tools/recipe_conservation.py` costs each recipe's lines with the recipe dataset's own accounting and classes it at the bounds 1.1 and 0.9 of its inputs' calories: on the 42.21.0 data 13 conserve, 1 creates, 7 destroy and 8 inherit [T1116.1].
 The recipes it cannot weigh are counted under the first refusal: 231 multi-type, 285 tags-only, 296 not-in-dataset, 54 no-nutrition, 37 no-outputs, 33 variable-amount, 2 drainable, 1 fluid-sourced and 1 wildcard [T1116.2].
 The splits, one input cut, sliced or opened into several items, class 8 conserves, 6 inherits, 2 destroys and 0 creates [T1116.3].
-Three were mapping errors and are fixed in the mapping: the hot-dog pack is four 52 g wieners, 208.0 g at 576.16 kcal, so opening it conserves [T1116.8].
-The hot dog carries its bun, as the corn-dog row at 131.1 g and 327.75 kcal, so assembling one conserves [T1116.9].
+The mapping errors are fixed in the mapping: the hot-dog pack is four 52 g wieners on the wieners' own row, 208.0 g at 603.2 kcal, so opening it conserves at 1.0 [T1116.8].
+The hot dog is composed of the bun and the wiener it is assembled from, 63.4 g and 52 g of their own rows, 115.4 g at 327.686 kcal, so assembling one conserves at 1.0 [T1116.9].
 The meat patty is the whole tub of mince it is pressed from, 139.5 g at 299.925 kcal, so pressing it conserves [T1116.10].
 `open_mac_and_cheese` reads as a creator on its output scripts alone, but its Java `OnCreate` leaves the macaroni a sixth of its own values [T1116.6], so it conserves at 0.99993 [T1116.7].
-One creator is left, `MakeTortillaChips` at 4.121831, a vanilla design whose recipe spends one use of a tortilla, and the generated table the craft-time scale reads holds its factor 0.242611 [T1116.4].
+One creator is left, `MakeTortillaChips` at 4.121831, a vanilla design whose recipe spends 1 of a tortilla's 5 uses, which the tool notes on its row, and the generated table the craft-time scale reads holds its factor 0.242611 [T1116.4].
 Seven destroyers are left as vanilla designs: the two bird cuts at 0.867277 and 0.663005, the four corn grinds at 0.0, whose flour is an inedible spice with no macros, and `ScoopIceCream` at 0.857297 [T1116.5].
 
 <a id="scope"></a>

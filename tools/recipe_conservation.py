@@ -29,6 +29,9 @@ A recipe whose `OnCreate` is a Java craft function that writes food values onto 
 `cutFish` and `cutSmallAnimal` are not modelled and their recipes are skipped as `java-unmodelled`.
 A row's `split` is true when exactly one consumed input line feeds two or more output items (a carcass cut, a
 loaf sliced, a pack opened), the shape Decision 7 asks to conserve.
+A creator's row carries a `partial-use input` note for each consumed food input line that spends fewer uses than
+the item holds (no `ItemCount` flag, N below |HungerChange|, #0701): the craft charges that fraction of the item,
+so the line is the first place to look when a creator's factor is large (MakeTortillaChips spends 1 of 5 uses).
 
     python tools/recipe_conservation.py            print the creators and destroyers
     python tools/recipe_conservation.py --write    write data/recipe-conservation.json and NR_Data_Recipes.lua
@@ -108,6 +111,21 @@ def is_split(recipe):
     return len(consumed_inputs(recipe)) == 1 and items >= 2
 
 
+def partial_use_notes(recipe, food):
+    """One note per consumed food input line that spends fewer uses than its item holds (#0701)."""
+    out = []
+    for line in consumed_inputs(recipe):
+        if line["amountIsItemCount"] or not line["types"]:
+            continue
+        row = food.get(line["types"][0])
+        uses = rs.uses_per_item(row) if row is not None and row.get("kind") == "food" else None
+        if uses is not None and line["amount"] < uses:
+            out.append("partial-use input: %s spends %g of its %g uses (no ItemCount flag, #0701), so the craft "
+                       "charges %g of the item" % (line["types"][0], line["amount"], uses,
+                                                   round(line["amount"] / uses, 6)))
+    return out
+
+
 def _hunger(row):
     v = rs.food_value(row, "HungerChange")
     return abs(v) if isinstance(v, (int, float)) else None
@@ -167,8 +185,9 @@ def weigh(recipe, food):
         cls = "destroys"
     else:
         cls = "conserves"
+    notes = sorted(d["notes"] + partial_use_notes(recipe, food)) if cls == "creates" else d["notes"]
     return {"recipe": recipe["name"], "kcal_in": round(kin["calories"], 3), "kcal_out": round(kout["calories"], 3),
-            "ratio": ratio, "macro_ratios": ratios, "notes": d["notes"], "class": cls, "java": java,
+            "ratio": ratio, "macro_ratios": ratios, "notes": notes, "class": cls, "java": java,
             "split": is_split(recipe)}, None
 
 

@@ -2434,19 +2434,19 @@ module Base
     item Hotdog
     {
         DisplayCategory = Food,
-        Calories = 327.75,
-        Carbohydrates = 35.34,
-        Proteins = 11.24,
-        Lipids = 15.76,
+        Calories = 327.69,
+        Carbohydrates = 33.94,
+        Proteins = 11.53,
+        Lipids = 15.87,
     }
 
     item HotdogPack
     {
         DisplayCategory = Food,
-        Calories = 576.16,
-        Carbohydrates = 10.44,
-        Proteins = 20.22,
-        Lipids = 50.29,
+        Calories = 603.20,
+        Carbohydrates = 8.67,
+        Proteins = 21.34,
+        Lipids = 53.58,
     }
 
     item Hotdog_single

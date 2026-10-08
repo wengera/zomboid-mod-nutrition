@@ -153,15 +153,15 @@
    "class": "conserves",
    "java": null,
    "kcal_in": 327.686,
-   "kcal_out": 327.75,
+   "kcal_out": 327.686,
    "macro_ratios": {
-    "calories": 1.000195,
-    "carbohydrates": 1.041246,
-    "lipids": 0.992698,
-    "proteins": 0.97449
+    "calories": 1.0,
+    "carbohydrates": 1.0,
+    "lipids": 1.0,
+    "proteins": 1.0
    },
    "notes": [],
-   "ratio": 1.000195,
+   "ratio": 1.0,
    "recipe": "MakeHotDog",
    "split": false
   },
@@ -223,7 +223,9 @@
     "lipids": 5.279199,
     "proteins": 2.859436
    },
-   "notes": [],
+   "notes": [
+    "partial-use input: Base.Tortilla spends 1 of its 5 uses (no ItemCount flag, #0701), so the craft charges 0.2 of the item"
+   ],
    "ratio": 4.121831,
    "recipe": "MakeTortillaChips",
    "split": false
@@ -286,18 +288,18 @@
   {
    "class": "conserves",
    "java": null,
-   "kcal_in": 576.16,
+   "kcal_in": 603.2,
    "kcal_out": 603.2,
    "macro_ratios": {
-    "calories": 1.046931,
-    "carbohydrates": 0.830677,
-    "lipids": 1.065343,
-    "proteins": 1.055556
+    "calories": 1.0,
+    "carbohydrates": 1.0,
+    "lipids": 1.0,
+    "proteins": 1.0
    },
    "notes": [
     "no-hunger-scale: Base.HotdogPack writes no usable HungerChange, so Food.getMaxUses (@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
    ],
-   "ratio": 1.046931,
+   "ratio": 1.0,
    "recipe": "OpenHotdogPack",
    "split": true
   },

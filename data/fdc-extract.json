@@ -49795,175 +49795,6 @@
     }
    ]
   },
-  "173875": {
-   "data_type": "sr_legacy_food",
-   "description": "Frankfurter, meat and poultry, unheated",
-   "food_category": "Sausages and Luncheon Meats",
-   "nutrients": {
-    "caffeine": {
-     "amount": 0.0,
-     "nutrient_id": 1057,
-     "unit": "MG"
-    },
-    "calcium": {
-     "amount": 106.0,
-     "nutrient_id": 1087,
-     "unit": "MG"
-    },
-    "calories": {
-     "amount": 277.0,
-     "nutrient_id": 1008,
-     "unit": "KCAL"
-    },
-    "carbs": {
-     "amount": 5.02,
-     "nutrient_id": 1005,
-     "unit": "G"
-    },
-    "carotene": {
-     "amount": 0.0,
-     "nutrient_id": 1107,
-     "unit": "UG"
-    },
-    "choline": {
-     "amount": 50.2,
-     "nutrient_id": 1180,
-     "unit": "MG"
-    },
-    "efa": {
-     "amount": 5.065,
-     "nutrient_id": [
-      1269,
-      1270
-     ],
-     "unit": "G"
-    },
-    "ethanol": {
-     "amount": 0.0,
-     "nutrient_id": 1018,
-     "unit": "G"
-    },
-    "fibre": {
-     "amount": 0.0,
-     "nutrient_id": 1079,
-     "unit": "G"
-    },
-    "folate": {
-     "amount": 6.0,
-     "nutrient_id": 1190,
-     "unit": "UG"
-    },
-    "iodine": {
-     "amount": null,
-     "nutrient_id": 1100,
-     "unit": "UG"
-    },
-    "iron": {
-     "amount": 1.04,
-     "nutrient_id": 1089,
-     "unit": "MG"
-    },
-    "lipids": {
-     "amount": 24.18,
-     "nutrient_id": 1004,
-     "unit": "G"
-    },
-    "magnesium": {
-     "amount": 11.0,
-     "nutrient_id": 1090,
-     "unit": "MG"
-    },
-    "niacin": {
-     "amount": 2.813,
-     "nutrient_id": 1167,
-     "unit": "MG"
-    },
-    "potassium": {
-     "amount": 359.0,
-     "nutrient_id": 1092,
-     "unit": "MG"
-    },
-    "proteins": {
-     "amount": 9.72,
-     "nutrient_id": 1003,
-     "unit": "G"
-    },
-    "retinol": {
-     "amount": 31.0,
-     "nutrient_id": 1105,
-     "unit": "UG"
-    },
-    "riboflavin": {
-     "amount": 0.145,
-     "nutrient_id": 1166,
-     "unit": "MG"
-    },
-    "selenium": {
-     "amount": 12.4,
-     "nutrient_id": 1103,
-     "unit": "UG"
-    },
-    "sodium": {
-     "amount": 976.0,
-     "nutrient_id": 1093,
-     "unit": "MG"
-    },
-    "thiamine": {
-     "amount": 0.047,
-     "nutrient_id": 1165,
-     "unit": "MG"
-    },
-    "vitB12": {
-     "amount": 0.71,
-     "nutrient_id": 1178,
-     "unit": "UG"
-    },
-    "vitB6": {
-     "amount": 0.063,
-     "nutrient_id": 1175,
-     "unit": "MG"
-    },
-    "vitC": {
-     "amount": 22.5,
-     "nutrient_id": 1162,
-     "unit": "MG"
-    },
-    "vitD": {
-     "amount": 0.7,
-     "nutrient_id": 1114,
-     "unit": "UG"
-    },
-    "vitE": {
-     "amount": 0.44,
-     "nutrient_id": 1109,
-     "unit": "MG"
-    },
-    "vitK": {
-     "amount": 0.1,
-     "nutrient_id": 1185,
-     "unit": "UG"
-    },
-    "water": {
-     "amount": 57.58,
-     "nutrient_id": 1051,
-     "unit": "G"
-    },
-    "zinc": {
-     "amount": 1.14,
-     "nutrient_id": 1095,
-     "unit": "MG"
-    }
-   },
-   "portions": [
-    {
-     "amount": 1.0,
-     "gram_weight": 51.0,
-     "measure_unit": "undetermined",
-     "modifier": "frankfurter",
-     "seq_num": 1
-    }
-   ]
-  },
   "173904": {
    "data_type": "sr_legacy_food",
    "description": "Cereals, oats, regular and quick, not fortified, dry",
@@ -64058,11 +63889,11 @@
   }
  },
  "meta": {
-  "build": "42.20.4",
+  "build": "42.21.0",
   "counts": {
    "cookable_without_code": 33,
    "defective_retention_rows": 24,
-   "foods": 351,
+   "foods": 350,
    "insect_rows": 10,
    "iodine_rows": 46,
    "missing_nutrients": {
@@ -64575,7 +64406,6 @@
      173810,
      173855,
      173864,
-     173875,
      173904,
      173911,
      173933,
@@ -65014,8 +64844,8 @@
     ]
    }
   },
-  "generated": "2026-10-06",
-  "jar_hash": "b0bbce05d5",
+  "generated": "2026-10-08",
+  "jar_hash": "4a0e9546ec",
   "sources": [
    {
     "bytes": 6074592,

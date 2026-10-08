@@ -169,3 +169,37 @@ def test_the_json_carries_the_class_and_split_counts():
     meta = json.loads(rc.emit_json(rows, skipped))["meta"]
     assert meta["classes"] == {"conserves": 1, "creates": 1, "destroys": 1, "inherits": 0}
     assert meta["splits"] == {"conserves": 1, "creates": 0, "destroys": 1, "inherits": 0}
+
+
+# Plan 11a Task 16 fix 1: a creator whose input spends fewer uses than the item holds is named, and the shipped
+# hot dog and hotdog pack conserve on their corrected rows.
+
+def test_a_creator_spending_part_of_an_input_carries_a_partial_use_note():
+    by, _ = by_name([recipe("chips", [line("D", 1, flags=())], [("C", 1)]),        # 1 of D's 10 uses -> 260 kcal
+                     recipe("whole", [line("A", 1)], [("C", 1)])])                  # an ItemCount line spends it all
+    notes = [n for n in by["chips"]["notes"] if n.startswith("partial-use input")]
+    assert by["chips"]["class"] == "creates"
+    assert notes == ["partial-use input: D spends 1 of its 10 uses (no ItemCount flag, #0701), "
+                     "so the craft charges 0.1 of the item"], by["chips"]["notes"]
+    assert not [n for n in by["whole"]["notes"] if n.startswith("partial-use input")]
+
+
+def test_a_partial_use_input_on_a_recipe_that_conserves_carries_no_note():
+    by, _ = by_name([recipe("uses", [line("D", 5, flags=())], [("E", 1)])])
+    assert by["uses"]["class"] == "conserves"
+    assert not [n for n in by["uses"]["notes"] if n.startswith("partial-use input")]
+
+
+def test_the_shipped_tortilla_chips_carry_the_partial_use_note_and_keep_their_factor():
+    _files, rows, _skipped = rc.texts()
+    chips = {r["recipe"]: r for r in rows}["MakeTortillaChips"]
+    assert "partial-use input: Base.Tortilla spends 1 of its 5 uses (no ItemCount flag, #0701), so the craft " \
+           "charges 0.2 of the item" in chips["notes"], chips["notes"]
+    assert round(rc.creators(rows)["MakeTortillaChips"], 6) == 0.242611
+
+
+def test_the_shipped_hot_dog_and_hotdog_pack_conserve_at_one():
+    _files, rows, _skipped = rc.texts()
+    by = {r["recipe"]: r for r in rows}
+    assert by["OpenHotdogPack"]["ratio"] == 1.0, by["OpenHotdogPack"]
+    assert abs(by["MakeHotDog"]["ratio"] - 1.0) < 0.001, by["MakeHotDog"]

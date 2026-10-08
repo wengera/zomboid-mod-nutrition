@@ -21,6 +21,14 @@ an `IU` row, or any unit that is not the key's, meeting a contract key RAISES --
 converted silently. Values are per 100 g as FDC stores them; per item / per litre is a later step.
 
 **Absence.** A food with no `food_nutrient` row for a key reads `None`; a row of `0` reads `0.0`.
+
+**A composite row** (`fdc_source` `composite`, Plan 11a Task 16 fix 1) is a dish the game makes from parts
+(a hot dog from a bun and a wiener): its `fdc_id` cell names two or more SR Legacy parts as
+`<fdc_id>:<grams>` joined by `+` (`172796:63.4+172968:52`), its `portion_grams` is the parts' sum, and its
+`iodine_ref` and `phytate_source` cells are empty or carry one reference per part in the same order, joined
+by `+` (an empty element is a part with none: `+iodine:frankfurter`). The item's vector is the sum of the
+parts' vectors, each part read as an SR Legacy row with its own references; a key no part carries stays null,
+and a key only some parts carry is the sum of those, named in the record's check notes.
 """
 import argparse, csv, io, os, zipfile
 
@@ -346,7 +354,7 @@ MAP_COLUMNS = ("pz_id", "pz_display", "pz_kind", "family", "fdc_id", "fdc_source
                "iodine_ref", "phytate_mg_100g", "phytate_source", "no_nutrition_reason", "notes")
 MAP_PARTS = ("produce", "grains-legumes", "meat-fish-egg-dairy", "manufactured", "fluids", "no-nutrition")
 
-FDC_SOURCES = ("sr_legacy", "foundation", "iodine_db_r4", "literature", "derived")
+FDC_SOURCES = ("sr_legacy", "foundation", "iodine_db_r4", "literature", "derived", "composite")
 CONFIDENCES = ("exact", "close", "proxy", "guess")
 PORTION_SOURCES = ("vanilla_implied", "judgement")            # plus fdc_portion:<seq_num>
 PORTION_FDC_RE = re.compile(r"^fdc_portion:\d+$")
@@ -355,6 +363,46 @@ STATE_BASELINES = ("raw", "cooked", "canned", "dried", "frozen", "prepared")
 NO_NUTRITION_REASONS = ("not_food", "empty_container", "fluid_sourced", "inedible_body_part", "hazard",
                         "vessel_only", "spice_only", "tobacco_or_drug")
 KINDS = ("food", "drainable", "fluid_container", "fluid")
+COMPOSITE = "composite"                                       # the fdc_source of a dish summed from parts
+COMPOSITE_SEP = "+"                                           # between parts, and between per-part references
+COMPOSITE_PART_RE = re.compile(r"^(\d+):(\d+(?:\.\d+)?)$")    # <sr_legacy fdc_id>:<grams>
+
+
+def composite_parts(text):
+    """`[(fdc_id, grams), ...]` of a composite row's `fdc_id` cell, `<fdc_id>:<grams>` parts joined by `+`
+    (`172796:63.4+172968:52`); raises ValueError on any other form, a part of no mass or fewer than two parts."""
+    parts = []
+    for piece in text.split(COMPOSITE_SEP):
+        match = COMPOSITE_PART_RE.match(piece)
+        if not match:
+            raise ValueError("composite part %r is not <sr_legacy fdc_id>:<grams>" % piece)
+        grams = float(match.group(2))
+        if grams <= 0:
+            raise ValueError("composite part %r has no mass" % piece)
+        parts.append((match.group(1), grams))
+    if len(parts) < 2:
+        raise ValueError("a composite names two or more parts; %r names %d" % (text, len(parts)))
+    return parts
+
+
+def ref_cells(row, col):
+    """The references a row's `iodine_ref` or `phytate_source` cell names, empties left out: a composite's
+    cell split on `+`, any other row's cell alone."""
+    cell = row[col]
+    pieces = cell.split(COMPOSITE_SEP) if row["fdc_source"] == COMPOSITE else [cell]
+    return [piece for piece in pieces if piece]
+
+
+def _sr_ids_of(row):
+    """The SR Legacy ids a row cites: its own on an `sr_legacy` row, its parts' on a parseable composite."""
+    if row["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(row["fdc_id"]):
+        return [row["fdc_id"]]
+    if row["fdc_source"] == COMPOSITE and row["fdc_id"]:
+        try:
+            return [fid for fid, _grams in composite_parts(row["fdc_id"])]
+        except ValueError:
+            return []
+    return []
 
 # The FoodType buckets of the four food parts: the 43 named values of the 2026-09-10 dataset, every
 # one listed once (a test asserts a re-scan's new value is noticed). A value in none of the lists,
@@ -558,6 +606,8 @@ def _row_violations(row, record, allow_unfilled):
                        % (where, pz_id, reason, cal))
     if row["fdc_id"] and row["fdc_source"] in ("sr_legacy", "foundation") and not FDC_ID_RE.match(row["fdc_id"]):
         out.append("%s %s: fdc_id %r is not digits for %s" % (where, pz_id, row["fdc_id"], row["fdc_source"]))
+    if row["fdc_id"] and row["fdc_source"] == COMPOSITE:
+        out += _composite_violations(row, where, pz_id)
     if row["cook_retention_code"]:
         if not row["cook_retention_code"].isdigit():
             out.append("%s %s: cook_retention_code %r is not an integer" % (where, pz_id, row["cook_retention_code"]))
@@ -567,6 +617,26 @@ def _row_violations(row, record, allow_unfilled):
         out.append("%s %s: portion_grams %r is not a positive number" % (where, pz_id, row["portion_grams"]))
     if row["phytate_mg_100g"] and not _is_number(row["phytate_mg_100g"]):
         out.append("%s %s: phytate_mg_100g %r is not a number >= 0" % (where, pz_id, row["phytate_mg_100g"]))
+    return out
+
+
+def _composite_violations(row, where, pz_id):
+    """A composite row's own rules: the parts parse, `portion_grams` is their sum, each reference cell names
+    one reference per part, and the phytate comes from the parts, never a cell of the whole."""
+    try:
+        parts = composite_parts(row["fdc_id"])
+    except ValueError as err:
+        return ["%s %s: %s" % (where, pz_id, err)]
+    out, total = [], sum(grams for _fid, grams in parts)
+    if _is_number(row["portion_grams"], positive=True) and abs(float(row["portion_grams"]) - total) > 1e-6:
+        out.append("%s %s: portion_grams %s is not the composite parts' sum %s"
+                   % (where, pz_id, row["portion_grams"], food_scan._cell(round(total, 6))))
+    for col in ("iodine_ref", "phytate_source"):
+        if row[col] and len(row[col].split(COMPOSITE_SEP)) != len(parts):
+            out.append("%s %s: %s %r names %d reference(s) for %d composite parts"
+                       % (where, pz_id, col, row[col], len(row[col].split(COMPOSITE_SEP)), len(parts)))
+    if row["phytate_mg_100g"]:
+        out.append("%s %s: phytate_mg_100g on a composite (its phytate is the parts')" % (where, pz_id))
     return out
 
 
@@ -777,7 +847,7 @@ PHYTATE_TABLE_PREFIXES = (PHYTATE_LIT_PREFIX, PHYTATE_FRESH_PREFIX)
 ZERO_PHYTATE_FAMILIES = ("dairy", "egg", "fish", "fruit", "meat", "oil", "sugar", "vegetable")
 INSECT_NUMBER_COLUMNS = ("protein_g_100g", "fat_g_100g", "fibre_g_100g", "carb_g_100g", "ash_g_100g",
                          "energy_kcal_100g", "moisture_pct")
-EXTRACT_SOURCES = ("sr_legacy", "literature")   # the fdc_source values the build resolves
+EXTRACT_SOURCES = ("sr_legacy", "literature", "composite")   # the fdc_source values the build resolves
 
 
 class ExtractRefused(ValueError):
@@ -859,10 +929,10 @@ def check_iodine_refs(rows, records):
     keys = read_table(REF_SOURCES["iodine"], "key")
     out = []
     for row in rows:
-        ref = row["iodine_ref"]
-        if ref and not (ref.startswith(IODINE_PREFIX) and ref[len(IODINE_PREFIX):] in keys):
-            out.append("%s %s: iodine_ref %r does not resolve to a key of %s"
-                       % (_where(row), row["pz_id"], ref, os.path.basename(REF_SOURCES["iodine"])))
+        for ref in ref_cells(row, "iodine_ref"):
+            if not (ref.startswith(IODINE_PREFIX) and ref[len(IODINE_PREFIX):] in keys):
+                out.append("%s %s: iodine_ref %r does not resolve to a key of %s"
+                           % (_where(row), row["pz_id"], ref, os.path.basename(REF_SOURCES["iodine"])))
     return out
 
 
@@ -878,10 +948,7 @@ def check_phytate_sources(rows, records):
         return _table_violation("phytate")
     families = read_table(REF_SOURCES["phytate"], "family")
     out = []
-    for row in rows:
-        src = row["phytate_source"]
-        if not src:
-            continue
+    for row, src in ((row, src) for row in rows for src in ref_cells(row, "phytate_source")):
         if (src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] in families
                 and not _fresh_family(families[src[len(PHYTATE_LIT_PREFIX):]])):
             continue
@@ -910,9 +977,12 @@ def check_sr_legacy_ids(rows, records):
     if not os.path.exists(REF_SOURCES["sr_legacy"]):
         return []
     ids = sr_legacy_ids(REF_SOURCES["sr_legacy"])
-    return ["%s %s: sr_legacy fdc_id %s is not in food.csv" % (_where(r), r["pz_id"], r["fdc_id"])
-            for r in rows if r["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(r["fdc_id"])
-            and int(r["fdc_id"]) not in ids]
+    out = ["%s %s: sr_legacy fdc_id %s is not in food.csv" % (_where(r), r["pz_id"], r["fdc_id"])
+           for r in rows if r["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(r["fdc_id"])
+           and int(r["fdc_id"]) not in ids]
+    out += ["%s %s: composite part %s is not in food.csv" % (_where(r), r["pz_id"], fid)
+            for r in rows if r["fdc_source"] == COMPOSITE for fid in _sr_ids_of(r) if int(fid) not in ids]
+    return out
 
 
 def check_retention_codes(rows, records):
@@ -1065,11 +1135,11 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
     if unsupported:
         raise ExtractRefused("fdc_source %s: the extract resolves only %s"
                              % (", ".join(unsupported), ", ".join(EXTRACT_SOURCES)))
-    sr_ids = sorted({int(r["fdc_id"]) for r in mapped if r["fdc_source"] == "sr_legacy"})
+    sr_ids = sorted({int(fid) for r in mapped for fid in _sr_ids_of(r)})
     codes = sorted({int(r["cook_retention_code"]) for r in rows if r["cook_retention_code"]})
-    iodine_keys = sorted({r["iodine_ref"][len(IODINE_PREFIX):] for r in rows if r["iodine_ref"]})
-    families = sorted({r["phytate_source"][len(prefix):] for r in rows for prefix in PHYTATE_TABLE_PREFIXES
-                       if r["phytate_source"].startswith(prefix)})
+    iodine_keys = sorted({ref[len(IODINE_PREFIX):] for r in rows for ref in ref_cells(r, "iodine_ref")})
+    families = sorted({src[len(prefix):] for r in rows for src in ref_cells(r, "phytate_source")
+                       for prefix in PHYTATE_TABLE_PREFIXES if src.startswith(prefix)})
     insect_keys = sorted({r["fdc_id"] for r in mapped if r["fdc_source"] == "literature"})
 
     with _FdcSource(REF_SOURCES["sr_legacy"]) as source:
@@ -1096,8 +1166,8 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
         entry["skipped"].append({"line": row["line"], "nutr_no": row["nutr_no"], "retn_factor": row["retn_factor"]})
 
     iodine, phytate, insects = side_tables(keys=(iodine_keys, families, insect_keys))
-    fresh_cited = {r["phytate_source"][len(PHYTATE_FRESH_PREFIX):] for r in rows
-                   if r["phytate_source"].startswith(PHYTATE_FRESH_PREFIX)}
+    fresh_cited = {src[len(PHYTATE_FRESH_PREFIX):] for r in rows for src in ref_cells(r, "phytate_source")
+                   if src.startswith(PHYTATE_FRESH_PREFIX)}
     for f in families:
         if (f in fresh_cited) != (phytate[f]["basis"] == "fresh"):
             raise ExtractRefused("phytate family %s: the %s prefix and the table note's %r marker disagree"
@@ -1322,6 +1392,36 @@ def sr_per_100g(food, row, extract, notes):
     return out
 
 
+def composite_per_100g(row, extract, notes):
+    """A composite row's per-100 g vector: each part read as an SR Legacy row with its own references
+    (`sr_per_100g`), weighed by its grams, summed, over the parts' total mass. A key no part carries is null;
+    a key only some parts carry is the sum of those, and a note names the parts that carry it. Nine decimal places."""
+    parts = composite_parts(row["fdc_id"])
+    refs = {}
+    for col in ("iodine_ref", "phytate_source"):
+        refs[col] = row[col].split(COMPOSITE_SEP) if row[col] else [""] * len(parts)
+    sums, carried, total = dict.fromkeys(KEYS), {}, 0.0
+    for n, (fid, grams) in enumerate(parts):
+        part_row = {"pz_id": "%s part %s" % (row["pz_id"], fid), "iodine_ref": refs["iodine_ref"][n],
+                    "phytate_source": refs["phytate_source"][n], "phytate_mg_100g": ""}
+        per = sr_per_100g(extract["foods"][fid], part_row, extract, notes)
+        total += grams
+        for key, value in per.items():
+            if value is not None:
+                sums[key] = (sums[key] or 0.0) + value * grams / 100.0
+                carried.setdefault(key, []).append(fid)
+    partial = {}
+    for key in KEYS:
+        if key in carried and len(carried[key]) < len(parts):
+            partial.setdefault(tuple(carried[key]), []).append(key)
+    for fids, keys in sorted(partial.items()):
+        notes.append("composite: %s carried by part %s only, the other parts' null; summed as carried"
+                     % (", ".join(keys), " and ".join(fids)))
+    # nine places, not _r6's six: the build scales per_100g back by the parts' total mass at six places, so the
+    # per-item block is the parts' sum to the sixth place (a six-place per_100g lost a unit of the sixth)
+    return {key: None if value is None else round(value * 100.0 / total, 9) for key, value in sums.items()}
+
+
 def record_checks(per_100g, factors=None):
     """The per_100g checks, never clamping: `{atwater_ratio, atwater_outlier, proximate_sum, fibre_le_carb,
     retention_le_100, out_of_range, notes}`. `factors` is the cited retention code's `{nutr_no: pct}`, or
@@ -1407,6 +1507,8 @@ def build_record(row, record, extract):
     if row["fdc_source"] == "literature":
         cells = dict(extract["insects"][row["fdc_id"]], _key=row["fdc_id"])
         per_100g = literature_per_100g(cells)
+    elif row["fdc_source"] == COMPOSITE:
+        per_100g = composite_per_100g(row, extract, notes)
     else:
         per_100g = sr_per_100g(extract["foods"][row["fdc_id"]], row, extract, notes)
     out["per_100g"] = per_100g
@@ -1460,12 +1562,16 @@ def _stale(rows, extract):
             out.append("%s: literature %s" % (r["pz_id"], r["fdc_id"]))
         if r["cook_retention_code"] and r["cook_retention_code"] not in extract["retention"]:
             out.append("%s: retention code %s" % (r["pz_id"], r["cook_retention_code"]))
-        if r["iodine_ref"] and r["iodine_ref"][len(IODINE_PREFIX):] not in extract["iodine"]:
-            out.append("%s: %s" % (r["pz_id"], r["iodine_ref"]))
-        src = r["phytate_source"]
-        for prefix in PHYTATE_TABLE_PREFIXES:
-            if src.startswith(prefix) and src[len(prefix):] not in extract["phytate"]:
-                out.append("%s: %s" % (r["pz_id"], src))
+        if r["fdc_source"] == COMPOSITE and r["fdc_id"]:
+            out += ["%s: composite part %s is not in the extract" % (r["pz_id"], fid)
+                    for fid in _sr_ids_of(r) if fid not in extract["foods"]]
+        for ref in ref_cells(r, "iodine_ref"):
+            if ref[len(IODINE_PREFIX):] not in extract["iodine"]:
+                out.append("%s: %s" % (r["pz_id"], ref))
+        for src in ref_cells(r, "phytate_source"):
+            for prefix in PHYTATE_TABLE_PREFIXES:
+                if src.startswith(prefix) and src[len(prefix):] not in extract["phytate"]:
+                    out.append("%s: %s" % (r["pz_id"], src))
     unsupported = sorted({r["fdc_source"] for r in rows if r["fdc_id"]} - set(EXTRACT_SOURCES))
     out += ["fdc_source %s: the build resolves only %s" % (s, ", ".join(EXTRACT_SOURCES)) for s in unsupported]
     return out
@@ -2109,7 +2215,11 @@ def check_sr_legacy_descriptions(rows, records):
     return ["%s %s: fdc_description %r is not food.csv's %r for sr_legacy fdc_id %s"
             % (_where(r), r["pz_id"], r["fdc_description"], descriptions[int(r["fdc_id"])], r["fdc_id"])
             for r in rows if r["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(r["fdc_id"])
-            and int(r["fdc_id"]) in descriptions and r["fdc_description"] != descriptions[int(r["fdc_id"])]]
+            and int(r["fdc_id"]) in descriptions and r["fdc_description"] != descriptions[int(r["fdc_id"])]] + [
+        "%s %s: composite fdc_description %r names no part description %r (part %s)"
+        % (_where(r), r["pz_id"], r["fdc_description"], descriptions[int(fid)], fid)
+        for r in rows if r["fdc_source"] == COMPOSITE for fid in _sr_ids_of(r)
+        if int(fid) in descriptions and descriptions[int(fid)] not in r["fdc_description"]]
 
 
 MAP_REF_CHECKS.append(check_sr_legacy_descriptions)

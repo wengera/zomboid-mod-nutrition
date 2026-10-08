@@ -21,8 +21,8 @@ never on the display name (231 of the 1 005 item records share a name).
 | `pz_display` | the dataset `display_name`, for review only; the tool never reads it |
 | `pz_kind` | `food`, `drainable`, `fluid_container` or `fluid`; must equal the dataset's `kind` |
 | `family` | the four-macro tuple `Calories\|Carbohydrates\|Lipids\|Proteins` as the dataset CSV prints each cell; empty when any of the four is absent; written by the seed, a review aid (ruling 3) |
-| `fdc_id` | the composition source's id; empty only when `no_nutrition_reason` is set |
-| `fdc_source` | `sr_legacy`, `foundation`, `iodine_db_r4`, `literature`, `derived` |
+| `fdc_id` | the composition source's id; empty only when `no_nutrition_reason` is set; on a `composite` row its parts, `<sr_legacy fdc_id>:<grams>` joined by `+` (`172796:63.4+172968:52`) |
+| `fdc_source` | `sr_legacy`, `foundation`, `iodine_db_r4`, `literature`, `derived`, `composite` (a dish the game makes from parts, its vector the sum of the parts') |
 | `fdc_description` | the source's description verbatim, so a wrong mapping is visible in review |
 | `confidence` | `exact`, `close`, `proxy`, `guess` (the rubric in the Plan 6 briefing § C) |
 | `portion_grams` | the mass the item's numbers describe; never derived from `Weight` |
@@ -119,6 +119,12 @@ counts (`rows`, `parts`, `by_kind`, `by_reason`, `by_confidence`, `filled`, `unf
   `fdc_id` is a key of `data/insect-literature.csv`; an `sr_legacy` `fdc_id` is a row of the zip's `food.csv` and a
   `cook_retention_code` a `Retn_Code` of the retention CSV, both skipped (and named in `ref_checks_skipped`) when the
   gitignored `tools/.fdc/` file is absent.
+- a `composite` row names two or more parts of positive grams, its `portion_grams` is their sum, its
+  `iodine_ref` and `phytate_source` are empty or carry one reference per part in the parts' order joined by `+`
+  (an empty element is a part with none, `+iodine:frankfurter`), it carries no `phytate_mg_100g`, every part is a
+  row of the zip's `food.csv` and the row's `fdc_description` names each part's description verbatim; the build
+  reads each part as an SR Legacy row with its own references and sums them over the parts' mass, a key only some
+  parts carry summed as carried and named in the record's check notes.
 
 ## Curating
 
