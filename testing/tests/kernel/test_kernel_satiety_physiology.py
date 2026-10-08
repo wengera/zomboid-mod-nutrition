@@ -42,7 +42,7 @@ def test_each_constant_names_its_row_or_its_label():
         assert "fitted in Task 4" in line, name                          # a provisional fit (the amendments)
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "S1.52" in line, name                                     # Scheer 2013, provisional until minted
+        assert "S1273" in line, name                                     # Scheer 2013, provisional until minted
     with open(os.path.join(SHARED, "NR_Kernel_Hybrid.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
     line = re.search(r"^K\.hybrid\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)

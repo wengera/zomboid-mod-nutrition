@@ -98,8 +98,8 @@ K.satiety.DISCOMFORT_MAX = 100 -- not science: the DISCOMFORT stat's range, 0-10
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
 K.satiety.ATWATER_F = 9 -- S1209 (fat 9.0 kcal/g)
-K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1.52 until minted): the cosine's amplitude, half of Scheer 2013's 17 % peak-to-trough of hunger; the halving is the plan's own arithmetic
-K.satiety.CIRCADIAN_PEAK_H = 19.8333 -- S1.52 until minted (ruling 11c-24): Scheer 2013's circadian hunger peak at 19:50 (trough 07:50), in game hours of the day
+K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1273): the cosine's amplitude, half of Scheer 2013's 17 % peak-to-trough of hunger; the halving is the plan's own arithmetic
+K.satiety.CIRCADIAN_PEAK_H = 19.8333 -- S1273 (ruling 11c-24): Scheer 2013's circadian hunger peak at 19:50 (trough 07:50), in game hours of the day
 
 -- The fullness F: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8); the writer
 -- passes K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the tolerated maximum (ruling 11c-19).
