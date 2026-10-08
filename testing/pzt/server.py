@@ -18,7 +18,7 @@ BUILD_RX = re.compile(r"\bversion=(\d+\.\d+\.\d+)")
 # clients join without it (spike S3). Treated as a hard failure by the orchestrator.
 MOD_MISSING_RX = re.compile(r'required mod "([^"]+)" not found')
 
-# Known vanilla 42.20.4 noise (baseline from spikes S1/T0); matched head lines are not
+# Known vanilla 42.20.4 and 42.21.0 noise (baseline from spikes S1/T0); matched head lines are not
 # counted as errors. Re-baseline after game updates.
 BASELINE_NOISE = [re.compile(p) for p in (
     r"FluidContainerScript\.load .*Sanitizing container name",
