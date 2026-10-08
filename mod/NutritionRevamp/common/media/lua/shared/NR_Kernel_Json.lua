@@ -2,7 +2,8 @@
 -- serialiser). Pure: Lua values in, a string out, and back. A number is written by the caller's fmt (the adapter
 -- passes tostring, which on Kahlua is Double.toString or a long below 1e14: a round trip, J2); a non-finite number
 -- writes null. A table with keys exactly 1..#t (#t > 0) is an array, any other an object; an object's number key is
--- written "#<fmt(k)>" and read back as a number. Decode answers nil and a message on malformed text.
+-- written "#<fmt(k)>" and read back as a number; a string key that starts with # gets one more # ("##5" reads "#5").
+-- A table is an array only when t[1]..t[#t] are all present and no other key exists. A top-level non-table is unreadable. Decode answers nil and a message on malformed text.
 local K = NutritionRevamp.kernel
 K.json = {}
 
@@ -40,7 +41,16 @@ function K.json.isArray(t)
     for _ in pairs(t) do
         count = count + 1
     end
-    return count == n
+    return count == n and K.json.dense(t, n)
+end
+
+-- True when t[1]..t[n] are all present (no branch inside the loop body, for the line-hook coverage gate).
+function K.json.dense(t, n)
+    local ok = true
+    for i = 1, n do
+        ok = ok and t[i] ~= nil
+    end
+    return ok
 end
 
 function K.json.emit(v, fmt, out)
@@ -89,6 +99,8 @@ function K.json.member(k, x, fmt, out, first)
     local key = k
     if type(k) == "number" then
         key = "#" .. fmt(k)
+    elseif type(k) == "string" and string.sub(k, 1, 1) == "#" then
+        key = "#" .. k
     end
     if type(key) ~= "string" then
         return first
@@ -185,6 +197,9 @@ function K.json.readString(s, i)
 end
 
 function K.json.keyOf(k)
+    if string.sub(k, 1, 2) == "##" then
+        return string.sub(k, 2)
+    end
     if string.sub(k, 1, 1) == "#" then
         local n = tonumber(string.sub(k, 2))
         if n ~= nil then
@@ -267,6 +282,9 @@ function K.json.decode(text)
     i = K.json.skip(text, i)
     if i <= string.len(text) then
         return nil, "json: trailing text at " .. tostring(i)
+    end
+    if type(v) ~= "table" then
+        return nil, "json: not a record"
     end
     return v, nil
 end

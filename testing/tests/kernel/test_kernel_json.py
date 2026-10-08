@@ -69,3 +69,35 @@ def test_every_decode_refusal_names_its_place(host, bad):
 def test_control_bytes_encode_as_lowercase_hex_escapes(host):
     s = enc(host, host.rt.eval("{ c = string.char(31) .. string.char(10) .. string.char(2) }"))
     assert r"\u001f" in s and r"\n" in s and r"\u0002" in s
+
+
+def test_a_mixed_table_keeps_every_key(host):
+    for src in ("{ 1, 2, x = 3 }", "{ [2] = 'a', [3] = 'b', x = 'c' }", "{ 1, nil, 3, x = 4 }"):
+        t = host.rt.eval(src)
+        out, err = host.call("json.decode", enc(host, t))
+        assert err is None and out.x is not None, src
+    out, err = host.call("json.decode", enc(host, host.rt.eval("{ 1, 2, x = 3 }")))
+    assert out[1] == 1 and out[2] == 2 and out.x == 3
+    out, err = host.call("json.decode", enc(host, host.rt.eval("{ [2] = 'a', [3] = 'b', x = 'c' }")))
+    assert out[2] == "a" and out[3] == "b" and out.x == "c"
+
+
+def test_an_array_with_a_nan_keeps_its_indexes(host):
+    s = enc(host, host.rt.eval("{ 1, 0/0, 3 }"))
+    assert s == "[1,null,3]"
+    out, err = host.call("json.decode", s)
+    assert err is None and out[1] == 1 and out[2] is None and out[3] == 3
+
+
+def test_hash_prefixed_string_keys_stay_strings(host):
+    t = host.rt.eval("{ ['#5'] = 'a', ['##'] = 'b', ['#.0'] = 'c', ['#\f0'] = 'd', [5] = 'num' }")
+    out, err = host.call("json.decode", enc(host, t))
+    assert err is None
+    assert out["#5"] == "a" and out["##"] == "b" and out["#.0"] == "c" and out["#\x0c0"] == "d"
+    assert out[5] == "num" and out["5"] is None
+
+
+@pytest.mark.parametrize("top", ["null", "5", "true", '"s"'])
+def test_a_top_level_non_table_is_unreadable(host, top):
+    out, err = host.call("json.decode", top)
+    assert out is None and isinstance(err, str)
