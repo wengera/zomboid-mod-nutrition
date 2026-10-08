@@ -343,7 +343,8 @@ def rule_pointer(rows, root, register_rel):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
                                                                    "research-program-v1); cite the underlying evidence" % (r["id"], path)))
                 elif not os.path.exists(os.path.join(root, *path.split("/"))):
-                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
+                    hint = " (only a hex commit pin, 7 to 40 digits, is supported after @)" if re.search(r"@[^/@]+$", path) else ""
+                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist%s" % (r["id"], path, hint)))
                 else:
                     f = _pointer_line_finding(r, text, n, root, register_rel)
                     if f:

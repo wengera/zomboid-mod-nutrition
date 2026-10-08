@@ -549,15 +549,40 @@ def test_pinned_pointer_wrong_line_names_the_found_line_and_the_commit():
 
 def test_pinned_pointer_unknown_commit_is_a_pointer_finding():
     f = _pinned('repo:mod/x.lua@deadbeef1:2 "a = 1"')
-    assert len(f) == 1 and f[0].rule == "pointer" and "deadbeef1" in f[0].detail
+    assert len(f) == 1 and f[0].rule == "pointer" and "deadbeef1" in f[0].detail and "does not resolve at commit" in f[0].detail
 
 
 def test_pinned_pointer_path_absent_at_that_commit_is_a_pointer_finding():
     f = _pinned('repo:mod/y.lua@{c}:2 "a = 1"')
-    assert len(f) == 1 and f[0].rule == "pointer" and "mod/y.lua" in f[0].detail
+    assert len(f) == 1 and f[0].rule == "pointer" and "mod/y.lua" in f[0].detail and "does not resolve at commit" in f[0].detail
 
 
 def test_unpinned_pointer_still_reads_the_working_tree():
     f = _pinned('repo:mod/x.lua:2 "local function f()"')
     assert len(f) == 1 and f[0].rule == "pointer" and "does not exist" in f[0].detail
     assert _pinned('repo:mod/x.lua:2 "local function f()"', mutate=False) == []
+
+
+def _pinned_edited(pointer_fmt):
+    """A tmp repo whose mod/x.lua holds BODY at commit C1 and different text in the working tree."""
+    with tempfile.TemporaryDirectory() as d:
+        _git(d, "init", "-q")
+        _write(d, "mod/x.lua", BODY)
+        _git(d, "add", "mod/x.lua")
+        _git(d, "commit", "-q", "-m", "c1")
+        c1 = _git(d, "rev-parse", "--short=10", "HEAD")
+        _write(d, "mod/x.lua", "b = 9\nlocal function h()\n  return 7\nend\n")
+        _tree(d, [_row(1, pointer=pointer_fmt.format(c=c1))])
+        return [x for x in cc.check(d, register_only=True) if x.rule in ("pointer", "pointer-line")]
+
+
+def test_pinned_pointer_reads_the_commit_not_the_edited_working_tree():
+    assert _pinned_edited('repo:mod/x.lua@{c}:2 "local function f()"') == []
+    f = _pinned_edited('repo:mod/x.lua@{c}:2 "local function h()"')
+    assert len(f) == 1 and f[0].rule == "pointer-line"
+
+
+def test_pointer_with_a_non_hex_pin_says_only_a_hex_commit_is_supported():
+    for tok in ("HEAD", "v1.0"):
+        f = _pinned('repo:mod/x.lua@%s:2 "a = 1"' % tok)
+        assert len(f) == 1 and f[0].rule == "pointer" and "only a hex commit pin" in f[0].detail
