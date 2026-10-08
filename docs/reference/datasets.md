@@ -133,19 +133,19 @@ Exactly one of the 722 `base:food` blocks sets `DaysFresh` equal to `DaysTotally
 
 ### Food nutrients
 
-`data/food-nutrients.json` holds 1 005 item records and 61 fluid records, one per record of the food dataset, of which 569 are mapped (522 per item and 47 per litre) and 497 carry no nutrition; by kind it is 722 food, 150 drainable, 133 fluid-container and 61 fluid, over the 2026-09-10 food scan of `42.20.4`, generated 2026-10-06 [#3162/C/snapshot].
-The 569 mapped records read by confidence 56 exact, 399 close, 96 proxy and 18 guess, and by source 550 SR Legacy, 1 composite and 18 literature, the literature records being the 18 guesses, all invertebrates [T1116.11/C/snapshot].
+`data/food-nutrients.json` holds 1 005 item records and 61 fluid records, one per record of the food dataset, of which 569 are mapped (522 per item and 47 per litre) and 497 carry no nutrition; by kind it is 722 food, 150 drainable, 133 fluid-container and 61 fluid, over the 2026-09-10 food scan of `42.20.4`, generated 2026-10-06, and unchanged in the 2026-10-08 regeneration over `42.21.0` [#3162/C/snapshot].
+The 569 mapped records read by confidence 56 exact, 399 close, 96 proxy and 18 guess, and by source 550 SR Legacy, 1 composite and 18 literature, the literature records being the 18 guesses, all invertebrates [#3580/C/snapshot].
 The 497 records with no nutrition read by reason 189 `not_food`, 71 `fluid_sourced`, 61 `empty_container`, 58 `spice_only`, 47 `inedible_body_part`, 42 `vessel_only`, 15 `tobacco_or_drug` and 14 `hazard` [#3164/C/snapshot].
-The mapping is 1 066 rows over seven part files with every dataset id once; its 644 per-item food rows hold 342 four-macro families, the family being the tuple `Calories|Carbohydrates|Lipids|Proteins` as the dataset prints it, and 55 of those families name more than one source, each row off the family's most common source carrying a note [#3165/C/snapshot].
+The mapping is 1 066 rows over seven part files with every dataset id once; its 644 per-item food rows hold 342 four-macro families, the family being the tuple `Calories|Carbohydrates|Lipids|Proteins` as the dataset prints it, and 54 of those families name more than one source, each row off the family's most common source carrying a note [#3587/C/snapshot].
 That 342 is the tool's own count, the `families` of `--check-map`.
-The 569 mapped records read by portion source 425 `judgement`, 66 `fdc_portion` and 78 `vanilla_implied`, and by state baseline 234 prepared, 218 raw, 62 canned, 28 cooked, 19 dried and 8 frozen [T1116.12/C/snapshot].
-Phytate is non-null on 323 of the 522 per-item records, 263 through a `zero:` family, 45 through a `phyfoodcomp2019:` family, 14 through a `schlemmer2009:` family and 1 through a composite of a `phyfoodcomp2019:` and a `zero:` family, and null on the other 199 [T1116.13/C/snapshot].
-The re-base factor, a record's per-basis energy over vanilla's calories, falls within 0.95 to 1.05 on 460 of the 569 mapped records, in 0.8 to 0.95 on 19, 0.5 to 0.8 on 13, under 0.5 on 15, 1.05 to 1.25 on 25, 1.25 to 2.0 on 17 and over 2.0 on 15, and 5 have no vanilla energy to divide by [T1116.14/C/snapshot].
+The 569 mapped records read by portion source 425 `judgement`, 66 `fdc_portion` and 78 `vanilla_implied`, and by state baseline 234 prepared, 218 raw, 62 canned, 28 cooked, 19 dried and 8 frozen [#3581/C/snapshot].
+Phytate is non-null on 323 of the 522 per-item records, 263 through a `zero:` family, 45 through a `phyfoodcomp2019:` family, 14 through a `schlemmer2009:` family and 1 through a composite of a `phyfoodcomp2019:` and a `zero:` family, and null on the other 199 [#3582/C/snapshot].
+The re-base factor, a record's per-basis energy over vanilla's calories, falls within 0.95 to 1.05 on 460 of the 569 mapped records, in 0.8 to 0.95 on 19, 0.5 to 0.8 on 13, under 0.5 on 15, 1.05 to 1.25 on 25, 1.25 to 2.0 on 17 and over 2.0 on 15, and 5 have no vanilla energy to divide by [#3583/C/snapshot].
 The checks never clamp: of 566 records checked for Atwater consistency 52 fall outside the band, a food-specific energy factor of FDC's being the usual reason, and no record is out of the sanity range, over 102 in water plus macros, over its carbohydrate in fibre or over 100 in a retention factor; 184 records carry a cook retention code and 33 cookable records carry none [#3169/C/snapshot].
-`data/fdc-extract.json` holds 350 foods, 50 retention codes, 46 iodine rows, 10 insect rows and 16 phytate rows, and 24 rows of the retention CSV were defective and skipped [T1116.15/C/snapshot].
+`data/fdc-extract.json` holds 350 foods, 50 retention codes, 46 iodine rows, 10 insect rows and 16 phytate rows, and 24 rows of the retention CSV were defective and skipped [#3584/C/snapshot].
 Its four sources are SR Legacy 2018-04 (6 074 592 bytes), Foundation Foods 2026-04-30 (3 825 741 bytes), the retention table Release 6 2007 (472 734 bytes) and the iodine database Release 4.0 2024-10 (357 524 bytes), each recorded with its sha256 in the extract's `meta.sources` [#3171/C/snapshot].
-The extract's `missing_nutrients` count per key is that of its `meta.counts`, the largest being iodine on all 350 foods, choline on 56, caffeine on 51, vitamin D on 49, carotene on 48, vitamin K on 47, vitamin E on 44 and ethanol on 38 [T1116.16/C/snapshot].
-The three side tables hold 67 iodine rows, 36 phytate families and 11 insect rows [#3173/C/snapshot].
+The extract's `missing_nutrients` count per key is that of its `meta.counts`, the largest being iodine on all 350 foods, choline on 56, caffeine on 51, vitamin D on 49, carotene on 48, vitamin K on 47, vitamin E on 44 and ethanol on 38 [#3585/C/snapshot].
+The three side tables hold 66 iodine rows, 36 phytate families and 11 insect rows [#3173/C/snapshot].
 The generated mod files carry 522 item blocks, 522 item entries with 47 fluid entries, and 28 FoodType templates with the default one [#3174/C/snapshot].
 
 ### Recipes
@@ -185,7 +185,7 @@ Absence is `null` and never `0` throughout, as in the food dataset ([#0618]); ev
 <a id="food-nutrient-map"></a>
 ### The mapping
 
-`data/food-nutrient-map/` is the only hand-edited input: one row per dataset id across seven part CSVs, UTF-8, LF, sorted by `pz_id`, no stamp row, merged in filename order with each id required exactly once, so a row may live in any part [#3165/C/snapshot].
+`data/food-nutrient-map/` is the only hand-edited input: one row per dataset id across seven part CSVs, UTF-8, LF, sorted by `pz_id`, no stamp row, merged in filename order with each id required exactly once, so a row may live in any part [#3587/C/snapshot].
 The columns are `pz_id` (the join key, never the display name, 231 of the 1 005 item records sharing one), `pz_display`, `pz_kind`, `family`, `fdc_id`, `fdc_source`, `fdc_description`, `confidence`, `portion_grams`, `portion_source`, `cook_retention_code`, `state_baseline`, `iodine_ref`, `phytate_mg_100g`, `phytate_source`, `no_nutrition_reason` and `notes`; the directory's README states each.
 The enums are `fdc_source` (`sr_legacy`, `foundation`, `iodine_db_r4`, `literature`, `derived`, `composite`), `confidence` (`exact`, `close`, `proxy`, `guess`, at most 40 guesses), `portion_source` (`vanilla_implied`, `judgement`, `fdc_portion:<seq_num>`), `state_baseline` (`raw`, `cooked`, `canned`, `dried`, `frozen`, `prepared`) and `no_nutrition_reason` (`not_food`, `empty_container`, `fluid_sourced`, `inedible_body_part`, `hazard`, `vessel_only`, `spice_only`, `tobacco_or_drug`).
 A ninth reason, `no_vanilla_nutrition`, names a fluid or item vanilla itself declares with no nutrition keys and which the pass therefore leaves alone; its members today are `AnimalBlood` and `AnimalGrease`, still keyed `not_food` with that note, and the tool's enum does not hold the name yet.
@@ -197,14 +197,14 @@ The conventions the curation settled are the mapping's rules, each a convention 
 - A vessel is not re-based: an evolved-recipe vessel that carries macros, a macro-less drink or salad vessel and a recipe-only result are `vessel_only` (42 records), while an item that spawns at its own script tuple is mapped even when a recipe can make it [#3164/C/snapshot].
 - A Spice food with calories is a food the pass re-bases: `spice_only` is only for a food whose four macros are absent or under 5 kcal (58 records) [#3164/C/snapshot].
 - Vanilla's silence is not re-based: a fluid or item with no nutrition keys gets none, except water, which is mapped for its minerals.
-- The portion is the game's own energy where it is usable: the kcal-implied mass is the judgement, and an FDC serving is taken only where the vanilla energy is more than 15 % off its own Atwater value or no consistent implied mass exists [#3166/C/snapshot].
+- The portion is the game's own energy where it is usable: the kcal-implied mass is the judgement, and an FDC serving is taken only where the vanilla energy is more than 15 % off its own Atwater value or no consistent implied mass exists [#3581/C/snapshot].
 - A family is one source: the fish family takes the kcal-implied mass and one retention code in every part, and a sealed and an opened twin share one entry and portion, opening never changing energy.
-- The staples take the enriched SR entries (rice 168877, pasta 169736, bread 174924), and the bread rows take the white-bread median of the phytate database, bread being white [#3167/C/snapshot].
+- The staples take the enriched SR entries (rice 168877, pasta 169736, bread 174924), and the bread rows take the white-bread median of the phytate database, bread being white [#3582/C/snapshot].
 
 <a id="fdc-extract"></a>
 ### The extract
 
-`data/fdc-extract.json` is the file `--build` reads, so that a fresh clone rebuilds with no FDC download [T1116.15/C/snapshot].
+`data/fdc-extract.json` is the file `--build` reads, so that a fresh clone rebuilds with no FDC download [#3584/C/snapshot].
 Its top-level keys are `meta`, `foods` (one record per cited FDC id: the data type, description, category and, per nutrient key, the amount per 100 g, the FDC nutrient id and the unit, `null` where no row carries a value), `retention` (the factors of each cited code by nutrient number), `iodine` (a key's food, iodine per 100 g and PDF page), `phytate` and `insects`.
 Its `meta` carries `build`, `jar_hash`, `generated`, `tool`, `counts`, `defective_retention` (the 24 rows pinned) and `sources`, each with its name, release, bytes, sha256, licence, citation and url [#3171/C/snapshot].
 `--build-extract` refuses unless the mapping checks clean, and verifies each source file against its manifest hash before it reads one.

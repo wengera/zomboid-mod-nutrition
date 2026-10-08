@@ -367,7 +367,7 @@ The harness reads a frame's length and a load's cost on a live server; its comma
 A profile's `gclog` key writes the server's GC log beside the run, for lining a pause or a stall up with a frame [#3408/M/n=1].
 Offline, the kernel's host is C Lua, so an offline profile ranks blocks by share and a live reading prices them [#3438/C/inference].
 
-`ghost.load <N>` takes its scheduler as `burst`, `rr<m>`, `drainTicks`, `budget<ms>` or `shipped`, `ghost.stats reset` zeroes the load's counters for the next arm, and `ghost.bench <n>` arms a bench of interleaved ghost and real-player minutes that `ghost.bench read` replies [#3455/C/inference].
+`ghost.load <N>` takes its scheduler as `burst`, `rr<m>`, `drainTicks`, `budget<ms>`, `shipped` or `mod`, `ghost.stats reset` zeroes the load's counters for the next arm, and `ghost.bench <n>` arms a bench of interleaved ghost and real-player minutes that `ghost.bench read` replies [#3455/C/inference].
 The bench runs each record at most once a minute event and never at a zero interval, because a run at an unchanged world age reads the zero-interval shape of the work, and `ghost.bench` carried the same zero-interval bias before 30bba11 [#3455/C/inference].
 That shape is about four times under an in-play minute: back-to-back runs read 390, 395 and 345 µs and 430, 389 and 333 µs a call in two sessions, against 1558.33 µs a run in play [#3354/M/n=1] [#3390/M/n=1] [#3387/M/n=1].
 The slow minute's per-step profiler and `NR.call` counter are kept at `testing/spikes/instruments/x231_NR_Server_Bench.lua`, an instrument appended only to a staged copy and never to `mod/` [#3454/C/inference].
