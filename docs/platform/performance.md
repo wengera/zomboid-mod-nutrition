@@ -189,6 +189,7 @@ The table is refreshed every `MultiplayerStatisticsPeriod` seconds, a server opt
 Over about a second's window the engine's longest frame and the longest gap a Lua ring recorded agreed within 2 ms at the 99th percentile, idle and under a burst [#3403/M/n=1].
 The engine's figure is the hitch reading; a Lua ring is for attributing a frame's time to the work in it [#3443/C/inference].
 A tick-rate count is blind to work that fits under the frame: two players under the takeover handler and without it ticked 10.073 and 10.070 a second [#3355/M/n=1].
+On 42.21 a game minute at `DayLength` 1 was 6.261 frames on average, 864 over 138 minutes, beside 6.270 on 42.20.4 [T1199.13] [#3346/M/n=1].
 
 <a id="gc"></a>
 ### Tables and garbage collection
@@ -248,7 +249,9 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | reading | figure | rows |
 |---|---|---|
 | ticks in a game minute | 6.270 at `DayLength` 1, 37.46 at `DayLength` 4 | [#3346/M/n=1, #3347/M/n=1] |
+| the same on 42.21 | 6.261 at `DayLength` 1, 864 ticks over 138 game minutes | [T1199.13] |
 | one player's slow minute in play | 1558.33 µs a run over 240 runs, the nutrients step 192 of 374 ms | [#3387/M/n=1] |
+| the same on 42.21 | 1362.5 µs a run over 240 runs, the nutrients step 144 of 327 ms | [T1199.12] |
 | the same under `settimespeed 30` | 1358.09 µs a run over 606 runs | [#3389/M/n=1] |
 | the same at an unchanged world age | 430, 389 and 333 µs a run; 390, 395 and 345 in an earlier session | [#3390/M/n=1, #3354/M/n=1] |
 | engine calls a run | 79 `NR.call` calls | [#3388/M/n=1] |
