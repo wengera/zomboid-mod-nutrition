@@ -19,6 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item o
 - The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and the client's counters stayed at 0 when the game's own drink action ran, the client's install not witnessed [#2825/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
+- Vanilla has no overeating effect in Java: `Eat` and `JustAteFood` add no stat for eating while full, and the one cap, the refusal at FOOD_EATEN level 3, is checked in client Lua alone [T11705.1] [T11705.2] [T11705.4].
 
 ## How it works
 
@@ -343,6 +344,20 @@ No duration term changes what a completed eat delivers, because the intake is fi
 That budget is a tick count whose behaviour under an accelerated clock has never been measured.
 A measurement that needs a known quantity of intake therefore drives the store on the server rather than queuing timed eats, because the intake is then exact and the timing is not in the reading at all.
 
+<a id="overeating"></a>
+### Eating when full
+
+`IsoGameCharacter.Eat` refuses only an item that is not `Food`: it has no branch on the eater's HUNGER, and the only character stat it reads is FOOD_SICKNESS, for the sickness cure [T11705.1].
+An eat at HUNGER 0 therefore still adds every macro in full, while the stat clamp discards the hunger it would have removed [#0021/M/one-fixture].
+`JustAteFood` reads HUNGER once, at the health-from-food timer's gate, and its other stat writes are poison, pain, boredom and unhappiness [T11705.2].
+Neither method names DISCOMFORT, so vanilla adds no sickness, discomfort or other stat for eating while full [T11705.2].
+`Eat` adds the item's hunger change before it calls `JustAteFood`, so the gate reads the HUNGER the eat leaves behind [T11705.3].
+An eat fills the timer, and so can raise the FOOD_EATEN moodle, only when `abs(getHungerChange() * f)` is at least the HUNGER it found, whatever wrote that HUNGER last [T11705.3].
+A mod that writes HUNGER on the server therefore decides which eats raise the moodle, because HUNGER left above an item's hunger change keeps that item from filling the timer at all [T11705.3].
+The refusal at FOOD_EATEN level 3 is the one cap, and it lives in client Lua [T11705.4].
+The eat and drink actions' `isValidStart` is called only by the client's action queue when it starts the next queued action, an action queued into an empty queue begins without it, and no class in the jar names `isValidStart` [T11705.4].
+A server-side `Eat`, whether another mod's or one a mod drives directly, meets no cap [T11705.4].
+
 <a id="script-scale"></a>
 ### The script-to-instance scale
 
@@ -399,6 +414,7 @@ A mod can run its intake math where `Eat` runs, which is the server ([#1128/M/n=
 Intercepting an eat before vanilla's numbers land needs a server-side Lua wrapper of the eat action's completion step ([#1129/M/n=1], [`../platform/lua-platform.md#script-hooks`](../platform/lua-platform.md#script-hooks)).
 Correcting intake afterwards from `OnEat` is a workaround rather than a hook that runs first ([#1130/M/n=1]).
 A partial or cancelled eat is handled, with the two cancel guards above as the catch ([#1132/C/C-only]).
+An eat another mod makes through a direct `Eat` still moves the macro stores, so a mod can catch it there: in the worked example, this mod's once-a-minute reconcile lands a calorie rise into its stomach as the four macros only, with no water or fibre, and a direct `DrinkFluid` of a fluid that carries no calories raises no store and is not seen [T11705.17].
 The drink path can be hooked the way the eat path is, through a server-side wrapper of the drink action rather than a named hook ([#1133/M/n=1], [#1279/M/n=1]).
 Turning vanilla nutrition off and owning the macro model is the sandbox option's one lever ([#1127/C/C-only], [#1136/C/C-only]).
 Not covered: the food-to-health loop and the sickness rolls beyond their call sites, the fluid container's own save and sync routines, and single player — no reading on this page was taken outside the dedicated-server path; what a cooked or crafted item carries into the eat is [cooking-and-recipes.md](cooking-and-recipes.md#evolved)'s.
