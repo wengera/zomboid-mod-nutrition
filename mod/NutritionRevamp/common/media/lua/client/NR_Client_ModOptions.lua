@@ -22,7 +22,7 @@
 --  risk 2: whether layout.ini is written at all on the harness client's exit path -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures);
 --  risk 3: whether PZAPI.ModOptions:load() called this early (OnGameStart) finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
 --
--- Shape (NR_Client_Effects.lua's discipline):
+-- Shape (the client-file discipline):
 --  * Load order inside client/ is by path (#1055): _Effects, _Mirror, _ModOptions, _Moodles, _Options, _Panel, _Tab,
 --    _Tooltip, _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
 --    table (never replacing it), so the accessors attach() sets at file scope stay; attach() runs again from this

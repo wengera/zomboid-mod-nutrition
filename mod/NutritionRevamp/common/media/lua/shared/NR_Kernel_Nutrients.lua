@@ -98,8 +98,6 @@ function K.nutrients.requirement(rec, ctx)
     local scale = rec.scale
     if scale == "perMJ" then
         r = r * ctx.eeMJ
-    elseif scale == "perProteinG" then
-        r = r * ctx.pDay
     elseif scale == "perKg" then
         r = r * ctx.w
     elseif scale == "perProteinGMax" then

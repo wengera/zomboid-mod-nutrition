@@ -202,7 +202,7 @@ class Stomach:
         if seed is None:
             raise SystemExit("no seed vector for " + full_type)
         inst_base = script_hunger / 100.0            # an unscaled instance: instBase == scriptHunger
-        vec = K.vector.meat(seed, inst_base, inst_base)
+        vec = K.vector.scaled(seed, 1)
         vec = K.vector.add(K.vector.new(), vec, 1)   # share 1: the whole item
         self.flags.cooked = cooked
         self.flags.burnt = False

@@ -19,7 +19,7 @@
 -- rebuild (Task 8 appends the moodles' hook). A file that loads before this one (NR_Client_Moodles sorts first) may
 -- create NR.client.view = { listeners = {} } itself: this file carries an existing listeners array over.
 --
--- Shape (NR_Client_Effects.lua's discipline): the sentinel NR_ClientView_Installed is a global of its own holding
+-- Shape (the client-file discipline): the sentinel NR_ClientView_Installed is a global of its own holding
 -- the one OnCreatePlayer closure, which looks NutritionRevamp.client.view up per call; the side test is per call;
 -- every Java global (getPlayer, CharacterTrait, SandboxVars, getTextManager, UIFont) is named only inside a function
 -- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_client_view_shape.py); every

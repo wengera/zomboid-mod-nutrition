@@ -71,7 +71,8 @@ def constructed():
     out = set()
     for c in CLASSES:
         out.add("UI_NR_Class_" + c)
-        for n in range(5):
+        # deficiency and excess stop at K.view.RUNG_MAX = 3 (Plan 11a Task 8 deleted their unreachable level 4)
+        for n in range(4 if c in ("deficiency", "excess") else 5):
             out.add("UI_NR_Class_%s_%d" % (c, n))
     for k in order_keys():
         for suffix in ("", "_p", "_x"):
@@ -121,9 +122,9 @@ def test_constructed_keys_exist():
     moo = load("Moodles.json")
     assert sorted(constructed() - set(ui)) == []
     for c in CLASSES:
-        for n in range(1, 5):
+        for n in range(1, 4 if c in ("deficiency", "excess") else 5):
             assert "Moodles_NR_%s_lvl%d" % (c, n) in moo
-    assert len(moo) == 24
+    assert len(moo) == 22
     # the client's own prefix concatenations are the ones constructed above
     assert any(pre and key == "Moodles_NR_" for _, key, pre in literals())
     assert any(pre and key == "UI_NR_Class_" for _, key, pre in literals())

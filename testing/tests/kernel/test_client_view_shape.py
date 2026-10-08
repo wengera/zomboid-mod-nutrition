@@ -1,6 +1,6 @@
 """The options page and the view cache (Plan 7 Task 5): NR_Client_ModOptions.lua and NR_Client_View.lua.
 
-The pattern of test_client_effects_shape.py: a FRESH Lua 5.1 runtime per test, Lua stand-ins for the engine that
+The pattern of test_client_moodles_shape.py: a FRESH Lua 5.1 runtime per test, Lua stand-ins for the engine that
 count (Events whose Add records each listener, PZAPI.ModOptions whose create returns a page with addKeyBind and
 addTickBox handles carrying getValue, Keyboard, CharacterTrait, SandboxVars, getText answering the key itself on a
 miss, getTextManager, getPlayer with a hasTrait that compares the enum object by identity, sendClientCommand

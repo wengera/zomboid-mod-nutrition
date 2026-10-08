@@ -57,7 +57,7 @@
 -- over (:43). The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
 -- framework value neutral and takes the column off the UI manager; on restores both.
 --
--- Shape (NR_Client_Effects.lua's discipline): the sentinel NR_ClientMoodles_Installed is a global of its own holding
+-- Shape (the client-file discipline): the sentinel NR_ClientMoodles_Installed is a global of its own holding
 -- the boot, create and listener closures, each looking NutritionRevamp.client.moodles up per call; the side test is
 -- per call; every engine, toolkit and framework member is named only inside a function behind a nil check and
 -- reached index-first inside a pcall, so the file loads with no engine (testing/tests/kernel/

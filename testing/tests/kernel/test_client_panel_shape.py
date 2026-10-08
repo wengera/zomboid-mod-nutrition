@@ -1,6 +1,6 @@
 """The collapsible panel (Plan 7 Task 5, ruling 6): NR_Client_Panel.lua on the view cache and the options page.
 
-The pattern of test_client_effects_shape.py: a FRESH Lua 5.1 runtime per test, Lua stand-ins that count -- an
+The pattern of test_client_moodles_shape.py: a FRESH Lua 5.1 runtime per test, Lua stand-ins that count -- an
 ISCollapsableWindow with derive/new and the ISUIElement members the panel calls (initialise, prerender, render,
 titleBarHeight, setVisible, getIsVisible, addToUIManager, removeFromUIManager, bringToTop, setRenderThisPlayerOnly,
 setResizable, getWidth, getHeight, getY, setHeight, drawText, drawTextRight; visible by default, as an element is), an

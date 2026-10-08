@@ -120,8 +120,6 @@ def test_requirement_scales(host):
     assert N.requirement(_rec(host, "{ R = { 90, 75 }, absorb = 0.8 }"), ctx) == pytest.approx(60.0, abs=TOL)
     # thiamine-like: 0.12 mg/MJ x 10 MJ = 1.2
     assert N.requirement(_rec(host, '{ R = { 0.12, 0.12 }, scale = "perMJ" }'), ctx) == pytest.approx(1.2, abs=TOL)
-    # 0.02 per g protein x 100 g = 2.0
-    assert N.requirement(_rec(host, '{ R = { 0.02, 0.02 }, scale = "perProteinG" }'), ctx) == pytest.approx(2.0, abs=TOL)
     # vitamin K at 1 ug/kg x 70 kg = 70
     assert N.requirement(_rec(host, '{ R = { 1, 1 }, scale = "perKg" }'), ctx) == pytest.approx(70.0, abs=TOL)
     # B6: max(1.3, 0.016 x 100) = 1.6; at 50 g protein max(1.3, 0.8) = 1.3

@@ -48,7 +48,7 @@
 --    %.3f): an evolved dish or a butchered instance with other macros takes its own entry, and the same-item
 --    fast path keys on that same string.
 --
--- Shape (the client-file discipline of NR_Client_Effects.lua):
+-- Shape (the client-file discipline):
 --  * The sentinel NR_ClientTooltip_Installed = { class, original, wrapper } is a global of its own (#0943),
 --    never a field of NutritionRevamp, which NR_Core re-creates on every load. It records the CLASS TABLE it
 --    wrapped and re-wraps only when ISToolTipInv is a different table (the class re-created; lessons #2844,

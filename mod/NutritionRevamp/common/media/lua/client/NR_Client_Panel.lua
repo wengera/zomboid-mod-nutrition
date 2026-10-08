@@ -27,7 +27,7 @@
 -- capped at the screen below its top; past the cap the mouse wheel scrolls (a non-resizable window's width and
 -- height are not restored from layout.ini, ISCollapsableWindow.RestoreLayout :337-340, so the height is the mod's).
 --
--- Shape (NR_Client_Effects.lua's discipline): the class is derived only when ISCollapsableWindow exists (else
+-- Shape (the client-file discipline): the class is derived only when ISCollapsableWindow exists (else
 -- NR.client.panel.cls stays nil and toggle answers false); the sentinel NR_ClientPanel_Installed is a global of its
 -- own holding the two listener closures (OnCreatePlayer, OnKeyPressed) and the instances, so a reload of this file or
 -- of NR_Core adds no second listener and loses no window; the closures look NutritionRevamp.client.panel up per call;

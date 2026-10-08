@@ -1,6 +1,6 @@
 """The moodles and the fallback column (Plan 7 Task 8, ruling 10): NR_Client_Moodles.lua.
 
-The pattern of test_client_effects_shape.py and test_client_panel_shape.py: a FRESH Lua 5.1 runtime per test, Lua
+The pattern of test_client_panel_shape.py: a FRESH Lua 5.1 runtime per test, Lua
 stand-ins that count -- Events (OnGameBoot, OnCreatePlayer, OnGameStart, OnServerCommand, OnKeyPressed), a stub
 MoodleFramework whose createMoodle adds its own OnCreatePlayer builder (as MF_ISMoodle.lua:25-31 does) and whose
 widget mirrors the live file's setThresholds (:155-174), getGoodBadNeutral (:120-125), getLevel (:127-143) and the
