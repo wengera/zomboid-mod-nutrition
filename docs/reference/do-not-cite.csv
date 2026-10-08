@@ -1966,3 +1966,24 @@ x245-20261007-192340,windows.*.perf_read,the perf.local read reply,The harness's
 x245-20261007-192340,windows.*.ring_arm,the arm reply,"A reply, not a reading.",
 x245-20261007-192340,windows.*.perf_arm,the arm reply,"A reply, not a reading.",
 x245-20261007-192340,server_join_lines,the server-stdout.log grep,"Boot-time AdvancedAnimator file-walk noise only: the login events are in the server's Logs folder, copied as connections.txt and user.txt.",`connections.txt`
+x250-20261008-074210,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x250-20261008-074210,session,the driver's text,Written before the run; not a reading.,
+x250-20261008-074210,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x250-20261008-074210,deviations,the driver's list,Written before the run; not readings.,
+x250-20261008-074210,world_changes,the driver's text,Written before the run; not readings.,
+x250-20261008-074210,meta.bench_note,the driver's text,The driver's own text; not a reading.,
+x250-20261008-074210,meta.timer_note,the driver's text,The driver's own text; not a reading.,
+x250-20261008-074210,meta.call_counter_note,the driver's text,The driver's own text; not a reading.,cite `phases.A.prof.text` for the counts
+x250-20261008-074210,meta.build_expected,the driver's text,Written before the run; not a reading.,"cite `build`, `meta.jar_sha256`, `meta.steam_buildid`"
+x250-20261008-074210,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x250-20261008-074210,readings.run_us_vs_3387.x231_us_per_run,1558.33,The driver's constant copied from #3387; not a reading of this run.,cite #3387
+x250-20261008-074210,verdicts.T.observed.ref_3346,6.27,The driver's constant copied from #3346; not a reading of this run.,cite #3346
+x250-20261008-074210,readings.idle.perf.avg,4 to 5,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to about a 21st of the period (x241).,the window max and min
+x250-20261008-074210,phases.I.perf_read.avg,4 to 5,The engine's avg-update-period is no mean (x241).,the window max and min
+x250-20261008-074210,phases.I.perf_doc.samples_list.avg,4 to 5,The engine's avg-update-period is no mean (x241).,the window max and min
+x250-20261008-074210,phases.A.actions.0.result.admin.calories,-375.9696350097656,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut0 read); a negative calorie value is not a reading of this task.,
+x250-20261008-074210,phases.A.actions.0.result.bob.calories,-243.55197143554688,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut0 read); a negative calorie value is not a reading of this task.,
+x250-20261008-074210,phases.A.actions.2.result.admin.calories,-385.65240478515625,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut1 read); a negative calorie value is not a reading of this task.,
+x250-20261008-074210,phases.A.actions.2.result.bob.calories,-253.2220458984375,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut1 read); a negative calorie value is not a reading of this task.,
+x250-20261008-074210,phases.A.actions.7.result.admin.calories,-478.0779724121094,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
+x250-20261008-074210,phases.A.actions.7.result.bob.calories,-345.2622375488281,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
