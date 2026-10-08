@@ -117,6 +117,71 @@ The harvest and its Opus review settled what follows; the plan builds to it. It 
 - **The deficit floor stays a game choice.** The direction is settled (Polidori 2016, COH: about 100 kcal/d of appetite per kg lost; CALERIE 2 hunger < 10 mm over 2 y; ghrelin rises in non-RCTs, Jin 2025). S1271 (VAS per % deficit) is open. `hungerTarget`'s 0.15 keeps its label.
 - **Contested effects ship neutral:** sugar against starch (absent), liquid against solid calories (mixed), fat per kcal (mixed). Each counts only through its energy and mass.
 
+### 5b. The structure chosen by fit (structure D; ruling 11c-30, Angus 2026-10-08: "whichever model best fits what we would expect to see and tests match experimental outcome")
+
+Spike 2 (`.superpowers/sdd/2026-10-08-plan-11c-satiety/task-4s2-report.md`) tested four structures; D's worst hard-target ratio is 1.040 (Rolls's three arms, Callahan from the request and fasted, the 650 kcal anchor, a fasted breakfast). The text below overrides §§ 2, 3.1, 3.2, 5a and 6 where they disagree.
+
+**§ 3.1, `K.stomach`, the third bullet ("The emptied vector").** Replace it with:
+> - **The emptied vector** feeds absorption only. Satiety is booked at the eat (ruling 11c-27).
+> - `K.stomach.satietyMass(stomach)` is the hunger-relevant mass: the solid lane's mass plus `LIQUID_WEIGHT` × the liquid lane. Drunk liquid counts at a fifth, because water served as a beverage did not affect satiety (S1231) while a drink's volume did move intake (S1233). The 0.2 is fitted between the two.
+> - The soft cap still reads `K.stomach.mass`, both lanes whole (S1250).
+
+**§ 3.1, `K.satiety`.** Replace the `fill`, `feed`, `post` and `seedP` bullets, and the opening phrase "a post-absorptive satiety pool P" (also in § 2 item 1, as "a meal satiety pool P"), with:
+> - `K.satiety.fill(satietyMass, capacity) -> F`: `clamp(satietyMass / capacity, 0, 1)` against `CAPACITY_MAX_G` (ruling 11c-19).
+> - `K.satiety.feed(P, eatenVector) -> P`: `P + Σ_k w_k × kcal_k` over the eaten vector's protein, carbohydrates and lipids. It is called once per eat or drink with the delivered vector (a partial eat with its fraction), never per minute.
+> - `K.satiety.post(P) -> Pn`: `1 − 1 / (1 + 3 × (P / P_REQ)^STEEP)`. With an empty stomach, P_REQ is the pool that reads the request level 0.25; 3 = (1 − 0.25) / 0.25. STEEP 0.08 makes the read near-logarithmic, so a snack leaves hunger intermediate and the time to the request grows with the log of the meal (S1247).
+> - `K.satiety.sated(F, Pn)`: unchanged, `1 − (1 − FULL_WEIGHT·F)(1 − Pn)`.
+> - `K.satiety.seedP(hunger, F, energyState) -> P`: the inverse of the read, `P_REQ × (pn / (3 (1 − pn)))^(1/STEEP)`, capped at `P_SEED_MAX`. The cap is the pool of a large meal, so a vanilla HUNGER of 0 does not seed a pool that sates for days.
+
+**§ 3.2.**
+- "Per eat or drink" gains: "and its weighted kcal feed P".
+- In "Per player-minute": step 2 ("The emptied energy feeds P") is deleted, and step 4 becomes "F is read from the satiety mass".
+
+**§ 5a.** Replace the "Time to returning hunger" bullet with:
+> - **Time to returning hunger** after a mixed meal is 247–321 min (Callahan 2004) and 320–425 min time-blinded (Cummings 2004). The 4–5 h anchor holds.
+>   - **Ruling 11c-27: the structure is chosen by fit.** P is fed at the eat with the eaten vector's weighted kcal. Emptying drives absorption. Fullness reads the food in the stomach plus a fifth of drunk liquid.
+>   - The early-satiation evidence is spike 1's, all direction only: S1279 (ghrelin at its trough within 1 h), S1262, S1227, S1263, S1266 and S1274.
+>   - **Fitted game choices (S1270 open):**
+>     - HALF_LIFE_H 0.7 h, P_REQ 6 weighted kcal and STEEP 0.08 are fitted jointly against six readings: Callahan's three preloads from the request and fasted (S1247), the 650 kcal anchor, a fasted 400 kcal breakfast that holds below the request for 3 h, and Rolls's soup at its measured size.
+>     - FULL_WEIGHT 0.6 and LIQUID_WEIGHT 0.2 are fitted to Rolls's three arms (S1231) and checked against S1233.
+>     - W_PROTEIN stays 2.5 (S1268 open; no replay bounds it).
+>   - **The Rolls replay.** Intake at a meal = 650 kcal × displayed hunger / 0.25, a labelled inference: the spec's typical meal eaten at the request level. The model gives 1182 / 1637 / 1732 kJ against 1209 / 1657 / 1639 kJ.
+>   - **Energy density** satiates more per kcal through fullness. Eating to the same hunger takes 31 % fewer kcal at 1.05 than at 1.6 kcal/g (S1229: −16 % of daily intake with half the energy manipulated; S1230). The time to the request is unchanged.
+>   - **Named non-reproductions:**
+>     - Marmonier 2000's absolute snack delays (S1224, 60/34/25 min; the model reads 200/165/173). The bound of spike 1 holds: no additive pool meets both S1224 and S1247.
+>     - Melanson's fasted 1 MJ drinks (S1228, 65/126 min; the model reads 236).
+>     - Viscous fibre's own effect: fibre counts only through mass (ruling 11c-6).
+>     - Displayed hunger never reaches 0 after a meal: 0.12 after 650 kcal, 0.07 after 1,500 kcal.
+
+**§ 6.**
+- The oracle feeds P at the eat and replays Callahan (both starts), the 650 kcal meal, the fasted breakfast and Rolls's three arms under the stated mapping.
+- Its tolerance is 1.1x on those replays. S1233 is a check at 1.15x.
+- The anchor reads 240–300 min with Cummings' 425 as the outer bound.
+
+## Task 3 kernel functions it changes (NR_Kernel_Satiety.lua, plus one in NR_Kernel_Stomach.lua)
+- **`K.satiety.post`:** the exponent form above, which replaces the hyperbola. It needs one `math.exp(STEEP × math.log(P / P_REQ))` and keeps the P ≤ 0 → 0 branch.
+- **`K.satiety.seedP`:** the inverse of the new read. `PN_MAX` is replaced by `P_SEED_MAX`, a game choice of about 1,300 weighted kcal (a 1,000 kcal meal).
+- **`K.satiety.feed`:** the code is unchanged. The comment becomes "the vector eaten", and the call moves to the intake.
+- **`K.satiety.fill`:** the code is unchanged. The writer passes `K.stomach.satietyMass(st)` in place of `K.stomach.mass(st)`.
+- **New `K.stomach.satietyMass(stomach)`:** `massOf(buffer) + LIQUID_WEIGHT × (stomach.liquid or 0)`. It is appended, so no line moves. `LIQUID_WEIGHT` lives in K.satiety or K.stomach.
+- **Constants:**
+  - HALF_LIFE_H 2.0 → 0.7.
+  - P50 150 → retired for P_REQ 6 and STEEP 0.08.
+  - FULL_WEIGHT 0.5 → 0.6.
+  - LIQUID_WEIGHT 0.2 and P_SEED_MAX are new.
+  - W_PROTEIN 2.5 is kept and relabelled.
+- **The header comment:** "fed by the energy leaving the stomach" becomes "fed at the eat".
+- **Unchanged:** `weigh`, `decay`, `sated`, `discomfort`, `circadian`, `K.hybrid.hungerTarget`, and both stomach lanes and `drain`.
+
+### 5c. Physical activity (ruling 11c-29, rows S1297–S1336)
+
+- **Acute suppression.** Vigorous work (the swing state and the metabolism model's heavy-work band; the run flag never reaches the server, x141a) suppresses hunger, decaying within 30–60 min (S1305, S1304). Its size is a labelled game choice anchored to ES 0.60–1.47 at 0.5–1.5 h (S1303, S1306; S1334 open). Resistance-type swinging is weighted smaller (S1301); walking adds nothing (S1302).
+- **No same-day compensation.** The exercise share of the deficit (`exKcalDay`) enters the energy state through a lag: about zero the same day (S1312), fitted to Whybrow's ~30 % mean over days 3–16 (S1318). A food-restriction deficit keeps its same-day effect (S1312). The split into an exercise share and a food share is a game choice no row defines.
+- **While exercising**, hunger takes the non-exercising branch's rate or lower. Vanilla breaks the post-meal freeze only in the fed branch (#0471), against S1299, S1300, S1303 and S1304.
+- **Inactivity** never lowers hunger (S1330–S1332).
+- **Heavy labour** (Karl 2021, S1325: hunger −55 % over 72 h in an 18 % surplus; +26 % in a deficit) is a replay the model may fail. If it fails, a total-deficit threshold (≥ 25 %) that bypasses the lag becomes a ruling.
+- **Cold** gets no same-day term now (S1315 and S1316 are named).
+
 ## 6. Validation (the oracle)
 
 - `testing/tests/kernel/test_satiety_meal_studies.py` replays at least three published protocols through the kernels, in game hours:
