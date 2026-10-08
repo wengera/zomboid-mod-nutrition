@@ -29,7 +29,7 @@ import claimslib as cl
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER = "docs/reference/claims.tsv"
-STAMP_RX = re.compile(r"^Verified against 42\.20\.4 \(b0bbce05d5\) · \d{4}-\d{2}-\d{2} · scope: \S.*$")
+STAMP_RX = re.compile(r"^Verified against (?:42\.20\.4 \(b0bbce05d5\)|42\.21\.0 \(4a0e9546ec\)) · \d{4}-\d{2}-\d{2} · scope: \S.*$")
 # The spec's marker list; its closing boundary is `(?![A-Za-z])`, not `\b`, so that the dated
 # markers match the date that follows them (`\b` fails between the `20` and the `26`).
 NARRATIVE_RX = re.compile(r"\b(previously|corrected 20|resolved (in|by) slice|RESOLVED 20|CONTESTED|the review found|this slice)(?![A-Za-z])")
@@ -103,7 +103,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None, allow_pro
     out = []
     # stamp
     if len(lines) < 2 or not STAMP_RX.match(lines[1]):
-        out.append(Finding(rel, 2, "stamp", "line 2 must read 'Verified against 42.20.4 (b0bbce05d5) · <date> · scope: <one line>'"))
+        out.append(Finding(rel, 2, "stamp", "line 2 must read 'Verified against 42.20.4 (b0bbce05d5) · <date> · scope: <one line>' or, for a page wholly read on 42.21, 'Verified against 42.21.0 (4a0e9546ec) · …'"))
     # sections (a reference page has no contract section shape)
     secs = _sections(lines)
     if not reference:
