@@ -17,7 +17,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a dedicated s
 
 ## How it works
 
-This page follows one player through a dedicated server: the join, the creation of a new character, death, addressing, the two stores a mod can use, the order of the server's time events, and the disconnect.
+This page follows one player through a dedicated server: the join, the creation of a new character, death, addressing, the two stores a mod can use, the world save and the stop, the order of the server's time events, and the disconnect.
 The Lua events a dedicated server fires at boot, and the client-only events it never fires, are [lua-platform.md](lua-platform.md#events)'s.
 Which side owns each value, and the routes a value can take between the sides, are [mp-model.md](mp-model.md#ownership)'s.
 Every row tagged C is read from the bytecode; the readings tagged M were taken on a live dedicated server through the mod's own sweep and table: the departure and first sight on a reconnect [#3273/M/n=1], the mod's reset line on a driven respawn, whose only caller is its `OnNewGame` handler (inference) [#3279/M/n=1], one `ReduceGeneralHealth` death [#3278/M/n=1], the quit's save, the kill's loss and the restored fixture's empty table [#3275/M/n=1, #3280/M/n=1, #3282/M/n=1], and the new-game flag on reload boots [#3284/M/n=1].
@@ -124,6 +124,20 @@ A handler that does nothing with the table leaves the receiver's copy exactly as
 `GetModDataPacket.processServer` is exactly `triggerEvent("SendCustomModData")`, a server-side Lua event with no arguments [#2406/C/C-only].
 That event names no player, so a handler cannot tell which client's request fired it [#2406/C/C-only].
 
+<a id="save-and-stop"></a>
+### Save and stop: no Lua event on the server
+
+A dedicated server's world save, `ServerMap.QueuedSaveAll`, runs its steps in a fixed order with a client-pause check between them: the loaded cells, the player store, the visited world map, the chunk loader's queued saves, the reanimated players, the animal population, the collision data, the global object systems, the world-generation parameters, the instance and meta trackers, the radio, global modData, the entity manager and the world map's save file; its body references no `LuaEventManager` member [T1120.1].
+The console `save` and the autosave queue it onto the main loop, and the quit runs it on the JVM's shutdown-hook thread [#3420/C/C-only].
+The shutdown hook and the quit routine it calls fire no Lua event in their own bodies: the hook marks the server done and calls `QueuedQuit`, which waits for a zip backup, runs the quit save, broadcasts `ServerQuit`, sleeps 5 s and then stops or closes the server's subsystems one by one [T1120.2].
+An ordinary save sends `StartPause` to the clients at its first check after 600 ms, and a quit save sends none [#3421/C/C-only].
+`OnSave` is triggered only inside `GameWindow.save`, the client's and single player's save, which neither the world save nor the quit calls [T1120.3].
+`OnPostSave` fires only where a client or single-player session ends [#2476/C/C-only].
+`OnServerStartSaving` and `OnServerFinishSaving` fire on the client, from the pause packets the server's save sends, and `OnDisconnect` fires on the client alone [T1120.4] [T1120.5].
+A stop therefore gives a mod no per-player Lua event, as a disconnect gives none [T1120.6] [#2403/C/C-only].
+A mod's `OnSave` and `OnPostSave` handlers never run on a dedicated server, so a mod that keeps files of its own has no flush hook and writes them on its own cadence; the standing rule is [lessons.md](lessons.md#rules)'s.
+A hard kill saves nothing: a global value written about one game-minute before one did not survive the restart [#2098/M/n=1].
+
 <a id="tick-order"></a>
 ### The order of the server's time events
 
@@ -170,9 +184,10 @@ The engine has no Lua event for a returning character's join and none for a disc
 `OnPlayerDeath` is unreachable on a dedicated server, whatever a mod registers on it [#2388/C/C-only].
 `getPlayerFromUsername` has no server branch, so there is no server-side Lua lookup of a player by name [#2390/C/C-only].
 A server-side global modData transmit cannot be aimed at one player [#2398/C/C-only].
+The engine has no Lua event at a world save or a stop on a dedicated server: the save and the quit routines fire none in their own bodies, and `OnSave`, `OnPostSave`, `OnServerStartSaving`, `OnServerFinishSaving` and `OnDisconnect` fire only on a client or in single player [T1120.1] [T1120.2] [T1120.3] [T1120.4] [T1120.5] [#2476/C/C-only].
 The wiki mirror marks `OnNewGame` client-only, in its load-order line and in its event list, while the jar fires it on a dedicated server from `CreatePlayerPacket.processServer` with the new `IsoPlayer` [#2421/C/C-only].
 Every row tagged C is a static read of the bytecode; the live readings are two fixtures' with the world autosave off, the persistence readings under [the player store](#player-store) and [Global modData](#global-moddata) and the lifecycle readings of two reconnects, two driven respawns, one hard kill and one `ReduceGeneralHealth` death [#3273/M/n=1, #3279/M/n=1, #3280/M/n=1, #3278/M/n=1, #3358/M/n=1, #3360/M/n=1]; the join of a returning character beside the engine's own steps, the order of the engine's steps inside each of those events, apart from the list order of one driven respawn [#3358/M/n=1] and the new object of a rejoin [#3360/M/n=1], and every cause of death but one have no session behind them.
-Not covered: the SQL write of a connected player's row and how often it runs (`ServerPlayerDB.process`, its save thread and the `charactersToSave` drain), the client-driven character upload and whether it can overwrite a server-side edit to the same blob, the delayed disconnect and its username-keyed map, the save-cycle events around `GlobalModData.save()`, the save cadence under a non-zero `SaveWorldEveryMinutes`, the body of `NetworkPlayerManager.update`, the side of `OnCreateLivingCharacter` and `OnCharacterCreateStats`, the player-data, player-stats, player-fields, extra-info and load-profile packets, the shipped server Lua beyond its per-player sweep, every cause of death's entry into the death chain, and single player — none of them was read.
+Not covered: the SQL write of a connected player's row and how often it runs (`ServerPlayerDB.process`, its save thread and the `charactersToSave` drain), the client-driven character upload and whether it can overwrite a server-side edit to the same blob, the delayed disconnect and its username-keyed map, the Lua calls inside the world save's and the quit's callees, the save cadence under a non-zero `SaveWorldEveryMinutes`, the body of `NetworkPlayerManager.update`, the side of `OnCreateLivingCharacter` and `OnCharacterCreateStats`, the player-data, player-stats, player-fields, extra-info and load-profile packets, the shipped server Lua beyond its per-player sweep, every cause of death's entry into the death chain, and single player — none of them was read.
 
 ## Open
 <a id="open"></a>
