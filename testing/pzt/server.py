@@ -330,3 +330,10 @@ def gclog_args(server):
     if not getattr(server, "gclog", False):
         return []
     return ["-Xlog:gc*:file=" + os.path.join(os.path.dirname(server.cache), "gc.log")]
+
+
+# Plan 11a Task R (2026-10-08): the 42.21.0 baseline. Appended at the end of the file: the claims register
+# holds `repo:` pointers into this file by line number. Both 42.21.0 provisions (prov-20261008-073315 and
+# prov-20261008-073547, PZTestKit alone) logged this one line, never seen on 42.20.4: vanilla IsoMetaGrid (the
+# class carrying the literal) refusing an empty-named Nav zone from the map data. Only the empty name matches.
+BASELINE_NOISE.append(re.compile(r'not adding suspicious zone "" "Nav" '))
