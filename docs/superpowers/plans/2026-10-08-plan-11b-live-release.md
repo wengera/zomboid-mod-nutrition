@@ -10,6 +10,42 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-07-plan-11-decisions.md` (the same sections Plan 11a argues from), and Plan 11a, `docs/superpowers/plans/2026-10-08-plan-11a-build.md`, whose Global Constraints and seventeen rulings hold here unchanged; this plan adds the live and release constraints below.
 
+## Amendments after Plan 11a (2026-10-08, controller; these override the tasks below where they disagree)
+
+1. **Order.** Plan 11c (satiety from physiology, `docs/superpowers/plans/2026-10-08-plan-11c-satiety.md`) runs before this plan. Task 0's gate also requires `Plan 11c: complete` in `.superpowers/sdd/2026-10-08-plan-11c-satiety/progress.md`. The live sessions measure 11c's model, not Task 15's interim scalar.
+2. **Task 17 was dropped** (Plan 11a ruling T17-1, after Angus's "If a recipe is nonsensical then whatever, thats not for our mod to solve"). Recipe conservation is a report, never a fix (T16-3). `NR_Data_Recipes.lua` no longer ships, and there is no craft wrapper. So:
+   - Task 1's hand-craft harness command is not built. The moodle-level read stays.
+   - Task 4's phase I is removed: no `NutritionRevamp.data.recipes.factor` and no `craft.stats.scaled`.
+   - Task 3's CHANGELOG and README say nothing of recipes scaling their outputs.
+   - Ruling 11's tooltip clause is withdrawn (R11-1).
+3. **Satiety's options.**
+   - `NR.SatietyBulk` is removed by Plan 11c. Task 3 names no such option, and the README describes 11c's model.
+   - The CHANGELOG's 1.0.1 section says ApocalipseBR is unavailable, per the COMPATIBILITY row. Its 1.0.0 section is left as the record.
+4. **The store's stop window** (Plan 11a ruling T20-1). A dedicated server gives a mod no save or stop event. An eat or drink saves its player's slot within a game minute, and a clean stop loses at most a minute of digestion drift. The README says so, beside ruling 8's hard-kill line.
+   - Task 4 adds a live check: eat, then `quit` within one game minute, restart, and read the record.
+5. **The shoot-out (Task 2) adds the spread-cap arm** (Plan 11a ruling T9-3). Measured live, the budgeted queue front-loads a minute: about 24 ms frames at N = 60, against Plan 10c's +20 ms p99.
+   - Arm: `runCap = min(budget cap, ceil(queued / tpm × k))`, with the budget as a wall-time ceiling only.
+   - Angus chooses between the arms on the measured worst frame and its frequency (CLAUDE.md rule 6).
+6. **Reading guides for every ghost-load reading** (from the Task 19 review). Every ghost minute runs the writer dry and skips the store. So:
+   - a ghost minute omits the whole writer step, the same in every arm, so absolute usPerRun, runs-per-frame, staleness and starvation read optimistic;
+   - measure the writer's per-real-player cost once, on the real players, and add it when projecting to 60;
+   - `P.meanMs`, the budget and runCap are sized on a dry-ghost mean;
+   - `ghost.bench`'s 0.778 and 0.978 (harness.md:434) are pre-hybrid and not comparable, so use `feed`;
+   - ghosts still write their carrier through Strength, Weight and Effects, so no carrier reading is valid during a ghost load.
+7. **Live checks carried from Plan 11a.**
+   - The store's JSON number round trip: save and load a record holding 0.1+0.2, 1/3, 5e-324, -1e-300, 2^53+2, 99999999999999.5, 1e14, 1.0E-5 and a non-ASCII username, and log the equality on the server.
+   - The extra file read per save (the read-before-truncate guard): its cost on Kahlua and Java.
+   - `action.latency` with a non-Food fullType returns "not a Food item" without parking the `-debug` client.
+   - A driver calling `mirror.request` twice within 5 s waits: the request limit, #3012's rule.
+   - The vanilla drink routes outside the wraps (auto-drink #2827, world water #2690) and the live drink relief.
+8. **Task 5's sweep adds these pages.** Its stale-sentence grep would not catch them:
+   - `performance.md` :16 and :163 (#3456, now pinned to 44acff4) and :151 (#3439, pinned to 77c6866);
+   - `lessons.md:47`;
+   - #3359's sentence at server-lifecycle:72 (respawn marked dead; Plan 11a Task 9's fix prevents it);
+   - the store pages and rules that still describe global modData (#3310, #3274, #3279, #3284, and the server-lifecycle and mp-sync rules on the global table);
+   - `performance.md:422`, if Plan 11a's close did not fix it;
+   - the `RecordKeepDays` note that server downtime counts toward the keep.
+
 ## Global Constraints
 
 Everything in Plan 11a's Global Constraints and rulings holds, except its "No live boot" line. In addition:
