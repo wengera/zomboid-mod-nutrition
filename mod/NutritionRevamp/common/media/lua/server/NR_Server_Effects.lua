@@ -56,6 +56,7 @@ NR.server.effects = {
         "a dead character's record is stepped but no trait, body or health write is made",
         "the sleep-onset latency terms (solAddH, solMul) reach only the fast kernel's delay mirror, which gates nothing while the record owns FATIGUE (the acute kernel decays S from the first asleep minute): caffeine's, exercise's and alcohol's onset latency is unapplied — a Plan 6 reading",
         "the cold fold (catchACold's rise × coldMul) is unmeasured (X105): on the x161b fixture the thermoregulator's catch-a-cold delta stayed under the engine's 0.1 gate, so no rise was folded",
+        "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal (Plan 11 ruling 10)",
     },
 }
 local EFF = NR.server.effects
@@ -104,6 +105,15 @@ EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = 
               frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false }
 -- The heal reference, made once on first use.
 EFF.ref = nil
+-- The post-step guard (Plan 11 Task 12, ruling 10): the per-minute scalars and the mirrored numbers something reads
+-- before the next minute's pre-step heal -- the fast clock between minutes, Nutrients' sleep step (it runs before
+-- this file's heal) and the bus step (first in ORDER) -- copied after the pre-step heal and re-stamped from the copy
+-- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
+EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
+              "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
+              "infectMul", "coldMul", "drain", "lethal" }
+EFF.snap = {}
+EFF.guarded = 0
 -- The options a load with no options file reads: one file-scope table, never written.
 local EMPTY = {}
 
@@ -464,6 +474,7 @@ local function step(username, player, record, body, dtM, ageH)
     end
     addFields(E, body)
     heal(username, E, body)
+    K.heal.snap(E, EFF.GUARD, EFF.snap)
     local L = memory(username, record)
 
     -- the day close: the protein-energy grade and the closed day's energy availability
@@ -561,8 +572,12 @@ local function step(username, player, record, body, dtM, ageH)
         if bus ~= nil and bus.markEffects ~= nil then bus.markEffects(username) end
     end
 
-    -- 12. the stamps, every one finite
-    heal(username, E, body)
+    -- 12. the guard: a guarded number the step left non-finite re-stamped from its pre-step copy (ruling 10)
+    local ng = K.heal.guard(E, EFF.GUARD, EFF.snap)
+    if ng > 0 then
+        EFF.guarded = EFF.guarded + ng
+        NR.log.say(2, "effects: " .. tostring(ng) .. " field(s) the step made non-finite re-stamped for " .. tostring(username))
+    end
 end
 
 -- One player's minute, called by EFF.step on the inputs Nutrients stamped (ruling 22). One pcall around

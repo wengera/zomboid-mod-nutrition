@@ -42,6 +42,7 @@ NR.server.metabolism = {
         "a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last close",
         "an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror without the body, which the next readable minute builds",
         "rmod's alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: the arm resets at the day close, not on a rolling 24 h",
+        "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal",
     },
 }
 local MET = NR.server.metabolism
@@ -55,6 +56,22 @@ MET.BUILD_TRAITS = {
     { "ATHLETIC", "athletic" }, { "FIT", "fit" }, { "OUT_OF_SHAPE", "outOfShape" },
     { "UNFIT", "unfit" }, { "STRONG", "strong" }, { "STOUT", "stout" },
 }
+
+-- The post-step guard (Plan 11 Task 12, ruling 10): the body fields something reads before the next minute's
+-- pre-step heal -- the later steps of the minute, the fast clock between minutes, the bus step (first in ORDER) and
+-- the store step -- are copied after the pre-step heal and re-stamped from the copy when the step leaves them
+-- non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read). A ring takes this minute's values only
+-- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded.
+MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
+              "inDayClosed", "dayIndex", "lastCloseAgeH", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
+              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH" }
+MET.GUARD_RINGS = { "eb7", "p7", "carb7", "lip7", "mass7" }
+MET.SLOT7 = { 7 }
+MET.BAND_SLOT = { 1, 2 }
+MET.snap = {}
+MET.snapRings = { eb7 = {}, p7 = {}, carb7 = {}, lip7 = {}, mass7 = {} }
+MET.snapBand = {}
+MET.guarded = 0
 
 local finite = NR.finite
 
@@ -241,7 +258,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     MET.stats.days = MET.stats.days + 1
 end
 
--- The self-heal (the #2833 pattern), run before the minute's arithmetic and again after its stamps: the pure
+-- The self-heal (the #2833 pattern), run once, before the minute's arithmetic (Plan 11 ruling 10): the pure
 -- part is the kernel's (NR_Kernel_Heal.lua, K.heal.body, Plan 10 Task R3), which stamps every non-finite scalar
 -- or ring slot its neutral, backfills the fields and rings an older record lacks, and returns the healed names.
 -- The adapter keeps its one engine read -- the Strength level, read only when body.l0 is not finite, and passed
@@ -266,6 +283,26 @@ local function heal(username, body, ageH, player)
     end
 end
 
+-- The guard's copy, taken after the pre-step heal: the scalars, slot 7 of each ring and bandWeek's slot 7.
+local function snapAll(body)
+    K.heal.snap(body, MET.GUARD, MET.snap)
+    local rings = MET.GUARD_RINGS
+    for i = 1, #rings do
+        K.heal.snap(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
+    end
+    K.heal.snap(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
+end
+
+-- The guard after the step: every guarded field the step left non-finite re-stamped from the copy; the count.
+local function guardAll(body)
+    local g = K.heal.guard(body, MET.GUARD, MET.snap)
+    local rings = MET.GUARD_RINGS
+    for i = 1, #rings do
+        g = g + K.heal.guard(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
+    end
+    return g + K.heal.guard(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
+end
+
 local function step(username, player, record, ctx)
     local ageH = worldAge()
     if ageH == nil then
@@ -274,6 +311,7 @@ local function step(username, player, record, ctx)
     end
     local body = MET.ensureBody(username, player, record, ageH)
     heal(username, body, ageH, player)
+    snapAll(body)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff (Plan 4 ruling 17),
@@ -323,7 +361,11 @@ local function step(username, player, record, ctx)
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
     body.energyState = K.energy.state(K.energy.eb24h(body, ageH - body.lastCloseAgeH), fatDep, g)
     body.lastAgeH = ageH
-    heal(username, body, ageH, player)
+    local ng = guardAll(body)
+    if ng > 0 then
+        MET.guarded = MET.guarded + ng
+        NR.log.say(2, "metabolism: " .. tostring(ng) .. " field(s) the step made non-finite re-stamped for " .. tostring(username))
+    end
 end
 
 -- One player's minute: the pipeline's metabolism step (NR_Server_Minute.run, from P.work); ctx is its context.

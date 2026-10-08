@@ -1,6 +1,6 @@
 -- NR_Kernel_Heal.lua -- the body record's self-heal (the #2833 pattern; Plan 10 Task R3, moved out of
--- NR_Server_Metabolism.lua's local heal). The adapter runs it before the minute's arithmetic and again after its
--- stamps: a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
+-- NR_Server_Metabolism.lua's local heal). The adapter runs it once, before the minute's arithmetic (Plan 11
+-- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
 -- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
 -- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH and lastCloseAgeH to
 -- the world age; a ring slot to 0 (mass7's to the current mass). The backfill, unnamed: a field or ring a record
@@ -183,4 +183,30 @@ function K.heal.body(body, ageH, l0)
         end
     end
     return bad
+end
+
+-- The post-step guard (Plan 11 Task 12; Appendix J): copy the guarded keys of t before the step, and after it
+-- re-stamp from the copy every key the step left non-finite, so no later step of the same minute reads a NaN the
+-- step's own arithmetic made. A key whose copy is not finite either is left for the next pre-step heal.
+function K.heal.snap(t, keys, out)
+    for i = 1, #keys do
+        out[keys[i]] = t[keys[i]]
+    end
+    return out
+end
+
+function K.heal.guard(t, keys, snap)
+    local n = 0
+    for i = 1, #keys do
+        local k = keys[i]
+        local v = t[k]
+        if type(v) == "number" and (v ~= v or v == math.huge or v == -math.huge) then
+            local s = snap[k]
+            if type(s) == "number" and s == s and s ~= math.huge and s ~= -math.huge then
+                t[k] = s
+                n = n + 1
+            end
+        end
+    end
+    return n
 end

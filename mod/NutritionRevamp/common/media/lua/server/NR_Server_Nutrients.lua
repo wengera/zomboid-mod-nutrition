@@ -57,6 +57,7 @@ NR.server.nutrients = {
         "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
         "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %",
         "the minute's training band is read off the growth of Metabolism's day accumulators band1Day/band2Day (no per-minute band is stamped); a minute whose day close skipped days reads the new day's growth alone",
+        "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal (Plan 11 ruling 10)",
     },
 }
 local NUT = NR.server.nutrients
@@ -72,6 +73,18 @@ NUT.refKey = nil
 NUT.refFluids = nil
 NUT.refAcute = nil
 NUT.refNut = nil
+-- The post-step guard (Plan 11 Task 12, ruling 10): the fluids, acute and state fields something reads before the
+-- next minute's pre-step heal -- Effects, Strength, the fast clock between minutes, the bus step (first in ORDER) and
+-- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite
+-- (testing/tests/kernel/test_heal_once.py CROSS names each read). viewPct and c are read inside this step only.
+NUT.GUARD_FLUIDS = { "dehydPct", "thirstTarget", "naPlasma" }
+NUT.GUARD_ACUTE = { "bac", "caf", "cafTol", "debtH", "S", "circ", "iu", "hang", "coldH", "lastVigAgeH", "wd", "alcPeak",
+                    "bg", "iuSleep", "exEma", "bmi", "starvedDays", "retEma", "awakeH", "g", "refeedRisk" }
+NUT.GUARD_STATE = { "epoch" }
+NUT.snapF = {}
+NUT.snapA = {}
+NUT.snapN = {}
+NUT.guarded = 0
 
 -- The handoff a minute with no absorbed or ingested vector reads: one file-scope table, never written.
 local EMPTY = {}
@@ -149,15 +162,18 @@ end
 
 -- The heal: every numeric field of the three sub-tables finite, else its fresh value. A field with no fresh
 -- value takes its named default; one with neither (iron S and H, calcium bone, laid lazily by K.interact.two)
--- is cleared so the kernel re-initialises it. healBad collects the healed names of one pass.
+-- is cleared so the kernel re-initialises it. healBad collects the healed names of one pass. The prefix is built
+-- lazily (Appendix J): key names a nutrient sub-table (prefix .. key .. "."), joined only when a bad field is found.
 local healBad = nil
-local function healTable(t, ref, prefix, ageH, ageFields)
+local function healTable(t, ref, prefix, ageH, ageFields, key)
     for k, v in pairs(t) do
         if type(v) == "number" and not finite(v) then
             local nv = ref[k]
             if ageFields ~= nil and ageFields[k] then nv = ageH end
             t[k] = nv
-            if healBad == nil then healBad = prefix .. tostring(k) else healBad = healBad .. "," .. prefix .. tostring(k) end
+            local p = prefix
+            if key ~= nil then p = prefix .. key .. "." end
+            if healBad == nil then healBad = p .. tostring(k) else healBad = healBad .. "," .. p .. tostring(k) end
         end
     end
 end
@@ -185,7 +201,7 @@ local function heal(username, record, body, ageH)
     -- ORDER is a Lua table the record file built, so # is a Lua length, never a Java list (#0940).
     for i = 1, #order do
         local s = n[order[i]]
-        if type(s) == "table" then healTable(s, NUT.refKey, "nutrients." .. order[i] .. ".", ageH, nil) end
+        if type(s) == "table" then healTable(s, NUT.refKey, "nutrients.", ageH, nil, order[i]) end
     end
     healTable(record.fluids, NUT.refFluids, "fluids.", ageH, nil)
     healTable(record.acute, NUT.refAcute, "acute.", ageH, NUT.AGE_ACUTE)
@@ -350,6 +366,9 @@ local function step(username, player, record, ctx)
     ensure(record, body, ageH)
     heal(username, record, body, ageH)
     local n, f, a = record.nutrients, record.fluids, record.acute
+    K.heal.snap(f, NUT.GUARD_FLUIDS, NUT.snapF)
+    K.heal.snap(a, NUT.GUARD_ACUTE, NUT.snapA)
+    K.heal.snap(n, NUT.GUARD_STATE, NUT.snapN)
     -- the gut lane's pending doses move onto the record (ruling T17-2); drained here, after the record
     -- exists, so a minute skipped above leaves them pending for the next one
     if intake ~= nil and intake.pendingAlc ~= nil then
@@ -469,7 +488,12 @@ local function step(username, player, record, ctx)
     K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player), ageH, dtH, NUT.sleepDisabled, mAcc, rRec)
     K.acute.iu(a, f.dehydPct, n.ironGrade)
 
-    heal(username, record, body, ageH)
+    local ng = K.heal.guard(f, NUT.GUARD_FLUIDS, NUT.snapF) + K.heal.guard(a, NUT.GUARD_ACUTE, NUT.snapA)
+        + K.heal.guard(n, NUT.GUARD_STATE, NUT.snapN)
+    if ng > 0 then
+        NUT.guarded = NUT.guarded + ng
+        NR.log.say(2, "nutrients: " .. tostring(ng) .. " field(s) the step made non-finite re-stamped for " .. tostring(username))
+    end
     NUT.stats.players = NUT.stats.players + 1
 
     -- Plan 5 ruling 22, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this

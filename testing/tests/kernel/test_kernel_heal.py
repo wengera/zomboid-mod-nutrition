@@ -231,3 +231,35 @@ def test_heal_property_seeded(host):
         all_finite(h, body)
         assert set(names(bad)) == expect, case
         assert heal(h, body, age) is None                    # a healed body heals nothing more
+
+
+# The post-step guard (Plan 11 Task 12, ruling 10): K.heal.snap copies the guarded keys before the step, and
+# K.heal.guard re-stamps from the copy every guarded key the step left non-finite.
+def test_guard_restamps_only_non_finite_keys_from_the_snapshot(host):
+    t = host.rt.eval("{ a = 1, b = 2, c = 3 }")
+    keys = host.rt.table("a", "b")
+    snap = host.call("heal.snap", t, keys, host.rt.table())
+    t.a, t.b, t.c = host.rt.eval("0/0"), 5, host.rt.eval("1/0")
+    assert host.call("heal.guard", t, keys, snap) == 1
+    assert t.a == 1 and t.b == 5                       # c is not guarded: left for the next pre-step heal
+
+
+def test_guard_leaves_a_key_whose_snapshot_is_not_finite(host):
+    t = host.rt.eval("{ a = 0/0 }")
+    keys = host.rt.table("a")
+    snap = host.rt.eval("{ a = 0/0 }")
+    assert host.call("heal.guard", t, keys, snap) == 0
+
+
+def test_guard_restamps_both_infinities_and_reuses_the_snapshot_table(host):
+    t = host.rt.eval("{ a = 1, b = 2 }")
+    keys = host.rt.table("a", "b")
+    out = host.rt.table()
+    same = host.rt.eval("function(a, b) return rawequal(a, b) end")
+    assert same(host.call("heal.snap", t, keys, out), out)      # filled in place: no allocation per minute
+    t.a, t.b = host.rt.eval("1/0"), host.rt.eval("-1/0")
+    assert host.call("heal.guard", t, keys, out) == 2
+    assert t.a == 1 and t.b == 2
+    t.a = "text"                                                 # a non-number is never touched
+    assert host.call("heal.guard", t, keys, out) == 0
+    assert t.a == "text"
