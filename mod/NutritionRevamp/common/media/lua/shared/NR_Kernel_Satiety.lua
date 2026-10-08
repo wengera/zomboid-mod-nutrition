@@ -81,19 +81,21 @@ function K.satiety.seed(hunger)
     return K.clamp(1 - hunger, 0, 1)
 end
 
--- Plan 11c (spec § 3.1 and § 5a): satiety from physiology. Two signals sate: the stomach's fullness F (its mass over
--- its maximal capacity, K.stomach.CAPACITY_MAX_G, ruling 11c-19) and a post-absorptive pool P of weighted kcal, fed by
--- the energy leaving the stomach and decaying first-order. Hunger is
+-- Plan 11c (spec § 3.1, § 5a and § 5b, structure D, ruling 11c-30): satiety from physiology. Two signals sate: the
+-- stomach's fullness F (its satiety mass, K.stomach.satietyMass, over its maximal capacity, K.stomach.CAPACITY_MAX_G,
+-- ruling 11c-19) and a meal satiety pool P of weighted kcal, fed at the eat and decaying first-order. Hunger is
 -- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour), capped at 0.69 by the writer.
 -- Appended below Task 15's code so no line above moves; Task 9 retires that code. Pure; one statement a line.
-K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (S1268 open; ruling 11c-7): protein satiates more per kcal (S1222, S1223, S1224); the size is fitted so the oracle's Marmonier replay lands its protein-to-carbohydrate delay ratio in 1.5-2.0 (S1224: 60 against 34 min)
+K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (Plan 11c) (S1268 open; rulings 11c-7 and 11c-30): protein satiates more per kcal (S1222, S1223, S1224, direction); no replay bounds the size (S1222 and S1223 give no per-trial protein-energy contrast; S1224 is not reproduced), so the oracle exempts it from its mutation bar
 K.satiety.W_CARB = 1 -- neutral (ruling 11c-7): carbohydrate against fat is disputed (S1226, S1227, S1228, S1229), so both take the common weight; not an evidenced tie
 K.satiety.W_FAT = 1 -- neutral (ruling 11c-7), as W_CARB
 K.satiety.W_NEUTRAL = 1 -- neutral (spec § 3.1): the common weight of a vector with no macronutrient grams
-K.satiety.HALF_LIFE_H = 2.0 -- game choice, fitted in Task 4 (S1270 open): P's half-life in game hours, fitted with P50 and W_PROTEIN so a 650 kcal mixed meal's hunger returns in 4-5 h (S1247: 247-321 min; S1248: 320-425 min)
-K.satiety.P50 = 150 -- game choice, fitted in Task 4 (S1270 open): the pool's half-point in weighted kcal, fitted with HALF_LIFE_H
-K.satiety.FULL_WEIGHT = 0.5 -- game choice, fitted in Task 4 (no row): fullness's weight in the sated product, bounded by the oracle's S1231 null and S1232 direction; S1235 has fullness track gastric volume
-K.satiety.PN_MAX = 0.99 -- game choice: seedP's ceiling on the post-absorptive read, so a HUNGER of 0 seeds a finite pool (99 x P50)
+K.satiety.HALF_LIFE_H = 0.7 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): P's half-life in game hours, fitted with P_REQ and STEEP against S1247 (Callahan's preloads from the request and fasted), the 650 kcal anchor (S1247, S1248), a fasted 400 kcal breakfast and S1231 (Rolls's soup at its measured size)
+K.satiety.P_REQ = 6 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): the pool in weighted kcal at which an empty stomach reads the request level 0.25, fitted with HALF_LIFE_H and STEEP (S1247, S1248, S1231)
+K.satiety.STEEP = 0.08 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open; no row gives a satiety signal's read): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247)
+K.satiety.FULL_WEIGHT = 0.6 -- game choice, fitted in Task 4 (Plan 11c): fullness's weight in the sated product, fitted to S1231's three arms and checked against S1233; S1235 has fullness track gastric volume
+K.satiety.LIQUID_WEIGHT = 0.2 -- game choice, fitted in Task 4 (Plan 11c): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake)
+K.satiety.P_SEED_MAX = 1300 -- game choice (ruling 11c-30): seedP's cap, about the weighted pool of a 1,000 kcal mixed meal, so a HUNGER of 0 does not seed a pool that sates for days
 K.satiety.DISCOMFORT_MAX = 100 -- not science: the DISCOMFORT stat's range, 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21)
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
@@ -120,7 +122,7 @@ function K.satiety.weigh(vector)
     return vector.calories * (K.satiety.W_PROTEIN * p + K.satiety.W_CARB * c + K.satiety.W_FAT * f) / atwater
 end
 
--- Feed the pool with the vector that left the stomach this step.
+-- Feed the pool with the vector eaten: called once per eat or drink with the delivered vector, never per minute.
 function K.satiety.feed(P, vector)
     return P + K.satiety.weigh(vector)
 end
@@ -134,12 +136,14 @@ function K.satiety.decay(P, dtH, halfLifeH, trait)
     return P * math.exp(-0.6931471805599453 * dtH * trait / halfLifeH)
 end
 
--- The saturating post-absorptive read P / (P + P50), in [0, 1).
+-- The pool's read 1 - 1 / (1 + 3 (P / P_REQ)^STEEP), in [0, 1): 3 = (1 - 0.25) / 0.25, so an empty stomach reads the
+-- request level 0.25 at P = P_REQ; STEEP makes the read near-logarithmic.
 function K.satiety.post(P)
     if P <= 0 then
         return 0
     end
-    return P / (P + K.satiety.P50)
+    local x = math.exp(K.satiety.STEEP * math.log(P / K.satiety.P_REQ))
+    return 1 - 1 / (1 + 3 * x)
 end
 
 -- Sated: either signal sates and together they compound, 1 - (1 - FULL_WEIGHT x F) x (1 - Pn).
@@ -147,9 +151,13 @@ function K.satiety.sated(F, Pn)
     return 1 - (1 - K.satiety.FULL_WEIGHT * F) * (1 - Pn)
 end
 
--- The migration seed (spec § 4): the P for which hungerTarget(sated(F, post(P)), energyState) equals hunger, its
--- read clamped to [0, PN_MAX]; 0 where no P reaches it.
+-- The migration seed (spec § 4): the P for which hungerTarget(sated(F, post(P)), energyState) equals hunger, the
+-- inverse of post, P_REQ (pn / (3 (1 - pn)))^(1 / STEEP), capped at P_SEED_MAX; 0 where no P reaches it, and 0 for a
+-- non-finite input (x - x is NaN for NaN and for an infinity), so a bad read never loops NaN through the pool.
 function K.satiety.seedP(hunger, F, energyState)
+    if hunger - hunger ~= 0 or F - F ~= 0 or energyState - energyState ~= 0 then
+        return 0
+    end
     if energyState <= 0 then
         return 0
     end
@@ -158,8 +166,15 @@ function K.satiety.seedP(hunger, F, energyState)
     if rest <= 0 then
         return 0
     end
-    local pn = K.clamp(1 - free / rest, 0, K.satiety.PN_MAX)
-    return K.satiety.P50 * pn / (1 - pn)
+    local pn = 1 - free / rest
+    if pn <= 0 then
+        return 0
+    end
+    if pn >= 1 then
+        return K.satiety.P_SEED_MAX
+    end
+    local P = K.satiety.P_REQ * math.exp(math.log(pn / (3 * (1 - pn))) / K.satiety.STEEP)
+    return K.min(P, K.satiety.P_SEED_MAX)
 end
 
 -- The soft cap's discomfort (ruling 11c-13): 0 up to capMax grams, DISCOMFORT_MAX at capHard, linear between.
