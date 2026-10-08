@@ -368,7 +368,7 @@ The JSON twin is written in the same run from the same metadata, so the provenan
 
 ### Food items
 
-`data/food-items.csv` is 1 006 lines (header plus 1 005 rows) and 61 columns — 59 declared plus `source_file` and `source_line` — with one row per item, zero quoted cells, LF endings and no build stamp, while the JSON is 2.36 MB against the CSV's 239 KB, 41 099 of its lines being a null column value and `props_raw` another 476 KB, in the 2026-10-08 scan of `42.21.0` [T1199.1].
+`data/food-items.csv` is 1 006 lines (header plus 1 005 rows) and 61 columns — 59 declared plus `source_file` and `source_line` — with one row per item, zero quoted cells, LF endings and no build stamp, while the JSON is 2.36 MB against the CSV's 239 KB, 41 099 of its lines being a null column value and `props_raw` another 476 KB, in the 2026-10-08 scan of `42.21.0` [#3500/C/snapshot].
 Fluids are joined into their container's row and also kept whole under the JSON's `fluids` key; they are never rows of their own [#0617].
 The food dataset's JSON is a `meta` block, an item array and a fluid array, both sorted by id — 1 005 items and 61 fluids in the 2026-09-10 scan of `42.20.4` — where an item record carries every declared column, absent as `null`, plus `props_raw`: the item block's own key-and-value lines verbatim, untyped and unsplit, with a key written twice becoming a list [#0640, #1899/C/snapshot].
 Nested blocks are not flattened into `props_raw`, so a container's `Capacity` reaches the record only as `fluid_capacity` [#0640, #1899/C/snapshot].

@@ -20,7 +20,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
 - Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Declare `require=` on the mod whose item a shipped block names, in whichever mod ships the block: with that mod absent the append arm is never taken and the block declares a new partial item instead of overriding one — a code reading no run has exercised — while a failed `require=` leaves the requiring mod unloaded instead [#1002, #0811/C/C-only, #2076/C/inference].
-- Name each version dir for the build its files were verified on and no later: the resolver takes the highest name at or below the running build, so a dir named for a later build is never read while one named for the verified build keeps running, unverified, on every later build until a newer-named dir ships [#0825/C/C-only, #2075/C/inference].
+- Name each version dir for the build its files were verified on and no later: the resolver takes the highest name at or below the running build, so a dir named for a later build is never read while one named for the verified build keeps running, unverified, on every later build until a newer-named dir ships [#3505/C/C-only, #2075/C/inference].
 - Read a mod's `mod.info` rather than the loader's error text when a mod does not load: a failed `versionMin` or `versionMax` gate, a missing `require=` and a folder that is not there all print the same not-found line [#0872/C/C-only, #0812/C/C-only].
 - Name in the mod's description every installed mod whose numbers its model makes inert or contradicts: a resident already writes the player's calories on the server once every five seconds per player, residents wrap the eat action on both sides, and a viewer drawing a re-based macro against hard-coded bands goes wrong silently, so the description is where an operator learns which of them this mod overrides [#1588, #2566/C/snapshot, #1522, #2091/M/n=1, #2715/C/inference].
 - Print one self-report line at boot naming the mod's version and the optional frameworks it detected: an absent, a version-gated and an unsatisfied mod all print one not-found line and the server drops the id and boots clean, so no line the loader prints names the mod's own version or what it found beside it [#0871/C/C-only, #1793, #0872/C/C-only, #2547/C/inference, #2716/C/inference].
@@ -68,7 +68,7 @@ Which files ship in the version dir is settled as that measured shape: the manif
 The manifest declares `versionMin=42.20.4` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 
-The version dir's name is read as a build number, and the resolver's rules decide which dir a later build takes, which the [shelf-life reading](#shelf-life) below follows through ([#0825/C/C-only], [#0826/C/C-only]).
+The version dir's name is read as a build number, and the resolver's rules decide which dir a later build takes, which the [shelf-life reading](#shelf-life) below follows through ([#3505/C/C-only], [#0826/C/C-only]).
 Two names the resolver scores alike have no declared winner, the tie going to the directory listing, so the layout never ships two version dirs that a third version component alone separates [#0880/C/C-only].
 
 Inside `media/` the file map treats every file alike: one absolute path per relative path, and a script walk that drops a repeat ([#1046], [loader-and-scripts.md#file-map](../platform/loader-and-scripts.md#file-map)).
@@ -76,7 +76,7 @@ Every relative path this mod ships is therefore a claim on a slot another mod co
 The item pass's script files take mod-unique basenames with no `template_` prefix, for the reasons [the item pass](item-pass.md#walls) gives ([#1047/C/C-only], [#1233/C/C-only]).
 No corpus mod keeps a nutrition key under `common/`, so a pass whose script files sit there has the loader's two-pass reading behind it and no shipped precedent ([#1561/C/snapshot], [#0827/C/C-only]).
 The Lua tree takes the folder names the game uses, and the `server/` folder is no boundary: a `server/` file runs in the client's Lua state too, so every one carries a runtime side test ([#1174/M/n=1], [overview.md#two-lua-states](../platform/overview.md#two-lua-states)).
-A script hook's target is a global defined in a `shared/` file for the same reason, which [the hook page](eat-and-cook-hooks.md) reads in full [#0927/C/C-only].
+A script hook's target is a global defined in a `shared/` file for the same reason, which [the hook page](eat-and-cook-hooks.md) reads in full [#3510/C/inference].
 Item names ship in the B42 table layout, the only one this build reads, and they matter on the client alone, because a dedicated server resolves no mod item's display name ([#1025/M/n=1], [#1167/M/n=1], [#3206/M/n=2], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
 Every code path the mod runs is a file in this tree at load time, because no route on this build lets mod Lua compile a string into code ([#1172/C/C-only], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
 A per-item handler, or a formula a server operator writes, is therefore data read by a handler the mod ships and never code the mod generates.
@@ -206,9 +206,9 @@ Every corpus count this page leans on is dated for that reason, and a recount is
 A line cite into a neighbour drifts the same way without becoming wrong, and it is re-located by content before it is quoted [#1466/C/snapshot].
 
 A build bump does not stop this mod from loading, and that is the hazard.
-The resolver picks the highest version dir at or below the running build, so the dir this mod ships for this build goes on being picked on every later build until a newer-named one exists [#0825/C/C-only].
+The resolver picks the highest version dir at or below the running build, so the dir this mod ships for this build goes on being picked on every later build until a newer-named one exists [#3505/C/C-only].
 The mod therefore keeps loading, unverified, on a build nobody tested it against, and nothing in the log says so.
-A version dir named for a later build is the opposite trap: it is never read until that build ships, and then runs untested the moment it does [#0825/C/C-only].
+A version dir named for a later build is the opposite trap: it is never read until that build ships, and then runs untested the moment it does [#3505/C/C-only].
 The two manifest keys that pin availability close the first trap and open a failure mode of their own, because a build outside the declared range reports exactly as an absent folder, so an operator reads a gated mod as a missing one ([#0812/C/C-only], [#1177/C/C-only], [mod-anatomy.md#build-pinning](../platform/mod-anatomy.md#build-pinning)).
 This library read no Lua route by which a mod learns the running build number, so no route it knows lets the mod check its own shelf life at run time ([mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
 The layout lint sees neither trap, because its model of the live version folder ignores the running build's ceiling ([#0864/C/snapshot], [tools.md#mod-lint](../reference/tools.md#mod-lint)).

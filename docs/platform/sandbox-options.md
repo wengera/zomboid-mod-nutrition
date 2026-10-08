@@ -20,7 +20,7 @@ A mod declares its own options in one file, `media/sandbox-options.txt`, inside 
 The version dir's copy wins outright: when it exists the `common/` copy is never opened, so a mod that ships both runs on the version dir's alone [#2422/C/C-only].
 A mod root's own `media/sandbox-options.txt` is never read on this build, because the loader builds only the version-dir and `common/` paths and `common/` resolves to `<modRoot>/common`, not to the mod root [#2423/C/C-only].
 A mod that ships its declaration only at the root, the older layout, therefore registers no options at all [#2423/C/C-only].
-Which folder counts as the version dir is the resolver [mod-anatomy.md](mod-anatomy.md#version-dirs) states [#0825/C/C-only].
+Which folder counts as the version dir is the resolver [mod-anatomy.md](mod-anatomy.md#version-dirs) states [#3505/C/C-only].
 
 The loader walks the resolved active mod list, which on a joining client is the server's mod list with the client's own translation-only mods added [#2424/C/C-only].
 A joining client therefore registers the options of the server's mods [#2424/C/C-only].

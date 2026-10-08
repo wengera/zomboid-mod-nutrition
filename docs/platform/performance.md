@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-07 · scope: what a dedicated s
 ## Rules
 <a id="rules"></a>
 
-- Put slow simulation such as nutrient decay on `EveryOneMinute` and never move it to `EveryTenMinutes`, `EveryHours` or `EveryDays` in the hope of lightening the minute frame, never put a server's simulation on `OnPlayerUpdate`, keep a client's per-frame needs on it behind a cheap early-out, and keep steady per-tick simulation off `OnTick`, though a queue drained on `OnTick` that only schedules the minute's work is not ruled out here and which shape is best is open: on a dedicated server `OnPlayerUpdate` never fires for a connected player, while on a client it fires for the local player at each of its updates and the corpus registers it at least 61 times over 43 mods, the slower clock events fire inside the same `GameTime.update` as the minute so work moved to them lands on a minute frame, and `OnTick` is the corpus's expensive tier [#3423/C/inference, #2232/C/C-only, #2959/M/n=1, #3453/C/C-only, #2580/C/snapshot, #3427/C/C-only, #2400/C/C-only, #1080/C/snapshot].
+- Put slow simulation such as nutrient decay on `EveryOneMinute` and never move it to `EveryTenMinutes`, `EveryHours` or `EveryDays` in the hope of lightening the minute frame, never put a server's simulation on `OnPlayerUpdate`, keep a client's per-frame needs on it behind a cheap early-out, and keep steady per-tick simulation off `OnTick`, though a queue drained on `OnTick` that only schedules the minute's work is not ruled out here and which shape is best is open: on a dedicated server `OnPlayerUpdate` never fires for a connected player, while on a client it fires for the local player at each of its updates and the corpus registers it at least 61 times over 43 mods, the slower clock events fire inside the same `GameTime.update` as the minute so work moved to them lands on a minute frame, and `OnTick` is the corpus's expensive tier [#3423/C/inference, #2232/C/C-only, #2959/M/n=1, #3453/C/C-only, #2580/C/snapshot, #3508/C/C-only, #2400/C/C-only, #1080/C/snapshot].
 - Budget work that runs for every player in one event as one frame's work, the per-player cost times the player count: an event's handlers all run on the server's main thread inside one frame, the minute event fires at most once a frame, and eighteen ghost records' minutes in one `EveryOneMinute` frame read 18 ms of the frame's busy time at the median and 39 ms at the worst [#3441/C/inference, #3426/C/C-only, #3348/C/C-only, #3405/M/n=1].
 - Judge server-side work by the longest frame it makes and how often that frame comes, never by its mean cost: a burst moves the frame's end and not the loop's cadence, and under a burst of eighteen ghost records once a game minute the start-to-start period held at 103 ms at the 99th percentile while the engine's per-window longest frame rose from 112 to 134 ms [#3442/C/inference, #3424/C/C-only, #3406/M/n=1, #3404/M/n=1].
 - Read a server frame's length off the engine's counter, the `max-update-period` of `getPerformanceLocal()`, and use Lua's clock only for totals over many runs with their count: every clock Lua reads through the global API and the `os` library is 1 ms or coarser, the engine's per-window longest frame agreed with a Lua frame ring within 2 ms at the 99th percentile, and the counter's `avg-update-period` is no mean [#3443/C/inference, #3432/C/C-only, #3403/M/n=1, #3409/C/C-only].
@@ -34,7 +34,7 @@ A change is budgeted by four questions, asked in this order.
 
 The first is which frame the work lands in.
 The minute event fires at most once a frame, however many game minutes the frame advanced, so a loop over every player inside its handler is one frame's work, the per-player cost times the player count [#3348/C/C-only] [#3441/C/inference].
-The minute, ten-minute, hour and day events all fire in the same clock update, so moving work to a slower event stacks it on a minute frame rather than spreading it [#3427/C/C-only].
+The minute, ten-minute, hour and day events all fire in the same clock update, so moving work to a slower event stacks it on a minute frame rather than spreading it [#3508/C/C-only].
 Of the events in the table below, the two that fire on every frame whatever the players do are `OnTickEvenPaused` and `OnTick`, so spreading a fixed workload across frames means a queue drained from one of them [#3428/C/C-only] [#2401/C/C-only].
 
 The second is how often that frame comes.
@@ -76,7 +76,7 @@ So packets are handled roughly every 5 ms between frames, and a frame runs about
 The frame itself starts with `IngameState.update`, whose order is [below](#frame-order) [#3424/C/C-only] [#3428/C/C-only].
 
 Lua events are synchronous on that thread.
-On the main thread `LuaEventManager.triggerEvent` runs an event's handlers at once through `Event.trigger`, which calls each in registration order inside its own catch, and only a trigger from another thread is queued [#3426/C/C-only] [#0896/C/C-only].
+On the main thread `LuaEventManager.triggerEvent` runs an event's handlers at once through `Event.trigger`, which calls each in registration order inside its own catch, and only a trigger from another thread is queued [#3426/C/C-only] [#3506/C/C-only].
 Every handler of an event the frame fires therefore runs inside that frame [#3426/C/C-only].
 
 The loop catches up after a long frame, up to a limit.
@@ -102,8 +102,8 @@ Whether a player notices a long frame through their own actions, over a real net
 A live ring confirmed the order on a dedicated server: the minute's work ran between the frame's `OnTickEvenPaused` and its `OnTick` in all 193 minute frames [#3410/M/n=1].
 `IngameState.update`, and with it `OnTick`, runs before `NetworkPlayerManager.update` in the same pass [#2402/C/C-only].
 
-One `GameTime.update` fires `EveryDays` at a day rollover, `EveryHours` when the hour changed, `EveryTenMinutes` when the ten-minute block changed, and `EveryOneMinute` when the minute stamp changed, in that order [#3427/C/C-only] [#2400/C/C-only].
-Vanilla's own erosion and climate updates run in the ten-minute arm just before its Lua event, so the ten-minute frame is already vanilla's heavier one [T1199.9].
+One `GameTime.update` fires `EveryDays` at a day rollover, `EveryHours` when the hour changed, `EveryTenMinutes` when the ten-minute block changed, and `EveryOneMinute` when the minute stamp changed, in that order [#3508/C/C-only] [#2400/C/C-only].
+Vanilla's own erosion and climate updates run in the ten-minute arm just before its Lua event, so the ten-minute frame is already vanilla's heavier one [#3508/C/C-only].
 `EveryOneMinute` fires at most once per update, however many game minutes the update advanced [#3348/C/C-only].
 `EveryDays` takes one of two paths: with the client flag clear, as on a dedicated server, the update rolls the day over once and fires it once, while on a client it loops while the clock sync's day count is above 0 and fires it once for every day it takes off [#3449/C/C-only].
 
@@ -120,8 +120,8 @@ GameServer.main pass
   NetworkPlayerManager.update         the player-stats push
 ```
 
-Every player's work on a clock event lands in the same frame as every other mod's work on it and vanilla's own minute-boundary work [#3427/C/C-only] [#3426/C/C-only].
-A game-time boundary every player shares, such as a fixed hour of the day, falls in the same game minute for all of them, so a per-player close keyed on it is a synchronised burst unless it goes through the same queue as the minute [#3427/C/C-only].
+Every player's work on a clock event lands in the same frame as every other mod's work on it and vanilla's own minute-boundary work [#3508/C/C-only] [#3426/C/C-only].
+A game-time boundary every player shares, such as a fixed hour of the day, falls in the same game minute for all of them, so a per-player close keyed on it is a synchronised burst unless it goes through the same queue as the minute [#3508/C/C-only].
 
 <a id="scheduling"></a>
 ### The scheduling primitives
@@ -131,7 +131,7 @@ A game-time boundary every player shares, such as a fixed hour of the day, falls
 | `OnTickEvenPaused` | once a frame, first in the frame, even paused | per frame, like `OnTick`; a frame-start stamp | [#3428/C/C-only, #3410/M/n=1] |
 | `OnTick` | once a frame, after the clock events | per frame; the queue a spread workload drains from | [#2401/C/C-only, #3428/C/C-only, #3346/M/n=1, #3347/M/n=1] |
 | `EveryOneMinute` | at most once per clock update; every frame under a fast clock | no: every handler on it runs in one frame | [#3348/C/C-only, #3349/M/n=1, #3350/M/n=1] |
-| `EveryTenMinutes`, `EveryHours`, `EveryDays` | inside the same clock update as the minute | no: work moved there stacks on a minute frame | [#3427/C/C-only, #2400/C/C-only] |
+| `EveryTenMinutes`, `EveryHours`, `EveryDays` | inside the same clock update as the minute | no: work moved there stacks on a minute frame | [#3508/C/C-only, #2400/C/C-only] |
 | `OnPlayerUpdate` | on the server never for a connected player, the remote-player branch returning first; on a client for the local player at each of its updates | no | [#2232/C/C-only, #2959/M/n=1, #3453/C/C-only] |
 | `Hook.CalculateStats` | on the server once per player update, in place of the seven stat updaters, and never on a client | no: its handler's cost is paid for every player on every frame | [#2238/C/C-only, #2100/M/n=1, #3355/M/n=1] |
 | `OnPlayerMove` | only from the server's remote-player update | only while a player moves | [#2245/C/C-only] |
@@ -159,7 +159,7 @@ A mod has five levers on the frame it adds, and each rests on a mechanism above.
 
 - Make one run cheaper: in the worked example the nutrients step is about half of an in-play minute, and it makes 9 of the run's 79 `NR.call` calls [#3387/M/n=1] [#3388/M/n=1]; offline, the seven heal passes are about half of the pipeline's C-Lua time, a heal once after the step changes the golden trace, and a heal once before it keeps the trace and saves 27.7 % [#3411/C/inference] [#3412/C/inference] [#3413/C/inference]; live, the two Nutrients heal passes were the two largest sub-blocks of the minute, 28.4 % of it [#3458/M/n=1].
 - Spread a fixed workload over the minute's frames with a queue drained on `OnTick` that carries its unserved players forward, rather than running it in one event [#3444/C/inference] [#3428/C/C-only], with a per-tick budget sized to the minute's work [#3477/M/n=1] [#3476/M/n=1].
-- Keep work off the ten-minute, hour and day events, which fire in the minute's own clock update [#3427/C/C-only].
+- Keep work off the ten-minute, hour and day events, which fire in the minute's own clock update [#3508/C/C-only].
 - Keep a push out of a burst frame: each send serialises its table on the main thread, once per receiver [#3437/C/C-only], and one send of a 138-key payload cost about 0.1 ms, so sixty in one frame are about 6.12 ms [#3464/M/n=1]; a push gap counted in wall time from each player's last push keeps players first seen together pushing in the same minute ever after, and under a burst in the burst frame (inference) [#3456/C/inference].
 - Keep a store that grows with every player ever seen out of global modData, where every save serialises it and any client can request it [#3445/C/inference] [#3422/C/inference]; live, the first save at 2000 records made a 2990 ms frame [#3467/M/n=1].
 
@@ -189,7 +189,7 @@ The table is refreshed every `MultiplayerStatisticsPeriod` seconds, a server opt
 Over about a second's window the engine's longest frame and the longest gap a Lua ring recorded agreed within 2 ms at the 99th percentile, idle and under a burst [#3403/M/n=1].
 The engine's figure is the hitch reading; a Lua ring is for attributing a frame's time to the work in it [#3443/C/inference].
 A tick-rate count is blind to work that fits under the frame: two players under the takeover handler and without it ticked 10.073 and 10.070 a second [#3355/M/n=1].
-On 42.21 a game minute at `DayLength` 1 was 6.261 frames on average, 864 over 138 minutes, beside 6.270 on 42.20.4 [T1199.13] [#3346/M/n=1].
+On 42.21 a game minute at `DayLength` 1 was 6.261 frames on average, 864 over 138 minutes, beside 6.270 on 42.20.4 [#3512/M/n=1] [#3346/M/n=1].
 
 <a id="gc"></a>
 ### Tables and garbage collection
@@ -249,9 +249,9 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | reading | figure | rows |
 |---|---|---|
 | ticks in a game minute | 6.270 at `DayLength` 1, 37.46 at `DayLength` 4 | [#3346/M/n=1, #3347/M/n=1] |
-| the same on 42.21 | 6.261 at `DayLength` 1, 864 ticks over 138 game minutes | [T1199.13] |
+| the same on 42.21 | 6.261 at `DayLength` 1, 864 ticks over 138 game minutes | [#3512/M/n=1] |
 | one player's slow minute in play | 1558.33 µs a run over 240 runs, the nutrients step 192 of 374 ms | [#3387/M/n=1] |
-| the same on 42.21 | 1362.5 µs a run over 240 runs, the nutrients step 144 of 327 ms | [T1199.12] |
+| the same on 42.21 | 1362.5 µs a run over 240 runs, the nutrients step 144 of 327 ms | [#3511/M/n=1] |
 | the same under `settimespeed 30` | 1358.09 µs a run over 606 runs | [#3389/M/n=1] |
 | the same at an unchanged world age | 430, 389 and 333 µs a run; 390, 395 and 345 in an earlier session | [#3390/M/n=1, #3354/M/n=1] |
 | engine calls a run | 79 `NR.call` calls | [#3388/M/n=1] |
@@ -377,7 +377,7 @@ The engine's own slow-handler warning is no instrument for this: `Event.trigger`
 The jar also ships a fake client, `zombie.network.FakeClientManager`, whose `main` takes `-scenarios=<file>` and `-id=<n>`, loads the `ZNetNoSteam64` library and reads a scenario's server host, checksum, Lua, frame-rate and movement keys, and the harness's server runs `-nosteam` [#3452/C/C-only].
 
 Run as shipped against a server started with `-nosteam`, `Open=true` and `DoLuaChecksum=false`, the fake client connects, logs in, passes the login queue and is kicked at `player-connect` with `UI_LoadPlayerProfileError`: over about five minutes its one connected client, `Client1`, was allowed to join and kicked 23 times and no fake player was ever online, so the shipped fake client gives no player load on this build [#3494/M/n=1].
-The server kicks a joining player with `UI_LoadPlayerProfileError` when it finds no saved character for the connection: `GameServer.receivePlayerConnect` asks `ServerPlayerDB.serverLoadNetworkCharacter` for the player by username and kicks on a null; the fake client asks for its profile with `LoadPlayerProfile` straight after the login queue and sends `CreatePlayer` once when the server holds no character, and skips its checksum step when its scenario names no checksum [T1199.10].
+The server kicks a joining player with `UI_LoadPlayerProfileError` when it finds no saved character for the connection: `GameServer.receivePlayerConnect` asks `ServerPlayerDB.serverLoadNetworkCharacter` for the player by username and kicks on a null; the fake client asks for its profile with `LoadPlayerProfile` straight after the login queue and sends `CreatePlayer` once when the server holds no character, and skips its checksum step when its scenario names no checksum [#3509/C/C-only].
 It runs every movement of its scenario as a client on one RakNet peer in one JVM, bound to local port 17500 unless `-id=<n>` picks one movement and port 17500 + n; live, at each connect round all but one of the clients due failed, the server only ever saw `Client1`, so one JVM gave one connected client (inference), and the JVM with sixty client threads held a 133.3 to 180.9 MB working set [#3496/M/n=1].
 
 Compare arms of one session on a measure the drift between arms cannot move.
@@ -401,7 +401,7 @@ The sixty-player readings are ghost loads, a fed ghost costing 0.978 of a real p
 Every consequence for a player's own actions of a long server frame is read from the loop; on a client only the frame interval and another player's motion and packet stamps were measured, on the server's host, with no zombies [#3429/C/C-only] [#2402/C/C-only] [#3486/M/n=1] [#3488/M/n=1].
 The scheduler table reads the end-to-end period, and at sixty the burst's busy fitted inside the 100 ms period, one unexplained 136 ms start-to-start period in x244a aside, so its margins are headroom on this host and not the stall a player would see today (inference) [#3486/M/n=1].
 The drift between arms of one session is about 0.6 ms a frame, so a total compared across arms on busy over idle is good only to that, and the empty-queue check sits below it [#3483/M/n=1].
-The mechanisms are bytecode readings of one build, and a build bump moves their offsets and may move their behaviour [#3424/C/C-only] [#3427/C/C-only].
+The mechanisms are bytecode readings of one build, and a build bump moves their offsets and may move their behaviour [#3424/C/C-only] [#3508/C/C-only].
 The clocks reading covers the global API and the `os` library only; a finer clock exposed elsewhere is not excluded [#3432/C/C-only].
 The packet guard's effect on a connection was not read beyond its log line and its counter [#3430/C/C-only].
 The engine's fake client puts no player on a server of this build as shipped, so no reading here carries vanilla's own per-player load beyond two real players [#3494/M/n=1].
@@ -416,7 +416,7 @@ Not covered: a listen server or single-player, a player's own-action latency, re
 - Whether healing once before the step saves live what it saves offline is unpriced: live, the two Nutrients heal passes are the two largest sub-blocks, 28.4 % of the minute, and offline a heal once before the step keeps the golden trace and saves 27.7 % [#3458/M/n=1] [#3413/C/inference].
 - Whether a budget sized to the minute's work as the player count and the clock change keeps the frame flat at both spacings and under a fast clock, and what a budgeted queue's empty check costs a frame when benched directly, are unmeasured; at fixed caps a 15 ms budget starved none at sixty and the empty check was not resolved above the drift [#3492/M/n=1] [#3480/M/n=1] [#3483/M/n=1].
 - Whether a player notices a long server frame through their own actions on server-owned state, over a real network or among zombies, is unmeasured: the client readings cover another player's motion on the server's host only [#3488/M/n=1] [#3429/C/C-only].
-- Whether the jar's fake client gives per-player load on this build once each of its usernames has a saved character and each runs in its own JVM is untried: as shipped on `42.20.4` it was kicked at `player-connect` for want of a saved character, the `42.21` fake client creates one when it has none, and one JVM gave one connected client [#3494/M/n=1] [T1199.10] [#3496/M/n=1].
+- Whether the jar's fake client gives per-player load on this build once each of its usernames has a saved character and each runs in its own JVM is untried: as shipped on `42.20.4` it was kicked at `player-connect` for want of a saved character, the `42.21` fake client creates one when it has none, and one JVM gave one connected client [#3494/M/n=1] [#3509/C/C-only] [#3496/M/n=1].
 - What vanilla's own frame costs at a large player count is unread, and it sets the headroom a mod has; the shipped fake client could not supply it [#3440/M/arith.] [#3494/M/n=1].
 - How much heavier a mass reconnect is than a typical minute is unmeasured; a day close, a seven-day catch-up and first sight's measured parts are not heavier a run, but first sight's 0.861 ms is a floor, so sixty joiners in one frame would cost at least 51.7 ms (arithmetic) [#3462/M/n=1] [#3463/M/n=1] [#3387/M/n=1].
 - How a mod's own scheduler performs at sixty is unmeasured: `ghost.load`'s schedulers are the harness's own copies, so once a mod drains its own queue they no longer measure it, and measuring it needs the harness to feed ghost records into the mod's own queue, then a shoot-out of that queue against the 15 ms budget (inference) [#3455/C/inference] [#3489/M/n=1].
