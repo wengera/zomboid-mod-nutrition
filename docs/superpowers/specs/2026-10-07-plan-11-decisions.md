@@ -179,6 +179,14 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 
 ### Re-basing the draft
 
+**What Plan 10c rewrites.** The draft (`docs/superpowers/plans/2026-10-07-plan-11-review-fixes-DRAFT.md`) predates Plan 10c, which rewrites four of its parts (Hitching; Decisions 3 and 6):
+- **the drain (Task 2):** a budgeted per-tick queue that carries unserved players across minutes, with a budget sized to the minute's work, in place of both the shipped drain and the round-robin of period m (#3482, #3489, #3490; Decision 6 (b));
+- **the store's home (Task 10 and Decision 3):** a server-local file, with pruning on by default (#3417, #3467, #3469);
+- **the send stagger (Task 4's push):** each player's push offset over the minute's frames rather than every push in one frame (#3456, #3464; rule #3498);
+- **the heal-once refactor:** heal once, before the step, which no draft task holds (#3413, #3458; Ranked refactors, item 1).
+
+1.0.0 has not shipped to the Workshop, so the request leak (#3417, #3469) affects no live server: the store's move is Plan 11 work, not an urgent patch.
+
 The draft's code samples predate the refactor. Per task:
 - **Task 1.** The helper set, `server_host.py` and `test_core_helpers.py` landed in Plan 10 R1; Steps 2, 3 and 5's `NR_Core.lua` append are done. What remains is the zero-age fix at the six sites above. Step 5's Kinetics sample is re-based: the step is `step(username, player, record, pipe)` (`NR_Server_Kinetics.lua:46`), and a nil age clears `pipe.absorbed` and `pipe.mealCa`, not `KIN.lastAbsorbed` and `KIN.lastMealCa`. Intake's `num(v)` was kept under its name, not renamed `numv`.
 - **Task 2.** `P.minute`'s `NR.worldAge() or 0` becomes the Players wrapper that Task 1 fixes. `P.work(username, player)` keeps calling `NR.server.minute.run` and then `P.onMinute`. `K.stagger.perTick`'s wall-cycle form is replaced by the `EveryOneMinute` round-robin of period m (rule 6; Decision 1), and its "no tick in the last minute" tests go: that case never happens (#3348–#3350). The `OnNewGame` sample evicts instead of storing. The queue entry carries the record's `resets`. The respawn test brings the new object in three ticks after `OnNewGame` (#3358). A 60-game-minute step test is added. Step 9's dead options branch is at `NR_Server_Options.lua:88-110`.
@@ -487,7 +495,7 @@ N = 60 means 58 fed ghost records beside the two real players, who stayed on the
 | 15 ms budget, three draws | 37 ticks | — | 123 | +12 to +13 / +17 | none | #3490 |
 | the shipped 1.0.0 drain (mirrored) | DayLength 1 | — | — | — | 53 of 58 never ran | #3482 |
 
-- **The headroom framing.** The loop's start-to-start cadence held under both the burst and the budget at N = 60 on this host, one unexplained 136 ms period in `x244a` aside (#3486).
+- **The headroom framing.** The loop's start-to-start cadence held under both the burst and the budget at N = 60 on this host (#3486).
   - The one exception is a single unexplained 136 ms start-to-start period in `x244a`'s burst2; the period held at 103–106 ms in every other `x244` arm.
   - In the `x244` sessions the burst's busy, 46–51 ms at the minute-frame median and 56–77 ms at the frame max, fits inside the 100 ms period; so did the 88 ms frame max of `x243a` (#3472).
   - So the 153–188 ms "worst frames" are end-to-end periods: the burst moves the frame's end, not the loop's cadence.
@@ -561,7 +569,7 @@ Plan 10b's item 4, the `EveryOneMinute` round-robin drain, is superseded by item
 
 ### 1. The takeover fork
 
-**The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #1071, #1080). Plan 10b measured the fork under that target (Performance, above). The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
+**The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #3423, #1080). Plan 10b measured the fork under that target (Performance, above). Under the restated rule 6 the takeover stays withdrawn, because a per-tick hook is not measured to reduce hitching. The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
 
 **(a) Keep the takeover — withdrawn.**
 - **Why it leaves the table:** `Hook.CalculateStats` runs once per player per tick by nature, so it cannot meet rule 6. Plan 10b measured no takeover variant.
@@ -588,7 +596,7 @@ Plan 10b's item 4, the `EveryOneMinute` round-robin drain, is superseded by item
 - For it: (b)'s cost, with PANIC kept within 1.2556 of its floor (#3400) and TEMPERATURE within 0.04 °C of its target.
 - Against it: the PANIC sawtooth near a threshold, and vanilla's panic rise between writes, which is unread.
 
-**The design's all-in cost with no per-tick work** (per player per game minute; arithmetic on #3373, #3386, #3387; Performance, above). The slow minute moves from the `OnTick` drain to `EveryOneMinute`, run for every player in one event (m = 1, the burst) or for ceil(N / m) players an event in a rotation (a round-robin of period m).
+**The design's all-in cost with no per-tick work** (per player per game minute; arithmetic on #3373, #3386, #3387; Performance, above). The slow minute moves from the `OnTick` drain to `EveryOneMinute` (superseded by Decision 6 (b): a budgeted `OnTick` queue runs every player every minute), run for every player in one event (m = 1, the burst) or for ceil(N / m) players an event in a rotation (a round-robin of period m).
 
 | design | DayLength 1 | DayLength 4 |
 |---|---|---|
@@ -730,6 +738,10 @@ Plan 10b's item 4, the `EveryOneMinute` round-robin drain, is superseded by item
 3. A player's own-action latency under the burst and under (b): timed-action completion and a container round trip. This is the noticeability reading H4 did not take.
 4. Real network latency and jitter, on a second host or behind a latency shim (E7, Angus's to supply).
 5. Zombies near the players: the fixture has none.
+6. The mass join. First sight's 0.861 ms a joiner is a floor, so sixty joiners in one frame are at least 51.7 ms (#3463; arithmetic). Whether a mass reconnect is a burst is unmeasured.
+7. Routing the 07:00 day close and first sight through the same queue as the minute. A game-time boundary every player shares falls in the same game minute for all of them, so a per-player close keyed on it is a synchronised burst otherwise (#3427).
+8. A fast-clock policy, Plan 11's to decide: scale the budget with the clock, or run everything when every frame is a minute frame. Under `settimespeed 30` a 10 ms budget left records up to 42.8 game minutes stale (#3480).
+9. The measurement route for the mod's own scheduler. `ghost.load`'s schedulers are the harness's own copies (#3455), so once Task 2 moves the drain into the mod the harness cannot measure it as it stands. Measuring it needs the harness to feed ghost records into the mod's own queue, then its own shoot-out against the 15 ms budget (`budget15`) at both spacings (performance.md, Open).
 
 **Still Angus's:**
 - the populated-server reading (E7), which also gives vanilla's own frame at a real 60. H5's fake clients are not an answer: on 42.20.4 they are kicked at join for want of a saved character (#3494, #3495), so vanilla's per-player load at 60 stays unmeasured. It is Angus's to supply from a populated server, or a new task that saves a character per fake client and runs one JVM each (#3496; Hitching, The fake clients);

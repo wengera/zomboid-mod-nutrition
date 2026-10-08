@@ -12,7 +12,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-07 · scope: what a dedicated s
 - Keep per-player records out of global modData unless every connected client may read all of them: any logged-in client can request a global modData table by name and receive it, serialised whole up to the connection's send buffer, a mod cannot refuse the request, and the console save and the autosave serialise every table on the server's main loop [#3445/C/inference, #3417/C/C-only, #3418/C/C-only, #3419/C/C-only, #3420/C/C-only, #2416/C/inference].
 - Never call `collectgarbage()` or its `collect` or `step` forms from mod code: each calls `System.gc()` on the calling thread, which for an event handler on a server is the main loop, and its `count` form reports the JVM's heap rather than Lua's [#3446/C/inference, #3435/C/C-only, #3426/C/C-only].
 - Keep long work out of `OnClientCommand` handlers: they run inside the server loop's packet pass, and once a pass has run 70 ms the loop drops the rest of that pass's vehicle-physics packets and reports the server too busy [#3447/C/inference, #3429/C/C-only, #3430/C/C-only, #3431/C/C-only].
-- Give a budgeted `OnTick` queue a per-tick cap with headroom over the minute's work divided by the minute's ticks, and never a fixed cap near or below it: with fifty-eight ghost records beside two players at `DayLength` 1 a 5 ms cap starved records at every minute event, a 10 ms cap ran 56.75 of the 58 due a minute event, and the drafted spread of ceil(records / ticks) a tick starved 176 record-minutes over 167 minute events, while a 15 ms cap starved none in ten draws over four sessions, at `DayLength` 1 and at 37 ticks a game minute, and under a fast clock, where every frame is a minute frame, a 10 ms cap left records up to 42.8 game minutes stale [#3497/C/inference, #3428/C/C-only, #3477/M/n=1, #3476/M/n=1, #3478/M/n=1, #3489/M/n=1, #3490/M/n=1, #3480/M/n=1].
+- Give a budgeted `OnTick` queue a per-tick cap with headroom over the minute's work divided by the minute's ticks, and never a fixed cap near or below it: with fifty-eight ghost records beside two players at `DayLength` 1 a 5 ms cap starved records at every minute event, a 10 ms cap ran 56.75 of the 58 due a minute event, and the drafted spread of ceil(records / ticks) a tick starved 176 record-minutes over 167 minute events, while a 15 ms cap starved none in ten draws over four sessions, at `DayLength` 1 and at 37 ticks a game minute; under a fast clock, where every frame is a minute frame, a 10 ms cap left records up to 42.8 game minutes stale [#3497/C/inference, #3428/C/C-only, #3477/M/n=1, #3476/M/n=1, #3478/M/n=1, #3489/M/n=1, #3490/M/n=1, #3480/M/n=1].
 - Spread per-player pushes over the minute's frames rather than sending every player's push in one frame: each send serialises its table on the main thread once per receiver, one send of a 138-key payload cost about 0.1 ms of server frame, so sixty players' pushes in one frame are about 6.12 ms, and a push gap counted from each player's last push keeps pushes first sent together in the same minute [#3498/C/inference, #3437/C/C-only, #3464/M/n=1, #3456/C/inference].
 - Compare two schedulers' total cost by the batch-timed work each ran a minute event and never by their frames' busy time over an idle arm: the two no-load arms of one session drifted from 1.873 to 1.256 ms of busy a frame, and in another session busy over idle put a 10 ms budget at 1.22 times the burst's total at 37 ticks a game minute where the ghosts' own milliseconds a minute event put it at 1.046 [#3499/C/inference, #3483/M/n=1, #3479/M/n=1, #3491/M/n=1].
 
@@ -43,10 +43,11 @@ Under a fast clock, an admin's time speed or every player asleep, the minute eve
 A once-a-minute design is therefore an every-frame design whenever the clock runs fast [#3349/M/n=1].
 
 The third is how the cost grows with the player count.
-A per-player loop grows linearly, and at sixty players the measured per-run costs put one event's loop at 73.7 to 103.3 ms (arithmetic), about a whole frame before vanilla's own work [#3440/M/arith.].
+A per-player loop grows linearly, and at sixty it was measured: fifty-eight fed ghost records beside two players at `DayLength` 1, run in one minute event, read 50 ms of the frame's busy time at the median and 88 at the worst [#3472/M/n=1].
+The earlier arithmetic bracket, from two players' per-run costs, put that loop at 73.7 to 103.3 ms (arithmetic), about a whole frame before vanilla's own work [#3440/M/arith.].
 The same work spread over a minute's frames is about 95 ms a game minute, about 15 % of the server at `DayLength` 1 (arithmetic), so the mean is affordable where the burst is not [#3440/M/arith.].
 Read the other way, a burst over N players stays under a frame budget only while one run costs at most that budget divided by N, so keeping a sixty-player event under 10 ms allows about 0.167 ms a run (arithmetic), about a ninth of the 1558.33 µs an in-play run measured [#3441/C/inference] [#3387/M/n=1].
-Measured with fifty-eight fed ghost records beside two players at `DayLength` 1, the burst's minute frame read 50 ms of busy at the median and 88 at the worst, and it grew linearly, 18, 32 and 50 ms at the median at twenty, forty and sixty [#3472/M/n=1] [#3474/M/n=1].
+The burst's minute frame grew linearly with the load, 18, 32 and 50 ms of busy at the median at twenty, forty and sixty [#3474/M/n=1].
 In the session with the players side by side, at sixty on this host, that burst's busy, up to 74 ms, ran inside an unbroken 100 ms start-to-start cadence, so what it lengthened was the end-to-end period, up to 176 ms [#3486/M/n=1].
 Extrapolated linearly, the worst minute frame at sixty, 88 ms of busy, would cross the 100 ms period near 68 to 74 players on this host, and the median minute frame, about 50 ms, near 120 (inference) [#3472/M/n=1] [#3474/M/n=1].
 That extrapolation carries none of vanilla's own per-player load at sixty real players, which is unmeasured because the engine's fake client could not join, so spreading the minute buys headroom for more players, heavier minutes and slower hosts rather than relief from a stall measured at sixty (inference) [#3486/M/n=1] [#3494/M/n=1].
@@ -57,6 +58,14 @@ With step and sub-block timers on, an in-play run cost 1.459 ms, and an unprofil
 The verdict is the longest frame the change adds and how often that frame comes, never the mean [#3442/C/inference].
 The engine's own counter is the reading of a frame's length, and a Lua timer is a total over many runs with its count [#3443/C/inference].
 Offline timings rank a pipeline's blocks by share and never price a frame [#3438/C/inference].
+
+What one more of each part costs a run is read off the live minute, and every entry below is inference from the readings it names.
+
+| one more | cost a run (inference) | rows |
+|---|---|---|
+| nutrient record | about 5 µs a record: `nutrients/records` took 34 ms over 244 runs of the 27 records (arithmetic) | [#3458/M/n=1, #3415/C/inference] |
+| payload key on the send | unmeasured; one 138-key send cost about 0.1 ms whole | [#3437/C/C-only, #3464/M/n=1] |
+| pipeline step | that step's summed total over 244 runs, divided by 244, from 0 ms (`fast`) to about 0.71 ms (`nutrients`, 173 ms) a run (arithmetic), each total a sum of 1 ms truncations | [#3457/M/n=1, #3458/M/n=1, #3459/M/n=1] |
 
 <a id="frame"></a>
 ### The server frame
@@ -255,7 +264,7 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | the engine's longest frame against a Lua ring | within 2 ms at p99, idle and under the burst | [#3403/M/n=1] |
 | ZGC over one session | 128 pauses, at most 0.12 ms; stalls only at boot | [#3408/M/n=1] |
 | one stored record | 10,807.8 bytes on average | [#3422/C/inference] |
-| sixty players' minutes in one event (arithmetic) | 73.7 to 103.3 ms; about 51.7 ms on the ghost basis | [#3440/M/arith.] |
+| sixty players' minutes in one event | measured, fifty-eight fed ghosts beside two players: busy 50 ms median, 88 max; the earlier arithmetic bracket 73.7 to 103.3 ms, about 51.7 ms on the ghost basis (arithmetic) | [#3472/M/n=1, #3440/M/arith.] |
 | sixty players' minutes spread over the minute (arithmetic) | about 95 ms a game minute | [#3440/M/arith.] |
 | one player's minute in play, sub-block timers on | 1.459 ms a run over 244 runs | [#3457/M/n=1] |
 | the Nutrients heal pair in that minute | 101 of 356 ms, 28.4 %; the seven heal passes 143 ms, 40.2 % | [#3458/M/n=1] |
@@ -351,6 +360,7 @@ The harness reads a frame's length and a load's cost on a live server; its comma
 `perf.local` samples the engine's per-window longest and shortest frame once a window, the hitch reading [#3403/M/n=1] [#3409/C/C-only].
 `ghost.load` runs a number of ghost records through the real pipeline under a named scheduler, for cost at a player count two clients cannot reach [#3405/M/n=1] [#3407/M/n=1].
 `bench.global` brackets many calls of one function with the 1 ms clock and reports the cost a call [#3432/C/C-only].
+`world.posring <n>` is the client's per-frame series: on a client it records the last n `OnTick` frames, each with the wall time, the other player's position and `getLastRemoteUpdate()` stamp and the nearest zombie's position, the series a client-side effect is read off [#3485/C/C-only] [#3488/M/n=1].
 A profile's `gclog` key writes the server's GC log beside the run, for lining a pause or a stall up with a frame [#3408/M/n=1].
 Offline, the kernel's host is C Lua, so an offline profile ranks blocks by share and a live reading prices them [#3438/C/inference].
 
@@ -406,6 +416,7 @@ Not covered: a listen server or single-player, a player's own-action latency, re
 - Whether the jar's fake client gives per-player load on this build once each of its usernames has a saved character and each runs in its own JVM is untried: as shipped it is kicked at `player-connect` for want of a saved character, and one JVM gave one connected client [#3494/M/n=1] [#3495/C/C-only] [#3496/M/n=1].
 - What vanilla's own frame costs at a large player count is unread, and it sets the headroom a mod has; the shipped fake client could not supply it [#3440/M/arith.] [#3494/M/n=1].
 - How much heavier a mass reconnect is than a typical minute is unmeasured; a day close, a seven-day catch-up and first sight's measured parts are not heavier a run, but first sight's 0.861 ms is a floor, so sixty joiners in one frame would cost at least 51.7 ms (arithmetic) [#3462/M/n=1] [#3463/M/n=1] [#3387/M/n=1].
+- How a mod's own scheduler performs at sixty is unmeasured: `ghost.load`'s schedulers are the harness's own copies, so once a mod drains its own queue they no longer measure it, and measuring it needs the harness to feed ghost records into the mod's own queue, then a shoot-out of that queue against the 15 ms budget (inference) [#3455/C/inference] [#3489/M/n=1].
 - A send's cost per key is unmeasured: one 138-key payload was priced, about 0.1 ms a send [#3464/M/n=1] [#3437/C/C-only].
 - What a client's request of a global modData table costs the server's frame between 60 records and the 1,000,000-byte buffer, and when repeated, is unmeasured: at 60 it was within the idle jitter [#3469/M/n=1] [#3470/M/n=1].
 
@@ -416,7 +427,7 @@ Not covered: a listen server or single-player, a player's own-action latency, re
 2. Name how often that frame comes at the day lengths the server runs, and under a fast clock.
 3. Name how its cost grows: flat, per player, per player ever seen, or per packet.
 4. Stage the change, never `mod/`, and measure one run's cost on a live server with a bracket over many runs, stating the count.
-5. Measure the frame at the target player count with `ghost.load` under the scheduler the change uses, reading `perf.local` for the frame's length and `tick.ring` for its attribution, against an idle baseline from the same session.
+5. Measure the frame at the target player count with `ghost.load` under the scheduler the change uses, reading `perf.local` for the frame's length and `tick.ring` for its attribution, against an idle baseline from the same session; `ghost.load`'s schedulers are the harness's own copies, so a scheduler that lives in the mod is measured only once the harness feeds ghost records into the mod's own queue, which is [open](#open).
 6. Write the longest frame the change adds and how often it comes, with the readings' rows, and never the mean alone.
 7. Turn on `gclog` when the change allocates per player, and line any stall up with the frames.
 8. Compare arms on the ghosts' batch-timed milliseconds a minute event, and repeat each arm in alternation, because busy over idle carries the drift between arms.
@@ -428,6 +439,7 @@ Not covered: a listen server or single-player, a player's own-action latency, re
 - [server-lifecycle.md](server-lifecycle.md#tick-order) — the time events in the lifecycle, the tick counts and the fast clock.
 - [lua-platform.md](lua-platform.md#events) — the event roster, what a handler's raise costs, and the stat hook.
 - [mp-model.md](mp-model.md#routes-client-to-server) — the routes a value travels, the global modData request among them.
+- [client-ui.md](client-ui.md#tooltip) — the tooltip and its measured cost on a client.
 - [harness.md](harness.md) — the instrument and its commands.
 - [../facts/character-stats.md](../facts/character-stats.md#tick-order) — the player update inside `IsoWorld.update`, and where `OnPlayerUpdate` returns.
 - [../facts/character-stats.md](../facts/character-stats.md#updaters) — the updaters that move a stat each tick, behind the sawtooth of a once-a-minute write.
