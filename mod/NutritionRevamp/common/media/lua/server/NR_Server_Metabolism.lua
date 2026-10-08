@@ -64,7 +64,7 @@ MET.BUILD_TRAITS = {
 -- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded.
 MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
               "inDayClosed", "dayIndex", "lastCloseAgeH", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
-              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH" }
+              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp" }
 MET.GUARD_RINGS = { "eb7", "p7", "carb7", "lip7", "mass7" }
 MET.SLOT7 = { 7 }
 MET.BAND_SLOT = { 1, 2 }

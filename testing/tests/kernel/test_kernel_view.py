@@ -72,6 +72,7 @@ def test_changed_only_when_the_counter_or_the_level_moved(host):
 @pytest.mark.parametrize("v,d,want", [
     (72.44, 1, "72.4"), (2.0, 0, "2"), (0.0125, 3, "0.013"), (5.0, None, "5"), (1.25, 9, "1.250"),
     (1.5, -2, "2"), ("12", 1, ""), (None, 1, ""), (float("nan"), 1, ""),
+    (float("inf"), 1, ""), (float("-inf"), 0, ""),
 ])
 def test_fmt(host, v, d, want):
     assert V(host).fmt(v, d) == want

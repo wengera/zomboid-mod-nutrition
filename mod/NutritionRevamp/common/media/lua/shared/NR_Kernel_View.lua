@@ -68,9 +68,12 @@ K.view.TIP_MAX = 3 -- gc: up to three rich and three low lines (plan ruling 8)
 K.view.FORMATS = { "%.1f", "%.2f", "%.3f" }
 K.view.FORMATS[0] = "%.0f"
 
--- A number formatted with digits (0-3, default 0) after the point; "" for anything that is not a number or NaN.
+-- A number formatted with digits (0-3, default 0) after the point; "" for anything that is not a number, NaN or an infinity.
 function K.view.fmt(v, digits)
     if type(v) ~= "number" or v ~= v then
+        return ""
+    end
+    if v == math.huge or v == -math.huge then
         return ""
     end
     local d = digits

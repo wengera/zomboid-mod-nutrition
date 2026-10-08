@@ -41,17 +41,18 @@ CROSS = (
         ("effects", ("fm", "lm", "dayIndex", "exKcalDay", "band1Day", "band2Day", "met", "inDayClosed")),
         ("strength", ("fm", "lm", "dayIndex", "n", "nPeak", "tPeakD", "cumDef", "tDisuse")),
         ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay", "lastCloseAgeH")),
+        ("kinetics", ("energyState",)),
         ("fast", ("energyState", "dmod", "rmod")),
-        ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac")),
+        ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
         ("store", ("fm", "lm", "lastAgeH", "dayIndex", "lastCloseAgeH", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
-                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac")),
+                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp")),
     ])
     + _rows("metabolism", "body.eb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
     + _rows("metabolism", "body.carb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
     + _rows("metabolism", "body.p7", [("effects", (7,)), ("weight", (7,)), ("store", (7,))])
     + _rows("metabolism", "body.lip7", [("weight", (7,)), ("store", (7,))])
-    + _rows("metabolism", "body.mass7", [("weight", (7,)), ("store", (7,))])
+    + _rows("metabolism", "body.mass7", [("store", (7,))])
     + _rows("metabolism", "body.bandWeek.7", [("nutrients", (1, 2)), ("store", (1, 2))])
     + _rows("nutrients", "fluids", [
         ("effects", ("dehydPct", "naPlasma")),
@@ -98,7 +99,13 @@ WINDOW = [
     ("nutrients", "nutrients.iron", "x", "Effects reads it through comparisons only (a rung literal by construction)"),
     ("nutrients", "nutrients.thiamine", "ah", "Effects' drain compares it only (a finite sum by construction)"),
     ("nutrients", "nutrients.vitC", "e24", "Effects' cold credit compares it only (finite inputs by the intake guard)"),
-    ("metabolism", "body", "vStr", "no later step reads it; Metabolism reads it next minute after its heal"),
+    ("nutrients", "nutrients.vitA", "g", "the mirror reads nutrients.<key>.g/.p/.x for every ORDER key (K.mirror.nutrients): "
+     "one mirror carries the NaN and the client blanks it (K.view.fmt renders NaN as \"\"); guarding them would cost "
+     "about three keys times the ORDER length per minute"),
+    ("nutrients", "nutrients.vitA", "p", "as .g: one mirror carries the NaN, the client blanks it"),
+    ("nutrients", "nutrients.vitA", "x", "as .g: one mirror carries the NaN, the client blanks it"),
+    ("nutrients", "body", "alcDay", "written by Nutrients after Metabolism's guard; only the store reads it, and a null "
+     "on save loads 0, the heal's neutral"),
     ("effects", "effects", "nvDays", "a store input only; Effects reads it next minute after its heal"),
 ]
 
@@ -212,3 +219,48 @@ def test_the_next_pre_step_heal_clears_an_unguarded_field():
     rec.body.vStr = float("nan")                        # an input NaN between minutes: the pre-step heal's class
     next_minute(h, 4)
     assert nonfinite(rec) == []
+
+
+MIRROR = r"""
+function(rec)
+    local NR = NutritionRevamp
+    return NR.kernel.mirror.build(rec, {}, NR.data.records.ORDER)
+end
+"""
+
+
+def build_mirror(h, rec):
+    return h.rt.eval(MIRROR)(rec)
+
+
+def test_a_nutrient_nan_reaches_one_mirror_then_the_heal_takes_it():
+    h = settle()
+    rec = h.record("a")
+    h.rt.eval(WRAP)("acute.iu", rec, "nutrients.vitA", "p")
+    next_minute(h, 4)
+    m = build_mirror(h, rec)                            # the bus step builds before any pre-step heal
+    assert m["nut_vitA_p"] != m["nut_vitA_p"]           # the documented one-minute NaN (the client blanks it)
+    next_minute(h, 5)
+    m = build_mirror(h, rec)
+    assert math.isfinite(m["nut_vitA_p"])
+
+
+def test_a_step_made_vstr_nan_never_reaches_the_mirror_doses():
+    h = settle()
+    rec = h.record("a")
+    h.rt.eval(WRAP)("energy.state", rec, "body", "vStr")
+    next_minute(h, 4)
+    m = build_mirror(h, rec)
+    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
+    next_minute(h, 5)
+    m = build_mirror(h, rec)
+    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
+
+
+def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
+    h = settle()
+    rec = h.record("a")
+    h.rt.eval(WRAP)("energy.state", rec, "body", "vHyp")
+    next_minute(h, 4)
+    m = build_mirror(h, rec)
+    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
