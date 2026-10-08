@@ -34,6 +34,10 @@ def test_a_nil_thirst_target_writes_no_thirst(host):
     assert out.thirst is None
 
 
+def test_a_non_finite_thirst_target_writes_no_thirst(host):
+    assert run(host, mode=1, thirst=0.2, thirstTarget=NAN).thirst is None
+
+
 def test_the_sip_is_folded_into_the_thirst_write(host):
     out = run(host, mode=1, thirst=0.1, lastThirst=0.3, sipOK=True, thirstTarget=0.3)
     assert out.sip == pytest.approx(0.2) and out.thirst == pytest.approx(0.1)

@@ -187,6 +187,18 @@ def test_a_falling_unhappiness_target_releases_its_fall_once():
     assert p.st.sets.UNHAPPINESS == pytest.approx(10)      # 40 less the target's fall of 30 (T1-2)
 
 
+def test_the_sip_is_measured_from_the_written_value_not_the_read_one():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    p.st.v.THIRST = 0.5                                    # the pre-write read
+    step(h, p, rec, 1)                                     # writes the target, 0.3
+    assert p.st.sets.THIRST == pytest.approx(0.3)
+    p.st.v.THIRST = 0.1                                    # a drink between the writes
+    step(h, p, rec, 2)
+    assert rec.fluids.autoDrop == pytest.approx(0.2)       # 0.3 written less 0.1, not 0.5 read less 0.1
+
+
 def test_a_sip_adds_to_a_drop_still_pending():
     h = boot()
     p = player(h)

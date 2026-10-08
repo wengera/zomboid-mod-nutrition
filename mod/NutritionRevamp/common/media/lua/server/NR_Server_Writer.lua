@@ -100,14 +100,10 @@ end
 function W.hoist(username, p)
     local stats = NR.obj(p, "getStats")
     if stats == nil or CharacterStat == nil then return nil end
-    local h = { p = p, stats = stats, moodles = NR.obj(p, "getMoodles"), bd = NR.obj(p, "getBodyDamage"),
+    local h = { p = p, stats = stats, bd = NR.obj(p, "getBodyDamage"),
                 traits = NR.obj(p, "getCharacterTraits"), ageH = nil, lastThirst = nil, lastEnd = nil,
-                unhappyLast = 0, swipe = nil }
+                unhappyLast = 0 }
     h.thermo = NR.obj(h.bd, "getThermoregulator")
-    if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
-        local ok, s = pcall(SwipeStatePlayer.instance)
-        if ok then h.swipe = s end
-    end
     pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- ruling 19 kept: the writer owns INTOXICATION
     if W.so == nil and getSandboxOptions ~= nil then
         local ok, so = pcall(getSandboxOptions)

@@ -837,7 +837,7 @@ end
 
 -- At load, so the wrap is in place before the first eat (the wrapper itself gates on the side per
 -- call), and again at OnServerStarted behind the side test. Both modes install: the mod owns intake in
--- takeover and overlay alike; only the stat tick differs by mode.
+-- managed and overlay alike; only the stat tick differs by mode.
 IN.install()
 IN.installDrink()
 IN.installWorld()
