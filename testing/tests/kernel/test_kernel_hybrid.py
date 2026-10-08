@@ -63,8 +63,15 @@ def test_the_stress_and_sickness_floors_rise_by_elapsed_game_time(host):
     out = run(host, dtS=60, stress=0.0, stressTarget=0.1, foodSick=0, foodSickTarget=30)
     assert out.stress == pytest.approx(5.0e-5 * 60)
     assert out.foodSick == pytest.approx(25 / 3600 * 60)
-    out = run(host, dtS=7200, stress=0.0, stressTarget=0.1)          # a step over 60 minutes integrates 60
-    assert out.stress == pytest.approx(min(0.1, 5.0e-5 * 3600))
+    out = run(host, dtS=7200, stress=0.0, stressTarget=1.0)          # a step over 60 minutes integrates 60
+    assert out.stress == pytest.approx(5.0e-5 * 3600)                # 0.18, not the unclamped 0.36
+
+
+def test_a_zero_or_negative_step_rises_nothing(host):
+    for dt in (0, -600):
+        out = run(host, dtS=dt, stress=0.2, stressTarget=1.0, foodSick=0, foodSickTarget=30)
+        assert out.stress in (None, pytest.approx(0.2))
+        assert out.foodSick in (None, pytest.approx(0))
 
 
 def test_unhappiness_rises_toward_its_target_and_releases_a_fall_once(host):
