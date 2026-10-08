@@ -150,6 +150,7 @@ The Sweep 3 load-bearing table is 9 Workshop rows, each with its id, title, inst
 | `3078272807` | Nutrition Tweaker Enhanced | no | 503.836 KB | Jul 22, 2025 @ 1:35pm | the B41-era ancestor still carrying the `Build 42` tag |
 
 Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is a 453.434 KB not-installed mod shipping a fix for the multiplayer nutrition-sync problem this library exists to characterise [#1605/W/snapshot].
+That item no longer exists on the Workshop (2026-10-08): its questions close as unavailable, not unread [T1101.43].
 Workshop item `3796644824`, a 471.224 KB not-installed patch to Long Term Preservation, claims the preservation mod launders nutrition — a claim about a mod that is installed and readable here [#1606/W/snapshot].
 Three of the sweep's 180 distinct ids are installed locally: `2932547723` '93 Lincoln Town Car matched `diet` and is a car mod, `3759421894` Big Bottles matched `hydration` and is a container-capacity tweak with no nutrition signal, and `3765241705` BeyondTen is the only installed hit carrying one [#1607/C/snapshot].
 
@@ -235,15 +236,20 @@ Each sentence below carries only what an item page holds — a title, a file siz
 The laundering patch to Long Term Preservation keeps its earlier dated page reading [#1606/W/snapshot].
 
 Workshop item `3690404044`, `Nutrition Makes Sense [2.0]`, is 883.676 KB, posted `22 Mar @ 4:57pm` and updated `26 Sep @ 9:09am`, at the 2026-09-30 14:10 fetch [#2585/W/snapshot].
+Its code was read on 2026-10-08 from the installed copy, modversion 2.0.2 ([nutritionmakessense.md](nutritionmakessense.md#what-it-does)) [T1101.1].
 Workshop item `3785515388`, Reasonable Nutrition, is 145.008 KB, posted `17 Aug @ 7:44pm` and updated `26 Aug @ 3:49pm`, at the 2026-09-30 14:10 fetch [#2586/W/snapshot].
 Workshop item `3782835400`, Realistic Nutrition, is 636.708 KB, posted `13 Aug @ 10:59am` and never updated, at the 2026-09-30 14:10 fetch [#2587/W/snapshot].
 Workshop item `3078272807`, Nutrition Tweaker Enhanced, is 503.836 KB, posted `10 Nov, 2023 @ 2:19am` and updated `22 Jul, 2025 @ 1:35pm`, at the 2026-09-30 14:10 fetch [#2588/W/snapshot].
 Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is 453.434 KB, posted `31 May @ 7:55am` and updated `31 May @ 11:18am` at the 2026-09-30 14:10 fetch, and its page states — quoted faithful in substance, not byte-exact — that a client's calorie counter overwrites the server's on each eat, so players only gain weight [#2589/W/snapshot].
 That stated mechanism is contradicted by the measured client write, which never reaches the server and is erased by the next player stats packet [#0119/M/n=1] [#0568/M/n=2], and public threads report the multiplayer weight drift in both directions on different builds [#2589/W/snapshot].
+The item no longer exists on the Workshop (2026-10-08): its page answered with an access error and the workshop folder holds no copy, so its questions close as unavailable, not unread [T1101.43].
 Workshop item `2997722072`, StatsAPI, is 133.814 KB, posted `2 Jul, 2023 @ 1:13am` and updated `18 Nov, 2024 @ 3:29pm`, at the 2026-09-30 14:11 fetch [#2590/W/snapshot].
+Its code was read on 2026-10-08 from the installed copy, modversion 0.4.15 ([statsapi.md](statsapi.md#discovery)) [T1101.18].
 Workshop item `3415375593`, Stat Tweaks Lib, is 87.724 KB, posted `26 Jan, 2025 @ 2:42pm` and updated `1 Feb, 2025 @ 6:55am`, at the 2026-09-30 14:11 fetch [#2591/W/snapshot].
+Its code was read on 2026-10-08 from the installed copy ([stattweakslib.md](stattweakslib.md#what-it-does)) [T1101.24].
 Workshop item `2914075159`, Evolving Traits World (ETW) + More Traits continuation, is 7.285 MB, posted `7 Jan, 2023 @ 12:53am` and updated `28 Sep @ 9:17am`, at the 2026-09-30 14:11 fetch [#2592/W/snapshot].
 Workshop item `3694097672`, Tooltiplib - Tooltip Framework for Modders, is 375.475 KB, posted `28 Mar @ 7:40am` and updated `26 Aug @ 4:40am`, at the 2026-09-30 14:11 fetch [#2593/W/snapshot].
+Its code was read on 2026-10-08 from the installed copy, modversion 1.7.0, which had updated that morning ([tooltiplib.md](tooltiplib.md#what-it-does)) [T1101.31].
 
 <a id="api-surface"></a>
 ### The API surface the corpus uses
@@ -426,9 +432,9 @@ Not covered: apart from the QualityCooking and BeyondTen co-boot above, no mod h
 - The design must decide whether QualityCooking's code is read line by line before its own eat wrapper is written, because QualityCooking wraps the same eat completion on the server with no sentinel [#2562/C/snapshot] and reads the eaten macros inside that wrap [#2563/C/snapshot].
 - BeyondTen's code was read before any Strength or Fitness write, because BeyondTen extends every trainable skill past the native cap ([beyondten.md](beyondten.md#what-it-does)) [#1525/C/C-only]: it writes no Java perk level [#2849/C/C-only], and on a server it parks a level-10 perk's experience at the level-9 total and banks the excess as mastery, so a level-10 Strength or Fitness reads one level's worth of experience below its level while it runs [#2850/C/C-only].
 - Evolving Traits World's code was read from its author's repository at commit 0d9c059e on 2026-10-06, not from the Workshop copy: it grants Night Vision and never removes it, skips the grant while the trait is held and never touches Short Sighted, so a mod's own night-vision machine composes with it when the mod never removes a trait it did not add [#3132/W/snapshot]; the Workshop copy [#2592/W/snapshot] stays unread and undiffed against that commit [#1600], and the one other runtime trait removal the census's trait names find runs on both sides [#2573/C/snapshot].
-- The design must decide whether Tooltiplib's code is read before a tooltip wrap is written, because the tooltip render is already a sentinel-free wrap chain [#2568/C/snapshot] and Tooltiplib [#2593/W/snapshot] is a Workshop item this tree cannot read [#1600].
-- The design must decide whether Nutrition Makes Sense, StatsAPI and Stat Tweaks Lib are read before release, because the stat hook is unclaimed only in the installed corpus [#2558/C/snapshot] and those three [#2585/W/snapshot] [#2590/W/snapshot] [#2591/W/snapshot] are Workshop items this tree cannot read [#1600].
-- The design must decide whether the ApocalipseBR sync fix is read before release, because its page states a sync mechanism the library's measurements contradict [#2589/W/snapshot].
+- Tooltiplib's code was read on 2026-10-08, before the tooltip's guards are written: it wraps the render at `OnGameStart`, outside a wrap made at file load, so the two compose and overlap only with a third framework owning `DoTooltip` ([tooltiplib.md](tooltiplib.md#collisions)) [T1101.32] [T1101.39]; the tooltip render stays a sentinel-free wrap chain in the installed corpus [#2568/C/snapshot].
+- Nutrition Makes Sense, StatsAPI and Stat Tweaks Lib were read on 2026-10-08, so the server's stat hook is unclaimed by them as by the installed corpus [#2558/C/snapshot]: StatsAPI is never discovered on 42.21 [T1101.19], Stat Tweaks Lib never runs on a server [T1101.29], and Nutrition Makes Sense claims no hook but writes hunger, the calorie store and weight each minute on the server ([nutritionmakessense.md](nutritionmakessense.md#collisions)) [T1101.4] [T1101.15].
+- The ApocalipseBR sync fix closes as unavailable, not unread: the item is gone from the Workshop [T1101.43], and its page's stated mechanism stays contradicted by the library's measurements [#2589/W/snapshot].
 
 ## See also
 

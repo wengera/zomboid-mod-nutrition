@@ -4,8 +4,9 @@ Release 1.0.0, game build 42.20.4. A sweep of 234 installed mod folders on 2026-
 
 | neighbour | stance | what the mod does | evidence |
 |---|---|---|---|
-| Nutrition Makes Sense (a second complete hunger, energy and weight model with its own foods, window, tooltip and moodle) | incompatible, said plainly | named in the description and these notes; do not run both | unread |
-| StatsAPI and Stat Tweaks Lib (published stat libraries) | read the code before relying on it | if either claims the stat hook, run in Overlay mode (`NR.Mode = 2`) | unread |
+| Nutrition Makes Sense (3690404044, read 2026-10-08) | incompatible, said plainly | both mods write HUNGER, the calorie store and body weight every minute, each books the other's calorie writes as meals, and both re-base 438 of the same foods; the server log warns at boot when both are loaded; run one | code read 2026-10-08 |
+| StatsAPI (2997722072, read 2026-10-08) | inert on 42.21 | a Build 41 mod with no `common/` or `42*/` folder, so the game never discovers it; its stat code is all under `client/`, which a dedicated server never runs | code read 2026-10-08 |
+| Stat Tweaks Lib (3415375593, read 2026-10-08) | inert on a dedicated server | its one client file raises on every client update on 42.21 and never runs on a server; it touches no rate, no item and no global modData | code read 2026-10-08 |
 | QualityCooking (wraps the eat completion, reads the eaten macros, writes endurance, fatigue and hunger on a server minute clock, writes the carry base) | rule; a patch mod may follow as its own item | this mod's eat wrap composes with QualityCooking's; under takeover its stat writes are discarded; carry delta and base stay disjoint | code read (2026-09-30 sweep); co-boot runs `x132b-20261005-071013`, `x132b-20261005-071959` |
 | BeyondTen (Strength and Fitness to fifteen, experience listeners on both sides, an absolute endurance write) | rule | the Strength ceiling reads the perk's maximum at runtime; its endurance write is read as an outside change | code read; co-boot runs `x132b-20261005-071013`, `x132b-20261005-071959` |
 | SomewhatTraitsCore (event-driven server stat writes; the only player macro write in the corpus) | rule; the adaptive-metabolism trait is incompatible | its event-driven writes are read as outside changes; its calorie write fights the body model and is named here | x131s: the calorie write reaches the store (its folding as an outside change is design); `x131s-20261004-200859` |
@@ -17,13 +18,14 @@ Release 1.0.0, game build 42.20.4. A sweep of 234 installed mod folders on 2026-
 | Nutrition Tweaker Enhanced and nine endurance tweaks | followed as rate tunings | a tweak to `ZomboidGlobals` or the sandbox multipliers moves the mod's handler the same way; a tweak that writes a stat directly is read as an outside change; awake endurance stays vanilla's in this build | unread |
 | hunger and thirst tweaks that only edit `ZomboidGlobals` | followed as rate tunings | the same as the row above: the handler reads the constants at install and the sandbox multipliers each minute | unread |
 | mods that replace the hunger, energy or weight model, fatigue writers (five), body-weight and metabolism mods (three) | incompatible, said plainly | the mod owns those stats and the weight slot | unread |
-| ApocalipseBR Nutrition Sync Fix | coexists but redundant, said plainly | its 120-second poll and this mod's on-change mirror would both push; disable its sync module | unread |
+| ApocalipseBR Nutrition Sync Fix (3736275816) | unavailable | removed from the Workshop before 2026-10-08; nothing to read | — |
 | Reasonable Nutrition, Realistic Nutrition (rival item passes) | load-order rule | the per-key merge of item blocks resolves by script path, not by `Mods=` order | unread |
 | eat and drink action wrappers (five) | coexist | the mod's wrappers save and call the original, guarded against a second install | QualityCooking's composition: `x132b-20261005-071013`, `x132b-20261005-071959` |
 | eat and drink action replacers and portion changers (four) | rule | intakes their actions hide are reconciled as macros | unread |
 | runtime trait systems (Evolving Traits World, Dynamic Traits, SOTO and kin) | rule | traits the mod owns are re-asserted every slow tick | Evolving Traits World: its author's repository read at commit `0d9c059e` (2026-10-06), its Workshop copy unread; the rest unread |
 | medical and wound overhauls (about twenty) | rule | the mod's body-damage effects multiply fields and never assign them | unread |
-| tooltip mods (ten or more) and Tooltiplib | rule | the tooltip wrap is idempotent | Tooltiplib unread; the corpus's tooltip wraps code read (2026-09-30 sweep) |
+| tooltip mods (ten or more) | rule | the tooltip wrap is idempotent | the corpus's tooltip wraps code read (2026-09-30 sweep) |
+| Tooltiplib (3694097672, read 2026-10-08) | composes | it wraps the tooltip render above this mod's band, so both draw; with a third framework owning the item tooltip and a Tooltiplib food provider in deferred mode the two can overdraw | code read 2026-10-08 |
 | moodle skins and repositioners (about twenty) | coexist | the mod's own icon column is never anchored to the vanilla moodle stack | unread |
 | MoodleFramework | optional, detected | detected on the client and used for the moodles when present; never a dependency | `x181-20261006-152607`, `x183m-20261006-163808` |
 | food-content and vitamin-item mods (about twenty-four) | coexist, with a contract | a documented modData key lets an author declare a food's nutrients; unmapped third-party foods get a vector inferred from their macro keys and food type | unread |

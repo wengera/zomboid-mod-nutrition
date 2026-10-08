@@ -166,6 +166,7 @@ The curated event table carries 13 events with the side each fires on, its caden
 The real-time length of a game minute is a property of the fixture's day length rather than of the event, and it lives with [the harness](harness.md#time).
 
 `EveryOneMinute` fires on both sides: one mod's per-tick counter advanced in the client VM and in the server VM within the same session, with the client's count inflated because the client VM ran the mod's `server/` file handler as well as its `client/` one [#0892/M/n=1].
+A dedicated server never runs a mod's `client/` Lua: `GameServer.doMinimumInit`, the server class's only `LoadDirBase` call site, loads `client` with the skip flag set, and that flag jumps over `RunLua` for every file, which still goes on to the checksum step [T1101.41].
 The three client-only boot events `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire on a dedicated server, which is a mirror reading and corroboration only [#1620/W].
 `OnInitGlobalModData` and `OnServerStarted` are therefore the pair of hooks that survives a dedicated server, read from a corpus mod that registers the first in a dedicated-server tree; no session here has registered a handler on each of the five to measure it [#0895/C/one-side].
 The aging call fires the container-update event only when the process is not a server, and a client never runs the aging call, so in multiplayer that event never fires for a rot transition and a mod cannot hang rot logic on it [#0358].
