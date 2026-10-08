@@ -338,17 +338,18 @@ def test_assemble_thirst_only(host):
 
 def test_assemble_thirst_only_two_eats_land_the_baseline_once(host):
     h = host
-    b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=2, carb=0, lip=0, pro=0, thirstBefore=-0.1,
+    # Plan 11 Task 6: the vector follows the calories Eat delivered, so the instance carries the table's 95 kcal
+    b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=95, carb=0, lip=0, pro=0, thirstBefore=-0.1,
                 scriptThirst=-0.1)
     v1, _, _, share1, frac1, _ = assemble(h, b1, 0, -0.05)
-    b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=1, carb=0, lip=0, pro=0, thirstBefore=-0.05,
+    b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=47.5, carb=0, lip=0, pro=0, thirstBefore=-0.05,
                 scriptThirst=-0.1)
     v2, _, _, share2, frac2, _ = assemble(h, b2, 0, 0)
     assert abs(share1 - 0.5) < TOL and abs(frac1 - 0.5) < TOL
     assert abs(share2 - 0.5) < TOL and abs(frac2 - 1.0) < TOL
     assert abs(v1["fibre"] + v2["fibre"] - 4.4) < TOL
     assert abs(v1["water"] + v2["water"] - 156) < TOL
-    assert abs(v1["calories"] - 1) < TOL and abs(v2["calories"] - 1) < TOL
+    assert abs(v1["calories"] - 47.5) < TOL and abs(v2["calories"] - 47.5) < TOL
 
 
 def test_assemble_declared_item_wins_over_the_table(host):
@@ -404,7 +405,7 @@ def test_assemble_craft_inputs_through_the_chain(host):
     assert close(macros(vec), [200, 0, 10, 40])
     b = before(h, craft={"Base.MincedMeat": 1}, **patty)
     vec, source, missing, share, frac, trace = assemble(
-        h, b, 0, None, templates(h), {"Base.MincedMeat": {"declared": "iron:7", "macros": {"calories": 100}}})
+        h, b, 0, None, templates(h), {"Base.MincedMeat": {"declared": "iron:7", "macros": {"calories": 200}}})
     assert abs(vec["iron"] - 7) < TOL and as_list(trace["declared"]) == ["Base.MincedMeat"]
     b = before(h, craft={"Base.Nothing": 1}, **patty)
     vec, source, missing, *_ = assemble(h, b, 0, None, templates(h), {})
@@ -483,12 +484,54 @@ def test_factor_dish_takes_frac(host):
 
 def test_factor_thirst_only_share_uses_script_thirst(host):
     h = host
-    b = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=1, carb=0, lip=0, pro=0, thirstBefore=-0.05,
+    b = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=47.5, carb=0, lip=0, pro=0, thirstBefore=-0.05,
                scriptThirst=-0.1)
     vec, source, missing, share, frac, _ = assemble(h, b, 0, 0)
     _frac_share(share, frac)
-    assert abs(vec["fibre"] - 4.4 * 0.5) < TOL                   # the drop over scriptThirst, not over thirstBefore
-    assert abs(vec["calories"] - 1) < TOL
+    assert abs(vec["fibre"] - 4.4 * 0.5) < TOL                   # the delivered 47.5 of the table's 95 kcal
+    assert abs(vec["calories"] - 47.5) < TOL
     b["scriptThirst"] = 0                                        # unknown: share falls back to frac
     vec, source, missing, share, frac, _ = assemble(h, b, 0, 0)
+    # Plan 11 Task 6: the vector follows the delivered calories, so the fallback share no longer over-counts
+    assert abs(share - 1.0) < TOL and abs(vec["fibre"] - 4.4 * 0.5) < TOL
+    b["cal"] = 0                                                 # no calories: the hunger ratio (1) with share
+    vec, source, missing, share, frac, _ = assemble(h, b, 0, 0)
     assert abs(share - 1.0) < TOL and abs(vec["fibre"] - 4.4) < TOL
+
+
+# --- Plan 11 Task 6: the micronutrients follow the calories Eat delivered (Appendix E) ----------------------------
+
+FISH = {"calories": 100, "carbs": 0, "lipids": 2, "proteins": 20, "iron": 2}
+TEA = {"calories": 40, "carbs": 10, "lipids": 0, "proteins": 0, "iron": 1}
+BREAD = {"calories": 150, "carbs": 30, "lipids": 2, "proteins": 5, "iron": 3}
+CHEESE = {"calories": 150, "carbs": 1, "lipids": 12, "proteins": 9, "iron": 3}
+
+
+def test_a_caught_fish_lands_iron_with_its_delivered_calories(host):
+    # #3328: the catch sets 11x the script's calories and instBase -1.0 over the script's -0.15 (x6.67)
+    b = before(host, fullType="Base.Fish", rawBefore=-1.0, instBase=-1.0, scriptHunger=-0.15,
+               cal=1100, carb=0, lip=22, pro=220)
+    vec = assemble(host, b, 0, seeds={"Base.Fish": FISH})[0]
+    assert abs(vec["calories"] - 1100) < 1e-9 and abs(vec["iron"] - 22) < 1e-9
+
+
+def test_a_fish_fillet_lands_iron_with_its_delivered_calories(host):
+    b = before(host, fullType="Base.Fish", rawBefore=-0.5, instBase=-0.5, scriptHunger=-0.15,
+               cal=550, carb=0, lip=11, pro=110)
+    vec = assemble(host, b, 0, seeds={"Base.Fish": FISH})[0]
+    assert abs(vec["calories"] - 550) < 1e-9 and abs(vec["iron"] - 11) < 1e-9
+
+
+def test_a_thirst_only_food_lands_iron_with_its_delivered_calories(host):
+    b = before(host, fullType="Base.Tea", rawBefore=0, instBase=0, scriptHunger=0, cal=60, carb=15, lip=0, pro=0,
+               thirstBefore=-0.2, scriptThirst=-0.2)
+    vec = assemble(host, b, 0, thirst_after=-0.1, seeds={"Base.Tea": TEA})[0]
+    assert abs(vec["calories"] - 30) < 1e-9 and abs(vec["iron"] - 0.75) < 1e-9
+
+
+def test_a_hand_craft_output_lands_its_inputs_vector_at_its_own_calories(host):
+    # Appendix E's MakeHotDog case: the summed inputs carry 300 kcal; the output delivers 150
+    b = before(host, fullType="Base.Sandwich", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2,
+               cal=150, carb=31, lip=14, pro=14, craft={"Base.Bread": 1, "Base.Cheese": 1})
+    vec = assemble(host, b, 0, seeds={"Base.Bread": BREAD, "Base.Cheese": CHEESE})[0]
+    assert abs(vec["calories"] - 150) < 1e-9 and abs(vec["iron"] - 3.0) < 1e-9

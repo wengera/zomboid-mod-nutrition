@@ -126,9 +126,11 @@ end
 -- NR.data.infer (nil: no inference); inputs(fullType) -> vector or nil is a dish or craft input's lookup
 -- (the adapter's chained lookup, which writes its steps into trace); trace is the per-eat trace (newTrace).
 -- The eaten item's own chain reads b.declared, b.foodType and its live macros (b.macros, else
--- b.cal/carb/lip/pro). A declared or table vector is a whole-type vector: the instance scale and share,
--- as the baseline always took. An inferred vector is read off the live macros, which a prior partial eat
--- already shrank and which carry the instance scale already: it takes frac and no instance scale.
+-- b.cal/carb/lip/pro). A table or craft vector is scaled to the calories Eat delivered, b.cal x frac over its
+-- own calories (K.vector.instanceScale, Plan 11 Task 6), with the hunger ratio and share when either side has
+-- none; a declared vector keeps the hunger ratio and share (its calories are the live ones). An inferred vector
+-- is read off the live macros, which a prior partial eat already shrank and which carry the instance scale
+-- already: it takes frac and no instance scale.
 function K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, trace)
     local frac, share = K.intake.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter, b.scriptThirst)
     if not K.vector.finite(share) or share <= 0 or not K.vector.finite(frac) or frac <= 0 then
@@ -144,7 +146,9 @@ function K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, 
         factor = frac
     elseif source == "craft" then
         vec, missing = K.vector.craft(inputs, b.craftMap, 1)
-        factor = share
+        local scale
+        scale, factor = K.vector.instanceScale(vec.calories, b.cal, frac, nil, 0, share)
+        vec = K.vector.scaled(vec, scale)
     else
         local macros = b.macros or { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
         local own = { declared = b.declared, foodType = b.foodType, macros = macros }
@@ -160,10 +164,18 @@ function K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, 
                 vec = K.vector.new()
                 missing[1] = b.fullType
             end
-            -- the instance scale instBase/scriptHunger: 1 for an unscaled item, the butcher ratio x
-            -- jitter for a butchered meat (#2669-#2672), 1/amount for a split output (#2660); meat guards 0
-            vec = K.vector.meat(vec, b.instBase, b.scriptHunger)
-            factor = share
+            -- the delivered-calorie scale (K.vector.instanceScale): the micronutrients follow the macros Eat
+            -- delivered; a 1/amount split holds only for an InheritFood split, and a non-InheritFood output
+            -- holds its script values (Appendix E Q4). A declared vector's calories are the item's LIVE ones
+            -- (K.vector.resolve), which a prior partial eat already shrank, so they anchor nothing: it keeps the
+            -- hunger ratio with share, as before (anchored on them, a second bite would land the whole vector again)
+            local kcal = vec.calories
+            if step == "declared" then
+                kcal = nil
+            end
+            local scale
+            scale, factor = K.vector.instanceScale(kcal, b.cal, frac, b.instBase, b.scriptHunger, share)
+            vec = K.vector.scaled(vec, scale)
         end
     end
     vec = K.vector.add(K.vector.new(), vec, factor)

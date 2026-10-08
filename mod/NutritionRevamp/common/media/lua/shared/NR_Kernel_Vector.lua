@@ -99,17 +99,26 @@ function K.vector.dish(lookup, extraTypes, dishMacroTotal)
     return scratch, note
 end
 
--- Animal meat: the type baseline scaled by raw hunger over base hunger (the butcher factor, accepting
--- the per-field noise of about +/-11 %, jar read § D #2669-#2672); a baseHunger of 0 falls back to
--- scale 1. typeBaseline is an already-resolved vector.
-function K.vector.meat(typeBaseline, rawHunger, baseHunger)
-    local scale = 1
-    if baseHunger ~= 0 then
-        scale = rawHunger / baseHunger
+-- The instance scale (Plan 11 Task 6; Appendix E, #3326-#3340): a table or craft vector is scaled to the
+-- calories the eat delivered, b.cal x frac over the vector's own calories, with factor 1 -- the macros' own scale,
+-- right for a plain, partial, caught, butchered, split or replaced item alike. With no calories on either side
+-- (water, salt, makeCoffee) the hunger ratio instBase/scriptHunger with share, and 1 when the script hunger is 0.
+function K.vector.instanceScale(vecKcal, cal, frac, instBase, scriptHunger, share)
+    if vecKcal ~= nil and vecKcal > 0 and cal ~= nil and cal > 0 then
+        return cal * frac / vecKcal, 1
     end
-    local vec = K.vector.new()
-    K.vector.add(vec, typeBaseline, scale)
-    return vec
+    local scale = 1
+    if scriptHunger ~= nil and scriptHunger ~= 0 and instBase ~= nil then
+        scale = instBase / scriptHunger
+    end
+    return scale, share
+end
+
+-- vec x scale as a new vector (vec untouched).
+function K.vector.scaled(vec, scale)
+    local out = K.vector.new()
+    K.vector.add(out, vec, scale)
+    return out
 end
 
 -- A crafted output: sum each consumed type's seed times its count times the share, over the

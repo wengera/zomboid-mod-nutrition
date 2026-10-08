@@ -239,7 +239,7 @@ end
 -- IN.readAfterAndLand with an item stub that answers only the after readings. A second bite (minute 70: g1's dish,
 -- g2's Bread, g4's Steak, g5's Sandwich, g6's tea) reads rawBefore (or thirstBefore) below the whole instance's
 -- instBase (or scriptThirst), so frac (the share of what was left) and share (the share of the whole) differ. g4's
--- Steak is butchered: instBase -0.36 against the script's -0.30 (K.vector.meat's scale 1.2), its live macros at that
+-- Steak is butchered: instBase -0.36 against the script's -0.30 (the hunger ratio 1.2), its live macros at that
 -- scale. The minute-130 item meal answers NaN for its carbohydrates: Intake's local num keeps it, the macros carry
 -- it and the landing guard rejects the vector (intake.failures).
 NR_T.meals = {

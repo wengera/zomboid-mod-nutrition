@@ -152,8 +152,6 @@ SEEDS = {
     "Base.MincedMeat": {"calories": 300.0, "carbs": 0.0, "lipids": 30.0, "proteins": 46.0,
                         "fibre": 0.0, "water": 160.0, "vitC": 0.0, "iron": 4.0, "phytate": 0.0},
 }
-STEAK = {"calories": 220.0, "carbs": 0.0, "lipids": 9.35, "proteins": 31.62,
-         "fibre": 0.0, "water": 74.0, "vitC": 0.0, "iron": 2.4, "phytate": 0.0}
 COLA = {"calories": 400.0, "carbs": 104.0, "lipids": 0.0, "proteins": 0.0,
         "fibre": 0.0, "water": 890.0, "vitC": 0.0, "iron": 0.0, "phytate": 0.0}
 
@@ -211,19 +209,30 @@ def test_dish_zero_scratch_total_is_not_scaled(host, lookup):
     assert sorted(host.py(note["missing"]).values()) == ["Base.Ghost1", "Base.Ghost2"]
 
 
-def test_meat_scales_baseline_by_raw_over_base_hunger(host):
-    steak = host.table(STEAK)
-    vec = host.K.vector.meat(steak, -0.44, -0.40)
-    v = host.py(vec)
-    assert abs(v["calories"] - 242.0) < 1e-6
-    assert abs(v["proteins"] - 34.782) < 1e-6
+def test_instance_scale_is_the_delivered_calories_over_the_vectors(host):
+    scale, factor = host.call("vector.instanceScale", 100.0, 1100.0, 1.0, -1.0, -0.15, 1.0)
+    assert scale == pytest.approx(11.0) and factor == 1
 
 
-def test_meat_zero_base_hunger_keeps_scale_one(host):
-    steak = host.table(STEAK)
-    vec = host.K.vector.meat(steak, -0.44, 0)
-    v = host.py(vec)
-    assert abs(v["calories"] - 220.0) < 1e-6
+def test_instance_scale_follows_a_partial_eat(host):
+    scale, factor = host.call("vector.instanceScale", 40.0, 60.0, 0.5, 0.0, 0.0, 0.5)
+    assert scale == pytest.approx(0.75) and factor == 1
+
+
+def test_instance_scale_falls_back_to_the_hunger_ratio_without_calories(host):
+    scale, factor = host.call("vector.instanceScale", 0.0, 500.0, 1.0, -0.3, -0.15, 0.4)
+    assert scale == pytest.approx(2.0) and factor == pytest.approx(0.4)
+    scale, factor = host.call("vector.instanceScale", 100.0, 0.0, 1.0, -0.3, -0.15, 0.4)
+    assert scale == pytest.approx(2.0) and factor == pytest.approx(0.4)
+    scale, factor = host.call("vector.instanceScale", 0.0, 0.0, 1.0, 0.0, 0.0, 0.7)
+    assert scale == 1 and factor == pytest.approx(0.7)
+
+
+def test_scaled_multiplies_every_key_into_a_new_vector(host):
+    v = host.call("vector.new")
+    v.calories, v.iron = 100, 2
+    s = host.call("vector.scaled", v, 3)
+    assert s.calories == 300 and s.iron == 6 and v.calories == 100
 
 
 def test_craft_sums_each_consumed_type_by_count_and_share(host, lookup):

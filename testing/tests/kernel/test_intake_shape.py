@@ -593,19 +593,20 @@ def test_fraction_thirst_only_unknown_script_thirst_falls_back(intake_host):
 
 def test_assemble_thirst_only_two_eats_land_the_baseline_once(intake_host):
     # half, then the rest: the whole-instance seed lands 1.0x in total (not 1.5x), the macros land
-    # the live (already shrunk) item both times at Eat's own fraction
+    # the live (already shrunk) item both times at Eat's own fraction. Plan 11 Task 6: the vector follows the
+    # calories Eat delivered, so the instance carries the table's 95 kcal
     h = intake_host
-    b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=2, carb=0, lip=0, pro=0,
+    b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=95, carb=0, lip=0, pro=0,
                 thirstBefore=-0.1, scriptThirst=-0.1)
     v1, s1, m1, share1, frac1, _t1 = I(h).assemble(b1, 0, lookup(h), -0.05)
-    b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=1, carb=0, lip=0, pro=0,
+    b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=47.5, carb=0, lip=0, pro=0,
                 thirstBefore=-0.05, scriptThirst=-0.1)
     v2, s2, m2, share2, frac2, _t2 = I(h).assemble(b2, 0, lookup(h), 0)
     assert abs(share1 - 0.5) < TOL and abs(frac1 - 0.5) < TOL
     assert abs(share2 - 0.5) < TOL and abs(frac2 - 1.0) < TOL
     assert abs(v1["fibre"] + v2["fibre"] - 4.4) < TOL
     assert abs(v1["water"] + v2["water"] - 156) < TOL
-    assert abs(v1["calories"] - 1) < TOL and abs(v2["calories"] - 1) < TOL
+    assert abs(v1["calories"] - 47.5) < TOL and abs(v2["calories"] - 47.5) < TOL
 
 
 # --- fix-2: the server path end to end through stand-in Java objects -------------------------------
@@ -1644,7 +1645,7 @@ def test_assemble_a_craft_input_declared_wins_over_its_table_entry(intake_host):
     h = intake_host
     b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
     b["craftMap"] = tbl(h, {"Base.MincedMeat": 1})
-    info = info_of(h, {"Base.MincedMeat": {"declared": "iron:7", "macros": {"calories": 100}}})
+    info = info_of(h, {"Base.MincedMeat": {"declared": "iron:7", "macros": {"calories": 200}}})
     vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h), info)
     assert abs(vec["iron"] - 7) < TOL
     assert trace_list(trace, "declared") == ["Base.MincedMeat"]
