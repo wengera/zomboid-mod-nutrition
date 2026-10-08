@@ -1,0 +1,449 @@
+{
+ "meta": {
+  "classes": {
+   "conserves": 13,
+   "creates": 1,
+   "destroys": 7,
+   "inherits": 8
+  },
+  "create": 1.1,
+  "destroy": 0.9,
+  "skipped": {
+   "drainable": 2,
+   "fluid-sourced": 1,
+   "multi-type": 231,
+   "no-nutrition": 54,
+   "no-outputs": 37,
+   "not-in-dataset": 296,
+   "tags-only": 285,
+   "variable-amount": 33,
+   "wildcard": 1
+  },
+  "splits": {
+   "conserves": 8,
+   "creates": 0,
+   "destroys": 2,
+   "inherits": 6
+  },
+  "tool": "tools/recipe_conservation.py"
+ },
+ "recipes": [
+  {
+   "class": "destroys",
+   "java": "RecipeCodeOnCreate.cutChicken",
+   "kcal_in": 1494.895,
+   "kcal_out": 1296.488,
+   "macro_ratios": {
+    "calories": 0.867277,
+    "lipids": 0.500546,
+    "proteins": 1.48777
+   },
+   "notes": [],
+   "ratio": 0.867277,
+   "recipe": "CutChicken",
+   "split": true
+  },
+  {
+   "class": "destroys",
+   "java": "RecipeCodeOnCreate.cutChicken",
+   "kcal_in": 1821.024,
+   "kcal_out": 1207.347,
+   "macro_ratios": {
+    "calories": 0.663005,
+    "lipids": 0.860212,
+    "proteins": 0.56002
+   },
+   "notes": [],
+   "ratio": 0.663005,
+   "recipe": "CutTurkey",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 40.086,
+   "kcal_out": 39.3,
+   "macro_ratios": {
+    "calories": 0.980392,
+    "lipids": 0.980392,
+    "proteins": 0.980392
+   },
+   "notes": [],
+   "ratio": 0.980392,
+   "recipe": "GetBaconBits",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 159.951,
+   "kcal_out": 160.344,
+   "macro_ratios": {
+    "calories": 1.002457,
+    "lipids": 1.002457,
+    "proteins": 1.002457
+   },
+   "notes": [],
+   "ratio": 1.002457,
+   "recipe": "GetBaconRashers",
+   "split": true
+  },
+  {
+   "class": "destroys",
+   "java": null,
+   "kcal_in": 496.4,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [],
+   "ratio": 0.0,
+   "recipe": "GrindCornflour",
+   "split": false
+  },
+  {
+   "class": "destroys",
+   "java": null,
+   "kcal_in": 496.4,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [],
+   "ratio": 0.0,
+   "recipe": "GrindCornmeal",
+   "split": false
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "HalveFillet",
+   "split": true
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "HarvestRoe",
+   "split": false
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "MakeHalloweenPumpkin",
+   "split": false
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 327.686,
+   "kcal_out": 327.75,
+   "macro_ratios": {
+    "calories": 1.000195,
+    "carbohydrates": 1.041246,
+    "lipids": 0.992698,
+    "proteins": 0.97449
+   },
+   "notes": [],
+   "ratio": 1.000195,
+   "recipe": "MakeHotDog",
+   "split": false
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 299.925,
+   "kcal_out": 299.925,
+   "macro_ratios": {
+    "calories": 1.0,
+    "lipids": 1.0,
+    "proteins": 1.0
+   },
+   "notes": [],
+   "ratio": 1.0,
+   "recipe": "MakeMeatPatty",
+   "split": false
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 204.976,
+   "kcal_out": 209.944,
+   "macro_ratios": {
+    "calories": 1.024237,
+    "carbohydrates": 1.024237,
+    "lipids": 1.024237,
+    "proteins": 1.024237
+   },
+   "notes": [],
+   "ratio": 1.024237,
+   "recipe": "MakeSquidCalamari",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 177.422,
+   "kcal_out": 176.9,
+   "macro_ratios": {
+    "calories": 0.997058,
+    "carbohydrates": 1.008551,
+    "lipids": 1.09855,
+    "proteins": 0.930043
+   },
+   "notes": [],
+   "ratio": 0.997058,
+   "recipe": "MakeToast",
+   "split": false
+  },
+  {
+   "class": "creates",
+   "java": null,
+   "kcal_in": 29.106,
+   "kcal_out": 119.97,
+   "macro_ratios": {
+    "calories": 4.121831,
+    "carbohydrates": 3.921996,
+    "lipids": 5.279199,
+    "proteins": 2.859436
+   },
+   "notes": [],
+   "ratio": 4.121831,
+   "recipe": "MakeTortillaChips",
+   "split": false
+  },
+  {
+   "class": "destroys",
+   "java": null,
+   "kcal_in": 496.4,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [],
+   "ratio": 0.0,
+   "recipe": "MillCornflour",
+   "split": false
+  },
+  {
+   "class": "destroys",
+   "java": null,
+   "kcal_in": 496.4,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [],
+   "ratio": 0.0,
+   "recipe": "MillCornmeal",
+   "split": false
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 2130.432,
+   "kcal_out": 2120.012,
+   "macro_ratios": {
+    "calories": 0.995109,
+    "carbohydrates": 1.098239,
+    "lipids": 1.01034,
+    "proteins": 0.783243
+   },
+   "notes": [],
+   "ratio": 0.995109,
+   "recipe": "MillSunflowerSeeds",
+   "split": false
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 499.986,
+   "kcal_out": 502.35,
+   "macro_ratios": {
+    "calories": 1.004728,
+    "carbohydrates": 1.004728,
+    "lipids": 1.004728
+   },
+   "notes": [
+    "no-hunger-scale: Base.CandyPackage writes no usable HungerChange, so Food.getMaxUses (@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
+   ],
+   "ratio": 1.004728,
+   "recipe": "OpenCandyPackage",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 576.16,
+   "kcal_out": 603.2,
+   "macro_ratios": {
+    "calories": 1.046931,
+    "carbohydrates": 0.830677,
+    "lipids": 1.065343,
+    "proteins": 1.055556
+   },
+   "notes": [
+    "no-hunger-scale: Base.HotdogPack writes no usable HungerChange, so Food.getMaxUses (@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
+   ],
+   "ratio": 1.046931,
+   "recipe": "OpenHotdogPack",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "no-hunger-scale: Base.CigaretteSingle writes no usable HungerChange, so Food.getMaxUses (@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
+   ],
+   "ratio": null,
+   "recipe": "PackCigarettes",
+   "split": false
+  },
+  {
+   "class": "destroys",
+   "java": null,
+   "kcal_in": 548.118,
+   "kcal_out": 469.9,
+   "macro_ratios": {
+    "calories": 0.857297,
+    "carbohydrates": 0.838389,
+    "lipids": 0.908241,
+    "proteins": 0.596155
+   },
+   "notes": [],
+   "ratio": 0.857297,
+   "recipe": "ScoopIceCream",
+   "split": false
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "SliceBaloney",
+   "split": true
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "SliceHam",
+   "split": true
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "SlicePumpkin",
+   "split": true
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "SliceSalami",
+   "split": true
+  },
+  {
+   "class": "inherits",
+   "java": null,
+   "kcal_in": 0.0,
+   "kcal_out": 0.0,
+   "macro_ratios": {},
+   "notes": [
+    "split: an input carries InheritFood, so each output is overwritten with 1/outputCount of the consumed instance's own macros (createOutputItems @1096-@1143 L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the outputs cancel and the delta is 0 by construction"
+   ],
+   "ratio": null,
+   "recipe": "SliceWatermelon",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 403.988,
+   "kcal_out": 400.01,
+   "macro_ratios": {
+    "calories": 0.990153,
+    "carbohydrates": 0.990153,
+    "lipids": 0.990153,
+    "proteins": 0.990153
+   },
+   "notes": [],
+   "ratio": 0.990153,
+   "recipe": "SmashPumpkin",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": null,
+   "kcal_in": 1355.46,
+   "kcal_out": 1353.75,
+   "macro_ratios": {
+    "calories": 0.998738,
+    "carbohydrates": 0.998738,
+    "lipids": 0.998738,
+    "proteins": 0.998738
+   },
+   "notes": [],
+   "ratio": 0.998738,
+   "recipe": "SmashWatermelon",
+   "split": true
+  },
+  {
+   "class": "conserves",
+   "java": "RecipeCodeOnCreate.openMacAndCheese",
+   "kcal_in": 690.159,
+   "kcal_out": 690.111,
+   "macro_ratios": {
+    "calories": 0.99993,
+    "carbohydrates": 1.023497,
+    "lipids": 0.879932,
+    "proteins": 0.870272
+   },
+   "notes": [
+    "no-hunger-scale: Base.Macandcheese writes no usable HungerChange, so Food.getMaxUses (@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
+   ],
+   "ratio": 0.99993,
+   "recipe": "open_mac_and_cheese",
+   "split": true
+  }
+ ]
+}

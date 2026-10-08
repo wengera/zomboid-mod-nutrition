@@ -2434,19 +2434,19 @@ module Base
     item Hotdog
     {
         DisplayCategory = Food,
-        Calories = 150.80,
-        Carbohydrates = 2.17,
-        Proteins = 5.34,
-        Lipids = 13.40,
+        Calories = 327.75,
+        Carbohydrates = 35.34,
+        Proteins = 11.24,
+        Lipids = 15.76,
     }
 
     item HotdogPack
     {
         DisplayCategory = Food,
-        Calories = 270.07,
-        Carbohydrates = 4.89,
-        Proteins = 9.48,
-        Lipids = 23.58,
+        Calories = 576.16,
+        Carbohydrates = 10.44,
+        Proteins = 20.22,
+        Lipids = 50.29,
     }
 
     item Hotdog_single
@@ -2794,10 +2794,10 @@ module Base
     item MeatPatty
     {
         DisplayCategory = Food,
-        Calories = 242.95,
+        Calories = 299.93,
         Carbohydrates = 0.00,
-        Proteins = 21.01,
-        Lipids = 16.95,
+        Proteins = 25.93,
+        Lipids = 20.93,
     }
 
     item MeatSteamBun
