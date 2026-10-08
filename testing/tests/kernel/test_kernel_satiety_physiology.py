@@ -35,14 +35,14 @@ def test_each_constant_names_its_row_or_its_label():
         src = fh.read()
     for name in NAMES:
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert re.search(r"S\d{4}|S1\.\d+|game choice|neutral|CharacterStat", line), name
+        assert re.search(r"S\d{4}|game choice|neutral|CharacterStat", line), name
     for name in ("W_PROTEIN", "HALF_LIFE_H", "P50"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert "game choice" in line and "open" in line, name           # an open row is never cited as evidence
         assert "fitted in Task 4" in line, name                          # a provisional fit (the amendments)
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "S1273" in line, name                                     # Scheer 2013, provisional until minted
+        assert "S1273" in line, name                                     # Scheer 2013, minted as S1273
     with open(os.path.join(SHARED, "NR_Kernel_Hybrid.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
     line = re.search(r"^K\.hybrid\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)
@@ -147,6 +147,12 @@ def test_circadian_is_periodic_across_midnight(host):
 def test_hunger_target_reads_the_named_deficit_floor(host):
     # follow-up pin: hungerTarget's value is unchanged by naming its coefficient
     assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.15 * 0.5)
+    # the coefficient is read from the constant, not a literal: patch it and the value follows
+    host.K.hybrid.DEFICIT_FLOOR = 0.3
+    try:
+        assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.3 * 0.5)
+    finally:
+        host.K.hybrid.DEFICIT_FLOOR = 0.15
     assert host.call("hybrid.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 0.15 * 0.5)
 
 

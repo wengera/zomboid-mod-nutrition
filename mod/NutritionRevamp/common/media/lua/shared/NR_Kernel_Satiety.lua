@@ -98,7 +98,7 @@ K.satiety.DISCOMFORT_MAX = 100 -- not science: the DISCOMFORT stat's range, 0-10
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
 K.satiety.ATWATER_F = 9 -- S1209 (fat 9.0 kcal/g)
-K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1273): the cosine's amplitude, half of Scheer 2013's 17 % peak-to-trough of hunger; the halving is the plan's own arithmetic
+K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1273): the cosine's amplitude, half of Scheer 2013's 17 % peak-to-trough of hunger; the halving is the plan's own arithmetic; the multiplicative form and the game-clock phase are game choices (ruling 11c-24a; Scheer's model is additive)
 K.satiety.CIRCADIAN_PEAK_H = 19.8333 -- S1273 (ruling 11c-24): Scheer 2013's circadian hunger peak at 19:50 (trough 07:50), in game hours of the day
 
 -- The fullness F: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8); the writer
@@ -168,7 +168,7 @@ function K.satiety.discomfort(mass, capMax, capHard)
 end
 
 -- The circadian factor on hunger at hourOfDay (0-24, the game clock; ruling 11c-24): 1 + CIRCADIAN_A x
--- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50. The writer applies
+-- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices, ruling 11c-24a; Scheer's model is additive). The writer applies
 -- min(0.69, hungerTarget(Z, es) x circadian(h)), awake and asleep.
 function K.satiety.circadian(hourOfDay)
     return 1 + K.satiety.CIRCADIAN_A * math.cos(6.283185307179586 * (hourOfDay - K.satiety.CIRCADIAN_PEAK_H) / 24)
