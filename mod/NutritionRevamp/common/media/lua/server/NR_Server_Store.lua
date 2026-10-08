@@ -25,7 +25,7 @@
 -- believes holds the newest copy back and compares it as a string, with no decode. A mismatch means that write was
 -- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
 -- store.file.stats.repaired and logged once per player. The cost is one file read per save (a player's slot at most
--- once a real minute) and per index write.
+-- once a real minute, and after an eat or a drink) and per index write.
 -- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
 -- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
 -- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
@@ -50,12 +50,21 @@
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
 -- (K.store.savePhase), so the players seen at a boot do not all save in one drain; a departure's flush, the index
 -- write and the hourly prune are one-shot tasks. The index is debounced (Task 11 fix 1): a departure flush writes
--- only the player's slot and a first save of a username the index lacks marks the index dirty, and the one task
--- "store.index" writes it at most once every S.INDEX_GAP_MS while dirty; the hourly prune writes it too. A task
+-- only the player's slot and marks the index dirty, and the one task "store.index" writes it at most once every
+-- S.INDEX_GAP_MS while dirty; the hourly prune writes it too. A task
 -- name carries a "." ("store.flush.<hex>", "store.index", "store.prune"), which no username can:
 -- ServerWorldDatabase.isValidUserName refuses a name holding "." (42.21 @75-@81 L776) and authClient refuses an
 -- invalid name (@61-@84 L1041-L1044), and a task named like an online user would be merged into that user's queue
 -- entry and never run.
+--
+-- The stop window (ruling T20-1): a dedicated server fires no Lua event around a world save or a stop, so nothing
+-- flushes the store there; the window a clean stop can lose is narrowed instead. A landed eat or drink (IN.land
+-- calls S.mark) marks the player's slot dirty, and the store step writes a dirty slot at the player's next queue
+-- slot whatever S.SAVE_GAP_MS says, for that one save (the read-before-truncate and the deferral still apply; the
+-- mark is consumed by the attempt, so a deferral keeps its own pace). A username new to the index is written
+-- promptly: its first save queues the store.index task into the live queue, so it runs at the next tick, not
+-- S.INDEX_GAP_MS later. A clean stop then loses at most the last S.SAVE_GAP_MS of digestion drift; a hard kill
+-- loses what ruling 8 says.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}, loadedFor = nil, wired = false,
@@ -64,7 +73,8 @@ NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferN = {} } }
+                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferN = {},
+                             dirty = {} } }
 local S = NR.server.store
 local F = S.file
 
@@ -82,6 +92,22 @@ end
 local function other(which)
     if which == "a" then return "b" end
     return "a"
+end
+
+-- The index write run at the next tick (ruling T20-1): the store.index task, its name also appended to the live
+-- queue (P.task alone would wait for the next minute's merge; K.sched.merge never doubles a name), or inline when
+-- the queue is absent.
+local function indexSoon(fn)
+    local P = NR.server.players
+    if P == nil or P.task == nil or type(P.queue) ~= "table" then
+        fn()
+        return
+    end
+    P.task("store.index", fn)
+    for i = P.queueHead or 1, #P.queue do
+        if P.queue[i] == "store.index" then return end
+    end
+    P.queue[#P.queue + 1] = "store.index"
 end
 
 -- The in-memory records: never ModData.getOrCreate (that would recreate the requestable table).
@@ -295,8 +321,12 @@ function F.save(username, record)
     local now = nowMs()
     if now ~= nil then
         F.lastWrite[username] = now
-        if F.index[username] == nil then F.indexDirty = true end   -- a first-time player reaches the index file
+        local new = F.index[username] == nil
         F.index[username] = K.store.seconds(now)
+        if new then                                        -- a first-time player reaches the index file promptly
+            F.indexDirty = true
+            indexSoon(S.indexNow)
+        end
     end
     return true
 end
@@ -359,6 +389,7 @@ end
 -- for the debounced store.index task (ten departures in a minute write it once, not ten times).
 local function flush(username)
     local r = S.records and S.records[username]
+    F.dirty[username] = nil                                -- the flush is the dirty slot's save
     if r ~= nil then F.save(username, r) end
     F.indexDirty = true -- the departure's stamp reaches the file at the next store.index task
 end
@@ -395,8 +426,17 @@ function S.reset(username, worldAgeHours)
     return r
 end
 
--- The pipeline's store step: the player's slot written when a real minute has passed since its last write; the
--- first write after a boot falls at the player's phase over that minute (K.store.firstLast).
+-- A landed eat or drink (IN.land): the player's slot is written at its next store step, past the save gap. A
+-- skipped name is never marked.
+function S.mark(username)
+    if username == nil then return end
+    if S.skip ~= nil and S.skip(username) == true then return end
+    F.dirty[username] = true
+end
+
+-- The pipeline's store step: the player's slot written when a real minute has passed since its last write, or at
+-- once when an eat or a drink marked it dirty; the first write after a boot falls at the player's phase over that
+-- minute (K.store.firstLast).
 function S.step(username, player, record, ctx)
     -- The skip seam (Plan 11 Task 19, ruling 15): S.skip is nil in production; only the test harness sets it, to a
     -- function of a username answering true for its ghost names, whose store step then does nothing at all (no
@@ -405,7 +445,9 @@ function S.step(username, player, record, ctx)
     local now = nowMs()
     if now == nil or record == nil then return end
     if F.lastWrite[username] == nil then F.lastWrite[username] = K.store.firstLast(username, now, S.SAVE_GAP_MS) end
-    if not K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then return end
+    local dirty = F.dirty[username] == true
+    if not dirty and not K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then return end
+    F.dirty[username] = nil                                -- consumed by the attempt: a deferral keeps its own pace
     F.save(username, record)
 end
 
@@ -427,6 +469,7 @@ function S.prune(now, keepDays)
         F.at[u] = nil
         F.last[u] = nil
         F.lastWrite[u] = nil
+        F.dirty[u] = nil
         if S.records ~= nil then S.records[u] = nil end
         if S.loaded ~= nil then S.loaded[u] = nil end
     end
@@ -485,9 +528,10 @@ local function pruneNow()
 end
 
 -- The debounced index write: a clean index (the prune wrote it since) is left alone.
-local function indexNow()
+function S.indexNow()
     if F.indexDirty then F.writeIndex() end
 end
+local indexNow = S.indexNow
 
 -- A one-shot task on the players' queue, or inline when the queue is absent.
 local function queue(name, fn)

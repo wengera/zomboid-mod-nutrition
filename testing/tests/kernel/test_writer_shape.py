@@ -646,3 +646,18 @@ def test_a_dry_seam_set_to_anything_but_true_leaves_the_writer_live():
     h.NR.server.writer.dry = 1                             # only true dries the writer
     step(h, p, rec, 1)
     assert p.st.sets.HUNGER == pytest.approx(0.4) and h.NR.server.writer.stats.writes == 1
+
+
+# --- Task 20 fix: the well-fed rate from the saved table (review A's F4) ---------------------------------------
+
+def test_the_well_fed_rate_is_the_one_saved_at_boot_not_the_default():
+    h = Host(extra_env="NR_T = NR_T or {}\nNR_T.mode = 1\n" + ENV + "\nZomboidGlobals.HungerIncreaseWhenWellFed = 3.0e-6\n")
+    h.fire("OnGameBoot")
+    assert h.NR.server.writer.rates.wellFed == 3.0e-6 and h.G.ZomboidGlobals.HungerIncreaseWhenWellFed == 0
+    p = player(h)
+    moodle(h, p, 1)                                        # the FOOD_EATEN moodle up: the well-fed rate applies
+    rec = record(h, satiety=0.7)
+    step(h, p, rec, 1)
+    step(h, p, rec, 31)
+    assert rec.satiety == pytest.approx(0.7 * math.exp(-3.0e-6 * 1800))
+

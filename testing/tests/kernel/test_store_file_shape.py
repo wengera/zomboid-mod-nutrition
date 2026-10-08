@@ -815,3 +815,140 @@ def test_a_skipped_name_over_indexed_unreadable_files_counts_no_deferral():
 def test_the_skip_seam_is_nil_by_default():
     h = boot()
     assert h.NR.server.store.skip is None
+
+
+# --- Task 20 fix (ruling T20-1): an eat or drink saves the slot within a game minute; a new name reaches the index -
+# A dedicated server fires no Lua event around a world save or a stop, so the window a clean stop can lose is
+# narrowed instead: a landed intake marks the slot dirty and the store step writes it at the next queue slot.
+
+HEXG = "p_00670068006f007300740031_"                                           # hexName("ghost1")
+
+
+def land(h, name):
+    """An eat or a drink landing through the intake (IN.land), as every route does."""
+    h.NR.server.intake.land(h.record(name), name, h.K.vector.new())
+
+
+def game_minute(h, m, dt_ms):
+    """One game minute dt_ms real milliseconds after the last: the minute event, then the queue's ticks."""
+    h.T.age = 100.0 + m / 60
+    h.T.now = h.T.now + dt_ms
+    h.minute(); h.tick(25)
+
+
+def test_an_eat_five_seconds_after_a_save_is_written_at_the_next_queue_slot():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)                                                 # a due save: the slot written now
+    F = h.NR.server.store.file
+    g = F.gen["admin"]
+    n = len(h.T.opened)
+    h.T.now = h.T.now + 5000
+    land(h, "admin")                                                            # an eat 5 s after the save
+    game_minute(h, 11, 0)                                                       # the player's next queue slot
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # not 55 s later
+    assert F.gen["admin"] == g + 1 and F.dirty["admin"] is None
+    n = len(h.T.opened)
+    for m in range(12, 16):                                                     # no eat: the gap holds again
+        game_minute(h, m, 5000)
+    assert opened_with(h, ROOT + ADMIN, n) == []
+
+
+def test_two_eats_in_one_game_minute_give_one_extra_write():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    n = len(h.T.opened)
+    land(h, "admin")
+    land(h, "admin")                                                            # a second eat (or a drink sip)
+    game_minute(h, 11, 2500)
+    game_minute(h, 12, 2500)
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1
+
+
+def test_a_landed_intake_on_a_skipped_name_writes_nothing():
+    h = boot()
+    S = h.NR.server.store
+    S.skip = h.rt.eval(GHOST_SKIP)
+    h.online(h.player("ghost1"))
+    run_minutes(h, 3)                                                           # the record and its stomach built
+    land(h, "ghost1")
+    for m in range(4, 8):
+        game_minute(h, m, 5000)
+    assert opened_with(h, ROOT + HEXG) == []
+    assert S.file.dirty["ghost1"] is None and S.file.index["ghost1"] is None
+
+
+def test_a_new_players_first_save_is_followed_by_an_index_write_at_the_next_tick():
+    h = boot()
+    n0 = len(h.T.opened)                                                        # after the boot prune's index write
+    h.online(h.player("admin"))
+    t, slot_at, index_at = 0, None, None
+    for m in range(1, 5):
+        h.T.age = 100.0 + m / 60
+        h.T.now = h.T.now + 61000
+        h.minute()
+        for _ in range(25):
+            h.tick()
+            t += 1
+            if slot_at is None and opened_with(h, ROOT + ADMIN, n0):
+                slot_at = t
+            if index_at is None and opened_with(h, ROOT + "index_", n0):
+                index_at = t
+    assert slot_at is not None and index_at is not None
+    assert 0 <= index_at - slot_at <= 1                                         # not 5 real minutes later
+    assert '"admin":' in index_text(h)
+
+
+def test_a_known_players_saves_queue_no_index_write():
+    h = boot()
+    h.online(h.player("admin"))
+    run_minutes(h, 3)                                                           # first save, then its prompt index
+    n = len(h.T.opened)
+    land(h, "admin")
+    run_minutes(h, 3, start=4)                                                  # an eat and two due saves
+    assert opened_with(h, ROOT + ADMIN, n)
+    assert opened_with(h, ROOT + "index_", n) == []
+
+
+def test_a_recovery_after_three_deferrals_clears_the_count_so_a_later_failure_starts_at_one():
+    files = {ROOT + ADMIN + "a.json": slot_doc(6, 6), ROOT + "index_a.json": index_doc(1, {"admin": 990})}
+    h = boot(files=files)
+    h.T.readerNil = 8                                                           # first sight, then three saves' preloads
+    h.online(h.player("admin"))
+    st = h.NR.server.store
+    m = 1
+    while st.file.stats.deferred < 3 and m < 12:
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert st.file.deferN["admin"] == 3
+    h.T.readerNil = 0
+    while st.file.stats.recovered == 0 and m < 20:
+        run_minutes(h, 1, start=m)
+        m += 1
+    assert st.file.stats.recovered == 1
+    assert st.file.deferN["admin"] is None                                      # cleared at the recovery itself
+    st.file.gen["admin"] = None                                                 # a later failed first read: the
+    st.fresh["admin"] = True                                                    # state a fresh S.get leaves
+    h.T.readerNil = 2
+    assert not st.file.save("admin", h.record("admin"))
+    assert st.file.deferN["admin"] == 1                                         # counted from 1, not 4
+
+
+def test_a_departure_flush_after_an_eat_consumes_the_mark():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    n = len(h.T.opened)
+    land(h, "admin")
+    h.online()                                                                  # departs before its next slot
+    game_minute(h, 11, 1000)                                                    # the flush is queued
+    game_minute(h, 12, 1000)                                                    # and runs: the eat is on file
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1
+    h.online(h.player("admin"))                                                 # back within the save gap
+    for m in range(13, 16):
+        game_minute(h, m, 1000)
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # no second write for that eat

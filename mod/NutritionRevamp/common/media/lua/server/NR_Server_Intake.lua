@@ -194,6 +194,7 @@ end
 -- and named, and the landing goes on.
 function IN.land(record, username, vec)
     IN.landed[username] = true                     -- the writer's sip fold skips this minute (Plan 11 ruling 7)
+    if NR.server.store ~= nil and NR.server.store.mark ~= nil then NR.server.store.mark(username) end -- saved at the next store step (ruling T20-1)
     IN.addIngested(username, vec)
     local ok, flagged = pcall(IN.acuteAtEat, record, vec)
     if ok then
