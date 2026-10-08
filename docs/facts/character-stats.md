@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 - On a multiplayer client the player's stat update returns before calling the character's, so the fatigue reset, the hook and the seven updaters run only on the server for players [#2236/C/C-only].
 - Each side recomputes its own moodles from its own copy of the stats [#0563].
 - Intoxication decays on the body-damage tick, by its reduction value times the game-time multiplier on every server update, ahead of the `CalculateStats` hook and outside any Lua hook, so a handler's intoxication write is the later one in the update [#2918/C/C-only] [#2921/C/C-only].
-- DISCOMFORT is relaxed toward vanilla's own target on the server alone, with a half-life of about 2.9 real seconds, and reaches the client on the once-a-second player-stats packet, so a once-a-minute server floor does not hold there [T11705.8] [T11705.11] [T11705.5] [T11705.12].
+- DISCOMFORT is relaxed toward vanilla's own target on the server alone, awake, at time speed 1, with a half-life of about 2.9 real seconds, and reaches the client on the once-a-second player-stats packet, so a once-a-minute server floor does not hold there [T11705.8] [T11705.11] [T11705.5] [T11705.12].
 
 ## How it works
 

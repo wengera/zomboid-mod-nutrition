@@ -207,7 +207,7 @@ When a `SandboxVars` table existed before that read, the read puts it back after
 The same boot then rewrites the file from the declared options alone, so the key leaves the file at the first boot that runs without its declaration [T11705.14].
 The world's `map_sand.bin` is read at world init on every side but a multiplayer client, and each name in it that no option declares logs `ERROR unknown SandboxOption "<name>"` and is skipped while the rest load [T11705.15].
 The server's `<serverName>.ini` holds no sandbox option: its reader looks each name up among the server options alone and skips a miss silently, and the sandbox reader of `<serverName>_sandbox.ini` has no caller in the jar or the install's Lua [T11705.16].
-Removing a declared option is therefore safe on every path a dedicated server reads: the stale key costs at most a log line, never an error [T11705.13] [T11705.15] [T11705.16].
+Removing a declared option is therefore safe on every path a dedicated server reads: the stale key costs at most a log line, never a failure [T11705.13] [T11705.15] [T11705.16].
 
 ## Walls and bounds
 <a id="walls"></a>
