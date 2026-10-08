@@ -387,13 +387,13 @@ def test_a_v1_record_migrates_at_first_sight_in_place_with_one_log_line(h):
     p = h.player()
     rec = h.first_sight(p)
     assert h.G.rawequal(rec, raw)                                     # the same table: no handle goes stale
-    assert rec["v"] == h.K.store.VERSION == 2
+    assert rec["v"] == h.K.store.VERSION == 3
     assert rec["junk"] is None and rec["resets"] == 1
     assert abs(rec["nutrients"]["vitC"]["p"] - 0.05) < TOL
     assert rec["reconcile"]["count"] == 2
     assert rec["reconcile"]["baseline"]["calories"] == 1000.0   # re-seeded at the first sight
     lines = [s for s in h.printed() if "store: migrated" in s]
-    assert lines == ["[NutritionRevamp] store: migrated admin v1 -> v2"]
+    assert lines == ["[NutritionRevamp] store: migrated admin v1 -> v3"]
     h.NR.server.store.get("admin", 10.0)
     assert len([s for s in h.printed() if "store: migrated" in s]) == 1
 
@@ -427,13 +427,13 @@ def test_the_fast_handle_reads_the_loaded_record(h):
     h.NR.server.fast.h["admin"] = hd
     h.first_sight(p)
     assert h.G.rawequal(h.NR.server.fast.h["admin"], hd) and h.G.rawequal(hd.record, raw)
-    assert hd.record["v"] == 2 and hd.record["stomachFill"] == 0
+    assert hd.record["v"] == 3 and hd.record["stomachFill"] == 0
 
 
 def test_a_new_record_is_made_by_the_kernel_at_the_current_version(h):
     p = h.player(name="carol")
     rec = h.first_sight(p, "carol")
-    assert rec["v"] == 2 and rec["username"] == "carol" and rec["resets"] == 0
+    assert rec["v"] == 3 and rec["username"] == "carol" and rec["resets"] == 0
 
 
 def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):

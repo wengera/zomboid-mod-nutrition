@@ -14,9 +14,12 @@ local NR = NutritionRevamp
 -- The Plan 7 option (ruling 3): visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers (default 2, T13-1), the level of
 -- detail every player's interface shows; the client reads its own SandboxVars copy (Task 5) and this server read is
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
+-- The Plan 11 option (Decision 3, ruling 8): recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
+-- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
-                      excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2 }
+                      excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
+                      recordKeepDays = 30 }
 local O = NR.server.options
 
 local MODE_NAMES = { "takeover", "overlay" }
@@ -52,6 +55,7 @@ function NR.server.readOptions(where)
     O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
+    O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed

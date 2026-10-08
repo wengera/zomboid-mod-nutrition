@@ -1404,6 +1404,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -1442,7 +1443,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -2144,6 +2145,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -2182,7 +2184,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -2886,6 +2888,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -2924,7 +2927,7 @@
      },
      "stomachFill": 1,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -3626,6 +3629,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -3664,7 +3668,7 @@
      },
      "stomachFill": 0.94425933353390967,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -4366,6 +4370,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -4404,7 +4409,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -5108,6 +5113,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -5146,7 +5152,7 @@
      },
      "stomachFill": 0.9791864111962405,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -6689,6 +6695,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -6727,7 +6734,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -7429,6 +7436,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -7467,7 +7475,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -8171,6 +8179,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -8209,7 +8218,7 @@
      },
      "stomachFill": 1,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -8911,6 +8920,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -8949,7 +8959,7 @@
      },
      "stomachFill": 0.79712276862872433,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -9651,6 +9661,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -9689,7 +9700,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -10390,6 +10401,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -10428,7 +10440,7 @@
      },
      "stomachFill": 1,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -11974,6 +11986,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -12012,7 +12025,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -12715,6 +12728,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -12753,7 +12767,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -13458,6 +13472,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -13496,7 +13511,7 @@
      },
      "stomachFill": 1,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -14199,6 +14214,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -14237,7 +14253,7 @@
      },
      "stomachFill": 0.7705926843671802,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -14940,6 +14956,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -14978,7 +14995,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -15683,6 +15700,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -15721,7 +15739,7 @@
      },
      "stomachFill": 1,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -17267,6 +17285,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -17305,7 +17324,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -18008,6 +18027,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -18046,7 +18066,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -18739,6 +18759,7 @@
       "count": 0
      },
      "resets": 1,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -18777,7 +18798,7 @@
      },
      "stomachFill": 0.89605964191195298,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -19480,6 +19501,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -19518,7 +19540,7 @@
      },
      "stomachFill": 0.65227120242166281,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -20221,6 +20243,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -20259,7 +20282,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -20964,6 +20987,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -21002,7 +21026,7 @@
      },
      "stomachFill": 1,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -22547,6 +22571,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -22585,7 +22610,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -23288,6 +23313,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -23326,7 +23352,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -24019,6 +24045,7 @@
       "count": 0
      },
      "resets": 1,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -24057,7 +24084,7 @@
      },
      "stomachFill": 0.75349334073728769,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -24760,6 +24787,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -24798,7 +24826,7 @@
      },
      "stomachFill": 1,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -25503,6 +25531,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -25541,7 +25570,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -26246,6 +26275,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -26284,7 +26314,7 @@
      },
      "stomachFill": 1,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -27829,6 +27859,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -27867,7 +27898,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -28570,6 +28601,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -28608,7 +28640,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -29301,6 +29333,7 @@
       "count": 0
      },
      "resets": 1,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -29339,7 +29372,7 @@
      },
      "stomachFill": 0.63360984914353013,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -30033,6 +30066,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -30071,7 +30105,7 @@
      },
      "stomachFill": 0.87600995641663393,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -30776,6 +30810,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -30814,7 +30849,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -31519,6 +31554,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -31557,7 +31593,7 @@
      },
      "stomachFill": 0.91989284676424588,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -33102,6 +33138,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -33140,7 +33177,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -33843,6 +33880,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -33881,7 +33919,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -34574,6 +34612,7 @@
       "count": 0
      },
      "resets": 1,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -34612,7 +34651,7 @@
      },
      "stomachFill": 0.53280025081424109,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -35306,6 +35345,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -35344,7 +35384,7 @@
      },
      "stomachFill": 0.76128824945435125,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -36049,6 +36089,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -36087,7 +36128,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -36792,6 +36833,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -36830,7 +36872,7 @@
      },
      "stomachFill": 0.7879807246635836,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {
@@ -38375,6 +38417,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -38413,7 +38456,7 @@
      },
      "stomachFill": 1,
      "username": "g1",
-     "v": 2
+     "v": 3
     },
     "g2": {
      "acute": {
@@ -39116,6 +39159,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -39154,7 +39198,7 @@
      },
      "stomachFill": 1,
      "username": "g2",
-     "v": 2
+     "v": 3
     },
     "g3": {
      "acute": {
@@ -39847,6 +39891,7 @@
       "count": 0
      },
      "resets": 1,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -39885,7 +39930,7 @@
      },
      "stomachFill": 0.44802982095597493,
      "username": "g3",
-     "v": 2
+     "v": 3
     },
     "g4": {
      "acute": {
@@ -40579,6 +40624,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -40617,7 +40663,7 @@
      },
      "stomachFill": 0.6591978201484987,
      "username": "g4",
-     "v": 2
+     "v": 3
     },
     "g5": {
      "acute": {
@@ -41322,6 +41368,7 @@
       "count": 0
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -41360,7 +41407,7 @@
      },
      "stomachFill": 1,
      "username": "g5",
-     "v": 2
+     "v": 3
     },
     "g6": {
      "acute": {
@@ -42065,6 +42112,7 @@
       "count": 1
      },
      "resets": 0,
+     "satiety": 1,
      "stomach": {
       "buffer": {
        "caffeine": 0,
@@ -42103,7 +42151,7 @@
      },
      "stomachFill": 0.67335086708528791,
      "username": "g6",
-     "v": 2
+     "v": 3
     }
    },
    "sent": {

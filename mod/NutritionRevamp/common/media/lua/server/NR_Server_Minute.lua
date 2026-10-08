@@ -15,7 +15,7 @@
 -- engine.
 local NR = NutritionRevamp
 NR.server.minute = {
-    ORDER = { "bus", "fast", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight" },
+    ORDER = { "bus", "fast", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "store" },
     steps = {},
     ctx = {},
     stats = { runs = 0, failures = 0 },

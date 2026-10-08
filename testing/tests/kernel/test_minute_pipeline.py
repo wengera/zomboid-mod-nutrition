@@ -11,7 +11,7 @@ on that minute takes ReduceGeneralHealth == E.drain x 30.
 from . import golden_trace
 from .server_host import Host
 
-ORDER = ["bus", "fast", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight"]
+ORDER = ["bus", "fast", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "store"]
 
 
 def _order(M):
@@ -43,6 +43,7 @@ def test_every_adapter_registers_its_named_step():
     assert same(S.minute.steps["effects"], S.effects.step)
     assert same(S.minute.steps["strength"], S.strength.minute)
     assert same(S.minute.steps["weight"], S.weight.minute)
+    assert same(S.minute.steps["store"], S.store.step)
     assert sorted(k for k in S.minute.steps.keys()) == sorted(ORDER)
 
 

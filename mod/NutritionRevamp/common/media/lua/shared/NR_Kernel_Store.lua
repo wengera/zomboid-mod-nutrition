@@ -25,14 +25,16 @@ local K = NutritionRevamp.kernel
 K.store = {}
 
 -- The record version: 1 is Plan 1's identity-only S.new with the sub-tables laid lazily beside it; 2 is
--- the inputs-only contract below.
-K.store.VERSION = 2 -- schema version, no row needed
+-- the inputs-only contract below; 3 is v2 plus the satiety scalar.
+K.store.VERSION = 3 -- schema version: 3 adds satiety (Plan 11 Task 11; Decision 2's scalar rides this bump)
 
 -- The closed list of persisted paths, grouped by the step that owns each field.
 K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the version field the save holds (load rewrites it to
     -- VERSION after the copy), the key, the first and last world age seen, the respawn count, the death flag
     "v", "username", "firstSeen", "lastSeen", "resets", "dead",
+    -- the satiety scalar S (Decision 2; Task 15 steps it; a v2 record has none and the writer seeds it from HUNGER)
+    "satiety",
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the buffer and
     -- its bulk (ingest adds, empty drains), the absorbed pool (toPool accumulates; a diagnostic no step reads
     -- back, kept because it cannot be rebuilt)
@@ -155,6 +157,7 @@ function K.store.new(username, worldAgeHours)
     r.lastSeen = worldAgeHours
     r.resets = 0 -- a count: no respawn yet
     r.dead = false
+    r.satiety = 1 -- a new record seeds S full (Appendix D Question 4)
     return r
 end
 
@@ -319,6 +322,9 @@ function K.store.load(raw, order, records)
         K.store.overlay(rec, raw, segs[i], 1)
     end
     rec.v = K.store.VERSION
+    if raw.satiety == nil then
+        rec.satiety = nil -- a migrated record seeds S from HUNGER at the writer's first minute, never 1 (Appendix D)
+    end
     if rec.stomach ~= nil then
         rec.stomachFill = K.stomach.fill(rec.stomach)
     end
@@ -431,4 +437,99 @@ function K.store.matches(pat, p)
         end
     end
     return true
+end
+
+-- A file-safe name: letters, digits, _ and - kept, any other character _, an empty name "default". The server name
+-- passes through it (getServerName is not sanitised, T1102.6: a name holding .. would make every write nil).
+function K.store.safeName(s)
+    local out = {}
+    for i = 1, string.len(s) do
+        local c = string.sub(s, i, i)
+        if string.find(c, "^[%w_%-]$") ~= nil then
+            out[#out + 1] = c
+        else
+            out[#out + 1] = "_"
+        end
+    end
+    if #out == 0 then
+        return "default"
+    end
+    return table.concat(out)
+end
+
+K.store.HEX = "0123456789abcdef" -- the digit lookup: %x on a float raises on Kahlua (K.json.ctl's rule)
+
+-- One code unit (0-65535) as four lower-case hex digits, built from the lookup string.
+function K.store.hex4(b)
+    local out = {}
+    local d = 4096 -- 16^3, the first digit's place value
+    for i = 1, 4 do
+        local q = math.floor(b / d) % 16 + 1
+        out[i] = string.sub(K.store.HEX, q, q)
+        d = d / 16
+    end
+    return table.concat(out)
+end
+
+-- A username as lower-case hex, four digits a code unit: string.byte answers UTF-16 code units on Kahlua
+-- (T1102.8), so a fixed width keeps every name a distinct file name (two digits a unit let U+0123 "A" and
+-- U+0012 U+0341 both write 12341).
+function K.store.hexName(username)
+    local out = {}
+    for i = 1, string.len(username) do
+        out[i] = K.store.hex4(string.byte(username, i))
+    end
+    return table.concat(out)
+end
+
+-- One index entry into out when it is offline and unseen for more than keepS seconds (K.store.expired's body:
+-- a pairs loop whose body ends in an if leaves that end unexecuted under the line hook, so the test lives here).
+function K.store.addExpired(out, u, seen, isOnline, nowS, keepS)
+    if isOnline == nil and type(seen) == "number" and nowS - seen > keepS then
+        out[#out + 1] = u
+    end
+end
+
+-- The usernames of an index { username = lastSeen seconds } not online and unseen for more than keepS seconds,
+-- sorted; keepS 0 or less keeps everything.
+function K.store.expired(index, nowS, keepS, online)
+    local out = {}
+    if keepS <= 0 then
+        return out
+    end
+    for u, seen in pairs(index) do
+        K.store.addExpired(out, u, seen, online[u], nowS, keepS)
+    end
+    table.sort(out)
+    return out
+end
+
+-- Which of a pair of decoded files { gen = n, ... } is the newer: "a", "b", or nil when both are nil; a tie reads
+-- "a". The store's writer opens the OTHER file of the pair, never this one (getFileWriter truncates at the call, T1102.4).
+function K.store.newest(a, b)
+    if b == nil then
+        if a == nil then
+            return nil
+        end
+        return "a"
+    end
+    if a == nil or b.gen > a.gen then
+        return "b"
+    end
+    return "a"
+end
+
+-- Whether a gap of gapMs has passed since last (nil: never, so due).
+function K.store.due(last, now, gapMs)
+    return last == nil or now - last >= gapMs
+end
+
+-- A millisecond stamp as whole seconds (the index's unit).
+function K.store.seconds(ms)
+    return math.floor(ms / 1000) -- milliseconds a second; no row needed
+end
+
+-- A keep in real days as seconds.
+function K.store.keepSeconds(days)
+    return days * 86400 -- seconds a day; no row needed
 end

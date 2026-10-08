@@ -132,8 +132,8 @@ def v1(h):
 # --- the constants and the path list ------------------------------------------------------------------
 
 
-def test_version_is_two_and_inputs_are_dotted_strings(host):
-    assert S(host).VERSION == 2
+def test_version_is_three_and_inputs_are_dotted_strings(host):
+    assert S(host).VERSION == 3
     paths = lst(S(host).INPUTS)
     assert len(paths) == len(set(paths)) and all(isinstance(p, str) and p for p in paths)
     assert len(lst(S(host).SEGS)) == len(paths)
@@ -224,9 +224,9 @@ def test_every_order_key_has_its_per_key_input_paths(host):
 # --- K.store.new --------------------------------------------------------------------------------------
 
 
-def test_new_is_the_identity_record_at_version_two(host):
-    assert host.py(S(host).new("bob", 12.5)) == {"v": 2, "username": "bob", "firstSeen": 12.5, "lastSeen": 12.5,
-                                               "resets": 0, "dead": False}
+def test_new_is_the_identity_record_at_version_three(host):
+    assert host.py(S(host).new("bob", 12.5)) == {"v": 3, "username": "bob", "firstSeen": 12.5, "lastSeen": 12.5,
+                                               "resets": 0, "dead": False, "satiety": 1}
 
 
 # --- the load: a v1 record migrated ------------------------------------------------------------------
@@ -235,7 +235,7 @@ def test_new_is_the_identity_record_at_version_two(host):
 def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     raw = v1(host)
     r = host.py(S(host).load(raw, order(host), recs(host)))
-    assert r["v"] == 2
+    assert r["v"] == 3
     assert (r["username"], r["firstSeen"], r["lastSeen"], r["resets"], r["dead"]) == ("admin", 10.0, 30.5, 2, False)
     assert "junk" not in r and "lastIntake" not in r
     assert r["reconcile"] == {"count": 3}
@@ -270,7 +270,7 @@ def test_load_of_a_record_with_no_version_and_with_v1_is_the_same(host):
     a = host.py(S(host).load(raw, order(host), recs(host)))
     raw["v"] = 1
     b = host.py(S(host).load(raw, order(host), recs(host)))
-    assert a == b and a["v"] == 2
+    assert a == b and a["v"] == 3
 
 
 def test_load_copies_deep(host):
@@ -354,13 +354,13 @@ def test_inputs_only_copies_deep(host):
     assert raw["body"]["bandWeek"][7][1] == 45
 
 
-def test_a_v2_record_round_trips_through_load_and_inputs_only(host):
+def test_a_v3_record_round_trips_through_load_and_inputs_only(host):
     r1 = S(host).load(v1(host), order(host), recs(host))
     saved = S(host).inputsOnly(r1)
     r2 = S(host).load(saved, order(host), recs(host))
     assert host.py(S(host).inputsOnly(r2)) == host.py(saved)
     assert host.py(r2) == host.py(r1)
-    assert host.py(saved)["v"] == 2
+    assert host.py(saved)["v"] == 3
 
 
 # --- the fix round: the four recomputed fields, the containers, the stomach and close defaults -------------
@@ -443,7 +443,7 @@ def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
     rec = v1(host)
     same = S(host).fillInPlace(rec, rec, order(host), recs(host))
     assert host.G.rawequal(same, rec)
-    assert rec["v"] == 2 and rec["username"] == "admin" and rec["resets"] == 2
+    assert rec["v"] == 3 and rec["username"] == "admin" and rec["resets"] == 2
     assert rec["junk"] is None and rec["lastIntake"] is None
     assert rec["reconcile"]["count"] == 3 and rec["reconcile"]["baseline"] is None
     assert rec["body"]["band"] != "stale" and rec["body"]["inDayClosed"] == 2100
@@ -455,10 +455,96 @@ def test_fill_in_place_from_another_raw_clears_every_old_key(host):
     out = S(host).fillInPlace(target, raw, order(host), recs(host))
     assert host.G.rawequal(out, target)
     assert target["username"] == "admin" and target["stale"] is None and target["body"] is None
-    assert target["v"] == 2 and target["firstSeen"] == 3.0
+    assert target["v"] == 3 and target["firstSeen"] == 3.0
 
 
 def test_fill_in_place_of_a_non_table_raw_leaves_the_target(host):
     target = host.table({"username": "admin", "junk": 1})
     assert S(host).fillInPlace(target, 5, order(host), recs(host)) is None
     assert target["junk"] == 1
+
+
+# --- Plan 11 Task 11: v3, the satiety field, the file names, the prune list ------------------------------------
+
+def test_a_new_record_seeds_satiety_full(host):
+    assert S(host).new("a", 1.0).satiety == 1
+
+
+def test_satiety_is_an_input(host):
+    assert S(host).isInput("satiety")
+
+
+def test_a_loaded_record_without_satiety_keeps_it_unset(host):
+    raw = host.rt.eval("{ v = 2, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false }")
+    rec = S(host).load(raw, None, None)
+    assert rec.v == 3 and rec.satiety is None
+
+
+def test_a_loaded_record_keeps_its_satiety(host):
+    raw = host.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.4 }")
+    assert S(host).load(raw, None, None).satiety == 0.4
+
+
+def test_names_are_file_safe(host):
+    assert S(host).safeName("My Server!") == "My_Server_"
+    assert S(host).safeName("") == "default"
+    assert S(host).safeName("../up") == "___up"
+    assert S(host).safeName("srv-2_b") == "srv-2_b"
+
+
+def test_hex_name_is_four_digits_a_code_unit(host):
+    assert S(host).hexName("Ab") == "00410062"
+    assert S(host).hexName("") == ""
+    assert S(host).hex4(0) == "0000" and S(host).hex4(65535) == "ffff" and S(host).hex4(0x1234) == "1234"
+
+
+# Kahlua's string.byte answers UTF-16 code units (J2, T1102.8); lupa's answers bytes. The stand-in below makes
+# string.byte and string.len read a name's code units from a table, as Kahlua's do, for the two names that
+# collided under two hex digits a unit: U+0123 then "A" and U+0012 then U+0341 both wrote "12341".
+UNITS = r"""
+function(units)
+    local saved = { byte = string.byte, len = string.len }
+    string.byte = function(s, i) return units[s][i] end
+    string.len = function(s) return #units[s] end
+    return saved
+end
+"""
+
+
+def test_two_names_that_collided_under_two_digits_now_differ(host):
+    units = host.rt.eval("{ p1 = { 0x123, 0x41 }, p2 = { 0x12, 0x341 } }")
+    saved = host.rt.eval(UNITS)(units)
+    try:
+        a = S(host).hexName("p1")
+        b = S(host).hexName("p2")
+    finally:
+        host.G.string.byte = saved.byte
+        host.G.string.len = saved.len
+    assert (a, b) == ("01230041", "00120341")
+
+
+def test_expired_lists_the_offline_entries_past_the_keep(host):
+    index = host.rt.eval("{ old = 100, recent = 9000, online = 100, odd = 'x' }")
+    online = host.rt.eval("{ online = true }")
+    out = S(host).expired(index, 10000, 5000, online)
+    assert [out[i] for i in range(1, len(out) + 1)] == ["old"]
+    assert len(S(host).expired(index, 10000, 0, online)) == 0
+    two = S(host).expired(host.rt.eval("{ b = 1, a = 2 }"), 10000, 5000, host.rt.eval("{}"))
+    assert [two[i] for i in range(1, len(two) + 1)] == ["a", "b"]
+
+
+def test_newest_names_the_slot_with_the_larger_gen(host):
+    a = host.rt.eval("{ gen = 3 }")
+    b = host.rt.eval("{ gen = 4 }")
+    assert S(host).newest(a, b) == "b" and S(host).newest(b, a) == "a"
+    assert S(host).newest(a, None) == "a" and S(host).newest(None, b) == "b"
+    assert S(host).newest(None, None) is None and S(host).newest(a, a) == "a"
+
+
+def test_due_is_true_with_no_last_stamp_or_a_full_gap(host):
+    assert S(host).due(None, 5, 60000)
+    assert S(host).due(1000, 61000, 60000) and not S(host).due(1000, 60999, 60000)
+
+
+def test_seconds_and_keep_seconds(host):
+    assert S(host).seconds(1999) == 1 and S(host).keepSeconds(30) == 2592000
