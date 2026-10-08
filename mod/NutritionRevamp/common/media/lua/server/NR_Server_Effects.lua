@@ -6,7 +6,8 @@
 --
 -- Order (ruling 22, made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
 -- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
--- the end of its own minute, so the step reads this minute's epoch, fluids and acute stamps with zero lag. Strength follows and reads the raw
+-- the end of its own minute, so the step reads this minute's epoch, fluids and acute stamps with zero lag.
+-- Strength follows and reads the raw
 -- sub-tables as before. The fatigue multipliers mAcc and rRec stamped here feed the NEXT minute's
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
@@ -108,27 +109,14 @@ local EMPTY = {}
 
 local finite = NR.finite
 
-
-
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
 local num = NR.num
-
-
-
-
 
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
 
-
-
-
-
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
 local flag = NR.flag
-
-
-
 
 -- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
 local function roll(dflt)

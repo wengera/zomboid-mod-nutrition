@@ -918,8 +918,8 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
     assert ("rmod" + chr(39) + "s alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: "
             "the arm resets at the day close, not on a rolling 24 h") in lim
     assert ("the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance "
-            "dial) read the previous minute" + chr(39) + "s record sub-tables (a one-minute lag; NR_Server_Nutrients "
-            "sorts after this file)") in lim
+            "dial) read the previous minute" + chr(39) + "s record sub-tables (a one-minute lag; the pipeline" + chr(39) + "s "
+            "ORDER runs the nutrients step after this one)") in lim
     assert not any("held neutral" in x for x in lim)
     assert "the drain coefficient is stamped and unapplied until Plan 5" in lim
     assert ("a climb is credited when the minute sample lands inside the climb state; short climbs are "

@@ -25,26 +25,27 @@
 -- NR_Server_Nutrients' calcium x iron factor through the pipeline context's mealCa.
 local NR = NutritionRevamp
 local K = NR.kernel
--- The hand-offs ride the pipeline's per-player context (NR_Server_Minute; Plan 10 R2): pipe.absorbed is the
+-- The hand-offs ride the pipeline's per-player context (NR_Server_Minute; Plan 10 R2): ctx.absorbed is the
 -- absorbed vector of this player's step -- transient, never on the record -- that NR_Server_Metabolism reads
 -- (the four macros) and NR_Server_Nutrients then consumes on the same minute (the pipeline's ORDER runs both
--- after this step; Plan 4 ruling 17); nil when the step had no elapsed time. pipe.mealCa: the buffer's calcium
+-- after this step; Plan 4 ruling 17); nil when the step had no elapsed time. ctx.mealCa: the buffer's calcium
 -- mg before that step's emptying (the same lifetime), the meal calcium the calcium x iron factor reads. The
--- context is cleared at the start of each player's run. ctx: the one meal-context table, overwritten every step.
+-- context is cleared at the start of each player's run. KIN.ctx: the one meal-context table, overwritten every
+-- step. KIN.badAge: the minutes skipped for want of a clock read, outside stats (the golden trace walks stats).
 NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false,
                        ctx = {} }
 local KIN = NR.server.kinetics
 
-local function worldAge() return NR.worldAge() or 0 end
-
-
-
-
-
-
-
-local function step(username, player, record, pipe)
-    local age = worldAge()
+local function step(username, player, record, ctx)
+    local age = NR.worldAge()
+    if age == nil then
+        if ctx ~= nil then
+            ctx.absorbed = nil
+            ctx.mealCa = nil
+        end
+        KIN.badAge = (KIN.badAge or 0) + 1        -- a minute with no clock read is skipped, never stamped 0
+        return
+    end
     if record.stomach == nil then
         record.stomach = K.stomach.new()
         K.stomach.seedFull(record.stomach)            -- judgement: the character ate before the apocalypse
@@ -59,15 +60,15 @@ local function step(username, player, record, pipe)
     end
     record.kineticsAge = age
     if dtH > 0 then
-        local ctx = K.stomach.context(record.stomach, KIN.ctx)    -- the meal, before this minute's emptying
+        local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
         local emptied = K.stomach.empty(record.stomach, dtH)
-        local absorbed = K.stomach.absorb(emptied, ctx)
+        local absorbed = K.stomach.absorb(emptied, meal)
         K.stomach.toPool(record.pool, absorbed)
-        if pipe ~= nil then pipe.absorbed = absorbed end          -- the handoff to Metabolism, then Nutrients
-        if pipe ~= nil then pipe.mealCa = ctx.calcium end
-    elseif pipe ~= nil then
-        pipe.absorbed = nil
-        pipe.mealCa = nil
+        if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
+        if ctx ~= nil then ctx.mealCa = meal.calcium end
+    elseif ctx ~= nil then
+        ctx.absorbed = nil
+        ctx.mealCa = nil
     end
     local fill = K.stomach.fill(record.stomach)
     -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing
@@ -96,13 +97,13 @@ local function step(username, player, record, pipe)
     KIN.stats.players = KIN.stats.players + 1
 end
 
--- One player's minute: the pipeline's kinetics step (NR_Server_Minute.run, from P.work); pipe is its context.
+-- One player's minute: the pipeline's kinetics step (NR_Server_Minute.run, from P.work); ctx is its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function KIN.minute(username, player, record, pipe)
+function KIN.minute(username, player, record, ctx)
     if record == nil then return end
     KIN.stats.minutes = KIN.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record, pipe)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         KIN.stats.failures = KIN.stats.failures + 1
         KIN.lastError = err

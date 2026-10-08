@@ -32,7 +32,7 @@ NR.server.metabolism = {
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, never Fitness",
         "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading; the catch-up stamps every close with the catch-up minute's age, so the first blend after an offline gap counts yesterday in full",
         "the disuse arm needs a leg fracture or splint",
-        "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; NR_Server_Nutrients sorts after this file)",
+        "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; the pipeline's ORDER runs the nutrients step after this one)",
         "the drain coefficient is stamped and unapplied until Plan 5",
         "a climb is credited when the minute sample lands inside the climb state; short climbs are missed",
         "the MET-minute bank is mirrored for the panel and feeds no coefficient; the aerobic dose is the band minutes",
@@ -199,8 +199,9 @@ function MET.readActivity(player, ageH)
             end
         end
     end
-    local age = ageH or worldAge() or 0
-    local hourOfDay = age - math.floor(age / 24) * 24
+    local age = ageH or worldAge()
+    local hourOfDay = 0
+    if age ~= nil then hourOfDay = age - math.floor(age / 24) * 24 end
     if getGameTime ~= nil then
         local ok, gt = pcall(getGameTime)
         hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
@@ -250,7 +251,6 @@ end
 -- K.heal.ZERO_RINGS), read at call time: nothing here names the kernel at file scope, so the file loads in a
 -- runtime that holds NR_Core alone (the wiring tests).
 
-
 local function heal(username, body, ageH, player)
     local l0 = nil
     if not finite(body.l0) then
@@ -266,7 +266,7 @@ local function heal(username, body, ageH, player)
     end
 end
 
-local function step(username, player, record, pipe)
+local function step(username, player, record, ctx)
     local ageH = worldAge()
     if ageH == nil then
         MET.stats.badReads = MET.stats.badReads + 1   -- skipped: no stamp of a 0 age
@@ -278,7 +278,7 @@ local function step(username, player, record, pipe)
     local w = body.fm + body.lm
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff (Plan 4 ruling 17),
     -- and the pipeline's context lives one player's minute, so this read sees each vector once
-    local handoff = pipe and pipe.absorbed
+    local handoff = ctx and ctx.absorbed
     if handoff ~= nil then
         K.energy.intake(body, handoff, dtM)
     end
@@ -326,13 +326,13 @@ local function step(username, player, record, pipe)
     heal(username, body, ageH, player)
 end
 
--- One player's minute: the pipeline's metabolism step (NR_Server_Minute.run, from P.work); pipe its context.
+-- One player's minute: the pipeline's metabolism step (NR_Server_Minute.run, from P.work); ctx is its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function MET.minute(username, player, record, pipe)
+function MET.minute(username, player, record, ctx)
     if record == nil then return end
     MET.stats.minutes = MET.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record, pipe)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         MET.stats.failures = MET.stats.failures + 1
         MET.lastError = err

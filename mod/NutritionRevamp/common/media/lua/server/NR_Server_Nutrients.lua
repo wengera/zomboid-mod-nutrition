@@ -93,31 +93,15 @@ NUT.LITRES_PER_THIRST = 2 -- ruling 9 (Water ThirstChange -50 per litre, x151w #
 
 local finite = NR.finite
 
-
-
 -- The world age, or nil when it cannot be read or is not finite (the minute is then skipped and counted:
 -- the acute kernel's sleep-window loop needs a finite age).
 local worldAge = NR.worldAge
 
-
-
-
-
-
-
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
 local num = NR.num
 
-
-
-
-
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
-
-
-
-
 
 -- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
 local function roll(dflt)
@@ -338,14 +322,14 @@ local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
     end
 end
 
-local function step(username, player, record, pipe)
+local function step(username, player, record, ctx)
     -- the handoffs are read first off the pipeline's context (Kinetics wrote them this minute); the context
     -- is cleared at the start of each player's run, so no early return leaves them for a later minute
     local absorbed = EMPTY
     local caMeal = nil
-    if pipe ~= nil then
-        absorbed = pipe.absorbed or EMPTY
-        caMeal = pipe.mealCa
+    if ctx ~= nil then
+        absorbed = ctx.absorbed or EMPTY
+        caMeal = ctx.mealCa
     end
     local intake = NR.server.intake
     local ingested = EMPTY
@@ -399,23 +383,23 @@ local function step(username, player, record, pipe)
     -- choline's female rate (ruling T19-3; S0378 the ratio, labelled on the record): x kFemale on a female body
     local cho = NR.data.records.REC.choline
     NUT.kMul.choline = (body.sex == 2 and cho ~= nil and cho.kFemale) or 1
-    local ctx = NUT.ctx
-    ctx.sex = body.sex
-    ctx.w = w
-    ctx.lm = body.lm
-    ctx.eeMJ = ee24 * 4.184 / 1000                          -- kcal to MJ
-    ctx.pDay = body.pPrevKg * w                             -- yesterday's protein g, as Plan 3's rmod reads it
-    ctx.alcGkg = alcGkg
-    ctx.dial = O.onsetSpeed or 1
-    ctx.excessOn = O.excessEffectsOn ~= false
-    ctx.two = K.interact.two
-    ctx.kMul = NUT.kMul
-    ctx.riboGrade = 1
-    if n.riboflavin ~= nil then ctx.riboGrade = n.riboflavin.g end
-    ctx.rawEggDay = false                                   -- no raw-egg flag in the data until Plan 6
-    ctx.e24Zn = 0
-    if n.zinc ~= nil then ctx.e24Zn = n.zinc.e24 end
-    K.nutrients.minute(n, NR.data.records, absorbed, ingested, ctx, dtM)
+    local kctx = NUT.ctx
+    kctx.sex = body.sex
+    kctx.w = w
+    kctx.lm = body.lm
+    kctx.eeMJ = ee24 * 4.184 / 1000                         -- kcal to MJ
+    kctx.pDay = body.pPrevKg * w                            -- yesterday's protein g, as Plan 3's rmod reads it
+    kctx.alcGkg = alcGkg
+    kctx.dial = O.onsetSpeed or 1
+    kctx.excessOn = O.excessEffectsOn ~= false
+    kctx.two = K.interact.two
+    kctx.kMul = NUT.kMul
+    kctx.riboGrade = 1
+    if n.riboflavin ~= nil then kctx.riboGrade = n.riboflavin.g end
+    kctx.rawEggDay = false                                  -- no raw-egg flag in the data until Plan 6
+    kctx.e24Zn = 0
+    if n.zinc ~= nil then kctx.e24Zn = n.zinc.e24 end
+    K.nutrients.minute(n, NR.data.records, absorbed, ingested, kctx, dtM)
 
     -- the fluids
     local met = body.met
@@ -491,20 +475,20 @@ local function step(username, player, record, pipe)
     -- Plan 5 ruling 22, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this
     -- minute's epoch, fluids and acute stamps; its inputs are stamped on the context last, so the step runs
     -- only on a minute that reached here (as the hand call did), and a raise there never skips a stamp here
-    if pipe ~= nil then
-        pipe.body = body
-        pipe.dtM = dtM
-        pipe.ageH = ageH
+    if ctx ~= nil then
+        ctx.body = body
+        ctx.dtM = dtM
+        ctx.ageH = ageH
     end
 end
 
--- One player's minute: the pipeline's nutrients step (NR_Server_Minute.run, from P.work); pipe its context.
+-- One player's minute: the pipeline's nutrients step (NR_Server_Minute.run, from P.work); ctx is its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function NUT.minute(username, player, record, pipe)
+function NUT.minute(username, player, record, ctx)
     if record == nil then return end
     NUT.stats.minutes = NUT.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record, pipe)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         NUT.stats.errors = NUT.stats.errors + 1
         NUT.lastError = err

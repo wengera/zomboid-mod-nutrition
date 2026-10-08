@@ -54,36 +54,17 @@ STR.MAX_DT_H = 1
 
 local finite = NR.finite
 
-
-
 -- The world age, or nil when it cannot be read (the step is then skipped, never stamped 0).
 local worldAge = NR.worldAge
-
-
-
-
-
-
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
 local num = NR.num
 
-
-
-
-
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
 local flag = NR.flag
 
-
-
-
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
-
-
-
-
 
 -- The cumulative XP ladder, totals[0] = 0 and totals[L] = Perks.Strength:getTotalXpForLevel(L) for
 -- L = 1..10, read once per server; a nil or non-finite answer anywhere reads the #2102 ladder instead,

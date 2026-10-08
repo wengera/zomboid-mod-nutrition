@@ -85,26 +85,10 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The poll rides the slow clock. When the players adapter has loaded its onMinute list, the
--- poll is appended to it and keyed off the first queued player of each minute by comparing the
--- minute counter. When that list is absent at load (this file loads before NR_Server_Players
--- by name), the poll registers on EveryOneMinute directly, server-gated at event time.
-local lastMinute = -1
-local function pollFromPlayers()
-    local p = NR.server.players
-    if p ~= nil and p.minutes ~= lastMinute then
-        lastMinute = p.minutes
-        NR.server.readOptions("poll")
-    end
-end
-
+-- The poll rides EveryOneMinute directly, server-gated at event time (no change event exists, #2466).
 local function pollDirect()
     if not NR.isServer() then return end
     NR.server.readOptions("poll")
 end
 
-if NR.server.players ~= nil and NR.server.players.onMinute ~= nil then
-    NR.server.players.onMinute[#NR.server.players.onMinute + 1] = pollFromPlayers
-elseif Events ~= nil and Events.EveryOneMinute ~= nil then
-    Events.EveryOneMinute.Add(pollDirect)
-end
+if Events ~= nil and Events.EveryOneMinute ~= nil then Events.EveryOneMinute.Add(pollDirect) end

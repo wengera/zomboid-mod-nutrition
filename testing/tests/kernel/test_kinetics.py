@@ -291,3 +291,40 @@ def test_the_meal_context_is_passed_from_the_buffer(kin_host):
     run(h, record, 100.0 + 2 / 60)                         # no elapsed time: both handoffs cleared
     assert h.G.NR_TEST_PIPE.absorbed is None and h.G.NR_TEST_PIPE.mealCa is None
     assert KIN(h).lastAbsorbed is None and KIN(h).lastMealCa is None   # the per-username tables are gone
+
+
+from .server_host import Host
+
+
+def test_a_failed_clock_read_never_empties_the_stomach_on_the_next_minute():
+    h = Host()
+    p = h.player("admin")
+    h.online(p)
+    h.T.age = 500.0
+    h.minute(); h.tick(5)                       # first sight and one worked minute at age 500
+    fill0 = h.record("admin").stomachFill
+    good = h.G.getGameTime
+    h.G.getGameTime = h.rt.eval("function() error('clock') end")
+    h.minute(); h.tick(5)                       # a minute whose clock read fails
+    h.G.getGameTime = good
+    h.T.age = 500.0 + 1 / 60
+    h.minute(); h.tick(5)                       # the next good minute: one game minute later
+    assert h.record("admin").kineticsAge == 500.0 + 1 / 60
+    assert h.record("admin").stomachFill > fill0 - 0.01   # one minute of emptying, not 500 hours
+
+
+def test_kinetics_skips_a_minute_without_a_clock():
+    h = Host()
+    rec = h.NR.server.store.get("k", 100.0)
+    ctx = h.rt.eval("{ absorbed = {}, mealCa = 5 }")
+    h.G.getGameTime = h.rt.eval("function() error('clock') end")
+    h.NR.server.kinetics.minute("k", h.player("k"), rec, ctx)
+    assert h.NR.server.kinetics.badAge == 1
+    assert ctx.absorbed is None and ctx.mealCa is None and rec.kineticsAge is None
+
+
+def test_a_failed_clock_read_never_creates_a_record():
+    h = Host()
+    h.G.getGameTime = h.rt.eval("function() error('clock') end")
+    assert h.NR.server.store.get("nobody", h.NR.worldAge()) is None
+    assert h.record("nobody") is None

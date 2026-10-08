@@ -48,9 +48,7 @@ if Events ~= nil and Events.OnClientCommand ~= nil then
         if command == "mirror.request" then
             local okU, username = NR.call(player, "getUsername")
             if not okU or username == nil then return end
-            local okT, gt = pcall(getGameTime)
-            local okA, age = NR.call(okT and gt or nil, "getWorldAgeHours")
-            local r = NR.server.store.get(username, okA and age or 0)
+            local r = NR.server.store.get(username, NR.worldAge())
             if r ~= nil then B.sendMirror(player, r) end
         end
     end)

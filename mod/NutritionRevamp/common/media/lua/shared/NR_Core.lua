@@ -61,7 +61,7 @@ function NR.itemPassActive()
 end
 
 -- The shared adapter helpers (Plan 10 Task R1): one copy, one failure meaning. worldAge is nil when the
--- clock cannot be read; an adapter whose old copy answered 0 keeps a local wrapper that says so.
+-- clock cannot be read, and no adapter stamps 0 in its place (Plan 11 Task 3): a minute without it is skipped.
 function NR.worldAge()
     if getGameTime == nil then return nil end
     local ok, gt = pcall(getGameTime)
@@ -75,19 +75,31 @@ function NR.finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
+-- The raise log (Plan 11 Task 3, the bug review's should-fix): a member that raises inside NR.num, NR.obj or
+-- NR.flag is logged once per member name per Lua state, so a broken getter is visible without a line a minute.
+NR.raised = {}
+function NR.noteRaise(name, err)
+    if NR.raised[name] ~= nil then return end
+    NR.raised[name] = true
+    NR.log.say(2, "call: " .. tostring(name) .. " raised: " .. tostring(err))
+end
+
 function NR.num(o, name, dflt, ...)
     local ok, present, v = pcall(NR.call, o, name, ...)
+    if not ok then NR.noteRaise(name, present) end
     if ok and present and NR.finite(v) then return v end
     return dflt
 end
 
 function NR.obj(o, name, ...)
     local ok, present, v = pcall(NR.call, o, name, ...)
+    if not ok then NR.noteRaise(name, present) end
     if ok and present then return v end
     return nil
 end
 
 function NR.flag(o, name, ...)
     local ok, present, v = pcall(NR.call, o, name, ...)
+    if not ok then NR.noteRaise(name, present) end
     return ok and present and v == true
 end

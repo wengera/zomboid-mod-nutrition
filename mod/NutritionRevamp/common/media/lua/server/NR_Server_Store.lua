@@ -71,6 +71,8 @@ function S.get(username, worldAgeHours)
     local seen = sights(t)
     local r = t[username]
     if r == nil then
+        -- Plan 11 Task 3: a failed clock read never creates a record stamped 0
+        if worldAgeHours == nil then return nil end
         r = S.new(username, worldAgeHours)
         t[username] = r
         seen[username] = true

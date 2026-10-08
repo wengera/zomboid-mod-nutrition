@@ -9,13 +9,6 @@ NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {},
                       minutes = 0, drained = 0 }
 local P = NR.server.players
 
-local function worldAge() return NR.worldAge() or 0 end
-
-
-
-
-
-
 local function fire(list, username, player, record)
     for i = 1, #list do
         local ok, err = pcall(list[i], username, player, record)
@@ -27,9 +20,11 @@ end
 -- (NR_Server_Minute.lua), then P.onMinute, kept empty by the mod for a third party's append.
 P.onMinute = {}
 function P.work(username, player)
-    local r = NR.server.store.get(username, worldAge())
+    local age = NR.worldAge()
+    if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
+    local r = NR.server.store.get(username, age)
     if r == nil then return end
-    r.lastSeen = worldAge()
+    r.lastSeen = age
     local okD, dead = NR.call(player, "isDead")
     if okD and dead == true and r.dead ~= true then
         r.dead = true
@@ -49,15 +44,18 @@ function P.minute()
     P.queue = {}                      -- a fresh queue each minute: a slow drain never doubles a player (review-t4 I1)
     P.queueHead = 1
     local seen = {}
+    local age = NR.worldAge()
     local i = 0
     while i < n do
         local okG, player = NR.call(list, "get", i)
         if okG and player ~= nil then
             local okU, username = NR.call(player, "getUsername")
-            if okU and username ~= nil then
+            -- a first sight without a clock read waits for the next minute: the player stays out of seen and
+            -- the queue, so no record is made at a nil age and the sight is retried
+            if okU and username ~= nil and (P.online[username] ~= nil or age ~= nil) then
                 seen[username] = player
                 if P.online[username] == nil then
-                    local r = NR.server.store.get(username, worldAge())
+                    local r = NR.server.store.get(username, age)
                     NR.log.say(2, "players: first sight of " .. tostring(username))
                     fire(P.onFirstSight, username, player, r)
                     -- no mirror here: NR_Server_Metabolism's onFirstSight hook sends the one first-sight mirror
@@ -105,7 +103,13 @@ if Events ~= nil then
             if not NR.isServer() then return end
             local okU, username = NR.call(player, "getUsername")
             if okU and username ~= nil then
-                local r = NR.server.store.reset(username, worldAge())
+                local age = NR.worldAge()
+                if age == nil then
+                    NR.log.say(2, "players: no world age at OnNewGame for " .. tostring(username)
+                        .. "; the reset waits for a readable clock")
+                    return
+                end
+                local r = NR.server.store.reset(username, age)
                 if r ~= nil then fire(P.onFirstSight, username, player, r) end   -- Metabolism's hook: the body, then the one mirror
             end
         end)

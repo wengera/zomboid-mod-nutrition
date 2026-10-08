@@ -53,8 +53,6 @@ WGT.BAND_TRAIT = {
 WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 local finite = NR.finite
 
-
-
 -- The hours since the body's last day close (world age less lastCloseAgeH), or 0 -- the full blend --
 -- when either is unreadable.
 local function hoursSinceClose(body)

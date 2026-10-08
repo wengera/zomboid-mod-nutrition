@@ -268,11 +268,15 @@ IN.macrosEaten = K.intake.macrosEaten
 -- source, missing, share, frac, trace. lookup(fullType) -> seed vector or nil (the server passes
 -- NR.data.nutrients.get); templates is NR.data.infer (nil: no inference); info(fullType) -> a dish or craft
 -- input's { declared, macros, foodType } (nil: inputs through the table alone). The adapter's part is the
--- per-eat trace and the chained-lookup closure over it (the kernel holds no closure).
+-- per-eat trace and the chained-lookup closure over it (the kernel holds no closure), built only for a dish or a
+-- craft, the two sources that read inputs (Plan 11 Task 3).
 function IN.assemble(b, rawAfter, lookup, thirstAfter, templates, info)
     local trace = IN.newTrace()
-    return K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates,
-        IN.chainedLookup(lookup, templates, info, trace), trace)
+    local inputs = nil
+    if (b.extraTypes ~= nil and #b.extraTypes > 0) or b.craftMap ~= nil then
+        inputs = IN.chainedLookup(lookup, templates, info, trace)   -- a dish or a craft: the one closure per eat
+    end
+    return K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, trace)
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -289,7 +293,7 @@ local function num(v)
     return 0
 end
 
-local function worldAge() return NR.worldAge() or 0 end
+local worldAge = NR.worldAge          -- nil on a failed clock read: store.get answers nil and the eat is counted
 
 -- A Food's FoodType string (Food.getFoodType, the script's FoodType), or nil when absent or empty.
 function IN.foodTypeOf(item)
