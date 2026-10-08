@@ -627,6 +627,12 @@ Angus answered the six decisions on 2026-10-08, in a brainstorming pass that set
      - a dedicated server never runs `client/` Lua;
      - the discovery rule that hides a mod with no `common/` or version folder.
 
+8. **The build: 42.21, after a re-baseline** (Angus, 2026-10-08). Steam updated the game to Build 42.21 at 03:21 on 2026-10-08 (buildid 25485521), and no copy of the 42.20.4 jar was kept, so the two builds cannot be diffed.
+   - Plan 11 targets 42.21, because that is the build players and servers will run.
+   - Before any build work, a re-baseline task re-reads on 42.21 every jar fact the plans and the mod rely on, re-scans the food data, and re-runs the golden trace and a harness smoke test.
+   - A claim that comes back changed is superseded, per CLAUDE.md § 2 (a claim holds on its build and is re-read on any other).
+   - The rejected alternative was pinning 42.20.4: the evidence would stay valid, but the mod would ship for a build players have left.
+
 ### 1. The takeover fork
 
 **The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #3423, #1080). Plan 10b measured the fork under that target (Performance, above). Under the restated rule 6 the takeover stays withdrawn, because a per-tick hook is not measured to reduce hitching. The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
