@@ -5,7 +5,7 @@ Its first consumer is a realism nutrition mod: nutrients tracked mod-side beyond
 Every claim on a page carries a tag naming its row in the claims register, and every row carries its grade and the pointer to its evidence.
 The pages state what the game does and what a mod can and cannot change; the mod's design is not in this tree.
 
-**Build:** `42.20.4` · jar `b0bbce05d5` · dedicated-server multiplayer · single-player never claimed.
+**Build:** `42.21` · jar `4a0e9546ec` (rows read on 42.20.4, jar `b0bbce05d5`, say so in their bounds) · dedicated-server multiplayer · single-player never claimed.
 
 ## Reading order
 
@@ -96,7 +96,7 @@ Projects the wiki names, listed for orientation; none is mirrored here.
 
 ### Internal sources
 
-The local `42.20.4` install at `D:\SteamLibrary\steamapps\common\ProjectZomboid` and its workshop folder are the standing evidence base, read-only; the pz-b42 findings on the nutrition weight model and on the ItemQuality and BeyondTen mods are stated in [`docs/facts/nutrition-core.md`](docs/facts/nutrition-core.md) and the teardowns under [`docs/facts/other-mods/`](docs/facts/other-mods/).
+The local install (`42.21` since 2026-10-08, `42.20.4` before it) at `D:\SteamLibrary\steamapps\common\ProjectZomboid` and its workshop folder are the standing evidence base, read-only; the pz-b42 findings on the nutrition weight model and on the ItemQuality and BeyondTen mods are stated in [`docs/facts/nutrition-core.md`](docs/facts/nutrition-core.md) and the teardowns under [`docs/facts/other-mods/`](docs/facts/other-mods/).
 
 ## Related workspace
 

@@ -43,7 +43,7 @@ The pre-restructure library is readable at the tag `research-program-v1`, and th
 
 ## 2. Ground truth
 
-- **Build:** `42.20.4` · jar `b0bbce05d5`; a claim holds on this build and is re-read on any other; the food dataset is the 2026-09-10 scan, and the item pass reaches a later build's foods only after a re-scan.
+- **Build:** `42.21` since 2026-10-08 (the server prints `version=42.21.0 4a0e9546ec`; Steam buildid `25485521`) · jar `4a0e9546ec`; a claim holds on the build it was read on — 42.20.4 (jar `b0bbce05d5`) for every row unless its bound says it was re-read on 42.21 — and is re-read on any other; the food dataset is the 2026-10-08 scan of 42.21.0, and the item pass reaches a later build's foods only after a re-scan; both fixtures (`default`, `two`) are provisioned on 42.21.0.
 - The local install `D:\SteamLibrary\steamapps\common\ProjectZomboid` and the workshop folder `D:\SteamLibrary\steamapps\workshop\content\108600` are read-only, always.
 - The jar toolchain lives at `C:\Users\Angus\pz-b42`: read its `WORKSPACE.md` first, treat it as read-only from here, and verify every Java claim through `./pz.sh grep|methods|refs|dump <class> [method]`; [platform/jar-research](docs/platform/jar-research.md) turns a reading into a citable claim.
 - The library is dedicated-server multiplayer evidence; single-player is never claimed.
