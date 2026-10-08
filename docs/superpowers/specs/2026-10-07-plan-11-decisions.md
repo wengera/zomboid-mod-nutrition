@@ -567,6 +567,41 @@ Plan 10b's item 4, the `EveryOneMinute` round-robin drain, is superseded by item
 
 ## Angus's decisions
 
+### Decisions taken (Angus, 2026-10-08)
+
+Angus answered the six decisions on 2026-10-08, in a brainstorming pass that set out each option's trade-offs. Plan 11 is written from these answers and the sections below.
+
+1. **The takeover fork: (c), the once-a-minute hybrid.**
+   - Vanilla's hunger, thirst and fatigue rise rates are zeroed at the server's `OnGameBoot`, and the mod writes those stats once per player-minute.
+   - The same pass writes PANIC and TEMPERATURE.
+   - There is no per-tick hook.
+   - Angus accepts three costs: a restart-only mode; a writer outage that stops hunger rather than falling back to vanilla; and other mods reading zero rates.
+   - The writes land in each player's own minute run, which Decision 6 schedules.
+2. **Hunger feel: (c), vanilla's hunger plus the energy term, with bulk scaling a meal's relief, at a modest β of 0.25 to 0.5.**
+   - It keeps (a)'s vanilla calibration on a normal menu, which is identical to (a) for β up to 0.5, and a bulky meal sates more, the realism (a) lacks.
+   - Plan 11 picks β within 0.25 to 0.5 against Appendix D's light-menu reading. At β 0.25, the light menu is less hungry than vanilla for 111 minutes a day.
+   - The satiety scalar's migration rides on the store's move (Decision 3).
+   - Under Decision 1 the scalar steps once a player-minute, so the match is within a minute's lag.
+3. **The store and pruning.**
+   - The store leaves global modData for a server-local file, read with `getFileReader` and written with `getFileWriter`. This is the privacy and griefing blocker.
+   - Pruning is on by default. It is measured in **real time** since a player was last seen, **30 days**, and operators can change it as a sandbox option.
+   - Real time, not game days, because game days pass at each server's own speed.
+   - A player away longer returns with a fresh nutrient record; the vanilla character is untouched.
+4. **Internal ids in shipped comments: keep.** They are the maintainers' route from code to evidence.
+5. **The neighbour mods: subscribe before Plan 11.**
+   - Angus subscribed on 2026-10-08 to Nutrition Makes Sense (3690404044), StatsAPI (2997722072), Stat Tweaks Lib (3415375593) and Tooltiplib (3694097672).
+   - ApocalipseBR - Nutrition Sync Fix (3736275816) no longer exists on the Workshop, so its open questions close as unavailable, not unread.
+   - Plan 11 opens with a read of the four. StatsAPI and Stat Tweaks Lib adjust the same stats Decision 1 zeroes the rates of, so the zeroed-rates build gets a guard or a compatibility note from that read.
+   - The files were not yet on disk when the decisions were recorded. The read waits on Steam's download.
+6. **Spreading the minute: (b), a budgeted `OnTick` queue with an adaptive budget.**
+   - The minute event queues every player, and `OnTick` drains the queue under a per-tick budget, carrying the unserved forward.
+   - The budget is the measured per-player run cost times the queue, divided by the minute's ticks, plus headroom. Its floor is 15 ms, the smallest fixed cap that starved none at 60 on this host, and it scales with a fast clock.
+   - Bundled with it:
+     - per-player sends are staggered across the minute;
+     - the 07:00 day close and first sight go through the same queue;
+     - the harness gains a route that feeds ghost records into the mod's own queue, so the mod's scheduler is measured against `budget15` at both spacings.
+   - Open items 1 to 9 below are Plan 11's scheduler task.
+
 ### 1. The takeover fork
 
 **The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #3423, #1080). Plan 10b measured the fork under that target (Performance, above). Under the restated rule 6 the takeover stays withdrawn, because a per-tick hook is not measured to reduce hitching. The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
