@@ -9,7 +9,7 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {},
-                      minutes = 0, drained = 0, served = 0, sight = {}, resetsAt = {}, resetPending = {},
+                      minutes = 0, drained = 0, served = 0, sight = {}, resetPending = {}, extraSet = {},
                       tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
                       budgetMs = 15, runCap = 1, wired = false }
 local P = NR.server.players
@@ -28,8 +28,8 @@ local function nowMs()
     return nil
 end
 
--- One player's minute work: refresh lastSeen and the dead flag (never on a record reset since the queue entry,
--- #3358), then the slow minute's pipeline (NR_Server_Minute.lua), then P.onMinute, kept for a third party's append.
+-- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
+-- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua), then P.onMinute, kept for a third party's append.
 P.onMinute = {}
 function P.work(username, player)
     local age = NR.worldAge()
@@ -38,8 +38,7 @@ function P.work(username, player)
     if r == nil then return end
     r.lastSeen = age
     local okD, dead = NR.call(player, "isDead")
-    local same = P.resetsAt[username] == nil or P.resetsAt[username] == r.resets
-    if okD and dead == true and r.dead ~= true and same then
+    if okD and dead == true and r.dead ~= true then
         r.dead = true
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
     end
@@ -65,7 +64,6 @@ function P.makeReset(username)
     if age == nil then return false end
     if NR.server.store.reset(username, age) == nil then return false end
     P.resetPending[username] = nil
-    P.resetsAt[username] = nil
     NR.log.say(2, "players: the pending reset of " .. tostring(username) .. " is made")
     return true
 end
@@ -83,7 +81,6 @@ function P.minute()
     if not okS or type(n) ~= "number" then return end
     P.minutes = P.minutes + 1
     local age = NR.worldAge()
-    local records = NR.server.store.records
     local roster = {}
     local seen = {}
     local i = 0
@@ -93,14 +90,17 @@ function P.minute()
             local okU, username = NR.call(player, "getUsername")
             -- a first sight without a clock read waits for the next minute: the player stays out of seen and
             -- the queue, so no record is made at a nil age and the sight is retried
+            -- a new object that reads dead is the respawn's dead body, still listed up to two ticks after OnNewGame
+            -- (#3358): never adopted, or its work marks the reset record dead; a raising or absent member reads alive
             if okU and username ~= nil and (P.online[username] ~= nil or age ~= nil) then
-                seen[username] = player
-                if P.online[username] ~= player then
-                    P.sight[username] = player          -- first sight, a reconnect or a respawn's new object
+                local new = P.online[username] ~= player
+                if not (new and NR.flag(player, "isDead")) then
+                    seen[username] = player
+                    if new then
+                        P.sight[username] = player      -- first sight, a reconnect or a respawn's new object
+                    end
+                    roster[#roster + 1] = username
                 end
-                local rec = records and records[username]
-                if rec ~= nil then P.resetsAt[username] = rec.resets end
-                roster[#roster + 1] = username
             end
         end
         i = i + 1
@@ -109,16 +109,17 @@ function P.minute()
         if seen[username] == nil then
             NR.log.say(2, "players: " .. tostring(username) .. " left")
             P.sight[username] = nil
-            P.resetsAt[username] = nil
             fire(P.onDeparture, username, nil, nil)
         end
     end
     P.online = seen
+    P.extraSet = {}
     if P.extra ~= nil then
         local okX, extra = pcall(P.extra.names)
         if okX and type(extra) == "table" then
             for j = 1, #extra do
                 roster[#roster + 1] = extra[j]
+                P.extraSet[extra[j]] = true
             end
         end
     end
@@ -136,7 +137,7 @@ function P.minute()
 end
 
 -- One queued name: an online player (its pending reset, then its first sight, when marked), else a one-shot task,
--- else an extra name.
+-- else a name of this minute's extra set (an evicted player's stale entry is none of these and runs nothing).
 function P.runOne(name)
     local player = P.online[name]
     if player ~= nil then
@@ -163,7 +164,7 @@ function P.runOne(name)
         if not okT then NR.log.say(2, "players: task " .. tostring(name) .. " failed: " .. tostring(errT)) end
         return
     end
-    if P.extra ~= nil then
+    if P.extra ~= nil and P.extraSet[name] == true then
         local okX, errX = pcall(P.extra.run, name)
         if not okX then NR.log.say(2, "players: extra " .. tostring(name) .. " failed: " .. tostring(errX)) end
     end
@@ -217,7 +218,6 @@ if Events ~= nil then
             if not okU or username == nil then return end
             P.online[username] = nil                    -- #3358: evict; the next minute adopts the new object
             P.sight[username] = nil
-            P.resetsAt[username] = nil
             local age = NR.worldAge()
             if age == nil then
                 P.resetPending[username] = true         -- made in the player's next queue slot with a clock read

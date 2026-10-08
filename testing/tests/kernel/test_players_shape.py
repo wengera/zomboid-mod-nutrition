@@ -172,3 +172,75 @@ def test_a_respawn_reset_that_met_no_clock_stays_pending_and_runs_in_the_queue()
     assert r.lastSeen == 100.0 + 4 / 60
     run_minute(h, 2, 5)
     assert h.record("a").resets == 1                 # reset once, never again
+
+
+def test_a_dead_body_still_listed_after_the_reset_is_never_adopted():
+    # The dead IsoPlayer stays in getOnlinePlayers up to two ticks after OnNewGame (#3358): a minute event in that
+    # window must not adopt it as a new sight, or its work marks the fresh record dead until the next respawn.
+    h = host()
+    a, b = h.player("a"), h.player("b")
+    h.online(a, b)
+    run_minute(h, 25, 1)
+    b.deadFlag = True
+    run_minute(h, 25, 2)                             # b's dead body runs: the old record marked dead
+    assert h.record("b").dead is True
+    nb = h.player("b")
+    h.fire("OnNewGame", nb, None)                    # the reset: resets 1, dead cleared; b evicted
+    assert h.record("b").resets == 1
+    assert h.record("b").dead is not True
+    run_minute(h, 25, 3)                             # the dead body is still listed at this minute
+    h.online(a, nb)
+    run_minute(h, 25, 4)                             # the new object adopted
+    r = h.record("b")
+    assert r.dead is not True
+    assert r.resets == 1
+    assert h.G.rawequal(h.NR.server.players.online["b"], nb)
+    assert r.lastSeen == 100.0 + 4 / 60
+
+
+def test_the_drain_stops_on_wall_time_and_feeds_the_mean():
+    h = host(per_run_ms=8)                           # each run costs 8 ms on the harness clock
+    h.online(*[h.player(u) for u in names(10)])
+    P = h.NR.server.players
+    h.T.age = 100.0 + 1 / 60
+    h.minute()
+    assert P.meanMs == 1.6                           # the seed (#3387)
+    assert P.budgetMs == 15 and P.runCap == 9        # the floor: 1.6 * 10 / 6 * 1.5 = 4 ms of need
+    h.tick(1)
+    assert P.served == 2                             # 8 ms, then 16 ms >= 15: the tick stops after two runs
+    assert P.drained == 2
+    assert abs(P.meanMs - (1.6 + (8 - 1.6) * 0.2)) < 1e-12
+
+
+def test_first_sight_runs_in_the_queue_slot_once_per_object():
+    h = host()
+    seen = h.rt.eval("{}")
+    P = h.NR.server.players
+    P.onFirstSight[len(P.onFirstSight) + 1] = h.rt.eval("function(t) return function(u) t[#t + 1] = u end end")(seen)
+    a = h.player("a")
+    h.online(a)
+    h.T.age = 100.0 + 1 / 60
+    h.minute()
+    assert len(seen) == 0                            # the minute event only marks the sight
+    assert h.G.rawequal(P.sight["a"], a)
+    h.tick(1)
+    assert len(seen) == 1 and seen[1] == "a"         # the queue slot runs it
+    assert P.sight["a"] is None
+    run_minute(h, 2, 2)                              # the same object at the next minute: no sight
+    assert len(seen) == 1
+
+
+def test_an_evicted_players_stale_queue_entry_never_reaches_the_extra_seam():
+    h = host()
+    a = h.player("a")
+    h.online(a)
+    runs = h.rt.eval("{}")
+    h.NR.server.players.extra = h.rt.eval(
+        "function(t) return { names = function() return { 'ghost1' } end, "
+        "run = function(name) t[#t + 1] = name end } end")(runs)
+    h.T.age = 100.0 + 1 / 60
+    h.minute()                                       # a and ghost1 queued
+    h.fire("OnNewGame", h.player("a"), None)         # a evicted before the drain reaches its entry
+    h.tick(3)
+    ran = [runs[i] for i in range(1, len(runs) + 1)]
+    assert ran == ["ghost1"]
