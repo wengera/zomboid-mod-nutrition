@@ -217,9 +217,9 @@ end
 -- One expenditure step of dtM game minutes (the caller clamps dtM to [0, 60]; offline time is not
 -- integrated). REE per minute, reduced by adaptive thermogenesis, times the cold multiplier at rest
 -- (clamped to [1, COLD_MAX]); activity above MET_REST times total mass per hour. Mutates body's day
--- accumulators and balance; returns the energy spent and the activity part. Beside actKcalDay (net
--- activity above 1 MET, the expenditure quantity) it banks exKcalDay, the MET above the idle class
--- (COMPENDIUM.Default, 1.3) times total mass per hour: the exercise energy availability subtracts.
+-- accumulators, balance and trailing-24 h window (ee and ex, body.trail's current hour); returns the energy spent
+-- and the activity part. Beside actKcalDay (net activity above 1 MET) it banks exKcalDay, the MET above the idle
+-- class (COMPENDIUM.Default, 1.3) times total mass per hour: the exercise energy availability subtracts.
 function K.energy.minute(body, met, resting, coldMult, dtM)
     local coldK = 1
     if resting then
@@ -229,28 +229,31 @@ function K.energy.minute(body, met, resting, coldMult, dtM)
     local actMin = K.max(met - K.energy.MET_REST, 0) * (body.fm + body.lm) / 60
     local ee = (reeMin + actMin) * dtM
     local act = actMin * dtM
-    local exMin = K.max(met - K.energy.COMPENDIUM.Default, 0) * (body.fm + body.lm) / 60
+    local ex = K.max(met - K.energy.COMPENDIUM.Default, 0) * (body.fm + body.lm) / 60 * dtM
     body.eeDay = body.eeDay + ee
     body.actKcalDay = body.actKcalDay + act
-    body.exKcalDay = body.exKcalDay + exMin * dtM -- S0691: EA is intake minus EXERCISE expenditure per kg FFM; the idle class is not exercise
+    body.exKcalDay = body.exKcalDay + ex -- S0691: EA is intake minus EXERCISE expenditure per kg FFM; the idle class is not exercise
     body.ebDay = body.inDay - body.eeDay
+    K.body.trailAdd(body.trail, "ee", ee)
+    K.body.trailAdd(body.trail, "ex", ex)
     return ee, act
 end
 
--- One intake step: the absorbed vector (Plan 2's per-minute output) into the day accumulators.
+-- One intake step: the absorbed vector (Plan 2's per-minute output) into the day accumulators and the window.
 function K.energy.intake(body, absorbed, dtM)
     body.inDay = body.inDay + absorbed.calories
     body.pDay = body.pDay + absorbed.proteins
     body.carbDay = body.carbDay + absorbed.carbs
     body.lipDay = body.lipDay + absorbed.lipids
     body.ebDay = body.inDay - body.eeDay
+    K.body.trailIntake(body.trail, absorbed)
 end
 
--- The trailing-24 h balance: today's balance plus yesterday's (eb7[7], the most recent closed day)
--- weighted by the share of the 24 h since the last close still to run (K.body.blend24; the caller
--- passes ageH - body.lastCloseAgeH, so the window follows the day close, not the clock). A game choice.
-function K.energy.eb24h(body, hoursSinceClose)
-    return K.body.blend24(body.ebDay, body.eb7[7], hoursSinceClose)
+-- The trailing-24 h balance: the window's absorbed kcal less its expenditure (K.body.trail24 over body.trail, Plan
+-- 11d Task 9c, ruling C-8). The caller moves the window to the minute's age (K.body.trailTo) before the minute's
+-- intake and expenditure land in it. A game choice (the window; the 24 h span is ruling 14's).
+function K.energy.eb24h(body)
+    return K.body.trail24(body.trail, "kcal") - K.body.trail24(body.trail, "ee")
 end
 
 -- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion, down under surplus,

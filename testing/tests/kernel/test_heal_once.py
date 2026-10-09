@@ -12,7 +12,9 @@ handler ("fast"); its rows are exactly the guarded fields it reads (test_the_wri
 "kept" marks the two sleep-onset scalars no step reads since the takeover left: Effects still guards them (the
 Task 14 amendment keeps EFF.GUARD intact), and the writer applies no onset term (its limitation string).
 A ring slot is a sub-table path ("body.eb7", field 7): a day close shifts slots 1-6 from pre-step-healed values,
-so only slot 7 (and bandWeek's slot 7) can take a value this minute's arithmetic made.
+so only slot 7 (and bandWeek's slot 7) can take a value this minute's arithmetic made. The trailing-24 h window (Plan
+11d Task 9c) takes this minute's values only in its age ("body.trail", "at") and its current hour's slot in each ring
+("body.trail.<key>", the slot of the minute's hour: 1 at settle()'s hour 100, K.body.trailSlot).
 
 The store step reads every K.store.INPUTS path; its rows below are the guarded inputs. An unguarded input the
 step leaves non-finite is saved as a missing key (the codec writes NaN as null) and loads as its constructor's
@@ -29,8 +31,8 @@ the gram keys of the mass); the writer's own pool P is guarded inside the writer
 and reads sit outside the minute: the intake feeds satiety.P at the eat (IN.feed), and the writer heals a
 non-finite P by re-seeding it; the client's Overfull level reads the mirror's stomachMass, which K.mirror.stomachMass
 reads as 0 for a non-finite mass, and K.view.fullnessLevel reads a non-finite mass as 0 as well. Metabolism's
-satiety.L and body.exKcalPrev (Plan 11c Task 6) are re-stamped by its guard, and its pre-step heal
-(MET.healActivity) stamps 0 on either when an input arrives non-finite.
+satiety.L (Plan 11c Task 6) is re-stamped by its guard, and its pre-step heal (MET.healActivity) stamps 0 on it when
+it arrives non-finite.
 
 The injections run on the shared host; each wraps a kernel function its producer step calls near its end, so the
 NaN appears inside the producer's step as its own arithmetic would make it.
@@ -56,23 +58,30 @@ BUFFER_KEYS = ("calories", "carbs", "lipids", "proteins", "fibre", "water", "vit
 # Step 1's table: (producer, sub-table, field, consumer).
 CROSS = (
     _rows("metabolism", "body", [
-        ("nutrients", ("dayIndex", "inDayClosed", "fm", "lm", "lastCloseAgeH", "eeDay", "pPrevKg", "alcDay", "met",
+        ("nutrients", ("dayIndex", "inDayClosed", "fm", "lm", "eeDay", "pPrevKg", "alcDay", "met",
                        "coldMult", "carbDay", "band1Day", "band2Day")),
         ("effects", ("fm", "lm", "dayIndex", "exKcalDay", "band1Day", "band2Day", "met", "inDayClosed")),
         ("strength", ("fm", "lm", "dayIndex", "n", "nPeak", "tPeakD", "cumDef", "tDisuse")),
-        ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay", "lastCloseAgeH")),
+        ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay")),
         ("kinetics", ("energyState",)),
         ("writer", ("energyState", "rmod", "met")),   # met: the heavy-work band of the acute term (Plan 11c Task 6)
         ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
-        ("store", ("fm", "lm", "lastAgeH", "dayIndex", "lastCloseAgeH", "inDay", "eeDay", "ebDay", "exKcalDay",
+        ("store", ("fm", "lm", "lastAgeH", "dayIndex", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
-                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp", "exKcalPrev")),
+                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp")),
     ])
-    + _rows("metabolism", "body.eb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
-    + _rows("metabolism", "body.carb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
-    + _rows("metabolism", "body.p7", [("effects", (7,)), ("weight", (7,)), ("store", (7,))])
-    + _rows("metabolism", "body.lip7", [("weight", (7,)), ("store", (7,))])
+    + _rows("metabolism", "body.eb7", [("store", (7,))])
+    + _rows("metabolism", "body.p7", [("effects", (7,)), ("store", (7,))])
     + _rows("metabolism", "body.mass7", [("store", (7,))])
+    # Plan 11d Task 9c: the trailing-24 h window, read by Nutrients (expenditure, carbohydrate), the Weight mirror
+    # (balance, protein, carbohydrate, lipid) and saved by the store; its current hour is slot 1 at settle()'s hour 100
+    + _rows("metabolism", "body.trail", [("nutrients", ("at",)), ("weight", ("at",)), ("store", ("at",))])
+    + _rows("metabolism", "body.trail.kcal", [("weight", (1,)), ("store", (1,))])
+    + _rows("metabolism", "body.trail.ee", [("nutrients", (1,)), ("weight", (1,)), ("store", (1,))])
+    + _rows("metabolism", "body.trail.ex", [("store", (1,))])
+    + _rows("metabolism", "body.trail.p", [("weight", (1,)), ("store", (1,))])
+    + _rows("metabolism", "body.trail.carb", [("nutrients", (1,)), ("weight", (1,)), ("store", (1,))])
+    + _rows("metabolism", "body.trail.lip", [("weight", (1,)), ("store", (1,))])
     + _rows("metabolism", "body.bandWeek.7", [("nutrients", (1, 2)), ("store", (1, 2))])
     + _rows("nutrients", "fluids", [
         ("effects", ("dehydPct", "naPlasma")),
@@ -202,7 +211,11 @@ def test_the_guard_lists_are_step_1s_table():
     want = lambda prod, sub: sorted(str(f) for p, s, f in GUARDED if p == prod and s == sub)
     assert lua(N.metabolism.GUARD) == want("metabolism", "body")
     assert lua(N.metabolism.GUARD_RINGS) == sorted(s.split(".")[1] for p, s, f in GUARDED
-                                                   if p == "metabolism" and s.count(".") == 1)
+                                                   if p == "metabolism" and s.count(".") == 1 and s != "body.trail")
+    assert lua(N.metabolism.GUARD_TRAIL) == want("metabolism", "body.trail")
+    assert lua(h.NR.kernel.body.TRAIL_KEYS) == sorted(s.split(".")[2] for p, s, f in GUARDED
+                                                      if s.startswith("body.trail."))
+    assert {f for p, s, f in GUARDED if s.startswith("body.trail.")} == {h.NR.kernel.body.trailSlot(100)}
     assert lua(N.metabolism.BAND_SLOT) == want("metabolism", "body.bandWeek.7")
     assert lua(N.nutrients.GUARD_FLUIDS) == want("nutrients", "fluids")
     assert lua(N.nutrients.GUARD_ACUTE) == want("nutrients", "acute")

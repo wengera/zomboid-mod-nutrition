@@ -378,10 +378,8 @@ local function step(username, player, record, ctx)
 
     -- the records
     factors(absorbed, ingested, n, body.lm, caMeal, cafDose, alcDose)
-    local hSince = ageH - body.lastCloseAgeH
-    local eeYest = K.energy.ree(body.lm)                    -- before the first close: the resting expenditure
-    if finite(body.inDayClosed) then eeYest = body.inDayClosed - body.eb7[7] end
-    local ee24 = K.max(K.body.blend24(body.eeDay, eeYest, hSince), K.energy.ree(body.lm))
+    -- the trailing-24 h expenditure (Plan 11d Task 9c: the window Metabolism moved this minute), floored at a resting day
+    local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
     local alcGkg = body.alcDay / w
     NUT.kMul.thiamine = K.interact.thiamineAlcoholK(1, alcGkg)
     -- choline's female rate (ruling T19-3; S0378 the ratio, labelled on the record): x kFemale on a female body
@@ -456,7 +454,7 @@ local function step(username, player, record, ctx)
     local ethIng = ingested.ethanol or 0
     body.alcDay = body.alcDay + ethIng                      -- Plan 3's alcohol gate, finally written
     a.alcDayG = a.alcDayG + ethIng
-    local cho24 = K.body.blend24(body.carbDay, body.carb7[7], hSince) / w
+    local cho24 = K.body.trail24(body.trail, "carb") / w    -- the trailing-24 h carbohydrate g/kg
     K.acute.glycogen(a, met, coldMult, cho24, dtH)
     if (record.stomachFill or 0) > NUT.FED_FILL then a.lastFedAgeH = ageH end
     K.acute.glucose(a, met, absorbed.carbs or 0, a.bac, ageH - a.lastFedAgeH, dtH)

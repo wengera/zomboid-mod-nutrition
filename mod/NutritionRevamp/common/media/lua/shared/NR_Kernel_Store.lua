@@ -55,14 +55,18 @@ K.store.INPUTS = {
     "body.fm0", "body.lm0", "body.lm0dis", "body.fmRef", "body.l0", "body.sex", "body.r", "body.traitCarry",
     "body.bornAge",
     -- body, the masses and clocks (K.partition, K.energy, NR_Server_Metabolism, NR_Server_Strength): fat and
-    -- lean mass, the day index and the last close, the metabolism and strength clock stamps
-    "body.fm", "body.lm", "body.dayIndex", "body.lastAgeH", "body.lastCloseAgeH", "body.strAgeH",
+    -- lean mass, the day index, the metabolism and strength clock stamps
+    "body.fm", "body.lm", "body.dayIndex", "body.lastAgeH", "body.strAgeH",
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
-    -- day's stamps held until the next close (inDayClosed, pPrevKg, and exKcalPrev, the closed day's exercise kcal)
+    -- day's stamps held until the next close (inDayClosed, pPrevKg)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
-    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg", "body.exKcalPrev",
+    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg",
     -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
-    "body.eb7.*", "body.mass7.*", "body.p7.*", "body.carb7.*", "body.lip7.*", "body.bandWeek.*",
+    "body.eb7.*", "body.mass7.*", "body.p7.*", "body.bandWeek.*",
+    -- body, the trailing-24 h window (K.body.trailTo, trailAdd; Plan 11d Task 9c): its age and the six hourly rings.
+    -- The closed hours' sums c and the hour they were built for, ch, are derived: the constructor's ch -1 rebuilds them
+    "body.trail.at", "body.trail.kcal.*", "body.trail.ee.*", "body.trail.ex.*", "body.trail.p.*", "body.trail.carb.*",
+    "body.trail.lip.*",
     -- body, adaptation (K.aerobic.tacDay steps tac from its last value at each close; K.energy.atStep steps
     -- at): both are multi-day accumulators, never recomputed from the masses
     "body.tac", "body.at",

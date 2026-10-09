@@ -17,7 +17,9 @@ ORDER = ["vitC", "iron", "vitB12", "calcium", "vitA"]
 # The fields each constructor lays that the store drops at load (derived), read off the owning steps (the kernel
 # file's comments name them).
 DERIVED = {
-    "body": {"band", "delta", "dmod", "rmod", "energyState", "eb24h", "mirrorLast"},
+    "body": {"band", "delta", "dmod", "rmod", "energyState", "mirrorLast"},
+    # the trailing-24 h window (Plan 11d Task 9c): its age and rings are inputs, its closed sums derived
+    "trail": {"ch", "c"},
     "nutrients": {"allReplete", "ironGrade", "anaemia", "vitDClinical"},
     "key": {"x"},
     "acute": {"wd", "wdH", "bac", "g", "circ", "frozen", "iu", "iuSleep"},
@@ -211,7 +213,8 @@ def classify(h, prefix, table, derived):
 
 def test_every_body_field_is_classified(host):
     body = host.call("body.new", 80.0, 2, host.table({}), 3, 1.0, 1.0, 48.0)
-    assert classify(host, "body", body, DERIVED["body"]) == []
+    assert classify(host, "body", body, DERIVED["body"] | {"trail"}) == []    # trail: mixed, walked below
+    assert classify(host, "body.trail", body["trail"], DERIVED["trail"]) == []
 
 
 def test_the_adapter_body_fields_are_classified(host):
@@ -441,7 +444,7 @@ def test_the_minute_and_the_load_agree_on_all_replete(host):
 
 
 def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
-    for p in ("body.eb7", "body.mass7", "body.p7", "body.carb7", "body.lip7", "body.bandWeek", "body.nHist",
+    for p in ("body.eb7", "body.mass7", "body.p7", "body.trail.kcal", "body.trail.lip", "body.bandWeek", "body.nHist",
               "stomach.buffer", "pool", "nutrients.vitC.p"):
         assert S(host).isInput(p), p
     for p in ("body", "nutrients", "stomach", "acute", "body.dmod", "nutrients.vitC.x", "fluids", "reconcile.baseline"):
@@ -501,7 +504,7 @@ def test_a_new_record_has_no_satiety_for_the_writer_to_seed(host):
 
 
 def test_the_pool_its_activity_state_and_its_stamp_are_inputs_and_their_table_is_not(host):
-    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.t", "stomach.liquid", "body.exKcalPrev"):
+    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.t", "stomach.liquid", "body.trail.at", "body.trail.ex.3"):
         assert S(host).isInput(p), p
     assert not S(host).isInput("satiety")
 
@@ -519,9 +522,19 @@ def test_a_loaded_record_keeps_its_pool_and_activity_state(host):
     assert rec.satiety.junk is None
 
 
-def test_a_loaded_body_keeps_its_closed_days_exercise_bank(host):
-    raw = host.table({"body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0, "exKcalPrev": 640.0}})
-    assert S(host).load(raw, order(host), recs(host))["body"]["exKcalPrev"] == 640.0
+def test_a_loaded_body_keeps_its_trailing_window_and_rebuilds_its_closed_sums(host):
+    # Plan 11d Task 9c: the window's age and slots are inputs; the closed sums are rebuilt at the first read (ch -1)
+    t = host.call("body.newTrail", 30.5)
+    t["ex"][3] = 640.0
+    t["kcal"][8] = 900.0
+    t["ch"] = 30
+    t["c"]["ex"] = 1.0e6                                  # a stale sum in the file is never loaded
+    raw = host.table({"body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 30.5}})
+    raw["body"]["trail"] = t
+    b = S(host).load(raw, order(host), recs(host))["body"]
+    assert b.trail.at == 30.5 and b.trail.ex[3] == 640.0 and b.trail.kcal[8] == 900.0 and b.trail.ch == -1
+    assert host.K.body.trail24(b.trail, "ex") == 640.0 and host.K.body.trail24(b.trail, "kcal") == 900.0
+    assert host.K.store.inputsOnly(host.table({"body": b}))["body"]["trail"]["c"] is None
 
 
 def test_names_are_file_safe(host):

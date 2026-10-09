@@ -208,6 +208,16 @@ def fresh(h, p, age=100.0):
     return record
 
 
+def seed(h, body, hour=99, **amounts):
+    """Plan 11d Task 9c: lays amounts (kcal, ee, ex, p, carb, lip) in game hour `hour` of the trailing-24 h window (99:
+    the closed hour before a fresh record's hour 100, inside the window whole) and marks the closed sums for a rebuild."""
+    t = body["trail"]
+    s = h.K.body.trailSlot(hour)
+    for k, v in amounts.items():
+        t[k][s] = v
+    t.ch = -1
+
+
 # --- first sight --------------------------------------------------------------------------------------
 
 def test_first_sight_splits_the_body(met_host):
@@ -515,7 +525,7 @@ def test_close_order_training_ring_before_tac_and_at_after_the_ring():
     region = src[src.index("local function closeDay("):src.index("MET.stats.days = MET.stats.days + 1")]
     order = ["body.tDisuse = body.tDisuse + 1", "K.training.doses(body)", "K.partition.day(",
              "K.strength.closeDay(", "K.training.closeDay(body)", "K.training.weekMinutes(body)",
-             "K.aerobic.tacDay(", "K.partition.closeDay(body, ageH)", "K.energy.atStep(",
+             "K.aerobic.tacDay(", "K.partition.closeDay(body)", "K.energy.atStep(",
              "K.partition.deficitWeek(body)"]
     at = [region.index(s) for s in order]
     assert at == sorted(at)
@@ -628,41 +638,52 @@ def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
     p = player(h, moving=False, rate=1.5)
     record = fresh(h, p)
     body = record["body"]
-    body.eb7[7] = -3000.0
+    seed(h, body, ee=3000.0)                   # 3000 kcal spent in the hour before, nothing eaten
     body.fm = body["fmRef"] / 2
     minute(h, p, record, 100.0 + 1 / 60)
-    eb = h.K.energy.eb24h(body, 1 / 60)        # the hours since the last close (first sight at 100)
+    eb = h.K.energy.eb24h(body)                # the trailing-24 h window (Plan 11d Task 9c)
     expected = h.K.energy.state(eb, 0.5)
     assert abs(body["energyState"] - expected) < TOL
     assert abs(body["energyState"] - 1.75) < TOL  # the balance term saturates: 1 + 0.5 + 0.5 x 0.5
 
 
-def test_energy_state_blends_on_hours_since_the_close_not_the_clock(met_host):
-    # run x141b: the day closes at floor(age / 24), which is not midnight on the clock; the blend reads
-    # the hours since the last close, so the clock hour never enters it
+def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(met_host):
+    # Plan 11d Task 9c: the window runs on the world age, so a day close (run x141b: floor(age / 24), not midnight on
+    # the clock) moves nothing in it, and the clock hour never enters it
     h = met_host
     p = player(h, moving=False, rate=1.5)
-    record = fresh(h, p, 100.0)
+    record = fresh(h, p, 119.5)
     body = record["body"]
-    body.lastCloseAgeH = 100.0 - 12.0          # half of yesterday still in the window
-    body.eb7[7] = -1000.0
-    h.G.NR_TEST_TOD = 0.0                      # a clock reading the old code would have used
+    seed(h, body, hour=110, ee=1000.0)         # 1000 kcal spent nine hours before the close
+    h.G.NR_TEST_TOD = 0.0                      # a clock reading would read midnight
     try:
-        minute(h, p, record, 100.0)
+        minute(h, p, record, 119.75)
+        before = h.K.energy.eb24h(body)
+        ee0 = h.K.body.trail24(body["trail"], "ee")
+        minute(h, p, record, 120.25)           # the day closes: eb7 takes the day, the window keeps it
     finally:
         h.G.NR_TEST_TOD = None
-    expected = h.K.energy.state(body["ebDay"] + -1000.0 * 0.5, 0)
-    assert abs(body["energyState"] - expected) < TOL
-    assert abs(body["energyState"] - (1 + 0.5 * 500 / 1500)) < 1e-6
+    assert body["dayIndex"] == 5 and body["ebDay"] != before
+    spent = h.K.body.trail24(body["trail"], "ee") - ee0
+    assert spent > 0 and abs(h.K.energy.eb24h(body) - (before - spent)) < 1e-9
+    fat_dep = (body["fmRef"] - body["fm"]) / body["fmRef"]   # the close's partition paid some fat
+    assert abs(body["energyState"] - h.K.energy.state(h.K.energy.eb24h(body), fat_dep)) < TOL
+    assert body["energyState"] > 1 + 0.5 * 1000 / 1500
 
 
-def test_day_close_stamps_last_close_age(met_host):
+def test_the_window_moves_with_the_world_age(met_host):
+    # Plan 11d Task 9c: each minute moves the window to its age; a jump zeroes the hours it passes (offline time is
+    # not integrated), and no close stamp is kept
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
-    assert record["body"]["lastCloseAgeH"] == 100.0  # K.body.new stamps creation
+    t = record["body"]["trail"]
+    assert t["at"] == 100.0 and "lastCloseAgeH" not in h.py(record["body"])
+    minute(h, p, record, 100.5)
+    assert t["at"] == 100.5 and t.ee[h.K.body.trailSlot(100)] > 0
     minute(h, p, record, 124.25)
-    assert abs(record["body"]["lastCloseAgeH"] - 124.25) < TOL
+    assert t["at"] == 124.25
+    assert t.ee[h.K.body.trailSlot(110)] == 0 and t.ee[h.K.body.trailSlot(124)] > 0
 
 
 def test_a_non_finite_stamp_heals_and_counts(met_host):
@@ -690,7 +711,7 @@ def test_heal_covers_day_index_ages_and_creation_masses(met_host):
     body = record["body"]
     body.dayIndex = NAN
     body.lastAgeH = NAN
-    body.lastCloseAgeH = float("inf")
+    body.trail.at = float("inf")
     body.fm0 = NAN
     body.lm0 = NAN
     failures = MET(h).stats.failures
@@ -699,10 +720,10 @@ def test_heal_covers_day_index_ages_and_creation_masses(met_host):
     assert body["dayIndex"] == 5               # floor(130 / 24); a NaN never stops the closes
     assert MET(h).stats.days == days           # healed to today: no spurious close
     assert body["lastAgeH"] == 130.0
-    assert body["lastCloseAgeH"] == 130.0
+    assert body["trail"]["at"] == 130.0
     assert abs(body["fm0"] - body["fm"]) < 1e-6 and abs(body["lm0"] - body["lm"]) < 1e-6
     assert MET(h).stats.failures == failures + 1
-    for k in ("dayIndex", "lastAgeH", "lastCloseAgeH", "fm0", "lm0"):
+    for k in ("dayIndex", "lastAgeH", "trail.at", "fm0", "lm0"):
         assert k in MET(h).lastError
     assert nonfinite(h, record) == ""
     minute(h, p, record, 154.0)
@@ -730,15 +751,15 @@ def test_heal_stamps_non_finite_ring_slots(met_host):
     record = fresh(h, p, 100.0)
     body = record["body"]
     body.p7[2] = NAN
-    body.carb7[7] = float("inf")
-    body.lip7[4] = NAN
+    body.eb7[7] = float("inf")
+    body.trail.carb[h.K.body.trailSlot(100)] = NAN   # the window's current hour (Plan 11d Task 9c)
     body.mass7[1] = NAN
     failures = MET(h).stats.failures
     minute(h, p, record, 100.0 + 1 / 60)
-    assert body["p7"][2] == 0 and body["carb7"][7] == 0 and body["lip7"][4] == 0
+    assert body["p7"][2] == 0 and body["eb7"][7] == 0 and body["trail"]["carb"][h.K.body.trailSlot(100)] == 0
     assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < 1e-6
     assert MET(h).stats.failures == failures + 1
-    for k in ("p7", "carb7", "lip7", "mass7"):
+    for k in ("p7", "eb7", "trail.carb", "mass7"):
         assert k in MET(h).lastError
     assert nonfinite(h, record) == ""
 
@@ -792,7 +813,7 @@ def test_an_unreadable_world_age_skips_the_minute(met_host):
     ee = body["eeDay"]
     minute(h, p, record, NAN)                  # getWorldAgeHours answers NaN
     assert MET(h).stats.badReads == bad + 1
-    assert body["lastAgeH"] == 100.0 and body["lastCloseAgeH"] == 100.0   # never stamped 0
+    assert body["lastAgeH"] == 100.0 and body["trail"]["at"] == 100.0   # never stamped 0
     assert body["eeDay"] == ee
     record2 = h.rt.table()
     minute(h, p, record2, NAN)                 # no body is built off an unreadable age
@@ -1178,21 +1199,18 @@ def _plan4(h, nutrients=None, fluids=None, acute=None, alcDay=None, **pkw):
     return record
 
 
-def _activity_es(h, record, hsince, fatDep=0, ee24=True):
+def _activity_es(h, record, fatDep=0, ee24=True):
     """The energy state Metabolism stamps since Plan 11c Task 6 (spec s5c; amendment 4), rebuilt from the record:
-    K.energy.activityState(eb24h, ex24h, L, fatDep, ee24h), ex24h the trailing-24 h exercise kcal (today's
-    exKcalDay blended with the closed day's exKcalPrev, as K.energy.eb24h blends the balance) and ee24h the
-    trailing-24 h expenditure the Nutrients adapter builds (today's eeDay blended with the closed day's, floored at
-    the resting expenditure)."""
+    K.energy.activityState(eb24h, ex24h, L, fatDep, ee24h), each 24 h figure off the trailing-24 h window (Plan 11d
+    Task 9c): ex24h its exercise kcal and ee24h its expenditure floored at the resting expenditure (MET.ee24, as the
+    Nutrients adapter reads it)."""
     E, B = h.K.energy, h.K.body
     body = record["body"]
-    ex24 = B.blend24(body["exKcalDay"], body["exKcalPrev"] or 0, hsince)
-    ee_yest = E.ree(body["lm"])
-    if body["inDayClosed"] is not None:
-        ee_yest = body["inDayClosed"] - body["eb7"][7]
-    ee24h = max(B.blend24(body["eeDay"], ee_yest, hsince), E.ree(body["lm"]))
+    t = body["trail"]
+    ex24 = B.trail24(t, "ex")
+    ee24h = max(B.trail24(t, "ee"), E.ree(body["lm"]))
     L = record["satiety"]["L"]
-    return E.activityState(E.eb24h(body, hsince), ex24, L, fatDep, ee24h if ee24 else None)
+    return E.activityState(E.eb24h(body), ex24, L, fatDep, ee24h if ee24 else None)
 
 
 def _excess(h, body):
@@ -1216,7 +1234,7 @@ def test_a_pre_plan4_record_reads_the_plan3_values(met_host, opts):
     assert body["dmod"] == _dmod(h, body)
     assert body["rmod"] == _rmod(h, body)
     assert abs(body["dmod"] - 1.0) < TOL and abs(body["rmod"] - 1.0) < TOL
-    assert body["energyState"] == _activity_es(h, record, 1 / 60)   # Plan 11c Task 6: the walker's exercise lagged
+    assert body["energyState"] == _activity_es(h, record)   # Plan 11c Task 6: the walker's exercise lagged
 
 
 def test_iron_grade_four_reaches_dmod_and_rmod(met_host, opts):
@@ -1278,7 +1296,7 @@ def test_the_acute_scalars_reach_dmod_rmod_and_the_energy_state(met_host, opts):
     assert 0 < caf < 1
     assert body["dmod"] == _dmod(h, body, g=0.5, awake=22.0, caf=caf, tol=0.25)
     assert body["rmod"] == _rmod(h, body, g=0.5, debt=12.0)
-    assert body["energyState"] == _activity_es(h, record, 1 / 60)    # g does not enter the state (ruling T4-1)
+    assert body["energyState"] == _activity_es(h, record)    # g does not enter the state (ruling T4-1)
 
 
 def test_the_day_alcohol_reaches_rmod_per_kg(met_host, opts):
@@ -1394,7 +1412,7 @@ def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
     assert abs(ex - (3.8 - 1.3) * w / 60) < 1e-9
     assert record["satiety"]["L"] == pytest.approx(h.K.energy.exerciseLag(0, ex, 1 / 60), rel=1e-12)
     assert record["satiety"]["L"] > 0
-    assert body["energyState"] == _activity_es(h, record, 1 / 60)
+    assert body["energyState"] == _activity_es(h, record)
 
 
 def test_the_minute_stamps_the_class_and_the_exercise_flag_on_the_context_for_the_writer(met_host):
@@ -1415,65 +1433,62 @@ def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_hos
     # S1330-S1332: with yesterday in surplus, balanced and in deficit, the walker's es is never below the state the
     # same intake reads with no activity, K.energy.state(eb24h + ex24h): the exercise kcal added back to the balance
     h = met_host
-    for eb7 in (1200.0, 0.0, -800.0):
+    for eb in (1200.0, 0.0, -800.0):
         p = player(h)
         record = fresh(h, p)
         body = record["body"]
-        body.eb7[7] = eb7
-        body.exKcalPrev = 600.0
+        seed(h, body, kcal=2000.0 + eb, ee=2000.0, ex=600.0)   # the hour before: the balance eb, 600 kcal of it exercise
         minute(h, p, record, 100.0 + 1 / 60)
-        ex24 = h.K.body.blend24(body["exKcalDay"], body["exKcalPrev"], 1 / 60)
-        plain = h.K.energy.state(h.K.energy.eb24h(body, 1 / 60) + ex24, 0)
-        assert ex24 > 590 and body["energyState"] >= plain, eb7
-        assert body["energyState"] == _activity_es(h, record, 1 / 60)
+        ex24 = h.K.body.trail24(body["trail"], "ex")
+        plain = h.K.energy.state(h.K.energy.eb24h(body) + ex24, 0)
+        assert ex24 > 590 and body["energyState"] >= plain, eb
+        assert body["energyState"] == _activity_es(h, record)
 
 
 def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure(met_host):
-    # yesterday: 1500 kcal eaten against 3000 spent (inDayClosed 1500, eb7[7] -1500: eeYest 3000), 800 kcal of it
-    # exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.5 > EX_BYPASS_HI 0.45, so the lag is bypassed
+    # the window: 1500 kcal eaten against 3000 spent, 800 kcal of it exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.5 > EX_BYPASS_HI 0.45, so the lag is bypassed
     # whole and es reads the balance as if the exercise were food restriction (S1325); the same record without the
     # 24 h expenditure bypasses nothing (the kernel's ee24h nil), so the adapter is what passes it
     h = met_host
-    p = player(h, moving=False, rate=1.5)                  # idle: no exercise this minute, ex24h from yesterday
+    p = player(h, moving=False, rate=1.5)                  # idle: no exercise this minute, ex24h from the hour before
     record = fresh(h, p)
     body = record["body"]
-    body.eb7[7] = -1500.0
-    body.inDayClosed = 1500.0
-    body.exKcalPrev = 800.0
+    seed(h, body, kcal=1500.0, ee=3000.0, ex=800.0)
     minute(h, p, record, 100.0 + 1 / 60)
     es = body["energyState"]
-    with_ee = _activity_es(h, record, 1 / 60)
-    without = _activity_es(h, record, 1 / 60, ee24=False)
-    eb = h.K.energy.eb24h(body, 1 / 60)
+    with_ee = _activity_es(h, record)
+    without = _activity_es(h, record, ee24=False)
+    eb = h.K.energy.eb24h(body)
     assert es == with_ee
     assert es > without + 0.2                              # the bypass moves es by about 0.5 x 800 / 1500
     assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 
-def test_the_close_banks_the_days_exercise_kcal_for_the_24h_blend(met_host):
-    # Plan 11c Task 6: the partition close zeroes exKcalDay, so the closing day's exercise is banked in
-    # body.exKcalPrev first; an idle minute adds none, so the bank is the day's 300 kcal exactly
+def test_the_window_keeps_the_exercise_a_day_close_zeroes(met_host):
+    # Plan 11d Task 9c: the partition close zeroes exKcalDay; the window, not a closed-day bank (Plan 11c's exKcalPrev,
+    # retired), carries the bout: at 124.25 the bout's hour (100) is the oldest, three quarters inside; idle adds none
     h = met_host
     p = player(h, moving=False, rate=1.5)
     record = fresh(h, p, 100.0)
     body = record["body"]
     body.exKcalDay = 300.0
+    seed(h, body, hour=100, ex=300.0)
     minute(h, p, record, 124.25)
-    assert body["exKcalPrev"] == 300.0 and body["exKcalDay"] == 0
+    assert body["exKcalDay"] == 0 and "exKcalPrev" not in h.py(body)
+    assert abs(h.K.body.trail24(body["trail"], "ex") - 0.75 * 300.0) < 1e-9
 
 
-def test_a_non_finite_lag_or_bank_heals_and_counts(met_host):
-    # amendment 4: L and exKcalPrev heal to 0 when non-finite, and L when negative (the Task 4b re-review's residual);
-    # each heal counts in the adapter's guard count
+def test_a_non_finite_or_negative_lag_heals_and_counts(met_host):
+    # amendment 4: L heals to 0 when non-finite or negative (the Task 4b re-review's residual); each heal counts in the
+    # adapter's guard count (the closed-day exercise bank it healed beside L went with the 24 h blend, Plan 11d Task 9c)
     h = met_host
     p = player(h, moving=False, rate=1.5)
-    for L, bank in ((float("nan"), 0.0), (-5.0, 0.0), (0.0, float("nan"))):
+    for L in (float("nan"), -5.0, float("inf")):
         record = fresh(h, p)
         record.satiety = h.table({"L": L})
-        record["body"].exKcalPrev = bank
         g0 = MET(h).guarded
         minute(h, p, record, 100.0 + 1 / 60)
-        assert record["satiety"]["L"] == 0 and record["body"]["exKcalPrev"] == 0
+        assert record["satiety"]["L"] == 0
         assert MET(h).guarded == g0 + 1
         assert nonfinite(h, record) == ""
 

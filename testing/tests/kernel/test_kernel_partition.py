@@ -250,10 +250,10 @@ def test_close_day_rotates_and_zeroes(host):
     b = _body(host, ebDay=-321, fm=14.0, lm=65.0, inDay=2100, eeDay=2421, actKcalDay=400, exKcalDay=150, pDay=90,
               carbDay=250, lipDay=70, alcDay=14, dayIndex=9,
               eb7=_ring([1, 2, 3, 4, 5, 6, 7]), mass7=_ring([80, 81, 82, 83, 84, 85, 86]),
-              p7=_ring([0] * 7), carb7=_ring([0] * 7), lip7=_ring([0] * 7))
-    host.K.partition.closeDay(b, 247.0)
+              p7=_ring([0] * 7))
+    host.K.partition.closeDay(b)
     py = host.py(b)
-    assert py["lastCloseAgeH"] == 247.0
+    assert "lastCloseAgeH" not in py                     # the trailing window runs on the clock (Plan 11d Task 9c)
     assert list(py["eb7"].values()) == [2, 3, 4, 5, 6, 7, -321]
     assert list(py["mass7"].values()) == [81, 82, 83, 84, 85, 86, 79.0]
     for k in ("inDay", "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay"):
@@ -261,19 +261,16 @@ def test_close_day_rotates_and_zeroes(host):
     assert py["dayIndex"] == 10
 
 
-def test_close_day_keeps_the_closed_day_macros_in_the_newest_cell(host):
-    # Task 15: the legacy mirror blends today with yesterday, so closeDay pushes pDay, carbDay and
-    # lipDay into the newest cell of p7, carb7 and lip7 before it zeroes them.
+def test_close_day_keeps_the_closed_day_protein_in_the_newest_cell(host):
+    # closeDay pushes pDay into the newest cell of p7 (NR_Server_Effects' protein week) before it zeroes the day's
+    # macros; since Plan 11d Task 9c no carbohydrate or lipid ring is kept (the trailing window reads the clock)
     b = _body(host, ebDay=0, fm=14.0, lm=65.0, inDay=0, eeDay=0, actKcalDay=0, pDay=96, carbDay=310,
               lipDay=72, alcDay=0, dayIndex=3, eb7=_ring([0] * 7), mass7=_ring([79] * 7),
-              p7=_ring([10, 20, 30, 40, 50, 60, 70]), carb7=_ring([1, 2, 3, 4, 5, 6, 7]),
-              lip7=_ring([7, 6, 5, 4, 3, 2, 1]))
-    host.K.partition.closeDay(b, 79.0)
+              p7=_ring([10, 20, 30, 40, 50, 60, 70]))
+    host.K.partition.closeDay(b)
     py = host.py(b)
-    assert py["lastCloseAgeH"] == 79.0
     assert list(py["p7"].values()) == [20, 30, 40, 50, 60, 70, 96]
-    assert list(py["carb7"].values()) == [2, 3, 4, 5, 6, 7, 310]
-    assert list(py["lip7"].values()) == [6, 5, 4, 3, 2, 1, 72]
+    assert "carb7" not in py and "lip7" not in py
     assert py["pDay"] == 0 and py["carbDay"] == 0 and py["lipDay"] == 0
 
 

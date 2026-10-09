@@ -339,21 +339,25 @@ def test_no_trait_registry_skips_the_repair(wgt_host):
 
 # --- the legacy macro mirror (ruling 13) -----------------------------------------------------------
 
+def window(h, body, hour, **amounts):
+    """Plan 11d Task 9c: lays amounts in game hour `hour` of the body's trailing-24 h window (built at 99.0, which
+    NR_Server_Metabolism moves and this step only reads) and marks its closed sums for a rebuild."""
+    t = body.trail
+    for k, v in amounts.items():
+        t[k][h.K.body.trailSlot(hour)] = v
+    t.ch = -1
+
+
 def test_mirror_on_writes_the_four_mapped_stores(wgt_host):
     h = wgt_host
     p = player(h)
     record = record_for(h)
     body = record.body
-    body.lastCloseAgeH = 100.0 - 12.0                   # half of yesterday still in the window
-    h.G.NR_TEST_TOD = 0.0                               # the clock hour never enters the blend
-    body.ebDay = -250.0
-    body.eb7[7] = -500.0                                # eb24h = -250 + -500 * 0.5 = -500
-    body.pDay = 48.0
-    body.p7[7] = 96.0                                   # (48 + 48) / 80 = 1.2 g/kg/d
-    body.carbDay = 100.0
-    body.carb7[7] = 400.0                               # 300 g -> 0
-    body.lipDay = 50.0
-    body.lip7[7] = 100.0                                # 100 g -> 30
+    h.G.NR_TEST_TOD = 0.0                               # the clock hour never enters the window
+    body.ebDay = 900.0                                  # the day's figures are not read: the window is
+    body.pDay = 500.0
+    window(h, body, 98, kcal=1500.0, ee=2000.0, p=48.0, carb=300.0, lip=100.0)   # eb24h -500; 300 g -> 0; 100 g -> 30
+    window(h, body, 90, p=48.0)                         # (48 + 48) / 80 = 1.2 g/kg/d
     s0 = stats(h)
     minute(h, p, record)
     assert calls(p, "setCalories") == [-500.0]
@@ -367,16 +371,13 @@ def test_mirror_on_writes_the_four_mapped_stores(wgt_host):
     assert stats(h)["mirrorWrites"] == s0["mirrorWrites"] + 1
 
 
-def test_mirror_reads_today_only_at_midnight_and_clamps(wgt_host):
+def test_mirror_clamps_to_the_stores(wgt_host):
     h = wgt_host
     p = player(h)
     record = record_for(h)
     body = record.body
-    body.lastCloseAgeH = 100.0 - 24.0                   # yesterday weighs 0
-    body.ebDay = 5000.0
-    body.eb7[7] = -9000.0
-    body.pDay = 0.0
-    body.p7[7] = 500.0
+    window(h, body, 99, kcal=9000.0)                    # the current hour: a 9000 kcal surplus, no protein
+    body.p7[7] = 500.0                                  # a closed day's protein is not the window's
     minute(h, p, record)
     assert calls(p, "setCalories") == [3700.0]          # the store's ceiling (#0022)
     assert calls(p, "setProteins") == [-400.0]          # P = 0 g/kg/d
@@ -458,34 +459,35 @@ def test_a_raising_setter_never_raises_into_the_walk(wgt_host):
 
 
 def test_the_rings_are_not_rebuilt_here(wgt_host):
-    # NR_Server_Metabolism owns the ring rebuild (it runs first in the minute); a ring missing here is
-    # a failure counted under the pcall, after the weight write
+    # NR_Server_Metabolism owns the window (it runs first in the minute); a window missing here is a failure counted
+    # under the pcall, after the weight write
     h = wgt_host
     p = player(h)
     record = record_for(h)
-    record.body.p7 = None
+    record.body.trail = None
     s0 = stats(h)
     minute(h, p, record)
-    assert record.body.p7 is None
+    assert record.body.trail is None
     assert calls(p, "setWeight") == [80.0]
     assert stats(h)["failures"] == s0["failures"] + 1
     with open(WEIGHT, encoding="utf-8") as fh:
         assert "RINGS" not in fh.read()
 
 
-def test_mirror_blend_on_hours_since_close(wgt_host):
+def test_mirror_reads_the_oldest_hour_by_its_share_inside_the_window(wgt_host):
+    # Plan 11d Task 9c: at 99.25 the oldest hour (75) is three quarters inside the window, at 99.75 a quarter
     h = wgt_host
     p = player(h)
     record = record_for(h)
     body = record.body
-    body.lastCloseAgeH = 100.0 - 6.0                    # three quarters of yesterday in the window
-    body.carbDay = 100.0
-    body.carb7[7] = 400.0
+    body.trail.at = 99.25
+    window(h, body, 75, carb=400.0)
+    window(h, body, 99, carb=100.0)
     minute(h, p, record)
-    assert calls(p, "setCarbohydrates") == [100.0]      # 100 + 400 x 0.75 - 300
-    body.lastCloseAgeH = 100.0 + 3.0                    # a close ahead of the age reads the full day
+    assert calls(p, "setCarbohydrates") == [100.0]      # 400 x 0.75 + 100 - 300
+    body.trail.at = 99.75
     minute(h, p, record)
-    assert calls(p, "setCarbohydrates")[1] == 200.0
+    assert calls(p, "setCarbohydrates")[1] == -100.0    # 400 x 0.25 + 100 - 300
 
 
 def test_absent_apply_trait_stamps_no_band_and_pushes_nothing(wgt_host):

@@ -15,10 +15,10 @@
 --
 -- The legacy mirror (ruling 13): calories = the trailing-24 h energy balance; proteins = the piecewise
 -- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
--- reference; each blends today with yesterday's closed day on the hours since the last day close
--- (K.body.blend24, as K.energy.eb24h does), clamped to the stores (#0022, #0023). A plain overwrite every
--- minute. The p7, carb7 and lip7 rings are NR_Server_Metabolism's (K.body.new lays them, its heal keeps them
--- finite) before this file reads them. When all four setters answer, the four values written become the record's
+-- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail, Plan 11d
+-- Task 9c, as K.energy.eb24h reads it), clamped to the stores (#0022, #0023). A plain overwrite every
+-- minute. The window is NR_Server_Metabolism's (K.body.new lays it, Metabolism moves it and its heal keeps it
+-- finite) before this file reads it. When all four setters answer, the four values written become the record's
 -- reconciliation baseline (record.reconcile.baseline, Plan 8 ruling 6): NR_Server_Reconcile, earlier in the
 -- same minute, compares the stores against the mod's own last write. A band change also marks the bus
 -- (B.markBand, ruling 7), so the mirror's body_band goes out with the next effects flush.
@@ -52,17 +52,6 @@ WGT.BAND_TRAIT = {
 -- The five band traits applyTraitFromWeight removes before it adds one back (#2722).
 WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 local finite = NR.finite
-
--- The hours since the body's last day close (world age less lastCloseAgeH), or 0 -- the full blend --
--- when either is unreadable.
-local function hoursSinceClose(body)
-    if getGameTime == nil then return 0 end
-    local ok, gt = pcall(getGameTime)
-    if not ok or gt == nil then return 0 end
-    local okA, age = NR.call(gt, "getWorldAgeHours")
-    if not okA or not finite(age) or not finite(body.lastCloseAgeH) then return 0 end
-    return age - body.lastCloseAgeH
-end
 
 -- The trait-block push (#2099): a Java global called with a dot (#2815); absent -> counted.
 local function push(player)
@@ -98,13 +87,13 @@ local function needsRepair(player, band)
     return false
 end
 
--- The legacy macro mirror: the four stores off the trailing-24 h blend of today and yesterday.
+-- The legacy macro mirror: the four stores off the trailing-24 h window.
 local function mirror(nut, body, w)
-    local hsc = hoursSinceClose(body)
-    local p24h = K.body.blend24(body.pDay, body.p7[7], hsc) / w
-    local carb24h = K.body.blend24(body.carbDay, body.carb7[7], hsc)
-    local lip24h = K.body.blend24(body.lipDay, body.lip7[7], hsc)
-    local cal = K.body.mapCalories(K.energy.eb24h(body, hsc))
+    local t = body.trail
+    local p24h = K.body.trail24(t, "p") / w
+    local carb24h = K.body.trail24(t, "carb")
+    local lip24h = K.body.trail24(t, "lip")
+    local cal = K.body.mapCalories(K.energy.eb24h(body))
     local prot = K.body.mapProteins(p24h)
     local carb = K.body.mapCarbs(carb24h)
     local lip = K.body.mapLipids(lip24h)

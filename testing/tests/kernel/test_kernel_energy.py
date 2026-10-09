@@ -23,7 +23,9 @@ def _body(host, **kw):
     d = dict(lm=65.6, fm=14.4, at=0.0, inDay=0.0, eeDay=0.0, ebDay=0.0, actKcalDay=0.0, exKcalDay=0.0,
              pDay=0.0, carbDay=0.0, lipDay=0.0)
     d.update(kw)
-    return host.table(d)
+    b = host.table(d)
+    b.trail = host.K.body.newTrail(0.5)                 # the trailing-24 h window (Plan 11d Task 9c), at hour 0
+    return b
 
 
 # --- constants ---
@@ -236,27 +238,53 @@ def test_intake_accumulates_and_eb_follows(host):
     host.K.energy.intake(b, a, 1)
     assert _close(b.inDay, 500) and _close(b.pDay, 24) and _close(b.carbDay, 60) and _close(b.lipDay, 18)
     assert _close(b.ebDay, 200)
+    t = b.trail                                         # the window's current hour takes the same four
+    assert (t.kcal[1], t.p[1], t.carb[1], t.lip[1]) == (500.0, 24.0, 60.0, 18.0)
+
+
+def test_minute_books_its_expenditure_and_exercise_into_the_window(host):
+    b = _body(host, lm=60.0, fm=20.0)
+    ee, _ = host.K.energy.minute(b, 3.8, True, 1, 10)
+    t = b.trail
+    assert _close(t.ee[1], ee) and _close(t.ex[1], b.exKcalDay) and t.ex[1] > 0
 
 
 # --- eb24h and state ---
 
-def test_eb24h(host):
-    b = host.table(dict(ebDay=-500.0, eb7={1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: -1000.0}))
+def test_eb24h_is_the_windows_intake_less_its_expenditure(host):
+    # Plan 11d Task 9c (ruling C-8): the trailing-24 h window, not the evenly-spread blend of today and the closed day
+    B = host.K.body
+    b = _body(host)
+    t = b.trail
+    B.trailAdd(t, "kcal", 700.0)                        # hour 0: a meal, and 60 kcal spent
+    B.trailAdd(t, "ee", 60.0)
+    for h in range(1, 24):
+        B.trailTo(t, h + 0.5)
+        B.trailAdd(t, "ee", 80.0)
     e = host.K.energy
-    assert _close(e.eb24h(b, 12), -1000)
-    assert _close(e.eb24h(b, 0), -1500)
-    assert _close(e.eb24h(b, 24), -500)
+    assert _close(e.eb24h(b), 700 - 60 - 23 * 80)
+    B.trailTo(t, 24.25)                                 # hour 24: three quarters of hour 0 still inside
+    assert _close(e.eb24h(b), 0.75 * (700 - 60) - 23 * 80)
+    B.trailTo(t, 25.0)                                  # hour 0 has left the window: the meal with it
+    assert _close(e.eb24h(b), -23 * 80)
 
 
-def test_eb24h_reads_hours_since_the_last_close(host):
-    # Close fix wave (T18 defect 2): the blend runs on hours since the last close, clamped, so the
-    # window never stretches past 24 h whatever the clock reads.
-    b = host.table(dict(ebDay=250.0, eb7={1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 400.0}))
-    e = host.K.energy
-    assert _close(e.eb24h(b, 0), 650)
-    assert _close(e.eb24h(b, 24), 250)
-    assert _close(e.eb24h(b, 31), 250)
-    assert _close(e.eb24h(b, 6), 250 + 400 * 0.75)
+def test_a_balanced_eater_reads_balance_before_breakfast(host):
+    # the bug the window fixes (Task 9 review A): three meals at 08:00, 13:00 and 20:00 against an even 81.25 kcal an
+    # hour; at 07:59 the closed-day blend read about -560 kcal, the window reads the day's balance, 0
+    B = host.K.body
+    b = _body(host)
+    t = b.trail
+    worst = 0.0
+    for m in range(1, 3 * 1440 + 1):
+        age = m / 60
+        B.trailTo(t, age)
+        if m % 1440 in (8 * 60 + 1, 13 * 60 + 1, 20 * 60 + 1):
+            B.trailAdd(t, "kcal", 650.0)
+        B.trailAdd(t, "ee", 1950.0 / 1440)
+        if m > 1440 and m % 60 == 0:
+            worst = max(worst, abs(host.K.energy.eb24h(b)))
+    assert worst < 1950.0 / 1440 + 1e-6, worst          # at every hour end: within the one minute the slot attribution moves
 
 
 @pytest.mark.parametrize("eb,dep,es", [(-1500, 0, 1.5), (1500, 0, 0.5), (0, 1, 1.5), (-3000, 1, 2.0),

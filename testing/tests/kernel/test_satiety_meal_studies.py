@@ -627,12 +627,12 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # deficit floor, K.hybrid.DEFICIT_FLOOR, and the -eb24h / 1500 slope of K.energy.state), never a patch to the model.
 #
 # The fast replay runs the energy path the way NR_Server_Metabolism.step and NR_Server_Nutrients build it, one game
-# minute a step: the eat books its vector into the day (K.energy.intake), the minute's expenditure (K.energy.minute),
-# the exercise lag (K.energy.exerciseLag), the day close (K.partition.closeDay, with inDayClosed and exKcalPrev
-# stamped as closeDay stamps them), the energy state (K.energy.activityState on K.energy.eb24h, the trailing-24 h
-# exercise kcal, the lag, fatDep and the 24 h expenditure MET.ee24 computes), then the glycogen step
-# (K.acute.glycogen on the trailing-24 h carbohydrate g/kg, K.body.blend24 over carbDay and carb7[7]), logged beside
-# the state, which does not read it (ruling T4-1). Its simplifications, stated:
+# minute a step: the trailing-24 h window moved to the minute's age (K.body.trailTo, Plan 11d Task 9c), the eat books
+# its vector into the day and the window (K.energy.intake), the minute's expenditure (K.energy.minute), the exercise
+# lag (K.energy.exerciseLag), the day close (K.partition.closeDay, with inDayClosed stamped as closeDay stamps it), the
+# energy state (K.energy.activityState on K.energy.eb24h, the window's exercise kcal, the lag, fatDep and the 24 h
+# expenditure MET.ee24 reads), then the glycogen step (K.acute.glycogen on the window's carbohydrate g/kg), logged
+# beside the state, which does not read it (ruling T4-1). Its simplifications, stated:
 # - one 70 kg man from K.body.new (sex 1, no build flags, Strength 5, carry and responder 1), awake 07:00-23:00 at
 #   MET 1.3 (the idle class, COMPENDIUM.Default) and asleep at 1.0 (Sleeping), resting, coldMult 1: no exercise, so
 #   the lag and the trailing exercise kcal stay 0 (the ee24, ex24 and L build is inert: the bypass path is untested);
@@ -664,7 +664,6 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
     local hook, mask = debug.gethook()
     debug.sethook()
     local body = K.body.new(70, 1, {}, 5, 1, 1, 0)
-    body.exKcalPrev = 0
     local a = K.acute.new(0)
     local L = 0
     local w0 = body.fm + body.lm
@@ -678,6 +677,8 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
     for m = 0, days * 1440 - 1 do
         local hod = (m / 60) % 24
         local w = body.fm + body.lm
+        local ageH = (m + 1) / 60
+        K.body.trailTo(body.trail, ageH)
         local kind = plan[m]
         if kind ~= nil then
             local kcal = maint / 3
@@ -706,21 +707,13 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, 1)
         L = K.energy.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
-        local ageH = (m + 1) / 60
         if math.floor(ageH / 24) > body.dayIndex then
             body.inDayClosed = body.inDay
-            body.exKcalPrev = body.exKcalDay
-            K.partition.closeDay(body, ageH)
+            K.partition.closeDay(body)
         end
-        local hSince = ageH - body.lastCloseAgeH
-        local ree = K.energy.ree(body.lm)
-        local eeYest = ree
-        if body.inDayClosed ~= nil then
-            eeYest = body.inDayClosed - body.eb7[7]
-        end
-        local ee24 = K.max(K.body.blend24(body.eeDay, eeYest, hSince), ree)
-        local ex24 = K.body.blend24(body.exKcalDay, body.exKcalPrev, hSince)
-        local eb24 = K.energy.eb24h(body, hSince)
+        local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
+        local ex24 = K.body.trail24(body.trail, "ex")
+        local eb24 = K.energy.eb24h(body)
         es = K.energy.activityState(eb24, ex24, L, 0, ee24)
         if logs[m + 1] then
             out[m + 1] = {
@@ -729,7 +722,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
                 eb24 = eb24,
             }
         end
-        K.acute.glycogen(a, met, 1, K.body.blend24(body.carbDay, body.carb7[7], hSince) / w, 1 / 60)
+        K.acute.glycogen(a, met, 1, K.body.trail24(body.trail, "carb") / w, 1 / 60)
     end
     debug.sethook(hook, mask)
     return intake, out, maint
@@ -832,37 +825,46 @@ def test_a_36_h_fast_raises_next_day_intake_and_day_3_falls_back(host):
 
 
 def test_the_36_h_fast_intake_ratios_are_pinned(host):
-    # Pinned diagnostics (ruling 11d-3), re-pinned by Plan 11d Task 4b (ruling T4-1, the glycogen term retired; Task 4
-    # read 1.259 and 0.944 with it): the day after the fast 1.197 (S1613 1.20: 1.003x below), day 3 0.950 (S1614 1.0:
-    # 1.05x below). Under the intake mapping these are the summed written hunger at the meal requests, fast arm over
-    # fed arm (see the section's head): the fed arm itself eats 2,241 kcal on day 2 against the 1,949 kcal maintenance
-    # day, the trailing-24 h window reading a deficit before each meal
-    r2, r3, _, _, _ = fast_reading(host)
-    assert round(r2, 3) == 1.197, r2
-    assert round(r3, 3) == 0.950, r3
+    # Pinned diagnostics (ruling 11d-3), re-pinned by Plan 11d Task 9c (ruling C-8, the trailing-24 h window; Task 4b
+    # read 1.197 and 0.950, Task 4 1.259 and 0.944): the day after the fast 1.366 (S1613 1.20: 1.14x above), day 3 0.953
+    # (S1614 1.0: 1.05x below). Under the intake mapping these are the summed written hunger at the meal requests, fast
+    # arm over fed arm (see the section's head). Task 4b's 1.197 sat on S1613 only because the closed-day blend read a
+    # phantom deficit before each meal, so the fed arm itself ate 2,241 kcal on day 2 against the 1,949 kcal
+    # maintenance day; on the window the fed arm eats 1,976 and 1,930 kcal on days 2 and 3, and the fast arm 2,700 kcal
+    # on day 2 (2,683 before). The day-2 rise moved away from S1613: a finding for ruling 11d-3 (the -eb24h / 1500
+    # slope and DEFICIT_FLOOR), not tuned here
+    r2, r3, _, ifed, ifast = fast_reading(host)
+    assert round(r2, 3) == 1.366, r2
+    assert round(r3, 3) == 0.953, r3
+    assert [round(x) for x in ifed[2:]] == [1976, 1930] and round(ifast[2]) == 2700, (ifed, ifast)
 
 
 def test_the_fasts_glycogen_is_logged_and_pinned(host):
-    # C9 (ruling 11d-3, the memo's conflict): g at 12, 24 and 36 h of the fast falls, 0.996, 0.881, 0.718, and since
-    # Plan 11d Task 4b (ruling T4-1) the energy state does not read it (Task 4 read a term of 0.001, 0.036, 0.085), so
-    # the state reads 1.186, 1.5 and 1.5: from 24 h on (eb24h -1,617 and -1,858 kcal) the balance term sits at its 0.5
-    # cap and hunger plateaus there, the ruling's named cost
+    # C9 (ruling 11d-3, the memo's conflict): g at 12, 24 and 36 h of the fast falls, 1.0, 0.923, 0.741 (Task 4b: 0.996,
+    # 0.881, 0.718, the closed-day blend's carbohydrate reading low before breakfast), and since Plan 11d Task 4b
+    # (ruling T4-1) the energy state does not read it, so the state reads 1.0, 1.434 and 1.5 (Task 4b: 1.186, 1.5,
+    # 1.5): at 12 h (08:00, an ordinary night) the window holds the whole of day 0 and reads balance (eb24h -1.5 kcal);
+    # at 24 h it reads -1,301 kcal and at 36 h -1,950 kcal, where the balance term sits at its 0.5 cap and hunger
+    # plateaus, the ruling's named cost (Plan 11d Task 9c, ruling C-8)
     _, _, log, _, _ = fast_reading(host)
-    assert [round(x["g"], 3) for x in log] == [0.996, 0.881, 0.718], log
-    assert [round(x["es"], 3) for x in log] == [1.186, 1.5, 1.5], log
+    assert [round(x["g"], 3) for x in log] == [1.0, 0.923, 0.741], log
+    assert [round(x["es"], 3) for x in log] == [1.0, 1.434, 1.5], log
+    assert [round(x["eb24"]) for x in log] == [-1, -1301, -1950], log
 
 
 def test_a_low_carbohydrate_day_at_maintenance_runs_glycogen_down(host):
-    # C9: yes, a low-carbohydrate day runs g down. 24 h of maintenance energy at 50 g of carbohydrate (0.71 g/kg, below
-    # GLYC_PIVOT 3) reads g 0.909, where the mixed arm (50 % carbohydrate, 3.5 g/kg) reads g 1.000 (0.996 at its
-    # lowest, before breakfast). Since Plan 11d Task 4b (ruling T4-1) the energy state no longer reads
-    # g: at equal balance (eb24h -318 kcal in both arms, the window's phase at 20:00) the two arms read the same state,
-    # where Task 4 read a glycogen term of 0.027 on the low-carbohydrate arm. So a low-carbohydrate day at equal
-    # balance no longer raises hunger, consistent with S1451, S1452 and S1259 (a ketogenic deficit blunts appetite):
-    # this test pins the retirement directly
+    # C9: yes, a low-carbohydrate day runs g down. At 20:00, 24 h after day 0's last mixed meal, the low-carbohydrate arm
+    # (50 g a day, 0.71 g/kg, below GLYC_PIVOT 3) reads g 0.951, where the mixed arm (50 % carbohydrate, 3.5 g/kg)
+    # reads g 1.000, before breakfast too. Plan 11d Task 9c (ruling C-8): the window's carbohydrate holds day 0's
+    # dinner until 20:00, so the low arm reads 0.951 where the closed-day blend read 0.909 (and the mixed arm 0.996
+    # before breakfast). Since Plan 11d Task 4b (ruling T4-1) the energy state no longer reads g: at equal balance
+    # (eb24h -1.5 kcal in both arms, the window at 20:00; the blend read -318) the two arms read the same state, where
+    # Task 4 read a glycogen term of 0.027 on the low-carbohydrate arm. So a low-carbohydrate day at equal balance no
+    # longer raises hunger, consistent with S1451, S1452 and S1259 (a ketogenic deficit blunts appetite): this test
+    # pins the retirement directly
     m8, m20, low = lowcarb_reading(host)
-    assert round(m8["g"], 3) == 0.996 and round(m20["g"], 3) == 1.0, (m8, m20)
-    assert round(low["g"], 3) == 0.909, low
+    assert round(m8["g"], 3) == 1.0 and round(m20["g"], 3) == 1.0, (m8, m20)
+    assert round(low["g"], 3) == 0.951, low
     assert low["eb24"] == m20["eb24"] and abs(low["es"] - m20["es"]) < 1e-12, (low, m20)
 
 
@@ -915,3 +917,39 @@ def whey_against_carbohydrate(host):
     hw = hunger(host, {0: [("drink", w)]}, 240)
     hc = hunger(host, {0: [("drink", c)]}, 240)
     return sum(b - a for a, b in zip(hw, hc)) / 240 * 260.0
+
+
+# --- the steady eater (Plan 11d Task 9c, ruling C-8) -----------------------------------------------------------------
+# A balanced eater must read balance at every hour, before breakfast too. The replay is the fast replay's energy path
+# (ENERGY_REPLAY): one maintenance day, then three request-level meals a day at FAST_MEAL_H under the intake mapping, so
+# each meal's kcal follows the energy state the window gives it. Before the trailing-24 h window (the evenly-spread
+# blend of today and the closed day, K.body.blend24 until Task 9c) the state read 1.137 at 08:00 and 0.830 at 21:00 of a
+# steady day, and the request-level eater ate 2241.4, 2169.1 and 2186.9 kcal on days 2-4 against the 1948.7 kcal
+# maintenance day (Task 9 review A).
+STEADY_DAYS = 5                 # day 1 maintenance, days 2-5 request-level
+STEADY_TOL = 0.03               # the brief's band: the state within 1.00 +- 0.03, the intake within 1.00 +- 0.03 x maintenance
+
+
+def steady_reading(host):
+    """Returns (intake on days 2-4 over maintenance, the energy state at each hour end of day 5, 01:00 to 24:00)."""
+    plan = {}
+    for d in range(STEADY_DAYS):
+        kind = "maint" if d == 0 else "request"
+        plan.update({int(d * 1440 + h * 60): kind for h in FAST_MEAL_H})
+    hours = [int((STEADY_DAYS - 1) * 1440 + h * 60) for h in range(1, 25)]
+    intake, log, maint = energy_replay(host, plan, STEADY_DAYS, hours)
+    return [x / maint for x in intake[1:4]], [log[m]["es"] for m in hours]
+
+
+def test_a_steady_eater_reads_balance_at_every_hour(host):
+    # on the trailing-24 h window (Task 9c) the state reads 1.0006 to 1.0027 at every hour end of day 5
+    _, es = steady_reading(host)
+    assert all(abs(e - 1) <= STEADY_TOL for e in es), [round(e, 3) for e in es]
+    assert round(min(es), 4) == 1.0006 and round(max(es), 4) == 1.0027, es
+
+
+def test_a_request_level_eater_eats_maintenance(host):
+    # on the window: 1.0138, 0.9904 and 0.9996 x maintenance on days 2-4 (1975.6, 1930.0 and 1947.9 kcal)
+    ratios, _ = steady_reading(host)
+    assert all(abs(r - 1) <= STEADY_TOL for r in ratios), [round(r, 4) for r in ratios]
+    assert [round(r, 4) for r in ratios] == [1.0138, 0.9904, 0.9996], ratios

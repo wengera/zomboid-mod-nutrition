@@ -64,18 +64,23 @@ MET.BUILD_TRAITS = {
 -- pre-step heal -- the later steps of the minute (the writer among them), the bus step (first in ORDER) and
 -- the store step -- are copied after the pre-step heal and re-stamped from the copy when the step leaves them
 -- non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read). A ring takes this minute's values only
--- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded.
+-- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded. The trailing-24 h
+-- window (Plan 11d Task 9c) takes values this minute only in its age and its current hour's slot, so those are guarded.
 MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
-              "inDayClosed", "dayIndex", "lastCloseAgeH", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
-              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp", "exKcalPrev" }
-MET.GUARD_RINGS = { "eb7", "p7", "carb7", "lip7", "mass7" }
+              "inDayClosed", "dayIndex", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
+              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp" }
+MET.GUARD_RINGS = { "eb7", "p7", "mass7" }
+MET.GUARD_TRAIL = { "at" }
+MET.TRAIL_SLOT = { 1 }
+MET.snapTrail = {}
+MET.snapTrailRings = {}
 -- Plan 11c Task 8: the exercise lag on record.satiety, stepped here, healed by the writer and saved by the store.
 MET.GUARD_SATIETY = { "L" }
 MET.snapSatiety = {}
 MET.SLOT7 = { 7 }
 MET.BAND_SLOT = { 1, 2 }
 MET.snap = {}
-MET.snapRings = { eb7 = {}, p7 = {}, carb7 = {}, lip7 = {}, mass7 = {} }
+MET.snapRings = { eb7 = {}, p7 = {}, mass7 = {} }
 MET.snapBand = {}
 MET.guarded = 0
 
@@ -233,7 +238,7 @@ end
 -- One day close: the disuse day count (before the partition, so the first immobilised day runs with
 -- t = 1 off the lean mass it began on), the partition, the strength bookkeeping (reads ebDay), the
 -- training ring, TAC, the partition ring (pushes today's balance into eb7, zeroes the day accumulators,
--- advances dayIndex, stamps lastCloseAgeH), then adaptive thermogenesis. Each reader runs after the
+-- advances dayIndex), then adaptive thermogenesis. Each reader runs after the
 -- writer of what it reads (the x141c one-close lag): the training ring shifts the closing day in BEFORE
 -- TAC reads the week (run x141c-20261005-132133); TAC's energy gate reads the closing day's inDay and
 -- exKcalDay (ruling W-1) and its immobilised flag (ruling W-2) before the partition ring zeroes them;
@@ -256,8 +261,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     K.aerobic.tacDay(body, m1, hard, K.aerobic.G_IRON[ironGrade], K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), K.aerobic.gSleep(debtH), 1, immobilised)
     body.pPrevKg = pPerKg
     body.inDayClosed = body.inDay                        -- the closing day's absorbed kcal, for NR_Server_Nutrients' refeeding close
-    body.exKcalPrev = body.exKcalDay                     -- the closing day's exercise kcal, for the 24 h exercise blend (Plan 11c)
-    K.partition.closeDay(body, ageH)
+    K.partition.closeDay(body)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1
 end
@@ -287,17 +291,12 @@ local function heal(username, body, ageH, player)
     end
 end
 
--- Plan 11c Task 6 (amendment 4): the closed day's exercise bank and the exercise lag, healed before the minute: a
--- non-finite bank (K.body.new lays it 0), or a lag that is non-finite
--- or negative (the Task 4b re-review's residual: exerciseLag passes a negative L through), is stamped 0, logged and
--- counted in MET.guarded. record.satiety is laid for its L when absent; its P is the writer's to seed.
--- Returns the satiety table.
+-- Plan 11c Task 6 (amendment 4): the exercise lag, healed before the minute: a lag that is non-finite or negative
+-- (the Task 4b re-review's residual: exerciseLag passes a negative L through) is stamped 0, logged and counted in
+-- MET.guarded. record.satiety is laid for its L when absent; its P is the writer's to seed. (The closed day's
+-- exercise bank it healed beside the lag went with the 24 h blend, Plan 11d Task 9c.) Returns the satiety table.
 function MET.healActivity(username, record, body)
     local healed = nil
-    if not finite(body.exKcalPrev) then
-        body.exKcalPrev = 0
-        healed = "exKcalPrev"
-    end
     local s = record.satiety
     if type(s) ~= "table" then
         s = {}
@@ -315,17 +314,15 @@ function MET.healActivity(username, record, body)
     return s
 end
 
--- The trailing-24 h expenditure (kcal), built as NR_Server_Nutrients builds its ee24 for the expenditure-scaled
--- requirements: today's eeDay blended with the closed day's (its absorbed kcal less its balance), floored at the
--- resting expenditure; before the first close the closed day reads the resting expenditure.
-function MET.ee24(body, hoursSinceClose)
-    local ree = K.energy.ree(body.lm)
-    local eeYest = ree
-    if finite(body.inDayClosed) then eeYest = body.inDayClosed - body.eb7[7] end
-    return K.max(K.body.blend24(body.eeDay, eeYest, hoursSinceClose), ree)
+-- The trailing-24 h expenditure (kcal), as NR_Server_Nutrients reads its ee24 for the expenditure-scaled
+-- requirements: the window's expenditure (K.body.trail24, Plan 11d Task 9c), floored at the resting expenditure (a
+-- window younger than a day, a fresh character's, reads at least a resting day).
+function MET.ee24(body)
+    return K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
 end
 
--- The guard's copy, taken after the pre-step heal: the scalars, slot 7 of each ring, bandWeek's slot 7 and the lag.
+-- The guard's copy, taken after the pre-step heal and the window's move: the scalars, slot 7 of each ring, bandWeek's
+-- slot 7, the lag, the window's age and its current hour's slot in each ring.
 local function snapAll(body, sat)
     K.heal.snap(body, MET.GUARD, MET.snap)
     K.heal.snap(sat, MET.GUARD_SATIETY, MET.snapSatiety)
@@ -334,6 +331,18 @@ local function snapAll(body, sat)
         K.heal.snap(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
     end
     K.heal.snap(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
+    local t = body.trail
+    MET.TRAIL_SLOT[1] = K.body.trailSlot(math.floor(t.at))
+    K.heal.snap(t, MET.GUARD_TRAIL, MET.snapTrail)
+    local keys = K.body.TRAIL_KEYS
+    for i = 1, #keys do
+        local out = MET.snapTrailRings[keys[i]]
+        if out == nil then
+            out = {}
+            MET.snapTrailRings[keys[i]] = out
+        end
+        K.heal.snap(t[keys[i]], MET.TRAIL_SLOT, out)
+    end
 end
 
 -- The guard after the step: every guarded field the step left non-finite re-stamped from the copy; the count.
@@ -342,6 +351,12 @@ local function guardAll(body, sat)
     local rings = MET.GUARD_RINGS
     for i = 1, #rings do
         g = g + K.heal.guard(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
+    end
+    local t = body.trail
+    g = g + K.heal.guard(t, MET.GUARD_TRAIL, MET.snapTrail)
+    local keys = K.body.TRAIL_KEYS
+    for i = 1, #keys do
+        g = g + K.heal.guard(t[keys[i]], MET.TRAIL_SLOT, MET.snapTrailRings[keys[i]])
     end
     return g + K.heal.guard(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
 end
@@ -355,6 +370,7 @@ local function step(username, player, record, ctx)
     local body = MET.ensureBody(username, player, record, ageH)
     heal(username, body, ageH, player)
     local sat = MET.healActivity(username, record, body)
+    K.body.trailTo(body.trail, ageH)                      -- the window to this minute, before its intake and expenditure land
     snapAll(body, sat)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
@@ -409,9 +425,8 @@ local function step(username, player, record, ctx)
     local alcGkg = body.alcDay / w
     body.dmod = K.aerobic.dmod(body.tac, g, dehydPct, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), ironGrade, awakeH, cafEffect, cafTol)
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
-    local hSince = ageH - body.lastCloseAgeH
-    local ex24 = K.body.blend24(body.exKcalDay, body.exKcalPrev, hSince)   -- the trailing-24 h exercise kcal
-    body.energyState = K.energy.activityState(K.energy.eb24h(body, hSince), ex24, sat.L, fatDep, MET.ee24(body, hSince))
+    local ex24 = K.body.trail24(body.trail, "ex")          -- the trailing-24 h exercise kcal
+    body.energyState = K.energy.activityState(K.energy.eb24h(body), ex24, sat.L, fatDep, MET.ee24(body))
     body.lastAgeH = ageH
     local ng = guardAll(body, sat)
     if ng > 0 then

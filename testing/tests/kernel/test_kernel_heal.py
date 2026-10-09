@@ -14,11 +14,12 @@ TOL = 1e-9
 NAN = float("nan")
 INF = float("inf")
 
-SCALARS = ["fm0", "lm0", "fm", "lm", "fmRef", "pPrevKg", "dayIndex", "lastAgeH", "lastCloseAgeH",
+SCALARS = ["fm0", "lm0", "fm", "lm", "fmRef", "pPrevKg", "dayIndex", "lastAgeH",
            "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay", "eeDay", "ebDay",
            "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day",
            "cumDef", "r", "traitCarry", "tDisuse", "nPeak", "l0", "lm0dis", "tPeakD"]
-RINGS7 = ["mass7", "eb7", "p7", "carb7", "lip7"]
+RINGS7 = ["mass7", "eb7", "p7"]
+TRAIL_KEYS = ["kcal", "ee", "ex", "p", "carb", "lip"]
 
 
 def heal(h, body, age, l0=None):
@@ -49,6 +50,10 @@ def all_finite(h, body):
         assert finite(body["nHist"][i]), ("nHist", i)
     for i in range(1, 8):
         assert finite(body["bandWeek"][i][1]) and finite(body["bandWeek"][i][2]), ("bandWeek", i)
+    assert finite(body["trail"]["at"])
+    for k in TRAIL_KEYS:
+        for i in range(1, 26):
+            assert finite(body["trail"][k][i]), ("trail", k, i)
 
 
 def test_a_healthy_body_heals_nothing(host):
@@ -78,15 +83,14 @@ def test_day_index_ages_and_creation_masses(host):
     h = host
     body = new_body(h)
     body.dayIndex = NAN
-    body.lastAgeH = NAN
-    body.lastCloseAgeH = INF
+    body.lastAgeH = INF
     body.fm0 = NAN
     body.lm0 = NAN
     bad = heal(h, body, 168.0)
     assert body["dayIndex"] == 7
-    assert body["lastAgeH"] == 168.0 and body["lastCloseAgeH"] == 168.0
+    assert body["lastAgeH"] == 168.0
     assert body["fm0"] == body["fm"] and body["lm0"] == body["lm"]
-    assert names(bad) == ["fm0", "lm0", "dayIndex", "lastAgeH", "lastCloseAgeH"]
+    assert names(bad) == ["fm0", "lm0", "dayIndex", "lastAgeH"]
 
 
 def test_creation_masses_fall_back_to_the_split_by_sex(host):
@@ -109,13 +113,40 @@ def test_non_finite_ring_slots(host):
     h = host
     body = new_body(h)
     body.p7[2] = NAN
-    body.carb7[7] = INF
-    body.lip7[4] = NAN
+    body.eb7[7] = INF
     body.mass7[1] = NAN
     bad = heal(h, body, 100.0)
-    assert body["p7"][2] == 0 and body["carb7"][7] == 0 and body["lip7"][4] == 0
+    assert body["p7"][2] == 0 and body["eb7"][7] == 0
     assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < 1e-6
-    assert names(bad) == ["mass7", "p7", "carb7", "lip7"]
+    assert names(bad) == ["mass7", "eb7", "p7"]
+
+
+def test_the_windows_age_and_a_ring_its_read_sees_non_finite_heal_and_are_named(host):
+    # Plan 11d Task 9c: the trailing-24 h window. The current hour (slot 1 at age 100) and the oldest hour (slot 2,
+    # hour 76) are in every read; a non-finite one is named and the rebuild zeroes it
+    h = host
+    body = new_body(h)
+    t = body.trail
+    t.at = NAN
+    t.kcal[1] = NAN
+    t.carb[2] = -INF
+    bad = heal(h, body, 100.5)
+    assert names(bad) == ["trail.at", "trail.kcal", "trail.carb"]
+    assert t["at"] == 100.5 and t.kcal[1] == 0 and t.carb[2] == 0 and t.ch == 100
+    assert heal(h, body, 100.5) is None
+
+
+def test_a_closed_hour_turned_non_finite_is_zeroed_by_the_rebuild_at_the_turn(host):
+    # a closed hour's slot is read only through the closed sums, which stand for the hour they were built in; no step
+    # writes a closed hour (the guard covers the current one), and the rebuild when the hour turns zeroes it unnamed
+    h = host
+    body = new_body(h)
+    t = body.trail
+    h.K.body.trail24(t, "ee")                           # the closed sums built for hour 100
+    t.ee[10] = NAN                                      # hour 84, inside the closed hours
+    assert heal(h, body, 100.5) is None                 # unread: the sums stand
+    h.K.body.trailTo(t, 101.0)
+    assert h.K.body.trail24(t, "ee") == 0 and t.ee[10] == 0
 
 
 def test_creation_scalars_and_the_strength_and_band_rings(host):
@@ -168,9 +199,14 @@ def test_every_field_nan_comes_back_finite_and_named(host):
     for i in range(1, 8):
         body["bandWeek"][i][1] = NAN
         body["bandWeek"][i][2] = NAN
+    body.trail.at = NAN
+    for k in TRAIL_KEYS:
+        for i in range(1, 26):
+            body.trail[k][i] = NAN
     bad = heal(h, body, 130.0, 4)
     all_finite(h, body)
-    assert set(names(bad)) == set(SCALARS) | set(RINGS7) | {"nHist", "bandWeek"}
+    # the window: its age is named; the age moves the hour, so the first read rebuilds every ring, zeroing them unnamed
+    assert set(names(bad)) == set(SCALARS) | set(RINGS7) | {"nHist", "bandWeek", "trail.at"}
 
 
 def test_heal_property_seeded(host):

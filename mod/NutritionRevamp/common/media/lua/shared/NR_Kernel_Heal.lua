@@ -2,8 +2,9 @@
 -- NR_Server_Metabolism.lua's local heal). The adapter runs it once, before the minute's arithmetic (Plan 11
 -- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
 -- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
--- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH and lastCloseAgeH to
--- the world age; a ring slot to 0 (mass7's to the current mass). Every field and ring is laid by K.body.new, so
+-- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH to the world age; a
+-- ring slot to 0 (mass7's to the current mass); the trailing-24 h window's age to the world age, and a window ring
+-- that reads non-finite is rebuilt with its non-finite slots zeroed (K.heal.trail). Every field and ring is laid by K.body.new, so
 -- the heal creates none. The creation scalars heal too: r and
 -- traitCarry to 1, l0 to the Strength level the adapter read (its one engine read, made only when body.l0 is not
 -- finite, and passed in), tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to dayIndex; every
@@ -21,7 +22,7 @@ K.heal.NEUTRAL_KEYS = { "energyState", "dmod", "rmod", "tac", "at", "n", "vStr",
                         "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
                         "metMinDay", "band1Day", "band2Day", "cumDef", "r", "traitCarry", "tDisuse", "nPeak" }
 -- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
-K.heal.ZERO_RINGS = { "eb7", "p7", "carb7", "lip7" }
+K.heal.ZERO_RINGS = { "eb7", "p7" }
 
 -- The names so far, comma-joined, with one more appended (a repeat is appended again, as the adapter's log
 -- always read).
@@ -83,10 +84,6 @@ function K.heal.body(body, ageH, l0)
         body.lastAgeH = ageH
         bad = K.heal.mark(bad, "lastAgeH")
     end
-    if not K.vector.finite(body.lastCloseAgeH) then
-        body.lastCloseAgeH = ageH
-        bad = K.heal.mark(bad, "lastCloseAgeH")
-    end
     local keys = K.heal.NEUTRAL_KEYS
     for i = 1, #keys do
         local k = keys[i]
@@ -144,7 +141,7 @@ function K.heal.body(body, ageH, l0)
             end
         end
     end
-    return bad
+    return K.heal.trail(body.trail, ageH, bad)
 end
 
 -- The post-step guard (Plan 11 Task 12; Appendix J): copy the guarded keys of t before the step, and after it
@@ -171,4 +168,29 @@ function K.heal.guard(t, keys, snap)
         end
     end
     return n
+end
+
+-- The trailing-24 h window's heal (Plan 11d Task 9c), from K.heal.body: a non-finite age reads the world age ageH; a
+-- ring whose window reads non-finite (K.body.trail24: the current hour, the oldest and the closed sums) is named, and
+-- the closed sums are rebuilt, which zeroes every non-finite slot (K.body.trailClosed). A slot inside the closed
+-- hours that turns non-finite between minutes is not read until the hour turns, and the rebuild then zeroes it. The
+-- check is six O(1) reads a minute; the 25 slots are walked only on a rebuild. Returns bad with the names appended.
+function K.heal.trail(t, ageH, bad)
+    if not K.vector.finite(t.at) then
+        t.at = ageH
+        bad = K.heal.mark(bad, "trail.at")
+    end
+    local rebuild = false
+    local keys = K.body.TRAIL_KEYS
+    for k = 1, #keys do
+        if not K.vector.finite(K.body.trail24(t, keys[k])) then
+            rebuild = true
+            bad = K.heal.mark(bad, "trail." .. keys[k])
+        end
+    end
+    if rebuild then
+        t.ch = -1
+        K.body.trailClosed(t)
+    end
+    return bad
 end

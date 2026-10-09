@@ -1,7 +1,7 @@
 -- NR_Kernel_Body.lua -- the body model's pure pieces (Plan 3): the band-anchored split of a starting
 -- weight into fat and lean mass, the record.body table the adapter creates at first sight, the
--- vanilla weight band, the three direction flags off the 7-day trend, and the legacy macro-mirror maps
--- that turn the mod's trailing-24 h figures into the vanilla Nutrition stores other mods read.
+-- vanilla weight band, the three direction flags off the 7-day trend, the legacy macro-mirror maps that turn
+-- the mod's trailing-24 h figures into the vanilla Nutrition stores other mods read, and the trailing-24 h window.
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.floor and the bounded numeric `for` over the kernel's own tables are allowed.
 -- This file sorts after NR_Kernel.lua, and every K.clamp / K.min reference is at call time.
@@ -104,12 +104,12 @@ function K.body.trend(mass7, w)
     return (w - mass7[1]) / 7
 end
 
--- The trailing-24 h blend: today's figure plus yesterday's (the most recent closed day) weighted by
--- the share of the 24 h since the last close still to run, clamped to [0, 1] (a game choice). Both
--- K.energy.eb24h and the legacy mirror's protein, carbohydrate and lipid blends read it.
-function K.body.blend24(today, yesterday, hoursSinceClose)
-    return today + yesterday * K.clamp(1 - hoursSinceClose / 24, 0, 1)
-end
+-- The trailing-24 h figures every reader takes (K.energy.eb24h, the exercise lag's ex24h and ee24h, the nutrients'
+-- expenditure and carbohydrate, the legacy mirror's protein, carbohydrate and lipid) are K.body.trail24 over
+-- record.body.trail (Plan 11d Task 9c, ruling C-8: the evenly-spread blend of today and the closed day read a
+-- phantom deficit before breakfast; it is retired). The closed-day rings eb7, p7 and mass7 remain for the 7-day
+-- readers: K.partition.deficitWeek, NR_Server_Effects' protein week and K.body.trend.
+-- The window's code is at the end of this file.
 
 -- The legacy calorie store: the trailing-24 h energy balance clamped to the vanilla store's range.
 function K.body.mapCalories(eb24h)
@@ -146,10 +146,10 @@ end
 -- Strength level l0, the creation-trait carry factor, the responder constant r and the world age in
 -- hours. Numbers, one string (band) and tables of numbers only (#1495: global modData refuses
 -- functions and userdata). The rings are built with numeric `for`; every bandWeek slot is its own
--- table. p7, carb7 and lip7 hold each closed day's protein, carbohydrate and lipid grams (slot 7 is
--- yesterday), the legacy mirror's trailing-24 h blend. The rings and the band read the clamped weight
--- split reads (fm + lm), not the raw w. lastCloseAgeH is the world age of the last day close (the
--- creation age until the first close); pPrevKg is the closed day's protein per kg, neutral at birth.
+-- table. p7 holds each closed day's protein grams (slot 7 is yesterday; NR_Server_Effects' protein
+-- week). The rings and the band read the clamped weight split reads (fm + lm), not the raw w. trail is
+-- the trailing-24 h window (K.body.newTrail), empty at birth; pPrevKg is the closed day's protein per
+-- kg, neutral at birth.
 function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     local fm, lm = K.body.split(w, sex, build)
     local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
@@ -167,7 +167,6 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.traitCarry = traitCarry
     body.bornAge = ageH
     body.lastAgeH = ageH
-    body.lastCloseAgeH = ageH
     body.strAgeH = ageH
     body.at = 0
     body.dayIndex = day
@@ -176,7 +175,6 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.ebDay = 0
     body.actKcalDay = 0
     body.exKcalDay = 0
-    body.exKcalPrev = 0 -- the closed day's exercise kcal (Plan 11c), 0 until the first close
     body.pDay = 0
     body.carbDay = 0
     body.lipDay = 0
@@ -185,17 +183,13 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.mass7 = {}
     body.bandWeek = {}
     body.p7 = {}
-    body.carb7 = {}
-    body.lip7 = {}
     for i = 1, 7 do
         body.eb7[i] = 0
         body.mass7[i] = wc
         body.bandWeek[i] = { 0, 0 }
         body.p7[i] = 0
-        body.carb7[i] = 0
-        body.lip7[i] = 0
     end
-    body.eb24h = 0
+    body.trail = K.body.newTrail(ageH)
     body.vStr = 0
     body.vHyp = 0
     body.vStrHigh = 0
@@ -288,7 +282,8 @@ function K.body.trailAdd(t, key, x)
 end
 
 -- The closed hours' sums, rebuilt when they were built for another hour: each ring's sum over every slot but the
--- current hour's. Returns t.c.
+-- current hour's. The rebuild zeroes a non-finite slot on its way (none is made by the step, whose current-hour writes
+-- Metabolism's guard covers; the heal names what the window's reads see, K.heal.trail). Returns t.c.
 function K.body.trailClosed(t)
     local h = math.floor(t.at)
     if t.ch == h then
@@ -300,8 +295,13 @@ function K.body.trailClosed(t)
         local ring = t[keys[k]]
         local s = 0
         for i = 1, K.body.TRAIL_N do
+            local x = ring[i]
+            if x - x ~= 0 then
+                x = 0
+                ring[i] = 0
+            end
             if i ~= cur then
-                s = s + ring[i]
+                s = s + x
             end
         end
         t.c[keys[k]] = s
@@ -317,4 +317,12 @@ function K.body.trail24(t, key)
     local h = math.floor(t.at)
     local ring = t[key]
     return c[key] - (t.at - h) * ring[K.body.trailSlot(h + 1)] + ring[K.body.trailSlot(h)]
+end
+
+-- One absorbed vector into the window's current hour: its kcal and its protein, carbohydrate and lipid grams.
+function K.body.trailIntake(t, absorbed)
+    K.body.trailAdd(t, "kcal", absorbed.calories)
+    K.body.trailAdd(t, "p", absorbed.proteins)
+    K.body.trailAdd(t, "carb", absorbed.carbs)
+    K.body.trailAdd(t, "lip", absorbed.lipids)
 end
