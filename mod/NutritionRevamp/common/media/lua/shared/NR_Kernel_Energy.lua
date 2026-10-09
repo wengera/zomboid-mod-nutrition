@@ -264,3 +264,47 @@ function K.energy.state(eb24h, fatDep, g)
     end
     return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep + K.energy.GLYC_STATE_K * (1 - g), 0.5, 2.0) -- ruling 14
 end
+
+-- Plan 11c Task 4b (spec § 5c, ruling 11c-29): no same-day compensation for exercise. A deficit made by exercise
+-- does not raise appetite the same day, while an equal one made by food restriction does (S1312; S1310, S1311,
+-- S1313); intake makes up about 30 % of an exercise deficit over days 3-16 (S1318) and more over months (S1320,
+-- S1321, S1322). L is the exercise expenditure rate in kcal per day that appetite has caught up with: a first-order
+-- lag of the exercise kcal (exKcalDay's quantity, the MET above the idle class). The split of a deficit into an
+-- exercise share and a food share is a game choice no row defines. Appended so no line above moves.
+K.energy.EX_LAG_TAU_D = 24 -- game choice, fitted in Task 4b (Plan 11c) (S1335 open): the lag's time constant in days, fitted to S1318 (Whybrow 2008: about 30 % of the exercise deficit compensated over days 3-16) and about 0 the same day (S1312)
+
+-- One lag step of dtH game hours with exKcal exercise kcal spent in it: L relaxes toward the step's rate (exKcal x 24
+-- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a non-finite exKcal reads none.
+function K.energy.exerciseLag(L, exKcal, dtH)
+    if L - L ~= 0 then
+        L = 0
+    end
+    if not (dtH > 0) then
+        return L
+    end
+    if exKcal - exKcal ~= 0 then
+        exKcal = 0
+    end
+    local k = math.exp(-dtH / (K.energy.EX_LAG_TAU_D * 24))
+    return L * k + exKcal * 24 / dtH * (1 - k)
+end
+
+-- The exercise deficit, kcal per day, that enters the energy state: L, non-negative and finite.
+function K.energy.lagged(L)
+    if L - L ~= 0 or L < 0 then
+        return 0
+    end
+    return L
+end
+
+-- The energy state the writer hands to hungerTarget: the food balance (eb24h with the window's exercise kcal ex24h
+-- added back) enters at once, the exercise share only through the lag. lagged(L) >= 0 and state falls with the
+-- balance, so the activity never pushes the state below that of the same intake without it (S1330, S1331, S1332).
+-- A negative or non-finite ex24h reads none.
+function K.energy.activityState(eb24h, ex24h, L, fatDep, g)
+    local ex = 0
+    if ex24h - ex24h == 0 and ex24h > 0 then
+        ex = ex24h
+    end
+    return K.energy.state(eb24h + ex - K.energy.lagged(L), fatDep, g)
+end
