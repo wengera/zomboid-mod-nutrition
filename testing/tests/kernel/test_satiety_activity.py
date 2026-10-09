@@ -24,8 +24,8 @@ asserted: under the rows' clock the suppression is gone by about 1.5 h after the
 
 Karl 2021 (S1325) is a test the model may fail (spec § 5c): its readings are pinned. The kernel bypasses the exercise
 lag on a linear ramp of the 24 h total deficit between EX_BYPASS_LO and EX_BYPASS_HI of the 24 h expenditure (ruling
-11c-32 as amended): with the work vigorous both arms pass (DEF +25.3 % against +26 %); with heavy work the model does
-not class as vigorous, DEF overshoots (+62.9 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
+11c-32 as amended): with the work vigorous both arms pass (DEF +26.6 % against +26 %); with heavy work the model does
+not class as vigorous, DEF overshoots (+64.5 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
 steady state (the two prior days carrying the same meals), where a 25 % step in place of the ramp raises the exercise
 arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
@@ -100,7 +100,7 @@ function(cfg)
         L = K.energy.exerciseLag(L, exMin, 1 / 60)
         K.stomach.drain(st, 1 / 60)
         P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
-        local F = K.satiety.fill(K.stomach.satietyMass(st), K.stomach.CAPACITY_MAX_G)
+        local F = K.stomach.fill(st)
         local eb = inS - eeS
         local ee24 = eeS
         if cfg.mode == "nobypass" or cfg.mode == "step" then
@@ -388,29 +388,29 @@ def test_king_2011_at_steady_state_exercise_stays_with_control(host):
 
 def test_karl_2021_vigorous_both_arms_pass_with_the_ramp(host):
     # S1325 (Karl 2021): hunger -55 % against REST in an 18 % surplus, +26 % at a 43 % deficit (a pass: the sign and
-    # within 1.5x). With the work vigorous the ramp reads BAL -72.6 % and DEF +25.3 %; both pass. Pinned
+    # within 1.5x). With the work vigorous the ramp reads BAL -70.2 % and DEF +26.6 %; both pass. Pinned
     bal, dfc = karl(host, "aerobic")
-    assert (bal, dfc) == (-72.6, 25.3)
+    assert (bal, dfc) == (-70.2, 26.6)
     assert karl_pass(bal, dfc) == (True, True)
     assert 26.0 / 1.5 <= dfc <= 26.0 * 1.5
 
 
 def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
-    # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-65.8 %) and
-    # DEF reads +62.9 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed
+    # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-62.3 %) and
+    # DEF reads +64.5 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed
     bal, dfc = karl(host, None)
-    assert (bal, dfc) == (-65.8, 62.9)
+    assert (bal, dfc) == (-62.3, 64.5)
     assert karl_pass(bal, dfc) == (True, False)
 
 
 def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):
     # the lag with no bypass (DEF fails in direction) and today's form (the activity billed at once)
-    assert karl(host, "aerobic", mode="nobypass") == (-72.6, -23.5)
-    assert karl(host, None, mode="nobypass") == (-65.8, -0.6)
-    assert karl(host, "aerobic", mode="raw") == (-64.7, 45.3)
-    assert karl(host, None, mode="raw") == (-55.1, 87.7)
-    assert karl(host, "aerobic", mode="step") == (-72.6, 37.1)
-    assert karl(host, None, mode="step") == (-65.8, 76.7)
+    assert karl(host, "aerobic", mode="nobypass") == (-70.2, -23.5)
+    assert karl(host, None, mode="nobypass") == (-62.3, -0.7)
+    assert karl(host, "aerobic", mode="raw") == (-61.6, 47.0)
+    assert karl(host, None, mode="raw") == (-50.8, 89.8)
+    assert karl(host, "aerobic", mode="step") == (-70.2, 38.7)
+    assert karl(host, None, mode="step") == (-62.3, 78.6)
 
 
 # --- the bout against control (S1502, S1500; Plan 11d Task 1, ruling 11d-1), appended so no line above moves ---------

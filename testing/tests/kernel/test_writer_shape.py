@@ -60,13 +60,13 @@ def player(h, name="a"):
 
 
 # Plan 11c Task 6: the written HUNGER, recomputed in doubles from the kernels' constants at HEAD (NR_Kernel_Satiety.lua,
-# NR_Kernel_Hybrid.lua): post(P) = 1 - 1 / (1 + 3 (P / P_REQ)^STEEP), P_REQ 6, STEEP 0.08; sated(F, Pn) = 1 - (1 - 0.6 F)
-# (1 - Pn), FULL_WEIGHT 0.6; hungerTarget(x, es) = clamp((1 - x) es + 0.15 max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.15;
+# NR_Kernel_Hybrid.lua): post(P) = 1 - 1 / (1 + 3 (P / P_REQ)^STEEP), P_REQ 6, STEEP 0.05; sated(F, Pn) = 1 - (1 - 0.55 F)
+# (1 - Pn), FULL_WEIGHT 0.55 (both refit in Plan 11d Task 5, ruling 11d-5); hungerTarget(x, es) = clamp((1 - x) es + 0.15 max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.15;
 # circadian(h) = 1 + 0.085 cos(2 pi (h - 19.8333) / 24); acuteFactor(S) = 1 - 0.7 S; the writer's composition
 # (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The host's clock
 # reads the hour of day as fmod(age, 24), and step() sets age 100 + minute / 60, so minute m is hour 4 + m / 60.
 def _post(P):
-    return 0.0 if P <= 0 else 1 - 1 / (1 + 3 * math.exp(0.08 * math.log(P / 6)))
+    return 0.0 if P <= 0 else 1 - 1 / (1 + 3 * math.exp(0.05 * math.log(P / 6)))
 
 
 def _circ(hour):
@@ -74,14 +74,14 @@ def _circ(hour):
 
 
 def _hunger(P, F=0.6, es=1.0, minute=1, S=0.0):
-    x = 1 - (1 - 0.6 * F) * (1 - _post(P))
+    x = 1 - (1 - 0.55 * F) * (1 - _post(P))
     target = min(max((1 - x) * es + 0.15 * max(0.0, es - 1), 0.0), 1.0)
     return min(0.69, target * _circ(math.fmod(100 + minute / 60, 24)) * (1 - 0.7 * min(max(S, 0.0), 1.0)))
 
 
-# the default record's minute-1 HUNGER: P 6 = P_REQ reads post 0.75, so (1 - 0.6 x 0.6) x (1 - 0.75) = 0.16, times the
-# circadian factor at 04:01 (0.9540165460822252)
-H1 = 0.15264264737315603
+# the default record's minute-1 HUNGER: P 6 = P_REQ reads post 0.75, so (1 - 0.55 x 0.6) x (1 - 0.75) = 0.1675, times
+# the circadian factor at 04:01 (0.9540165460822252)
+H1 = 0.15979777146877272
 
 
 def record(h, **over):
@@ -145,7 +145,7 @@ def test_the_stomach_fill_drives_hunger_through_its_weight():
     rec = record(h)
     rec.stomachFill = 0.0
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, F=0.0))           # (1 - 0.6 x 0) x (1 - 0.75) x c(04:01)
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, F=0.0))           # (1 - 0.55 x 0) x (1 - 0.75) x c(04:01)
     assert p.st.sets.HUNGER == pytest.approx(0.25 * 0.9540165460822252)
     p2 = player(h, "b")
     rec2 = record(h)
@@ -500,7 +500,7 @@ def test_a_record_with_p_writes_hunger_target_times_circadian_times_acute():
     step(h, p, record(h), 1)
     assert p.st.sets.HUNGER == pytest.approx(H1)
     assert H1 == pytest.approx(_hunger(6))
-    assert H1 == pytest.approx(0.16 * _circ(4 + 1 / 60))
+    assert H1 == pytest.approx(0.1675 * _circ(4 + 1 / 60))
 
 
 def test_the_energy_term_raises_the_hunger_of_a_deficit():
@@ -509,7 +509,7 @@ def test_the_energy_term_raises_the_hunger_of_a_deficit():
     rec = record(h)
     rec.body.energyState = 1.5
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx((0.16 * 1.5 + 0.15 * 0.5) * 0.9540165460822252)
+    assert p.st.sets.HUNGER == pytest.approx((0.1675 * 1.5 + 0.15 * 0.5) * 0.9540165460822252)
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, es=1.5))
 
 

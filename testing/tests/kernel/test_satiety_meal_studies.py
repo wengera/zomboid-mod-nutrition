@@ -1,8 +1,8 @@
 """The satiety oracle (Plan 11c Task 4; spec § 5b and § 6; ruling 11c-30): published protocols replayed through the
 real kernels -- the stomach's two lanes (K.stomach), the meal satiety pool (K.satiety) and the hunger function
 (K.hybrid.hungerTarget) -- one step a game minute. Each step runs, in order: the minute's eats feed P with their
-weighted kcal (K.satiety.feed, once per eat) and land in the stomach; the stomach drains; P decays; F is read from the
-satiety mass (K.stomach.satietyMass) against K.stomach.CAPACITY_MAX_G (ruling 11c-19); and the displayed hunger is
+weighted kcal (K.satiety.feed, once per eat) and land in the stomach; the stomach drains; P decays; F is read by
+K.stomach.fill (the satiety mass plus PROTEIN_FILL x the protein, ruling 11d-5) against CAPACITY_MAX_G; and the displayed hunger is
 min(0.69, hungerTarget(sated(F, post(P)), 1) x circadian(h)). Trait 1 and StatsDecrease 1 (ruling 11c-23).
 
 The protocol (spike 2, task-4s2-report.md):
@@ -21,9 +21,9 @@ The protocol (spike 2, task-4s2-report.md):
 The tolerance (ruling 11c-30): the hard replays land within 1.1x of the study's figure; S1233 is a check at 1.15x.
 
 What the model does not reproduce, named and pinned so that a change is noticed:
-- S1224's absolute snack delays (Marmonier 2000: 60 / 34 / 25 min; the model about 200 / 165 / 173 min). No additive
+- S1224's absolute snack delays (Marmonier 2000: 60 / 34 / 25 min; the model about 193 / 159 / 167 min). No additive
   pool meets both S1224 and S1247 (spike 1). Their differences are read, see the protein weight below.
-- S1222's VAS level (the protein contrast, 0.0027 against about 0.025), see the protein weight below.
+- (S1222's VAS level is reproduced at about half since Plan 11d Task 5: 0.0134 against about 0.025, see below.)
 - S1228's fasted 1 MJ drinks (Melanson 1999: 65 / 126 min; the model about 236 min for both).
 - S1272's 1692 g meal (Moore 1981: 277 min solid half-emptying; the model 189 min for an assumed 1500 kcal).
 - Viscous fibre's own effect (ruling 11c-6): fibre counts only through mass.
@@ -31,16 +31,16 @@ What the model does not reproduce, named and pinned so that a change is noticed:
 The protein weight (ruling 11c-31): W_PROTEIN stays 2.5 under structure D, and it is bounded by S1224's delay
 differences, no longer exempt from the mutation bar. Marmonier 2000's three snacks, read as differences (protein
 over carbohydrate 26 min, protein over fat 35 min), are replayed and each model difference sits within 1.5x
-(35 and 27 min); W_PROTEIN at x2 and x0.5 each fail it. The absolute delays stay a named non-reproduction. S1222
-(Kohanmoo 2020: hunger -7 mm, fullness +10 mm) and S1223 (Dhillon 2016: fullness AUC +2,436 mm.240 min) give no
-per-trial protein-energy contrast, preload size or timing, so S1222's VAS level is a pinned named non-reproduction:
-under a request-anchored mapping (a pre-meal VAS of about 65 mm read as 0.25, a LABELLED ASSUMPTION since no row
-gives a pre-meal VAS; the 1 mm = 0.01 HUNGER mapping is retired) -7 mm is about 0.025 of HUNGER, and the model's
-protein contrast is 0.0027, about 10x short. The cause: the near-logarithmic read, and displayed hunger never
-falling below about 0.12.
+(34 and 26 min); W_PROTEIN at x2 and x0.5 each fail it. The absolute delays stay a named non-reproduction. S1222
+(Kohanmoo 2020: hunger -7 mm) is about 0.025 of HUNGER under a request-anchored mapping (about 65 mm read as 0.25,
+a LABELLED ASSUMPTION, ruling 11c-31). The pool alone read 0.0027, about 10x short; since the protein fill (Plan
+11d Task 5, ruling 11d-5: F counts PROTEIN_FILL 8 extra grams per gram of protein in the solid lane, a game choice
+with no row, fitted with FULL_WEIGHT 0.55 and STEEP 0.05) the contrast reads 0.0134, at least half the target
+(S1222, S1380, S1383), with every hard replay held. S1384's short-term null for whey against carbohydrate is
+checked, never asserted: the model reads about 8 mm (whey_against_carbohydrate, at the end of the file).
 
-Accepted only after the mutation pass (CLAUDE.md § 6): each of HALF_LIFE_H, P_REQ, STEEP, FULL_WEIGHT,
-LIQUID_WEIGHT and W_PROTEIN at x2 and x0.5 fails a hard replay (W_PROTEIN: the Marmonier difference check), and the
+Accepted only after the mutation pass (CLAUDE.md § 6): each of HALF_LIFE_H, P_REQ, STEEP, FULL_WEIGHT, LIQUID_WEIGHT,
+PROTEIN_FILL and W_PROTEIN at x2 and x0.5 fails a check (W_PROTEIN: the Marmonier difference check; PROTEIN_FILL 0 too), and the
 09:00 circadian factor dropped fails the Callahan minutes. Every test takes only `host`, so the mutation script calls each one
 on a patched host; no test uses `parametrize`.
 """
@@ -82,7 +82,7 @@ function(events, minutes, P0, h0)
         end
         K.stomach.drain(st, 1 / 60)
         P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
-        local F = K.satiety.fill(K.stomach.satietyMass(st), K.stomach.CAPACITY_MAX_G)
+        local F = K.stomach.fill(st)
         local c = 1
         if h0 ~= nil then
             c = K.satiety.circadian((h0 + (m + 1) / 60) % 24)
@@ -310,12 +310,12 @@ def test_callahans_preloads_from_a_fasted_start(host):
 
 
 def test_callahans_replay_minutes_are_pinned_and_the_09_00_factor_matters(host):
-    # S1247's replay minutes (the study's 247 / 286 / 321): 244, 276, 321 from the request; 243, 276, 321 fasted; the
+    # S1247's replay minutes (the study's 247 / 286 / 321): 250, 279, 339 from the request and fasted (Task 5); the
     # 09:00 factor matters, and dropping it fails the replays
-    assert callahan(host) == [244, 276, 321]
-    assert callahan(host, fasted=True) == [243, 276, 321]
+    assert callahan(host) == [250, 279, 339]
+    assert callahan(host, fasted=True) == [250, 279, 339]
     # the factor held at 1 (a different seed too) moves the minutes: the 190 kcal request comes earlier without it
-    assert callahan(host, h0=None) == [227, 272, 330]
+    assert callahan(host, h0=None) == [227, 273, 353]
     assert callahan(host)[0] > callahan(host, h0=None)[0]
     assert callahan(host, fasted=True, h0=None) != callahan(host, fasted=True)
 
@@ -360,7 +360,7 @@ def test_rolls_1999_soup_casserole_with_water_and_casserole_alone(host):
 def test_rolls_1998_milk_volume_check(host):
     # S1233 (Rolls 1998), a check at 1.15x: lunch including the preload 5263 / 5011 / 4703 kJ against 4323 kJ with no
     # preload; less the drink's 2088 kJ, lunch over the no-preload lunch is 0.734 / 0.676 / 0.605; the model's
-    # control is the replayed no-preload hunger (about 0.2575), the ratios about 1.084 / 1.019 / 1.075
+    # control is the replayed no-preload hunger (about 0.2575), the ratios about 1.076 / 1.012 / 1.082
     study = [(5263.0 - 2088.0) / 4323.0, (5011.0 - 2088.0) / 4323.0, (4703.0 - 2088.0) / 4323.0]
     model = rolls_1998(host)
     for m, s in zip(model, study):
@@ -417,7 +417,7 @@ def test_a_protein_preload_leaves_less_hunger_than_a_lower_protein_one(host):
 
 def test_marmonier_snack_delay_differences_bound_the_protein_weight(host):
     # S1224 (Marmonier 2000), read as differences: the protein snack's delay over the carbohydrate snack's (study 26
-    # min) and over the fat snack's (study 35 min), each within 1.5x; the model reads 35 and 27. The absolute delays
+    # min) and over the fat snack's (study 35 min), each within 1.5x; the model reads 34 and 26. The absolute delays
     # stay a named non-reproduction (below). W_PROTEIN at x2 and x0.5 each fail this.
     pc, pf = marmonier_differences(host)
     assert ratio(pc, 26.0) <= 1.5 and ratio(pf, 35.0) <= 1.5, (pc, pf)
@@ -429,17 +429,17 @@ def test_marmonier_snack_delays_stay_a_named_non_reproduction(host):
     # S1224 (Marmonier 2000): 60 / 34 / 25 min (p / c / f); the model's delays sit 3-7x long and the order of p over
     # c and f is kept
     d = marmonier(host)
-    assert (d["p"], d["c"], d["f"]) == (200, 165, 173), d
+    assert (d["p"], d["c"], d["f"]) == (193, 159, 167), d
     assert d["p"] > d["c"] and d["p"] > d["f"]
 
 
-def test_s1222_vas_level_stays_a_named_non_reproduction(host):
-    # S1222 (Kohanmoo 2020: hunger -7 mm). Under a request-anchored mapping (a LABELLED ASSUMPTION: no row gives a
-    # pre-meal VAS; about 65 mm read as 0.25) the target is about 0.025; the model's 0.0027 is about 10x short (the
-    # near-logarithmic read, and displayed hunger never falling below about 0.12)
+def test_s1222_vas_level_is_reproduced_at_half_or_more(host):
+    # S1222 (Kohanmoo 2020: hunger -7 mm), S1380, S1383. Under a request-anchored mapping (a LABELLED ASSUMPTION: no
+    # row gives a pre-meal VAS; about 65 mm read as 0.25) the target is about 0.025. The pool alone read 0.0027; with
+    # the protein fill (Plan 11d Task 5, ruling 11d-5) the model reads 0.0134, in [0.0125, 0.04] (half the target, 1.6x)
     d = protein_contrast(host)
-    assert round(d, 4) == 0.0027, d
-    assert 0.025 / d > 5
+    assert round(d, 4) == 0.0134, d
+    assert 0.0125 <= d <= 0.04, d
 
 
 def test_melanson_fasted_drinks_stay_a_named_non_reproduction(host):
@@ -801,11 +801,49 @@ def test_a_low_carbohydrate_day_at_maintenance_runs_glycogen_down(host):
 def test_six_meals_against_three_is_pinned_inside_the_band(host):
     # S1608 (Ohkawara 2013): hunger AUC over 24 h 41,850 on six isoenergetic meals against 36,612 on three, 1.14;
     # S1607 (Raynor 2015): the vote count mostly null. Ruling 11d-3: the model's ratio lies within [0.9, 1.3] and is
-    # pinned: 0.938, the opposite direction to S1608 (grazing reads less mean hunger) and 1.22x below it, nearer
-    # S1607's null. The 0.938 is schedule-sensitive: it comes mainly from the six-meal arm's last meal at 20:30 against
-    # 18:00 for three meals. On a same-span schedule (six meals every 2 h from 08:00 to 18:00) the model reads 0.996,
-    # and 0.970 with the energy state live (Task 4 review). The model never reaches S1608's direction under any of
-    # these schedules
+    # pinned: 0.969 since Plan 11d Task 5 (0.938 before), the opposite direction to S1608 and 1.18x below it, nearer
+    # S1607's null. It is schedule-sensitive: the six-meal arm's last meal is at 20:30 against 18:00 for three meals.
+    # On a same-span schedule (six meals every 2 h from 08:00 to 18:00) the model reads 0.993 (0.996 before Task 5;
+    # the Task 4 review read 0.970 with the energy state live, before Task 5). The model never reaches S1608's
+    # direction under any of these schedules
     r = meal_frequency_ratio(host)
     assert 0.9 <= r <= 1.3, r
-    assert round(r, 3) == 0.938, r
+    assert round(r, 3) == 0.969, r
+
+
+# --- the protein fill (Plan 11d Task 5, ruling 11d-5; spec § 5d) ---------------------------------------------------
+# Protein fills while it is in the stomach: F reads the satiety mass plus PROTEIN_FILL x the protein grams in the solid
+# lane (K.stomach.fill, K.stomach.fullnessMass), against CAPACITY_MAX_G. No row names gastric fullness from protein:
+# PROTEIN_FILL 8 is a game choice, fitted jointly with FULL_WEIGHT (0.6 -> 0.55) and STEEP (0.08 -> 0.05; at 0.08 no
+# PROTEIN_FILL and FULL_WEIGHT met every replay) so the protein contrast reads at least half S1222's level (0.0134
+# against about 0.025) while every hard replay holds at 1.1x (worst: the 650 kcal meal at 320 min, 1.067x), Marmonier's
+# differences at 1.5x (34 and 26 min) and S1233 at 1.15x (worst 1.082x).
+
+def test_the_protein_fill_is_what_lifts_the_contrast(host):
+    # the contrast rests on the protein term: with PROTEIN_FILL 0 (the refit FULL_WEIGHT and STEEP kept) it falls back
+    # to about 0.0018, under a fifth of ruling 11d-5's floor 0.0125, and the replays fail (the casserole arm 1.18x)
+    S = host.K.satiety
+    keep = S.PROTEIN_FILL
+    S.PROTEIN_FILL = 0
+    try:
+        d0 = protein_contrast(host)
+        worst = max(v for k, v in hard_ratios(host).items() if not k.startswith("marmonier"))
+    finally:
+        S.PROTEIN_FILL = keep
+    assert d0 < 0.0125 / 5, d0
+    assert worst > TOL, worst
+    assert protein_contrast(host) >= 0.0125
+
+
+def whey_against_carbohydrate(host):
+    """S1384 (Mollahosseini 2017): short-term composite appetite after whey against carbohydrate, MD -0.39 mm (95 % CI
+    -2.07 to 1.30), a null. Checked and reported, never asserted (ruling 11d-5). The replay: a 300 kcal drink at 80 %
+    whey protein against 80 % carbohydrate (ASSUMED shares and 400 g of water; the row gives no preload), from the
+    request, the mean hunger difference over 240 min (carbohydrate minus whey) in mm under ruling 11c-31's 260 mm per
+    unit. Plan 11d Task 5 reads about 7.9 mm (2.2 mm before the protein fill): the null is not reproduced, the model
+    sating more after whey, as it does after any protein-rich preload."""
+    w = snack(300.0, "proteins", 0.80, water=400.0)
+    c = snack(300.0, "carbs", 0.80, water=400.0)
+    hw = hunger(host, {0: [("drink", w)]}, 240)
+    hc = hunger(host, {0: [("drink", c)]}, 240)
+    return sum(b - a for a, b in zip(hw, hc)) / 240 * 260.0

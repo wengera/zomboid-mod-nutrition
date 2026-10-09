@@ -1444,7 +1444,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.072480182290728168,
+     "stomachFill": 0.078594360611060246,
      "username": "g1",
      "v": 4
     },
@@ -2188,7 +2188,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.11774452692436872,
+     "stomachFill": 0.20044628108522544,
      "username": "g2",
      "v": 4
     },
@@ -2934,7 +2934,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.080308454026978768,
+     "stomachFill": 0.16548657682521736,
      "username": "g3",
      "v": 4
     },
@@ -2972,7 +2972,7 @@
       "iuSleep": 0,
       "lastB1": 29.000000000000057,
       "lastB2": 0,
-      "lastFedAgeH": 118.81666666666666,
+      "lastFedAgeH": 118.95,
       "lastVigAgeH": -1000000000,
       "lowDay": false,
       "mass90ageH": 118.51666666666667,
@@ -3678,7 +3678,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.029037725151983926,
+     "stomachFill": 0.042639904277648938,
      "username": "g4",
      "v": 4
     },
@@ -4422,7 +4422,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.057098984629996977,
+     "stomachFill": 0.082739211182328382,
      "username": "g5",
      "v": 4
     },
@@ -6748,7 +6748,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.29763728872771728,
+     "stomachFill": 0.3013597755219134,
      "username": "g1",
      "v": 4
     },
@@ -7492,7 +7492,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.42932450620749801,
+     "stomachFill": 0.49287779059442921,
      "username": "g2",
      "v": 4
     },
@@ -8238,7 +8238,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.063306919858513722,
+     "stomachFill": 0.13045258539299434,
      "username": "g3",
      "v": 4
     },
@@ -8276,7 +8276,7 @@
       "iuSleep": 0,
       "lastB1": 59.000000000000057,
       "lastB2": 0,
-      "lastFedAgeH": 118.81666666666666,
+      "lastFedAgeH": 118.95,
       "lastVigAgeH": -1000000000,
       "lowDay": false,
       "mass90ageH": 118.51666666666667,
@@ -8982,7 +8982,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.0058651346215892949,
+     "stomachFill": 0.0086125472133620502,
      "username": "g4",
      "v": 4
     },
@@ -9726,7 +9726,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.3326248756576422,
+     "stomachFill": 0.35008444366642116,
      "username": "g5",
      "v": 4
     },
@@ -10469,7 +10469,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.098642027365754559,
+     "stomachFill": 0.2164071789836807,
      "username": "g6",
      "v": 4
     }
@@ -12052,7 +12052,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.3842875893842107,
+     "stomachFill": 0.40060965327460291,
      "username": "g1",
      "v": 4
     },
@@ -12797,7 +12797,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.47142832342133617,
+     "stomachFill": 0.60924261084036357,
      "username": "g2",
      "v": 4
     },
@@ -13544,7 +13544,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.72156337535051951,
+     "stomachFill": 0.89275245701015737,
      "username": "g3",
      "v": 4
     },
@@ -13582,7 +13582,7 @@
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
-      "lastFedAgeH": 119.83333333333333,
+      "lastFedAgeH": 119.95,
       "lastVigAgeH": -1000000000,
       "lowDay": true,
       "mass90ageH": 120,
@@ -14289,7 +14289,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.030338664159793343,
+     "stomachFill": 0.044550243826415682,
      "username": "g4",
      "v": 4
     },
@@ -15034,7 +15034,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.2708611827788806,
+     "stomachFill": 0.2988560851820477,
      "username": "g5",
      "v": 4
     },
@@ -15781,7 +15781,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.21658909945407295,
+     "stomachFill": 0.31011246479686522,
      "username": "g6",
      "v": 4
     }
@@ -17364,7 +17364,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.27311150261655354,
+     "stomachFill": 0.28471152176380615,
      "username": "g1",
      "v": 4
     },
@@ -18109,7 +18109,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.39230393288953619,
+     "stomachFill": 0.50698751102180095,
      "username": "g2",
      "v": 4
     },
@@ -18882,7 +18882,7 @@
       "iuSleep": 0,
       "lastB1": 30,
       "lastB2": 0,
-      "lastFedAgeH": 119.83333333333333,
+      "lastFedAgeH": 119.95,
       "lastVigAgeH": -1000000000,
       "lowDay": true,
       "mass90ageH": 120,
@@ -19589,7 +19589,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.0061279025338600579,
+     "stomachFill": 0.0089984038384185606,
      "username": "g4",
      "v": 4
     },
@@ -20334,7 +20334,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.19015919010283827,
+     "stomachFill": 0.20981312468799485,
      "username": "g5",
      "v": 4
     },
@@ -21081,7 +21081,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.16458888700242669,
+     "stomachFill": 0.23565851446424421,
      "username": "g6",
      "v": 4
     }
@@ -22663,7 +22663,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.40786344688845472,
+     "stomachFill": 0.42050362795209417,
      "username": "g1",
      "v": 4
     },
@@ -23408,7 +23408,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.41321315028484673,
+     "stomachFill": 0.56778794430083457,
      "username": "g2",
      "v": 4
     },
@@ -24888,7 +24888,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.20210502718130985,
+     "stomachFill": 0.56093038016877017,
      "username": "g4",
      "v": 4
     },
@@ -25635,7 +25635,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.28354817656601644,
+     "stomachFill": 0.35932351620580433,
      "username": "g5",
      "v": 4
     },
@@ -26382,7 +26382,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.30768131088377293,
+     "stomachFill": 0.35813917016644137,
      "username": "g6",
      "v": 4
     }
@@ -27964,7 +27964,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.28841238886493159,
+     "stomachFill": 0.29735063730092481,
      "username": "g1",
      "v": 4
     },
@@ -28709,7 +28709,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.34814214379696318,
+     "stomachFill": 0.47837517275212471,
      "username": "g2",
      "v": 4
     },
@@ -30180,7 +30180,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.1539544986983217,
+     "stomachFill": 0.4272914765552559,
      "username": "g4",
      "v": 4
     },
@@ -30927,7 +30927,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.23619073786530326,
+     "stomachFill": 0.2993102881239823,
      "username": "g5",
      "v": 4
     },
@@ -31674,7 +31674,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.19162933712885252,
+     "stomachFill": 0.22305538019758878,
      "username": "g6",
      "v": 4
     }
@@ -33256,7 +33256,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.17759244784855305,
+     "stomachFill": 0.18309625240242028,
      "username": "g1",
      "v": 4
     },
@@ -34001,7 +34001,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.28777294137898585,
+     "stomachFill": 0.39542305635322589,
      "username": "g2",
      "v": 4
     },
@@ -35472,7 +35472,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.11077886042834054,
+     "stomachFill": 0.30746008232138955,
      "username": "g4",
      "v": 4
     },
@@ -36219,7 +36219,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.1922551825815125,
+     "stomachFill": 0.24363340667752159,
      "username": "g5",
      "v": 4
     },
@@ -36966,7 +36966,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.083962874402153637,
+     "stomachFill": 0.097732273945412257,
      "username": "g6",
      "v": 4
     }
@@ -38548,7 +38548,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.074779969415293565,
+     "stomachFill": 0.077097491028357459,
      "username": "g1",
      "v": 4
     },
@@ -39293,7 +39293,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.23176580706085739,
+     "stomachFill": 0.31846477068697943,
      "username": "g2",
      "v": 4
     },
@@ -40764,7 +40764,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.070722943255287746,
+     "stomachFill": 0.19628728686325109,
      "username": "g4",
      "v": 4
     },
@@ -41511,7 +41511,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.15149425734874772,
+     "stomachFill": 0.19197954257648076,
      "username": "g5",
      "v": 4
     },
@@ -41549,7 +41549,7 @@
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
-      "lastFedAgeH": 122.16666666666667,
+      "lastFedAgeH": 122.21666666666667,
       "lastVigAgeH": -1000000000,
       "lowDay": true,
       "mass90ageH": 120,
@@ -42258,7 +42258,7 @@
       },
       "liquid": 0
      },
-     "stomachFill": 0.017628542966405519,
+     "stomachFill": 0.020519516544886447,
      "username": "g6",
      "v": 4
     }

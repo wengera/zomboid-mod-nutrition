@@ -30,8 +30,8 @@ K.satiety.W_FAT = 1 -- neutral (ruling 11c-7), as W_CARB
 K.satiety.W_NEUTRAL = 1 -- neutral (spec § 3.1): the common weight of a vector with no macronutrient grams
 K.satiety.HALF_LIFE_H = 0.7 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): P's half-life in game hours, fitted with P_REQ and STEEP against S1247 (Callahan's preloads from the request and fasted), the 650 kcal anchor (S1247, S1248), a fasted 400 kcal breakfast and S1231 (Rolls's soup at its measured size)
 K.satiety.P_REQ = 6 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): the pool in weighted kcal at which an empty stomach reads the request level 0.25, fitted with HALF_LIFE_H and STEEP (S1247, S1248, S1231)
-K.satiety.STEEP = 0.08 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open; no row gives a satiety signal's read): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247)
-K.satiety.FULL_WEIGHT = 0.6 -- game choice, fitted in Task 4 (Plan 11c): fullness's weight in the sated product, fitted to S1231's three arms and checked against S1233; S1235 has fullness track gastric volume
+K.satiety.STEEP = 0.05 -- game choice, fitted in Task 4 (Plan 11c) at 0.08 (S1270 open; no row gives a satiety signal's read), refit in Plan 11d Task 5 (ruling 11d-5) jointly with FULL_WEIGHT and PROTEIN_FILL (at 0.08 no PROTEIN_FILL and FULL_WEIGHT held S1231, S1233 and S1247 with the protein contrast of S1222): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247)
+K.satiety.FULL_WEIGHT = 0.55 -- game choice, fitted in Task 4 (Plan 11c) at 0.6, refit in Plan 11d Task 5 (ruling 11d-5) jointly with STEEP and PROTEIN_FILL: fullness's weight in the sated product, fitted to S1231's three arms and checked against S1233; S1235 has fullness track gastric volume
 K.satiety.LIQUID_WEIGHT = 0.2 -- game choice, fitted in Task 4 (Plan 11c): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake)
 K.satiety.P_SEED_MAX = 1300 -- game choice (ruling 11c-30): seedP's cap, about the weighted pool of a 1,000 kcal mixed meal, so a HUNGER of 0 does not seed a pool that sates for days
 K.satiety.DISCOMFORT_MAX = 100 -- not science: the soft cap's discomfort scale, borrowed from the DISCOMFORT stat's range 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21); ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel and nothing writes DISCOMFORT
@@ -195,3 +195,11 @@ function K.satiety.sleepFactor(debtH)
     end
     return 1 + K.satiety.SLEEP_MAX * K.clamp(debtH / K.satiety.SLEEP_DEBT_FULL_H, 0, 1)
 end
+
+-- Plan 11d Task 5 (ruling 11d-5, spec § 5d): protein fills while it is in the stomach. The fullness F reads the
+-- satiety mass plus PROTEIN_FILL x the protein grams in the solid lane (K.stomach.fullnessMass, through K.stomach.fill)
+-- against K.stomach.CAPACITY_MAX_G; the protein leaves with the lane's energy (K.stomach.drain), so the term fades as
+-- the meal empties. No row names gastric fullness from protein: the term is a game choice, fitted with FULL_WEIGHT and
+-- STEEP so the oracle's protein contrast reads at least half S1222's -7 mm under the request-anchored mapping (ruling
+-- 11c-31, an assumption) while every hard replay holds at 1.1x. Appended so no line above moves.
+K.satiety.PROTEIN_FILL = 8 -- game choice, Plan 11d (ruling 11d-5; no row names gastric fullness from protein): the extra grams of fullness mass a gram of protein in the solid lane counts for, fitted jointly with FULL_WEIGHT 0.55 and STEEP 0.05 so the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) reads 0.0134, at least half the 0.025 of S1222 (hunger -7 mm; S1380 and S1383: less eaten after protein), with S1231 and S1247 held at 1.1x, S1233 at 1.15x and S1224's differences at 1.5x; S1384's short-term null for whey against carbohydrate is not reproduced (the model reads about 8 mm)
