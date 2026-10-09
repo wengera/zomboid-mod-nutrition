@@ -203,3 +203,29 @@ end
 -- STEEP so the oracle's protein contrast reads at least half S1222's -7 mm under the request-anchored mapping (ruling
 -- 11c-31, an assumption) while every hard replay holds at 1.1x. Appended so no line above moves.
 K.satiety.PROTEIN_FILL = 8 -- game choice, Plan 11d (ruling 11d-5; no row names gastric fullness from protein): the extra grams of fullness mass a gram of protein in the solid lane counts for, fitted jointly with FULL_WEIGHT 0.55 and STEEP 0.05 so the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) reads 0.0134, at least half the 0.025 of S1222 (hunger -7 mm; S1380 and S1383: less eaten after protein), with S1231 and S1247 held at 1.1x, S1233 at 1.15x and S1224's differences at 1.5x; S1384's short-term null for whey against carbohydrate is not reproduced (the model reads about 8 mm)
+
+-- Plan 11e (rulings 11e-2 and T2-A, spec memo C12): nicotine withdrawal raises hunger. The factor 1 + NIC_MAX x
+-- clamp(w / NIC_WITHDRAWAL_MAX, 0, 1) x fade(d) multiplies the written hunger, where w is the server's own
+-- NICOTINE_WITHDRAWAL (a Smoker's, or a former Smoker's, rising on the server alone: #3630, #3631; vanilla reads it only
+-- as stress, #3635) and d the game days since the mod's own anchor, the last minute the stat read 0 or fell (a smoke
+-- lowers it, #3632; the writer's W.nicotine keeps it as record.satiety.nicH, ruling T2-A, because the vanilla timer's
+-- units move with the time speed, #3636). The fade is linear, 1 at d = 0 and 0 at NIC_FADE_DAYS.
+-- A character who keeps smoking keeps resetting the anchor, so between smokes the factor stays at its withdrawal-scaled
+-- level and never fades while the habit continues; only a quit runs the fade. Appended so no line above moves; one statement a line.
+K.satiety.NIC_MAX = 0.11 -- game choice, Plan 11e (ruling 11e-2): the factor's rise at the stat's cap, fitted to S1576 (Stamford 1986: intake +227 kcal/d over the 48 days after quitting, 1.1135 of an assumed 2,000 kcal day): under the request-anchored mapping (ruling 11c-31, an assumption) the next-day intake ratio reads 1.1093 and the 48-day mean 1.0951, both in the band 1.08-1.14, which admits NIC_MAX in about [0.093, 0.14] (0.13 would put the 48-day mean on 1.1135; the ruling's 0.11 puts the next day near it); the size is low certainty, one experiment with n = 13 sedentary women and no certainty rating; S1577 sets the fade's end
+K.satiety.NIC_FADE_DAYS = 182 -- game choice, Plan 11e (ruling 11e-2): 26 weeks, the fade's end, from S1577 (Hall 1989: abstinent women's intake about baseline by week 26, men's below it), linear between; the size it fades is S1576's (n = 13, low certainty) and the shape of the fade is not measured
+K.satiety.NIC_WITHDRAWAL_MAX = 0.51 -- CharacterStat.NICOTINE_WITHDRAWAL's maximum, the stat's cap a full smoke removes (#3632)
+
+-- The factor on hunger for a withdrawal w (the stat's value) d game days after the anchor: 1 for a non-finite input
+-- (x - x is NaN for NaN and for an infinity), for no withdrawal (w <= 0) and for a negative d; otherwise
+-- 1 + NIC_MAX x clamp(w / NIC_WITHDRAWAL_MAX, 0, 1) x clamp(1 - d / NIC_FADE_DAYS, 0, 1).
+function K.satiety.nicotineFactor(w, d)
+    if w - w ~= 0 or d - d ~= 0 then
+        return 1
+    end
+    if w <= 0 or d < 0 then
+        return 1
+    end
+    local fade = K.clamp(1 - d / K.satiety.NIC_FADE_DAYS, 0, 1)
+    return 1 + K.satiety.NIC_MAX * K.clamp(w / K.satiety.NIC_WITHDRAWAL_MAX, 0, 1) * fade
+end

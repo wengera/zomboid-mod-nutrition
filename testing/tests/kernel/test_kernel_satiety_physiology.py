@@ -367,3 +367,37 @@ def test_stomach_fill_stays_physical_whatever_the_protein_fill(host):
     finally:
         S.PROTEIN_FILL = 8
     assert f8 == f0 == pytest.approx(150 / 730)
+
+
+# --- the nicotine-withdrawal hunger factor (Plan 11e Task 2, rulings 11e-2 and T2-A) -------------------------------
+
+def test_nicotine_factor_shape(host):
+    S = host.K.satiety
+    assert S.nicotineFactor(0, 0) == 1 and S.nicotineFactor(-0.2, 0) == 1           # no withdrawal: none
+    assert S.nicotineFactor(0.51, 0) == 1 + S.NIC_MAX                                # at the cap, at the anchor
+    assert S.nicotineFactor(5.0, 0) == 1 + S.NIC_MAX                                 # w clamped at the cap
+    assert S.nicotineFactor(0.255, 0) == pytest.approx(1 + S.NIC_MAX / 2)            # w / 0.51
+    assert S.nicotineFactor(0.51, 91) == pytest.approx(1 + S.NIC_MAX / 2)            # halfway along the fade
+    assert S.nicotineFactor(0.51, 45.5) == pytest.approx(1 + S.NIC_MAX * 0.75)       # the fade is linear
+    assert S.nicotineFactor(0.51, 182) == 1 and S.nicotineFactor(0.51, 400) == 1     # gone by 26 weeks
+
+
+@pytest.mark.parametrize("w,d", [(float("nan"), 0), (float("inf"), 0), (float("-inf"), 0), (0.51, float("nan")),
+                                 (0.51, float("inf")), (0.51, float("-inf")), (0.51, -1)])
+def test_nicotine_factor_reads_a_non_finite_or_negative_input_as_none(host, w, d):
+    assert host.K.satiety.nicotineFactor(w, d) == 1
+
+
+def test_nicotine_constants_and_their_labels(host):
+    S = host.K.satiety
+    assert (S.NIC_MAX, S.NIC_FADE_DAYS, S.NIC_WITHDRAWAL_MAX) == (0.11, 182, 0.51)
+    with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
+        src = fh.read()
+    for name in ("NIC_MAX", "NIC_FADE_DAYS"):
+        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        assert "game choice, Plan 11e (ruling 11e-2)" in line, name
+        for s in ("S1576", "S1577", "n = 13", "low certainty"):
+            assert s in line, (name, s)
+    line = re.search(r"^K\.satiety\.NIC_WITHDRAWAL_MAX = .*$", src, re.M).group(0)
+    assert "CharacterStat.NICOTINE_WITHDRAWAL" in line and "#3632" in line
+    assert "keeps smoking" in src                                    # the habit never fades (ruling T2-A)

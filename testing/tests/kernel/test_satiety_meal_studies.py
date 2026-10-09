@@ -968,3 +968,72 @@ def test_the_36_h_fast_ratios_sit_within_their_studies(host):
     r2, r3, _, _, _ = fast_reading(host)
     assert ratio(r2, 1.20) <= TOL, r2             # S1613 (Johnstone 2002): 12.2 against 10.2 MJ, 1.20
     assert ratio(r3, 1.0) <= TOL, r3              # S1614 (Clayton 2016): day 3 not different, 1.0
+
+
+# --- Plan 11e Task 2 (rulings 11e-2 and T2-A): nicotine-withdrawal hunger, the S1576 replay ----------------------------
+# S1576 (Stamford 1986, 13 sedentary women, one experiment, no certainty rating): intake +227 kcal/d over the 48 days
+# after quitting; on the ASSUMED 2,000 kcal day (DAY_KCAL, no row) that is a ratio of 1.1135, the band 1.08-1.14 the
+# plan sets about it. S1577 (Hall 1989): intake back to baseline by week 26, the fade's end. The replay runs the writer
+# at the next day's three meals (MEAL_MINUTES), each eaten at the request (ruling 11c-31's mapping, as the sleep replay
+# above): the quitting arm's last smoke is at world age 0 (08:00), so NICOTINE_WITHDRAWAL reads its 0.51 cap from about
+# 12.7 game hours later (#3636) and the anchor holds at 0; the control arm never smoked (the stat 0, the anchor
+# following the minute). With every meal at the request the intake ratio is the factor itself, 1 + NIC_MAX x the fade
+# at about a day, a little under 1 + NIC_MAX. The 48-day mean reads the same mapping over S1576's whole span.
+
+NIC_BAND = (1.08, 1.14)          # S1576's 227 kcal/d on the ASSUMED 2,000 kcal day, 1.1135, and the plan's band about it
+NIC_DAYS = 48                    # S1576's span
+
+
+def nicotine_written(wh, ageH, w, anchorH):
+    """The HUNGER the writer writes at world age ageH (0 = 08:00) for a fresh record eaten at the request, its player's
+    NICOTINE_WITHDRAWAL w and its anchor at world age anchorH (None: no anchor laid)."""
+    from .test_writer_shape import player, record
+    wh.T.age = ageH + CLOCK_H
+    wh.T.meal = (wh.T.meal or 0) + 1
+    name = "n%d" % wh.T.meal
+    p = player(wh, name)
+    p.st.v.NICOTINE_WITHDRAWAL = w
+    c = wh.K.satiety.circadian((ageH + CLOCK_H) % 24)
+    rec = record(wh, stomachFill=0.0)
+    rec.satiety.P = wh.K.satiety.seedP(H_REQ / c, 0, 1)
+    if anchorH is not None:
+        rec.satiety.nicH = anchorH + CLOCK_H
+    wh.NR.server.writer.step(name, p, rec, None)
+    return p.st.sets.HUNGER
+
+
+def nicotine_ratio(wh, day):
+    """The intake ratio of day `day` after the quit (day 1 the next day), quitting arm over control."""
+    quit = [nicotine_written(wh, day * 24 + m / 60, 0.51, 0.0) for m in MEAL_MINUTES]
+    ctrl = [nicotine_written(wh, day * 24 + m / 60, 0.0, None) for m in MEAL_MINUTES]
+    assert all(abs(x - H_REQ) < 1e-9 for x in ctrl), ctrl                 # the control arm writes the request
+    return sum(650.0 * x / H_REQ for x in quit) / sum(650.0 * x / H_REQ for x in ctrl)
+
+
+def nicotine_reading(host):
+    """(the next-day intake ratio, the mean ratio over S1576's 48 days, the ratio at week 26). Runs on a writer host;
+    `host` is taken for the file's mutation convention."""
+    wh = writer_host()
+    nxt = nicotine_ratio(wh, 1)
+    mean48 = sum(nicotine_ratio(wh, d) for d in range(1, NIC_DAYS + 1)) / NIC_DAYS
+    return nxt, mean48, nicotine_ratio(wh, 182)
+
+
+def test_a_quitting_smokers_next_day_intake_sits_in_s1576s_band(host):
+    nxt, mean48, wk26 = nicotine_reading(host)
+    S = host.K.satiety
+    assert abs(1 + 227.0 / DAY_KCAL - 1.1135) < 1e-12
+    assert NIC_BAND[0] <= nxt <= NIC_BAND[1], nxt
+    assert nxt < 1 + S.NIC_MAX and nxt > 1 + S.NIC_MAX * (1 - 1.5 / S.NIC_FADE_DAYS), nxt   # the fade at about a day
+    assert NIC_BAND[0] <= mean48 <= NIC_BAND[1], mean48
+    assert wk26 == 1.0, wk26                                              # S1577: back to baseline by week 26
+
+
+def test_the_nicotine_replay_is_pinned(host):
+    nxt, mean48, _ = nicotine_reading(host)
+    assert round(nxt, 4) == PIN_NEXT, nxt
+    assert round(mean48, 4) == PIN_MEAN48, mean48
+
+
+PIN_NEXT = 1.1093                # NIC_MAX 0.11 x the fade at about a day (1.0007 to 1.4583 days after the anchor)
+PIN_MEAN48 = 1.0951              # the 48-day mean: the fade's mean over S1576's span
