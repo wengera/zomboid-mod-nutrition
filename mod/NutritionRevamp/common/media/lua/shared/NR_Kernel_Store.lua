@@ -106,7 +106,7 @@ K.store.INPUTS = {
     -- reconciliation (NR_Server_Reconcile, Plan 8 Task 4): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.
-    "reconcile.count",
+    "reconcile.count", "monotony", -- monotony (NR_Server_Intake IN.atEat, K.monotony; Plan 11e, ruling 11e-1): the recent eats by full type, { t = { [type] = { n, last } } }, copied whole and laid by the first eat; its entries are healed by K.monotony.heal at the eat
 }
 
 -- Split a dotted path into its segments (a fresh array of strings).

@@ -633,3 +633,44 @@ def test_the_writers_step_stamp_is_an_input(host):
     raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 6, S = 0, L = 0, t = 101.5 } }")
     rec = S(host).load(raw, None, None)
     assert rec.satiety.t == 101.5 and S(host).inputsOnly(rec).satiety.t == 101.5
+
+
+# --- Plan 11e Task 3 (ruling 11e-1): record.monotony, a store INPUT laid fresh -----------------------------------
+
+MONO_RAW = ("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, "
+            "monotony = { t = { ['Base.Apple'] = { n = 2.5, last = 1.5 }, ['Base.Bread'] = { n = 1, last = 2.0 } } } }")
+
+
+def test_monotony_and_everything_under_it_is_an_input(host):
+    for p in ("monotony", "monotony.t", "monotony.t.Base.Apple.n"):
+        assert S(host).isInput(p), p
+
+
+def test_a_loaded_record_keeps_its_monotony_deep(host):
+    raw = host.rt.eval(MONO_RAW)
+    rec = S(host).load(raw, None, None)
+    assert host.py(rec.monotony) == {"t": {"Base.Apple": {"n": 2.5, "last": 1.5}, "Base.Bread": {"n": 1, "last": 2.0}}}
+    rec.monotony.t["Base.Apple"].n = 9
+    assert raw.monotony.t["Base.Apple"].n == 2.5                         # copied, not shared
+
+
+def test_a_record_without_monotony_loads_without_it(host):
+    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false }")
+    assert S(host).load(raw, None, None).monotony is None
+
+
+def test_monotony_round_trips_through_inputs_only_and_the_json_codec(host):
+    rec = S(host).load(host.rt.eval(MONO_RAW), None, None)
+    text = host.K.json.encode(S(host).inputsOnly(rec), host.rt.eval("function(x) return string.format('%.17g', x) end"))
+    decoded, err = host.K.json.decode(text)
+    assert err is None, err
+    back = S(host).load(decoded, None, None)
+    assert host.py(back.monotony) == host.py(rec.monotony)
+
+
+def test_a_monotony_that_is_not_a_table_is_a_corrupt_file(host):
+    # ruling C9-10: a top-level input of a bad type raises and the server lays a fresh record; a table holding bad
+    # entries loads and is reset by K.monotony.heal at the next eat (test_intake_shape.py)
+    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, monotony = 'x' }")
+    with pytest.raises(Exception, match="store: input"):
+        S(host).load(raw, None, None)

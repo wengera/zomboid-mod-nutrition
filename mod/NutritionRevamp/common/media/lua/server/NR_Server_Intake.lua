@@ -63,7 +63,7 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                      wrappedDrink = false, wrappedWorld = false, wired = false,
                      stats = { eats = 0, cancels = 0, sips = 0, worldSips = 0, landed = 0, failures = 0,
                                passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0,
-                               declaredMalformed = 0, creditFailures = 0 },
+                               declaredMalformed = 0, creditFailures = 0, monotony = 0, monotonyHealed = 0, monotonyFailures = 0 },
                      lastIngested = {},
                      landed = {},
                      pendingAlc = {},
@@ -365,7 +365,7 @@ function IN.readBefore(action)
     if username == nil then return nil end
     local rawBefore = read(item, "getHungChange")          -- the RAW stored hunger (#0002)
     if type(rawBefore) ~= "number" then return nil end
-    local b = { item = item, username = username, rawBefore = rawBefore }
+    local b = { item = item, username = username, rawBefore = rawBefore, char = char } -- char: monotony's stats add
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
@@ -452,6 +452,7 @@ function IN.readAfterAndLand(b)
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
+    IN.atEat(record, b, share)                             -- monotony (Plan 11e, ruling 11e-1): mood, never hunger
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
@@ -459,7 +460,6 @@ function IN.readAfterAndLand(b)
         .. " share " .. tostring(share))
     return vec
 end
-
 -- A rejected landing: nothing lands, the failure is counted and named. Returns nil.
 function IN.reject(key)
     IN.stats.failures = IN.stats.failures + 1
@@ -849,3 +849,67 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         end
     end)
 end
+
+-- ---------------------------------------------------------------------------------------------------
+-- Monotony at the eat (Plan 11e Task 3, ruling 11e-1; the kernel is NR_Kernel_Monotony.lua). readAfterAndLand calls
+-- IN.atEat once per landed eat (a complete, or a cancel that ate a part), after IN.land and before the wrapper's
+-- credit: the eat's type is booked into record.monotony and a repeat within the window adds the kernel's delta to
+-- BOREDOM and to UNHAPPINESS through the eater's Stats.add, scaled by the share of the whole item eaten. Nothing
+-- here reads or writes HUNGER, so monotony never reaches the meal pool or the written hunger (ruling 11d-9).
+-- The seam, an add on the server right after vanilla's own eat writes (seam (a) of the Task 3 amendments):
+--  * the eat runs on the server alone: a multiplayer client never runs complete or Eat (#0109), and EatOnClient runs
+--    only a Food's OnEat hook on a receiver (#0130, #3634);
+--  * vanilla delivers a food's boredom and unhappiness the same way, Stats.add calls in BodyDamage.JustAteFood inside
+--    Eat (#3597), so this add lands after them inside the same wrap;
+--  * Stats.add is get plus set, clamped once to the stat's range (#2800, #2208), BOREDOM and UNHAPPINESS 0-100;
+--  * the player-stats packet is a full snapshot of the stats registry at 1 Hz (#0564, #1149), and a server write of
+--    UNHAPPINESS outside the stat hook survived the next update and reached the client about a second later
+--    (#3048, #3049); the body-damage sub-updaters add to or remove from BOREDOM and UNHAPPINESS and never set a
+--    level (#3017), so the add is the base they move from: BOREDOM then falls at vanilla's rates as a food's boredom
+--    does (#3015), and UNHAPPINESS has no passive fall but an antidepressant's (#3033);
+--  * the writer's UNHAPPINESS floor reads the stat each minute and only raises it toward its target or subtracts a
+--    target's fall (K.hybrid.write, #3119), so it builds on the add and never undoes it.
+-- Under its own pcall: a raise is counted (monotonyFailures) and named, and never reaches the landing or the credit.
+function IN.atEat(record, b, share)
+    local ok, err = pcall(IN.monotony, record, b, share)
+    if ok then return err end
+    IN.stats.monotonyFailures = IN.stats.monotonyFailures + 1
+    IN.lastError = "monotony failed: " .. tostring(err)
+    NR.log.say(2, "intake: " .. IN.lastError)
+    return 0
+end
+
+-- The booking and the add; returns the delta added to each stat (0 when none). A record whose monotony is corrupt is
+-- reset by the kernel's heal and counted (monotonyHealed); a type past the window is pruned at every eat. No world
+-- age, no share or no full type books nothing.
+function IN.monotony(record, b, share)
+    local ageH = worldAge()
+    if not IN.isFinite(ageH) or not IN.isFinite(share) or share <= 0 then return 0 end
+    local typeKey = b.fullType
+    if type(typeKey) ~= "string" or typeKey == "" or typeKey == "nil" then return 0 end
+    local m, healed = K.monotony.heal(record.monotony, ageH)
+    if healed then
+        IN.stats.monotonyHealed = IN.stats.monotonyHealed + 1
+        NR.log.say(2, "intake: monotony record reset for " .. tostring(b.username))
+    end
+    record.monotony = m
+    K.monotony.prune(m, ageH)
+    local boredom, unhappy = K.monotony.delta(m, typeKey, ageH, K.monotony.isStaple(typeKey, b.foodType), share)
+    K.monotony.record(m, typeKey, ageH, share)
+    if boredom > 0 then IN.addMood(b.char, boredom, unhappy) end
+    return boredom
+end
+
+-- The add itself: one Stats.add on BOREDOM and one on UNHAPPINESS, through the eater's stats object (none, or no
+-- CharacterStat enum, adds nothing). A raising add propagates to IN.atEat's pcall.
+function IN.addMood(char, boredom, unhappy)
+    if CharacterStat == nil then return false end
+    local stats = NR.obj(char, "getStats")
+    if stats == nil then return false end
+    NR.call(stats, "add", CharacterStat.BOREDOM, boredom)
+    NR.call(stats, "add", CharacterStat.UNHAPPINESS, unhappy)
+    IN.stats.monotony = IN.stats.monotony + 1
+    return true
+end
+
+IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; drinks and world water book no monotony; the delta is a game choice anchored on vanilla's stale item, and a staple (FoodType Bread, Rice or Pasta, or a named potato, oat or bread type) takes a quarter of it"

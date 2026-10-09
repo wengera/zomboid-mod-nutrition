@@ -1791,3 +1791,157 @@ def test_a_partial_eat_feeds_the_pool_by_its_delivered_fraction(server_host):
     assert abs(v["calories"] - 47.5) < TOL                                # 95 kcal x the half eaten
     assert abs(rec.satiety.P - (5 + _weighed(v))) < 1e-9
     assert rec.satiety.P < 5 + 95 * 1.1                                   # not the whole item
+
+
+# --- Plan 11e Task 3 (ruling 11e-1): monotony at the eat -------------------------------------------------------
+# The eat goes through the installed ISEatFoodAction.complete wrapper (guardBefore, the original, guardAfter), so
+# "once per eat" is the wrapper's count. The character answers getStats with a stand-in that logs every call by
+# stat, so a write to HUNGER, or a second add, is visible.
+
+MONO_EAT = r"""
+function(fullType, foodType, afters, opts)
+    local IN = NutritionRevamp.server.intake
+    local saved = CharacterStat
+    if not opts.noEnum then
+        CharacterStat = { BOREDOM = "BOREDOM", UNHAPPINESS = "UNHAPPINESS", HUNGER = "HUNGER" }
+    end
+    local log = {}
+    local stats = {}
+    stats.add = function(self, k, v)
+        if opts.raising then error("stub: add raised") end
+        log[#log + 1] = { op = "add", k = k, v = v }
+        return true
+    end
+    stats.set = function(self, k, v) log[#log + 1] = { op = "set", k = k, v = v } end
+    stats.get = function(self, k) log[#log + 1] = { op = "get", k = k } return 0 end
+    local char = { getUsername = function(self) return "admin" end }
+    if not opts.noStats then char.getStats = function(self) return stats end end
+    local cls = {}
+    local hung = -0.2
+    cls.complete = function(self) hung = self.after return true end
+    cls.serverStop = function(self) end
+    ISEatFoodAction = cls
+    IN.install()
+    local before = { landed = IN.stats.landed, monotony = IN.stats.monotony, healed = IN.stats.monotonyHealed,
+                     failures = IN.stats.monotonyFailures, credit = IN.stats.creditFailures }
+    if opts.preset ~= nil then
+        local rec = NutritionRevamp.server.store.get("admin", 12.5)
+        rec.monotony = opts.preset
+    end
+    local adds = {}
+    for i, after in ipairs(afters) do
+        hung = -0.2
+        local item = {}
+        item.getHungChange = function(self) return hung end
+        item.getFullType = function(self) return fullType end
+        item.getBaseHunger = function(self) return -0.2 end
+        item.getCalories = function(self) return 95 end
+        item.getCarbohydrates = function(self) return 25 end
+        item.getLipids = function(self) return 0.3 end
+        item.getProteins = function(self) return 0.5 end
+        item.getFoodType = function(self) return foodType end
+        item.isCooked = function(self) return false end
+        item.isBurnt = function(self) return false end
+        item.isRotten = function(self) return false end
+        item.isFrozen = function(self) return false end
+        item.getThirstChangeUnmodified = function(self) return 0 end
+        item.haveExtraItems = function(self) return false end
+        item.getModData = function(self) return {} end
+        item.getScriptItem = function(self)
+            return { getHungerChange = function(s) return -20 end, getThirstChange = function(s) return 0 end }
+        end
+        local n0 = #log
+        cls.complete({ item = item, character = char, after = after })
+        adds[i] = #log - n0
+    end
+    CharacterStat = saved
+    local rec = NutritionRevamp.server.store.records.admin
+    local after = { landed = IN.stats.landed, monotony = IN.stats.monotony, healed = IN.stats.monotonyHealed,
+                    failures = IN.stats.monotonyFailures, credit = IN.stats.creditFailures }
+    return log, rec, before, after, adds
+end
+"""
+
+
+def _mono(h, full, ft, afters, **opts):
+    log, rec, before, after, adds = h.rt.eval(MONO_EAT)(full, ft, h.rt.table(*afters), tbl(h, opts))
+    entries = [(e["op"], e["k"], e["v"]) for e in log.values()]
+    return entries, rec, as_dict(before), as_dict(after), list(adds.values())
+
+
+def test_the_first_eat_of_a_type_adds_no_mood(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0])
+    assert log == [] and after["monotony"] == before["monotony"]
+    e = rec["monotony"]["t"]["Base.Apple"]
+    assert e["n"] == pytest.approx(1.0) and e["last"] == 12.5
+
+
+def test_a_repeat_adds_boredom_and_unhappiness_once_each_per_eat(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, 0, 0])
+    assert adds == [0, 2, 2]                                             # one add per stat per repeat, nothing else
+    assert log == [("add", "BOREDOM", pytest.approx(4.3)), ("add", "UNHAPPINESS", pytest.approx(4.3)),
+                   ("add", "BOREDOM", pytest.approx(8.6)), ("add", "UNHAPPINESS", pytest.approx(8.6))]
+    assert after["monotony"] - before["monotony"] == 2
+    assert after["landed"] - before["landed"] == 3
+    assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(3.0)
+
+
+def test_a_partial_eat_counts_and_adds_by_its_share(server_host):
+    # a whole apple, then half of another (-0.2 -> -0.1): n = 1.5, the delta 0.5 x 4.3 x 0.5
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, -0.1])
+    assert log == [("add", "BOREDOM", pytest.approx(1.075)), ("add", "UNHAPPINESS", pytest.approx(1.075))]
+    assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(1.5)
+
+
+def test_monotony_never_touches_hunger(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, 0, 0, 0])
+    assert all(op == "add" for op, k, v in log)
+    assert {k for op, k, v in log} == {"BOREDOM", "UNHAPPINESS"}
+
+
+def test_a_staple_takes_the_reduced_slope(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Bread", "Bread", [0, 0])
+    assert log == [("add", "BOREDOM", pytest.approx(4.3 * 0.25)), ("add", "UNHAPPINESS", pytest.approx(4.3 * 0.25))]
+
+
+@pytest.mark.parametrize("opt", ["noStats", "noEnum"])
+def test_without_a_stats_object_or_the_enum_the_eat_is_still_booked(server_host, opt):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, 0], **{opt: True})
+    assert log == [] and after["monotony"] == before["monotony"]
+    assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(2.0)
+
+
+def test_a_raising_add_is_counted_and_never_blocks_the_landing_or_the_credit(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, 0], raising=True)
+    assert after["failures"] - before["failures"] == 1
+    assert after["landed"] - before["landed"] == 2
+    assert after["credit"] == before["credit"]
+    assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize("raw", ["'junk'", "{ t = 4 }", "{ t = { ['Base.Apple'] = { n = 0 / 0, last = 1 } } }",
+                                 "{ t = { ['Base.Apple'] = { n = 9, last = 99 } } }"])
+def test_a_corrupt_monotony_table_is_reset_and_counted(server_host, raw):
+    h = server_host
+    log, rec, before, after, adds = _mono(h, "Base.Apple", "Fruits", [0], preset=h.rt.eval(raw))
+    assert after["healed"] - before["healed"] == 1
+    assert log == []                                                      # reset: this eat is the first again
+    assert h.py(rec["monotony"]) == {"t": {"Base.Apple": {"n": 1.0, "last": 12.5}}}
+
+
+def test_a_type_beyond_the_window_is_pruned_at_the_eat(server_host):
+    h = server_host
+    pre = h.rt.eval("{ t = { ['Base.Old'] = { n = 2, last = 12.5 - 169 }, ['Base.Apple'] = { n = 1, last = 12.5 } } }")
+    log, rec, before, after, adds = _mono(h, "Base.Apple", "Fruits", [0], preset=pre)
+    assert sorted(h.py(rec["monotony"]["t"])) == ["Base.Apple"]
+    assert log == [("add", "BOREDOM", pytest.approx(4.3)), ("add", "UNHAPPINESS", pytest.approx(4.3))]
+
+
+def test_a_cancel_with_nothing_eaten_books_nothing(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [-0.2])
+    assert log == [] and (rec is None or rec["monotony"] is None)
+
+
+def test_limitations_name_monotony(intake_host):
+    lims = list(I(intake_host).limitations.values())
+    assert any("monotony" in l and "full type" in l for l in lims)

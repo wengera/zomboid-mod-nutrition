@@ -1189,6 +1189,14 @@
       "source": "dish"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "Base.Salad": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -2083,6 +2091,14 @@
       "source": "baseline"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -2979,6 +2995,14 @@
       "source": "inferred"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "NRTrace.TrailMix": {
+        "last": 118.66666666666667,
+        "n": 1
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -3873,6 +3897,14 @@
       "source": "baseline"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -4767,6 +4799,14 @@
       "source": "craft"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -5664,6 +5704,14 @@
       "source": "declared"
      },
      "lastSeen": 119,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -6156,6 +6204,9 @@
      "eats": 0,
      "failures": 0,
      "landed": 6,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -7445,6 +7496,14 @@
       "source": "dish"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "Base.Salad": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -8339,6 +8398,14 @@
       "source": "baseline"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -9235,6 +9302,14 @@
       "source": "inferred"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "NRTrace.TrailMix": {
+        "last": 118.66666666666667,
+        "n": 1
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -10129,6 +10204,14 @@
       "source": "baseline"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -11023,6 +11106,14 @@
       "source": "craft"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -11917,6 +12008,14 @@
       "source": "reconciled"
      },
      "lastSeen": 119.5,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 118.66666666666667,
+        "n": 0.5
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -12409,6 +12508,9 @@
      "eats": 0,
      "failures": 0,
      "landed": 6,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -13701,6 +13803,14 @@
       "source": "dish"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -14596,6 +14706,14 @@
       "source": "baseline"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -15493,6 +15611,18 @@
       "source": "dish"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "NRTrace.Stew": {
+        "last": 119.66666666666667,
+        "n": 1
+       },
+       "NRTrace.TrailMix": {
+        "last": 118.66666666666667,
+        "n": 1
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -16388,6 +16518,14 @@
       "source": "baseline"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -17283,6 +17421,14 @@
       "source": "craft"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 119.66666666666667,
+        "n": 0.79520957373341306
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -18181,6 +18327,14 @@
       "source": "declared"
      },
      "lastSeen": 120,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -18673,6 +18827,9 @@
      "eats": 0,
      "failures": 0,
      "landed": 12,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -19965,6 +20122,14 @@
       "source": "dish"
      },
      "lastSeen": 120.5,
+     "monotony": {
+      "t": {
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -20860,6 +21025,14 @@
       "source": "baseline"
      },
      "lastSeen": 120.5,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -22640,6 +22813,14 @@
       "source": "baseline"
      },
      "lastSeen": 120.5,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -23535,6 +23716,14 @@
       "source": "craft"
      },
      "lastSeen": 120.5,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 119.66666666666667,
+        "n": 0.79520957373341306
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -24433,6 +24622,14 @@
       "source": "declared"
      },
      "lastSeen": 120.5,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -24925,6 +25122,9 @@
      "eats": 0,
      "failures": 0,
      "landed": 12,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -26217,6 +26417,18 @@
       "source": "baseline"
      },
      "lastSeen": 121,
+     "monotony": {
+      "t": {
+       "Base.Apple": {
+        "last": 120.66666666666667,
+        "n": 1
+       },
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -27112,6 +27324,14 @@
       "source": "baseline"
      },
      "lastSeen": 121,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 120.66666666666667,
+        "n": 1.3190079509012038
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -28892,6 +29112,14 @@
       "source": "baseline"
      },
      "lastSeen": 120.98333333333333,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 120.66666666666667,
+        "n": 1.9856746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -29789,6 +30017,14 @@
       "source": "craft"
      },
      "lastSeen": 121,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 120.66666666666667,
+        "n": 1.7875907880745052
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -30687,6 +30923,14 @@
       "source": "declared"
      },
      "lastSeen": 121,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 120.66666666666667,
+        "n": 1.7356746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -31179,6 +31423,9 @@
      "eats": 0,
      "failures": 1,
      "landed": 17,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -32472,6 +32719,18 @@
       "source": "baseline"
      },
      "lastSeen": 121.5,
+     "monotony": {
+      "t": {
+       "Base.Apple": {
+        "last": 120.66666666666667,
+        "n": 1
+       },
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -33367,6 +33626,14 @@
       "source": "baseline"
      },
      "lastSeen": 121.5,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 120.66666666666667,
+        "n": 1.3190079509012038
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -35138,6 +35405,14 @@
      },
      "kineticsAge": 121.5,
      "lastSeen": 121.5,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 120.66666666666667,
+        "n": 1.9856746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -36035,6 +36310,14 @@
       "source": "craft"
      },
      "lastSeen": 121.5,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 120.66666666666667,
+        "n": 1.7875907880745052
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -36933,6 +37216,14 @@
       "source": "declared"
      },
      "lastSeen": 121.5,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 120.66666666666667,
+        "n": 1.7356746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -37425,6 +37716,9 @@
      "eats": 0,
      "failures": 1,
      "landed": 17,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -38719,6 +39013,18 @@
       "source": "baseline"
      },
      "lastSeen": 122,
+     "monotony": {
+      "t": {
+       "Base.Apple": {
+        "last": 120.66666666666667,
+        "n": 1
+       },
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -39614,6 +39920,14 @@
       "source": "baseline"
      },
      "lastSeen": 122,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 120.66666666666667,
+        "n": 1.3190079509012038
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -41385,6 +41699,14 @@
      },
      "kineticsAge": 122,
      "lastSeen": 122,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 120.66666666666667,
+        "n": 1.9856746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -42282,6 +42604,14 @@
       "source": "craft"
      },
      "lastSeen": 122,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 120.66666666666667,
+        "n": 1.7875907880745052
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -43180,6 +43510,14 @@
       "source": "declared"
      },
      "lastSeen": 122,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 120.66666666666667,
+        "n": 1.7356746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -43672,6 +44010,9 @@
      "eats": 0,
      "failures": 1,
      "landed": 17,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
@@ -44966,6 +45307,18 @@
       "source": "baseline"
      },
      "lastSeen": 122.5,
+     "monotony": {
+      "t": {
+       "Base.Apple": {
+        "last": 120.66666666666667,
+        "n": 1
+       },
+       "Base.Salad": {
+        "last": 119.66666666666667,
+        "n": 0.99520957373341312
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -45861,6 +46214,14 @@
       "source": "baseline"
      },
      "lastSeen": 122.5,
+     "monotony": {
+      "t": {
+       "Base.Bread": {
+        "last": 120.66666666666667,
+        "n": 1.3190079509012038
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -47632,6 +47993,14 @@
      },
      "kineticsAge": 122.5,
      "lastSeen": 122.5,
+     "monotony": {
+      "t": {
+       "Base.Steak": {
+        "last": 120.66666666666667,
+        "n": 1.9856746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -48529,6 +48898,14 @@
       "source": "craft"
      },
      "lastSeen": 122.5,
+     "monotony": {
+      "t": {
+       "Base.Sandwich": {
+        "last": 120.66666666666667,
+        "n": 1.7875907880745052
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -49427,6 +49804,14 @@
       "source": "declared"
      },
      "lastSeen": 122.5,
+     "monotony": {
+      "t": {
+       "Base.HotDrinkTea": {
+        "last": 120.66666666666667,
+        "n": 1.7356746175678706
+       }
+      }
+     },
      "nutrients": {
       "allReplete": true,
       "anaemia": false,
@@ -49919,6 +50304,9 @@
      "eats": 0,
      "failures": 1,
      "landed": 17,
+     "monotony": 0,
+     "monotonyFailures": 0,
+     "monotonyHealed": 0,
      "passthrough": 0,
      "sips": 0,
      "unreadableAfter": 0,
