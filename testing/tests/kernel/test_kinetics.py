@@ -418,3 +418,33 @@ def test_a_non_finite_liquid_lane_after_a_finite_fill_resets_the_stomach(kin_hos
     run(h, r, 100.0)
     assert r.stomach.liquid == 0 and r.stomach.buffer.calories == 0 and r.stomachFill == 0
     assert KIN(h).stats.failures == f0 + 1
+
+
+# Plan 11d close (ruling C-1): a buffer key that is nil or not a number raised in K.stomach.drain before the heal ran, so
+# the stomach was never healed and the writer's F read failed every minute. The buffer check now runs before the
+# drain: the stomach resets empty on the minute it is found, and the pool is kept.
+@pytest.mark.parametrize("bad", [None, "x"])
+@pytest.mark.parametrize("key", ["proteins", "calories", "water"])
+def test_a_malformed_buffer_key_heals_within_one_minute(kin_host, key, bad):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.stomach.buffer[key] = bad
+    f0 = KIN(h).stats.failures
+    run(h, r, 100.0 + 1 / 60)                                     # a minute elapses: the drain would read the key
+    assert all(isinstance(v, (int, float)) and math.isfinite(v) for v in r.stomach.buffer.values())
+    assert r.stomach.buffer.calories == 0 and r.stomachFill == 0
+    assert all(math.isfinite(v) for v in r.pool.values())
+    assert KIN(h).stats.failures == f0 + 1
+    assert "malformed" in KIN(h).lastError
+    run(h, r, 100.0 + 2 / 60)                                     # healed: the next minute runs clean
+    assert KIN(h).stats.failures == f0 + 1
+
+
+def test_a_malformed_liquid_lane_heals_within_one_minute(kin_host):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.stomach.liquid = "x"
+    run(h, r, 100.0 + 1 / 60)
+    assert r.stomach.liquid == 0 and r.stomach.buffer.calories == 0 and r.stomachFill == 0

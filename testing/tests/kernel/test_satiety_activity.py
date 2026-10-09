@@ -38,7 +38,7 @@ from .test_satiety_meal_studies import H_REQ, mixed
 
 MM_PER_HUNGER = 65.0 / H_REQ          # ruling 11c-31's request-anchored mapping (an assumption)
 SD_MM = 1.8 / 0.07                    # S1303's main effect, CI midpoint over ES (an inference): 25.7 mm
-ES_LO, ES_HI = 0.60, 1.47             # S1303 (>= 0.60 at 0.5-1.5 h) and S1306 (0.62-1.47 just after the run)
+# (Plan 11d: S1303's ES band retired with #3620; the bout reads S1502 and S1500, test_the_bout_tracks_the_pooled_mm_readings)
 ES_GONE = 0.2                         # Cohen's small effect: below it the suppression is gone (a labelled threshold)
 TOL = 1.5                             # the brief's tolerance on Whybrow's 30 %
 KCAL_PER_KJ = 1 / 4.184
@@ -488,3 +488,11 @@ def test_e_mechanic_at_24_weeks(host):
         assert 0.53 <= share <= 0.89, (kcal, share)
         later = e_mechanic(host, kcal, 48)
         assert abs(share / later - 1) <= 0.01, (kcal, share, later)
+
+
+def test_the_bout_replay_pins_its_readings(host):
+    # Plan 11d close (A1): the readings the satiety kernel's ACUTE_DECAY_HALF_LIFE_H comment and #3639 quote, after
+    # Task 5's refit (STEEP 0.05, FULL_WEIGHT 0.55, PROTEIN_FILL 8): 0.674 of control over the bout, -3.9 mm at minute 90
+    r = replay_bout(host, minutes=60, kind="aerobic")
+    assert round(r.mean_ratio(0, 60), 3) == 0.674, r
+    assert round(r.mm_difference(90), 1) == -3.9, r

@@ -32,7 +32,7 @@ local KIN = NR.server.kinetics
 -- The stomach fields a later reader takes that this step's arithmetic can leave non-finite (test_heal_once.py CROSS,
 -- Plan 11c Task 8, ruling T8-1): a non-finite one resets the stomach empty with the fill. The liquid lane is named
 -- (the pending water, the mirror's mass, the store) and EVERY vector key of the buffer is read at call time. The main
--- reason: an infinite gram key clamps the fill, the F the writer reads, to 1, which is finite, so the fill alone
+-- reason: an infinite gram key clamps the fill (the physical fill and the writer's fallback; the writer's F is W.satietyF) to 1, which is finite, so the fill alone
 -- does not catch it, and that key never drains. A non-finite micronutrient would also spread into the pool and the
 -- nutrients every minute. The cost is about 2.3 us per player-minute, per minute and never per tick.
 KIN.GUARD = { "liquid" }
@@ -75,8 +75,8 @@ local function step(username, player, record, ctx)
         KIN.badAge = (KIN.badAge or 0) + 1        -- a minute with no clock read is skipped, never stamped 0
         return
     end
-    if record.stomach == nil then
-        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15)
+    if record.stomach == nil or KIN.malformed(record.stomach, username) then
+        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15); a malformed one heals (C-1)
     end
     if record.pool == nil then
         record.pool = K.vector.new()
@@ -150,4 +150,35 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         local MIN = NR.server.minute
         MIN.register("kinetics", KIN.minute)
     end)
+end
+
+-- Plan 11d close (ruling C-1): the buffer check the step runs before the meal context and the drain, which raise on a
+-- buffer key that is nil or a string (K.stomach.drain multiplies every key), so the heal below the fill never ran and
+-- the stomach stayed malformed while the writer's F read failed. A stomach that is not a table, a buffer that is not
+-- one, a buffer key (K.vector.KEYS) that is not a number or a liquid lane that is neither absent nor a number counts a
+-- failure, is logged and answers true: the step resets the stomach empty on the minute it is found and keeps the pool.
+-- A NaN or infinite number does not raise and stays with the heal below the fill (nonFinite). Appended so no line
+-- above moves.
+function KIN.malformed(stomach, username)
+    local bad = type(stomach) ~= "table" or type(stomach.buffer) ~= "table"
+    if not bad then
+        local keys = K.vector.KEYS
+        local b = stomach.buffer
+        for i = 1, #keys do
+            if type(b[keys[i]]) ~= "number" then
+                bad = true
+                break
+            end
+        end
+        if stomach.liquid ~= nil and type(stomach.liquid) ~= "number" then
+            bad = true
+        end
+    end
+    if not bad then
+        return false
+    end
+    KIN.stats.failures = KIN.stats.failures + 1
+    KIN.lastError = "kinetics: malformed stomach buffer for " .. tostring(username) .. "; stomach reset empty"
+    NR.log.say(2, KIN.lastError)
+    return true
 end

@@ -167,10 +167,10 @@ function K.stomach.toPool(pool, absorbed)
     return pool
 end
 
--- The fullness F the writer, the acute dose test and the mirror read (record.stomachFill): the stomach's satiety mass
--- (structure D: the solid lane plus a fifth of drunk liquid, K.stomach.satietyMass) over its maximal capacity,
--- clamped to [0, 1] (K.satiety.fill; ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass
--- whole, never this F.
+-- The physical fill (record.stomachFill) the acute dose test and the mirror read, and the writer's fallback (the
+-- writer's F is W.satietyF, the fullness mass with the protein term): the stomach's satiety mass (structure D: the solid
+-- lane plus a fifth of drunk liquid, K.stomach.satietyMass) over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
+-- ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass whole, never this fill.
 function K.stomach.fill(stomach)
     return K.satiety.fill(K.stomach.satietyMass(stomach), K.stomach.CAPACITY_MAX_G)
 end

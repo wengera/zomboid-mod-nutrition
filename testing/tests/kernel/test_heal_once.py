@@ -109,7 +109,7 @@ CROSS = (
     + _rows("kinetics", "stomach.buffer", [
         ("nutrients", ("water",)),
         ("bus", ("water", "proteins", "carbs", "lipids", "fibre")),
-        ("writer", ("water", "proteins", "carbs", "lipids", "fibre")),
+        ("writer", BUFFER_KEYS),          # every key: W.bufferFinite (Plan 11d close, ruling C-1)
         ("store", BUFFER_KEYS),
     ])
 )

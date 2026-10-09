@@ -51,7 +51,7 @@ def test_each_constant_names_its_row_or_its_label():
         assert "open" in line, name                                      # an open row is never cited as evidence
     for name in ("STEEP", "FULL_WEIGHT"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "refit in Plan 11d Task 5 (ruling 11d-5)" in line, name   # the joint refit with PROTEIN_FILL
+        assert "refit in Plan 11d Task 5 (rulings 11d-5 and T5-1)" in line, name   # the joint refit with PROTEIN_FILL
     line = re.search(r"^K\.satiety\.P_SEED_MAX = .*$", src, re.M).group(0)
     assert "game choice" in line
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):

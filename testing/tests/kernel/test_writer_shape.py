@@ -412,8 +412,8 @@ LIMITATION_FOUR = (
     "acute exercise factor x the sleep-debt factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid "
     "counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on "
     "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.09 at a full "
-    "stomach), and a character seeded from a vanilla HUNGER below about 0.20 reads about 0.20 times the minute's energy state, circadian, acute and sleep factors on its first minute "
-    "(0.203, an empty stomach's read at the seed's cap P_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
+    "stomach), and a vanilla HUNGER below the seed floor reads it on its first minute: hungerTarget(0.797, energy state), that is 0.203 x es + 0.15 x max(0, es - 1), times the minute's circadian, acute and sleep factors "
+    "(an empty stomach's read at the seed's cap P_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
     "macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
     "intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, "
     "shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a "
@@ -421,7 +421,7 @@ LIMITATION_FOUR = (
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
     "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
     "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
-    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.55 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, so past about 24-36 h of fasting the energy state's balance term sits at its cap (es 1.5; ruling T4-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure")
+    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.55 F, energy state), that is (1 - 0.55 F) x es + 0.15 x max(0, es - 1), times the minute's circadian, acute and sleep factors, seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, so past about 24-36 h of fasting the energy state's balance term sits at its cap (es 1.5; ruling T4-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():
@@ -1077,3 +1077,75 @@ def test_a_non_finite_or_zero_factor_product_reads_one(bad):
     step(h2, p2, rec, 1)
     assert math.isfinite(rec.satiety.P) and rec.satiety.P == pytest.approx(h2.K.satiety.seedP(0.31, 0.6, 1))
     assert rec.satiety.P > 0 and p2.st.sets.HUNGER == pytest.approx(0.31)
+
+
+# --- Plan 11d close (ruling C-1): a malformed stomach buffer never stops the writer ---------------------------------
+# A buffer key the fullness mass reads that is nil or not a finite number reads the stamp record.stomachFill as F, so
+# W.step still writes HUNGER, THIRST and FATIGUE (Kinetics heals the buffer on its own minute, test_kinetics.py).
+
+@pytest.mark.parametrize("bad", [None, "x", "5"])
+def test_a_malformed_buffer_key_reads_the_stamp_and_the_writer_still_writes(bad):
+    h = boot()
+    W = h.NR.server.writer
+    p = player(h)
+    st = chicken_stomach(h)
+    st.buffer.proteins = bad
+    rec = record(h, stomach=st)
+    assert W.satietyF(rec) == 0.6                                           # the stamp
+    step(h, p, rec, 1)
+    s = p.st.sets
+    assert s.HUNGER == pytest.approx(H1) and s.THIRST == pytest.approx(0.3) and s.FATIGUE == pytest.approx(0.26)
+    assert W.stats.writes == 1
+
+
+@pytest.mark.parametrize("key", ["water", "carbs", "lipids", "fibre", "calories", "vitC"])
+def test_any_malformed_buffer_key_reads_the_stamp(key):
+    h = boot()
+    W = h.NR.server.writer
+    st = chicken_stomach(h)
+    st.buffer[key] = None
+    assert W.satietyF(record(h, stomach=st)) == 0.6
+
+
+def test_a_malformed_liquid_lane_reads_the_stamp():
+    h = boot()
+    W = h.NR.server.writer
+    st = chicken_stomach(h)
+    st.liquid = "x"
+    assert W.satietyF(record(h, stomach=st)) == 0.6
+    st.liquid = None                                                        # an absent lane reads 0 (ruling 11c-10)
+    assert W.satietyF(record(h, stomach=st)) == pytest.approx((150 + 8 * 46.5) / 730)
+
+
+# --- Plan 11d close (ruling C-2): LIMITATION_FOUR's seed floor and ceiling in hungerTarget's form ----------------------
+# floor: an empty stomach under a HUNGER below it seeds P_SEED_MAX and writes hungerTarget(0.797, es) = 0.203 es +
+# 0.15 max(0, es - 1) times the factors; ceiling: a HUNGER above hungerTarget(0.55 F, es) x the factors seeds P = 0
+# and writes that ceiling. Review B's case: es 1.5, a read of 0.1 at the circadian peak writes 0.4118.
+
+def _seeded(es, read, F, minute, S=0.0):
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = read
+    rec = record(h)
+    rec.stomachFill = F
+    rec.body.energyState = es
+    rec.satiety = h.rt.eval("{ S = %r }" % S)
+    step(h, p, rec, minute)
+    return p.st.sets.HUNGER, _circ(math.fmod(100 + minute / 60, 24)) * (1 - 0.7 * S)
+
+
+@pytest.mark.parametrize("es", [1.5, 2.0])
+def test_the_seed_floor_reads_hunger_targets_deficit_term(es):
+    peak = round((19.8333 - 4) * 60)
+    written, fac = _seeded(es, 0.1, 0.0, peak)
+    assert written == pytest.approx((0.203 * es + 0.15 * max(0.0, es - 1)) * fac, abs=5e-4)
+    assert written > 0.203 * es * fac                                      # the old clause's form reads short
+    if es == 1.5:
+        assert round(written, 4) == 0.4118
+
+
+@pytest.mark.parametrize("es", [1.5, 2.0])
+def test_the_seed_ceiling_reads_hunger_targets_deficit_term(es):
+    written, fac = _seeded(es, 0.68, 1.0, 1, S=0.5)
+    assert written == pytest.approx(min(1.0, (1 - 0.55) * es + 0.15 * max(0.0, es - 1)) * fac)   # hungerTarget clamps at 1
+    assert written < 0.68

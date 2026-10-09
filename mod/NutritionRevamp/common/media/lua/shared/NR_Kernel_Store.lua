@@ -15,8 +15,8 @@
 -- (no `v`, or v = 1) and a v2 record pass through the same copy: the copy IS the migration, and it is
 -- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
 -- constructor's neutral values (the mirror's dmod, rmod, energyState, band, dehydPct, iu, ... and the
--- effects set), except stomachFill, which load recomputes from the stomach's inputs (the writer reads it each
--- minute), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
+-- effects set), except stomachFill, which load recomputes from the stomach's inputs (the physical fill and the writer's
+-- fallback; the writer's F is W.satietyF), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
 -- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
 -- Pure: Lua tables in, Lua tables out, no Java. Slow-clock and join-time code with no fast region. This file
 -- sorts before NR_Kernel_Strength.lua, NR_Kernel_Vector.lua and NR_Kernel_View.lua and after the body,
