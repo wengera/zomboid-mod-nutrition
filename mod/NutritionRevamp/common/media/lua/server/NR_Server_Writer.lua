@@ -13,7 +13,7 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.writer = {
-    h = {}, inp = {}, saved = nil, rates = nil, zeroed = false, mode = 1, wired = false, so = nil,
+    h = {}, inp = {}, saved = nil, zeroed = false, mode = 1, wired = false, so = nil,
     stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, guarded = 0, nms = false, dry = 0 },
     limitations = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
@@ -71,11 +71,6 @@ function W.boot()
         local k = W.RATE_KEYS[i]
         if type(zg[k]) == "number" then W.saved[k] = zg[k] end
     end
-    -- the satiety scalar's rates (Task 15): the saved values, each unread one vanilla's defines.lua default
-    local d = K.satiety.defaults()
-    W.rates = { idle = W.saved.HungerIncrease or d.idle, wellFed = W.saved.HungerIncreaseWhenWellFed or d.wellFed,
-                asleep = W.saved.HungerIncreaseWhileAsleep or d.asleep,
-                exercise = W.saved.HungerIncreaseWhenExercise or d.exercise }
     if W.mode ~= 1 then
         NR.log.say(1, "writer: Mode 2 (Overlay): vanilla's hunger, thirst and fatigue rates stand")
         return

@@ -390,16 +390,20 @@ def test_the_self_report_names_the_boot_mode_not_the_polled_one():
     assert " limitations=%d " % len(h.NR.server.writer.limitations) in line and " hook=" not in line
 
 
-def test_the_satiety_bulk_option_reads_its_range():
+def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
     h = boot()
-    assert h.NR.server.options.satietyBulk == 0.25
-    for given, want in ((0.4, 0.4), (0.9, 0.5), (0.1, 0.25), (0.25, 0.25), (0.5, 0.5)):
-        h.G.SandboxVars.NR.SatietyBulk = given
-        h.NR.server.readOptions("poll")
-        assert h.NR.server.options.satietyBulk == pytest.approx(want), given
-    h.G.SandboxVars.NR.SatietyBulk = float("nan")
-    h.NR.server.readOptions("poll")
-    assert h.NR.server.options.satietyBulk == 0.25
+    assert h.NR.server.options.satietyBulk is None
+    assert h.NR.server.writer.rates is None
+    h.G.SwipeStatePlayer = h.rt.eval("{ instance = function() return NR_T end }")
+    p = player(h)
+    step(h, p, record(h), 1)
+    assert h.NR.server.writer.h["a"].swipe is not None   # the swing handle stays: it marks resistance work (ruling T6-2)
+    txt = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+    js = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "Translate", "EN",
+                      "Sandbox.json")
+    for path in (txt, js):
+        with open(path, encoding="utf-8") as fh:
+            assert "SatietyBulk" not in fh.read(), path
 
 
 LIMITATION_FOUR = (
@@ -475,9 +479,7 @@ def test_a_dry_seam_set_to_anything_but_true_leaves_the_writer_live():
 def test_the_well_fed_rate_is_the_one_saved_at_boot_not_the_default():
     h = Host(extra_env="NR_T = NR_T or {}\nNR_T.mode = 1\n" + ENV + "\nZomboidGlobals.HungerIncreaseWhenWellFed = 3.0e-6\n")
     h.fire("OnGameBoot")
-    assert h.NR.server.writer.rates.wellFed == 3.0e-6 and h.G.ZomboidGlobals.HungerIncreaseWhenWellFed == 0
-    # Plan 11c Task 6: the saved rates no longer step satiety (P decays at its own half-life); W.rates is kept for
-    # NutritionRevamp.vanillaRate and retires with the Task 15 pieces in Task 9
+    assert h.NR.vanillaRate("HungerIncreaseWhenWellFed") == 3.0e-6 and h.G.ZomboidGlobals.HungerIncreaseWhenWellFed == 0
 
 
 def test_a_limitation_names_another_mod_re_assigning_the_rates():
