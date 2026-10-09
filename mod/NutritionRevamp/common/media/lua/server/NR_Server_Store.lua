@@ -44,7 +44,7 @@
 -- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
 -- on it reads the loaded record with no re-point. The load is idempotent and runs at every first sight (derived on
 -- read). A departure forgets the sight, so a return loads again, and queues the record's flush as one task. A load
--- that raises leaves the record as it was, logged.
+-- that raises lays a fresh record in place, counted and logged (ruling C9-10).
 --
 -- The writes ride the players' queue (Decision 6 (b)): a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
