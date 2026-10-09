@@ -136,19 +136,17 @@ local function roll(dflt)
     return dflt
 end
 
--- The fields this adapter adds beside K.effects.new's own, with their fresh values.
+-- The fields this adapter adds beside K.effects.new's own, with their fresh values (a load drops tempAdj, a
+-- derived field, so it is laid again after every load).
 local function addFields(E, body)
     if E.lastDay == nil then E.lastDay = body.dayIndex end
     if E.exSeen == nil then E.exSeen = 0 end
     if E.tempAdj == nil then E.tempAdj = 0 end
     if E.dirty == nil then E.dirty = false end
-    if type(E.own) ~= "table" then E.own = { nv = false, ss = false } end
-    if type(E.key) ~= "table" then E.key = K.effects.new().key end
-    if type(E.key.b) ~= "table" then E.key.b = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } end
 end
 
 -- The heal: every numeric field of record.effects (and of its key) finite, else its fresh value; a key field
--- healed to its fresh value forces a rebuild. Backfill of a missing field is uncounted.
+-- healed to its fresh value forces a rebuild. Laying an absent adapter field (addFields) is uncounted.
 local healBad = nil
 local function healTable(t, ref, prefix)
     for k, v in pairs(t) do

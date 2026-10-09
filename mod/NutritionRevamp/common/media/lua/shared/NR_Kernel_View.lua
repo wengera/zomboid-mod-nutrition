@@ -517,7 +517,7 @@ function K.view.fullnessLevel(massG)
 end
 
 -- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads, plus overfull from the
--- mirror's stomachMass (a mirror without it, from a server before Plan 11c Task 7, reads 0).
+-- mirror's stomachMass (a mirror without it reads 0).
 function K.view.moodleClasses(m)
     local c = K.view.classes(m)
     c.overfull = 0

@@ -95,8 +95,8 @@ local obj = NR.obj
 
 -- The nutrient scalars dmod, rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
 -- writes record.nutrients, record.fluids and record.acute). Its step runs after this one, so these are
--- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a record made before Plan 4,
--- or the first minute before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
+-- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a fresh character's first
+-- minute, before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
 -- range reads the neutral the Plan 3 stubs passed: iron grade 1, not all replete, dehydration 0, glycogen
 -- 1, hours awake 0, sleep debt 0, caffeine effect 0, tolerance 0. Read: nutrients.ironGrade (1-4),
 -- nutrients.allReplete (true), fluids.dehydPct, acute.g, acute.awakeH, acute.debtH, acute.caf (through

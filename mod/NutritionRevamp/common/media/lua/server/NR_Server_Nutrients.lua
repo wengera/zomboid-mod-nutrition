@@ -46,7 +46,7 @@ NR.server.nutrients = {
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target (Plan 11 ruling 7)",
         "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
-        "before the first day close the protein-scaled requirements read P_LOW x w (Plan 3's pPrevKg backfill)",
+        "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "Plan 4 writes no stat, moodle or health; INTOXICATION and FATIGUE are vanilla's until Plan 5",
@@ -230,7 +230,7 @@ local function ensure(record, body, ageH)
         record.acute = K.acute.new(ageH)
         record.acute.slowMet = K.acute.drawSlowMet(roll(0.75))
     end
-    -- the fields this file adds beside the kernels' own, backfilled on any table that lacks them
+    -- the fields this file adds beside the kernels' own (no constructor lays them), laid on any table that lacks them
     local n, f, a = record.nutrients, record.fluids, record.acute
     if n.lastAgeH == nil then n.lastAgeH = ageH end
     if n.lastDayIndex == nil then n.lastDayIndex = body.dayIndex end

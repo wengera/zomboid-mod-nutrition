@@ -89,7 +89,7 @@ function K.satiety.sated(F, Pn)
     return 1 - (1 - K.satiety.FULL_WEIGHT * F) * (1 - Pn)
 end
 
--- The migration seed (spec § 4): the P for which hungerTarget(sated(F, post(P)), energyState) equals hunger, the
+-- The seed (spec § 4): the P for which hungerTarget(sated(F, post(P)), energyState) equals hunger, the
 -- inverse of post, P_REQ (pn / (3 (1 - pn)))^(1 / STEEP), capped at P_SEED_MAX; 0 where no P reaches it, and 0 for a
 -- non-finite input (x - x is NaN for NaN and for an infinity), so a bad read never loops NaN through the pool.
 function K.satiety.seedP(hunger, F, energyState)
