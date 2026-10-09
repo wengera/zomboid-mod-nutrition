@@ -61,7 +61,7 @@ function(records, days, meals, retinol, vitK, lipids)
     local st = K.stomach.new()
     local state = K.nutrients.newState(records)
     local ctx = { sex = 1, w = 80, eeMJ = 10, pDay = 80, dial = 1, excessOn = true, two = K.interact.two,
-                  riboGrade = 1, rawEggDay = false, e24Zn = 0 }
+                  riboGrade = 1, e24Zn = 0 }
     local sctx = {}
     local empty = {}
     local meal = K.vector.new()

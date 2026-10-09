@@ -44,7 +44,7 @@ NR.server.nutrients = {
         "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets FATIGUE ahead of the hook",
         "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1); the performance dehydration is the pool alone",
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target (Plan 11 ruling 7)",
-        "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
+        "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (the adapter sets no rawEggDay)",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
@@ -403,7 +403,6 @@ local function step(username, player, record, ctx)
     kctx.kMul = NUT.kMul
     kctx.riboGrade = 1
     if n.riboflavin ~= nil then kctx.riboGrade = n.riboflavin.g end
-    kctx.rawEggDay = false                                  -- no raw-egg flag in the data until Plan 6
     kctx.e24Zn = 0
     if n.zinc ~= nil then kctx.e24Zn = n.zinc.e24 end
     K.nutrients.minute(n, NR.data.records, absorbed, ingested, kctx, dtM)

@@ -64,7 +64,7 @@ def test_constants(host):
     assert (I.CA_FE_REF, I.CA_FE_MAX, I.PHY_SLOPE) == (300, 0.5, 0.00093)
     assert (I.B12_ACTIVE_FRAC, I.B12_ACTIVE_MAX, I.B12_PASSIVE, I.B12_PASSIVE_FROM) == (0.5, 2.0, 0.012, 4)
     assert (I.CAROTENE_OFF, I.RIBO_FE_GRADE, I.RIBO_FE_XFER, I.LAMBDA_ALC) == (1.0, 3, 0.5, 0.5)
-    assert (I.CAF_MG_LOSS, I.CAF_LM_REF, I.ALC_MG_LOSS, I.BLOOD_FE, I.BIOTIN_DROP) == (0.02, 60, 2, 0.5, 0.31)
+    assert (I.CAF_MG_LOSS, I.CAF_LM_REF, I.ALC_MG_LOSS, I.BIOTIN_DROP) == (0.02, 60, 2, 0.31)
 
 
 # ---- the factor functions ----
@@ -100,12 +100,6 @@ def test_carotene_gate(host):
     assert f(2.0) == 0
     assert f(0.5, 0.4) == 0                   # the record's caroteneOff, when passed, wins
     assert f(0.3, 0.4) == 1
-
-
-def test_biotin_raw(host):
-    f = host.K.interact.biotinRaw
-    assert f(True) == 0
-    assert f(False) == 1
 
 
 def test_riboflavin_iron_transfer(host):
@@ -200,17 +194,6 @@ def test_iron_store_absorption_eta(rh):
         I.ironTwo(s, rec, 10, 80.0, 1, 1 / 1440, 1)
         assert abs(s.S - (S + gain)) < 1e-9
     assert abs(s.p - 1.505) < 1e-12                      # the store is uncapped: eta is its limit
-
-
-def test_iron_bleed(rh):
-    I = rh.K.interact
-    s = _key(rh)
-    assert I.ironBleed(s, 500) == 0                      # never stepped: no H yet
-    I.ironTwo(s, _rec(rh, "iron"), 0, 80.0, 1, 0, 1)
-    assert I.ironBleed(s, 500) == 250                    # 0.5 mg/mL
-    assert abs(s.H - (2 / 3 * 4000 - 250)) < 1e-9
-    assert abs(I.ironBleed(s, 1e9) - (2 / 3 * 4000 - 250)) < 1e-9
-    assert s.H == 0
 
 
 # ---- vitamin A ----

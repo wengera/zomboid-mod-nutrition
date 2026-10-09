@@ -13,7 +13,7 @@
 --    counter, the calcium bone counter, the biotin raw-egg counter, the fibre 7-day EMA and copper derived
 --    from the zinc excess; selenium (excessOnly) and any unknown record are not stepped.
 -- The ctx fields read: sex (1 male, 2 female, Plan 3's K.body convention), w (kg), dial (nil = 1), riboGrade
--- (nil = 1), rawEggDay (true on a raw-egg day), e24Zn (nil = 0), and through K.nutrients.requirement eeMJ,
+-- (nil = 1), rawEggDay (true on a raw-egg day; nil reads false), e24Zn (nil = 0), and through K.nutrients.requirement eeMJ,
 -- pDay for scaled records. The state fields added lazily (numbers only, #1495): S and H (iron, absolute mg)
 -- and bone (calcium, mg); biotin reuses ext (its record has no chronic, so the engine's excess never writes
 -- it). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
@@ -54,9 +54,6 @@ K.interact.CAF_LM_REF = 60 -- kg lean mass the placeholder is set at: game choic
 -- The alcohol urinary magnesium loss.
 K.interact.ALC_MG_LOSS = 2 -- mg Mg per g ethanol: placeholder game choice (open S1086; direction S0542)
 
--- The iron cost of blood loss.
-K.interact.BLOOD_FE = 0.5 -- mg iron per mL whole blood: design-phase-v1 game choice (open S0554)
-
 -- The biotin p at cosmeticDays: 1 - BIOTIN_DROP lands at 0.69, grade 2 on the generic 0.70 rung.
 K.interact.BIOTIN_DROP = 0.31 -- game choice (the onset is open S1076)
 
@@ -90,14 +87,6 @@ function K.interact.caroteneOn(liverP, off)
     return 1
 end
 
--- The biotin absorption factor: 0 from a raw-egg item, 1 otherwise.
-function K.interact.biotinRaw(isRawEgg)
-    if isRawEgg then
-        return 0
-    end
-    return 1
-end
-
 -- The iron store-to-haemoglobin transfer multiplier for the riboflavin grade.
 function K.interact.riboIronXfer(riboGrade)
     if riboGrade >= K.interact.RIBO_FE_GRADE then
@@ -125,17 +114,6 @@ end
 -- The copper p lost over dtD days under the zinc excess (e24Zn above ulZn, in units of ulZn).
 function K.interact.zincCopperLoss(e24Zn, dtD, kcu, ulZn)
     return kcu * K.max(0, e24Zn - ulZn) / ulZn * dtD
-end
-
--- A bleed of mL whole blood off the haemoglobin iron (an event Plan 5 calls); returns the mg lost. A state
--- never stepped has no H yet and loses nothing; p2 is refreshed at the next step.
-function K.interact.ironBleed(s, mL)
-    if s.H == nil then
-        return 0
-    end
-    local lost = K.min(K.interact.BLOOD_FE * mL, s.H)
-    s.H = s.H - lost
-    return lost
 end
 
 -- Iron (A6): store S and haemoglobin iron H in absolute mg, initialised to S0 and H0 on the first step.
