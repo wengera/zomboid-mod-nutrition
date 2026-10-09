@@ -909,3 +909,57 @@ def test_a_dry_minute_leaves_the_stamp():
     W.dry = True
     step(h, p, rec, 1)
     assert rec.satiety.t is None
+
+
+# --- Plan 11d Task 5 fix (ruling T5-2): protein fills only the writer's satiety fullness ----------------------------
+
+def chicken_stomach(h):
+    # a 150 g cooked chicken breast in the solid lane: about 46.5 g protein, 5.4 g fat, 98.1 g water, 248 kcal
+    st = h.K.stomach["new"]()
+    v = h.K.vector["new"]()
+    v.water, v.proteins, v.lipids, v.calories = 98.1, 46.5, 5.4, 248
+    h.K.stomach.ingest(st, v)
+    return st
+
+
+def test_the_writers_f_reads_the_protein_while_stomach_fill_stays_physical():
+    h = boot()
+    W = h.NR.server.writer
+    st = chicken_stomach(h)
+    rec = record(h, stomach=st)
+    rec.stomachFill = h.K.stomach.fill(st)                                  # the kinetics stamp
+    assert rec.stomachFill == pytest.approx(150 / 730)                      # physical: no protein term
+    assert W.satietyF(rec) == pytest.approx((150 + 8 * 46.5) / 730)        # the writer's F: the protein fills
+    assert W.satietyF(rec) > rec.stomachFill
+    h.K.satiety.PROTEIN_FILL = 0
+    try:
+        assert h.K.stomach.fill(st) == rec.stomachFill and W.satietyF(rec) == pytest.approx(150 / 730)
+    finally:
+        h.K.satiety.PROTEIN_FILL = 8
+
+
+def test_the_written_hunger_reads_the_protein_term():
+    h = boot()
+    p, p0 = player(h), player(h, "b")
+    rec, rec0 = record(h, stomach=chicken_stomach(h)), record(h, stomach=chicken_stomach(h))
+    rec0.stomach.buffer.proteins = 0                                        # the same mass less its protein term
+    rec0.stomach.buffer.water = rec0.stomach.buffer.water + 46.5
+    step(h, p, rec, 1)
+    step(h, p0, rec0, 1, name="b")
+    F = (150 + 8 * 46.5) / 730
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, F=F))
+    assert p0.st.sets.HUNGER == pytest.approx(_hunger(6, F=150 / 730)) and p.st.sets.HUNGER < p0.st.sets.HUNGER
+
+
+def test_the_writers_f_falls_back_to_the_stamp():
+    h = boot()
+    W = h.NR.server.writer
+    assert W.satietyF(record(h)) == 0.6                                     # no stomach: the stamp
+    rec = record(h, stomach=h.rt.eval("{}"))
+    assert W.satietyF(rec) == 0.6                                           # no buffer: the stamp
+    st = chicken_stomach(h)
+    st.buffer.proteins = float("nan")
+    assert W.satietyF(record(h, stomach=st)) == 0.6                         # a non-finite F: the stamp
+    rec = record(h)
+    rec.stomachFill = float("nan")
+    assert W.satietyF(rec) == 0                                             # and a non-finite stamp reads empty

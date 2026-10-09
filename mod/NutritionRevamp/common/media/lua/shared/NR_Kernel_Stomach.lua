@@ -167,12 +167,12 @@ function K.stomach.toPool(pool, absorbed)
     return pool
 end
 
--- The fullness F the writer, the acute dose test and the mirror read (record.stomachFill): the stomach's fullness
--- mass (K.stomach.fullnessMass: the satiety mass of structure D plus PROTEIN_FILL x its protein, ruling 11d-5) over
--- its maximal capacity, clamped to [0, 1] (K.satiety.fill; ruling 11c-19, Plan 11c Task 6 amendment 2). The soft
--- cap reads K.stomach.mass whole, never this F.
+-- The fullness F the writer, the acute dose test and the mirror read (record.stomachFill): the stomach's satiety mass
+-- (structure D: the solid lane plus a fifth of drunk liquid, K.stomach.satietyMass) over its maximal capacity,
+-- clamped to [0, 1] (K.satiety.fill; ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass
+-- whole, never this F.
 function K.stomach.fill(stomach)
-    return K.satiety.fill(K.stomach.fullnessMass(stomach), K.stomach.CAPACITY_MAX_G)
+    return K.satiety.fill(K.stomach.satietyMass(stomach), K.stomach.CAPACITY_MAX_G)
 end
 
 -- Plan 11c (spec § 5a rulings 11c-4, 11c-5 and 11c-8): fill by mass and the stomach's two lanes. Appended below the
@@ -299,8 +299,8 @@ function K.stomach.recordFill(record)
     return f
 end
 
--- Plan 11d Task 5 (ruling 11d-5): the mass the fullness F reads (K.stomach.fill): the satiety mass (K.stomach
--- .satietyMass, unchanged for its callers) plus K.satiety.PROTEIN_FILL x the protein grams in the solid lane, where a
+-- Plan 11d Task 5 (rulings 11d-5, T5-2): the mass the writer's satiety F reads (W.satietyF; never K.stomach.fill, whose
+-- physical stomachFill gates emptiness): the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's protein, where a
 -- drink's protein lands too (ruling 11c-12). The protein leaves in proportion to the lane's energy (drain), so the term
 -- fades as the meal empties. Appended so no line above moves; one statement a line for the coverage gate.
 function K.stomach.fullnessMass(stomach)

@@ -1,8 +1,8 @@
 """The satiety oracle (Plan 11c Task 4; spec § 5b and § 6; ruling 11c-30): published protocols replayed through the
 real kernels -- the stomach's two lanes (K.stomach), the meal satiety pool (K.satiety) and the hunger function
 (K.hybrid.hungerTarget) -- one step a game minute. Each step runs, in order: the minute's eats feed P with their
-weighted kcal (K.satiety.feed, once per eat) and land in the stomach; the stomach drains; P decays; F is read by
-K.stomach.fill (the satiety mass plus PROTEIN_FILL x the protein, ruling 11d-5) against CAPACITY_MAX_G; and the displayed hunger is
+weighted kcal (K.satiety.feed, once per eat) and land in the stomach; the stomach drains; P decays; F is the writer's
+(W.satietyF: the fullness mass, the satiety mass plus PROTEIN_FILL x the protein, rulings 11d-5 and T5-2, over CAPACITY_MAX_G); and the displayed hunger is
 min(0.69, hungerTarget(sated(F, post(P)), 1) x circadian(h)). Trait 1 and StatsDecrease 1 (ruling 11c-23).
 
 The protocol (spike 2, task-4s2-report.md):
@@ -82,7 +82,7 @@ function(events, minutes, P0, h0)
         end
         K.stomach.drain(st, 1 / 60)
         P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
-        local F = K.stomach.fill(st)
+        local F = K.satiety.fill(K.stomach.fullnessMass(st), K.stomach.CAPACITY_MAX_G)
         local c = 1
         if h0 ~= nil then
             c = K.satiety.circadian((h0 + (m + 1) / 60) % 24)
@@ -813,7 +813,7 @@ def test_six_meals_against_three_is_pinned_inside_the_band(host):
 
 # --- the protein fill (Plan 11d Task 5, ruling 11d-5; spec § 5d) ---------------------------------------------------
 # Protein fills while it is in the stomach: F reads the satiety mass plus PROTEIN_FILL x the protein grams in the solid
-# lane (K.stomach.fill, K.stomach.fullnessMass), against CAPACITY_MAX_G. No row names gastric fullness from protein:
+# lane (K.stomach.fullnessMass, the writer's W.satietyF; record.stomachFill stays physical, ruling T5-2), against CAPACITY_MAX_G. No row names gastric fullness from protein:
 # PROTEIN_FILL 8 is a game choice, fitted jointly with FULL_WEIGHT (0.6 -> 0.55) and STEEP (0.08 -> 0.05; at 0.08 no
 # PROTEIN_FILL and FULL_WEIGHT met every replay) so the protein contrast reads at least half S1222's level (0.0134
 # against about 0.025) while every hard replay holds at 1.1x (worst: the 650 kcal meal at 320 min, 1.067x), Marmonier's

@@ -190,7 +190,7 @@ end
 -- K.hybrid.write caps at hungerCap 0.69 once: min(0.69, target x circadian x acute), so a swing minute's hunger is
 -- never above the same minute idle (ruling 11c-29 (3)).
 function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
-    local F = finiteOr(record.stomachFill, 0)
+    local F = W.satietyF(record)
     local s = record.satiety
     if type(s) ~= "table" then
         s = {}
@@ -376,4 +376,21 @@ function W.satietyDtH(h, s, inp, ageH)
     end
     s.t = ageH
     return K.clamp(dtS, 0, W.c.maxStepS) / 3600
+end
+
+-- Plan 11d Task 5 fix (ruling T5-2): the satiety fullness F the writer reads. Protein fills only here: F is the
+-- stomach's fullness mass (K.stomach.fullnessMass, the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's
+-- protein, ruling 11d-5) over K.stomach.CAPACITY_MAX_G, clamped to [0, 1]; record.stomachFill, the kinetics' stamp,
+-- stays physical (K.stomach.fill), because NUT.FED_FILL and the acute dose test's ACUTE_EMPTY_FILL gate on grams of
+-- contents. A record with no stomach or no buffer, or a non-finite F, reads the stamp (0 when it is not finite).
+-- Appended so no line above moves.
+function W.satietyF(record)
+    local st = record.stomach
+    if type(st) == "table" and type(st.buffer) == "table" then
+        local F = K.satiety.fill(K.stomach.fullnessMass(st), K.stomach.CAPACITY_MAX_G)
+        if NR.finite(F) then
+            return F
+        end
+    end
+    return finiteOr(record.stomachFill, 0)
 end

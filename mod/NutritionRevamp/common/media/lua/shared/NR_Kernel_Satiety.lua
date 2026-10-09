@@ -197,8 +197,8 @@ function K.satiety.sleepFactor(debtH)
 end
 
 -- Plan 11d Task 5 (ruling 11d-5, spec § 5d): protein fills while it is in the stomach. The fullness F reads the
--- satiety mass plus PROTEIN_FILL x the protein grams in the solid lane (K.stomach.fullnessMass, through K.stomach.fill)
--- against K.stomach.CAPACITY_MAX_G; the protein leaves with the lane's energy (K.stomach.drain), so the term fades as
+-- satiety mass plus PROTEIN_FILL x the solid lane's protein (K.stomach.fullnessMass, read by the writer's W.satietyF)
+-- against CAPACITY_MAX_G (record.stomachFill stays physical, ruling T5-2); the protein leaves with the lane's energy, so it fades as
 -- the meal empties. No row names gastric fullness from protein: the term is a game choice, fitted with FULL_WEIGHT and
 -- STEEP so the oracle's protein contrast reads at least half S1222's -7 mm under the request-anchored mapping (ruling
 -- 11c-31, an assumption) while every hard replay holds at 1.1x. Appended so no line above moves.

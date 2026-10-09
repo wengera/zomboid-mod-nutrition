@@ -100,7 +100,7 @@ function(cfg)
         L = K.energy.exerciseLag(L, exMin, 1 / 60)
         K.stomach.drain(st, 1 / 60)
         P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
-        local F = K.stomach.fill(st)
+        local F = K.satiety.fill(K.stomach.fullnessMass(st), K.stomach.CAPACITY_MAX_G)
         local eb = inS - eeS
         local ee24 = eeS
         if cfg.mode == "nobypass" or cfg.mode == "step" then

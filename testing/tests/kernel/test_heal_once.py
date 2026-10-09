@@ -103,10 +103,13 @@ CROSS = (
     + _rows("metabolism", "satiety", [("writer", ("L",)), ("store", ("L",))])
     # Plan 11c Task 8: the stomach's two lanes. The pending water reads both lanes' water (K.stomach.water); the bus's
     # push signature and K.mirror.stomach read the whole mass, both lanes (K.stomach.mass via K.mirror.stomachMass).
-    + _rows("kinetics", "stomach", [("nutrients", ("liquid",)), ("bus", ("liquid",)), ("store", ("liquid",))])
+    # Plan 11d Task 5 fix (ruling T5-2): the writer reads both lanes for its satiety F (W.satietyF, K.stomach.fullnessMass).
+    + _rows("kinetics", "stomach", [("nutrients", ("liquid",)), ("bus", ("liquid",)), ("writer", ("liquid",)),
+                                    ("store", ("liquid",))])
     + _rows("kinetics", "stomach.buffer", [
         ("nutrients", ("water",)),
         ("bus", ("water", "proteins", "carbs", "lipids", "fibre")),
+        ("writer", ("water", "proteins", "carbs", "lipids", "fibre")),
         ("store", BUFFER_KEYS),
     ])
 )
@@ -330,13 +333,23 @@ def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
 # --- the writer's rows (Plan 11 Task 14): every CROSS consumer is a step that runs; the writer's rows are its reads --
 
 SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients", "effects": "effects",
-                "satiety": "metabolism", "stomach": "kinetics"}
+                "satiety": "metabolism", "stomach": "kinetics", "stomach.buffer": "kinetics"}
 # Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
 # which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads); the
 # writer's own satiety state (P, S, the mark v and the step stamp t, ruling C-1), which no other step reads in the minute and the writer heals
-# itself (W.stats.guarded, test_writer_shape.py). The writer reads no stomach field: its fullness is
-# record.stomachFill, which the kinetics heal stamps finite.
+# itself (W.stats.guarded, test_writer_shape.py). The writer's satiety F (W.satietyF, ruling T5-2) reads the stomach's
+# liquid lane and the buffer's mass keys, each guarded by the kinetics heal (a non-finite F also falls back to
+# record.stomachFill); the buffer table itself is a container read, so the test proxies it one level down.
 WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.v", "satiety.t"}
+
+BUFFER_PROXY = r"""
+function(rec, log)
+    local real = rec.stomach.buffer
+    rec.stomach.buffer = setmetatable({}, {
+        __index = function(t, k) log[#log + 1] = "stomach.buffer." .. tostring(k); return real[k] end,
+        __newindex = function(t, k, v) real[k] = v end })
+end
+"""
 
 PROXY = r"""
 function(rec, log)
@@ -364,10 +377,11 @@ def test_the_writers_cross_rows_are_its_reads():
     rec = record(h)
     rec.stomach = h.K.stomach.new()
     log = h.rt.table()
+    h.rt.eval(BUFFER_PROXY)(rec, log)
     h.rt.eval(PROXY)(rec, log)
     h.T.age = 100.0
     h.NR.server.writer.step("a", p, rec, None)
-    reads = set(log.values()) - WRITER_UNGUARDED
+    reads = set(log.values()) - WRITER_UNGUARDED - {"stomach.buffer"}
     rows = {s + "." + str(f) for p_, s, f, c in CROSS if c == "writer"}
     assert reads == rows
     assert all(SUB_PRODUCER[s] == p_ for p_, s, f, c in CROSS if c == "writer")

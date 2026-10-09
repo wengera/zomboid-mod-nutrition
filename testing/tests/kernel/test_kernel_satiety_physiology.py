@@ -312,7 +312,7 @@ def test_fullness_mass_adds_the_protein_term_to_the_satiety_mass(host):
     assert host.call("stomach.satietyMass", st) == pytest.approx(259 + 0.2 * 356)          # its callers unchanged
     assert host.call("stomach.fullnessMass", st) == pytest.approx(259 + 0.2 * 356 + 8 * 20)
     assert host.call("stomach.mass", st) == pytest.approx(259 + 356)                        # the soft cap: no term
-    assert host.call("stomach.fill", st) == pytest.approx((259 + 0.2 * 356 + 8 * 20) / 730)
+    assert host.call("stomach.fill", st) == pytest.approx((259 + 0.2 * 356) / 730)          # stomachFill: no term (T5-2)
 
 
 def test_a_drinks_protein_fills_from_the_solid_lane(host):
@@ -337,7 +337,7 @@ def test_the_protein_term_reads_the_constant_and_clamps_at_one(host):
     try:
         assert host.call("stomach.fullnessMass", st) == pytest.approx(110 + 30)
         S.PROTEIN_FILL = 100
-        assert host.call("stomach.fill", st) == 1                                           # 1110 g past 730: F clamps
+        assert host.call("satiety.fill", host.call("stomach.fullnessMass", st), 730) == 1   # 1110 g past 730: F clamps
     finally:
         S.PROTEIN_FILL = 8
     assert host.call("stomach.fullnessMass", st) == pytest.approx(110 + 80)
@@ -358,3 +358,19 @@ def test_the_protein_term_fades_as_the_lane_empties(host):
     left = host.call("stomach.fullnessMass", st) - host.call("stomach.satietyMass", st)
     assert 0 < left < 0.01 * terms[0], (terms, left)
     assert left == pytest.approx(8 * st.buffer.proteins)
+
+
+def test_stomach_fill_stays_physical_whatever_the_protein_fill(host):
+    # ruling T5-2: record.stomachFill (K.stomach.fill) gates physical emptiness (NUT.FED_FILL, ACUTE_EMPTY_FILL) in grams
+    # of contents, so PROTEIN_FILL never reaches it; a 150 g cooked chicken breast (about 46.5 g protein, 5.4 g fat,
+    # 98 g water, 248 kcal) reads its own mass over 730 at any PROTEIN_FILL
+    S = host.K.satiety
+    st = host.K.stomach["new"]()
+    host.call("stomach.ingest", st, _vec(host, water=98.1, proteins=46.5, lipids=5.4, calories=248))
+    f8 = host.call("stomach.fill", st)
+    S.PROTEIN_FILL = 0
+    try:
+        f0 = host.call("stomach.fill", st)
+    finally:
+        S.PROTEIN_FILL = 8
+    assert f8 == f0 == pytest.approx(150 / 730)
