@@ -409,11 +409,11 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
     "overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the "
-    "acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid "
+    "acute exercise factor x the sleep-debt factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid "
     "counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on "
-    "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.06 at a full "
-    "stomach), and a character seeded from a vanilla HUNGER below that post-meal floor reads the floor on its first "
-    "minute; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
+    "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.09 at a full "
+    "stomach), and a character seeded from a vanilla HUNGER below about 0.20 reads about 0.20 on its first minute "
+    "(0.203, an empty stomach's read at the seed's cap P_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
     "macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
     "intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, "
     "shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a "
@@ -421,7 +421,7 @@ LIMITATION_FOUR = (
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
     "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
     "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
-    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.6 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling")
+    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.55 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, so past about 24-36 h of fasting the energy state sits at its cap (ruling T4-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():
@@ -963,3 +963,96 @@ def test_the_writers_f_falls_back_to_the_stamp():
     rec = record(h)
     rec.stomachFill = float("nan")
     assert W.satietyF(rec) == 0                                             # and a non-finite stamp reads empty
+
+
+# --- Plan 11d Task 6: the sleep-debt factor in the writer (ruling 11d-2, spec § 5d) ---------------------------------
+# The written HUNGER is min(0.69, hungerTarget(sated(F, post(P)), es) x circadian(h) x acuteFactor(S) x
+# sleepFactor(debtH)), debtH read off record.acute.debtH; sleepFactor(d) = 1 + 0.18 clamp(d / 2, 0, 1), 1 for a
+# non-finite debt (K.satiety.SLEEP_MAX 0.18, SLEEP_DEBT_FULL_H 2). The seed divides by the same three factors.
+
+def _sleep(d):
+    return 1 + 0.18 * min(max(d / 2, 0.0), 1.0)
+
+
+@pytest.mark.parametrize("debt", [2.0, 5.0])               # a full debt and one past it: the factor's cap
+def test_a_full_sleep_debt_raises_the_written_hunger_by_the_factors_cap(debt):
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.acute.debtH = debt
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(H1 * 1.18)
+
+
+def test_a_partial_sleep_debt_raises_the_written_hunger_on_the_ramp():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.acute.debtH = 1.0
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(H1 * 1.09) and _sleep(1.0) == pytest.approx(1.09)
+
+
+def test_the_sleep_factor_sits_inside_the_cap():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.acute.debtH = 2.0
+    rec.body.energyState = 1.4                             # (0.1675 x 1.4 + 0.06) x 0.954 = 0.281; x 1.18 under the cap
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, es=1.4) * 1.18)
+    h2 = boot()
+    p2 = player(h2)
+    rec2 = record(h2)
+    rec2.stomachFill = 0.0
+    rec2.satiety.P = 0.0                                   # target 1 x 0.954: the cap binds with or without the debt
+    rec2.acute.debtH = 2.0
+    step(h2, p2, rec2, 1)
+    assert p2.st.sets.HUNGER == pytest.approx(0.69)
+
+
+@pytest.mark.parametrize("debt", [float("nan"), float("inf"), float("-inf"), -1.0, "x"])
+def test_a_non_finite_or_bad_sleep_debt_reads_factor_one(debt):
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.acute.debtH = debt
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(H1)
+
+
+def test_a_record_with_no_acute_state_reads_factor_one():
+    h = boot()
+    p = player(h)
+    rec = record(h, acute=None)
+    step(h, p, rec, 1)
+    assert p.st.sets.HUNGER == pytest.approx(H1)
+
+
+@pytest.mark.parametrize("minute", [1, 721])               # 04:01 and 16:01: the circadian factor 0.954 and 1.046
+def test_the_seed_writes_back_the_hunger_it_read_under_a_sleep_debt_and_acute_suppression(minute):
+    # S 0.5 and a full debt: the seed inverts hunger / (circadian x acuteFactor(0.5) x sleepFactor(2)), so the first
+    # write is the HUNGER read, near the cap too (0.6 / (0.65 x 1.18) before the cap)
+    for hunger in (0.4, 0.6):
+        for debt in (1.0, 2.0):
+            h = boot()
+            p = player(h)
+            p.st.v.HUNGER = hunger
+            rec = h.K.store.new("a", 100.0)
+            rec.satiety = h.rt.eval("{ S = 0.5 }")
+            rec.acute = h.rt.eval("{ debtH = %r }" % debt)
+            step(h, p, rec, minute)
+            assert p.st.sets.HUNGER == pytest.approx(hunger), (hunger, debt, minute)
+            assert rec.satiety.S == 0.5 and rec.satiety.v == 4
+
+
+def test_the_seed_divides_by_the_sleep_factor():
+    h = boot()
+    p = player(h)
+    p.st.v.HUNGER = 0.31
+    rec = record(h)
+    rec.satiety = None
+    rec.acute.debtH = 2.0
+    step(h, p, rec, 1)
+    assert rec.satiety.P == pytest.approx(h.K.satiety.seedP(0.31 / (_circ(4 + 1 / 60) * 1.18), 0.6, 1))
+    assert p.st.sets.HUNGER == pytest.approx(0.31)

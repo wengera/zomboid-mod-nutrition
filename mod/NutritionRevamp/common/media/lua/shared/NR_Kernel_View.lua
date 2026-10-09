@@ -20,14 +20,14 @@ K.view.LEVEL = { SYMPTOMS = 1, BANDS = 2, NUMBERS = 3 }
 K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" }
 
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
--- energy: the K.energy.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit, fat depletion and glycogen
--- depletion raise it, surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
+-- energy: the K.energy.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
+-- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
 -- surplus or absent) 0; 1.10 1; 1.25 2; 1.50 3; 1.75 4.
 K.view.ENERGY_AT = {
     1.10, -- gc: level 1, a 300 kcal trailing-24 h deficit alone (0.5 x 300/1500, K.energy.state); rests on Plan 3 ruling 14
     1.25, -- gc: level 2, a 750 kcal deficit or half the fat-depletion term; rests on Plan 3 ruling 14
     1.50, -- gc: level 3, the full 1500 kcal deficit term; rests on Plan 3 ruling 14
-    1.75, -- gc: level 4, a full deficit with fat or glycogen depletion on top; rests on Plan 3 ruling 14
+    1.75, -- gc: level 4, a full deficit with fat depletion on top (the glycogen term retired, ruling T4-1); rests on Plan 3 ruling 14
 }
 
 -- hydration: fluids_dehydPct (per cent of body mass) on the Plan 4 thirst ladder, K.fluids.THIRST_KNOTS -- the

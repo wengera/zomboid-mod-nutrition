@@ -21,19 +21,19 @@ function K.satiety.trait(hearty, light)
 end
 
 -- Plan 11c (spec § 3.1, § 5a and § 5b, structure D, ruling 11c-30): satiety from physiology. Two signals sate: the
--- stomach's fullness F (its satiety mass, K.stomach.satietyMass, over its maximal capacity, K.stomach.CAPACITY_MAX_G,
+-- stomach's fullness F (the writer's W.satietyF since Plan 11d Task 5, ruling T5-2: its fullness mass, K.stomach.fullnessMass, the satiety mass plus the protein term, over its maximal capacity, K.stomach.CAPACITY_MAX_G,
 -- ruling 11c-19) and a meal satiety pool P of weighted kcal, fed at the eat and decaying first-order. Hunger is
--- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour) x acuteFactor(S), capped at 0.69 by the writer.
+-- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour) x acuteFactor(S) x sleepFactor(debtH) (Plan 11d), capped at 0.69 by the writer.
 K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (Plan 11c), kept at 2.5 and bounded by S1224's delay differences (Plan 11c Task 4 review) (S1268 open; rulings 11c-7 and 11c-31): protein satiates more per kcal (S1222, S1223, S1224, direction)
 K.satiety.W_CARB = 1 -- neutral (ruling 11c-7): carbohydrate against fat is disputed (S1226, S1227, S1228, S1229), so both take the common weight; not an evidenced tie
 K.satiety.W_FAT = 1 -- neutral (ruling 11c-7), as W_CARB
 K.satiety.W_NEUTRAL = 1 -- neutral (spec § 3.1): the common weight of a vector with no macronutrient grams
-K.satiety.HALF_LIFE_H = 0.7 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): P's half-life in game hours, fitted with P_REQ and STEEP against S1247 (Callahan's preloads from the request and fasted), the 650 kcal anchor (S1247, S1248), a fasted 400 kcal breakfast and S1231 (Rolls's soup at its measured size)
-K.satiety.P_REQ = 6 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): the pool in weighted kcal at which an empty stomach reads the request level 0.25, fitted with HALF_LIFE_H and STEEP (S1247, S1248, S1231)
+K.satiety.HALF_LIFE_H = 0.7 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): P's half-life in game hours, fitted with P_REQ and STEEP (STEEP then 0.08; STEEP was refit to 0.05 in Plan 11d Task 5, ruling T5-1, and HALF_LIFE_H was not) against S1247 (Callahan's preloads from the request and fasted), the 650 kcal anchor (S1247, S1248), a fasted 400 kcal breakfast and S1231 (Rolls's soup at its measured size)
+K.satiety.P_REQ = 6 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open): the pool in weighted kcal at which an empty stomach reads the request level 0.25, fitted with HALF_LIFE_H and STEEP (S1247, S1248, S1231; STEEP then 0.08, refit to 0.05 in Plan 11d Task 5, ruling T5-1, and P_REQ was not)
 K.satiety.STEEP = 0.05 -- game choice, fitted in Task 4 (Plan 11c) at 0.08 (S1270 open; no row gives a satiety signal's read), refit in Plan 11d Task 5 (ruling 11d-5) jointly with FULL_WEIGHT and PROTEIN_FILL (at 0.08 no PROTEIN_FILL and FULL_WEIGHT held S1231, S1233 and S1247 with the protein contrast of S1222): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247)
 K.satiety.FULL_WEIGHT = 0.55 -- game choice, fitted in Task 4 (Plan 11c) at 0.6, refit in Plan 11d Task 5 (ruling 11d-5) jointly with STEEP and PROTEIN_FILL: fullness's weight in the sated product, fitted to S1231's three arms and checked against S1233; S1235 has fullness track gastric volume
 K.satiety.LIQUID_WEIGHT = 0.2 -- game choice, fitted in Task 4 (Plan 11c): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake)
-K.satiety.P_SEED_MAX = 1300 -- game choice (ruling 11c-30): seedP's cap, about the weighted pool of a 1,000 kcal mixed meal, so a HUNGER of 0 does not seed a pool that sates for days
+K.satiety.P_SEED_MAX = 1300 -- game choice (ruling 11c-30): seedP's cap, about the weighted pool of a 1,000 kcal mixed meal, so a HUNGER of 0 does not seed a pool that sates for days; it sets the seed's floor, an empty stomach's read at the cap, 0.203 under STEEP 0.05 (ruling T5-1; 0.178 at 0.08): a vanilla HUNGER below it seeds the cap and writes about 0.20, times the circadian, acute and sleep factors
 K.satiety.DISCOMFORT_MAX = 100 -- not science: the soft cap's discomfort scale, borrowed from the DISCOMFORT stat's range 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21); ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel and nothing writes DISCOMFORT
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
@@ -133,7 +133,7 @@ end
 -- ACUTE_HALF_LIFE_H while vigorous and ACUTE_DECAY_HALF_LIFE_H otherwise (ruling 11d-1); the writer multiplies hunger by acuteFactor(S) = 1 - ACUTE_MAX x S (Task 6
 -- wires it: vigorous is the swing state or the metabolism class's heavy-work band, IsRunning never reaching the
 -- server, x141a). Appended so no line above moves. Pure; one statement a line.
-K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) while its against-control row was open (now S1500 and S1502; kept at 0.7, ruling 11d-1): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference)
+K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) while its against-control row was open (now S1500 and S1502; kept at 0.7, ruling 11d-1): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference); since Plan 11d S1500 (no effect 30-90 min after the bout) overrides S1303's 1.5 h reading, the decay being ACUTE_DECAY_HALF_LIFE_H (ruling 11d-1)
 K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (fitted while its against-control row was open; now S1500 and S1502, ruling 11d-1): the state's rise half-life in game hours, while vigorous, fitted with ACUTE_MAX to S1303 and S1306; it reads S1502's -33 % during a 60 min bout (the replay's mean 0.674 of control); the decay is ACUTE_DECAY_HALF_LIFE_H (Plan 11d)
 K.satiety.ACUTE_KIND = {}
 K.satiety.ACUTE_KIND.aerobic = 1 -- S1300, S1303, S1306: running suppresses hunger (the weight is the scale's unit)
@@ -176,16 +176,16 @@ function K.satiety.acuteHalfLife(vigorous)
 end
 
 -- Plan 11d (ruling 11d-2, spec § 5d): sleep debt raises hunger. The factor 1 + SLEEP_MAX x clamp(debtH /
--- SLEEP_DEBT_FULL_H, 0, 1) multiplies the written hunger, read off record.acute.debtH in game hours (Task 6 wires it).
+-- SLEEP_DEBT_FULL_H, 0, 1) multiplies the written hunger, read off record.acute.debtH in game hours (wired in the writer's W.satietyFactor, Plan 11d Task 6); it is inert while the server disables sleep, K.acute.sleepMinute holding the debt at 0.
 -- It follows the acute kernel's accounting (K.acute.sleepMinute): the debt books once per 24 h window at the window's
 -- close, as the shortfall against SLEEP_NEED_H x needFactor, so the factor steps at the window's close rather than at
 -- waking; a longer night repays only REPAY (0.5) of its excess, so recovery takes more than one full night. It
 -- reverses as the debt is repaid (S1567: intake fell on recovery sleep). Whether hunger steps with any short night or
 -- rises graded with the loss is not settled (S1568: total and partial loss gave comparable late-night intake; S1282:
--- hunger 3.9 after total deprivation against 2.2 after 4.5 h and 1.7 after 7 h, a rise graded with the loss), so the
+-- hunger 3.9 after total deprivation against 2.2 after 4.5 h and 1.7 after 7 h: only total deprivation differed significantly; 4.5 h against 7 h is not tested in the row), so the
 -- ramp to a full debt and its cap are game choices. Appended so no line above moves; one statement a line for the coverage gate.
-K.satiety.SLEEP_MAX = 0.18 -- game choice, Plan 11d (ruling 11d-2): the factor's rise at a full debt, fitted to S1284 (hunger +13.4 mm, +252.8 kcal/d) and S1565 (<= 5.5 h: +204 kcal/d), with S1564 (+385 kcal/d) the band's top and S1567 the reversal; under the request-anchored mapping (ruling 11c-31: 260 mm per unit, an assumption) it reads +11.7 mm at the request (S1284's 13.4 within 1.5x) and a next-day intake ratio of 1.18 on an assumed 2,000 kcal day (band 1.10-1.19)
-K.satiety.SLEEP_DEBT_FULL_H = 2 -- game choice, Plan 11d (ruling 11d-2): the debt that reads the full factor, the debt the acute kernel books for one night of 5.5 h (S1565's restriction to 5.5 h or less; S1284, S1564 and S1567 its pooled and reversal rows): K.acute.SLEEP_NEED_H 7.5 - 5.5 = 2.0 h at the window's close
+K.satiety.SLEEP_MAX = 0.18 -- game choice, Plan 11d (ruling 11d-2): the factor's rise at a full debt, fitted to S1284 (hunger +13.4 mm, +252.8 kcal/d) and S1565 (<= 5.5 h: +204 kcal/d), with S1564 (+385 kcal/d) the band's top and S1567 the reversal; under the request-anchored mapping (ruling 11c-31: 260 mm per unit, an assumption) it reads +11.7 mm at the request (S1284's 13.4 within 1.5x) and a next-day intake ratio of 1.18 on an assumed 2,000 kcal day (band 1.10-1.19); the two bands admit SLEEP_MAX in [0.137, 0.19], 0.18 favouring the measured hunger
+K.satiety.SLEEP_DEBT_FULL_H = 2 -- game choice, Plan 11d (ruling 11d-2): the debt that reads the full factor, the debt the acute kernel books for one night of 5.5 h (S1565's restriction to 5.5 h or less; S1284, S1564 and S1567 its pooled and reversal rows): K.acute.SLEEP_NEED_H 7.5 - 5.5 = 2.0 h at the window's close; reaching the full factor after one night is a game choice (the pooled protocols are multi-night)
 
 -- The factor on hunger for a sleep debt of debtH game hours: 1 for no debt, a negative one or a non-finite one (x - x
 -- is NaN for NaN and for an infinity), rising linearly to 1 + SLEEP_MAX at SLEEP_DEBT_FULL_H and held there.

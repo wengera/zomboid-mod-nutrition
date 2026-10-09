@@ -1,9 +1,9 @@
 -- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach (spec § 4.2, § 4.4; Plan 11c): once per player per
 -- game minute, inside the budgeted queue, both lanes empty over the game minutes since the last run (K.stomach.drain:
 -- the solid lane's energy at a zero-order rate rising with its load, the liquid lane's water first-order), the
--- emptied vector is absorbed and the absorbed vector accumulates into the pool, and the fullness F (the stomach's
--- satiety mass over its maximal capacity, K.stomach.fill) is stamped on the record as record.stomachFill for the
--- writer, the acute dose test and the mirror to read. A gap of more than a minute drains in one-minute substeps (the
+-- emptied vector is absorbed and the absorbed vector accumulates into the pool, and the physical fill (the stomach's
+-- satiety mass over its maximal capacity, K.stomach.fill; the writer's F reads K.stomach.fullnessMass through W.satietyF, ruling T5-2) is stamped on the record as record.stomachFill for the
+-- writer's fallback, the acute dose test and the mirror to read. A gap of more than a minute drains in one-minute substeps (the
 -- solid rate rises with the load, and the oracle's replays step a minute), and a gap is capped at 60 game minutes:
 -- offline time is not integrated, as Metabolism and Nutrients clamp. A record with no stomach starts with an empty one
 -- (spec § 4, ruling 11c-15); hunger carries over through the satiety pool P, which the intake feeds at the eat and the

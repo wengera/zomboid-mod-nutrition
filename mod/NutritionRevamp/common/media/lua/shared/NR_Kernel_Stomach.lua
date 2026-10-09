@@ -275,7 +275,7 @@ end
 
 -- The hunger-relevant mass (structure D, ruling 11c-30): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
 -- liquid lane, drunk liquid counting at a fifth (S1231's null for water drunk alongside; S1233's drink volumes). The
--- fill (K.stomach.fill) passes it to K.satiety.fill; the soft cap still reads K.stomach.mass, both lanes whole (S1250).
+-- fill (K.stomach.fill) passes it to K.satiety.fill and stays physical, while the writer's F reads K.stomach.fullnessMass, it plus the protein term (W.satietyF, ruling T5-2); the soft cap still reads K.stomach.mass, both lanes whole (S1250).
 function K.stomach.satietyMass(stomach)
     return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * (stomach.liquid or 0)
 end

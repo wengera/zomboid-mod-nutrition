@@ -83,7 +83,7 @@ CROSS = (
         ("effects", ("caf", "wd", "cafTol", "bac", "alcPeak", "hang", "bg", "iuSleep", "debtH", "iu", "exEma",
                      "bmi", "starvedDays", "coldH", "lastVigAgeH", "retEma")),
         ("strength", ("awakeH", "caf")),
-        ("writer", ("S", "circ")),
+        ("writer", ("S", "circ", "debtH")),   # debtH: the sleep factor (Plan 11d Task 6, W.satietyFactor)
         ("bus", ("awakeH", "bac", "bg", "caf", "debtH", "g", "iu", "refeedRisk")),
         ("store", ("caf", "cafTol", "alcPeak", "hang", "bg", "awakeH", "debtH", "S", "starvedDays", "bmi", "exEma",
                    "lastVigAgeH", "coldH", "retEma", "refeedRisk")),

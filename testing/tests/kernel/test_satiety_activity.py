@@ -30,7 +30,7 @@ steady state (the two prior days carrying the same meals), where a 25 % step in 
 arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
 Accepted only after the mutation pass (CLAUDE.md § 6): ACUTE_MAX, ACUTE_HALF_LIFE_H and EX_LAG_TAU_D at x2 and x0.5
-each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's: Plan 11d Task 1; EX_LAG_GAIN's: Task 2). Only `host`; no `parametrize`.
+each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's: Plan 11d Task 1, its x0.5 caught only by pins, because S1500 bounds the tail from above only; EX_LAG_GAIN's: Task 2). Only `host`; no `parametrize`.
 """
 import math
 
