@@ -32,6 +32,7 @@ Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and P (g5, 140); g1's P overflows (170).
 g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.
+Each eat carries its eater (NR_T.chars), whose stats answer add: monotony's adds (11e T3) are traced as `added`.
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
 body-damage counters and parts, the Nutrition stores, `written`: the writer's last set value per stat, `statSets`),
 the counters of a FIXED list of NR.server adapters (STATS_NAMES; a new module's stats never move the trace), the
@@ -47,7 +48,6 @@ import json
 import math
 import os
 import sys
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
@@ -113,6 +113,7 @@ NR_T.sent = {}
 NR_T.syncs = { players = {}, parts = {} }
 NR_T.m = 0
 NR_T.bodies = {}
+NR_T.chars = {}
 local function nextU()
     NR_T.rng = math.fmod(16807 * NR_T.rng, 2147483647)
     return NR_T.rng / 2147483647
@@ -145,7 +146,7 @@ end
 
 CharacterStat = {}
 for _, n in ipairs({ "HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "STRESS", "UNHAPPINESS", "FOOD_SICKNESS", "PANIC",
-                     "TEMPERATURE", "INTOXICATION", "NICOTINE_WITHDRAWAL" }) do
+                     "TEMPERATURE", "INTOXICATION", "NICOTINE_WITHDRAWAL", "BOREDOM" }) do
     CharacterStat[n] = n
 end
 CharacterTrait = {}
@@ -251,14 +252,17 @@ NR_T.decorate = function(p, cfg)
     end
     -- the stats object (Plan 11e Task 1, ruling 11e-3): get answers the current value, set records it as written
     local sv = { HUNGER = cfg.hunger, THIRST = cfg.thirst, FATIGUE = cfg.fatigue, ENDURANCE = 1.0, STRESS = 0,
-                 UNHAPPINESS = 0, FOOD_SICKNESS = 0, PANIC = 0, TEMPERATURE = 37.0, INTOXICATION = 0,
+                 UNHAPPINESS = 0, FOOD_SICKNESS = 0, PANIC = 0, TEMPERATURE = 37.0, INTOXICATION = 0, BOREDOM = 0,
                  NICOTINE_WITHDRAWAL = cfg.nicotine }
     p.sv = sv
-    local wst = { written = {}, sets = 0 }
+    local wst = { written = {}, sets = 0, added = {} }
     p.wst = wst
     local stats = {}
     stats.get = function(s, k) return sv[k] end
     stats.set = function(s, k, v) sv[k] = v; wst.written[k] = v; wst.sets = wst.sets + 1 end
+    -- Stats.add (Plan 11e Task 3: monotony's BOREDOM and UNHAPPINESS adds at the eat): the sum, and `added` per stat
+    stats.add = function(s, k, v) sv[k] = (sv[k] or 0) + v; wst.added[k] = (wst.added[k] or 0) + v; return true end
+    NR_T.chars[p:getUsername()] = p
     p.getStats = function(s) return stats end
     return p
 end
@@ -410,7 +414,7 @@ NR_T.eat = function(minute, username)
     local IN = NutritionRevamp.server.intake
     if m.via == "item" then
         local item = NR_T.food(m.fullType, m)
-        local character = { getUsername = function(s) return username end }
+        local character = NR_T.chars[username]                 -- the eater itself (Plan 11e Task 3)
         local b = IN.readBefore({ item = item, character = character })
         item.eaten = true
         return IN.readAfterAndLand(b)
@@ -422,7 +426,7 @@ NR_T.eat = function(minute, username)
                 instBase = m.instBase, thirstBefore = m.thirstBefore, cal = m.cal, carb = m.carb, lip = m.lip,
                 pro = m.pro, cooked = m.cooked == true, burnt = m.burnt == true, rotten = false, frozen = false,
                 scriptHunger = m.scriptHunger, scriptThirst = m.scriptThirst, extraTypes = {},
-                craftMap = nil, declared = m.declared, foodType = m.foodType }
+                craftMap = nil, declared = m.declared, foodType = m.foodType, char = NR_T.chars[username] }
     for i, t in ipairs(m.extraTypes or {}) do b.extraTypes[i] = t end
     if m.craftMap ~= nil then
         b.craftMap = {}
@@ -573,6 +577,7 @@ def _player_state(p):
         "nutrition": {k: walk(nut[k]) for k in ("cal", "carb", "lip", "pro", "weight", "sets", "traitApplies")},
         "written": walk(p.wst.written),
         "statSets": _Num(p.wst.sets),
+        "added": walk(p.wst.added),
     }
 
 
