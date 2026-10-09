@@ -1,6 +1,6 @@
 """The server adapters of Plan 8 Task 4: NR_Server_Reconcile.lua (the missed-intake minute), the store's load at
 first sight (NR_Server_Store.lua, ruling T4-1), the Weight adapter's baseline reset and band mark, the intake's
-wrapped-eat credit, the bus's markBand and Metabolism's inDayClosed default.
+wrapped-eat credit, the bus's markBand and Metabolism's unset closed day.
 
 Every test runs in a FRESH Lua 5.1 runtime: NR_Core.lua, the shared data and kernel files, then every server/
 file in the engine's load order (alphabetical), with Lua stand-ins for the engine -- an Events table whose Add
@@ -427,14 +427,7 @@ def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):
     assert new["junk"] == 1
 
 
-# --- Metabolism: a fresh body beside kept nutrients closes on the resting expenditure ------------------
-
-def test_ensure_body_beside_kept_nutrients_stamps_the_resting_expenditure(h):
-    p = h.player()
-    rec = h.table({"username": "admin", "nutrients": {}})
-    body = h.NR.server.metabolism.ensureBody("admin", p, rec, 50.0)
-    assert body["inDayClosed"] == h.K.energy.ree(body["lm"]) and body["inDayClosed"] > 0
-
+# --- Metabolism: a new character's body leaves the closed day unset ---------------------------------------
 
 def test_ensure_body_of_a_new_character_leaves_the_closed_day_unset(h):
     p = h.player()

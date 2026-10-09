@@ -169,16 +169,9 @@ function K.store.ageOf(raw)
 end
 
 -- The default body the inputs are copied over: K.body.new at the stored masses, sex, Strength level, carry
--- factor, responder and clock, or nil when the stored body lacks a mass, the sex or the clock (the
--- Metabolism adapter then makes a fresh body at first sight). A sex other than 2 builds as 1; the copy then
--- restores the stored value.
+-- factor, responder and clock (a saved body always holds them: K.body.new lays them all). A sex other than 2
+-- builds as 1; the copy then restores the stored value.
 function K.store.bodyBase(rb)
-    if type(rb.fm) ~= "number" or type(rb.lm) ~= "number" then
-        return nil
-    end
-    if type(rb.sex) ~= "number" or type(rb.lastAgeH) ~= "number" then
-        return nil
-    end
     local sex = 1 -- K.body's sex index: 1 male, 2 female
     if rb.sex == 2 then
         sex = 2 -- K.body's female index

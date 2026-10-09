@@ -157,9 +157,6 @@ function MET.ensureBody(username, player, record, ageH)
     local traitCarry = num(player, "getMaxWeightDelta", 1.0)
     local r = responder()
     record.body = K.body.new(w, sex, build, l0, traitCarry, r, ageH)
-    -- a body made beside kept nutrients (a load that dropped an unusable stored body, Plan 8 T3 fix concern 2)
-    -- closes its first day on the resting expenditure, as K.store.load stamps a loaded body, not on a 0 kcal day
-    if record.nutrients ~= nil then record.body.inDayClosed = K.energy.ree(record.body.lm) end
     MET.stats.splits = MET.stats.splits + 1
     NR.log.say(3, "metabolism: first sight of " .. tostring(username) .. " w=" .. tostring(w) .. " sex=" .. sex
         .. " l0=" .. tostring(l0) .. " traitCarry=" .. tostring(traitCarry) .. " r=" .. tostring(r))

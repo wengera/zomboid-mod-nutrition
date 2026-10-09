@@ -17,7 +17,8 @@ so only slot 7 (and bandWeek's slot 7) can take a value this minute's arithmetic
 The store step reads every K.store.INPUTS path; its rows below are the guarded inputs. An unguarded input the
 step leaves non-finite is saved as a missing key (the codec writes NaN as null) and loads as its constructor's
 default (K.store.load), the fresh value the heal would have stamped; body's load needs fm, lm, sex and lastAgeH
-(K.store.bodyBase), so fm, lm and lastAgeH are guarded (no step writes sex).
+(K.store.bodyBase raises without them, and the load's pcall leaves the record raw), so fm, lm and lastAgeH are
+guarded (no step writes sex).
 
 WINDOW lists the reads left unguarded, each with the reason; the window test injects each one and shows the NaN
 stays in its own field for one minute and the next pre-step heal takes it (the accepted window, ruling 10).

@@ -569,7 +569,9 @@ def test_a_stepped_pool_survives_a_restart():
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
-    back = h.K.store.load(h.K.store.inputsOnly(rec), None, None)
+    saved = h.K.store.inputsOnly(rec)
+    saved.body = None                                                       # the stand-in body is no stored body
+    back = h.K.store.load(saved, None, None)
     assert back.satiety.P == pytest.approx(6)
     assert back.satiety.S == 0 and back.satiety.L == 0
     back.stomachFill = 0.6                                                  # kinetics stamps it each minute
@@ -854,7 +856,9 @@ def test_a_restart_through_the_store_decays_the_pool():
     W = h.NR.server.writer
     _, rec = _fed(h)
     P2, S2 = rec.satiety.P, rec.satiety.S
-    back = h.K.store.load(h.K.store.inputsOnly(rec), None, None)
+    saved = h.K.store.inputsOnly(rec)
+    saved.body = None                                                       # the stand-in body is no stored body
+    back = h.K.store.load(saved, None, None)
     assert back.satiety.t == pytest.approx(100.0 + 2 / 60)                  # INPUTS carry satiety.t
     back.stomachFill = 0.6
     back.body = h.rt.eval("{ energyState = 1, rmod = 1 }")

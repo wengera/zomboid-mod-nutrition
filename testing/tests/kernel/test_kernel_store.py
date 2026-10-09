@@ -301,13 +301,6 @@ def test_load_with_no_order_lays_the_stored_keys(host):
     assert set(k for k, v in n.items() if isinstance(v, dict)) == {"zinc"}
 
 
-def test_an_unusable_body_is_dropped(host):
-    for body in ({"lm": 60, "sex": 1, "lastAgeH": 1}, {"fm": 20, "sex": 1, "lastAgeH": 1},
-                 {"fm": 20, "lm": 60, "lastAgeH": 1}, {"fm": 20, "lm": 60, "sex": 1}):
-        r = host.py(S(host).load(host.table({"body": body}), order(host), recs(host)))
-        assert "body" not in r, body
-
-
 def test_a_body_builds_at_its_sex_and_keeps_an_odd_one(host):
     r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 2, "lastAgeH": 50.0}}), None, recs(host)))
     assert r["body"]["sex"] == 2 and r["body"]["fm"] == 20.0 and r["body"]["dayIndex"] == 2
