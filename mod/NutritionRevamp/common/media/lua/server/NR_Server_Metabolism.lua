@@ -370,6 +370,10 @@ local function step(username, player, record, ctx)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
     if finite(met) then body.met = met else body.met = 1 end
+    if ctx ~= nil then                                   -- the minute's class and exercise flag, for NR_Server_Writer's activity kind (ruling T6-2)
+        ctx.activityClass = className
+        ctx.exercising = exercising
+    end
     if finite(coldMult) then body.coldMult = coldMult else body.coldMult = 1 end
     local ex0 = body.exKcalDay
     K.energy.minute(body, met, not moving, coldMult, dtM)

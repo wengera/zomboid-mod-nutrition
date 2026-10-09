@@ -2,7 +2,8 @@
 real kernels -- structure D's stomach, meal pool and hunger function (as test_satiety_meal_studies.py runs them) with
 the acute suppression term (K.satiety.exerciseSuppression, acuteFactor) and the energy state built by
 K.energy.activityState from a trailing-24 h balance and the exercise lag (K.energy.exerciseLag) -- one step a game
-minute. Displayed hunger is min(0.69, hungerTarget(sated(F, post(P)), es) x circadian(h)) x acuteFactor(S).
+minute. Displayed hunger is the writer's form (Task 6 amendment 3's cap form), min(0.69, hungerTarget(sated(F, post(P)),
+es) x circadian(h) x acuteFactor(S)): the cap bounds the product, the acute factor inside it.
 
 The mappings (each a labelled assumption or inference, not a row):
 - VAS to HUNGER, request-anchored (ruling 11c-31, an ASSUMPTION): a pre-meal 65 mm reads as the request level 0.25,
@@ -113,8 +114,7 @@ function(cfg)
             e = K.max(e, K.energy.state(eb, 0, 1))
         end
         local c = K.satiety.circadian((cfg.h0 + (m + 1) / 60) % 24)
-        local h = K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), e) * c)
-        hs[m + 1] = h * K.satiety.acuteFactor(S)
+        hs[m + 1] = K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), e) * c * K.satiety.acuteFactor(S))
         es[m + 1] = e
         ss[m + 1] = S
         ls[m + 1] = K.energy.lagged(L)

@@ -407,8 +407,9 @@ LIMITATION_FOUR = (
     "overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the "
     "acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid "
     "counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on "
-    "game time asleep or awake, so displayed hunger never falls below about 0.12 after a meal; an eat another mod "
-    "makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
+    "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.06 at a full "
+    "stomach), and a character seeded from a vanilla HUNGER below that post-meal floor reads the floor on its first "
+    "minute; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
     "macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
     "intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, "
     "shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a "
@@ -726,6 +727,50 @@ def test_the_heavy_work_band_steps_the_acute_state_as_aerobic_work():
     step(h, p2, rec2, 1, name="b")
     step(h, p2, rec2, 31, name="b")
     assert rec2.satiety.S == 0
+
+
+def kind_step(h, p, rec, minute, cls=None, exercising=False, name="a"):
+    ctx = h.rt.table()
+    ctx.activityClass = cls
+    ctx.exercising = exercising
+    h.T.age = 100.0 + minute / 60
+    h.NR.server.writer.step(name, p, rec, ctx)
+
+
+@pytest.mark.parametrize("cls,met", [("Fitness", 6.0), ("FitnessHeavy", 9.0), ("ForestryAxe", 6.5)])
+def test_resistance_type_classes_step_the_acute_state_as_resistance_work(cls, met):
+    # Ruling T6-2 (S1301, S1305: resistance suppresses less): the metabolism class, not the MET alone, names the kind.
+    # Billed at or above the heavy-work band, Fitness, FitnessHeavy and ForestryAxe are resistance work: 30 minutes
+    # take S to ACUTE_KIND.resistance 0.5 x (1 - 2^-1) = 0.25, not the aerobic 0.5
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.body.met = met
+    kind_step(h, p, rec, 1, cls)
+    kind_step(h, p, rec, 31, cls)
+    assert rec.satiety.S == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize("cls,met", [("HeavyWork", 6.0), ("ClimbRope", 8.0), ("Running10kmh", 9.3)])
+def test_the_other_heavy_classes_stay_aerobic_work(cls, met):
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.body.met = met
+    kind_step(h, p, rec, 1, cls)
+    kind_step(h, p, rec, 31, cls)
+    assert rec.satiety.S == pytest.approx(0.5)
+
+
+def test_a_fitness_exercise_in_progress_is_resistance_work_whatever_the_class():
+    # the engine classifies a 6.0 rate as HeavyWork, so the exercise flag (Fitness.getCurrentExe) is what names it
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.body.met = 6.0
+    kind_step(h, p, rec, 1, "HeavyWork", True)
+    kind_step(h, p, rec, 31, "HeavyWork", True)
+    assert rec.satiety.S == pytest.approx(0.25)
 
 
 def test_a_swing_minutes_hunger_is_never_above_the_same_minute_idle():

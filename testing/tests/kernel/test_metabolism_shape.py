@@ -1417,6 +1417,7 @@ def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
     p = player(h)
     record = fresh(h, p)
     body = record["body"]
+    body["exKcalDay"] = 300.0           # a banked day, so a lag fed the cumulative day (not the minute's delta) is seen
     ex0 = body["exKcalDay"]
     w = body["fm"] + body["lm"]
     minute(h, p, record, 100.0 + 1 / 60)
@@ -1425,6 +1426,20 @@ def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
     assert record["satiety"]["L"] == pytest.approx(h.K.energy.exerciseLag(0, ex, 1 / 60), rel=1e-12)
     assert record["satiety"]["L"] > 0
     assert body["energyState"] == _activity_es(h, record, 1 / 60)
+
+
+def test_the_minute_stamps_the_class_and_the_exercise_flag_on_the_context_for_the_writer(met_host):
+    # Ruling T6-2: the writer names the activity kind from the minute's class (S1301); FitnessHeavy is the one
+    # resistance class classOf reaches (9.0 exactly), and Fitness.getCurrentExe is the flag for a 6.0 exercise
+    h = met_host
+    for kw, cls, ex in ((dict(rate=9.0), "FitnessHeavy", False), (dict(rate=3.1), "Walking5kmh", False),
+                        (dict(rate=6.0, exe="squats"), "HeavyWork", True)):
+        p = player(h, **kw)
+        record = fresh(h, p)
+        pipe = h.rt.table()
+        minute(h, p, record, 100.0 + 1 / 60, pipe)
+        assert pipe["activityClass"] == cls
+        assert pipe["exercising"] == ex
 
 
 def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_host):

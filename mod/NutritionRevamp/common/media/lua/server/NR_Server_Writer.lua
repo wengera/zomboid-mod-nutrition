@@ -19,7 +19,7 @@ NR.server.writer = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on game time asleep or awake, so displayed hunger never falls below about 0.12 after a meal; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325)",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.06 at a full stomach), and a character seeded from a vanilla HUNGER below that post-meal floor reads the floor on its first minute; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -163,14 +163,22 @@ function W.hourOfDay(ageH)
     return hour
 end
 
--- Vigorous work for the acute suppression term (spec § 5c, ruling 11c-29): the melee or tool swing state is
+-- Vigorous work for the acute suppression term (spec § 5c, ruling 11c-29; ruling T6-2): the melee or tool swing state is
 -- resistance-type work; else Metabolism's stamp of the minute's billed MET at the Compendium's HeavyWork band or above
--- (6.0, the heavy-work band) is aerobic work. The run flag never reaches the server (x141a), so a runner is not
--- vigorous unless the metabolic rate classes it so. Returns vigorous, kind (K.satiety.ACUTE_KIND's keys).
-function W.vigorous(h, player, record)
+-- (6.0) is vigorous, and the kind follows the metabolism class Metabolism stamps on the minute's ctx: Fitness,
+-- FitnessHeavy and the axe or tool classes (ForestryAxe, DiggingSpade, UsingTools) are resistance work, as is any
+-- minute with a Fitness exercise in progress (ctx.exercising: the engine classes a 6.0 exercise as HeavyWork), because
+-- resistance exercise suppresses appetite less than aerobic (S1301, S1305); every other class at the band is aerobic.
+-- The run flag never reaches the server (x141a), so a runner is not vigorous unless the metabolic rate classes it so.
+-- Returns vigorous, kind (K.satiety.ACUTE_KIND's keys). ctx is nil or lacks the stamp: the class is unknown, aerobic.
+W.RESISTANCE_CLASSES = { Fitness = true, FitnessHeavy = true, ForestryAxe = true, DiggingSpade = true, UsingTools = true }
+function W.vigorous(h, player, record, ctx)
     if h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe) then return true, "resistance" end
     local met = record.body and record.body.met
-    if NR.finite(met) and met >= K.energy.COMPENDIUM.HeavyWork then return true, "aerobic" end
+    if NR.finite(met) and met >= K.energy.COMPENDIUM.HeavyWork then
+        if ctx ~= nil and (ctx.exercising == true or W.RESISTANCE_CLASSES[ctx.activityClass] == true) then return true, "resistance" end
+        return true, "aerobic"
+    end
     return false, nil
 end
 
@@ -186,7 +194,7 @@ end
 -- (counted in guarded). The target is hungerTarget(sated(F, post(P)), es) x circadian(hour) x acuteFactor(S), which
 -- K.hybrid.write caps at hungerCap 0.69 once: min(0.69, target x circadian x acute), so a swing minute's hunger is
 -- never above the same minute idle (ruling 11c-29 (3)).
-function W.satiety(h, player, record, eng, inp, es, ageH)
+function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local F = finiteOr(record.stomachFill, 0)
     local s = record.satiety
     if type(s) ~= "table" then
@@ -204,7 +212,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH)
         W.stats.guarded = W.stats.guarded + 1
     end
     local dtH = K.clamp(inp.dtS, 0, W.c.maxStepS) / 3600
-    local vigorous, kind = W.vigorous(h, player, record)
+    local vigorous, kind = W.vigorous(h, player, record, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
     local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S)
     if not NR.finite(factor) or factor <= 0 then factor = 1 end
@@ -258,7 +266,7 @@ function W.step(username, player, record, ctx)
     inp.hunger = get(h, CS.HUNGER) or 0
     local body = record.body or {}
     local es = finiteOr(body.energyState, 1)
-    W.satiety(h, player, record, eng, inp, es, ageH)
+    W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     inp.thirst = get(h, CS.THIRST) or 0
     local fl = record.fluids
     inp.thirstTarget = fl and fl.thirstTarget or nil
