@@ -86,7 +86,7 @@ end
 -- ruling 11c-19) and a meal satiety pool P of weighted kcal, fed at the eat and decaying first-order. Hunger is
 -- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour), capped at 0.69 by the writer.
 -- Appended below Task 15's code so no line above moves; Task 9 retires that code. Pure; one statement a line.
-K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (Plan 11c) (S1268 open; rulings 11c-7 and 11c-30): protein satiates more per kcal (S1222, S1223, S1224, direction); no replay bounds the size (S1222 and S1223 give no per-trial protein-energy contrast; S1224 is not reproduced), so the oracle exempts it from its mutation bar
+K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (Plan 11c), kept at 2.5 and bounded by S1224's delay differences (Plan 11c Task 4 review) (S1268 open; rulings 11c-7 and 11c-31): protein satiates more per kcal (S1222, S1223, S1224, direction)
 K.satiety.W_CARB = 1 -- neutral (ruling 11c-7): carbohydrate against fat is disputed (S1226, S1227, S1228, S1229), so both take the common weight; not an evidenced tie
 K.satiety.W_FAT = 1 -- neutral (ruling 11c-7), as W_CARB
 K.satiety.W_NEUTRAL = 1 -- neutral (spec § 3.1): the common weight of a vector with no macronutrient grams
