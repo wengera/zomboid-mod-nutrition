@@ -257,7 +257,7 @@ def test_the_counter_derived_and_excess_fields(rh):
     assert ca["counter"]["absorb"] == 0.25 and ca["counter"]["lossPerDay"] == 200
     assert ca["counter"]["skeleton"] == {1: 1400, 2: 1200}       # S0411: 1400 g men, 1200 g women
     assert ca["ul"] == 2500
-    assert _rec(rh, "biotin")["counter"] == {"cosmeticDays": 90}
+    assert "counter" not in _rec(rh, "biotin")                    # untracked: no raw-egg counter (Plan 11d Task 9c)
     fib = _rec(rh, "fibre")["counter"]
     assert (fib["marginal"], fib["depleted"]) == (0.5, 0.25)
     se = _rec(rh, "selenium")

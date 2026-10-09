@@ -321,17 +321,15 @@ NR.data.records = {
                 5, -- female AI mg/d, S0277
             },
         },
-        -- Biotin: a counter of raw-egg-staple days (S0316: raw egg white blocks absorption; 28 d asymptomatic S0319;
-        -- markers by day 14 S0320), stepped by Task 10. No vector key; pool open (S0315). No UL (S0322).
+        -- Biotin: untracked. The only deficiency route is a raw-egg-white staple (S0316; 28 d asymptomatic S0319;
+        -- markers by day 14 S0320) and the food data carries no raw-egg flag, so K.interact.two never steps it and its
+        -- p stays 1 (Plan 11d Task 9b removed the raw-egg counter). No vector key; pool open (S0315). No UL (S0322).
         biotin = {
             unit = "ug",
             kind = "counter",
             R = {
                 30, -- male AI ug/d, S0310
                 30, -- female AI ug/d, S0310
-            },
-            counter = {
-                cosmeticDays = 90, -- raw-egg days to the cosmetic rung, design-phase-v1 game choice (open S1076)
             },
         },
         -- Iron: two compartments (A6), store S and haemoglobin iron H in mg, stepped by Task 10's ctx.two. The

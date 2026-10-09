@@ -23,9 +23,9 @@
 -- emptying (NR_Server_Kinetics' mealCa handoff on the context; ruling T17-1, #2981), and caffeine and ethanol reach
 -- the acute states through the gut lane (ruling T17-2, #2982/#2983): the intake landing's pending sums are
 -- drained into record.acute.gutAlc / gutCaf, K.acute.absorbGut releases them, and the released doses feed
--- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach's absorbed
--- ethanol and caffeine, 0 for every vector landed since the fix, are added to the released doses, so a
--- buffer that held them before the fix still delivers them.
+-- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach never holds a
+-- dose of either (IN.land diverts both), so the gut lane's release is the whole dose these steps read;
+-- the day's ingested ethanol (the alcohol gate) is the ingested vector's.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.nutrients = {
