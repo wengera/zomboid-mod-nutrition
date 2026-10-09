@@ -5,6 +5,7 @@ the way test_intake_shape.py loads NR_Server_Intake.lua. Every world age is stub
 kernel math is the real kernel. A stub proves the wiring and the guards, not the engine's real
 getWorldAgeHours, which the live runs read.
 """
+import math
 import os
 import pytest
 
@@ -52,7 +53,6 @@ function(calories, seeded)
     local r = {}
     if seeded then
         r.stomach = NutritionRevamp.kernel.stomach.new()
-        NutritionRevamp.kernel.stomach.seedFull(r.stomach)
         r.pool = NutritionRevamp.kernel.vector.new()
         if calories > 0 then
             r.stomach.buffer.calories = calories
@@ -65,11 +65,11 @@ end
 RAISING = r"""
 function(record, age)
     local K = NutritionRevamp.kernel
-    local orig = K.stomach.empty
-    K.stomach.empty = function() error("boom") end
+    local orig = K.stomach.drain
+    K.stomach.drain = function() error("boom") end
     NR_TEST_AGE = age
     local ok, err = pcall(NutritionRevamp.server.kinetics.minute, "admin", nil, record)
-    K.stomach.empty = orig
+    K.stomach.drain = orig
     return ok, err
 end
 """
@@ -107,17 +107,37 @@ def run(h, record, age):
     return h.rt.eval(CASE)(record, age)
 
 
-def test_first_call_seeds_and_stamps(kin_host):
+LN2 = 0.6931471805599453
+
+
+def _frac(E, dtM):
+    """K.stomach.solidFraction in doubles: the zero-order solid lane's share over dtM minutes, never above water's."""
+    fw = 1 - math.exp(-LN2 * dtM / 13)
+    if E <= 0:
+        return fw
+    left = (E + 1.25 / 0.0025) * math.exp(-0.0025 * dtM) - 1.25 / 0.0025
+    fe = 1.0 if left <= 0 else max(0.0, 1 - left / E)
+    return min(fe, fw)
+
+
+def _substeps(E, dtM):
+    """The adapter's drain of a dtM-minute gap (amendment 5): ceil(dtM) equal substeps of at most one minute."""
+    n = max(1, math.ceil(dtM - 1e-9))
+    for _ in range(n):
+        E = E * (1 - _frac(E, dtM / n))
+    return E
+
+
+def test_first_call_lays_an_empty_stomach_and_stamps(kin_host):
     h = kin_host
     K = h.G.NutritionRevamp.kernel
     record = h.rt.table()
     run(h, record, 100.0)
-    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
-    assert abs(record["stomach"]["bulk"] - 8.0) < TOL
+    assert record["stomach"]["liquid"] == 0 and record["stomach"]["bulk"] is None
     for k in K.vector.KEYS.values():
         assert record["pool"][k] == 0
         assert record["stomach"]["buffer"][k] == 0
-    assert abs(record["stomachFill"] - 1.0) < TOL
+    assert record["stomachFill"] == 0                    # spec s4: a record with no stomach starts empty
     assert abs(record["kineticsAge"] - 100.0) < TOL
 
 
@@ -130,27 +150,51 @@ def test_first_call_leaves_a_buffer_untouched(kin_host):
     run(h, record, 100.0)  # no kineticsAge yet: dtH is 0
     assert abs(record["stomach"]["buffer"]["calories"] - 100) < TOL
     assert abs(record["pool"]["calories"]) < TOL
-    assert abs(record["stomach"]["bulk"] - 8.0) < TOL
 
 
-def test_second_call_empties_on_the_half_time_empty_buffer(kin_host):
+def test_the_liquid_lane_half_empties_on_waters_half_time_with_no_energy(kin_host):
+    # 13 one-minute substeps at WATER_HALF_MIN 13 (an empty solid lane): 215 g halves to 107.5 g, and F reads
+    # LIQUID_WEIGHT x 107.5 / CAPACITY_MAX_G = 0.2 x 107.5 / 730 (amendment 2)
     h = kin_host
     record = rec(h, 0)
+    record["stomach"]["liquid"] = 215.0
     run(h, record, 100.0)
-    run(h, record, 102.0)  # exactly HALF_TIME_H, composition scale 1
-    assert abs(record["stomach"]["bulk"] - 4.0) < TOL
-    assert abs(record["stomachFill"] - 0.5) < TOL
-    assert abs(record["kineticsAge"] - 102.0) < TOL
+    run(h, record, 100.0 + 13 / 60)
+    assert abs(record["stomach"]["liquid"] - 107.5) < 1e-9
+    assert abs(record["stomachFill"] - 0.2 * 107.5 / 730) < 1e-12
 
 
-def test_second_call_moves_half_the_buffer_into_the_pool(kin_host):
+def test_second_call_moves_the_substepped_zero_order_share_into_the_pool(kin_host):
+    # a 60-minute gap drains in 60 one-minute substeps (amendment 5): the solid rate rises with the load, so the
+    # substeps leave more than one closed-form 60-minute step would once the water cap binds near the end
     h = kin_host
     record = rec(h, 100)
     run(h, record, 100.0)
-    assert abs(record["stomach"]["buffer"]["calories"] - 100) < TOL
-    run(h, record, 102.0)
-    assert abs(record["pool"]["calories"] - 50) < TOL
-    assert abs(record["stomach"]["buffer"]["calories"] - 50) < TOL
+    run(h, record, 101.0)
+    left = _substeps(100.0, 60.0)
+    assert abs(record["pool"]["calories"] - (100 - left)) < 1e-9
+    assert abs(record["stomach"]["buffer"]["calories"] - left) < 1e-9
+    assert abs(left - 100 * (1 - _frac(100, 60))) > 1e-3                # the substeps are not one closed-form step
+
+
+def test_a_gap_over_sixty_minutes_drains_sixty_minutes_only(kin_host):
+    # offline time is not integrated (as Metabolism and Nutrients clamp at 60 game minutes): three game hours drain
+    # the same 60 one-minute substeps as one game hour
+    h = kin_host
+    record = rec(h, 100)
+    run(h, record, 100.0)
+    run(h, record, 103.0)
+    assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 60.0)) < 1e-9
+    assert abs(record["kineticsAge"] - 103.0) < TOL
+
+
+def test_no_emptied_vector_rides_the_context(kin_host):
+    # amendment 1: P is fed at the eat, so the writer reads no emptied vector; only absorption's handoffs ride
+    h = kin_host
+    record = rec(h, 100)
+    run(h, record, 100.0)
+    run(h, record, 100.0 + 1 / 60)
+    assert h.G.NR_TEST_PIPE.absorbed is not None and h.G.NR_TEST_PIPE.emptied is None
 
 
 @pytest.mark.parametrize("age", [100.0, 99.0])
@@ -159,10 +203,9 @@ def test_zero_or_backwards_delta_empties_nothing(kin_host, age):
     record = rec(h, 100)
     run(h, record, 100.0)
     run(h, record, age)
-    assert abs(record["stomach"]["bulk"] - 8.0) < TOL
     assert abs(record["stomach"]["buffer"]["calories"] - 100) < TOL
     assert abs(record["pool"]["calories"]) < TOL
-    assert abs(record["stomachFill"] - 1.0) < TOL
+    assert record["stomachFill"] == 0                    # energy with no mass reads empty
     assert abs(record["kineticsAge"] - age) < TOL
 
 
@@ -175,7 +218,7 @@ def test_pcall_keeps_the_walk_alive(kin_host):
     assert ok is True  # minute itself did not raise
     assert isinstance(KIN(h).lastError, str) and "boom" in KIN(h).lastError
     assert KIN(h).stats.minutes == before + 1
-    assert record["stomach"] is not None and abs(record["stomach"]["bulk"] - 8.0) < TOL
+    assert abs(record["stomach"]["buffer"]["calories"] - 100) < TOL
 
 
 def test_stats_count_minutes_and_players(kin_host):
@@ -189,11 +232,14 @@ def test_stats_count_minutes_and_players(kin_host):
 
 
 POISON = r"""
-function(age)
+function(age, field)
     local K = NutritionRevamp.kernel
-    local r = { stomach = K.stomach.seedFull(K.stomach.new()), pool = K.vector.new() }
-    r.stomach.bulk = 0 / 0
-    r.stomach.buffer.calories = 0 / 0
+    local r = { stomach = K.stomach.new(), pool = K.vector.new() }
+    if field == "liquid" then
+        r.stomach.liquid = 0 / 0
+    else
+        r.stomach.buffer.calories = 0 / 0
+    end
     r.pool.calories = 0 / 0
     r.kineticsAge = age
     return r
@@ -201,16 +247,16 @@ end
 """
 
 
+@pytest.mark.parametrize("field", ["liquid", "calories"])
 @pytest.mark.parametrize("age", [None, 99.0])  # the first sight (dt 0) and a later minute (dt 1 h)
-def test_nan_bulk_self_heals(kin_host, age):
+def test_a_nan_stomach_self_heals_empty(kin_host, age, field):
     h = kin_host
     K = h.G.NutritionRevamp.kernel
-    record = h.rt.eval(POISON)(age)
+    record = h.rt.eval(POISON)(age, field)
     f0 = KIN(h).stats.failures
     KIN(h).lastError = None
     run(h, record, 100.0)
-    assert record["stomachFill"] == 1
-    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    assert record["stomachFill"] == 0 and record["stomach"]["liquid"] == 0
     for k in K.vector.KEYS.values():
         assert record["stomach"]["buffer"][k] == 0
         assert record["pool"][k] == 0
@@ -221,8 +267,8 @@ def test_nan_bulk_self_heals(kin_host, age):
 FINITE_POOL = r"""
 function(age, nanPool)
     local K = NutritionRevamp.kernel
-    local r = { stomach = K.stomach.seedFull(K.stomach.new()), pool = K.vector.new() }
-    r.stomach.bulk = 0 / 0
+    local r = { stomach = K.stomach.new(), pool = K.vector.new() }
+    r.stomach.liquid = 0 / 0
     r.pool.calories = 40
     if nanPool then r.pool.iron = 0 / 0 end
     r.kineticsAge = age
@@ -231,26 +277,24 @@ end
 """
 
 
-@pytest.mark.parametrize("age", [None, 99.0])  # the first sight (dt 0) and a later minute (an empty buffer)
-def test_nan_bulk_keeps_a_finite_pool(kin_host, age):
+def test_a_nan_stomach_keeps_a_finite_pool(kin_host):
+    # at first sight (dt 0): nothing drains, so the NaN never reaches the pool and a finite pool is kept; on a later
+    # minute the drain carries the NaN into the pool first, and the pool's own check resets it (the test above)
     h = kin_host
-    K = h.G.NutritionRevamp.kernel
-    record = h.rt.eval(FINITE_POOL)(age, False)
+    record = h.rt.eval(FINITE_POOL)(None, False)
     f0 = KIN(h).stats.failures
     run(h, record, 100.0)
-    assert record["stomachFill"] == 1
-    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    assert record["stomachFill"] == 0 and record["stomach"]["liquid"] == 0
     assert abs(record["pool"]["calories"] - 40) < TOL
     assert KIN(h).stats.failures == f0 + 1
 
 
-def test_nan_bulk_and_a_nan_pool_key_resets_the_pool(kin_host):
+def test_a_nan_stomach_and_a_nan_pool_key_resets_the_pool(kin_host):
     h = kin_host
     K = h.G.NutritionRevamp.kernel
     record = h.rt.eval(FINITE_POOL)(None, True)
     run(h, record, 100.0)
-    assert record["stomachFill"] == 1
-    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    assert record["stomachFill"] == 0
     for k in K.vector.KEYS.values():
         assert record["pool"][k] == 0
 

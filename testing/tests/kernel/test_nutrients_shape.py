@@ -509,6 +509,20 @@ def test_the_thirst_view_reads_the_stomach_pending_water(nut_host):
     assert f["thirstTarget"] < before
 
 
+def test_the_thirst_view_reads_the_liquid_lanes_water_too(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    for i in range(1, 11):
+        chain(h, p, record, 100.0 + i)
+    before = record["fluids"]["thirstTarget"]
+    record["stomach"]["liquid"] = 1000.0
+    alone(h, p, record, 110.0 + 1 / 60)
+    f = record["fluids"]
+    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / 80.0) < 1e-6   # ruling T1-1, both lanes' water
+    assert f["thirstTarget"] < before
+
+
 def test_the_kill_cap_and_its_dial(nut_host):
     h = nut_host
     p = player(h)
@@ -526,21 +540,23 @@ def test_the_kill_cap_and_its_dial(nut_host):
     assert abs(f["thirstTarget"] - 1.0) < TOL
 
 
-def test_an_auto_drink_drop_lands_in_the_stomach(nut_host):
+def test_an_auto_drink_drop_lands_in_the_liquid_lane(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
+    liquid0 = record["stomach"]["liquid"] or 0
     water0 = record["stomach"]["buffer"]["water"]
     record["fluids"]["autoDrop"] = 0.2
     alone(h, p, record, 100.0 + 1 / 60)
-    assert abs(record["stomach"]["buffer"]["water"] - water0 - 400.0) < 1e-9   # 2 L per THIRST x 0.2
+    assert abs(record["stomach"]["liquid"] - liquid0 - 400.0) < 1e-9   # 2 L per THIRST x 0.2
+    assert record["stomach"]["buffer"]["water"] == water0
     assert record["fluids"]["autoDrop"] == 0
-    # a record with no stomach yet gets one seeded full
+    # a record with no stomach yet gets an empty one (ruling 11c-15)
     record["stomach"] = None
     record["fluids"]["autoDrop"] = 0.1
     alone(h, p, record, 100.0 + 2 / 60)
-    assert abs(record["stomach"]["buffer"]["water"] - 200.0) < 1e-9
-    assert abs(record["stomach"]["bulk"] - (8.0 + 2.0)) < 1e-9
+    assert abs(record["stomach"]["liquid"] - 200.0) < 1e-9
+    assert record["stomach"]["buffer"]["water"] == 0
 
 
 def test_sweat_reads_the_thermoregulator_fluids_multiplier(nut_host):

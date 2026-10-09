@@ -2,8 +2,8 @@
 
 NR_Kernel_Stomach.lua is a kernel file (its name is NR_Kernel*), so the session `host` fixture loads
 it through its glob and already has NutritionRevamp.kernel.stomach. Every expectation below is
-hand-computed from the file's constants: the half-time 2.0 h and the composition scale (S0130/S0131,
-open rows shipped as design-phase-v1 game choices), the log-linear iron coefficients -0.0034 per mg
+hand-computed from the file's constants: the two lanes' emptying constants (RATE_BASE, RATE_PER_KCAL,
+WATER_HALF_MIN; Plan 11c, the lanes' own tests are test_kernel_stomach_lanes.py), the log-linear iron coefficients -0.0034 per mg
 phytic acid (S0195) and +0.0065 per mg ascorbic acid (S0194), the iron bioavailability 0.18 (S0434),
 and the fat-co-ingestion shape 1 - exp(-lipids / 3) (the 3 g e-fold, ruling T19-6; S0197/S0199 direction). The tests pass explicit mg
 values, so the mechanism is proved independent of the seed table's magnitudes.
@@ -35,8 +35,6 @@ def _apple(host):
 
 def test_constants(host):
     s = host.K.stomach
-    assert s.HALF_TIME_H == 2.0
-    assert s.FULL_BULK == 8.0
     expect = {"water": 1.0, "fibre": 1.0, "vitC": 0.85, "iron": 0.18, "phytate": 0.0,
               "carotene": 0.14, "calcium": 0.25, "magnesium": 0.325}
     for k in ("retinol", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12",
@@ -46,103 +44,24 @@ def test_constants(host):
     assert s.VITD_FAT_FREE == 0.76
 
 
-# --- new / bulkOf / ingest ---
+# --- new / ingest ---
 
-def test_new_is_an_empty_buffer(host):
+def test_new_is_an_empty_buffer_and_an_empty_liquid_lane(host):
     st = host.py(host.K.stomach["new"]())
-    assert st["bulk"] == 0
+    assert st["liquid"] == 0 and "bulk" not in st
     assert set(st["buffer"].keys()) == set(host.K.vector.KEYS.values())
     assert all(v == 0 for v in st["buffer"].values())
 
 
-def test_bulk_of_an_apple(host):
-    assert abs(host.K.stomach.bulkOf(_apple(host)) - 4.708) < TOL
-
-
-def test_ingest_raises_bulk_and_fills_the_buffer(host):
+def test_ingest_fills_the_buffer_and_keeps_a_foods_water_with_it(host):
     st = host.K.stomach["new"]()
     out = host.K.stomach.ingest(st, _apple(host))
     assert _same(host, out, st)
-    assert abs(st.bulk - 4.708) < TOL
     assert abs(st.buffer.calories - 95) < TOL
     assert abs(st.buffer.fibre - 4.4) < TOL
-    assert abs(st.buffer.water - 155.8) < TOL
+    assert abs(st.buffer.water - 155.8) < TOL and st.liquid == 0
     host.K.stomach.ingest(st, _apple(host))
-    assert abs(st.bulk - 9.416) < TOL
     assert abs(st.buffer.calories - 190) < TOL
-
-
-# --- compositionScale / emptyFraction ---
-
-def test_composition_scale_of_a_fatty_meal(host):
-    assert abs(host.K.stomach.compositionScale(_vec(host, calories=360, lipids=40)) - 2.0) < TOL
-
-
-def test_composition_scale_fibre_term(host):
-    assert abs(host.K.stomach.compositionScale(_vec(host, calories=100, fibre=15)) - 2.0) < TOL
-
-
-def test_composition_scale_of_a_pure_liquid(host):
-    assert host.K.stomach.compositionScale(_vec(host, water=300)) == 0.25
-
-
-def test_composition_scale_clamps_high(host):
-    assert host.K.stomach.compositionScale(_vec(host, calories=1800, lipids=200)) == 3.0
-
-
-def test_composition_scale_of_an_empty_buffer_is_one(host):
-    assert host.K.stomach.compositionScale(_vec(host)) == 1
-
-
-def test_empty_fraction_one_half_time(host):
-    assert abs(host.K.stomach.emptyFraction(2.0, 1.0, 2.0) - 0.5) < TOL
-
-
-def test_empty_fraction_zero_dt(host):
-    assert host.K.stomach.emptyFraction(2.0, 1.0, 0) == 0
-
-
-def test_empty_fraction_negative_dt(host):
-    assert host.K.stomach.emptyFraction(2.0, 1.0, -1) == 0
-
-
-def test_empty_fraction_slower_for_a_larger_scale(host):
-    f = host.K.stomach.emptyFraction(2.0, 2.0, 2.0)
-    assert abs(f - (1 - math.exp(-LN2 * 2 / 4))) < TOL
-    assert abs(f - 0.2928932188) < 1e-9
-
-
-# --- empty ---
-
-def test_empty_one_half_time_moves_half_of_every_key(host):
-    st = host.K.stomach["new"]()
-    host.K.stomach.ingest(st, _vec(host, calories=100, iron=2, vitC=30, water=50))
-    bulk0 = st.bulk
-    emptied = host.py(host.K.stomach.empty(st, 2.0))
-    left = host.py(st.buffer)
-    for k, v0 in {"calories": 100, "iron": 2, "vitC": 30, "water": 50}.items():
-        assert abs(emptied[k] - v0 / 2) < TOL
-        assert abs(left[k] - v0 / 2) < TOL
-    assert abs(st.bulk - bulk0 / 2) < TOL
-
-
-def test_a_fattier_buffer_empties_slower(host):
-    st = host.K.stomach["new"]()
-    host.K.stomach.ingest(st, _vec(host, calories=360, lipids=40, iron=2))
-    emptied = host.py(host.K.stomach.empty(st, 2.0))
-    f = 1 - math.exp(-LN2 * 2 / 4)
-    assert abs(emptied["lipids"] - 40 * f) < TOL
-    assert abs(emptied["iron"] - 2 * f) < TOL
-    assert abs(st.buffer.lipids - 40 * (1 - f)) < TOL
-    assert abs(st.buffer.calories - 360 * (1 - f)) < TOL
-
-
-def test_empty_zero_dt_moves_nothing(host):
-    st = host.K.stomach["new"]()
-    host.K.stomach.ingest(st, _apple(host))
-    emptied = host.py(host.K.stomach.empty(st, 0))
-    assert all(v == 0 for v in emptied.values())
-    assert abs(st.buffer.calories - 95) < TOL
 
 
 # --- ironFactor / fatFactor ---
@@ -264,7 +183,7 @@ def test_absorb_with_the_meal_context_reads_the_whole_meal(host):
     # not the 0.179 the minute's ~1 mg share gave (x151r); magnesium and zinc take exp(-0.00093 x 400)
     st = _bread_stomach(host)
     ctx = host.K.stomach.context(st, host.rt.table())
-    emptied = host.K.stomach.empty(st, 1 / 60)
+    emptied = host.K.stomach.drain(st, 1 / 60)
     out = host.py(host.K.stomach.absorb(emptied, ctx))
     per_mg = out["iron"] / emptied.iron
     assert abs(per_mg - 0.18 * math.exp(-0.0034 * 400)) < 1e-12
@@ -273,7 +192,7 @@ def test_absorb_with_the_meal_context_reads_the_whole_meal(host):
     assert abs(out["zinc"] / emptied.zinc - math.exp(-0.00093 * 400)) < 1e-12
     share = host.py(host.K.stomach.absorb(emptied))  # no ctx: the Plan 2 per-share reading, unchanged
     assert abs(share["iron"] / emptied.iron - 0.18 * math.exp(-0.0034 * emptied.phytate)) < 1e-12
-    assert share["iron"] / emptied.iron > 0.179
+    assert share["iron"] / emptied.iron > 0.178   # the zero-order first minute moves ~1.9 mg of phytate
 
 
 def test_absorb_with_a_phytate_free_context_is_bare(host):
@@ -362,41 +281,41 @@ def test_fill_fresh_is_zero(host):
     assert host.K.stomach.fill(host.K.stomach["new"]()) == 0
 
 
-def test_fill_after_an_apple_and_it_falls_on_empty(host):
+def test_fill_after_an_apple_is_its_satiety_mass_over_the_maximal_capacity_and_it_falls(host):
+    # Plan 11c Task 6 amendment 2: F = K.satiety.fill(K.stomach.satietyMass(st), CAPACITY_MAX_G) (ruling 11c-19,
+    # structure D); the apple's water and fibre are solid-lane mass, (155.8 + 4.4) / 730 = 0.219452..., the stub
+    # carrying no macronutrient grams
     st = host.K.stomach["new"]()
     host.K.stomach.ingest(st, _apple(host))
     f0 = host.K.stomach.fill(st)
-    assert abs(f0 - 4.708 / 8) < TOL
-    assert abs(f0 - 0.5885) < 1e-4
-    host.K.stomach.empty(st, 1.0)
+    assert abs(f0 - (155.8 + 4.4) / 730) < TOL
+    assert abs(f0 - 0.21945205479452055) < 1e-12
+    host.K.stomach.drain(st, 1.0)
     assert host.K.stomach.fill(st) < f0
 
 
-def test_fill_clamps_at_one(host):
+def test_fill_clamps_at_one_and_counts_drunk_liquid_at_a_fifth(host):
+    # LIQUID_WEIGHT 0.2 (ruling 11c-30): 5000 g drunk reads 1000 g of satiety mass, over 730 g: clamped to 1;
+    # 1825 g drunk reads 0.2 x 1825 = 365 g, half of 730 g; the same 365 g eaten counts whole
     st = host.K.stomach["new"]()
-    host.K.stomach.ingest(st, _vec(host, calories=5000))
+    host.K.stomach.ingestLiquid(st, _vec(host, water=5000))
     assert host.K.stomach.fill(st) == 1
-
-
-def test_seed_full_sets_the_bulk_to_full_and_leaves_the_buffer(host):
-    # Plan 2 Task 11 game choice: a new record's stomach starts full (the character ate before the apocalypse)
-    st = host.K.stomach.new()
-    out = host.K.stomach.seedFull(st)
-    assert _same(host, out, st)
-    assert st["bulk"] == host.K.stomach.FULL_BULK
-    assert host.K.stomach.fill(st) == 1.0
-    assert all(st["buffer"][k] == 0 for k in host.K.vector.KEYS.values())
+    st2 = host.K.stomach["new"]()
+    host.K.stomach.ingestLiquid(st2, _vec(host, water=1825))
+    assert abs(host.K.stomach.fill(st2) - 0.5) < TOL
+    st3 = host.K.stomach["new"]()
+    host.K.stomach.ingest(st3, _vec(host, water=365))
+    assert abs(host.K.stomach.fill(st3) - 0.5) < TOL
 
 
 # --- the fat factor reads the meal's lipids (ruling T19-1, the Plan 4 close) ---
 
 def test_absorb_with_a_context_reads_the_meals_lipids(host):
-    # the first minute of a 30 g-fat meal: the factor reads the buffer's 30 g (0.99995), not the
-    # minute's ~0.1 g share (which floored at 0.05)
+    # the first minute of a 30 g-fat meal: the factor reads the buffer's 30 g (0.99995), not the minute's share
     st = host.K.stomach.new()
-    host.K.stomach.ingest(st, _vec(host, lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0))
+    host.K.stomach.ingest(st, _vec(host, calories=270.0, lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0))
     ctx = host.K.stomach.context(st, host.rt.table())
-    emptied = host.K.stomach.empty(st, 1 / 60)
+    emptied = host.K.stomach.drain(st, 1 / 60)
     out = host.py(host.K.stomach.absorb(emptied, ctx))
     f = 1 - math.exp(-10.0)
     assert abs(f - 0.9999546000702375) < 1e-12
@@ -404,17 +323,25 @@ def test_absorb_with_a_context_reads_the_meals_lipids(host):
     assert abs(out["vitK"] / emptied.vitK - f) < 1e-12
     assert abs(out["vitD"] / emptied.vitD - (0.76 + (1 - 0.76) * f)) < 1e-12
     share = host.py(host.K.stomach.absorb(emptied))  # no ctx: the per-share reading, unchanged
-    assert abs(share["retinol"] / emptied.retinol - 0.05) < 1e-12
+    assert abs(share["retinol"] / emptied.retinol - max(0.05, 1 - math.exp(-emptied.lipids / 3))) < 1e-12
+
+
+def _frac(E, dtM):
+    fw = 1 - math.exp(-LN2 * dtM / 13)
+    if E <= 0:
+        return fw
+    left = (E + 1.25 / 0.0025) * math.exp(-0.0025 * dtM) - 1.25 / 0.0025
+    fe = 1.0 if left <= 0 else max(0.0, 1 - left / E)
+    return min(fe, fw)
 
 
 def _meal_replay_py(n=1440):
-    """K.stomach.ingest/context/empty/absorb recomputed in doubles over n one-minute steps of one meal."""
-    b = dict(lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0)
+    """K.stomach.ingest/context/drain/absorb recomputed in doubles over n one-minute steps of one meal."""
+    b = dict(calories=270.0, lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0)
     tot = dict(retinol=0.0, vitK=0.0, vitD=0.0)
     for _ in range(n):
         lip = b["lipids"]                                            # the context, before the emptying
-        cs = min(max(1 + b["lipids"] / 40 + 0.0 / 15, 0.5), 3.0)
-        f = 1 - math.exp(-0.6931471805599453 * (1 / 60) / (2.0 * cs))
+        f = _frac(b["calories"], 1.0)
         em = {k: 0 + v * f for k, v in b.items()}
         for k in b:
             b[k] = b[k] * (1 - f)
@@ -430,6 +357,7 @@ function(n)
     local K = NutritionRevamp.kernel
     local st = K.stomach.new()
     local meal = K.vector.new()
+    meal.calories = 270
     meal.lipids = 30
     meal.retinol = 900
     meal.vitK = 120
@@ -439,7 +367,7 @@ function(n)
     local tot = { retinol = 0, vitK = 0, vitD = 0 }
     for i = 1, n do
         K.stomach.context(st, ctx)
-        local out = K.stomach.absorb(K.stomach.empty(st, 1 / 60), ctx)
+        local out = K.stomach.absorb(K.stomach.drain(st, 1 / 60), ctx)
         tot.retinol = tot.retinol + out.retinol
         tot.vitK = tot.vitK + out.vitK
         tot.vitD = tot.vitD + out.vitD
@@ -450,18 +378,16 @@ end
 
 
 def test_a_30g_fat_meal_over_a_day_absorbs_the_replayed_fraction(host):
-    # Rulings T19-1 and T19-6 at the Plan 4 close: the buffer's lipids empty with the vitamins, so the factor
-    # 1 - exp(-L/3) eases over the meal; the replay in doubles gives 0.900358 of the retinol and vitK, meeting
-    # the brief's >= 0.9 (the 10 g e-fold gave 0.684236).
+    # Rulings T19-1 and T19-6 on Plan 11c's zero-order lane: the buffer's lipids empty with the vitamins, so the
+    # factor 1 - exp(-L/3) eases over the meal; the replay in doubles gives 0.901761 of the retinol and vitK
     exp_tot, exp_buf = _meal_replay_py()
     tot, lip = host.rt.eval(MEAL_REPLAY)(1440)
-    assert abs(exp_tot["retinol"] / 900 - 0.9003579863810677) < 1e-12
+    assert abs(exp_tot["retinol"] / 900 - 0.9017608084148669) < 1e-12
     assert abs(tot.retinol / 900 - exp_tot["retinol"] / 900) < 1e-6
     assert abs(tot.vitK / 120 - exp_tot["vitK"] / 120) < 1e-6
-    assert abs(tot.vitK / 120 - 0.9003579863810661) < 1e-6
-    # vitamin D at 0.76 + 0.24 x the factor per minute: 0.975693 of the dose
+    assert abs(tot.vitK / 120 - 0.9017608084148657) < 1e-6
+    # vitamin D at 0.76 + 0.24 x the factor per minute
     assert abs(tot.vitD / 15 - exp_tot["vitD"] / 15) < 1e-6
-    assert abs(tot.vitD / 15 - 0.9756926315613453) < 1e-6
-    assert abs(lip - exp_buf["lipids"]) < 1e-9                       # 0.0155 g left after the day
-    # the per-share reading this ruling replaced absorbed 5 % (the floor) of the same meal
+    assert abs(tot.vitD / 15 - 0.9764225940195675) < 1e-6
+    assert abs(lip - exp_buf["lipids"]) < 1e-9                       # under 1e-20 g left after the day
     assert tot.retinol / 900 > 18 * 0.05

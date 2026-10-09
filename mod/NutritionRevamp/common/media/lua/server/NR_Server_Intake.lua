@@ -47,7 +47,8 @@
 --     vector, so neither enters the stomach; NR_Server_Nutrients drains them into record.acute.gutAlc /
 --     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
 --     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
---  5. K.stomach.ingest.
+--  5. K.stomach.ingest, or K.stomach.ingestLiquid for a drink (Plan 11c ruling 11c-12: its water in the liquid lane);
+--  6. the satiety pool P fed with the delivered vector's weighted kcal (IN.feed; Plan 11c rulings 11c-27, 11c-30).
 --
 -- The vector's source (Plan 6 rulings 13-14, IN.assemble): a dish's ingredient list, else a craft map,
 -- else the eaten item's own chain IN.chainOne -- declared (the item's NR_Nutrients default-modData
@@ -187,12 +188,13 @@ function IN.acuteAtEat(record, vec, records)
     return flagged
 end
 
--- The landing every route shares (the header's five steps): the ingested sum and the acute test read
+-- The landing every route shares (the header's six steps): the ingested sum and the acute test read
 -- the vector as ingested; the B12 ceiling then caps vitB12 in place; the ethanol and caffeine leave the
--- vector for the gut lane's pending sums; the stomach takes the result.
+-- vector for the gut lane's pending sums; the stomach takes the result -- lane "liquid" (a drink, world water)
+-- lands the water in the liquid lane, anything else lands as food -- and the satiety pool is fed with it.
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
-function IN.land(record, username, vec)
+function IN.land(record, username, vec, lane)
     IN.landed[username] = true                     -- the writer's sip fold skips this minute (Plan 11 ruling 7)
     if NR.server.store ~= nil and NR.server.store.mark ~= nil then NR.server.store.mark(username) end -- saved at the next store step (ruling T20-1)
     IN.addIngested(username, vec)
@@ -209,8 +211,26 @@ function IN.land(record, username, vec)
     IN.pendingCaf[username] = (IN.pendingCaf[username] or 0) + (vec.caffeine or 0)
     vec.ethanol = 0
     vec.caffeine = 0
-    K.stomach.ingest(record.stomach, vec)
+    if lane == "liquid" then
+        K.stomach.ingestLiquid(record.stomach, vec)
+    else
+        K.stomach.ingest(record.stomach, vec)
+    end
+    IN.feed(record, vec)
     return vec
+end
+
+-- Plan 11c (rulings 11c-27, 11c-30; Task 6 amendment 1): the meal pool P is fed at the eat with the delivered
+-- vector's weighted kcal (K.satiety.feed), on every route that lands -- the eat, the drink, world water and the
+-- reconcile path -- and a partial eat's vector is already its fraction. A record whose satiety is absent, unmarked
+-- (v ~= 4) or non-finite is left for the writer's seed at its next minute: an eat in a fresh record's first minute
+-- shows only through the HUNGER the seed reads (a named limitation, the writer's limitation 4). A feed that comes
+-- out non-finite is not kept.
+function IN.feed(record, vec)
+    local s = record.satiety
+    if type(s) ~= "table" or s.v ~= 4 or not IN.isFinite(s.P) then return end
+    local P = K.satiety.feed(s.P, vec)
+    if IN.isFinite(P) then s.P = P end
 end
 
 -- The vector's source: dish > craft > the eaten item's own chain step (K.intake.sourceOf).
@@ -348,7 +368,6 @@ function IN.readBefore(action)
     local b = { item = item, username = username, rawBefore = rawBefore }
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
-    b.hungerChange = read(item, "getHungerChange")   -- the laddered relief getter (cooked x1.3, stale, rotten, burnt; J1)
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
     b.cal = num(read(item, "getCalories"))
     b.carb = num(read(item, "getCarbohydrates"))
@@ -430,34 +449,15 @@ function IN.readAfterAndLand(b)
     if vec == nil then return nil end                      -- a cancel under vanilla's guards, or a no-op
     local record = NR.server.store.get(b.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
-    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
-    IN.sate(record, b.hungerChange, frac, K.stomach.bulkOf(vec))
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. b.fullType .. " for " .. tostring(b.username) .. " source " .. source
         .. " share " .. tostring(share))
     return vec
-end
-
--- Decision 2 (c), Task 15: an eat's or a drink's relief raises the satiety scalar, the landed food bulk scaling the
--- APPLIED relief (never the item's hungChange, J1); a drink passes a nil bulk (factor 1); a zero-calorie eat keeps the floor. A record not yet stepped
--- takes it through the HUNGER the writer's seed reads. An eat's relief is the before-eat laddered getHungerChange
--- times Eat's fraction of what was left (#3556; an opening recipe that eats included), a drink's its container's
--- hunger times the share drunk. A non-finite relief books nothing. NR.SatietyBulk is read at call time.
-function IN.sate(record, hungerChange, frac, landedBulk)
-    if record.satiety == nil or not IN.isFinite(hungerChange) or not IN.isFinite(frac) then return end
-    local O = NR.server.options
-    local beta = K.satiety.BETA
-    if O ~= nil and IN.isFinite(O.satietyBulk) then beta = O.satietyBulk end
-    local r = K.satiety.relief(hungerChange, frac)
-    local f = 1
-    if landedBulk ~= nil then
-        f = K.satiety.bulkFactor(landedBulk, K.stomach.FULL_BULK, r, beta)
-    end
-    record.satiety = K.satiety.add(record.satiety, r, f)
 end
 
 -- A rejected landing: nothing lands, the failure is counted and named. Returns nil.
@@ -709,9 +709,6 @@ function IN.readDrinkBefore(action)
     if type(litresBefore) ~= "number" or litresBefore <= 0 then return nil end
     local d = { item = item, fc = fc, username = username, litresBefore = litresBefore, mix = {} }
     d.fullType = tostring(read(item, "getFullType"))
-    -- the container's hunger, litres-weighted like its macros (#0630): DrinkFluid adds the removed share of it to
-    -- HUNGER (FluidConsume.getHungerChange, IsoGameCharacter.DrinkFluid L5896); nil when unreadable
-    d.hungerChange = read(read(fc, "getProperties"), "getHungerChange")
     -- the mix: getPercentage(i) is the fluid's proportion 0..1 of the container's amount (the
     -- instance amount over the container total); getFluidTypeString is never null on a Fluid (#2684),
     -- the key the per-fluid table uses
@@ -749,10 +746,9 @@ function IN.readDrinkAfterAndLand(d)
     if bad ~= nil then return IN.reject(bad) end
     local record = NR.server.store.get(d.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
-    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
-    IN.land(record, d.username, vec)
-    IN.sate(record, d.hungerChange, litres / d.litresBefore, nil)  -- Task 15 fix: the drink's share of its hunger
+    IN.land(record, d.username, vec, "liquid")
     record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. d.fullType .. " for " .. tostring(d.username) .. " source fluid litres "
@@ -832,9 +828,9 @@ function IN.readWorldAfterAndLand(d)
     if bad ~= nil then return IN.reject(bad) end
     local record = NR.server.store.get(d.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
-    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
-    IN.land(record, d.username, vec)
+    IN.land(record, d.username, vec, "liquid")
     if d.action ~= nil then d.action.nrLanded = (d.action.nrLanded or 0) + litres end
     record.lastIntake = { fullType = d.fullType, source = "world", litres = litres, missing = {} }
     IN.stats.landed = IN.stats.landed + 1

@@ -4,20 +4,22 @@
 -- a client never reads the mode at its OnGameBoot (#3381) and never zeroes. Once a player-minute, as the pipeline's
 -- step after weight and before store (after the minute's eats and the effects build, #3383), it writes HUNGER,
 -- THIRST and FATIGUE and the floors, PANIC, TEMPERATURE and INTOXICATION through K.hybrid.write, stepping by elapsed
--- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). The HUNGER target is 1 - S, the
--- satiety scalar (Task 15; NR_Kernel_Satiety.lua), stepped here at the rates saved at boot. It registers no stat hook.
+-- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). The HUNGER target is
+-- hungerTarget(sated(F, post(P)), energyState) x circadian(hour) x acuteFactor(S), capped at 0.69 (Plan 11c; NR_Kernel_Satiety.lua):
+-- the stomach's fullness F, the meal pool P (fed at the eat by the intake, decayed here) and the acute suppression S
+-- of vigorous work (stepped here). It registers no stat hook.
 -- Every Java read goes through NR.num / NR.obj / NR.flag; every Java global is named inside a function behind a
 -- nil check, so the file loads with no engine. Slow-clock code: no @fastpath region.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.writer = {
     h = {}, inp = {}, saved = nil, rates = nil, zeroed = false, mode = 1, wired = false, so = nil,
-    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, nms = false, dry = 0 },
+    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, guarded = 0, nms = false, dry = 0 },
     limitations = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target (1 - S through the energy term, capped at 0.69), so the eat or drink stays only through the satiety scalar it raised; an eat or a drink another mod makes through a direct Eat or DrinkFluid call, outside the intake's wraps, raises no S, so the next write takes its hunger relief back; hunger is that scalar stepped once a game minute, so it lags vanilla by up to a minute (5.8e-4 idle, 1.2e-3 exercising; Appendix D); under a calorie deficit vanilla's food-eaten freeze fires less often, and at the 0.69 cap a starving character can earn a freeze its scalar did not (Appendix D Question 4)",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on game time asleep or awake, so displayed hunger never falls below about 0.12 after a meal; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -25,7 +27,7 @@ NR.server.writer = {
         "the sleep-onset latency terms (solAddH, solMul) are not applied: vanilla sets the sleep delay",
         "the Effects step reads the writer's engine reads of the previous minute",
         "in Overlay (Mode 2) vanilla owns HUNGER, THIRST and FATIGUE; the floors, PANIC, TEMPERATURE and INTOXICATION are still written; auto-drink is not captured",
-        "another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the satiety scalar keeps the rates saved at boot)",
+        "another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the satiety pool decays at its own half-life, never at those rates)",
     },
 }
 local W = NR.server.writer
@@ -112,7 +114,7 @@ function W.hoist(username, p)
                 unhappyLast = 0, swipe = nil }
     h.thermo = NR.obj(h.bd, "getThermoregulator")
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
-        local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: exercise for the satiety rate
+        local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: vigorous work for the acute term
         if ok then h.swipe = sw end
     end
     pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- ruling 19 kept: the writer owns INTOXICATION
@@ -150,33 +152,84 @@ local function finiteOr(v, dflt)
     return dflt
 end
 
--- Task 15: the satiety scalar (Decision 2 (c)): seeded 1 - HUNGER on a record whose S the writer never stepped (no
--- satietyStepped mark: new, pruned, migrated, saved before the mark; ruling T15-1) or with a non-finite S, stepped by
--- elapsed world age at the saved rates with the FOOD_EATEN freeze, read through the energy term. Eats raised it first.
-function W.satiety(h, player, record, eng, inp, es)
-    if record.satietyStepped ~= true or not NR.finite(record.satiety) then
-        record.satiety = K.satiety.seed(inp.hunger)
+-- The hour of day the circadian factor reads: the game clock's getTimeOfDay, else the world age's hour (the seam the
+-- Metabolism, Nutrients and Strength adapters read).
+function W.hourOfDay(ageH)
+    local hour = ageH - math.floor(ageH / 24) * 24
+    if getGameTime ~= nil then
+        local ok, gt = pcall(getGameTime)
+        hour = NR.num(ok and gt or nil, "getTimeOfDay", hour)
+    end
+    return hour
+end
+
+-- Vigorous work for the acute suppression term (spec § 5c, ruling 11c-29): the melee or tool swing state is
+-- resistance-type work; else Metabolism's stamp of the minute's billed MET at the Compendium's HeavyWork band or above
+-- (6.0, the heavy-work band) is aerobic work. The run flag never reaches the server (x141a), so a runner is not
+-- vigorous unless the metabolic rate classes it so. Returns vigorous, kind (K.satiety.ACUTE_KIND's keys).
+function W.vigorous(h, player, record)
+    if h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe) then return true, "resistance" end
+    local met = record.body and record.body.met
+    if NR.finite(met) and met >= K.energy.COMPENDIUM.HeavyWork then return true, "aerobic" end
+    return false, nil
+end
+
+-- Plan 11c (spec § 3.1, § 5b, § 5c; Task 6 amendments 3 and 4): satiety from physiology. record.satiety is
+-- { P, S, L, v = 4 }: the meal pool P (weighted kcal, fed at the eat by the intake), the acute suppression state S and
+-- the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or L, or a negative L, is
+-- stamped 0 and counted in guarded; S is clamped to [0, 1]) and S is stepped over the elapsed world age toward the
+-- vigorous kind's weight; a P that is absent, unmarked (v ~= 4) or non-finite is seeded so the HUNGER written equals
+-- the HUNGER read, inverting the composition below (K.satiety.seedP on hunger / (circadian x acuteFactor), a divisor
+-- that is non-finite or not positive reading 1; counted in seeded, and a non-finite P in guarded too); otherwise P
+-- decays over the elapsed world age at the half-life, scaled by the appetite trait (#0485) and the sandbox's
+-- stats-decrease multiplier (ruling 11c-11), a P the decay makes non-finite re-stamped from its pre-step value
+-- (counted in guarded). The target is hungerTarget(sated(F, post(P)), es) x circadian(hour) x acuteFactor(S), which
+-- K.hybrid.write caps at hungerCap 0.69 once: min(0.69, target x circadian x acute), so a swing minute's hunger is
+-- never above the same minute idle (ruling 11c-29 (3)).
+function W.satiety(h, player, record, eng, inp, es, ageH)
+    local F = finiteOr(record.stomachFill, 0)
+    local s = record.satiety
+    if type(s) ~= "table" then
+        s = {}
+        record.satiety = s
+    end
+    if s.S == nil then s.S = 0 end
+    if s.L == nil then s.L = 0 end
+    if not NR.finite(s.S) then
+        s.S = 0
+        W.stats.guarded = W.stats.guarded + 1
+    end
+    if not NR.finite(s.L) or s.L < 0 then
+        s.L = 0
+        W.stats.guarded = W.stats.guarded + 1
+    end
+    local dtH = K.clamp(inp.dtS, 0, W.c.maxStepS) / 3600
+    local vigorous, kind = W.vigorous(h, player, record)
+    s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
+    local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S)
+    if not NR.finite(factor) or factor <= 0 then factor = 1 end
+    if s.v ~= 4 or not NR.finite(s.P) then
+        if s.P ~= nil and not NR.finite(s.P) then W.stats.guarded = W.stats.guarded + 1 end
+        s.P = K.satiety.seedP(inp.hunger / factor, F, es)
+        s.v = 4
         W.stats.seeded = W.stats.seeded + 1
+    else
+        local P0 = s.P
+        local T = CharacterTrait
+        local tr = K.satiety.trait(T ~= nil and trait(h, T.HEARTY_APPETITE), T ~= nil and trait(h, T.LIGHT_EATER))
+        s.P = K.satiety.decay(s.P, dtH, K.satiety.HALF_LIFE_H, tr * eng.sd)
+        if not NR.finite(s.P) then
+            s.P = P0
+            W.stats.guarded = W.stats.guarded + 1
+        end
     end
-    local fed = false
-    if MoodleType ~= nil and MoodleType.FOOD_EATEN ~= nil then
-        fed = NR.num(h.moodles, "getMoodleLevel", 0, MoodleType.FOOD_EATEN) > 0
-    end
-    local exercising = (NR.flag(player, "IsRunning") and NR.flag(player, "isPlayerMoving"))
-        or (h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe))
-    local T = CharacterTrait
-    local tr = K.satiety.trait(T ~= nil and trait(h, T.HEARTY_APPETITE), T ~= nil and trait(h, T.LIGHT_EATER))
-    local rates = W.rates or K.satiety.defaults()
-    local rate = K.satiety.rate(rates, inp.asleep, exercising, fed)
-    record.satiety = K.satiety.step(record.satiety, K.clamp(inp.dtS, 0, W.c.maxStepS), rate, eng.sd, tr)
-    record.satietyStepped = true
-    inp.hungerTarget = K.hybrid.hungerTarget(record.satiety, es)
+    inp.hungerTarget = K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(s.P)), es) * factor
 end
 
 function W.step(username, player, record, ctx)
     -- The dry seam (Plan 11 Task 19, ruling 15): nil in production, set true only by the test harness around its
     -- ghost runs. A dry minute computes and sets nothing -- no stat write, no hoist, no engine read, and no record
-    -- mutation (the satiety step and its mark, the sip fold, the landing mark) -- and is counted in stats.dry. It
+    -- mutation (the satiety pool's seed and decay, the acute state, the sip fold, the landing mark) -- and is counted in stats.dry. It
     -- sits first, so every step added here later inherits it.
     if W.dry == true then
         W.stats.dry = W.stats.dry + 1
@@ -205,7 +258,7 @@ function W.step(username, player, record, ctx)
     inp.hunger = get(h, CS.HUNGER) or 0
     local body = record.body or {}
     local es = finiteOr(body.energyState, 1)
-    W.satiety(h, player, record, eng, inp, es)
+    W.satiety(h, player, record, eng, inp, es, ageH)
     inp.thirst = get(h, CS.THIRST) or 0
     local fl = record.fluids
     inp.thirstTarget = fl and fl.thirstTarget or nil

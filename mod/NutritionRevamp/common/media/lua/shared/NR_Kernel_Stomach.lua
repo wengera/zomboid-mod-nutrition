@@ -1,31 +1,22 @@
--- NR_Kernel_Stomach.lua -- the stomach buffer, first-order gastric emptying and absorption into the
--- pool (spec § 4.2, § 4.4). A meal vector lands in the stomach buffer (ingest); the slow clock empties
--- a first-order fraction of every buffered nutrient per step (empty); absorption applies per-nutrient
--- bioavailability and the phytate/vitamin-C iron interaction (absorb); the absorbed vector accumulates
--- into the pool (toPool), the provisional accumulator Plan 4's record engine replaces. The unabsorbed
--- remainder is discarded, never returned to the stomach.
+-- NR_Kernel_Stomach.lua -- the stomach's two lanes and absorption into the pool (spec § 4.2, § 4.4; Plan 11c spec
+-- § 5a). A food lands in the solid buffer, its water with it (ingest); a drink's water lands in the liquid lane and
+-- its other keys, its energy among them, in the buffer (ingestLiquid, ruling 11c-12). The slow clock empties both
+-- lanes per step (drain): the solid lane's energy at a zero-order rate rising with the energy it holds, every other
+-- key in the same proportion, never faster than water; the liquid lane first-order at a half-time that grows with the
+-- solid lane's energy. Absorption applies per-nutrient bioavailability and the phytate/vitamin-C iron interaction
+-- (absorb); the absorbed vector accumulates into the pool (toPool). The unabsorbed remainder is discarded.
 -- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
 -- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
 -- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
--- 400 mg, not the ~1 mg a minute's share carries. absorb(emptied) with no ctx keeps the Plan 2 reading
--- off the emptied vector itself. Ruling T19-1 extends the context to the fat factor: ctx carries the
--- buffer's lipids, so a fat-soluble vitamin reads the meal's fat in the stomach, not the minute's share
--- (which floored every meal at 0.05); the factor still eases as the buffer empties. Caffeine and
--- ethanol never enter the buffer (ruling T17-2: the intake landing diverts them to the acute kernel's
--- gut lane), so their BIOAVAIL entries stay 1.0 and unused.
--- The gastric-emptying constants rest on OPEN science rows and ship as labelled game choices
--- (spec § 7 item 37); the absorption factors cite settled rows. Pure: tables in, tables out, no Java.
--- Slow-clock code with no @fastpath region, so math.exp and the bounded `for` over K.vector.KEYS (a Lua
--- table the kernel built, so `#` is a Lua length) are allowed. This file sorts before
--- NR_Kernel_Vector.lua, so every K.vector and K.retention reference is at call time, never at load.
+-- 400 mg. absorb(emptied) with no ctx keeps the Plan 2 reading off the emptied vector itself. Ruling T19-1 extends the
+-- context to the fat factor: ctx carries the buffer's lipids. Caffeine and ethanol never enter the buffer (ruling
+-- T17-2: the intake landing diverts them to the acute kernel's gut lane), so their BIOAVAIL entries stay 1.0 and unused.
+-- The emptying constants rest on settled rows as labelled inferences (Plan 11c's block below); the absorption factors
+-- cite settled rows. Pure: tables in, tables out, no Java. Slow-clock code with no @fastpath region, so math.exp and
+-- the bounded `for` over K.vector.KEYS (a Lua table the kernel built, so `#` is a Lua length) are allowed. This file
+-- sorts before NR_Kernel_Vector.lua, so every K.vector and K.retention reference is at call time, never at load.
 local K = NutritionRevamp.kernel
 K.stomach = {}
-
--- The half-time of a mixed solid meal, in game hours (a mixed solid meal half-empties in about 2 h).
-K.stomach.HALF_TIME_H = 2.0 -- a game choice until Plan 11c: S1272 finds solid emptying linear, not first-order
-
--- The bulk at which the stomach reads full (judgement: a game choice in bulkOf's units).
-K.stomach.FULL_BULK = 8.0
 
 -- Per-nutrient bioavailability of the emptied vector. water and fibre pass through as intake
 -- (judgement); vitC 0.85 is a judgement (food vitamin C is absorbed at about 70-90 %); phytate is an
@@ -72,66 +63,20 @@ K.stomach.FAT_SOLUBLE.vitK = true
 -- 32 %), so D absorbs at VITD_FAT_FREE + (1 - VITD_FAT_FREE) x fatFactor, 0.772 with no fat at all.
 K.stomach.VITD_FAT_FREE = 0.76 -- S0198 (+32 % with a fat-containing meal; 1/1.32 = 0.76, derived)
 
--- A fresh stomach: an all-zero buffer and no bulk.
+-- A fresh stomach: an all-zero solid buffer and an empty liquid lane (spec § 4, ruling 11c-15: a record with no
+-- stomach starts empty).
 function K.stomach.new()
     local stomach = {}
     stomach.buffer = K.vector.new()
-    stomach.bulk = 0
+    stomach.liquid = 0
     return stomach
 end
 
--- A vector's stomach-fill contribution: energy / 100 + fibre * 0.5 + water / 100. Judgement, a game
--- choice: one fill unit mixing energy, fibre bulk and liquid volume; the fast hunger term reads the
--- fill (Task 11).
-function K.stomach.bulkOf(vector)
-    return vector.calories / 100 + vector.fibre * 0.5 + vector.water / 100
-end
-
--- Seed a stomach full: bulk = FULL_BULK, the buffer untouched (so nothing absorbs from it); returns the
--- stomach. Plan 2 game choice (Task 11) -- judgement: the character ate before the apocalypse, so a
--- new or respawned record starts at vanilla's hunger 0 and empties on the gastric half-time.
-function K.stomach.seedFull(stomach)
-    stomach.bulk = K.stomach.FULL_BULK
-    return stomach
-end
-
--- Add a meal vector into the buffer and its bulk into the fill total; returns the stomach.
+-- A food into the solid buffer, its water with it (a food's water stays with the food, spec § 3.1); returns the
+-- stomach.
 function K.stomach.ingest(stomach, vector)
     K.vector.add(stomach.buffer, vector, 1)
-    stomach.bulk = stomach.bulk + K.stomach.bulkOf(vector)
     return stomach
-end
-
--- The composition multiplier on the half-time: fat and fibre slow emptying, a pure liquid (no energy,
--- no fibre, some water) empties at a quarter of the half-time. The coefficients are game choices.
-function K.stomach.compositionScale(vector)
-    if vector.calories == 0 and vector.fibre == 0 and vector.water > 0 then
-        return 0.25 -- S0131 design-phase-v1: open row, a game choice until it settles (spec § 7 item 37)
-    end
-    return K.clamp(1 + vector.lipids / 40 + vector.fibre / 15, 0.5, 3.0) -- S0131 design-phase-v1: open row, a game choice until it settles (spec § 7 item 37)
-end
-
--- The first-order fraction emptied over dtH hours: 1 - exp(-ln2 * dtH / (halfTimeH * compScale)), ln 2
--- as a literal. A non-positive step empties nothing.
-function K.stomach.emptyFraction(halfTimeH, compScale, dtH)
-    if dtH <= 0 then
-        return 0
-    end
-    return 1 - math.exp(-0.6931471805599453 * dtH / (halfTimeH * compScale)) -- a game choice until Plan 11c (S1272: solid emptying is linear)
-end
-
--- Empty the stomach over dtH hours: the emptied fraction of every buffered key moves out as a fresh
--- vector, the buffer and the bulk keep the rest. The composition scale is read off the buffer itself.
-function K.stomach.empty(stomach, dtH)
-    local f = K.stomach.emptyFraction(K.stomach.HALF_TIME_H, K.stomach.compositionScale(stomach.buffer), dtH)
-    local emptied = K.vector.add(K.vector.new(), stomach.buffer, f)
-    local keys = K.vector.KEYS
-    for i = 1, #keys do
-        local k = keys[i]
-        stomach.buffer[k] = stomach.buffer[k] * (1 - f)
-    end
-    stomach.bulk = stomach.bulk * (1 - f)
-    return emptied
 end
 
 -- The meal-context multiplier on non-haem iron absorption, log-linear in the meal's phytic acid and
@@ -222,14 +167,16 @@ function K.stomach.toPool(pool, absorbed)
     return pool
 end
 
--- The fill scalar the fast hunger term reads: bulk over FULL_BULK, clamped to [0, 1].
+-- The fullness F the writer, the acute dose test and the mirror read (record.stomachFill): the stomach's satiety mass
+-- (structure D: the solid lane plus a fifth of drunk liquid, K.stomach.satietyMass) over its maximal capacity,
+-- clamped to [0, 1] (K.satiety.fill; ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass
+-- whole, never this F.
 function K.stomach.fill(stomach)
-    return K.clamp(stomach.bulk / K.stomach.FULL_BULK, 0, 1)
+    return K.satiety.fill(K.stomach.satietyMass(stomach), K.stomach.CAPACITY_MAX_G)
 end
 
 -- Plan 11c (spec § 5a rulings 11c-4, 11c-5 and 11c-8): fill by mass and the stomach's two lanes. Appended below the
--- Plan 2 code so no line above moves; the first-order pieces above (HALF_TIME_H, FULL_BULK, bulkOf, seedFull,
--- compositionScale, emptyFraction, empty) retire in Task 6 once nothing calls them. The solid lane (stomach.buffer)
+-- Plan 2 code; the first-order pieces it replaced retired in Task 6. The solid lane (stomach.buffer)
 -- empties energy at a zero-order rate that rises with the energy it holds, every other key leaving in the same
 -- proportion, never faster than water; the liquid lane (stomach.liquid, grams of drunk water) half-empties in
 -- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal in the solid lane. stomach.liquid is read `or 0` (ruling 11c-10).

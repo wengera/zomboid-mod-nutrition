@@ -18,6 +18,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 INTAKE = os.path.join(
     REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Intake.lua"
 )
+INTAKE_LUA = INTAKE
 TOL = 1e-6
 
 
@@ -710,7 +711,7 @@ function()
     local r = cls.updateEat({ item = item, fluidContainer = fc, character = char }, 1)
     local rec = NutritionRevamp.server.store.records.admin
     local expected = IN.fluidVector(NutritionRevamp.data.fluids.get, { { "Cola", 1.0 } }, 0.3)
-    return r, calls, before, rec, NutritionRevamp.kernel.stomach.bulkOf(expected), released
+    return r, calls, before, rec, expected, released
 end
 """
 
@@ -734,7 +735,7 @@ def test_server_path_eat_lands_in_the_stomach(server_host):
     stats = I(h).stats
     assert r is True and calls == 1
     assert rec is not None, err
-    assert rec["stomach"]["bulk"] > 0
+    assert h.K.stomach.mass(rec["stomach"]) > 0 and rec["stomach"]["liquid"] == 0
     assert stats.eats == before_stats["eats"] + 1
     assert stats.landed == before_stats["landed"] + 1
     assert stats.failures == before_stats["failures"]
@@ -745,15 +746,15 @@ def test_server_path_eat_lands_in_the_stomach(server_host):
 
 def test_server_path_drink_lands_the_cola(server_host):
     h = server_host
-    r, calls, before_stats, rec, expected_bulk, released = h.rt.eval(DRINK_STUBS)()
+    r, calls, before_stats, rec, expected, released = h.rt.eval(DRINK_STUBS)()
     stats = I(h).stats
     assert r == "orig" and calls == 1
     assert rec is not None, I(h).lastError
-    assert expected_bulk > 0
-    # a fresh record's stomach is seeded FULL on creation (the Task 11 game choice, mirrored in the
-    # intake landing), so the landed bulk is the seed plus the meal
-    full_bulk = h.K.stomach.FULL_BULK
-    assert abs(rec["stomach"]["bulk"] - (full_bulk + expected_bulk)) < TOL
+    assert expected.water > 0 and expected.calories > 0
+    st = rec["stomach"]
+    assert abs(st["liquid"] - expected.water) < TOL                       # the drink's water: the liquid lane (11c-12)
+    assert st["buffer"]["water"] == 0                                     # a fresh stomach starts empty (11c-15)
+    assert abs(st["buffer"]["calories"] - expected.calories) < TOL        # its energy: the solid lane's budget (11c-5)
     assert stats.sips == before_stats["sips"] + 1
     assert stats.landed == before_stats["landed"] + 1
     assert rec["lastIntake"]["source"] == "fluid"
@@ -882,8 +883,7 @@ def test_server_path_finishing_eat_reading_nan_lands_the_remainder(server_host):
     for k in h.K.vector.KEYS.values():
         assert buf[k] == buf[k], k
         assert rec["pool"][k] == rec["pool"][k], k
-    full = h.K.stomach.FULL_BULK
-    assert abs(rec["stomach"]["bulk"] - (full + 0.2375 + 0.55 + 0.39)) < TOL
+    assert rec["stomach"]["liquid"] == 0
 
 
 def test_server_path_nan_calories_rejected_nothing_landed(server_host):
@@ -1246,7 +1246,7 @@ def test_world_water_step_lands_its_litres(server_host):
     assert I(h).stats.landed == before_stats["landed"] + 1
     assert rec["lastIntake"]["source"] == "world"
     assert abs(rec["lastIntake"]["litres"] - 0.25) < TOL
-    assert abs(rec["stomach"]["buffer"]["water"] - 250.0) < TOL         # the stub's Water seed: 1000 g per litre
+    assert abs(rec["stomach"]["liquid"] - 250.0) < TOL and rec["stomach"]["buffer"]["water"] == 0   # the stub's Water seed: 1000 g per litre, drunk
     assert abs(I(h).lastIngested["admin"]["water"] - 250.0) < TOL
     I(h).lastIngested = h.rt.table()
 
@@ -1273,7 +1273,7 @@ def test_world_water_uses_the_water_seed_when_the_data_has_it(server_host):
     water_seed = h.rt.eval("function() local v = NutritionRevamp.kernel.vector.new() v.water = 1000 v.sodium = 10 return v end")()
     h.G.NutritionRevamp.data.fluids.get = h.rt.eval("function(seed) return function(t) if t == 'Water' then return seed end return nil end end")(water_seed)
     calls, seen, before_stats, rec = h.rt.eval(WORLD_STUBS)(0.5, 3.0, False)
-    assert abs(rec["stomach"]["buffer"]["water"] - 500.0) < TOL
+    assert abs(rec["stomach"]["liquid"] - 500.0) < TOL
     assert abs(rec["stomach"]["buffer"]["sodium"] - 5.0) < TOL
     I(h).lastIngested = h.rt.table()
 
@@ -1675,27 +1675,101 @@ def test_type_info_reads_a_fresh_instance_once_per_type(intake_host):
     assert made == 4                                     # Kiwi, Rock, Raise and BadGetter, each once
 
 
-# --- Plan 11 Task 15: an eat raises the satiety scalar by its laddered relief times the bulk factor -----------
+# --- Plan 11c: a drink's water lands in the liquid lane; the intake reads no hunger change -----------------------
 
-SATIETY_EAT = r"""
-function(satiety, after, hungerChange, beta, cal)
+def test_a_liquid_landing_puts_the_water_in_the_liquid_lane(rec_host):
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    I(h).lastIngested["u"] = None
+    I(h).land(record, "u", _vec(h, water=300.0, calories=42.0, carbs=10.5, sodium=4.0), "liquid")
+    st = record["stomach"]
+    assert st["liquid"] == 300.0 and st["buffer"]["water"] == 0
+    assert st["buffer"]["calories"] == 42.0 and st["buffer"]["sodium"] == 4.0
+    assert I(h).lastIngested["u"]["water"] == 300.0                      # ingested as drunk
+    I(h).lastError = None
+
+
+def test_a_food_landing_keeps_its_water_in_the_buffer(rec_host):
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    I(h).land(record, "u", _vec(h, water=120.0, calories=200.0))
+    assert record["stomach"]["buffer"]["water"] == 120.0 and record["stomach"]["liquid"] == 0
+    I(h).lastError = None
+
+
+def test_the_intake_no_longer_reads_a_hunger_change():
+    with open(INTAKE_LUA, encoding="utf-8") as fh:
+        src = fh.read()
+    assert 'read(item, "getHungerChange")' not in src                     # the eat's laddered relief (Task 15)
+    assert '"getProperties"), "getHungerChange")' not in src              # the drink's fluid hunger (Task 15 fix 1)
+    assert "IN.sate" not in src
+
+
+# --- Plan 11c Task 6 (amendment 1, rulings 11c-27 and 11c-30): P is fed at the eat with the delivered vector ------
+
+def _weighed(v):
+    """K.satiety.weigh in doubles: the delivered kcal split by Atwater 4/4/9 shares, protein weighted 2.5 (W_PROTEIN),
+    carbohydrate and fat 1 (W_CARB, W_FAT); a vector with no macronutrient grams at the neutral weight 1."""
+    p, c, f = 4 * v["proteins"], 4 * v["carbs"], 9 * v["lipids"]
+    if p + c + f <= 0:
+        return v["calories"] * 1
+    return v["calories"] * (2.5 * p + c + f) / (p + c + f)
+
+
+def test_a_landing_feeds_the_pool_by_the_weighed_kcal_of_the_delivered_vector(rec_host):
+    # 200 kcal of 10 g protein, 25 g carbohydrate and 6.67 g fat: Atwater 40 + 100 + 60.03 kcal, so P rises by
+    # 200 x (2.5 x 40 + 100 + 60.03) / 200.03 = 259.96... weighted kcal
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    record["satiety"] = h.rt.eval("{ P = 12.5, S = 0, L = 0, v = 4 }")
+    v = dict(calories=200.0, proteins=10.0, carbs=25.0, lipids=6.67, water=80.0)
+    I(h).land(record, "u", _vec(h, **v))
+    rise = _weighed(v)
+    assert abs(rise - 200 * (2.5 * 40 + 100 + 60.03) / 200.03) < 1e-12
+    assert abs(record["satiety"]["P"] - (12.5 + rise)) < 1e-9
+    I(h).land(record, "u", _vec(h, water=300.0, calories=42.0, carbs=10.5), "liquid")   # a drink feeds too
+    assert abs(record["satiety"]["P"] - (12.5 + rise + 42.0)) < 1e-9                    # all carbohydrate: weight 1
+    I(h).lastError = None
+
+
+def test_a_landing_on_an_unseeded_pool_feeds_nothing(rec_host):
+    # amendment 1: a record whose satiety is absent, unmarked or non-finite is seeded at the next writer minute from
+    # the HUNGER it reads, so the eat shows through the seed (a named limitation), never through a NaN or a v3 scalar
+    h = rec_host
+    for sat in (None, "{ P = 0 / 0, v = 4 }", "{ P = 10, v = 3 }", "0.6"):
+        record = _record(h)
+        record["stomach"] = h.K.stomach.new()
+        record["satiety"] = None if sat is None else h.rt.eval(sat)
+        I(h).land(record, "u", _vec(h, calories=200.0, carbs=50.0))
+        s = record["satiety"]
+        if sat is None:
+            assert s is None
+        elif sat == "0.6":
+            assert s == 0.6
+        else:
+            assert s["v"] != 4 or s["P"] != s["P"]                       # left for the writer's seed
+        assert record["stomach"]["buffer"]["calories"] == 200.0          # the stomach still takes the eat
+    I(h).lastError = None
+
+
+PARTIAL_EAT = r"""
+function(after)
     local IN = NutritionRevamp.server.intake
-    local S = NutritionRevamp.server
-    local oldO = S.options
-    S.options = { satietyBulk = beta }
     local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
-    rec.satiety = satiety
+    rec.satiety = { P = 5, S = 0, L = 0, v = 4 }
     NutritionRevamp.server.store.records.admin = rec
     local hung = -0.2
     local item = {}
     item.getHungChange = function(self) return hung end
-    item.getHungerChange = function(self) return hungerChange end
-    item.getFullType = function(self) if cal == 0 then return "Base.Salt" end return "Base.Apple" end
+    item.getFullType = function(self) return "Base.Apple" end
     item.getBaseHunger = function(self) return -0.2 end
-    item.getCalories = function(self) if cal ~= nil then return cal end return 95 end
-    item.getCarbohydrates = function(self) if cal == 0 then return 0 end return 25.13 end
-    item.getLipids = function(self) if cal == 0 then return 0 end return 0.31 end
-    item.getProteins = function(self) if cal == 0 then return 0 end return 0.47 end
+    item.getCalories = function(self) return 95 end
+    item.getCarbohydrates = function(self) return 25.13 end
+    item.getLipids = function(self) return 0.31 end
+    item.getProteins = function(self) return 0.47 end
     item.isCooked = function(self) return false end
     item.isBurnt = function(self) return false end
     item.isRotten = function(self) return false end
@@ -1710,137 +1784,18 @@ function(satiety, after, hungerChange, beta, cal)
     local b = IN.readBefore({ item = item, character = char })
     hung = after
     local vec = IN.readAfterAndLand(b)
-    S.options = oldO
     return rec, vec, IN.lastError
 end
 """
 
 
-def test_an_eat_raises_the_satiety_scalar_by_its_relief_times_the_bulk_factor(server_host):
+def test_a_partial_eat_feeds_the_pool_by_its_delivered_fraction(server_host):
+    # half the apple eaten (getHungChange -0.2 -> -0.1): the delivered vector carries half the macros, and P rises
+    # by its weighed kcal, never the whole item's
     h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, -0.2, None)
+    rec, vec, err = h.rt.eval(PARTIAL_EAT)(-0.1)
     assert vec is not None, err
-    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.25)
-    assert f != 1                                           # the apple's bulk moves it off the menu's mean
-    assert rec["satiety"] == pytest.approx(0.5 + 0.2 * f)
-
-
-def test_the_relief_reads_the_laddered_getter_times_eats_fraction(server_host):
-    # a cooked item's getHungerChange is 1.3 x its raw hunger (#0029); half of what was left was eaten (#3556)
-    h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.2, -0.1, -0.26, None)
-    assert vec is not None, err
-    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.13, 0.25)
-    assert rec["satiety"] == pytest.approx(0.2 + 0.13 * f)
-
-
-def test_the_option_sets_beta(server_host):
-    h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.2, 0, -0.2, 0.5)
-    assert vec is not None, err
-    f = h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.5)
-    assert f != h.K.satiety.bulkFactor(h.K.stomach.bulkOf(vec), h.K.stomach.FULL_BULK, 0.2, 0.25)
-    assert rec["satiety"] == pytest.approx(0.2 + 0.2 * f)
-
-
-def test_a_non_finite_relief_leaves_the_scalar(server_host):
-    h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, float("nan"), None)
-    assert vec is not None, err
-    assert rec["satiety"] == 0.5
-
-
-def test_an_eat_on_a_record_without_satiety_leaves_it_for_the_writers_seed(server_host):
-    # follow-up pin: passes on the pre-change tree (nothing reads satiety there)
-    h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(None, 0, -0.2, None)
-    assert vec is not None, err
-    assert rec["satiety"] is None
-
-
-# --- Task 15 fix 1: a drink raises the satiety scalar by its fluid's |hungerChange| x f, factor 1 -------------------
-# Vanilla's DrinkFluid adds FluidConsume.getHungerChange to HUNGER: the container's litres-weighted properties
-# (#0630) times the share removed (a cola can moved HUNGER -0.036, #0634; a juice box -0.020, #0636). In Mode 1 the
-# next write would erase that drop unless the drink raised S.
-
-SATIETY_DRINK = r"""
-function(satiety, hungerChange, amountAfter, props)
-    local IN = NutritionRevamp.server.intake
-    local amount = 0.3
-    local fluid = { getFluidTypeString = function(self) return "Cola" end }
-    local sample = {
-        size = function(self) return 1 end,
-        getFluid = function(self, i) return fluid end,
-        getPercentage = function(self, i) return 1.0 end,
-        release = function(self) end,
-    }
-    local fc = {
-        getAmount = function(self) return amount end,
-        createFluidSample = function(self) return sample end,
-    }
-    if props then
-        fc.getProperties = function(self)
-            return { getHungerChange = function(s) return hungerChange end }
-        end
-    end
-    local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
-    rec.satiety = satiety
-    NutritionRevamp.server.store.records.admin = rec
-    local item = { getFullType = function(self) return "Base.Pop2" end }
-    local char = { getUsername = function(self) return "admin" end }
-    local cls = {}
-    cls.updateEat = function(self, delta) amount = amountAfter return "orig" end
-    ISDrinkFluidAction = cls
-    IN.installDrink()
-    local r = cls.updateEat({ item = item, fluidContainer = fc, character = char }, 1)
-    return rec, r, IN.lastError
-end
-"""
-
-
-def test_a_cola_raises_the_satiety_scalar_by_its_hunger_change(server_host):
-    h = server_host
-    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, True)
-    assert r == "orig" and rec["lastIntake"] is not None, err
-    assert rec["satiety"] == pytest.approx(0.5 + 0.036, abs=1e-12)  # f 1, no food bulk: factor 1
-
-
-def test_a_partial_drink_raises_it_by_the_share_drunk(server_host):
-    h = server_host
-    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0.1, True)  # 0.2 of 0.3 litres
-    assert rec["lastIntake"] is not None, err
-    assert rec["satiety"] == pytest.approx(0.5 + 0.036 * 0.2 / 0.3, abs=1e-12)
-
-
-def test_a_drink_with_no_hunger_change_raises_nothing(server_host):
-    h = server_host
-    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, 0, 0, True)
-    assert rec["lastIntake"] is not None, err
-    assert rec["satiety"] == 0.5
-
-
-def test_a_drink_with_unreadable_properties_raises_nothing(server_host):
-    h = server_host
-    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, False)
-    assert rec["lastIntake"] is not None, err
-    assert rec["satiety"] == 0.5
-
-
-def test_a_zero_calorie_eat_keeps_the_bulk_floor(server_host):
-    # Task 15 fix 2 (ruling T15-3): salt, pepper, vinegar, pet food carry a hunger change and no calories; their landed
-    # bulk is 0, so the factor is Appendix D's floor 0.25^beta, never 1
-    h = server_host
-    rec, vec, err = h.rt.eval(SATIETY_EAT)(0.5, 0, -0.2, 0.5, 0)
-    assert vec is not None, err
-    assert h.K.stomach.bulkOf(vec) == 0
-    assert rec["satiety"] == pytest.approx(0.5 + 0.2 * 0.25 ** 0.5)
-
-
-def test_a_drink_books_its_relief_whole(server_host):
-    # a drink passes no food bulk (nil): the factor is 1 at any option beta
-    h = server_host
-    S = h.rt.eval("NutritionRevamp.server")
-    S["options"] = h.rt.eval("{ satietyBulk = 0.5 }")
-    rec, r, err = h.rt.eval(SATIETY_DRINK)(0.5, -0.036, 0, True)
-    assert rec["lastIntake"] is not None, err
-    assert rec["satiety"] == pytest.approx(0.5 + 0.036, abs=1e-12)
+    v = {k: vec[k] for k in ("calories", "proteins", "carbs", "lipids")}
+    assert abs(v["calories"] - 47.5) < TOL                                # 95 kcal x the half eaten
+    assert abs(rec.satiety.P - (5 + _weighed(v))) < 1e-9
+    assert rec.satiety.P < 5 + 95 * 1.1                                   # not the whole item

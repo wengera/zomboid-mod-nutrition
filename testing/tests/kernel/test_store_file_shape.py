@@ -202,7 +202,7 @@ def test_the_global_store_migrates_to_files_and_is_removed():
     assert any(k.startswith(ROOT + OLDUSER) for k in files_of(h))
     assert h.NR.server.store.file.stats.migrated == 1
     r = h.NR.server.store.get("olduser", 100.0)
-    assert r.resets == 2 and r.v == 3 and r.satiety is None
+    assert r.resets == 2 and r.v == 4 and r.satiety is None
 
 
 def test_the_migration_run_twice_changes_nothing_the_second_time():

@@ -193,6 +193,20 @@ def test_a_rise_with_no_wrapped_eat_lands_the_macros_only(h):
     assert macros(rec["reconcile"]["baseline"]) == {"calories": 1300.0, "carbs": 120.0, "lipids": 40.0, "proteins": 60.0}
     assert RC(h).stats.landed == 1
     assert abs(h.NR.server.intake.lastIngested["admin"]["calories"] - 300) < TOL
+    assert rec["stomach"]["liquid"] == 0                                 # J4: a reconciled intake reaches the solid buffer, macros only
+
+
+def test_a_reconciled_rise_feeds_the_pool_by_its_weighed_kcal(h):
+    # amendment 1: the reconcile path lands through IN.land, which feeds P with the delivered vector; 300 kcal of
+    # 20 g carbohydrate alone takes the carbohydrate weight 1 (W_CARB), so P rises by 300 weighted kcal
+    p, rec = seeded(h)
+    rec.satiety = h.rt.eval("{ P = 2, S = 0, L = 0, v = 4 }")
+    p.nut.cal, p.nut.carb = 1300.0, 120.0
+    RC(h).minute("admin", p, rec)
+    assert abs(rec["satiety"]["P"] - (2 + 300)) < TOL
+    p.nut.cal, p.nut.pro = 1400.0, 85.0                                  # 100 kcal more with 25 g protein
+    RC(h).minute("admin", p, rec)
+    assert abs(rec["satiety"]["P"] - (302 + 100 * 2.5)) < TOL            # all protein: weight 2.5 (W_PROTEIN)
 
 
 def test_the_same_rise_is_not_landed_twice(h):
@@ -387,13 +401,13 @@ def test_a_v1_record_migrates_at_first_sight_in_place_with_one_log_line(h):
     p = h.player()
     rec = h.first_sight(p)
     assert h.G.rawequal(rec, raw)                                     # the same table: no handle goes stale
-    assert rec["v"] == h.K.store.VERSION == 3
+    assert rec["v"] == h.K.store.VERSION == 4
     assert rec["junk"] is None and rec["resets"] == 1
     assert abs(rec["nutrients"]["vitC"]["p"] - 0.05) < TOL
     assert rec["reconcile"]["count"] == 2
     assert rec["reconcile"]["baseline"]["calories"] == 1000.0   # re-seeded at the first sight
     lines = [s for s in h.printed() if "store: migrated" in s]
-    assert lines == ["[NutritionRevamp] store: migrated admin v1 -> v3"]
+    assert lines == ["[NutritionRevamp] store: migrated admin v1 -> v4"]
     h.NR.server.store.get("admin", 10.0)
     assert len([s for s in h.printed() if "store: migrated" in s]) == 1
 
@@ -418,7 +432,7 @@ def test_a_v2_record_reloads_at_every_first_sight_without_a_migration_line(h):
 def test_a_new_record_is_made_by_the_kernel_at_the_current_version(h):
     p = h.player(name="carol")
     rec = h.first_sight(p, "carol")
-    assert rec["v"] == 3 and rec["username"] == "carol" and rec["resets"] == 0
+    assert rec["v"] == 4 and rec["username"] == "carol" and rec["resets"] == 0
 
 
 def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):

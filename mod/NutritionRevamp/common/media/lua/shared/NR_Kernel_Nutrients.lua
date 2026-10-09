@@ -37,7 +37,7 @@ K.nutrients.ACUTE_DECAY_H = 48 -- the 48 h vomiting window, S1028
 K.nutrients.DIAL_SLOW_DAYS = 90 -- game choice, ruling 5
 
 -- The acute per-kg dose counts ACUTE_EMPTY_MULT times on a stomach filled below ACUTE_EMPTY_FILL.
-K.nutrients.ACUTE_EMPTY_FILL = 0.2 -- game choice, ruling 18 (S1032 gives the direction only)
+K.nutrients.ACUTE_EMPTY_FILL = 0.2 -- game choice, ruling 18 (S1032 gives the direction only); since Plan 11c the fill is satiety mass over 730 g, so 0.2 is 146 g (ruling 11c-14, Task 6 amendment 2)
 K.nutrients.ACUTE_EMPTY_MULT = 1.5 -- game choice, ruling 18 (S1032 gives the direction only)
 
 -- The kinds whose step is not ctx.two's: pool is stepped here, the rest are not stepped at all.

@@ -91,7 +91,7 @@ local function step(username, player, record)
     if vec ~= nil then
         local IN = NR.server.intake
         if IN == nil or IN.land == nil then error("reconcile: NR.server.intake.land absent") end
-        record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- as the intake seeds an early eat
+        record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as the intake lays one (ruling 11c-15)
         record.pool = record.pool or K.vector.new()
         local macros = K.reconcile.baselineAfter(vec)       -- the four landed macros, copied before the landing
         IN.land(record, username, vec)

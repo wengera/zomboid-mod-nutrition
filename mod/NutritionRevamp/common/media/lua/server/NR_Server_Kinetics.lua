@@ -1,21 +1,14 @@
--- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach (spec § 4.2, § 4.4): once per player
--- per game minute, on the players' OnTick stagger, the stomach empties over the game hours since the
--- last run, the emptied vector is absorbed, the absorbed vector accumulates into the pool, and the
--- fill is stamped on the record as record.stomachFill for the writer (NR_Server_Writer.lua) and the mirror to read
--- (the writer hands it to K.hybrid.hungerTarget once a minute).
--- Plan 2 ruling: hunger derives from stomach fill and is written to HUNGER every tick, so vanilla's
--- eat-time hunger write is overwritten within one push -- the stomach is the state, hunger the view.
--- Two companion game choices make that playable: (1) a record with no stomach yet is seeded FULL
--- (K.stomach.seedFull) -- judgement: the character ate before the apocalypse, so a new or respawned
--- character starts at vanilla's hunger 0 and empties on the gastric half-time; (2) the energy-state
--- term, stubbed at 1 in Plan 2, is NR_Server_Metabolism's per-minute stamp (record.body.energyState;
--- the writer reads nil or NaN as 1). Thirst is
--- untouched in this plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
--- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S1272,
--- design-phase-v1) makes hunger run from 0 to 0.5 in 2 game-hours, ~0.875 by 6 h and ~0.94 across an
--- 8 h sleep -- hours, where vanilla's drain takes ~29 game-hours to reach 1 -- and a litre of drink
--- (bulk >= 9 against FULL_BULK 8) sates fully; a balance choice re-read in Plan 11c (S1272) (Plan 2
--- ruling T11).
+-- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach (spec § 4.2, § 4.4; Plan 11c): once per player per
+-- game minute, inside the budgeted queue, both lanes empty over the game minutes since the last run (K.stomach.drain:
+-- the solid lane's energy at a zero-order rate rising with its load, the liquid lane's water first-order), the
+-- emptied vector is absorbed and the absorbed vector accumulates into the pool, and the fullness F (the stomach's
+-- satiety mass over its maximal capacity, K.stomach.fill) is stamped on the record as record.stomachFill for the
+-- writer, the acute dose test and the mirror to read. A gap of more than a minute drains in one-minute substeps (the
+-- solid rate rises with the load, and the oracle's replays step a minute), and a gap is capped at 60 game minutes:
+-- offline time is not integrated, as Metabolism and Nutrients clamp. A record with no stomach starts with an empty one
+-- (spec § 4, ruling 11c-15); hunger carries over through the satiety pool P, which the intake feeds at the eat and the
+-- writer seeds from HUNGER at its first minute. The energy-state term is NR_Server_Metabolism's per-minute stamp
+-- (record.body.energyState; the writer reads nil or NaN as 1).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
@@ -36,6 +29,21 @@ NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastE
                        ctx = {} }
 local KIN = NR.server.kinetics
 
+-- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in ceil(dtM) equal substeps of
+-- at most one minute, the emptied vectors summed into the first. Returns the emptied vector.
+local MAX_GAP_M = 60 -- game minutes: the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), no row needed
+function KIN.drain(stomach, dtM)
+    dtM = K.min(dtM, MAX_GAP_M)
+    local n = math.ceil(dtM - 1e-9)                       -- a float one-minute gap (60 x 1/60 h) is one substep
+    if n < 1 then n = 1 end
+    local dtH = dtM / n / 60
+    local emptied = K.stomach.drain(stomach, dtH)
+    for i = 2, n do
+        K.vector.add(emptied, K.stomach.drain(stomach, dtH), 1)
+    end
+    return emptied
+end
+
 local function step(username, player, record, ctx)
     local age = NR.worldAge()
     if age == nil then
@@ -47,8 +55,7 @@ local function step(username, player, record, ctx)
         return
     end
     if record.stomach == nil then
-        record.stomach = K.stomach.new()
-        K.stomach.seedFull(record.stomach)            -- judgement: the character ate before the apocalypse
+        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15)
     end
     if record.pool == nil then
         record.pool = K.vector.new()
@@ -61,7 +68,7 @@ local function step(username, player, record, ctx)
     record.kineticsAge = age
     if dtH > 0 then
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
-        local emptied = K.stomach.empty(record.stomach, dtH)
+        local emptied = KIN.drain(record.stomach, dtH * 60)
         local absorbed = K.stomach.absorb(emptied, meal)
         K.stomach.toPool(record.pool, absorbed)
         if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
@@ -71,15 +78,14 @@ local function step(username, player, record, ctx)
         ctx.mealCa = nil
     end
     local fill = K.stomach.fill(record.stomach)
-    -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing
-    -- guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is
-    -- reset to the full seed and the record heals on this minute instead of writing NaN into HUNGER
-    -- for the session. The POOL is reset only when one of its own keys is non-finite: a finite pool
-    -- is absorbed intake the stomach fault did not touch, so it is kept. NR.server.intake.isFinite is
-    -- the one finiteness test: NR_Server_Intake.lua loads before this file (server/ files load
-    -- alphabetically) and the test is read at call time.
-    if type(fill) ~= "number" or fill ~= fill or fill == math.huge or fill == -math.huge then
-        record.stomach = K.stomach.seedFull(K.stomach.new())
+    -- the self-heal for #2833: a non-finite fill or solid-lane energy (a stomach a NaN intake poisoned before the
+    -- landing guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is reset
+    -- empty and the record heals on this minute instead of writing NaN into the satiety read. The POOL is reset only
+    -- when one of its own keys is non-finite: a finite pool is absorbed intake the stomach fault did not touch, so it
+    -- is kept. NR.server.intake.isFinite is the one finiteness test: NR_Server_Intake.lua loads before this file
+    -- (server/ files load alphabetically) and the test is read at call time.
+    if not NR.finite(fill) or not NR.finite(record.stomach.buffer.calories) then
+        record.stomach = K.stomach.new()
         local isFinite = NR.server.intake.isFinite
         local keys = K.vector.KEYS
         for i = 1, #keys do
@@ -88,9 +94,9 @@ local function step(username, player, record, ctx)
                 break
             end
         end
-        fill = 1
+        fill = 0
         KIN.stats.failures = KIN.stats.failures + 1
-        KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset full"
+        KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset empty"
         NR.log.say(2, KIN.lastError)
     end
     record.stomachFill = fill

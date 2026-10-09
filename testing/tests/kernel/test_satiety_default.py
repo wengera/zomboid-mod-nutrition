@@ -52,7 +52,7 @@ def simulate(host, daylen, meals, beta, days=3):
     """The reported day's (vanilla HUNGER, the writer's HUNGER) per game minute."""
     decay = daylen / 30.0                                  # timer units a game-second (#0529)
     rates = host.call("satiety.defaults")
-    full = host.K.stomach.FULL_BULK
+    full = 8.0                                             # the retired K.stomach.FULL_BULK (Plan 11c Task 6); Task 9 deletes this oracle
     s_v, s_m, t_v, t_m, h_m = 1.0, 1.0, 0.0, 0.0, 0.0
     out = []
     for day in range(days):

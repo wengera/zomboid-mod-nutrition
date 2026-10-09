@@ -132,8 +132,8 @@ def v1(h):
 # --- the constants and the path list ------------------------------------------------------------------
 
 
-def test_version_is_three_and_inputs_are_dotted_strings(host):
-    assert S(host).VERSION == 3
+def test_version_is_four_and_inputs_are_dotted_strings(host):
+    assert S(host).VERSION == 4
     paths = lst(S(host).INPUTS)
     assert len(paths) == len(set(paths)) and all(isinstance(p, str) and p for p in paths)
     assert len(lst(S(host).SEGS)) == len(paths)
@@ -224,9 +224,9 @@ def test_every_order_key_has_its_per_key_input_paths(host):
 # --- K.store.new --------------------------------------------------------------------------------------
 
 
-def test_new_is_the_identity_record_at_version_three(host):
-    assert host.py(S(host).new("bob", 12.5)) == {"v": 3, "username": "bob", "firstSeen": 12.5, "lastSeen": 12.5,
-                                               "resets": 0, "dead": False, "satiety": 1}
+def test_new_is_the_identity_record_at_version_four(host):
+    assert host.py(S(host).new("bob", 12.5)) == {"v": 4, "username": "bob", "firstSeen": 12.5, "lastSeen": 12.5,
+                                               "resets": 0, "dead": False}
 
 
 # --- the load: a v1 record migrated ------------------------------------------------------------------
@@ -235,7 +235,7 @@ def test_new_is_the_identity_record_at_version_three(host):
 def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     raw = v1(host)
     r = host.py(S(host).load(raw, order(host), recs(host)))
-    assert r["v"] == 3
+    assert r["v"] == 4
     assert (r["username"], r["firstSeen"], r["lastSeen"], r["resets"], r["dead"]) == ("admin", 10.0, 30.5, 2, False)
     assert "junk" not in r and "lastIntake" not in r
     assert r["reconcile"] == {"count": 3}
@@ -260,8 +260,8 @@ def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     assert e["dirty"] is True and e["epoch"] == 7 and e["own"] == {"nv": True, "ss": False}
     assert (e["nvDays"], e["pe"], e["ea"], e["lastDay"], e["exSeen"]) == (3, 2, 22, 1, 80)
     assert e["mNut"] == 1 and "intoxTarget" not in e and "tempAdj" not in e and e["key"]["ep"] == -1
-    assert r["stomach"]["buffer"]["calories"] == 300 and r["stomach"]["bulk"] == 4.0
-    assert r["stomachFill"] == 0.5                                           # recomputed: 4.0 / FULL_BULK 8.0
+    assert r["stomach"]["buffer"]["calories"] == 300 and "bulk" not in r["stomach"] and r["stomach"]["liquid"] == 0
+    assert r["stomachFill"] == 0                                             # recomputed: energy alone has no mass
     assert r["pool"]["iron"] == 1.5 and r["pool"]["calories"] == 0
 
 
@@ -270,7 +270,7 @@ def test_load_of_a_record_with_no_version_and_with_v1_is_the_same(host):
     a = host.py(S(host).load(raw, order(host), recs(host)))
     raw["v"] = 1
     b = host.py(S(host).load(raw, order(host), recs(host)))
-    assert a == b and a["v"] == 3
+    assert a == b and a["v"] == 4
 
 
 def test_load_copies_deep(host):
@@ -294,7 +294,7 @@ def test_a_missing_input_keeps_the_constructor_default(host):
                                       "ext": 0, "ax": 0, "axr": 0}
     assert r["fluids"]["water"] == 10 and r["fluids"]["sweatK"] == 1
     assert r["effects"]["epoch"] == 0 and r["effects"]["own"] == {"nv": False, "ss": False}
-    assert r["stomach"]["buffer"]["calories"] == 0 and r["stomachFill"] == 0.25
+    assert r["stomach"]["buffer"]["calories"] == 0 and r["stomachFill"] == 0 and r["stomach"]["liquid"] == 0
     assert "body" not in r and "kineticsAge" not in r and "reconcile" not in r
 
 
@@ -360,7 +360,7 @@ def test_a_v3_record_round_trips_through_load_and_inputs_only(host):
     r2 = S(host).load(saved, order(host), recs(host))
     assert host.py(S(host).inputsOnly(r2)) == host.py(saved)
     assert host.py(r2) == host.py(r1)
-    assert host.py(saved)["v"] == 3
+    assert host.py(saved)["v"] == 4
 
 
 # --- the fix round: the four recomputed fields, the containers, the stomach and close defaults -------------
@@ -422,11 +422,17 @@ def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
         assert not S(host).isInput(p), p
 
 
-def test_a_stored_stomach_with_no_bulk_loads_full(host):
-    r = host.py(S(host).load(host.table({"stomach": {"buffer": {"calories": 50}}}), order(host), recs(host)))
-    assert r["stomach"]["bulk"] == host.K.stomach.FULL_BULK and r["stomachFill"] == 1
-    r = host.py(S(host).load(host.table({"stomach": {"bulk": 0}}), order(host), recs(host)))
-    assert r["stomach"]["bulk"] == 0 and r["stomachFill"] == 0
+def test_a_stored_stomach_loads_its_buffer_and_liquid_and_its_fill_from_satiety_mass(host):
+    # amendment 2: F = satietyMass / CAPACITY_MAX_G; 365 g of food water reads 365 / 730 = 0.5, and 1825 g drunk reads
+    # LIQUID_WEIGHT x 1825 = 365 g, 0.5 too; 3650 g drunk reads 730 g, full
+    r = host.py(S(host).load(host.table({"stomach": {"buffer": {"water": 365}}}), order(host), recs(host)))
+    assert r["stomach"]["liquid"] == 0 and r["stomachFill"] == 0.5
+    r = host.py(S(host).load(host.table({"stomach": {"liquid": 1825}}), order(host), recs(host)))
+    assert r["stomach"]["liquid"] == 1825 and abs(r["stomachFill"] - 0.5) < 1e-12
+    r = host.py(S(host).load(host.table({"stomach": {"liquid": 3650}}), order(host), recs(host)))
+    assert r["stomachFill"] == 1
+    r = host.py(S(host).load(host.table({"stomach": {"bulk": 8}}), order(host), recs(host)))     # a v3 stomach
+    assert "bulk" not in r["stomach"] and r["stomachFill"] == 0
 
 
 def test_a_loaded_body_with_no_closed_day_stamp_reads_the_resting_expenditure(host):
@@ -443,7 +449,7 @@ def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
     rec = v1(host)
     same = S(host).fillInPlace(rec, rec, order(host), recs(host))
     assert host.G.rawequal(same, rec)
-    assert rec["v"] == 3 and rec["username"] == "admin" and rec["resets"] == 2
+    assert rec["v"] == 4 and rec["username"] == "admin" and rec["resets"] == 2
     assert rec["junk"] is None and rec["lastIntake"] is None
     assert rec["reconcile"]["count"] == 3 and rec["reconcile"]["baseline"] is None
     assert rec["body"]["band"] != "stale" and rec["body"]["inDayClosed"] == 2100
@@ -455,7 +461,7 @@ def test_fill_in_place_from_another_raw_clears_every_old_key(host):
     out = S(host).fillInPlace(target, raw, order(host), recs(host))
     assert host.G.rawequal(out, target)
     assert target["username"] == "admin" and target["stale"] is None and target["body"] is None
-    assert target["v"] == 3 and target["firstSeen"] == 3.0
+    assert target["v"] == 4 and target["firstSeen"] == 3.0
 
 
 def test_fill_in_place_of_a_non_table_raw_leaves_the_target(host):
@@ -466,32 +472,39 @@ def test_fill_in_place_of_a_non_table_raw_leaves_the_target(host):
 
 # --- Plan 11 Task 11: v3, the satiety field, the file names, the prune list ------------------------------------
 
-def test_a_new_record_seeds_satiety_full(host):
-    assert S(host).new("a", 1.0).satiety == 1
+def test_a_new_record_has_no_satiety_for_the_writer_to_seed(host):
+    assert S(host).new("a", 1.0).satiety is None
 
 
-def test_satiety_is_an_input(host):
-    assert S(host).isInput("satiety")
+def test_the_pool_its_activity_state_and_its_mark_are_inputs_and_the_v3_fields_are_not(host):
+    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.v", "stomach.liquid", "body.exKcalPrev"):
+        assert S(host).isInput(p), p
+    assert not S(host).isInput("satiety") and not S(host).isInput("satietyStepped")
+    assert not S(host).isInput("stomach.bulk")
 
 
-def test_the_stepped_mark_is_an_input_a_new_record_lacks(host):
-    # Task 15 fix 1 (ruling T15-1): the writer marks S stepped; a missing mark (a new record, a v3 record saved
-    # before the mark) reads not stepped, and the writer seeds S from HUNGER
-    assert S(host).isInput("satietyStepped")
-    assert S(host).new("a", 1.0).satietyStepped is None
+def test_a_v3_scalar_and_its_mark_are_dropped_on_load(host):
     raw = host.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.4, satietyStepped = true }")
-    assert S(host).load(raw, None, None).satietyStepped is True
+    rec = S(host).load(raw, None, None)
+    assert rec.v == 4 and rec.satiety is None and rec.satietyStepped is None
 
 
 def test_a_loaded_record_without_satiety_keeps_it_unset(host):
     raw = host.rt.eval("{ v = 2, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false }")
     rec = S(host).load(raw, None, None)
-    assert rec.v == 3 and rec.satiety is None
+    assert rec.v == 4 and rec.satiety is None
 
 
-def test_a_loaded_record_keeps_its_satiety(host):
-    raw = host.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.4 }")
-    assert S(host).load(raw, None, None).satiety == 0.4
+def test_a_loaded_v4_record_keeps_its_pool_and_activity_state(host):
+    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 88, S = 0.3, L = 120, v = 4, junk = 1 } }")
+    rec = S(host).load(raw, None, None)
+    assert rec.satiety.P == 88 and rec.satiety.S == 0.3 and rec.satiety.L == 120 and rec.satiety.v == 4
+    assert rec.satiety.junk is None
+
+
+def test_a_loaded_body_keeps_its_closed_days_exercise_bank(host):
+    raw = host.table({"body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0, "exKcalPrev": 640.0}})
+    assert S(host).load(raw, order(host), recs(host))["body"]["exKcalPrev"] == 640.0
 
 
 def test_names_are_file_safe(host):

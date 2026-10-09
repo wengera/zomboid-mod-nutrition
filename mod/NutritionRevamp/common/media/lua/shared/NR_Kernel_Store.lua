@@ -25,20 +25,21 @@ local K = NutritionRevamp.kernel
 K.store = {}
 
 -- The record version: 1 is Plan 1's identity-only S.new with the sub-tables laid lazily beside it; 2 is
--- the inputs-only contract below; 3 is v2 plus the satiety scalar.
-K.store.VERSION = 3 -- schema version: 3 adds satiety (Plan 11 Task 11; Decision 2's scalar rides this bump)
+-- the inputs-only contract below; 3 is v2 plus the satiety scalar; 4 is satiety from physiology (Plan 11c).
+K.store.VERSION = 4 -- schema version: 4 replaces satiety (a scalar) and satietyStepped with the satiety table's P, S, L and its mark v, and stomach.bulk with stomach.liquid (Plan 11c)
 
 -- The closed list of persisted paths, grouped by the step that owns each field.
 K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the version field the save holds (load rewrites it to
     -- VERSION after the copy), the key, the first and last world age seen, the respawn count, the death flag
     "v", "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- the satiety scalar S (Decision 2) and the writer's mark that it stepped S (absent on a new record, a v2 or a v3 saved before the mark: the writer seeds S from HUNGER, ruling T15-1)
-    "satiety", "satietyStepped",
-    -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the buffer and
-    -- its bulk (ingest adds, empty drains), the absorbed pool (toPool accumulates; a diagnostic no step reads
-    -- back, kept because it cannot be rebuilt)
-    "kineticsAge", "stomach.bulk", "stomach.buffer.*", "pool.*",
+    -- satiety (Plan 11c; NR_Server_Writer, NR_Server_Metabolism): the meal pool P (weighted kcal) and its mark v = 4,
+    -- which the writer seeds from HUNGER when absent, unmarked or non-finite, the acute suppression state S and the exercise lag L (kcal/day); a v3 scalar and its satietyStepped mark are dropped by this list
+    "satiety.P", "satiety.S", "satiety.L", "satiety.v",
+    -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
+    -- solid buffer (ingest and ingestLiquid add, drain empties), the absorbed pool (toPool accumulates; a diagnostic
+    -- no step reads back, kept because it cannot be rebuilt)
+    "kineticsAge", "stomach.liquid", "stomach.buffer.*", "pool.*",
     -- nutrients, per key (K.nutrients.minute, K.interact.two): the pools p and p2; the grade g, which the
     -- next minute reads as gradeHyst's previous grade, and gl, the grade it left; ah, the hours at the grade
     -- (the scurvy, beriberi and pellagra onsets read g == 4 with ah, so a dropped g would re-zero them); the
@@ -61,9 +62,9 @@ K.store.INPUTS = {
     -- lean mass, the day index and the last close, the metabolism and strength clock stamps
     "body.fm", "body.lm", "body.dayIndex", "body.lastAgeH", "body.lastCloseAgeH", "body.strAgeH",
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
-    -- day's stamps held until the next close (inDayClosed, pPrevKg)
+    -- day's stamps held until the next close (inDayClosed, pPrevKg, and exKcalPrev, the closed day's exercise kcal)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
-    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg",
+    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg", "body.exKcalPrev",
     -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
     "body.eb7.*", "body.mass7.*", "body.p7.*", "body.carb7.*", "body.lip7.*", "body.bandWeek.*",
     -- body, adaptation (K.aerobic.tacDay steps tac from its last value at each close; K.energy.atStep steps
@@ -157,7 +158,6 @@ function K.store.new(username, worldAgeHours)
     r.lastSeen = worldAgeHours
     r.resets = 0 -- a count: no respawn yet
     r.dead = false
-    r.satiety = 1 -- a placeholder: no satietyStepped mark, so the writer's first step seeds S from HUNGER (ruling T15-1)
     return r
 end
 
@@ -213,7 +213,7 @@ end
 -- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
 function K.store.defaults(rec, raw, order)
     if type(raw.stomach) == "table" then
-        rec.stomach = K.stomach.seedFull(K.stomach.new()) -- as the kinetics constructor seeds; a stored bulk overwrites it
+        rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it, a v3 bulk is dropped
     end
     if type(raw.pool) == "table" then
         rec.pool = K.vector.new()
@@ -317,14 +317,14 @@ function K.store.load(raw, order, records)
     end
     local rec = K.store.new(raw.username, raw.firstSeen)
     K.store.defaults(rec, raw, order)
+    if type(raw.satiety) == "table" then
+        rec.satiety = {} -- the stored P, S, L and mark overwrite it; a v3 scalar is not a table and is dropped, so the writer seeds P
+    end
     local segs = K.store.SEGS
     for i = 1, #segs do
         K.store.overlay(rec, raw, segs[i], 1)
     end
     rec.v = K.store.VERSION
-    if raw.satiety == nil then
-        rec.satiety = nil -- a migrated record seeds S from HUNGER at the writer's first minute, never 1 (Appendix D)
-    end
     if rec.stomach ~= nil then
         rec.stomachFill = K.stomach.fill(rec.stomach)
     end

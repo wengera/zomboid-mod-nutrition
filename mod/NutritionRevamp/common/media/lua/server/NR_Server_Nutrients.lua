@@ -90,7 +90,7 @@ NUT.guarded = 0
 local EMPTY = {}
 
 -- The stomach fill above which the stomach counts as fed (the glucose term's empty-stomach clock).
-NUT.FED_FILL = 0.05 -- game choice: a stomach below 5 % of full is empty for the alcohol-fasting glucose term
+NUT.FED_FILL = 0.05 -- game choice: a stomach below 5 % of full is empty for the alcohol-fasting glucose term (since Plan 11c the fill is satiety mass over 730 g, so about 37 g, ruling 11c-14)
 -- The alcohol-history refeeding criterion: the 7-day mean daily alcohol above this, g per kg.
 NUT.ALC_HISTORY_GKG = 0.5 -- game choice: S0115 names alcohol misuse with no dose; no row
 -- The 7-day mean's daily weight.
@@ -437,19 +437,22 @@ local function step(username, player, record, ctx)
     K.fluids.clearance(f, dtM)
     local stomach = record.stomach
     if f.autoDrop > 0 then
-        -- the writer's sip (THIRST's fall below its last write), converted to litres, lands as a water drink
+        -- the writer's sip (THIRST's fall below its last write), converted to litres, lands as a drink: the liquid lane
         if stomach == nil then
-            stomach = K.stomach.seedFull(K.stomach.new())
+            stomach = K.stomach.new()
             record.stomach = stomach
         end
         if NUT.waterVec == nil then NUT.waterVec = K.vector.new() end
         NUT.waterVec.water = NUT.LITRES_PER_THIRST * f.autoDrop * 1000
-        K.stomach.ingest(stomach, NUT.waterVec)
+        K.stomach.ingestLiquid(stomach, NUT.waterVec)
         f.autoDrop = 0
     end
     f.dehydPct = K.fluids.dehydPct(f, w, 0)
-    local pendingG = 0                                      -- K.stomach has no water accessor: the buffer's field is read
-    if stomach ~= nil and stomach.buffer ~= nil and finite(stomach.buffer.water) then pendingG = stomach.buffer.water end
+    local pendingG = 0                                      -- both lanes' still-unabsorbed water (ruling T1-1)
+    if stomach ~= nil and stomach.buffer ~= nil then
+        local g = K.stomach.water(stomach)
+        if finite(g) then pendingG = g end
+    end
     f.viewPct = K.fluids.dehydPct(f, w, pendingG)           -- ruling T1-1
     f.c = K.fluids.conc(f, body.lm)
     f.naPlasma = K.fluids.naPlasma(f.c)
