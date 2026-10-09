@@ -2,7 +2,7 @@ import pytest
 
 
 def rec(host, **kw):
-    r = {"v": 1, "username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False}
+    r = {"username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False}
     r.update(kw)
     return host.table(r)
 
@@ -26,7 +26,7 @@ META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 def test_mirror_is_flat_scalars_only(host):
     m = host.py(host.call("mirror.build", rec(host), host.table({"mode": 1, "version": "0.1.0", "build": "42.20.4"})))
-    expect = {"v": 1, "username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False,
+    expect = {"username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False,
               "mode": 1, "version": "0.1.0", "build": "42.20.4", "stomachFill": 0,      # ruling C-2: no stomach reads empty
               "stomachMass": 0}                                                         # Plan 11c Task 7: no stomach, 0 g
     expect.update(BODY_ABSENT)
@@ -50,10 +50,9 @@ def test_mirror_meta_is_required(host):
 
 def test_mirror_carries_the_stomach_fill_and_no_pool_keys(host):
     pool = host.table({"calories": 512.5, "iron": 1.25})
-    # Plan 11c Task 7: the stomach a v4 record holds (K.stomach.new: a whole zero buffer, the liquid lane 0), since the
-    # mirror now reads its mass; the retired bulk field rides along, unread
+    # Plan 11c Task 7: the stomach a record holds (K.stomach.new: a whole zero buffer, the liquid lane 0), since the
+    # mirror now reads its mass
     st = host.call("stomach.new")
-    st["bulk"] = 3.0
     r = rec(host, stomachFill=0.375, pool=pool, stomach=st)
     m = host.py(host.call("mirror.build", r, host.table(META)))
     assert m["stomachFill"] == 0.375 and m["stomachMass"] == 0

@@ -389,30 +389,9 @@ def test_mark_band_is_the_effects_mark(h):
     assert any("band" in s and "effects" in s for s in lim)
 
 
-# --- the store: the load at every first sight, in place; the migration log ------------------------------
+# --- the store: the load at every first sight, in place -----------------------------------------------
 
-def test_a_v1_record_migrates_at_first_sight_in_place_with_one_log_line(h):
-    t = h.NR.server.store.records
-    raw = h.table({"username": "admin", "firstSeen": 3.0, "lastSeen": 9.0, "resets": 1, "junk": 7,
-                   "nutrients": {"vitC": {"p": 0.05, "x": 3}},
-                   "reconcile": {"count": 2, "baseline": {"calories": 1}}})
-    t["admin"] = raw
-    h.T.printed = h.rt.table()
-    p = h.player()
-    rec = h.first_sight(p)
-    assert h.G.rawequal(rec, raw)                                     # the same table: no handle goes stale
-    assert rec["v"] == h.K.store.VERSION == 4
-    assert rec["junk"] is None and rec["resets"] == 1
-    assert abs(rec["nutrients"]["vitC"]["p"] - 0.05) < TOL
-    assert rec["reconcile"]["count"] == 2
-    assert rec["reconcile"]["baseline"]["calories"] == 1000.0   # re-seeded at the first sight
-    lines = [s for s in h.printed() if "store: migrated" in s]
-    assert lines == ["[NutritionRevamp] store: migrated admin v1 -> v4"]
-    h.NR.server.store.get("admin", 10.0)
-    assert len([s for s in h.printed() if "store: migrated" in s]) == 1
-
-
-def test_a_v2_record_reloads_at_every_first_sight_without_a_migration_line(h):
+def test_a_stored_record_reloads_in_place_at_every_first_sight(h):
     t = h.NR.server.store.records
     t["admin"] = h.K.store.new("admin", 2.0)
     p = h.player()
@@ -423,16 +402,14 @@ def test_a_v2_record_reloads_at_every_first_sight_without_a_migration_line(h):
     for fn in h.NR.server.players.onDeparture.values():   # the player leaves
         fn("admin", None, None)
     h.NR.server.players.online = h.rt.table()
-    h.T.printed = h.rt.table()
     again = h.first_sight(p)
     assert h.G.rawequal(again, rec) and rec["junk"] is None
-    assert not [s for s in h.printed() if "store: migrated" in s]
 
 
-def test_a_new_record_is_made_by_the_kernel_at_the_current_version(h):
+def test_a_new_record_is_made_by_the_kernel(h):
     p = h.player(name="carol")
     rec = h.first_sight(p, "carol")
-    assert rec["v"] == 4 and rec["username"] == "carol" and rec["resets"] == 0
+    assert rec["username"] == "carol" and rec["resets"] == 0
 
 
 def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):
@@ -441,7 +418,7 @@ def test_a_respawn_reset_marks_the_record_loaded_and_reseeds_the_baseline(h):
     for fn in h.T.adds["OnNewGame"].values():
         fn(p, None)
     new = h.NR.server.store.records["admin"]
-    assert new["resets"] == 1 and new["v"] == h.K.store.VERSION
+    assert new["resets"] == 1
     assert h.NR.server.players.online["admin"] is None        # Plan 11 Task 9: evicted at OnNewGame (#3358)
     h.first_sight(p)                                          # the next minute re-sights it in its queue slot
     assert new["reconcile"]["baseline"]["calories"] == 400.0

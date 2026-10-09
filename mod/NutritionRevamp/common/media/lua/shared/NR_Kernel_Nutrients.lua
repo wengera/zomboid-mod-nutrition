@@ -18,9 +18,6 @@
 local K = NutritionRevamp.kernel
 K.nutrients = {}
 
--- The record.nutrients schema version.
-K.nutrients.NV = 1
-
 -- The generic status ladder on p, {marginal, depleted, clinical}, where a record has no sourced rung.
 K.nutrients.LADDER = { 0.70, 0.45, 0.25 } -- design-phase-v1 game choice, ruling 4 (open row S1057: the store fractions at the three rungs)
 
@@ -73,7 +70,7 @@ end
 
 -- A fresh record.nutrients for the given records.
 function K.nutrients.newState(records)
-    local state = { nv = K.nutrients.NV, epoch = 0, allReplete = true, ironGrade = 1, anaemia = false, vitDClinical = false }
+    local state = { epoch = 0, allReplete = true, ironGrade = 1, anaemia = false, vitDClinical = false }
     -- ORDER is a Lua table the record file built, so # is a Lua length, never a Java list (#0940).
     for i = 1, #records.ORDER do
         state[records.ORDER[i]] = K.nutrients.newKey()

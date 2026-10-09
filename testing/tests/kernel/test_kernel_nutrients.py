@@ -65,7 +65,6 @@ def test_constants(host):
     assert N.DIAL_SLOW_DAYS == 90
     assert N.ACUTE_EMPTY_FILL == 0.2
     assert N.ACUTE_EMPTY_MULT == 1.5
-    assert N.NV == 1
 
 
 # -------------------------------------------------------------------------------------------- calibration
@@ -99,7 +98,7 @@ def test_f_from_threshold(host):
 
 def test_new_state(host):
     st = host.py(host.K.nutrients.newState(_records(host)))
-    assert st["nv"] == 1
+    assert "nv" not in st
     assert st["epoch"] == 0
     assert st["allReplete"] is True
     assert st["ironGrade"] == 1

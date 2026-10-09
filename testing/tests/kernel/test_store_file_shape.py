@@ -363,14 +363,14 @@ def test_the_boot_prune_reads_the_option():
 
 def slot_doc(gen, resets, **over):
     """A slot file's text: { gen, rec, done } on one line, the record marked by its resets count; a None drops a key."""
-    d = {"gen": gen, "done": True, "rec": {"v": 3, "username": "admin", "firstSeen": 50, "lastSeen": 60,
+    d = {"gen": gen, "done": True, "rec": {"username": "admin", "firstSeen": 50, "lastSeen": 60,
                                            "resets": resets, "dead": False}}
     d.update(over)
     return json.dumps({k: v for k, v in d.items() if v is not None}, separators=(",", ":"))
 
 
 def index_doc(gen, players):
-    return json.dumps({"v": 1, "gen": gen, "players": players, "done": True}, separators=(",", ":"))
+    return json.dumps({"gen": gen, "players": players, "done": True}, separators=(",", ":"))
 
 
 def opened_with(h, prefix, n=0):
@@ -427,14 +427,14 @@ def test_the_save_opens_the_file_that_does_not_hold_the_newest_copy_whatever_its
     h = boot(files={ROOT + ADMIN + "a.json": slot_doc(2, 4)})                 # an even gen, by hand, in a
     F = h.NR.server.store.file
     n = len(h.T.opened)
-    assert F.save("admin", h.rt.eval("{ v = 3, username = 'admin', resets = 4 }"))
+    assert F.save("admin", h.rt.eval("{ username = 'admin', resets = 4 }"))
     assert opened_with(h, ROOT + ADMIN, n) == [ROOT + ADMIN + "b.json"]
 
 
 def test_a_save_with_no_gen_in_memory_reads_the_files_first_and_writes_max_plus_one():
     h = boot(files={ROOT + ADMIN + "a.json": slot_doc(5, 4), ROOT + ADMIN + "b.json": slot_doc(4, 3)})
     S = h.NR.server.store
-    S.attach()["admin"] = h.rt.eval("{ v = 3, username = 'admin', resets = 4 }")   # in memory, never loaded
+    S.attach()["admin"] = h.rt.eval("{ username = 'admin', resets = 4 }")   # in memory, never loaded
     assert S.file.gen["admin"] is None
     assert S.file.save("admin", S.records["admin"])
     assert gen_of(h.T.files[ROOT + ADMIN + "b.json"]) == 6

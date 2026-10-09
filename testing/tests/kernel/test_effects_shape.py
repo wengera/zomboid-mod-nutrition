@@ -255,7 +255,7 @@ def test_a_fresh_record_composes_once_and_rebuilds_only_on_a_moved_key(eff_host)
     n0 = EFF(h).stats.rebuilds
     minute(h, p, rec)
     E = rec["effects"]
-    assert E is not None and E["ev"] == 1 and E["epoch"] == 1
+    assert E is not None and E["epoch"] == 1
     assert EFF(h).stats.rebuilds == n0 + 1
     assert E["key"]["day"] == rec["body"]["dayIndex"] == 4
     minute(h, p, rec, ageH=100.0 + 1 / 60)

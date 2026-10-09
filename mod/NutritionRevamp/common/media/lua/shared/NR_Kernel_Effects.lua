@@ -16,9 +16,6 @@
 local K = NutritionRevamp.kernel
 K.effects = {}
 
--- The record.effects schema version.
-K.effects.EV = 1 -- schema version, no row needed
-
 -- The band vector's indices and length.
 K.effects.B = {
     caf = 1, -- no row needed: an index
@@ -169,7 +166,6 @@ K.effects.BGROUP = {
 -- A fresh record.effects (J1): every surface at its identity, the key unmatchable, the machine at rest.
 function K.effects.new()
     return {
-        ev = K.effects.EV,
         epoch = 0,
         key = { ep = -1, day = -1, dials = 0, b = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
         mNut = 1,

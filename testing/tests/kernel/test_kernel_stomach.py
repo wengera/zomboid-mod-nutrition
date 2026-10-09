@@ -48,7 +48,7 @@ def test_constants(host):
 
 def test_new_is_an_empty_buffer_and_an_empty_liquid_lane(host):
     st = host.py(host.K.stomach["new"]())
-    assert st["liquid"] == 0 and "bulk" not in st
+    assert st["liquid"] == 0
     assert set(st["buffer"].keys()) == set(host.K.vector.KEYS.values())
     assert all(v == 0 for v in st["buffer"].values())
 

@@ -133,7 +133,7 @@ def test_first_call_lays_an_empty_stomach_and_stamps(kin_host):
     K = h.G.NutritionRevamp.kernel
     record = h.rt.table()
     run(h, record, 100.0)
-    assert record["stomach"]["liquid"] == 0 and record["stomach"]["bulk"] is None
+    assert record["stomach"]["liquid"] == 0
     for k in K.vector.KEYS.values():
         assert record["pool"][k] == 0
         assert record["stomach"]["buffer"][k] == 0

@@ -155,7 +155,6 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
     local day = math.floor(ageH / 24)
     local body = {}
-    body.bv = 1
     body.fm = fm
     body.lm = lm
     body.fm0 = fm

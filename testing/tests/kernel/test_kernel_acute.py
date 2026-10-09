@@ -38,7 +38,7 @@ def _list(host, t):
 
 def test_constants(host):
     A = host.K.acute
-    assert (A.AV, A.CAF_ABSORB, A.CAF_THALF_H, A.CAF_THALF_SLOW_H, A.CAF_SLOW_SHARE) == (2, 1.0, 5.0, 9.7, 0.5)  # av 2: Plan 5 Task 5
+    assert (A.CAF_ABSORB, A.CAF_THALF_H, A.CAF_THALF_SLOW_H, A.CAF_SLOW_SHARE) == (1.0, 5.0, 9.7, 0.5)
     assert (A.CAF_MEAN_H, A.CAF_TOL_REF, A.CAF_TOL_TAU_H, A.CAF_WD_TOL, A.CAF_WD_LOW_MG) == (168, 400, 168, 0.25, 10.7)
     assert (A.CAF_WD_ONSET_H, A.CAF_WD_PEAK_H, A.CAF_WD_END_H, A.CAF_EFFECT_MGKG) == (12, 36, 120, 3)
     assert _list(host, A.WIDMARK_R) == [0.68, 0.55]
@@ -67,7 +67,7 @@ def test_constants(host):
 
 def test_new_state_shape(host):
     a = host.py(_new(host, 100.0))
-    assert a == dict(av=2, caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
+    assert a == dict(caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
                      alcPeak=0, hangH=0, hang=0, glyc=462, g=1, bg=5.0, awakeH=0, debtH=0, sleptH=0,
                      winStartH=100.0, winSleptH=0, S=0.17, circ=0, frozen=False, starvedDays=0, lowDay=False,
                      mass90max=0, mass90ageH=100.0, bmi=0, refeedRisk=0, refeedDayN=-1, refeedEvent=False, iu=0,

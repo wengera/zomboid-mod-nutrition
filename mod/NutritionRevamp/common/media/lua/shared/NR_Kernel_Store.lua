@@ -1,18 +1,17 @@
--- NR_Kernel_Store.lua -- the persisted record's contract (Plan 8, ruling 5; spec § 4.8): the version field,
--- the closed list of INPUT paths a save holds, and the load that migrates an older record by keeping its
--- inputs and rebuilding everything else. An input is a field a slow-clock step READS from the previous
+-- NR_Kernel_Store.lua -- the persisted record's contract (Plan 8, ruling 5; spec § 4.8): the closed list of
+-- INPUT paths a save holds, and the load that keeps a stored record's inputs and rebuilds everything else.
+-- An input is a field a slow-clock step READS from the previous
 -- minute and writes back (an accumulator, a clock stamp, a hysteresis or latch state, a once-per-character
 -- draw, a creation constant, a day-close stamp held until the next close): no step can recompute it. A
 -- derived field is one a step recomputes from the inputs before any step reads it, or recomputes every
--- minute and reads only as a one-minute-lag neutral; load drops it, so a formula change needs no migration.
+-- minute and reads only as a one-minute-lag neutral; load drops it, so a formula change touches no save.
 -- The classification below was read off each owning step (named per group); a reviewer diffs it there.
 -- Paths are dotted; a `*` segment stands for every key of the table at that level (every nutrient key of
 -- the order, every vector key, every ring slot). A path whose value is a table (a ring slot of bandWeek) is
 -- copied deep.
 -- load(raw, order) builds a fresh record from the kernel constructors (K.store.new for the identity; for each
 -- sub-table raw carries, its own kernel constructor) and copies every INPUT path present in raw over it, so a
--- missing input keeps the constructor's default and an unknown or derived field never survives. A v1 record
--- (no `v`, or v = 1) and a v2 record pass through the same copy: the copy IS the migration, and it is
+-- missing input keeps the constructor's default and an unknown or derived field never survives. The copy is
 -- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
 -- constructor's neutral values (the mirror's dmod, rmod, energyState, band, dehydPct, iu, ... and the
 -- effects set), except stomachFill, which load recomputes from the stomach's inputs (the physical fill and the writer's
@@ -24,15 +23,12 @@
 local K = NutritionRevamp.kernel
 K.store = {}
 
--- The record version: 1 is Plan 1's identity-only S.new with the sub-tables laid lazily beside it; 2 is
--- the inputs-only contract below; 3 is v2 plus the satiety scalar; 4 is satiety from physiology (Plan 11c).
-K.store.VERSION = 4 -- schema version: 4 replaces satiety (a scalar) and satietyStepped with the satiety table's P, S, L and its mark v, and stomach.bulk with stomach.liquid (Plan 11c)
 
 -- The closed list of persisted paths, grouped by the step that owns each field.
 K.store.INPUTS = {
-    -- identity (NR_Server_Store, NR_Server_Players): the version field the save holds (load rewrites it to
-    -- VERSION after the copy), the key, the first and last world age seen, the respawn count, the death flag
-    "v", "username", "firstSeen", "lastSeen", "resets", "dead",
+    -- identity (NR_Server_Store, NR_Server_Players): the key, the first and last world age seen, the respawn
+    -- count, the death flag
+    "username", "firstSeen", "lastSeen", "resets", "dead",
     -- satiety (Plan 11c; NR_Server_Writer, NR_Server_Metabolism): the meal pool P (weighted kcal), which the writer
     -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
     "satiety.P", "satiety.S", "satiety.L", "satiety.t", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1)
@@ -148,11 +144,10 @@ function K.store.copy(v)
     return out
 end
 
--- A fresh record: the identity fields only, at version VERSION (NR_Server_Store's S.new shape, which calls
--- this). The sub-tables are laid by their adapters at first sight.
+-- A fresh record: the identity fields only (NR_Server_Store's S.new shape, which calls this). The sub-tables
+-- are laid by their adapters at first sight.
 function K.store.new(username, worldAgeHours)
     local r = {}
-    r.v = K.store.VERSION
     r.username = username
     r.firstSeen = worldAgeHours
     r.lastSeen = worldAgeHours
@@ -213,7 +208,7 @@ end
 -- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
 function K.store.defaults(rec, raw, order)
     if type(raw.stomach) == "table" then
-        rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it, a v3 bulk is dropped
+        rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it
     end
     if type(raw.pool) == "table" then
         rec.pool = K.vector.new()
@@ -306,9 +301,8 @@ function K.store.closeDefault(rec)
     end
 end
 
--- Load a stored record (any version) into a fresh version-VERSION record: the constructors' defaults, every
--- INPUTS path present in raw copied over them, v set, the stomach fill and the four read-before-refresh
--- fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
+-- Load a stored record into a fresh record: the constructors' defaults, every INPUTS path present in raw
+-- copied over them, the stomach fill and the four read-before-refresh fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
 -- keys. A non-table raw reads nil. records is the nutrient data (NR.data.records),
 -- passed by the caller and never read from a global.
 function K.store.load(raw, order, records)
@@ -324,7 +318,6 @@ function K.store.load(raw, order, records)
     for i = 1, #segs do
         K.store.overlay(rec, raw, segs[i], 1)
     end
-    rec.v = K.store.VERSION
     if rec.stomach ~= nil then
         rec.stomachFill = K.stomach.fill(rec.stomach)
     end
@@ -333,9 +326,8 @@ function K.store.load(raw, order, records)
     return rec
 end
 
--- Load raw (any version) and lay the result into target in place (ruling T4-1): every key target holds is
--- cleared and the loaded record's keys are set on it, so a handle held on target (the takeover's h.record, 1.0.0)
--- reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
+-- Load raw and lay the result into target in place (ruling T4-1): every key target holds is cleared and the
+-- loaded record's keys are set on it, so a handle held on target reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
 function K.store.fillInPlace(target, raw, order, records)
     local rec = K.store.load(raw, order, records)

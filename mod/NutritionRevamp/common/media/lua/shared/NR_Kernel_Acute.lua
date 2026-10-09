@@ -19,16 +19,13 @@
 -- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
 -- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's
 -- isAsleep misses, #2840, never let a run reach the nap threshold, #2986).
--- Plan 5 Task 5 (schema av 2; rulings 6, 11, 21): sleepMinute takes the accrual and recovery multipliers
+-- Plan 5 Task 5 (rulings 6, 11, 21): sleepMinute takes the accrual and recovery multipliers
 -- mAcc and rRec (nil reads 1, the Plan 4 behaviour) on chi_w and chi_s; three exponential memories join the
 -- state -- exEma (exercise minutes, exerciseMinute), coldH (cold hours, coldMinute), retEma (ingested
 -- retinol ug/day, retinolMinute) -- with lastVigAgeH (the last band-2 minute) and boutVig (latched at a
 -- bout's first asleep minute); iu stores its sleep term on iuSleep; the glucose knee moves to 3.0-2.6 mmol/L.
 local K = NutritionRevamp.kernel
 K.acute = {}
-
--- The record.acute schema version.
-K.acute.AV = 2 -- schema version, no row needed
 
 -- Caffeine.
 -- Absorption fraction of the gut lane, applied once in K.acute.absorbGut (ruling T17-2); alcohol and
@@ -170,7 +167,6 @@ K.acute.REFEED_P = 0.23 -- S0117 (23 %); S0118's 35 % noted, both critically-ill
 -- (lastVigAgeH far in the past), no vigorous latch, no sleep term.
 function K.acute.new(ageH)
     return {
-        av = K.acute.AV,
         gutAlc = 0,
         gutCaf = 0,
         caf = 0,

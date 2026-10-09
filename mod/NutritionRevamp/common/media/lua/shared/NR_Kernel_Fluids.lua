@@ -17,9 +17,6 @@
 local K = NutritionRevamp.kernel
 K.fluids = {}
 
--- The record.fluids schema version.
-K.fluids.FV = 1 -- schema version, no row needed
-
 -- Total body water per kg of lean mass, litres.
 K.fluids.TBW_PER_LM = 0.73 -- design-phase-v1 game choice (open row S1091: total body water as a fraction of lean mass)
 
@@ -125,7 +122,6 @@ K.fluids.SEVERE_DEHYD_PCT = 10 -- design-phase-v1 game choice (open row S1101; S
 -- multiplier 1 and the mean sweat sodium.
 function K.fluids.new(lm, sweatK, naSweat)
     return {
-        fv = K.fluids.FV,
         water = 0,
         na = 0,
         k = 0,

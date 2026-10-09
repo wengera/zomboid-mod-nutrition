@@ -38,7 +38,7 @@ META = {"mode": 1, "version": "v", "build": "b"}
 
 
 def mirror(h, **rec):
-    r = {"v": 1, "username": "a", "firstSeen": 1.0, "lastSeen": 2.0, "resets": 0, "dead": False}
+    r = {"username": "a", "firstSeen": 1.0, "lastSeen": 2.0, "resets": 0, "dead": False}
     r.update(rec)
     return h.py(h.call("mirror.build", h.table(r), h.table(META)))
 

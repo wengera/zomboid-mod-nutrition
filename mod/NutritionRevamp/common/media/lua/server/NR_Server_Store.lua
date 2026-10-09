@@ -41,12 +41,10 @@
 -- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
 -- newest slot when the record is not in memory, then runs K.store.fillInPlace on the record: the inputs are kept,
--- every derived field dropped for the slow minute to rebuild, and the version set to K.store.VERSION, all in the
--- record's OWN table, so every handle held on it reads the loaded record with no re-point. The load is idempotent
--- and runs at every first sight (derived on read); a record whose version moved logs
--- "store: migrated <username> v<old> -> v<new>" once (a record with no version is v1). A departure forgets the sight,
--- so a return loads again, and queues the record's flush as one task. A load that raises leaves the record as it
--- was, logged.
+-- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
+-- on it reads the loaded record with no re-point. The load is idempotent and runs at every first sight (derived on
+-- read). A departure forgets the sight, so a return loads again, and queues the record's flush as one task. A load
+-- that raises leaves the record as it was, logged.
 --
 -- The writes ride the players' queue (Decision 6 (b)): a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
@@ -71,7 +69,7 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
-                    fresh = {}, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
+                    fresh = {}, stats = { loads = 0, created = 0, failures = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
@@ -120,7 +118,7 @@ function S.attach()
     return S.records
 end
 
--- A fresh record at the current version (K.store.new: the identity fields and the satiety seed).
+-- A fresh record (K.store.new: the identity fields only).
 function S.new(username, worldAgeHours)
     return K.store.new(username, worldAgeHours)
 end
@@ -136,8 +134,6 @@ end
 
 -- The load of a stored record r, in place (the header). Returns r.
 function S.load(username, r)
-    local old = r.v
-    if old == nil then old = 1 end
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records)
     if not ok then
@@ -146,10 +142,6 @@ function S.load(username, r)
         return r
     end
     S.stats.loads = S.stats.loads + 1
-    if r.v ~= old then
-        S.stats.migrations = S.stats.migrations + 1
-        NR.log.say(2, "store: migrated " .. tostring(username) .. " v" .. tostring(old) .. " -> v" .. tostring(r.v))
-    end
     return r
 end
 
@@ -341,7 +333,7 @@ end
 function F.writeIndex()
     local gen = F.indexGen + 1
     local which = target(F.indexAt, F.indexPath(F.indexAt or "a"), F.lastIndex, "the index")
-    local text = K.json.encode({ v = 1, gen = gen, players = F.index, done = true }, F.fmt)
+    local text = K.json.encode({ gen = gen, players = F.index, done = true }, F.fmt)
     if not F.write(F.indexPath(which), text) then return false end
     F.indexGen = gen
     F.indexAt = which

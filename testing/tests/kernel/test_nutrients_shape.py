@@ -276,13 +276,13 @@ def test_fresh_record_gains_the_three_sub_tables(nut_host):
     for key in order(h):
         assert n[key]["p"] == 1, key
         assert n[key]["g"] == 1, key
-    assert n["nv"] == 1 and n["epoch"] == 0
+    assert "nv" not in n and n["epoch"] == 0
     assert abs(n["lastAgeH"] - 100.0) < TOL
     assert n["lastDayIndex"] == record["body"]["dayIndex"] == 4
-    assert f["fv"] == 1 and f["water"] == 0 and f["viewPct"] == 0
+    assert "fv" not in f and f["water"] == 0 and f["viewPct"] == 0
     assert abs(f["sweatK"] - 1.0) < TOL                     # 0.5 + 1.0 x the stub roll 0.5
     assert abs(f["naSweat"] - 30.0) < TOL                   # 10 + 80 x 0.5^2
-    assert a["av"] == 2 and a["slowMet"] is False           # av 2 (Plan 5 Task 5); roll 0.5 is not < 0.5
+    assert "av" not in a and a["slowMet"] is False          # roll 0.5 is not < 0.5
     assert abs(a["lastFedAgeH"] - 100.0) < TOL and a["alc7"] == 0 and a["alcDayG"] == 0
     assert nonfinite(h, record) == ""
 
@@ -759,40 +759,7 @@ def test_a_landed_drink_reaches_the_blood_through_the_gut(nut_host):
     assert abs(record["acute"]["alcDayG"] - 10.0) < TOL      # the day total reads the ingested amount
 
 
-def test_the_new_acute_fields_are_backfilled(nut_host):
-    h = nut_host
-    p = player(h)
-    record = fresh(h, p)
-    for k in ("gutAlc", "gutCaf", "boutH", "gapH"):
-        record["acute"][k] = None
-    alone(h, p, record, 100.0 + 1 / 60)
-    for k in ("gutAlc", "gutCaf", "boutH", "gapH"):
-        assert record["acute"][k] == 0, k
-    assert nonfinite(h, record) == ""
-
-
-# --- Plan 5 Task 5: the av 2 fields and their feeds ---------------------------------------------------------
-
-PLAN5_FIELDS = ("exEma", "lastVigAgeH", "boutVig", "coldH", "retEma", "iuSleep", "lastB1", "lastB2")
-
-
-def test_an_av_1_record_is_backfilled_to_av_2(nut_host):
-    h = nut_host
-    p = player(h)
-    record = fresh(h, p)
-    a = record["acute"]
-    a["av"] = 1
-    for k in PLAN5_FIELDS:
-        a[k] = None
-    record["body"]["band1Day"] = 12.0                       # a day already exercised before the upgrade
-    record["body"]["band2Day"] = 4.0
-    alone(h, p, record, 100.0 + 1 / 60)
-    assert a["av"] == 2
-    assert a["lastVigAgeH"] == -1e9 and a["boutVig"] is False
-    assert (a["lastB1"], a["lastB2"]) == (12.0, 4.0)        # the baselines start at the accumulators
-    assert a["exEma"] == 0 and a["coldH"] == 0 and a["retEma"] == 0  # no credit for minutes it never saw
-    assert a["iuSleep"] == 0
-    assert nonfinite(h, record) == ""
+# --- Plan 5 Task 5: the band baselines and their feeds -----------------------------------------------------
 
 
 def test_the_minute_band_is_read_off_the_accumulators_growth(nut_host):
@@ -975,9 +942,14 @@ def test_missing_added_fields_are_backfilled(nut_host):
     record["acute"]["alc7"] = None
     record["acute"]["alcDayG"] = None
     record["acute"]["lastFedAgeH"] = None
+    record["acute"]["lastB1"] = None
+    record["acute"]["lastB2"] = None
+    record["body"]["band1Day"] = 12.0                       # a day already exercised before the first minute
+    record["body"]["band2Day"] = 4.0
     alone(h, p, record, 100.0 + 1 / 60)
     assert record["nutrients"]["lastDayIndex"] == 4
     assert record["acute"]["alc7"] == 0
+    assert (record["acute"]["lastB1"], record["acute"]["lastB2"]) == (12.0, 4.0)   # the baselines start at the accumulators
     assert nonfinite(h, record) == ""
 
 

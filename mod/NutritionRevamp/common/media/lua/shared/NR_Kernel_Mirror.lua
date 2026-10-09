@@ -12,7 +12,6 @@ K.mirror = {}
 -- (the adapter passes NR.data.records.ORDER; nil carries none). Returns a new flat table.
 function K.mirror.build(record, meta, order)
     local m = {}
-    m.v = record.v
     m.username = record.username
     m.firstSeen = record.firstSeen
     m.lastSeen = record.lastSeen

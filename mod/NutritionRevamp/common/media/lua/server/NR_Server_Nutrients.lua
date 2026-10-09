@@ -192,7 +192,7 @@ local function heal(username, record, body, ageH)
         NUT.refAcute.alcDayG = 0
         NUT.refAcute.lastB1 = 0
         NUT.refAcute.lastB2 = 0
-        NUT.refNut = { nv = K.nutrients.NV, epoch = 0, ironGrade = 1, lastDayIndex = 0 }
+        NUT.refNut = { epoch = 0, ironGrade = 1, lastDayIndex = 0 }
     end
     local n = record.nutrients
     NUT.refNut.lastDayIndex = body.dayIndex
@@ -238,22 +238,10 @@ local function ensure(record, body, ageH)
     if a.lastFedAgeH == nil then a.lastFedAgeH = ageH end
     if a.alc7 == nil then a.alc7 = 0 end
     if a.alcDayG == nil then a.alcDayG = 0 end
-    -- the fix wave's fields (rulings T17-2, T17-4) on a record made before them
-    if a.gutAlc == nil then a.gutAlc = 0 end
-    if a.gutCaf == nil then a.gutCaf = 0 end
-    if a.boutH == nil then a.boutH = 0 end
-    if a.gapH == nil then a.gapH = 0 end
-    -- the Plan 5 fields (schema av 1 -> 2, Task 5) on a record made before them; the band baselines start at
-    -- the accumulators' current values, so a backfilled record credits no exercise it did not see
-    if a.exEma == nil then a.exEma = 0 end
-    if a.lastVigAgeH == nil then a.lastVigAgeH = -1e9 end
-    if a.boutVig == nil then a.boutVig = false end
-    if a.coldH == nil then a.coldH = 0 end
-    if a.retEma == nil then a.retEma = 0 end
-    if a.iuSleep == nil then a.iuSleep = 0 end
+    -- the band baselines start at the accumulators' current values, so a new record credits no exercise it did
+    -- not see
     if a.lastB1 == nil then a.lastB1 = body.band1Day or 0 end
     if a.lastB2 == nil then a.lastB2 = body.band2Day or 0 end
-    a.av = K.acute.AV
 end
 
 -- The minute's training band, 0/1/2 (Plan 5 Task 5): Metabolism's K.training.sample adds the minute to

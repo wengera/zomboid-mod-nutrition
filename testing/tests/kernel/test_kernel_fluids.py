@@ -33,7 +33,7 @@ def _ctx(host, **kw):
 
 def test_constants(host):
     F = host.K.fluids
-    assert (F.FV, F.TBW_PER_LM, F.OSM_REF) == (1, 0.73, 140)
+    assert (F.TBW_PER_LM, F.OSM_REF) == (0.73, 140)
     assert list(host.py(F.AI).values()) == [3700, 2700]
     assert (F.SWEAT_LH, F.SWEAT_MET_LO, F.SWEAT_MET_HI, F.SWEAT_CAP) == (1.0, 3, 8, 1.5)
     assert list(host.py(F.SWEATK_RANGE).values()) == [0.5, 1.5]
@@ -51,7 +51,7 @@ def test_constants(host):
 
 def test_new_state_shape(host):
     f = host.py(_new(host, 65.6, 1.2, 50))
-    assert f == dict(fv=1, water=0, na=0, k=0, sweatK=1.2, naSweat=50, sweat6h=0, loss6h=0, dehydPct=0, c=1,
+    assert f == dict(water=0, na=0, k=0, sweatK=1.2, naSweat=50, sweat6h=0, loss6h=0, dehydPct=0, c=1,
                      naPlasma=140, thirstTarget=0, autoDrop=0, sweatLmin=0)
 
 

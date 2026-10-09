@@ -71,7 +71,7 @@ def _py(h, E):
 
 def test_new_is_j1s_table(kh):
     e = kh.py(kh.K.effects.new())
-    assert e["ev"] == 1 and e["epoch"] == 0
+    assert "ev" not in e and e["epoch"] == 0
     assert e["key"] == {"ep": -1, "day": -1, "dials": 0, "b": {i: 0 for i in range(1, 13)}}
     assert (e["aimMul"], e["fOff"], e["solAddH"], e["solMul"], e["pe"], e["ea"], e["nvDays"]) == (1, 0, 0, 1, 1, 30, 0)
     assert e["own"] == {"nv": False, "ss": False}
