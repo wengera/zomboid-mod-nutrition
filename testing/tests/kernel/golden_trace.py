@@ -13,12 +13,11 @@ isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight
 getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug, and getStats
 (Plan 11e Task 1, ruling 11e-3: a stats object starting at STAT_START, so the writer's W.step runs every minute).
 The globals beside it: CharacterStat, CharacterTrait (17 sentinels), Perks.Strength with the 75 L (L + 1) ladder,
-MoodleType, BodyPartType, and sendSyncPlayerFields and syncBodyPart counting. A small engine step (NR_T.engine)
-runs before each minute: wound timers fall, an infection and a catch-a-cold rise.
+MoodleType, BodyPartType, sendSyncPlayerFields and syncBodyPart counting, and getSandboxOptions (StatsDecrease 1). A
+small engine step (NR_T.engine) runs before each minute: wound timers fall, an infection and a catch-a-cold rise.
 
-Each minute m = 1..240: the world age is START_AGE + m/60 (118.5 -> 122.5: minute 90 closes a day); the engine
-step; the minute's events; every EveryOneMinute listener (h.minute()), then 25 OnTick frames (h.tick(25)); at every
-30th minute a snapshot.
+Each minute m = 1..240: world age START_AGE + m/60 (118.5 -> 122.5: minute 90 closes a day); the engine step; the
+minute's events; every EveryOneMinute listener (h.minute()), then 25 OnTick frames (h.tick(25)); a snapshot per 30.
 Events: meals at minutes 10, 70 and 130 (NR_T.meals) through IN.readAfterAndLand (so IN.assemble), one per round
 (g4's Steak at 10, g1's dish at 70, g3's at 130) first through IN.readBefore over a stand-in Food (NR_T.food); the
 rest over a fixed before-snapshot. Minute 70 is a round of second bites (frac, the share of what was left, differs
@@ -31,6 +30,7 @@ sleep debt set to DEBT_G1 at minute 20; g6's macro stores raised by an external 
 Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.fluid, IN.land); g3 dies at minute
 100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
+Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and P (g5, 140); g1's P overflows (170).
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
 body-damage counters and parts, the Nutrition stores, `written`: the writer's last set value per stat, `statSets`),
 the counters of a FIXED list of NR.server adapters (STATS_NAMES; a new module's stats never move the trace), the
@@ -65,9 +65,10 @@ MEAL_MINUTES = (10, 70, 130)
 NAMES = ("g1", "g2", "g3", "g4", "g5", "g6")
 
 # The adapters whose stats tables are traced, by name (bus.effects is NR.server.bus.effects.stats). Fixed: a
-# module added by the refactor (NR.server.minute) never enters the trace.
+# module added by the refactor (NR.server.minute) never enters the trace. "writer" joins in Plan 11e Task 1 fix 1: its
+# guarded and seeded counters are the only trace of a guard that heals a field the kernel heals again.
 STATS_NAMES = ("bus.effects", "effects", "fast", "intake", "kinetics", "metabolism", "nutrients", "reconcile",
-               "store", "strength", "training", "weight")
+               "store", "strength", "training", "weight", "writer")
 
 # Starting macros (calories, carbs, lipids, proteins), distinct per player.
 MACROS = {
@@ -83,9 +84,17 @@ RETURN_G4 = (1700.0, 200.0, 70.0, 90.0)
 
 DRINK_LITRES = 0.25
 STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's eat, the four stores raised
-# minute 20: a sleep debt of 1 h booked on g1's acute record (Plan 11e Task 1), so the writer's sleep factor reads
-# above 1 (half of K.satiety.SLEEP_DEBT_FULL_H): no 24 h window closes in the trace's 4 h, so the debt never books
+# minute 20: synthetic state (ruling T1-1), written straight to g1's record.acute.debtH, not booked through
+# K.acute.sleepMinute: no 24 h close falls in the trace's 4 h, so the writer's sleep factor (above 1 at half of
+# K.satiety.SLEEP_DEBT_FULL_H) is reached only this way
 DEBT_G1 = 1.0
+# minutes 80, 120, 140, 170: the writer's satiety guards (W.satiety, W.satietyDtH). A NaN S (g2), t (g4) and P (g5)
+# is healed in the step before any snapshot reads it (L is healed by Metabolism first, so no guard there). At 170
+# g1 gets a P of GUARD_P_G1 and one StatsDecrease read of GUARD_SD, so the decay overflows to inf (exp of +0.58 or
+# more) and the P restore (s.P = P0) catches it
+GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_P_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
+GUARD_P_G1 = 1e308
+GUARD_SD = -50.0
 
 # The env addendum: the generator, the command and sync counters, the globals, the decorator, the engine step
 # and the fixed meal snapshots.
@@ -111,6 +120,14 @@ end
 sendSyncPlayerFields = function(player, mask)
     local k = tostring(player:getUsername()) .. ":" .. tostring(mask)
     NR_T.syncs.players[k] = (NR_T.syncs.players[k] or 0) + 1
+end
+getSandboxOptions = function()
+    return { getStatsDecreaseMultiplier = function(s)
+        local v = NR_T.sdOnce
+        NR_T.sdOnce = nil
+        if v ~= nil then return v end
+        return 1
+    end }
 end
 syncBodyPart = function(part, mask)
     local k = tostring(part.st.name) .. ":" .. tostring(mask)
@@ -617,6 +634,15 @@ def run(host):
                 _meal(h, m, n)
         if m == 20:
             h.record("g1")["acute"]["debtH"] = DEBT_G1
+        if m == GUARD_S_MINUTE:
+            h.record("g2")["satiety"]["S"] = float("nan")
+        if m == GUARD_T_MINUTE:
+            h.record("g4")["satiety"]["t"] = float("nan")
+        if m == GUARD_P_MINUTE:
+            h.record("g5")["satiety"]["P"] = float("nan")
+        if m == GUARD_RESTORE_MINUTE:
+            h.record("g1")["satiety"]["P"] = GUARD_P_G1
+            h.T.sdOnce = GUARD_SD
         if m == 45:
             nut = players["g6"].nut
             nut.cal = nut.cal + STORE_RAISE_G6[0]

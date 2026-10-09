@@ -6232,6 +6232,16 @@
      "pushes": 0,
      "rebases": 180,
      "weightWrites": 180
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 0,
+     "nms": false,
+     "seeded": 6,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 180
     }
    },
    "syncs": {
@@ -12474,6 +12484,16 @@
      "pushes": 0,
      "rebases": 360,
      "weightWrites": 360
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 0,
+     "nms": false,
+     "seeded": 6,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 360
     }
    },
    "syncs": {
@@ -18727,6 +18747,16 @@
      "pushes": 0,
      "rebases": 540,
      "weightWrites": 540
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 1,
+     "nms": false,
+     "seeded": 6,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 540
     }
    },
    "syncs": {
@@ -24968,6 +24998,16 @@
      "pushes": 0,
      "rebases": 720,
      "weightWrites": 720
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 2,
+     "nms": false,
+     "seeded": 7,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 720
     }
    },
    "syncs": {
@@ -25600,7 +25640,7 @@
      "statSets": 599,
      "written": {
       "FATIGUE": 0.33744910698607311,
-      "HUNGER": 0.17307626566506581,
+      "HUNGER": 0.17277733636552636,
       "INTOXICATION": 0,
       "THIRST": 0.012276910817906272
      }
@@ -30153,7 +30193,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 431.30462169406491,
+      "P": 450.64675874256852,
       "S": 0,
       "t": 121
      },
@@ -31211,6 +31251,16 @@
      "pushes": 0,
      "rebases": 899,
      "weightWrites": 899
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 3,
+     "nms": false,
+     "seeded": 8,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 899
     }
    },
    "syncs": {
@@ -31354,8 +31404,8 @@
      },
      "statSets": 719,
      "written": {
-      "FATIGUE": 0.42099183219764391,
-      "HUNGER": 0.20648569594861413,
+      "FATIGUE": 0.42028090164238729,
+      "HUNGER": 0.0025957812560761947,
       "INTOXICATION": 4.326712829284955,
       "THIRST": 0
      }
@@ -31843,7 +31893,7 @@
      "statSets": 719,
      "written": {
       "FATIGUE": 0.38112929218090275,
-      "HUNGER": 0.18151449864504948,
+      "HUNGER": 0.18120265011407943,
       "INTOXICATION": 0,
       "THIRST": 0.019712103200686393
      }
@@ -31975,7 +32025,7 @@
    "records": {
     "g1": {
      "acute": {
-      "S": 0.32078943136269567,
+      "S": 0.32007850080743905,
       "alc": 4.7072359623692153,
       "alc7": 0.042269900803034964,
       "alcDayG": 0,
@@ -32825,7 +32875,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 143.03691314970217,
+      "P": 8.4786399187753154e+307,
       "S": 0,
       "t": 121.5
      },
@@ -36388,7 +36438,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 262.88311148328097,
+      "P": 274.67227606509084,
       "S": 0,
       "t": 121.5
      },
@@ -37446,6 +37496,16 @@
      "pushes": 0,
      "rebases": 1050,
      "weightWrites": 1050
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 4,
+     "nms": false,
+     "seeded": 8,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 1050
     }
    },
    "syncs": {
@@ -37589,8 +37649,8 @@
      },
      "statSets": 839,
      "written": {
-      "FATIGUE": 0.45584253068726982,
-      "HUNGER": 0.22382671561967474,
+      "FATIGUE": 0.45515895048907756,
+      "HUNGER": 0.0027865753817154161,
       "INTOXICATION": 1.1040188339920021,
       "THIRST": 0.00043989504907127053
      }
@@ -38079,7 +38139,7 @@
      "statSets": 839,
      "written": {
       "FATIGUE": 0.42329103641481203,
-      "HUNGER": 0.18953660888032961,
+      "HUNGER": 0.1892127305817437,
       "INTOXICATION": 0,
       "THIRST": 0.03466392296883547
      }
@@ -38211,7 +38271,7 @@
    "records": {
     "g1": {
      "acute": {
-      "S": 0.34691948223313718,
+      "S": 0.34623590203494492,
       "alc": 1.2011144172373767,
       "alc7": 0.042269900803034964,
       "alcDayG": 0,
@@ -39061,7 +39121,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 87.181975092373435,
+      "P": 5.1677889150351244e+307,
       "S": 0,
       "t": 122
      },
@@ -42624,7 +42684,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 160.22905117893868,
+      "P": 167.41462747738368,
       "S": 0,
       "t": 122
      },
@@ -43682,6 +43742,16 @@
      "pushes": 0,
      "rebases": 1230,
      "weightWrites": 1230
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 4,
+     "nms": false,
+     "seeded": 8,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 1230
     }
    },
    "syncs": {
@@ -43825,8 +43895,8 @@
      },
      "statSets": 959,
      "written": {
-      "FATIGUE": 0.48790982239020897,
-      "HUNGER": 0.24055139602166656,
+      "FATIGUE": 0.48725254034781329,
+      "HUNGER": 0.00320284643946296,
       "INTOXICATION": 0,
       "THIRST": 0.012169119403430684
      }
@@ -44315,7 +44385,7 @@
      "statSets": 959,
      "written": {
       "FATIGUE": 0.46292567865026613,
-      "HUNGER": 0.19720155257695465,
+      "HUNGER": 0.19686642532334192,
       "INTOXICATION": 0,
       "THIRST": 0.049719407830006279
      }
@@ -44447,7 +44517,7 @@
    "records": {
     "g1": {
      "acute": {
-      "S": 0.37204427848885457,
+      "S": 0.37138699644645889,
       "alc": 0,
       "alc7": 0.042269900803034964,
       "alcDayG": 0,
@@ -45297,7 +45367,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 53.138009019058899,
+      "P": 3.1498026247371785e+307,
       "S": 0,
       "t": 122.5
      },
@@ -48860,7 +48930,7 @@
      "resets": 0,
      "satiety": {
       "L": 0,
-      "P": 97.660700593677134,
+      "P": 102.04035840424339,
       "S": 0,
       "t": 122.5
      },
@@ -49918,6 +49988,16 @@
      "pushes": 0,
      "rebases": 1410,
      "weightWrites": 1410
+    },
+    "writer": {
+     "dry": 0,
+     "failures": 0,
+     "guarded": 4,
+     "nms": false,
+     "seeded": 8,
+     "sips": 0,
+     "skipped": 0,
+     "writes": 1410
     }
    },
    "syncs": {
