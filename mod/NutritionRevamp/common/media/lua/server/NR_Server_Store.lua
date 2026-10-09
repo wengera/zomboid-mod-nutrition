@@ -4,7 +4,7 @@
 -- kept under a global modData name (#3417: any client could request it). A pruned player's slots are emptied, not
 -- deleted: Lua has no file delete or rename (J2). The folder is keyed by the server name, so a world wiped under the
 -- same name finds the old files, and every returning player's record, resets included, carries over; an operator
--- who wants a fresh start deletes the folder by hand. The load at first sight (fillInPlace) is kept as before.
+-- who wants a fresh start deletes the folder by hand. The load at first sight is fillInPlace (the load, below).
 -- Inputs only (K.store.inputsOnly), never transmitted (#2416) and never player modData (#1042). Runs in both Lua
 -- states; every write below is behind NutritionRevamp.isServer().
 --
@@ -70,13 +70,13 @@
 -- loses what ruling 8 says.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.store = { name = "NutritionRevamp.players", records = nil, loaded = {}, loadedFor = nil, wired = false,
+NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
                     fresh = {}, stats = { loads = 0, migrations = 0, created = 0, failures = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
                              stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
-                                       migrated = 0, kept = 0, bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferSince = {},
+                                       bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferSince = {},
                              dirty = {} } }
 local S = NR.server.store
 local F = S.file
@@ -489,41 +489,6 @@ function S.prune(now, keepDays)
     return #doomed
 end
 
--- The migration (at OnServerStarted, every boot while the old table exists): a username whose slot files already
--- hold a record is never written (F.load answered: the files are newer than any global copy, which a crash before
--- the world save can bring back; ruling 16); every other record is written to its slot and read back. Only when no
--- record failed is the global table removed, so the leak closes (#3417). A second run changes nothing.
-function F.migrate()
-    if ModData == nil or ModData.exists == nil then return 0 end
-    local okE, has = pcall(ModData.exists, S.name)
-    if not okE or has ~= true then return 0 end
-    local okG, old = pcall(ModData.get, S.name)
-    if not okG or type(old) ~= "table" then return 0 end
-    local n, kept, bad = 0, 0, 0
-    for username, rec in pairs(old) do
-        if type(username) == "string" and type(rec) == "table" then
-            if F.load(username) ~= nil then
-                kept = kept + 1
-            elseif F.save(username, rec) and F.load(username) ~= nil then
-                n = n + 1
-            else
-                bad = bad + 1
-            end
-        end
-    end
-    F.stats.migrated = F.stats.migrated + n
-    F.stats.kept = F.stats.kept + kept
-    if bad > 0 then
-        NR.log.say(1, "store: " .. tostring(bad) .. " record(s) did not read back; the global table is kept until the next boot")
-        return n
-    end
-    pcall(ModData.remove, S.name)
-    F.writeIndex()
-    NR.log.say(1, "store: migrated " .. tostring(n) .. " record(s) from global modData to " .. F.dir() .. " ("
-        .. tostring(kept) .. " already on file, left as they were); the global table removed")
-    return n
-end
-
 local function keepDays()
     local o = NR.server.options
     if o ~= nil and type(o.recordKeepDays) == "number" then return o.recordKeepDays end
@@ -550,8 +515,8 @@ local function queue(name, fn)
     end
 end
 
--- Wiring at OnServerStarted (this file sorts after NR_Server_Options and NR_Server_Players): the index read, the
--- migration and a first prune (no player is online yet), the departure hook and the pipeline's "store" step.
+-- Wiring at OnServerStarted (this file sorts after NR_Server_Options and NR_Server_Players): the index read and a
+-- first prune (no player is online yet), the departure hook and the pipeline's "store" step.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
@@ -559,7 +524,6 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         S.wired = true
         S.attach()
         F.readIndex()
-        F.migrate()
         pruneNow()
         local P = NR.server.players
         if P ~= nil then P.onDeparture[#P.onDeparture + 1] = S.forget end

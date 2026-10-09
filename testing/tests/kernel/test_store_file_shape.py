@@ -57,28 +57,21 @@ end
 """
 
 MODDATA = r"""
-NR_T.removed = {}
-ModData = { tables = { ["NutritionRevamp.players"] = NR_T.oldStore } }
-ModData.exists = function(name) return ModData.tables[name] ~= nil end
-ModData.get = function(name) return ModData.tables[name] end
-ModData.remove = function(name) local t = ModData.tables[name]; ModData.tables[name] = nil; NR_T.removed[#NR_T.removed + 1] = name; return t end
-ModData.getOrCreate = function(name) error("getOrCreate must never be called (the leak)") end
+ModData = { getOrCreate = function(name) error("getOrCreate must never be called (the leak)") end }
 """
 
-OLD = "{ olduser = { v = 2, username = 'olduser', firstSeen = 50.0, lastSeen = 60.0, resets = 2, dead = false } }"
 ROOT = "NutritionRevamp/srv/"
 ADMIN = "p_00610064006d0069006e_"      # hexName("admin"): four hex digits a code unit
-OLDUSER = "p_006f006c00640075007300650072_"
 OLDP = "p_006f006c0064_"                   # hexName("old")
 
 
-def boot(files=None, old_store=None, env=""):
+def boot(files=None, moddata=False, env=""):
     text = FILES + env
     for k, v in (files or {}).items():
         assert "]==]" not in v
         text = text + "\nNR_T.files[%r] = [==[%s]==]\n" % (k, v)      # in place before OnServerStarted
-    if old_store is not None:
-        text = text + "\nNR_T.oldStore = " + old_store + "\n" + MODDATA
+    if moddata:
+        text = text + "\n" + MODDATA
     return Host(extra_env=text)
 
 
@@ -91,10 +84,6 @@ def run_minutes(h, n, start=1):
 
 def files_of(h):
     return {k: h.T.files[k] for k in h.T.files.keys()}
-
-
-def removed(h):
-    return [h.T.removed[i] for i in range(1, len(h.T.removed) + 1)]
 
 
 def lst(t):
@@ -196,41 +185,8 @@ def test_the_writer_never_opens_the_slot_that_holds_the_newest_complete_record()
     assert newest(files_of(h), ROOT + ADMIN) is not None
 
 
-def test_the_global_store_migrates_to_files_and_is_removed():
-    h = boot(old_store=OLD)
-    assert removed(h) == ["NutritionRevamp.players"]
-    assert any(k.startswith(ROOT + OLDUSER) for k in files_of(h))
-    assert h.NR.server.store.file.stats.migrated == 1
-    r = h.NR.server.store.get("olduser", 100.0)
-    assert r.resets == 2 and r.v == 4 and r.satiety is None
-
-
-def test_the_migration_run_twice_changes_nothing_the_second_time():
-    h = boot(old_store=OLD)
-    before = files_of(h)
-    h.G.ModData.tables["NutritionRevamp.players"] = h.rt.eval(OLD)   # the table back, as after a crash
-    assert h.NR.server.store.file.migrate() == 0
-    after = files_of(h)
-    assert {k: v for k, v in after.items() if "index_" not in k} == {k: v for k, v in before.items() if "index_" not in k}
-    assert h.NR.server.store.file.stats.migrated == 1 and h.NR.server.store.file.stats.kept == 1
-
-
-def test_a_crash_before_the_world_save_never_overwrites_newer_slot_files():
-    h = boot(old_store=OLD)
-    r = h.NR.server.store.get("olduser", 100.0)
-    r.resets = 7                                     # play moved the record on; its slot holds it
-    assert h.NR.server.store.file.save("olduser", r)
-    saved = files_of(h)
-    h2 = boot(files=saved, old_store=OLD)            # the world rolled back: the stale global table is back
-    slots = sorted(k for k in saved if k.startswith(ROOT + OLDUSER))
-    assert {k: h2.T.files[k] for k in slots} == {k: saved[k] for k in slots}
-    assert h2.NR.server.store.file.stats.migrated == 0 and h2.NR.server.store.file.stats.kept == 1
-    assert h2.NR.server.store.get("olduser", 100.0).resets == 7
-    assert removed(h2) == ["NutritionRevamp.players"]
-
-
 def test_nothing_is_ever_created_under_a_global_modData_name():
-    h = boot(old_store="{}")
+    h = boot(moddata=True)
     h.online(h.player("admin"))
     run_minutes(h, 2)                                # getOrCreate raises if anything calls it
     assert h.G.rawequal(h.NR.server.store.attach(), h.NR.server.store.records)
@@ -337,7 +293,7 @@ def test_a_returning_player_after_a_prune_gets_a_fresh_record():
 
 
 def test_the_reader_is_always_called_with_create_false():
-    h = boot(old_store=OLD)
+    h = boot()
     h.online(h.player("admin"))
     run_minutes(h, 2)
     flags = lst(h.T.readerCreate)
@@ -465,24 +421,6 @@ def test_a_slot_missing_done_gen_or_its_body_is_a_read_failure_and_the_other_win
         raw = F.load("admin")                                                   # never raises
         assert raw is not None and raw.resets == 3, bad
         assert F.at["admin"] == "b" and F.gen["admin"] == 1 and F.stats.readFailures == 1, bad
-
-
-OLD2 = ("{ olduser = { v = 2, username = 'olduser', firstSeen = 50.0, lastSeen = 60.0, resets = 2, dead = false },"
-        "  ok = { v = 2, username = 'ok', firstSeen = 51.0, lastSeen = 61.0, resets = 1, dead = false } }")
-
-
-def test_a_migration_whose_writer_is_nil_keeps_the_global_table():
-    h = boot(old_store=OLD2, env="\nNR_T.nilWriter = true\n")
-    assert removed(h) == []
-    assert h.NR.server.store.file.stats.migrated == 0
-    assert any("did not read back" in p for p in h.printed())
-
-
-def test_a_migration_whose_write_never_lands_keeps_the_global_table_and_counts_only_the_good():
-    h = boot(old_store=OLD2, env='\nNR_T.swallow = "%s"\n' % (ROOT + OLDUSER))
-    assert removed(h) == []
-    assert h.NR.server.store.file.stats.migrated == 1                          # ok, never olduser
-    assert any("1 record(s) did not read back" in p for p in h.printed())
 
 
 def test_the_save_opens_the_file_that_does_not_hold_the_newest_copy_whatever_its_gen():
