@@ -132,14 +132,27 @@ local function sights(t)
     return S.loaded
 end
 
+-- Ruling C9-10: a load that raises (a corrupt or hand-edited file: a body without its masses or clock, a string where
+-- a number sits) lays a fresh record in target's OWN table, so every handle held on it stays valid, and the character
+-- runs the fresh-character path (its sub-tables laid at first sight) instead of a raw table every step fails on. The
+-- record's mod state is lost; the username and its first sight are kept. Counted in S.stats.failures and logged.
+local function freshInPlace(username, target, firstSeen)
+    local age = firstSeen
+    if type(age) ~= "number" or age ~= age then age = NR.worldAge() end   -- nil when unread: P.work stamps lastSeen
+    local rec = K.store.new(username, age)
+    for k in pairs(target) do target[k] = nil end
+    for k, v in pairs(rec) do target[k] = v end
+    return target
+end
+
 -- The load of a stored record r, in place (the header). Returns r.
 function S.load(username, r)
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records)
     if not ok then
         S.stats.failures = S.stats.failures + 1
-        NR.log.say(2, "store: load failed for " .. tostring(username) .. ": " .. tostring(err))
-        return r
+        NR.log.say(1, "store: load failed for " .. tostring(username) .. ": " .. tostring(err) .. "; a fresh record laid")
+        return freshInPlace(username, r, r.firstSeen)
     end
     S.stats.loads = S.stats.loads + 1
     return r
@@ -270,7 +283,8 @@ function S.recover(username, record, raw)
     local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records)
     if not ok then
         S.stats.failures = S.stats.failures + 1
-        NR.log.say(2, "store: recovery failed for " .. tostring(username) .. ": " .. tostring(err))
+        NR.log.say(1, "store: load failed for " .. tostring(username) .. " (recovery): " .. tostring(err) .. "; a fresh record laid")
+        freshInPlace(username, record, record.firstSeen)
         return
     end
     F.stats.recovered = F.stats.recovered + 1

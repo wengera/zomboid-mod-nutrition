@@ -242,14 +242,16 @@ function K.store.overlay(dst, src, segs, i)
     return dst
 end
 
--- One key of a load's copy: at the last segment the stored value is copied (deep) over the default; above
--- it the walk descends only where both sides hold a table. A missing stored value keeps the default.
+-- One key of a load's copy: at the last segment the stored value is copied (deep) over the default, once
+-- K.store.checkLeaf has passed it; above it the walk descends only where both sides hold a table. A missing stored
+-- value keeps the default.
 function K.store.overlayKey(dst, src, k, segs, i)
     local sv = src[k]
     if sv == nil then
         return
     end
     if i == #segs then
+        K.store.checkLeaf(dst[k], sv, k)
         dst[k] = K.store.copy(sv)
         return
     end
@@ -258,6 +260,20 @@ function K.store.overlayKey(dst, src, k, segs, i)
         return
     end
     K.store.overlay(dv, sv, segs, i + 1)
+end
+
+-- Ruling C9-10: a stored input must have its default's type (a number where the constructor lays a number), and
+-- one with no default (a lazily laid field: iron's S and H, calcium's bone, the satiety pool) must be a number, a
+-- boolean or a table. Anything else is a corrupt file: the load raises, and the server lays a fresh record
+-- (NR_Server_Store's S.load), never a record that every step fails on.
+function K.store.checkLeaf(dv, sv, k)
+    local t = type(sv)
+    if dv ~= nil and t ~= type(dv) then
+        error("store: input " .. tostring(k) .. " is a " .. t .. ", not a " .. type(dv))
+    end
+    if dv == nil and t ~= "number" and t ~= "boolean" and t ~= "table" then
+        error("store: input " .. tostring(k) .. " is a " .. t)
+    end
 end
 
 -- The four fields Metabolism reads before the Nutrients minute refreshes them, recomputed from the loaded

@@ -341,6 +341,17 @@ def test_a_body_builds_at_its_sex_and_keeps_an_odd_one(host):
     assert r["body"]["sex"] == 3 and r["body"]["dmod"] == 1
 
 
+@pytest.mark.parametrize("raw", [
+    {"nutrients": {"epoch": "x"}},                                  # a string where the constructor lays a number
+    {"body": {"fm": 20.0, "lm": 60.0, "sex": 1, "lastAgeH": 1.0, "eb7": {7: "x"}}},   # a string in a ring slot
+    {"nutrients": {"iron": {"S": "x"}}},                            # a lazily laid field: no default, not a string
+])
+def test_a_stored_input_of_the_wrong_type_raises(host, raw):
+    # ruling C9-10: the load raises, and NR_Server_Store lays a fresh record (test_store_load_failure.py)
+    with pytest.raises(Exception, match="store: input"):
+        S(host).load(host.table(raw), order(host), recs(host))
+
+
 def test_load_of_a_non_table_is_nil(host):
     assert S(host).load(None, order(host), recs(host)) is None
     assert S(host).load(5, order(host), recs(host)) is None
