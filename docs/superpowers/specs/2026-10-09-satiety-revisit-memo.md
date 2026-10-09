@@ -298,3 +298,14 @@ How to read it:
 10. **C11:** monotony as a separate mood design after Plan 11b, never in hunger? Recommended: yes.
 11. **C15:** a standing rule that injury expenditure, if ever modelled, does not feed the deficit drive? Recommended: yes.
 12. **Packaging:** land 1–5 as one plan, with one golden re-record named "satiety revisit"? Recommended: yes.
+
+## Addendum: the dieting-consensus review (Task 28, S1631–S1663)
+
+Angus asked for the standard dieting advice to be argued as strongly as the evidence allows. The reviewed result changes this memo in four places and leaves the rest standing.
+
+- **Energy density (confirmed, the model's strongest lever).** Low-energy-dense meals at equal energy lowered hunger all day at weeks 3 and 12 (Buckland 2018), and over a year in an ad libitum diet (Ello-Martin 2007), with no adaptation seen; the fixed meals also differed in fat, protein and fibre, so it is not energy density alone. The shipped fill-by-mass already reproduces the direction. No change.
+- **Protein (C5 unchanged; one candidate withdrawn).** Two year-scale head-to-head trials (S28.8's 12-week trial and Das 2007, CALERIE) found no difference in hunger at a higher protein share, against Leidy 2007's direction. The candidate 'protein damps the deficit drive' is not shippable and is withdrawn. C5's spike on protein's acute level stands.
+- **Fibre and whole foods (confirmed neutral).** Whole-food effects follow mass and energy density; fruit beat oat cookies of equal fibre; psyllium supplements show small positive trials with no game counterpart. #3626 stands.
+- **Low glycaemic index (stronger null).** Four long-term trials found no difference in hunger or intake. No change.
+- **Eating rate (named).** Texture-driven eating rate lowered intake 369 kcal/d (14 %) over 14 days at matched non-beverage energy density (Forde 2026), with appetite ratings unchanged. It is satiation the player governs and no item field carries texture, so it stays out; LIMITATION_FOUR should name it.
+- **Fibre's energy cost (not satiety).** Whole-grain and high-fibre diets raise stool energy by about 57-63 kcal/d (S28.10, S28.13). This belongs to the energy kernel's accounting, not satiety; whether the kernel counts it is unchecked and is a separate question.
