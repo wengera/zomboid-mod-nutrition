@@ -1796,7 +1796,8 @@ def test_a_partial_eat_feeds_the_pool_by_its_delivered_fraction(server_host):
 # --- Plan 11e Task 3 (ruling 11e-1): monotony at the eat -------------------------------------------------------
 # The eat goes through the installed ISEatFoodAction.complete wrapper (guardBefore, the original, guardAfter), so
 # "once per eat" is the wrapper's count. The character answers getStats with a stand-in that logs every call by
-# stat, so a write to HUNGER, or a second add, is visible.
+# stat, so a write to HUNGER, or a second add, is visible. The item carries 400 kcal, one meal-sized portion
+# (ruling T3-3), unless opts.kcal names another.
 
 MONO_EAT = r"""
 function(fullType, foodType, afters, opts)
@@ -1835,7 +1836,7 @@ function(fullType, foodType, afters, opts)
         item.getHungChange = function(self) return hung end
         item.getFullType = function(self) return fullType end
         item.getBaseHunger = function(self) return -0.2 end
-        item.getCalories = function(self) return 95 end
+        item.getCalories = function(self) return opts.kcal or 400 end
         item.getCarbohydrates = function(self) return 25 end
         item.getLipids = function(self) return 0.3 end
         item.getProteins = function(self) return 0.5 end
@@ -1887,7 +1888,7 @@ def test_a_repeat_adds_boredom_and_unhappiness_once_each_per_eat(server_host):
 
 
 def test_a_partial_eat_counts_and_adds_by_its_share(server_host):
-    # a whole apple, then half of another (-0.2 -> -0.1): n = 1.5, the delta 0.5 x 4.3 x 0.5
+    # a whole 400 kcal item, then half of another (-0.2 -> -0.1, 200 kcal landed): n = 1.5, the delta 0.5 x 4.3 x 0.5
     log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, -0.1])
     assert log == [("add", "BOREDOM", pytest.approx(1.075)), ("add", "UNHAPPINESS", pytest.approx(1.075))]
     assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(1.5)
@@ -1942,6 +1943,35 @@ def test_a_cancel_with_nothing_eaten_books_nothing(server_host):
     assert log == [] and (rec is None or rec["monotony"] is None)
 
 
+def test_the_weight_is_the_landed_kcal_over_a_meal(server_host):
+    # ruling T3-3: two whole 100 kcal eats weigh 0.25 each, so n = 0.5 and no repeat of a portion yet
+    log, rec, before, after, adds = _mono(server_host, "Base.Apple", "Fruits", [0, 0], kcal=100)
+    assert log == []
+    assert rec["monotony"]["t"]["Base.Apple"]["n"] == pytest.approx(0.5)
+
+
+def test_ten_grasshoppers_in_one_sitting_add_less_than_one_to_each_stat(server_host):
+    # ten whole 5 kcal items: 0.125 of a meal in all
+    log, rec, before, after, adds = _mono(server_host, "Base.Grasshopper", "Insect", [0] * 10, kcal=5)
+    assert sum(v for op, k, v in log if k == "BOREDOM") < 1
+    assert sum(v for op, k, v in log if k == "UNHAPPINESS") < 1
+    assert after["landed"] - before["landed"] == 10
+    assert rec["monotony"]["t"]["Base.Grasshopper"]["n"] == pytest.approx(0.125)
+
+
+def test_a_zero_kcal_eat_books_nothing(server_host):
+    log, rec, before, after, adds = _mono(server_host, "Base.Gum", "Candy", [0, 0], kcal=0)
+    assert log == [] and after["landed"] - before["landed"] == 2
+    assert rec["monotony"] is None or rec["monotony"]["t"]["Base.Gum"] is None
+
+
+@pytest.mark.parametrize("full,ft", [("Base.WaterPotPasta", None), ("Base.Cornbread", "NoExplicit")])
+def test_a_pasta_pot_and_cornbread_take_the_staple_slope(server_host, full, ft):
+    log, rec, before, after, adds = _mono(server_host, full, ft, [0, 0])
+    assert log == [("add", "BOREDOM", pytest.approx(4.3 * 0.25)), ("add", "UNHAPPINESS", pytest.approx(4.3 * 0.25))]
+
+
 def test_limitations_name_monotony(intake_host):
     lims = list(I(intake_host).limitations.values())
     assert any("monotony" in l and "full type" in l for l in lims)
+    assert any("monotony" in l and "400 kcal" in l for l in lims)

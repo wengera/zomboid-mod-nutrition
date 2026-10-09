@@ -1,10 +1,10 @@
 """Monotony at the eat (Plan 11e Task 3, ruling 11e-1): K.monotony on the kernel host.
 
 A per-player record of recent eats by full type, record.monotony = { t = { [fullType] = { n, last } } }: n is the
-decayed count of eats (item-equivalents, a partial eat counting its share) at world age `last`, decaying with a
-3-day half-life; an entry whose last eat is beyond the 7-day window counts 0 and is pruned. The delta an eat
-delivers to BOREDOM and to UNHAPPINESS is share x min(CAP, slope x max(0, n - 1)), n the decayed count including
-this eat, the slope reduced to STAPLE x SLOPE for a staple. Hand-computed from the constants.
+decayed count of meal-sized portions (ruling T3-3: each eat weighs w = min(1, kcal / MEAL_KCAL)) at world age
+`last`, decaying with a 3-day half-life; an entry whose last eat is beyond the 7-day window counts 0 and is pruned.
+The delta an eat delivers to BOREDOM and to UNHAPPINESS is w x min(CAP, slope x max(0, n - 1)), n the decayed count
+including this eat, the slope reduced to STAPLE x SLOPE for a staple. Hand-computed from the constants.
 """
 import math
 import os
@@ -31,6 +31,7 @@ def decay(dt):
 def test_the_constants(host):
     m = M(host)
     assert (m.WINDOW_H, m.HALF_LIFE_H, m.SLOPE, m.CAP, m.STAPLE) == (168, 72, 4.3, 20, 0.25)
+    assert m.MEAL_KCAL == 400
 
 
 def test_each_constant_names_its_rows_and_its_label():
@@ -44,6 +45,10 @@ def test_each_constant_names_its_rows_and_its_label():
     for row in ("S1592", "S1593", "S1594", "S1595", "S1596", "S1597"):
         assert row in src, row
     assert "free choice" in src                                         # S1594: the player choosing variety
+    meal = re.search(r"^K\.monotony\.MEAL_KCAL = .*$", src, re.M).group(0)
+    assert "game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595)" in meal
+    window = re.search(r"^K\.monotony\.WINDOW_H = .*$", src, re.M).group(0)
+    assert "measured from the type's latest eat; a type eaten daily keeps its decayed older eats" in window
 
 
 def test_new_is_an_empty_type_map(host):
@@ -168,6 +173,51 @@ def test_count_of_no_entry_is_zero(host):
     assert M(host).count(None, AGE) == 0
 
 
+# --- the portion weight (ruling T3-3): an eat counts its kcal over a 400 kcal meal, at most one ----------------
+
+
+@pytest.mark.parametrize("kcal,w", [(400, 1), (800, 1), (200, 0.5), (5, 0.0125), (100.0, 0.25)])
+def test_the_weight_is_the_kcal_over_a_meal_at_most_one(host, kcal, w):
+    assert M(host).weightOf(kcal) == pytest.approx(w)
+
+
+@pytest.mark.parametrize("raw", ["0", "-50", "nil", "0 / 0", "1 / 0", "'x'"])
+def test_no_energy_or_unreadable_energy_weighs_nothing(host, raw):
+    assert M(host).weightOf(host.rt.eval(raw)) == 0
+
+
+def test_ten_small_items_in_one_sitting_add_less_than_one(host):
+    # ten 5 kcal items (insects, a sugar packet): 0.125 of a meal in all, so no repeat of a portion yet
+    m = M(host).new()
+    total = 0
+    for _ in range(10):
+        w = M(host).weightOf(5)
+        total += M(host).delta(m, "Base.Grasshopper", AGE, False, w)[0]
+        M(host).record(m, "Base.Grasshopper", AGE, w)
+    assert total < 1
+    assert m.t["Base.Grasshopper"].n == pytest.approx(0.125)
+
+
+def _daily(host, kcal, days):
+    m = M(host).new()
+    w = M(host).weightOf(kcal)
+    for d in range(days - 1):
+        M(host).record(m, "Base.Apple", AGE + d * DAY, w)
+    return m, M(host).delta(m, "Base.Apple", AGE + (days - 1) * DAY, False, w)[0]
+
+
+def test_a_200_kcal_item_daily_counts_half_as_fast_as_a_400_one(host):
+    m400, d400 = _daily(host, 400, 5)
+    m200, d200 = _daily(host, 200, 5)
+    assert m200.t["Base.Apple"].n == pytest.approx(0.5 * m400.t["Base.Apple"].n)
+    assert d400 == pytest.approx(9.978, abs=1e-3)                      # the anchor holds for a meal-sized eat
+    s5 = sum(decay(k * DAY) for k in range(5))
+    assert d200 == pytest.approx(0.5 * 4.3 * (0.5 * s5 - 1), rel=1e-12)   # the half weight scales n and the delta
+    assert d200 == pytest.approx(1.4195, abs=1e-4)
+    _, d800 = _daily(host, 800, 5)
+    assert d800 == pytest.approx(d400)                                 # a portion past a meal still weighs one
+
+
 # --- pruning -------------------------------------------------------------------------------------------------
 
 
@@ -195,7 +245,10 @@ def test_prune_of_a_recent_record_removes_nothing(host):
 @pytest.mark.parametrize("full,ft", [("Base.Bread", "Bread"), ("Base.Rice", "Rice"), ("Base.Pasta", "Pasta"),
                                      ("Mod.Loaf", "Bread"), ("Base.Potato", "Vegetables"), ("Base.OatsRaw", None),
                                      ("Base.Oatmeal", None), ("Base.CannedPotato_Open", "Vegetables"),
-                                     ("Base.Toast", None), ("Base.BagelPlain", None), ("Base.Tortilla", None)])
+                                     ("Base.Toast", None), ("Base.BagelPlain", None), ("Base.Tortilla", None),
+                                     ("Base.Cornbread", "NoExplicit"), ("Base.WaterPotPasta", None),
+                                     ("Base.WaterPotForgedPasta", None), ("Base.WaterSaucepanPasta", None),
+                                     ("Base.WaterSaucepanPastaCopper", None)])
 def test_staples(host, full, ft):
     assert M(host).isStaple(full, ft) is True
 

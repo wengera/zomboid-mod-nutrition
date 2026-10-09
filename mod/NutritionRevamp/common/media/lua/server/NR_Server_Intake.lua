@@ -452,7 +452,7 @@ function IN.readAfterAndLand(b)
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
-    IN.atEat(record, b, share)                             -- monotony (Plan 11e, ruling 11e-1): mood, never hunger
+    IN.atEat(record, b, vec.calories)                      -- monotony (Plan 11e, rulings 11e-1, T3-3): mood, never hunger
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
@@ -854,8 +854,11 @@ end
 -- Monotony at the eat (Plan 11e Task 3, ruling 11e-1; the kernel is NR_Kernel_Monotony.lua). readAfterAndLand calls
 -- IN.atEat once per landed eat (a complete, or a cancel that ate a part), after IN.land and before the wrapper's
 -- credit: the eat's type is booked into record.monotony and a repeat within the window adds the kernel's delta to
--- BOREDOM and to UNHAPPINESS through the eater's Stats.add, scaled by the share of the whole item eaten. Nothing
--- here reads or writes HUNGER, so monotony never reaches the meal pool or the written hunger (ruling 11d-9).
+-- BOREDOM and to UNHAPPINESS through the eater's Stats.add. The eat counts in meal-sized portions (ruling T3-3): its
+-- weight is K.monotony.weightOf of vec.calories, the landed vector's energy that IN.land has just landed and IN.feed
+-- weighed (the eaten fraction's kcal), over the kernel's MEAL_KCAL; an eat with no energy, or energy that is not a
+-- finite number, books nothing and adds nothing. Nothing here reads or writes HUNGER, so monotony never reaches the
+-- meal pool or the written hunger (ruling 11d-9).
 -- The seam, an add on the server right after vanilla's own eat writes (seam (a) of the Task 3 amendments):
 --  * the eat runs on the server alone: a multiplayer client never runs complete or Eat (#0109), and EatOnClient runs
 --    only a Food's OnEat hook on a receiver (#0130, #3634);
@@ -870,8 +873,8 @@ end
 --  * the writer's UNHAPPINESS floor reads the stat each minute and only raises it toward its target or subtracts a
 --    target's fall (K.hybrid.write, #3119), so it builds on the add and never undoes it.
 -- Under its own pcall: a raise is counted (monotonyFailures) and named, and never reaches the landing or the credit.
-function IN.atEat(record, b, share)
-    local ok, err = pcall(IN.monotony, record, b, share)
+function IN.atEat(record, b, kcal)
+    local ok, err = pcall(IN.monotony, record, b, kcal)
     if ok then return err end
     IN.stats.monotonyFailures = IN.stats.monotonyFailures + 1
     IN.lastError = "monotony failed: " .. tostring(err)
@@ -881,10 +884,11 @@ end
 
 -- The booking and the add; returns the delta added to each stat (0 when none). A record whose monotony is corrupt is
 -- reset by the kernel's heal and counted (monotonyHealed); a type past the window is pruned at every eat. No world
--- age, no share or no full type books nothing.
-function IN.monotony(record, b, share)
+-- age, no energy or no full type books nothing.
+function IN.monotony(record, b, kcal)
     local ageH = worldAge()
-    if not IN.isFinite(ageH) or not IN.isFinite(share) or share <= 0 then return 0 end
+    local w = K.monotony.weightOf(kcal)
+    if not IN.isFinite(ageH) or w <= 0 then return 0 end
     local typeKey = b.fullType
     if type(typeKey) ~= "string" or typeKey == "" or typeKey == "nil" then return 0 end
     local m, healed = K.monotony.heal(record.monotony, ageH)
@@ -894,8 +898,8 @@ function IN.monotony(record, b, share)
     end
     record.monotony = m
     K.monotony.prune(m, ageH)
-    local boredom, unhappy = K.monotony.delta(m, typeKey, ageH, K.monotony.isStaple(typeKey, b.foodType), share)
-    K.monotony.record(m, typeKey, ageH, share)
+    local boredom, unhappy = K.monotony.delta(m, typeKey, ageH, K.monotony.isStaple(typeKey, b.foodType), w)
+    K.monotony.record(m, typeKey, ageH, w)
     if boredom > 0 then IN.addMood(b.char, boredom, unhappy) end
     return boredom
 end
@@ -912,4 +916,4 @@ function IN.addMood(char, boredom, unhappy)
     return true
 end
 
-IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; drinks and world water book no monotony; the delta is a game choice anchored on vanilla's stale item, and a staple (FoodType Bread, Rice or Pasta, or a named potato, oat or bread type) takes a quarter of it"
+IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; an eat counts as its landed kcal over a 400 kcal meal-sized portion, at most one, so an eat with no energy books nothing and a small snack counts a sliver of a meal; drinks and world water book no monotony; the delta is a game choice anchored on vanilla's stale item, and a staple (FoodType Bread, Rice or Pasta, or a named potato, oat, bread or plain-pasta type) takes a quarter of it"
