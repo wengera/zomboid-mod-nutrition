@@ -562,7 +562,7 @@ def test_recovery_sleep_reverses_the_factor_partially(host):
 # reads the g of the minute before, as the server's step order does. Its simplifications, stated:
 # - one 70 kg man from K.body.new (sex 1, no build flags, Strength 5, carry and responder 1), awake 07:00-23:00 at
 #   MET 1.3 (the idle class, COMPENDIUM.Default) and asleep at 1.0 (Sleeping), resting, coldMult 1: no exercise, so
-#   the lag and the trailing exercise kcal stay 0;
+#   the lag and the trailing exercise kcal stay 0 (the ee24, ex24 and L build is inert: the bypass path is untested);
 # - the day's partition (K.partition.day: the fat and lean change), the adaptive thermogenesis step and the training
 #   and aerobic closes are not run: fm stays at its birth value, so fatDep is 0 throughout (a 36 h fast's deficit is
 #   a few hundred grams of fat against the store, a fatDep of a few hundredths, left out) and at stays 0;
@@ -583,7 +583,7 @@ def test_recovery_sleep_reverses_the_factor_partially(host):
 
 FAST_KCAL_PER_HUNGER = 650.0 / H_REQ    # ruling 11c-31's intake mapping, kcal per unit of written hunger
 FAST_MEAL_H = (8.0, 13.0, 20.0)         # ASSUMED clock of the three meals (a game choice): 20:00 to 08:00 two days on is 36 h
-FAST_WARM_DAYS = 3                      # maintenance days run before the protocol's day 0 (see warm())
+FAST_WARM_DAYS = 3                      # maintenance days before the protocol's day 0: near-steady (g within 0.004 of six days)
 FAST_LOWCARB_G = 50.0                   # ASSUMED low-carbohydrate day: 50 g/d (the memo's C9 threshold), 20 % protein, fat the rest
 
 ENERGY_REPLAY = r"""
@@ -693,7 +693,7 @@ def at_hour(day, h):
 
 def warm():
     """The warm-up: FAST_WARM_DAYS maintenance days, so the trailing balance, the carbohydrate blend and g start the
-    protocol on their steady daily cycle (a fresh K.body.new carries no closed day: carb7[7] and eb7[7] read 0)."""
+    protocol near-steady (g within 0.004 of six days; a fresh K.body.new has no closed day: carb7[7], eb7[7] read 0)."""
     plan = {}
     for d in range(-FAST_WARM_DAYS, 0):
         plan.update(meals_of(d, "maint"))
@@ -740,7 +740,7 @@ def lowcarb_reading(host):
 def meal_frequency_ratio(host):
     """S1608 (Ohkawara 2013): 2,000 kcal a day (ASSUMED) eaten as six isoenergetic meals against three, the 24 h mean
     displayed hunger (the AUC over the same 24 h) six over three, through the satiety replay above (the stomach, P
-    and the circadian factor from 08:00; the energy state held at 1, the two days being isoenergetic). The times are
+    and the circadian factor from 08:00; the energy state held at 1, which moves the ratio about 0.03). The times are
     ASSUMED (the row gives none): three at 08:00, 13:00, 18:00; six every 150 min from 08:00 to 20:30. Each meal is
     mixed() with water and fibre scaled to its energy, so the two days carry the same mass. From an overnight fast,
     P = 0."""
@@ -753,8 +753,8 @@ def meal_frequency_ratio(host):
 
 
 def test_a_36_h_fast_raises_next_day_intake_and_day_3_falls_back(host):
-    # S1613 (Johnstone 2002): 12.2 against 10.2 MJ the day after a 36 h fast, 1.20; S1614 (Clayton 2016): day 3 not
-    # different, 1.0. Ruling 11d-3 asserts only the direction: the next day above 1, day 3 below day 2
+    # S1613 (Johnstone 2002): 12.2 against 10.2 MJ the day after a 36 h fast, 1.20; S1614 (Clayton 2016, 24 h at 25 % of
+    # requirement, not a 36 h fast): day 3 not different, 1.0. Ruling 11d-3 asserts the direction: day 2 above 1, day 3 below
     r2, r3, _, _, _ = fast_reading(host)
     assert r2 > 1, r2
     assert r3 < r2, (r2, r3)
@@ -800,8 +800,10 @@ def test_six_meals_against_three_is_pinned_inside_the_band(host):
     # S1608 (Ohkawara 2013): hunger AUC over 24 h 41,850 on six isoenergetic meals against 36,612 on three, 1.14;
     # S1607 (Raynor 2015): the vote count mostly null. Ruling 11d-3: the model's ratio lies within [0.9, 1.3] and is
     # pinned: 0.938, the opposite direction to S1608 (grazing reads less mean hunger) and 1.22x below it, nearer
-    # S1607's null. The likely cause, an inference not separated here: P is fed per eat and decays on 0.7 h, and its
-    # read is concave, so six smaller feeds keep the read higher on average than three larger ones
+    # S1607's null. The 0.938 is schedule-sensitive: it comes mainly from the six-meal arm's last meal at 20:30 against
+    # 18:00 for three meals. On a same-span schedule (six meals every 2 h from 08:00 to 18:00) the model reads 0.996,
+    # and 0.970 with the energy state live (Task 4 review). The model never reaches S1608's direction under any of
+    # these schedules
     r = meal_frequency_ratio(host)
     assert 0.9 <= r <= 1.3, r
     assert round(r, 3) == 0.938, r
