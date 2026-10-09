@@ -121,7 +121,7 @@ end
 
 -- The first key of a vector that is not finite, or nil when every key is (numeric-for over KEYS, a
 -- Lua table the kernel built, so `#` on it is a Lua length). A NaN landed in the stomach would poison
--- the buffer, bulk, pool and the HUNGER stat for the session (#2833).
+-- the buffer, pool and the HUNGER stat for the session (#2833).
 function IN.firstNonFinite(vec)
     local keys = K.vector.KEYS
     for i = 1, #keys do
@@ -150,8 +150,8 @@ end
 
 -- The acute dose test at the eat (ruling 18): every record with an `acute` field and a vector key is
 -- tested on the landed vector against the body mass (fm + lm) and the record's stomachFill (the slow
--- clock's stamp, the fill before this eat; nil or non-finite reads full). A rung > 0 stamps the key's
--- state ax = ACUTE_DECAY_H and axr = the rung, keeping a still-live flag's higher rung. records defaults
+-- clock's stamp, the fill before this eat; nil or non-finite reads the stomach's own fill, else empty: ruling C-2).
+-- A rung > 0 stamps the key's state ax = ACUTE_DECAY_H and axr = the rung, keeping a still-live flag's higher rung. records defaults
 -- to NR.data.records; no records or no body tests nothing. A missing record.nutrients is made the way
 -- NR_Server_Nutrients makes it. Returns the number of keys flagged.
 function IN.acuteAtEat(record, vec, records)
@@ -161,8 +161,8 @@ function IN.acuteAtEat(record, vec, records)
     if body == nil then return 0 end
     local w = (body.fm or 0) + (body.lm or 0)
     if not IN.isFinite(w) or w <= 0 then return 0 end
-    local fill = record.stomachFill
-    if not IN.isFinite(fill) then fill = 1 end
+    local fill = K.stomach.recordFill(record)
+    -- ruling C-2: a missing fill is the stomach's own, else empty (since 11c-15 a new stomach is empty)
     if record.nutrients == nil then record.nutrients = K.nutrients.newState(records) end
     local n = record.nutrients
     local order = records.ORDER

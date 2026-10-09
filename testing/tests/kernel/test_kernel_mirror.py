@@ -27,7 +27,7 @@ META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 def test_mirror_is_flat_scalars_only(host):
     m = host.py(host.call("mirror.build", rec(host), host.table({"mode": 1, "version": "0.1.0", "build": "42.20.4"})))
     expect = {"v": 1, "username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False,
-              "mode": 1, "version": "0.1.0", "build": "42.20.4", "stomachFill": 1,      # Plan 2: the fill, full by default
+              "mode": 1, "version": "0.1.0", "build": "42.20.4", "stomachFill": 0,      # ruling C-2: no stomach reads empty
               "stomachMass": 0}                                                         # Plan 11c Task 7: no stomach, 0 g
     expect.update(BODY_ABSENT)
     expect.update(PLAN4_ABSENT)
@@ -62,9 +62,42 @@ def test_mirror_carries_the_stomach_fill_and_no_pool_keys(host):
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
 
-def test_mirror_of_a_record_with_no_stomach_reads_full(host):
+def test_mirror_of_a_record_with_no_stomach_reads_empty(host):
+    # Plan 11c close (ruling C-2): since 11c-15 a new stomach is empty, so a record with no fill and no stomach reads 0
     m = host.py(host.call("mirror.build", rec(host), host.table(META)))
-    assert m["stomachFill"] == 1
+    assert m["stomachFill"] == 0
+
+
+def test_mirror_of_a_fresh_record_sends_an_empty_fill_beside_no_mass(host):
+    # the review's probe3: a stomach the intake laid (K.stomach.new) before the kinetics stamped a fill
+    r = rec(host, stomach=host.call("stomach.new"))
+    m = host.py(host.call("mirror.build", r, host.table(META)))
+    assert m["stomachFill"] == 0 and m["stomachMass"] == 0
+
+
+def test_mirror_reads_a_missing_or_non_finite_fill_from_the_stomach(host):
+    st = host.call("stomach.new")
+    v = host.call("vector.new")
+    v["water"] = 365.0
+    host.call("stomach.ingest", st, v)                                  # 365 g of a 730 g capacity
+    for fill in (None, float("nan"), float("inf")):
+        r = rec(host, stomach=st)
+        r["stomachFill"] = fill
+        m = host.py(host.call("mirror.build", r, host.table(META)))
+        assert m["stomachFill"] == 0.5 and m["stomachMass"] == 365, fill
+
+
+def test_record_fill_reads_the_stamp_the_stomach_or_empty(host):
+    st = host.call("stomach.new")
+    v = host.call("vector.new")
+    v["water"] = 73.0
+    host.call("stomach.ingest", st, v)
+    assert host.call("stomach.recordFill", rec(host, stomachFill=0.375, stomach=st)) == 0.375   # the stamp
+    assert abs(host.call("stomach.recordFill", rec(host, stomach=st)) - 0.1) < 1e-12           # the stomach's own
+    assert host.call("stomach.recordFill", rec(host)) == 0                                       # no stomach: empty
+    assert host.call("stomach.recordFill", rec(host, stomach=host.table({"liquid": 5.0}))) == 0  # no solid buffer
+    st["buffer"]["water"] = float("nan")
+    assert host.call("stomach.recordFill", rec(host, stomach=st)) == 0                          # a non-finite fill
 
 
 def test_mirror_without_an_order_has_no_nut_keys_and_zero_plan4_scalars(host):

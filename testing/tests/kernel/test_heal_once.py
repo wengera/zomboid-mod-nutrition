@@ -333,10 +333,10 @@ SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients
                 "satiety": "metabolism", "stomach": "kinetics"}
 # Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
 # which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads); the
-# writer's own satiety state (P, S and the mark v), which no other step reads in the minute and the writer heals
+# writer's own satiety state (P, S, the mark v and the step stamp t, ruling C-1), which no other step reads in the minute and the writer heals
 # itself (W.stats.guarded, test_writer_shape.py). The writer reads no stomach field: its fullness is
 # record.stomachFill, which the kinetics heal stamps finite.
-WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.v"}
+WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.v", "satiety.t"}
 
 PROXY = r"""
 function(rec, log)

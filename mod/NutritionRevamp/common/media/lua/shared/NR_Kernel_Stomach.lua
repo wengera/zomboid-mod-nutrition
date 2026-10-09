@@ -275,7 +275,26 @@ end
 
 -- The hunger-relevant mass (structure D, ruling 11c-30): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
 -- liquid lane, drunk liquid counting at a fifth (S1231's null for water drunk alongside; S1233's drink volumes). The
--- writer passes it to K.satiety.fill; the soft cap still reads K.stomach.mass, both lanes whole (S1250).
+-- fill (K.stomach.fill) passes it to K.satiety.fill; the soft cap still reads K.stomach.mass, both lanes whole (S1250).
 function K.stomach.satietyMass(stomach)
     return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * (stomach.liquid or 0)
+end
+
+-- Plan 11c close (ruling C-2): the fill a reader takes from a record (the intake's acute dose test, the mirror):
+-- record.stomachFill, the kinetics' stamp, when finite; else the stomach's own fill when the record holds a stomach with
+-- a solid buffer; else 0, since ruling 11c-15 a new stomach is empty. A non-finite stomach reads 0.
+function K.stomach.recordFill(record)
+    local f = record.stomachFill
+    if type(f) == "number" and f - f == 0 then
+        return f
+    end
+    local s = record.stomach
+    if s == nil or s.buffer == nil then
+        return 0
+    end
+    f = K.stomach.fill(s)
+    if f - f ~= 0 then
+        return 0
+    end
+    return f
 end

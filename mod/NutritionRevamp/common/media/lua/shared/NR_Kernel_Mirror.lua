@@ -2,7 +2,7 @@
 -- value a string, number or boolean, copied from the record, never the record itself.
 -- Plan 2 (Task 11): the stomach fill. Plan 4 (Task 14, ruling 21): the pool_<key> keys are retired from the wire
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
--- A record whose kinetics has not yet run reads full (the seed) and zeros.
+-- A record whose kinetics has not yet run reads its stomach's own fill, else empty (ruling C-2), and zeros.
 -- Plan 5 (Task 11): the 20 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
 -- effects table, so a reader that acts on one must treat 0 as absent.
 local K = NutritionRevamp.kernel
@@ -150,12 +150,12 @@ function K.mirror.effects(m, eff)
     end
 end
 
--- Plan 11c Task 7 (ruling 11c-25): the stomach pair. stomachFill, the fill F (full, 1, before the kinetics has run),
+-- Plan 11c Task 7 (ruling 11c-25): the stomach pair. stomachFill, the fill F (K.stomach.recordFill, ruling C-2),
 -- and stomachMass, the stomach's whole mass in grams, both lanes (K.stomach.mass), rounded to 1 g, the Overfull
 -- moodle's input (K.view.fullnessLevel; F clamps at 1 at 730 g and cannot place a level above it). 0 when the record
 -- has no stomach or no solid buffer, and when the mass is not finite.
 function K.mirror.stomach(m, record)
-    m.stomachFill = record.stomachFill or 1
+    m.stomachFill = K.stomach.recordFill(record)
     m.stomachMass = K.mirror.stomachMass(record)
 end
 

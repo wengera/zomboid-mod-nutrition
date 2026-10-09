@@ -35,7 +35,7 @@ K.store.INPUTS = {
     "v", "username", "firstSeen", "lastSeen", "resets", "dead",
     -- satiety (Plan 11c; NR_Server_Writer, NR_Server_Metabolism): the meal pool P (weighted kcal) and its mark v = 4,
     -- which the writer seeds from HUNGER when absent, unmarked or non-finite, the acute suppression state S and the exercise lag L (kcal/day); a v3 scalar and its satietyStepped mark are dropped by this list
-    "satiety.P", "satiety.S", "satiety.L", "satiety.v",
+    "satiety.P", "satiety.S", "satiety.L", "satiety.v", "satiety.t", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1)
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
     -- solid buffer (ingest and ingestLiquid add, drain empties), the absorbed pool (toPool accumulates; a diagnostic
     -- no step reads back, kept because it cannot be rebuilt)

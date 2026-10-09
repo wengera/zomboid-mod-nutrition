@@ -312,8 +312,8 @@ def test_a_new_player_object_is_hoisted_again():
     p1 = player(h)
     step(h, p1, rec, 1)
     p2 = player(h)
-    step(h, p2, rec, 2)                                    # a new hoist: no elapsed time, so P is not decayed
-    assert h.G.rawequal(h.NR.server.writer.h["a"].p, p2) and p2.st.sets.HUNGER == pytest.approx(_hunger(6, minute=2))
+    step(h, p2, rec, 2)                                    # a new hoist: the stamp's minute decays P (ruling C-1)
+    assert h.G.rawequal(h.NR.server.writer.h["a"].p, p2) and p2.st.sets.HUNGER == pytest.approx(_hunger(6 * 2 ** (-(1 / 60) / 0.7), minute=2))
 
 
 def test_a_departure_drops_the_handles():
@@ -421,7 +421,7 @@ LIMITATION_FOUR = (
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
     "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
     "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
-    "3 stands")
+    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.6 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():
@@ -808,3 +808,104 @@ def test_a_non_finite_acute_state_or_lag_heals_and_counts():
     step(h, p2, rec2, 1, name="b")
     assert rec2.satiety.S == 1 and h.NR.server.writer.stats.guarded == 2
     assert p2.st.sets.HUNGER == pytest.approx(H1 * 0.3)                     # acuteFactor(1) = 1 - 0.7
+
+
+# --- Plan 11c close (ruling C-1): the writer's decay across a reconnect or a restart --------------------------------
+# The writer stamps its last step's world age on record.satiety.t (game hours). A new IsoPlayer object (a reconnect, a
+# respawn) or a restart re-hoists h with no ageH, so the step reads the gap from that stamp, clamped at maxStepS (60
+# min) as a same-object gap is: P decays at HALF_LIFE_H 0.7 h and S toward 0 at ACUTE_HALF_LIFE_H 0.5 h over one hour.
+
+def _fed(h, name="a"):
+    p = player(h, name)
+    rec = record(h)
+    rec.satiety.P = 600.0
+    rec.satiety.S = 1.0
+    step(h, p, rec, 1, name=name)
+    step(h, p, rec, 2, name=name)
+    return p, rec
+
+
+def test_the_writer_stamps_its_step_age_on_the_pool():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    assert rec.satiety.t is None                                            # the fixture's record has no stamp
+    step(h, p, rec, 1)
+    assert rec.satiety.t == pytest.approx(100.0 + 1 / 60)
+    assert rec.satiety.P == 6                                               # no stamp: the first minute steps 0
+    step(h, p, rec, 7)
+    assert rec.satiety.t == pytest.approx(100.0 + 7 / 60)
+
+
+def test_a_reconnect_decays_p_and_s_as_the_same_object_does():
+    # the review's probe2: a player away 180 game minutes returns as a new object; P and S take the 60-minute catch-up
+    h = boot()
+    p, same = _fed(h, "a")
+    P2, S2 = same.satiety.P, same.satiety.S
+    step(h, p, same, 182, name="a")                                         # same object, 180 minutes later
+    h2 = boot()
+    _, back = _fed(h2, "a")
+    assert back.satiety.P == P2 and back.satiety.S == S2
+    step(h2, player(h2, "a"), back, 182, name="a")                          # a new object, 180 minutes later
+    assert same.satiety.P == pytest.approx(P2 * 2 ** (-1 / 0.7))
+    assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.5))
+    assert back.satiety.P == pytest.approx(same.satiety.P)
+    assert back.satiety.S == pytest.approx(same.satiety.S)
+    assert back.satiety.t == pytest.approx(100.0 + 182 / 60)
+
+
+def test_a_reconnect_inside_the_clamp_decays_over_the_gap():
+    h = boot()
+    _, rec = _fed(h)
+    P2 = rec.satiety.P
+    step(h, player(h), rec, 23)                                             # a new object 21 minutes later
+    assert rec.satiety.P == pytest.approx(P2 * 2 ** (-(21 / 60) / 0.7))
+
+
+def test_a_restart_through_the_store_decays_the_pool():
+    h = boot()
+    W = h.NR.server.writer
+    _, rec = _fed(h)
+    P2, S2 = rec.satiety.P, rec.satiety.S
+    back = h.K.store.load(h.K.store.inputsOnly(rec), None, None)
+    assert back.satiety.t == pytest.approx(100.0 + 2 / 60)                  # INPUTS carry satiety.t
+    back.stomachFill = 0.6
+    back.body = h.rt.eval("{ energyState = 1, rmod = 1 }")
+    W.h["a"] = None                                                         # the restart: no hoist survives
+    step(h, player(h), back, 182)
+    assert W.stats.seeded == 0
+    assert back.satiety.P == pytest.approx(P2 * 2 ** (-1 / 0.7))
+    assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.5))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_a_non_finite_stamp_heals_and_counts(bad):
+    h = boot()
+    W = h.NR.server.writer
+    _, rec = _fed(h)
+    P2 = rec.satiety.P
+    rec.satiety.t = bad
+    step(h, player(h), rec, 182)                                            # a new object: the stamp is read
+    assert rec.satiety.P == P2                                              # read as no stamp: the minute steps 0
+    assert W.stats.guarded == 1
+    assert rec.satiety.t == pytest.approx(100.0 + 182 / 60)                 # re-stamped
+
+
+def test_a_v3_or_fresh_record_has_no_stamp_and_steps_zero_on_its_first_minute():
+    h = boot()
+    p = player(h)
+    rec = h.K.store.new("a", 100.0)
+    rec.satiety = h.rt.eval("{ P = 6, S = 0.5, v = 4 }")
+    step(h, p, rec, 181)
+    assert rec.satiety.P == 6 and rec.satiety.S == 0.5
+    assert h.NR.server.writer.stats.guarded == 0
+
+
+def test_a_dry_minute_leaves_the_stamp():
+    h = boot()
+    W = h.NR.server.writer
+    p = player(h)
+    rec = record(h)
+    W.dry = True
+    step(h, p, rec, 1)
+    assert rec.satiety.t is None

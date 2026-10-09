@@ -19,7 +19,7 @@ NR.server.writer = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.06 at a full stomach), and a character seeded from a vanilla HUNGER below that post-meal floor reads the floor on its first minute; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g (the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level 3 stands",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the acute exercise factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.06 at a full stomach), and a character seeded from a vanilla HUNGER below that post-meal floor reads the floor on its first minute; an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g (the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level 3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.6 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -106,7 +106,7 @@ function W.hoist(username, p)
     if stats == nil or CharacterStat == nil then return nil end
     local h = { p = p, stats = stats, moodles = NR.obj(p, "getMoodles"), bd = NR.obj(p, "getBodyDamage"),
                 traits = NR.obj(p, "getCharacterTraits"), ageH = nil, lastThirst = nil, lastEnd = nil,
-                unhappyLast = 0, swipe = nil }
+                unhappyLast = 0, swipe = nil, fresh = true }  -- fresh: no step yet, W.satietyDtH reads the stamp
     h.thermo = NR.obj(h.bd, "getThermoregulator")
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
         local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: vigorous work for the acute term
@@ -206,7 +206,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
         s.L = 0
         W.stats.guarded = W.stats.guarded + 1
     end
-    local dtH = K.clamp(inp.dtS, 0, W.c.maxStepS) / 3600
+    local dtH = W.satietyDtH(h, s, inp, ageH)
     local vigorous, kind = W.vigorous(h, player, record, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
     local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S)
@@ -354,4 +354,26 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         end
         W.checkNeighbours()
     end)
+end
+
+-- Plan 11c close (ruling C-1): the satiety step's length in game hours, P's decay and S's step. A minute on the same
+-- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
+-- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
+-- every step (game hours; stored, K.store.INPUTS), so P and S decay across the gap as Kinetics and Metabolism catch it
+-- up. Both clamp at maxStepS (60 min). A non-finite stamp reads none and is counted in guarded; a record with no stamp
+-- (a v3 record, a fresh one) steps 0 on its first minute. Stamps t = ageH.
+function W.satietyDtH(h, s, inp, ageH)
+    local dtS = inp.dtS
+    if s.t ~= nil and not NR.finite(s.t) then
+        s.t = nil
+        W.stats.guarded = W.stats.guarded + 1
+    end
+    if h.fresh == true then
+        h.fresh = nil
+        if s.t ~= nil then
+            dtS = (ageH - s.t) * 3600
+        end
+    end
+    s.t = ageH
+    return K.clamp(dtS, 0, W.c.maxStepS) / 3600
 end

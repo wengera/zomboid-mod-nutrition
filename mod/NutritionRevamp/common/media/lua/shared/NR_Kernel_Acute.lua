@@ -14,7 +14,7 @@
 -- Slow-clock code with no fast region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min /
 -- K.max reference is at call time.
 -- The x151r fix wave (rulings T17-2..T17-4): caffeine and ethanol absorb from a gut lane (gutAlc, gutCaf;
--- absorbGut) the intake landing feeds directly, bypassing the stomach's composition-scaled half-time
+-- absorbGut) the intake landing feeds directly, bypassing the stomach's two-lane drain (K.stomach.drain)
 -- (one beer built no blood alcohol through the stomach, #2983); the shiver draw starts above a dead band
 -- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
 -- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's

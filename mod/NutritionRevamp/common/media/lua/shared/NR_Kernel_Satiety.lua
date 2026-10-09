@@ -23,7 +23,7 @@ end
 -- Plan 11c (spec § 3.1, § 5a and § 5b, structure D, ruling 11c-30): satiety from physiology. Two signals sate: the
 -- stomach's fullness F (its satiety mass, K.stomach.satietyMass, over its maximal capacity, K.stomach.CAPACITY_MAX_G,
 -- ruling 11c-19) and a meal satiety pool P of weighted kcal, fed at the eat and decaying first-order. Hunger is
--- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour), capped at 0.69 by the writer.
+-- K.hybrid.hungerTarget(sated(F, post(P)), energyState) x circadian(hour) x acuteFactor(S), capped at 0.69 by the writer.
 K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Task 4 (Plan 11c), kept at 2.5 and bounded by S1224's delay differences (Plan 11c Task 4 review) (S1268 open; rulings 11c-7 and 11c-31): protein satiates more per kcal (S1222, S1223, S1224, direction)
 K.satiety.W_CARB = 1 -- neutral (ruling 11c-7): carbohydrate against fat is disputed (S1226, S1227, S1228, S1229), so both take the common weight; not an evidenced tie
 K.satiety.W_FAT = 1 -- neutral (ruling 11c-7), as W_CARB
@@ -34,14 +34,14 @@ K.satiety.STEEP = 0.08 -- game choice, fitted in Task 4 (Plan 11c) (S1270 open; 
 K.satiety.FULL_WEIGHT = 0.6 -- game choice, fitted in Task 4 (Plan 11c): fullness's weight in the sated product, fitted to S1231's three arms and checked against S1233; S1235 has fullness track gastric volume
 K.satiety.LIQUID_WEIGHT = 0.2 -- game choice, fitted in Task 4 (Plan 11c): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake)
 K.satiety.P_SEED_MAX = 1300 -- game choice (ruling 11c-30): seedP's cap, about the weighted pool of a 1,000 kcal mixed meal, so a HUNGER of 0 does not seed a pool that sates for days
-K.satiety.DISCOMFORT_MAX = 100 -- not science: the DISCOMFORT stat's range, 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21)
+K.satiety.DISCOMFORT_MAX = 100 -- not science: the soft cap's discomfort scale, borrowed from the DISCOMFORT stat's range 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21); ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel and nothing writes DISCOMFORT
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
 K.satiety.ATWATER_F = 9 -- S1209 (fat 9.0 kcal/g)
 K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1273): the cosine's amplitude, half of Scheer 2013's 17 % peak-to-trough of hunger; the halving is the plan's own arithmetic; the multiplicative form and the game-clock phase are game choices (ruling 11c-24a; Scheer's model is additive)
 K.satiety.CIRCADIAN_PEAK_H = 19.8333 -- S1273 (ruling 11c-24): Scheer 2013's circadian hunger peak at 19:50 (trough 07:50), in game hours of the day
 
--- The fullness F: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8); the writer
+-- The fullness F: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8); K.stomach.fill
 -- passes K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the tolerated maximum (ruling 11c-19).
 function K.satiety.fill(mass, capacity)
     return K.clamp(mass / capacity, 0, 1)
@@ -66,7 +66,7 @@ function K.satiety.feed(P, vector)
 end
 
 -- First-order decay over dtH game hours at the half-life, scaled by trait (the appetite trait times the sandbox's
--- stats-decrease multiplier, ruling 11c-11); nothing for no time. Asleep it runs unscaled (ruling 11c-24).
+-- stats-decrease multiplier, ruling 11c-11); nothing for no time. No asleep factor: the same decay asleep and awake (ruling 11c-24).
 function K.satiety.decay(P, dtH, halfLifeH, trait)
     if dtH <= 0 then
         return P
@@ -115,14 +115,14 @@ function K.satiety.seedP(hunger, F, energyState)
     return K.min(P, K.satiety.P_SEED_MAX)
 end
 
--- The soft cap's discomfort (ruling 11c-13): 0 up to capMax grams, DISCOMFORT_MAX at capHard, linear between.
+-- The soft cap's discomfort scale (ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel; nothing writes DISCOMFORT): 0 up to capMax grams, DISCOMFORT_MAX at capHard, linear between.
 function K.satiety.discomfort(mass, capMax, capHard)
     return K.satiety.DISCOMFORT_MAX * K.clamp((mass - capMax) / (capHard - capMax), 0, 1)
 end
 
 -- The circadian factor on hunger at hourOfDay (0-24, the game clock; ruling 11c-24): 1 + CIRCADIAN_A x
 -- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices, ruling 11c-24a; Scheer's model is additive). The writer applies
--- min(0.69, hungerTarget(Z, es) x circadian(h)), awake and asleep.
+-- min(0.69, hungerTarget(Z, es) x circadian(h) x acuteFactor(S)), awake and asleep.
 function K.satiety.circadian(hourOfDay)
     return 1 + K.satiety.CIRCADIAN_A * math.cos(6.283185307179586 * (hourOfDay - K.satiety.CIRCADIAN_PEAK_H) / 24)
 end

@@ -114,7 +114,7 @@ def snack(kcal, main, share, water=150.0):
 
 
 def preload(kcal, water=400.0):
-    """A liquid preload of fixed volume (S1247's preloads were equal in volume): 50/20/30 carbohydrate/protein/fat."""
+    """A liquid preload of fixed volume (S1247's preloads were equal in volume): 50/20/30 carbohydrate/protein/fat. ASSUMED (no row gives the preload's macros or mass)."""
     return {"calories": kcal, "carbs": kcal * 0.5 / 4, "proteins": kcal * 0.2 / 4, "lipids": kcal * 0.3 / 9,
             "water": water}
 
@@ -135,7 +135,7 @@ def milk(ml):
     return v
 
 
-CASSEROLE = {"calories": 270.0, "proteins": 20.0, "carbs": 25.0, "lipids": 10.0, "water": 200.0, "fibre": 4.0}
+CASSEROLE = {"calories": 270.0, "proteins": 20.0, "carbs": 25.0, "lipids": 10.0, "water": 200.0, "fibre": 4.0}  # ASSUMED (S1231 gives only 1128 kJ and the 356 g of water)
 SOUP = dict(CASSEROLE, water=CASSEROLE["water"] + 356.0)     # S1231: the same casserole with its 356 g of water in it
 WATER = {"water": 356.0}                                      # S1231: the same water drunk alongside
 # S1232 (Marciani 2012): 1008 kJ (241 kcal) chicken and vegetables with water; the water's amount is not in the row,
@@ -452,3 +452,17 @@ def test_moores_1692_g_meal_stays_a_named_non_reproduction(host):
     t = moore_half_emptying(host)
     assert t == 189, t
     assert 277.0 / t > TOL
+
+
+def test_a_25_percent_deficit_rise_is_pinned(host):
+    # Ruling C-3: the deficit drive, a named non-reproduction. S1255 (CALERIE 2) bounds the hunger rise of a 25 %
+    # deficit kept for 2 y at under 10 mm. A same-day 25 % deficit of a 2,500 kcal day is a trailing-24 h balance of
+    # -625 kcal: K.energy.state reads 1 + 0.5 x 625 / 1500 = 1.2083, and at the meal request (sated x = 0.75, hunger
+    # 0.25 at state 1) hungerTarget reads 0.25 x 1.2083 + DEFICIT_FLOOR 0.15 x 0.2083 = 0.3333: a rise of 0.4 x
+    # 0.2083 = 0.0833. Under the request-anchored mapping (a LABELLED ASSUMPTION, ruling 11c-31: about 65 mm read as
+    # 0.25, so 260 mm per unit of HUNGER) that is about 22 mm, over S1255's bound; no replay holds it
+    es = host.call("energy.state", -0.25 * 2500, 0, 1)
+    assert abs(es - (1 + 0.5 * 625 / 1500)) < 1e-12
+    rise = host.call("hybrid.hungerTarget", 1 - H_REQ, es) - host.call("hybrid.hungerTarget", 1 - H_REQ, 1)
+    assert abs(rise - 1 / 12) < 1e-9, rise
+    assert rise * 260 > 10                       # about 21.7 mm against S1255's < 10 mm over 2 y: not reproduced

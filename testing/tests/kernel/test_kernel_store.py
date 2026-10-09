@@ -595,3 +595,11 @@ def test_the_save_phase_is_inside_the_gap_differs_by_name_and_seeds_the_first_wr
     last = S(host).firstLast("admin", 1000000, 60000)
     assert last == 1000000 - 60000 + a
     assert not S(host).due(last, 1000000 + a - 1, 60000) and S(host).due(last, 1000000 + a, 60000)
+
+
+def test_the_writers_step_stamp_is_an_input(host):
+    # Plan 11c close (ruling C-1): the writer's last step age, read across a restart
+    assert S(host).isInput("satiety.t")
+    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 6, S = 0, L = 0, v = 4, t = 101.5 } }")
+    rec = S(host).load(raw, None, None)
+    assert rec.satiety.t == 101.5 and S(host).inputsOnly(rec).satiety.t == 101.5

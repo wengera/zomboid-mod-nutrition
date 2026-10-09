@@ -1089,10 +1089,38 @@ def test_acute_without_a_body_or_records_tests_nothing(rec_host):
         h.G.NutritionRevamp.data.records = saved
 
 
-def test_acute_nan_fill_reads_full(rec_host):
+def test_acute_nan_fill_reads_the_stomachs_own(rec_host):
+    # Plan 11c close (ruling C-2): a non-finite fill is unknown and reads the stomach's own; a record with no stomach
+    # reads empty (0), so the x1.5 applies: 13.75 mg/kg x 1.5 = 20.6 -> rung 2
     h = rec_host
     record = _record(h, fill=float("nan"))
-    assert I(h).acuteAtEat(record, _vec(h, iron=1100.0), _records(h)) == 0   # 13.75 mg/kg, no x1.5
+    assert I(h).acuteAtEat(record, _vec(h, iron=1100.0), _records(h)) == 1
+    assert record["nutrients"]["iron"]["axr"] == 2
+
+
+def test_acute_missing_fill_reads_an_empty_stomach(rec_host):
+    # the review's probe3 (ruling C-2): since 11c-15 a new stomach is empty. 1500 mg at 80 kg is 18.75 mg/kg, under
+    # rung 2 on a full stomach and 28.1 under the empty-stomach x1.5: a nil fill with no stomach and a nil fill beside
+    # an empty K.stomach.new both flag rung 2
+    h = rec_host
+    record = _record(h, fill=None, fm=15.0, lm=65.0)
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 1
+    assert record["nutrients"]["iron"]["axr"] == 2
+    record = _record(h, fill=None, fm=15.0, lm=65.0)
+    record["stomach"] = h.K.stomach.new()
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 1
+    assert record["nutrients"]["iron"]["axr"] == 2
+
+
+def test_acute_missing_fill_reads_the_stomachs_own_fill(rec_host):
+    # a nil fill beside a stomach holding 700 g reads 700 / 730 (no x1.5): 18.75 mg/kg flags nothing; 100 g reads
+    # 0.137, under 0.2, so the x1.5 applies
+    h = rec_host
+    for grams, flagged in ((700.0, 0), (100.0, 1)):
+        record = _record(h, fill=None, fm=15.0, lm=65.0)
+        record["stomach"] = h.K.stomach.new()
+        h.K.stomach.ingest(record["stomach"], _vec(h, water=grams))
+        assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == flagged, grams
 
 
 def test_land_caps_b12_and_sums_the_ingested_amount(rec_host):

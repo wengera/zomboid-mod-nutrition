@@ -118,4 +118,4 @@ function K.hybrid.write(inp, out, c)
     end
 end
 
-K.hybrid.DEFICIT_FLOOR = 0.15 -- game choice (S1271 open; Plan 3 ruling 14): the deficit floor's coefficient; S1254 sets its direction and S1255 bounds it (CALERIE 2: < 10 mm over 2 y at a 25 % deficit), which the oracle checks
+K.hybrid.DEFICIT_FLOOR = 0.15 -- game choice (S1271 open; Plan 3 ruling 14): the deficit floor's coefficient; S1254 sets its direction and S1255 bounds it (CALERIE 2: < 10 mm over 2 y at a 25 % deficit); not replayed: under the oracle's request-anchored mapping a same-day 25 % deficit reads about 22 mm (Plan 11c close)
