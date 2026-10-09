@@ -178,7 +178,7 @@ function KIN.malformed(stomach, username)
         return false
     end
     KIN.stats.failures = KIN.stats.failures + 1
-    KIN.lastError = "kinetics: malformed stomach buffer for " .. tostring(username) .. "; stomach reset empty"
+    KIN.lastError = "kinetics: malformed stomach for " .. tostring(username) .. "; stomach reset empty"
     NR.log.say(2, KIN.lastError)
     return true
 end

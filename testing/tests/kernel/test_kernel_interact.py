@@ -64,7 +64,7 @@ def test_constants(host):
     assert (I.CA_FE_REF, I.CA_FE_MAX, I.PHY_SLOPE) == (300, 0.5, 0.00093)
     assert (I.B12_ACTIVE_FRAC, I.B12_ACTIVE_MAX, I.B12_PASSIVE, I.B12_PASSIVE_FROM) == (0.5, 2.0, 0.012, 4)
     assert (I.CAROTENE_OFF, I.RIBO_FE_GRADE, I.RIBO_FE_XFER, I.LAMBDA_ALC) == (1.0, 3, 0.5, 0.5)
-    assert (I.CAF_MG_LOSS, I.CAF_LM_REF, I.ALC_MG_LOSS, I.BIOTIN_DROP) == (0.02, 60, 2, 0.31)
+    assert (I.CAF_MG_LOSS, I.CAF_LM_REF, I.ALC_MG_LOSS) == (0.02, 60, 2)
 
 
 # ---- the factor functions ----
@@ -280,20 +280,11 @@ def test_calcium_bone_counter(rh):
     assert f.bone == 0 and f.p == 0
 
 
-def test_biotin_raw_egg_counter(rh):
-    rec = _rec(rh, "biotin")
+def test_biotin_is_not_stepped(rh):
+    # no raw-egg detection (the food data carries no isRawEgg flag): the counter is not stepped and p stays 1
     s = _key(rh)
-    _run(rh, "biotin", s, rec, 0, _ctx(rh, rawEggDay=True), 1.0, 45)
-    assert s.ext == 45 and abs(s.p - (1 - 0.5 * 0.31)) < 1e-12
-    _run(rh, "biotin", s, rec, 0, _ctx(rh, rawEggDay=True), 1.0, 45)
-    assert s.ext == 90 and abs(s.p - 0.69) < 1e-12       # the cosmetic rung at cosmeticDays
-    _run(rh, "biotin", s, rec, 0, _ctx(rh, rawEggDay=True), 1.0, 10)
-    assert abs(s.p - 0.69) < 1e-12                       # clamped past cosmeticDays
-    assert rh.K.nutrients.grade(s.p, rh.K.nutrients.LADDER) == 2
-    _run(rh, "biotin", s, rec, 0, _ctx(rh), 1.0, 99)     # rawEggDay nil: recovering
-    assert s.ext == 1
-    _run(rh, "biotin", s, rec, 0, _ctx(rh, rawEggDay=False), 1.0, 2)
-    assert s.ext == 0 and s.p == 1
+    _run(rh, "biotin", s, _rec(rh, "biotin"), 0, _ctx(rh), 1.0, 45)
+    assert s.p == 1 and s.ext == 0
 
 
 def test_fibre_ema(rh):

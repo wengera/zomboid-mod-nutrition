@@ -3,20 +3,20 @@
 -- 1. The factor functions, pure multipliers and loss terms the adapter (Task 11) applies to the absorbed
 --    vector BEFORE K.nutrients.minute, and the intake wrapper (Task 12) applies per eat: calcium x iron,
 --    phytate x magnesium and zinc, the B12 intrinsic-factor ceiling, the carotene gate on liver status,
---    raw egg x biotin, riboflavin x iron transfer, alcohol x thiamine rate, the caffeine and alcohol
---    urinary mineral losses, zinc -> copper, and the blood-loss event on haemoglobin iron.
+--    riboflavin x iron transfer, alcohol x thiamine rate, the caffeine and alcohol urinary mineral losses and
+--    zinc -> copper.
 --    The caffeine and alcohol loss magnitudes are PLACEHOLDERS: their rows (S1087, S1086) are open and
 --    carry direction only (S0543, S0542), so CAF_MG_LOSS, CAF_LM_REF and ALC_MG_LOSS are game choices.
 -- 2. K.interact.two(key, s, rec, aAbs, ctx, dtD, dtH), the step the engine calls for every pool2, counter,
 --    derived and excessOnly record (the adapter injects it as ctx.two): iron's store and haemoglobin
 --    compartments (A6), vitamin A's liver and plasma, B12's store and functional fraction with its damage
---    counter, the calcium bone counter, the biotin raw-egg counter, the fibre 7-day EMA and copper derived
---    from the zinc excess; selenium (excessOnly) and any unknown record are not stepped.
+--    counter, the calcium bone counter, the fibre 7-day EMA and copper derived from the zinc excess; biotin
+--    (no raw-egg detection: the food data carries no isRawEgg flag), selenium (excessOnly) and any unknown record
+--    are not stepped.
 -- The ctx fields read: sex (1 male, 2 female, Plan 3's K.body convention), w (kg), dial (nil = 1), riboGrade
--- (nil = 1), rawEggDay (true on a raw-egg day; nil reads false), e24Zn (nil = 0), and through K.nutrients.requirement eeMJ,
+-- (nil = 1), e24Zn (nil = 0), and through K.nutrients.requirement eeMJ,
 -- pDay for scaled records. The state fields added lazily (numbers only, #1495): S and H (iron, absolute mg)
--- and bone (calcium, mg); biotin reuses ext (its record has no chronic, so the engine's excess never writes
--- it). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
+-- and bone (calcium, mg). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region, so math.exp is allowed. This file sorts after NR_Kernel.lua and before NR_Kernel_Nutrients.lua, so, and
 -- every K.clamp / K.min / K.max / K.nutrients reference is at call time.
 local K = NutritionRevamp.kernel
@@ -54,8 +54,6 @@ K.interact.CAF_LM_REF = 60 -- kg lean mass the placeholder is set at: game choic
 -- The alcohol urinary magnesium loss.
 K.interact.ALC_MG_LOSS = 2 -- mg Mg per g ethanol: placeholder game choice (open S1086; direction S0542)
 
--- The biotin p at cosmeticDays: 1 - BIOTIN_DROP lands at 0.69, grade 2 on the generic 0.70 rung.
-K.interact.BIOTIN_DROP = 0.31 -- game choice (the onset is open S1076)
 
 -- Calcium x iron absorption factor for a meal's calcium in mg.
 function K.interact.calciumIron(caMealMg)
@@ -167,17 +165,6 @@ function K.interact.calciumTwo(s, rec, aAbs, sex, dtD)
     s.p = s.bone / full
 end
 
--- Biotin: ext counts raw-egg days (up on a raw-egg day, back down otherwise); p falls BIOTIN_DROP over
--- cosmeticDays.
-function K.interact.biotinTwo(s, rec, rawEggDay, dtD)
-    if rawEggDay then
-        s.ext = s.ext + dtD
-    else
-        s.ext = K.max(0, s.ext - dtD)
-    end
-    s.p = 1 - K.clamp(s.ext / rec.counter.cosmeticDays, 0, 1) * K.interact.BIOTIN_DROP
-end
-
 -- Fibre: the exponential moving average of intake / R on rate kEma (7-day EMA), exact at constant intake.
 function K.interact.fibreTwo(s, rec, aAbs, R, dtD)
     local rate = aAbs / dtD
@@ -209,8 +196,6 @@ function K.interact.two(key, s, rec, aAbs, ctx, dtD, dtH)
     elseif kind == "counter" then
         if key == "calcium" then
             K.interact.calciumTwo(s, rec, aAbs, ctx.sex, dtD)
-        elseif key == "biotin" then
-            K.interact.biotinTwo(s, rec, ctx.rawEggDay == true, dtD)
         elseif key == "fibre" then
             K.interact.fibreTwo(s, rec, aAbs, K.nutrients.requirement(rec, ctx), dtD)
         end

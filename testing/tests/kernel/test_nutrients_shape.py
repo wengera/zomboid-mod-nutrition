@@ -229,6 +229,15 @@ def handed(h, absorbed, mealCa=None):
     return pipe
 
 
+GUT_F = 1 - math.exp(-math.log(2) * (1 / 60) / 0.5)    # the gut lane's one-minute release (GUT_T_HALF 0.5 h)
+
+
+def gut(record, alc, caf):
+    # the gut lane holding what one minute releases as exactly alc g of ethanol and caf mg of caffeine
+    record["acute"]["gutAlc"] = alc / GUT_F
+    record["acute"]["gutCaf"] = caf / GUT_F
+
+
 def fresh(h, p, age=100.0):
     record = h.rt.table()
     chain(h, p, record, age)
@@ -360,8 +369,8 @@ def test_the_interaction_factors_and_the_vitamin_a_fold(nut_host):
     p = player(h)
     record = fresh(h, p)
     lm = record["body"]["lm"]
-    ab = vec(h, iron=1.0, calcium=150.0, magnesium=10.0, zinc=2.0, caffeine=100.0, ethanol=1.0,
-             retinol=100.0, carotene=50.0)
+    gut(record, alc=1.0, caf=100.0)                         # the minute's release: 1 g ethanol, 100 mg caffeine
+    ab = vec(h, iron=1.0, calcium=150.0, magnesium=10.0, zinc=2.0, retinol=100.0, carotene=50.0)
     alone(h, p, record, 100.0 + 1 / 60, handed(h, ab))
     assert abs(ab["iron"] - 0.75) < TOL                     # 1 - 0.5 x 150/300
     cafLoss = 0.02 * 100 * 60 / lm
@@ -370,7 +379,8 @@ def test_the_interaction_factors_and_the_vitamin_a_fold(nut_host):
     assert abs(ab["zinc"] - 2.0) < TOL                      # the phytate factors live in the stomach kernel
     assert abs(ab["vitA"] - 100.0) < TOL                    # liver p = 1: carotene conversion off (S0202)
     record["nutrients"]["vitA"]["p"] = 0.5
-    ab2 = vec(h, retinol=100.0, carotene=50.0, magnesium=1.0, caffeine=1000.0)
+    gut(record, alc=0.0, caf=1000.0)
+    ab2 = vec(h, retinol=100.0, carotene=50.0, magnesium=1.0)
     alone(h, p, record, 100.0 + 2 / 60, handed(h, ab2))
     assert abs(ab2["vitA"] - 125.0) < TOL                   # 100 + 0.5 x 50 (the 2:1 equivalence)
     record["nutrients"]["vitA"]["p"] = 0.5
@@ -588,14 +598,16 @@ def test_beer_raises_then_clears_blood_alcohol(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, ethanol=14.0)))
     a = record["acute"]
-    peak = a["bac"]
-    assert abs(peak - (14.0 - 0.015 * 0.68 * 80 * 10 / 60) / (10 * 0.68 * 80)) < 1e-9
-    alone(h, p, record, 100.0 + 2 / 60)
-    assert a["bac"] < peak
-    for i in range(1, 6):
-        alone(h, p, record, 100.0 + 2 / 60 + i)
+    a["gutAlc"] = 14.0                                      # one beer, diverted to the gut lane by IN.land (T17-2)
+    trace = []
+    for i in range(1, 121):
+        alone(h, p, record, 100.0 + i / 60)
+        trace.append(a["bac"])
+    peak = max(trace)
+    assert 0 < peak < 0.05 and trace[-1] < peak             # it rises, peaks and falls
+    for i in range(1, 7):
+        alone(h, p, record, 102.0 + i)
     assert a["bac"] == 0
     assert a["alcPeak"] == 0                                # a sub-0.05 % peak leaves no hangover
 
@@ -604,7 +616,8 @@ def test_caffeine_glycogen_and_glucose_step(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, caffeine=100.0, carbs=30.0)))
+    gut(record, alc=0.0, caf=100.0)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, carbs=30.0)))
     a = record["acute"]
     assert abs(a["caf"] - 100.0) < TOL
     assert a["bg"] == 5.0
@@ -719,6 +732,37 @@ def test_the_gut_lane_drains_and_releases(nut_host):
         alone(h, p, record, 100.0 + i / 60)
     assert abs(a["gutAlc"] - w0 * (1 - f) ** 30) < 1e-9      # half again in the next 30 minutes
     assert a["bac"] > 0
+
+
+def test_an_eaten_dose_reaches_the_acute_lane_exactly_once(nut_host):
+    # Task 9b fix round 1: the stomach's absorbed vector no longer adds ethanol or caffeine (the pre-fix buffer path
+    # is gone), so a landed drink reaches the acute lane through the gut lane alone. A drink landed through IN.land
+    # and the same dose placed straight in the gut lane read the same blood alcohol and caffeine, minute for minute
+    h = nut_host
+    p = player(h)
+    IN = h.G.NutritionRevamp.server.intake
+    landed = fresh(h, p)
+    placed = fresh(h, p)
+    IN.lastIngested = h.rt.table()
+    try:
+        IN.land(landed, "admin", vec(h, ethanol=10.0, caffeine=50.0, water=300.0))
+    finally:
+        IN.lastIngested = None
+    placed["acute"]["gutAlc"] = landed["acute"]["gutAlc"] + (IN.pendingAlc["admin"] or 0)
+    placed["acute"]["gutCaf"] = landed["acute"]["gutCaf"] + (IN.pendingCaf["admin"] or 0)
+    assert placed["acute"]["gutAlc"] == 10.0 and placed["acute"]["gutCaf"] == 50.0
+    bacMax = 0
+    for i in range(1, 91):
+        chain(h, p, landed, 100.0 + i / 60)
+        chain(h, p, placed, 100.0 + i / 60)
+        assert landed["acute"]["bac"] == placed["acute"]["bac"], i
+        assert landed["acute"]["caf"] == placed["acute"]["caf"], i
+        bacMax = max(bacMax, landed["acute"]["bac"])
+    assert bacMax > 0 and landed["acute"]["caf"] > 0
+    # an absorbed vector that carries ethanol or caffeine (none does since T17-2) reaches neither
+    record = fresh(h, p)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, ethanol=14.0, caffeine=100.0)))
+    assert record["acute"]["bac"] == 0 and record["acute"]["caf"] == 0
 
 
 def test_a_skipped_minute_keeps_the_pending_dose(nut_host):

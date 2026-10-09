@@ -21,9 +21,7 @@
 -- The minute order (the pipeline's declared ORDER, NR_Server_Minute): the reconcile step runs after the bus's
 -- effects flush (the takeover's handle refresh is gone, Plan 11) and before the stomach (Kinetics), so a player's minute
 -- runs: the bus's effects flush, THIS step, the stomach (Kinetics),
--- Metabolism, Nutrients, Effects, Strength, Weight (the legacy write), the writer, the store. The order is the one 1.0.0's splice
--- into P.onMinute produced (before Kinetics' minute); the pipeline names it rather than inserting into a
--- list. A reconciled intake is then
+-- Metabolism, Nutrients, Effects, Strength, Weight (the legacy write), the writer, the store. A reconciled intake is then
 -- emptied by the same minute's Kinetics step.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function

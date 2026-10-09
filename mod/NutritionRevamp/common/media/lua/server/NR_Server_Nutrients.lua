@@ -44,7 +44,6 @@ NR.server.nutrients = {
         "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets FATIGUE ahead of the hook",
         "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1); the performance dehydration is the pool alone",
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target (Plan 11 ruling 7)",
-        "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (the adapter sets no rawEggDay)",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
@@ -374,10 +373,8 @@ local function step(username, player, record, ctx)
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
-    -- the gut lane's release this minute, plus any ethanol or caffeine a pre-fix buffer still empties
+    -- the gut lane's release this minute: IN.land diverts every eaten ethanol and caffeine there (ruling T17-2)
     local alcDose, cafDose = K.acute.absorbGut(a, dtH)
-    alcDose = alcDose + (absorbed.ethanol or 0)
-    cafDose = cafDose + (absorbed.caffeine or 0)
 
     -- the records
     factors(absorbed, ingested, n, body.lm, caMeal, cafDose, alcDose)
