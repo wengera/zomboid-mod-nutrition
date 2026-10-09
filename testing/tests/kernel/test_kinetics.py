@@ -374,10 +374,37 @@ def test_a_failed_clock_read_never_creates_a_record():
     assert h.record("nobody") is None
 
 
-def test_the_guard_lists_name_the_liquid_lane_the_energy_and_the_mass(kin_host):
+def test_the_guard_list_names_the_liquid_lane(kin_host):
     h = kin_host
     assert list(KIN(h).GUARD.values()) == ["liquid"]
-    assert list(KIN(h).GUARD_BUFFER.values()) == ["calories", "water", "proteins", "carbs", "lipids", "fibre"]
+
+
+@pytest.mark.parametrize("key", [
+    "calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate",
+    "retinol", "carotene", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6",
+    "folate", "vitB12", "choline", "sodium", "potassium", "calcium", "magnesium", "zinc",
+    "iodine", "selenium", "efa", "caffeine", "ethanol"])
+def test_a_nan_in_any_buffer_key_resets_the_stomach(kin_host, key):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.stomach.buffer[key] = float("nan")
+    f0 = KIN(h).stats.failures
+    run(h, r, 100.0)
+    assert r.stomach.buffer.calories == 0 and r.stomachFill == 0
+    assert KIN(h).stats.failures == f0 + 1
+
+
+def test_a_heal_clears_the_minutes_handoff_and_keeps_the_pool_finite(kin_host):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.stomach.buffer.vitC = float("nan")
+    run(h, r, 100.0 + 1 / 60)                                     # a minute elapses: the absorbed vector takes the NaN
+    ctx = h.rt.eval("function() return NR_TEST_PIPE end")()
+    assert ctx.absorbed is None and ctx.mealCa is None
+    assert all(math.isfinite(v) for v in r.pool.values())
+    assert r.stomach.buffer.vitC == 0
 
 
 def test_a_non_finite_liquid_lane_after_a_finite_fill_resets_the_stomach(kin_host):

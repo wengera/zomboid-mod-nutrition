@@ -30,20 +30,22 @@ NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastE
 local KIN = NR.server.kinetics
 
 -- The stomach fields a later reader takes that this step's arithmetic can leave non-finite (test_heal_once.py CROSS,
--- Plan 11c Task 8): a non-finite one resets the stomach empty with the fill. The liquid lane (the pending water, the
--- mirror's mass, the store), the solid lane's energy (it sets every key's drain on the next minute) and the gram keys
--- of the mass (the pending water reads water; the mirror's mass all five) are named: an infinite one clamps the fill
--- to 1, which is finite, so the fill alone does not catch it.
+-- Plan 11c Task 8, ruling T8-1): a non-finite one resets the stomach empty with the fill. The liquid lane is named
+-- (the pending water, the mirror's mass, the store) and EVERY vector key of the buffer is read at call time. The main
+-- reason: an infinite gram key clamps the fill, the F the writer reads, to 1, which is finite, so the fill alone
+-- does not catch it, and that key never drains. A non-finite micronutrient would also spread into the pool and the
+-- nutrients every minute. The cost is about 2.3 us per player-minute, per minute and never per tick.
 KIN.GUARD = { "liquid" }
-KIN.GUARD_BUFFER = { "calories", "water", "proteins", "carbs", "lipids", "fibre" }
 
 local function nonFinite(stomach)
     for i = 1, #KIN.GUARD do
         local v = stomach[KIN.GUARD[i]]
         if v ~= nil and not NR.finite(v) then return true end   -- an absent lane reads 0 (ruling 11c-10)
     end
-    for i = 1, #KIN.GUARD_BUFFER do
-        if not NR.finite(stomach.buffer[KIN.GUARD_BUFFER[i]]) then return true end
+    local keys = K.vector.KEYS
+    local b = stomach.buffer
+    for i = 1, #keys do
+        if not NR.finite(b[keys[i]]) then return true end
     end
     return false
 end
@@ -105,6 +107,10 @@ local function step(username, player, record, ctx)
     -- (server/ files load alphabetically) and the test is read at call time.
     if not NR.finite(fill) or nonFinite(record.stomach) then
         record.stomach = K.stomach.new()
+        if ctx ~= nil then
+            ctx.absorbed = nil                       -- this minute's absorbed vector came from the bad buffer
+            ctx.mealCa = nil
+        end
         local isFinite = NR.server.intake.isFinite
         local keys = K.vector.KEYS
         for i = 1, #keys do

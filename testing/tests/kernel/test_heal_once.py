@@ -45,6 +45,13 @@ def _rows(producer, sub, consumers):
     return [(producer, sub, f, c) for c, fields in consumers for f in fields]
 
 
+# K.vector.KEYS, in order: the stomach buffer's every key is guarded (ruling T8-1; an infinite gram key pins the fill,
+# which the writer reads, at 1 and never drains; a non-finite micronutrient would spread into the pool and the nutrients).
+BUFFER_KEYS = ("calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate",
+               "retinol", "carotene", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6",
+               "folate", "vitB12", "choline", "sodium", "potassium", "calcium", "magnesium", "zinc",
+               "iodine", "selenium", "efa", "caffeine", "ethanol")
+
 # Step 1's table: (producer, sub-table, field, consumer).
 CROSS = (
     _rows("metabolism", "body", [
@@ -100,7 +107,7 @@ CROSS = (
     + _rows("kinetics", "stomach.buffer", [
         ("nutrients", ("water",)),
         ("bus", ("water", "proteins", "carbs", "lipids", "fibre")),
-        ("store", ("calories", "water", "proteins", "carbs", "lipids", "fibre")),
+        ("store", BUFFER_KEYS),
     ])
 )
 # The ctx transients Metabolism stamps for the writer (ctx.activityClass, ctx.exercising) live one player's minute
@@ -199,7 +206,8 @@ def test_the_guard_lists_are_step_1s_table():
     assert lua(N.effects.GUARD) == want("effects", "effects")
     assert lua(N.metabolism.GUARD_SATIETY) == want("metabolism", "satiety")
     assert lua(N.kinetics.GUARD) == want("kinetics", "stomach")
-    assert lua(N.kinetics.GUARD_BUFFER) == want("kinetics", "stomach.buffer")
+    assert want("kinetics", "stomach.buffer") == lua(h.NR.kernel.vector.KEYS)
+    assert want("kinetics", "stomach.buffer") == sorted(BUFFER_KEYS)
 
 
 @pytest.mark.parametrize("producer,fn,sub,field", INJECT)
@@ -239,6 +247,31 @@ def test_a_guard_that_restamps_counts_and_logs():
     assert rec.body.fm == before                                  # this minute's change to fm is lost with the NaN
     said = [s for s in h.printed()[n0:] if "re-stamped" in s]
     assert said == ["[NutritionRevamp] metabolism: 1 field(s) the step made non-finite re-stamped for a"]
+
+
+def test_a_satiety_guard_restores_the_lag_it_does_not_zero():
+    h = settle()
+    rec = h.record("a")
+    rec.satiety.L = 500.0
+    h.rt.eval(WRAP)("energy.state", rec, "satiety", "L")
+    next_minute(h, 4)
+    assert h.NR.server.metabolism.guarded == 1
+    assert rec.satiety.L == 500.0                                 # restored from its pre-step value, not stamped 0
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")], ids=["nan", "inf"])
+@pytest.mark.parametrize("key", BUFFER_KEYS)
+def test_a_bad_buffer_key_between_minutes_is_healed_and_reaches_nothing(key, bad):
+    # vitC, iron and water are the keys the old six-gram list missed or let through for one minute; here every key
+    h = settle()
+    rec = h.record("a")
+    rec.stomach.buffer.calories = 400.0
+    rec.stomach.buffer.carbs = 60.0
+    rec.stomach.buffer[key] = bad
+    f0 = h.NR.server.kinetics.stats.failures
+    next_minute(h, 4)
+    assert nonfinite(rec) == [], (key, nonfinite(rec))            # the stomach is reset, the pool and nutrients clean
+    assert h.NR.server.kinetics.stats.failures == f0 + 1
 
 
 def test_the_next_pre_step_heal_clears_an_unguarded_field():
