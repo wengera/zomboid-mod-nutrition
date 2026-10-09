@@ -15,8 +15,8 @@ The mappings (each a labelled assumption or inference, not a row):
 - Compensation (S1318) is read as the share of the exercise deficit the lag lets into the energy state, mean over
   days 3-16 (the brief's definition). A closed loop eats back that share only at a high intake gain, so the intake
   compensation is at most this share (named in the report).
-- Energy enters the balance at the eat and the expenditure at the minute (no absorption lag); fat depletion 0 and
-  glycogen full (g = 1) in every replay.
+- Energy enters the balance at the eat and the expenditure at the minute (no absorption lag); fat depletion 0 in every
+  replay.
 
 The protocols' clock: Douglas 2017's 0.5, 1.0 and 1.5 h are hours of the trial, whose bout ran 0-1 h (S1303), so
 1.5 h is 30 min after the bout. The brief's framing (45 min at 70 % read 0.5-1.5 h after the bout) is reported, not
@@ -106,12 +106,12 @@ function(cfg)
         if cfg.mode == "nobypass" or cfg.mode == "step" then
             ee24 = nil
         end
-        local e = K.energy.activityState(eb, exS, L, 0, 1, ee24)
+        local e = K.energy.activityState(eb, exS, L, 0, ee24)
         if cfg.mode == "raw" then
-            e = K.energy.state(eb, 0, 1)
+            e = K.energy.state(eb, 0)
         end
         if cfg.mode == "step" and eb <= -0.25 * eeS then
-            e = K.max(e, K.energy.state(eb, 0, 1))
+            e = K.max(e, K.energy.state(eb, 0))
         end
         local c = K.satiety.circadian((cfg.h0 + (m + 1) / 60) % 24)
         hs[m + 1] = K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), e) * c * K.satiety.acuteFactor(S))

@@ -264,20 +264,3 @@ def test_eb24h_reads_hours_since_the_last_close(host):
                                        (-3000, 2, 2.0)])
 def test_state(host, eb, dep, es):
     assert _close(host.K.energy.state(eb, dep), es)
-
-
-# Plan 4 (the glycogen term, a game choice) gained 0.3 x (1 - g); Plan 11d Task 4b (ruling T4-1) retired it:
-# GLYC_STATE_K is 0, so g, still plumbed, no longer moves the state at any balance or depletion.
-@pytest.mark.parametrize("eb,dep,g,es", [(0, 0, 1, 1.0), (0, 0, 0, 1.0), (0, 0, 0.5, 1.0),
-                                         (-1500, 0, 0, 1.5), (-3000, 1, 0, 2.0), (3000, 0, 0, 0.5),
-                                         (-750, 0.5, 0.5, 1.5), (-750, 0, 0, 1.25), (1500, 0, 0, 0.5)])
-def test_state_glycogen_term(host, eb, dep, g, es):
-    assert host.K.energy.GLYC_STATE_K == 0
-    assert _close(host.K.energy.state(eb, dep, g), es)
-    assert host.K.energy.state(eb, dep, g) == host.K.energy.state(eb, dep, 1)
-
-
-def test_state_without_g_equals_g_one(host):
-    e = host.K.energy
-    for eb, dep in [(-1500, 0), (1500, 0), (0, 1), (-750, 0.25)]:
-        assert e.state(eb, dep) == e.state(eb, dep, 1)

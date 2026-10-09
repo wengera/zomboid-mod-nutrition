@@ -1179,9 +1179,9 @@ def _plan4(h, nutrients=None, fluids=None, acute=None, alcDay=None, **pkw):
     return record
 
 
-def _activity_es(h, record, hsince, fatDep=0, g=1, ee24=True):
+def _activity_es(h, record, hsince, fatDep=0, ee24=True):
     """The energy state Metabolism stamps since Plan 11c Task 6 (spec s5c; amendment 4), rebuilt from the record:
-    K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h), ex24h the trailing-24 h exercise kcal (today's
+    K.energy.activityState(eb24h, ex24h, L, fatDep, ee24h), ex24h the trailing-24 h exercise kcal (today's
     exKcalDay blended with the closed day's exKcalPrev, as K.energy.eb24h blends the balance) and ee24h the
     trailing-24 h expenditure the Nutrients adapter builds (today's eeDay blended with the closed day's, floored at
     the resting expenditure)."""
@@ -1193,7 +1193,7 @@ def _activity_es(h, record, hsince, fatDep=0, g=1, ee24=True):
         ee_yest = body["inDayClosed"] - body["eb7"][7]
     ee24h = max(B.blend24(body["eeDay"], ee_yest, hsince), E.ree(body["lm"]))
     L = record["satiety"]["L"]
-    return E.activityState(E.eb24h(body, hsince), ex24, L, fatDep, g, ee24h if ee24 else None)
+    return E.activityState(E.eb24h(body, hsince), ex24, L, fatDep, ee24h if ee24 else None)
 
 
 def _excess(h, body):
@@ -1279,10 +1279,7 @@ def test_the_acute_scalars_reach_dmod_rmod_and_the_energy_state(met_host, opts):
     assert 0 < caf < 1
     assert body["dmod"] == _dmod(h, body, g=0.5, awake=22.0, caf=caf, tol=0.25)
     assert body["rmod"] == _rmod(h, body, g=0.5, debt=12.0)
-    assert body["energyState"] == _activity_es(h, record, 1 / 60, g=0.5)
-    # g 0.5 reaches the energy state's call, but since Plan 11d Task 4b (ruling T4-1: GLYC_STATE_K 0) it no longer
-    # moves the state (it added 0.3 x (1 - g) = 0.15 before)
-    assert body["energyState"] == _activity_es(h, record, 1 / 60)
+    assert body["energyState"] == _activity_es(h, record, 1 / 60)    # g does not enter the state (ruling T4-1)
 
 
 def test_the_day_alcohol_reaches_rmod_per_kg(met_host, opts):
@@ -1427,7 +1424,7 @@ def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_hos
         body.exKcalPrev = 600.0
         minute(h, p, record, 100.0 + 1 / 60)
         ex24 = h.K.body.blend24(body["exKcalDay"], body["exKcalPrev"], 1 / 60)
-        plain = h.K.energy.state(h.K.energy.eb24h(body, 1 / 60) + ex24, 0, 1)
+        plain = h.K.energy.state(h.K.energy.eb24h(body, 1 / 60) + ex24, 0)
         assert ex24 > 590 and body["energyState"] >= plain, eb7
         assert body["energyState"] == _activity_es(h, record, 1 / 60)
 
@@ -1451,7 +1448,7 @@ def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure
     eb = h.K.energy.eb24h(body, 1 / 60)
     assert es == with_ee
     assert es > without + 0.2                              # the bypass moves es by about 0.5 x 800 / 1500
-    assert abs(es - h.K.energy.state(eb, 0, 1)) < 1e-9     # whole: the exercise share enters at once
+    assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 
 def test_the_close_banks_the_days_exercise_kcal_for_the_24h_blend(met_host):

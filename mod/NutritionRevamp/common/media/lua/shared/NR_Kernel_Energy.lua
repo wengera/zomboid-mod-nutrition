@@ -253,16 +253,11 @@ function K.energy.eb24h(body, hoursSinceClose)
     return K.body.blend24(body.ebDay, body.eb7[7], hoursSinceClose)
 end
 
--- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion (the glycogen coupling
--- retired, ruling T4-1), down under surplus, clamped to [0.5, 2.0] (ruling 14, a game choice). g is the muscle
--- glycogen fraction (0-1, record.acute.g); omitted it reads 1, the neutral every Plan 3 caller passed.
-K.energy.GLYC_STATE_K = 0 -- retired by ruling T4-1 (Plan 11d Task 4b), was 0.3 (a game choice, Plan 4 Task 13): no science row backs it (S1109 is the exertional trigger, not this coupling), and its direction ran against S1451, S1452 and S1259 (ketosis blunts the deficit's rise in appetite, where 0.3 x (1 - g) raised hunger on a low-carbohydrate day at equal balance); g stays plumbed through K.energy.state, so a later ruling can restore a coupling from a row
-
-function K.energy.state(eb24h, fatDep, g)
-    if g == nil then
-        g = 1
-    end
-    return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep + K.energy.GLYC_STATE_K * (1 - g), 0.5, 2.0) -- ruling 14
+-- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion, down under surplus,
+-- clamped to [0.5, 2.0] (ruling 14, a game choice). Muscle glycogen does not enter it (ruling T4-1, Plan 11d Task 4b:
+-- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
+function K.energy.state(eb24h, fatDep)
+    return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep, 0.5, 2.0) -- ruling 14
 end
 
 -- Plan 11c Task 4b (spec § 5c, ruling 11c-29): no same-day compensation for exercise. A deficit made by exercise
@@ -307,7 +302,7 @@ end
 -- ee24h that is nil, non-finite or not positive bypasses nothing.
 K.energy.EX_BYPASS_LO = 0.30 -- game choice, ruling 11c-32 as amended (Plan 11c): the 24-h total-deficit share of the 24-h expenditure at which the exercise lag starts to be bypassed; S1325 (Karl 2021) gives the direction, S1312 (King 2011, steady state) and S1318 (Whybrow 2008, 26-28 % arms compensate ~30 %) bound it from below
 K.energy.EX_BYPASS_HI = 0.45 -- game choice, ruling 11c-32 as amended: the share at which the bypass is whole
-function K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h)
+function K.energy.activityState(eb24h, ex24h, L, fatDep, ee24h)
     local ex = 0
     if ex24h - ex24h == 0 and ex24h > 0 then
         ex = ex24h
@@ -318,7 +313,7 @@ function K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h)
         local w = K.clamp((d - K.energy.EX_BYPASS_LO) / (K.energy.EX_BYPASS_HI - K.energy.EX_BYPASS_LO), 0, 1)
         lag = lag + w * (ex - lag)
     end
-    return K.energy.state(eb24h + ex - lag, fatDep, g)
+    return K.energy.state(eb24h + ex - lag, fatDep)
 end
 
 -- Plan 11d Task 2 (spec § 5d, ruling 11d-4): the lag plateaus below the whole exercise share. lagged(L) is the gain

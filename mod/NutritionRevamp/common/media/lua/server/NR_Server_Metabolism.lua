@@ -411,7 +411,7 @@ local function step(username, player, record, ctx)
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
     local hSince = ageH - body.lastCloseAgeH
     local ex24 = K.body.blend24(body.exKcalDay, body.exKcalPrev, hSince)   -- the trailing-24 h exercise kcal
-    body.energyState = K.energy.activityState(K.energy.eb24h(body, hSince), ex24, sat.L, fatDep, g, MET.ee24(body, hSince))
+    body.energyState = K.energy.activityState(K.energy.eb24h(body, hSince), ex24, sat.L, fatDep, MET.ee24(body, hSince))
     body.lastAgeH = ageH
     local ng = guardAll(body, sat)
     if ng > 0 then
