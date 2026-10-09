@@ -228,7 +228,7 @@ A send's cost per key is unmeasured [#3437/C/C-only].
 
 The console `save` and the autosave run `GlobalModData.save` on the server's main loop, inside the world save, and the quit save runs it on the JVM's shutdown-hook thread [#3420/C/C-only].
 The save serialises every table into one heap buffer, 1 MiB at first, growing by 512 KiB and re-serialising the overflowing table on each overflow, and the world save sends clients a pause between its steps after 600 ms [#3421/C/C-only].
-A record of this mod's shape is about 10.8 KB in the save's format, so a store of 500 such records is about 5.4 MB, held for every player who ever joined unless the mod prunes it [#3422/C/inference].
+A record of this mod's shape was about 10.8 KB in the save's format when the mod kept it there, so a store of 500 such records was about 5.4 MB, held for every player who ever joined unless the mod prunes it, and the record has since grown to about 13.4 KB in that format [#3422/C/inference].
 Live, each seeded copy of one record added 10877 bytes to `global_mod_data.bin`: the file was 21633 bytes with the two real records, 1109333 with 100 seeded, 5460133 with 500 and 21775633 with 2000, and 21633 again after the seeded records were cleared and the world saved [#3468/M/n=1].
 The save's own time grew with the store, and the first save at a new size paid far more than the next: with 0, 100, 500 and 2000 seeded records, `Saving GlobalModData` to `Saving finish` took 11 then 9 ms, 22 then 16, 153 then 50, and 2770 then 193 ms for two console saves about 32 s apart [#3467/M/n=1].
 The first save at 2000 records logged `Pausing clients because saving is taking longer than 600ms` and made a 2990 ms server frame against a median of 100 [#3467/M/n=1].
@@ -236,7 +236,7 @@ That the first save at a size pays the buffer's growth restarts is inference, an
 Any logged-in client can request a global modData table by name and receive it, serialised whole up to the connection's send buffer, and a mod cannot refuse the request [#3417/C/C-only] [#3418/C/C-only].
 A reply larger than the connection's 1,000,000-byte send buffer goes out truncated [#3419/C/C-only].
 Live, a client's request returned the table whole at 2 and 60 records within 44 ms, at no frame cost above the idle jitter, and at 500 records it failed on both sides while the client kept its session [#3469/M/n=1] [#3470/M/n=1].
-Keeping only a record's inputs makes it about a fifth smaller, 8,774.2 bytes against 10,807.8 on average, and it still grows with every player ever seen [#3422/C/inference].
+Keeping only a record's inputs made it about a fifth smaller, 8,774.2 bytes against 10,807.8 on average, and it still grows with every player ever seen [#3422/C/inference].
 A server-side transmit sends the whole named table to every connection [#2416/C/inference] [#2398/C/C-only].
 A whole record survived a clean quit and reload leaf for leaf, the file then 10965 bytes [#3275/M/n=1].
 The lifecycle of the store is [server-lifecycle.md](server-lifecycle.md#global-moddata)'s, and the request route [mp-model.md](mp-model.md#routes-client-to-server)'s.
@@ -266,7 +266,7 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | one ghost run | 2991 ms over 3474 runs | [#3405/M/n=1] |
 | the engine's longest frame against a Lua ring | within 2 ms at p99, idle and under the burst | [#3403/M/n=1] |
 | ZGC over one session | 128 pauses, at most 0.12 ms; stalls only at boot | [#3408/M/n=1] |
-| one stored record | 10,807.8 bytes on average | [#3422/C/inference] |
+| one stored record | 7,251.7 bytes on average as one slot-file line; 13,448.8 in global modData's format | [#3422/C/inference] |
 | sixty players' minutes in one event | measured, fifty-eight fed ghosts beside two players: busy 50 ms median, 88 max; the earlier arithmetic bracket 73.7 to 103.3 ms, about 51.7 ms on the ghost basis (arithmetic) | [#3472/M/n=1, #3440/M/arith.] |
 | sixty players' minutes spread over the minute (arithmetic) | about 95 ms a game minute | [#3440/M/arith.] |
 | one player's minute in play, sub-block timers on | 1.459 ms a run over 244 runs | [#3457/M/n=1] |
@@ -405,7 +405,7 @@ The mechanisms are bytecode readings of one build, and a build bump moves their 
 The clocks reading covers the global API and the `os` library only; a finer clock exposed elsewhere is not excluded [#3432/C/C-only].
 The packet guard's effect on a connection was not read beyond its log line and its counter [#3430/C/C-only].
 The engine's fake client puts no player on a server of this build as shipped, so no reading here carries vanilla's own per-player load beyond two real players [#3494/M/n=1].
-The record size is an offline model of this mod's records in the save's format, corroborated by one live record's leaf count and by the live file's 10877 bytes a seeded copy [#3422/C/inference] [#3275/M/n=1] [#3468/M/n=1].
+The record size is an offline model of this mod's records, in the save's format corroborated at Plan 10c by one live record's leaf count and by the live file's 10877 bytes a seeded copy, and as a slot-file line encoded under lupa's tostring, never read from a live file [#3422/C/inference] [#3275/M/n=1] [#3468/M/n=1].
 The sixty-player arithmetic assumes a run costs the same whatever its interval, which one fast-clock session supports, and the ghost loads at sixty ran at one interval [#3389/M/n=1] [#3440/M/arith.] [#3472/M/n=1].
 The budgets were read at fixed caps of 5, 10 and 15 ms, so a cap sized to the minute's work as it changes is unmeasured [#3477/M/n=1] [#3492/M/n=1].
 Not covered: a listen server or single-player, a player's own-action latency, real network latency, jitter or loss, zombies, load from more than two real players, whether a coroutine can yield across a protected call, and any reading from a populated public server.
