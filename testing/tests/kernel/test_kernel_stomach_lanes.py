@@ -11,8 +11,7 @@ import pytest
 LN2 = 0.6931471805599453
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 STOMACH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Stomach.lua")
-NAMES = ("RATE_BASE", "RATE_PER_KCAL", "WATER_HALF_MIN", "LIQUID_PER_KCAL", "CAPACITY_G", "CAPACITY_MAX_G",
-         "CAPACITY_HARD_G")
+NAMES = ("RATE_BASE", "RATE_PER_KCAL", "WATER_HALF_MIN", "LIQUID_PER_KCAL", "CAPACITY_MAX_G", "CAPACITY_HARD_G")
 
 
 def _vec(host, **kw):
@@ -35,7 +34,7 @@ def _closed(E, dtM):
 def test_the_constants(host):
     s = host.K.stomach
     assert (s.RATE_BASE, s.RATE_PER_KCAL, s.WATER_HALF_MIN, s.LIQUID_PER_KCAL) == (1.25, 0.0025, 13, 0.12)
-    assert (s.CAPACITY_G, s.CAPACITY_MAX_G, s.CAPACITY_HARD_G) == (430, 730, 1100)
+    assert (s.CAPACITY_MAX_G, s.CAPACITY_HARD_G) == (730, 1100)
 
 
 def test_each_constant_names_its_row_or_its_label():

@@ -39,10 +39,6 @@ def arr(h, items):
 
 # --- the level constants and the visibility level (ruling 3: max(option, trait), clamped 1..3) ---------
 
-def test_level_constants(host):
-    assert host.py(V(host).LEVEL) == {"SYMPTOMS": 1, "BANDS": 2, "NUMBERS": 3}
-
-
 @pytest.mark.parametrize("opt,trait,want", [
     (1, False, 1), (2, False, 2), (3, False, 3),       # the option alone
     (1, True, 3), (2, True, 3),                        # either Nutritionist trait grants Numbers

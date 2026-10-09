@@ -80,8 +80,8 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
 local IN = NR.server.intake
 
 -- The sentinels: `or {}` keeps the existing table when this file is re-run, and NR_Core's reset never
--- touches them. Each holds orig (the saved method), wrapper (the mod's closure), class (the class table
--- the wrap went into) and off (a pass-through switch for an uninstall that could not unwind).
+-- touches them. Each holds orig (the saved method), wrapper (the mod's closure) and class (the class table
+-- the wrap went into).
 NR_IntakeComplete_Installed = NR_IntakeComplete_Installed or {}
 NR_IntakeServerStop_Installed = NR_IntakeServerStop_Installed or {}
 NR_IntakeDrink_Installed = NR_IntakeDrink_Installed or {}
@@ -556,10 +556,10 @@ local function makeWrapper(S, kind)
         local intake = nil
         if nr ~= nil and nr.server ~= nil then intake = nr.server.intake end
         local b = nil
-        if intake ~= nil and not S.off and nr.isServer ~= nil and nr.isServer() then
+        if intake ~= nil and nr.isServer ~= nil and nr.isServer() then
             b = intake.guardBefore(self, kind, ...)
         elseif intake ~= nil then
-            intake.stats.passthrough = intake.stats.passthrough + 1 -- the client, or switched off
+            intake.stats.passthrough = intake.stats.passthrough + 1 -- the client
         end
         local result = S.orig(self, ...)                   -- every path; never inside a pcall
         if b ~= nil then intake.guardAfter(b, kind) end
@@ -571,7 +571,6 @@ local function installOne(S, cls, clsName, method, kind)
     if cls == nil then return false end
     local cur = cls[method]
     if cur == nil then return false end
-    S.off = false
     if cur == S.wrapper then return true end               -- already the outermost: idempotent
     if S.wrapper ~= nil and S.class == cls then return true end -- still in the chain below a later wrap
     S.orig = cur
@@ -582,21 +581,11 @@ local function installOne(S, cls, clsName, method, kind)
     return true
 end
 
-local function uninstallOne(S, cls, method)
-    if cls == nil or S.wrapper == nil or S.class ~= cls then return end
-    if cls[method] == S.wrapper then
-        cls[method] = S.orig
-        S.class = nil
-    else
-        S.off = true                                       -- wrapped over by another mod: pass through
-    end
-end
-
 local function mirror()
     local cls = ISEatFoodAction
     local C, T = NR_IntakeComplete_Installed, NR_IntakeServerStop_Installed
-    IN.wrappedComplete = cls ~= nil and C.wrapper ~= nil and C.class == cls and not C.off
-    IN.wrappedServerStop = cls ~= nil and T.wrapper ~= nil and T.class == cls and not T.off
+    IN.wrappedComplete = cls ~= nil and C.wrapper ~= nil and C.class == cls
+    IN.wrappedServerStop = cls ~= nil and T.wrapper ~= nil and T.class == cls
     IN.wrapped = IN.wrappedComplete and IN.wrappedServerStop
     return IN.wrapped
 end
@@ -608,12 +597,6 @@ function IN.install()
     end
     installOne(NR_IntakeComplete_Installed, ISEatFoodAction, "ISEatFoodAction", "complete", "eat")
     installOne(NR_IntakeServerStop_Installed, ISEatFoodAction, "ISEatFoodAction", "serverStop", "cancel")
-    return mirror()
-end
-
-function IN.uninstall()
-    uninstallOne(NR_IntakeComplete_Installed, ISEatFoodAction, "complete")
-    uninstallOne(NR_IntakeServerStop_Installed, ISEatFoodAction, "serverStop")
     return mirror()
 end
 
@@ -759,18 +742,13 @@ end
 local function mirrorDrink()
     local cls = ISDrinkFluidAction
     local D = NR_IntakeDrink_Installed
-    IN.wrappedDrink = cls ~= nil and D.wrapper ~= nil and D.class == cls and not D.off
+    IN.wrappedDrink = cls ~= nil and D.wrapper ~= nil and D.class == cls
     return IN.wrappedDrink
 end
 
 function IN.installDrink()
     if ISDrinkFluidAction == nil then return mirrorDrink() end
     installOne(NR_IntakeDrink_Installed, ISDrinkFluidAction, "ISDrinkFluidAction", "updateEat", "drink")
-    return mirrorDrink()
-end
-
-function IN.uninstallDrink()
-    uninstallOne(NR_IntakeDrink_Installed, ISDrinkFluidAction, "updateEat")
     return mirrorDrink()
 end
 
@@ -841,18 +819,13 @@ end
 local function mirrorWorld()
     local cls = ISTakeWaterAction
     local W = NR_IntakeWorld_Installed
-    IN.wrappedWorld = cls ~= nil and W.wrapper ~= nil and W.class == cls and not W.off
+    IN.wrappedWorld = cls ~= nil and W.wrapper ~= nil and W.class == cls
     return IN.wrappedWorld
 end
 
 function IN.installWorld()
     if ISTakeWaterAction == nil then return mirrorWorld() end
     installOne(NR_IntakeWorld_Installed, ISTakeWaterAction, "ISTakeWaterAction", "transferFluid", "world")
-    return mirrorWorld()
-end
-
-function IN.uninstallWorld()
-    uninstallOne(NR_IntakeWorld_Installed, ISTakeWaterAction, "transferFluid")
     return mirrorWorld()
 end
 

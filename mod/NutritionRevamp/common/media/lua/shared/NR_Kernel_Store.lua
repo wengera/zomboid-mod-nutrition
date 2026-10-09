@@ -384,46 +384,6 @@ function K.store.inputsOnly(record)
     return out
 end
 
--- Whether the dotted path names an input, lies under one or is a container whose every slot is one: some INPUTS path matches its leading segments,
--- a `*` matching any one segment.
-function K.store.isInput(path)
-    local p = K.store.split(path)
-    local segs = K.store.SEGS
-    for i = 1, #segs do
-        if K.store.matches(segs[i], p) or K.store.isContainer(segs[i], p) then
-            return true
-        end
-    end
-    return false
-end
-
--- Whether p names the container of a pattern ending in `*` (body.eb7 for body.eb7.*): every slot of it is
--- persisted, so the container is.
-function K.store.isContainer(pat, p)
-    if pat[#pat] ~= "*" or #p ~= #pat - 1 then
-        return false
-    end
-    for j = 1, #p do
-        if pat[j] ~= "*" and pat[j] ~= p[j] then
-            return false
-        end
-    end
-    return true
-end
-
--- Whether pattern segments pat match the leading segments of p.
-function K.store.matches(pat, p)
-    if #p < #pat then
-        return false
-    end
-    for j = 1, #pat do
-        if pat[j] ~= "*" and pat[j] ~= p[j] then
-            return false
-        end
-    end
-    return true
-end
-
 -- A file-safe name: letters, digits, _ and - kept, any other character _, an empty name "default". The server name
 -- passes through it (getServerName is not sanitised, T1102.6: a name holding .. would make every write nil).
 function K.store.safeName(s)

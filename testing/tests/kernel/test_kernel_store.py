@@ -46,9 +46,42 @@ def order(h):
     return arr(h, ORDER)
 
 
+# The classification oracle (moved here from NR_Kernel_Store.lua by Plan 11d Task 9b: no mod code calls it).
+# K.store.isInput(path): whether the dotted path names an input, lies under one or is a container whose every slot
+# is one (some INPUTS path matches its leading segments, a `*` matching any one segment).
+IS_INPUT = r"""
+local K = NutritionRevamp.kernel
+local function matches(pat, p)
+    if #p < #pat then return false end
+    for j = 1, #pat do
+        if pat[j] ~= "*" and pat[j] ~= p[j] then return false end
+    end
+    return true
+end
+local function isContainer(pat, p)
+    if pat[#pat] ~= "*" or #p ~= #pat - 1 then return false end
+    for j = 1, #p do
+        if pat[j] ~= "*" and pat[j] ~= p[j] then return false end
+    end
+    return true
+end
+function K.store.isInput(path)
+    local p = K.store.split(path)
+    local segs = K.store.SEGS
+    for i = 1, #segs do
+        if matches(segs[i], p) or isContainer(segs[i], p) then return true end
+    end
+    return false
+end
+"""
+
+
 @pytest.fixture(autouse=True)
 def _records_loaded(host):
-    """Every test sees the data tables loaded, whatever ran before it: no test depends on another's side effect."""
+    """Every test sees the data tables loaded and the isInput oracle installed, whatever ran before it: no test depends
+    on another's side effect."""
+    if host.K.store.isInput is None:
+        host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(IS_INPUT, "@test_kernel_store.IS_INPUT")()
     data = host.G.NutritionRevamp.data
     if data is None or data.records is None:
         for name in ("NR_Data_Nutrients.lua", "NR_Data_Records.lua"):

@@ -50,7 +50,7 @@ def as_dict(t):
 
 def test_file_loads_and_exposes_the_intake_table(intake_host):
     assert lua51.lua_type(I(intake_host)) == "table"
-    for name in ("install", "uninstall", "shareEaten", "sourceOf", "craftMap", "macrosEaten", "assemble"):
+    for name in ("install", "shareEaten", "sourceOf", "craftMap", "macrosEaten", "assemble"):
         assert lua51.lua_type(I(intake_host)[name]) == "function", name
 
 
@@ -315,22 +315,20 @@ function()
     -- no isServer global on this host: the wrapper is a pass-through that still runs the chain
     local r = cls.complete({})
     local order = table.concat(calls, " ")
-    IN.uninstall()
-    local passOff = NR_IntakeComplete_Installed.off
     ISEatFoodAction = nil
     NR_IntakeComplete_Installed.wrapper, NR_IntakeComplete_Installed.class = nil, nil
-    NR_IntakeComplete_Installed.orig, NR_IntakeComplete_Installed.off = nil, nil
+    NR_IntakeComplete_Installed.orig = nil
     NR_IntakeServerStop_Installed.wrapper, NR_IntakeServerStop_Installed.class = nil, nil
-    NR_IntakeServerStop_Installed.orig, NR_IntakeServerStop_Installed.off = nil, nil
+    NR_IntakeServerStop_Installed.orig = nil
     IN.install()
-    return first, again, same, notRewrapped, r, order, passOff
+    return first, again, same, notRewrapped, r, order
 end
 """
 
 
 def test_install_is_idempotent_and_composes(intake_host):
     before_pass = I(intake_host).stats.passthrough
-    first, again, same, not_rewrapped, r, order, pass_off = intake_host.rt.eval(COMPOSE)()
+    first, again, same, not_rewrapped, r, order = intake_host.rt.eval(COMPOSE)()
     # one call through the chain, no isServer: it ran THROUGH the mod wrapper as a pass-through
     assert I(intake_host).stats.passthrough == before_pass + 1
     assert first is True and again is True
@@ -338,14 +336,13 @@ def test_install_is_idempotent_and_composes(intake_host):
     assert not_rewrapped is True
     assert r is True
     assert order == "qc vanilla"
-    assert pass_off is True
 
 
 RESET = r"""
 function()
     ISEatFoodAction = nil
     for _, S in ipairs({NR_IntakeComplete_Installed, NR_IntakeServerStop_Installed}) do
-        S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+        S.wrapper, S.class, S.orig = nil, nil, nil
     end
 end
 """
@@ -353,35 +350,6 @@ end
 
 def reset_sentinels(h):
     h.rt.eval(RESET)()
-
-
-UNINSTALL = r"""
-function()
-    local IN = NutritionRevamp.server.intake
-    local cls = {}
-    local vComplete = function(self) return true end
-    local vStop = function(self) end
-    cls.complete, cls.serverStop = vComplete, vStop
-    ISEatFoodAction = cls
-    IN.install()
-    local wrapped = cls.complete ~= vComplete and cls.serverStop ~= vStop
-    IN.uninstall()
-    return wrapped, cls.complete == vComplete, cls.serverStop == vStop, IN.wrapped
-end
-"""
-
-
-def test_uninstall_outermost_restores_the_originals(intake_host):
-    h = intake_host
-    reset_sentinels(h)
-    try:
-        wrapped, complete_restored, stop_restored, still = h.rt.eval(UNINSTALL)()
-        assert wrapped is True
-        assert complete_restored is True
-        assert stop_restored is True
-        assert still is False
-    finally:
-        reset_sentinels(h)
 
 
 RELOAD = r"""
@@ -554,23 +522,22 @@ function()
     local before = IN.stats.passthrough
     local r = cls.updateEat({}, 0.5)
     local passed = IN.stats.passthrough - before
-    IN.uninstallDrink()
-    local restored = cls.updateEat == vUpdate
+    local wrapped = IN.wrappedDrink
     ISDrinkFluidAction = nil
+    IN.wrappedDrink = false
     local S = NR_IntakeDrink_Installed
-    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
-    return first, again, same, r, calls, passed, restored, IN.wrappedDrink
+    S.wrapper, S.class, S.orig = nil, nil, nil
+    return first, again, same, r, calls, passed, wrapped
 end
 """
 
 
 def test_drink_install_is_idempotent_and_always_calls_the_original(intake_host):
-    first, again, same, r, calls, passed, restored, wrapped = intake_host.rt.eval(DRINK)()
+    first, again, same, r, calls, passed, wrapped = intake_host.rt.eval(DRINK)()
     assert first is True and again is True and same is True
     assert r == "orig" and calls == 1
     assert passed == 1
-    assert restored is True
-    assert wrapped is False
+    assert wrapped is True
 
 
 # --- fix-2: the thirst-only share against the TYPE's script thirst ---------------------------------
@@ -639,7 +606,7 @@ function(saved)
     NR.server.store.records = nil
     ISEatFoodAction, ISDrinkFluidAction = nil, nil
     for _, S in ipairs({NR_IntakeComplete_Installed, NR_IntakeServerStop_Installed, NR_IntakeDrink_Installed}) do
-        S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+        S.wrapper, S.class, S.orig = nil, nil, nil
     end
 end
 """
@@ -1222,23 +1189,22 @@ function()
     local before = IN.stats.passthrough
     local r = cls.transferFluid({}, 0.5)
     local passed = IN.stats.passthrough - before
-    IN.uninstallWorld()
-    local restored = cls.transferFluid == vTransfer
+    local wrapped = IN.wrappedWorld
     ISTakeWaterAction = nil
+    IN.wrappedWorld = false
     local S = NR_IntakeWorld_Installed
-    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
-    return first, again, same, r, calls, passed, restored, IN.wrappedWorld
+    S.wrapper, S.class, S.orig = nil, nil, nil
+    return first, again, same, r, calls, passed, wrapped
 end
 """
 
 
 def test_world_install_is_idempotent_and_always_calls_the_original(intake_host):
-    first, again, same, r, calls, passed, restored, wrapped = intake_host.rt.eval(WORLD)()
+    first, again, same, r, calls, passed, wrapped = intake_host.rt.eval(WORLD)()
     assert first is True and again is True and same is True
     assert r == "orig" and calls == 1
     assert passed == 1
-    assert restored is True
-    assert wrapped is False
+    assert wrapped is True
 
 
 WORLD_STUBS = r"""
@@ -1258,7 +1224,7 @@ function(amount, avail, withItem)
     local rec = NutritionRevamp.server.store.records.admin
     ISTakeWaterAction = nil
     local S = NR_IntakeWorld_Installed
-    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    S.wrapper, S.class, S.orig = nil, nil, nil
     return calls, seen, before, rec
 end
 """
@@ -1327,7 +1293,7 @@ function(waterUnit, steps, step)
     local nr = action.nrLanded or 0
     ISTakeWaterAction = nil
     local S = NR_IntakeWorld_Installed
-    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    S.wrapper, S.class, S.orig = nil, nil, nil
     return nr, per[1], per[2], per[3]
 end
 """

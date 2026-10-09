@@ -13,9 +13,6 @@
 local K = NutritionRevamp.kernel
 K.view = {}
 
--- The visibility levels (ruling 3): the server option NR.VisibilityMode reads 1..3 and a Nutritionist trait grants 3.
-K.view.LEVEL = { SYMPTOMS = 1, BANDS = 2, NUMBERS = 3 }
-
 -- The six symptom classes (ruling 5), closed, in display order.
 K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" }
 

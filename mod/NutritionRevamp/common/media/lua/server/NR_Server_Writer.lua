@@ -48,14 +48,6 @@ function NR.vanillaRate(key)
     return nil
 end
 
-function NR.vanillaRates()
-    local out = {}
-    for i = 1, #W.RATE_KEYS do
-        out[W.RATE_KEYS[i]] = NR.vanillaRate(W.RATE_KEYS[i])
-    end
-    return out
-end
-
 function W.boot()
     if not NR.isServer() then return end
     local sv = SandboxVars and SandboxVars.NR or nil

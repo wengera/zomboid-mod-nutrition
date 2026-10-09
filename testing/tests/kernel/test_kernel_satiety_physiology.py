@@ -71,12 +71,6 @@ def test_fill_is_mass_over_the_maximal_capacity_clamped(host):
     assert host.call("satiety.fill", -5, cap) == 0
 
 
-def test_the_comfortable_capacity_reads_its_share_of_the_maximum(host):
-    # ruling 11c-19: fullness is linear in volume up to the tolerated maximum (Goetze 2007), so 430 g is 430/730
-    F = host.call("satiety.fill", host.K.stomach.CAPACITY_G, host.K.stomach.CAPACITY_MAX_G)
-    assert F == pytest.approx(430 / 730)
-
-
 def test_weigh_splits_the_calories_by_atwater_share(host):
     v = _vec(host, calories=400, proteins=25, carbs=50, lipids=200 / 9)      # 100, 200 and 200 kcal by Atwater
     assert host.call("satiety.weigh", v) == pytest.approx(400 * (2.5 * 100 + 200 + 200) / 500)

@@ -110,10 +110,10 @@ def test_boot_saves_then_zeroes_the_seven_rates_to_zero_never_nil():
 
 def test_the_saved_rates_answer_for_every_key():
     h = boot()
-    rates = h.NR.vanillaRates()
+    rates = {k: h.NR.vanillaRate(k) for k in RATES}
     assert rates["HungerIncrease"] == 9.6e-6 and rates["FatigueIncrease"] == 3.45e-5
     assert rates["HungerIncreaseWhenWellFed"] == 0.0 and rates["ThirstSleepingIncrease"] == 1.0e-6
-    assert sorted(rates.keys()) == sorted(RATES)
+    assert all(v is not None for v in rates.values())
 
 
 def test_overlay_leaves_the_rates_vanillas():
