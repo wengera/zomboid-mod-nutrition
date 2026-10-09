@@ -6,13 +6,13 @@
   ACUTE_DECAY_HALF_LIFE_H otherwise (Plan 11d, ruling 11d-1). K.satiety.acuteFactor(S) = 1 - ACUTE_MAX x S
   is what the writer multiplies hunger by (Task 6 wires it).
 - K.energy.exerciseLag(L, exKcal, dtH): L, the exercise expenditure rate (kcal per day) appetite has caught up with,
-  a first-order lag of the exercise kcal with the time constant EX_LAG_TAU_D days. K.energy.lagged(L) reads it,
-  non-negative and finite.
+  a first-order lag of the exercise kcal with the time constant EX_LAG_TAU_D days. K.energy.lagged(L) reads
+  EX_LAG_GAIN x L, non-negative and finite: the lag plateaus at a share below the whole (Plan 11d, ruling 11d-4).
 - K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h): the energy state the writer hands to hungerTarget. The
   food balance (eb24h with the exercise kcal of the same window added back) enters at once; the exercise share enters
   only through the lag, which a 24 h total deficit bypasses on a linear ramp between EX_BYPASS_LO and EX_BYPASS_HI of
-  the 24 h expenditure ee24h (ruling 11c-32 as amended). Its value is never below the state of the same intake without
-  the activity.
+  the 24 h expenditure ee24h (ruling 11c-32 as amended), toward the whole exercise share, unscaled by the gain. Its
+  value is never below the state of the same intake without the activity.
 
 The replays that fit the constants are test_satiety_activity.py.
 """
@@ -41,7 +41,8 @@ def test_the_constants(host):
     assert host.K.satiety.ACUTE_KIND.aerobic == 1
     assert host.K.satiety.ACUTE_KIND.resistance == 0.5
     assert host.K.satiety.ACUTE_KIND.walk == 0
-    assert host.K.energy.EX_LAG_TAU_D == 24
+    assert host.K.energy.EX_LAG_TAU_D == 16
+    assert host.K.energy.EX_LAG_GAIN == 0.7
     assert host.K.energy.EX_BYPASS_LO == 0.30
     assert host.K.energy.EX_BYPASS_HI == 0.45
 
@@ -67,8 +68,11 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     assert "S1302" in line
     eng = src("NR_Kernel_Energy.lua")
     line = re.search(r"^K\.energy\.EX_LAG_TAU_D = .*$", eng, re.M).group(0)
-    assert "game choice, fitted in Task 4b (Plan 11c)" in line
-    assert "S1335 open" in line and "S1318" in line and "S1312" in line
+    assert "game choice, Plan 11d (ruling 11d-4)" in line
+    assert "S1335 open" in line and "S1318" in line and "S1312" in line and "S1320" in line
+    line = re.search(r"^K\.energy\.EX_LAG_GAIN = .*$", eng, re.M).group(0)
+    assert "game choice, Plan 11d (ruling 11d-4)" in line
+    assert "S1320" in line and "S1516" in line
     for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.energy\.%s = .*$" % name, eng, re.M).group(0)
         assert "game choice" in line and "ruling 11c-32" in line, name
@@ -202,7 +206,7 @@ def test_the_lag_is_about_zero_the_same_day(host):
     for _ in range(90):
         L = host.call("energy.exerciseLag", L, 1127.0 / 90, 1 / 60)
     assert L == pytest.approx(1127.0 / host.K.energy.EX_LAG_TAU_D, rel=0.01)
-    assert L / 1127.0 < 0.05
+    assert host.call("energy.lagged", L) / 1127.0 < 0.05
 
 
 def test_the_lag_holds_for_no_time_and_heals_bad_reads(host):
@@ -220,7 +224,8 @@ def test_the_lag_reads_a_negative_or_infinite_exercise_as_none(host):
 
 
 def test_lagged_reads_the_state_non_negative_and_finite(host):
-    assert host.call("energy.lagged", 250.0) == 250.0
+    assert host.call("energy.lagged", 250.0) == pytest.approx(host.K.energy.EX_LAG_GAIN * 250.0)
+    assert host.call("energy.lagged", 0) == 0
     assert host.call("energy.lagged", -5.0) == 0
     assert host.call("energy.lagged", float("nan")) == 0
     assert host.call("energy.lagged", math.inf) == 0
@@ -237,15 +242,15 @@ def test_a_food_deficit_enters_at_once(host):
 def test_the_exercise_share_enters_only_through_the_lag(host):
     # an 1127 kcal run with no food change: eb24h -1127, ex24h 1127; with the lag at 0 the state reads neutral
     assert host.call("energy.activityState", -1127.0, 1127.0, 0, 0, 1) == pytest.approx(1.0)
-    # the lag's share enters as a deficit
-    assert host.call("energy.activityState", -1127.0, 1127.0, 300.0, 0, 1) == pytest.approx(1 + 0.5 * 300 / 1500)
+    # the lag's share enters as a deficit, scaled by the gain
+    assert host.call("energy.activityState", -1127.0, 1127.0, 300.0, 0, 1) == pytest.approx(1 + 0.5 * 0.7 * 300 / 1500)
     # today's form (activity billed at once) would read 1.376
     assert host.call("energy.state", -1127.0, 0, 1) == pytest.approx(1 + 0.5 * 1127 / 1500)
 
 
 def test_the_fat_and_glycogen_arms_pass_through(host):
     a = host.call("energy.activityState", -200.0, 100.0, 50.0, 0.2, 0.4)
-    assert a == pytest.approx(host.call("energy.state", -200.0 + 100.0 - 50.0, 0.2, 0.4))
+    assert a == pytest.approx(host.call("energy.state", -200.0 + 100.0 - 0.7 * 50.0, 0.2, 0.4))
     assert host.call("energy.activityState", 0, 0, 0, 0, None) == pytest.approx(1.0)
 
 
@@ -264,13 +269,15 @@ def test_activity_never_pushes_the_state_below_the_same_intake_without_it(host):
 
 
 def test_the_bypass_ramp_has_weight_zero_half_and_one(host):
-    # eb24h + ex24h - lag becomes eb24h + ex24h - (lag + w x (ex24h - lag)); d = -eb24h / ee24h is the deficit share
-    ee, ex, L = 2500.0, 800.0, 100.0
+    # eb24h + ex24h - lag becomes eb24h + ex24h - (lag + w x (ex24h - lag)); d = -eb24h / ee24h is the deficit share;
+    # lag = lagged(L) = EX_LAG_GAIN x L, and the ramp's far end is the whole ex24h, not scaled by the gain
+    ee, ex, L0 = 2500.0, 800.0, 100.0
+    L = host.K.energy.EX_LAG_GAIN * L0
     lo, hi = host.K.energy.EX_BYPASS_LO, host.K.energy.EX_BYPASS_HI
 
     def at(d):
         eb = -d * ee
-        return host.call("energy.activityState", eb, ex, L, 0, 1, ee), eb
+        return host.call("energy.activityState", eb, ex, L0, 0, 1, ee), eb
 
     def expect(eb, w):
         return host.call("energy.state", eb + ex - (L + w * (ex - L)), 0, 1)
@@ -293,18 +300,18 @@ def test_the_bypass_leaves_whybrows_26_to_28_percent_arms_at_weight_zero(host):
     ee, ex, L = 2500.0, 800.0, 100.0
     for d in (0.26, 0.28):
         assert host.call("energy.activityState", -d * ee, ex, L, 0, 1, ee) == pytest.approx(
-            host.call("energy.state", -d * ee + ex - L, 0, 1)), d
+            host.call("energy.state", -d * ee + ex - 0.7 * L, 0, 1)), d
 
 
 def test_the_bypass_does_nothing_when_the_lag_already_covers_the_exercise(host):
-    # lag >= ex24h: nothing to bypass
-    assert host.call("energy.activityState", -1500.0, 200.0, 900.0, 0, 1, 2500.0) == pytest.approx(
-        host.call("energy.state", -1500.0 + 200.0 - 900.0, 0, 1))
+    # lag >= ex24h: nothing to bypass (d = 0.4, inside the ramp; the state unclamped)
+    assert host.call("energy.activityState", -1000.0, 200.0, 900.0, 0, 1, 2500.0) == pytest.approx(
+        host.call("energy.state", -1000.0 + 200.0 - 0.7 * 900.0, 0, 1))
 
 
 def test_an_unreadable_expenditure_leaves_the_lag_unbypassed(host):
     base = host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1)
-    assert base == pytest.approx(host.call("energy.state", -1500.0 + 800.0 - 100.0, 0, 1))
+    assert base == pytest.approx(host.call("energy.state", -1500.0 + 800.0 - 0.7 * 100.0, 0, 1))
     for ee in (None, float("nan"), math.inf, 0, -2500.0):
         assert host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1, ee) == pytest.approx(base), ee
     assert host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1, 1e12) == pytest.approx(base)
@@ -319,3 +326,39 @@ def test_a_non_finite_exercise_read_is_taken_as_none(host):
     for bad in (float("nan"), math.inf):
         assert host.call("energy.activityState", -300.0, bad, 0, 0, 1) == pytest.approx(
             host.call("energy.state", -300.0, 0, 1))
+
+
+# --- the lag's gain (Plan 11d, ruling 11d-4), appended so no line above moves ----------------------------------------
+
+def test_the_lag_plateaus_below_the_whole_share(host):
+    # S1320 (Martin 2019, E-MECHANIC): intake rose by 53-89 % of the achieved exercise expenditure by doubly labelled
+    # water at 24 weeks (the review's reading of its Table 2); exerciseLag takes the step's kcal (ruling P-2)
+    E = host.K.energy
+    L = 0.0
+    for _ in range(24 * 7 * 24):                     # 24 weeks of hours at a steady 300 kcal/d of exercise
+        L = E.exerciseLag(L, 300.0 / 24, 1.0)
+    share = E.lagged(L) / 300.0
+    assert 0.53 / 1.1 <= share <= 0.89 * 1.1         # S1320's DLW reading: 53-89 % of achieved expenditure
+
+
+def test_lagged_scales_by_the_gain_and_reads_a_bad_state_as_zero(host):
+    g = host.K.energy.EX_LAG_GAIN
+    assert 0 < g < 1
+    for L in (1.0, 300.0, 2300.0):
+        assert host.call("energy.lagged", L) == pytest.approx(g * L)
+    for bad in (-1.0, float("nan"), math.inf, -math.inf):
+        assert host.call("energy.lagged", bad) == 0
+
+
+def test_the_bypassed_share_is_not_scaled_by_the_gain(host):
+    # ruling 11c-32 amended, 11d-4: at full weight the lag is the whole ex24h, so the state is that of eb24h alone
+    ee, ex, L = 2500.0, 800.0, 300.0
+    hi = host.K.energy.EX_BYPASS_HI
+    eb = -hi * ee
+    assert host.call("energy.activityState", eb, ex, L, 0, 1, ee) == pytest.approx(host.call("energy.state", eb, 0, 1))
+    # half weight: half of the way from the gained lag to the whole share
+    lo = host.K.energy.EX_BYPASS_LO
+    eb = -(lo + hi) / 2 * ee
+    lag = host.K.energy.EX_LAG_GAIN * L
+    assert host.call("energy.activityState", eb, ex, L, 0, 1, ee) == pytest.approx(
+        host.call("energy.state", eb + ex - (lag + 0.5 * (ex - lag)), 0, 1))

@@ -30,7 +30,7 @@ steady state (the two prior days carrying the same meals), where a 25 % step in 
 arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
 Accepted only after the mutation pass (CLAUDE.md § 6): ACUTE_MAX, ACUTE_HALF_LIFE_H and EX_LAG_TAU_D at x2 and x0.5
-each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's pass: Plan 11d Task 1). Every test takes only `host`; no `parametrize`.
+each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's: Plan 11d Task 1; EX_LAG_GAIN's: Task 2). Only `host`; no `parametrize`.
 """
 import math
 
@@ -405,8 +405,8 @@ def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
 
 def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):
     # the lag with no bypass (DEF fails in direction) and today's form (the activity billed at once)
-    assert karl(host, "aerobic", mode="nobypass") == (-72.6, -23.7)
-    assert karl(host, None, mode="nobypass") == (-65.8, -0.9)
+    assert karl(host, "aerobic", mode="nobypass") == (-72.6, -23.5)
+    assert karl(host, None, mode="nobypass") == (-65.8, -0.6)
     assert karl(host, "aerobic", mode="raw") == (-64.7, 45.3)
     assert karl(host, None, mode="raw") == (-55.1, 87.7)
     assert karl(host, "aerobic", mode="step") == (-72.6, 37.1)
@@ -440,3 +440,46 @@ def replay_bout(host, minutes=60, kind="aerobic"):
     term alone, as acute_run), against the same 4 h at rest."""
     vig, _ = bout(0, minutes, kind, 0.0)
     return BoutReplay(run(host, 240, 8.0, vig=vig)[0], run(host, 240, 8.0)[0])
+
+
+# --- the lag's plateau over months (S1320; Plan 11d Task 2, ruling 11d-4), appended so no line above moves ---------
+
+E_MECHANIC = r"""
+function(kcal, days)
+    local K = NutritionRevamp.kernel
+    local hook, mask = debug.gethook()
+    debug.sethook()
+    local L = 0
+    local sum = 0
+    local n = 0
+    for m = 0, days * 1440 - 1 do
+        local exm = 0
+        if m % 1440 >= 120 and m % 1440 < 180 then
+            exm = kcal / 60
+        end
+        L = K.energy.exerciseLag(L, exm, 1 / 60)
+        if m >= (days - 7) * 1440 then
+            sum = sum + K.energy.lagged(L) / kcal
+            n = n + 1
+        end
+    end
+    debug.sethook(hook, mask)
+    return sum / n
+end
+"""
+
+
+def e_mechanic(host, kcal_per_day=1800.0 / 7, weeks=24):
+    """S1320 (Martin 2019, E-MECHANIC): 24 weeks of supervised exercise, the high dose 20 kcal/kg/wk (an ASSUMED 90 kg,
+    so 1800 kcal a week, as a daily 60 min bout at 10:00); the mean share of the daily exercise deficit the lag lets
+    into the energy state over the 24th week."""
+    return host.rt.eval(E_MECHANIC)(kcal_per_day, weeks * 7)
+
+
+def test_e_mechanic_at_24_weeks(host):
+    # S1320 (Martin 2019): intake rose by 53-89 % of the achieved exercise expenditure by doubly labelled water at 24
+    # weeks (the review's reading of its Table 2); the lag's share sits in that range, at both doses (8 and 20
+    # kcal/kg/wk at the assumed 90 kg); S1516's self-report pool (about 0) is weighted lower (ruling 11d-4)
+    for kcal in (720.0 / 7, 1800.0 / 7):
+        share = e_mechanic(host, kcal)
+        assert 0.53 <= share <= 0.89, (kcal, share)

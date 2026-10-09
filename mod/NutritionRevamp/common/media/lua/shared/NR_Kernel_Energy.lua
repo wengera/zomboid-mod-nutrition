@@ -271,7 +271,7 @@ end
 -- S1321, S1322). L is the exercise expenditure rate in kcal per day that appetite has caught up with: a first-order
 -- lag of the exercise kcal (exKcalDay's quantity, the MET above the idle class). The split of a deficit into an
 -- exercise share and a food share is a game choice no row defines. Appended so no line above moves.
-K.energy.EX_LAG_TAU_D = 24 -- game choice, fitted in Task 4b (Plan 11c) (S1335 open): the lag's time constant in days, fitted to S1318 (Whybrow 2008: about 30 % of the exercise deficit compensated over days 3-16) and about 0 the same day (S1312)
+K.energy.EX_LAG_TAU_D = 16 -- game choice, Plan 11d (ruling 11d-4), refit from Plan 11c Task 4b's 24 (S1335 open): the lag's time constant in days, fitted with EX_LAG_GAIN to both readings, S1318 (Whybrow 2008: about 30 % of the exercise deficit compensated over days 3-16; the replay reads 0.298) and S1320 (Martin 2019: 53-89 % at 24 weeks, the plateau the gain sets), and about 0 the same day (S1312)
 
 -- One lag step of dtH game hours with exKcal exercise kcal spent in it: L relaxes toward the step's rate (exKcal x 24
 -- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a negative or non-finite exKcal reads none.
@@ -289,12 +289,12 @@ function K.energy.exerciseLag(L, exKcal, dtH)
     return L * k + exKcal * 24 / dtH * (1 - k)
 end
 
--- The exercise deficit, kcal per day, that enters the energy state: L, non-negative and finite.
+-- The exercise deficit, kcal per day, that enters the energy state: EX_LAG_GAIN x L, non-negative and finite.
 function K.energy.lagged(L)
     if L - L ~= 0 or L < 0 then
         return 0
     end
-    return L
+    return K.energy.EX_LAG_GAIN * L
 end
 
 -- The energy state the writer hands to hungerTarget: the food balance (eb24h with the window's exercise kcal ex24h
@@ -320,3 +320,8 @@ function K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h)
     end
     return K.energy.state(eb24h + ex - lag, fatDep, g)
 end
+
+-- Plan 11d Task 2 (spec § 5d, ruling 11d-4): the lag plateaus below the whole exercise share. lagged(L) is the gain
+-- times L, so a steady exercise rate is compensated at EX_LAG_GAIN of it once the lag has caught up; the bypass ramp
+-- in activityState still moves the lag toward the whole ex24h, unscaled by the gain. Appended so no line above moves.
+K.energy.EX_LAG_GAIN = 0.7 -- game choice, Plan 11d (ruling 11d-4): the plateau share, the middle of S1320's 53-89 % (DLW, 24 weeks); S1516's self-report pool reads about 0 and is weighted lower
