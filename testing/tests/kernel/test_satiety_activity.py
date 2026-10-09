@@ -21,9 +21,12 @@ The protocols' clock: Douglas 2017's 0.5, 1.0 and 1.5 h are hours of the trial, 
 1.5 h is 30 min after the bout. The brief's framing (45 min at 70 % read 0.5-1.5 h after the bout) is reported, not
 asserted: under the rows' clock the suppression is gone by about 1.5 h after the bout (S1305).
 
-Karl 2021 (S1325) is a test the model may fail (spec § 5c): its readings are pinned, BAL passing and DEF failing in
-direction, and the total-deficit threshold (a deficit >= 25 % of expenditure bypassing the lag) is replayed as a
-test-local variant for the controller's ruling; the kernel carries no threshold.
+Karl 2021 (S1325) is a test the model may fail (spec § 5c): its readings are pinned. The kernel bypasses the exercise
+lag on a linear ramp of the 24 h total deficit between EX_BYPASS_LO and EX_BYPASS_HI of the 24 h expenditure (ruling
+11c-32 as amended): with the work vigorous both arms pass (DEF +20.4 % against +26 %); with heavy work the model does
+not class as vigorous, DEF overshoots (+62.9 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
+steady state (the two prior days carrying the same meals), where a 25 % step in place of the ramp raises the exercise
+arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
 Accepted only after the mutation pass (CLAUDE.md § 6): ACUTE_MAX, ACUTE_HALF_LIFE_H and EX_LAG_TAU_D at x2 and x0.5
 each fail a replay here. Every test takes only `host`; no test uses `parametrize`.
@@ -41,9 +44,11 @@ KCAL_PER_KJ = 1 / 4.184
 
 # One replay of a protocol: meals[m] lists the minute's eats; vig[m] the vigorous kind or nil; ex[m] the minute's
 # exercise kcal (beside the steady non-exercise expenditure ee kcal a minute); the trailing 24 h starts as a balanced
-# day (intake = expenditure = ee0 a minute, no exercise). mode: "lag" (activityState), "raw" (today's state of eb24h,
-# the activity billed at once) or "threshold" (the lag, bypassed when eb24h is a deficit of at least 25 % of the 24 h
-# expenditure). The coverage hook is off (the kernels' own tests cover every line).
+# day (intake = expenditure = ee0 a minute, no exercise). mode: "lag" (activityState with the 24 h expenditure, so the
+# kernel's ramp), "nobypass" (activityState without it: the lag alone), "raw" (today's state of eb24h, the activity
+# billed at once) or "step" (the lag alone, bypassed whole when eb24h is a deficit of at least 25 % of the 24 h
+# expenditure: a test-local variant ruling 11c-32 rejected). The coverage hook is off (the kernels' own tests cover
+# every line).
 REPLAY = r"""
 function(cfg)
     local K = NutritionRevamp.kernel
@@ -96,11 +101,15 @@ function(cfg)
         P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
         local F = K.satiety.fill(K.stomach.satietyMass(st), K.stomach.CAPACITY_MAX_G)
         local eb = inS - eeS
-        local e = K.energy.activityState(eb, exS, L, 0, 1)
+        local ee24 = eeS
+        if cfg.mode == "nobypass" or cfg.mode == "step" then
+            ee24 = nil
+        end
+        local e = K.energy.activityState(eb, exS, L, 0, 1, ee24)
         if cfg.mode == "raw" then
             e = K.energy.state(eb, 0, 1)
         end
-        if cfg.mode == "threshold" and eb <= -0.25 * eeS then
+        if cfg.mode == "step" and eb <= -0.25 * eeS then
             e = K.max(e, K.energy.state(eb, 0, 1))
         end
         local c = K.satiety.circadian((cfg.h0 + (m + 1) / 60) % 24)
@@ -192,6 +201,38 @@ def king_2011(host):
         "raw": run(host, 480, 8.0, meals=full, vig=vig, ex=ex, mode="raw")[0],
     }
     return {n: {"all": mean(hs), "late": mean(hs[180:])} for n, hs in arms.items()}
+
+
+def king_2011_steady(host):
+    """S1312 at steady state: the same three meals (833 kcal at 10:00, 12:45 and 19:00) on the two prior days, so the
+    trailing 24 h is a balanced eating day when the trial starts at 08:00 of day 3; the restriction arm cuts the
+    trial's two test meals by half the deficit each. Mean displayed hunger from 3 h of the trial on ("late"), per arm,
+    the exercise arm also under a 25 % step bypass ("step") and with no bypass ("nobypass")."""
+    run_kcal = 4715.0 * KCAL_PER_KJ
+    cut = 4820.0 * KCAL_PER_KJ / 2
+    day = 1440
+
+    def meals(trim):
+        out = {}
+        for d in range(3):
+            for hh in (2, 4.75, 11):
+                kc = 2500.0 / 3 - (trim if d == 2 and hh in (2, 4.75) else 0.0)
+                out[d * day + int(hh * 60)] = [mixed(kc)]
+        return out
+
+    vig, ex = bout(2 * day, 90, "aerobic", run_kcal)
+    full, less = meals(0.0), meals(cut)
+
+    def late(hs):
+        return mean(hs[2 * day + 180:2 * day + 480])
+
+    return {
+        "control": late(run(host, 3 * day + 480, 8.0, meals=full)[0]),
+        "restriction": late(run(host, 3 * day + 480, 8.0, meals=less)[0]),
+        "exercise": late(run(host, 3 * day + 480, 8.0, meals=full, vig=vig, ex=ex)[0]),
+        "step": late(run(host, 3 * day + 480, 8.0, meals=full, vig=vig, ex=ex, mode="step")[0]),
+        "nobypass": late(run(host, 3 * day + 480, 8.0, meals=full, vig=vig, ex=ex, mode="nobypass")[0]),
+    }
 
 
 def king_2010(host):
@@ -331,24 +372,42 @@ def test_whybrow_compensation_over_days_3_to_16_is_about_30_percent(host):
 
 # --- heavy labour (S1325), a test the model may fail ------------------------------------------------------------------
 
-def test_karl_2021_is_pinned_bal_passes_and_def_fails_in_direction(host):
+def test_king_2011_at_steady_state_exercise_stays_with_control(host):
+    # S1312 (King 2011) with the prior days eating the same meals: the exercise arm's late hunger sits within a small
+    # band of control (under a quarter of the restriction's rise, and under 3 mm), where a 25 % step bypass lifts it
+    # by more than the band (S1312; S1318 measured the compensating arms at 26-28 %)
+    k = king_2011_steady(host)
+    rise = k["restriction"] - k["control"]
+    assert rise > 0.02, k
+    band = abs(k["exercise"] - k["control"])
+    assert band < 0.25 * rise and band * MM_PER_HUNGER < 3.0, k
+    assert k["exercise"] >= k["nobypass"], k            # the ramp only ever raises the lag's share
+    step = k["step"] - k["control"]
+    assert step > 0.25 * rise and step * MM_PER_HUNGER >= 3.0, k
+
+
+def test_karl_2021_vigorous_both_arms_pass_with_the_ramp(host):
     # S1325 (Karl 2021): hunger -55 % against REST in an 18 % surplus, +26 % at a 43 % deficit (a pass: the sign and
-    # within 1.5x). The model (the lag alone, no threshold), with the work vigorous and with it not vigorous: BAL
-    # passes (-73.6 % and -65.8 %), DEF fails in direction (-26.5 % and -0.9 %). Pinned, so a change is noticed
-    assert karl(host, "aerobic") == (-73.6, -26.5)
-    assert karl(host, None) == (-65.8, -0.9)
-    for kind in ("aerobic", None):
-        assert karl_pass(*karl(host, kind)) == (True, False), kind
+    # within 1.5x). With the work vigorous the ramp reads BAL -73.6 % and DEF +20.4 %; both pass. Pinned
+    bal, dfc = karl(host, "aerobic")
+    assert (bal, dfc) == (-73.6, 20.4)
+    assert karl_pass(bal, dfc) == (True, True)
+    assert 26.0 / 1.5 <= dfc <= 26.0 * 1.5
 
 
-def test_karl_2021_under_a_25_percent_total_deficit_threshold(host):
-    # the variant for the controller's ruling (spec § 5c): a deficit of at least 25 % of the 24 h expenditure bypasses
-    # the lag (a test-local variant; the kernel carries no threshold). With the work vigorous both arms pass (DEF
-    # +31.8 %); with it not vigorous DEF overshoots (+76.7 %, past 1.5x of +26 % though inside the study's sd of 40).
-    # Today's form (no lag at all) reads -66.0 / +39.7 and -55.1 / +87.7
-    assert karl(host, "aerobic", mode="threshold") == (-73.6, 31.8)
-    assert karl(host, None, mode="threshold") == (-65.8, 76.7)
-    assert karl_pass(*karl(host, "aerobic", mode="threshold")) == (True, True)
-    assert karl_pass(*karl(host, None, mode="threshold")) == (True, False)
+def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
+    # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-65.8 %) and
+    # DEF reads +62.9 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed
+    bal, dfc = karl(host, None)
+    assert (bal, dfc) == (-65.8, 62.9)
+    assert karl_pass(bal, dfc) == (True, False)
+
+
+def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):
+    # the lag with no bypass (DEF fails in direction) and today's form (the activity billed at once)
+    assert karl(host, "aerobic", mode="nobypass") == (-73.6, -26.5)
+    assert karl(host, None, mode="nobypass") == (-65.8, -0.9)
     assert karl(host, "aerobic", mode="raw") == (-66.0, 39.7)
     assert karl(host, None, mode="raw") == (-55.1, 87.7)
+    assert karl(host, "aerobic", mode="step") == (-73.6, 31.8)
+    assert karl(host, None, mode="step") == (-65.8, 76.7)

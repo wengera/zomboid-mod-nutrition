@@ -196,20 +196,20 @@ end
 -- wires it: vigorous is the swing state or the metabolism class's heavy-work band, IsRunning never reaching the
 -- server, x141a). Appended so no line above moves. Pure; one statement a line.
 K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) (S1334 open): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference)
-K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (S1334 open): the state's half-life in game hours, rise and decay, inside S1305's 30-60 min return to control and gone by 1.5 h after the bout (S1305; S1304: nothing 30-90 min after in that pooling; S1303 to 30 min after)
+K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (S1334 open): the state's half-life in game hours, rise and decay, a compromise between S1303's reading (no effect 30 min after the bout) and S1305 / S1304's return to control within 30-60 min; a limitation: the model still shows ES 0.33 at trial hour 2.0, 30 min after the bout, where S1303 shows no effect
 K.satiety.ACUTE_KIND = {}
 K.satiety.ACUTE_KIND.aerobic = 1 -- S1300, S1303, S1306: running suppresses hunger (the weight is the scale's unit)
 K.satiety.ACUTE_KIND.resistance = 0.5 -- game choice (S1301: suppressed during resistance work too; S1305: less marked and not observed consistently), the swing state
 K.satiety.ACUTE_KIND.walk = 0 -- S1302: brisk walking did not move appetite
 
 -- One step of dtH game hours: toward the kind's weight while vigorous (an unknown kind weighs 0), toward 0 otherwise;
--- nothing for no time; a non-finite state reads 0.
+-- nothing for no time (the state returned clamped to [0, 1]); a non-finite state reads 0.
 function K.satiety.exerciseSuppression(S, dtH, vigorous, kind)
     if S - S ~= 0 then
         S = 0
     end
     if not (dtH > 0) then
-        return S
+        return K.clamp(S, 0, 1)
     end
     local w = 0
     if vigorous then
@@ -219,7 +219,10 @@ function K.satiety.exerciseSuppression(S, dtH, vigorous, kind)
     return K.clamp(w + (S - w) * k, 0, 1)
 end
 
--- The factor on hunger: 1 - ACUTE_MAX x S.
+-- The factor on hunger: 1 - ACUTE_MAX x S, S read as 0 when non-finite and clamped to [0, 1].
 function K.satiety.acuteFactor(S)
-    return 1 - K.satiety.ACUTE_MAX * S
+    if S - S ~= 0 then
+        S = 0
+    end
+    return 1 - K.satiety.ACUTE_MAX * K.clamp(S, 0, 1)
 end

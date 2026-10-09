@@ -274,7 +274,7 @@ end
 K.energy.EX_LAG_TAU_D = 24 -- game choice, fitted in Task 4b (Plan 11c) (S1335 open): the lag's time constant in days, fitted to S1318 (Whybrow 2008: about 30 % of the exercise deficit compensated over days 3-16) and about 0 the same day (S1312)
 
 -- One lag step of dtH game hours with exKcal exercise kcal spent in it: L relaxes toward the step's rate (exKcal x 24
--- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a non-finite exKcal reads none.
+-- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a negative or non-finite exKcal reads none.
 function K.energy.exerciseLag(L, exKcal, dtH)
     if L - L ~= 0 then
         L = 0
@@ -282,7 +282,7 @@ function K.energy.exerciseLag(L, exKcal, dtH)
     if not (dtH > 0) then
         return L
     end
-    if exKcal - exKcal ~= 0 then
+    if exKcal - exKcal ~= 0 or exKcal < 0 then
         exKcal = 0
     end
     local k = math.exp(-dtH / (K.energy.EX_LAG_TAU_D * 24))
@@ -300,11 +300,23 @@ end
 -- The energy state the writer hands to hungerTarget: the food balance (eb24h with the window's exercise kcal ex24h
 -- added back) enters at once, the exercise share only through the lag. lagged(L) >= 0 and state falls with the
 -- balance, so the activity never pushes the state below that of the same intake without it (S1330, S1331, S1332).
--- A negative or non-finite ex24h reads none.
-function K.energy.activityState(eb24h, ex24h, L, fatDep, g)
+-- A negative or non-finite ex24h reads none. A 24-h total deficit bypasses the lag on a linear ramp: with ee24h the
+-- 24-h expenditure and d = -eb24h / ee24h, the weight w = clamp((d - EX_BYPASS_LO) / (EX_BYPASS_HI - EX_BYPASS_LO), 0, 1)
+-- moves the lag w of the way to ex24h (heavy work in a deficit raises hunger within days, S1325; ordinary exercise
+-- stays compensated over weeks, S1312, S1318); it only ever raises the lag, so the never-below property holds. An
+-- ee24h that is nil, non-finite or not positive bypasses nothing.
+K.energy.EX_BYPASS_LO = 0.30 -- game choice, ruling 11c-32 as amended (Plan 11c): the 24-h total-deficit share of the 24-h expenditure at which the exercise lag starts to be bypassed; S1325 (Karl 2021) gives the direction, S1312 (King 2011, steady state) and S1318 (Whybrow 2008, 26-28 % arms compensate ~30 %) bound it from below
+K.energy.EX_BYPASS_HI = 0.45 -- game choice, ruling 11c-32 as amended: the share at which the bypass is whole
+function K.energy.activityState(eb24h, ex24h, L, fatDep, g, ee24h)
     local ex = 0
     if ex24h - ex24h == 0 and ex24h > 0 then
         ex = ex24h
     end
-    return K.energy.state(eb24h + ex - K.energy.lagged(L), fatDep, g)
+    local lag = K.energy.lagged(L)
+    if ee24h ~= nil and ee24h - ee24h == 0 and ee24h > 0 and eb24h - eb24h == 0 and lag < ex then
+        local d = -eb24h / ee24h
+        local w = K.clamp((d - K.energy.EX_BYPASS_LO) / (K.energy.EX_BYPASS_HI - K.energy.EX_BYPASS_LO), 0, 1)
+        lag = lag + w * (ex - lag)
+    end
+    return K.energy.state(eb24h + ex - lag, fatDep, g)
 end
