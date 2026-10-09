@@ -24,13 +24,13 @@ asserted: under the rows' clock the suppression is gone by about 1.5 h after the
 
 Karl 2021 (S1325) is a test the model may fail (spec § 5c): its readings are pinned. The kernel bypasses the exercise
 lag on a linear ramp of the 24 h total deficit between EX_BYPASS_LO and EX_BYPASS_HI of the 24 h expenditure (ruling
-11c-32 as amended): with the work vigorous both arms pass (DEF +20.4 % against +26 %); with heavy work the model does
+11c-32 as amended): with the work vigorous both arms pass (DEF +25.3 % against +26 %); with heavy work the model does
 not class as vigorous, DEF overshoots (+62.9 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
 steady state (the two prior days carrying the same meals), where a 25 % step in place of the ramp raises the exercise
 arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
 Accepted only after the mutation pass (CLAUDE.md § 6): ACUTE_MAX, ACUTE_HALF_LIFE_H and EX_LAG_TAU_D at x2 and x0.5
-each fail a replay here. Every test takes only `host`; no test uses `parametrize`.
+each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's pass: Plan 11d Task 1). Every test takes only `host`; no `parametrize`.
 """
 import math
 
@@ -310,11 +310,11 @@ def karl_pass(bal, dfc):
 
 # --- acute suppression (S1303, S1305, S1306, S1304) -----------------------------------------------------------------
 
-def test_douglas_and_goltz_suppression_sits_in_the_effect_size_band(host):
-    # S1303: ES >= 0.60 at trial hours 0.5, 1.0 and 1.5 (the bout ran 0-1 h); S1306: <= 1.47 just after a 60 min run
-    es = douglas_goltz(host)
-    for h in (0.5, 1.0, 1.5):
-        assert ES_LO <= es[h] <= ES_HI, es
+def test_the_bout_tracks_the_pooled_mm_readings(host):
+    # S1502 (King 2017, 17 crossovers, n = 192): hunger about -33 % during the bout; S1500 (Hu 2023 MA): -8.465 mm immediately after, nothing at 30-90 min
+    r = replay_bout(host, minutes=60, kind="aerobic")   # the bout against control, minute by minute (the file's end)
+    assert 0.67 / 1.1 <= r.mean_ratio(0, 60) <= min(1.0, 0.67 * 1.1), r     # mean exercise/control hunger over the bout
+    assert abs(r.mm_difference(90)) <= 8.465, r   # minute 90, 30 min after the bout: no larger than the pooled immediate-post effect
 
 
 def test_the_suppression_is_gone_by_about_one_and_a_half_hours_after_the_bout(host):
@@ -373,24 +373,24 @@ def test_whybrow_compensation_over_days_3_to_16_is_about_30_percent(host):
 # --- heavy labour (S1325), a test the model may fail ------------------------------------------------------------------
 
 def test_king_2011_at_steady_state_exercise_stays_with_control(host):
-    # S1312 (King 2011) with the prior days eating the same meals: the exercise arm's late hunger sits within a small
-    # band of control (under a quarter of the restriction's rise, and under 3 mm), where a 25 % step bypass lifts it
-    # by more than the band (S1312; S1318 measured the compensating arms at 26-28 %)
+    # S1312 (King 2011), prior days on the same meals: exercise's late hunger stays within a quarter of the restriction's
+    # rise and under 3.3 mm of control (ruling T1-1: 1.1x Plan 11c's 3 mm, fitted under the old 0.5 h acute tail), where a
+    # 25 % step bypass lifts it past the band (S1312: intake stays with control; S1318: compensating arms at 26-28 %)
     k = king_2011_steady(host)
     rise = k["restriction"] - k["control"]
     assert rise > 0.02, k
     band = abs(k["exercise"] - k["control"])
-    assert band < 0.25 * rise and band * MM_PER_HUNGER < 3.0, k
+    assert band < 0.25 * rise and band * MM_PER_HUNGER < 3.3, k
     assert k["exercise"] >= k["nobypass"], k            # the ramp only ever raises the lag's share
     step = k["step"] - k["control"]
-    assert step > 0.25 * rise and step * MM_PER_HUNGER >= 3.0, k
+    assert step > 0.25 * rise and step * MM_PER_HUNGER >= 3.3, k
 
 
 def test_karl_2021_vigorous_both_arms_pass_with_the_ramp(host):
     # S1325 (Karl 2021): hunger -55 % against REST in an 18 % surplus, +26 % at a 43 % deficit (a pass: the sign and
-    # within 1.5x). With the work vigorous the ramp reads BAL -73.6 % and DEF +20.4 %; both pass. Pinned
+    # within 1.5x). With the work vigorous the ramp reads BAL -72.6 % and DEF +25.3 %; both pass. Pinned
     bal, dfc = karl(host, "aerobic")
-    assert (bal, dfc) == (-73.6, 20.4)
+    assert (bal, dfc) == (-72.6, 25.3)
     assert karl_pass(bal, dfc) == (True, True)
     assert 26.0 / 1.5 <= dfc <= 26.0 * 1.5
 
@@ -405,9 +405,38 @@ def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
 
 def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):
     # the lag with no bypass (DEF fails in direction) and today's form (the activity billed at once)
-    assert karl(host, "aerobic", mode="nobypass") == (-73.6, -26.5)
+    assert karl(host, "aerobic", mode="nobypass") == (-72.6, -23.7)
     assert karl(host, None, mode="nobypass") == (-65.8, -0.9)
-    assert karl(host, "aerobic", mode="raw") == (-66.0, 39.7)
+    assert karl(host, "aerobic", mode="raw") == (-64.7, 45.3)
     assert karl(host, None, mode="raw") == (-55.1, 87.7)
-    assert karl(host, "aerobic", mode="step") == (-73.6, 31.8)
+    assert karl(host, "aerobic", mode="step") == (-72.6, 37.1)
     assert karl(host, None, mode="step") == (-65.8, 76.7)
+
+
+# --- the bout against control (S1502, S1500; Plan 11d Task 1, ruling 11d-1), appended so no line above moves ---------
+
+class BoutReplay:
+    """Displayed hunger per minute (index i is minute i + 1) of a bout arm and its control at rest."""
+
+    def __init__(self, ex, ctl):
+        self.ex = ex
+        self.ctl = ctl
+
+    def mean_ratio(self, a, b):
+        """Mean exercise/control hunger over minutes a to b: the readings at the ends of minutes a + 1 to b."""
+        return mean([self.ex[i] / self.ctl[i] for i in range(a, b)])
+
+    def mm_difference(self, minute):
+        """Exercise minus control hunger at the end of `minute`, in mm under ruling 11c-31's 260 mm per unit."""
+        return (self.ex[minute - 1] - self.ctl[minute - 1]) * MM_PER_HUNGER
+
+    def __repr__(self):
+        return "BoutReplay(during %.4f, mm at 60 %.3f, mm at 75 %.3f, mm at 90 %.3f)" % (
+            self.mean_ratio(0, 60), self.mm_difference(60), self.mm_difference(75), self.mm_difference(90))
+
+
+def replay_bout(host, minutes=60, kind="aerobic"):
+    """S1502 and S1500's shape: a bout of `minutes` from trial minute 0 (08:00), no meals and no exercise kcal (the acute
+    term alone, as acute_run), against the same 4 h at rest."""
+    vig, _ = bout(0, minutes, kind, 0.0)
+    return BoutReplay(run(host, 240, 8.0, vig=vig)[0], run(host, 240, 8.0)[0])

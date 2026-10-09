@@ -813,7 +813,7 @@ def test_a_non_finite_acute_state_or_lag_heals_and_counts():
 # --- Plan 11c close (ruling C-1): the writer's decay across a reconnect or a restart --------------------------------
 # The writer stamps its last step's world age on record.satiety.t (game hours). A new IsoPlayer object (a reconnect, a
 # respawn) or a restart re-hoists h with no ageH, so the step reads the gap from that stamp, clamped at maxStepS (60
-# min) as a same-object gap is: P decays at HALF_LIFE_H 0.7 h and S toward 0 at ACUTE_HALF_LIFE_H 0.5 h over one hour.
+# min) as a same-object gap is: P decays at HALF_LIFE_H 0.7 h and S toward 0 at ACUTE_DECAY_HALF_LIFE_H 0.15 h over one hour (ruling 11d-1).
 
 def _fed(h, name="a"):
     p = player(h, name)
@@ -848,7 +848,7 @@ def test_a_reconnect_decays_p_and_s_as_the_same_object_does():
     assert back.satiety.P == P2 and back.satiety.S == S2
     step(h2, player(h2, "a"), back, 182, name="a")                          # a new object, 180 minutes later
     assert same.satiety.P == pytest.approx(P2 * 2 ** (-1 / 0.7))
-    assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.5))
+    assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
     assert back.satiety.P == pytest.approx(same.satiety.P)
     assert back.satiety.S == pytest.approx(same.satiety.S)
     assert back.satiety.t == pytest.approx(100.0 + 182 / 60)
@@ -875,7 +875,7 @@ def test_a_restart_through_the_store_decays_the_pool():
     step(h, player(h), back, 182)
     assert W.stats.seeded == 0
     assert back.satiety.P == pytest.approx(P2 * 2 ** (-1 / 0.7))
-    assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.5))
+    assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
 
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])

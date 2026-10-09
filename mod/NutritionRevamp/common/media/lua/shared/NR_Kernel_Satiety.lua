@@ -129,12 +129,12 @@ end
 
 -- Plan 11c Task 4b (spec § 5c, ruling 11c-29): the acute suppression of hunger by vigorous work (exercise-induced
 -- anorexia: during and just after the bout, gone within about 1.5 h; S1299, S1300, S1303, S1304, S1305, S1306). A
--- state S in [0, 1] relaxes toward the kind's weight while vigorous and toward 0 otherwise, first-order with one
--- half-life for the rise and the decay; the writer multiplies hunger by acuteFactor(S) = 1 - ACUTE_MAX x S (Task 6
+-- state S in [0, 1] relaxes toward the kind's weight while vigorous and toward 0 otherwise, first-order with
+-- ACUTE_HALF_LIFE_H while vigorous and ACUTE_DECAY_HALF_LIFE_H otherwise (ruling 11d-1); the writer multiplies hunger by acuteFactor(S) = 1 - ACUTE_MAX x S (Task 6
 -- wires it: vigorous is the swing state or the metabolism class's heavy-work band, IsRunning never reaching the
 -- server, x141a). Appended so no line above moves. Pure; one statement a line.
-K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) (S1334 open): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference)
-K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (S1334 open): the state's half-life in game hours, rise and decay, a compromise between S1303's reading (no effect 30 min after the bout) and S1305 / S1304's return to control within 30-60 min; a limitation: the model still shows ES 0.33 at trial hour 2.0, 30 min after the bout, where S1303 shows no effect
+K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) while its against-control row was open (now S1500 and S1502; kept at 0.7, ruling 11d-1): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference)
+K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (fitted while its against-control row was open; now S1500 and S1502, ruling 11d-1): the state's rise half-life in game hours, while vigorous, fitted with ACUTE_MAX to S1303 and S1306; it reads S1502's -33 % during a 60 min bout (the replay's mean 0.674 of control); the decay is ACUTE_DECAY_HALF_LIFE_H (Plan 11d)
 K.satiety.ACUTE_KIND = {}
 K.satiety.ACUTE_KIND.aerobic = 1 -- S1300, S1303, S1306: running suppresses hunger (the weight is the scale's unit)
 K.satiety.ACUTE_KIND.resistance = 0.5 -- game choice (S1301: suppressed during resistance work too; S1305: less marked and not observed consistently), the swing state
@@ -153,7 +153,7 @@ function K.satiety.exerciseSuppression(S, dtH, vigorous, kind)
     if vigorous then
         w = K.satiety.ACUTE_KIND[kind or "none"] or 0
     end
-    local k = math.exp(-0.6931471805599453 * dtH / K.satiety.ACUTE_HALF_LIFE_H)
+    local k = math.exp(-0.6931471805599453 * dtH / K.satiety.acuteHalfLife(vigorous))
     return K.clamp(w + (S - w) * k, 0, 1)
 end
 
@@ -163,4 +163,14 @@ function K.satiety.acuteFactor(S)
         S = 0
     end
     return 1 - K.satiety.ACUTE_MAX * K.clamp(S, 0, 1)
+end
+K.satiety.ACUTE_DECAY_HALF_LIFE_H = 0.15 -- game choice, Plan 11d (ruling 11d-1): the post-bout decay, fitted to S1500 (no effect 30-90 min after) and S1502 (-33 % during); the rise keeps ACUTE_HALF_LIFE_H; fitted at 0.15 h, the activity replay of a 60 min aerobic bout reads 0.674 of control's hunger over the bout (S1502: 41 against 61 mm, 0.67) and -4.0 mm 30 min after it (S1500: no larger than the pooled -8.465 mm immediately after)
+
+-- Plan 11d (ruling 11d-1): the half-life of exerciseSuppression's step, the rise's while vigorous and the shorter
+-- decay's otherwise. Appended so no line above moves; one statement a line for the coverage gate.
+function K.satiety.acuteHalfLife(vigorous)
+    if vigorous then
+        return K.satiety.ACUTE_HALF_LIFE_H
+    end
+    return K.satiety.ACUTE_DECAY_HALF_LIFE_H
 end

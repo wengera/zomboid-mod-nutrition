@@ -2,7 +2,8 @@
 
 - K.satiety.exerciseSuppression(S, dtH, vigorous, kind): the acute suppression state S in [0, 1]. It relaxes toward
   the kind's weight while vigorous (aerobic 1, resistance ACUTE_KIND.resistance, walking 0; an unknown kind 0) and
-  toward 0 otherwise, first-order with the half-life ACUTE_HALF_LIFE_H. K.satiety.acuteFactor(S) = 1 - ACUTE_MAX x S
+  toward 0 otherwise, first-order: the half-life ACUTE_HALF_LIFE_H while vigorous and the shorter
+  ACUTE_DECAY_HALF_LIFE_H otherwise (Plan 11d, ruling 11d-1). K.satiety.acuteFactor(S) = 1 - ACUTE_MAX x S
   is what the writer multiplies hunger by (Task 6 wires it).
 - K.energy.exerciseLag(L, exKcal, dtH): L, the exercise expenditure rate (kcal per day) appetite has caught up with,
   a first-order lag of the exercise kcal with the time constant EX_LAG_TAU_D days. K.energy.lagged(L) reads it,
@@ -36,6 +37,7 @@ def src(name):
 def test_the_constants(host):
     assert host.K.satiety.ACUTE_MAX == 0.7
     assert host.K.satiety.ACUTE_HALF_LIFE_H == 0.5
+    assert host.K.satiety.ACUTE_DECAY_HALF_LIFE_H == 0.15
     assert host.K.satiety.ACUTE_KIND.aerobic == 1
     assert host.K.satiety.ACUTE_KIND.resistance == 0.5
     assert host.K.satiety.ACUTE_KIND.walk == 0
@@ -49,11 +51,16 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     for name in ("ACUTE_MAX", "ACUTE_HALF_LIFE_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, sat, re.M).group(0)
         assert "game choice, fitted in Task 4b (Plan 11c)" in line, name
-        assert "S1334 open" in line, name
+        assert "S1500" in line and "S1502" in line and "S1334" not in line, name
         assert re.search(r"S13(0[3-6])", line), name
     for kind in ("aerobic", "resistance", "walk"):
         line = re.search(r"^K\.satiety\.ACUTE_KIND\.%s = .*$" % kind, sat, re.M).group(0)
         assert re.search(r"S1\d{3}", line), kind
+    line = re.search(r"^K\.satiety\.ACUTE_DECAY_HALF_LIFE_H = .*$", sat, re.M).group(0)
+    assert "game choice, Plan 11d (ruling 11d-1)" in line
+    assert "S1500" in line and "S1502" in line
+    line = re.search(r"^K\.satiety\.ACUTE_HALF_LIFE_H = .*$", sat, re.M).group(0)
+    assert "S1500" in line and "S1502" in line and "ACUTE_DECAY_HALF_LIFE_H" in line
     line = re.search(r"^K\.satiety\.ACUTE_KIND\.resistance = .*$", sat, re.M).group(0)
     assert "game choice" in line and "S1301" in line
     line = re.search(r"^K\.satiety\.ACUTE_KIND\.walk = .*$", sat, re.M).group(0)
@@ -78,11 +85,27 @@ def test_suppression_rises_toward_one_while_vigorous_aerobic(host):
     assert S == pytest.approx(0.75)
 
 
-def test_suppression_decays_by_half_each_half_life_when_not_vigorous(host):
-    S = host.call("satiety.exerciseSuppression", 0.8, 0.5, False, "aerobic")
+def test_suppression_decays_by_half_each_decay_half_life_when_not_vigorous(host):
+    d = host.K.satiety.ACUTE_DECAY_HALF_LIFE_H
+    S = host.call("satiety.exerciseSuppression", 0.8, d, False, "aerobic")
     assert S == pytest.approx(0.4)
-    S = host.call("satiety.exerciseSuppression", 0.8, 1.0, False, None)
+    S = host.call("satiety.exerciseSuppression", 0.8, 2 * d, False, None)
     assert S == pytest.approx(0.2)
+
+
+def test_the_decay_is_faster_than_the_rise(host):
+    S = host.K.satiety
+    assert S.ACUTE_DECAY_HALF_LIFE_H < S.ACUTE_HALF_LIFE_H
+    up = S.exerciseSuppression(0.0, S.ACUTE_HALF_LIFE_H, True, "aerobic")
+    assert abs(up - 0.5) < 1e-9                      # half way up in one rise half-life
+    down = S.exerciseSuppression(1.0, S.ACUTE_DECAY_HALF_LIFE_H, False, None)
+    assert abs(down - 0.5) < 1e-9                    # half way down in one decay half-life
+
+
+def test_the_step_takes_the_rise_half_life_while_vigorous_and_the_decay_s_otherwise(host):
+    assert host.call("satiety.acuteHalfLife", True) == host.K.satiety.ACUTE_HALF_LIFE_H
+    assert host.call("satiety.acuteHalfLife", False) == host.K.satiety.ACUTE_DECAY_HALF_LIFE_H
+    assert host.call("satiety.acuteHalfLife", None) == host.K.satiety.ACUTE_DECAY_HALF_LIFE_H
 
 
 def test_suppression_steps_compose_minute_by_minute(host):
@@ -92,7 +115,7 @@ def test_suppression_steps_compose_minute_by_minute(host):
     assert S == pytest.approx(0.75)
     for _ in range(30):
         S = host.call("satiety.exerciseSuppression", S, 1 / 60, False, "aerobic")
-    assert S == pytest.approx(0.375)
+    assert S == pytest.approx(0.75 * 0.5 ** (0.5 / host.K.satiety.ACUTE_DECAY_HALF_LIFE_H))
 
 
 def test_resistance_rises_toward_its_smaller_weight(host):
@@ -107,7 +130,7 @@ def test_walking_and_an_unknown_kind_add_nothing(host):
     assert host.call("satiety.exerciseSuppression", 0, 1.0, True, "walk") == 0
     assert host.call("satiety.exerciseSuppression", 0, 1.0, True, "juggling") == 0
     assert host.call("satiety.exerciseSuppression", 0, 1.0, True, None) == 0
-    # a walk after a run relaxes toward 0 like rest
+    # a walk after a run relaxes toward 0 at the rise half-life: the decay half-life is the not-vigorous path's
     assert host.call("satiety.exerciseSuppression", 0.8, 0.5, True, "walk") == pytest.approx(0.4)
 
 
