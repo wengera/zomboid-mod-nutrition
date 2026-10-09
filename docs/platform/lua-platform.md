@@ -122,7 +122,7 @@ An item block's creation hook runs at instantiation, once, on whichever side ins
 
 `OnEat` fires through `LuaCaller.pcallvoid` as `fn(item, character, fraction)` at the point [the order of writes inside `Eat`](../facts/eating-pipeline.md#eat) puts it, is handed the rescaled fraction rather than the menu percentage, and has its return value ignored [#0093].
 An `OnEat` hook can still mutate `hungChange` or `calories`, and `multiplyFoodValues` then operates on the mutated values, read off the order of the two calls rather than measured [#0094/C/inference].
-`OnEat` is the only vanilla hook on the intake path, and in multiplayer it fires on the server inside `Eat` and separately on any receiver of `EatFoodPacket`, with no numeric effect there [#0130].
+`OnEat` is the only vanilla hook on the intake path, and in multiplayer it fires on the server inside `Eat` and separately on any receiver of `EatFoodPacket`, with no numeric effect there beyond what the hook itself writes [#0130] [T11407.8].
 `IsoGameCharacter.EatOnClient` is that second call site: the hook-only twin the packet receiver uses, which type-checks, makes the identical `OnEat` call and returns true, writing no stats and no nutrition [#0095].
 So the client's call comes from the packet twin rather than from `Eat`, and because that twin applies no numbers the second firing is a notification and not a double-apply [#0923/C/C-only, #2004/C/C-only].
 An item block's eat hook fires once on each side: after a single whole-item eat the probe's call counter read one on the client and one on the server, at a consumed fraction of one [#0922/M/n=1, #1031/M/n=1].
