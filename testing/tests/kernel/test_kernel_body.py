@@ -255,3 +255,124 @@ def test_new_rings_are_distinct_tables(host):
     assert py["tPeakD"] == 1
     assert py["delta"] == 0.9
     assert _close(py["fm"] / 62, 0.19 * 0.8 + 0.23 * 0.2 - 0.02)
+
+
+# --- the trailing-24 h window (Plan 11d Task 9c, ruling C-8) ---
+
+KEYS = ("kcal", "ee", "ex", "p", "carb", "lip")
+
+
+def _ring(t, key):
+    return [t[key][i] for i in range(1, 26)]
+
+
+def test_trail_constants(host):
+    b = host.K.body
+    assert b.TRAIL_N == 25
+    assert list(host.py(b.TRAIL_KEYS).values()) == list(KEYS)
+
+
+def test_new_trail_is_empty_and_unbuilt(host):
+    t = host.K.body.newTrail(100.25)
+    assert t.at == 100.25 and t.ch == -1
+    for k in KEYS:
+        assert _ring(t, k) == [0] * 25, k
+        assert len(host.py(t[k])) == 25, k
+        assert t.c[k] == 0, k
+    assert not host.rt.eval("rawequal")(t.kcal, t.ee)
+
+
+def test_trail_slot_is_the_hour_modulo_the_ring(host):
+    s = host.K.body.trailSlot
+    assert [s(h) for h in (0, 1, 24, 25, 26, 100)] == [1, 2, 25, 1, 2, 1]
+
+
+def test_trail_add_books_the_current_hour(host):
+    b = host.K.body
+    t = b.newTrail(100.5)
+    b.trailAdd(t, "kcal", 300.0)
+    b.trailAdd(t, "kcal", 50.0)
+    b.trailAdd(t, "ee", 2.0)
+    assert t.kcal[b.trailSlot(100)] == 350.0 and t.ee[b.trailSlot(100)] == 2.0
+    assert sum(_ring(t, "kcal")) == 350.0
+
+
+def test_trail_to_zeroes_each_hour_the_clock_passes(host):
+    b = host.K.body
+    t = b.newTrail(0.5)
+    for h in range(25):
+        b.trailTo(t, h + 0.5)
+        b.trailAdd(t, "ee", float(h + 1))
+    assert _ring(t, "ee") == [float(h + 1) for h in range(25)]
+    b.trailTo(t, 26.25)                                  # hours 25 and 26 pass: their slots (1 and 2) are zeroed
+    assert _ring(t, "ee")[:2] == [0, 0] and _ring(t, "ee")[2:] == [float(h + 1) for h in range(2, 25)]
+    assert t.at == 26.25
+
+
+def test_trail_to_within_the_hour_or_backwards_zeroes_nothing(host):
+    b = host.K.body
+    t = b.newTrail(10.1)
+    b.trailAdd(t, "p", 30.0)
+    b.trailTo(t, 10.9)
+    assert t.p[b.trailSlot(10)] == 30.0 and t.at == 10.9
+    b.trailTo(t, 9.0)                                    # behind the window: left as it is
+    assert t.p[b.trailSlot(10)] == 30.0 and t.at == 10.9
+    b.trailTo(t, float("nan"))
+    assert t.at == 10.9
+
+
+def test_trail_to_a_gap_longer_than_the_ring_empties_it(host):
+    b = host.K.body
+    t = b.newTrail(5.5)
+    for k in KEYS:
+        for i in range(1, 26):
+            t[k][i] = 7.0
+    b.trailTo(t, 5.5 + 1000)
+    for k in KEYS:
+        assert _ring(t, k) == [0] * 25, k
+
+
+def test_trail24_weights_the_oldest_hour_by_its_share_still_inside(host):
+    # slots: hour 100 (current) 5, hour 76 (the oldest, H - 24) 240, the 23 hours between 10 each; at 100.25 the
+    # window is the current 5, the 23 x 10 and three quarters of the oldest
+    b = host.K.body
+    t = b.newTrail(76.0)
+    b.trailAdd(t, "ex", 240.0)
+    for h in range(77, 100):
+        b.trailTo(t, float(h))
+        b.trailAdd(t, "ex", 10.0)
+    b.trailTo(t, 100.25)
+    b.trailAdd(t, "ex", 5.0)
+    assert _close(b.trail24(t, "ex"), 5 + 230 + 0.75 * 240)
+    assert t.ch == 100 and _close(t.c.ex, 230 + 240)
+    b.trailTo(t, 100.75)                                 # the same hour: the closed sums are kept
+    assert _close(b.trail24(t, "ex"), 5 + 230 + 0.25 * 240)
+    b.trailTo(t, 101.0)                                  # the hour turns: hour 76's slot becomes hour 101's
+    assert _close(b.trail24(t, "ex"), 5 + 230)
+    assert t.ch == 101
+
+
+def test_trail24_rebuilds_closed_sums_built_for_another_hour(host):
+    b = host.K.body
+    t = b.newTrail(3.5)
+    b.trailAdd(t, "lip", 20.0)
+    t.ch = 3
+    t.c.lip = 999.0                                      # a stale sum for the current hour is trusted ...
+    assert _close(b.trail24(t, "lip"), 999.0 + 20.0)
+    t.ch = -1                                            # ... and rebuilt when it was built for another hour
+    assert _close(b.trail24(t, "lip"), 20.0)
+    assert t.c.lip == 0
+
+
+def test_a_steady_rate_reads_a_full_day_at_every_minute(host):
+    # one unit a minute for two days: from the second day on the window reads 1440 at every minute (the oldest hour
+    # spread evenly, as the interpolation assumes)
+    b = host.K.body
+    t = b.newTrail(0.0)
+    worst = 0.0
+    for m in range(1, 2 * 1440 + 1):
+        b.trailTo(t, m / 60)
+        b.trailAdd(t, "ee", 1.0)
+        if m > 1440:
+            worst = max(worst, abs(b.trail24(t, "ee") - 1440))
+    assert worst < 1.0 + 1e-9, worst

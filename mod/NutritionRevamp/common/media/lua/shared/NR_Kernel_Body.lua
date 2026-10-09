@@ -224,3 +224,97 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.mirrorLast = { 0, 0, 0, 0 }
     return body
 end
+
+-- The trailing-24 h window (Plan 11d Task 9c, ruling C-8): one hourly ring per quantity, TRAIL_N slots, game hour h
+-- (the floor of the world age) in slot h % TRAIL_N + 1, so a ring holds the current hour and the 24 before it. The
+-- current hour accumulates each minute (trailAdd); as the clock passes an hour its slot is zeroed (trailTo). The window
+-- (trail24) is the current hour so far, the 23 closed hours and the oldest hour weighted by the share of it still inside
+-- the 24 h, 1 - f with f the elapsed share of the current hour: exact for a quantity spread evenly over its hour, and
+-- off by at most the oldest hour's own content for a lump (a meal) inside it, for less than an hour. Intake (kcal and
+-- the protein, carbohydrate and lipid grams), expenditure and exercise come in meals and bouts, so each takes a ring.
+-- The closed hours' sums c are derived: rebuilt from the slots whenever the hour they were built for (ch) is not the
+-- current one, so a fresh window (ch -1), a load or a heal rebuilds them at the next read. A game choice (the window's
+-- hourly grain and its interpolation); no row.
+K.body.TRAIL_N = 25 -- the current hour and the 24 before it
+K.body.TRAIL_KEYS = { "kcal", "ee", "ex", "p", "carb", "lip" }
+
+-- A fresh window at world age ageH: every slot 0, the closed sums 0 and unbuilt.
+function K.body.newTrail(ageH)
+    local t = {}
+    t.at = ageH
+    t.ch = -1
+    t.c = {}
+    local keys = K.body.TRAIL_KEYS
+    for k = 1, #keys do
+        local ring = {}
+        for i = 1, K.body.TRAIL_N do
+            ring[i] = 0
+        end
+        t[keys[k]] = ring
+        t.c[keys[k]] = 0
+    end
+    return t
+end
+
+-- The slot of game hour h (an integer-valued number).
+function K.body.trailSlot(h)
+    return h % K.body.TRAIL_N + 1
+end
+
+-- Move window t to world age ageH: zero the slot of every hour after the last one written up to ageH's hour (the
+-- whole ring at most), then stamp ageH. An age not past the window's (behind it, equal or not a number) leaves it.
+function K.body.trailTo(t, ageH)
+    if not (ageH > t.at) then
+        return t
+    end
+    local h0 = math.floor(t.at)
+    local h1 = K.min(math.floor(ageH), h0 + K.body.TRAIL_N)
+    local keys = K.body.TRAIL_KEYS
+    for h = h0 + 1, h1 do
+        local s = K.body.trailSlot(h)
+        for k = 1, #keys do
+            t[keys[k]][s] = 0
+        end
+    end
+    t.at = ageH
+    return t
+end
+
+-- Add x to ring key's current hour.
+function K.body.trailAdd(t, key, x)
+    local ring = t[key]
+    local s = K.body.trailSlot(math.floor(t.at))
+    ring[s] = ring[s] + x
+end
+
+-- The closed hours' sums, rebuilt when they were built for another hour: each ring's sum over every slot but the
+-- current hour's. Returns t.c.
+function K.body.trailClosed(t)
+    local h = math.floor(t.at)
+    if t.ch == h then
+        return t.c
+    end
+    local cur = K.body.trailSlot(h)
+    local keys = K.body.TRAIL_KEYS
+    for k = 1, #keys do
+        local ring = t[keys[k]]
+        local s = 0
+        for i = 1, K.body.TRAIL_N do
+            if i ~= cur then
+                s = s + ring[i]
+            end
+        end
+        t.c[keys[k]] = s
+    end
+    t.ch = h
+    return t.c
+end
+
+-- The trailing-24 h sum of ring key: the closed hours, less the share f of the oldest hour already outside the window,
+-- plus the current hour so far.
+function K.body.trail24(t, key)
+    local c = K.body.trailClosed(t)
+    local h = math.floor(t.at)
+    local ring = t[key]
+    return c[key] - (t.at - h) * ring[K.body.trailSlot(h + 1)] + ring[K.body.trailSlot(h)]
+end
