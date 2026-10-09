@@ -3,8 +3,8 @@
 -- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
 -- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
 -- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH to the world age; a
--- ring slot to 0 (mass7's to the current mass); the trailing-24 h window's age to the world age, and a window ring
--- that reads non-finite is rebuilt with its non-finite slots zeroed (K.heal.trail). Every field and ring is laid by K.body.new, so
+-- ring slot to 0 (mass7's to the current mass); the trailing-24 h window's age to the world age with every ring emptied,
+-- and a window slot to 0, its ring named once a slot (K.heal.trail). Every field and ring is laid by K.body.new, so
 -- the heal creates none. The creation scalars heal too: r and
 -- traitCarry to 1, l0 to the Strength level the adapter read (its one engine read, made only when body.l0 is not
 -- finite, and passed in), tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to dayIndex; every
@@ -170,27 +170,46 @@ function K.heal.guard(t, keys, snap)
     return n
 end
 
--- The trailing-24 h window's heal (Plan 11d Task 9c), from K.heal.body: a non-finite age reads the world age ageH; a
--- ring whose window reads non-finite (K.body.trail24: the current hour, the oldest and the closed sums) is named, and
--- the closed sums are rebuilt, which zeroes every non-finite slot (K.body.trailClosed). A slot inside the closed
--- hours that turns non-finite between minutes is not read until the hour turns, and the rebuild then zeroes it. The
--- check is six O(1) reads a minute; the 25 slots are walked only on a rebuild. Returns bad with the names appended.
+-- The trailing-24 h window's heal (Plan 11d Task 9c; Task 9d, the Task 9c review), from K.heal.body, before the
+-- minute moves the window. A non-finite age leaves no slot's hour known: every ring takes K.body.newTrail(ageH)'s
+-- values (every slot and closed sum 0, unbuilt) at the world age ageH, and only the age is named. Otherwise the heal
+-- walks the rings (K.body.trailRingSum, which zeroes every non-finite slot and counts them) when the closed sums are
+-- unbuilt or stand for another hour, when the hour turns at ageH (so a closed hour's slot gone non-finite is zeroed
+-- here, named, and not by a reader's rebuild), or when a ring's read is non-finite (K.body.trail24: the current hour,
+-- the oldest and the closed sums); it names a ring once for every slot it zeroed and leaves the sums built for the
+-- window's hour. The check is six O(1) reads a minute; the 150 slots are walked once a game hour. Returns bad with the
+-- names appended.
 function K.heal.trail(t, ageH, bad)
-    if not K.vector.finite(t.at) then
-        t.at = ageH
-        bad = K.heal.mark(bad, "trail.at")
-    end
-    local rebuild = false
     local keys = K.body.TRAIL_KEYS
+    if not K.vector.finite(t.at) then
+        for k = 1, #keys do
+            local ring = t[keys[k]]
+            for i = 1, K.body.TRAIL_N do
+                ring[i] = 0
+            end
+            t.c[keys[k]] = 0
+        end
+        t.ch = -1
+        t.at = ageH
+        return K.heal.mark(bad, "trail.at")
+    end
+    local h = math.floor(t.at)
+    local walk = t.ch ~= h or h ~= math.floor(ageH)
     for k = 1, #keys do
-        if not K.vector.finite(K.body.trail24(t, keys[k])) then
-            rebuild = true
-            bad = K.heal.mark(bad, "trail." .. keys[k])
+        if not walk and not K.vector.finite(K.body.trail24(t, keys[k])) then
+            walk = true
         end
     end
-    if rebuild then
-        t.ch = -1
-        K.body.trailClosed(t)
+    if walk then
+        local cur = K.body.trailSlot(h)
+        for k = 1, #keys do
+            local s, z = K.body.trailRingSum(t[keys[k]], cur)
+            t.c[keys[k]] = s
+            for i = 1, z do
+                bad = K.heal.mark(bad, "trail." .. keys[k])
+            end
+        end
+        t.ch = h
     end
     return bad
 end

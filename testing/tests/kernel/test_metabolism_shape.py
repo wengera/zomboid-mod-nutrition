@@ -1499,3 +1499,55 @@ def test_a_record_without_satiety_gets_a_lag_and_no_pool(met_host):
     p = player(h)
     record = fresh(h, p)
     assert record["satiety"]["L"] == 0 and record["satiety"]["P"] is None
+
+
+# --- the window's minors (Plan 11d Task 9d; the Task 9c review's weak oracles for M3b and M8) ---------------------
+
+def test_ee24_keeps_yesterdays_bout_whole_across_a_day_close(met_host):
+    # MET.ee24 reads the window's expenditure, so a bout at 19:00 of day 4 (hour 115) counts whole at 06:15 of day 5,
+    # after the day close at hour 120; the retired blend weighted the closed day by 1 - 6.25 / 24 and would read about
+    # three quarters of it. Two records walked hour by hour, one with the bout: their ee24 differ by the bout's kcal
+    h = met_host
+    out = []
+    for rate in (1.5, 10.3):
+        p = player(h, moving=False, rate=1.5)
+        record = fresh(h, p, 100.0)
+        body = record["body"]
+        bout = 0.0
+        for hour in range(101, 127):
+            if hour == 115:
+                p.cfg.rate = rate                       # a 60 min minute at the run's rate, then idle again
+                ee0 = body["eeDay"]
+                minute(h, p, record, float(hour))
+                bout = body["eeDay"] - ee0
+                p.cfg.rate = 1.5
+            else:
+                minute(h, p, record, float(hour))
+        minute(h, p, record, 126.25)
+        assert body["dayIndex"] == 5
+        assert MET(h).ee24(body) == max(h.K.body.trail24(body["trail"], "ee"), h.K.energy.ree(body["lm"]))
+        out.append((MET(h).ee24(body), bout))
+    (idle, b0), (run, b1) = out
+    assert b1 - b0 > 500
+    # within 1 %: the run arm's close pays a little more mass, so its later resting minutes spend about 4 kcal less
+    assert abs((run - idle) - (b1 - b0)) < 0.01 * (b1 - b0), (run - idle, b1 - b0)
+
+
+def test_an_intake_at_an_hour_turn_lands_in_the_new_hours_slot(met_host):
+    # the window moves to the minute's age before the minute's intake lands (Metabolism's step), so a vector handed
+    # off at the first minute of hour 101 is booked in hour 101's slot, and hour 100's holds no intake
+    h = met_host
+    p = player(h, moving=False, rate=1.5)
+    record = fresh(h, p, 100.0)
+    minute(h, p, record, 100.5)
+    vec = h.K.vector.new()
+    vec.calories = 600
+    vec.proteins = 30
+    pipe = h.rt.table()
+    pipe.absorbed = vec
+    minute(h, p, record, 101.0, pipe)
+    t = record["body"]["trail"]
+    s0, s1 = h.K.body.trailSlot(100), h.K.body.trailSlot(101)
+    assert t.kcal[s1] == 600 and t.p[s1] == 30
+    assert t.kcal[s0] == 0 and t.p[s0] == 0
+    assert t.ee[s0] > 0 and t.ee[s1] > 0

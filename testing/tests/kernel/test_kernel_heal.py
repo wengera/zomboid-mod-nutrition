@@ -121,32 +121,63 @@ def test_non_finite_ring_slots(host):
     assert names(bad) == ["mass7", "eb7", "p7"]
 
 
-def test_the_windows_age_and_a_ring_its_read_sees_non_finite_heal_and_are_named(host):
+def test_a_ring_its_read_sees_non_finite_heals_and_is_named_once_a_slot(host):
     # Plan 11d Task 9c: the trailing-24 h window. The current hour (slot 1 at age 100) and the oldest hour (slot 2,
-    # hour 76) are in every read; a non-finite one is named and the rebuild zeroes it
+    # hour 76) are in every read; a non-finite one sends the heal through the rings, which zeroes every non-finite
+    # slot and names its ring once a slot zeroed (Task 9d: K.body.trailRingSum's count)
     h = host
     body = new_body(h)
     t = body.trail
-    t.at = NAN
+    h.K.body.trail24(t, "kcal")                         # the closed sums built for hour 100
     t.kcal[1] = NAN
     t.carb[2] = -INF
+    t.carb[10] = NAN                                    # hour 84, a closed hour: zeroed and counted on the same walk
     bad = heal(h, body, 100.5)
-    assert names(bad) == ["trail.at", "trail.kcal", "trail.carb"]
-    assert t["at"] == 100.5 and t.kcal[1] == 0 and t.carb[2] == 0 and t.ch == 100
+    assert names(bad) == ["trail.kcal", "trail.carb", "trail.carb"]
+    assert t["at"] == 100.0 and t.kcal[1] == 0 and t.carb[2] == 0 and t.carb[10] == 0 and t.ch == 100
     assert heal(h, body, 100.5) is None
 
 
-def test_a_closed_hour_turned_non_finite_is_zeroed_by_the_rebuild_at_the_turn(host):
+def test_a_non_finite_window_age_empties_every_ring_and_is_named(host):
+    # Plan 11d Task 9d (the Task 9c review): with its age lost no slot's hour is known, so every ring takes
+    # K.body.newTrail(ageH)'s values, finite or not, and only the age is named
+    h = host
+    body = new_body(h)
+    t = body.trail
+    for k in TRAIL_KEYS:
+        for i in range(1, 26):
+            t[k][i] = float(i)
+    t.kcal[3] = NAN
+    h.K.body.trail24(t, "ee")
+    t.at = NAN
+    bad = heal(h, body, 130.25)
+    assert names(bad) == ["trail.at"]
+    fresh = h.py(h.K.body.newTrail(130.25))
+    got = h.py(t)
+    for k in TRAIL_KEYS:
+        assert list(got[k].values()) == list(fresh[k].values()), k
+        assert got["c"][k] == 0, k
+    assert t["at"] == 130.25 and t.ch == -1
+    assert heal(h, body, 130.25) is None
+
+
+def test_a_closed_hour_turned_non_finite_is_zeroed_and_named_by_the_heal_at_the_turn(host):
     # a closed hour's slot is read only through the closed sums, which stand for the hour they were built in; no step
-    # writes a closed hour (the guard covers the current one), and the rebuild when the hour turns zeroes it unnamed
+    # writes a closed hour (the guard covers the current one). Plan 11d Task 9d (the Task 9c review): the heal at the
+    # first minute of a new hour walks the rings before the window moves, so the slot is zeroed and named there, not
+    # by a reader's rebuild unnamed; two in one ring are named twice
     h = host
     body = new_body(h)
     t = body.trail
     h.K.body.trail24(t, "ee")                           # the closed sums built for hour 100
     t.ee[10] = NAN                                      # hour 84, inside the closed hours
+    t.ee[11] = INF                                      # hour 85
     assert heal(h, body, 100.5) is None                 # unread: the sums stand
+    assert names(heal(h, body, 101.0)) == ["trail.ee", "trail.ee"]
+    assert t.ee[10] == 0 and t.ee[11] == 0 and t.ch == 100
     h.K.body.trailTo(t, 101.0)
-    assert h.K.body.trail24(t, "ee") == 0 and t.ee[10] == 0
+    assert h.K.body.trail24(t, "ee") == 0 and t.ch == 101
+    assert heal(h, body, 101.5) is None
 
 
 def test_creation_scalars_and_the_strength_and_band_rings(host):
@@ -205,7 +236,7 @@ def test_every_field_nan_comes_back_finite_and_named(host):
             body.trail[k][i] = NAN
     bad = heal(h, body, 130.0, 4)
     all_finite(h, body)
-    # the window: its age is named; the age moves the hour, so the first read rebuilds every ring, zeroing them unnamed
+    # the window: its age is named and every ring emptied (Plan 11d Task 9d), so no ring is named
     assert set(names(bad)) == set(SCALARS) | set(RINGS7) | {"nHist", "bandWeek", "trail.at"}
 
 

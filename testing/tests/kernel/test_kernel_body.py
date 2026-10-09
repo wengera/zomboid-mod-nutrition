@@ -377,3 +377,34 @@ def test_trail_intake_books_the_four_macros_of_a_vector(host):
     b.trailIntake(t, host.table(dict(calories=600.0, proteins=30.0, carbs=70.0, lipids=20.0, fibre=5.0)))
     s = b.trailSlot(7)
     assert (t.kcal[s], t.p[s], t.carb[s], t.lip[s], t.ee[s], t.ex[s]) == (600.0, 30.0, 70.0, 20.0, 0, 0)
+
+
+# --- the window's minors (Plan 11d Task 9d; the Task 9c review) ---
+
+def test_trail_closed_returns_the_count_of_slots_it_zeroed(host):
+    # a rebuild zeroes every non-finite slot of every ring, the current hour's too, and returns the closed sums and
+    # the count it zeroed; a call that finds the sums built for the hour rebuilds nothing and zeroes none
+    b = host.K.body
+    t = b.newTrail(100.5)
+    t.ee[b.trailSlot(90)] = float("nan")
+    t.ee[b.trailSlot(91)] = float("inf")
+    t.kcal[b.trailSlot(100)] = float("-inf")
+    t.p[b.trailSlot(95)] = 12.0
+    c, n = b.trailClosed(t)
+    assert n == 3 and t.ch == 100
+    assert t.ee[b.trailSlot(90)] == 0 and t.ee[b.trailSlot(91)] == 0 and t.kcal[b.trailSlot(100)] == 0
+    assert c.p == 12.0 and c.ee == 0
+    t.ee[b.trailSlot(92)] = float("nan")
+    c, n = b.trailClosed(t)
+    assert n == 0 and t.ee[b.trailSlot(92)] != t.ee[b.trailSlot(92)]
+
+
+def test_trail_ring_sum_sums_all_but_the_current_slot_and_counts_what_it_zeroed(host):
+    b = host.K.body
+    t = b.newTrail(0.0)
+    for i in range(1, 26):
+        t.lip[i] = float(i)
+    t.lip[4] = float("nan")
+    s, z = b.trailRingSum(t.lip, 2)
+    assert z == 1 and t.lip[4] == 0
+    assert s == sum(range(1, 26)) - 2 - 4

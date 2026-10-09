@@ -281,33 +281,44 @@ function K.body.trailAdd(t, key, x)
     ring[s] = ring[s] + x
 end
 
+-- One ring's closed sum: every slot but slot cur, a non-finite slot zeroed on the way. Returns the sum and the count
+-- of slots zeroed (Plan 11d Task 9d: the heal names a ring by it, K.heal.trail).
+function K.body.trailRingSum(ring, cur)
+    local s = 0
+    local z = 0
+    for i = 1, K.body.TRAIL_N do
+        local x = ring[i]
+        if x - x ~= 0 then
+            x = 0
+            ring[i] = 0
+            z = z + 1
+        end
+        if i ~= cur then
+            s = s + x
+        end
+    end
+    return s, z
+end
+
 -- The closed hours' sums, rebuilt when they were built for another hour: each ring's sum over every slot but the
--- current hour's. The rebuild zeroes a non-finite slot on its way (none is made by the step, whose current-hour writes
--- Metabolism's guard covers; the heal names what the window's reads see, K.heal.trail). Returns t.c.
+-- current hour's (K.body.trailRingSum). The rebuild zeroes a non-finite slot on its way (none is made by the step,
+-- whose current-hour writes Metabolism's guard covers; the heal walks the rings first at each hour's turn and names
+-- what it zeroes, K.heal.trail). Returns t.c and the count of slots this call zeroed (0 when the sums stood).
 function K.body.trailClosed(t)
     local h = math.floor(t.at)
     if t.ch == h then
-        return t.c
+        return t.c, 0
     end
     local cur = K.body.trailSlot(h)
     local keys = K.body.TRAIL_KEYS
+    local n = 0
     for k = 1, #keys do
-        local ring = t[keys[k]]
-        local s = 0
-        for i = 1, K.body.TRAIL_N do
-            local x = ring[i]
-            if x - x ~= 0 then
-                x = 0
-                ring[i] = 0
-            end
-            if i ~= cur then
-                s = s + x
-            end
-        end
+        local s, z = K.body.trailRingSum(t[keys[k]], cur)
         t.c[keys[k]] = s
+        n = n + z
     end
     t.ch = h
-    return t.c
+    return t.c, n
 end
 
 -- The trailing-24 h sum of ring key: the closed hours, less the share f of the oldest hour already outside the window,
