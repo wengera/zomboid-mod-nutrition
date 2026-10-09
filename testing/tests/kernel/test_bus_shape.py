@@ -79,3 +79,52 @@ def test_two_players_first_seen_together_push_at_different_wall_times():
             if last is not None and u not in first and last > 1000000:
                 first[u] = last
     assert "admin" in first and "bob" in first and abs(first["admin"] - first["bob"]) >= 20000
+
+
+def _settle(h):
+    for _ in range(3):
+        h.T.now = h.T.now + 60001
+        h.T.age = h.T.age + 1 / 60
+        h.minute(); h.tick(25)
+
+
+def test_an_overfull_level_change_marks_a_push_at_the_next_flush():
+    h = Host(extra_env=SEND)
+    online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    n0 = B.effects.stats.pushes
+    h.record("a").stomach.liquid = 1200
+    h.T.now = h.T.now + 60001
+    h.T.age = h.T.age + 1 / 60
+    h.minute(); h.tick(25)
+    assert B.effects.stats.pushes >= n0 + 1
+
+
+def test_a_level_that_changes_every_five_seconds_pushes_at_most_once_per_gap():
+    h = Host(extra_env=SEND)
+    online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    n0, d0, t0 = B.effects.stats.pushes, B.effects.stats.deferred, h.T.now
+    for k in range(24):                                   # two real minutes, a level flip every 5 s
+        h.record("a").stomach.liquid = 1200 if k % 2 == 0 else 100
+        h.T.now = h.T.now + 5000
+        h.T.age = h.T.age + 1 / 60
+        h.minute(); h.tick(25)
+    assert B.effects.stats.pushes - n0 <= (h.T.now - t0) // B.PUSH_GAP_MS + 1
+    assert B.effects.stats.deferred > d0
+
+
+def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
+    h = Host(extra_env=SEND)
+    online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    r = h.record("a")
+    g = h.K.stomach.mass(r.stomach)
+    r.stomach.liquid = r.stomach.liquid + (1099.6 - g)
+    h.minute(); h.tick(25)
+    mass = h.K.mirror.stomachMass(r)
+    assert h.K.view.fullnessLevel(mass) == 4
+    assert B.lastSig["a"] // 10000 == 4

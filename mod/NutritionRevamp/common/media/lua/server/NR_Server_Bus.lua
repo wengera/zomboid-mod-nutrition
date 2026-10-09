@@ -29,7 +29,7 @@ NR.server.bus = {
         "the push rides the player's next slow minute: a change made in one game minute reaches the client with the next one's flush",
         "with no getTimestampMs the gap is the slow minute itself",
         "a mirror request is answered at most once per player per 5 s of server wall clock; a denied request is counted and dropped",
-        "a class change (energy, hydration, stimulant or sleep rung) marks a push at the next slow minute, inside the push gap",
+        "a class change (energy, hydration, stimulant or sleep rung) or an Overfull level change marks a push at the next slow minute, inside the push gap",
         "each player's first push waits a per-player offset inside the 60 s gap, so pushes first made together spread over the gap",
     },
 }
@@ -94,7 +94,7 @@ function B.flushEffects(username, player, record)
     if username == nil or record == nil then return false end
     if not NR.isServer() then return false end
     local body, fl, ac = record.body, record.fluids, record.acute
-    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH)
+    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record))
     if B.lastSig[username] ~= nil and B.lastSig[username] ~= sig then B.effects.dirty[username] = true end
     B.lastSig[username] = sig
     local E = record.effects

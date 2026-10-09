@@ -509,6 +509,21 @@ def test_the_push_signature_moves_with_any_live_class(host):
         assert host.call("view.pushSignature", *args) != s0, args
 
 
+def test_the_push_signature_moves_across_each_overfull_band_edge(host):
+    for lo, hi in ((730, 731), (853, 854), (976, 977), (1099, 1100)):
+        assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, lo) != host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, hi), (lo, hi)
+
+
+def test_the_push_signature_is_equal_within_an_overfull_band(host):
+    assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, 731) == host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, 850)
+
+
+def test_a_nil_mass_reads_zero_and_the_four_argument_call_is_unchanged(host):
+    old = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0)
+    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, None) == old
+    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 0) == old
+
+
 def test_the_push_signature_reads_nil_as_zero(host):
     assert host.call("view.pushSignature", None, None, None, None) == host.call("view.pushSignature", 0, 0, 0, 0)
 

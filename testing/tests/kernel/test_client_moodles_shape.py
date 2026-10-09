@@ -354,6 +354,19 @@ def test_the_render_draws_textures_when_they_load():
     assert ui.texs == 1 and ui.rects == 4
 
 
+def test_the_own_column_loads_the_overfull_icon_and_draws_it_alone_as_one_texture():
+    rt = rt_env(textures=True)
+    boot(rt)
+    create(rt)
+    m = M(rt)
+    assert G(rt).NR_T.lastTexPath == "media/ui/NutritionRevamp/overfull.png"   # the seventh class loads last
+    assert m.column.textures.overfull is not None
+    assert m.column.textures.overfull.path == "media/ui/NutritionRevamp/overfull.png"
+    m.apply(classes(rt, overfull=3))
+    m.column.render(m.column)
+    assert G(rt).NR_T.ui.texs == 1 and m.lastDrawn == 1
+
+
 def test_a_render_that_raises_is_counted_not_propagated():
     rt = rt_env()
     boot(rt)

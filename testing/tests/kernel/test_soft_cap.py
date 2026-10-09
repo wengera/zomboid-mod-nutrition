@@ -87,6 +87,16 @@ def test_the_mirror_carries_the_whole_mass_of_both_lanes_rounded(host):
     assert isinstance(m["stomachMass"], (int, float))
 
 
+def test_the_mirror_function_equals_the_mirrors_field_in_each_record_case(host):
+    cases = [stomach(host, {"water": 400.25, "proteins": 30.0, "carbs": 120.0, "lipids": 25.0, "fibre": 6.0}, liquid=300.4),
+             None, host.table({"liquid": 400.0}),
+             stomach(host, {"water": float("nan")})]
+    for s in cases:
+        rec = {} if s is None else {"stomach": s}
+        assert host.K.mirror.stomachMass(host.table({"stomach": s} if s is not None else {})) == mirror(host, **rec)["stomachMass"]
+    assert host.K.mirror.stomachMass(cases[0] and host.table({"stomach": cases[0]})) == 882
+
+
 def test_the_liquid_lane_counts_whole_not_at_its_satiety_fifth(host):
     m = mirror(host, stomach=stomach(host, {"water": 100.0}, liquid=1000.0))
     assert m["stomachMass"] == 1100

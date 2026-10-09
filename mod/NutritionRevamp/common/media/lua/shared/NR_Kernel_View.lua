@@ -158,15 +158,15 @@ function K.view.classes(m)
     return c
 end
 
--- The live class rungs as one integer (Plan 11 Task 4; the draft's ruling 8): a change in any of energy, hydration,
--- stimulant or sleep moves it. Deficiency and excess move with the nutrient epoch, which already marks a push. nil
--- reads 0.
-function K.view.pushSignature(energyState, dehydPct, caf, debtH)
+-- The live class rungs as one integer (Plan 11 Task 4; ruling 8; Plan 11c ruling T7-1): a change in any of energy,
+-- hydration, stimulant or sleep moves it, and the Overfull level (massG, the mirror's stomachMass) is its fifth
+-- digit. Deficiency and excess move with the nutrient epoch, which already marks a push. nil reads 0.
+function K.view.pushSignature(energyState, dehydPct, caf, debtH, massG)
     local e = K.view.rung(energyState or 0, K.view.ENERGY_AT)
     local hy = K.view.rung(dehydPct or 0, K.view.HYDRATION_AT)
     local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
     local sl = K.view.rung(debtH or 0, K.view.SLEEP_AT)
-    return e * 1000 + hy * 100 + s * 10 + sl
+    return K.view.fullnessLevel(massG) * 10000 + e * 1000 + hy * 100 + s * 10 + sl
 end
 
 -- A player's push phase inside the gap (Plan 11 Task 4; rule #3498): a rolling hash of the username modulo the gap,

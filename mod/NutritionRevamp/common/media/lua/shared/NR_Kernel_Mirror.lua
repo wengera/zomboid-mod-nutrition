@@ -156,14 +156,19 @@ end
 -- has no stomach or no solid buffer, and when the mass is not finite.
 function K.mirror.stomach(m, record)
     m.stomachFill = record.stomachFill or 1
-    m.stomachMass = 0
+    m.stomachMass = K.mirror.stomachMass(record)
+end
+
+-- The rounded whole mass in grams (K.mirror.stomach's field and the bus's push signature read it): 0 for no stomach,
+-- no solid buffer or a non-finite mass.
+function K.mirror.stomachMass(record)
     local s = record.stomach
     if s == nil or s.buffer == nil then
-        return
+        return 0
     end
     local g = K.stomach.mass(s)
     if g ~= g or g == math.huge or g == -math.huge then
-        return
+        return 0
     end
-    m.stomachMass = math.floor(g + 0.5)
+    return math.floor(g + 0.5)
 end
