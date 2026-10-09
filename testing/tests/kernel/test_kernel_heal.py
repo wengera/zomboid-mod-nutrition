@@ -138,6 +138,22 @@ def test_a_ring_its_read_sees_non_finite_heals_and_is_named_once_a_slot(host):
     assert heal(h, body, 100.5) is None
 
 
+def test_a_non_finite_closed_sum_with_no_bad_slot_is_named_and_rebuilt(host):
+    # Plan 11d Task 9d fix (the Task 9d review's minor 4): a ring whose read is non-finite through its derived closed sum
+    # alone (no slot to zero) is named once and its sum rebuilt; the other rings' sums stand
+    h = host
+    body = new_body(h)
+    t = body.trail
+    t.ee[5] = 40.0
+    t.ch = -1
+    h.K.body.trail24(t, "ee")                           # the closed sums built for hour 100
+    t.c.ee = NAN
+    t.c.p = 7.0                                         # a stale but finite sum: not read as bad, left
+    assert names(heal(h, body, 100.5)) == ["trail.ee"]
+    assert t.c.ee == 40.0 and t.c.p == 7.0 and t.ch == 100
+    assert heal(h, body, 100.5) is None
+
+
 def test_a_non_finite_window_age_empties_every_ring_and_is_named(host):
     # Plan 11d Task 9d (the Task 9c review): with its age lost no slot's hour is known, so every ring takes
     # K.body.newTrail(ageH)'s values, finite or not, and only the age is named

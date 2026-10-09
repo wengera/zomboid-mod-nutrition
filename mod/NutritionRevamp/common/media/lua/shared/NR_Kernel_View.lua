@@ -19,12 +19,12 @@ K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
 -- energy: the K.energy.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
 -- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
--- surplus or absent) 0; 1.10 1; 1.25 2; 1.50 3; 1.75 4.
+-- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.13 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal).
 K.view.ENERGY_AT = {
-    1.10, -- gc: level 1, a 1500 kcal trailing-24 h deficit alone (0.5 x 1500/7500, K.energy.state, BALANCE_SPAN_KCAL since ruling 9c-1); rests on Plan 3 ruling 14
-    1.25, -- gc: level 2, a 3750 kcal deficit or half the fat-depletion term; rests on Plan 3 ruling 14
-    1.50, -- gc: level 3, the full 7500 kcal deficit term (the span; 1500 before ruling 9c-1); rests on Plan 3 ruling 14
-    1.75, -- gc: level 4, a full deficit with fat depletion on top (the glycogen term retired, ruling T4-1); rests on Plan 3 ruling 14
+    1.10, -- gc: game choice, Plan 11d (ruling 9d-2): level 1, a 1500 kcal trailing-24 h deficit alone (0.5 x 1500/7500), about 18 h without food
+    1.25, -- gc: game choice, Plan 11d (ruling 9d-2): level 2, the resting fast's 1.13 plus fat depletion about 0.24 (1.13 + 0.5 x 0.24)
+    1.40, -- gc: game choice, Plan 11d (ruling 9d-2): level 3, fat depletion about 0.54 at rest (1.13 + 0.5 x 0.54); 1.50 before
+    1.55, -- gc: game choice, Plan 11d (ruling 9d-2): level 4, fat depletion about 0.84 at rest (1.13 + 0.5 x 0.84); 1.75 before, unreachable at rest
 }
 
 -- hydration: fluids_dehydPct (per cent of body mass) on the Plan 4 thirst ladder, K.fluids.THIRST_KNOTS -- the

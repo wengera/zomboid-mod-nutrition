@@ -175,8 +175,9 @@ end
 -- values (every slot and closed sum 0, unbuilt) at the world age ageH, and only the age is named. Otherwise the heal
 -- walks the rings (K.body.trailRingSum, which zeroes every non-finite slot and counts them) when the closed sums are
 -- unbuilt or stand for another hour, when the hour turns at ageH (so a closed hour's slot gone non-finite is zeroed
--- here, named, and not by a reader's rebuild), or when a ring's read is non-finite (K.body.trail24: the current hour,
--- the oldest and the closed sums); it names a ring once for every slot it zeroed and leaves the sums built for the
+-- here, named, and not by a reader's rebuild), or that ring alone when its read is non-finite (K.body.trail24: the
+-- current hour, the oldest and the closed sums); it names a ring once for every slot it zeroed, or once when its read
+-- was non-finite and it zeroed none (the derived closed sum alone; Task 9d fix), and leaves the sums built for the
 -- window's hour. The check is six O(1) reads a minute; the 150 slots are walked once a game hour. Returns bad with the
 -- names appended.
 function K.heal.trail(t, ageH, bad)
@@ -194,21 +195,26 @@ function K.heal.trail(t, ageH, bad)
         return K.heal.mark(bad, "trail.at")
     end
     local h = math.floor(t.at)
-    local walk = t.ch ~= h or h ~= math.floor(ageH)
+    local due = t.ch ~= h or h ~= math.floor(ageH)
+    local cur = K.body.trailSlot(h)
     for k = 1, #keys do
-        if not walk and not K.vector.finite(K.body.trail24(t, keys[k])) then
-            walk = true
+        local key = keys[k]
+        local badRead = false
+        if not due then
+            badRead = not K.vector.finite(K.body.trail24(t, key))
         end
-    end
-    if walk then
-        local cur = K.body.trailSlot(h)
-        for k = 1, #keys do
-            local s, z = K.body.trailRingSum(t[keys[k]], cur)
-            t.c[keys[k]] = s
+        if due or badRead then
+            local s, z = K.body.trailRingSum(t[key], cur)
+            t.c[key] = s
             for i = 1, z do
-                bad = K.heal.mark(bad, "trail." .. keys[k])
+                bad = K.heal.mark(bad, "trail." .. key)
+            end
+            if badRead and z == 0 then
+                bad = K.heal.mark(bad, "trail." .. key)
             end
         end
+    end
+    if due then
         t.ch = h
     end
     return bad

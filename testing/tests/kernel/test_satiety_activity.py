@@ -390,8 +390,8 @@ def test_karl_2021_vigorous_both_arms_pass_with_the_ramp(host):
     # S1325 (Karl 2021): hunger -55 % against REST in an 18 % surplus, +26 % at a 43 % deficit (a pass: the sign and
     # within 1.5x). With the work vigorous the ramp reads BAL -57.0 % and DEF +19.3 % (Task 9d: -70.2, +26.6); both pass. Pinned
     bal, dfc = karl(host, "aerobic")
-    assert (bal, dfc) == (-57.0, 19.3)
     assert karl_pass(bal, dfc) == (True, True)
+    assert (bal, dfc) == (-57.0, 19.3)
     assert 26.0 / 1.5 <= dfc <= 26.0 * 1.5
 
 
@@ -399,8 +399,8 @@ def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
     # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-45.0 %) and
     # DEF reads +55.2 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed (Task 9d: -62.3, 64.5)
     bal, dfc = karl(host, None)
-    assert (bal, dfc) == (-45.0, 55.2)
     assert karl_pass(bal, dfc) == (True, False)
+    assert (bal, dfc) == (-45.0, 55.2)
 
 
 def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):

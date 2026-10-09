@@ -99,8 +99,8 @@ def test_class_names_in_order(host):
     assert lst(V(host).CLASSES) == CLASSES
 
 
-@pytest.mark.parametrize("es,want", [(0, 0), (0.5, 0), (1.0, 0), (1.09, 0), (1.1, 1), (1.3, 2), (1.5, 3),
-                                     (1.74, 3), (1.75, 4), (2.0, 4)])
+@pytest.mark.parametrize("es,want", [(0, 0), (0.5, 0), (1.0, 0), (1.09, 0), (1.1, 1), (1.3, 2), (1.4, 3),
+                                     (1.54, 3), (1.55, 4), (2.0, 4)])
 def test_energy_map(host, es, want):
     # the K.energy.state scalar (0.5..2.0, 1 neutral; the mirror's 0 = no body yet) onto 0-4
     assert V(host).classes(host.table({"body_energyState": es}))["energy"] == want
@@ -530,3 +530,23 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
     assert 0 <= a < 60000 and 0 <= b < 60000 and a != b
     assert host.call("view.pushOffset", "admin", 60000) == a
     assert host.call("view.pushOffset", "", 60000) == 0
+
+
+# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2) -------------------------------------------
+# eb24h is a trailing 24 h balance, so a sedentary fast plateaus at about -1,950 kcal (the fast replay's 36 h reading,
+# test_satiety_meal_studies.py) and es = 1 + 0.5 x 1950 / 7500 + 0.5 x fatDep = 1.13 + 0.5 x fatDep. Level 1 comes from
+# a 1,500 kcal trailing deficit (about 18 h of a 1,950 kcal day without food); levels 2-4 from fat depletion 0.24, 0.54
+# and 0.84. Each is reached 0.005 past its stated value and not 0.005 short of it.
+
+def test_a_resting_character_reaches_every_energy_level(host):
+    E = host.K.energy
+    level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
+    assert level(E.state(-1440.0, 0)) == 0 and level(E.state(-1510.0, 0)) == 1
+    assert level(E.state(-1950.0, 0)) == 1                      # the plateau alone: es 1.13
+    for want, dep in ((2, 0.24), (3, 0.54), (4, 0.84)):
+        assert level(E.state(-1950.0, dep + 0.005)) == want, (want, dep)
+        assert level(E.state(-1950.0, dep - 0.005)) == want - 1, (want, dep)
+
+
+def test_the_energy_ladder_is_the_ruling_9d_2_game_choice(host):
+    assert lst(V(host).ENERGY_AT) == [1.10, 1.25, 1.40, 1.55]
