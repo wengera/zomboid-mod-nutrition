@@ -1,8 +1,8 @@
 # Nutrition Revamp — release notes
 
-## 1.0.0 — 2026-10-06
+## 1.0.0 — unreleased
 
-The first release, for game build 42.20.4 (`versionMin=42.20.4`, no maximum). Every script file is new, so this release is a server event: install it on the server first, then on clients. The operator guide is `README.md`; the neighbour table is `COMPATIBILITY.md`.
+The first release, not yet published, for game build 42.20.4 (`versionMin=42.20.4`, no maximum). Every script file is new, so this release is a server event: install it on the server first, then on clients. The operator guide is `README.md`; the neighbour table is `COMPATIBILITY.md`.
 
 - **Foundations:** the mod folder (`common/` beside one `42.20.4/` version directory), the server store with a read-only client mirror over the mod's own command bus, nine sandbox options re-read every in-game minute, the takeover stat hook with an overlay fallback, and the one-line self-report on each side.
 - **Intake and stomach:** eats and drinks through the game's eat and drink actions are captured on the server as a nutrient vector before vanilla consumes the item, through a stomach buffer, gastric emptying and absorption; dishes, crafted outputs and drinks included; what the eat and drink actions hide is reconciled as macros; a drink taken from the world's water is not captured.
@@ -12,7 +12,7 @@ The first release, for game build 42.20.4 (`versionMin=42.20.4`, no maximum). Ev
 - **Strength and training:** the Strength level held under a lean-mass ceiling with strength memory, and training routed through the body model.
 - **The item pass:** 522 vanilla foods' calories, carbohydrates, proteins and lipids re-based from published food-composition data (18 invertebrates from the insect literature), with a per-food nutrient table, an inference for foods the table does not map, and a declared-nutrient key other mods can use for their own foods.
 - **The interface:** a collapsible panel, a food-tooltip band, a character-info tab and optional moodles (MoodleFramework when present, the mod's own icon column otherwise), with the detail each player sees set by `NR.VisibilityMode`.
-- **Sync and persistence:** the per-player record kept inputs-only and versioned (with a migration from the earlier record shape), surviving a reconnect and a clean restart; a respawn starts a fresh record; a hard kill returns it to the last save, as it does the world.
+- **Sync and persistence:** the per-player record kept inputs-only (a save holds only what no step can recompute), surviving a reconnect and a clean restart; a respawn starts a fresh record; a hard kill returns it to the last save, as it does the world.
 - **Measured on a dedicated server:** the behaviours above were exercised on a live dedicated server, most of them with one client and the sync, release and raise readings with two; two items are still open: whether the tooltip band lands on screen, and the awake-endurance fold.
 
 ### Compatibility

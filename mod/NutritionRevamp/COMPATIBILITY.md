@@ -1,6 +1,6 @@
 # Nutrition Revamp — compatibility
 
-Release 1.0.0, game build 42.20.4. A sweep of 234 installed mod folders on 2026-09-27 found no mod that claims the server's stat-update hook; every collision found is a second writer of a stat or a wrap chain that composes. The stances below are the mod's design. The `evidence` column names what backs each one: a dedicated-server run by its run id, a read of the neighbour's code, or `unread` where the neighbour's code has not been read and the stance is as designed.
+Release 1.0.0 (unreleased), game build 42.20.4. A sweep of 234 installed mod folders on 2026-09-27 found no mod that claims the server's stat-update hook; every collision found is a second writer of a stat or a wrap chain that composes. The stances below are the mod's design. The `evidence` column names what backs each one: a dedicated-server run by its run id, a read of the neighbour's code, or `unread` where the neighbour's code has not been read and the stance is as designed.
 
 | neighbour | stance | what the mod does | evidence |
 |---|---|---|---|

@@ -40,7 +40,7 @@ def test_the_three_shipped_docs_exist_and_are_not_empty():
 
 def test_the_release_notes_name_every_neighbour():
     text = (MOD / "CHANGELOG.md").read_text(encoding="utf-8")
-    assert "## 1.0.0 — 2026-10-06" in text
+    assert "## 1.0.0 — unreleased" in text
     assert "### Compatibility" in text
     missing = [n for n in NEIGHBOURS if n not in text]
     assert missing == []
