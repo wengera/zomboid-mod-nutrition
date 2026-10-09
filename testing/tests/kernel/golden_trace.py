@@ -10,11 +10,11 @@ object whose thermoregulator answers a per-player metabolic rate (the class's en
 factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
 catch-a-cold value and the regeneration and health setters, all counting; isAsleep (g6, minutes 40-90),
 isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
-getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug. getStats
-stays absent: the fast clock never hoists (ruling 4, out of scope). The globals beside it: CharacterTrait (17
-sentinels), Perks.Strength with the 75 L (L + 1) ladder, MoodleType, BodyPartType, and sendSyncPlayerFields and
-syncBodyPart counting. A small engine step (NR_T.engine) runs before each minute: wound timers fall, an infection
-and a catch-a-cold rise.
+getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug, and getStats
+(Plan 11e Task 1, ruling 11e-3: a stats object starting at STAT_START, so the writer's W.step runs every minute).
+The globals beside it: CharacterStat, CharacterTrait (17 sentinels), Perks.Strength with the 75 L (L + 1) ladder,
+MoodleType, BodyPartType, and sendSyncPlayerFields and syncBodyPart counting. A small engine step (NR_T.engine)
+runs before each minute: wound timers fall, an infection and a catch-a-cold rise.
 
 Each minute m = 1..240: the world age is START_AGE + m/60 (118.5 -> 122.5: minute 90 closes a day); the engine
 step; the minute's events; every EveryOneMinute listener (h.minute()), then 25 OnTick frames (h.tick(25)); at every
@@ -26,15 +26,15 @@ from share, the share of the whole): g1's dish (K.vector.dish, extraTypes), g2's
 (instBase -0.36 over the script's -0.30), g5's craft Sandwich, g6's thirst-only tea (a declared vector, thirst over
 scriptThirst). The dish and craft inputs instance through an instanceItem global (NR_T.types, so IN.typeInfo and
 IN.foodInfo run, a first-sight type each round: table, inferred and declared inputs). g3's minute-130 item answers
-NaN for its carbohydrates: Intake's num keeps it and the landing guard rejects the vector (intake.failures).
-g6's macro stores raised by an external writer at minute 45 (the reconciliation lands it); Wine for g1 and Tea for
-g5 at minute 50 and 0.25 L of water for g2 at minute 60 (K.vector.fluid, IN.land); g3 dies at minute 100 and at 101 OnNewGame fires for a new g3 object; a
-NaN written into g2's body (at, inDay) at minute 115 (the heal); g4 departs at 150 and returns as a new object at
-180; at 200 the bus answers one "mirror.request" by g5.
+NaN for its carbohydrates: Intake's num keeps it and the landing guard rejects the vector (intake.failures). g1's
+sleep debt set to DEBT_G1 at minute 20; g6's macro stores raised by an external writer at minute 45 (reconciled);
+Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.fluid, IN.land); g3 dies at minute
+100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
+heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
-body-damage counters and parts, the Nutrition stores), the counters of a FIXED list of NR.server adapters
-(STATS_NAMES; a new module's stats never move the trace), the sendServerCommand counts by command name and the
-sync counts and the instanceItem counts by type. The printed lines are counted, never kept.
+body-damage counters and parts, the Nutrition stores, `written`: the writer's last set value per stat, `statSets`),
+the counters of a FIXED list of NR.server adapters (STATS_NAMES; a new module's stats never move the trace), the
+sendServerCommand counts by command name, the sync and instanceItem counts; printed lines are counted, never kept.
 
 serialize(trace) is deterministic JSON: keys sorted, one value per line, every number written "%.17g" (a
 non-finite one as a quoted string), a table key that is a number written the same way.
@@ -83,6 +83,9 @@ RETURN_G4 = (1700.0, 200.0, 70.0, 90.0)
 
 DRINK_LITRES = 0.25
 STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's eat, the four stores raised
+# minute 20: a sleep debt of 1 h booked on g1's acute record (Plan 11e Task 1), so the writer's sleep factor reads
+# above 1 (half of K.satiety.SLEEP_DEBT_FULL_H): no 24 h window closes in the trace's 4 h, so the debt never books
+DEBT_G1 = 1.0
 
 # The env addendum: the generator, the command and sync counters, the globals, the decorator, the engine step
 # and the fixed meal snapshots.
@@ -114,6 +117,11 @@ syncBodyPart = function(part, mask)
     NR_T.syncs.parts[k] = (NR_T.syncs.parts[k] or 0) + 1
 end
 
+CharacterStat = {}
+for _, n in ipairs({ "HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "STRESS", "UNHAPPINESS", "FOOD_SICKNESS", "PANIC",
+                     "TEMPERATURE", "INTOXICATION" }) do
+    CharacterStat[n] = n
+end
 CharacterTrait = {}
 for _, n in ipairs({ "ATHLETIC", "FIT", "OUT_OF_SHAPE", "UNFIT", "STRONG", "STOUT", "WEAK", "FEEBLE",
                      "NEEDS_MORE_SLEEP", "NEEDS_LESS_SLEEP", "NIGHT_VISION", "SHORT_SIGHTED",
@@ -146,7 +154,7 @@ local function newPart(name, init)
 end
 
 -- The decorator: cfg = { cls, rate, inv, maxW, female, traits = {names}, heavy, asleep = {from, to},
--- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise }.
+-- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue }.
 NR_T.decorate = function(p, cfg)
     local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0 }
     for _, n in ipairs(cfg.traits or {}) do st.traits[CharacterTrait[n]] = true end
@@ -215,6 +223,15 @@ NR_T.decorate = function(p, cfg)
     p.setPerkLevelDebug = function(s, perk, level)
         if perk == Perks.Strength then s.st.perk = level; s.st.perkWrites = s.st.perkWrites + 1 end
     end
+    -- the stats object (Plan 11e Task 1, ruling 11e-3): get answers the current value, set records it as written
+    local sv = { HUNGER = cfg.hunger, THIRST = cfg.thirst, FATIGUE = cfg.fatigue, ENDURANCE = 1.0, STRESS = 0,
+                 UNHAPPINESS = 0, FOOD_SICKNESS = 0, PANIC = 0, TEMPERATURE = 37.0, INTOXICATION = 0 }
+    local wst = { written = {}, sets = 0 }
+    p.wst = wst
+    local stats = {}
+    stats.get = function(s, k) return sv[k] end
+    stats.set = function(s, k, v) sv[k] = v; wst.written[k] = v; wst.sets = wst.sets + 1 end
+    p.getStats = function(s) return stats end
     return p
 end
 
@@ -406,6 +423,17 @@ PLAYER_CFG = {
            "parts": {"Hand_R": {"bite": 2.0}}},
 }
 
+# The HUNGER, THIRST and FATIGUE each player's stats object starts at (Plan 11e Task 1, ruling 11e-3), distinct per
+# player; a respawned or returning player's new object starts at its name's values again.
+STAT_START = {
+    "g1": (0.15, 0.10, 0.05),
+    "g2": (0.30, 0.20, 0.20),
+    "g3": (0.05, 0.05, 0.40),
+    "g4": (0.45, 0.30, 0.10),
+    "g5": (0.20, 0.15, 0.30),
+    "g6": (0.10, 0.25, 0.60),
+}
+
 
 def new_host():
     return server_host.Host(extra_env=ENV)
@@ -515,6 +543,8 @@ def _player_state(p):
     return {
         "st": walk(p.st),
         "nutrition": {k: walk(nut[k]) for k in ("cal", "carb", "lip", "pro", "weight", "sets", "traitApplies")},
+        "written": walk(p.wst.written),
+        "statSets": _Num(p.wst.sets),
     }
 
 
@@ -535,6 +565,7 @@ def _snapshot(h, minute, players):
 def _new_player(h, name, macros):
     p = h.player(name, *macros)
     cfg = dict(PLAYER_CFG[name])
+    cfg["hunger"], cfg["thirst"], cfg["fatigue"] = STAT_START[name]
     lcfg = h.rt.table()
     for k, v in cfg.items():
         if isinstance(v, list):
@@ -584,6 +615,8 @@ def run(host):
         if m in MEAL_MINUTES:
             for n in order:
                 _meal(h, m, n)
+        if m == 20:
+            h.record("g1")["acute"]["debtH"] = DEBT_G1
         if m == 45:
             nut = players["g6"].nut
             nut.cal = nut.cal + STORE_RAISE_G6[0]
