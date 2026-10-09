@@ -1039,3 +1039,104 @@ def test_the_nicotine_replay_is_pinned(host):
 
 PIN_NEXT = 1.1304                # NIC_MAX 0.1313 x the fade at about a day (1.0007 to 1.4583 days after the anchor)
 PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ruling T2-D): the fade's mean over its span
+
+
+# --- six meals against three with the energy state live (Plan 11e Task 4, ruling 11e-4) ---------------------------
+# The satiety replay above holds the energy state at 1. This replay runs the same day with the energy path of
+# ENERGY_REPLAY beside it: a 70 kg body eats SIX_WARM_DAYS three-meal days of the same 2,000 kcal (ASSUMED, energy only,
+# no stomach or pool) before the protocol day, and from 08:00 of that day each meal also feeds P and the stomach, so
+# hungerTarget reads the live trailing-24 h energy state. With the state held at 1 it reproduces meal_frequency_ratio
+# exactly (0.969); live it reads 0.994 (0.998 on the same-span schedule, every 2 h from 08:00 to 18:00), still the
+# opposite direction to S1608's 1.14. The warm-up count does not move it (1, 3 and 6 days read the same)
+
+SIX_WARM_DAYS = 3
+
+SIX_LIVE_REPLAY = r"""
+function(plan, days, start, holdEs)
+    local K = NutritionRevamp.kernel
+    local hook, mask = debug.gethook()
+    debug.sethook()
+    local body = K.body.new(70, 1, {}, 5, 1, 1, 0)
+    local L = 0
+    local st = K.stomach.new()
+    local P = 0
+    local es = 1
+    local sum = 0
+    for m = 0, days * 1440 - 1 do
+        local hod = (m / 60) % 24
+        local ageH = (m + 1) / 60
+        K.body.trailTo(body.trail, ageH)
+        local e = plan[m]
+        if e ~= nil then
+            local v = K.vector.new()
+            for k, x in pairs(e.vec) do
+                v[k] = x
+            end
+            K.energy.intake(body, v, 1)
+            if e.sate then
+                local u = K.vector.new()
+                for k, x in pairs(e.vec) do
+                    u[k] = x
+                end
+                P = K.satiety.feed(P, u)
+                K.stomach.ingest(st, u)
+            end
+        end
+        local met = K.energy.COMPENDIUM.Default
+        if hod >= 23 or hod < 7 then
+            met = K.energy.COMPENDIUM.Sleeping
+        end
+        local ex0 = body.exKcalDay
+        K.energy.minute(body, met, true, 1, 1)
+        L = K.energy.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
+        if math.floor(ageH / 24) > body.dayIndex then
+            body.inDayClosed = body.inDay
+            K.partition.closeDay(body)
+        end
+        local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
+        local ex24 = K.body.trail24(body.trail, "ex")
+        es = K.energy.activityState(K.energy.eb24h(body), ex24, L, 0, ee24)
+        if m >= start and m < start + 1440 then
+            K.stomach.drain(st, 1 / 60)
+            P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
+            local F = K.satiety.fill(K.stomach.fullnessMass(st), K.stomach.CAPACITY_MAX_G)
+            local x = es
+            if holdEs then
+                x = 1
+            end
+            sum = sum + K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), x) * K.satiety.circadian(ageH % 24))
+        end
+    end
+    debug.sethook(hook, mask)
+    return sum
+end
+"""
+
+
+def meal_frequency_ratio_live(host, hold=False):
+    """meal_frequency_ratio's day after SIX_WARM_DAYS three-meal days, the energy state live (hold=True: held at 1)."""
+    f = host.rt.eval(SIX_LIVE_REPLAY)
+    start = SIX_WARM_DAYS * 1440 + 480
+
+    def plan(n, gap):
+        t = host.rt.table()
+        warm_k = 2000.0 / 3
+        for d in range(SIX_WARM_DAYS):
+            for i in range(3):
+                vec = mixed(warm_k, water=300.0, fibre=6.0 * warm_k / 650)
+                t[d * 1440 + 480 + i * 300] = host.table({"vec": host.table(vec), "sate": False})
+        k = 2000.0 / n
+        for i in range(n):
+            vec = mixed(k, water=900.0 / n, fibre=6.0 * k / 650)
+            t[start + i * gap] = host.table({"vec": host.table(vec), "sate": True})
+        return t
+    days = SIX_WARM_DAYS + 2
+    return f(plan(6, 150), days, start, hold) / f(plan(3, 300), days, start, hold)
+
+
+def test_six_meals_against_three_with_the_energy_state_live_is_pinned(host):
+    held = meal_frequency_ratio_live(host, hold=True)
+    assert abs(held - meal_frequency_ratio(host)) < 1e-12, held
+    r = meal_frequency_ratio_live(host)
+    assert 0.9 <= r <= 1.3, r
+    assert round(r, 3) == 0.994, r
