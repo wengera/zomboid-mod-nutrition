@@ -409,10 +409,10 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
     "overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the "
-    "acute exercise factor x the sleep-debt factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid "
+    "acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid "
     "counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on "
     "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.09 at a full "
-    "stomach), and a vanilla HUNGER below the seed floor reads it on its first minute: hungerTarget(0.797, energy state), that is 0.203 x es + 1.0 x max(0, es - 1), times the minute's circadian, acute and sleep factors "
+    "stomach), and a vanilla HUNGER below the seed floor reads it on its first minute: hungerTarget(0.797, energy state), that is 0.203 x es + 1.0 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors "
     "(an empty stomach's read at the seed's cap P_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
     "macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
     "intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, "
@@ -421,7 +421,7 @@ LIMITATION_FOUR = (
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
     "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
     "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
-    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.55 F, energy state), that is (1 - 0.55 F) x es + 1.0 x max(0, es - 1), times the minute's circadian, acute and sleep factors, seeds an empty pool, so a fresh character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.13 from about 36 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks")
+    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.55 F, energy state), that is (1 - 0.55 F) x es + 1.0 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors, seeds an empty pool, so a fresh character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.13 from about 36 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a character first seen in withdrawal reads none until a smoke")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():
@@ -1146,9 +1146,9 @@ def test_the_seed_ceiling_reads_hunger_targets_deficit_term(es):
 # The writer reads the server's NICOTINE_WITHDRAWAL once a minute and keeps its own anchor, record.satiety.nicH: the
 # world age in game hours at the last minute the stat read 0 or fell. The hunger factor K.satiety.nicotineFactor(w,
 # (ageH - nicH) / 24) multiplies the composition (circadian x acute, then through W.satietyFactor) and the seed divides
-# by it. NIC_MAX 0.11, the fade linear to 0 at 182 days.
+# by it. NIC_MAX 0.1313, the fade linear to 0 at 182 days.
 
-NIC = 0.11
+NIC = 0.1313
 AGE1 = 100.0 + 1 / 60                                                       # step()'s world age at minute 1
 
 
@@ -1237,25 +1237,70 @@ def test_the_anchor_follows_a_zero_stat_holds_while_it_rises_and_resets_when_it_
     assert rec.satiety.nicH == pytest.approx(100.0 + 601 / 60)
 
 
-def test_a_fresh_pool_with_a_capped_stat_lays_the_anchor_at_the_minute():
+FADED = 182 * 24                                                            # NIC_FADE_DAYS in hours (ruling T2-F)
+
+
+def test_a_first_anchor_laid_in_withdrawal_starts_fully_faded():
+    # ruling T2-F: no fall seen is no evidence of a recent quit, so a first anchor laid while the stat reads above 0
+    # sits NIC_FADE_DAYS back and the factor reads 1; a later fall (a smoke) lays it at the minute and the rise counts
     h = boot()
     p = _smoker(h, 0.51)
     rec = record(h)
+    c = player(h, "b")                                                     # a non-smoking twin, the control
+    c.st.v.NICOTINE_WITHDRAWAL = 0.0
+    crec = record(h)
     step(h, p, rec, 1)
-    assert rec.satiety.nicH == pytest.approx(AGE1)
-    assert p.st.sets.HUNGER == pytest.approx(H1 * (1 + NIC))
+    step(h, c, crec, 1, "b")
+    assert rec.satiety.nicH == pytest.approx(AGE1 - FADED)
+    assert p.st.sets.HUNGER == pytest.approx(H1)
+    step(h, p, rec, 2)
+    step(h, c, crec, 2, "b")
+    assert rec.satiety.nicH == pytest.approx(AGE1 - FADED)                  # a steady stat holds the faded anchor
+    assert p.st.sets.HUNGER == pytest.approx(c.st.sets.HUNGER)
+    p.st.v.NICOTINE_WITHDRAWAL = 0.255                                      # a smoke
+    step(h, p, rec, 3)
+    step(h, c, crec, 3, "b")
+    assert rec.satiety.nicH == pytest.approx(100.0 + 3 / 60)
+    p.st.v.NICOTINE_WITHDRAWAL = 0.51                                       # the rise between smokes
+    step(h, p, rec, 4)
+    step(h, c, crec, 4, "b")
+    assert rec.satiety.nicH == pytest.approx(100.0 + 3 / 60)
+    assert p.st.sets.HUNGER == pytest.approx(c.st.sets.HUNGER * (1 + NIC * (1 - (1 / 60 / 24) / 182)))
+
+
+@pytest.mark.parametrize("w", [0.51, 0.1])
+def test_a_first_anchor_in_withdrawal_is_neutral_at_any_level(w):
+    h = boot()
+    p = _smoker(h, w)
+    rec = record(h)
+    step(h, p, rec, 1)
+    assert rec.satiety.nicH == pytest.approx(AGE1 - FADED)
+    assert p.st.sets.HUNGER == pytest.approx(H1)
+    assert h.NR.server.writer.stats.guarded == 0
 
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), "x", True, AGE1 + 5])
-def test_a_corrupt_anchor_heals_to_the_minute_and_counts(bad):
+def test_a_corrupt_anchor_in_withdrawal_heals_fully_faded_and_counts(bad):
     h = boot()
     p = _smoker(h, 0.51)
     rec = record(h)
     rec.satiety.nicH = bad
     step(h, p, rec, 1)
+    assert rec.satiety.nicH == pytest.approx(AGE1 - FADED)
+    assert h.NR.server.writer.stats.guarded == 1
+    assert p.st.sets.HUNGER == pytest.approx(H1)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), "x", AGE1 + 5])
+def test_a_corrupt_anchor_at_a_zero_stat_heals_to_the_minute_and_counts(bad):
+    h = boot()
+    p = _smoker(h, 0.0)
+    rec = record(h)
+    rec.satiety.nicH = bad
+    step(h, p, rec, 1)
     assert rec.satiety.nicH == pytest.approx(AGE1)
     assert h.NR.server.writer.stats.guarded == 1
-    assert p.st.sets.HUNGER == pytest.approx(H1 * (1 + NIC))
+    assert p.st.sets.HUNGER == pytest.approx(H1)
 
 
 def test_the_anchor_survives_a_restart_through_the_store():

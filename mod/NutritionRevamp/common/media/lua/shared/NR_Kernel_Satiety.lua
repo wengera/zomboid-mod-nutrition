@@ -206,13 +206,13 @@ K.satiety.PROTEIN_FILL = 8 -- game choice, Plan 11d (ruling 11d-5; no row names 
 
 -- Plan 11e (rulings 11e-2 and T2-A, spec memo C12): nicotine withdrawal raises hunger. The factor 1 + NIC_MAX x
 -- clamp(w / NIC_WITHDRAWAL_MAX, 0, 1) x fade(d) multiplies the written hunger, where w is the server's own
--- NICOTINE_WITHDRAWAL (a Smoker's, or a former Smoker's, rising on the server alone: #3630, #3631; vanilla reads it only
+-- NICOTINE_WITHDRAWAL (a Smoker's, rising on the server alone (#3630, #3631), or a former Smoker's, held where it stood; vanilla reads it only
 -- as stress, #3635) and d the game days since the mod's own anchor, the last minute the stat read 0 or fell (a smoke
 -- lowers it, #3632; the writer's W.nicotine keeps it as record.satiety.nicH, ruling T2-A, because the vanilla timer's
--- units move with the time speed, #3636). The fade is linear, 1 at d = 0 and 0 at NIC_FADE_DAYS.
+-- units move with the time speed, #3636). The fade is linear, 1 at d = 0 and 0 at NIC_FADE_DAYS. A first or healed anchor laid in withdrawal starts fully faded (ruling T2-F).
 -- A character who keeps smoking keeps resetting the anchor, so between smokes the factor stays at its withdrawal-scaled
 -- level and never fades while the habit continues; only a quit runs the fade. Appended so no line above moves; one statement a line.
-K.satiety.NIC_MAX = 0.11 -- game choice, Plan 11e (ruling 11e-2): the factor's rise at the stat's cap, fitted to S1576 (Stamford 1986: intake +227 kcal/d over the 48 days after quitting, 1.1135 of an assumed 2,000 kcal day): under the request-anchored mapping (ruling 11c-31, an assumption) the next-day intake ratio reads 1.1093 and the 48-day mean 1.0951, both in the band 1.08-1.14, which admits NIC_MAX in about [0.093, 0.14] (0.13 would put the 48-day mean on 1.1135; the ruling's 0.11 puts the next day near it); the size is low certainty, one experiment with n = 13 sedentary women and no certainty rating; S1577 sets the fade's end
+K.satiety.NIC_MAX = 0.1313 -- game choice, Plan 11e (rulings 11e-2 and T2-D): the factor's rise at the stat's cap, fitted to the 48-day mean of S1576 (Stamford 1986: intake +227 kcal/d, the period mean over the 48 days after quitting): the replay's 48-day mean intake ratio reads S1576's 1.1135, which is 227 kcal over a 2,000 kcal baseline that is an ASSUMPTION (the row gives no baseline intake), under the request-anchored mapping (ruling 11c-31, an assumption); the next-day ratio then reads 1.1304, both in the band 1.08-1.14; the size is low certainty, one experiment with n = 13 sedentary women and no certainty rating; S1577 sets the fade's end
 K.satiety.NIC_FADE_DAYS = 182 -- game choice, Plan 11e (ruling 11e-2): 26 weeks, the fade's end, from S1577 (Hall 1989: abstinent women's intake about baseline by week 26, men's below it), linear between; the size it fades is S1576's (n = 13, low certainty) and the shape of the fade is not measured
 K.satiety.NIC_WITHDRAWAL_MAX = 0.51 -- CharacterStat.NICOTINE_WITHDRAWAL's maximum, the stat's cap a full smoke removes (#3632)
 

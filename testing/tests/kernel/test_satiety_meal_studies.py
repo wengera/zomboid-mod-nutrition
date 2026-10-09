@@ -978,7 +978,8 @@ def test_the_36_h_fast_ratios_sit_within_their_studies(host):
 # above): the quitting arm's last smoke is at world age 0 (08:00), so NICOTINE_WITHDRAWAL reads its 0.51 cap from about
 # 12.7 game hours later (#3636) and the anchor holds at 0; the control arm never smoked (the stat 0, the anchor
 # following the minute). With every meal at the request the intake ratio is the factor itself, 1 + NIC_MAX x the fade
-# at about a day, a little under 1 + NIC_MAX. The 48-day mean reads the same mapping over S1576's whole span.
+# at about a day, a little under 1 + NIC_MAX. The 48-day mean reads the same mapping over S1576's whole span, and
+# NIC_MAX is fitted to it (ruling T2-D: S1576's +227 kcal/d is the period mean over its 48 days).
 
 NIC_BAND = (1.08, 1.14)          # S1576's 227 kcal/d on the ASSUMED 2,000 kcal day, 1.1135, and the plan's band about it
 NIC_DAYS = 48                    # S1576's span
@@ -1026,6 +1027,7 @@ def test_a_quitting_smokers_next_day_intake_sits_in_s1576s_band(host):
     assert NIC_BAND[0] <= nxt <= NIC_BAND[1], nxt
     assert nxt < 1 + S.NIC_MAX and nxt > 1 + S.NIC_MAX * (1 - 1.5 / S.NIC_FADE_DAYS), nxt   # the fade at about a day
     assert NIC_BAND[0] <= mean48 <= NIC_BAND[1], mean48
+    assert abs(mean48 - (1 + 227.0 / DAY_KCAL)) < 1e-4, mean48              # the fit: S1576's 48-day mean (T2-D)
     assert wk26 == 1.0, wk26                                              # S1577: back to baseline by week 26
 
 
@@ -1035,5 +1037,5 @@ def test_the_nicotine_replay_is_pinned(host):
     assert round(mean48, 4) == PIN_MEAN48, mean48
 
 
-PIN_NEXT = 1.1093                # NIC_MAX 0.11 x the fade at about a day (1.0007 to 1.4583 days after the anchor)
-PIN_MEAN48 = 1.0951              # the 48-day mean: the fade's mean over S1576's span
+PIN_NEXT = 1.1304                # NIC_MAX 0.1313 x the fade at about a day (1.0007 to 1.4583 days after the anchor)
+PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ruling T2-D): the fade's mean over its span

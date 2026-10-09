@@ -390,14 +390,17 @@ def test_nicotine_factor_reads_a_non_finite_or_negative_input_as_none(host, w, d
 
 def test_nicotine_constants_and_their_labels(host):
     S = host.K.satiety
-    assert (S.NIC_MAX, S.NIC_FADE_DAYS, S.NIC_WITHDRAWAL_MAX) == (0.11, 182, 0.51)
+    assert (S.NIC_MAX, S.NIC_FADE_DAYS, S.NIC_WITHDRAWAL_MAX) == (0.1313, 182, 0.51)
     with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
         src = fh.read()
     for name in ("NIC_MAX", "NIC_FADE_DAYS"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "game choice, Plan 11e (ruling 11e-2)" in line, name
+        assert "game choice, Plan 11e (" in line and "11e-2" in line, name
         for s in ("S1576", "S1577", "n = 13", "low certainty"):
             assert s in line, (name, s)
     line = re.search(r"^K\.satiety\.NIC_WITHDRAWAL_MAX = .*$", src, re.M).group(0)
     assert "CharacterStat.NICOTINE_WITHDRAWAL" in line and "#3632" in line
     assert "keeps smoking" in src                                    # the habit never fades (ruling T2-A)
+    line = re.search(r"^K\.satiety\.NIC_MAX = .*$", src, re.M).group(0)
+    for s in ("T2-D", "48-day mean", "an ASSUMPTION (the row gives no baseline intake)"):
+        assert s in line, s                                          # the fit and its labelled baseline
