@@ -737,10 +737,10 @@ def kind_step(h, p, rec, minute, cls=None, exercising=False, name="a"):
     h.NR.server.writer.step(name, p, rec, ctx)
 
 
-@pytest.mark.parametrize("cls,met", [("Fitness", 6.0), ("FitnessHeavy", 9.0), ("ForestryAxe", 6.5)])
+@pytest.mark.parametrize("cls,met", [("Fitness", 6.0), ("FitnessHeavy", 9.0), ("ForestryAxe", 6.5), ("ClimbRope", 8.0)])
 def test_resistance_type_classes_step_the_acute_state_as_resistance_work(cls, met):
     # Ruling T6-2 (S1301, S1305: resistance suppresses less): the metabolism class, not the MET alone, names the kind.
-    # Billed at or above the heavy-work band, Fitness, FitnessHeavy and ForestryAxe are resistance work: 30 minutes
+    # Billed at or above the heavy-work band, Fitness, FitnessHeavy, ForestryAxe and ClimbRope (a chop, T6-3) are resistance: 30 min
     # take S to ACUTE_KIND.resistance 0.5 x (1 - 2^-1) = 0.25, not the aerobic 0.5
     h = boot()
     p = player(h)
@@ -751,7 +751,7 @@ def test_resistance_type_classes_step_the_acute_state_as_resistance_work(cls, me
     assert rec.satiety.S == pytest.approx(0.25)
 
 
-@pytest.mark.parametrize("cls,met", [("HeavyWork", 6.0), ("ClimbRope", 8.0), ("Running10kmh", 9.3)])
+@pytest.mark.parametrize("cls,met", [("HeavyWork", 6.0), ("Running10kmh", 9.3)])
 def test_the_other_heavy_classes_stay_aerobic_work(cls, met):
     h = boot()
     p = player(h)

@@ -166,12 +166,12 @@ end
 -- Vigorous work for the acute suppression term (spec § 5c, ruling 11c-29; ruling T6-2): the melee or tool swing state is
 -- resistance-type work; else Metabolism's stamp of the minute's billed MET at the Compendium's HeavyWork band or above
 -- (6.0) is vigorous, and the kind follows the metabolism class Metabolism stamps on the minute's ctx: Fitness,
--- FitnessHeavy and the axe or tool classes (ForestryAxe, DiggingSpade, UsingTools) are resistance work, as is any
--- minute with a Fitness exercise in progress (ctx.exercising: the engine classes a 6.0 exercise as HeavyWork), because
--- resistance exercise suppresses appetite less than aerobic (S1301, S1305); every other class at the band is aerobic.
+-- FitnessHeavy, ClimbRope (rope climbing, and tree chopping: classOf reads ForestryAxe's 8.0 as ClimbRope, ruling T6-3)
+-- and ForestryAxe are resistance work, as is any minute with a Fitness exercise in progress (ctx.exercising: the engine
+-- classes a 6.0 exercise as HeavyWork); DiggingSpade and UsingTools bill under 6.0 and are listed inert (S1301, S1305).
 -- The run flag never reaches the server (x141a), so a runner is not vigorous unless the metabolic rate classes it so.
 -- Returns vigorous, kind (K.satiety.ACUTE_KIND's keys). ctx is nil or lacks the stamp: the class is unknown, aerobic.
-W.RESISTANCE_CLASSES = { Fitness = true, FitnessHeavy = true, ForestryAxe = true, DiggingSpade = true, UsingTools = true }
+W.RESISTANCE_CLASSES = { Fitness = true, FitnessHeavy = true, ClimbRope = true, ForestryAxe = true, DiggingSpade = true, UsingTools = true }
 function W.vigorous(h, player, record, ctx)
     if h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe) then return true, "resistance" end
     local met = record.body and record.body.met
