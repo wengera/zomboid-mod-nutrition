@@ -23,7 +23,7 @@ def V(h):
     return h.K.view
 
 
-def stomach(h, solid=None, liquid=None):
+def stomach(h, solid=None, liquid=0):
     buf = h.call("vector.new")
     for k, v in (solid or {}).items():
         buf[k] = v
@@ -103,9 +103,11 @@ def test_the_liquid_lane_counts_whole_not_at_its_satiety_fifth(host):
     assert V(host).fullnessLevel(m["stomachMass"]) == 4
 
 
-def test_the_solid_lane_alone_and_a_missing_liquid_lane(host):
+def test_the_solid_lane_alone_and_a_missing_liquid_lane_that_reads_zero(host):
     m = mirror(host, stomach=stomach(host, {"water": 200.0, "carbs": 50.4}))
     assert m["stomachMass"] == 250
+    m = mirror(host, stomach=stomach(host, {"water": 200.0, "carbs": 50.4}, liquid=None))
+    assert m["stomachMass"] == 0                     # an absent lane is malformed (ruling C9-9)
     m = mirror(host, stomach=stomach(host, {"water": 200.0, "carbs": 50.6}, liquid=0))
     assert m["stomachMass"] == 251
 

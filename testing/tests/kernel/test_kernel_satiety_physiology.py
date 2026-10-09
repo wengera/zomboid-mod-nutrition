@@ -206,8 +206,6 @@ def test_satiety_mass_weights_the_liquid_lane(host):
     host.call("stomach.ingestLiquid", st, _vec(host, water=356))
     assert host.call("stomach.satietyMass", st) == pytest.approx(259 + 0.2 * 356)
     assert host.call("stomach.mass", st) == pytest.approx(259 + 356)          # the soft cap still reads both whole
-    st.liquid = None
-    assert host.call("stomach.satietyMass", st) == pytest.approx(259)
     host.K.satiety.LIQUID_WEIGHT = 0.5
     try:
         st.liquid = 100

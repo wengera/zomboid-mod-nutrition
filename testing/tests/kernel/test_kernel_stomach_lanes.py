@@ -125,11 +125,3 @@ def test_drain_over_no_time_moves_nothing(host):
     assert all(v == 0 for v in em.values())
     assert st.buffer.calories == 95 and st.liquid == 100
 
-
-def test_a_stomach_without_a_liquid_lane_drains_as_empty(host):
-    # a v3-shaped stomach (no liquid field) before its first load: read as 0 (ruling 11c-10)
-    st = host.K.stomach["new"]()
-    st.liquid = None
-    host.K.stomach.ingest(st, _vec(host, calories=100, water=50))
-    em = host.K.stomach.drain(st, 1 / 60)
-    assert em.water == pytest.approx(50 * _closed(100, 1)) and st.liquid == 0

@@ -159,10 +159,10 @@ function K.mirror.stomach(m, record)
 end
 
 -- The rounded whole mass in grams (K.mirror.stomach's field and the bus's push signature read it): 0 for no stomach,
--- no solid buffer or a non-finite mass.
+-- no solid buffer, a liquid lane that is not a number (malformed, ruling C9-9) or a non-finite mass.
 function K.mirror.stomachMass(record)
     local s = record.stomach
-    if s == nil or s.buffer == nil then
+    if s == nil or s.buffer == nil or type(s.liquid) ~= "number" then
         return 0
     end
     local g = K.stomach.mass(s)

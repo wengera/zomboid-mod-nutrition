@@ -416,7 +416,7 @@ function W.satietyFactor(factor, record)
 end
 
 -- Plan 11d close (ruling C-1): whether every key of a stomach's solid buffer (K.vector.KEYS) is a finite number and its
--- liquid lane is absent or finite. W.satietyF reads the stamp otherwise, so a malformed buffer (a key nil, a string or
+-- liquid lane is finite (an absent lane is malformed, ruling C9-9). W.satietyF reads the stamp otherwise, so a malformed buffer (a key nil, a string or
 -- NaN) never raises in K.stomach.fullnessMass and the writer still writes; Kinetics heals the buffer on its own minute
 -- (KIN.malformed). Appended so no line above moves.
 function W.bufferFinite(st)
@@ -427,7 +427,7 @@ function W.bufferFinite(st)
             return false
         end
     end
-    if st.liquid ~= nil and not NR.finite(st.liquid) then
+    if not NR.finite(st.liquid) then
         return false
     end
     return true

@@ -441,10 +441,43 @@ def test_a_malformed_buffer_key_heals_within_one_minute(kin_host, key, bad):
     assert KIN(h).stats.failures == f0 + 1
 
 
-def test_a_malformed_liquid_lane_heals_within_one_minute(kin_host):
+@pytest.mark.parametrize("bad", [None, "x"])
+def test_a_malformed_liquid_lane_heals_within_one_minute(kin_host, bad):
+    # ruling C9-9 (reversing 11c-10): an absent liquid lane is malformed and heals like a string one
     h = kin_host
     r = rec(h, calories=300)
     run(h, r, 100.0)
-    r.stomach.liquid = "x"
+    r.stomach.liquid = bad
+    f0 = KIN(h).stats.failures
     run(h, r, 100.0 + 1 / 60)
     assert r.stomach.liquid == 0 and r.stomach.buffer.calories == 0 and r.stomachFill == 0
+    assert KIN(h).stats.failures == f0 + 1
+
+
+# Plan 11d Task 9b (the close fix wave's residual): a pool key that is nil or not a number raised in K.stomach.toPool.
+# The pool check now runs before the drain, as the stomach's does: the pool resets to zero on the minute it is found,
+# and the stomach is kept.
+@pytest.mark.parametrize("bad", [None, "x"])
+@pytest.mark.parametrize("key", ["calories", "iron"])
+def test_a_malformed_pool_key_heals_within_one_minute(kin_host, key, bad):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.pool[key] = bad
+    f0 = KIN(h).stats.failures
+    run(h, r, 100.0 + 1 / 60)                                     # a minute elapses: toPool would add into the key
+    assert all(isinstance(v, (int, float)) and math.isfinite(v) for v in r.pool.values())
+    assert r.stomach.buffer.calories > 0                          # the stomach is kept
+    assert KIN(h).stats.failures == f0 + 1
+    assert "malformed pool" in KIN(h).lastError
+    run(h, r, 100.0 + 2 / 60)                                     # healed: the next minute runs clean
+    assert KIN(h).stats.failures == f0 + 1
+
+
+def test_a_pool_that_is_not_a_table_heals(kin_host):
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.pool = 5
+    run(h, r, 100.0 + 1 / 60)
+    assert all(isinstance(v, (int, float)) and math.isfinite(v) for v in r.pool.values())

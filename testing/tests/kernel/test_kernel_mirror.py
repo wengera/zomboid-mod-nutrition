@@ -95,6 +95,9 @@ def test_record_fill_reads_the_stamp_the_stomach_or_empty(host):
     assert abs(host.call("stomach.recordFill", rec(host, stomach=st)) - 0.1) < 1e-12           # the stomach's own
     assert host.call("stomach.recordFill", rec(host)) == 0                                       # no stomach: empty
     assert host.call("stomach.recordFill", rec(host, stomach=host.table({"liquid": 5.0}))) == 0  # no solid buffer
+    st["liquid"] = None
+    assert host.call("stomach.recordFill", rec(host, stomach=st)) == 0                          # an absent lane (C9-9)
+    st["liquid"] = 0
     st["buffer"]["water"] = float("nan")
     assert host.call("stomach.recordFill", rec(host, stomach=st)) == 0                          # a non-finite fill
 

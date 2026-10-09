@@ -179,7 +179,7 @@ end
 -- Plan 2 code; the first-order pieces it replaced retired in Task 6. The solid lane (stomach.buffer)
 -- empties energy at a zero-order rate that rises with the energy it holds, every other key leaving in the same
 -- proportion, never faster than water; the liquid lane (stomach.liquid, grams of drunk water) half-empties in
--- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal in the solid lane. stomach.liquid is read `or 0` (ruling 11c-10).
+-- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal in the solid lane. K.stomach.new lays both lanes.
 K.stomach.RATE_BASE = 1.25 -- S0131 (labelled inference, ruling 11c-4): kcal/min at no load, fitted so the rate reads Hunt 1985's overall 2.5 kcal/min at its mean load; liquid carbohydrate meals applied to solids
 K.stomach.RATE_PER_KCAL = 0.0025 -- S0131 (labelled inference, ruling 11c-4): per min, the rise with load (+0.72 kcal/min for +300 kcal of volume, +0.62 for +240 kcal of density: 0.0024 and 0.0026 per kcal)
 K.stomach.WATER_HALF_MIN = 13 -- S1245 (Mudie 2014: 240 mL of water half-empties in 13 +/- 1 min, fasted); the fastest either lane empties
@@ -195,12 +195,12 @@ end
 
 -- The stomach's mass: the solid buffer's mass plus the liquid lane.
 function K.stomach.mass(stomach)
-    return K.stomach.massOf(stomach.buffer) + (stomach.liquid or 0)
+    return K.stomach.massOf(stomach.buffer) + stomach.liquid
 end
 
 -- The stomach's still-unabsorbed water in both lanes (the thirst view's pending water, ruling T1-1).
 function K.stomach.water(stomach)
-    return stomach.buffer.water + (stomach.liquid or 0)
+    return stomach.buffer.water + stomach.liquid
 end
 
 -- A drink: its water into the liquid lane, every other key (its energy among them, ruling 11c-5) into the solid
@@ -209,7 +209,7 @@ function K.stomach.ingestLiquid(stomach, vector)
     local own = stomach.buffer.water
     K.vector.add(stomach.buffer, vector, 1)
     stomach.buffer.water = own
-    stomach.liquid = (stomach.liquid or 0) + (vector.water or 0)
+    stomach.liquid = stomach.liquid + (vector.water or 0)
     return stomach
 end
 
@@ -266,7 +266,7 @@ function K.stomach.drain(stomach, dtH)
         local k = keys[i]
         stomach.buffer[k] = stomach.buffer[k] * (1 - f)
     end
-    local liquid = stomach.liquid or 0
+    local liquid = stomach.liquid
     local lw = liquid * fl
     stomach.liquid = liquid - lw
     emptied.water = emptied.water + lw
@@ -277,19 +277,20 @@ end
 -- liquid lane, drunk liquid counting at a fifth (S1231's null for water drunk alongside; S1233's drink volumes). The
 -- fill (K.stomach.fill) passes it to K.satiety.fill and stays physical, while the writer's F reads K.stomach.fullnessMass, it plus the protein term (W.satietyF, ruling T5-2); the soft cap still reads K.stomach.mass, both lanes whole (S1250).
 function K.stomach.satietyMass(stomach)
-    return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * (stomach.liquid or 0)
+    return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * stomach.liquid
 end
 
 -- Plan 11c close (ruling C-2): the fill a reader takes from a record (the intake's acute dose test, the mirror):
 -- record.stomachFill, the kinetics' stamp, when finite; else the stomach's own fill when the record holds a stomach with
--- a solid buffer; else 0, since ruling 11c-15 a new stomach is empty. A non-finite stomach reads 0.
+-- a solid buffer and a liquid lane; else 0, since ruling 11c-15 a new stomach is empty. A non-finite stomach, or one
+-- whose liquid lane is not a number (malformed, ruling C9-9), reads 0.
 function K.stomach.recordFill(record)
     local f = record.stomachFill
     if type(f) == "number" and f - f == 0 then
         return f
     end
     local s = record.stomach
-    if s == nil or s.buffer == nil then
+    if s == nil or s.buffer == nil or type(s.liquid) ~= "number" then
         return 0
     end
     f = K.stomach.fill(s)

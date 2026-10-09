@@ -1100,8 +1100,8 @@ def test_a_malformed_liquid_lane_reads_the_stamp():
     st = chicken_stomach(h)
     st.liquid = "x"
     assert W.satietyF(record(h, stomach=st)) == 0.6
-    st.liquid = None                                                        # an absent lane reads 0 (ruling 11c-10)
-    assert W.satietyF(record(h, stomach=st)) == pytest.approx((150 + 8 * 46.5) / 730)
+    st.liquid = None                                                        # an absent lane is malformed (ruling C9-9)
+    assert W.satietyF(record(h, stomach=st)) == 0.6
 
 
 # --- Plan 11d close (ruling C-2): LIMITATION_FOUR's seed floor and ceiling in hungerTarget's form ----------------------

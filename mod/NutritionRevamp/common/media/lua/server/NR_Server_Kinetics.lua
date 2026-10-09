@@ -40,7 +40,7 @@ KIN.GUARD = { "liquid" }
 local function nonFinite(stomach)
     for i = 1, #KIN.GUARD do
         local v = stomach[KIN.GUARD[i]]
-        if v ~= nil and not NR.finite(v) then return true end   -- an absent lane reads 0 (ruling 11c-10)
+        if not NR.finite(v) then return true end
     end
     local keys = K.vector.KEYS
     local b = stomach.buffer
@@ -78,8 +78,8 @@ local function step(username, player, record, ctx)
     if record.stomach == nil or KIN.malformed(record.stomach, username) then
         record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15); a malformed one heals (C-1)
     end
-    if record.pool == nil then
-        record.pool = K.vector.new()
+    if record.pool == nil or KIN.malformedPool(record.pool, username) then
+        record.pool = K.vector.new()                  -- a fresh pool; a malformed one heals (Task 9b)
     end
     local last = record.kineticsAge
     local dtH = 0
@@ -155,7 +155,7 @@ end
 -- Plan 11d close (ruling C-1): the buffer check the step runs before the meal context and the drain, which raise on a
 -- buffer key that is nil or a string (K.stomach.drain multiplies every key), so the heal below the fill never ran and
 -- the stomach stayed malformed while the writer's F read failed. A stomach that is not a table, a buffer that is not
--- one, a buffer key (K.vector.KEYS) that is not a number or a liquid lane that is neither absent nor a number counts a
+-- one, a buffer key (K.vector.KEYS) or a liquid lane that is not a number (an absent lane included, ruling C9-9) counts a
 -- failure, is logged and answers true: the step resets the stomach empty on the minute it is found and keeps the pool.
 -- A NaN or infinite number does not raise and stays with the heal below the fill (nonFinite). Appended so no line
 -- above moves.
@@ -170,7 +170,7 @@ function KIN.malformed(stomach, username)
                 break
             end
         end
-        if stomach.liquid ~= nil and type(stomach.liquid) ~= "number" then
+        if type(stomach.liquid) ~= "number" then
             bad = true
         end
     end
@@ -179,6 +179,31 @@ function KIN.malformed(stomach, username)
     end
     KIN.stats.failures = KIN.stats.failures + 1
     KIN.lastError = "kinetics: malformed stomach buffer for " .. tostring(username) .. "; stomach reset empty"
+    NR.log.say(2, KIN.lastError)
+    return true
+end
+
+-- Plan 11d Task 9b (the close fix wave's residual): the pool check the step runs before the drain, as KIN.malformed
+-- runs the stomach's, since K.stomach.toPool raises on a pool key that is nil or a string. A pool that is not a table,
+-- or a key of it (K.vector.KEYS) that is not a number, counts a failure, is logged and answers true: the step resets
+-- the pool to zero on the minute it is found and keeps the stomach. A NaN or infinite key stays with the heal below
+-- the fill.
+function KIN.malformedPool(pool, username)
+    local bad = type(pool) ~= "table"
+    if not bad then
+        local keys = K.vector.KEYS
+        for i = 1, #keys do
+            if type(pool[keys[i]]) ~= "number" then
+                bad = true
+                break
+            end
+        end
+    end
+    if not bad then
+        return false
+    end
+    KIN.stats.failures = KIN.stats.failures + 1
+    KIN.lastError = "kinetics: malformed pool for " .. tostring(username) .. "; pool reset to zero"
     NR.log.say(2, KIN.lastError)
     return true
 end
