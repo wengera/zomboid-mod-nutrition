@@ -1512,8 +1512,8 @@ def test_a_non_finite_lag_or_bank_heals_and_counts(met_host):
 
 
 def test_a_record_without_satiety_gets_a_lag_and_no_pool(met_host):
-    # Metabolism lays record.satiety for its L; P and its mark are the writer's to seed from HUNGER
+    # Metabolism lays record.satiety for its L; P is the writer's to seed from HUNGER
     h = met_host
     p = player(h)
     record = fresh(h, p)
-    assert record["satiety"]["L"] == 0 and record["satiety"]["P"] is None and record["satiety"]["v"] is None
+    assert record["satiety"]["L"] == 0 and record["satiety"]["P"] is None

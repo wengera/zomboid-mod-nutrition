@@ -222,13 +222,13 @@ end
 
 -- Plan 11c (rulings 11c-27, 11c-30; Task 6 amendment 1): the meal pool P is fed at the eat with the delivered
 -- vector's weighted kcal (K.satiety.feed), on every route that lands -- the eat, the drink, world water and the
--- reconcile path -- and a partial eat's vector is already its fraction. A record whose satiety is absent, unmarked
--- (v ~= 4) or non-finite is left for the writer's seed at its next minute: an eat in a fresh record's first minute
+-- reconcile path -- and a partial eat's vector is already its fraction. A record whose satiety or P is absent or
+-- non-finite is left for the writer's seed at its next minute: an eat in a fresh record's first minute
 -- shows only through the HUNGER the seed reads (a named limitation, the writer's limitation 4). A feed that comes
 -- out non-finite is not kept.
 function IN.feed(record, vec)
     local s = record.satiety
-    if type(s) ~= "table" or s.v ~= 4 or not IN.isFinite(s.P) then return end
+    if type(s) ~= "table" or not IN.isFinite(s.P) then return end
     local P = K.satiety.feed(s.P, vec)
     if IN.isFinite(P) then s.P = P end
 end

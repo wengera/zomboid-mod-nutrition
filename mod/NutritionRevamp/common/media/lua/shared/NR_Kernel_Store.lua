@@ -33,9 +33,9 @@ K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the version field the save holds (load rewrites it to
     -- VERSION after the copy), the key, the first and last world age seen, the respawn count, the death flag
     "v", "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- satiety (Plan 11c; NR_Server_Writer, NR_Server_Metabolism): the meal pool P (weighted kcal) and its mark v = 4,
-    -- which the writer seeds from HUNGER when absent, unmarked or non-finite, the acute suppression state S and the exercise lag L (kcal/day); a v3 scalar and its satietyStepped mark are dropped by this list
-    "satiety.P", "satiety.S", "satiety.L", "satiety.v", "satiety.t", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1)
+    -- satiety (Plan 11c; NR_Server_Writer, NR_Server_Metabolism): the meal pool P (weighted kcal), which the writer
+    -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
+    "satiety.P", "satiety.S", "satiety.L", "satiety.t", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1)
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
     -- solid buffer (ingest and ingestLiquid add, drain empties), the absorbed pool (toPool accumulates; a diagnostic
     -- no step reads back, kept because it cannot be rebuilt)
@@ -318,7 +318,7 @@ function K.store.load(raw, order, records)
     local rec = K.store.new(raw.username, raw.firstSeen)
     K.store.defaults(rec, raw, order)
     if type(raw.satiety) == "table" then
-        rec.satiety = {} -- the stored P, S, L and mark overwrite it; a v3 scalar is not a table and is dropped, so the writer seeds P
+        rec.satiety = {} -- the stored P, S, L and t overwrite it
     end
     local segs = K.store.SEGS
     for i = 1, #segs do

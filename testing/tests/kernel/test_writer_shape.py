@@ -85,7 +85,7 @@ H1 = 0.15979777146877272
 
 
 def record(h, **over):
-    r = h.rt.eval("""{ stomachFill = 0.6, satiety = { P = 6, S = 0, L = 0, v = 4 }, body = { energyState = 1, rmod = 1 },
+    r = h.rt.eval("""{ stomachFill = 0.6, satiety = { P = 6, S = 0, L = 0 }, body = { energyState = 1, rmod = 1 },
         fluids = { thirstTarget = 0.3, autoDrop = 0 }, acute = { S = 0.2, circ = 0.05, frozen = false },
         effects = { fOff = 0.01, panicTarget = 10, stressTarget = 0, unhappyTarget = 0, foodSickTarget = 0,
                     tempTarget = 0, tempAdj = 0, intoxTarget = 0 } }""")
@@ -444,7 +444,7 @@ def test_a_dry_writer_computes_and_sets_nothing():
     p.st.v.THIRST = 0.1                                    # a fall a live writer would book as a sip
     step(h, p, rec, 2)
     assert len(list(p.st.sets.keys())) == 0                # no stat written
-    assert rec.satiety.P == 6 and rec.satiety.v == 4 and rec.satiety.S == 0   # the pool neither decayed nor seeded
+    assert rec.satiety.P == 6 and rec.satiety.S == 0   # the pool neither decayed nor seeded
     assert rec.fluids.autoDrop == 0.05                     # no sip folded into the pool
     assert h.NR.server.intake.landed["a"] is True          # the landing mark left for the real step
     assert W.h["a"] is None and W.inp["a"] is None         # nothing hoisted, no engine read
@@ -531,7 +531,7 @@ def test_a_record_without_satiety_seeds_p_from_hunger():
     rec = record(h)
     rec.satiety = None
     step(h, p, rec, 1)
-    assert rec.satiety.v == 4 and h.NR.server.writer.stats.seeded == 1
+    assert h.NR.server.writer.stats.seeded == 1
     assert rec.satiety.P == pytest.approx(h.K.satiety.seedP(0.31 / _circ(4 + 1 / 60), 0.6, 1))
     assert rec.satiety.S == 0 and rec.satiety.L == 0
     assert p.st.sets.HUNGER == pytest.approx(0.31)
@@ -561,7 +561,7 @@ def test_a_new_record_with_acute_suppression_writes_back_the_hunger_it_read():
         rec.satiety = h.rt.eval("{ S = 0.5 }")
         step(h, p, rec, 1)
         assert p.st.sets.HUNGER == pytest.approx(hunger)
-        assert rec.satiety.S == 0.5 and rec.satiety.v == 4
+        assert rec.satiety.S == 0.5 and rec.satiety.P is not None
 
 
 def test_a_stepped_pool_survives_a_restart():
@@ -570,7 +570,7 @@ def test_a_stepped_pool_survives_a_restart():
     rec = record(h)
     step(h, p, rec, 1)
     back = h.K.store.load(h.K.store.inputsOnly(rec), None, None)
-    assert back.satiety.P == pytest.approx(6) and back.satiety.v == 4
+    assert back.satiety.P == pytest.approx(6)
     assert back.satiety.S == 0 and back.satiety.L == 0
     back.stomachFill = 0.6                                                  # kinetics stamps it each minute
     back.body = h.rt.eval("{ energyState = 1, rmod = 1 }")
@@ -579,20 +579,7 @@ def test_a_stepped_pool_survives_a_restart():
     assert h.NR.server.writer.stats.seeded == 0 and p2.st.sets.HUNGER == pytest.approx(H1)
 
 
-def test_a_v3_record_is_seeded_once():
-    h = boot()
-    p = player(h)
-    p.st.v.HUNGER = 0.35
-    raw = h.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.6, satietyStepped = true }")
-    rec = h.K.store.load(raw, None, None)
-    assert rec.satiety is None and rec.satietyStepped is None and rec.v == 4
-    step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx(0.35)
-    step(h, p, rec, 2)
-    assert h.NR.server.writer.stats.seeded == 1
-
-
-def test_a_non_finite_or_unmarked_pool_is_seeded_again():
+def test_a_non_finite_or_absent_pool_is_seeded_again():
     h = boot()
     p = player(h)
     p.st.v.HUNGER = 0.31
@@ -605,10 +592,10 @@ def test_a_non_finite_or_unmarked_pool_is_seeded_again():
     p2 = player(h, "b")
     p2.st.v.HUNGER = 0.31
     rec2 = record(h)
-    rec2.satiety.v = 3
+    rec2.satiety.P = None
     step(h, p2, rec2, 1, name="b")
     assert p2.st.sets.HUNGER == pytest.approx(0.31) and W.stats.seeded == 2
-    assert W.stats.guarded == 1                                             # an unmarked pool is a seed, not a heal
+    assert W.stats.guarded == 1                                             # an absent pool is a seed, not a heal
 
 
 def test_p_decays_at_its_half_life_of_game_time():
@@ -895,7 +882,7 @@ def test_a_v3_or_fresh_record_has_no_stamp_and_steps_zero_on_its_first_minute():
     h = boot()
     p = player(h)
     rec = h.K.store.new("a", 100.0)
-    rec.satiety = h.rt.eval("{ P = 6, S = 0.5, v = 4 }")
+    rec.satiety = h.rt.eval("{ P = 6, S = 0.5 }")
     step(h, p, rec, 181)
     assert rec.satiety.P == 6 and rec.satiety.S == 0.5
     assert h.NR.server.writer.stats.guarded == 0
@@ -1043,7 +1030,7 @@ def test_the_seed_writes_back_the_hunger_it_read_under_a_sleep_debt_and_acute_su
             rec.acute = h.rt.eval("{ debtH = %r }" % debt)
             step(h, p, rec, minute)
             assert p.st.sets.HUNGER == pytest.approx(hunger), (hunger, debt, minute)
-            assert rec.satiety.S == 0.5 and rec.satiety.v == 4
+            assert rec.satiety.S == 0.5 and rec.satiety.P is not None
 
 
 def test_the_seed_divides_by_the_sleep_factor():

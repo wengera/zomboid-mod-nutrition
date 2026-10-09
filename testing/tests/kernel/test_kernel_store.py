@@ -476,17 +476,11 @@ def test_a_new_record_has_no_satiety_for_the_writer_to_seed(host):
     assert S(host).new("a", 1.0).satiety is None
 
 
-def test_the_pool_its_activity_state_and_its_mark_are_inputs_and_the_v3_fields_are_not(host):
-    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.v", "stomach.liquid", "body.exKcalPrev"):
+def test_the_pool_its_activity_state_and_its_stamp_are_inputs_and_their_table_is_not(host):
+    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.t", "stomach.liquid", "body.exKcalPrev"):
         assert S(host).isInput(p), p
-    assert not S(host).isInput("satiety") and not S(host).isInput("satietyStepped")
+    assert not S(host).isInput("satiety") and not S(host).isInput("satiety.v")
     assert not S(host).isInput("stomach.bulk")
-
-
-def test_a_v3_scalar_and_its_mark_are_dropped_on_load(host):
-    raw = host.rt.eval("{ v = 3, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = 0.4, satietyStepped = true }")
-    rec = S(host).load(raw, None, None)
-    assert rec.v == 4 and rec.satiety is None and rec.satietyStepped is None
 
 
 def test_a_loaded_record_without_satiety_keeps_it_unset(host):
@@ -495,10 +489,10 @@ def test_a_loaded_record_without_satiety_keeps_it_unset(host):
     assert rec.v == 4 and rec.satiety is None
 
 
-def test_a_loaded_v4_record_keeps_its_pool_and_activity_state(host):
-    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 88, S = 0.3, L = 120, v = 4, junk = 1 } }")
+def test_a_loaded_record_keeps_its_pool_and_activity_state(host):
+    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 88, S = 0.3, L = 120, junk = 1 } }")
     rec = S(host).load(raw, None, None)
-    assert rec.satiety.P == 88 and rec.satiety.S == 0.3 and rec.satiety.L == 120 and rec.satiety.v == 4
+    assert rec.satiety.P == 88 and rec.satiety.S == 0.3 and rec.satiety.L == 120
     assert rec.satiety.junk is None
 
 
@@ -600,6 +594,6 @@ def test_the_save_phase_is_inside_the_gap_differs_by_name_and_seeds_the_first_wr
 def test_the_writers_step_stamp_is_an_input(host):
     # Plan 11c close (ruling C-1): the writer's last step age, read across a restart
     assert S(host).isInput("satiety.t")
-    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 6, S = 0, L = 0, v = 4, t = 101.5 } }")
+    raw = host.rt.eval("{ v = 4, username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 6, S = 0, L = 0, t = 101.5 } }")
     rec = S(host).load(raw, None, None)
     assert rec.satiety.t == 101.5 and S(host).inputsOnly(rec).satiety.t == 101.5

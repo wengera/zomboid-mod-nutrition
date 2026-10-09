@@ -200,7 +200,7 @@ def test_a_reconciled_rise_feeds_the_pool_by_its_weighed_kcal(h):
     # amendment 1: the reconcile path lands through IN.land, which feeds P with the delivered vector; 300 kcal of
     # 20 g carbohydrate alone takes the carbohydrate weight 1 (W_CARB), so P rises by 300 weighted kcal
     p, rec = seeded(h)
-    rec.satiety = h.rt.eval("{ P = 2, S = 0, L = 0, v = 4 }")
+    rec.satiety = h.rt.eval("{ P = 2, S = 0, L = 0 }")
     p.nut.cal, p.nut.carb = 1300.0, 120.0
     RC(h).minute("admin", p, rec)
     assert abs(rec["satiety"]["P"] - (2 + 300)) < TOL

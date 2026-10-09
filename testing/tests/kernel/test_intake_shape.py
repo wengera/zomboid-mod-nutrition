@@ -1752,7 +1752,7 @@ def test_a_landing_feeds_the_pool_by_the_weighed_kcal_of_the_delivered_vector(re
     h = rec_host
     record = _record(h)
     record["stomach"] = h.K.stomach.new()
-    record["satiety"] = h.rt.eval("{ P = 12.5, S = 0, L = 0, v = 4 }")
+    record["satiety"] = h.rt.eval("{ P = 12.5, S = 0, L = 0 }")
     v = dict(calories=200.0, proteins=10.0, carbs=25.0, lipids=6.67, water=80.0)
     I(h).land(record, "u", _vec(h, **v))
     rise = _weighed(v)
@@ -1764,10 +1764,10 @@ def test_a_landing_feeds_the_pool_by_the_weighed_kcal_of_the_delivered_vector(re
 
 
 def test_a_landing_on_an_unseeded_pool_feeds_nothing(rec_host):
-    # amendment 1: a record whose satiety is absent, unmarked or non-finite is seeded at the next writer minute from
-    # the HUNGER it reads, so the eat shows through the seed (a named limitation), never through a NaN or a v3 scalar
+    # amendment 1: a record whose satiety or P is absent or non-finite is seeded at the next writer minute from
+    # the HUNGER it reads, so the eat shows through the seed (a named limitation), never through a NaN
     h = rec_host
-    for sat in (None, "{ P = 0 / 0, v = 4 }", "{ P = 10, v = 3 }", "0.6"):
+    for sat in (None, "{ P = 0 / 0 }", "{ S = 0, L = 0 }"):
         record = _record(h)
         record["stomach"] = h.K.stomach.new()
         record["satiety"] = None if sat is None else h.rt.eval(sat)
@@ -1775,10 +1775,8 @@ def test_a_landing_on_an_unseeded_pool_feeds_nothing(rec_host):
         s = record["satiety"]
         if sat is None:
             assert s is None
-        elif sat == "0.6":
-            assert s == 0.6
         else:
-            assert s["v"] != 4 or s["P"] != s["P"]                       # left for the writer's seed
+            assert s["P"] is None or s["P"] != s["P"]                    # left for the writer's seed
         assert record["stomach"]["buffer"]["calories"] == 200.0          # the stomach still takes the eat
     I(h).lastError = None
 
@@ -1787,7 +1785,7 @@ PARTIAL_EAT = r"""
 function(after)
     local IN = NutritionRevamp.server.intake
     local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
-    rec.satiety = { P = 5, S = 0, L = 0, v = 4 }
+    rec.satiety = { P = 5, S = 0, L = 0 }
     NutritionRevamp.server.store.records.admin = rec
     local hung = -0.2
     local item = {}

@@ -178,10 +178,10 @@ function W.vigorous(h, player, record, ctx)
 end
 
 -- Plan 11c (spec § 3.1, § 5b, § 5c; Task 6 amendments 3 and 4): satiety from physiology. record.satiety is
--- { P, S, L, v = 4 }: the meal pool P (weighted kcal, fed at the eat by the intake), the acute suppression state S and
+-- { P, S, L, t }: the meal pool P (weighted kcal, fed at the eat by the intake), the acute suppression state S and
 -- the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or L, or a negative L, is
 -- stamped 0 and counted in guarded; S is clamped to [0, 1]) and S is stepped over the elapsed world age toward the
--- vigorous kind's weight; a P that is absent, unmarked (v ~= 4) or non-finite is seeded so the HUNGER written equals
+-- vigorous kind's weight; a P that is absent or non-finite is seeded so the HUNGER written equals
 -- the HUNGER read, inverting the composition below (K.satiety.seedP on hunger / (circadian x acuteFactor x sleepFactor), W.satietyFactor's divisor
 -- that is non-finite or not positive reading 1; counted in seeded, and a non-finite P in guarded too); otherwise P
 -- decays over the elapsed world age at the half-life, scaled by the appetite trait (#0485) and the sandbox's
@@ -211,10 +211,9 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
     local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S)
     factor = W.satietyFactor(factor, record)
-    if s.v ~= 4 or not NR.finite(s.P) then
-        if s.P ~= nil and not NR.finite(s.P) then W.stats.guarded = W.stats.guarded + 1 end
+    if not NR.finite(s.P) then
+        if s.P ~= nil then W.stats.guarded = W.stats.guarded + 1 end
         s.P = K.satiety.seedP(inp.hunger / factor, F, es)
-        s.v = 4
         W.stats.seeded = W.stats.seeded + 1
     else
         local P0 = s.P
@@ -361,7 +360,7 @@ end
 -- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
 -- every step (game hours; stored, K.store.INPUTS), so P and S decay across the gap as Kinetics and Metabolism catch it
 -- up. Both clamp at maxStepS (60 min). A non-finite stamp reads none and is counted in guarded; a record with no stamp
--- (a v3 record, a fresh one) steps 0 on its first minute. Stamps t = ageH.
+-- (a fresh record) steps 0 on its first minute. Stamps t = ageH.
 function W.satietyDtH(h, s, inp, ageH)
     local dtS = inp.dtS
     if s.t ~= nil and not NR.finite(s.t) then

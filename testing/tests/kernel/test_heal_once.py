@@ -336,11 +336,11 @@ SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients
                 "satiety": "metabolism", "stomach": "kinetics", "stomach.buffer": "kinetics"}
 # Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
 # which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads); the
-# writer's own satiety state (P, S, the mark v and the step stamp t, ruling C-1), which no other step reads in the minute and the writer heals
+# writer's own satiety state (P, S and the step stamp t, ruling C-1), which no other step reads in the minute and the writer heals
 # itself (W.stats.guarded, test_writer_shape.py). The writer's satiety F (W.satietyF, ruling T5-2) reads the stomach's
 # liquid lane and the buffer's mass keys, each guarded by the kinetics heal (a non-finite F also falls back to
 # record.stomachFill); the buffer table itself is a container read, so the test proxies it one level down.
-WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.v", "satiety.t"}
+WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.t"}
 
 BUFFER_PROXY = r"""
 function(rec, log)
