@@ -409,10 +409,10 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
     "overwrites it with the satiety target, hungerTarget(sated(F, post(P)), energyState) x the circadian factor x the "
-    "acute exercise factor x the sleep-debt factor, capped at 0.69: F is the stomach's satiety mass over its 730 g maximum, drunk liquid "
+    "acute exercise factor x the sleep-debt factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid "
     "counting at a fifth, and P the meal pool, fed at the eat with the eaten vector's weighted kcal and decaying on "
     "game time asleep or awake, so displayed hunger never reaches 0 after a meal (about 0.1 after a typical meal, about 0.09 at a full "
-    "stomach), and a character seeded from a vanilla HUNGER below about 0.20 reads about 0.20 on its first minute "
+    "stomach), and a character seeded from a vanilla HUNGER below about 0.20 reads about 0.20 times the minute's energy state, circadian, acute and sleep factors on its first minute "
     "(0.203, an empty stomach's read at the seed's cap P_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and P through the reconcile path a minute late and as its "
     "macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
     "intake's wraps is not seen; an eat landing in a fresh record's first minute, before the writer has seeded P, "
@@ -421,7 +421,7 @@ LIMITATION_FOUR = (
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
     "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
     "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
-    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.55 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, so past about 24-36 h of fasting the energy state sits at its cap (ruling T4-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure")
+    "3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling (1 - 0.55 F) x energyState seeds an empty pool, so a migrated full-stomached character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, so past about 24-36 h of fasting the energy state's balance term sits at its cap (es 1.5; ruling T4-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():
@@ -1056,3 +1056,24 @@ def test_the_seed_divides_by_the_sleep_factor():
     step(h, p, rec, 1)
     assert rec.satiety.P == pytest.approx(h.K.satiety.seedP(0.31 / (_circ(4 + 1 / 60) * 1.18), 0.6, 1))
     assert p.st.sets.HUNGER == pytest.approx(0.31)
+
+
+# --- Plan 11d Task 6 fix (ruling T6-1): the divisor guard. A product the factors make non-finite or not positive reads
+# 1: the write is the factor-1 target and the seed divides by 1, so P is seeded finite.
+
+@pytest.mark.parametrize("bad", ["0/0", "0"])
+def test_a_non_finite_or_zero_factor_product_reads_one(bad):
+    h = boot()
+    h.K.satiety.acuteFactor = h.rt.eval("function(S) return %s end" % bad)
+    p = player(h)
+    step(h, p, record(h), 1)
+    assert p.st.sets.HUNGER == pytest.approx(0.1675)                       # hungerTarget x 1: no circadian either
+    h2 = boot()
+    h2.K.satiety.circadian = h2.rt.eval("function(hour) return %s end" % bad)
+    p2 = player(h2)
+    p2.st.v.HUNGER = 0.31
+    rec = record(h2)
+    rec.satiety = None
+    step(h2, p2, rec, 1)
+    assert math.isfinite(rec.satiety.P) and rec.satiety.P == pytest.approx(h2.K.satiety.seedP(0.31, 0.6, 1))
+    assert rec.satiety.P > 0 and p2.st.sets.HUNGER == pytest.approx(0.31)
