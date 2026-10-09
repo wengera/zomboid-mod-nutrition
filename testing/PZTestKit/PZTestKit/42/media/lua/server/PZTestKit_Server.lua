@@ -2841,7 +2841,7 @@ end)
 --   ghost.bench <n> | read. N - (online players) ghost records, so the two real players plus the ghosts make N. THE CHOICE (Plan 10c H0 Step 1): a ghost reaches the
 --   pipeline through NutritionRevamp.server.minute.run(ghostName, carrier, ghostRecord) -- the call P.work makes
 --   -- with P.work's own two lines kept here on the ghost's record (record.lastSeen = the world age, and the dead
---   flag read off the carrier) and P.onMinute fired after it as P.work fires it. P.work itself is not called,
+--   flag read off the carrier); since Plan 11d Task 9b no hook list follows it. P.work itself is not called,
 --   because it fetches the record from the mod's store by username and would create a store record for a ghost.
 --   The ghost record is a deep copy of its carrier's store record (the carrier is the real online player chosen
 --   round-robin), renamed to the ghost's name, held in this table only (TK.H0.g.ghosts), never in the store; it
@@ -3220,7 +3220,7 @@ function H0.endBatch()
     return el
 end
 
--- one ghost's minute: P.work's own lines on the ghost's record, then the pipeline, then P.onMinute
+-- one ghost's minute: P.work's own lines on the ghost's record, then the pipeline
 function H0.work(g)
     local NR = NutritionRevamp
     local age = H0.worldAge()
@@ -3229,10 +3229,10 @@ function H0.work(g)
     local okD, dead = TK.call(g.carrier, "isDead")
     if okD and dead == true and r.dead ~= true then r.dead = true end
     NR.server.minute.run(g.name, g.carrier, r)
-    local P = NR.server.players
-    if P ~= nil and P.onMinute ~= nil then
-        for i = 1, #P.onMinute do pcall(P.onMinute[i], g.name, g.carrier, r) end
-    end
+    -- P.onMinute is gone from the mod (Plan 11d Task 9b, ruling C9-7): P.work runs the pipeline alone, so the
+    -- ghost's minute is the pipeline alone too. These four comment lines replace the loop that fired it, so no
+    -- repo: pointer below this site moves (CLAUDE.md section 5: a harness edit that shifts lines re-anchors every
+    -- pointer into the file).
 end
 
 -- feed: the ghost's engine reads are its carrier's (the writer's inp table, re-pointed each run; Plan 11 Task 19)
