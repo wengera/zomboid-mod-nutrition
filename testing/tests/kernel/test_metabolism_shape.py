@@ -920,7 +920,7 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
         isServer = function() return true end
-        NutritionRevamp.server.players = { onMinute = {} }
+        NutritionRevamp.server.players = {}
     """)
     names = sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"])
     assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua"]
@@ -931,7 +931,6 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
     S = G.NutritionRevamp.server
-    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
     assert same(S.minute.steps["kinetics"], S.kinetics.minute)
     assert same(S.minute.steps["metabolism"], S.metabolism.minute)
@@ -1113,7 +1112,7 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
         isServer = function() return true end
         SandboxVars = { Nutrition = true }
-        NutritionRevamp.server.players = { onMinute = {}, onFirstSight = {} }
+        NutritionRevamp.server.players = { onFirstSight = {} }
     """)
     for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua",
                      "NR_Server_Options.lua"]):

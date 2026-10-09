@@ -169,9 +169,6 @@ function MO.attach()
     o.moodles = m.moodles
     o.loadOnce = m.loadOnce
     o.page = NR_ClientModOptions_Page
-    o.toggleKey = option("togglePanel")
-    o.tooltipLinesOption = option("tooltipLines")
-    o.moodlesOption = option("moodles")
 end
 
 -- The OnGameStart listener's logic: re-attach, then the one load.

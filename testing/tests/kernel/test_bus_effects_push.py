@@ -45,7 +45,7 @@ NutritionRevamp.kernel.mirror = { build = function(record, meta, order) return {
 -- K.view stubbed (Plan 11a Task 4): a constant class signature and a zero push phase, so these tests pin the gap
 -- and the dedupe alone; the signature and the phase are test_bus_shape.py's and test_kernel_view.py's.
 NutritionRevamp.kernel.view = { pushSignature = function() return 0 end, pushOffset = function(u, gap) return 0 end }
-NutritionRevamp.server.players = { onMinute = {}, onFirstSight = {}, onDeparture = {} }
+NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
 NutritionRevamp.server.store = { get = function(u, age) return NR_T.records[u] end }
 NR_T.records = {}
 """
@@ -97,9 +97,9 @@ def test_the_flush_is_wired_once():
     P = G(rt).NutritionRevamp.server.players
     MIN = G(rt).NutritionRevamp.server.minute
     same = rt.eval("rawequal")
-    assert same(MIN.steps["bus"], BUS_(rt).flushEffects) and len(P.onMinute) == 0
+    assert same(MIN.steps["bus"], BUS_(rt).flushEffects)
     rt.execute("for _, f in ipairs(NR_T.adds.OnServerStarted) do f() end")
-    assert same(MIN.steps["bus"], BUS_(rt).flushEffects) and len(P.onMinute) == 0
+    assert same(MIN.steps["bus"], BUS_(rt).flushEffects)
     assert len(P.onFirstSight) == 1 and len(P.onDeparture) == 1
 
 

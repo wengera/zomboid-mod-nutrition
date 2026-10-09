@@ -588,7 +588,7 @@ def test_weight_runs_last_in_the_players_list():
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
         isServer = function() return true end
-        NutritionRevamp.server.players = { onMinute = {} }
+        NutritionRevamp.server.players = {}
     """)
     names = sorted(["NR_Server_Weight.lua", "NR_Server_Training.lua", "NR_Server_Strength.lua",
                     "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"])
@@ -601,7 +601,6 @@ def test_weight_runs_last_in_the_players_list():
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
     S = G.NutritionRevamp.server
-    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
     assert same(S.minute.steps["strength"], S.strength.minute)
     assert same(S.minute.steps["weight"], S.weight.minute)

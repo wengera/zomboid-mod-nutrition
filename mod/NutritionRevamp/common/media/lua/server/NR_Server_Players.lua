@@ -29,8 +29,7 @@ local function nowMs()
 end
 
 -- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
--- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua), then P.onMinute, kept for a third party's append.
-P.onMinute = {}
+-- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
@@ -43,7 +42,6 @@ function P.work(username, player)
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
     end
     NR.server.minute.run(username, player, r)
-    fire(P.onMinute, username, player, r)
 end
 
 -- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends

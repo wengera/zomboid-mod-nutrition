@@ -187,7 +187,7 @@ def test_the_accessors_survive_the_options_file_and_are_reattached_at_game_start
     fire(rt, "OnGameStart")
     o = NRC(rt).options
     assert o.key() == 39 and o.tooltipLines() is True and o.moodles() is True
-    assert o.mode == 1 and o.toggleKey is not None
+    assert o.mode == 1
 
 
 def test_the_accessors_read_the_values():

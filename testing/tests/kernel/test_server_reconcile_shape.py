@@ -161,7 +161,7 @@ def test_the_reconciliation_runs_before_kinetics_nutrients_and_the_weight_write(
         idx[name] = order.index(name)
     assert idx["reconcile"] < idx["kinetics"] < idx["metabolism"] < idx["nutrients"] < idx["strength"] < idx["weight"]
     assert same(M.steps["bus"], srv.bus.flushEffects) and order.index("bus") < idx["reconcile"]
-    assert len(srv.players.onMinute) == 0
+    assert srv.players.onMinute is None
 
 
 def test_the_first_sight_seeds_the_baseline_from_the_stores(h):

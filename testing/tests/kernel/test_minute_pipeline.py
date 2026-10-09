@@ -1,6 +1,6 @@
 """The slow minute's explicit pipeline (Plan 10 Task R2): NR_Server_Minute.lua.
 
-The declared ORDER is the order that runs; no adapter appends to the old P.onMinute list; a raising step does not
+The declared ORDER is the order that runs; the players' file keeps no minute hook list; a raising step does not
 stop the steps after it; registering a name again replaces its function; the context is cleared per player run.
 
 The Effects hand-off (the R0 reviews' M4): the golden trace cannot see a wrong body, dtM or ageH on the context, so
@@ -47,21 +47,9 @@ def test_every_adapter_registers_its_named_step():
     assert sorted(k for k in S.minute.steps.keys()) == sorted(ORDER)
 
 
-def test_no_adapter_appends_to_the_old_list():
+def test_the_players_file_keeps_no_minute_hook_list():
     h = Host()
-    assert len(h.NR.server.players.onMinute) == 0
-
-
-def test_a_third_partys_append_to_the_old_list_still_runs_after_the_pipeline():
-    h = Host()
-    ran = h.rt.eval("{}")
-    rec = h.rt.eval("function(t, n) return function() t[#t + 1] = n end end")
-    h.NR.server.minute.register("weight", rec(ran, "weight"))
-    P = h.NR.server.players
-    P.onMinute[1] = rec(ran, "third")
-    p = h.player("a"); h.online(p); h.minute(); h.tick(2)
-    got = [ran[i] for i in range(1, len(ran) + 1)]
-    assert got[-2:] == ["weight", "third"]
+    assert h.NR.server.players.onMinute is None
 
 
 def test_a_step_that_raises_does_not_stop_the_steps_after_it():

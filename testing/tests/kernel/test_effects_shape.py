@@ -766,7 +766,7 @@ def test_the_forget_hooks_are_wired_once_at_server_start():
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
         isServer = function() return true end
-        NutritionRevamp.server.players = { onMinute = {}, onFirstSight = {}, onDeparture = {} }
+        NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
     """)
     with open(EFFECTS, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Server_Effects.lua")()
@@ -776,7 +776,6 @@ def test_the_forget_hooks_are_wired_once_at_server_start():
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
     S = rt.globals().NutritionRevamp.server
     same = rt.eval("rawequal")
-    assert len(S.players.onMinute) == 0                          # the pipeline's named step (Plan 10 R2)
     assert same(S.minute.steps["effects"], S.effects.step)       # after nutrients in ORDER (ruling 22)
     assert len(S.players.onFirstSight) == 1 and same(S.players.onFirstSight[1], S.effects.forget)
     assert len(S.players.onDeparture) == 1 and same(S.players.onDeparture[1], S.effects.forget)
