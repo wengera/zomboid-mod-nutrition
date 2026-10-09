@@ -105,3 +105,12 @@ def test_the_asleep_endurance_gain_is_scaled_by_rmod(host):
     assert out.endurance == pytest.approx(0.55)
     assert run(host, asleep=False, endurance=0.6, lastEndurance=0.5, rmod=0.5).endurance is None
     assert run(host, asleep=True, endurance=0.4, lastEndurance=0.5, rmod=0.5).endurance is None
+
+
+def test_the_unhappiness_floor_never_pulls_an_added_stat_down(host):
+    # Plan 11e close: monotony's (and a food's) UNHAPPINESS add above a positive floor target is kept;
+    # a target's fall subtracts only that fall
+    out = run(host, dtS=60, unhappy=35, unhappyTarget=20, lastUnhappyTarget=20)
+    assert out.unhappy is None
+    out = run(host, dtS=60, unhappy=35, unhappyTarget=15, lastUnhappyTarget=20)
+    assert out.unhappy == pytest.approx(30)
