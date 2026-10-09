@@ -17,8 +17,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 - Each side recomputes its own moodles from its own copy of the stats [#0563].
 - Intoxication decays on the body-damage tick, by its reduction value times the game-time multiplier on every server update, ahead of the `CalculateStats` hook and outside any Lua hook, so a handler's intoxication write is the later one in the update [#2918/C/C-only] [#2921/C/C-only].
 - DISCOMFORT is relaxed toward vanilla's own target on the server alone, awake, at time speed 1, with a half-life of about 2.9 real seconds, and reaches the client on the once-a-second player-stats packet, so a once-a-minute server floor does not hold there [#3603/C/C-only] [#3606/C/arith.] [#3600/C/C-only] [#3607/C/inference].
-- On 42.21 nothing in the engine or the shipped Lua writes SICKNESS in play outside the debug tools, so it stays at its default of 0 unless a mod or a debug tool (the Lua debug menu or the debug scene panel) writes it [T11407.1] [T11407.2] [T11407.3].
-- NICOTINE_WITHDRAWAL rises on the server alone, for an awake Smoker, falls only at a smoke, and is read only as stress, so vanilla's withdrawal moves no hunger [T11407.4] [T11407.5] [T11407.6] [T11407.9].
+- On 42.21 nothing in the engine or the shipped Lua writes SICKNESS in play outside the debug tools, so it stays at its default of 0 unless a mod or a debug tool (the Lua debug menu or the debug scene panel) writes it [#3627/C/C-only] [#3628/C/inference] [#3629/C/inference].
+- NICOTINE_WITHDRAWAL rises on the server alone, for an awake Smoker, falls only at a smoke, and is read only as stress, so vanilla's withdrawal moves no hunger [#3630/C/C-only] [#3631/C/C-only] [#3632/C/C-only] [#3635/C/C-only].
 
 ## How it works
 
@@ -235,33 +235,33 @@ While the character sleeps, the next server update overwrites the floor with van
 <a id="sickness-nicotine"></a>
 ### SICKNESS and NICOTINE_WITHDRAWAL: what moves them
 
-Both stats' writers and readers were read on the 42.21 jar [T11407.1] [T11407.4].
-SICKNESS has no writer of its own in the engine's Java: outside its registration, the only method bodies in the jar that name it are the thermoregulator's set point, a second thermoregulator class's update and `Moodle.Update`, and each only reads it, and the only Java writes that reach it walk every stat: the save load, the stats packets and the debug scene panel's sliders [T11407.1].
-No Java class looks a stat up by its id, and no class but the registry holds the id `Sickness` as a constant [T11407.1].
-The shipped Lua names the stat in two places, the debug menu's stat slider and a read in the forage system [T11407.2].
-The radio's `SIC` interaction code goes through a helper that looks up a `getSickness` getter `Stats` does not declare, so it writes nothing, and no shipped broadcast carries the code [T11407.2].
-In play SICKNESS therefore stays at its default of 0 unless a mod or a debug tool (the Lua debug menu or the debug scene panel) writes it: the infection, cold and food-sickness paths never move it [T11407.3].
+Both stats' writers and readers were read on the 42.21 jar [#3627/C/C-only] [#3630/C/C-only].
+SICKNESS has no writer of its own in the engine's Java: outside its registration, the only method bodies in the jar that name it are the thermoregulator's set point, a second thermoregulator class's update and `Moodle.Update`, and each only reads it, and the only Java writes that reach it walk every stat: the save load, the stats packets and the debug scene panel's sliders [#3627/C/C-only].
+No Java class looks a stat up by its id, and no class but the registry holds the id `Sickness` as a constant [#3627/C/C-only].
+The shipped Lua names the stat in two places, the debug menu's stat slider and a read in the forage system [#3628/C/inference].
+The radio's `SIC` interaction code goes through a helper that looks up a `getSickness` getter `Stats` does not declare, so it writes nothing, and no shipped broadcast carries the code [#3628/C/inference].
+In play SICKNESS therefore stays at its default of 0 unless a mod or a debug tool (the Lua debug menu or the debug scene panel) writes it: the infection, cold and food-sickness paths never move it [#3629/C/inference].
 The SICK moodle's level is the apparent infection level, the largest of FOOD_SICKNESS, ZOMBIE_FEVER and ZOMBIE_INFECTION over 100, with SICKNESS added on top, so the moodle moves while SICKNESS stays at 0 [#3130/C/C-only].
-A server-side mod that reads SICKNESS once a game minute on an unmodded server reads 0 [T11407.3].
+A server-side mod that reads SICKNESS once a game minute on an unmodded server reads 0 [#3629/C/inference].
 A value a mod writes stays until the next write and raises the thermoregulator's set point by twice itself [#3019/C/inference] [#3024/C/C-only].
 
-NICOTINE_WITHDRAWAL rises only for a Smoker, in the boredom sub-updater of the body-damage tick [T11407.4].
-Each call adds `1e-4` times the game-time multiplier to the time since the last smoke, and while that timer exceeds 1 it adds `StressFromBiteOrScratch / 8` times a step `k = min(floor(timer / 10) + 1, 10)` times the multiplier to the stat, `StressFromBiteOrScratch` being 0.00005 [T11407.4].
-The sub-updater returns before any of this for a sleeping player, so neither the timer nor the stat moves while the character sleeps [T11407.4].
+NICOTINE_WITHDRAWAL rises only for a Smoker, in the boredom sub-updater of the body-damage tick [#3630/C/C-only].
+Each call adds `1e-4` times the game-time multiplier to the time since the last smoke, and while that timer exceeds 1 it adds `StressFromBiteOrScratch / 8` times a step `k = min(floor(timer / 10) + 1, 10)` times the multiplier to the stat, `StressFromBiteOrScratch` being 0.00005 [#3630/C/C-only].
+The sub-updater returns before any of this for a sleeping player, so neither the timer nor the stat moves while the character sleeps [#3630/C/C-only].
 The stat runs on `[0, 0.51]` with a default of 0 at index 11 of the fixed order, so the clamp holds it at 0.51 and the player-stats packet carries it [#2205/C/C-only] [#2208/C/C-only] [#1149/M/n=1].
-For a player on a dedicated server the rise runs on the server alone, because the boredom sub-updater's one call site is in `BodyDamage.Update`, which returns on a multiplayer client before it [T11407.5].
-The only other methods in the jar that name the stat are the smoking code and the nicotine-stress getter [T11407.5].
-At time speed 1 the timer passes 1 about 208 real seconds after a full smoke, and the stat then climbs about 3.0e-4 per real second to its cap about 32 real minutes after the smoke, about 12.7 game-hours on the 60-minute default day, before the step `k` ever leaves 1 [T11407.10].
+For a player on a dedicated server the rise runs on the server alone, because the boredom sub-updater's one call site is in `BodyDamage.Update`, which returns on a multiplayer client before it [#3631/C/C-only].
+The only other methods in the jar that name the stat are the smoking code and the nicotine-stress getter [#3631/C/C-only].
+At time speed 1 the timer passes 1 about 208 real seconds after a full smoke, and the stat then climbs about 3.0e-4 per real second to its cap about 32 real minutes after the smoke, about 12.7 game-hours on the 60-minute default day, before the step `k` ever leaves 1 [#3636/C/arith.].
 
-The only fall is a smoke [T11407.5] [T11407.6].
-For a Smoker, `RecipeCodeOnEat.consumeNicotineLogic` adds the item's stress change times the fraction to UNHAPPINESS and STRESS, removes 0.51 times the fraction from NICOTINE_WITHDRAWAL and sets the timer to what remains over 0.51 [T11407.6].
-For anyone else it adds the item's food-sickness change times the fraction to FOOD_SICKNESS, and for both it adds a flat -0.03 to HUNGER whatever the fraction [T11407.6].
-The six smokable foods and the two nicotine drainables, the cigarette pack and chewing tobacco, name `RecipeCodeOnEat.consumeNicotine` as their `OnEat`; the food overload passes the eat's fraction and the drainable overload passes 1 [T11407.7].
-The eat hook fires inside `Eat` on the server and again through the packet twin on a receiver for a food [#0130], and this hook writes stats, so for the six smokable foods the receiving client's copy takes the smoke's writes until the next player-stats packet replaces them with the server's [T11407.8].
+The only fall is a smoke [#3631/C/C-only] [#3632/C/C-only].
+For a Smoker, `RecipeCodeOnEat.consumeNicotineLogic` adds the item's stress change times the fraction to UNHAPPINESS and STRESS, removes 0.51 times the fraction from NICOTINE_WITHDRAWAL and sets the timer to what remains over 0.51 [#3632/C/C-only].
+For anyone else it adds the item's food-sickness change times the fraction to FOOD_SICKNESS, and for both it adds a flat -0.03 to HUNGER whatever the fraction [#3632/C/C-only].
+The six smokable foods and the two nicotine drainables, the cigarette pack and chewing tobacco, name `RecipeCodeOnEat.consumeNicotine` as their `OnEat`; the food overload passes the eat's fraction and the drainable overload passes 1 [#3633/C/C-only].
+The eat hook fires inside `Eat` on the server and again through the packet twin on a receiver for a food [#0130], and this hook writes stats, so for the six smokable foods the receiving client's copy takes the smoke's writes until the next player-stats packet replaces them with the server's [#3634/C/inference].
 
-Withdrawal is read only as stress: `Stats.getNicotineStress` returns STRESS plus NICOTINE_WITHDRAWAL clamped to STRESS's bounds, and its only callers are the STRESS moodle, the morale updater and a debug panel [T11407.9] [#2789/C/C-only].
-Vanilla's withdrawal therefore moves no hunger, and the flat -0.03 at the smoke is nicotine's whole effect on HUNGER [T11407.9].
-A server-side mod can read once a game minute the server's own NICOTINE_WITHDRAWAL and `getTimeSinceLastSmoke`, both computed on the server for a player: 0 for a character that has never had the Smoker trait, at most 0.51, and unchanged while the character sleeps or is in god mode [T11407.11].
+Withdrawal is read only as stress: `Stats.getNicotineStress` returns STRESS plus NICOTINE_WITHDRAWAL clamped to STRESS's bounds, and its only callers are the STRESS moodle, the morale updater and a debug panel [#3635/C/C-only] [#2789/C/C-only].
+Vanilla's withdrawal therefore moves no hunger, and the flat -0.03 at the smoke is nicotine's whole effect on HUNGER [#3635/C/C-only].
+A server-side mod can read once a game minute the server's own NICOTINE_WITHDRAWAL and `getTimeSinceLastSmoke`, both computed on the server for a player: 0 for a character that has never had the Smoker trait, at most 0.51, and unchanged while the character sleeps or is in god mode [#3637/C/inference].
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -282,7 +282,7 @@ Not covered: the sound-stress source function and the awake path's stress decay,
 - Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [#2215/C/C-only], the anger decay and the idle-square timer [#2226/C/C-only], the time-of-sleep advance [#2227/C/C-only], the thirst ghost-mode gate [#0560/M/n=1], the auto-drink call [#2250/C/C-only] and the fitness stat's refresh [#2223/C/C-only].
 - Decision: whether a mod that owns intoxication writes it from the handler on every update, after the decay [#2921/C/C-only], or sets the reduction value to zero and sets it again after every load, since the value is not saved [#2920/C/inference].
 - Decision: whether the mod keeps a nutrient in a stat it registers or in its own store — a registered stat answers `get` and `set` and is never saved or synced [#2211/C/C-only].
-- Decision: whether an illness appetite term reads SICKNESS, which vanilla never writes [T11407.3], or the SICK moodle's inputs [#3130/C/C-only], and whether a withdrawal hunger term reads the server's NICOTINE_WITHDRAWAL [T11407.11].
+- Decision: whether an illness appetite term reads SICKNESS, which vanilla never writes [#3629/C/inference], or the SICK moodle's inputs [#3130/C/C-only], and whether a withdrawal hunger term reads the server's NICOTINE_WITHDRAWAL [#3637/C/inference].
 
 ## See also
 
