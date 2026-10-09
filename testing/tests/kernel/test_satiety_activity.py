@@ -246,7 +246,7 @@ def king_2010(host):
 
 
 def whybrow(host, mj_per_day=3.5):
-    """S1318 (Whybrow 2008): exercise every day from day 1 (an ASSUMED single 60 min bout at 10:00 of mj_per_day; the
+    """S1318 (Whybrow 2008): exercise from day 1 (an ASSUMED 60 min bout of mj_per_day at minute 120 of each day; the
     study's high arm 3.0-4.0 MJ/d, moderate 1.5-2.0); the mean share of the daily exercise deficit the lag lets into
     the energy state over days 3-16, and the share at the end of day 1."""
     kcal = mj_per_day * 1000 * KCAL_PER_KJ
@@ -470,16 +470,21 @@ end
 
 
 def e_mechanic(host, kcal_per_day=1800.0 / 7, weeks=24):
-    """S1320 (Martin 2019, E-MECHANIC): 24 weeks of supervised exercise, the high dose 20 kcal/kg/wk (an ASSUMED 90 kg,
-    so 1800 kcal a week, as a daily 60 min bout at 10:00); the mean share of the daily exercise deficit the lag lets
-    into the energy state over the 24th week."""
+    """S1320 and S1664 (Martin 2019, E-MECHANIC): `weeks` of supervised exercise, by default the high dose 20 kcal/kg/wk
+    (an ASSUMED 90 kg, so 1800 kcal a week, as a daily 60 min bout at minute 120 of each day); the mean share of the
+    daily exercise deficit the lag lets into the energy state over the last week."""
     return host.rt.eval(E_MECHANIC)(kcal_per_day, weeks * 7)
 
 
 def test_e_mechanic_at_24_weeks(host):
-    # S1320 (Martin 2019): intake rose by 53-89 % of the achieved exercise expenditure by doubly labelled water at 24
-    # weeks (the review's reading of its Table 2); the lag's share sits in that range, at both doses (8 and 20
-    # kcal/kg/wk at the assumed 90 kg); S1516's self-report pool (about 0) is weighted lower (ruling 11d-4)
+    # The plateau check (ruling 11d-4); the trajectory is Whybrow's (S1318, the days 3-16 test above). S1320's intake
+    # rise (90.7 and 123.6 kcal/d by doubly labelled water) over S1664's achieved exercise EE a day over the 24-week
+    # (168-day) trial: 90.7 / (17,114 / 168) = 0.89 and 123.6 / (38,956 / 168) = 0.53. The share is this plan's
+    # arithmetic on S1320 and S1664, not the paper's. The lag's share sits in that range at both doses (8 and 20
+    # kcal/kg/wk at the assumed 90 kg) and has plateaued: week 24 within 1 % of week 48. S1516's self-report pool
+    # (about 0) is weighted lower (ruling 11d-4)
     for kcal in (720.0 / 7, 1800.0 / 7):
         share = e_mechanic(host, kcal)
         assert 0.53 <= share <= 0.89, (kcal, share)
+        later = e_mechanic(host, kcal, 48)
+        assert abs(share / later - 1) <= 0.01, (kcal, share, later)

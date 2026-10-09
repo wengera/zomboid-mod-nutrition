@@ -72,7 +72,7 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     assert "S1335 open" in line and "S1318" in line and "S1312" in line and "S1320" in line
     line = re.search(r"^K\.energy\.EX_LAG_GAIN = .*$", eng, re.M).group(0)
     assert "game choice, Plan 11d (ruling 11d-4)" in line
-    assert "S1320" in line and "S1516" in line
+    assert "S1320" in line and "S1664" in line and "S1516" in line
     for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.energy\.%s = .*$" % name, eng, re.M).group(0)
         assert "game choice" in line and "ruling 11c-32" in line, name
@@ -243,14 +243,15 @@ def test_the_exercise_share_enters_only_through_the_lag(host):
     # an 1127 kcal run with no food change: eb24h -1127, ex24h 1127; with the lag at 0 the state reads neutral
     assert host.call("energy.activityState", -1127.0, 1127.0, 0, 0, 1) == pytest.approx(1.0)
     # the lag's share enters as a deficit, scaled by the gain
-    assert host.call("energy.activityState", -1127.0, 1127.0, 300.0, 0, 1) == pytest.approx(1 + 0.5 * 0.7 * 300 / 1500)
+    assert host.call("energy.activityState", -1127.0, 1127.0, 300.0, 0, 1) == pytest.approx(
+        1 + 0.5 * host.K.energy.EX_LAG_GAIN * 300 / 1500)
     # today's form (activity billed at once) would read 1.376
     assert host.call("energy.state", -1127.0, 0, 1) == pytest.approx(1 + 0.5 * 1127 / 1500)
 
 
 def test_the_fat_and_glycogen_arms_pass_through(host):
     a = host.call("energy.activityState", -200.0, 100.0, 50.0, 0.2, 0.4)
-    assert a == pytest.approx(host.call("energy.state", -200.0 + 100.0 - 0.7 * 50.0, 0.2, 0.4))
+    assert a == pytest.approx(host.call("energy.state", -200.0 + 100.0 - host.K.energy.EX_LAG_GAIN * 50.0, 0.2, 0.4))
     assert host.call("energy.activityState", 0, 0, 0, 0, None) == pytest.approx(1.0)
 
 
@@ -300,18 +301,18 @@ def test_the_bypass_leaves_whybrows_26_to_28_percent_arms_at_weight_zero(host):
     ee, ex, L = 2500.0, 800.0, 100.0
     for d in (0.26, 0.28):
         assert host.call("energy.activityState", -d * ee, ex, L, 0, 1, ee) == pytest.approx(
-            host.call("energy.state", -d * ee + ex - 0.7 * L, 0, 1)), d
+            host.call("energy.state", -d * ee + ex - host.K.energy.EX_LAG_GAIN * L, 0, 1)), d
 
 
 def test_the_bypass_does_nothing_when_the_lag_already_covers_the_exercise(host):
     # lag >= ex24h: nothing to bypass (d = 0.4, inside the ramp; the state unclamped)
     assert host.call("energy.activityState", -1000.0, 200.0, 900.0, 0, 1, 2500.0) == pytest.approx(
-        host.call("energy.state", -1000.0 + 200.0 - 0.7 * 900.0, 0, 1))
+        host.call("energy.state", -1000.0 + 200.0 - host.K.energy.EX_LAG_GAIN * 900.0, 0, 1))
 
 
 def test_an_unreadable_expenditure_leaves_the_lag_unbypassed(host):
     base = host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1)
-    assert base == pytest.approx(host.call("energy.state", -1500.0 + 800.0 - 0.7 * 100.0, 0, 1))
+    assert base == pytest.approx(host.call("energy.state", -1500.0 + 800.0 - host.K.energy.EX_LAG_GAIN * 100.0, 0, 1))
     for ee in (None, float("nan"), math.inf, 0, -2500.0):
         assert host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1, ee) == pytest.approx(base), ee
     assert host.call("energy.activityState", -1500.0, 800.0, 100.0, 0, 1, 1e12) == pytest.approx(base)
@@ -331,8 +332,8 @@ def test_a_non_finite_exercise_read_is_taken_as_none(host):
 # --- the lag's gain (Plan 11d, ruling 11d-4), appended so no line above moves ----------------------------------------
 
 def test_the_lag_plateaus_below_the_whole_share(host):
-    # S1320 (Martin 2019, E-MECHANIC): intake rose by 53-89 % of the achieved exercise expenditure by doubly labelled
-    # water at 24 weeks (the review's reading of its Table 2); exerciseLag takes the step's kcal (ruling P-2)
+    # S1320 and S1664 (Martin 2019, E-MECHANIC): intake rose by 53-89 % of the achieved exercise expenditure at 24 weeks
+    # (this plan's arithmetic on the two rows, not the paper's); exerciseLag takes the step's kcal (ruling P-2)
     E = host.K.energy
     L = 0.0
     for _ in range(24 * 7 * 24):                     # 24 weeks of hours at a steady 300 kcal/d of exercise
