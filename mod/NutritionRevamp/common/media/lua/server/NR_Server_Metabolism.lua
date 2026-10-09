@@ -267,7 +267,7 @@ end
 
 -- The self-heal (the #2833 pattern), run once, before the minute's arithmetic (Plan 11 ruling 10): the pure
 -- part is the kernel's (NR_Kernel_Heal.lua, K.heal.body, Plan 10 Task R3), which stamps every non-finite scalar
--- or ring slot its neutral, backfills the fields and rings an older record lacks, and returns the healed names.
+-- or ring slot its neutral and returns the healed names.
 -- The adapter keeps its one engine read -- the Strength level, read only when body.l0 is not finite, and passed
 -- in -- and the count and the log: a pass that healed anything counts one failure and names every field. This
 -- file owns the rings: the Weight mirror and the partition ring read them and rebuild nothing. The neutrals,
@@ -290,13 +290,12 @@ local function heal(username, body, ageH, player)
     end
 end
 
--- Plan 11c Task 6 (amendment 4): the closed day's exercise bank and the exercise lag, healed before the minute: an
--- absent bank (a body made before it existed) is backfilled 0 unnamed; a non-finite bank, or a lag that is non-finite
+-- Plan 11c Task 6 (amendment 4): the closed day's exercise bank and the exercise lag, healed before the minute: a
+-- non-finite bank (K.body.new lays it 0), or a lag that is non-finite
 -- or negative (the Task 4b re-review's residual: exerciseLag passes a negative L through), is stamped 0, logged and
--- counted in MET.guarded. record.satiety is laid for its L when absent; its P and mark are the writer's to seed.
+-- counted in MET.guarded. record.satiety is laid for its L when absent; its P is the writer's to seed.
 -- Returns the satiety table.
 function MET.healActivity(username, record, body)
-    if body.exKcalPrev == nil then body.exKcalPrev = 0 end
     local healed = nil
     if not finite(body.exKcalPrev) then
         body.exKcalPrev = 0

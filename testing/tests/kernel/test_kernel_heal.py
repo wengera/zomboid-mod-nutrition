@@ -27,7 +27,7 @@ def heal(h, body, age, l0=None):
 
 def new_body(h, age=100.0, sex=1, l0=3):
     body = h.K.body.new(80.0, sex, h.rt.table(), l0, 1.0, 1.0, age)
-    heal(h, body, age)                                      # the backfill of any field K.body.new leaves out
+    heal(h, body, age)                                      # the first pass heals mass7's empty slots
     return body
 
 
@@ -103,31 +103,6 @@ def test_creation_masses_fall_back_to_the_split_by_sex(host):
         assert abs(body["fm"] - fm) < TOL and abs(body["lm"] - lm) < TOL
         assert names(bad)[:4] == ["fm0", "lm0", "fm", "lm"]
         all_finite(h, body)
-
-
-def test_absent_rings_and_fields_backfill_unnamed(host):
-    h = host
-    body = new_body(h)
-    for k in ("p7", "carb7", "lip7", "eb7", "mass7", "pPrevKg", "lastCloseAgeH", "exKcalDay", "nHist", "bandWeek"):
-        body[k] = None
-    bad = heal(h, body, 100.5)
-    for k in ("p7", "carb7", "lip7", "eb7"):
-        assert list(body[k].values()) == [0] * 7, k
-    assert body["pPrevKg"] == h.K.aerobic.P_LOW
-    assert body["lastCloseAgeH"] == 100.5
-    assert body["exKcalDay"] == 0
-    assert list(body["nHist"].values()) == [0] * h.K.strength.MEM_HOLD_DAYS
-    assert [list(body["bandWeek"][i].values()) for i in range(1, 8)] == [[0, 0]] * 7
-    assert names(bad) == ["mass7"] * 7                     # the empty mass7 ring's slots heal to the mass
-    assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < TOL
-
-
-def test_a_partial_band_week_backfills_its_missing_slots(host):
-    h = host
-    body = new_body(h)
-    body.bandWeek[4] = None
-    assert heal(h, body, 100.5) is None
-    assert list(body["bandWeek"][4].values()) == [0, 0]
 
 
 def test_non_finite_ring_slots(host):

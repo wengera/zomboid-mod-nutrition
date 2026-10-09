@@ -17,8 +17,8 @@
 -- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
 -- reference; each blends today with yesterday's closed day on the hours since the last day close
 -- (K.body.blend24, as K.energy.eb24h does), clamped to the stores (#0022, #0023). A plain overwrite every
--- minute. The p7, carb7 and lip7 rings are NR_Server_Metabolism's: it rebuilds them on an old record
--- before this file reads them. When all four setters answer, the four values written become the record's
+-- minute. The p7, carb7 and lip7 rings are NR_Server_Metabolism's (K.body.new lays them, its heal keeps them
+-- finite) before this file reads them. When all four setters answer, the four values written become the record's
 -- reconciliation baseline (record.reconcile.baseline, Plan 8 ruling 6): NR_Server_Reconcile, earlier in the
 -- same minute, compares the stores against the mod's own last write. A band change also marks the bus
 -- (B.markBand, ruling 7), so the mirror's body_band goes out with the next effects flush.

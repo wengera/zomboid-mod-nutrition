@@ -176,6 +176,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.ebDay = 0
     body.actKcalDay = 0
     body.exKcalDay = 0
+    body.exKcalPrev = 0 -- the closed day's exercise kcal (Plan 11c), 0 until the first close
     body.pDay = 0
     body.carbDay = 0
     body.lipDay = 0

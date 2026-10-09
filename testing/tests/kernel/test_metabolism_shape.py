@@ -724,35 +724,6 @@ def test_heal_creation_masses_fall_back_to_the_split(met_host):
     assert nonfinite(h, record) == ""
 
 
-def test_heal_rebuilds_absent_rings_and_backfills_without_counting(met_host):
-    # a record.body made before the p7/carb7/lip7 rings, pPrevKg or lastCloseAgeH existed
-    h = met_host
-    p = player(h)
-    record = fresh(h, p, 100.0)
-    body = record["body"]
-    body.p7 = None
-    body.carb7 = None
-    body.lip7 = None
-    body.pPrevKg = None
-    body.lastCloseAgeH = None
-    body.exKcalDay = None                      # a record saved before Part A-2's accumulator
-    body.nHist = None
-    body.bandWeek = None
-    failures = MET(h).stats.failures
-    minute(h, p, record, 100.5)
-    for k in ("p7", "carb7", "lip7"):
-        assert list(body[k].values()) == [0] * 7, k
-    assert body["pPrevKg"] == h.K.aerobic.P_LOW
-    assert body["lastCloseAgeH"] == 100.5
-    assert body["exKcalDay"] > 0             # backfilled 0, then the walking half hour banked
-    assert list(body["nHist"].values()) == [0] * 14
-    assert [list(body["bandWeek"][i].values()) for i in range(1, 8)] == [[0, 0]] * 7
-    assert MET(h).stats.failures == failures   # a backfill, not a corruption
-    minute(h, p, record, 124.0)                # the partition ring reads the rebuilt rings
-    assert body["dayIndex"] == 5
-    assert nonfinite(h, record) == ""
-
-
 def test_heal_stamps_non_finite_ring_slots(met_host):
     h = met_host
     p = player(h)

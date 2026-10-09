@@ -3,9 +3,8 @@
 -- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
 -- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
 -- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH and lastCloseAgeH to
--- the world age; a ring slot to 0 (mass7's to the current mass). The backfill, unnamed: a field or ring a record
--- made before it existed lacks (pPrevKg, lastCloseAgeH, exKcalDay; the p7, carb7 and lip7 rings of a
--- pre-Task-15 body; an absent nHist or bandWeek) is created at its neutral. The creation scalars heal too: r and
+-- the world age; a ring slot to 0 (mass7's to the current mass). Every field and ring is laid by K.body.new, so
+-- the heal creates none. The creation scalars heal too: r and
 -- traitCarry to 1, l0 to the Strength level the adapter read (its one engine read, made only when body.l0 is not
 -- finite, and passed in), tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to dayIndex; every
 -- nHist and bandWeek slot to 0. Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code:
@@ -37,43 +36,6 @@ end
 -- when body.l0 is not finite. Returns the comma-joined names of the healed fields, or nil when none was.
 function K.heal.body(body, ageH, l0)
     local bad = nil
-    if body.pPrevKg == nil then
-        body.pPrevKg = K.aerobic.P_LOW
-    end
-    if body.lastCloseAgeH == nil then
-        body.lastCloseAgeH = ageH
-    end
-    if body.exKcalDay == nil then
-        body.exKcalDay = 0
-    end
-    for r = 1, #K.heal.ZERO_RINGS do
-        local key = K.heal.ZERO_RINGS[r]
-        if type(body[key]) ~= "table" then
-            local ring = {}
-            for j = 1, 7 do
-                ring[j] = 0
-            end
-            body[key] = ring
-        end
-    end
-    if type(body.mass7) ~= "table" then
-        body.mass7 = {}
-    end
-    if type(body.nHist) ~= "table" then
-        local hist = {}
-        for j = 1, K.strength.MEM_HOLD_DAYS do
-            hist[j] = 0
-        end
-        body.nHist = hist
-    end
-    if type(body.bandWeek) ~= "table" then
-        body.bandWeek = {}
-    end
-    for i = 1, 7 do
-        if type(body.bandWeek[i]) ~= "table" then
-            body.bandWeek[i] = { 0, 0 }
-        end
-    end
     if not K.vector.finite(body.fm0) or not K.vector.finite(body.lm0) then
         local sex = 1
         if body.sex == 2 then
