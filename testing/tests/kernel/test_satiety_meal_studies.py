@@ -547,3 +547,261 @@ def test_recovery_sleep_reverses_the_factor_partially(host):
     S = host.K.satiety
     assert 1 < f < 1 + S.SLEEP_MAX, f
     assert abs(f - (1 + S.SLEEP_MAX * (2.0 - host.K.acute.REPAY * 2.0) / S.SLEEP_DEBT_FULL_H)) < 1e-9, f
+
+
+# --- the diagnostic replays: a 36 h fast, and six meals against three (Plan 11d Task 4, ruling 11d-3; spec § 5d) ---
+# Pinned readings, not fits: a reading outside its study is a finding for the controller's ruling 11d-3 (about the
+# deficit floor, K.hybrid.DEFICIT_FLOOR, and the -eb24h / 1500 slope of K.energy.state), never a patch to the model.
+#
+# The fast replay runs the energy path the way NR_Server_Metabolism.step and NR_Server_Nutrients build it, one game
+# minute a step: the eat books its vector into the day (K.energy.intake), the minute's expenditure (K.energy.minute),
+# the exercise lag (K.energy.exerciseLag), the day close (K.partition.closeDay, with inDayClosed and exKcalPrev
+# stamped as closeDay stamps them), the energy state (K.energy.activityState on K.energy.eb24h, the trailing-24 h
+# exercise kcal, the lag, fatDep, g and the 24 h expenditure MET.ee24 computes), then the glycogen step
+# (K.acute.glycogen on the trailing-24 h carbohydrate g/kg, K.body.blend24 over carbDay and carb7[7]), so the state
+# reads the g of the minute before, as the server's step order does. Its simplifications, stated:
+# - one 70 kg man from K.body.new (sex 1, no build flags, Strength 5, carry and responder 1), awake 07:00-23:00 at
+#   MET 1.3 (the idle class, COMPENDIUM.Default) and asleep at 1.0 (Sleeping), resting, coldMult 1: no exercise, so
+#   the lag and the trailing exercise kcal stay 0;
+# - the day's partition (K.partition.day: the fat and lean change), the adaptive thermogenesis step and the training
+#   and aerobic closes are not run: fm stays at its birth value, so fatDep is 0 throughout (a 36 h fast's deficit is
+#   a few hundred grams of fat against the store, a fatDep of a few hundredths, left out) and at stays 0;
+# - an eat books its whole vector at the eat (no stomach: the absorbed vector arrives at once, not over hours);
+# - no P, F or stomach: a request-level meal reads the written hunger at the request, min(0.69,
+#   hungerTarget(1 - H_REQ, es) x circadian(h)), the sated product held where state 1 reads the request.
+# The intake mapping is ruling 11c-31 (a LABELLED ASSUMPTION, no row): a request-level meal eats 650 kcal x that
+# hunger / 0.25, at fixed clock times (08:00, 13:00, 20:00, ASSUMED). So the next-day intake ratio is the ratio of the
+# summed written hunger at the meal requests, fast arm over fed arm: what it measures is the energy state's lift of
+# the request-level hunger (the -eb24h / 1500 slope, DEFICIT_FLOOR and the glycogen term, through hungerTarget), fed
+# back through each meal's kcal into the next meal's eb24h. It does not measure the meal pool or the stomach, and it
+# does not measure when a meal is asked for (the times are fixed).
+#
+# Glycogen (C9): the replay logs g and the glycogen term's contribution to the energy state, read through the real
+# function as activityState(..., g, ...) - activityState(..., 1, ...) (GLYC_STATE_K 0.3 x (1 - g) while no clamp
+# binds), at 12, 24 and 36 h of the fast and at 24 h of a low-carbohydrate day at maintenance energy (50 g of
+# carbohydrate, the memo's C9 threshold; 20 % protein, fat the rest).
+
+FAST_KCAL_PER_HUNGER = 650.0 / H_REQ    # ruling 11c-31's intake mapping, kcal per unit of written hunger
+FAST_MEAL_H = (8.0, 13.0, 20.0)         # ASSUMED clock of the three meals (a game choice): 20:00 to 08:00 two days on is 36 h
+FAST_WARM_DAYS = 3                      # maintenance days run before the protocol's day 0 (see warm())
+FAST_LOWCARB_G = 50.0                   # ASSUMED low-carbohydrate day: 50 g/d (the memo's C9 threshold), 20 % protein, fat the rest
+
+ENERGY_REPLAY = r"""
+function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
+    local K = NutritionRevamp.kernel
+    local hook, mask = debug.gethook()
+    debug.sethook()
+    local body = K.body.new(70, 1, {}, 5, 1, 1, 0)
+    body.exKcalPrev = 0
+    local a = K.acute.new(0)
+    local L = 0
+    local w0 = body.fm + body.lm
+    local maint = K.energy.ree(body.lm) + (K.energy.COMPENDIUM.Default - K.energy.MET_REST) * w0 / 60 * 960
+    local intake = {}
+    for d = 1, days do
+        intake[d] = 0
+    end
+    local out = {}
+    local es = 1
+    for m = 0, days * 1440 - 1 do
+        local hod = (m / 60) % 24
+        local w = body.fm + body.lm
+        local kind = plan[m]
+        if kind ~= nil then
+            local kcal = maint / 3
+            local p, c, f = 0.15, 0.50, 0.35
+            if kind == "request" then
+                kcal = KCAL_PER_H * K.min(0.69, K.hybrid.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
+            elseif kind == "lowcarb" then
+                c = LOWCARB_G * 4 / maint
+                p = 0.20
+                f = 1 - p - c
+            end
+            local v = K.vector.new()
+            v.calories = kcal
+            v.proteins = kcal * p / 4
+            v.carbs = kcal * c / 4
+            v.lipids = kcal * f / 9
+            K.energy.intake(body, v, 1)
+            local d = math.floor(m / 1440) + 1
+            intake[d] = intake[d] + kcal
+        end
+        local asleep = hod >= 23 or hod < 7
+        local met = K.energy.COMPENDIUM.Default
+        if asleep then
+            met = K.energy.COMPENDIUM.Sleeping
+        end
+        local ex0 = body.exKcalDay
+        K.energy.minute(body, met, true, 1, 1)
+        L = K.energy.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
+        local ageH = (m + 1) / 60
+        if math.floor(ageH / 24) > body.dayIndex then
+            body.inDayClosed = body.inDay
+            body.exKcalPrev = body.exKcalDay
+            K.partition.closeDay(body, ageH)
+        end
+        local hSince = ageH - body.lastCloseAgeH
+        local ree = K.energy.ree(body.lm)
+        local eeYest = ree
+        if body.inDayClosed ~= nil then
+            eeYest = body.inDayClosed - body.eb7[7]
+        end
+        local ee24 = K.max(K.body.blend24(body.eeDay, eeYest, hSince), ree)
+        local ex24 = K.body.blend24(body.exKcalDay, body.exKcalPrev, hSince)
+        local eb24 = K.energy.eb24h(body, hSince)
+        es = K.energy.activityState(eb24, ex24, L, 0, a.g, ee24)
+        if logs[m + 1] then
+            out[m + 1] = {
+                g = a.g,
+                es = es,
+                glyc = es - K.energy.activityState(eb24, ex24, L, 0, 1, ee24),
+                eb24 = eb24,
+            }
+        end
+        K.acute.glycogen(a, met, 1, K.body.blend24(body.carbDay, body.carb7[7], hSince) / w, 1 / 60)
+    end
+    debug.sethook(hook, mask)
+    return intake, out, maint
+end
+"""
+
+
+def energy_replay(host, plan, days, log_minutes=()):
+    """Runs ENERGY_REPLAY: plan maps a minute (0 = 00:00 of the first warm-up day) to "maint" (a third of the maintenance day,
+    mixed), "lowcarb" (the same at 50 g/d of carbohydrate) or "request" (a request-level meal under the intake
+    mapping). Returns (kcal eaten per day, {minute end: {g, es, glyc, eb24}} at each logged minute end, maintenance)."""
+    t = host.rt.table()
+    for m, kind in plan.items():
+        t[m] = kind
+    logs = host.rt.table()
+    for m in log_minutes:
+        logs[m] = True
+    intake, out, maint = host.rt.eval(ENERGY_REPLAY)(t, days, logs, H_REQ, FAST_KCAL_PER_HUNGER, FAST_LOWCARB_G)
+    return ([intake[d] for d in range(1, days + 1)],
+            {m: {k: out[m][k] for k in ("g", "es", "glyc", "eb24")} for m in log_minutes}, maint)
+
+
+def meals_of(day, kind):
+    """The protocol day's three meals (day 0 the protocol's first) as plan entries, after the warm-up days."""
+    return {int((FAST_WARM_DAYS + day) * 1440 + h * 60): kind for h in FAST_MEAL_H}
+
+
+def at_hour(day, h):
+    """The minute end at clock hour h of the protocol day (the log's key)."""
+    return int((FAST_WARM_DAYS + day) * 1440 + h * 60)
+
+
+def warm():
+    """The warm-up: FAST_WARM_DAYS maintenance days, so the trailing balance, the carbohydrate blend and g start the
+    protocol on their steady daily cycle (a fresh K.body.new carries no closed day: carb7[7] and eb7[7] read 0)."""
+    plan = {}
+    for d in range(-FAST_WARM_DAYS, 0):
+        plan.update(meals_of(d, "maint"))
+    return plan
+
+
+def fast_reading(host):
+    """S1613's protocol on the model: day 0 maintenance; the fed arm eats maintenance on day 1, the fast arm nothing
+    from 20:00 on day 0 to 08:00 on day 2 (36 h); both eat request-level meals on days 2 and 3. Returns (day-2
+    intake ratio, day-3 intake ratio, the fast arm's log at 12, 24 and 36 h of the fast, the kcal per protocol day
+    of the fed arm and of the fast arm)."""
+    fed = warm()
+    fast = warm()
+    for d, kind in ((0, "maint"), (1, "maint"), (2, "request"), (3, "request")):
+        fed.update(meals_of(d, kind))
+        if d != 1:
+            fast.update(meals_of(d, kind))
+    at = [at_hour(0, 20 + 12), at_hour(0, 20 + 24), at_hour(0, 20 + 36)]
+    days = FAST_WARM_DAYS + 4
+    ifed, _, _ = energy_replay(host, fed, days)
+    ifast, log, _ = energy_replay(host, fast, days, at)
+    ifed, ifast = ifed[FAST_WARM_DAYS:], ifast[FAST_WARM_DAYS:]
+    return ifast[2] / ifed[2], ifast[3] / ifed[3], [log[m] for m in at], ifed, ifast
+
+
+def lowcarb_reading(host):
+    """C9: day 0 maintenance and mixed; on day 1 the mixed arm eats the same and the low-carbohydrate arm eats
+    maintenance at 50 g of carbohydrate. Returns (the mixed arm at 08:00 on day 1, before breakfast; the mixed arm at
+    20:00 on day 1; the low-carbohydrate arm at 20:00 on day 1, 24 h after day 0's last mixed meal and the fast's own
+    24 h point)."""
+    mixed_day = warm()
+    low = warm()
+    mixed_day.update(meals_of(0, "maint"))
+    low.update(meals_of(0, "maint"))
+    mixed_day.update(meals_of(1, "maint"))
+    low.update(meals_of(1, "lowcarb"))
+    m8, m20 = at_hour(1, 8), at_hour(1, 20)
+    days = FAST_WARM_DAYS + 2
+    _, lm, _ = energy_replay(host, mixed_day, days, [m8, m20])
+    _, ll, _ = energy_replay(host, low, days, [m20])
+    return lm[m8], lm[m20], ll[m20]
+
+
+def meal_frequency_ratio(host):
+    """S1608 (Ohkawara 2013): 2,000 kcal a day (ASSUMED) eaten as six isoenergetic meals against three, the 24 h mean
+    displayed hunger (the AUC over the same 24 h) six over three, through the satiety replay above (the stomach, P
+    and the circadian factor from 08:00; the energy state held at 1, the two days being isoenergetic). The times are
+    ASSUMED (the row gives none): three at 08:00, 13:00, 18:00; six every 150 min from 08:00 to 20:30. Each meal is
+    mixed() with water and fibre scaled to its energy, so the two days carry the same mass. From an overnight fast,
+    P = 0."""
+    def day(n, gap):
+        k = 2000.0 / n
+        return {i * gap: [("food", mixed(k, water=900.0 / n, fibre=6.0 * k / 650))] for i in range(n)}
+    three = hunger(host, day(3, 300), 1440, P0=0.0, h0=8.0)
+    six = hunger(host, day(6, 150), 1440, P0=0.0, h0=8.0)
+    return sum(six) / sum(three)
+
+
+def test_a_36_h_fast_raises_next_day_intake_and_day_3_falls_back(host):
+    # S1613 (Johnstone 2002): 12.2 against 10.2 MJ the day after a 36 h fast, 1.20; S1614 (Clayton 2016): day 3 not
+    # different, 1.0. Ruling 11d-3 asserts only the direction: the next day above 1, day 3 below day 2
+    r2, r3, _, _, _ = fast_reading(host)
+    assert r2 > 1, r2
+    assert r3 < r2, (r2, r3)
+
+
+def test_the_36_h_fast_intake_ratios_are_pinned(host):
+    # Pinned diagnostics (ruling 11d-3), recorded from the run of Plan 11d Task 4: the day after the fast 1.259 (S1613
+    # 1.20: 1.05x above), day 3 0.944 (S1614 1.0: 1.06x below). Under the intake mapping these are the summed written
+    # hunger at the meal requests, fast arm over fed arm (see the section's head): the fed arm itself eats 2,241 kcal
+    # on day 2 against the 1,949 kcal maintenance day, the trailing-24 h window reading a deficit before each meal
+    r2, r3, _, _, _ = fast_reading(host)
+    assert round(r2, 3) == 1.259, r2
+    assert round(r3, 3) == 0.944, r3
+
+
+def test_the_fasts_glycogen_term_is_logged_and_pinned(host):
+    # C9 (ruling 11d-3, the memo's conflict): g and the glycogen term's contribution to the energy state at 12, 24
+    # and 36 h of the fast, read through K.energy.activityState: g 0.996, 0.881, 0.718 and the term 0.001, 0.036,
+    # 0.085 (GLYC_STATE_K 0.3 x (1 - g), no clamp binding: the state reads 1.187, 1.536 and 1.585). At 36 h the
+    # balance term is clamped at its 0.5 (eb24h -1,858 kcal), so the glycogen term is all of the state's rise past 1.5
+    _, _, log, _, _ = fast_reading(host)
+    assert [round(x["g"], 3) for x in log] == [0.996, 0.881, 0.718], log
+    assert [round(x["glyc"], 3) for x in log] == [0.001, 0.036, 0.085], log
+    assert [round(x["es"], 3) for x in log] == [1.187, 1.536, 1.585], log
+    for x in log:
+        assert abs(x["glyc"] - host.K.energy.GLYC_STATE_K * (1 - x["g"])) < 1e-9, x
+
+
+def test_a_low_carbohydrate_day_at_maintenance_runs_glycogen_down(host):
+    # C9: yes, a low-carbohydrate day runs g down. 24 h of maintenance energy at 50 g of carbohydrate (0.71 g/kg, below
+    # GLYC_PIVOT 3) reads g 0.909 and a glycogen term of 0.027 in the energy state at no extra deficit (eb24h -318
+    # kcal in both arms, the window's phase at 20:00), where the mixed arm (50 % carbohydrate, 3.5 g/kg) reads g 1.000
+    # and 0.000 (0.996 at its lowest, before breakfast). So the model raises hunger on a low-carbohydrate day, where
+    # S1451, S1452 and S1259 find a ketogenic deficit blunts appetite: the memo's C9 conflict, named neutral under
+    # ruling 11d-6 and left unpatched here
+    m8, m20, low = lowcarb_reading(host)
+    assert round(m8["g"], 3) == 0.996 and round(m20["g"], 3) == 1.0 and m20["glyc"] == 0, (m8, m20)
+    assert round(low["g"], 3) == 0.909 and round(low["glyc"], 3) == 0.027, low
+    assert low["eb24"] == m20["eb24"] and low["es"] > m20["es"], (low, m20)
+
+
+def test_six_meals_against_three_is_pinned_inside_the_band(host):
+    # S1608 (Ohkawara 2013): hunger AUC over 24 h 41,850 on six isoenergetic meals against 36,612 on three, 1.14;
+    # S1607 (Raynor 2015): the vote count mostly null. Ruling 11d-3: the model's ratio lies within [0.9, 1.3] and is
+    # pinned: 0.938, the opposite direction to S1608 (grazing reads less mean hunger) and 1.22x below it, nearer
+    # S1607's null. The likely cause, an inference not separated here: P is fed per eat and decays on 0.7 h, and its
+    # read is concave, so six smaller feeds keep the read higher on average than three larger ones
+    r = meal_frequency_ratio(host)
+    assert 0.9 <= r <= 1.3, r
+    assert round(r, 3) == 0.938, r
