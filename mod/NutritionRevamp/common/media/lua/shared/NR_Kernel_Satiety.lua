@@ -174,3 +174,24 @@ function K.satiety.acuteHalfLife(vigorous)
     end
     return K.satiety.ACUTE_DECAY_HALF_LIFE_H
 end
+
+-- Plan 11d (ruling 11d-2, spec § 5d): sleep debt raises hunger. The factor 1 + SLEEP_MAX x clamp(debtH /
+-- SLEEP_DEBT_FULL_H, 0, 1) multiplies the written hunger, read off record.acute.debtH in game hours (Task 6 wires it).
+-- It follows the acute kernel's accounting (K.acute.sleepMinute): the debt books once per 24 h window at the window's
+-- close, as the shortfall against SLEEP_NEED_H x needFactor, so the factor steps at the window's close rather than at
+-- waking; a longer night repays only REPAY (0.5) of its excess, so recovery takes more than one full night. It
+-- reverses as the debt is repaid (S1567: intake fell on recovery sleep). Whether hunger steps with any short night or
+-- rises graded with the loss is not settled (S1568: total and partial loss gave comparable late-night intake; S1282:
+-- hunger 3.9 after total deprivation against 2.2 after 4.5 h and 1.7 after 7 h, a rise graded with the loss), so the
+-- ramp to a full debt and its cap are game choices. Appended so no line above moves; one statement a line for the coverage gate.
+K.satiety.SLEEP_MAX = 0.18 -- game choice, Plan 11d (ruling 11d-2): the factor's rise at a full debt, fitted to S1284 (hunger +13.4 mm, +252.8 kcal/d) and S1565 (<= 5.5 h: +204 kcal/d), with S1564 (+385 kcal/d) the band's top and S1567 the reversal; under the request-anchored mapping (ruling 11c-31: 260 mm per unit, an assumption) it reads +11.7 mm at the request (S1284's 13.4 within 1.5x) and a next-day intake ratio of 1.18 on an assumed 2,000 kcal day (band 1.10-1.19)
+K.satiety.SLEEP_DEBT_FULL_H = 2 -- game choice, Plan 11d (ruling 11d-2): the debt that reads the full factor, the debt the acute kernel books for one night of 5.5 h (S1565's restriction to 5.5 h or less; S1284, S1564 and S1567 its pooled and reversal rows): K.acute.SLEEP_NEED_H 7.5 - 5.5 = 2.0 h at the window's close
+
+-- The factor on hunger for a sleep debt of debtH game hours: 1 for no debt, a negative one or a non-finite one (x - x
+-- is NaN for NaN and for an infinity), rising linearly to 1 + SLEEP_MAX at SLEEP_DEBT_FULL_H and held there.
+function K.satiety.sleepFactor(debtH)
+    if debtH - debtH ~= 0 then
+        return 1
+    end
+    return 1 + K.satiety.SLEEP_MAX * K.clamp(debtH / K.satiety.SLEEP_DEBT_FULL_H, 0, 1)
+end

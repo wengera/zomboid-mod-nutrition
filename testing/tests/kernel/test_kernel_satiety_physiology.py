@@ -253,3 +253,35 @@ def test_solid_rate_agrees_with_the_closed_forms_instantaneous_rate(host, E):
     dt = 1e-4
     rate = E * host.call("stomach.solidFraction", E, dt) / dt
     assert rate == pytest.approx(host.call("stomach.solidRate", E), rel=1e-3)
+
+
+# --- the sleep-debt hunger factor (Plan 11d Task 3, ruling 11d-2; spec § 5d) ------------------------------------------
+
+def test_sleep_factor_shape(host):
+    S = host.K.satiety
+    assert S.sleepFactor(0) == 1 and S.sleepFactor(-3) == 1 and S.sleepFactor(float("nan")) == 1
+    assert S.sleepFactor(S.SLEEP_DEBT_FULL_H) == 1 + S.SLEEP_MAX
+    assert S.sleepFactor(10 * S.SLEEP_DEBT_FULL_H) == 1 + S.SLEEP_MAX
+    assert S.sleepFactor(S.SLEEP_DEBT_FULL_H / 2) == 1 + S.SLEEP_MAX / 2
+
+
+def test_sleep_factor_reads_a_non_finite_debt_as_none(host):
+    S = host.K.satiety
+    assert S.sleepFactor(float("inf")) == 1 and S.sleepFactor(float("-inf")) == 1
+    assert S.sleepFactor(1.0) == pytest.approx(1 + S.SLEEP_MAX / S.SLEEP_DEBT_FULL_H)
+
+
+def test_sleep_constants_and_their_derivation(host):
+    S = host.K.satiety
+    assert (S.SLEEP_MAX, S.SLEEP_DEBT_FULL_H) == (0.18, 2)
+    # one night of 5.5 h (S1565's restriction to 5.5 h or less) against the acute kernel's need books need - 5.5 at
+    # the window's close
+    assert S.SLEEP_DEBT_FULL_H == host.K.acute.SLEEP_NEED_H - 5.5
+    with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
+        src = fh.read()
+    for name in ("SLEEP_MAX", "SLEEP_DEBT_FULL_H"):
+        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        assert "game choice, Plan 11d (ruling 11d-2)" in line, name
+        for row in ("S1284", "S1565", "S1564", "S1567"):
+            assert row in line, (name, row)
+    assert "S1568" in src and "S1282" in src                        # step against graded: not settled

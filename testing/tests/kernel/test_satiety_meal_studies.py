@@ -466,3 +466,84 @@ def test_a_25_percent_deficit_rise_is_pinned(host):
     rise = host.call("hybrid.hungerTarget", 1 - H_REQ, es) - host.call("hybrid.hungerTarget", 1 - H_REQ, 1)
     assert abs(rise - 1 / 12) < 1e-9, rise
     assert rise * 260 > 10                       # about 21.7 mm against S1255's < 10 mm over 2 y: not reproduced
+
+
+# --- sleep debt (Plan 11d Task 3, ruling 11d-2; spec § 5d) -----------------------------------------------------------
+# The factor is not yet in the writer (Plan 11d Task 6 wires it), so the replay composes the written hunger itself:
+# min(0.69, H_REQ x sleepFactor(record.acute.debtH)), the request level times the factor read off a live acute record.
+
+MM_PER_HUNGER = 260.0           # ruling 11c-31: 65 mm VAS read as HUNGER 0.25 (a LABELLED ASSUMPTION, no row)
+DAY_KCAL = 2000.0               # ASSUMED day (no row): turns the studies' kcal/d into the intake ratio's band
+MEAL_MINUTES = (1, 300, 660)   # ASSUMED meals of the next day at 08:01, 13:00 and 19:00 (a game choice); the ratio does not hang on them
+
+
+def acute_night(host, a, ageH0, slept_h):
+    """One 24 h accounting window from ageH0 at 08:00: awake 24 - slept_h hours, then asleep slept_h hours, so the
+    window closes on the last asleep minute and books its debt (K.acute.sleepMinute). Returns the window's end."""
+    A = host.K.acute
+    n_awake = int(round((24.0 - slept_h) * 60))
+    n_sleep = int(round(slept_h * 60))
+    for i in range(1, n_awake + 1):
+        A.sleepMinute(a, False, (8.0 + i / 60) % 24, 1.0, ageH0 + i / 60, 1 / 60, False)
+    for i in range(n_awake + 1, n_awake + n_sleep + 1):
+        A.sleepMinute(a, True, (8.0 + i / 60) % 24, 1.0, ageH0 + i / 60, 1 / 60, False)
+    return ageH0 + (n_awake + n_sleep) / 60
+
+
+def next_day_hungers(host, a, ageH0):
+    """The written hunger at each of the next day's meals, each eaten at the request, the factor read off the live
+    record's debt at the meal's minute (the record runs awake through the day; the debt books only at the window's
+    close, so it holds all day)."""
+    A = host.K.acute
+    out = []
+    for i in range(1, 16 * 60 + 1):
+        A.sleepMinute(a, False, (8.0 + i / 60) % 24, 1.0, ageH0 + i / 60, 1 / 60, False)
+        if i in MEAL_MINUTES:
+            out.append(min(0.69, H_REQ * host.K.satiety.sleepFactor(a.debtH)))
+    return out
+
+
+def sleep_debt_reading(host):
+    """(debt booked, hunger rise at the request in mm, the next-day intake ratio, the factor after a recovery night).
+    One short night of 5.5 h (S1565: restriction to 5.5 h or less) books the debt; the intake ratio is the sum of
+    650 kcal x hunger / 0.25 over the next day's meals against the same day rested (the intake mapping, ruling 11c-30);
+    then a recovery night of 9.5 h repays REPAY of its excess (S1567: intake falls on recovery sleep)."""
+    a = host.K.acute.new(0.0)
+    t = acute_night(host, a, 0.0, 5.5)
+    debt = a.debtH
+    hs = next_day_hungers(host, a, t)
+    rested = host.K.acute.new(0.0)
+    tr = acute_night(host, rested, 0.0, 7.5)
+    hr = next_day_hungers(host, rested, tr)
+    rise_mm = (hs[0] - H_REQ) * MM_PER_HUNGER
+    intake = sum(650.0 * x / H_REQ for x in hs) / sum(650.0 * x / H_REQ for x in hr)
+    b = host.K.acute.new(0.0)
+    tb = acute_night(host, b, 0.0, 5.5)
+    acute_night(host, b, tb, 9.5)
+    return debt, rise_mm, intake, host.K.satiety.sleepFactor(b.debtH)
+
+
+def test_one_short_night_raises_hunger_at_the_request_by_the_pooled_size(host):
+    # S1284 (Zhu 2019, 41 RCTs): hunger +13.4 mm under sleep restriction; under the request-anchored mapping (ruling
+    # 11c-31, 260 mm per unit, a LABELLED ASSUMPTION) the replay's rise at the request after one 5.5 h night lies
+    # within 1.5x of it (model 0.25 x 0.18 x 260 = 11.7 mm)
+    debt, rise_mm, _, _ = sleep_debt_reading(host)
+    assert abs(debt - host.K.satiety.SLEEP_DEBT_FULL_H) < 1e-9, debt   # the acute kernel books a full debt
+    assert ratio(rise_mm, 13.4) <= 1.5, rise_mm
+
+
+def test_one_short_night_raises_next_day_intake_within_the_pooled_band(host):
+    # S1284 (+252.8 kcal/d) and S1565 (Fenton 2021, <= 5.5 h: +204 kcal/d) on the ASSUMED 2,000 kcal day read 1.126
+    # and 1.102 (S1564's +385 kcal/d, 1.19, the band's top): the implied next-day intake ratio lies in 1.10-1.19
+    # (model 1.18)
+    _, _, intake, _ = sleep_debt_reading(host)
+    assert 1.10 <= intake <= 1.19, intake
+
+
+def test_recovery_sleep_reverses_the_factor_partially(host):
+    # S1567 (Markwald 2013): intake fell on recovery sleep. A 9.5 h night after the short one repays REPAY (0.5) of
+    # its 2 h excess, so the factor falls but stays above 1 (the kernel's partial repayment)
+    _, _, _, f = sleep_debt_reading(host)
+    S = host.K.satiety
+    assert 1 < f < 1 + S.SLEEP_MAX, f
+    assert abs(f - (1 + S.SLEEP_MAX * (2.0 - host.K.acute.REPAY * 2.0) / S.SLEEP_DEBT_FULL_H)) < 1e-9, f
