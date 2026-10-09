@@ -234,9 +234,9 @@ def test_lagged_reads_the_state_non_negative_and_finite(host):
 # --- the energy state the writer hands to hungerTarget --------------------------------------------------------------
 
 def test_a_food_deficit_enters_at_once(host):
-    es = host.call("energy.activityState", -750.0, 0, 0, 0)
-    assert es == pytest.approx(host.call("energy.state", -750.0, 0))
-    assert es == pytest.approx(1.25)
+    es = host.call("energy.activityState", -3750.0, 0, 0, 0)
+    assert es == pytest.approx(host.call("energy.state", -3750.0, 0))
+    assert es == pytest.approx(1.25)                     # half the 7,500 kcal span (Plan 11d Task 9d)
 
 
 def test_the_exercise_share_enters_only_through_the_lag(host):
@@ -244,9 +244,9 @@ def test_the_exercise_share_enters_only_through_the_lag(host):
     assert host.call("energy.activityState", -1127.0, 1127.0, 0, 0) == pytest.approx(1.0)
     # the lag's share enters as a deficit, scaled by the gain
     assert host.call("energy.activityState", -1127.0, 1127.0, 300.0, 0) == pytest.approx(
-        1 + 0.5 * host.K.energy.EX_LAG_GAIN * 300 / 1500)
-    # today's form (activity billed at once) would read 1.376
-    assert host.call("energy.state", -1127.0, 0) == pytest.approx(1 + 0.5 * 1127 / 1500)
+        1 + 0.5 * host.K.energy.EX_LAG_GAIN * 300 / host.K.energy.BALANCE_SPAN_KCAL)
+    # today's form (activity billed at once) would read 1.075
+    assert host.call("energy.state", -1127.0, 0) == pytest.approx(1 + 0.5 * 1127 / 7500)
 
 
 def test_the_fat_arm_passes_through(host):

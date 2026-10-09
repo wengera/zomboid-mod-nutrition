@@ -638,7 +638,7 @@ def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
     p = player(h, moving=False, rate=1.5)
     record = fresh(h, p)
     body = record["body"]
-    seed(h, body, ee=3000.0)                   # 3000 kcal spent in the hour before, nothing eaten
+    seed(h, body, ee=8000.0)                   # 8000 kcal spent in the hour before, nothing eaten (past the span)
     body.fm = body["fmRef"] / 2
     minute(h, p, record, 100.0 + 1 / 60)
     eb = h.K.energy.eb24h(body)                # the trailing-24 h window (Plan 11d Task 9c)
@@ -668,7 +668,7 @@ def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(me
     assert spent > 0 and abs(h.K.energy.eb24h(body) - (before - spent)) < 1e-9
     fat_dep = (body["fmRef"] - body["fm"]) / body["fmRef"]   # the close's partition paid some fat
     assert abs(body["energyState"] - h.K.energy.state(h.K.energy.eb24h(body), fat_dep)) < TOL
-    assert body["energyState"] > 1 + 0.5 * 1000 / 1500
+    assert body["energyState"] > 1 + 0.5 * 1000 / h.K.energy.BALANCE_SPAN_KCAL
 
 
 def test_the_window_moves_with_the_world_age(met_host):
@@ -1460,7 +1460,7 @@ def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure
     without = _activity_es(h, record, ee24=False)
     eb = h.K.energy.eb24h(body)
     assert es == with_ee
-    assert es > without + 0.2                              # the bypass moves es by about 0.5 x 800 / 1500
+    assert es > without + 0.05                             # the bypass moves es by about 0.5 x 800 / 7500
     assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 

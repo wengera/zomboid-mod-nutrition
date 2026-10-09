@@ -14,7 +14,7 @@ def run(host, **kw):
 def test_the_hunger_target_moved_from_the_takeover(host):
     assert host.call("hybrid.hungerTarget", 1.0, 1.0) == 0
     assert host.call("hybrid.hungerTarget", 0.5, 1.0) == pytest.approx(0.5)
-    assert host.call("hybrid.hungerTarget", 1.0, 1.5) == pytest.approx(0.075)   # the deficit floor 0.15 x 0.5
+    assert host.call("hybrid.hungerTarget", 1.0, 1.5) == pytest.approx(0.5)   # the deficit floor 1.0 x 0.5 (Plan 11d Task 9d)
 
 
 def test_mode_1_writes_hunger_thirst_and_fatigue_under_their_caps(host):

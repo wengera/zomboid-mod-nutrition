@@ -287,8 +287,28 @@ def test_a_balanced_eater_reads_balance_before_breakfast(host):
     assert worst < 1950.0 / 1440 + 1e-6, worst          # at every hour end: within the one minute the slot attribution moves
 
 
-@pytest.mark.parametrize("eb,dep,es", [(-1500, 0, 1.5), (1500, 0, 0.5), (0, 1, 1.5), (-3000, 1, 2.0),
-                                       (0, 0, 1.0), (-750, 0, 1.25), (3000, 0, 0.5), (3000, -1, 0.5),
-                                       (-3000, 2, 2.0)])
+@pytest.mark.parametrize("eb,dep,es", [(-7500, 0, 1.5), (7500, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
+                                       (0, 0, 1.0), (-3750, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
+                                       (-15000, 2, 2.0)])
 def test_state(host, eb, dep, es):
     assert _close(host.K.energy.state(eb, dep), es)
+
+
+def test_the_balance_span_is_the_refit_game_choice(host):
+    # Plan 11d Task 9d (ruling 9c-1): the state's balance term spans 7500 kcal (1500 before), labelled with the rows it
+    # was fitted to; state reads it at call time
+    import os, re
+    E = host.K.energy
+    assert E.BALANCE_SPAN_KCAL == 7500
+    shared = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "mod", "NutritionRevamp", "common",
+                          "media", "lua", "shared", "NR_Kernel_Energy.lua")
+    with open(shared, encoding="utf-8") as fh:
+        line = re.search(r"^K\.energy\.BALANCE_SPAN_KCAL = .*$", fh.read(), re.M).group(0)
+    assert "game choice, Plan 11d (ruling 9c-1)" in line and "S1271 open" in line
+    assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325")), line
+    E.BALANCE_SPAN_KCAL = 1500
+    try:
+        assert _close(E.state(-750, 0), 1.25)
+    finally:
+        E.BALANCE_SPAN_KCAL = 7500
+    assert _close(E.state(-750, 0), 1.05)

@@ -164,7 +164,7 @@ function K.satiety.acuteFactor(S)
     end
     return 1 - K.satiety.ACUTE_MAX * K.clamp(S, 0, 1)
 end
-K.satiety.ACUTE_DECAY_HALF_LIFE_H = 0.15 -- game choice, Plan 11d (ruling 11d-1): the post-bout decay, fitted to S1500 (no effect 30-90 min after) and S1502 (-33 % during); the rise keeps ACUTE_HALF_LIFE_H; fitted at 0.15 h, the activity replay of a 60 min aerobic bout reads 0.674 of control's hunger over the bout (S1502: 41 against 61 mm, 0.67) and -3.9 mm 30 min after it (S1500: no larger than the pooled -8.465 mm immediately after)
+K.satiety.ACUTE_DECAY_HALF_LIFE_H = 0.15 -- game choice, Plan 11d (ruling 11d-1): the post-bout decay, fitted to S1500 (no effect 30-90 min after) and S1502 (-33 % during); the rise keeps ACUTE_HALF_LIFE_H; fitted at 0.15 h, the activity replay of a 60 min aerobic bout reads 0.674 of control's hunger over the bout (S1502: 41 against 61 mm, 0.67) and -3.8 mm 30 min after it (-3.9 before the deficit drive's refit, ruling 9c-1) (S1500: no larger than the pooled -8.465 mm immediately after)
 
 -- Plan 11d (ruling 11d-1): the half-life of exerciseSuppression's step, the rise's while vigorous and the shorter
 -- decay's otherwise. Appended so no line above moves; one statement a line for the coverage gate.

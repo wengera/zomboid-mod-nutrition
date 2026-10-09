@@ -457,15 +457,15 @@ def test_moores_1692_g_meal_stays_a_named_non_reproduction(host):
 def test_a_25_percent_deficit_rise_is_pinned(host):
     # Ruling C-3: the deficit drive, a named non-reproduction. S1255 (CALERIE 2) bounds the hunger rise of a 25 %
     # deficit kept for 2 y at under 10 mm. A same-day 25 % deficit of a 2,500 kcal day is a trailing-24 h balance of
-    # -625 kcal: K.energy.state reads 1 + 0.5 x 625 / 1500 = 1.2083, and at the meal request (sated x = 0.75, hunger
-    # 0.25 at state 1) hungerTarget reads 0.25 x 1.2083 + DEFICIT_FLOOR 0.15 x 0.2083 = 0.3333: a rise of 0.4 x
-    # 0.2083 = 0.0833. Under the request-anchored mapping (a LABELLED ASSUMPTION, ruling 11c-31: about 65 mm read as
-    # 0.25, so 260 mm per unit of HUNGER) that is about 22 mm, over S1255's bound; no replay holds it
+    # -625 kcal: K.energy.state reads 1 + 0.5 x 625 / 7500 = 1.0417 (BALANCE_SPAN_KCAL), and at the request (x = 0.75)
+    # hungerTarget rises by (0.25 + DEFICIT_FLOOR 1.0) x 0.0417 = 0.0521: 13.5 mm under the request-anchored mapping (a
+    # LABELLED ASSUMPTION, ruling 11c-31: 260 mm per unit of HUNGER), 21.7 mm before Plan 11d Task 9d (ruling 9c-1). Still
+    # over S1255's bound, as near as the refit's other bands allow (the same request-level slope sets S1613's day 2)
     es = host.call("energy.state", -0.25 * 2500, 0)
-    assert abs(es - (1 + 0.5 * 625 / 1500)) < 1e-12
+    assert abs(es - (1 + 0.5 * 625 / 7500)) < 1e-12
     rise = host.call("hybrid.hungerTarget", 1 - H_REQ, es) - host.call("hybrid.hungerTarget", 1 - H_REQ, 1)
-    assert abs(rise - 1 / 12) < 1e-9, rise
-    assert rise * 260 > 10                       # about 21.7 mm against S1255's < 10 mm over 2 y: not reproduced
+    assert abs(rise - 1.25 * 625 / 15000) < 1e-9, rise
+    assert 10 < rise * 260 < 14                  # 13.5 mm against S1255's < 10 mm over 2 y: not reproduced
 
 
 # --- sleep debt (Plan 11d Task 3, ruling 11d-2; spec § 5d) -----------------------------------------------------------
@@ -623,8 +623,8 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 
 
 # --- the diagnostic replays: a 36 h fast, and six meals against three (Plan 11d Task 4, ruling 11d-3; spec § 5d) ---
-# Pinned readings, not fits: a reading outside its study is a finding for the controller's ruling 11d-3 (about the
-# deficit floor, K.hybrid.DEFICIT_FLOOR, and the -eb24h / 1500 slope of K.energy.state), never a patch to the model.
+# Pinned readings; since Plan 11d Task 9d (ruling 9c-1) the fast's day-2 and day-3 ratios are also the fit's targets for
+# K.hybrid.DEFICIT_FLOOR and K.energy.BALANCE_SPAN_KCAL (the -eb24h / span slope of K.energy.state), checked at 1.1x.
 #
 # The fast replay runs the energy path the way NR_Server_Metabolism.step and NR_Server_Nutrients build it, one game
 # minute a step: the trailing-24 h window moved to the minute's age (K.body.trailTo, Plan 11d Task 9c), the eat books
@@ -645,7 +645,7 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # The intake mapping is ruling 11c-31 (a LABELLED ASSUMPTION, no row): a request-level meal eats 650 kcal x that
 # hunger / 0.25, at fixed clock times (08:00, 13:00, 20:00, ASSUMED). So the next-day intake ratio is the ratio of the
 # summed written hunger at the meal requests, fast arm over fed arm: what it measures is the energy state's lift of
-# the request-level hunger (the -eb24h / 1500 slope and DEFICIT_FLOOR, through hungerTarget), fed
+# the request-level hunger (the -eb24h / span slope and DEFICIT_FLOOR, through hungerTarget), fed
 # back through each meal's kcal into the next meal's eb24h. It does not measure the meal pool or the stomach, and it
 # does not measure when a meal is asked for (the times are fixed).
 #
@@ -825,30 +825,30 @@ def test_a_36_h_fast_raises_next_day_intake_and_day_3_falls_back(host):
 
 
 def test_the_36_h_fast_intake_ratios_are_pinned(host):
-    # Pinned diagnostics (ruling 11d-3), re-pinned by Plan 11d Task 9c (ruling C-8, the trailing-24 h window; Task 4b
-    # read 1.197 and 0.950, Task 4 1.259 and 0.944): the day after the fast 1.366 (S1613 1.20: 1.14x above), day 3 0.953
-    # (S1614 1.0: 1.05x below). Under the intake mapping these are the summed written hunger at the meal requests, fast
-    # arm over fed arm (see the section's head). Task 4b's 1.197 sat on S1613 only because the closed-day blend read a
-    # phantom deficit before each meal, so the fed arm itself ate 2,241 kcal on day 2 against the 1,949 kcal
-    # maintenance day; on the window the fed arm eats 1,976 and 1,930 kcal on days 2 and 3, and the fast arm 2,700 kcal
-    # on day 2 (2,683 before). The day-2 rise moved away from S1613: a finding for ruling 11d-3 (the -eb24h / 1500
-    # slope and DEFICIT_FLOOR), not tuned here
+    # Pinned diagnostics (ruling 11d-3), re-pinned by Plan 11d Task 9d (ruling 9c-1, the deficit drive refit to them;
+    # Task 9c read 1.366 and 0.953, Task 4b 1.197 and 0.950, Task 4 1.259 and 0.944): the day after the fast 1.304
+    # (S1613 1.20: 1.087x above), day 3 0.986 (S1614 1.0: 1.015x below). Under the intake mapping these are the summed
+    # written hunger at the meal requests, fast arm over fed arm (see the section's head). Task 4b's 1.197 sat on S1613
+    # only because the closed-day blend read a phantom deficit (the fed arm ate 2,241 kcal on day 2); on the window, with
+    # the refit's 7,500 kcal span and floor 1.0, the fed arm eats 1,963 and 1,937 kcal on days 2 and 3 (maintenance 1,949)
+    # and the fast arm 2,560 kcal on day 2 (2,700 at Task 9c). The bands: test_the_36_h_fast_ratios_sit_within_their_studies
+    # (S1255's 10 mm would read about 1.24 here, and Karl's vigorous DEF fails below about 1.30: task-9d-report.md)
     r2, r3, _, ifed, ifast = fast_reading(host)
-    assert round(r2, 3) == 1.366, r2
-    assert round(r3, 3) == 0.953, r3
-    assert [round(x) for x in ifed[2:]] == [1976, 1930] and round(ifast[2]) == 2700, (ifed, ifast)
+    assert round(r2, 3) == 1.304, r2
+    assert round(r3, 3) == 0.986, r3
+    assert [round(x) for x in ifed[2:]] == [1963, 1937] and round(ifast[2]) == 2560, (ifed, ifast)
 
 
 def test_the_fasts_glycogen_is_logged_and_pinned(host):
     # C9 (ruling 11d-3, the memo's conflict): g at 12, 24 and 36 h of the fast falls, 1.0, 0.923, 0.741 (Task 4b: 0.996,
     # 0.881, 0.718, the closed-day blend's carbohydrate reading low before breakfast), and since Plan 11d Task 4b
-    # (ruling T4-1) the energy state does not read it, so the state reads 1.0, 1.434 and 1.5 (Task 4b: 1.186, 1.5,
+    # (ruling T4-1) the energy state does not read it, so the state reads 1.0, 1.087 and 1.13 (Task 9c: 1.0, 1.434,
     # 1.5): at 12 h (08:00, an ordinary night) the window holds the whole of day 0 and reads balance (eb24h -1.5 kcal);
-    # at 24 h it reads -1,301 kcal and at 36 h -1,950 kcal, where the balance term sits at its 0.5 cap and hunger
-    # plateaus, the ruling's named cost (Plan 11d Task 9c, ruling C-8)
+    # at 24 h it reads -1,301 kcal and at 36 h -1,950 kcal, a quarter of the way to the 7,500 kcal span where the balance
+    # term reaches its 0.5 cap (Plan 11d Task 9d, ruling 9c-1; the window from Task 9c, ruling C-8)
     _, _, log, _, _ = fast_reading(host)
     assert [round(x["g"], 3) for x in log] == [1.0, 0.923, 0.741], log
-    assert [round(x["es"], 3) for x in log] == [1.0, 1.434, 1.5], log
+    assert [round(x["es"], 3) for x in log] == [1.0, 1.087, 1.13], log
     assert [round(x["eb24"]) for x in log] == [-1, -1301, -1950], log
 
 
@@ -942,14 +942,29 @@ def steady_reading(host):
 
 
 def test_a_steady_eater_reads_balance_at_every_hour(host):
-    # on the trailing-24 h window (Task 9c) the state reads 1.0006 to 1.0027 at every hour end of day 5
+    # on the trailing-24 h window (Task 9c) the state reads 1.0004 to 1.0005 at every hour end of day 5 since the
+    # deficit drive's refit (Task 9d, ruling 9c-1; 1.0006 to 1.0027 at Task 9c)
     _, es = steady_reading(host)
     assert all(abs(e - 1) <= STEADY_TOL for e in es), [round(e, 3) for e in es]
-    assert round(min(es), 4) == 1.0006 and round(max(es), 4) == 1.0027, es
+    assert round(min(es), 4) == 1.0004 and round(max(es), 4) == 1.0005, es
 
 
 def test_a_request_level_eater_eats_maintenance(host):
-    # on the window: 1.0138, 0.9904 and 0.9996 x maintenance on days 2-4 (1975.6, 1930.0 and 1947.9 kcal)
+    # on the window: 1.0075, 0.994 and 0.9978 x maintenance on days 2-4 since the refit (Task 9d, ruling 9c-1; 1.0138,
+    # 0.9904 and 0.9996 at Task 9c)
     ratios, _ = steady_reading(host)
     assert all(abs(r - 1) <= STEADY_TOL for r in ratios), [round(r, 4) for r in ratios]
-    assert [round(r, 4) for r in ratios] == [1.0138, 0.9904, 0.9996], ratios
+    assert [round(r, 4) for r in ratios] == [1.0075, 0.994, 0.9978], ratios
+
+
+# --- the deficit drive's fit (Plan 11d Task 9d, ruling 9c-1) -------------------------------------------------------
+# K.energy.BALANCE_SPAN_KCAL 7500 and K.hybrid.DEFICIT_FLOOR 1.0 were fitted on a grid (task-9d-report.md) so that the
+# fast replay's day-2 ratio sits within 1.1x of S1613 (1.20) and day 3 within 1.1x of S1614 (1.0), with Karl 2021's
+# vigorous arms (S1325, test_satiety_activity.py), King 2011 at steady state (S1312) and the steady eater held; the
+# 25 % deficit pin (S1255) reads 13.5 mm, as near 10 mm as those allow. Each constant at x2 and x0.5 fails this band
+# or Karl's (the mutation pass).
+
+def test_the_36_h_fast_ratios_sit_within_their_studies(host):
+    r2, r3, _, _, _ = fast_reading(host)
+    assert ratio(r2, 1.20) <= TOL, r2             # S1613 (Johnstone 2002): 12.2 against 10.2 MJ, 1.20
+    assert ratio(r3, 1.0) <= TOL, r3              # S1614 (Clayton 2016): day 3 not different, 1.0

@@ -260,7 +260,7 @@ end
 -- clamped to [0.5, 2.0] (ruling 14, a game choice). Muscle glycogen does not enter it (ruling T4-1, Plan 11d Task 4b:
 -- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
 function K.energy.state(eb24h, fatDep)
-    return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep, 0.5, 2.0) -- ruling 14
+    return K.clamp(1 + 0.5 * K.clamp(-eb24h / K.energy.BALANCE_SPAN_KCAL, -1, 1) + 0.5 * fatDep, 0.5, 2.0) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1
 end
 
 -- Plan 11c Task 4b (spec § 5c, ruling 11c-29): no same-day compensation for exercise. A deficit made by exercise
@@ -323,3 +323,8 @@ end
 -- times L, so a steady exercise rate is compensated at EX_LAG_GAIN of it once the lag has caught up; the bypass ramp
 -- in activityState still moves the lag toward the whole ex24h, unscaled by the gain. Appended so no line above moves.
 K.energy.EX_LAG_GAIN = 0.7 -- game choice, Plan 11d (ruling 11d-4): the plateau share, the middle of 53-89 % at 24 weeks (DLW): S1320's intake rise over S1664's achieved exercise EE a day, 90.7 / (17,114 / 168) = 0.89 and 123.6 / (38,956 / 168) = 0.53; the share is this plan's arithmetic on S1320 and S1664, not the paper's; S1516's self-report pool reads about 0 and is weighted lower
+
+-- Plan 11d Task 9d (ruling 9c-1): the balance term's span, the trailing-24 h deficit (kcal) at which K.energy.state's
+-- balance term reaches its 0.5 cap (a surplus of the span reaches -0.5). Fitted jointly with K.hybrid.DEFICIT_FLOOR
+-- on the oracles' replays. Appended so no line above moves.
+K.energy.BALANCE_SPAN_KCAL = 7500 -- game choice, Plan 11d (ruling 9c-1), refit from Plan 3 ruling 14's 1500 (S1271 open: no row gives a hunger rise per kcal of deficit): fitted with K.hybrid.DEFICIT_FLOOR 1.0 so the 36 h fast replay's next-day intake reads 1.304 against S1613's 1.20 (Johnstone 2002, within 1.1x; 1.366 before) and day 3 0.986 against S1614's 1.0 (Clayton 2016), Karl 2021's vigorous DEF arm +19.3 % against S1325's +26 % (within 1.5x; the band that binds from below) and BAL -57.0 % against -55 %, King 2011 at steady state within 2.4 mm of control (S1312), the steady eater at balance; S1255 (CALERIE 2: < 10 mm at a 25 % deficit) reads 13.5 mm, as near as those allow (21.7 mm before)

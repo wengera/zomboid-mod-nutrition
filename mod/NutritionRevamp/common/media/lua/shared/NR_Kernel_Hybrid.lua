@@ -118,4 +118,4 @@ function K.hybrid.write(inp, out, c)
     end
 end
 
-K.hybrid.DEFICIT_FLOOR = 0.15 -- game choice (S1271 open; Plan 3 ruling 14): the deficit floor's coefficient; S1254 sets its direction and S1255 bounds it (CALERIE 2: < 10 mm over 2 y at a 25 % deficit); not replayed: under the oracle's request-anchored mapping a same-day 25 % deficit reads about 22 mm (Plan 11c close)
+K.hybrid.DEFICIT_FLOOR = 1.0 -- game choice, Plan 11d (ruling 9c-1), refit from Plan 3 ruling 14's 0.15 (S1271 open): the deficit floor's coefficient, the hunger a deficit adds whatever the satiety read; S1254 sets its direction; fitted with K.energy.BALANCE_SPAN_KCAL 7500 to S1613 (the 36 h fast's next day 1.304 against 1.20), S1614 (day 3 0.986 against 1.0) and S1325 (Karl 2021's vigorous DEF +19.3 % against +26 %; a larger floor at the same request-level slope lifts Karl's sated hours more than the fast's request-level meals); S1255 (CALERIE 2: < 10 mm over 2 y at a 25 % deficit) reads 13.5 mm under the oracle's request-anchored mapping, a named non-reproduction as near as the other bands allow (about 22 mm before)

@@ -33,7 +33,7 @@ def test_the_constants(host):
     assert S.P50 is None and S.PN_MAX is None                        # retired by structure D (ruling 11c-30)
     assert (S.ATWATER_P, S.ATWATER_C, S.ATWATER_F) == (4, 4, 9)
     assert (S.CIRCADIAN_A, S.CIRCADIAN_PEAK_H) == (0.085, 19.8333)
-    assert host.K.hybrid.DEFICIT_FLOOR == 0.15
+    assert host.K.hybrid.DEFICIT_FLOOR == 1.0                        # refit, Plan 11d Task 9d (ruling 9c-1)
 
 
 def test_each_constant_names_its_row_or_its_label():
@@ -60,7 +60,8 @@ def test_each_constant_names_its_row_or_its_label():
     with open(os.path.join(SHARED, "NR_Kernel_Hybrid.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
     line = re.search(r"^K\.hybrid\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)
-    assert "game choice" in line and "S1271 open" in line
+    assert "game choice, Plan 11d (ruling 9c-1)" in line and "S1271 open" in line
+    assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325")), line   # the rows it was fitted to
 
 
 def test_fill_is_mass_over_the_maximal_capacity_clamped(host):
@@ -138,7 +139,7 @@ def test_sated_compounds_the_two_signals(host):
     assert host.call("satiety.sated", 1, 0.5) == pytest.approx(0.775)
 
 
-@pytest.mark.parametrize("hunger,F,es", [(0.31, 0.6, 1), (0.25, 0, 1), (0.5, 0.2, 1.4), (0.2, 0.3, 0.9)])
+@pytest.mark.parametrize("hunger,F,es", [(0.31, 0.6, 1), (0.25, 0, 1), (0.6, 0.2, 1.2), (0.2, 0.3, 0.9)])
 def test_seed_p_inverts_the_hunger_function(host, hunger, F, es):
     P = host.call("satiety.seedP", hunger, F, es)
     z = host.call("satiety.sated", F, host.call("satiety.post", P))
@@ -233,14 +234,14 @@ def test_circadian_is_periodic_across_midnight(host):
 
 def test_hunger_target_reads_the_named_deficit_floor(host):
     # follow-up pin: hungerTarget's value is unchanged by naming its coefficient
-    assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.15 * 0.5)
+    assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(1.0 * 0.5)       # Plan 11d Task 9d: 1.0
     # the coefficient is read from the constant, not a literal: patch it and the value follows
     host.K.hybrid.DEFICIT_FLOOR = 0.3
     try:
         assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.3 * 0.5)
     finally:
-        host.K.hybrid.DEFICIT_FLOOR = 0.15
-    assert host.call("hybrid.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 0.15 * 0.5)
+        host.K.hybrid.DEFICIT_FLOOR = 1.0
+    assert host.call("hybrid.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 1.0 * 0.5)
 
 
 @pytest.mark.parametrize("E", [50, 300, 650, 1200])

@@ -24,8 +24,8 @@ asserted: under the rows' clock the suppression is gone by about 1.5 h after the
 
 Karl 2021 (S1325) is a test the model may fail (spec § 5c): its readings are pinned. The kernel bypasses the exercise
 lag on a linear ramp of the 24 h total deficit between EX_BYPASS_LO and EX_BYPASS_HI of the 24 h expenditure (ruling
-11c-32 as amended): with the work vigorous both arms pass (DEF +26.6 % against +26 %); with heavy work the model does
-not class as vigorous, DEF overshoots (+64.5 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
+11c-32 as amended): with the work vigorous both arms pass (DEF +19.3 % against +26 %); with heavy work the model does
+not class as vigorous, DEF overshoots (+55.2 %), a NON-REPRODUCTION pinned as such. King 2011 is also replayed at
 steady state (the two prior days carrying the same meals), where a 25 % step in place of the ramp raises the exercise
 arm by more than the band, which is why the bypass is a ramp (S1312, S1318).
 
@@ -388,29 +388,29 @@ def test_king_2011_at_steady_state_exercise_stays_with_control(host):
 
 def test_karl_2021_vigorous_both_arms_pass_with_the_ramp(host):
     # S1325 (Karl 2021): hunger -55 % against REST in an 18 % surplus, +26 % at a 43 % deficit (a pass: the sign and
-    # within 1.5x). With the work vigorous the ramp reads BAL -70.2 % and DEF +26.6 %; both pass. Pinned
+    # within 1.5x). With the work vigorous the ramp reads BAL -57.0 % and DEF +19.3 % (Task 9d: -70.2, +26.6); both pass. Pinned
     bal, dfc = karl(host, "aerobic")
-    assert (bal, dfc) == (-70.2, 26.6)
+    assert (bal, dfc) == (-57.0, 19.3)
     assert karl_pass(bal, dfc) == (True, True)
     assert 26.0 / 1.5 <= dfc <= 26.0 * 1.5
 
 
 def test_karl_2021_not_vigorous_overshoots_a_pinned_non_reproduction(host):
-    # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-62.3 %) and
-    # DEF reads +64.5 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed
+    # The same work not classed as vigorous (heavy work the model does not class as vigorous): BAL passes (-45.0 %) and
+    # DEF reads +55.2 % against +26 %, past 1.5x -- a NON-REPRODUCTION, pinned so a change is noticed (Task 9d: -62.3, 64.5)
     bal, dfc = karl(host, None)
-    assert (bal, dfc) == (-62.3, 64.5)
+    assert (bal, dfc) == (-45.0, 55.2)
     assert karl_pass(bal, dfc) == (True, False)
 
 
 def test_karl_2021_the_lag_alone_and_today_s_form_for_comparison(host):
     # the lag with no bypass (DEF fails in direction) and today's form (the activity billed at once)
-    assert karl(host, "aerobic", mode="nobypass") == (-70.2, -23.5)
-    assert karl(host, None, mode="nobypass") == (-62.3, -0.7)
-    assert karl(host, "aerobic", mode="raw") == (-61.6, 47.0)
-    assert karl(host, None, mode="raw") == (-50.8, 89.8)
-    assert karl(host, "aerobic", mode="step") == (-70.2, 38.7)
-    assert karl(host, None, mode="step") == (-62.3, 78.6)
+    assert karl(host, "aerobic", mode="nobypass") == (-57.0, -23.7)
+    assert karl(host, None, mode="nobypass") == (-45.0, -1.2)
+    assert karl(host, "aerobic", mode="raw") == (-50.2, 37.4)
+    assert karl(host, None, mode="raw") == (-36.4, 78.1)
+    assert karl(host, "aerobic", mode="step") == (-57.0, 32.8)
+    assert karl(host, None, mode="step") == (-45.0, 72.0)
 
 
 # --- the bout against control (S1502, S1500; Plan 11d Task 1, ruling 11d-1), appended so no line above moves ---------
@@ -492,7 +492,7 @@ def test_e_mechanic_at_24_weeks(host):
 
 def test_the_bout_replay_pins_its_readings(host):
     # Plan 11d close (A1): the readings the satiety kernel's ACUTE_DECAY_HALF_LIFE_H comment and #3639 quote, after
-    # Task 5's refit (STEEP 0.05, FULL_WEIGHT 0.55, PROTEIN_FILL 8): 0.674 of control over the bout, -3.9 mm at minute 90
+    # Task 5's refit (STEEP 0.05, FULL_WEIGHT 0.55, PROTEIN_FILL 8): 0.674 of control over the bout, -3.8 mm (Task 9d; -3.9) at 90
     r = replay_bout(host, minutes=60, kind="aerobic")
     assert round(r.mean_ratio(0, 60), 3) == 0.674, r
-    assert round(r.mm_difference(90), 1) == -3.9, r
+    assert round(r.mm_difference(90), 1) == -3.8, r

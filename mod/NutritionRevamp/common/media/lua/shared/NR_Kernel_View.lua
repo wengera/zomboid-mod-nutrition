@@ -21,9 +21,9 @@ K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "
 -- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
 -- surplus or absent) 0; 1.10 1; 1.25 2; 1.50 3; 1.75 4.
 K.view.ENERGY_AT = {
-    1.10, -- gc: level 1, a 300 kcal trailing-24 h deficit alone (0.5 x 300/1500, K.energy.state); rests on Plan 3 ruling 14
-    1.25, -- gc: level 2, a 750 kcal deficit or half the fat-depletion term; rests on Plan 3 ruling 14
-    1.50, -- gc: level 3, the full 1500 kcal deficit term; rests on Plan 3 ruling 14
+    1.10, -- gc: level 1, a 1500 kcal trailing-24 h deficit alone (0.5 x 1500/7500, K.energy.state, BALANCE_SPAN_KCAL since ruling 9c-1); rests on Plan 3 ruling 14
+    1.25, -- gc: level 2, a 3750 kcal deficit or half the fat-depletion term; rests on Plan 3 ruling 14
+    1.50, -- gc: level 3, the full 7500 kcal deficit term (the span; 1500 before ruling 9c-1); rests on Plan 3 ruling 14
     1.75, -- gc: level 4, a full deficit with fat depletion on top (the glycogen term retired, ruling T4-1); rests on Plan 3 ruling 14
 }
 
