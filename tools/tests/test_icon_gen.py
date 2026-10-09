@@ -1,4 +1,5 @@
-"""icon_gen.py (Plan 7 Task 9): the six class icons are valid, deterministic and match the committed files."""
+"""icon_gen.py (Plan 7 Task 9; Plan 11c Task 7 adds overfull): the seven class icons are valid, deterministic and
+match the committed files."""
 import hashlib
 import os
 import struct
@@ -41,7 +42,8 @@ class IconGenTests(unittest.TestCase):
 
     def test_glyphs_distinct(self):
         seen = set(hashlib.sha256(d).hexdigest() for d in icon_gen.generate().values())
-        self.assertEqual(len(seen), 6)
+        self.assertEqual(len(seen), 7)
+        self.assertEqual(icon_gen.CLASSES[-1], "overfull")
 
     def test_committed_files_match(self):
         """The committed PNGs carry the generator's pixels: the IHDR and the inflated IDAT are compared, not the

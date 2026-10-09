@@ -1,6 +1,8 @@
--- NR_Client_Moodles.lua -- the six symptom-class moodles (Plan 7 Task 8, rulings 5, 10 and 11): through
--- MoodleFramework when it is installed, else the mod's own icon column at a FIXED inset of the player's viewport.
--- Optional, detected and never required (spec § 4.9); no moodle type goes through the vanilla registry (#1140).
+-- NR_Client_Moodles.lua -- the six symptom-class moodles (Plan 7 Task 8, rulings 5, 10 and 11) and the seventh,
+-- overfull, the soft cap shown (Plan 11c Task 7, ruling 11c-25: the stomach's whole mass past 730 g in four levels
+-- to 1100 g, K.view.fullnessLevel over the mirror's stomachMass; shown, never a block, never vanilla's DISCOMFORT):
+-- through MoodleFramework when it is installed, else the mod's own icon column at a FIXED inset of the player's
+-- viewport. Optional, detected and never required (spec § 4.9); no moodle type goes through the vanilla registry (#1140).
 --
 -- Detection (#2547): type(MF) == "table" and type(MF.createMoodle) == "function", at OnGameBoot (MF is defined at
 -- the framework's file load, which may follow this file's). The framework route creates "NR_<class>" per class at
@@ -31,7 +33,7 @@
 -- unreachable (nil, MF.TooLargeValue, :156-164). setThresholds takes (bad4, bad3, bad2, bad1, good1..good4) at
 -- :155, so the bad side is passed bad4 first. A class at level 0 sets 0.5: neutral, off the UI manager. The bad-side
 -- draw is unmeasured: x181 read the good side only (#3192); x183m's arm F is the first bad-side reading.
--- Every set is repeated for the six after each player creation, because the framework's value
+-- Every set is repeated for the seven after each player creation, because the framework's value
 -- store is keyed by the character object and starts fresh (#2538).
 -- The icon route: the framework's own default is a name lookup, media/ui/<size>/NR_<class>.png then
 -- media/ui/NR_<class>.png (:432-437, :595); this file instead hands it the mod's one icon,
@@ -45,14 +47,15 @@
 -- the boot handler) that zeros the kept levels, so the column draws nothing until the next apply.
 --
 -- The own route (no framework): one NR_Client_MoodleColumn (an ISUIElement) for player 0 -- the mirror is the local
--- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 6 * 44: a FIXED
+-- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 7 * 44: a FIXED
 -- inset, NEVER anchored to the vanilla stack (ruling 10; MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
 -- the mirror per frame (#2692).
 --
 -- The driver: NR.client.view.listeners (NR_Client_View.lua :18-20, :120) calls fn(classes, rows, level) after every
--- view rebuild -- on each mirror arrival and when a surface refreshes -- and the hook here calls apply(classes). This
+-- view rebuild -- on each mirror arrival and when a surface refreshes -- and the hook here calls apply(classes), the
+-- classes being K.view.moodleClasses (the six and overfull). This
 -- file sorts before _View, so it creates NR.client.view = { listeners = {} } when absent and View carries the array
 -- over (:43). The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
 -- framework value neutral and takes the column off the UI manager; on restores both.
@@ -66,16 +69,16 @@
 -- 1238-1270 at the 32 px moodle size (x181); at 48 px the vanilla stack reaches 1222 and overlaps by 2 px, at 64 px
 -- more, and a repositioner mod that moves the stack left may overlap it (the page states this beside the caveat).
 -- Cadence: apply once per view rebuild (at most one push a minute plus requests); the column's render per frame
--- draws at most 6 icons and 24 pips from cached fields.
+-- draws at most 7 icons and 28 pips from cached fields.
 local NR = NutritionRevamp
 
 NR_ClientMoodles_Installed = NR_ClientMoodles_Installed or {}
 
 NR.client.moodles = {
     route = "none",
-    classes = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" },
+    classes = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep", "overfull" },
     stats = { sets = 0, skips = 0, renders = 0, errors = 0, created = 0, got = 0, columns = 0 },
-    levels = { energy = 0, hydration = 0, deficiency = 0, excess = 0, stimulant = 0, sleep = 0 },
+    levels = { energy = 0, hydration = 0, deficiency = 0, excess = 0, stimulant = 0, sleep = 0, overfull = 0 },
     handles = {},
     column = nil,
     cls = nil,
@@ -107,6 +110,7 @@ local COLOURS = { -- r, g, b of a class's rect when its icon is nil
     excess = { 0.75, 0.35, 0.85 },
     stimulant = { 0.95, 0.85, 0.25 },
     sleep = { 0.45, 0.45, 0.80 },
+    overfull = { 0.80, 0.45, 0.20 },
 }
 
 -- One method of el, index-first inside a pcall: (ok, result).
@@ -233,7 +237,7 @@ local function showColumn(col, on)
 end
 
 -- The own route's column for playerNum: the old one (a respawn) leaves the UI manager first; the new one sits at
--- the fixed inset, loads the six icons once, and joins the UI manager when the option is on.
+-- the fixed inset, loads the seven icons once, and joins the UI manager when the option is on.
 function MOODLES.buildColumn(playerNum)
     local M = NutritionRevamp.client.moodles
     local cls = M.cls
@@ -282,7 +286,7 @@ function MOODLES.configure(h, c)
     end
 end
 
--- OnGameBoot: the route, and on the framework route the six moodles created; then the OnCreatePlayer handler is
+-- OnGameBoot: the route, and on the framework route the seven moodles created; then the OnCreatePlayer handler is
 -- added (after the framework's builders, which createMoodle has just added).
 function MOODLES.onGameBoot()
     local M = NutritionRevamp.client.moodles
@@ -328,7 +332,7 @@ function MOODLES.onPlayerDeath(player)
     end
 end
 
--- OnCreatePlayer (player 0 only; the mirror is the local player's): the framework's six handles kept and configured,
+-- OnCreatePlayer (player 0 only; the mirror is the local player's): the framework's seven handles kept and configured,
 -- or the own column built; then the last known levels are set again (the view's classes when it has them).
 function MOODLES.onCreatePlayer(playerNum, player)
     local nr = NutritionRevamp

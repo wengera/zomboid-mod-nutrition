@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""icon_gen.py -- the six symptom-class moodle icons of the nutrition mod (Plan 7 Task 9), deterministic.
+"""icon_gen.py -- the seven moodle class icons of the nutrition mod (Plan 7 Task 9; 11c Task 7: overfull).
 
     python tools/icon_gen.py --out <dir>      write energy.png, hydration.png, deficiency.png, excess.png,
-                                              stimulant.png and sleep.png into <dir> (created if absent)
+                                              stimulant.png, sleep.png, overfull.png into <dir> (made if absent)
     python tools/icon_gen.py --check <dir>    compare the sha256 of each file in <dir> with the generator's
                                               output; exit 1 on a missing or different file, else 0
 
 Each icon is 32 x 32 RGBA: a fixed class colour (energy amber, hydration blue, deficiency red, excess purple,
-stimulant yellow, sleep indigo) and one glyph per class (a filled circle, a drop, a down-arrow, an up-arrow, a
-bolt, a crescent) on a transparent ground, drawn by integer arithmetic on the doubled pixel centre (dx = 2x - 31,
+stimulant yellow, sleep indigo, overfull orange) and one glyph per class (a filled circle, a drop, a down-arrow,
+an up-arrow, a bolt, a crescent, a wide belly) on a transparent ground, drawn by integer arithmetic on the doubled pixel centre (dx = 2x - 31,
 dy = 2y - 31, so there is no float and no rounding). The PNG is written by hand: signature, IHDR, one IDAT of
 filter-0 scanlines through zlib level 9, IEND, no ancillary chunk, so the bytes are the same on every run (the
 sha256 pin holds for one zlib implementation; a different zlib may emit other bytes for the same pixels).
@@ -34,7 +34,7 @@ PALETTE = {
     "stimulant": (241, 196, 15),
     "sleep": (63, 81, 181),
 }
-CLASSES = ("energy", "hydration", "deficiency", "excess", "stimulant", "sleep")
+CLASSES = ("energy", "hydration", "deficiency", "excess", "stimulant", "sleep", "overfull")
 BOLT = ((18, 3), (8, 18), (15, 18), (12, 29), (24, 13), (17, 13), (21, 3))
 
 
@@ -146,6 +146,19 @@ def main(argv=None):
                 bad += 1
     print("icon_gen --check: %d finding(s)" % bad)
     return 1 if bad else 0
+
+
+# Plan 11c Task 7 (ruling 11c-25): the seventh class, overfull, the soft cap shown; appended so no line above moves.
+def belly(x, y):
+    """A wide ellipse, 28 x 20 px, with a transparent navel at its centre: the stomach past comfortable."""
+    dx, dy = 2 * x - 31, 2 * y - 31
+    if dx * dx + dy * dy <= 3 * 3:
+        return False
+    return dx * dx * 20 * 20 + dy * dy * 28 * 28 <= 28 * 28 * 20 * 20
+
+
+PALETTE["overfull"] = (211, 84, 0)
+GLYPH["overfull"] = belly
 
 
 if __name__ == "__main__":

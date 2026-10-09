@@ -21,7 +21,7 @@ function K.mirror.build(record, meta, order)
     m.mode = meta.mode
     m.version = meta.version
     m.build = meta.build
-    m.stomachFill = record.stomachFill or 1
+    K.mirror.stomach(m, record)
     K.mirror.nutrients(m, record.nutrients, order)
     K.mirror.fluids(m, record.fluids)
     K.mirror.acute(m, record.acute)
@@ -148,4 +148,22 @@ function K.mirror.effects(m, eff)
         m.effects_nv = eff.own.nv == true
         m.effects_ss = eff.own.ss == true
     end
+end
+
+-- Plan 11c Task 7 (ruling 11c-25): the stomach pair. stomachFill, the fill F (full, 1, before the kinetics has run),
+-- and stomachMass, the stomach's whole mass in grams, both lanes (K.stomach.mass), rounded to 1 g, the Overfull
+-- moodle's input (K.view.fullnessLevel; F clamps at 1 at 730 g and cannot place a level above it). 0 when the record
+-- has no stomach or no solid buffer, and when the mass is not finite.
+function K.mirror.stomach(m, record)
+    m.stomachFill = record.stomachFill or 1
+    m.stomachMass = 0
+    local s = record.stomach
+    if s == nil or s.buffer == nil then
+        return
+    end
+    local g = K.stomach.mass(s)
+    if g ~= g or g == math.huge or g == -math.huge then
+        return
+    end
+    m.stomachMass = math.floor(g + 0.5)
 end

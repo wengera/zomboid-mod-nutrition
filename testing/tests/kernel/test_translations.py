@@ -74,6 +74,9 @@ def constructed():
         # deficiency and excess stop at K.view.RUNG_MAX = 3 (Plan 11a Task 8 deleted their unreachable level 4)
         for n in range(4 if c in ("deficiency", "excess") else 5):
             out.add("UI_NR_Class_%s_%d" % (c, n))
+    # Plan 11c Task 7: the Overfull moodle's descriptions, levels 1-4 (no panel row, so no label and no level 0)
+    for n in range(1, 5):
+        out.add("UI_NR_Class_overfull_%d" % n)
     for k in order_keys():
         for suffix in ("", "_p", "_x"):
             out.add("UI_NR_Row_" + k + suffix)
@@ -124,7 +127,9 @@ def test_constructed_keys_exist():
     for c in CLASSES:
         for n in range(1, 4 if c in ("deficiency", "excess") else 5):
             assert "Moodles_NR_%s_lvl%d" % (c, n) in moo
-    assert len(moo) == 22
+    for n in range(1, 5):
+        assert "Moodles_NR_overfull_lvl%d" % n in moo
+    assert len(moo) == 26
     # the client's own prefix concatenations are the ones constructed above
     assert any(pre and key == "Moodles_NR_" for _, key, pre in literals())
     assert any(pre and key == "UI_NR_Class_" for _, key, pre in literals())

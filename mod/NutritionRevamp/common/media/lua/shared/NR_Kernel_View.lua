@@ -490,3 +490,40 @@ function K.view.moodleThreshold(k, cls)
     end
     return K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * (k - 0.5) / top
 end
+
+-- Plan 11c Task 7 (ruling 11c-25): the soft cap shown as the mod's own Overfull moodle, a seventh moodle class beside
+-- the six (the panel's class rows stay the six of K.view.CLASSES). Its level reads the stomach's whole mass, both
+-- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
+-- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the fill F, which clamps at 1 at 730 g.
+-- The moodle is shown and never blocks an eat. Appended so no line above moves.
+K.view.OVERFULL_AT = {
+    100 / 3, -- gc: level 2 from a third of the way to the full scale (about 853 g); a game choice on ruling 11c-8's inferences, S1250 and S1253
+    200 / 3, -- gc: level 3 from two thirds (about 977 g); a game choice on S1250 and S1253
+    100, -- gc: level 4 at the full scale, 1100 g, S1253's maximal discomfort (a labelled inference)
+}
+
+-- The Overfull level of a stomach mass in grams: 0 at or under 730 g (no discomfort), 1 above it, 2 from a third of
+-- the scale, 3 from two thirds, 4 at 1100 g and over; a non-number, NaN or +infinity reads 0 (a negative mass reads
+-- no discomfort, so 0).
+function K.view.fullnessLevel(massG)
+    if type(massG) ~= "number" or massG ~= massG or massG == math.huge then
+        return 0
+    end
+    local d = K.satiety.discomfort(massG, K.stomach.CAPACITY_MAX_G, K.stomach.CAPACITY_HARD_G)
+    if d <= 0 then
+        return 0
+    end
+    return 1 + K.view.rung(d, K.view.OVERFULL_AT)
+end
+
+-- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads, plus overfull from the
+-- mirror's stomachMass (a mirror without it, from a server before Plan 11c Task 7, reads 0).
+function K.view.moodleClasses(m)
+    local c = K.view.classes(m)
+    c.overfull = 0
+    if m == nil then
+        return c
+    end
+    c.overfull = K.view.fullnessLevel(m.stomachMass)
+    return c
+end

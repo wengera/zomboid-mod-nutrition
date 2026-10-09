@@ -1,7 +1,8 @@
 -- NR_Client_View.lua -- the client's one row cache and the draw helper every surface shares (Plan 7 Task 5,
 -- rulings 3, 5 and 16): the visibility level (max of the server option NR.VisibilityMode and a Nutritionist
--- trait), the row model K.view.rows builds from the stored mirror, the six class levels K.view.classes reads, and
--- view.draw, which paints a row list onto any ISUIElement.
+-- trait), the row model K.view.rows builds from the stored mirror, the seven moodle class levels
+-- K.view.moodleClasses reads (the six classes and overfull, Plan 11c Task 7), and view.draw, which paints a row list
+-- onto any ISUIElement.
 --
 -- The mirror is read at the push cadence, never the frame cadence (#2692): refresh() makes the one per-frame test
 -- K.view.changed(received, lastReceived, level, lastLevel) and rebuilds only when the arrival counter
@@ -113,7 +114,7 @@ local function rebuild(received)
     local rows = K.view.rows(m, V.level, V.order)
     resolveRows(rows)
     V.rows = rows
-    V.classes = K.view.classes(m)
+    V.classes = K.view.moodleClasses(m)
     V.lastReceived = received
     V.lastLevel = V.level
     V.stats.rebuilds = V.stats.rebuilds + 1

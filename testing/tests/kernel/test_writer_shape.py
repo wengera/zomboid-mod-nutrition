@@ -415,7 +415,9 @@ LIMITATION_FOUR = (
     "shows only through the HUNGER the seed reads; the exercise share of the energy deficit enters hunger through a "
     "lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does "
     "not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy "
-    "labour deficit (S1325)")
+    "labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g "
+    "(the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level "
+    "3 stands")
 
 
 def test_limitation_four_names_the_overwrite_and_the_pool():

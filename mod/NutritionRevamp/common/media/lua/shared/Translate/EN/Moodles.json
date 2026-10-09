@@ -20,5 +20,9 @@
     "Moodles_NR_sleep_lvl1": "Short on sleep",
     "Moodles_NR_sleep_lvl2": "Sleep-deprived",
     "Moodles_NR_sleep_lvl3": "Exhausted",
-    "Moodles_NR_sleep_lvl4": "Collapsing"
+    "Moodles_NR_sleep_lvl4": "Collapsing",
+    "Moodles_NR_overfull_lvl1": "Pleasantly overfull",
+    "Moodles_NR_overfull_lvl2": "Overfull",
+    "Moodles_NR_overfull_lvl3": "Bloated",
+    "Moodles_NR_overfull_lvl4": "Painfully stuffed"
 }
