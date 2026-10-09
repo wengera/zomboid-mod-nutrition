@@ -572,14 +572,14 @@ def test_recovery_sleep_reverses_the_factor_partially(host):
 # The intake mapping is ruling 11c-31 (a LABELLED ASSUMPTION, no row): a request-level meal eats 650 kcal x that
 # hunger / 0.25, at fixed clock times (08:00, 13:00, 20:00, ASSUMED). So the next-day intake ratio is the ratio of the
 # summed written hunger at the meal requests, fast arm over fed arm: what it measures is the energy state's lift of
-# the request-level hunger (the -eb24h / 1500 slope, DEFICIT_FLOOR and the glycogen term, through hungerTarget), fed
+# the request-level hunger (the -eb24h / 1500 slope and DEFICIT_FLOOR, through hungerTarget; the glycogen term is 0), fed
 # back through each meal's kcal into the next meal's eb24h. It does not measure the meal pool or the stomach, and it
 # does not measure when a meal is asked for (the times are fixed).
 #
 # Glycogen (C9): the replay logs g and the glycogen term's contribution to the energy state, read through the real
-# function as activityState(..., g, ...) - activityState(..., 1, ...) (GLYC_STATE_K 0.3 x (1 - g) while no clamp
-# binds), at 12, 24 and 36 h of the fast and at 24 h of a low-carbohydrate day at maintenance energy (50 g of
-# carbohydrate, the memo's C9 threshold; 20 % protein, fat the rest).
+# function as activityState(..., g, ...) - activityState(..., 1, ...), at 12, 24 and 36 h of the fast and at 24 h of a
+# low-carbohydrate day at maintenance energy (50 g of carbohydrate, the memo's C9 threshold; 20 % protein, fat the
+# rest). Since Plan 11d Task 4b (ruling T4-1) GLYC_STATE_K is 0: g still falls, and its contribution reads 0.
 
 FAST_KCAL_PER_HUNGER = 650.0 / H_REQ    # ruling 11c-31's intake mapping, kcal per unit of written hunger
 FAST_MEAL_H = (8.0, 13.0, 20.0)         # ASSUMED clock of the three meals (a game choice): 20:00 to 08:00 two days on is 36 h
@@ -761,39 +761,41 @@ def test_a_36_h_fast_raises_next_day_intake_and_day_3_falls_back(host):
 
 
 def test_the_36_h_fast_intake_ratios_are_pinned(host):
-    # Pinned diagnostics (ruling 11d-3), recorded from the run of Plan 11d Task 4: the day after the fast 1.259 (S1613
-    # 1.20: 1.05x above), day 3 0.944 (S1614 1.0: 1.06x below). Under the intake mapping these are the summed written
-    # hunger at the meal requests, fast arm over fed arm (see the section's head): the fed arm itself eats 2,241 kcal
-    # on day 2 against the 1,949 kcal maintenance day, the trailing-24 h window reading a deficit before each meal
+    # Pinned diagnostics (ruling 11d-3), re-pinned by Plan 11d Task 4b (ruling T4-1, the glycogen term retired; Task 4
+    # read 1.259 and 0.944 with it): the day after the fast 1.197 (S1613 1.20: 1.003x below), day 3 0.950 (S1614 1.0:
+    # 1.05x below). Under the intake mapping these are the summed written hunger at the meal requests, fast arm over
+    # fed arm (see the section's head): the fed arm itself eats 2,241 kcal on day 2 against the 1,949 kcal maintenance
+    # day, the trailing-24 h window reading a deficit before each meal
     r2, r3, _, _, _ = fast_reading(host)
-    assert round(r2, 3) == 1.259, r2
-    assert round(r3, 3) == 0.944, r3
+    assert round(r2, 3) == 1.197, r2
+    assert round(r3, 3) == 0.950, r3
 
 
 def test_the_fasts_glycogen_term_is_logged_and_pinned(host):
     # C9 (ruling 11d-3, the memo's conflict): g and the glycogen term's contribution to the energy state at 12, 24
-    # and 36 h of the fast, read through K.energy.activityState: g 0.996, 0.881, 0.718 and the term 0.001, 0.036,
-    # 0.085 (GLYC_STATE_K 0.3 x (1 - g), no clamp binding: the state reads 1.187, 1.536 and 1.585). At 36 h the
-    # balance term is clamped at its 0.5 (eb24h -1,858 kcal), so the glycogen term is all of the state's rise past 1.5
+    # and 36 h of the fast, read through K.energy.activityState: g still falls, 0.996, 0.881, 0.718, but since Plan 11d
+    # Task 4b (ruling T4-1: GLYC_STATE_K 0) its contribution is 0 (Task 4 read 0.001, 0.036, 0.085 at 0.3), so the
+    # state reads 1.186, 1.5 and 1.5: from 24 h on (eb24h -1,617 and -1,858 kcal) the balance term sits at its 0.5 cap
+    # and hunger plateaus there, the ruling's named cost
     _, _, log, _, _ = fast_reading(host)
+    assert host.K.energy.GLYC_STATE_K == 0
     assert [round(x["g"], 3) for x in log] == [0.996, 0.881, 0.718], log
-    assert [round(x["glyc"], 3) for x in log] == [0.001, 0.036, 0.085], log
-    assert [round(x["es"], 3) for x in log] == [1.187, 1.536, 1.585], log
-    for x in log:
-        assert abs(x["glyc"] - host.K.energy.GLYC_STATE_K * (1 - x["g"])) < 1e-9, x
+    assert [x["glyc"] for x in log] == [0, 0, 0], log
+    assert [round(x["es"], 3) for x in log] == [1.186, 1.5, 1.5], log
 
 
 def test_a_low_carbohydrate_day_at_maintenance_runs_glycogen_down(host):
     # C9: yes, a low-carbohydrate day runs g down. 24 h of maintenance energy at 50 g of carbohydrate (0.71 g/kg, below
-    # GLYC_PIVOT 3) reads g 0.909 and a glycogen term of 0.027 in the energy state at no extra deficit (eb24h -318
-    # kcal in both arms, the window's phase at 20:00), where the mixed arm (50 % carbohydrate, 3.5 g/kg) reads g 1.000
-    # and 0.000 (0.996 at its lowest, before breakfast). So the model raises hunger on a low-carbohydrate day, where
-    # S1451, S1452 and S1259 find a ketogenic deficit blunts appetite: the memo's C9 conflict, named neutral under
-    # ruling 11d-6 and left unpatched here
+    # GLYC_PIVOT 3) reads g 0.909, where the mixed arm (50 % carbohydrate, 3.5 g/kg) reads g 1.000 (0.996 at its
+    # lowest, before breakfast). Since Plan 11d Task 4b (ruling T4-1: GLYC_STATE_K 0) the energy state no longer reads
+    # g: at equal balance (eb24h -318 kcal in both arms, the window's phase at 20:00) the two arms read the same state,
+    # where Task 4 read a glycogen term of 0.027 on the low-carbohydrate arm. So a low-carbohydrate day at equal
+    # balance no longer raises hunger, consistent with S1451, S1452 and S1259 (a ketogenic deficit blunts appetite):
+    # this test pins the retirement directly
     m8, m20, low = lowcarb_reading(host)
     assert round(m8["g"], 3) == 0.996 and round(m20["g"], 3) == 1.0 and m20["glyc"] == 0, (m8, m20)
-    assert round(low["g"], 3) == 0.909 and round(low["glyc"], 3) == 0.027, low
-    assert low["eb24"] == m20["eb24"] and low["es"] > m20["es"], (low, m20)
+    assert round(low["g"], 3) == 0.909 and low["glyc"] == 0, low
+    assert low["eb24"] == m20["eb24"] and abs(low["es"] - m20["es"]) < 1e-12, (low, m20)
 
 
 def test_six_meals_against_three_is_pinned_inside_the_band(host):

@@ -253,10 +253,10 @@ function K.energy.eb24h(body, hoursSinceClose)
     return K.body.blend24(body.ebDay, body.eb7[7], hoursSinceClose)
 end
 
--- The energy state the hunger term reads: 1 neutral, up under deficit, fat depletion and glycogen
--- depletion, down under surplus, clamped to [0.5, 2.0] (ruling 14, a game choice). g is the muscle
+-- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion (the glycogen coupling
+-- retired, ruling T4-1), down under surplus, clamped to [0.5, 2.0] (ruling 14, a game choice). g is the muscle
 -- glycogen fraction (0-1, record.acute.g); omitted it reads 1, the neutral every Plan 3 caller passed.
-K.energy.GLYC_STATE_K = 0.3 -- game choice, Plan 4 Task 13 ruling; no row (S1109 is the exertional trigger, not this coupling)
+K.energy.GLYC_STATE_K = 0 -- retired by ruling T4-1 (Plan 11d Task 4b), was 0.3 (a game choice, Plan 4 Task 13): no science row backs it (S1109 is the exertional trigger, not this coupling), and its direction ran against S1451, S1452 and S1259 (ketosis blunts the deficit's rise in appetite, where 0.3 x (1 - g) raised hunger on a low-carbohydrate day at equal balance); g stays plumbed through K.energy.state, so a later ruling can restore a coupling from a row
 
 function K.energy.state(eb24h, fatDep, g)
     if g == nil then

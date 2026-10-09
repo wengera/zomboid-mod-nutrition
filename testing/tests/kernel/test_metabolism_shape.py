@@ -1309,7 +1309,9 @@ def test_the_acute_scalars_reach_dmod_rmod_and_the_energy_state(met_host, opts):
     assert body["dmod"] == _dmod(h, body, g=0.5, awake=22.0, caf=caf, tol=0.25)
     assert body["rmod"] == _rmod(h, body, g=0.5, debt=12.0)
     assert body["energyState"] == _activity_es(h, record, 1 / 60, g=0.5)
-    assert abs(body["energyState"] - (_activity_es(h, record, 1 / 60) + 0.15)) < TOL
+    # g 0.5 reaches the energy state's call, but since Plan 11d Task 4b (ruling T4-1: GLYC_STATE_K 0) it no longer
+    # moves the state (it added 0.3 x (1 - g) = 0.15 before)
+    assert body["energyState"] == _activity_es(h, record, 1 / 60)
 
 
 def test_the_day_alcohol_reaches_rmod_per_kg(met_host, opts):
