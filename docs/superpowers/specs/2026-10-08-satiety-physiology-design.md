@@ -182,6 +182,23 @@ Spike 2 (`.superpowers/sdd/2026-10-08-plan-11c-satiety/task-4s2-report.md`) test
 - **Heavy labour** (Karl 2021, S1325: hunger −55 % over 72 h in an 18 % surplus; +26 % in a deficit) is a replay the model may fail. If it fails, a total-deficit threshold (≥ 25 %) that bypasses the lag becomes a ruling.
 - **Cold** gets no same-day term now (S1315 and S1316 are named).
 
+### 5d. The satiety revisit (Plan 11d; Angus 2026-10-09: "Take all 12, plan, run it"; memo docs/superpowers/specs/2026-10-09-satiety-revisit-memo.md; rows S1337-S1663)
+
+The quality-weighted evidence of Satiety research 2 amends §§ 5b and 5c as follows. Each is a ruling of Plan 11d.
+
+- **11d-1 (C1): the acute term decays faster than it rises.** The rise keeps ACUTE_HALF_LIFE_H 0.5 h; a new ACUTE_DECAY_HALF_LIFE_H (fitted near 0.15 h) governs the decay; ACUTE_MAX stays 0.7. Anchors: S1500 (-8.465 mm immediately after a bout, nothing at 30-90 min) and S1502 (about -33 % during). S1334 is superseded by S1500 and S1502.
+- **11d-2 (C2): sleep debt raises hunger.** A factor 1 + SLEEP_MAX x clamp(debtH / SLEEP_DEBT_FULL_H, 0, 1) on the written hunger, read off record.acute.debtH, reversing as the debt is repaid (S1284, S1565, S1564, S1567); whether a step or graded is unsettled (S1568, S1282), so its shape is a game choice.
+- **11d-3 (C3): two diagnostic replays.** The 36 h fast (S1613, S1614) and six meals against three (S1608, S1607) are pinned readings; a failure is a finding about the deficit floor to rule on, not to patch. The fast replay logs the glycogen term (C9's conflict).
+- **11d-4 (C4): the exercise lag plateaus below the whole share.** EX_LAG_GAIN near 0.7 (S1320's 53-89 % by doubly labelled water at 24 weeks) with EX_LAG_TAU_D refit so days 3-16 stay about 30 % (S1318); the bypass ramp is not scaled by the gain.
+- **11d-5 (C5): a protein fullness term,** shipped only if every hard replay holds at 1.1x and the protein contrast reads at least half the 0.025 target (S1222, S1380, S1383); otherwise protein's level stays a named non-reproduction.
+- **11d-6 (C6, C8, C9, C13, C14, eating rate): neutral and named** in the writer's limitation and #3622: heat's lowering of intake (cold reaches hunger through its expenditure), sugary drinks' partial compensation, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate.
+- **11d-7 (C7, C12): jar reads first.** What drives SICKNESS and NICOTINE_WITHDRAWAL on a 42.21 dedicated server is read before any appetite term rests on them; FOOD_SICKNESS stays neutral.
+- **11d-8 (C10): resistance work stays weighted 0.5.**
+- **11d-9 (C11): monotony is a separate mood design** (Bored and Unhappy at the eat) after Plan 11b, never part of hunger.
+- **11d-10 (C15): a design rule.** Any future injury expenditure must not feed the deficit drive: appetite falls after injury and surgery (S1550) though expenditure rises (S1549).
+- **11d-11: this plan runs before Plan 11b.**
+- **Withdrawn:** protein damping the deficit drive (two year-scale head-to-head nulls, S28.8's 12-week trial and Das 2007).
+
 ## 6. Validation (the oracle)
 
 - `testing/tests/kernel/test_satiety_meal_studies.py` replays at least three published protocols through the kernels, in game hours:
