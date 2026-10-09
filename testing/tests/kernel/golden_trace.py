@@ -31,6 +31,7 @@ Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.
 100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and P (g5, 140); g1's P overflows (170).
+g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
 body-damage counters and parts, the Nutrition stores, `written`: the writer's last set value per stat, `statSets`),
 the counters of a FIXED list of NR.server adapters (STATS_NAMES; a new module's stats never move the trace), the
@@ -50,7 +51,6 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
-
 import lupa.lua51 as lua51  # noqa: E402
 
 import server_host  # noqa: E402
@@ -95,6 +95,15 @@ DEBT_G1 = 1.0
 GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_P_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
 GUARD_P_G1 = 1e308
 GUARD_SD = -50.0
+# Plan 11e Task 2 fix 1 (ruling T2-E): g5 is the smoker stand-in, the only stats object answering NICOTINE_WITHDRAWAL
+# (every other player's reads nil, so the writer's factor is 1 and no anchor is laid). The minute events:
+NIC_START_G5 = 0.0              # minute 1 on: the stat reads 0, so W.nicotine lays the anchor at each minute
+NIC_RISE_MINUTE = 25            # the stat rises to NIC_RISE: the anchor holds at minute 24, the factor counts
+NIC_RISE = 0.4
+NIC_SMOKE_MINUTE = 105          # a smoke drops the stat to NIC_SMOKE: the fall resets the anchor to minute 105
+NIC_SMOKE = 0.1
+NIC_RERISE_MINUTE = 160         # the stat rises again to NIC_RERISE: the anchor holds at minute 105
+NIC_RERISE = 0.3
 
 # The env addendum: the generator, the command and sync counters, the globals, the decorator, the engine step
 # and the fixed meal snapshots.
@@ -136,7 +145,7 @@ end
 
 CharacterStat = {}
 for _, n in ipairs({ "HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "STRESS", "UNHAPPINESS", "FOOD_SICKNESS", "PANIC",
-                     "TEMPERATURE", "INTOXICATION" }) do
+                     "TEMPERATURE", "INTOXICATION", "NICOTINE_WITHDRAWAL" }) do
     CharacterStat[n] = n
 end
 CharacterTrait = {}
@@ -171,7 +180,7 @@ local function newPart(name, init)
 end
 
 -- The decorator: cfg = { cls, rate, inv, maxW, female, traits = {names}, heavy, asleep = {from, to},
--- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue }.
+-- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue, nicotine }.
 NR_T.decorate = function(p, cfg)
     local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0 }
     for _, n in ipairs(cfg.traits or {}) do st.traits[CharacterTrait[n]] = true end
@@ -242,7 +251,9 @@ NR_T.decorate = function(p, cfg)
     end
     -- the stats object (Plan 11e Task 1, ruling 11e-3): get answers the current value, set records it as written
     local sv = { HUNGER = cfg.hunger, THIRST = cfg.thirst, FATIGUE = cfg.fatigue, ENDURANCE = 1.0, STRESS = 0,
-                 UNHAPPINESS = 0, FOOD_SICKNESS = 0, PANIC = 0, TEMPERATURE = 37.0, INTOXICATION = 0 }
+                 UNHAPPINESS = 0, FOOD_SICKNESS = 0, PANIC = 0, TEMPERATURE = 37.0, INTOXICATION = 0,
+                 NICOTINE_WITHDRAWAL = cfg.nicotine }
+    p.sv = sv
     local wst = { written = {}, sets = 0 }
     p.wst = wst
     local stats = {}
@@ -435,7 +446,7 @@ PLAYER_CFG = {
     "g4": {"rate": 6.0, "inv": 12, "maxW": 8, "traits": ["STRONG"], "heavy": 2,
            "parts": {"Hand_L": {"burn": 4.0}}},
     "g5": {"rate": 1.1, "inv": 6, "maxW": 8, "traits": ["NEEDS_MORE_SLEEP"], "female": True,
-           "parts": {"LowerLeg_L": {"fracture": 30.0}}},
+           "parts": {"LowerLeg_L": {"fracture": 30.0}}, "nicotine": NIC_START_G5},
     "g6": {"rate": 0.8, "inv": 6, "maxW": 8, "traits": ["NEEDS_LESS_SLEEP"], "asleep": [40, 90],
            "parts": {"Hand_R": {"bite": 2.0}}},
 }
@@ -643,6 +654,12 @@ def run(host):
         if m == GUARD_RESTORE_MINUTE:
             h.record("g1")["satiety"]["P"] = GUARD_P_G1
             h.T.sdOnce = GUARD_SD
+        if m == NIC_RISE_MINUTE:
+            players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_RISE
+        if m == NIC_SMOKE_MINUTE:
+            players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_SMOKE
+        if m == NIC_RERISE_MINUTE:
+            players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_RERISE
         if m == 45:
             nut = players["g6"].nut
             nut.cal = nut.cal + STORE_RAISE_G6[0]
