@@ -29,6 +29,25 @@ NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastE
                        ctx = {} }
 local KIN = NR.server.kinetics
 
+-- The stomach fields a later reader takes that this step's arithmetic can leave non-finite (test_heal_once.py CROSS,
+-- Plan 11c Task 8): a non-finite one resets the stomach empty with the fill. The liquid lane (the pending water, the
+-- mirror's mass, the store), the solid lane's energy (it sets every key's drain on the next minute) and the gram keys
+-- of the mass (the pending water reads water; the mirror's mass all five) are named: an infinite one clamps the fill
+-- to 1, which is finite, so the fill alone does not catch it.
+KIN.GUARD = { "liquid" }
+KIN.GUARD_BUFFER = { "calories", "water", "proteins", "carbs", "lipids", "fibre" }
+
+local function nonFinite(stomach)
+    for i = 1, #KIN.GUARD do
+        local v = stomach[KIN.GUARD[i]]
+        if v ~= nil and not NR.finite(v) then return true end   -- an absent lane reads 0 (ruling 11c-10)
+    end
+    for i = 1, #KIN.GUARD_BUFFER do
+        if not NR.finite(stomach.buffer[KIN.GUARD_BUFFER[i]]) then return true end
+    end
+    return false
+end
+
 -- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in ceil(dtM) equal substeps of
 -- at most one minute, the emptied vectors summed into the first. Returns the emptied vector.
 local MAX_GAP_M = 60 -- game minutes: the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), no row needed
@@ -78,13 +97,13 @@ local function step(username, player, record, ctx)
         ctx.mealCa = nil
     end
     local fill = K.stomach.fill(record.stomach)
-    -- the self-heal for #2833: a non-finite fill or solid-lane energy (a stomach a NaN intake poisoned before the
+    -- the self-heal for #2833: a non-finite fill or KIN.GUARD field (a stomach a NaN intake poisoned before the
     -- landing guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is reset
     -- empty and the record heals on this minute instead of writing NaN into the satiety read. The POOL is reset only
     -- when one of its own keys is non-finite: a finite pool is absorbed intake the stomach fault did not touch, so it
     -- is kept. NR.server.intake.isFinite is the one finiteness test: NR_Server_Intake.lua loads before this file
     -- (server/ files load alphabetically) and the test is read at call time.
-    if not NR.finite(fill) or not NR.finite(record.stomach.buffer.calories) then
+    if not NR.finite(fill) or nonFinite(record.stomach) then
         record.stomach = K.stomach.new()
         local isFinite = NR.server.intake.isFinite
         local keys = K.vector.KEYS

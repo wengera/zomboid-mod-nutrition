@@ -67,8 +67,11 @@ MET.BUILD_TRAITS = {
 -- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded.
 MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
               "inDayClosed", "dayIndex", "lastCloseAgeH", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
-              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp" }
+              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp", "exKcalPrev" }
 MET.GUARD_RINGS = { "eb7", "p7", "carb7", "lip7", "mass7" }
+-- Plan 11c Task 8: the exercise lag on record.satiety, stepped here, healed by the writer and saved by the store.
+MET.GUARD_SATIETY = { "L" }
+MET.snapSatiety = {}
 MET.SLOT7 = { 7 }
 MET.BAND_SLOT = { 1, 2 }
 MET.snap = {}
@@ -326,9 +329,10 @@ function MET.ee24(body, hoursSinceClose)
     return K.max(K.body.blend24(body.eeDay, eeYest, hoursSinceClose), ree)
 end
 
--- The guard's copy, taken after the pre-step heal: the scalars, slot 7 of each ring and bandWeek's slot 7.
-local function snapAll(body)
+-- The guard's copy, taken after the pre-step heal: the scalars, slot 7 of each ring, bandWeek's slot 7 and the lag.
+local function snapAll(body, sat)
     K.heal.snap(body, MET.GUARD, MET.snap)
+    K.heal.snap(sat, MET.GUARD_SATIETY, MET.snapSatiety)
     local rings = MET.GUARD_RINGS
     for i = 1, #rings do
         K.heal.snap(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
@@ -337,8 +341,8 @@ local function snapAll(body)
 end
 
 -- The guard after the step: every guarded field the step left non-finite re-stamped from the copy; the count.
-local function guardAll(body)
-    local g = K.heal.guard(body, MET.GUARD, MET.snap)
+local function guardAll(body, sat)
+    local g = K.heal.guard(body, MET.GUARD, MET.snap) + K.heal.guard(sat, MET.GUARD_SATIETY, MET.snapSatiety)
     local rings = MET.GUARD_RINGS
     for i = 1, #rings do
         g = g + K.heal.guard(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
@@ -355,7 +359,7 @@ local function step(username, player, record, ctx)
     local body = MET.ensureBody(username, player, record, ageH)
     heal(username, body, ageH, player)
     local sat = MET.healActivity(username, record, body)
-    snapAll(body)
+    snapAll(body, sat)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff (Plan 4 ruling 17),
@@ -413,7 +417,7 @@ local function step(username, player, record, ctx)
     local ex24 = K.body.blend24(body.exKcalDay, body.exKcalPrev, hSince)   -- the trailing-24 h exercise kcal
     body.energyState = K.energy.activityState(K.energy.eb24h(body, hSince), ex24, sat.L, fatDep, g, MET.ee24(body, hSince))
     body.lastAgeH = ageH
-    local ng = guardAll(body)
+    local ng = guardAll(body, sat)
     if ng > 0 then
         MET.guarded = MET.guarded + ng
         NR.log.say(2, "metabolism: " .. tostring(ng) .. " field(s) the step made non-finite re-stamped for " .. tostring(username))

@@ -372,3 +372,22 @@ def test_a_failed_clock_read_never_creates_a_record():
     h.G.getGameTime = h.rt.eval("function() error('clock') end")
     assert h.NR.server.store.get("nobody", h.NR.worldAge()) is None
     assert h.record("nobody") is None
+
+
+def test_the_guard_lists_name_the_liquid_lane_the_energy_and_the_mass(kin_host):
+    h = kin_host
+    assert list(KIN(h).GUARD.values()) == ["liquid"]
+    assert list(KIN(h).GUARD_BUFFER.values()) == ["calories", "water", "proteins", "carbs", "lipids", "fibre"]
+
+
+def test_a_non_finite_liquid_lane_after_a_finite_fill_resets_the_stomach(kin_host):
+    # an infinite lane with no minute elapsed (no drain to turn it NaN) clamps the fill to 1, which is finite, so only
+    # the GUARD list catches it
+    h = kin_host
+    r = rec(h, calories=300)
+    run(h, r, 100.0)
+    r.stomach.liquid = float("inf")
+    f0 = KIN(h).stats.failures
+    run(h, r, 100.0)
+    assert r.stomach.liquid == 0 and r.stomach.buffer.calories == 0 and r.stomachFill == 0
+    assert KIN(h).stats.failures == f0 + 1

@@ -22,6 +22,15 @@ default (K.store.load), the fresh value the heal would have stamped; body's load
 WINDOW lists the reads left unguarded, each with the reason; the window test injects each one and shows the NaN
 stays in its own field for one minute and the next pre-step heal takes it (the accepted window, ruling 10).
 
+Kinetics (Plan 11c Task 8) heals by resetting the stomach empty rather than re-stamping: its GUARD lists name the
+fields that reset fires on (the liquid lane, the solid lane's energy, which sets every key's drain next minute, and
+the gram keys of the mass); the writer's own pool P is guarded inside the writer (test_writer_shape.py). Two writes
+and reads sit outside the minute: the intake feeds satiety.P at the eat (IN.feed), and the writer heals a
+non-finite P by re-seeding it; the client's Overfull level reads the mirror's stomachMass, which K.mirror.stomachMass
+reads as 0 for a non-finite mass, and K.view.fullnessLevel reads a non-finite mass as 0 as well. Metabolism's
+satiety.L and body.exKcalPrev (Plan 11c Task 6) are re-stamped by its guard, and its pre-step heal
+(MET.healActivity) stamps 0 on either when an input arrives non-finite.
+
 The injections run on the shared host; each wraps a kernel function its producer step calls near its end, so the
 NaN appears inside the producer's step as its own arithmetic would make it.
 """
@@ -49,7 +58,7 @@ CROSS = (
         ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
         ("store", ("fm", "lm", "lastAgeH", "dayIndex", "lastCloseAgeH", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
-                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp")),
+                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp", "exKcalPrev")),
     ])
     + _rows("metabolism", "body.eb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
     + _rows("metabolism", "body.carb7", [("nutrients", (7,)), ("weight", (7,)), ("store", (7,))])
@@ -83,10 +92,22 @@ CROSS = (
                  "fOff", "mAcc", "rRec")),
         ("store", ("epoch",)),
     ])
+    # Plan 11c Task 8: the exercise lag Metabolism steps, which the writer reads (to heal it) and the store saves.
+    + _rows("metabolism", "satiety", [("writer", ("L",)), ("store", ("L",))])
+    # Plan 11c Task 8: the stomach's two lanes. The pending water reads both lanes' water (K.stomach.water); the bus's
+    # push signature and K.mirror.stomach read the whole mass, both lanes (K.stomach.mass via K.mirror.stomachMass).
+    + _rows("kinetics", "stomach", [("nutrients", ("liquid",)), ("bus", ("liquid",)), ("store", ("liquid",))])
+    + _rows("kinetics", "stomach.buffer", [
+        ("nutrients", ("water",)),
+        ("bus", ("water", "proteins", "carbs", "lipids", "fibre")),
+        ("store", ("calories", "water", "proteins", "carbs", "lipids", "fibre")),
+    ])
 )
+# The ctx transients Metabolism stamps for the writer (ctx.activityClass, ctx.exercising) live one player's minute
+# on the pipeline context, never on the record, so they have no rows.
 
 # The kernel function each producer calls near its step's end: the injection lands after it returns.
-NEAR_END = {"metabolism": "energy.state", "nutrients": "acute.iu", "effects": "effects.drain"}
+NEAR_END = {"metabolism": "energy.state", "nutrients": "acute.iu", "effects": "effects.drain", "kinetics": "stomach.fill"}
 
 # Every guarded (producer, sub-table, field), once.
 GUARDED = sorted({(p, s, f) for p, s, f, _ in CROSS}, key=lambda r: (r[0], r[1], str(r[2])))
@@ -176,6 +197,9 @@ def test_the_guard_lists_are_step_1s_table():
     assert lua(N.nutrients.GUARD_ACUTE) == want("nutrients", "acute")
     assert lua(N.nutrients.GUARD_STATE) == want("nutrients", "nutrients")
     assert lua(N.effects.GUARD) == want("effects", "effects")
+    assert lua(N.metabolism.GUARD_SATIETY) == want("metabolism", "satiety")
+    assert lua(N.kinetics.GUARD) == want("kinetics", "stomach")
+    assert lua(N.kinetics.GUARD_BUFFER) == want("kinetics", "stomach.buffer")
 
 
 @pytest.mark.parametrize("producer,fn,sub,field", INJECT)
@@ -272,14 +296,18 @@ def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
 
 # --- the writer's rows (Plan 11 Task 14): every CROSS consumer is a step that runs; the writer's rows are its reads --
 
-SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients", "effects": "effects"}
+SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients", "effects": "effects",
+                "satiety": "metabolism", "stomach": "kinetics"}
 # Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
-# which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads).
-WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop"}
+# which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads); the
+# writer's own satiety state (P, S and the mark v), which no other step reads in the minute and the writer heals
+# itself (W.stats.guarded, test_writer_shape.py). The writer reads no stomach field: its fullness is
+# record.stomachFill, which the kinetics heal stamps finite.
+WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.v"}
 
 PROXY = r"""
 function(rec, log)
-    for _, sub in ipairs({ "body", "fluids", "acute", "effects" }) do
+    for _, sub in ipairs({ "body", "fluids", "acute", "effects", "satiety", "stomach" }) do
         local real = rec[sub]
         rec[sub] = setmetatable({}, {
             __index = function(t, k) log[#log + 1] = sub .. "." .. tostring(k); return real[k] end,
@@ -301,6 +329,7 @@ def test_the_writers_cross_rows_are_its_reads():
     h.fire("OnGameBoot")
     p = h.rt.eval("NR_T.statsPlayer")(h.player("a"), h.rt.eval(STATS))
     rec = record(h)
+    rec.stomach = h.K.stomach.new()
     log = h.rt.table()
     h.rt.eval(PROXY)(rec, log)
     h.T.age = 100.0
