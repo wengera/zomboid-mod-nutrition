@@ -1,0 +1,269 @@
+{
+ "decision3_rule": {
+  "exceeds": true,
+  "full_500_file_bytes": 6731587,
+  "threshold_bytes": 1000000
+ },
+ "golden_sha256": "c53794a2cfe27b20f7d1f0390e20a7554a63adf40723b20fb6cf0f7076f66946",
+ "per_record": {
+  "g1": {
+   "full_bytes": 13537,
+   "full_counts": {
+    "leaves": 768,
+    "numbers": 971,
+    "skipped": 0,
+    "tables": 71
+   },
+   "inputs_bytes": 11442,
+   "inputs_counts": {
+    "leaves": 651,
+    "numbers": 848,
+    "skipped": 0,
+    "tables": 62
+   }
+  },
+  "g2": {
+   "full_bytes": 13490,
+   "full_counts": {
+    "leaves": 766,
+    "numbers": 969,
+    "skipped": 0,
+    "tables": 70
+   },
+   "inputs_bytes": 11395,
+   "inputs_counts": {
+    "leaves": 649,
+    "numbers": 846,
+    "skipped": 0,
+    "tables": 61
+   }
+  },
+  "g3": {
+   "full_bytes": 13253,
+   "full_counts": {
+    "leaves": 759,
+    "numbers": 964,
+    "skipped": 0,
+    "tables": 63
+   },
+   "inputs_bytes": 11300,
+   "inputs_counts": {
+    "leaves": 646,
+    "numbers": 843,
+    "skipped": 0,
+    "tables": 58
+   }
+  },
+  "g4": {
+   "full_bytes": 13348,
+   "full_counts": {
+    "leaves": 762,
+    "numbers": 967,
+    "skipped": 0,
+    "tables": 66
+   },
+   "inputs_bytes": 11395,
+   "inputs_counts": {
+    "leaves": 649,
+    "numbers": 846,
+    "skipped": 0,
+    "tables": 61
+   }
+  },
+  "g5": {
+   "full_bytes": 13535,
+   "full_counts": {
+    "leaves": 768,
+    "numbers": 971,
+    "skipped": 0,
+    "tables": 70
+   },
+   "inputs_bytes": 11414,
+   "inputs_counts": {
+    "leaves": 650,
+    "numbers": 847,
+    "skipped": 0,
+    "tables": 61
+   }
+  },
+  "g6": {
+   "full_bytes": 13530,
+   "full_counts": {
+    "leaves": 767,
+    "numbers": 970,
+    "skipped": 0,
+    "tables": 70
+   },
+   "inputs_bytes": 11401,
+   "inputs_counts": {
+    "leaves": 649,
+    "numbers": 846,
+    "skipped": 0,
+    "tables": 61
+   }
+  }
+ },
+ "per_record_mean": {
+  "full_bytes": 13448.833333333334,
+  "full_store_entry_bytes": 13462.833333333334,
+  "inputs_bytes": 11391.166666666666,
+  "inputs_store_entry_bytes": 11405.166666666666
+ },
+ "per_record_range": {
+  "full_bytes": [
+   13253,
+   13537
+  ],
+  "inputs_bytes": [
+   11300,
+   11442
+  ]
+ },
+ "scales": {
+  "full": {
+   "1": {
+    "file_bytes": 13592,
+    "file_sha256": "af8d34119b0eb2f3e8efb129d9e95ce1d93e33c48c8b8887e78b225317a2dc70",
+    "first_save_bytes_serialised": 13592,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 768,
+    "table_bytes": 13555,
+    "tables": 72
+   },
+   "100": {
+    "file_bytes": 1346157,
+    "file_sha256": "8d15f3a23fe665b7c231c5835037e5be3093ab8eb186cfe291e7a7d36e3d393f",
+    "first_save_bytes_serialised": 2394733,
+    "first_save_final_capacity": 1572864,
+    "first_save_overflow_restarts": 1,
+    "leaves": 76495,
+    "table_bytes": 1346120,
+    "tables": 6831
+   },
+   "2000": {
+    "file_bytes": 26925837,
+    "file_sha256": "1c62649983fff8334ccbad601b2858f8fb478489e658cad4f8236f8405b11586",
+    "first_save_bytes_serialised": 721607437,
+    "first_save_final_capacity": 27262976,
+    "first_save_overflow_restarts": 50,
+    "leaves": 1530004,
+    "table_bytes": 26925800,
+    "tables": 136672
+   },
+   "500": {
+    "file_bytes": 6731587,
+    "file_sha256": "be42a61f6c6be6fc40ffb9205262d9c50503279273487e08b1ecc76c44fef4cf",
+    "first_save_bytes_serialised": 47101763,
+    "first_save_final_capacity": 6815744,
+    "first_save_overflow_restarts": 11,
+    "leaves": 382504,
+    "table_bytes": 6731550,
+    "tables": 34172
+   },
+   "6": {
+    "file_bytes": 80818,
+    "file_sha256": "188f510db76431d25cbcf554807278a1af489edb352f887e306d415ba156a9b1",
+    "first_save_bytes_serialised": 80818,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 4590,
+    "table_bytes": 80781,
+    "tables": 411
+   },
+   "60": {
+    "file_bytes": 807811,
+    "file_sha256": "dee89cad905e7a09d18ccfb92cefe541614e66de886acfb7034a965cbc89e2a3",
+    "first_save_bytes_serialised": 807811,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 45900,
+    "table_bytes": 807774,
+    "tables": 4101
+   }
+  },
+  "inputsOnly": {
+   "1": {
+    "file_bytes": 11497,
+    "file_sha256": "e34ae81f6437f4366c3a9e9b2308e687054e4c4be23d84ebf83af274da7b71c4",
+    "first_save_bytes_serialised": 11497,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 651,
+    "table_bytes": 11460,
+    "tables": 63
+   },
+   "100": {
+    "file_bytes": 1140525,
+    "file_sha256": "78535819dd7833ed7cb18a8e47784c4941f3a7c01934572fa5771c60aec0d182",
+    "first_save_bytes_serialised": 2189101,
+    "first_save_final_capacity": 1572864,
+    "first_save_overflow_restarts": 1,
+    "leaves": 64899,
+    "table_bytes": 1140488,
+    "tables": 6067
+   },
+   "2000": {
+    "file_bytes": 22810429,
+    "file_sha256": "1c989d09c5220cc5133710ac43b7ca9eacb417dcd99496112b94062ec576bf86",
+    "first_save_bytes_serialised": 518262589,
+    "first_save_final_capacity": 23068672,
+    "first_save_overflow_restarts": 42,
+    "leaves": 1298002,
+    "table_bytes": 22810392,
+    "tables": 121336
+   },
+   "500": {
+    "file_bytes": 5702679,
+    "file_sha256": "d88ee406e16dec44cfc52fe951e75a21dbf71f4500c293acf3a0013c25b2df5f",
+    "first_save_bytes_serialised": 34014231,
+    "first_save_final_capacity": 5767168,
+    "first_save_overflow_restarts": 9,
+    "leaves": 324502,
+    "table_bytes": 5702642,
+    "tables": 30336
+   },
+   "6": {
+    "file_bytes": 68472,
+    "file_sha256": "14bdef8691a2f46767dcd469af756c58675626916c0c047e8f862946ddad1650",
+    "first_save_bytes_serialised": 68472,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 3894,
+    "table_bytes": 68435,
+    "tables": 365
+   },
+   "60": {
+    "file_bytes": 684351,
+    "file_sha256": "71978cf1427c14c353e190612fc04dd0a499ce795ecea325efd66981124d0aac",
+    "first_save_bytes_serialised": 684351,
+    "first_save_final_capacity": 1048576,
+    "first_save_overflow_restarts": 0,
+    "leaves": 38940,
+    "table_bytes": 684314,
+    "tables": 3641
+   }
+  }
+ },
+ "scenario": "golden_trace.run, final records at minute 240",
+ "slot_file": {
+  "fmt": "lupa tostring",
+  "gen": 1,
+  "mean_bytes": 7251.666666666667,
+  "per_record_bytes": {
+   "g1": 7675,
+   "g2": 7561,
+   "g3": 5973,
+   "g4": 7644,
+   "g5": 7765,
+   "g6": 6892
+  },
+  "range_bytes": [
+   5973,
+   7765
+  ]
+ },
+ "spike": "Plan 10c Task H6 Step 2",
+ "store_name": "NutritionRevamp.players",
+ "username_len": 10
+}

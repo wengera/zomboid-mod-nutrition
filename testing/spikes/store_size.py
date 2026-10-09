@@ -32,6 +32,15 @@ Outputs (testing/spikes/out/):
 
     python testing/spikes/store_size.py            writes both files
     python testing/spikes/store_size.py --check    re-runs and compares against the committed JSON
+    python testing/spikes/store_size.py --out STEM writes out/STEM.json and out/STEM.md instead, leaving the
+                                                   committed pair as it is (Plan 11e Task 4's dated re-run)
+
+Since Plan 11 Task 11 the mod keeps no record under a global modData name: each player's record is persisted as one
+JSON line in two alternating slot files (NR_Server_Store.lua, F.write of K.json.encode({ gen, rec =
+K.store.inputsOnly(record), done = true }, F.fmt), F.fmt = tostring). `slot_file` (Plan 11e Task 4) is that line's
+byte length per final record, encoded by the mod's own K.json.encode with gen 1 under lupa's tostring (Lua 5.1,
+%.14g; the server's Kahlua tostring may print a number at another length). The global-modData figures above stay
+as the save's format of the same records, which the mod no longer writes.
 
 The Lua is the mod/ tree server_host loads (identical to the staged copy release/hitch-9578eb9: its MANIFEST
 sha256 equals Plan 10b's, because mod/ has not changed since).
@@ -177,6 +186,21 @@ def final_records():
     return h, recs
 
 
+def slot_file(h, recs):
+    """The slot file's one line per final record: K.json.encode({ gen = 1, rec = inputsOnly, done = true }, tostring)."""
+    enc = h.rt.eval("function(r) return NutritionRevamp.kernel.json.encode({ gen = 1, "
+                    "rec = NutritionRevamp.kernel.store.inputsOnly(r), done = true }, tostring) end")
+    per = {}
+    for n in golden_trace.NAMES:
+        text = enc(recs[n])
+        if isinstance(text, str):
+            text = text.encode("utf-8")
+        per[n] = len(text)
+    vals = [per[n] for n in golden_trace.NAMES]
+    return {"per_record_bytes": per, "mean_bytes": sum(vals) / len(vals), "range_bytes": [min(vals), max(vals)],
+            "gen": 1, "fmt": "lupa tostring"}
+
+
 def measure():
     h, recs = final_records()
     rt = h.rt
@@ -239,6 +263,7 @@ def measure():
             "inputs_bytes": [min(per[n]["inputs_bytes"] for n in per), max(per[n]["inputs_bytes"] for n in per)],
         },
         "scales": scales,
+        "slot_file": slot_file(h, recs),
         "decision3_rule": {
             "threshold_bytes": 1000000,
             "full_500_file_bytes": scales["full"]["500"]["file_bytes"],
@@ -277,6 +302,18 @@ def render_md(d):
     L.append("Decision 3 size rule: 500 full records = %d bytes against %d: %s."
              % (r["full_500_file_bytes"], r["threshold_bytes"], "exceeds" if r["exceeds"] else "within"))
     L.append("")
+    sf = d.get("slot_file")
+    if sf is not None:
+        L.append("Slot file (the store since Plan 11 Task 11): one JSON line per record, gen 1, lupa tostring.")
+        L.append("")
+        L.append("| record | slot-file line bytes |")
+        L.append("|---|---|")
+        for n, b in sf["per_record_bytes"].items():
+            L.append("| %s | %d |" % (n, b))
+        L.append("")
+        L.append("Mean slot-file line: %.1f bytes (range %d to %d)." % (sf["mean_bytes"], sf["range_bytes"][0],
+                                                                   sf["range_bytes"][1]))
+        L.append("")
     return "\n".join(L)
 
 
@@ -288,10 +325,14 @@ def main(argv):
             same = fh.read() == text
         print("store-size.json %s" % ("in sync" if same else "DIFFERS"))
         return 0 if same else 1
+    json_out, md_out = JSON_OUT, MD_OUT
+    if "--out" in argv:
+        stem = argv[argv.index("--out") + 1]
+        json_out, md_out = os.path.join(OUT, stem + ".json"), os.path.join(OUT, stem + ".md")
     os.makedirs(OUT, exist_ok=True)
-    with open(JSON_OUT, "w", encoding="utf-8", newline="\n") as fh:
+    with open(json_out, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
-    with open(MD_OUT, "w", encoding="utf-8", newline="\n") as fh:
+    with open(md_out, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(render_md(d))
     print(render_md(d))
     return 0
