@@ -14,20 +14,36 @@ The twins, and where each departs from its oracle (each departure a choice named
   lists on the 70 kg man (male, responder 1), asleep 23:00-07:00, as test_replay_live_oracle.py runs them. Six against
   three's warm-up eats fill the stomach and the pool too (the server has no energy-only eat). Six against three held is
   the satiety replay at the energy state 1 (kinetics and the writer alone, no body), from P 0 at 08:00.
-- Karl 2021 (S1325): the oracle's body spends a flat 2,700 kcal a day (ASSUMED) and works 9.6 MJ a day (the study's)
-  evenly over 8 h, vigorous every minute. The server cannot hold all three: its vigour needs a billed MET of 6.0 or
-  more (W.vigorous), and its exercise kcal is (MET - 1.3) x mass a minute. Four twins, each matching two of the three:
-    E   expenditure-matched: the stand-in's weight set so its idle day is 2,700 kcal (119.1 kg, awake 20 h); HeavyWork
-        (engine 6.0, billed 6.0, vigorous) for the first 31 minutes of each work hour, 9.6 MJ a day;
-    Env the same body and work at MediumWork (engine 3.9, billed 4.0, never vigorous), 54 minutes an hour;
-    V   the 70 kg man (his own idle day, 2,032.7 kcal) doing the study's 9.6 MJ at HeavyWork, 52 minutes an hour;
-    C   a 61 kg man at HeavyWork every work minute (vigorous throughout), which bills the study's 9.6 MJ; his own idle
-        day.
-  Each twin: one sedentary balanced day first (the study's; it fills the window and seeds the pool), then 72 h from
-  06:00, meals at 07:00, 12:00 and 18:00 (the oracle's), asleep 02:00-06:00, BAL at 1.18 and DEF at 0.57 of the
-  twin's own work-day expenditure; the reading is the mean written HUNGER over the protocol's awake minutes, against
-  REST's. Karl's DEF reading spans 10 % to 66 % across them at the shipped constants: the twin's body, which no row
-  gives, sets it.
+- Karl 2021 (S1325), twin K (Plan 11f Task 2c, ruling 2b-3): Karl as the paper ran it, from its own numbers
+  (docs/superpowers/research/2026-10-10-live-study-replays/03-karl-2021-facts.md). It replaces Task 2b's twins E, Env,
+  V and C, whose bodies and expenditures no row gave. Each choice the paper leaves open is named:
+    body     87.3 kg (Hennigar 2021, the same n = 10 of the same trial), male, built by the stand-in's own birth
+             composition (K.body.split at 87.3 kg, no build flags: lm 67.8 kg, REE 1,748 kcal); the paper reports no
+             height or body fat;
+    clock    asleep 01:00-05:00 on the three SUSOPS nights (the paper's); the nights before them and REST's 22:00-06:00
+             (an ASSUMED unrestricted 8 h, so REST carries no sleep debt; REST ran 06:00-18:00); two sedentary warm-up
+             days at REST intake (ASSUMED) fill the trailing window and seed the pool; meals at 07:00, 12:00 and 18:00
+             (the paper matched meal times across arms but gives no clock; the oracle's);
+    work     the morning loaded walk 08:00-09:04 (64 min at 8.3 MET), the evening loaded walk 19:30-21:32 (122 min at
+             8.4 MET), the afternoon walk 14:00-15:34 (94 min at 5.4 MET); the clock times are ASSUMED. The server bills
+             one class a minute, and none bills 8.3: the loaded walks alternate HeavyWork (engine 6.0, billed 6.0) and
+             Running10kmh (engine 6.9, billed 9.3) minute by minute, a Bresenham share (44 of 64 and 88 of 122 minutes
+             at 9.3) billing 8.27 and 8.38 MET on the bout's mean, vigorous aerobic every minute as loaded walking is
+             (the nearest single class, ClimbRope's 8.0, would class the walk as resistance work: a reading in the
+             report). The 5.4 MET walk bills DiggingSpade (engine 5.5, billed 5.0, not vigorous: every class at or
+             above 6.0 is vigorous on the server), 0.4 MET short (about 55 kcal a day at 87.3 kg). The task battery
+             runs 10:00-10:25 at MediumWork (billed 4.0): an ASSUMED 25 min, the length that bills the protocol's
+             "approximately 100 kcal/d" above the idle class;
+    intake   the paper's, REST 10.6, DEF 10.5 and BAL 22.7 MJ/d (Table 1), as three equal mixed meals, water 300 g per
+             1,950 kcal (the oracle's); the paper's snacks on request are not modelled;
+    reading  the study's 8 VAS times a day, before and after each meal (the minute before the eat lands and the minute it
+             lands) and before and after the morning walk (its first minute's eve and its last minute), over the three
+             SUSOPS days, against one REST day read at the same 8 times; the outcome is the percentage difference of the
+             mean ratings against REST's (Table 2's quantity).
+  The calibration check: the twin's work days bill 19.75-19.88 MJ (DEF) and 19.79-20.02 MJ (BAL) against the
+  doubly-labelled-water TDEE of 19.1 and 20.0 MJ/d (Table 1, n 9); the body is not tuned to close the gap. Its
+  sedentary day bills 9.06 MJ against REST's 10.6 MJ diet (RMR x 1.3 in the paper): the warm-up and REST days run a
+  surplus of about 370 kcal a day.
 - King 2011 at steady state (S1312): the oracle's 2,500 kcal day as the stand-in's idle day awake 16 h (116.0 kg),
   asleep 23:00-07:00 (the oracle has no night), the 4715 kJ run as 73 min of Running10kmh (engine 6.9, billed 9.3,
   vigorous aerobic) from 08:00 of day 3.
@@ -55,7 +71,7 @@ sys.path.insert(0, os.path.join(REPO, "tools"))
 import replay_live as RL  # noqa: E402
 
 MAN = {"player": {"weight": 70.0, "female": False}, "rng": "half"}
-RATE = {"HeavyWork": 6.0, "MediumWork": 3.9, "UsingTools": 2.5, "Running10kmh": 6.9, "Running15kmh": 9.5}
+RATE = {"HeavyWork": 6.0, "MediumWork": 3.9, "UsingTools": 2.5, "Running10kmh": 6.9, "Running15kmh": 9.5, "DiggingSpade": 5.5}
 IDLE = 1.5                        # the engine's Default class (a live idle player, #2875)
 
 
@@ -215,61 +231,116 @@ def test_the_low_carbohydrate_day_on_the_server_path(host):
     assert round(low["body.energyState"] - m20["body.energyState"], 4) == READ["lowcarb_des"], (low, m20)
 
 
-# --- Karl 2021 (S1325) ---------------------------------------------------------------------------------------------
+# --- Karl 2021 (S1325): twin K, the paper's own numbers --------------------------------------------------------------
 
-def karl_arm(host, intake, rest_kcal, work, w, per_hour, cls):
-    """One arm: the sedentary balanced day, then 72 h from 06:00; the mean written HUNGER over the protocol's awake
-    minutes."""
-    ev = []
-    for d in range(4):
-        ink = rest_kcal if d == 0 else intake
-        for hh in (7, 12, 18):
-            ev.append({"minute": d * 1440 + (hh - 6) * 60, "kind": "eat",
-                       "vec": M.mixed(ink / 3, water=300.0 * ink / 1950)})
-        ev.append({"minute": d * 1440 + 1200, "kind": "sleep", "asleep": True})            # 02:00
-        if d < 3:
-            ev.append({"minute": (d + 1) * 1440, "kind": "sleep", "asleep": False})      # 06:00
-    if work:
-        for d in range(1, 4):
-            for hh in (8, 9, 10, 11, 13, 14, 15, 16):
-                m0 = d * 1440 + (hh - 6) * 60
-                ev.append({"minute": m0, "kind": "activity", "rate": RATE[cls]})
-                if per_hour < 60 or hh in (11, 16):
-                    ev.append({"minute": m0 + per_hour, "kind": "activity", "rate": IDLE})
+KARL_KG = 87.3                    # Hennigar 2021 (the same trial's n = 10): 87.3 +- 10.9 kg
+KCAL_PER_MJ = 1000 / 4.184
+KARL_MJ = {"REST": 10.6, "DEF": 10.5, "BAL": 22.7}     # Table 1, dietary intake, MJ/d
+KARL_TDEE_MJ = {"DEF": 19.1, "BAL": 20.0}              # Table 1, doubly labelled water, MJ/d (n 9)
+KARL_MEALS = (7, 12, 18)          # ASSUMED clock (the oracle's): the paper matched meal times but gives none
+KARL_WARM = 2                     # ASSUMED sedentary days at REST intake before each arm
+KARL_NIGHT = 22                   # ASSUMED unrestricted nights, 22:00-06:00, before SUSOPS and around REST
+KARL_AM = (8 * 60, 64, 8.3)       # the morning loaded walk: 08:00 (ASSUMED), 64 min, 8.3 MET
+KARL_EVE = (19 * 60 + 30, 122, 8.4)   # the evening loaded walk: 19:30 (ASSUMED), 122 min, 8.4 MET
+KARL_PM = (14 * 60, 94)           # the afternoon walk: 14:00 (ASSUMED), 94 min at 5.4 MET, billed DiggingSpade 5.0
+KARL_BATTERY = (10 * 60, 25)      # the task battery: 10:00 (ASSUMED), 25 min of MediumWork, about 100 kcal (the protocol)
+
+
+def karl_walk(start, dur, met):
+    """A loaded walk billing `met` on the bout's mean: HeavyWork (billed 6.0) with Running10kmh (billed 9.3) on the
+    minutes a Bresenham share of (met - 6.0) / 3.3 picks, every minute vigorous aerobic; idle after."""
+    x = (met - 6.0) / (9.3 - 6.0)
+    ev, prev = [], None
+    for i in range(dur):
+        cls = "Running10kmh" if int((i + 1) * x + 1e-9) > int(i * x + 1e-9) else "HeavyWork"
+        if cls != prev:
+            ev.append({"minute": start + i, "kind": "activity", "rate": RATE[cls]})
+            prev = cls
+    ev.append({"minute": start + dur, "kind": "activity", "rate": IDLE})
+    return ev
+
+
+def karl_bout(start, dur, cls):
+    return [{"minute": start, "kind": "activity", "rate": RATE[cls]},
+            {"minute": start + dur, "kind": "activity", "rate": IDLE}]
+
+
+def karl_events(arm):
+    """KARL_WARM sedentary days, then REST (one day) or three SUSOPS days; minute 0 is 00:00 of the first warm day."""
+    days = KARL_WARM + (1 if arm == "REST" else 3)
+    rest_kcal = KARL_MJ["REST"] * KCAL_PER_MJ
+    ev = [{"minute": 0, "kind": "sleep", "asleep": True}]
+    for d in range(days):
+        base = d * 1440
+        susops = arm != "REST" and d >= KARL_WARM
+        kcal = KARL_MJ[arm] * KCAL_PER_MJ if susops else rest_kcal
+        for hh in KARL_MEALS:
+            ev.append({"minute": base + hh * 60, "kind": "eat", "vec": M.mixed(kcal / 3, water=300.0 * kcal / 1950)})
+        after_susops = arm != "REST" and d - 1 >= KARL_WARM
+        ev.append({"minute": base + (5 if after_susops else 6) * 60, "kind": "sleep", "asleep": False})
+        if not susops:
+            ev.append({"minute": base + KARL_NIGHT * 60, "kind": "sleep", "asleep": True})
+            continue
+        if d < days - 1:
+            ev.append({"minute": base + 1440 + 60, "kind": "sleep", "asleep": True})        # 01:00
+        ev += karl_walk(base + KARL_AM[0], KARL_AM[1], KARL_AM[2])
+        ev += karl_walk(base + KARL_EVE[0], KARL_EVE[1], KARL_EVE[2])
+        ev += karl_bout(base + KARL_PM[0], KARL_PM[1], "DiggingSpade")
+        ev += karl_bout(base + KARL_BATTERY[0], KARL_BATTERY[1], "MediumWork")
     ev.sort(key=lambda e: e["minute"])
-    rows, _ = RL.replay_arm(ev, minutes=4 * 1440, backend="server", start_age=6.0,
-                            player={"weight": w, "female": False}, rng="half")
-    hs = [r["HUNGER"] for r in rows[1440:]]
-    awake = [x for m, x in enumerate(hs) if not (20 <= (m // 60) % 24 < 24)]   # 02:00-06:00 is hours 20-24 from 06:00
-    return sum(awake) / len(awake)
+    return ev, days
 
 
-def karl_server(host, w, cls, rest_kcal, paee):
-    """(minutes of work an hour, BAL %, DEF %) against REST, as karl() reads them."""
-    per_hour = min(60, int(round(paee / 8 / ex_per_min(host, cls, w))))
-    work = rest_kcal + paee
-    rest = karl_arm(host, rest_kcal, rest_kcal, False, w, per_hour, cls)
-    bal = karl_arm(host, 1.18 * work, rest_kcal, True, w, per_hour, cls)
-    dfc = karl_arm(host, 0.57 * work, rest_kcal, True, w, per_hour, cls)
-    return per_hour, round(100 * (bal / rest - 1), 1), round(100 * (dfc / rest - 1), 1)
+def karl_vas(day0):
+    """The day's 8 VAS rows: before and after each meal, before and after the morning walk."""
+    out = []
+    for hh in KARL_MEALS:
+        out += [day0 + hh * 60 - 1, day0 + hh * 60]
+    out += [day0 + KARL_AM[0] - 1, day0 + KARL_AM[0] + KARL_AM[1] - 1]
+    return sorted(out)
 
 
-KARL_E_KG = 119.1                 # the stand-in whose idle day (awake 20 h) is the oracle's 2,700 kcal
-KARL_C_KG = 61.0                  # the stand-in whose 480 HeavyWork minutes bill the study's 9.6 MJ
+def karl_k_arm(arm):
+    """(mean HUNGER at the VAS rows of the arm's study days, each study day's billed expenditure in MJ)."""
+    ev, days = karl_events(arm)
+    rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, paths=("body.eeDay",),
+                            player={"weight": KARL_KG, "female": False}, rng="half")
+    reads = [rows[m]["HUNGER"] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440)]
+    ee = [rows[d * 1440 + 1438]["body.eeDay"] / KCAL_PER_MJ for d in range(days)]   # the day's 1,440 steps
+    return sum(reads) / len(reads), ee[KARL_WARM:]
 
 
-def test_karl_2021_on_the_server_path_reads_with_its_twin(host):
-    # S1325: -55 % (BAL) and +26 % (DEF), each within 1.5x (DEF 17.3 to 39 %); the oracle reads -57.0 and +19.3 (vigorous)
-    # and -45.0 and +55.2 (not vigorous, a named non-reproduction). On the server the DEF reading is set by the twin:
-    # E 65.7 (fails above), Env 75.8, V 23.2 (passes), C 10.2 (fails below)
-    assert abs(idle_day(host, KARL_E_KG, 20) - A.KARL_REST) < 2.0
-    assert abs(ex_per_min(host, "HeavyWork", KARL_C_KG) * 480 - A.KARL_PAEE) < 1.0
-    e = karl_server(host, KARL_E_KG, "HeavyWork", A.KARL_REST, A.KARL_PAEE)
-    env = karl_server(host, KARL_E_KG, "MediumWork", A.KARL_REST, A.KARL_PAEE)
-    v = karl_server(host, 70.0, "HeavyWork", idle_day(host, 70.0, 20), A.KARL_PAEE)
-    c = karl_server(host, KARL_C_KG, "HeavyWork", idle_day(host, KARL_C_KG, 20), ex_per_min(host, "HeavyWork", KARL_C_KG) * 480)
-    assert (e, env, v, c) == ((31, -47.1, 65.7), (54, -43.4, 75.8), (52, -56.7, 23.2), (60, -60.4, 10.2)), (e, env, v, c)
-    assert [A.karl_pass(x[1], x[2]) for x in (e, env, v, c)] == [(True, False), (True, False), (True, True), (True, False)]
+def karl_k():
+    """Twin K: BAL % and DEF % against REST (Table 2's quantity), and the billed MJ per study day of each arm."""
+    rest, ee_rest = karl_k_arm("REST")
+    bal, ee_bal = karl_k_arm("BAL")
+    dfc, ee_def = karl_k_arm("DEF")
+    return {"bal": 100 * (bal / rest - 1), "dfc": 100 * (dfc / rest - 1), "rest": rest,
+            "ee": {"REST": ee_rest, "BAL": ee_bal, "DEF": ee_def}}
+
+
+def karl_pass(bal, dfc):
+    """Each arm passes when its sign matches the study's and it sits within 1.5x of it (-55 % and +26 %): the activity
+    oracle's tolerance (spec section 5c, Plan 11c Task 4b), DEF 17.3 to 39 % inside the study's own 95 % CI (-3, 54)."""
+    ok_bal = bal < 0 and max(bal / -55.0, -55.0 / bal) <= 1.5
+    ok_dfc = dfc > 0 and max(dfc / 26.0, 26.0 / dfc) <= 1.5
+    return ok_bal, ok_dfc
+
+
+def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
+    # S1325: hunger -55 % (BAL) and +26 % (DEF, 95 % CI -3 to 54) against REST. Twin K at the shipped constants
+    # (BALANCE_SPAN_KCAL 7500, DEFICIT_FLOOR 1.0), a READING: DEF +88.1 (fails above 39), BAL -28.4 (fails short of -36.7).
+    # DEF's days 2 and 3 read es about 1.155 (a trailing deficit of about 2,270 kcal, 0.48 of the 24 h expenditure, so
+    # the lag is bypassed whole) and the sleep factor's 1.18 from the 4 h nights
+    k = karl_k()
+    assert karl_pass(k["bal"], k["dfc"]) == (False, False), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-28.4, 88.1), k
+    # the calibration check against the doubly labelled water: the gap is a reading, never tuned
+    assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]
+    assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.02], k["ee"]
+    assert round(sum(k["ee"]["DEF"]) / 3 - KARL_TDEE_MJ["DEF"], 2) == 0.71, k["ee"]
+    assert round(sum(k["ee"]["BAL"]) / 3 - KARL_TDEE_MJ["BAL"], 2) == -0.06, k["ee"]
+    assert round(k["ee"]["REST"][0], 2) == 9.06 and KARL_MJ["REST"] > k["ee"]["REST"][0], k["ee"]
 
 
 # --- King 2011 at steady state (S1312) -----------------------------------------------------------------------------
