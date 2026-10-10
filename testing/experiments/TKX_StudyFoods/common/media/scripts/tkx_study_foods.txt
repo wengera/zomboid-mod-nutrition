@@ -32,7 +32,9 @@
    - Water600: {water: 600}
    - Mono450: mixed(450, water=300x450/650, fibre=6x450/650)
    - Staple450: mixed(450, water=300x450/650, fibre=6x450/650)
-   - Unit50: mixed(50, water=300x50/650, fibre=6x50/650) */
+   - Unit50: mixed(50, water=300x50/650, fibre=6x50/650)
+   - MilkSolid: 0.5 L of the fluid table's CowMilk as a food (Plan 11f Task 4, research row 4: the liquid arm's solid
+     twin; macros and water only) */
 module TKX
 {
     item Mixed650
@@ -516,5 +518,26 @@ module TKX
         DaysFresh = 365,
         DaysTotallyRotten = 730,
         NR_Nutrients = water:23.076923;fibre:0.461538,
+    }
+
+    item MilkSolid
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -16.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0,
+        UnhappyChange = 0,
+        StressChange = 0,
+        Calories = 314.15,
+        Carbohydrates = 24.72,
+        Lipids = 16.7375,
+        Proteins = 16.2225,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:453.8695,
     }
 }

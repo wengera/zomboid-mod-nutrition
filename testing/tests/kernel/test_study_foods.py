@@ -46,6 +46,7 @@ def oracle_vectors():
         "TKX.Mono450": M.mixed(450.0, water=300.0 * 450 / 650, fibre=6.0 * 450 / 650),
         "TKX.Staple450": M.mixed(450.0, water=300.0 * 450 / 650, fibre=6.0 * 450 / 650),
         "TKX.Unit50": M.mixed(50.0, water=300.0 * 50 / 650, fibre=6.0 * 50 / 650),
+        "TKX.MilkSolid": MILK_SOLID,
     }
     for g in (100, 200, 300, 400, 500, 600):
         out["TKX.Water%d" % g] = {"water": float(g)}
@@ -53,6 +54,10 @@ def oracle_vectors():
 
 
 KEYS = ("calories", "carbs", "lipids", "proteins", "water", "fibre")
+# Plan 11f Task 4 (research row 4): the declared solid twin of 0.5 L of the vanilla fluid CowMilk, the mod's per-litre
+# fluid-table entry (NR_Data_Nutrients.lua FLUIDS.CowMilk) times 0.5 on the macros and the water
+MILK_L = 0.5
+MILK_SOLID = {"calories": 314.15, "carbs": 24.72, "lipids": 16.7375, "proteins": 16.2225, "water": 453.8695}
 
 
 def close(a, b):
@@ -132,6 +137,13 @@ def test_an_eat_lands_the_oracle_vector_through_the_declared_chain(full):
     assert rp.eats[0]["kcal"] == pytest.approx(want.get("calories", 0.0), rel=REL)
 
 
+def test_the_milk_solid_is_half_a_litre_of_the_fluid_tables_cow_milk():
+    rp = RL.ServerReplay(user="admin")
+    milk = rp.NR.data.fluids.get("CowMilk")
+    for k, v in MILK_SOLID.items():
+        assert close(v, milk[k] * MILK_L), (k, v, milk[k])
+
+
 def test_every_int_typed_key_parses_as_the_engine_int():
     """Item.DoParam reads BoredomChange, UnhappyChange, StressChange, DaysFresh and DaysTotallyRotten with
     Integer.parseInt (#0214, the key table in docs/facts/food-item-model.md), and a malformed value throws
@@ -149,4 +161,4 @@ def test_every_int_typed_key_parses_as_the_engine_int():
         if k.strip() in keys:
             seen += 1
             assert rx.match(v.strip()), ln
-    assert seen == 23 * len(keys)
+    assert seen == 24 * len(keys)
