@@ -342,3 +342,63 @@ class TestEngineOrder(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAutodrinkDetector(unittest.TestCase):
+    """Plan 11f Task 4 fix round 1 (F-T4-2): the engine's auto-drink is read off the ring's liquid lane."""
+
+    @staticmethod
+    def _ring(liquid, sips=None):
+        sips = sips or [0] * len(liquid)
+        return [{"s": i + 1, "age": 1.0 + i / 60.0, "stomach.liquid": g,
+                 RL.AUTODRINK_SIPS: sips[i], RL.AUTODRINK_EATS: 0} for i, g in enumerate(liquid)]
+
+    def test_an_unlogged_rise_is_one_drink_of_its_mass_at_its_row(self):
+        ring = self._ring([0.0, 0.0, 200.0, 191.0, 180.0, 170.0])
+        out = RL.detect_autodrinks(ring, [])
+        self.assertEqual(len(out), 1)
+        self.assertEqual((out[0]["s"], out[0]["kind"], out[0]["fluid"]), (3, "drink", "Water"))
+        self.assertAlmostEqual(out[0]["litres"], 0.2)
+        self.assertEqual(out[0]["label"], "autodrink")
+
+    def test_a_logged_drink_or_a_counted_sip_is_not_injected(self):
+        ring = self._ring([0.0, 0.0, 200.0, 191.0, 180.0, 170.0])
+        logged = [{"s": 3, "kind": "drink", "fluid": "Water", "litres": 0.2}]
+        self.assertEqual(RL.detect_autodrinks(ring, logged), [])
+        counted = self._ring([0.0, 0.0, 200.0, 191.0], sips=[0, 0, 5, 5])
+        self.assertEqual(RL.detect_autodrinks(counted, []), [])
+
+    def test_decay_and_small_wobble_are_not_a_rise(self):
+        self.assertEqual(RL.detect_autodrinks(self._ring([100.0, 90.0, 80.0, 82.0, 70.0]), []), [])
+
+    def test_a_ring_without_the_liquid_lane_is_refused(self):
+        with self.assertRaises(ValueError):
+            RL.detect_autodrinks([{"s": 1, "age": 1.0}, {"s": 2, "age": 1.1}], [])
+
+
+class TestSleepOptionCli(unittest.TestCase):
+    def test_live_requires_the_sleep_option(self):
+        with tempfile.TemporaryDirectory() as d:
+            ev = os.path.join(d, "ev.json")
+            pg = os.path.join(d, "page.json")
+            with open(ev, "w", encoding="utf-8") as fh:
+                json.dump([], fh)
+            with open(pg, "w", encoding="utf-8") as fh:
+                json.dump({"rows_list": [{"s": 1, "age": 1.0, "dtM": 1.0}], "paths": []}, fh)
+            r = subprocess.run([sys.executable, CLI, "live", "--ring", pg, "--events", ev], capture_output=True,
+                               text=True)
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("sleep", r.stderr)
+
+    def test_the_option_resolves_from_the_flag_or_the_start_document(self):
+        self.assertIs(RL.resolve_sleep_allowed(True, None), True)
+        self.assertIs(RL.resolve_sleep_allowed(None, {"sleepAllowed": False}), False)
+        self.assertIs(RL.resolve_sleep_allowed(False, {"sleepAllowed": True}), False)
+        with self.assertRaises(ValueError):
+            RL.resolve_sleep_allowed(None, {})
+        with self.assertRaises(ValueError):
+            RL.resolve_sleep_allowed(None, None)
+        self.assertEqual(RL.parse_bool("true"), True)
+        self.assertEqual(RL.parse_bool("false"), False)
+        with self.assertRaises(ValueError):
+            RL.parse_bool("maybe")

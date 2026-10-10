@@ -90,7 +90,7 @@ def test_offline_minutes_are_marked_and_not_drained(offline_run):
     slots, rows, paths, events, _ = offline_run
     off = [r["s"] for r in rows if r.get("on") is False]
     assert off == list(range(42, 131))              # rows 42..130 are taken while the player is away
-    out, be = RL.replay_live(rows, events, slots[0], ring_paths=paths)
+    out, be = RL.replay_live(rows, events, slots[0], ring_paths=paths, sleep_allowed=True)
     # the offline minutes still fire, with the user away, as live: the mod's own minute count agrees
     assert be.NR.server.players.minutes == len(out) == len(rows) - 1
     marked = [r["s"] for r in out if r.get("offline")]
@@ -108,7 +108,7 @@ def test_offline_minutes_are_marked_and_not_drained(offline_run):
 
 def test_the_replay_matches_the_live_ring_across_the_offline_window(offline_run):
     slots, rows, paths, events, _ = offline_run
-    out, _ = RL.replay_live(rows, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(rows, events, slots[0], ring_paths=paths, sleep_allowed=True)
     d = RL.diff(out, rows, TIGHT)
     assert d["ok"], d["findings"][:3]
     assert d["fields"]["HUNGER"]["n"] > 50 and any(r["s"] > 132 for r in out if not r.get("offline"))
@@ -116,7 +116,7 @@ def test_the_replay_matches_the_live_ring_across_the_offline_window(offline_run)
     stepped = [dict(r, on=True) for r in rows]
     for r in stepped:
         r.pop("norec", None)
-    out2, _ = RL.replay_live(stepped, events, slots[0], ring_paths=paths)
+    out2, _ = RL.replay_live(stepped, events, slots[0], ring_paths=paths, sleep_allowed=True)
     late = [r for r in rows if r["s"] > 135]
     assert not RL.diff([r for r in out2 if r["s"] > 135], late, {"satiety.P": ("rel", 1e-9)})["ok"]
 
@@ -127,7 +127,7 @@ def test_an_online_norec_row_is_the_first_sight_and_is_drained(offline_run):
     for r in rows2:
         if r["s"] == 20:
             r["norec"] = True
-    out, _ = RL.replay_live(rows2, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(rows2, events, slots[0], ring_paths=paths, sleep_allowed=True)
     # ruling S0-3: an online row with no record yet is the mod's first sight, which drains that minute
     assert [r["s"] for r in out if r.get("offline") and r["s"] < 40] == []
     assert next(r for r in out if r["s"] == 21)["on"] is True
@@ -149,7 +149,7 @@ def plain_run():
 
 def test_a_long_minute_is_a_gap_and_stepped_by_the_real_age_delta(plain_run):
     slots, rows, paths, events, _ = plain_run
-    out, _ = RL.replay_live(rows, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(rows, events, slots[0], ring_paths=paths, sleep_allowed=True)
     gaps = [r["s"] for r in out if r.get("gap")]
     assert gaps == [51]                               # ring row 51 carries dtM 3
     g = next(r for r in out if r["s"] == 51)
@@ -163,7 +163,7 @@ def test_a_long_minute_is_a_gap_and_stepped_by_the_real_age_delta(plain_run):
 def test_a_missing_row_is_a_gap_and_the_next_row_still_compares(plain_run):
     slots, rows, paths, events, _ = plain_run
     cut = [r for r in rows if r["s"] != 60]           # row 60 lost (a page overwritten): s jumps 59 -> 61
-    out, _ = RL.replay_live(cut, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(cut, events, slots[0], ring_paths=paths, sleep_allowed=True)
     assert [r["s"] for r in out if r.get("gap")] == [51, 61]
     assert 61 in [r["s"] for r in out]
     d = RL.diff(out, cut, {"HUNGER": ("abs", 0.002), "satiety.P": ("rel", 0.005)})
@@ -182,7 +182,7 @@ def test_a_missed_sample_is_a_gap(plain_run):
         if r["s"] > 65:
             r2["s"] -= 1
         miss.append(r2)
-    out, _ = RL.replay_live(miss, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(miss, events, slots[0], ring_paths=paths, sleep_allowed=True)
     assert [r["s"] for r in out if r.get("gap")] == [51, 65]
     assert RL.diff(out, miss)["classes"]["gap"] == 2
 
@@ -193,7 +193,7 @@ def test_a_row_whose_drain_did_not_advance_is_suspect_and_not_graded(plain_run):
     by_s = {r["s"]: r for r in sus}
     by_s[70]["drained"] = by_s[69]["drained"]         # the drain begun after row 69 had not started by row 70
     by_s[70]["HUNGER"] = by_s[70]["HUNGER"] + 0.5     # and the row reads mid-drain
-    out, _ = RL.replay_live(sus, events, slots[0], ring_paths=paths)
+    out, _ = RL.replay_live(sus, events, slots[0], ring_paths=paths, sleep_allowed=True)
     assert [r["s"] for r in out if r.get("suspect")] == [70]
     d = RL.diff(out, sus, TIGHT)
     assert d["ok"] and d["suspect"] == [70] and d["classes"]["suspect"] == 1, d
@@ -217,16 +217,16 @@ def test_an_eat_between_the_drain_and_the_read_is_dropped_by_the_read_age(read_a
     slots, rows, paths, events, _ = read_after_eat
     sa = json.loads(slots["read"])["rec"]["satiety"]["t"]
     assert sa < events[0]["age"] < slots["readAge"]
-    out, be = RL.replay_live(rows, events, slots["read"], ring_paths=paths, start_read_age=slots["readAge"])
+    out, be = RL.replay_live(rows, events, slots["read"], ring_paths=paths, start_read_age=slots["readAge"], sleep_allowed=True)
     assert be.dropped == events and be.eats == []
     assert RL.diff(out, rows, TIGHT)["ok"]
     # without the read age the eat lands twice: once in the record, once replayed
-    out2, be2 = RL.replay_live(rows, events, slots["read"], ring_paths=paths)
+    out2, be2 = RL.replay_live(rows, events, slots["read"], ring_paths=paths, sleep_allowed=True)
     assert len(be2.eats) == 1
     assert not RL.diff(out2, rows, TIGHT)["ok"]
     # a start record may carry its read age
     carried = dict(json.loads(slots["read"]), readAge=slots["readAge"])
-    out3, be3 = RL.replay_live(rows, events, carried, ring_paths=paths)
+    out3, be3 = RL.replay_live(rows, events, carried, ring_paths=paths, sleep_allowed=True)
     assert be3.dropped == events and [r["HUNGER"] for r in out3] == [r["HUNGER"] for r in out]
 
 
@@ -234,11 +234,11 @@ def test_a_read_age_before_the_record_or_an_ambiguous_s_keyed_event_raises(read_
     slots, rows, paths, events, _ = read_after_eat
     sa = json.loads(slots["read"])["rec"]["satiety"]["t"]
     with pytest.raises(ValueError):
-        RL.replay_live(rows, events, slots["read"], ring_paths=paths, start_read_age=sa - 1.0)
+        RL.replay_live(rows, events, slots["read"], ring_paths=paths, start_read_age=sa - 1.0, sleep_allowed=True)
     first = next(r["s"] for r in rows if r["age"] > sa + 1e-9)
     with pytest.raises(ValueError):
         RL.replay_live(rows, [{"s": first, "kind": "eat", "food": "TKX.Mixed650"}], slots["read"], ring_paths=paths,
-                       start_read_age=slots["readAge"])
+                       start_read_age=slots["readAge"], sleep_allowed=True)
 
 
 # --- the event fraction contract ------------------------------------------------------------------------------------
@@ -274,10 +274,10 @@ def scaled(rows):
 def test_the_replay_never_reads_the_rings_outputs(ring_live):
     slot, doc, events, _ = ring_live
     rows, paths = RL.load_ring([doc])
-    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths)
+    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths, sleep_allowed=True)
     big = scaled(rows)
     assert sum(1 for a, b in zip(rows, big) for f in OUTPUTS if a.get(f) != b.get(f)) > 500
-    out2, _ = RL.replay_live(big, events, slot, ring_paths=paths)
+    out2, _ = RL.replay_live(big, events, slot, ring_paths=paths, sleep_allowed=True)
     assert json.dumps(out, sort_keys=True) == json.dumps(out2, sort_keys=True)   # bit-identical
     assert RL.diff(out, rows)["ok"]
     d = RL.diff(out2, big)

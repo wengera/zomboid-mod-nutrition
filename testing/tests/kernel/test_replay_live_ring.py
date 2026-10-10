@@ -117,7 +117,7 @@ def test_the_ring_page_is_the_harness_format_and_its_dtm_is_uneven(live):
 def test_the_live_replay_matches_every_ring_row_but_those_an_event_landed_before(live):
     slot, doc, events, _ = live
     rows, paths = RL.load_ring([doc])
-    out, be = RL.replay_live(rows, events, slot, ring_paths=paths)
+    out, be = RL.replay_live(rows, events, slot, ring_paths=paths, sleep_allowed=True)
     by_s = {r["s"]: r for r in rows}
     compared = 0
     for r in out:
@@ -150,8 +150,8 @@ def test_the_eat_count_path_shows_each_landing_in_the_row_after_it(live):
             eat_s.append(next(r["s"] for r in rows if r["age"] >= e["age"]))
     assert rises == eat_s and len(rises) == 2       # IN.readAfterAndLand's count rises in the row after each eat
     # an s-keyed log (the landing the ring shows) replays as the age-keyed one does
-    a, _ = RL.replay_live(rows, events, slot, ring_paths=RL.load_ring([doc])[1])
-    b, _ = RL.replay_live(rows, [s_keyed(e, rows) for e in events], slot, ring_paths=RL.load_ring([doc])[1])
+    a, _ = RL.replay_live(rows, events, slot, ring_paths=RL.load_ring([doc])[1], sleep_allowed=True)
+    b, _ = RL.replay_live(rows, [s_keyed(e, rows) for e in events], slot, ring_paths=RL.load_ring([doc])[1], sleep_allowed=True)
     assert [r["between"] for r in a] == [r["between"] for r in b]
     for ra, rb in zip(a, b):
         assert rb["satiety.P"] == pytest.approx(ra["satiety.P"], rel=1e-9)
@@ -160,24 +160,24 @@ def test_the_eat_count_path_shows_each_landing_in_the_row_after_it(live):
 def test_a_wrong_phase_or_a_fixed_clock_or_no_feed_is_caught(live):
     slot, doc, events, _ = live
     rows, paths = RL.load_ring([doc])
-    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths)
+    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths, sleep_allowed=True)
     # drain k against ring row k: the wrong phase moves HUNGER past the tolerance somewhere
     wrong = [dict(r, s=r["s"] - 1) for r in out]
     tight = {"satiety.P": ("rel", 1e-9), "HUNGER": ("abs", 1e-9)}
     assert not RL.diff(wrong, rows, tight)["ok"]
     # a fixed one-minute clock in place of the ring's ages (the events keyed by the row that shows them)
     fixed = [dict(r, age=rows[0]["age"] + i / 60) for i, r in enumerate(rows)]
-    out2, _ = RL.replay_live(fixed, [s_keyed(e, rows) for e in events], slot, ring_paths=paths)
+    out2, _ = RL.replay_live(fixed, [s_keyed(e, rows) for e in events], slot, ring_paths=paths, sleep_allowed=True)
     assert not RL.diff(out2, rows, tight)["ok"]
     # no NICOTINE_WITHDRAWAL fed: the anchor and the factor diverge after the engine's moves
-    out3, _ = RL.replay_live(rows, events, slot, ring_paths=paths, feed=())
+    out3, _ = RL.replay_live(rows, events, slot, ring_paths=paths, feed=(), sleep_allowed=True)
     assert not RL.diff(out3, rows, {"satiety.nicH": ("abs", 1e-9), "HUNGER": ("abs", 1e-9)})["ok"]
 
 
 def test_mode_arm_on_the_rings_clock_with_the_same_events_reproduces_the_live_mode(live):
     slot, doc, events, _ = live
     rows, paths = RL.load_ring([doc])
-    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths, feed=())
+    out, _ = RL.replay_live(rows, events, slot, ring_paths=paths, feed=(), sleep_allowed=True)
     sa = json.loads(slot)["rec"]["satiety"]["t"]
     use = [r for r in rows if r["age"] > sa + 1e-9]
     arm, _ = RL.replay_arm(events, start=slot, ring_rows=use, paths=paths, hour_offset=OFFSET,
@@ -190,12 +190,12 @@ def test_a_start_record_taken_mid_ring_drops_the_rows_and_events_it_holds(live):
     slot, doc, events, a = live
     rows, paths = RL.load_ring([doc])
     sa = json.loads(a.mid_slot)["rec"]["satiety"]["t"]
-    out, be = RL.replay_live(rows, events, a.mid_slot, ring_paths=paths)
+    out, be = RL.replay_live(rows, events, a.mid_slot, ring_paths=paths, sleep_allowed=True)
     assert out[0]["s"] == next(r["s"] for r in rows if r["age"] > sa + 1e-9) + 1 == 23   # row 21 is the slot's own minute
     assert be.dropped == [e for e in events if e["age"] <= sa] and len(be.dropped) == 1
     d = RL.diff(out, rows, {"HUNGER": ("abs", 1e-9), "satiety.P": ("rel", 1e-9), "body.energyState": ("abs", 1e-9)})
     assert d["ok"] and d["fields"]["HUNGER"]["n"] > 80, d
-    out2, be2 = RL.replay_live(rows, [s_keyed(e, rows) for e in events], a.mid_slot, ring_paths=paths)
+    out2, be2 = RL.replay_live(rows, [s_keyed(e, rows) for e in events], a.mid_slot, ring_paths=paths, sleep_allowed=True)
     assert len(be2.dropped) == 1 and [r["HUNGER"] for r in out2] == [r["HUNGER"] for r in out]
 
 
@@ -237,7 +237,7 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_and_p_has_no_lag():
     rows, paths, start, stats, player = _x260b()
     first = next(r for r in rows if r.get("on") is not False)
     assert first.get("norec") and not RL.offline_row(first)
-    out, be = RL.replay_live(rows, [], start, paths=paths, user="admin", player=player, start_stats=stats)
+    out, be = RL.replay_live(rows, [], start, paths=paths, user="admin", player=player, start_stats=stats, sleep_allowed=True)
     by_s = {r["s"]: r for r in out}
     assert by_s[first["s"]].get("offline") is True             # replay row k is labelled with ring row k + 1's s:
     assert by_s[first["s"] + 1].get("offline") is None         # the first-sight minute is drained, not offline

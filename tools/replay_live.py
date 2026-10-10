@@ -63,6 +63,7 @@ are dropped, because the record already holds them. The driver contract: the dri
 or reads the start record with no eat since the last drain.
 
     python tools/replay_live.py live --ring PAGE.json [PAGE.json ...] --events EV.json --start START.json
+                                     --sleep-allowed true|false [--detect-autodrink]
                                      [--start-read-age A] [--start-stats STATS.json]
                                      [--user admin] [--player CFG.json] [--out OUT.json]
     python tools/replay_live.py arm  --events EV.json [--start START.json] (--ring PAGE.json ... |
@@ -527,8 +528,9 @@ class ServerReplay(_Backend):
     """The mod's server adapters on server_host.Host with the golden stand-ins (see the module docstring)."""
 
     def __init__(self, start=None, user="admin", player=None, steps=None, hold_hour=None, hour_offset=0.0,
-                 rng=None, stats=None):
+                 rng=None, stats=None, sleep_allowed=None):
         super().__init__()
+        self.injected = []
         lua51, server_host, golden_trace = _lua()
         self.lua51 = lua51
         self.h = server_host.Host(extra_env=golden_trace.ENV + REPLAY_ENV)
@@ -544,6 +546,11 @@ class ServerReplay(_Backend):
             self.rt.execute("ZombRandFloat = function(lo, hi) return lo + (hi - lo) * 0.5 end")
         if steps is not None:
             self.NR.server.minute.ORDER = self.rt.table(*steps)
+        if sleep_allowed is not None:
+            # the live server's SleepAllowed and SleepNeeded as NUT.readSleepOptions computes them (the host has no
+            # getServerOptions, so the mod reads an unset option as sleep allowed): the field that single reader sets
+            self.rt.execute("NutritionRevamp.server.nutrients.sleepDisabled = %s"
+                            % ("false" if sleep_allowed else "true"))
         self.users = {}
         self.user = None
         self.maint_kcal = None
@@ -1035,8 +1042,64 @@ def link_marks(use):
     return out
 
 
+AUTODRINK_LIQUID = "stomach.liquid"
+AUTODRINK_EATS = "_G.NutritionRevamp.server.intake.stats.eats"
+AUTODRINK_SIPS = "_G.NutritionRevamp.server.intake.stats.sips"
+AUTODRINK_MIN_G = 5.0              # a liquid-lane rise below this is not a drink (decay only lowers the lane)
+AUTODRINK_WINDOW = 3               # rows before a rise within which a logged event or an intake counter explains it
+
+
+def parse_bool(text):
+    t = str(text).strip().lower()
+    if t in ("true", "1", "yes"):
+        return True
+    if t in ("false", "0", "no"):
+        return False
+    raise ValueError("expected true or false, got %r" % (text,))
+
+
+def resolve_sleep_allowed(flag, start):
+    """The live server sleep option (SleepAllowed and SleepNeeded both true): the explicit input, else the start
+    document sleepAllowed. Required: the host has no getServerOptions, and an unset option would read as allowed."""
+    if flag is not None:
+        return bool(flag)
+    if isinstance(start, dict) and "sleepAllowed" in start:
+        return bool(start["sleepAllowed"])
+    raise ValueError("the sleep option is required: pass sleep_allowed (--sleep-allowed true|false) or carry "
+                     "sleepAllowed in the start document; the live server SleepAllowed and SleepNeeded decide "
+                     "whether its sleep state froze")
+
+
+def detect_autodrinks(ring_rows, events, min_g=AUTODRINK_MIN_G, window=AUTODRINK_WINDOW):
+    """Finding F-T4-2: the engine auto-drink (the server setAutoDrink(false) does not hold, #2941) drinks from a
+    carried container and the writer folds it as a sip (#2965); a driver logs no event for it and no intake counter
+    moves. It is read off the ring liquid lane (stomach.liquid): a rise of at least min_g between two rows with no
+    logged event keyed to a ring row within `window` rows before it and no rise of intake.stats.eats or .sips in
+    those rows. Each is a drink event of that water mass (1 g per mL) at that row. This reads a ring OUTPUT to make an
+    input, so replay_live takes it only on request (detect_autodrink=True)."""
+    rows = [r for r in ring_rows if r.get("s") is not None]
+    if not any(AUTODRINK_LIQUID in r for r in rows):
+        raise ValueError("the ring has no %s path: arm the minute ring on it to detect auto-drinks" % AUTODRINK_LIQUID)
+    keyed = [e["s"] for e in events or [] if "s" in e]
+    out = []
+    for i in range(1, len(rows)):
+        a, b = rows[i - 1], rows[i]
+        la, lb = a.get(AUTODRINK_LIQUID), b.get(AUTODRINK_LIQUID)
+        if la is None or lb is None or lb - la < min_g:
+            continue
+        w = rows[max(0, i - window):i + 1]
+        if any(b["s"] - window <= s <= b["s"] for s in keyed):
+            continue
+        if any((w[-1].get(k) or 0) != (w[0].get(k) or 0) for k in (AUTODRINK_EATS, AUTODRINK_SIPS)):
+            continue
+        out.append({"s": b["s"], "kind": "drink", "fluid": "Water", "litres": (lb - la) / 1000.0,
+                    "label": "autodrink"})
+    return out
+
+
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
-                hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None):
+                hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
+                sleep_allowed=None, detect_autodrink=False):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1049,8 +1112,21 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     rows (link_marks): offline rows are not drained (run's offline), suspect rows are not graded, gap rows are graded
     and marked. Returns (rows, backend); replay row k is the state drain k left, labelled with ring row k + 1's s (the
     last row: its own s + 1) and carrying that row's clock when it exists, and `between` set when an event fell due
-    before drain k + 1 (it landed between drain k and ring row k + 1)."""
+    before drain k + 1 (it landed between drain k and ring row k + 1).
+
+    `sleep_allowed` (or `sleepAllowed` in the start document) is REQUIRED: the live server SleepAllowed and
+    SleepNeeded, which the host cannot read (F-T4-1). `detect_autodrink` (opt-in) injects the unlogged liquid-lane
+    rises of detect_autodrinks as drink events, named on backend.injected."""
     rows = [r for r in ring_rows if r.get("age") is not None]
+    if isinstance(start, dict) and "sleepAllowed" in start:
+        start = dict(start)
+        carried_sleep = start.pop("sleepAllowed")
+        if sleep_allowed is None:
+            sleep_allowed = carried_sleep
+    sleep_allowed = resolve_sleep_allowed(sleep_allowed, None)
+    injected = detect_autodrinks(rows, events) if detect_autodrink else []
+    if injected:
+        events = sorted(list(events or []) + injected, key=lambda e: e.get("s", 0))
     if paths is None:
         paths = list(ring_paths)
     off = estimate_offset(rows) if hour_offset is None else hour_offset
@@ -1060,7 +1136,8 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
         if start_read_age is None:
             start_read_age = carried
     sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
-                      stats=start_stats)
+                      stats=start_stats, sleep_allowed=sleep_allowed)
+    sr.injected = injected
     sa = sr.start_age()
     use = [r for r in rows if sa is None or r["age"] > sa + 1e-9]
     if not use:
@@ -1099,7 +1176,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
-               P0=0.0, energy=True, satiety=True, hold_es=False, stats=None):
+               P0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
     start_age at dtM). Returns (rows, backend)."""
     synthetic = False
@@ -1114,7 +1191,7 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
         sa = start_age
     else:
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
-                          hour_offset=hour_offset, rng=rng, stats=stats)
+                          hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed)
         sa = be.start_age()
         if sa is None:
             sa = start_age
@@ -1237,6 +1314,12 @@ def main(argv=None):
             p.add_argument("--start-stats",
                            help="the stand-in's starting stats (JSON {stat: value}) logged by the driver; never "
                                 "read from the ring")
+            p.add_argument("--sleep-allowed", type=parse_bool,
+                           help="REQUIRED (or sleepAllowed in the start document): the live server SleepAllowed and "
+                                "SleepNeeded, true|false; false freezes the sleep state as live did")
+            p.add_argument("--detect-autodrink", action="store_true",
+                           help="opt in: inject each unlogged liquid-lane rise in the ring as a drink event of its "
+                                "water mass (the engine auto-drink, F-T4-2); named under `injected`")
         if name == "arm":
             p.add_argument("--minutes", type=int)
             p.add_argument("--start-age", type=float, default=0.0)
@@ -1250,9 +1333,13 @@ def main(argv=None):
     if a.mode == "live":
         if not rows:
             ap.error("live needs --ring")
+        if a.sleep_allowed is None and not (isinstance(start, dict) and "sleepAllowed" in start):
+            ap.error("live needs --sleep-allowed true|false (or sleepAllowed in the start document): the live "
+                     "server sleep option")
         out, be = replay_live(rows, events, start, paths=paths, user=a.user, player=player, steps=a.steps,
                               hour_offset=a.hour_offset, hold_hour=a.hold_hour, start_read_age=a.start_read_age,
-                              start_stats=_read_json(a.start_stats))
+                              start_stats=_read_json(a.start_stats), sleep_allowed=a.sleep_allowed,
+                              detect_autodrink=a.detect_autodrink)
         d = diff(out, rows)
         offset = be.R.offset
     else:
@@ -1263,7 +1350,8 @@ def main(argv=None):
                              hour_offset=a.hour_offset or 0.0, hold_hour=a.hold_hour)
         d = diff(out, rows) if rows else None
         offset = a.hour_offset or 0.0
-    doc = {"mode": a.mode, "offset": offset, "rows": out, "diff": d, "eats": be.eats}
+    doc = {"mode": a.mode, "offset": offset, "rows": out, "diff": d, "eats": be.eats,
+           "injected": list(getattr(be, "injected", []))}
     text = json.dumps(doc, indent=1, sort_keys=True)
     if a.out:
         with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
