@@ -130,3 +130,23 @@ def test_an_eat_lands_the_oracle_vector_through_the_declared_chain(full):
     for k in ("vitC", "iron", "sodium", "ethanol", "caffeine"):
         assert buf[k] == 0, (full, k)
     assert rp.eats[0]["kcal"] == pytest.approx(want.get("calories", 0.0), rel=REL)
+
+
+def test_every_int_typed_key_parses_as_the_engine_int():
+    """Item.DoParam reads BoredomChange, UnhappyChange, StressChange, DaysFresh and DaysTotallyRotten with
+    Integer.parseInt (#0214, the key table in docs/facts/food-item-model.md), and a malformed value throws
+    InvalidParameterException and drops the item (#0213); a debug client then dies on the script load. x260's first
+    boot (2026-10-10) lost all 23 foods to `0.0` on the three mood keys."""
+    import re
+    rx = re.compile(r"^[+-]?\d+$")
+    path = os.path.join(MOD, "common", "media", "scripts", "tkx_study_foods.txt")
+    with open(path, encoding="utf-8") as fh:
+        lines = [ln.strip().rstrip(",") for ln in fh]
+    keys = ("BoredomChange", "UnhappyChange", "StressChange", "DaysFresh", "DaysTotallyRotten")
+    seen = 0
+    for ln in lines:
+        k, _, v = ln.partition("=")
+        if k.strip() in keys:
+            seen += 1
+            assert rx.match(v.strip()), ln
+    assert seen == 23 * len(keys)
