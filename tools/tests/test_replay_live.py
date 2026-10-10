@@ -140,10 +140,11 @@ class TestReadings(unittest.TestCase):
         d = RL.diff(rep, ring)
         self.assertFalse(d["ok"])
         self.assertEqual(d["skipped"], [4])
-        self.assertEqual(sorted((f["s"], f["field"]) for f in d["findings"]), [(3, "HUNGER"), (3, "satiety.L")])
+        self.assertEqual(sorted((f["s"], f["field"]) for f in d["findings"] if "s" in f),
+                         [(3, "HUNGER"), (3, "satiety.L")])
+        self.assertEqual([f["field"] for f in d["findings"] if "s" not in f], ["body.energyState"])
         self.assertEqual(d["fields"]["HUNGER"]["n"], 2)
-        self.assertEqual(d["fields"]["body.energyState"]["n"], 0)
-        self.assertTrue(RL.diff(rep[:1], ring)["ok"])
+        self.assertTrue(RL.diff(rep[:1], ring, {"HUNGER": ("abs", 0.002), "satiety.L": ("rel", 0.005)})["ok"])
 
     def test_the_tolerances_are_the_plans(self):
         self.assertEqual(RL.DEFAULT_TOL, {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005),
@@ -166,6 +167,98 @@ class TestReadings(unittest.TestCase):
         self.assertEqual(be.meal_kcal({"size": "maint"}, 0), 1000.0)
         self.assertEqual(be.meal_kcal({"size": "request"}, 0), 650.0)
         self.assertEqual(be.meal_kcal({"size": 420}, 0), 420.0)
+
+
+class TestFix1(unittest.TestCase):
+    """Plan 11f Task 2 fix round 1: the empty comparison, the feed guard, the link classes and the contracts."""
+
+    def test_a_field_compared_on_no_row_is_a_finding(self):
+        ring = [{"s": 2, "HUNGER": 0.30}]
+        rep = [{"s": 2, "HUNGER": 0.30}]
+        d = RL.diff(rep, ring)
+        self.assertFalse(d["ok"])
+        self.assertEqual(sorted(f["field"] for f in d["findings"]), ["body.energyState", "satiety.L"])
+        self.assertTrue(all(f["n"] == 0 for f in d["findings"]))
+        d2 = RL.diff([], [], {"HUNGER": ("abs", 0.002)})
+        self.assertFalse(d2["ok"])
+        self.assertEqual(d2["findings"], [{"field": "HUNGER", "n": 0, "why": "compared on 0 rows"}])
+
+    def test_the_feed_takes_only_the_exogenous_inputs(self):
+        self.assertEqual(RL.ALLOWED_FEED, ("NICOTINE_WITHDRAWAL",))
+        for bad in ("HUNGER", "P", "S", "L", "es", "satiety.P", "satiety.S", "satiety.L", "body.energyState",
+                    "FATIGUE", "THIRST", "BOREDOM", "UNHAPPINESS", "STRESS", "nonsense"):
+            with self.assertRaises(ValueError, msg=bad):
+                RL.run(FakeBackend(), [1.0], [], ring_rows=[{bad: 0.3}], feed=(bad,))
+            with self.assertRaisesRegex(ValueError, "graded" if bad in RL.GRADED_FEED else "exogenous", msg=bad):
+                RL.check_feed((bad,))
+        self.assertEqual(set(RL.GRADED_FEED), {"HUNGER", "P", "S", "L", "es", "satiety.P", "satiety.S", "satiety.L",
+                                               "body.energyState", "FATIGUE", "THIRST", "BOREDOM", "UNHAPPINESS"})
+        be = FakeBackend()
+        RL.run(be, [1.0], [], ring_rows=[{"NICOTINE_WITHDRAWAL": 0.3}], feed=RL.ALLOWED_FEED)
+        self.assertIn(("feed", ("NICOTINE_WITHDRAWAL",), 0.3), be.log)
+
+    def test_the_links_mark_gaps_suspects_and_offline_rows(self):
+        use = [{"s": 1, "ev": 1, "drained": 1, "age": 1.0, "on": True},
+               {"s": 2, "ev": 2, "drained": 2, "age": 1.0 + 1 / 60, "dtM": 1.0, "on": True},
+               {"s": 4, "ev": 4, "drained": 4, "age": 1.0 + 3 / 60, "dtM": 2.0, "on": True},      # s jump, dtM
+               {"s": 5, "ev": 6, "drained": 5, "age": 1.0 + 4 / 60, "dtM": 1.0, "on": True},      # ev jump
+               {"s": 6, "ev": 7, "drained": 5, "age": 1.0 + 5 / 60, "dtM": 1.0, "on": True},      # not drained
+               {"s": 7, "ev": 8, "drained": 6, "age": 1.0 + 6 / 60, "dtM": 1.03, "on": True},
+               {"s": 8, "ev": 9, "drained": 7, "age": 1.0 + 7 / 60, "dtM": 1.0, "on": False},
+               {"s": 9, "ev": 10, "drained": 7, "age": 1.0 + 8 / 60, "dtM": 1.0, "on": True, "norec": True},
+               {"s": 10, "ev": 11, "drained": 7, "age": 1.0 + 9 / 60, "dtM": 1.0, "on": True}]
+        m = RL.link_marks(use)
+        # a lost row with no ev and a one-minute dtM is still a gap: s alone shows it
+        only_s = RL.link_marks([{"s": 1, "age": 1.0}, {"s": 3, "age": 1.0 + 1 / 60, "dtM": 1.0}])
+        self.assertEqual(only_s[0]["gap"], True)
+        self.assertEqual([x["gap"] for x in m], [False, True, True, False, False, False, False, False, False])
+        self.assertEqual([x["suspect"] for x in m], [False, False, False, True, False, False, False, False, False])
+        self.assertEqual([x["offline"] for x in m], [False, False, False, False, False, True, True, True, False])
+        self.assertEqual(RL.offline_row(use[6]), True)
+        self.assertEqual(RL.offline_row(use[7]), True)
+        self.assertEqual(RL.offline_row(use[8]), False)
+
+    def test_the_diff_counts_each_class_grades_gaps_and_skips_suspect_and_offline_rows(self):
+        ring = [{"s": s, "HUNGER": 0.3} for s in range(2, 7)]
+        rep = [{"s": 2, "HUNGER": 0.3}, {"s": 3, "HUNGER": 0.9, "gap": True}, {"s": 4, "HUNGER": 0.9, "suspect": True},
+               {"s": 5, "HUNGER": 0.9, "offline": True}, {"s": 6, "HUNGER": 0.9, "between": True}]
+        d = RL.diff(rep, ring, {"HUNGER": ("abs", 0.002)})
+        self.assertEqual(d["classes"], {"gap": 1, "suspect": 1, "offline": 1, "between": 1})
+        self.assertEqual(d["suspect"], [4])
+        self.assertEqual(d["offline"], [5])
+        self.assertEqual(d["skipped"], [6])
+        self.assertEqual(d["gap"], [3])
+        self.assertEqual(d["fields"]["HUNGER"]["n"], 2)
+        self.assertEqual([(f["s"], f.get("gap")) for f in d["findings"]], [(3, True)])
+
+    def test_the_contracts_are_in_the_docstring_and_the_help(self):
+        doc = " ".join(RL.__doc__.split())
+        for text in ("lastIntake.frac", "never from satiety.P", "start-read-age", "no eat since the last drain",
+                     "offline", "suspect", "gap"):
+            self.assertIn(text, doc)
+        for mode in ("live", "arm"):
+            r = subprocess.run([sys.executable, CLI, mode, "--help"], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            h = " ".join(r.stdout.split())
+            self.assertIn("lastIntake.frac", h)
+            self.assertIn("never from satiety.P", h)
+        r = subprocess.run([sys.executable, CLI, "live", "--help"], capture_output=True, text=True)
+        h = " ".join(r.stdout.split())
+        self.assertIn("--start-read-age", h)
+        self.assertIn("no eat since the last drain", h)
+
+    def test_the_cli_exits_non_zero_on_an_empty_comparison(self):
+        with tempfile.TemporaryDirectory() as d:
+            ev = os.path.join(d, "ev.json")
+            ring = os.path.join(d, "ring.json")
+            with open(ev, "w", encoding="utf-8") as fh:
+                json.dump([], fh)
+            with open(ring, "w", encoding="utf-8") as fh:
+                json.dump({"paths": [], "rows_list": [{"s": i + 1, "age": 1.0 + i / 60.0} for i in range(5)]}, fh)
+            r = subprocess.run([sys.executable, CLI, "arm", "--events", ev, "--ring", ring, "--backend", "oracle"],
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 1, r.stderr)
+            self.assertIn("FAIL", r.stderr)
 
 
 class TestStudyFoods(unittest.TestCase):

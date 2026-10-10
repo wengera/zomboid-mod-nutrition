@@ -19,9 +19,11 @@ server path does not share (an eat's vector booked into the day at once with no 
 thermogenesis or training close, so fatDep stays 0). The replay reproduces them exactly through its oracle backend
 (OracleReplay, the same composition driven by the same event lists: sleep at 23:00 and waking at 07:00, the meals,
 the request-level meal's kcal from the state the last minute left), and runs the same 36 h fast through the server
-adapters as a reading: the full pipeline on the oracle's 70 kg man (the stand-in's weight 70, male, responder 1) reads
-day 2 at 1.348 and day 3 at 0.962 against the oracle's 1.304 and 0.986, the absorption over hours and the day
-partition the difference. Plan 11f grades a live run against the server path; the oracle path names the distance.
+adapters as a reading: the full pipeline on the oracle's 70 kg man (the stand-in's weight 70, male, responder 1, idle
+at the engine's Default class 1.5, billed standing quietly) reads day 2 at 1.342 and day 3 at 0.974 against the
+oracle's 1.304 and 0.986, the absorption over hours and the day partition the difference (re-pinned in Task 2 fix
+round 1: the stand-in idled at 1.3 before, which the mod bills as DrivingCar, and read 1.348 and 0.962).
+Plan 11f grades a live run against the server path; the oracle path names the distance.
 
 The "312 min" the plan lists is pinned by no oracle test; the 650 kcal meal's request minute (320, which
 test_a_650_kcal_mixed_meal_holds_hunger_off_for_four_to_five_hours bands at 240-330) and Callahan's pinned minutes
@@ -218,7 +220,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
     ifed, ifast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     assert r2 > 1 and r3 < r2                                   # the oracle's direction (ruling 11d-3)
-    assert (round(r2, 3), round(r3, 3)) == (1.348, 0.962), (r2, r3)
+    assert (round(r2, 3), round(r3, 3)) == (1.342, 0.974), (r2, r3)      # a reading (fix round 1: idle at 1.5)
 
 
 # --- the writer replays and monotony through the server adapters ----------------------------------------------------

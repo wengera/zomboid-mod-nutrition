@@ -30,7 +30,10 @@ Events are a JSON list. Each is due at `age` (game hours: applied before the fir
 age), at `s` (applied before the drain of ring row s, at its age: the landing a ring path such as
 `_G.NutritionRevamp.server.intake.stats.eats` first shows), or at `minute` m of a synthetic clock (applied before
 step m, at its start). Kinds:
-  eat      {food | fullType+cal+carb+lip+pro+hunger+declared+foodType, frac (default 1)} or {vec, lane, fullType}
+  eat      {food | fullType+cal+carb+lip+pro+hunger+declared+foodType, frac (default 1)} or {vec, lane, fullType}:
+           an eat's kcal comes from the item (its script values, or the vector given) and its fraction from the item
+           (the driver's before/after read) or from lastIntake.frac, never from satiety.P; the replay derives
+           nothing from P
   drink    {fluid, litres} or {vec}: the liquid lane
   meal     {size: "maint" | "request" | kcal, comp: {p, c, f}, food, sate}: an energy-oracle meal; "request" eats
            650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
@@ -41,10 +44,24 @@ step m, at its start). Kinds:
   setpath  {path, value}: a record path (lua.read grammar)
   trait    {trait, on}
 Mode "live" uses the ring's clock and feeds the stand-in's NICOTINE_WITHDRAWAL from each ring row before its drain
-(the engine owns that stat and the writer reads it); mode "arm" substitutes another event list (ruling 11f-3), on the
-ring's clock or a synthetic one, and feeds nothing the arm does not name.
+(the engine owns that stat and the writer reads it; ALLOWED_FEED is the whole list, and a graded or tolerance field is
+refused as a feed); mode "arm" substitutes another event list (ruling 11f-3), on the ring's clock or a synthetic one,
+and feeds nothing the arm does not name. The replay never reads a ring row's outputs (HUNGER, the record paths, the
+other stats): the stand-in's stats start at --start-stats or its defaults.
+
+The ring's own bookkeeping marks each compared row (link_marks): a jump in s or ev, or a dtM above 1.05, is a gap (the
+replay still steps the real age delta; graded, its findings marked gap); a drained count that did not advance between
+two rows makes the later one suspect (the drain had not finished; not graded); a row with on false or norec is
+offline: that minute is not drained (it fires with the user away) and the reconnect drain is the mod's own, whose
+adapters clamp the offline span at OFFLINE_CAP_M, 60 game minutes (NR_Server_Metabolism.lua:375). The diff counts each
+class.
+
+The start record's read age (--start-read-age, or a top-level readAge in the start document): events at or before it
+are dropped, because the record already holds them. The driver contract: the driver logs the start record's read age,
+or reads the start record with no eat since the last drain.
 
     python tools/replay_live.py live --ring PAGE.json [PAGE.json ...] --events EV.json --start START.json
+                                     [--start-read-age A] [--start-stats STATS.json]
                                      [--user admin] [--player CFG.json] [--out OUT.json]
     python tools/replay_live.py arm  --events EV.json [--start START.json] (--ring PAGE.json ... |
                                      --minutes N [--start-age A]) [--backend server|oracle] [--out OUT.json]
@@ -52,7 +69,8 @@ ring's clock or a synthetic one, and feeds nothing the arm does not name.
 The start record is a slot file's JSON ({gen, rec, done}), the record itself, or an H1 `lua.read` reply
 ({values: {path: value}}). Output: {rows, diff, eats, offset, mode}; the diff grades HUNGER within 0.002, es
 (body.energyState) within 0.005 and satiety.L within 0.5 % (the plan's pre-registered tolerances) and skips every
-row an event landed before (vanilla's own eat moves HUNGER between writes). Exits 1 when the diff has a finding.
+row an event landed before (vanilla's own eat moves HUNGER between writes), every suspect row and every offline row.
+A tolerance field compared on no row is a finding. Exits 1 when the diff has a finding.
 """
 import argparse
 import json
@@ -71,7 +89,17 @@ STATS = ("HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITH
 H_REQ = 0.25                          # the meal request, vanilla's HUNGRY level 2 (ruling 11c-17)
 KCAL_PER_H = 650.0 / H_REQ            # the intake mapping (ruling 11c-31): kcal per unit of written hunger
 NEUTRAL_HOUR = 13.8333                # circadian(13:50) is 1.0 exactly: the factor held (the oracles' h0 None)
-DEFAULT_FEED = ("NICOTINE_WITHDRAWAL",)
+# The feed: the stats the replay copies from each ring row into the stand-in before its drain. Only an exogenous input
+# may be fed: a stat the engine moves and the mod reads but never writes. NICOTINE_WITHDRAWAL is the one such stat
+# (NR_Server_Writer reads it at :442; every other stat it reads it also writes, :287-302). A graded or tolerance field
+# fed from the ring would grade the ring against itself, so those names are refused by name.
+ALLOWED_FEED = ("NICOTINE_WITHDRAWAL",)
+GRADED_FEED = ("HUNGER", "P", "S", "L", "es", "satiety.P", "satiety.S", "satiety.L", "body.energyState", "FATIGUE",
+               "THIRST", "BOREDOM", "UNHAPPINESS")
+DEFAULT_FEED = ALLOWED_FEED
+GAP_DTM = 1.05                        # a ring row whose dtM exceeds this is a long minute: marked gap
+OFFLINE_CAP_M = 60                    # the mod's reconnect clamp (NR_Server_Metabolism.lua:375, NR_Server_Nutrients.lua:367,
+                                      # NR_Server_Kinetics MAX_GAP_M): offline time is not integrated past 60 game minutes
 DEFAULT_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005), "satiety.L": ("rel", 0.005)}
 MIXED = {"p": 0.15, "c": 0.50, "f": 0.35}
 MAX_TICKS = 64
@@ -535,7 +563,10 @@ class ServerReplay(_Backend):
         sv.update(stats or {})
         lcfg.hunger, lcfg.thirst, lcfg.fatigue = sv["HUNGER"], sv["THIRST"], sv["FATIGUE"]
         p = self.G.NR_T.decorate(p, lcfg)
-        rate = cfg["rate"] if cfg["rate"] is not None else self.K.energy.COMPENDIUM.Default
+        # an idle player's engine MET: the engine's Default class, 1.5 (a live idle player reads 1.50, #2875), which
+        # the mod's classOf reads as Default and bills at COMPENDIUM.Default (standing quietly); never the Compendium
+        # value 1.3 itself, which classOf reads as DrivingCar and bills at 1.4 (finding F-1)
+        rate = cfg["rate"] if cfg["rate"] is not None else self.K.energy.CLASS_MET.Default
         self.R.adopt(p, user, rate, cfg["inv"], cfg["maxW"])
         for k, v in sv.items():
             p.sv[k] = v
@@ -703,6 +734,20 @@ class ServerReplay(_Backend):
                 self.p.sv[n] = row[n]
 
     def step(self, age):
+        if getattr(self, "away", False):
+            self.h.online(self.p)                       # back: the mod sights the player at this minute
+            self.away = False
+        self._minute(age)
+
+    def step_offline(self, age):
+        """An offline minute: the minute fires with the user absent from the online players, so the mod drains
+        nothing of the user's (its own disconnect handling runs as live)."""
+        if not getattr(self, "away", False):
+            self.h.online()
+            self.away = True
+        self._minute(age)
+
+    def _minute(self, age):
         T = self.G.NR_T
         T.age = age
         T.m = (T.m or 0) + 1
@@ -714,7 +759,7 @@ class ServerReplay(_Backend):
         raise RuntimeError("the queue did not drain in %d ticks" % MAX_TICKS)
 
     def row(self, paths):
-        out = {"on": True}
+        out = {"on": not getattr(self, "away", False)}
         for n in STATS:
             v = self.p.sv[n]
             if v is not None:
@@ -832,10 +877,27 @@ def _clock_row(age, prev, tod):
     return out
 
 
-def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=None, feed=(), dtms=None):
+def check_feed(feed):
+    """Raises ValueError unless every name in `feed` is an exogenous input (ALLOWED_FEED)."""
+    for n in feed or ():
+        if n in GRADED_FEED:
+            raise ValueError("feed %r is a graded or tolerance field: the replay would grade the ring against itself; "
+                             "the feed takes only %s" % (n, ", ".join(ALLOWED_FEED)))
+        if n not in ALLOWED_FEED:
+            raise ValueError("feed %r is not an exogenous input; the feed takes only %s" % (n, ", ".join(ALLOWED_FEED)))
+
+
+def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=None, feed=(), dtms=None,
+        offline=()):
     """Steps `backend` one drain per age in `ages`. Before drain k: the events due (see the module docstring), then
-    the stats `feed` names from ring_rows[k]. Returns one row per drain: the state the drain left, with its clock
-    (age, dtM, hour, min), `k`, and `events`, the count of events applied before it."""
+    the stats `feed` names from ring_rows[k] (exogenous inputs only, check_feed). Returns one row per drain: the state
+    the drain left, with its clock (age, dtM, hour, min), `k`, and `events`, the count of events applied before it.
+    A k in `offline` is not drained: its events still fall due, nothing is fed, the backend's step_offline runs (the
+    minute with the user away) when it has one, and the row carries on = false and offline. The first drained row
+    after such a window carries gapM, the game minutes since the last drain, and clampM, min(gapM, OFFLINE_CAP_M): the
+    mod's own reconnect clamp, which its adapters apply themselves."""
+    check_feed(feed)
+    offline = set(offline or ())
     evs = list(events or [])
     for e in evs:
         if not any(x in e for x in ("age", "s", "minute")):
@@ -843,8 +905,27 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
     done = [False] * len(evs)
     out = []
     prev = start_age
+    last = start_age
+    away = False
     for k, age in enumerate(ages):
         seq = seqs[k] if seqs is not None else None
+        if k in offline:
+            n = 0
+            for i, e in enumerate(evs):
+                if not done[i] and _due(e, k, prev, age, seq):
+                    backend.apply(e, _event_age(e, prev, age))
+                    done[i] = True
+                    n += 1
+            if hasattr(backend, "step_offline"):
+                backend.step_offline(age)
+            row = backend.row(paths)
+            tod = backend.R.tod(age) if isinstance(backend, ServerReplay) else None
+            row.update(_clock_row(age, prev, tod))
+            row.update({"k": k, "events": n, "on": False, "offline": True})
+            out.append(row)
+            prev = age
+            away = True
+            continue
         backend.begin(age)
         n = 0
         for i, e in enumerate(evs):
@@ -866,8 +947,13 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
         row.update(_clock_row(age, prev, tod))
         row["k"] = k
         row["events"] = n
+        if away and last is not None:
+            row["gapM"] = (age - last) * 60
+            row["clampM"] = min(row["gapM"], OFFLINE_CAP_M)
+        away = False
         out.append(row)
         prev = age
+        last = age
     left = [e for i, e in enumerate(evs) if not done[i]]
     if left:
         raise ValueError("%d event(s) never fell due, the first %r" % (len(left), left[0]))
@@ -879,44 +965,103 @@ def synthetic_ages(minutes, start_age=0.0, dtM=1.0):
     return [start_age + (m + 1) * dtM / 60.0 for m in range(minutes)]
 
 
+def offline_row(r):
+    """A ring row taken with the user away (on false) or with no record in the store (norec): no drain ran for it."""
+    return r.get("on") is False or bool(r.get("norec"))
+
+
+def _num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def link_marks(use):
+    """One {gap, suspect, offline} per replay row k, read off the ring's own bookkeeping between ring rows k and k + 1
+    (replay row k is compared with ring row k + 1):
+      gap      s does not advance by 1 (a row lost), ev does not advance by 1 (a sample that raised: a minute the ring
+               never saw), or row k + 1's dtM exceeds GAP_DTM (a long minute). The replay still steps the real age
+               delta; the row is graded and its findings carry gap.
+      suspect  drained (the mod's count of drains begun) did not advance from row k to row k + 1: the drain after row
+               k had not run when row k + 1 was read. Not graded.
+      offline  row k or row k + 1 is offline_row: no drain k, or a row read with the user away. Not graded; an
+               offline row is never also suspect.
+    The last row has no successor: it is marked offline when it is offline_row."""
+    out = []
+    for k, a in enumerate(use):
+        m = {"gap": False, "suspect": False, "offline": offline_row(a)}
+        if k + 1 < len(use):
+            b = use[k + 1]
+            m["offline"] = m["offline"] or offline_row(b)
+            if _num(a.get("s")) and _num(b.get("s")) and b["s"] != a["s"] + 1:
+                m["gap"] = True
+            if _num(a.get("ev")) and _num(b.get("ev")) and b["ev"] != a["ev"] + 1:
+                m["gap"] = True
+            if _num(b.get("dtM")) and b["dtM"] > GAP_DTM:
+                m["gap"] = True
+            if not m["offline"] and _num(a.get("drained")) and _num(b.get("drained")) and b["drained"] <= a["drained"]:
+                m["suspect"] = True
+        out.append(m)
+    return out
+
+
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
-                hour_offset=None, hold_hour=None, ring_paths=()):
-    """Mode live: the ring's clock and the live event log from the start record on (ring rows at or before the start
-    record's age, and events at or before it, are dropped: the record holds them; the dropped events are kept on
-    backend.dropped). Returns (rows, backend); replay row k is the state drain k left, labelled s = ring row k's s + 1
-    and carrying that row's clock when it exists, and `between` set when an event fell due before drain k + 1 (it
-    landed between drain k and ring row k + 1)."""
+                hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None):
+    """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
+    record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
+    record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
+    start document carries, else the record's own age. The driver contract: the driver logs the start record's read
+    age, or reads the record with no eat since the last drain. An s-keyed event on the first ring row after the
+    record is refused when the read age lies past the record's age (it cannot say which side of the read it fell).
+
+    The stand-in's stats start at `start_stats` (a driver-logged {stat: value}) or the stand-in's defaults, never at a
+    ring row's outputs; the feed copies only exogenous inputs (check_feed). The ring's bookkeeping marks the replay
+    rows (link_marks): offline rows are not drained (run's offline), suspect rows are not graded, gap rows are graded
+    and marked. Returns (rows, backend); replay row k is the state drain k left, labelled with ring row k + 1's s (the
+    last row: its own s + 1) and carrying that row's clock when it exists, and `between` set when an event fell due
+    before drain k + 1 (it landed between drain k and ring row k + 1)."""
     rows = [r for r in ring_rows if r.get("age") is not None]
     if paths is None:
         paths = list(ring_paths)
     off = estimate_offset(rows) if hour_offset is None else hour_offset
-    stats0 = {}
-    sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off)
+    if isinstance(start, dict) and "readAge" in start:
+        start = dict(start)
+        carried = start.pop("readAge")
+        if start_read_age is None:
+            start_read_age = carried
+    sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
+                      stats=start_stats)
     sa = sr.start_age()
     use = [r for r in rows if sa is None or r["age"] > sa + 1e-9]
     if not use:
         raise ValueError("no ring row after the start record's age %r" % sa)
-    for n in STATS:
-        if use[0].get(n) is not None:
-            stats0[n] = use[0][n]
-    for n, v in stats0.items():
-        sr.p.sv[n] = v
+    read = sa if start_read_age is None else float(start_read_age)
+    if read is not None and sa is not None and read < sa - 1e-9:
+        raise ValueError("the start record's read age %r precedes its own age %r" % (read, sa))
+    straddle = read is not None and sa is not None and read > sa + 1e-12
     keep, sr.dropped = [], []
     for e in events or []:
-        early = ("age" in e and sa is not None and e["age"] <= sa + 1e-12) or ("s" in e and e["s"] < use[0]["s"])
-        (sr.dropped if early else keep).append(e)       # an event at or before the start record is in it already
+        if straddle and "s" in e and e["s"] == use[0]["s"]:
+            raise ValueError("an s-keyed event on ring row %r, the first after the start record, may precede its read "
+                             "at %r: key it by age" % (e["s"], read))
+        early = ("age" in e and read is not None and e["age"] <= read + 1e-12) or ("s" in e and e["s"] < use[0]["s"])
+        (sr.dropped if early else keep).append(e)       # an event at or before the read is in the record already
+    marks = link_marks(use)
+    offline = [k for k, r in enumerate(use) if offline_row(r)]
     out = run(sr, [r["age"] for r in use], keep, paths, start_age=sa, seqs=[r["s"] for r in use],
-              ring_rows=use, feed=feed)
+              ring_rows=use, feed=feed, offline=offline)
     for k, row in enumerate(out):
-        row["s"] = use[k]["s"] + 1
         if k + 1 < len(use):
             nxt = use[k + 1]
+            row["s"] = nxt["s"]
             for key in ("age", "dtM", "hour", "min"):
                 if key in nxt:
                     row[key] = nxt[key]
             row["between"] = out[k + 1]["events"] > 0
         else:
+            row["s"] = use[k]["s"] + 1
             row["between"] = False
+        for key, v in marks[k].items():
+            if v:
+                row[key] = True
     return out, sr
 
 
@@ -952,21 +1097,32 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
 
 def diff(replay_rows, ring_rows, tol=None):
     """Replay rows against ring rows matched on s, under the tolerances {field: ("abs" | "rel", bound)}. A row with
-    `between` set is skipped. Returns {fields: {field: {n, max, over, worst_s}}, findings, skipped, ok}."""
+    `between` (an event landed before it), `suspect` or `offline` set is not graded; a `gap` row is graded and its
+    findings carry gap. A field compared on no row is itself a finding (n 0). Returns {fields: {field: {n, max, over,
+    worst_s}}, findings, skipped (the between rows), suspect, offline, gap, classes: {gap, suspect, offline, between}
+    (the counts), ok}."""
     tol = DEFAULT_TOL if tol is None else tol
     by_s = {r["s"]: r for r in ring_rows}
     fields = {f: {"n": 0, "max": 0.0, "over": 0, "worst_s": None} for f in tol}
-    findings, skipped = [], []
+    findings, skipped, suspect, offline, gap = [], [], [], [], []
     for r in replay_rows:
         live = by_s.get(r["s"])
         if live is None:
             continue
+        if r.get("offline"):
+            offline.append(r["s"])
+            continue
+        if r.get("suspect"):
+            suspect.append(r["s"])
+            continue
         if r.get("between"):
             skipped.append(r["s"])
             continue
+        if r.get("gap"):
+            gap.append(r["s"])
         for f, (how, bound) in tol.items():
             a, b = r.get(f), live.get(f)
-            if not isinstance(a, (int, float)) or not isinstance(b, (int, float)) or isinstance(a, bool):
+            if not _num(a) or not _num(b):
                 continue
             d = abs(a - b) if how == "abs" else (abs(a - b) / abs(a) if a != 0 else (0.0 if b == 0 else math.inf))
             st = fields[f]
@@ -975,8 +1131,16 @@ def diff(replay_rows, ring_rows, tol=None):
                 st["max"], st["worst_s"] = d, r["s"]
             if d > bound:
                 st["over"] += 1
-                findings.append({"s": r["s"], "field": f, "replay": a, "live": b, "d": d, "tol": [how, bound]})
-    return {"fields": fields, "findings": findings, "skipped": skipped, "ok": not findings}
+                fd = {"s": r["s"], "field": f, "replay": a, "live": b, "d": d, "tol": [how, bound]}
+                if r.get("gap"):
+                    fd["gap"] = True
+                findings.append(fd)
+    for f, st in fields.items():
+        if st["n"] == 0:
+            findings.append({"field": f, "n": 0, "why": "compared on 0 rows"})
+    classes = {"gap": len(gap), "suspect": len(suspect), "offline": len(offline), "between": len(skipped)}
+    return {"fields": fields, "findings": findings, "skipped": skipped, "suspect": suspect, "offline": offline,
+            "gap": gap, "classes": classes, "ok": not findings}
 
 
 def request_minute(rows, after_age, level=H_REQ, field="HUNGER", fasted=False):
@@ -1022,7 +1186,9 @@ def main(argv=None):
     for name in ("live", "arm"):
         p = sub.add_parser(name)
         p.add_argument("--ring", nargs="*", default=[])
-        p.add_argument("--events", required=True)
+        p.add_argument("--events", required=True,
+                       help="the event list (JSON); an eat's kcal and fraction come from the item or from "
+                            "lastIntake.frac, never from satiety.P")
         p.add_argument("--start")
         p.add_argument("--user", default="admin")
         p.add_argument("--player")
@@ -1031,6 +1197,14 @@ def main(argv=None):
         p.add_argument("--hour-offset", type=float)
         p.add_argument("--hold-hour", type=float)
         p.add_argument("--out")
+        if name == "live":
+            p.add_argument("--start-read-age", type=float,
+                           help="the world age (hours) the start record was read at, logged by the driver: events "
+                                "at or before it are dropped (the record holds them); without it the start record "
+                                "must be read with no eat since the last drain")
+            p.add_argument("--start-stats",
+                           help="the stand-in's starting stats (JSON {stat: value}) logged by the driver; never "
+                                "read from the ring")
         if name == "arm":
             p.add_argument("--minutes", type=int)
             p.add_argument("--start-age", type=float, default=0.0)
@@ -1045,7 +1219,8 @@ def main(argv=None):
         if not rows:
             ap.error("live needs --ring")
         out, be = replay_live(rows, events, start, paths=paths, user=a.user, player=player, steps=a.steps,
-                              hour_offset=a.hour_offset, hold_hour=a.hold_hour)
+                              hour_offset=a.hour_offset, hold_hour=a.hold_hour, start_read_age=a.start_read_age,
+                              start_stats=_read_json(a.start_stats))
         d = diff(out, rows)
         offset = be.R.offset
     else:
@@ -1064,8 +1239,10 @@ def main(argv=None):
     else:
         sys.stdout.write(text + "\n")
     if d is not None:
-        print("replay_live: %s, %d finding(s), %d row(s) skipped" % ("ok" if d["ok"] else "FAIL", len(d["findings"]),
-                                                                   len(d["skipped"])), file=sys.stderr)
+        c = d["classes"]
+        print("replay_live: %s, %d finding(s), %d between, %d suspect, %d offline, %d gap"
+              % ("ok" if d["ok"] else "FAIL", len(d["findings"]), c["between"], c["suspect"], c["offline"], c["gap"]),
+              file=sys.stderr)
         return 0 if d["ok"] else 1
     return 0
 
