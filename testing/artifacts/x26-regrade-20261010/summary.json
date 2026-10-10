@@ -1,0 +1,299 @@
+{
+ "flags": {
+  "detect_autodrink": true,
+  "sleep_allowed": false
+ },
+ "kind": "derived: replay_live at HEAD over the committed runs, not a live run",
+ "runs": {
+  "x261-20261010-120313": {
+   "HUNGER_max": 0.00031306083260224105,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "GATE": "as_predicted",
+    "H1": "as_predicted",
+    "R1": "falsified",
+    "REPLAY": "falsified",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.0011119286842369291,
+   "file": "x261.json",
+   "injected": [],
+   "regrade_ok": true,
+   "requests": {
+    "F400": {
+     "live": 296.46251678466797,
+     "ok": true,
+     "replay": 297.4203872680664
+    },
+    "G650": {
+     "live": 273.7993812561035,
+     "ok": true,
+     "replay": 273.7993812561035
+    },
+    "R1a": {
+     "live": 301.0465621948242,
+     "ok": true,
+     "replay": 301.0465621948242
+    },
+    "R1b": {
+     "live": 442.01053619384766,
+     "ok": true,
+     "replay": 442.8076171875
+    },
+    "T217a": {
+     "live": 277.1067810058594,
+     "ok": true,
+     "replay": 277.1067810058594
+    },
+    "T217b": {
+     "live": 274.112548828125,
+     "ok": true,
+     "replay": 274.112548828125
+    },
+    "T217c": {
+     "live": 272.1063995361328,
+     "ok": true,
+     "replay": 272.1063995361328
+    }
+   },
+   "run_time_tool_ok": false,
+   "sleep_only_ok": true
+  },
+  "x262-20261010-121337": {
+   "HUNGER_max": 0.00028413485120115656,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "R2": "falsified",
+    "REPLAY": "falsified",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.001076112701544285,
+   "file": "x262.json",
+   "injected": [],
+   "regrade_ok": true,
+   "requests": {
+    "B650": {
+     "live": 253.05187225341797,
+     "ok": true,
+     "replay": 253.05187225341797
+    },
+    "C650": {
+     "live": 557.0481491088867,
+     "ok": true,
+     "replay": 558.0062484741211
+    },
+    "F650": {
+     "live": 440.01697540283203,
+     "ok": true,
+     "replay": 441.1332321166992
+    },
+    "P650": {
+     "live": 542.3723602294922,
+     "ok": true,
+     "replay": 544.3743896484375
+    },
+    "SC": {
+     "live": 312.0538330078125,
+     "ok": true,
+     "replay": 313.0119323730469
+    },
+    "SF": {
+     "live": 194.0240478515625,
+     "ok": true,
+     "replay": 195.1403045654297
+    },
+    "SP": {
+     "live": 297.0132064819336,
+     "ok": true,
+     "replay": 299.0152359008789
+    }
+   },
+   "run_time_tool_ok": false,
+   "sleep_only_ok": true
+  },
+  "x263-20261010-122318": {
+   "HUNGER_max": 0.0001585493670245297,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "R3M1": "as_predicted",
+    "R3M17": "as_predicted",
+    "R3REQ": "as_predicted",
+    "REPLAY": "falsified",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.000587074984371716,
+   "file": "x263.json",
+   "injected": [
+    {
+     "litres": 0.2001990503583729,
+     "s": 179
+    }
+   ],
+   "regrade_ok": true,
+   "requests": {
+    "CAS": {
+     "live": 145.03583908081055,
+     "ok": true,
+     "replay": 145.03583908081055
+    },
+    "CW": {
+     "live": 152.06096649169922,
+     "ok": true,
+     "replay": 152.06096649169922
+    },
+    "SOUP": {
+     "live": 160.07137298583984,
+     "ok": true,
+     "replay": 160.07137298583984
+    },
+    "W100": {
+     "live": 15.129776000976562,
+     "ok": true,
+     "replay": 15.129776000976562
+    },
+    "W200": {
+     "live": 17.536468505859375,
+     "ok": true,
+     "replay": 17.536468505859375
+    },
+    "W300": {
+     "live": 20.241737365722656,
+     "ok": true,
+     "replay": 20.241737365722656
+    },
+    "W400": {
+     "live": 22.551841735839844,
+     "ok": true,
+     "replay": 22.551841735839844
+    },
+    "W500": {
+     "live": 24.501686096191406,
+     "ok": true,
+     "replay": 24.501686096191406
+    },
+    "W600": {
+     "live": 25.346145629882812,
+     "ok": true,
+     "replay": 25.346145629882812
+    }
+   },
+   "run_time_tool_ok": false,
+   "sleep_only_ok": false
+  },
+  "x264-20261010-123620": {
+   "HUNGER_max": 0.00016308140842347107,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "R3MEAN": "as_predicted",
+    "R3REQ": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.000608172495625503,
+   "file": "x264.json",
+   "injected": [],
+   "regrade_ok": true,
+   "requests": {
+    "DHI": {
+     "live": 228.43734741210938,
+     "ok": true,
+     "replay": 229.29039001464844
+    },
+    "DLO": {
+     "live": 200.02635955810547,
+     "ok": true,
+     "replay": 200.02635955810547
+    },
+    "MARC": {
+     "live": 208.04494857788086,
+     "ok": true,
+     "replay": 208.04494857788086
+    },
+    "MSOUP": {
+     "live": 147.00347900390625,
+     "ok": true,
+     "replay": 147.00347900390625
+    }
+   },
+   "run_time_tool_ok": true,
+   "sleep_only_ok": true
+  },
+  "x265-20261010-124149": {
+   "HUNGER_max": 8.3565600785096e-05,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "R4LIQ": "as_predicted",
+    "R4REQ": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.0003073296584239493,
+   "file": "x265.json",
+   "injected": [],
+   "regrade_ok": true,
+   "requests": {
+    "SOLID": {
+     "live": 173.3298683166504,
+     "ok": true,
+     "replay": 173.3298683166504
+    }
+   },
+   "run_time_tool_ok": true,
+   "sleep_only_ok": true
+  },
+  "x266-20261010-124534": {
+   "HUNGER_max": 0.0004303575167933227,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "R5FAC": "falsified",
+    "R5REQ": "falsified",
+    "REPLAY": "falsified",
+    "RING": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "es_max": 0.001263496952077725,
+   "file": "x266.json",
+   "injected": [],
+   "regrade_ok": true,
+   "requests": {
+    "E08d1": {
+     "live": 289.52030181884766,
+     "ok": true,
+     "replay": 289.52030181884766
+    },
+    "E08d2": {
+     "live": 244.0052032470703,
+     "ok": true,
+     "replay": 245.12168884277344
+    },
+    "E19d0": {
+     "live": 292.25669860839844,
+     "ok": true,
+     "replay": 293.0580139160156
+    },
+    "E19d1": {
+     "live": 196.17462158203125,
+     "ok": true,
+     "replay": 196.17462158203125
+    },
+    "W1": {
+     "live": 252.27373123168945,
+     "ok": true,
+     "replay": 252.27373123168945
+    }
+   },
+   "run_time_tool_ok": false,
+   "sleep_only_ok": true
+  }
+ }
+}

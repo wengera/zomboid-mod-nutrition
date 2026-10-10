@@ -1,0 +1,84 @@
+[
+ {
+  "food": "TKX.Casserole",
+  "kind": "eat",
+  "label": "CAS",
+  "s": 225
+ },
+ {
+  "food": "TKX.Soup",
+  "kind": "eat",
+  "label": "SOUP",
+  "s": 374
+ },
+ {
+  "food": "TKX.Casserole",
+  "kind": "eat",
+  "label": "CW",
+  "s": 538
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "CW_water",
+  "litres": 0.05340000092983246,
+  "s": 540
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "CW_water",
+  "litres": 0.14833333591620126,
+  "s": 541
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "CW_water",
+  "litres": 0.14240000247955323,
+  "s": 542
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "CW_water",
+  "litres": 0.011866666873296102,
+  "s": 543
+ },
+ {
+  "food": "TKX.Water100",
+  "kind": "eat",
+  "label": "W100",
+  "s": 694
+ },
+ {
+  "food": "TKX.Water200",
+  "kind": "eat",
+  "label": "W200",
+  "s": 713
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W300",
+  "s": 737
+ },
+ {
+  "food": "TKX.Water400",
+  "kind": "eat",
+  "label": "W400",
+  "s": 763
+ },
+ {
+  "food": "TKX.Water500",
+  "kind": "eat",
+  "label": "W500",
+  "s": 791
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W600",
+  "s": 821
+ }
+]

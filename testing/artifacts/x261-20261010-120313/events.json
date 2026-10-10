@@ -1,0 +1,44 @@
+[
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "G650",
+  "s": 139
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "R1a",
+  "s": 418
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "R1b",
+  "s": 725
+ },
+ {
+  "food": "TKX.Mixed400",
+  "kind": "eat",
+  "label": "F400",
+  "s": 1306
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "T217a",
+  "s": 1607
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "T217b",
+  "s": 1610
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "T217c",
+  "s": 1612
+ }
+]

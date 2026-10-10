@@ -1,0 +1,32 @@
+[
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "W1",
+  "s": 223
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "E19d0",
+  "s": 531
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "E08d1",
+  "s": 1310
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "E19d1",
+  "s": 1971
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "E08d2",
+  "s": 2750
+ }
+]

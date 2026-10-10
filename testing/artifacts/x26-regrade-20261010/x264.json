@@ -1,0 +1,297 @@
+{
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "R3MEAN": "as_predicted",
+  "R3REQ": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "flags": {
+  "detect_autodrink": true,
+  "sleep_allowed": false
+ },
+ "injected_events": [],
+ "kind": "tool re-run at HEAD (a derived artifact, not a live run)",
+ "readings": {
+  "dense_arms": {
+   "at_row_s": 424,
+   "hi_mean180": 0.22839812107463883,
+   "hi_req": 134.14203643798828,
+   "lo_mean180": 0.20064825370889292,
+   "lo_req": 162.07855224609375
+  },
+  "marc_arms": {
+   "at_row_s": 61,
+   "solid_water_mean180": 0.1910976655068122,
+   "soup_mean180": 0.17398015355404547,
+   "soup_minus_solid_water": -0.01711751195276673,
+   "soup_never_higher": true
+  },
+  "means": {
+   "arms": {
+    "DHI": {
+     "live": 0.19715530986674898,
+     "live_180": 0.19715530986674898,
+     "minutes_used": 180.0,
+     "replay": 0.1970491033230244,
+     "replay_180": 0.1970491033230244,
+     "truncated_at_next_landing": false
+    },
+    "DLO": {
+     "live": 0.18029290114990695,
+     "live_180": 0.18029290114990695,
+     "minutes_used": 180.0,
+     "replay": 0.18022560155390477,
+     "replay_180": 0.18022560155390477,
+     "truncated_at_next_landing": false
+    },
+    "MARC": {
+     "live": 0.19112078709699176,
+     "live_180": 0.19112078709699176,
+     "minutes_used": 180.0,
+     "replay": 0.19110623139443095,
+     "replay_180": 0.19110623139443095,
+     "truncated_at_next_landing": false
+    },
+    "MSOUP": {
+     "live": 0.18107054249108723,
+     "live_180": 0.17267517199114005,
+     "minutes_used": 150.9854507446289,
+     "replay": 0.18233986952798806,
+     "replay_180": 0.17373329788415273,
+     "truncated_at_next_landing": true
+    }
+   },
+   "note": "the mean is read over the minutes_used after the landing: a window is cut at the next eat's landing (MSOUP's 180 min run past DLO's landing at s424); live_180 and replay_180 are the full 180 min, contaminated for a truncated arm"
+  },
+  "requests": {
+   "DHI": {
+    "landing_age": 13.728569030761719,
+    "landing_s": 629,
+    "live": 228.43734741210938,
+    "live_minus_replay": -0.8530426025390625,
+    "ok": true,
+    "replay": 229.29039001464844,
+    "tol": 4.585807800292969
+   },
+   "DLO": {
+    "landing_age": 10.300008773803711,
+    "landing_s": 424,
+    "live": 200.02635955810547,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 200.02635955810547,
+    "tol": 4.000527191162109
+   },
+   "MARC": {
+    "landing_age": 4.250299453735352,
+    "landing_s": 61,
+    "live": 208.04494857788086,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 208.04494857788086,
+    "tol": 4.160898971557617
+   },
+   "MSOUP": {
+    "landing_age": 7.7835845947265625,
+    "landing_s": 273,
+    "live": 147.00347900390625,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 147.00347900390625,
+    "tol": 3.0
+   }
+  }
+ },
+ "regrade": {
+  "diff": {
+   "classes": {
+    "between": 7,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.00016308140842347107,
+     "n": 810,
+     "over": 0,
+     "worst_s": 868
+    },
+    "body.energyState": {
+     "max": 0.000608172495625503,
+     "n": 810,
+     "over": 0,
+     "worst_s": 868
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 810,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 1.7696573296453472e-16,
+     "n": 810,
+     "over": 0,
+     "worst_s": 70
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 810,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 9.250516698366962e-06,
+     "n": 810,
+     "over": 0,
+     "worst_s": 67
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ },
+ "requests": {
+  "DHI": {
+   "landing_age": 13.728569030761719,
+   "landing_s": 629,
+   "live": 228.43734741210938,
+   "live_minus_replay": -0.8530426025390625,
+   "ok": true,
+   "replay": 229.29039001464844,
+   "tol": 4.585807800292969
+  },
+  "DLO": {
+   "landing_age": 10.300008773803711,
+   "landing_s": 424,
+   "live": 200.02635955810547,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 200.02635955810547,
+   "tol": 4.000527191162109
+  },
+  "MARC": {
+   "landing_age": 4.250299453735352,
+   "landing_s": 61,
+   "live": 208.04494857788086,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 208.04494857788086,
+   "tol": 4.160898971557617
+  },
+  "MSOUP": {
+   "landing_age": 7.7835845947265625,
+   "landing_s": 273,
+   "live": 147.00347900390625,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 147.00347900390625,
+   "tol": 3.0
+  }
+ },
+ "ring_files": [
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-721.json",
+  "minute-ring-admin-864.json"
+ ],
+ "ring_rows": 873,
+ "run": "x264-20261010-123620",
+ "run_time_tool_diff": {
+  "classes": {
+   "between": 7,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00016308140842347107,
+    "n": 810,
+    "over": 0,
+    "worst_s": 868
+   },
+   "body.energyState": {
+    "max": 0.000608172495625503,
+    "n": 810,
+    "over": 0,
+    "worst_s": 868
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 810,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "ok": true
+ },
+ "seconds": 1.38,
+ "sleep_only": {
+  "diff": {
+   "classes": {
+    "between": 7,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.00016308140842347107,
+     "n": 810,
+     "over": 0,
+     "worst_s": 868
+    },
+    "body.energyState": {
+     "max": 0.000608172495625503,
+     "n": 810,
+     "over": 0,
+     "worst_s": 868
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 810,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 1.7696573296453472e-16,
+     "n": 810,
+     "over": 0,
+     "worst_s": 70
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 810,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 9.250516698366962e-06,
+     "n": 810,
+     "over": 0,
+     "worst_s": 67
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ }
+}

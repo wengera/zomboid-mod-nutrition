@@ -1,0 +1,344 @@
+{
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "R2": "falsified",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "flags": {
+  "detect_autodrink": true,
+  "sleep_allowed": false
+ },
+ "injected_events": [],
+ "kind": "tool re-run at HEAD (a derived artifact, not a live run)",
+ "readings": {
+  "requests": {
+   "B650": {
+    "landing_age": 6.983705520629883,
+    "landing_s": 223,
+    "live": 253.05187225341797,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 253.05187225341797,
+    "tol": 5.06103744506836
+   },
+   "C650": {
+    "landing_age": 20.43351173400879,
+    "landing_s": 1030,
+    "live": 557.0481491088867,
+    "live_minus_replay": -0.958099365234375,
+    "ok": true,
+    "replay": 558.0062484741211,
+    "tol": 11.160124969482423
+   },
+   "F650": {
+    "landing_age": 29.81696891784668,
+    "landing_s": 1593,
+    "live": 440.01697540283203,
+    "live_minus_replay": -1.1162567138671875,
+    "ok": true,
+    "replay": 441.1332321166992,
+    "tol": 8.822664642333985
+   },
+   "P650": {
+    "landing_age": 11.310741424560547,
+    "landing_s": 482,
+    "live": 542.3723602294922,
+    "live_minus_replay": -2.0020294189453125,
+    "ok": true,
+    "replay": 544.3743896484375,
+    "tol": 10.88748779296875
+   },
+   "SC": {
+    "landing_age": 24.51675033569336,
+    "landing_s": 1275,
+    "live": 312.0538330078125,
+    "live_minus_replay": -0.958099365234375,
+    "ok": true,
+    "replay": 313.0119323730469,
+    "tol": 6.2602386474609375
+   },
+   "SF": {
+    "landing_age": 33.91685104370117,
+    "landing_s": 1839,
+    "live": 194.0240478515625,
+    "live_minus_replay": -1.1162567138671875,
+    "ok": true,
+    "replay": 195.1403045654297,
+    "tol": 3.902806091308594
+   },
+   "SP": {
+    "landing_age": 15.400060653686523,
+    "landing_s": 728,
+    "live": 297.0132064819336,
+    "live_minus_replay": -2.0020294189453125,
+    "ok": true,
+    "replay": 299.0152359008789,
+    "tol": 5.980304718017578
+   }
+  },
+  "snack_arms": {
+   "C": {
+    "censored": true,
+    "dinner_from_lunch": {
+     "C": 558.0062484741211,
+     "F": 1004.1406631469727,
+     "P": 1004.1406631469727,
+     "none": 395.1429748535156
+    },
+    "lunch_age": 20.43351173400879,
+    "next_live_eat_min_from_lunch": 563.0074310302734,
+    "none": 395.1429748535156
+   },
+   "F": {
+    "censored": false,
+    "delays": {
+     "C": 135.73654174804688,
+     "F": 140.8392333984375,
+     "P": 155.04318237304688
+    },
+    "lunch_age": 29.81696891784668,
+    "lunch_tod": 12.81696891784668,
+    "none": 300.2939987182617,
+    "p_minus_c": 19.306640625,
+    "p_minus_f": 14.203948974609375,
+    "protein_vs_carb_mean180": 0.03472879660670922,
+    "snack_after_lunch_min": 245.99292755126953
+   },
+   "P": {
+    "censored": false,
+    "delays": {
+     "C": 197.63946533203125,
+     "F": 205.6171417236328,
+     "P": 238.23612213134766
+    },
+    "lunch_age": 11.310741424560547,
+    "lunch_tod": 18.310741424560547,
+    "none": 306.13826751708984,
+    "p_minus_c": 40.596656799316406,
+    "p_minus_f": 32.618980407714844,
+    "protein_vs_carb_mean180": 0.037234000380826304,
+    "snack_after_lunch_min": 245.3591537475586
+   }
+  }
+ },
+ "regrade": {
+  "diff": {
+   "classes": {
+    "between": 7,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.00028413485120115656,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 2058
+    },
+    "body.energyState": {
+     "max": 0.001076112701544285,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 1605
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 3.0148885593606067e-07,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 1694
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ },
+ "requests": {
+  "B650": {
+   "landing_age": 6.983705520629883,
+   "landing_s": 223,
+   "live": 253.05187225341797,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 253.05187225341797,
+   "tol": 5.06103744506836
+  },
+  "C650": {
+   "landing_age": 20.43351173400879,
+   "landing_s": 1030,
+   "live": 557.0481491088867,
+   "live_minus_replay": -0.958099365234375,
+   "ok": true,
+   "replay": 558.0062484741211,
+   "tol": 11.160124969482423
+  },
+  "F650": {
+   "landing_age": 29.81696891784668,
+   "landing_s": 1593,
+   "live": 440.01697540283203,
+   "live_minus_replay": -1.1162567138671875,
+   "ok": true,
+   "replay": 441.1332321166992,
+   "tol": 8.822664642333985
+  },
+  "P650": {
+   "landing_age": 11.310741424560547,
+   "landing_s": 482,
+   "live": 542.3723602294922,
+   "live_minus_replay": -2.0020294189453125,
+   "ok": true,
+   "replay": 544.3743896484375,
+   "tol": 10.88748779296875
+  },
+  "SC": {
+   "landing_age": 24.51675033569336,
+   "landing_s": 1275,
+   "live": 312.0538330078125,
+   "live_minus_replay": -0.958099365234375,
+   "ok": true,
+   "replay": 313.0119323730469,
+   "tol": 6.2602386474609375
+  },
+  "SF": {
+   "landing_age": 33.91685104370117,
+   "landing_s": 1839,
+   "live": 194.0240478515625,
+   "live_minus_replay": -1.1162567138671875,
+   "ok": true,
+   "replay": 195.1403045654297,
+   "tol": 3.902806091308594
+  },
+  "SP": {
+   "landing_age": 15.400060653686523,
+   "landing_s": 728,
+   "live": 297.0132064819336,
+   "live_minus_replay": -2.0020294189453125,
+   "ok": true,
+   "replay": 299.0152359008789,
+   "tol": 5.980304718017578
+  }
+ },
+ "ring_files": [
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-721.json",
+  "minute-ring-admin-1441.json",
+  "minute-ring-admin-2053.json"
+ ],
+ "ring_rows": 2063,
+ "run": "x262-20261010-121337",
+ "run_time_tool_diff": {
+  "classes": {
+   "between": 7,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.046506722552142055,
+    "n": 1999,
+    "over": 565,
+    "worst_s": 2058
+   },
+   "body.energyState": {
+    "max": 0.001076112701544285,
+    "n": 1999,
+    "over": 0,
+    "worst_s": 1605
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1999,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "ok": false
+ },
+ "seconds": 7.94,
+ "sleep_only": {
+  "diff": {
+   "classes": {
+    "between": 7,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.00028413485120115656,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 2058
+    },
+    "body.energyState": {
+     "max": 0.001076112701544285,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 1605
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 1999,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 3.0148885593606067e-07,
+     "n": 1999,
+     "over": 0,
+     "worst_s": 1694
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ }
+}

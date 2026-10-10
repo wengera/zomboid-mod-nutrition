@@ -1,0 +1,334 @@
+{
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "R5FAC": "falsified",
+  "R5REQ": "falsified",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "flags": {
+  "detect_autodrink": true,
+  "sleep_allowed": false
+ },
+ "injected_events": [],
+ "kind": "tool re-run at HEAD (a derived artifact, not a live run)",
+ "readings": {
+  "factor": {
+   "A": 0.085,
+   "PEAK_H": 19.8333,
+   "definition": "live HUNGER over the no-circadian replay HUNGER, against 1 + A cos(2 pi (tod - PEAK_H) / 24) at the writing drain hour",
+   "max_rel_error": 0.0012474607398715865,
+   "over_1pct": 0,
+   "rows": 2955
+  },
+  "fixed_meals": {
+   "E08d1": {
+    "es_before": 1.1311404402291443,
+    "landing_age": 25.100187301635742,
+    "landing_s": 1310,
+    "live_return_min": 289.52030181884766,
+    "nofactor_return_min": 275.1682662963867,
+    "replay_return_min": 289.52030181884766,
+    "tod": 8.100187301635742
+   },
+   "E08d2": {
+    "es_before": 1.1677423151981594,
+    "landing_age": 49.10029983520508,
+    "landing_s": 2750,
+    "live_return_min": 244.0052032470703,
+    "nofactor_return_min": 225.49781799316406,
+    "replay_return_min": 245.12168884277344,
+    "tod": 8.100299835205078
+   },
+   "E19d0": {
+    "es_before": 1.0389717626683292,
+    "landing_age": 12.116739273071289,
+    "landing_s": 531,
+    "live_return_min": 292.25669860839844,
+    "nofactor_return_min": 315.4156494140625,
+    "replay_return_min": 293.0580139160156,
+    "tod": 19.11673927307129
+   },
+   "E19d1": {
+    "es_before": 1.1579808822173765,
+    "landing_age": 36.116973876953125,
+    "landing_s": 1971,
+    "live_return_min": 196.17462158203125,
+    "nofactor_return_min": 228.08258056640625,
+    "replay_return_min": 196.17462158203125,
+    "tod": 19.116973876953125
+   },
+   "W1": {
+    "es_before": 1.0596400366445295,
+    "landing_age": 6.9836931228637695,
+    "landing_s": 223,
+    "live_return_min": 252.27373123168945,
+    "nofactor_return_min": 294.56926345825195,
+    "replay_return_min": 252.27373123168945,
+    "tod": 13.98369312286377
+   }
+  },
+  "requests": {
+   "E08d1": {
+    "landing_age": 25.100187301635742,
+    "landing_s": 1310,
+    "live": 289.52030181884766,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 289.52030181884766,
+    "tol": 5.790406036376953
+   },
+   "E08d2": {
+    "landing_age": 49.10029983520508,
+    "landing_s": 2750,
+    "live": 244.0052032470703,
+    "live_minus_replay": -1.116485595703125,
+    "ok": true,
+    "replay": 245.12168884277344,
+    "tol": 4.902433776855469
+   },
+   "E19d0": {
+    "landing_age": 12.116739273071289,
+    "landing_s": 531,
+    "live": 292.25669860839844,
+    "live_minus_replay": -0.8013153076171875,
+    "ok": true,
+    "replay": 293.0580139160156,
+    "tol": 5.8611602783203125
+   },
+   "E19d1": {
+    "landing_age": 36.116973876953125,
+    "landing_s": 1971,
+    "live": 196.17462158203125,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 196.17462158203125,
+    "tol": 3.923492431640625
+   },
+   "W1": {
+    "landing_age": 6.9836931228637695,
+    "landing_s": 223,
+    "live": 252.27373123168945,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 252.27373123168945,
+    "tol": 5.04547462463379
+   }
+  },
+  "wakes": {
+   "WAKE_d1": {
+    "age": 24.0,
+    "live_hunger": 0.32795030798652175,
+    "replay_hunger": 0.32766060361100546
+   },
+   "WAKE_d2": {
+    "age": 48.0,
+    "live_hunger": 0.3438596873193107,
+    "replay_hunger": 0.34347574177358403
+   }
+  }
+ },
+ "regrade": {
+  "diff": {
+   "classes": {
+    "between": 5,
+    "gap": 0,
+    "offline": 4,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0004303575167933227,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 1970
+    },
+    "body.energyState": {
+     "max": 0.001263496952077725,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 3011
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 6.651612013963693e-07,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 2887
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ },
+ "requests": {
+  "E08d1": {
+   "landing_age": 25.100187301635742,
+   "landing_s": 1310,
+   "live": 289.52030181884766,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 289.52030181884766,
+   "tol": 5.790406036376953
+  },
+  "E08d2": {
+   "landing_age": 49.10029983520508,
+   "landing_s": 2750,
+   "live": 244.0052032470703,
+   "live_minus_replay": -1.116485595703125,
+   "ok": true,
+   "replay": 245.12168884277344,
+   "tol": 4.902433776855469
+  },
+  "E19d0": {
+   "landing_age": 12.116739273071289,
+   "landing_s": 531,
+   "live": 292.25669860839844,
+   "live_minus_replay": -0.8013153076171875,
+   "ok": true,
+   "replay": 293.0580139160156,
+   "tol": 5.8611602783203125
+  },
+  "E19d1": {
+   "landing_age": 36.116973876953125,
+   "landing_s": 1971,
+   "live": 196.17462158203125,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 196.17462158203125,
+   "tol": 3.923492431640625
+  },
+  "W1": {
+   "landing_age": 6.9836931228637695,
+   "landing_s": 223,
+   "live": 252.27373123168945,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 252.27373123168945,
+   "tol": 5.04547462463379
+  }
+ },
+ "ring_files": [
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-721.json",
+  "minute-ring-admin-1441.json",
+  "minute-ring-admin-2161.json",
+  "minute-ring-admin-2881.json",
+  "minute-ring-admin-3008.json"
+ ],
+ "ring_rows": 3015,
+ "run": "x266-20261010-124534",
+ "run_time_tool_diff": {
+  "classes": {
+   "between": 5,
+   "gap": 0,
+   "offline": 4,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.07016612188819471,
+    "n": 2955,
+    "over": 1519,
+    "worst_s": 1970
+   },
+   "body.energyState": {
+    "max": 0.001263496952077725,
+    "n": 2955,
+    "over": 0,
+    "worst_s": 3011
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2955,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "ok": false
+ },
+ "seconds": 2.42,
+ "sleep_only": {
+  "diff": {
+   "classes": {
+    "between": 5,
+    "gap": 0,
+    "offline": 4,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0004303575167933227,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 1970
+    },
+    "body.energyState": {
+     "max": 0.001263496952077725,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 3011
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 2955,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 6.651612013963693e-07,
+     "n": 2955,
+     "over": 0,
+     "worst_s": 2887
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [],
+  "offset": 7
+ }
+}

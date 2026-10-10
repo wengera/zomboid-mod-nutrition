@@ -1,0 +1,560 @@
+{
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "R3M1": "as_predicted",
+  "R3M17": "as_predicted",
+  "R3REQ": "as_predicted",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "flags": {
+  "detect_autodrink": true,
+  "sleep_allowed": false
+ },
+ "injected_events": [
+  {
+   "fluid": "Water",
+   "kind": "drink",
+   "label": "autodrink",
+   "litres": 0.2001990503583729,
+   "s": 179
+  }
+ ],
+ "kind": "tool re-run at HEAD (a derived artifact, not a live run)",
+ "readings": {
+  "injected": [
+   {
+    "fluid": "Water",
+    "kind": "drink",
+    "label": "autodrink",
+    "litres": 0.2001990503583729,
+    "s": 179
+   }
+  ],
+  "minute1": {
+   "W100": {
+    "diff": 0.00011111754257184248,
+    "live": 0.23411116072959826,
+    "replay": 0.2340000431870264
+   },
+   "W200": {
+    "diff": 0.0001069524597603344,
+    "live": 0.2176364913956581,
+    "replay": 0.21752953893589777
+   },
+   "W300": {
+    "diff": 0.00010286702784156887,
+    "live": 0.2009399983444892,
+    "replay": 0.20083713131664763
+   },
+   "W400": {
+    "diff": 9.688549965411464e-05,
+    "live": 0.18097017748707725,
+    "replay": 0.18087329198742313
+   },
+   "W500": {
+    "diff": 9.0183765700802e-05,
+    "live": 0.16055677122603265,
+    "replay": 0.16046658746033185
+   },
+   "W600": {
+    "diff": 8.302520663205915e-05,
+    "live": 0.1404364947745356,
+    "replay": 0.14035346956790354
+   }
+  },
+  "minute17": {
+   "CAS": {
+    "diff": 2.285781538713394e-05,
+    "live": 0.16631880288395734,
+    "replay": 0.1662959450685702
+   },
+   "CW": {
+    "diff": 7.234755866875053e-05,
+    "live": 0.1534194372805905,
+    "replay": 0.15334708972192174
+   },
+   "SOUP": {
+    "diff": 2.957483520853177e-05,
+    "live": 0.10938668529815142,
+    "replay": 0.10935711046294289
+   }
+  },
+  "requests": {
+   "CAS": {
+    "landing_age": 6.950352668762207,
+    "landing_s": 225,
+    "live": 145.03583908081055,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 145.03583908081055,
+    "tol": 3.0
+   },
+   "CW": {
+    "landing_age": 12.166860580444336,
+    "landing_s": 538,
+    "live": 152.06096649169922,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 152.06096649169922,
+    "tol": 3.0412193298339845
+   },
+   "SOUP": {
+    "landing_age": 9.433553695678711,
+    "landing_s": 374,
+    "live": 160.07137298583984,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 160.07137298583984,
+    "tol": 3.201427459716797
+   },
+   "W100": {
+    "landing_age": 14.767061233520508,
+    "landing_s": 694,
+    "live": 15.129776000976562,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 15.129776000976562,
+    "tol": 3.0
+   },
+   "W200": {
+    "landing_age": 15.083745956420898,
+    "landing_s": 713,
+    "live": 17.536468505859375,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 17.536468505859375,
+    "tol": 3.0
+   },
+   "W300": {
+    "landing_age": 15.483682632446289,
+    "landing_s": 737,
+    "live": 20.241737365722656,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 20.241737365722656,
+    "tol": 3.0
+   },
+   "W400": {
+    "landing_age": 15.917081832885742,
+    "landing_s": 763,
+    "live": 22.551841735839844,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 22.551841735839844,
+    "tol": 3.0
+   },
+   "W500": {
+    "landing_age": 16.38365364074707,
+    "landing_s": 791,
+    "live": 24.501686096191406,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 24.501686096191406,
+    "tol": 3.0
+   },
+   "W600": {
+    "landing_age": 16.883663177490234,
+    "landing_s": 821,
+    "live": 25.346145629882812,
+    "live_minus_replay": 0.0,
+    "ok": true,
+    "replay": 25.346145629882812,
+    "tol": 3.0
+   }
+  },
+  "rolls_arms": {
+   "arms": {
+    "casserole": {
+     "kJ": 1809.033808833934,
+     "minute17_hunger": 0.1662959450685702
+    },
+    "casserole_water": {
+     "kJ": 1703.8439227142017,
+     "minute17_hunger": 0.15662633500461481
+    },
+    "soup": {
+     "kJ": 1219.1605562021175,
+     "minute17_hunger": 0.11207167930965194
+    }
+   },
+   "at_row_s": 225,
+   "kJ_per_hunger": 10878.4
+  },
+  "water_arms": {
+   "at_row_s": 694,
+   "grams": [
+    100,
+    200,
+    300,
+    400,
+    500,
+    600
+   ],
+   "minute1_hunger": [
+    0.37248680181572646,
+    0.3441766898267584,
+    0.3158665778377904,
+    0.2875564658488224,
+    0.25924635385985434,
+    0.23093624187088624
+   ],
+   "r2": 0.9999999999999998
+  }
+ },
+ "regrade": {
+  "diff": {
+   "classes": {
+    "between": 14,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0001585493670245297,
+     "n": 795,
+     "over": 0,
+     "worst_s": 860
+    },
+    "body.energyState": {
+     "max": 0.000587074984371716,
+     "n": 795,
+     "over": 0,
+     "worst_s": 860
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 795,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": true
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 795,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 795,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 0.00011857349706223541,
+     "n": 795,
+     "over": 0,
+     "worst_s": 544
+    }
+   },
+   "ok": true
+  },
+  "findings": [],
+  "injected": [
+   {
+    "fluid": "Water",
+    "kind": "drink",
+    "label": "autodrink",
+    "litres": 0.2001990503583729,
+    "s": 179
+   }
+  ],
+  "offset": 7
+ },
+ "requests": {
+  "CAS": {
+   "landing_age": 6.950352668762207,
+   "landing_s": 225,
+   "live": 145.03583908081055,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 145.03583908081055,
+   "tol": 3.0
+  },
+  "CW": {
+   "landing_age": 12.166860580444336,
+   "landing_s": 538,
+   "live": 152.06096649169922,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 152.06096649169922,
+   "tol": 3.0412193298339845
+  },
+  "SOUP": {
+   "landing_age": 9.433553695678711,
+   "landing_s": 374,
+   "live": 160.07137298583984,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 160.07137298583984,
+   "tol": 3.201427459716797
+  },
+  "W100": {
+   "landing_age": 14.767061233520508,
+   "landing_s": 694,
+   "live": 15.129776000976562,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 15.129776000976562,
+   "tol": 3.0
+  },
+  "W200": {
+   "landing_age": 15.083745956420898,
+   "landing_s": 713,
+   "live": 17.536468505859375,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 17.536468505859375,
+   "tol": 3.0
+  },
+  "W300": {
+   "landing_age": 15.483682632446289,
+   "landing_s": 737,
+   "live": 20.241737365722656,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 20.241737365722656,
+   "tol": 3.0
+  },
+  "W400": {
+   "landing_age": 15.917081832885742,
+   "landing_s": 763,
+   "live": 22.551841735839844,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 22.551841735839844,
+   "tol": 3.0
+  },
+  "W500": {
+   "landing_age": 16.38365364074707,
+   "landing_s": 791,
+   "live": 24.501686096191406,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 24.501686096191406,
+   "tol": 3.0
+  },
+  "W600": {
+   "landing_age": 16.883663177490234,
+   "landing_s": 821,
+   "live": 25.346145629882812,
+   "live_minus_replay": 0.0,
+   "ok": true,
+   "replay": 25.346145629882812,
+   "tol": 3.0
+  }
+ },
+ "ring_files": [
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-721.json",
+  "minute-ring-admin-856.json"
+ ],
+ "ring_rows": 865,
+ "run": "x263-20261010-122318",
+ "run_time_tool_diff": {
+  "classes": {
+   "between": 13,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.007130074345279375,
+    "n": 796,
+    "over": 25,
+    "worst_s": 179
+   },
+   "body.energyState": {
+    "max": 0.000587074984371716,
+    "n": 796,
+    "over": 0,
+    "worst_s": 860
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 796,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "ok": false
+ },
+ "seconds": 2.66,
+ "sleep_only": {
+  "diff": {
+   "classes": {
+    "between": 13,
+    "gap": 0,
+    "offline": 5,
+    "suspect": 0
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.007130074345279375,
+     "n": 796,
+     "over": 25,
+     "worst_s": 179
+    },
+    "body.energyState": {
+     "max": 0.000587074984371716,
+     "n": 796,
+     "over": 0,
+     "worst_s": 860
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 796,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "ok": false
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "max": 0.0,
+     "n": 796,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "max": 0.0,
+     "n": 796,
+     "over": 0,
+     "worst_s": null
+    },
+    "stomachFill": {
+     "max": 0.05256283070086928,
+     "n": 796,
+     "over": 95,
+     "worst_s": 180
+    }
+   },
+   "ok": false
+  },
+  "findings": [
+   {
+    "d": 0.007130074345279375,
+    "field": "HUNGER",
+    "live": 0.23085640370845795,
+    "replay": 0.23798647805373732,
+    "s": 179,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.006838687003436539,
+    "field": "HUNGER",
+    "live": 0.2313888669013977,
+    "replay": 0.23822755390483424,
+    "s": 180,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.0062913737831024885,
+    "field": "HUNGER",
+    "live": 0.2324187010526657,
+    "replay": 0.2387100748357682,
+    "s": 181,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.006034567079952036,
+    "field": "HUNGER",
+    "live": 0.23291684687137604,
+    "replay": 0.23895141395132807,
+    "s": 182,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.00578814555486637,
+    "field": "HUNGER",
+    "live": 0.23340488970279694,
+    "replay": 0.2391930352576633,
+    "s": 183,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.005551937596906337,
+    "field": "HUNGER",
+    "live": 0.23388274013996124,
+    "replay": 0.23943467773686758,
+    "s": 184,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.005107394154502259,
+    "field": "HUNGER",
+    "live": 0.23481182754039764,
+    "replay": 0.2399192216948999,
+    "s": 185,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.004898697513825601,
+    "field": "HUNGER",
+    "live": 0.23526298999786377,
+    "replay": 0.24016168751168937,
+    "s": 186,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.004698153614500822,
+    "field": "HUNGER",
+    "live": 0.235706627368927,
+    "replay": 0.24040478098342782,
+    "s": 187,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.004505766467338551,
+    "field": "HUNGER",
+    "live": 0.2361423522233963,
+    "replay": 0.24064811869073485,
+    "s": 188,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   }
+  ],
+  "injected": [],
+  "offset": 7
+ }
+}

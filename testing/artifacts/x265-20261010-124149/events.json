@@ -1,0 +1,22 @@
+[
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MILK",
+  "litres": 0.35714285714285715,
+  "s": 61
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MILK",
+  "litres": 0.14285714285714285,
+  "s": 62
+ },
+ {
+  "food": "TKX.MilkSolid",
+  "kind": "eat",
+  "label": "SOLID",
+  "s": 289
+ }
+]

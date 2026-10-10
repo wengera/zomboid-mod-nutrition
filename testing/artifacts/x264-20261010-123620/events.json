@@ -1,0 +1,47 @@
+[
+ {
+  "food": "TKX.Marc",
+  "kind": "eat",
+  "label": "MARC",
+  "s": 61
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "MARC_water",
+  "litres": 0.11311475859313715,
+  "s": 64
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "MARC_water",
+  "litres": 0.11803279157544745,
+  "s": 65
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "MARC_water",
+  "litres": 0.06885246175234436,
+  "s": 66
+ },
+ {
+  "food": "TKX.MarcSoup",
+  "kind": "eat",
+  "label": "MSOUP",
+  "s": 273
+ },
+ {
+  "food": "TKX.Dense400Lo",
+  "kind": "eat",
+  "label": "DLO",
+  "s": 424
+ },
+ {
+  "food": "TKX.Dense400Hi",
+  "kind": "eat",
+  "label": "DHI",
+  "s": 629
+ }
+]
