@@ -19,7 +19,12 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
 - drinking to thirst drinks what people drink (Plan 11f Task 5b fix 1, ruling 5b-2): about 2.0-3.0 L/d of beverages
   for a sedentary man in a temperate climate and about 1.6-2.2 L/d for a woman (a derivation from S1707's ad libitum
   balance studies, S1708's fluid share and food water, S1709's deuterium turnover and S1710's loss per MJ; the women's
-  bottom rests on three subjects).
+  bottom rests on three subjects);
+- the volume defence (Plan 11f Task 5b fix 1, review finding 1): a sodium deficit contracts the set point isotonically
+  up to 8 % of ECF (0.20 L/kg, S1714; the 8-10 % volume threshold of S1717 and S1722 applied to ECF, a game choice),
+  then ever less, bounded by 20 % (S1729, McCance's plateau read by eye). Heat work on plain water then stops
+  contracting near the bound, reads its deficit as dehydration and dilutes the pool into the hyponatraemia grades, the
+  first after a loss of the order of McCance's 765 mEq (S1730).
 
 THE LIMIT (stated, not modelled): at high sustained intakes sodium is also stored without water (S1673's
 normal-to-high step retained 244 mmol with no ECV gain; S1677, Rakova 2013's swings of 200-400 mmol without body
@@ -49,6 +54,7 @@ LITRES_PER_THIRST = 2               # #2770: min(container, 2 x thirst); NR_Serv
 MEAL_MIN = 120
 MEALS = (8 * 60, 13 * 60, 19 * 60)
 WAKE, SLEEP = 7 * 60, 23 * 60
+WORK, WORK_MET = 9 * 60, 8         # the heat-work arm's shift starts at 09:00 at MET 8 (1 L/h of sweat at sweatK 1)
 K_DIET = 70.0                       # mmol/d of potassium on the two salted diets (about 2.7 g, a mixed diet)
 # the reference bodies: sex, lean kg, body kg, food water g/d (S1708: food gives 0.7 L/d to men and 0.5 L/d to women).
 # The man is the file's 80 kg reference; the woman is a 65 kg body at K.body.BF_FEMALE's 0.28 band (lean 46.8 kg), the
@@ -69,7 +75,7 @@ def _shared():
 
 @functools.lru_cache(maxsize=None)
 def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=None, water_load=None, body="man",
-             food=False):
+             food=False, work_h=0):
     """Run K.fluids minute by minute; returns per-day summaries and the hourly trace."""
     h = _shared()
     F = h.K.fluids
@@ -84,11 +90,12 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
     meal = []
     out_days, hourly = [], []
     day = None
+    first_grade = None
     for m in range(days * DAY):
         tod = m % DAY
         if tod == 0:
             day = dict(na_in=0.0, urine=0.0, drunk=0.0, grade=0, pmin=1e9, pmax=-1e9, psum=0.0, water_sum=0.0,
-                       na_sum=0.0, cleared_g=0.0)
+                       na_sum=0.0, cleared_g=0.0, dmax=0.0, weu_min=0.0)
             out_days.append(day)
         na_now = na_day
         if switch_day is not None and m >= switch_day * DAY:
@@ -116,10 +123,13 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         F.intake(f, ab)
         day["na_in"] += sodium_mg / 23
         ctx.dehydPct = f.dehydPct
+        ctx.met = 1.3
+        if WORK <= tod < WORK + work_h * 60:
+            ctx.met = WORK_MET
         F.losses(f, ctx, 1)
         na0 = f.na
         w0 = f.water
-        F.clearance(f, 1)
+        F.clearance(f, 1, w)
         day["urine"] += na0 - f.na
         day["cleared_g"] += w0 - f.water
         f.dehydPct = F.dehydPct(f, w, 0)
@@ -135,6 +145,11 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         day["psum"] += p
         day["water_sum"] += f.water
         day["na_sum"] += f.na
+        day["dmax"] = max(day["dmax"], f.dehydPct)
+        day["weu_min"] = min(day["weu_min"], F.weu(f, w))
+        if first_grade is None and p < F.HYPONAT[1]:
+            first_grade = dict(m=m, loss=day_loss(out_days) - f.na, weu=F.weu(f, w), water=f.water)
+        day["first_grade"] = first_grade
         if WAKE <= tod < SLEEP and water_load is None and f.thirstTarget > AUTODRINK:
             litres = LITRES_PER_THIRST * f.thirstTarget
             liquid += litres * 1000
@@ -146,9 +161,15 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
             day["pmean"] = day["psum"] / DAY
             day["water_mean"] = day["water_sum"] / DAY
             day["na_mean"] = day["na_sum"] / DAY
+            day["weu_end"] = F.weu(f, w)
         if m % 60 == 59:
             hourly.append(dict(m=m + 1, na=f.na, water=f.water, p=p, cleared=day["cleared_g"]))
     return out_days, hourly
+
+
+def day_loss(days):
+    # the sodium taken in so far; the cumulative loss is this less the pool's balance
+    return sum(d["na_in"] for d in days)
 
 
 def _table(days):
@@ -201,12 +222,14 @@ def test_the_hypotonic_cap_sits_under_the_autodrink_trigger(host):
 
 
 def test_a_hypotonic_pool_reads_no_thirst_under_the_set_point():
-    # under the set point a pool below its euhydration water reads c > 1, so every hypotonic pool sits above its set
-    # point: no volume deficit and no osmotic drive, so no autodrink; the cap is the backstop for the view's floor
+    # inside the volume defence's onset (Plan 11f Task 5b fix 1: na + k above -179.2 mmol at 80 kg) a pool below its
+    # euhydration water reads c > 1, so every hypotonic pool sits above its set point: no deficit, no osmotic drive,
+    # no autodrink. Past the onset the set point is bounded, so a hypotonic pool can read a deficit, and the hypotonic
+    # cap is again what keeps its thirst under the autodrink trigger
     h = _shared()
     F = h.K.fluids
     f = F.new(LM, 1.0, 37.0)
-    hypo = 0
+    hypo = past = 0
     for na in (-2000.0, -800.0, -150.0, 0.0, 150.0, 600.0):
         for k in (-100.0, 0.0, 80.0):
             for water in (-6000.0, -2000.0, -500.0, 0.0, 1000.0, 4000.0, 9000.0):
@@ -215,9 +238,43 @@ def test_a_hypotonic_pool_reads_no_thirst_under_the_set_point():
                 p = F.naPlasma(c)
                 if p < F.HYPO_NA:
                     hypo += 1
-                    assert F.dehydPct(f, W, 0) == 0, (na, k, water)
-                    assert F.thirstTarget(F.dehydPct(f, W, 0), c, p, True) == 0, (na, k, water)
-    assert hypo > 10
+                    t = F.thirstTarget(F.dehydPct(f, W, 0), c, p, True)
+                    if na + k > -179.2:
+                        assert F.dehydPct(f, W, 0) == 0, (na, k, water)
+                        assert t == 0, (na, k, water)
+                    else:
+                        past += F.dehydPct(f, W, 0) > 0
+                        assert t < AUTODRINK, (na, k, water)
+    assert hypo > 10 and past > 0
+
+
+# --- the volume defence (Plan 11f Task 5b fix 1, review finding 1) -----------------------------------------------
+
+def _heat():
+    # heat work at MET 8 for 8 h/d (1 L/h of sweat at 37 mmol/L), no dietary sodium, plain water to thirst, 10 days
+    return simulate(10, 0.0, K_DIET, food=True, work_h=8)
+
+
+def heat_table(days):
+    return [(i + 1, round(-d["na_end"], 0), round(-d["weu_end"], 0), round(d["water_end"], 0), round(d["dmax"], 2),
+             round(d["drunk"], 2), round(d["pmin"], 1), round(d["p_end"], 1), d["grade"]) for i, d in enumerate(days)]
+
+
+def test_heat_work_on_plain_water_bounds_the_contraction_and_dilutes_the_pool():
+    days, _ = _heat()
+    ecf = 0.20 * W * 1000                                       # S1714: 16000 g of ECF at 80 kg
+    full = 0.20 * ecf                                           # S1729: McCance's plateau, by eye
+    # the contraction stops near the bound: never past full defence, and within a tenth of it by day 10
+    assert all(-d["weu_min"] < full for d in days), heat_table(days)
+    assert -days[-1]["weu_end"] > 0.9 * full, heat_table(days)
+    # past it the deficit reads as dehydration: the worst minute of the late days is a moodle-level deficit (#0509)
+    assert max(d["dmax"] for d in days[-3:]) > 2, heat_table(days)
+    # replaced plain water dilutes the pool into the hyponatraemia grades
+    assert days[-1]["grade"] >= 1, heat_table(days)
+    first = days[-1]["first_grade"]
+    assert first is not None
+    # the cumulative sodium loss at the first grade is of the order of McCance's 11-day total, 765 mEq (S1730, Table X)
+    assert 765 / 2 <= first["loss"] <= 765 * 2, first
 
 
 # --- the renal kinetic -------------------------------------------------------------------------------------------
@@ -254,6 +311,13 @@ def test_a_water_load_clears_at_the_maximal_free_water_rate_and_dilutes():
     assert 672 / 1.25 <= third <= 672 * 1.25, third
     # drinking faster than the kidney clears dilutes plasma (S0102): Noakes's subjects fell from 144 to 136
     assert hourly[2]["p"] < 136
+
+
+def test_the_heat_work_table_is_reported():
+    # na deficit, contraction, water, worst dehydPct, drunk, plasma min and end, grade; read against McCance's -11 %
+    days, _ = _heat()
+    print("heat", heat_table(days), days[-1]["first_grade"])
+    assert len(days) == 10
 
 
 def test_the_balance_table_is_reported():

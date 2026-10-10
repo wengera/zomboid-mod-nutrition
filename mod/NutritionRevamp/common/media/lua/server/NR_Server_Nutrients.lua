@@ -38,7 +38,7 @@ NR.server.nutrients = {
     limitations = {
         "the one-minute lag: Metabolism's dmod and rmod read the previous minute's nutrient, fluid and acute stamps",
         "metabolic water is omitted (the water AI, S0088, is read as basal turnover above S1688's minimum losses)",
-        "retained sodium carries its water isotonically (S1683; Plan 11f Task 5b): sodium stored without water at high sustained intakes (S1673, S1677) is not modelled, and a sodium deficit shows as a hidden contraction of the set point, never as dehydration",
+        "retained sodium carries its water isotonically (S1683; Plan 11f Task 5b): sodium stored without water at high sustained intakes (S1673, S1677) is not modelled, and a sodium deficit contracts the set point isotonically only to 8 % of ECF (0.20 L/kg, S1714; S1717, S1722's volume threshold applied to ECF, a game choice), then ever less to a bound of 20 % (S1729, McCance's plateau by eye): past it the deficit reads as dehydration, or dilutes the pool when the water is replaced (Plan 11f Task 5b fix 1)",
         "respiratory water loss is 0 beyond basal (S1052 open)",
         "caffeine diuresis is 0 for a habitual drinker (S0528/S0529)",
         "liver glycogen is not modelled (S0110 open)",
@@ -417,7 +417,7 @@ local function step(username, player, record, ctx)
     fctx.ethanolAbsG = alcDose
     fctx.dehydPct = f.dehydPct
     K.fluids.losses(f, fctx, dtM)
-    K.fluids.clearance(f, dtM)
+    K.fluids.clearance(f, dtM, w)
     local stomach = record.stomach
     if f.autoDrop > 0 then
         -- the writer's sip (THIRST's fall below its last write), converted to litres, lands as a drink: the liquid lane

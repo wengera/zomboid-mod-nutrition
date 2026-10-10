@@ -187,18 +187,18 @@ function K.fluids.losses(f, ctx, dtM)
     return sweatL
 end
 
--- The renal clearance: a sodium and a potassium surplus first-order, then the water above weu zero-order.
-function K.fluids.clearance(f, dtM)
+-- The renal clearance: a sodium and a potassium surplus first-order, then the water above weu (at body mass w) zero-order.
+function K.fluids.clearance(f, dtM, w)
     local F = K.fluids
     f.na = f.na - K.max(f.na, 0) * (dtM / 60) / F.NA_TAU_H
     f.k = f.k - K.max(f.k, 0) * (dtM / 60) / F.K_TAU_H
-    f.water = f.water - K.min(K.max(f.water - F.weu(f), 0), F.CLEAR_GH / 60 * dtM)
+    f.water = f.water - K.min(K.max(f.water - F.weu(f, w), 0), F.CLEAR_GH / 60 * dtM)
 end
 
 -- The water deficit against weu in per cent of body mass w kg; extraG (nil = 0) is water counted as if in the
 -- pool: the thirst view passes the stomach's pending water grams (ruling T1-1), the performance scalar 0.
 function K.fluids.dehydPct(f, w, extraG)
-    return 100 * K.max(0, (K.fluids.weu(f) - f.water - (extraG or 0)) / 1000) / w
+    return 100 * K.max(0, (K.fluids.weu(f, w) - f.water - (extraG or 0)) / 1000) / w
 end
 
 -- The plasma-sodium index (1.0 = OSM_REF): the osmotic pool over its baseline, diluted by total body water plus extraG
@@ -273,9 +273,29 @@ end
 -- which is not modelled, so above about 200 mmol/d the set point overstates the water retained.
 K.fluids.WATER_PER_MMOL = 1000 / 140 -- S1683: plasma sodium 140 mmol/L, so 7.14 g per mmol (derived)
 
--- The euhydration set point weu, g against baseline: the water the sodium and potassium balances carry
--- isotonically. Potassium's share is a game choice (no row prices it): conc counts na + k, so weu counts both,
--- and water at weu reads c = 1 exactly.
-function K.fluids.weu(f)
-    return K.fluids.WATER_PER_MMOL * (f.na + f.k)
+-- The volume defence (Plan 11f Task 5b fix 1): a sodium deficit contracts the set point isotonically only so far.
+-- The body's ECF at euhydration, L per kg of body mass.
+K.fluids.ECF_PER_KG = 0.20 -- S1714: 14 L of ECF in the 70 kg man (derived 14 / 70); McCance also took 20 % (S1730)
+-- The contraction, as a share of ECF, at which vasopressin starts to defend volume over osmolality.
+K.fluids.DEFEND_ONSET = 0.08 -- S1717, S1722: an 8-10 % plasma-volume fall; applied to ECF: a game choice
+-- The contraction, as a share of ECF, at which the volume is fully defended.
+K.fluids.DEFEND_FULL = 0.20 -- S1729: McCance's weight levels at a 2-3 kg loss, about 15-23 % of ECF (Fig. 1 read by eye)
+
+-- The euhydration set point weu, g against baseline, at body mass w kg: the water the sodium and potassium balances
+-- carry isotonically. Potassium's share is a game choice (no row prices it): conc counts na + k, so weu counts both,
+-- and water at weu reads c = 1 exactly. A deficit contracts it fully up to DEFEND_ONSET of ECF (a); past that the
+-- weight with which water follows sodium falls linearly with the contraction to 0 at DEFEND_FULL (b), so a requested
+-- contraction x gives b - (b - a) exp(-(x - a) / (b - a)), bounded by b: past the onset a further sodium loss leaves
+-- the water in place, where it reads as dehydration (dehydPct) or, replaced as plain water, dilutes the pool (S1729's
+-- second phase, S1730's falling serum sodium). A surplus is never bounded.
+function K.fluids.weu(f, w)
+    local F = K.fluids
+    local iso = F.WATER_PER_MMOL * (f.na + f.k)
+    local ecf = F.ECF_PER_KG * w * 1000
+    local a = F.DEFEND_ONSET * ecf
+    if iso >= -a then
+        return iso
+    end
+    local b = F.DEFEND_FULL * ecf
+    return (b - a) * math.exp((iso + a) / (b - a)) - b
 end

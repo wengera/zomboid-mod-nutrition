@@ -143,7 +143,7 @@ def test_basal_ten_hours_at_rest(host):
     assert _close(f.na, -3.3333333333333335, 1e-9) and _close(f.k, 0)
     # the deficit against the set point weu = 1000/140 * na = -23.80952380952381 g:
     # 100*(1541.6666666666667 - 23.80952380952381)/1000/80 = 1.8973214285714284
-    assert _close(F.weu(f), 1000 / 140 * -3.3333333333333335, 1e-9)
+    assert _close(F.weu(f, 80), 1000 / 140 * -3.3333333333333335, 1e-9)
     assert _close(F.dehydPct(f, 80), 1.8973214285714284, 1e-8)
     c = F.conc(f, 65.6)
     p0 = 140 * 0.73 * 65.6
@@ -222,7 +222,7 @@ def test_clearance_one_hour(host):
     f = _new(host)
     f.water = 1000
     for _ in range(60):
-        F.clearance(f, 1)
+        F.clearance(f, 1, 80)
     assert _close(f.water, 328, 1e-8)
     # the surpluses first-order: na at tau 33.8 h, k at 24 h; 5000 g of water clears its hour's 672
     f = _new(host)
@@ -230,7 +230,7 @@ def test_clearance_one_hour(host):
     f.na = 100
     f.k = 100
     for _ in range(60):
-        F.clearance(f, 1)
+        F.clearance(f, 1, 80)
     assert _close(f.na, 97.08404925098363, 1e-8)  # 100*(1 - 1/(60*33.8))^60
     assert _close(f.k, 95.91755736193707, 1e-8)  # 100*(1 - 1/1440)^60
     assert _close(f.water, 4328, 1e-8)
@@ -243,9 +243,9 @@ def test_clearance_holds_the_water_a_sodium_surplus_carries(host):
     f.water = 1000
     f.na = 100
     f.k = 100
-    F.clearance(f, 60)
+    F.clearance(f, 60, 80)
     assert _close(f.water, 1000)
-    assert F.weu(f) > 1000
+    assert F.weu(f, 80) > 1000
     assert F.dehydPct(f, 80) > 0  # below its set point: a deficit, though the pool holds a litre
 
 
@@ -255,10 +255,10 @@ def test_clearance_keeps_a_deficit(host):
     f.water = -500
     f.na = -20
     f.k = -5
-    F.clearance(f, 60)
+    F.clearance(f, 60, 80)
     assert (f.water, f.na, f.k) == (-500, -20, -5)
     f.water = 100
-    F.clearance(f, 60)
+    F.clearance(f, 60, 80)
     assert _close(f.water, -178.57142857142858)  # a surplus under the hour's cap is cleared to weu, never past it
 
 
@@ -310,3 +310,51 @@ def test_conc_counts_extra_water_as_if_in_the_pool(host):
     f.water = -1500
     assert _close(F.conc(f, 65.6, None), F.conc(f, 65.6))
     assert view < F.conc(f, 65.6)
+
+
+def test_the_set_point_follows_sodium_to_the_volume_defence_onset(host):
+    # Plan 11f Task 5b fix 1 (review finding 1): ECF 0.20 L/kg (S1714: 14 L in the 70 kg man), 16000 g at 80 kg; water
+    # follows na + k isotonically (S1683) up to 8 % of it, 1280 g = 179.2 mmol (S1717, S1722: an 8-10 % volume fall;
+    # applied to ECF, a game choice); past it the following weight falls linearly to 0 at full defence, 20 % of ECF
+    # (S1729, McCance Fig. 1 by eye), so the contraction is b - (b - a) exp(-(x - a)/(b - a)) for a requested x
+    F = host.K.fluids
+    assert (F.ECF_PER_KG, F.DEFEND_ONSET, F.DEFEND_FULL) == (0.2, 0.08, 0.2)
+    f = _new(host)
+    f.na = -150
+    f.k = -20
+    assert _close(F.weu(f, 80), 1000 / 140 * -170)
+    f.k = 0
+    for na, want in ((-300, -1975.025014075266), (-1000, -3109.395032863671), (-5000, -3199.999968779741)):
+        f.na = na
+        assert _close(F.weu(f, 80), want, 1e-6), na
+    # continuous at the onset, monotone, never past full defence
+    f.na = -179.2 + 1e-7
+    lo = F.weu(f, 80)
+    f.na = -179.2 - 1e-7
+    assert abs(F.weu(f, 80) - lo) < 1e-5
+    prev = 0
+    for i in range(1, 400):
+        f.na = -5.0 * i
+        v = F.weu(f, 80)
+        assert -3200 < v < prev, i
+        prev = v
+    # the bound scales with the body; a surplus is never bounded
+    f.na = -5000
+    assert _close(F.weu(f, 60), -0.2 * 0.2 * 60 * 1000, 1e-3)
+    f.na = 5000
+    assert _close(F.weu(f, 80), 1000 / 140 * 5000)
+
+
+def test_past_the_bound_a_sodium_deficit_reads_as_dehydration(host):
+    # the set point held at -3109.4 g by a 1000 mmol deficit: water below it is a deficit, water above it clears
+    F = host.K.fluids
+    f = _new(host)
+    f.na = -1000
+    f.water = -3109.395032863671
+    assert F.dehydPct(f, 80) < 1e-9
+    f.water = -5000
+    assert _close(F.dehydPct(f, 80), 100 * (5000 - 3109.395032863671) / 1000 / 80, 1e-6)
+    f.water = -2000
+    F.clearance(f, 60, 80)
+    assert _close(f.water, -2672, 1e-6)  # an hour at 672 g/h toward the bounded set point (S1685)
+    assert f.na == -1000  # a deficit is conserved
