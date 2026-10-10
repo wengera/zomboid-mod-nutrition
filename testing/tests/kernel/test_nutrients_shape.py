@@ -625,7 +625,9 @@ def test_sweat_reads_the_thermoregulator_fluids_multiplier(nut_host):
     alone(h, p, record, 100.0 + 1 / 60)
     f = record["fluids"]
     assert abs(f["sweatLmin"] - 1.0 * 1.0 * 2.0 * 1.0 / 60) < 1e-12   # 1 L/h x 1 x 2 x sweatK 1, one minute
-    assert abs(f["na"] - (-(2.0 / 60) * 30.0 - 8 / 1440)) < 1e-9   # sweat sodium 30 plus S1665's obligatory loss
+    # sweat sodium 30 plus S1665's obligatory loss, charged first; the sweat reads the deficit it leaves (Plan 11f Task 5b
+    # fix 3): 30 x (1 - 0.675 x (8/1440)/331)
+    assert abs(f["na"] - (-(2.0 / 60) * 30.0 * (1 - 0.675 * (8 / 1440) / 331) - 8 / 1440)) < 1e-9
     record["body"]["met"] = None
     p2 = player(h, fluids=NAN)                              # a non-finite read is 1
     record2 = fresh(h, p2)
@@ -1228,3 +1230,9 @@ def test_the_file_loads_with_no_engine_and_names_no_stat_write():
         src = fh.read()
     for name in ("CharacterStat", ":set(", '"set"', "setHealth", "ReduceGeneralHealth", "getMoodles"):
         assert name not in src, name
+
+
+def test_limitations_name_the_sweat_sodium_adaptation(nut_host):
+    # Plan 11f Task 5b fix 3 (candidate C-14): the sweat side adapts to a deficit only
+    lims = list(NUT(nut_host).limitations.values())
+    assert "sweat sodium adapts to a sodium deficit, not to heat exposure alone (Plan 11f Task 5b fix 3): the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration (S1755, S1739, S1743), no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)" in lims

@@ -41,7 +41,7 @@ K.fluids.SWEATK_RANGE = {
     1.5, -- S0090 SD about half the mean; design-phase-v1 game choice (open row S1094: the between-person spread)
 }
 
--- Sweat sodium, mmol/L: the mean and the per-character draw range.
+-- Sweat sodium, mmol/L: the mean and the per-character draw range (the baseline naSweatEff adapts to a deficit).
 K.fluids.NA_SWEAT_MEAN = 37 -- 55.9 mmol/h / 1.51 L/h, S0394 / S0090
 K.fluids.NA_SWEAT_RANGE = {
     10, -- S0518
@@ -178,7 +178,7 @@ function K.fluids.losses(f, ctx, dtM)
     local lossG = basalG + sweatG + coldG + alcG
     f.water = f.water - lossG
     f.na = f.na - F.BASAL_NA / 1440 * dtM
-    f.na = f.na - sweatL * f.naSweat
+    f.na = f.na - sweatL * F.naSweatEff(f)
     f.k = f.k - sweatL * F.K_SWEAT
     local a = K.min(dtM / F.EMA_MIN, 1)
     f.sweat6h = f.sweat6h + a * (sweatG / dtM - f.sweat6h)
@@ -316,4 +316,34 @@ function K.fluids.defence(f, w)
     local a = F.DEFEND_ONSET * ecf
     local b = F.DEFEND_FULL * ecf
     return K.clamp((-F.weu(f, w) - a) / (b - a), 0, 1)
+end
+
+-- Sweat sodium adapts to a sodium deficit (Plan 11f Task 5b fix 3, candidate C-14; 08-sweat-sodium.md section 7). The
+-- driver is the deficit max(-na, 0), not the diet or heat exposure: "the presence of a salt deficit is required"
+-- (S1747); McCance 1938's deficiency arm fell 72 -> 33 mM Na while his generous arm rose 62 -> 70 (S1749); Armstrong
+-- 1985's low-sodium arm fell 45 -> 26 while the high arm rose 41 -> 56 (S1750). Allsopp 1998 saw a fall without a
+-- deficit (S1755), so a replete, acclimatising worker under-adapts here (an exposure field is a later candidate).
+-- No gland lag is stored (S1748: 1-4 days; S1773: about 12 h): the deficit's own build-up is the delay.
+-- The floor ratio: the median of the 5-13 day deficit arms, Weiner 13/40 = 0.325 (S1751), between Komives 15/50 = 0.30
+-- (S1769) and McCance 1938's 33/72 = 0.46 (S1749) (derived); two of the three are chloride ratios read as sodium
+-- (S0518: chloride tracks sodium), the arms are n = 1, 4 and 2, and none measured its deficit.
+K.fluids.NA_SWEAT_MIN_FRAC = 0.325 -- derived: the median of S1769, S1751, S1749
+-- The deficit, mmol, at which the floor ratio is reached: a line from (0, 1) through the mean of Robinson 1956 (169 mmol
+-- Cl depleted, 28 -> 17 mM Cl, S1752, a chloride proxy) and Armstrong 1985 (-230.4 mmol body sodium, 45 -> 26 mM Na,
+-- S1750, S1753), that is (199.7, 0.5925), reaches 0.325 at 330.8 mmol (derived). The zero anchor and the straight line
+-- are game choices, not a fitted dose-response (open S1770).
+K.fluids.NA_SWEAT_DEF_FULL = 331 -- derived from S1752, S1750, S1753; the line a game choice (S1770 open)
+-- The absolute floor, mmol/L: a game choice resting on the low end of S0518's 10-90 and of Allan and Wilson's 10-58
+-- (S1758); not a measured floor. It keeps a low draw from falling to 3.
+K.fluids.NA_SWEAT_ABS_MIN = 10 -- game choice: S0518, S1758
+
+-- The effective sweat sodium, mmol/L: the drawn baseline f.naSweat (never rewritten) less (1 - MIN_FRAC) of itself in
+-- proportion to the deficit up to DEF_FULL, floored at ABS_MIN; a surplus reads the baseline. Recovery on repletion
+-- follows the same line (open S1771).
+function K.fluids.naSweatEff(f)
+    local F = K.fluids
+    local deficit = K.max(-f.na, 0)
+    local r = K.clamp(deficit / F.NA_SWEAT_DEF_FULL, 0, 1)
+    local eff = f.naSweat * (1 - (1 - F.NA_SWEAT_MIN_FRAC) * r)
+    return K.max(eff, F.NA_SWEAT_ABS_MIN)
 end

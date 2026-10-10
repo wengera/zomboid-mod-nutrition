@@ -192,7 +192,9 @@ def test_sweat_losses_one_minute(host):
     assert _close(L, 1 / 60)
     assert _close(f.sweatLmin, 1 / 60)
     assert _close(f.water, -(1000 / 60 + 3700 / 1440))
-    assert _close(f.na, -(1 / 60) * 37 - 8 / 1440)  # sweat sodium plus S1665's obligatory loss
+    # sweat sodium plus S1665's obligatory loss; the obligatory loss is charged first, so the sweat reads the deficit it
+    # leaves (Plan 11f Task 5b fix 3): 37 x (1 - 0.675 x (8/1440)/331)
+    assert _close(f.na, -(1 / 60) * 37 * (1 - 0.675 * (8 / 1440) / 331) - 8 / 1440)
     assert _close(f.k, -(1 / 60) * 5)
 
 
@@ -400,3 +402,44 @@ def test_the_volume_defence_relaxes_the_hypotonic_cap(host):
     assert _close(T(0.5, 1, 130, True, 1), 0.06)  # under the cap the blend changes nothing
     assert _close(T(8, 1, 130, False, 1), 0.83)  # the kill cap still applies after it
     assert _close(T(2, 1, 140, True, 0.5), 0.25)  # a normal plasma ignores the weight
+
+
+def test_sweat_sodium_adapts_to_a_sodium_deficit(host):
+    # Plan 11f Task 5b fix 3 (candidate C-14): the effective sweat sodium falls linearly with the deficit max(-na, 0)
+    # from the drawn baseline to MIN_FRAC of it at DEF_FULL, floored at ABS_MIN (08-sweat-sodium.md section 7). The
+    # deficit is the driver (S1747: "the presence of a salt deficit is required"), so a surplus never moves it
+    F = host.K.fluids
+    assert (F.NA_SWEAT_MIN_FRAC, F.NA_SWEAT_DEF_FULL, F.NA_SWEAT_ABS_MIN) == (0.325, 331, 10)
+    E = F.naSweatEff
+    f = _new(host)
+    for na in (0.0, 1e-9, 50.0, 600.0):
+        f.na = na
+        assert E(f) == 37, na                                # no deficit: the drawn baseline
+    f.na = -100.0
+    assert _close(E(f), 37 * (1 - 0.675 * 100 / 331))
+    # the line's two anchors, by construction (DEF_FULL was drawn through their mean): Robinson 1956's 169 mmol Cl
+    # depleted with sweat 28 -> 17 mM Cl (S1752, a chloride proxy) and Armstrong 1985's -230.4 mmol body sodium with
+    # sweat 45 -> 26 mM Na (S1750, S1753); each within 0.05 of its own ratio
+    f.na = -169.0
+    assert abs(E(f) / 37 - 17 / 28) < 0.05, E(f) / 37
+    f.na = -230.4
+    assert abs(E(f) / 37 - 26 / 45) < 0.05, E(f) / 37
+    # past DEF_FULL the floor ratio: Weiner 13/40 (S1751), beside Komives 0.30 (S1769) and McCance 1938 0.46 (S1749)
+    for na in (-331.0, -500.0, -5000.0):
+        f.na = na
+        assert _close(E(f), 37 * 0.325), na
+    # the absolute floor: a low draw never falls under 10 mmol/L (S0518's low end, S1758; a game choice)
+    g = _new(host, naSweat=20.0)
+    g.na = -1000.0
+    assert E(g) == 10
+    g.na = -100.0
+    assert _close(E(g), 20 * (1 - 0.675 * 100 / 331))
+    lo = _new(host, naSweat=10.0)
+    for na in (0.0, -50.0, -400.0):
+        lo.na = na
+        assert E(lo) == 10, na
+    # losses charge the effective concentration: one minute at 1 L/h past DEF_FULL, after the obligatory loss
+    f.na = -400.0
+    F.losses(f, _ctx(host, met=8.0), 1)
+    assert _close(f.na, -400.0 - 8 / 1440 - (1 / 60) * 37 * 0.325)
+    assert f.naSweat == 37                                   # the drawn baseline is never rewritten

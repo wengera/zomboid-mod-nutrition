@@ -31,7 +31,19 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
   water pari passu with sodium (S1729's first phase) until the contraction nears 8 % of ECF, and the contraction at
   which water stops fully following sodium (a marginal under 90 % of 1000/140 g/mmol, the test's criterion) lies
   between S1717's 7 % of the volume (rat; applied to ECF) and S1721's 1.6 kg sodium-depletion weight loss, by which
-  plasma vasopressin had risen.
+  plasma vasopressin had risen;
+- sweat sodium adapts to a sodium deficit (Plan 11f Task 5b fix 3, candidate C-14): the effective concentration falls
+  linearly with the deficit max(-na, 0) from the drawn baseline to 0.325 of it at 331 mmol, floored at 10 mmol/L
+  (08-sweat-sodium.md section 7; derivations resting on S1751, S1769, S1749, S1752, S1750 and S1753, the line a game
+  choice, S1770 open). The deficit is the driver (S1747: "the presence of a salt deficit is required"; S1749, S1750),
+  so heat work on plain water conserves toward about 96 mmol/d of sweat sodium while a replete worker keeps the draw.
+  The detectable onset (a fall past S1762's ~15 % day-to-day variation, the test's criterion) at 296 mmol/d is graded
+  within 2x of Cage and Dobson's 12 h and Robinson's 14 h (S1773, S1752).
+
+THE WEAK SPOT (stated, not modelled): a replete, acclimatising worker keeps the drawn sweat sodium, while Allsopp
+1998's replete group (S1755) and the free-diet acclimation series (S1739, S1743, S1744) fall without a known deficit;
+heat acclimatisation needs an exposure field, a later candidate. No gland lag is stored (S1748's 1-4 days, S1773's
+5 h of aldosterone), so a heavy shift's deficit lowers the concentration within its first hours.
 
 THE LIMIT (stated, not modelled): at high sustained intakes sodium is also stored without water (S1673's
 normal-to-high step retained 244 mmol with no ECV gain; S1677, Rakova 2013's swings of 200-400 mmol without body
@@ -84,7 +96,7 @@ def _shared():
 
 @functools.lru_cache(maxsize=None)
 def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=None, water_load=None, body="man",
-             food=False, work_h=0):
+             food=False, work_h=0, na0=0.0):
     """Run K.fluids minute by minute; returns per-day summaries and the hourly trace."""
     h = _shared()
     F = h.K.fluids
@@ -92,6 +104,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
     if not food:
         food_g = 0.0
     f = F.new(lm, 1.0, 37.0)
+    f.na = na0                       # a balance carried in (Plan 11f Task 5b fix 3: the driver arm)
     ctx = h.table(dict(sex=sex, met=1.3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
     ab = h.table(dict(water=0.0, sodium=0.0, potassium=0.0))
     liquid = 0.0                     # the liquid lane, g
@@ -106,7 +119,8 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         tod = m % DAY
         if tod == 0:
             day = dict(na_in=0.0, urine=0.0, drunk=0.0, grade=0, pmin=1e9, pmax=-1e9, psum=0.0, water_sum=0.0,
-                       na_sum=0.0, k_sum=0.0, cleared_g=0.0, dmax=0.0, weu_min=0.0, g3=0)
+                       na_sum=0.0, k_sum=0.0, cleared_g=0.0, dmax=0.0, weu_min=0.0, g3=0, sweat_na=0.0,
+                       eff_min=1e9)
             out_days.append(day)
         na_now = na_day
         if switch_day is not None and m >= switch_day * DAY:
@@ -137,11 +151,14 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         ctx.met = 1.3
         if WORK <= tod < WORK + work_h * 60:
             ctx.met = WORK_MET
+        nb = f.na
         F.losses(f, ctx, 1)
-        na0 = f.na
+        day["sweat_na"] += nb - f.na - F.BASAL_NA / DAY       # the sweat's sodium alone
+        day["eff_min"] = min(day["eff_min"], F.naSweatEff(f))
+        nc = f.na
         w0 = f.water
         F.clearance(f, 1, w)
-        day["urine"] += na0 - f.na
+        day["urine"] += nc - f.na
         day["cleared_g"] += w0 - f.water
         f.dehydPct = F.dehydPct(f, w, 0)
         view = F.dehydPct(f, w, liquid)
@@ -292,22 +309,29 @@ def test_a_hypotonic_pool_reads_no_thirst_under_the_set_point():
 
 # --- the volume defence (Plan 11f Task 5b fix 1, review finding 1) -----------------------------------------------
 
-def _heat():
-    # heat work at MET 8 for 8 h/d (1 L/h of sweat at 37 mmol/L), no dietary sodium, plain water to thirst, 10 days
-    return simulate(10, 0.0, K_DIET, food=True, work_h=8)
+def _heat(days=11):
+    # heat work at MET 8 for 8 h/d (1 L/h of sweat at a drawn 37 mmol/L, 296 mmol/d before adaptation), no dietary
+    # sodium, plain water to thirst; 11 days, McCance 1936's span (S1730)
+    return simulate(days, 0.0, K_DIET, food=True, work_h=8)
+
+
+SWEAT_BASE = 8 * 37.0                # the heat arm's daily sweat sodium at the draw, mmol
+SWEAT_FLOOR = 0.325 * SWEAT_BASE     # past DEF_FULL: 96.2 mmol/d (08-sweat-sodium.md section 7, derived)
 
 
 def heat_table(days):
     return [(i + 1, round(-d["na_end"], 0), round(-d["weu_end"], 0), round(d["water_end"], 0), round(d["dmax"], 2),
-             round(d["drunk"], 2), round(d["pmin"], 1), round(d["p_end"], 1), d["grade"], d["g3"])
-            for i, d in enumerate(days)]
+             round(d["drunk"], 2), round(d["sweat_na"], 1), round(d["pmin"], 1), round(d["p_end"], 1), d["grade"],
+             d["g3"]) for i, d in enumerate(days)]
 
 
 def test_heat_work_on_plain_water_holds_the_volume_and_dilutes_the_pool():
     # McCance's mode (S1729: "the volume of the body fluids was relatively well maintained but only at the expense of
     # the osmotic pressure"; S1731: the subjects drank freely): past the onset the relaxed cap lets drinking replace
     # the volume (Plan 11f Task 5b fix 2, review finding 1), so the water stays near the bounded set point and plasma
-    # falls. Before the fix the cap stopped autodrink below 135 and the water ran to -20 kg, dehydPct 21, by day 10
+    # falls. Before the fix the cap stopped autodrink below 135 and the water ran to -20 kg, dehydPct 21, by day 10.
+    # Plan 11f Task 5b fix 3: the sweat conserves sodium under the deficit, so past the bound the pool dilutes about
+    # 2.3 mmol/L a day, not 7, and McCance's 11 days end at grade 1 (his subjects reached -11 %, S1729)
     days, _ = _heat()
     ecf = 0.20 * W * 1000                                       # S1714: 16000 g of ECF at 80 kg
     full = 0.20 * ecf                                           # S1729: McCance's plateau, by eye
@@ -331,7 +355,15 @@ def test_heat_work_on_plain_water_holds_the_volume_and_dilutes_the_pool():
         assert b["p_end"] < a["p_end"], heat_table(days)
     for a, b in zip(days, days[1:]):
         assert b["grade"] >= a["grade"], heat_table(days)
-    assert days[-1]["grade"] >= 2, heat_table(days)
+    assert days[-1]["grade"] >= 1, heat_table(days)
+    # the sweat conserves (Plan 11f Task 5b fix 3): the first day's sweat sodium already falls below the draw's 296
+    # mmol/d, the second day's below the first's, and from day 3 it sits at the floor, 0.325 x 296 = 96.2 mmol/d
+    # (derived), against McCance 1938's 162 -> 73 mmol per exposure (S1749) and Consolazio's 487 -> 71 mmol/d (S1761,
+    # whose balance is not given)
+    assert SWEAT_FLOOR < days[0]["sweat_na"] < 0.9 * SWEAT_BASE, heat_table(days)
+    assert days[1]["sweat_na"] < days[0]["sweat_na"], heat_table(days)
+    for d in days[2:]:
+        assert abs(d["sweat_na"] - SWEAT_FLOOR) < 0.01 * SWEAT_FLOOR, heat_table(days)
     first = days[-1]["first_grade"]
     assert first is not None
     # the cumulative sodium loss at the first grade is of the order of McCance's 11-day total, 765 mEq (S1730, Table X)
@@ -418,10 +450,65 @@ def test_a_water_load_clears_at_the_maximal_free_water_rate_and_dilutes():
 
 
 def test_the_heat_work_table_is_reported():
-    # na deficit, contraction, water, worst dehydPct, drunk, plasma min and end, grade; read against McCance's -11 %
+    # na deficit, contraction, water, worst dehydPct, drunk, sweat sodium, plasma min and end, grade, minutes at grade
+    # 3; read against McCance's -11 % at 11 days (S1729) and his 765 mEq (S1730). The 17-day run is the lethal route's
+    # reading: whether, and at what cumulative loss, the arm reaches grade 3
     days, _ = _heat()
     print("heat", heat_table(days), days[-1]["first_grade"], days[-1]["first_g3"], days[-1]["at_mccance"])
-    assert len(days) == 10
+    assert len(days) == 11
+    long, _ = _heat(17)
+    print("heat17", heat_table(long)[11:], long[-1]["first_g3"])
+    assert len(long) == 17
+
+
+# --- sweat sodium adaptation (Plan 11f Task 5b fix 3, candidate C-14) ---------------------------------------------
+
+def test_onset_the_sweat_sodium_fall_is_detectable_within_hours_of_a_deficit():
+    # 296 mmol/d of sweat sodium spread evenly (1/3 L/h at MET 3 + 5/3, 8 L/d at the drawn 37), no intake: the fall is
+    # read as detectable once the effective concentration is 15 % under the draw (S1762's ~15 % day-to-day variation
+    # within a person; the criterion is the test's own). Graded within 2x of the 12-14 h onset: Cage and Dobson's
+    # "about 12 hours after the beginning of an acclimatizing stress" (S1773) and Robinson 1956's decline from 14 h
+    # (S1752). The model stores no lag, so the deficit's build-up is the only delay
+    h = _shared()
+    F = h.K.fluids
+    f = F.new(LM, 1.0, 37.0)
+    ctx = h.table(dict(sex=1, met=3 + 5 / 3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
+    assert abs(F.sweatLh(ctx.met, 1.0, 1.0) * 24 * 37 - 296) < 1e-9
+    onset = None
+    for m in range(2 * DAY):
+        F.losses(f, ctx, 1)
+        if onset is None and F.naSweatEff(f) < 0.85 * 37:
+            onset = dict(h=(m + 1) / 60, deficit=-f.na)
+    assert onset is not None
+    print("onset", onset)
+    assert 12 / 2 <= onset["h"] <= 14 * 2, onset
+
+
+@pytest.mark.parametrize("na_day", [304.0, 399.0])
+def test_a_replete_worker_keeps_the_drawn_sweat_sodium(na_day):
+    # Baker's "the presence of a salt deficit is required" (S1747; McCance 1938's generous arm 62 -> 70, S1749): the heat
+    # arm with dietary sodium matching the sweat and obligatory losses (304 mmol/d) or Armstrong's 399 (S1750). The
+    # balance dips within each shift, so the matched diet reads a few per cent under the draw; every day stays within
+    # S1762's ~15 % day-to-day variation, and the generous diet sits at the draw. Armstrong's rise to 56 mM on 399 is
+    # not modelled: the draw is the ceiling
+    days, _ = simulate(10, na_day, K_DIET, food=True, work_h=8)
+    print("replete", na_day, [(round(d["na_end"]), round(d["sweat_na"], 1), round(d["eff_min"], 2)) for d in days])
+    for d in days:
+        assert d["sweat_na"] >= 0.85 * SWEAT_BASE, (na_day, d["sweat_na"])
+        assert d["grade"] == 0 and 138 <= d["p_end"] <= 142, (na_day, d["p_end"])
+    if na_day == 399.0:
+        for d in days[1:]:
+            assert d["sweat_na"] > 0.995 * SWEAT_BASE, d["sweat_na"]
+
+
+def test_the_sweat_reads_the_balance_not_the_diet():
+    # the driver is the deficit (S1747, S1749, S1750), not the intake: a surplus carried into a salt-free shift keeps
+    # the draw, and a deficit carried into a generous diet (Armstrong's 399 mmol/d) conserves until it is repaid
+    surplus, _ = simulate(1, 0.0, K_DIET, food=True, work_h=8, na0=600.0)
+    assert surplus[0]["eff_min"] == 37, surplus[0]["eff_min"]
+    assert abs(surplus[0]["sweat_na"] - SWEAT_BASE) < 1e-6, surplus[0]["sweat_na"]
+    deficit, _ = simulate(1, 399.0, K_DIET, food=True, work_h=8, na0=-600.0)
+    assert deficit[0]["sweat_na"] < 0.6 * SWEAT_BASE, deficit[0]["sweat_na"]
 
 
 def test_the_balance_table_is_reported():
