@@ -1,0 +1,39 @@
+# testing/profiles/x28-steady.toml - Plan 11f Task 5r (runs x281..x284): research row 7, the steady eater over
+# request-level days (docs/superpowers/research/2026-10-10-live-study-replays/01-harness-facts.md s6), re-run on the
+# build where the sodium drain is fixed (Task 5b), on one live body over a chain of four sessions (each session copies
+# the previous one's <run>/server and boots it with reuse=True; the first restores the fixture).
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x28-steady/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x28-steady`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). Sleep stays off (the fixture's false/false), so the
+# record's sleep state is frozen and the sleep factor inert (#2961); the replay takes sleep_allowed false.
+# The drivers are testing/experiments/x281_*.py .. x284_*.py on testing/experiments/x28_steady_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x28-steady) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the Plan 11f Task 5r steady eater (row 7), a chain of four sessions."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x28-steady/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1 (6.27 ticks, x222)
