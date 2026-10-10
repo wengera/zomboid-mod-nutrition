@@ -15,7 +15,11 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
 - water follows sodium: the euhydration set point carries 1000/140 g of water per retained mmol (S1683), against
   S1673's 10.5 mL per mmol of ECV on a low-to-normal step and S1678's 1.4 kg over the 50 -> 200 mmol/d band;
 - the maximal free-water clearance, 11.2 mL/min = 672 g/h (S1685, Noakes 2001);
-- the hypotonic thirst cap under vanilla autoDrink's 0.1 trigger (#2770), so suppression stops drinking.
+- the hypotonic thirst cap under vanilla autoDrink's 0.1 trigger (#2770), so suppression stops drinking;
+- drinking to thirst drinks what people drink (Plan 11f Task 5b fix 1, ruling 5b-2): about 2.0-3.0 L/d of beverages
+  for a sedentary man in a temperate climate and about 1.6-2.2 L/d for a woman (a derivation from S1707's ad libitum
+  balance studies, S1708's fluid share and food water, S1709's deuterium turnover and S1710's loss per MJ; the women's
+  bottom rests on three subjects).
 
 THE LIMIT (stated, not modelled): at high sustained intakes sodium is also stored without water (S1673's
 normal-to-high step retained 244 mmol with no ECV gain; S1677, Rakova 2013's swings of 200-400 mmol without body
@@ -25,7 +29,8 @@ retained.
 The drinking model is vanilla autoDrink (#2770): while awake (07:00-23:00), a minute whose THIRST target exceeds 0.1
 drinks 2 x THIRST litres into the stomach's liquid lane, which empties first-order at K.stomach.WATER_HALF_MIN (13 min,
 S1245; the meals here carry no energy into the solid lane, so the lane is never slowed). As the server does, the
-thirst view counts the lane's still-unabsorbed water (ruling T1-1).
+thirst view counts the lane's still-unabsorbed water (ruling T1-1), in its osmotic term too (Plan 11f Task 5b fix 1:
+satiation precedes absorption, S1698 and S1699; the weight 1.0 is a game choice).
 The body is the 80 kg reference man (lean 65.6 kg), sedentary (MET 1.3, so no sweat), thermoFluids 1, no cold, no
 alcohol. Meals at 08:00, 13:00 and 19:00 each carry a third of the day's sodium and potassium, absorbed evenly over
 120 minutes, and no water (the drinking covers it). The step and retention arms absorb their intake evenly every
@@ -45,6 +50,10 @@ MEAL_MIN = 120
 MEALS = (8 * 60, 13 * 60, 19 * 60)
 WAKE, SLEEP = 7 * 60, 23 * 60
 K_DIET = 70.0                       # mmol/d of potassium on the two salted diets (about 2.7 g, a mixed diet)
+# the reference bodies: sex, lean kg, body kg, food water g/d (S1708: food gives 0.7 L/d to men and 0.5 L/d to women).
+# The man is the file's 80 kg reference; the woman is a 65 kg body at K.body.BF_FEMALE's 0.28 band (lean 46.8 kg), the
+# test's own choice.
+BODIES = {"man": (1, 65.6, 80.0, 700.0), "woman": (2, 46.8, 65.0, 500.0)}
 
 
 def _host():
@@ -59,12 +68,16 @@ def _shared():
 
 
 @functools.lru_cache(maxsize=None)
-def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=None, water_load=None):
+def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=None, water_load=None, body="man",
+             food=False):
     """Run K.fluids minute by minute; returns per-day summaries and the hourly trace."""
     h = _shared()
     F = h.K.fluids
-    f = F.new(LM, 1.0, 37.0)
-    ctx = h.table(dict(sex=1, met=1.3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
+    sex, lm, w, food_g = BODIES[body]
+    if not food:
+        food_g = 0.0
+    f = F.new(lm, 1.0, 37.0)
+    ctx = h.table(dict(sex=sex, met=1.3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
     ab = h.table(dict(water=0.0, sodium=0.0, potassium=0.0))
     liquid = 0.0                     # the liquid lane, g
     lane = 1 - 0.5 ** (1 / float(h.K.stomach.WATER_HALF_MIN))
@@ -75,7 +88,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         tod = m % DAY
         if tod == 0:
             day = dict(na_in=0.0, urine=0.0, drunk=0.0, grade=0, pmin=1e9, pmax=-1e9, psum=0.0, water_sum=0.0,
-                       na_sum=0.0)
+                       na_sum=0.0, cleared_g=0.0)
             out_days.append(day)
         na_now = na_day
         if switch_day is not None and m >= switch_day * DAY:
@@ -84,12 +97,13 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         sodium_mg = potassium_mg = water_g = 0.0
         if meals:
             if tod in MEALS:
-                meal.append([na_now / 3 * 23 / MEAL_MIN, k_day / 3 * 39.1 / MEAL_MIN, MEAL_MIN])
+                meal.append([na_now / 3 * 23 / MEAL_MIN, k_day / 3 * 39.1 / MEAL_MIN, food_g / 3 / MEAL_MIN, MEAL_MIN])
             for e in meal:
                 sodium_mg += e[0]
                 potassium_mg += e[1]
-                e[2] -= 1
-            meal = [e for e in meal if e[2] > 0]
+                water_g += e[2]
+                e[3] -= 1
+            meal = [e for e in meal if e[3] > 0]
         else:
             sodium_mg = na_now * 23 / DAY
             potassium_mg = k_day * 39.1 / DAY
@@ -107,13 +121,13 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         w0 = f.water
         F.clearance(f, 1)
         day["urine"] += na0 - f.na
-        day.setdefault("cleared_g", 0.0)
         day["cleared_g"] += w0 - f.water
-        f.dehydPct = F.dehydPct(f, W, 0)
-        view = F.dehydPct(f, W, liquid)
-        f.c = F.conc(f, LM)
+        f.dehydPct = F.dehydPct(f, w, 0)
+        view = F.dehydPct(f, w, liquid)
+        f.c = F.conc(f, lm)
         f.naPlasma = F.naPlasma(f.c)
-        f.thirstTarget = F.thirstTarget(view, f.c, f.naPlasma, True)
+        # Plan 11f Task 5b fix 1: the view's osmotic term counts the swallowed water too, as the server does
+        f.thirstTarget = F.thirstTarget(view, F.conc(f, lm, liquid), f.naPlasma, True)
         p = f.naPlasma
         day["grade"] = max(day["grade"], int(F.hyponatGrade(p)))
         day["pmin"] = min(day["pmin"], p)
@@ -162,6 +176,19 @@ def test_a_salted_diet_reaches_urinary_balance_with_plasma_held(na_day):
         share = d["urine"] / d["na_in"]
         assert 0.88 <= share <= 0.97, (na_day, share)            # S1674, widened by the obligatory loss
         assert 138 <= d["p_end"] <= 142, (na_day, d["p_end"])    # S1678: plasma defended by water
+
+
+@pytest.mark.parametrize("body,band", [("man", (2.0, 3.0)), ("woman", (1.6, 2.2))])
+def test_drinking_to_thirst_drinks_what_people_drink(body, band):
+    # the drinking-volume oracle (a derivation, 07-thirst-volume.md section 8): days 4-10, after the salted diet's set
+    # point has filled; "about" reads 5 % on the band's top. At steady state the drinks are the basal turnover (S0088 as
+    # turnover, a game choice) less S1708's food water, so the man sits at the band's top and the woman at hers
+    days, _ = simulate(10, 120.0, K_DIET, body=body, food=True)
+    drunk = sum(d["drunk"] for d in days[3:]) / 7
+    assert band[0] <= drunk <= band[1] * 1.05, (body, [round(d["drunk"], 2) for d in days])
+    # the excess the uncounted swallowed water drove (ruling 5b-2) is gone: little of what is drunk is cleared unused
+    cleared = sum(d["cleared_g"] for d in days[3:]) / 7 / 1000
+    assert cleared < 0.1 * drunk, (body, cleared, drunk)
 
 
 def test_the_hypotonic_cap_sits_under_the_autodrink_trigger(host):

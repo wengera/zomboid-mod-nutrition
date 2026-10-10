@@ -534,6 +534,29 @@ def test_the_thirst_view_reads_the_liquid_lanes_water_too(nut_host):
     assert f["thirstTarget"] < before
 
 
+def test_the_thirst_views_osmotic_term_counts_the_pending_water(nut_host):
+    # Plan 11f Task 5b fix 1 (ruling 5b-2): swallowed water satiates before it is absorbed (S1698: AVP replete 9 min
+    # after the drink; S1699: thirst 7.7 -> 1.0 cm in 20 min at an unchanged Posm), so the view's c reads the pool plus
+    # the pending water (weight 1.0, a game choice); the pool's c and plasma sodium, the grade's, stay the pool's
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    for i in range(1, 11):
+        chain(h, p, record, 100.0 + i)
+    record["stomach"]["liquid"] = 1000.0
+    alone(h, p, record, 110.0 + 1 / 60)
+    f, body, st = record["fluids"], record["body"], record["stomach"]
+    pending = st["liquid"] + st["buffer"]["water"]
+    assert pending > 900
+    want_view, c_view = expected_thirst(f["viewPct"], body["lm"], f["water"] + pending, f["na"])
+    want_pool, c_pool = expected_thirst(f["viewPct"], body["lm"], f["water"], f["na"])
+    assert abs(f["c"] - c_pool) < 1e-9
+    assert abs(f["naPlasma"] - 140 * c_pool) < 1e-6
+    assert c_view < c_pool - 0.015                          # a litre of the 1.54 kg deficit, swallowed
+    assert abs(f["thirstTarget"] - want_view) < 1e-9
+    assert f["thirstTarget"] < want_pool - 0.1
+
+
 def test_the_kill_cap_and_its_dial(nut_host):
     h = nut_host
     p = player(h)

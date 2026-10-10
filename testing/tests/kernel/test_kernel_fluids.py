@@ -296,3 +296,17 @@ def test_ema_alpha_capped_on_a_long_step(host):
     F.losses(f, _ctx(host), 720)
     assert _close(f.loss6h, 3700 / 1440)
     assert _close(f.sweat6h, 0.0)
+
+
+def test_conc_counts_extra_water_as_if_in_the_pool(host):
+    # Plan 11f Task 5b fix 1: the thirst view's c counts the swallowed water (S1698, S1699); a nil extraG reads 0
+    F = host.K.fluids
+    f = _new(host)
+    f.na = 100
+    f.water = -1500
+    view = F.conc(f, 65.6, 1000)
+    f.water = -500
+    assert _close(view, F.conc(f, 65.6))
+    f.water = -1500
+    assert _close(F.conc(f, 65.6, None), F.conc(f, 65.6))
+    assert view < F.conc(f, 65.6)

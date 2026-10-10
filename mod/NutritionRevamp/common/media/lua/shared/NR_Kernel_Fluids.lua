@@ -9,16 +9,16 @@
 -- neither has code. The sweat EMAs take each step's per-minute sample, so a step of dtM minutes moves them
 -- as one sample with alpha = dtM/360 (capped at 1); dtM is always > 0. Sex is indexed 1 male, 2 female
 -- (Plan 3's K.body convention). Ruling T1-1: vanilla's autoDrink and ISTakeWaterAction size every sip from
--- THIRST, so the thirst VIEW reads the pool plus the stomach's still-unabsorbed water (dehydPct's extraG,
--- which the adapter passes) and THIRST falls at the drink; the performance scalar f.dehydPct is the
--- pool-only call (extraG 0). thirstTarget is a pure function of the dehydPct it is given.
+-- THIRST, so the thirst VIEW reads the pool plus the stomach's still-unabsorbed water (the extraG of dehydPct
+-- and, Plan 11f Task 5b fix 1, of conc, which the adapter passes) and THIRST falls at the drink; f.dehydPct and
+-- f.c are the pool-only calls (extraG 0). thirstTarget is a pure function of the dehydPct and c it is given.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min / K.max reference is at call time.
 local K = NutritionRevamp.kernel
 K.fluids = {}
 
 -- Total body water per kg of lean mass, litres.
-K.fluids.TBW_PER_LM = 0.73 -- design-phase-v1 game choice (open row S1091: total body water as a fraction of lean mass)
+K.fluids.TBW_PER_LM = 0.73 -- S1706: 72.7 +/- 3.2 % of lean body mass (Peronnet 2012), rounded to two places
 
 -- The osmotic reference, mmol/L: the plasma-sodium index 1.0.
 K.fluids.OSM_REF = 140 -- midpoint of S1045's 135-145 normal range
@@ -201,13 +201,13 @@ function K.fluids.dehydPct(f, w, extraG)
     return 100 * K.max(0, (K.fluids.weu(f) - f.water - (extraG or 0)) / 1000) / w
 end
 
--- The plasma-sodium index (1.0 = OSM_REF): the osmotic pool over its baseline, diluted by total body water
--- (the Edelman form, open row S1092). The water term is floored at a tenth of tbw0.
-function K.fluids.conc(f, lm)
+-- The plasma-sodium index (1.0 = OSM_REF): the osmotic pool over its baseline, diluted by total body water plus extraG
+-- (nil = 0: the view's swallowed water; the Edelman form, open row S1092). The water term is floored at 0.1 tbw0.
+function K.fluids.conc(f, lm, extraG)
     local F = K.fluids
     local t0 = F.tbw0(lm)
     local p0 = F.osmPool0(lm)
-    local tbw = K.max(t0 + f.water / 1000, 0.1 * t0)
+    local tbw = K.max(t0 + (f.water + (extraG or 0)) / 1000, 0.1 * t0)
     return (p0 + f.na + f.k) / p0 * t0 / tbw
 end
 

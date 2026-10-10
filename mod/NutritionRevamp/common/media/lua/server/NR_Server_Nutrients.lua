@@ -43,7 +43,7 @@ NR.server.nutrients = {
         "caffeine diuresis is 0 for a habitual drinker (S0528/S0529)",
         "liver glycogen is not modelled (S0110 open)",
         "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets FATIGUE ahead of the hook",
-        "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1); the performance dehydration is the pool alone",
+        "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1), in its volume and its osmotic term (Plan 11f Task 5b fix 1: satiation precedes absorption, S1698, S1699; the weight 1.0 is a game choice); the performance dehydration, plasma sodium and its grade are the pool alone",
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target (Plan 11 ruling 7)",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
@@ -439,7 +439,11 @@ local function step(username, player, record, ctx)
     f.viewPct = K.fluids.dehydPct(f, w, pendingG)           -- ruling T1-1
     f.c = K.fluids.conc(f, body.lm)
     f.naPlasma = K.fluids.naPlasma(f.c)
-    f.thirstTarget = K.fluids.thirstTarget(f.viewPct, f.c, f.naPlasma, O.deficienciesCanKill ~= false)
+    -- the view's osmotic term counts the swallowed water too (Plan 11f Task 5b fix 1, ruling 5b-2): AVP is back to its
+    -- replete level 9 min after a drink (S1698) and thirst falls within 20 min at an unchanged Posm (S1699); the weight
+    -- 1.0 on the pending water is a game choice resting on those rows. The hypotonic cap reads the pool's plasma sodium.
+    local cView = K.fluids.conc(f, body.lm, pendingG)
+    f.thirstTarget = K.fluids.thirstTarget(f.viewPct, cView, f.naPlasma, O.deficienciesCanKill ~= false)
     f.sweatActive = K.fluids.sweatActive(f)
 
     -- the acute states
