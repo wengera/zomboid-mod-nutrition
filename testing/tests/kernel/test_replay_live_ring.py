@@ -213,3 +213,35 @@ def test_a_drink_lands_in_the_liquid_lane_and_a_typed_vector_eat_books_monotony(
     assert rp.record().monotony.t["TKX.Typed"].n == pytest.approx(1 + 2 ** (-24 / 72.0))
     assert rp.eats[-1]["boredom"] == pytest.approx(4.3 * 2 ** (-24 / 72.0))
     assert st.buffer.water == pytest.approx(400.0)
+
+
+# x260b's reconnect (Plan 11f Task 3, ruling S0-3): rows 1-59 offline, row 60 online with no record (the first sight,
+# which live drained), row 61 on. The committed artifact is read from the working tree.
+X260B = os.path.join(REPO, "testing", "artifacts", "x260b-20261010-111433")
+
+
+def _x260b():
+    pages = [os.path.join(X260B, f) for f in ("minute-ring-admin-1.json", "minute-ring-admin-100.json")]
+    rows, paths = RL.load_ring(pages)
+    with open(os.path.join(X260B, "start.json"), encoding="utf-8") as fh:
+        start = json.load(fh)
+    with open(os.path.join(X260B, "start-stats.json"), encoding="utf-8") as fh:
+        stats = json.load(fh)
+    with open(os.path.join(X260B, "player.json"), encoding="utf-8") as fh:
+        player = json.load(fh)
+    return rows, paths, start, stats, player
+
+
+@pytest.mark.skipif(not os.path.isdir(X260B), reason="the x260b artifact is not in this tree")
+def test_x260b_the_reconnects_online_first_sight_row_drains_and_p_has_no_lag():
+    rows, paths, start, stats, player = _x260b()
+    first = next(r for r in rows if r.get("on") is not False)
+    assert first.get("norec") and not RL.offline_row(first)
+    out, be = RL.replay_live(rows, [], start, paths=paths, user="admin", player=player, start_stats=stats)
+    by_s = {r["s"]: r for r in out}
+    assert by_s[first["s"]].get("offline") is True             # replay row k is labelled with ring row k + 1's s:
+    assert by_s[first["s"] + 1].get("offline") is None         # the first-sight minute is drained, not offline
+    d = RL.diff(out, rows, dict(RL.DEFAULT_TOL, **{"satiety.P": ("rel", 0.005)}))
+    assert d["ok"], d["findings"][:3]
+    assert d["fields"]["satiety.P"]["n"] > 30 and d["fields"]["satiety.P"]["max"] < 1e-3
+    assert d["fields"]["HUNGER"]["n"] > 30

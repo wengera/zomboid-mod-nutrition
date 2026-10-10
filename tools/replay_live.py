@@ -49,12 +49,14 @@ refused as a feed); mode "arm" substitutes another event list (ruling 11f-3), on
 and feeds nothing the arm does not name. The replay never reads a ring row's outputs (HUNGER, the record paths, the
 other stats): the stand-in's stats start at --start-stats or its defaults.
 
-The ring's own bookkeeping marks each compared row (link_marks): a jump in s or ev, or a dtM above 1.05, is a gap (the
-replay still steps the real age delta; graded, its findings marked gap); a drained count that did not advance between
-two rows makes the later one suspect (the drain had not finished; not graded); a row with on false or norec is
-offline: that minute is not drained (it fires with the user away) and the reconnect drain is the mod's own, whose
-adapters clamp the offline span at OFFLINE_CAP_M, 60 game minutes (NR_Server_Metabolism.lua:375). The diff counts each
-class.
+The ring's own bookkeeping marks each compared row (link_marks): a jump in s or ev, or a dtM above 2.05 (the server's
+tick granularity alternates dtM 0.8 and 1.6 at speed 5 and 0.94-1.11 at speed 1; ruling S0-1), is a gap (the replay
+still steps the real age delta; graded, its findings marked gap); a drained count that did not advance between two rows
+makes the later one suspect (the drain had not finished; not graded); a row with on false is offline: that minute is
+not drained (it fires with the user away) and the reconnect drain is the mod's own, whose adapters clamp the offline
+span at OFFLINE_CAP_M, 60 game minutes (NR_Server_Metabolism.lua:375). A row with on true and norec is the first
+sight, not offline: the mod loads the record in that minute's queue slot and drains it (NR_Server_Players.lua
+P.firstSight, then the writer), so the replay drains it (ruling S0-3). The diff counts each class.
 
 The start record's read age (--start-read-age, or a top-level readAge in the start document): events at or before it
 are dropped, because the record already holds them. The driver contract: the driver logs the start record's read age,
@@ -97,7 +99,8 @@ ALLOWED_FEED = ("NICOTINE_WITHDRAWAL",)
 GRADED_FEED = ("HUNGER", "P", "S", "L", "es", "satiety.P", "satiety.S", "satiety.L", "body.energyState", "FATIGUE",
                "THIRST", "BOREDOM", "UNHAPPINESS")
 DEFAULT_FEED = ALLOWED_FEED
-GAP_DTM = 1.05                        # a ring row whose dtM exceeds this is a long minute: marked gap
+GAP_DTM = 2.05                        # a ring row whose dtM exceeds this is a long minute: marked gap (ruling S0-1:
+                                      # tick quantization puts normal rows at 0.8-1.6, so 1.05 marked them)
 OFFLINE_CAP_M = 60                    # the mod's reconnect clamp (NR_Server_Metabolism.lua:375, NR_Server_Nutrients.lua:367,
                                       # NR_Server_Kinetics MAX_GAP_M): offline time is not integrated past 60 game minutes
 DEFAULT_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005), "satiety.L": ("rel", 0.005)}
@@ -993,8 +996,9 @@ def synthetic_ages(minutes, start_age=0.0, dtM=1.0):
 
 
 def offline_row(r):
-    """A ring row taken with the user away (on false) or with no record in the store (norec): no drain ran for it."""
-    return r.get("on") is False or bool(r.get("norec"))
+    """A ring row taken with the user away (on false): no drain ran for it. An online row with no record yet (norec)
+    is the first sight, which the mod drains in that minute (ruling S0-3), so it is not offline."""
+    return r.get("on") is False
 
 
 def _num(x):
@@ -1005,7 +1009,8 @@ def link_marks(use):
     """One {gap, suspect, offline} per replay row k, read off the ring's own bookkeeping between ring rows k and k + 1
     (replay row k is compared with ring row k + 1):
       gap      s does not advance by 1 (a row lost), ev does not advance by 1 (a sample that raised: a minute the ring
-               never saw), or row k + 1's dtM exceeds GAP_DTM (a long minute). The replay still steps the real age
+               never saw), or row k + 1's dtM exceeds GAP_DTM (a long minute; the quantized
+               0.8 / 1.6 rows are not). The replay still steps the real age
                delta; the row is graded and its findings carry gap.
       suspect  drained (the mod's count of drains begun) did not advance from row k to row k + 1: the drain after row
                k had not run when row k + 1 was read. Not graded.

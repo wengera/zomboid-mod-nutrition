@@ -4,7 +4,7 @@ start record's read age, the event fraction contract and the replay's independen
 Each live run is a stand-in server (ServerReplay with the harness's H1 and H2 blocks loaded beside it, as
 test_replay_live_ring.py builds it) whose ring is the replay's input. The classes are checked on the replay of that
 ring: an offline window is not drained and the reconnect drain is the mod's own 60-minute clamp; a missing row (a jump
-in s), a missed sample (a jump in ev) and a long minute (dtM above 1.05) are marked gap and stepped by the real age
+in s), a missed sample (a jump in ev) and a long minute (dtM above 2.05, ruling S0-1) are marked gap and stepped by the real age
 delta; a row whose drain had not advanced is suspect and not graded; an eat between the record's last drain and its
 read is dropped by start_read_age; and a ring whose every output is scaled replays bit-identically while the diff
 fails.
@@ -121,15 +121,16 @@ def test_the_replay_matches_the_live_ring_across_the_offline_window(offline_run)
     assert not RL.diff([r for r in out2 if r["s"] > 135], late, {"satiety.P": ("rel", 1e-9)})["ok"]
 
 
-def test_a_norec_row_is_offline_and_not_drained(offline_run):
+def test_an_online_norec_row_is_the_first_sight_and_is_drained(offline_run):
     slots, rows, paths, events, _ = offline_run
     rows2 = [dict(r) for r in rows]
     for r in rows2:
         if r["s"] == 20:
             r["norec"] = True
     out, _ = RL.replay_live(rows2, events, slots[0], ring_paths=paths)
-    assert [r["s"] for r in out if r.get("offline") and r["s"] < 40] == [20, 21]
-    assert next(r for r in out if r["s"] == 21)["on"] is False
+    # ruling S0-3: an online row with no record yet is the mod's first sight, which drains that minute
+    assert [r["s"] for r in out if r.get("offline") and r["s"] < 40] == []
+    assert next(r for r in out if r["s"] == 21)["on"] is True
 
 
 # --- gaps and suspects ----------------------------------------------------------------------------------------------

@@ -174,6 +174,65 @@ def _scan(mod_dir):
     return infos, sorted(medias), hits
 
 
+# The item-script keys `Item.DoParam` parses with `Integer.parseInt` (register #0214; a malformed value throws
+# InvalidParameterException and the item is dropped, #0213). The set is the 22 rows typed `int` in the item-level
+# script-key reference of docs/facts/food-item-model.md (read on 42.20.4 and re-read on 42.21, #0214). DoParam
+# compares keys case-insensitively, so the match is on the lowercased key.
+ITEM_INT_KEYS = frozenset(k.lower() for k in (
+    "BoredomChange", "ChanceToSpawnDamaged", "ColorBlue", "ColorGreen", "ColorRed", "ConditionMax", "DaysFresh",
+    "DaysTotallyRotten", "Eattime", "fluReduction", "FoodSicknessChange", "InverseCoughProbability",
+    "InverseCoughProbabilitySmoker", "LightDistance", "MinutesToBurn", "MinutesToCook", "painReduction",
+    "PoisonPower", "StressChange", "ticksPerEquipUse", "UnhappyChange", "VehicleType"))
+INT_LITERAL_RX = re.compile(r"^[+-]?\d+$")
+BLOCK_COMMENT_RX = re.compile(r"/\*.*?\*/", re.S)
+
+
+def item_int_key_hits(mod_dir):
+    """[(rel path, line, key, value)] for every int-typed item key (ITEM_INT_KEYS) whose value is not an integer
+    literal, in every `.txt` under a `scripts/` folder of the mod. A key counts inside an `item <Name>` block only
+    (the innermost open block's header starts with `item`); a header is the text before a `{`, else the last
+    non-blank line before it. Comments (`/* */`, `//`) are blanked first, line numbers kept."""
+    hits = []
+    for dirpath, dirs, files in os.walk(mod_dir):
+        dirs.sort()
+        if "/scripts" not in "/" + _slash(os.path.relpath(dirpath, mod_dir)).lower() + "/":
+            continue
+        for fn in sorted(files):
+            if not fn.lower().endswith(".txt"):
+                continue
+            full = os.path.join(dirpath, fn)
+            rel = _slash(os.path.relpath(full, mod_dir))
+            try:
+                with open(full, encoding="utf-8-sig", errors="replace") as fh:
+                    text = fh.read()
+            except OSError:
+                continue
+            text = BLOCK_COMMENT_RX.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+            stack, last = [], ""
+            for n, line in enumerate(text.splitlines(), 1):
+                line = line.split("//", 1)[0].strip()
+                if not line:
+                    continue
+                if "{" in line:
+                    head = line.split("{", 1)[0].strip() or last
+                    stack.append(head.lower())
+                    line = line.split("{", 1)[1].strip()
+                    if not line:
+                        continue
+                closing = line.count("}")
+                body = line.split("}", 1)[0].strip()
+                if body and "=" in body and stack and stack[-1].split(None, 1)[:1] == ["item"]:
+                    key, _, val = body.partition("=")
+                    val = val.strip().rstrip(",").strip()
+                    if key.strip().lower() in ITEM_INT_KEYS and not INT_LITERAL_RX.match(val):
+                        hits.append((rel, n, key.strip(), val))
+                for _ in range(closing):
+                    if stack:
+                        stack.pop()
+                last = line if "=" not in line and "}" not in line else ""
+    return hits
+
+
 def lint_mod(mod_dir, name=None):
     """Every L0 rule against one mod folder. `name` is what findings are reported as.
 
@@ -246,6 +305,11 @@ def lint_mod(mod_dir, name=None):
     for rel, line, count in hits:
         out.append(Finding(name, ERROR, "loadstring", "%s:%d%s (removed from the engine in 42.20.x)"
                            % (rel, line, "" if count == 1 else " and %d more" % (count - 1))))
+
+    for rel, line, key, val in item_int_key_hits(mod_dir):
+        out.append(Finding(name, ERROR, "item-int-key",
+                           "%s:%d %s = %s (the engine parses %s with Integer.parseInt; the item is dropped)"
+                           % (rel, line, key, val, key)))
 
     folder = os.path.basename(os.path.normpath(mod_dir))
     if mod_id and folder != mod_id:

@@ -206,17 +206,40 @@ class TestFix1(unittest.TestCase):
                {"s": 7, "ev": 8, "drained": 6, "age": 1.0 + 6 / 60, "dtM": 1.03, "on": True},
                {"s": 8, "ev": 9, "drained": 7, "age": 1.0 + 7 / 60, "dtM": 1.0, "on": False},
                {"s": 9, "ev": 10, "drained": 7, "age": 1.0 + 8 / 60, "dtM": 1.0, "on": True, "norec": True},
-               {"s": 10, "ev": 11, "drained": 7, "age": 1.0 + 9 / 60, "dtM": 1.0, "on": True}]
+               {"s": 10, "ev": 11, "drained": 8, "age": 1.0 + 9 / 60, "dtM": 1.0, "on": True}]
         m = RL.link_marks(use)
         # a lost row with no ev and a one-minute dtM is still a gap: s alone shows it
         only_s = RL.link_marks([{"s": 1, "age": 1.0}, {"s": 3, "age": 1.0 + 1 / 60, "dtM": 1.0}])
         self.assertEqual(only_s[0]["gap"], True)
         self.assertEqual([x["gap"] for x in m], [False, True, True, False, False, False, False, False, False])
         self.assertEqual([x["suspect"] for x in m], [False, False, False, True, False, False, False, False, False])
-        self.assertEqual([x["offline"] for x in m], [False, False, False, False, False, True, True, True, False])
+        self.assertEqual([x["offline"] for x in m], [False, False, False, False, False, True, True, False, False])
         self.assertEqual(RL.offline_row(use[6]), True)
-        self.assertEqual(RL.offline_row(use[7]), True)
+        self.assertEqual(RL.offline_row(use[7]), False)         # online with no record: the first sight drains
         self.assertEqual(RL.offline_row(use[8]), False)
+
+    def test_quantized_dtm_is_not_a_gap_and_a_long_minute_is(self):
+        # ruling S0-1: the server's ticks alternate dtM 0.8 / 1.6 at speed 5 and 0.94-1.11 at speed 1
+        def rows(dtms):
+            return [{"s": i + 1, "ev": i + 1, "drained": i + 1, "age": 1.0 + i / 60, "dtM": d, "on": True}
+                    for i, d in enumerate(dtms)]
+        quant = RL.link_marks(rows([0.8, 1.6, 0.8, 1.6, 0.8, 1.6, 1.1, 0.94]))
+        self.assertEqual([m["gap"] for m in quant], [False] * 8)
+        long_ = RL.link_marks(rows([0.8, 1.6, 2.4, 0.8]))
+        self.assertEqual([m["gap"] for m in long_], [False, True, False, False])
+        edge = RL.link_marks(rows([1.0, 2.05, 2.06]))
+        self.assertEqual([m["gap"] for m in edge], [False, True, False])
+
+    def test_an_online_first_sight_row_is_drained_not_offline(self):
+        ring = [{"s": 1, "age": 1.0, "on": False}, {"s": 2, "age": 1.0 + 1 / 60, "on": True, "norec": True},
+                {"s": 3, "age": 1.0 + 2 / 60, "on": True}]
+        be = FakeBackend()
+        be.away = False
+        offline = [k for k, r in enumerate(ring) if RL.offline_row(r)]
+        self.assertEqual(offline, [0])
+        out = RL.run(be, [r["age"] for r in ring], [], offline=offline)
+        self.assertEqual([r.get("offline", False) for r in out], [True, False, False])
+        self.assertEqual(be.n, 2)                               # the first-sight row stepped
 
     def test_the_diff_counts_each_class_grades_gaps_and_skips_suspect_and_offline_rows(self):
         ring = [{"s": s, "HUNGER": 0.3} for s in range(2, 7)]

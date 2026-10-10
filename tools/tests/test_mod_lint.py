@@ -28,6 +28,48 @@ def _run(*args):
                           encoding="utf-8", errors="replace")
 
 
+def _items(body, block="item Apple"):
+    return "module Base\n{\n    %s\n    {\n%s    }\n}\n" % (block, body)
+
+
+def test_item_int_key_with_a_float_literal_is_an_error():
+    """Item.DoParam reads BoredomChange, UnhappyChange, StressChange and the other int keys with
+    Integer.parseInt (register #0214): `0.0` throws and drops the item (x260's first boot)."""
+    with tempfile.TemporaryDirectory() as d:
+        mod = _mod(d, "Fl", {"42/mod.info": "name=Fl\nid=Fl\n",
+                             "42/media/scripts/a.txt": _items("        BoredomChange = 0.0,\n"
+                                                                "        StressChange = 1.5,\n"
+                                                                "        DaysFresh = 3,\n"
+                                                                "        Calories = 100.0,\n")})
+        hits = [f for f in mod_lint.lint([mod]) if f.rule == "item-int-key"]
+        assert [f.level for f in hits] == ["ERROR", "ERROR"]
+        assert "a.txt:5 BoredomChange = 0.0" in hits[0].detail
+        assert "a.txt:6 StressChange = 1.5" in hits[1].detail
+        r = _run(mod)
+        assert ": ERROR: item-int-key:" in r.stdout and r.returncode == 1, r.stdout
+
+
+def test_item_int_key_with_an_integer_literal_passes():
+    with tempfile.TemporaryDirectory() as d:
+        mod = _mod(d, "Ok", {"42/mod.info": "name=Ok\nid=Ok\n",
+                             "42/media/scripts/a.txt": _items("        BoredomChange = 0,\n"
+                                                                "        UnhappyChange = -10,\n"
+                                                                "        unhappychange = +3,\n"
+                                                                "        HungerChange = -0.5,\n")})
+        assert [f for f in mod_lint.lint([mod]) if f.rule == "item-int-key"] == []
+
+
+def test_item_int_key_is_read_inside_item_blocks_of_scripts_only():
+    """A same-named key in another block type, a comment, or a non-script folder is not an item key."""
+    with tempfile.TemporaryDirectory() as d:
+        other = _items("        BoredomChange = 0.0,\n", block="recipe Foo")
+        commented = _items("        /* BoredomChange = 0.0, */\n        // StressChange = 0.0,\n")
+        mod = _mod(d, "Sc", {"42/mod.info": "name=Sc\nid=Sc\n", "42/media/scripts/r.txt": other,
+                             "42/media/scripts/c.txt": commented,
+                             "42/media/lua/shared/n.txt": _items("        BoredomChange = 0.0,\n")})
+        assert [f for f in mod_lint.lint([mod]) if f.rule == "item-int-key"] == []
+
+
 def test_good_layout_lints_clean():
     """The B42 shape every rule is written against: one version folder holding mod.info+media,
     folder named after the id."""
