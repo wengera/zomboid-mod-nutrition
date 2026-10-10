@@ -33,7 +33,8 @@ end
 -- A dead record is never stepped (Plan 11f Task 5b): from its death minute until OnNewGame's reset only its store
 -- step runs (MIN.runDead), so the record a slot file holds is the record at death. A dead flag under a player that
 -- reads alive with no reset pending is a stuck flag (Plan 11f Task 5b fix 1): logged, cleared and counted in
--- deadHealed, so the model never freezes waiting for a respawn that does not come.
+-- deadHealed, so the model never freezes waiting for a respawn that does not come. The heal keeps the record's state
+-- as it stood under the flag; NR.server.store.reset (a fresh record, as OnNewGame's respawn gets) is the alternative.
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
