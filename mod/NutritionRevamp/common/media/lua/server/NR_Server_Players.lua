@@ -30,6 +30,8 @@ end
 
 -- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
 -- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).
+-- A dead record is never stepped (Plan 11f Task 5b): from its death minute until OnNewGame's reset only its store
+-- step runs (MIN.runDead), so the record a slot file holds is the record at death.
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
@@ -40,6 +42,10 @@ function P.work(username, player)
     if okD and dead == true and r.dead ~= true then
         r.dead = true
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
+    end
+    if r.dead == true then
+        NR.server.minute.runDead(username, player, r)
+        return
     end
     NR.server.minute.run(username, player, r)
 end

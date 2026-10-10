@@ -18,7 +18,7 @@ NR.server.minute = {
     ORDER = { "bus", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "writer", "store" },
     steps = {},
     ctx = {},
-    stats = { runs = 0, failures = 0 },
+    stats = { runs = 0, failures = 0, deadRuns = 0 },
 }
 local MIN = NR.server.minute
 
@@ -39,6 +39,26 @@ function MIN.run(username, player, record)
             if not ok then
                 MIN.stats.failures = MIN.stats.failures + 1
                 NR.log.say(2, "minute: " .. MIN.ORDER[i] .. " failed for " .. tostring(username) .. ": " .. tostring(err))
+            end
+        end
+    end
+end
+
+-- A dead record's minute (Plan 11f Task 5b): only DEAD_ORDER's steps run, under the same guard -- the store's save,
+-- so the record and its dead flag persist until OnNewGame's reset -- and nothing is stepped, written or sent.
+MIN.DEAD_ORDER = { "store" }
+
+function MIN.runDead(username, player, record)
+    local ctx = MIN.ctx
+    for k in pairs(ctx) do ctx[k] = nil end
+    MIN.stats.deadRuns = MIN.stats.deadRuns + 1
+    for i = 1, #MIN.DEAD_ORDER do
+        local fn = MIN.steps[MIN.DEAD_ORDER[i]]
+        if fn ~= nil then
+            local ok, err = pcall(fn, username, player, record, ctx)
+            if not ok then
+                MIN.stats.failures = MIN.stats.failures + 1
+                NR.log.say(2, "minute: " .. MIN.DEAD_ORDER[i] .. " failed for " .. tostring(username) .. ": " .. tostring(err))
             end
         end
     end

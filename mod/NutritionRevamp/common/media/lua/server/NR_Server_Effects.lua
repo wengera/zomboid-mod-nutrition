@@ -53,7 +53,7 @@ NR.server.effects = {
         "the protein side of the protein-energy grade reads unknown (grade 1) until the 7-day protein ring holds seven closed days",
         "the refeeding sickness floor holds for the refeeding event's day (record.acute.refeedEvent is set at a day close and held to the next)",
         "a spontaneous bruise rolls with ZombRandFloat; with no ZombRandFloat the roll reads 1.0 and no bruise fires",
-        "a dead character's record is stepped but no trait, body or health write is made",
+        "a dead character's record is not stepped (Plan 11f Task 5b: P.work runs its store step alone until the respawn's reset); a direct call on a dead record makes no trait, body or health write",
         "the sleep-onset latency terms (solAddH, solMul) are stamped and unapplied: under the hybrid vanilla sets the sleep delay (Plan 11)",
         "the cold fold (catchACold's rise × coldMul) is unmeasured (X105): on the x161b fixture the thermoregulator's catch-a-cold delta stayed under the engine's 0.1 gate, so no rise was folded",
         "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal (Plan 11 ruling 10)",
@@ -532,7 +532,7 @@ local function step(username, player, record, body, dtM, ageH)
         E.tempTarget = setPoint + adj
     end
 
-    -- 5. the traits (the night-vision machine runs even for a dead record; the writes do not)
+    -- 5. the traits (on a direct call for a dead record the night-vision machine runs; the writes do not)
     local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440)
 
     -- 6. the drain (kernel order: compose, nvMinute, drain)

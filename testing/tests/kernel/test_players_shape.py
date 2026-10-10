@@ -244,3 +244,27 @@ def test_an_evicted_players_stale_queue_entry_never_reaches_the_extra_seam():
     h.tick(3)
     ran = [runs[i] for i in range(1, len(runs) + 1)]
     assert ran == ["ghost1"]
+
+
+def test_a_dead_record_is_not_stepped_after_its_death_minute():
+    # Plan 11f Task 5b (finding F-T5-1): P.work stepped a dead record through the whole minute pipeline, so x273's
+    # slot files were the record about 18 h after death; now the death minute stamps dead and lastSeen, runs the
+    # store step alone (the record and its dead flag still saved), and the pipeline never runs for it again
+    h = host()
+    a = h.player("a")
+    h.online(a)
+    run_minute(h, 2, 1)
+    run_minute(h, 2, 2)
+    MIN = h.NR.server.minute
+    runs0, dead0 = MIN.stats.runs, MIN.stats.deadRuns
+    a.deadFlag = True
+    run_minute(h, 2, 3)
+    r = h.record("a")
+    assert r.dead is True
+    assert MIN.stats.runs == runs0                   # the death minute itself is not stepped
+    snap = (r.fluids.water, r.fluids.na, r.body.fm, r.body.lm, r.body.at, r.satiety.t, r.nutrients.lastAgeH)
+    run_minute(h, 2, 63)                             # an hour later, the body still listed
+    assert (r.fluids.water, r.fluids.na, r.body.fm, r.body.lm, r.body.at, r.satiety.t, r.nutrients.lastAgeH) == snap
+    assert r.lastSeen == 100.0 + 63 / 60
+    assert MIN.stats.runs == runs0
+    assert MIN.stats.deadRuns == dead0 + 2           # the store step ran for each dead minute

@@ -25131,14 +25131,14 @@
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
-     "minutes": 713,
+     "minutes": 712,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
      "rebuilds": 20,
      "regenWrites": 20,
-     "skippedDead": 1,
+     "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
     },
@@ -25162,15 +25162,15 @@
     },
     "kinetics": {
      "failures": 0,
-     "minutes": 720,
-     "players": 720
+     "minutes": 719,
+     "players": 719
     },
     "metabolism": {
      "badReads": 0,
      "days": 6,
      "failures": 1,
      "firstSightMirrors": 7,
-     "minutes": 720,
+     "minutes": 719,
      "preconditionWarnings": 1,
      "skippedDays": 0,
      "splits": 7
@@ -25181,19 +25181,19 @@
      "effectsErrors": 0,
      "errors": 0,
      "healed": 0,
-     "minutes": 720,
+     "minutes": 719,
      "noBody": 0,
-     "players": 713,
+     "players": 712,
      "skippedDays": 0
     },
     "reconcile": {
      "credits": 0,
      "errors": 0,
      "landed": 1,
-     "minutes": 720,
+     "minutes": 719,
      "noStore": 0,
      "seeded": 7,
-     "skipped": 719
+     "skipped": 718
     },
     "store": {
      "created": 6,
@@ -25206,7 +25206,7 @@
      "carryWrites": 0,
      "failures": 0,
      "ladderFallbacks": 0,
-     "minutes": 720,
+     "minutes": 719,
      "pushMissing": 0,
      "pushes": 7,
      "writes": 7
@@ -25225,13 +25225,13 @@
      "bandChanges": 0,
      "bandRepairs": 0,
      "failures": 0,
-     "flagWrites": 720,
-     "minutes": 720,
-     "mirrorWrites": 720,
+     "flagWrites": 719,
+     "minutes": 719,
+     "mirrorWrites": 719,
      "pushMissing": 0,
      "pushes": 0,
-     "rebases": 720,
-     "weightWrites": 720
+     "rebases": 719,
+     "weightWrites": 719
     },
     "writer": {
      "dry": 0,
@@ -25241,7 +25241,7 @@
      "seeded": 7,
      "sips": 0,
      "skipped": 0,
-     "writes": 720
+     "writes": 719
     }
    },
    "syncs": {
@@ -31443,14 +31443,14 @@
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
-     "minutes": 892,
+     "minutes": 891,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
      "rebuilds": 21,
      "regenWrites": 21,
-     "skippedDead": 1,
+     "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
     },
@@ -31474,15 +31474,15 @@
     },
     "kinetics": {
      "failures": 0,
-     "minutes": 899,
-     "players": 899
+     "minutes": 898,
+     "players": 898
     },
     "metabolism": {
      "badReads": 0,
      "days": 6,
      "failures": 1,
      "firstSightMirrors": 7,
-     "minutes": 899,
+     "minutes": 898,
      "preconditionWarnings": 1,
      "skippedDays": 0,
      "splits": 7
@@ -31493,19 +31493,19 @@
      "effectsErrors": 0,
      "errors": 0,
      "healed": 0,
-     "minutes": 899,
+     "minutes": 898,
      "noBody": 0,
-     "players": 892,
+     "players": 891,
      "skippedDays": 0
     },
     "reconcile": {
      "credits": 0,
      "errors": 0,
      "landed": 1,
-     "minutes": 899,
+     "minutes": 898,
      "noStore": 0,
      "seeded": 7,
-     "skipped": 898
+     "skipped": 897
     },
     "store": {
      "created": 6,
@@ -31518,7 +31518,7 @@
      "carryWrites": 0,
      "failures": 0,
      "ladderFallbacks": 0,
-     "minutes": 899,
+     "minutes": 898,
      "pushMissing": 0,
      "pushes": 7,
      "writes": 7
@@ -31537,13 +31537,13 @@
      "bandChanges": 0,
      "bandRepairs": 0,
      "failures": 0,
-     "flagWrites": 899,
-     "minutes": 899,
-     "mirrorWrites": 899,
+     "flagWrites": 898,
+     "minutes": 898,
+     "mirrorWrites": 898,
      "pushMissing": 0,
      "pushes": 0,
-     "rebases": 899,
-     "weightWrites": 899
+     "rebases": 898,
+     "weightWrites": 898
     },
     "writer": {
      "dry": 0,
@@ -31553,7 +31553,7 @@
      "seeded": 8,
      "sips": 0,
      "skipped": 0,
-     "writes": 899
+     "writes": 898
     }
    },
    "syncs": {
@@ -37748,14 +37748,14 @@
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
-     "minutes": 1043,
+     "minutes": 1042,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
      "rebuilds": 24,
      "regenWrites": 24,
-     "skippedDead": 1,
+     "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
     },
@@ -37779,15 +37779,15 @@
     },
     "kinetics": {
      "failures": 0,
-     "minutes": 1050,
-     "players": 1050
+     "minutes": 1049,
+     "players": 1049
     },
     "metabolism": {
      "badReads": 0,
      "days": 6,
      "failures": 1,
      "firstSightMirrors": 8,
-     "minutes": 1050,
+     "minutes": 1049,
      "preconditionWarnings": 1,
      "skippedDays": 0,
      "splits": 7
@@ -37798,19 +37798,19 @@
      "effectsErrors": 0,
      "errors": 0,
      "healed": 0,
-     "minutes": 1050,
+     "minutes": 1049,
      "noBody": 0,
-     "players": 1043,
+     "players": 1042,
      "skippedDays": 0
     },
     "reconcile": {
      "credits": 0,
      "errors": 0,
      "landed": 1,
-     "minutes": 1050,
+     "minutes": 1049,
      "noStore": 0,
      "seeded": 8,
-     "skipped": 1049
+     "skipped": 1048
     },
     "store": {
      "created": 6,
@@ -37823,7 +37823,7 @@
      "carryWrites": 0,
      "failures": 0,
      "ladderFallbacks": 0,
-     "minutes": 1050,
+     "minutes": 1049,
      "pushMissing": 0,
      "pushes": 8,
      "writes": 8
@@ -37842,13 +37842,13 @@
      "bandChanges": 0,
      "bandRepairs": 0,
      "failures": 0,
-     "flagWrites": 1050,
-     "minutes": 1050,
-     "mirrorWrites": 1050,
+     "flagWrites": 1049,
+     "minutes": 1049,
+     "mirrorWrites": 1049,
      "pushMissing": 0,
      "pushes": 0,
-     "rebases": 1050,
-     "weightWrites": 1050
+     "rebases": 1049,
+     "weightWrites": 1049
     },
     "writer": {
      "dry": 0,
@@ -37858,7 +37858,7 @@
      "seeded": 8,
      "sips": 0,
      "skipped": 0,
-     "writes": 1050
+     "writes": 1049
     }
    },
    "syncs": {
@@ -44053,14 +44053,14 @@
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
-     "minutes": 1223,
+     "minutes": 1222,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
      "rebuilds": 27,
      "regenWrites": 27,
-     "skippedDead": 1,
+     "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
     },
@@ -44084,15 +44084,15 @@
     },
     "kinetics": {
      "failures": 0,
-     "minutes": 1230,
-     "players": 1230
+     "minutes": 1229,
+     "players": 1229
     },
     "metabolism": {
      "badReads": 0,
      "days": 6,
      "failures": 1,
      "firstSightMirrors": 8,
-     "minutes": 1230,
+     "minutes": 1229,
      "preconditionWarnings": 1,
      "skippedDays": 0,
      "splits": 7
@@ -44103,19 +44103,19 @@
      "effectsErrors": 0,
      "errors": 0,
      "healed": 0,
-     "minutes": 1230,
+     "minutes": 1229,
      "noBody": 0,
-     "players": 1223,
+     "players": 1222,
      "skippedDays": 0
     },
     "reconcile": {
      "credits": 0,
      "errors": 0,
      "landed": 1,
-     "minutes": 1230,
+     "minutes": 1229,
      "noStore": 0,
      "seeded": 8,
-     "skipped": 1229
+     "skipped": 1228
     },
     "store": {
      "created": 6,
@@ -44128,7 +44128,7 @@
      "carryWrites": 0,
      "failures": 0,
      "ladderFallbacks": 0,
-     "minutes": 1230,
+     "minutes": 1229,
      "pushMissing": 0,
      "pushes": 8,
      "writes": 8
@@ -44147,13 +44147,13 @@
      "bandChanges": 0,
      "bandRepairs": 0,
      "failures": 0,
-     "flagWrites": 1230,
-     "minutes": 1230,
-     "mirrorWrites": 1230,
+     "flagWrites": 1229,
+     "minutes": 1229,
+     "mirrorWrites": 1229,
      "pushMissing": 0,
      "pushes": 0,
-     "rebases": 1230,
-     "weightWrites": 1230
+     "rebases": 1229,
+     "weightWrites": 1229
     },
     "writer": {
      "dry": 0,
@@ -44163,7 +44163,7 @@
      "seeded": 8,
      "sips": 0,
      "skipped": 0,
-     "writes": 1230
+     "writes": 1229
     }
    },
    "syncs": {
@@ -50358,14 +50358,14 @@
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
-     "minutes": 1403,
+     "minutes": 1402,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
      "rebuilds": 31,
      "regenWrites": 31,
-     "skippedDead": 1,
+     "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
     },
@@ -50389,15 +50389,15 @@
     },
     "kinetics": {
      "failures": 0,
-     "minutes": 1410,
-     "players": 1410
+     "minutes": 1409,
+     "players": 1409
     },
     "metabolism": {
      "badReads": 0,
      "days": 6,
      "failures": 1,
      "firstSightMirrors": 8,
-     "minutes": 1410,
+     "minutes": 1409,
      "preconditionWarnings": 1,
      "skippedDays": 0,
      "splits": 7
@@ -50408,19 +50408,19 @@
      "effectsErrors": 0,
      "errors": 0,
      "healed": 0,
-     "minutes": 1410,
+     "minutes": 1409,
      "noBody": 0,
-     "players": 1403,
+     "players": 1402,
      "skippedDays": 0
     },
     "reconcile": {
      "credits": 0,
      "errors": 0,
      "landed": 1,
-     "minutes": 1410,
+     "minutes": 1409,
      "noStore": 0,
      "seeded": 8,
-     "skipped": 1409
+     "skipped": 1408
     },
     "store": {
      "created": 6,
@@ -50433,7 +50433,7 @@
      "carryWrites": 1,
      "failures": 0,
      "ladderFallbacks": 0,
-     "minutes": 1410,
+     "minutes": 1409,
      "pushMissing": 0,
      "pushes": 8,
      "writes": 8
@@ -50452,13 +50452,13 @@
      "bandChanges": 0,
      "bandRepairs": 0,
      "failures": 0,
-     "flagWrites": 1410,
-     "minutes": 1410,
-     "mirrorWrites": 1410,
+     "flagWrites": 1409,
+     "minutes": 1409,
+     "mirrorWrites": 1409,
      "pushMissing": 0,
      "pushes": 0,
-     "rebases": 1410,
-     "weightWrites": 1410
+     "rebases": 1409,
+     "weightWrites": 1409
     },
     "writer": {
      "dry": 0,
@@ -50468,7 +50468,7 @@
      "seeded": 8,
      "sips": 0,
      "skipped": 0,
-     "writes": 1410
+     "writes": 1409
     }
    },
    "syncs": {
