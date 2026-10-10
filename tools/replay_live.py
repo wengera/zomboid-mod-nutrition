@@ -766,11 +766,21 @@ class ServerReplay(_Backend):
                 out[n] = v
         r = self.record()
         for path in paths:
+            if path in self.DERIVED:
+                body = r["body"] if r is not None else None
+                if body is not None:
+                    out[path] = self.DERIVED[path](self.K, body)
+                continue
             segs, glob = parse_path(path)
             ok, v = walk(self.lua51, self.G if glob else r, segs)
             if ok:
                 out[path] = _scalar(self.lua51, v)
         return out
+
+    # a path the record does not store, read as the mod reads it: body.eb24 is K.energy.eb24h(record.body), the
+    # trailing-24 h balance the metabolism step hands to K.energy.activityState (the oracle backend's alias of the same
+    # name reads its own)
+    DERIVED = {"body.eb24": lambda K, body: K.energy.eb24h(body)}
 
 
 class OracleReplay(_Backend):
@@ -903,6 +913,25 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
         if not any(x in e for x in ("age", "s", "minute")):
             raise ValueError("an event without age, s or minute: %r" % (e,))
     done = [False] * len(evs)
+    # minute-keyed events fall due only at their own step, so they are bucketed; the rest are scanned while pending.
+    # Either way the events due before a drain apply in the list's order (a long replay need not scan every event at
+    # every minute)
+    by_minute = {}
+    pending = []
+    for i, e in enumerate(evs):
+        if "minute" in e:
+            by_minute.setdefault(e["minute"], []).append(i)
+        else:
+            pending.append(i)
+
+    def due(k, prev, age, seq):
+        idx = list(by_minute.get(k, ()))
+        idx.extend(i for i in pending if _due(evs[i], k, prev, age, seq))
+        if len(idx) > len(by_minute.get(k, ())):
+            got = set(idx)
+            pending[:] = [i for i in pending if i not in got]
+        return sorted(idx)
+
     out = []
     prev = start_age
     last = start_age
@@ -911,11 +940,10 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
         seq = seqs[k] if seqs is not None else None
         if k in offline:
             n = 0
-            for i, e in enumerate(evs):
-                if not done[i] and _due(e, k, prev, age, seq):
-                    backend.apply(e, _event_age(e, prev, age))
-                    done[i] = True
-                    n += 1
+            for i in due(k, prev, age, seq):
+                backend.apply(evs[i], _event_age(evs[i], prev, age))
+                done[i] = True
+                n += 1
             if hasattr(backend, "step_offline"):
                 backend.step_offline(age)
             row = backend.row(paths)
@@ -928,11 +956,10 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
             continue
         backend.begin(age)
         n = 0
-        for i, e in enumerate(evs):
-            if not done[i] and _due(e, k, prev, age, seq):
-                backend.apply(e, _event_age(e, prev, age))
-                done[i] = True
-                n += 1
+        for i in due(k, prev, age, seq):
+            backend.apply(evs[i], _event_age(evs[i], prev, age))
+            done[i] = True
+            n += 1
         if ring_rows is not None and feed:
             backend.feed(ring_rows[k], feed)
         if isinstance(backend, OracleReplay):

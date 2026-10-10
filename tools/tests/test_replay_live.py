@@ -301,5 +301,21 @@ class TestCli(unittest.TestCase):
             self.assertEqual(r.returncode, 2)
 
 
+class TestEngineOrder(unittest.TestCase):
+    # Plan 11f Task 2b: minute-keyed events are bucketed by step (a long replay need not scan every event every minute)
+    def test_events_due_at_one_drain_apply_in_the_lists_order_whatever_their_key(self):
+        be = FakeBackend()
+        ev = [{"age": 1.5, "kind": "eat", "tag": "a1"}, {"minute": 1, "kind": "eat", "tag": "m1"},
+              {"s": 11, "kind": "eat", "tag": "s1"}, {"minute": 1, "kind": "eat", "tag": "m2"},
+              {"age": 1.2, "kind": "eat", "tag": "a2"}, {"minute": 2, "kind": "eat", "tag": "m3"}]
+        rows = RL.run(be, [1.0, 1.5, 2.0], ev, start_age=0.9, seqs=[10, 11, 12])
+        self.assertEqual([r["events"] for r in rows], [0, 5, 1])
+        self.assertEqual([x[1] for x in be.log if x[0] == "eat"], ["a1", "m1", "s1", "m2", "a2", "m3"])
+
+    def test_a_minute_event_past_the_last_step_still_never_falls_due(self):
+        with self.assertRaises(ValueError):
+            RL.run(FakeBackend(), [1.0, 2.0], [{"minute": 5, "kind": "eat"}], start_age=0.9)
+
+
 if __name__ == "__main__":
     unittest.main()
