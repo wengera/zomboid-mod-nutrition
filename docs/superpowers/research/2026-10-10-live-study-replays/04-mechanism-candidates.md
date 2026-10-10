@@ -72,3 +72,21 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Seen:** after the Task 5b fix, the osmotic thirst term reads the pool without the liquid lane's pending water, so autodrink re-fires until the lane empties: 4.0–5.4 L/d against about 3.7 before.
 - **Candidate:** the thirst view counts water still in the stomach (oropharyngeal and gastric satiation of thirst is real physiology).
 - **Gain:** realistic drinking volumes, and a simpler, more accurate thirst model.
+
+## C-9: volume thirst overrides the hypotonic cap
+- **Seen (Task 5b fix 1):** during heat work with no dietary sodium and plain water, the hypotonic cap stops drinking once plasma falls below 135, while 8 L/d of sweat continues. Dehydration reaches 21 % by day 10, and the drain would kill from about day 6.
+- **Candidate:** a volume-driven thirst term that partly overrides the osmotic cap as ECF contracts (S1724, S1731). The cut-off itself is open (S1695).
+- **Gain:** a salt-free heavy worker is not killed by thirst suppression alone.
+
+## C-10: water turnover scaled to energy
+- **Seen:** drinking at rest sits on the top edge of the 2.0–3.0 L/d band by construction, because the turnover is the flat 3.7 L/d AI (S0088).
+- **Candidate:** turnover scaled to energy expenditure, 0.20–0.35 L/MJ (S1710).
+- **Gain:** resting and active water needs both read accurately, simpler than a flat figure plus activity corrections.
+
+## C-11: food water in thirst satiation
+- **Seen:** the view's c counts the solid buffer's water at full weight, alongside drinks.
+- **Candidate:** a weight on food water, resting on S1704. A weight below 1 would be a game choice.
+
+## C-12: a slow, low-sweat depletion arm
+- **Seen:** the heat oracle cannot see the volume-defence onset, because mutant B1 survives it.
+- **Candidate:** a slow sodium-depletion scenario (S1721) to grade the onset.
