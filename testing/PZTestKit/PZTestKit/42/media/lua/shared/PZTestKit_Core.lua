@@ -1346,3 +1346,171 @@ TK.register("lua.callm", function(argv)
     end
     return out
 end)
+
+-- ==== Plan 11f Task 1 additions (H1) ===========================================
+-- Appended after the file's last line on purpose, as the Plan 1 Task 7 block above was: the claims register holds
+-- `repo:` pointers into this file by line number, so new sites go at the end and no existing line moves.
+
+-- ---- lua.read: several paths read in one tick (both sides; Plan 11f H1) -----
+-- lua.read <root> <path> [<path> ...]
+-- TEST-ONLY INSTRUMENT: the harness mod is installed only by test profiles and is never shipped. Registered ONCE
+-- here so BOTH sides answer, as lua.global is. It exists because lua.global cannot read the mod's record the live
+-- study replays need (research 2026-10-10 01-harness-facts section 3.5): its walk is `node = node[part]` with no numeric
+-- fallback (the lua.global body above), so a ring slot such as `body.trail.kcal.3` (integer keys) never resolves; a
+-- key holding a dot (`monotony.t` is keyed by fullType, `Base.Bread`) cannot be addressed at all; and it reads one
+-- scalar per bus round trip, which at a fast clock spans several game minutes.
+--
+-- The root, resolved afresh at every call (S.reset REPLACES a record's table, so a handle kept across calls could
+-- read a dead table):
+--   * `record:<user>` -- the mod's in-memory record for <user>: `NutritionRevamp.server.store.records[<user>]`,
+--     the table NR_Server_Store.lua's S.attach() keeps (its records are the live ones every pipeline step writes).
+--     The read indexes that table directly and NEVER calls S.get: S.get loads a record from its slot file and
+--     creates a fresh one when none exists, so a harness read through it could change the state it reads. A user the
+--     store does not hold this uptime answers `error = "no record"` (nothing created). Server-side in practice: the
+--     records live in the server's Lua state.
+--   * `_G` -- the globals.
+--   * anything else -- a path in the grammar below, walked from the globals.
+-- The path grammar: segments joined by `.`; a plain segment is a string key, and when the string key is nil and the
+-- segment reads as a number the number key is tried next (lua.call's fallback), so `trail.kcal.3` reaches slot 3; a
+-- segment in brackets is a string key taken literally, dots included, so `monotony.t.[Base.Bread].n` reaches the
+-- `n` of the `Base.Bread` entry. A first segment `_G` (unbracketed) starts the walk at the globals whatever the root,
+-- so one call can mix record fields with a global counter. Arguments split on whitespace (the bus's splitArgs), so a
+-- key holding a space cannot be named. Up to TK.READ_MAX paths per call.
+--
+-- The reply, per path, in exactly one of four maps:
+--   values[path]  -- a number, string or boolean (a NaN or infinite number encodes as JSON null, as TK.json does,
+--                    so a null INSIDE `values` is a non-finite number, never an absence);
+--   tables[path]  -- a table, as its key count (pairs);
+--   types[path]   -- anything else (a function, a Java object), as its Lua type; never called;
+--   missing[path] -- the absence, named: "nil" (the last segment's parent exists and holds no such key),
+--                    "nil at <seg>" (a parent segment is absent), "<type> at <seg>" (a parent is not a table, so the
+--                    walk could not enter it: indexing a Java object can raise), or "bad path: <why>".
+-- A hop is taken only into a `table`; presence is `== nil`, never truthiness (a boolean false is a value).
+TK.READ_MAX = 64
+
+-- A path to its segments: an array of { k = <string key>, n = <number key or nil> }, plus whether its first segment
+-- was the unbracketed `_G`. Returns nil and a reason for an empty segment or an unclosed bracket.
+function TK.parsePath(path)
+    if type(path) ~= "string" or path == "" then return nil, "empty path" end
+    local segs = {}
+    local pos = 1
+    local len = string.len(path)
+    local global = false
+    while pos <= len do
+        local key, bracket, after
+        if string.sub(path, pos, pos) == "[" then
+            local close = string.find(path, "%]", pos + 1)
+            if close == nil then return nil, "unclosed [ at " .. pos end
+            key = string.sub(path, pos + 1, close - 1)
+            bracket = true
+            after = close + 1
+            if after <= len and string.sub(path, after, after) ~= "." then
+                return nil, "a ] must end its segment, at " .. after
+            end
+        else
+            local dot = string.find(path, "%.", pos)
+            if dot == nil then dot = len + 1 end
+            key = string.sub(path, pos, dot - 1)
+            bracket = false
+            after = dot
+        end
+        if key == "" then return nil, "empty segment at " .. pos end
+        if #segs == 0 and not bracket and key == "_G" then
+            global = true
+        else
+            local seg = { k = key }
+            if not bracket then seg.n = tonumber(key) end
+            segs[#segs + 1] = seg
+        end
+        pos = after + 1
+        if after == len then return nil, "trailing . at " .. after end
+    end
+    return segs, global
+end
+
+-- Walks parsed segments from node. Returns true and the value (never nil), or false and the absence named as in
+-- missing[] above.
+function TK.walkPath(node, segs)
+    for i = 1, #segs do
+        local seg = segs[i]
+        if type(node) ~= "table" then
+            return false, type(node) .. " at " .. seg.k
+        end
+        local nxt = node[seg.k]
+        if nxt == nil and seg.n ~= nil then nxt = node[seg.n] end
+        if nxt == nil then
+            if i == #segs then return false, "nil" end
+            return false, "nil at " .. seg.k
+        end
+        node = nxt
+    end
+    return true, node
+end
+
+-- The root of a lua.read: the node, or nil and the error. `record:<user>` is the store's in-memory table, never S.get.
+function TK.readRoot(root)
+    if root == "_G" then return _G end
+    local user = string.match(root, "^record:(.+)$")
+    if user ~= nil then
+        local NR = NutritionRevamp
+        if type(NR) ~= "table" or type(NR.server) ~= "table" or type(NR.server.store) ~= "table" then
+            return nil, "no NutritionRevamp.server.store on this side"
+        end
+        local records = NR.server.store.records
+        if type(records) ~= "table" then return nil, "the store holds no records table (not attached)" end
+        local r = records[user]
+        if r == nil then return nil, "no record" end
+        return r
+    end
+    local segs, why = TK.parsePath(root)
+    if segs == nil then return nil, "bad root: " .. tostring(why) end
+    local ok, v = TK.walkPath(_G, segs)
+    if not ok then return nil, "root " .. v end
+    return v
+end
+
+-- One value into the reply's four maps (out.values, out.tables, out.types).
+function TK.readInto(out, path, v)
+    local t = type(v)
+    if t == "number" or t == "string" or t == "boolean" then
+        out.values[path] = v
+    elseif t == "table" then
+        local n = 0
+        for _k in pairs(v) do n = n + 1 end
+        out.tables[path] = n
+    else
+        out.types[path] = t
+    end
+end
+
+-- @args <root> <path> [<path> ...]  (root: record:<user> | _G | a dotted path; up to 64 paths; a numeric segment falls back to the number key; [a.b] is one literal string key; a leading _G. reads from the globals)
+-- @reply {ok, side, root, n, values, tables, types, missing} | {ok, side, root, error} | string
+-- @purpose Test-only: reads several paths from one root in one tick on the side answering -- record:<user> is the mod's in-memory store record, indexed directly, never through S.get -- replying each scalar by path and naming every nil or absent one.
+TK.register("lua.read", function(argv)
+    local usage = "usage: lua.read <root> <path> [<path> ...]  (root: record:<user> | _G | a.b.c; up to 64 paths)"
+    local root = argv[1]
+    if root == nil or argv[2] == nil then return usage end
+    local n = #argv - 1
+    if n > TK.READ_MAX then return usage end
+    local out = { ok = false, side = TK.side, root = root }
+    local node, err = TK.readRoot(root)
+    if node == nil then
+        out.error = err
+        return out
+    end
+    out.ok, out.n = true, n
+    out.values, out.tables, out.types, out.missing = {}, {}, {}, {}
+    for i = 2, #argv do
+        local path = argv[i]
+        local segs, global = TK.parsePath(path)
+        if segs == nil then
+            out.missing[path] = "bad path: " .. tostring(global)
+        else
+            local from = node
+            if global then from = _G end
+            local ok, v = TK.walkPath(from, segs)
+            if ok then TK.readInto(out, path, v) else out.missing[path] = v end
+        end
+    end
+    return out
+end)

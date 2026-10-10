@@ -4005,3 +4005,242 @@ TK.register("ghost.modq", function(argv)
     H0.modWrap(P)
     return { ok = true, side = TK.side, on = true, ghosts = #names }
 end)
+
+-- ==== Plan 11f Task 1 additions (H2) ===========================================
+-- Appended after the file's last line on purpose: the claims register holds `repo:` pointers into this file by line
+-- number, so new sites go at the end and no existing line moves. Everything hangs off TK.MR (no new file-scope
+-- local), so the section loads on its own in the offline host (testing/tests/kernel/test_harness_minute_ring.py).
+
+-- ---- minute.ring: a per-game-minute ring log of watched users (server; Plan 11f H2) ----
+-- minute.ring <user> start [<path> ...] | <user> read [<from>] | <user> stop
+-- TEST-ONLY INSTRUMENT: the harness mod is installed only by test profiles and is never shipped. It exists because a
+-- bus round trip spans several game minutes at a fast clock (the bus polls every 20 ticks; research 2026-10-10
+-- 01-harness-facts sections 3.5-3.6), so per-minute readings are impossible through the bus; the server samples them
+-- itself, once per EveryOneMinute event, and the driver pages them out afterwards.
+--
+-- `start` arms (or re-arms, emptied) the ring for <user> with up to TK.MR.PATHS_MAX record paths in lua.read's
+-- grammar (relative to the user's record, `record:<user>`; a leading `_G.` reads from the globals). Every path is
+-- parsed at start, so a bad one refuses the start and names itself, and the reply carries one lua.read of them now
+-- (`probe`) so a driver sees at once which resolve. Each watched user has its own ring of TK.MR.CAP rows (4,320 =
+-- 72 game hours at one row a game minute); a row past the bound overwrites the oldest, and `overwritten` counts them.
+--
+-- The row, appended on every EveryOneMinute event for every watched user (keys absent when unread):
+--   s       the row's sequence number in this user's ring, from 1;
+--   age     the world age in hours (GameTime:getWorldAgeHours);
+--   dtM     the game minutes since this ring's previous row ((age - previous age) * 60; absent on the first row) --
+--           the minute event's own step, which a fast clock can make larger than one;
+--   hour, min  GameTime:getHour / getMinutes;
+--   on      whether the user was online (getOnlinePlayers); an offline user's stats are absent;
+--   HUNGER, THIRST, FATIGUE, BOREDOM, UNHAPPINESS, NICOTINE_WITHDRAWAL  the written stats, through one getStats()
+--           and Stats:get(CharacterStat.<X>) each;
+--   norec   true when the store holds no record for the user (the paths are then absent);
+--   <path>  each start path's value: a number, string or boolean as is, a table as the string "table", anything
+--           else as its type; a nil or unreachable path is ABSENT from the row (the start's probe names why).
+-- The phase: the sample is taken INSIDE the minute event, before the mod's players' queue drains that minute's runs
+-- (NR_Server_Players merges its queue in EveryOneMinute; the runs happen on later ticks), so a row reads the stats
+-- and record as the PREVIOUS drain left them. A replay aligns row k's reading with the runs before row k's event.
+-- The sampling runs under one pcall per event: a raise is counted (errors, lastError) and never reaches the other
+-- EveryOneMinute handlers.
+--
+-- `read [<from>]` writes one page of up to TK.MR.PAGE rows, from sequence <from> (default: the oldest held; a <from>
+-- older than the oldest held is clamped and the gap counted as `skipped`), to pzt-results/minute-ring-<user>-<from>.json
+-- (the user's name with every character outside [%w_-] made `_`) through TK.result, and replies the page's bounds
+-- without its rows; `next` is the <from> of the following page and `more` says whether it holds rows yet.
+-- `stop` drops the user's ring and replies its counts.
+--
+-- Cost: TK.MR.benchRow is a no-argument global function that samples one row for every watched user into a scratch
+-- table (the rings are untouched), so `bench.global TK.MR.benchRow <n>` reads the per-event cost live; divide by the
+-- number of watched users for the per-row cost.
+TK.MR = TK.MR or {}
+TK.MR.CAP = 4320           -- 72 game hours at one row per game minute (Plan 11f H2)
+TK.MR.PAGE = 720           -- rows per read page: half a game day, one TK.json document
+TK.MR.PATHS_MAX = 32
+TK.MR.STATS = { "HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITHDRAWAL" }
+TK.MR.rings = TK.MR.rings or {}
+TK.MR.events = TK.MR.events or 0
+
+function TK.MR.player(user)
+    if getOnlinePlayers == nil then return nil end
+    local list = getOnlinePlayers()
+    if list == nil then return nil end
+    for i = 0, list:size() - 1 do
+        local p = list:get(i)
+        if p ~= nil and p:getUsername() == user then return p end
+    end
+    return nil
+end
+
+-- One row for ring R at world age `age` (the clock read once per event). Does not append.
+function TK.MR.sample(R, gt, age)
+    local row = { age = age }
+    if age ~= nil and R.lastAge ~= nil then row.dtM = (age - R.lastAge) * 60 end
+    local okH, h = TK.call(gt, "getHour")
+    if okH then row.hour = h end
+    local okM, m = TK.call(gt, "getMinutes")
+    if okM then row.min = m end
+    local p = TK.MR.player(R.user)
+    row.on = p ~= nil
+    if p ~= nil then
+        local _, s = TK.call(p, "getStats")
+        if s ~= nil and CharacterStat ~= nil then
+            local names = TK.MR.STATS
+            for i = 1, #names do
+                local enum = CharacterStat[names[i]]
+                if enum ~= nil then
+                    local ok, v = TK.call(s, "get", enum)
+                    if ok and v ~= nil then row[names[i]] = v end
+                end
+            end
+        end
+    end
+    local rec = nil
+    local NR = NutritionRevamp
+    if type(NR) == "table" and type(NR.server) == "table" and type(NR.server.store) == "table"
+        and type(NR.server.store.records) == "table" then
+        rec = NR.server.store.records[R.user]
+    end
+    if rec == nil then row.norec = true end
+    for i = 1, #R.paths do
+        local from = rec
+        if R.global[i] then from = _G end
+        if from ~= nil then
+            local ok, v = TK.walkPath(from, R.segs[i])
+            if ok then
+                local t = type(v)
+                if t == "number" or t == "string" or t == "boolean" then row[R.paths[i]] = v
+                elseif t == "table" then row[R.paths[i]] = "table"
+                else row[R.paths[i]] = t end
+            end
+        end
+    end
+    return row
+end
+
+function TK.MR.clock()
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    local ok, age = TK.call(gt, "getWorldAgeHours")
+    if not ok then age = nil end
+    return gt, age
+end
+
+function TK.MR.append(R, row)
+    R.count = R.count + 1
+    row.s = R.count
+    R.rows[((R.count - 1) % R.cap) + 1] = row
+    if row.age ~= nil then R.lastAge = row.age end
+end
+
+function TK.MR.onMinute()
+    if TK.side ~= "server" then return end
+    local any = false
+    for _u in pairs(TK.MR.rings) do any = true; break end
+    if not any then return end
+    TK.MR.events = TK.MR.events + 1
+    local ran, err = pcall(function()
+        local gt, age = TK.MR.clock()
+        for _u, R in pairs(TK.MR.rings) do
+            TK.MR.append(R, TK.MR.sample(R, gt, age))
+        end
+    end)
+    if not ran then
+        TK.MR.errors = (TK.MR.errors or 0) + 1
+        TK.MR.lastError = tostring(err)
+    end
+end
+
+-- The bench target: one event's sampling for every watched user, into a scratch table; the rings are untouched.
+function TK.MR.benchRow()
+    local gt, age = TK.MR.clock()
+    local scratch = {}
+    for _u, R in pairs(TK.MR.rings) do scratch[#scratch + 1] = TK.MR.sample(R, gt, age) end
+    return scratch
+end
+
+if not TK.minuteRingHooked and Events ~= nil and Events.EveryOneMinute ~= nil then
+    Events.EveryOneMinute.Add(function() TK.MR.onMinute() end)
+    TK.minuteRingHooked = true
+end
+
+function TK.MR.safeName(user)
+    return (string.gsub(user, "[^%w_%-]", "_"))
+end
+
+-- @args <user> start [<path> ...] | <user> read [<from>] | <user> stop  (up to 32 record paths in lua.read's grammar; a leading _G. reads from the globals)
+-- @reply {ok, side, user, armed, cap, paths, stats, online, probe} | {ok, side, user, from, rows, skipped, next, more, oldest, newest, recorded, overwritten, cap, events, errors, lastError, result, file} | {ok, side, user, stopped, recorded, overwritten} | {ok, side, user, error} | string
+-- @purpose Test-only: on every EveryOneMinute event the server appends one row per watched user to a 4,320-row ring (world age, the event's dtM, hour and minute, the six written stats HUNGER THIRST FATIGUE BOREDOM UNHAPPINESS NICOTINE_WITHDRAWAL, the start paths' record values), read in 720-row pages to minute-ring-<user>-<from>.json.
+TK.register("minute.ring", function(argv)
+    local usage = "usage: minute.ring <user> start [<path> ...] | <user> read [<from>] | <user> stop"
+    local user, verb = argv[1], argv[2]
+    if user == nil or verb == nil then return usage end
+    if TK.side ~= "server" then return { ok = false, side = TK.side, user = user, error = "server only" } end
+    if verb == "start" then
+        local n = #argv - 2
+        if n > TK.MR.PATHS_MAX then return usage end
+        if not TK.minuteRingHooked then
+            return { ok = false, side = TK.side, user = user, error = "no Events.EveryOneMinute on this side" }
+        end
+        local R = { user = user, cap = TK.MR.CAP, count = 0, rows = {}, paths = {}, segs = {}, global = {},
+                    armedAt = TK.now() }
+        for i = 3, #argv do
+            local segs, global = TK.parsePath(argv[i])
+            if segs == nil then
+                return { ok = false, side = TK.side, user = user,
+                         error = "bad path " .. tostring(argv[i]) .. ": " .. tostring(global) }
+            end
+            R.paths[#R.paths + 1] = argv[i]
+            R.segs[#R.segs + 1] = segs
+            R.global[#R.global + 1] = global
+        end
+        TK.MR.rings[user] = R
+        local probe = nil
+        if n > 0 and TK.commands["lua.read"] ~= nil then
+            local args = { "record:" .. user }
+            for i = 1, #R.paths do args[#args + 1] = R.paths[i] end
+            probe = TK.commands["lua.read"](args)
+        end
+        return { ok = true, side = TK.side, user = user, armed = true, cap = R.cap, paths = R.paths,
+                 stats = TK.MR.STATS, online = TK.MR.player(user) ~= nil, probe = probe }
+    end
+    local R = TK.MR.rings[user]
+    if verb == "stop" then
+        if R == nil then return { ok = false, side = TK.side, user = user, error = "no ring for this user" } end
+        TK.MR.rings[user] = nil
+        local over = R.count - R.cap
+        if over < 0 then over = 0 end
+        return { ok = true, side = TK.side, user = user, stopped = true, recorded = R.count, overwritten = over }
+    end
+    if verb ~= "read" then return usage end
+    if R == nil then return { ok = false, side = TK.side, user = user, error = "no ring for this user" } end
+    local oldest = R.count - R.cap + 1
+    if oldest < 1 then oldest = 1 end
+    local from = oldest
+    if argv[3] ~= nil then
+        from = tonumber(argv[3])
+        if from == nil or from < 1 or from ~= math.floor(from) then return usage end
+    end
+    local skipped = 0
+    if from < oldest then
+        skipped = oldest - from
+        from = oldest
+    end
+    local rows = {}
+    local s = from
+    while s <= R.count and #rows < TK.MR.PAGE do
+        rows[#rows + 1] = R.rows[((s - 1) % R.cap) + 1]
+        s = s + 1
+    end
+    local over = R.count - R.cap
+    if over < 0 then over = 0 end
+    local out = { ok = true, side = TK.side, user = user, from = from, rows = #rows, skipped = skipped, next = s,
+                  more = s <= R.count, oldest = oldest, newest = R.count, recorded = R.count, overwritten = over,
+                  cap = R.cap, events = TK.MR.events, errors = TK.MR.errors or 0, lastError = TK.MR.lastError }
+    local doc = {}
+    for k, v in pairs(out) do doc[k] = v end
+    doc.rows_list = rows
+    doc.paths = R.paths
+    doc.stats = TK.MR.STATS
+    out.result = "minute-ring-" .. TK.MR.safeName(user) .. "-" .. tostring(from)
+    out.file = "pzt-results/" .. out.result .. ".json"
+    TK.result(out.result, doc)
+    return out
+end)
