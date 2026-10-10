@@ -1460,7 +1460,7 @@ def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure
     without = _activity_es(h, record, ee24=False)
     eb = h.K.energy.eb24h(body)
     assert es == with_ee
-    assert es > without + 0.05                             # the bypass moves es by about 0.5 x 0.3 x 800 / 3100
+    assert es > without + 0.05                             # the bypass is whole here (w = 1: d = 0.6 >= 0.575, L = 0) and moves es by 0.5 x 800 / 3100 = 0.129
     assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 

@@ -43,7 +43,7 @@ def test_the_constants(host):
     assert host.K.satiety.ACUTE_KIND.walk == 0
     assert host.K.energy.EX_LAG_TAU_D == 16
     assert host.K.energy.EX_LAG_GAIN == 0.7
-    assert host.K.energy.EX_BYPASS_LO == 0.28            # Plan 11f Task 2c fix 1 (ruling 2b-3, widened search); 0.30 before
+    assert host.K.energy.EX_BYPASS_LO == 0.282           # Plan 11f Task 2c fix 2 (S1318's 0.2814 bound); 0.28 in fix 1, 0.30 before
     assert host.K.energy.EX_BYPASS_HI == 0.575           # 0.45 before
 
 
@@ -80,6 +80,8 @@ def test_each_activity_constant_names_its_rows_and_its_label():
         assert "S1325" in line and "S1312" in line, name
     line = re.search(r"^K\.energy\.EX_BYPASS_LO = .*$", eng, re.M).group(0)
     assert "S1325" in line and "S1312" in line and "S1318" in line
+    line = re.search(r"^K\.hybrid\.DEFICIT_FLOOR = .*$", src("NR_Kernel_Hybrid.lua"), re.M).group(0)
+    assert "fitted and weak" in line and "superseded in substance by the refit (Plan 11f ruling 2c-4)" in line
 
 
 # --- the acute suppression term --------------------------------------------------------------------------------------
@@ -304,6 +306,16 @@ def test_the_bypass_leaves_whybrows_26_to_28_percent_arms_at_weight_zero(host):
     for d in (0.26, 0.28):
         assert host.call("energy.activityState", -d * ee, ex, L, 0, ee) == pytest.approx(
             host.call("energy.state", -d * ee + ex - host.K.energy.EX_LAG_GAIN * L, 0)), d
+
+
+def test_the_bypass_weight_is_exactly_zero_at_whybrows_two_high_exercise_shares(host):
+    # S1318: the men's high arm share is 4.7 / 16.7 = 0.2814 of expenditure and the women's 0.277; both compensate about
+    # 30 %, so both take weight 0 and the ramp starts at or above 0.2814 (Plan 11f Task 2c fix 2; 0.28 before)
+    assert host.K.energy.EX_BYPASS_LO >= 0.2814
+    ee, ex, L = 2500.0, 800.0, 100.0
+    for d in (0.277, 0.2814):
+        assert host.call("energy.activityState", -d * ee, ex, L, 0, ee) == pytest.approx(
+            host.call("energy.state", -d * ee + ex - host.K.energy.EX_LAG_GAIN * L, 0), abs=0, rel=1e-12), d
 
 
 def test_the_bypass_does_nothing_when_the_lag_already_covers_the_exercise(host):

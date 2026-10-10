@@ -943,7 +943,7 @@ PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ru
 SIX_WARM_DAYS = 3
 
 SIX_LIVE_REPLAY = r"""
-function(plan, days, start, holdEs)
+function(plan, days, start)
     local K = NutritionRevamp.kernel
     local hook, mask = debug.gethook()
     debug.sethook()
@@ -991,11 +991,7 @@ function(plan, days, start, holdEs)
             K.stomach.drain(st, 1 / 60)
             P = K.satiety.decay(P, 1 / 60, K.satiety.HALF_LIFE_H, 1)
             local F = K.satiety.fill(K.stomach.fullnessMass(st), K.stomach.CAPACITY_MAX_G)
-            local x = es
-            if holdEs then
-                x = 1
-            end
-            sum = sum + K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), x) * K.satiety.circadian(ageH % 24))
+            sum = sum + K.min(0.69, K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.post(P)), es) * K.satiety.circadian(ageH % 24))
         end
     end
     debug.sethook(hook, mask)
@@ -1004,8 +1000,8 @@ end
 """
 
 
-def meal_frequency_ratio_live(host, hold=False):
-    """meal_frequency_ratio's day after SIX_WARM_DAYS three-meal days, the energy state live (hold=True: held at 1)."""
+def meal_frequency_ratio_live(host):
+    """meal_frequency_ratio's day after SIX_WARM_DAYS three-meal days, the energy state live."""
     f = host.rt.eval(SIX_LIVE_REPLAY)
     start = SIX_WARM_DAYS * 1440 + 480
 
@@ -1022,5 +1018,5 @@ def meal_frequency_ratio_live(host, hold=False):
             t[start + i * gap] = host.table({"vec": host.table(vec), "sate": True})
         return t
     days = SIX_WARM_DAYS + 2
-    return f(plan(6, 150), days, start, hold) / f(plan(3, 300), days, start, hold)
+    return f(plan(6, 150), days, start) / f(plan(3, 300), days, start)
 

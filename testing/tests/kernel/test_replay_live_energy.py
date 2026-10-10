@@ -347,13 +347,13 @@ def karl_pass(bal, dfc):
 
 def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
     # S1325: hunger -55 % (BAL) and +26 % (DEF, 95 % CI -3 to 54) against REST, each within 1.5x (karl_pass). Since the
-    # refit (Plan 11f Task 2c fix 1) twin K reads BAL -45.1 and DEF +30.3, both inside (-43.3 and +36.0 in Task 2c; at
+    # refit (Plan 11f Task 2c fix 1) twin K reads BAL -45.1 and DEF +30.2, both inside (+30.3 before fix 2's EX_BYPASS_LO 0.282; -43.3 and +36.0 in Task 2c; at
     # 7500 / 1.0 -28.4 and +88.1, both outside). DEF's days 2 and 3 carry a trailing deficit of about 2,270 kcal, 0.48
     # of the 24 h expenditure, so the lag is bypassed by about 0.68 of the ramp, and the sleep factor's 1.18 from the
     # 4 h nights; BAL's surplus excludes the lagged exercise share, so it reads a large one
     k = karl_k()
     assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.1, 30.3), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.1, 30.2), k
     # the calibration check against the doubly labelled water: the gap is a reading, never tuned
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]
     assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.02], k["ee"]
@@ -364,12 +364,12 @@ def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
 
 def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
     # the same kcal billed under the vigour bar (the loaded walks at DiggingSpade, 5.0, for 121 and 233 min): no acute
-    # suppression, so DEF overshoots, +40.8 against the band's 39 (BAL -42.0 passes; +47.0 and -40.2 in Plan 11f Task
+    # suppression, so DEF overshoots, +40.7 against the band's 39 (BAL -42.0 passes; +47.0 and -40.2 in Plan 11f Task
     # 2c). The writer's limitation names it:
     # heavy work the model does not class as vigorous overshoots the hunger rise of a heavy labour deficit (S1325)
     k = karl_k(vigorous=False)
     assert karl_pass(k["bal"], k["dfc"]) == (True, False), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-42.0, 40.8), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-42.0, 40.7), k
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]      # the vigorous twin's kcal
 
 
@@ -409,7 +409,7 @@ def king_steady_server(host, bypass=None):
 
 def test_king_2011_at_steady_state_on_the_server_path(host):
     # S1312: exercise within a quarter of the restriction's rise and under 3.3 mm of control (Plan 11c Task 4b's band);
-    # since the refit (Plan 11f Task 2c fix 1) the rise reads 0.0906 and the distance 0.96 mm (0.089 and 0.62 mm in
+    # since the refit (Plan 11f Task 2c fix 1) the rise reads 0.0906 and the distance 0.92 mm (0.96 before fix 2's EX_BYPASS_LO 0.282; 0.089 and 0.62 mm in
     # Task 2c, 0.1043 and 2.43 mm at 7500 / 1.0)
     assert abs(idle_day(host, KING_KG, 16) - 2500.0) < 2.0
     bout, k = king_steady_server(host)
@@ -443,7 +443,7 @@ def test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves(host):
     # ruling 11c-32 as amended: the bypass is a ramp because a 25 % step breaks King 2011 at steady state (S1312:
     # intake stays with control; S1318: Whybrow's 26-28 % arms compensate). On the server path (Plan 11f Task 2c fix 1)
     # the step lifts the exercise arm 6.70 mm over control, past both a quarter of the restriction's rise (5.89 mm) and
-    # 3.3 mm, where the ramp reads 0.96 mm and no bypass 0.29 mm; the ramp only ever raises the lag's share
+    # 3.3 mm, where the ramp reads 0.92 mm and no bypass 0.29 mm; the ramp only ever raises the lag's share
     _, ramp = king_steady_server(host)
     _, step = king_steady_server(host, STEP)
     _, none = king_steady_server(host, NO_BYPASS)
@@ -454,6 +454,19 @@ def test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves(host):
     assert none["exercise"] <= ramp["exercise"] < step["exercise"], (none, ramp, step)
     assert round(lift * A.MM_PER_HUNGER, 2) == READ["king_step"], lift
     assert round((none["exercise"] - none["control"]) * A.MM_PER_HUNGER, 2) == READ["king_nobypass"], none
+
+
+def test_karl_2021_the_ramp_passes_where_no_bypass_and_a_25_percent_step_fail(host):
+    # the contrast the King test draws, on twin K (S1325): at the chosen ramp both arms pass; with no bypass DEF reads
+    # +9.0 and fails the 17.3 floor of the 1.5x band; with a 25 % step it reads +43.6 and fails the 39 ceiling (Plan 11f
+    # Task 2c fix 2; the contrast was unpinned after the fit-1 deletion of the simplified Karl test)
+    ramp = karl_k()
+    none = with_bypass(NO_BYPASS, karl_k)
+    step = with_bypass(STEP, karl_k)
+    assert karl_pass(ramp["bal"], ramp["dfc"]) == (True, True), ramp
+    assert karl_pass(none["bal"], none["dfc"])[1] is False and none["dfc"] < 17.3, none
+    assert karl_pass(step["bal"], step["dfc"])[1] is False and step["dfc"] > 39.0, step
+    assert (round(none["dfc"], 1), round(step["dfc"], 1)) == (9.0, 43.6), (none["dfc"], step["dfc"])
 
 
 # --- the lag: Whybrow 2008 (S1318) and E-MECHANIC (S1320, S1664) ---------------------------------------------------
@@ -548,7 +561,7 @@ def test_a_25_percent_deficit_on_the_server_path(host):
 READ = {
     "lowcarb_g": (1.0, 1.0, 0.967),     # g: the mixed arm at 08:00 and 20:00 of day 1, the low arm at 20:00 (the simplified path 0.951)
     "lowcarb_des": 0.0,                 # the low arm's es less the mixed arm's at 20:00
-    "king": (0.0906, 0.96),             # the restriction's late rise and exercise's distance in mm (0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
+    "king": (0.0906, 0.92),             # the restriction's late rise and exercise's distance in mm (0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
     "king_step": 6.7,                   # a 25 % step's exercise arm over control, mm (Plan 11f Task 2c fix 1)
     "king_nobypass": 0.29,              # no bypass's, mm
     "s1255": (1.0947, 6.7),             # es over day 7 and its rise at the request, mm (1.09 and 5.9 in Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
