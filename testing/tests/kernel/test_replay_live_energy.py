@@ -1,15 +1,19 @@
-"""The energy and exercise-lag oracles on the shipped server pipeline (Plan 11f Task 2b, ruling F1-2): a server-path
-twin of each, through tools/replay_live.py's server backend (ServerReplay: the mod's own adapters in their ORDER on the
-golden stand-ins), on the oracle's own body and events as far as the server can take them. Each reading is pinned as a
-READING, with its distance from the oracle's pin and from its study's band; grading stays on the oracles
-(test_satiety_meal_studies.py, test_satiety_activity.py) until Task 2b's ruling.
+"""The energy and exercise-lag oracles on the shipped server pipeline (Plan 11f Task 2b, ruling F1-2; the oracles since Plan
+11f Task 2c, option (b) of task-2b-options.md): a server-path replay of each study, through tools/replay_live.py's server
+backend (ServerReplay: the mod's own adapters in their ORDER on the golden stand-ins). Each test grades its study's
+band and pins its readings. The simplified-path energy oracles these replace (the 36 h fast, the steady eater, six
+meals against three live, the low-carbohydrate day, Karl 2021, King 2011 at steady state and the S1255 arithmetic in
+test_satiety_meal_studies.py and test_satiety_activity.py) were deleted with the deficit drive's refit on this path
+(Plan 11f Task 2c: K.energy.BALANCE_SPAN_KCAL 3300 and K.hybrid.DEFICIT_FLOOR 0, from 7500 and 1.0, the point with the
+largest smallest margin across every band below); test_replay_live_oracle.py keeps the simplified composition only as
+the reference of the replay tool's oracle backend.
 
 What the server path adds to every oracle: an eat reaches the trailing-24 h window only as the stomach empties
 (ctx.absorbed), the day partition moves fm and lm (fatDep enters the energy state), adaptive thermogenesis and the
 training close run, and the expenditure is billed off the stand-in's metabolic rate by class (K.energy.classOf, the
 Compendium bill), never injected. The stand-in idles at the engine's Default class (1.5, billed 1.3, standing quietly).
 
-The twins, and where each departs from its oracle (each departure a choice named here):
+The replays, and where each departs from the study or the deleted oracle (each departure a choice named here):
 - The 36 h fast, the steady eater, six meals against three (live) and the low-carbohydrate day: the oracles' own event
   lists on the 70 kg man (male, responder 1), asleep 23:00-07:00, as test_replay_live_oracle.py runs them. Six against
   three's warm-up eats fill the stomach and the pool too (the server has no energy-only eat). Six against three held is
@@ -55,8 +59,8 @@ The twins, and where each departs from its oracle (each departure a choice named
   30-minute synthetic step: the lag kernel is the exact solution for an input constant over its step, so the step
   does not move L where the bout fills whole steps (the 24-week runs take 24,192 steps where minutes would take
   241,920).
-- S1255: the oracle is K.energy.state's arithmetic, path-independent; its twin here is the 70 kg man eating 75 % of
-  his maintenance for a week, the request-level rise read off the energy state the pipeline stamps on day 7.
+- S1255: the deleted oracle was K.energy.state's arithmetic, path-independent; the replay here is the 70 kg man eating
+  75 % of his maintenance for a week, the request-level rise read off the energy state the pipeline stamps on day 7.
 Only `host`; no `parametrize`.
 """
 import os
@@ -189,37 +193,39 @@ def _lowcarb_comp(ev):
 
 
 def test_the_36_h_fast_on_the_server_path(host):
-    # S1613 (1.20, the oracle's 1.1x band 1.091-1.32) and S1614 (1.0): day 2 reads 1.342 (1.118x, outside the band; the
-    # oracle 1.304, 1.087x), day 3 0.974 (the oracle 0.986); the fed arm 1,965 and 1,940 kcal (the oracle 1,963 and
-    # 1,937), the fast arm 2,637 (2,560). The es log at 12, 24 and 36 h of the fast reads 1.001, 1.087 and 1.134
-    # (the oracle 1.0, 1.087, 1.13: the stomach and fatDep), eb24 -1, -1300 and -1945 (-1, -1301, -1950) and g 1.0,
-    # 0.946 and 0.766 (the oracle 1.0, 0.923, 0.741: the stomach's slower carbohydrate)
+    # S1613 (Johnstone 2002: 12.2 against 10.2 MJ the day after a 36 h fast, 1.20) and S1614 (Clayton 2016: day 3 not
+    # different, 1.0), each within 1.1x (ruling 11c-30); ruling 11d-3's direction, day 2 above 1 and day 3 below it.
+    # Since the refit (Plan 11f Task 2c): day 2 1.174 (0.978x S1613; 1.342 at 7500 / 1.0), day 3 0.974; the fed arm
+    # eats 1,949 and 1,940 kcal, the fast arm 2,288 on day 2 (2,637 before). At 12, 24 and 36 h of the fast es reads
+    # 1.001, 1.198 and 1.299 (1.001, 1.087 and 1.134 before), eb24 -1, -1300 and -1945 and g 1.0, 0.946 and 0.766 (the
+    # balance and g do not move with the drive)
     f = fast_server()
-    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.342, 0.974), f
-    assert round(M.ratio(f["r2"], 1.20), 3) == 1.118 and M.ratio(f["r2"], 1.20) > M.TOL, f
-    assert M.ratio(f["r3"], 1.0) <= M.TOL, f
-    assert [round(x) for x in f["fed"]] == [1965, 1940] and round(f["fast"]) == 2637, f
-    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.001, 1.087, 1.134], f
+    assert f["r2"] > 1 and f["r3"] < f["r2"], f
+    assert M.ratio(f["r2"], 1.20) <= M.TOL and M.ratio(f["r3"], 1.0) <= M.TOL, f
+    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.174, 0.974), f
+    assert [round(x) for x in f["fed"]] == [1949, 1940] and round(f["fast"]) == 2288, f
+    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.001, 1.198, 1.299], f
     assert [round(x["body.eb24"]) for x in f["log"]] == [-1, -1300, -1945], f
     assert [round(x["acute.g"], 3) for x in f["log"]] == [1.0, 0.946, 0.766], f
 
 
 def test_the_steady_eater_on_the_server_path(host):
-    # STEADY_TOL 0.03: days 2-4 at 1.0083, 0.9956 and 1.0007 x maintenance (the oracle 1.0075, 0.994, 0.9978), es 1.0007
-    # to 1.0011 over day 5 (1.0004 to 1.0005): the 20:00 dinner empties after midnight into the hour-slotted window
+    # a balanced eater reads balance at every hour, and a request-level eater eats maintenance: STEADY_TOL 0.03. Days 2-4
+    # at 1.0003, 0.9957 and 0.9968 x maintenance (1.0083, 0.9956 and 1.0007 at 7500 / 1.0), es 1.0018 to 1.0022 over
+    # day 5 (1.0007 to 1.0011): the 20:00 dinner empties after midnight into the hour-slotted window
     ratios, es = steady_server()
     assert all(abs(r - 1) <= M.STEADY_TOL for r in ratios) and all(abs(e - 1) <= M.STEADY_TOL for e in es)
-    assert [round(r, 4) for r in ratios] == [1.0083, 0.9956, 1.0007], ratios
-    assert (round(min(es), 4), round(max(es), 4)) == (1.0007, 1.0011), es
+    assert [round(r, 4) for r in ratios] == [1.0003, 0.9957, 0.9968], ratios
+    assert (round(min(es), 4), round(max(es), 4)) == (1.0018, 1.0022), es
 
 
 def test_six_meals_against_three_on_the_server_path(host):
-    # [0.9, 1.3] (ruling 11d-3): held at es 1 the server's satiety path is the oracle's to 1e-12 (0.969); live it reads
-    # 0.987 (the oracle 0.994: the warm-up eats fill the stomach and the pool on the server)
+    # S1608 (1.14) and S1607 (null): the ratio within [0.9, 1.3] (ruling 11d-3). Held at es 1 the server's satiety path
+    # is the satiety oracle's to 1e-12 (0.969); live it reads 0.980 (0.987 at 7500 / 1.0)
     held = six_held_sum(6, 150) / six_held_sum(3, 300)
     live = six_live_sum(6, 150) / six_live_sum(3, 300)
     assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.969, held
-    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.987, live
+    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.980, live
 
 
 def test_the_low_carbohydrate_day_on_the_server_path(host):
@@ -246,10 +252,17 @@ KARL_PM = (14 * 60, 94)           # the afternoon walk: 14:00 (ASSUMED), 94 min 
 KARL_BATTERY = (10 * 60, 25)      # the task battery: 10:00 (ASSUMED), 25 min of MediumWork, about 100 kcal (the protocol)
 
 
-def karl_walk(start, dur, met):
+def karl_walk(start, dur, met, vigorous=True):
     """A loaded walk billing `met` on the bout's mean: HeavyWork (billed 6.0) with Running10kmh (billed 9.3) on the
-    minutes a Bresenham share of (met - 6.0) / 3.3 picks, every minute vigorous aerobic; idle after."""
+    minutes a Bresenham share of (met - 6.0) / 3.3 picks, every minute vigorous aerobic; idle after. Not vigorous: the
+    same kcal above the idle class billed at DiggingSpade (5.0, under the bar), so the bout runs longer. Returns (the
+    bout's minutes, its events)."""
     x = (met - 6.0) / (9.3 - 6.0)
+    if not vigorous:
+        n = int(dur * x + 1e-9)
+        billed = (n * 9.3 + (dur - n) * 6.0) / dur
+        dur = int(round(dur * (billed - 1.3) / (5.0 - 1.3)))
+        return dur, karl_bout(start, dur, "DiggingSpade")
     ev, prev = [], None
     for i in range(dur):
         cls = "Running10kmh" if int((i + 1) * x + 1e-9) > int(i * x + 1e-9) else "HeavyWork"
@@ -257,7 +270,7 @@ def karl_walk(start, dur, met):
             ev.append({"minute": start + i, "kind": "activity", "rate": RATE[cls]})
             prev = cls
     ev.append({"minute": start + dur, "kind": "activity", "rate": IDLE})
-    return ev
+    return dur, ev
 
 
 def karl_bout(start, dur, cls):
@@ -265,10 +278,12 @@ def karl_bout(start, dur, cls):
             {"minute": start + dur, "kind": "activity", "rate": IDLE}]
 
 
-def karl_events(arm):
-    """KARL_WARM sedentary days, then REST (one day) or three SUSOPS days; minute 0 is 00:00 of the first warm day."""
+def karl_events(arm, vigorous=True):
+    """KARL_WARM sedentary days, then REST (one day) or three SUSOPS days; minute 0 is 00:00 of the first warm day.
+    Returns (the events, the days, the morning walk's minutes)."""
     days = KARL_WARM + (1 if arm == "REST" else 3)
     rest_kcal = KARL_MJ["REST"] * KCAL_PER_MJ
+    am_dur = karl_walk(0, KARL_AM[1], KARL_AM[2], vigorous)[0]
     ev = [{"minute": 0, "kind": "sleep", "asleep": True}]
     for d in range(days):
         base = d * 1440
@@ -283,38 +298,39 @@ def karl_events(arm):
             continue
         if d < days - 1:
             ev.append({"minute": base + 1440 + 60, "kind": "sleep", "asleep": True})        # 01:00
-        ev += karl_walk(base + KARL_AM[0], KARL_AM[1], KARL_AM[2])
-        ev += karl_walk(base + KARL_EVE[0], KARL_EVE[1], KARL_EVE[2])
+        ev += karl_walk(base + KARL_AM[0], KARL_AM[1], KARL_AM[2], vigorous)[1]
+        ev += karl_walk(base + KARL_EVE[0], KARL_EVE[1], KARL_EVE[2], vigorous)[1]
         ev += karl_bout(base + KARL_PM[0], KARL_PM[1], "DiggingSpade")
-        ev += karl_bout(base + KARL_BATTERY[0], KARL_BATTERY[1], "MediumWork")
+        battery = max(KARL_BATTERY[0], KARL_AM[0] + am_dur + 4)       # after a longer morning walk
+        ev += karl_bout(base + battery, KARL_BATTERY[1], "MediumWork")
     ev.sort(key=lambda e: e["minute"])
-    return ev, days
+    return ev, days, am_dur
 
 
-def karl_vas(day0):
+def karl_vas(day0, am_dur):
     """The day's 8 VAS rows: before and after each meal, before and after the morning walk."""
     out = []
     for hh in KARL_MEALS:
         out += [day0 + hh * 60 - 1, day0 + hh * 60]
-    out += [day0 + KARL_AM[0] - 1, day0 + KARL_AM[0] + KARL_AM[1] - 1]
+    out += [day0 + KARL_AM[0] - 1, day0 + KARL_AM[0] + am_dur - 1]
     return sorted(out)
 
 
-def karl_k_arm(arm):
+def karl_k_arm(arm, vigorous=True):
     """(mean HUNGER at the VAS rows of the arm's study days, each study day's billed expenditure in MJ)."""
-    ev, days = karl_events(arm)
+    ev, days, am_dur = karl_events(arm, vigorous)
     rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, paths=("body.eeDay",),
                             player={"weight": KARL_KG, "female": False}, rng="half")
-    reads = [rows[m]["HUNGER"] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440)]
+    reads = [rows[m]["HUNGER"] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440, am_dur)]
     ee = [rows[d * 1440 + 1438]["body.eeDay"] / KCAL_PER_MJ for d in range(days)]   # the day's 1,440 steps
     return sum(reads) / len(reads), ee[KARL_WARM:]
 
 
-def karl_k():
+def karl_k(vigorous=True):
     """Twin K: BAL % and DEF % against REST (Table 2's quantity), and the billed MJ per study day of each arm."""
     rest, ee_rest = karl_k_arm("REST")
-    bal, ee_bal = karl_k_arm("BAL")
-    dfc, ee_def = karl_k_arm("DEF")
+    bal, ee_bal = karl_k_arm("BAL", vigorous)
+    dfc, ee_def = karl_k_arm("DEF", vigorous)
     return {"bal": 100 * (bal / rest - 1), "dfc": 100 * (dfc / rest - 1), "rest": rest,
             "ee": {"REST": ee_rest, "BAL": ee_bal, "DEF": ee_def}}
 
@@ -328,19 +344,30 @@ def karl_pass(bal, dfc):
 
 
 def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
-    # S1325: hunger -55 % (BAL) and +26 % (DEF, 95 % CI -3 to 54) against REST. Twin K at the shipped constants
-    # (BALANCE_SPAN_KCAL 7500, DEFICIT_FLOOR 1.0), a READING: DEF +88.1 (fails above 39), BAL -28.4 (fails short of -36.7).
-    # DEF's days 2 and 3 read es about 1.155 (a trailing deficit of about 2,270 kcal, 0.48 of the 24 h expenditure, so
-    # the lag is bypassed whole) and the sleep factor's 1.18 from the 4 h nights
+    # S1325: hunger -55 % (BAL) and +26 % (DEF, 95 % CI -3 to 54) against REST, each within 1.5x (karl_pass). Since the
+    # refit (Plan 11f Task 2c) twin K reads BAL -43.3 and DEF +36.0, both inside; at 7500 / 1.0 it read -28.4 and +88.1,
+    # both outside. DEF's days 2 and 3 carry a trailing deficit of about 2,270 kcal, 0.48 of the 24 h expenditure, so the
+    # lag is bypassed whole, and the sleep factor's 1.18 from the 4 h nights; BAL's surplus excludes the lagged
+    # exercise share, so it reads a large one
     k = karl_k()
-    assert karl_pass(k["bal"], k["dfc"]) == (False, False), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-28.4, 88.1), k
+    assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-43.3, 36.0), k
     # the calibration check against the doubly labelled water: the gap is a reading, never tuned
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]
     assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.02], k["ee"]
     assert round(sum(k["ee"]["DEF"]) / 3 - KARL_TDEE_MJ["DEF"], 2) == 0.71, k["ee"]
     assert round(sum(k["ee"]["BAL"]) / 3 - KARL_TDEE_MJ["BAL"], 2) == -0.06, k["ee"]
     assert round(k["ee"]["REST"][0], 2) == 9.06 and KARL_MJ["REST"] > k["ee"]["REST"][0], k["ee"]
+
+
+def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
+    # the same kcal billed under the vigour bar (the loaded walks at DiggingSpade, 5.0, for 121 and 233 min): no acute
+    # suppression, so DEF overshoots, +47.0 against the band's 39 (BAL -40.2 passes). The writer's limitation names it:
+    # heavy work the model does not class as vigorous overshoots the hunger rise of a heavy labour deficit (S1325)
+    k = karl_k(vigorous=False)
+    assert karl_pass(k["bal"], k["dfc"]) == (True, False), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-40.2, 47.0), k
+    assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]      # the vigorous twin's kcal
 
 
 # --- King 2011 at steady state (S1312) -----------------------------------------------------------------------------
@@ -375,7 +402,8 @@ def king_steady_server(host):
 
 
 def test_king_2011_at_steady_state_on_the_server_path(host):
-    # S1312 (the oracle's band: exercise within a quarter of the restriction's rise and under 3.3 mm of control)
+    # S1312: exercise within a quarter of the restriction's rise and under 3.3 mm of control (Plan 11c Task 4b's band);
+    # since the refit (Plan 11f Task 2c) the rise reads 0.089 and the distance 0.62 mm (0.1043 and 2.43 mm before)
     assert abs(idle_day(host, KING_KG, 16) - 2500.0) < 2.0
     bout, k = king_steady_server(host)
     rise = k["restriction"] - k["control"]
@@ -464,16 +492,18 @@ def deficit_server(host, days=7):
 
 
 def test_a_25_percent_deficit_on_the_server_path(host):
-    # S1255 (< 10 mm over 2 y): the oracle's arithmetic reads 13.5 mm on a 2,500 kcal day (-625 kcal); the 70 kg man's
-    # quarter deficit (-487 kcal) on the pipeline, a week in
+    # S1255 (CALERIE 2: < 10 mm over 2 y at a 25 % deficit): the 70 kg man's quarter deficit (-487 kcal) on the
+    # pipeline, a week in, reads es 1.0900 and 5.9 mm at the request since the refit (Plan 11f Task 2c), reproduced; at
+    # 7500 / 1.0 it read 16.0 mm, and the deleted arithmetic oracle 13.5 mm on a 2,500 kcal day
     e, mm = deficit_server(host)
+    assert mm < 10, (e, mm)
     assert (round(e, 4), round(mm, 1)) == READ["s1255"], (e, mm)
 
 
-# the readings the tests above pin that their own lines do not spell out (each at the shipped constants)
+# the readings the tests above pin that their own lines do not spell out (each at the refit constants, Plan 11f Task 2c)
 READ = {
-    "lowcarb_g": (1.0, 1.0, 0.967),     # g: the mixed arm at 08:00 and 20:00 of day 1, the low arm at 20:00 (oracle 0.951)
-    "lowcarb_des": 0.0,                 # the low arm's es less the mixed arm's at 20:00 (the oracle's 0 too)
-    "king": (0.1043, 2.43),             # the restriction's late rise (oracle 0.1552) and exercise's distance in mm (oracle 2.43)
-    "s1255": (1.0492, 16.0),            # es over day 7 and its rise at the request, mm (the oracle's arithmetic 13.5 mm)
+    "lowcarb_g": (1.0, 1.0, 0.967),     # g: the mixed arm at 08:00 and 20:00 of day 1, the low arm at 20:00 (the simplified path 0.951)
+    "lowcarb_des": 0.0,                 # the low arm's es less the mixed arm's at 20:00
+    "king": (0.089, 0.62),              # the restriction's late rise and exercise's distance in mm (0.1043 and 2.43 at 7500 / 1.0)
+    "s1255": (1.09, 5.9),               # es over day 7 and its rise at the request, mm (1.0492 and 16.0 at 7500 / 1.0)
 }

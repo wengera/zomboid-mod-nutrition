@@ -19,12 +19,12 @@ K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
 -- energy: the K.energy.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
 -- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
--- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.13 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal).
+-- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.295 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal; the 3,300 kcal span, Plan 11f Task 2c).
 K.view.ENERGY_AT = {
-    1.10, -- gc: game choice, Plan 11d (ruling 9d-2): level 1, a 1500 kcal trailing-24 h deficit alone (0.5 x 1500/7500), about 18 h without food
-    1.25, -- gc: game choice, Plan 11d (ruling 9d-2): level 2, the resting fast's 1.13 plus fat depletion about 0.24 (1.13 + 0.5 x 0.24)
-    1.40, -- gc: game choice, Plan 11d (ruling 9d-2): level 3, fat depletion about 0.54 at rest (1.13 + 0.5 x 0.54); 1.50 before
-    1.55, -- gc: game choice, Plan 11d (ruling 9d-2): level 4, fat depletion about 0.84 at rest (1.13 + 0.5 x 0.84); 1.75 before, unreachable at rest
+    1.10, -- gc: game choice, Plan 11d (ruling 9d-2): level 1, a 660 kcal trailing-24 h deficit alone (0.5 x 660/3300 since Plan 11f Task 2c; 1500 kcal and about 18 h at 7500), about 8 h without food
+    1.25, -- gc: game choice, Plan 11d (ruling 9d-2): level 2, the resting fast's plateau alone (1.295 at the 3,300 kcal span, Plan 11f Task 2c; 1.13 plus fat depletion about 0.24 at 7500)
+    1.40, -- gc: game choice, Plan 11d (ruling 9d-2): level 3, fat depletion about 0.21 at rest (1.295 + 0.5 x 0.21; 0.54 at 7500); 1.50 before
+    1.55, -- gc: game choice, Plan 11d (ruling 9d-2): level 4, fat depletion about 0.51 at rest (1.295 + 0.5 x 0.51; 0.84 at 7500); 1.75 before, unreachable at rest
 }
 
 -- hydration: fluids_dehydPct (per cent of body mass) on the Plan 4 thirst ladder, K.fluids.THIRST_KNOTS -- the

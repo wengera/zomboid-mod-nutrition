@@ -20,10 +20,13 @@ thermogenesis or training close, so fatDep stays 0). The replay reproduces them 
 (OracleReplay, the same composition driven by the same event lists: sleep at 23:00 and waking at 07:00, the meals,
 the request-level meal's kcal from the state the last minute left), and runs the same 36 h fast through the server
 adapters as a reading: the full pipeline on the oracle's 70 kg man (the stand-in's weight 70, male, responder 1, idle
-at the engine's Default class 1.5, billed standing quietly) reads day 2 at 1.342 and day 3 at 0.974 against the
-oracle's 1.304 and 0.986, the absorption over hours and the day partition the difference (re-pinned in Task 2 fix
-round 1: the stand-in idled at 1.3 before, which the mod bills as DrivingCar, and read 1.348 and 0.962).
-Plan 11f grades a live run against the server path; the oracle path names the distance.
+at the engine's Default class 1.5, billed standing quietly) reads day 2 at 1.174 and day 3 at 0.974 against the
+simplified path's 1.166 and 0.979 since the deficit drive's refit on the server path (Plan 11f Task 2c; 1.342 and 0.974
+against 1.304 and 0.986 before), the absorption over hours and the day partition the difference (re-pinned in Task 2
+fix round 1: the stand-in idled at 1.3 before, which the mod bills as DrivingCar, and read 1.348 and 0.962).
+Plan 11f grades a live run against the server path; the oracle path names the distance. Since Task 2c the energy
+oracles themselves run the server path (test_replay_live_energy.py); the simplified composition is kept as this
+backend's reference only.
 
 The "312 min" the plan lists is pinned by no oracle test; the 650 kcal meal's request minute (320, which
 test_a_650_kcal_mixed_meal_holds_hunger_off_for_four_to_five_hours bands at 240-330) and Callahan's pinned minutes
@@ -162,8 +165,8 @@ def test_the_36_h_fast_ratios_and_log(host):
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     o2, o3, olog, _, _ = M.fast_reading(host)
     assert r2 == o2 and r3 == o3
-    assert round(r2, 3) == 1.304 and round(r3, 3) == 0.986
-    assert [round(ifed[W + 2]), round(ifed[W + 3])] == [1963, 1937] and round(ifast[W + 2]) == 2560
+    assert round(r2, 3) == 1.166 and round(r3, 3) == 0.979              # Plan 11f Task 2c's refit (1.304, 0.986 before)
+    assert [round(ifed[W + 2]), round(ifed[W + 3])] == [1950, 1939] and round(ifast[W + 2]) == 2274
     at = [M.at_hour(0, 20 + 12), M.at_hour(0, 20 + 24), M.at_hour(0, 20 + 36)]
     assert [rx[m - 1]["body.energyState"] for m in at] == [x["es"] for x in olog]
     assert [round(rx[m - 1]["body.eb24"]) for m in at] == [-1, -1301, -1950]
@@ -177,10 +180,10 @@ def test_the_steady_eater(host):
     by = RL.intake_by_day(be.eats)
     ratios = [by[d] / be.maint() for d in (1, 2, 3)]
     assert ratios == M.steady_reading(host)[0]
-    assert [round(r, 4) for r in ratios] == [1.0075, 0.994, 0.9978]
+    assert [round(r, 4) for r in ratios] == [1.0008, 0.9948, 0.9961]     # Plan 11f Task 2c's refit
     hours = [int((M.STEADY_DAYS - 1) * 1440 + h * 60) for h in range(1, 25)]
     es = [rows[m - 1]["body.energyState"] for m in hours]
-    assert round(min(es), 4) == 1.0004 and round(max(es), 4) == 1.0005
+    assert round(min(es), 4) == 1.0013 and round(max(es), 4) == 1.0014
 
 
 def six_sum(n, gap, hold):
@@ -206,7 +209,7 @@ def test_six_meals_against_three_held_and_live(host):
     held = six_sum(6, 150, True) / six_sum(3, 300, True)
     live = six_sum(6, 150, False) / six_sum(3, 300, False)
     assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.969
-    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.994
+    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.981     # Plan 11f Task 2c's refit
 
 
 def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
@@ -220,7 +223,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
     ifed, ifast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     assert r2 > 1 and r3 < r2                                   # the oracle's direction (ruling 11d-3)
-    assert (round(r2, 3), round(r3, 3)) == (1.342, 0.974), (r2, r3)      # a reading (fix round 1: idle at 1.5)
+    assert (round(r2, 3), round(r3, 3)) == (1.174, 0.974), (r2, r3)      # a reading (Plan 11f Task 2c's refit; 1.342 before)
 
 
 # --- the writer replays and monotony through the server adapters ----------------------------------------------------
