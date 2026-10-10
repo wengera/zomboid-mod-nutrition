@@ -1,0 +1,37 @@
+# testing/profiles/x26-chain.toml - Plan 11f Task 3 session 2 (run x260b), on the staged copy session 1 booted:
+# the first live restart of the file store: session 1's server folder copied and booted again (reuse=True),
+# the record, P, the trail and the clock compared across it, 30 game minutes run on, and the departure flush.
+# PZTestKit + the STAGED copy of the tree at cbdf8df (the mod's last commit; HEAD 93db909)
+# (release/x260-cadence/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/x260-cadence`; release/ is gitignored; mod/ is
+# never booted) + TKX_StudyFoods by its path. Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug).
+# The driver is testing/experiments/x260b_chain.py; x26-cadence.toml byte for byte below this header but the description.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy at cbdf8df + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the first live restart of the file store on session 1's server folder (x260), the departure flush."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x260-cadence/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, x222)
