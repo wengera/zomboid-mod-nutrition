@@ -23,9 +23,16 @@ fluid.fill, drink.action; x151's route, #3149). Each arm is eaten at its own req
 state; live is graded against the replay, and the clean contrasts are read on REPLAY ARMS (ruling 11f-3) at the first
 arm's landing row. Order: MARC (+ water), MSOUP, DLO, DHI.
 
+PRE-RUN EDIT (named; this driver had not run): x263 found that the engine auto-drinks from a carried container at THIRST
+0.1 although the server's autodrink flag was set false (that flag does not hold, #2941), and the replay has no event
+for it (finding F-T4-2). So the MARC arm moved to the start of X, at once and not at a request, with the bottle spawned
+just before its fill, while THIRST is still under 0.1 (a fresh character's THIRST reads about 0.03 there); the drink
+empties the bottle's server copy, so no later auto-drink can draw on it. The other three arms are unchanged.
+
 PHASES (the engine's S, H, W; then X; then R, D, Z, the replay):
-  X  spawn Marc, MarcSoup, Dense400Lo, Dense400Hi, WaterBottle; speed 5; for each arm: to_request(arm), eat (MARC: then
-     fill the bottle with 0.300 L Water and drink it), speed 5; the next request marked; end.
+  X  spawn Marc, MarcSoup, Dense400Lo, Dense400Hi; the slow clock; spawn the WaterBottle; eat Marc, then fill the bottle
+     with 0.300 L Water and drink it; speed 5; for MSOUP, DLO, DHI: to_request(arm), eat, speed 5; the next request
+     marked; end.
 PREDICTIONS:
   R3REQ   every labelled eat's live request minute within max(3 min, 2 %) of the replay's.
   R3MEAN  each arm's live mean HUNGER over the 180 min after its landing within 0.002 of the replay's.
@@ -69,13 +76,16 @@ def scenario(S):
     S.out["phases"]["X"] = {}
     for lab, full in ARMS:
         S.spawn(full, 1, "spawn_" + lab)
+    # MARC first, at once, while THIRST is under the engine's 0.1 auto-drink gate (pre-run edit, finding F-T4-2)
+    S.slow("MARC_slow")
     S.spawn(BOTTLE, 1, "spawn_bottle")
-    S.fast("X_fast0")
-    for lab, full in ARMS:
+    e = S.eat(MARC, "MARC")
+    if e.get("landed"):
+        S.drink(BOTTLE, WATER, WATER_L, "MARC_water")
+    S.fast("MARC_fast")
+    for lab, full in ARMS[1:]:
         S.to_request(lab)
-        e = S.eat(full, lab)
-        if lab == "MARC" and e.get("landed"):
-            S.drink(BOTTLE, WATER, WATER_L, "MARC_water")
+        S.eat(full, lab)
         S.fast(lab + "_fast")
     S.to_request("X_next")
     S.fast("X_end_fast")

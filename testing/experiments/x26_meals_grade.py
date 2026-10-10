@@ -53,7 +53,29 @@ def load(run):
         with open(os.path.join(run, name + ".json"), encoding="utf-8") as fh:
             rd[name] = json.load(fh)
     rr, rp = RL.load_ring([os.path.join(run, f) for f in files])
+    rd["autodrinks"] = autodrinks(rr)
+    rd["events"] = sorted(rd["events"] + rd["autodrinks"], key=lambda x: x["s"])
     return doc, rr, rp, rd
+
+
+def autodrinks(rr):
+    """Finding F-T4-2: the engine's auto-drink (the server's setAutoDrink(false) does not hold, #2941) drinks from a
+    carried container at THIRST 0.1 and the writer folds it as a sip (#2965); no driver event logs it. Each is read
+    off the ring as a THIRST fall of at least 0.02 on a row with no rise of intake.stats.eats or .sips in the three links before it, and is fed
+    to the supplementary replay as the engine's own stat move: a `stat` event setting the stand-in's THIRST to the
+    ring row's value before that row's drain (an exogenous engine input, as the tool's `stat` kind allows)."""
+    out = []
+    for i in range(1, len(rr)):
+        a, b = rr[i - 1], rr[i]
+        ta, tb = a.get("THIRST"), b.get("THIRST")
+        if ta is None or tb is None or tb > ta - 0.02:
+            continue
+        w = rr[max(0, i - 3):i + 1]          # an intake in the last three links folds its water into THIRST itself
+        if any((w[-1].get(k) or 0) != (w[0].get(k) or 0) for k in (L.EATS, L.SIPS)):
+            continue
+        out.append({"s": b["s"], "kind": "stat", "stat": "THIRST", "value": tb, "label": "autodrink",
+                    "from": ta})
+    return out
 
 
 def replay(rr, rp, rd, events=None, cls=SleepOff):
@@ -101,7 +123,8 @@ def main(argv=None):
     res = {"run": doc["run_id"], "tool_diff": {k: tool["diff"].get(k) for k in ("fields", "classes", "ok")},
            "sup_diff": {k: d.get(k) for k in ("fields", "classes", "ok")}, "sup_findings": d["findings"][:10],
            "sup_diff_extra": {k: dx.get(k) for k in ("fields", "ok")},
-           "requests": requests(doc, rr, tool["rows"], sup), "offset": be.R.offset}
+           "requests": requests(doc, rr, tool["rows"], sup), "offset": be.R.offset,
+           "autodrinks": rd["autodrinks"]}
     by = {e["label"]: e for e in doc["eats"] if e.get("ring_s") is not None}
     pre = doc["run_id"][:4]
     if pre == "x261":

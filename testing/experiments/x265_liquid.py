@@ -17,14 +17,20 @@ this row with the int-key rule kept). Graded live against the replay only (rulin
 THE DESIGN, NAMED BEFORE THE RUN: the milk is 0.5 L of the vanilla fluid CowMilk (the mod's fluid table: 628.3 kcal,
 49.44 g carbohydrate, 33.475 g fat, 32.445 g protein and 907.739 g water a litre) in Base.WaterBottle's server copy
 (fluid.fill, server) drunk by drink.action (x151's route, #3149); TKX.MilkSolid declares the same 0.5 L vector as a
-food (314.15 kcal, 24.72 g, 16.7375 g, 16.2225 g, water 453.8695 g). Not at 09:00: the milk at the first request and
-the solid at the next, each from its request (the session budget; the hour and state differ, named). The contrast on
+food (314.15 kcal, 24.72 g, 16.7375 g, 16.2225 g, water 453.8695 g). Not at 09:00: the milk at the start of the scenario and
+the solid at the next request, each from its request (the session budget; the hour and state differ, named). The contrast on
 equal footing is read on REPLAY ARMS (ruling 11f-3): the milk's landing rows given the solid instead, and the solid's
 landing row given the milk (its litres over as many rows as live), every other event as live.
 
+PRE-RUN EDIT (named; this driver had not run): x263 found that the engine auto-drinks from a carried container at THIRST
+0.1 although the server's autodrink flag was set false (that flag does not hold, #2941), and an auto-drink from the milk
+would land through the writer's sip fold, outside the drink wrapper (finding F-T4-2). So the milk moved to the start of
+X, at once and not at a request, with the bottle spawned just before its fill, while THIRST is still under 0.1; the
+drink empties the bottle's server copy. The solid stays at the next request.
+
 PHASES (the engine's S, H, W; then X; then R, D, Z, the replay):
-  X  spawn WaterBottle and MilkSolid; check TKX.MilkSolid's script on the server (item.script); speed 5;
-     to_request(MILK): fill the bottle with CowMilk 0.5 and drink it (label MILK); speed 5;
+  X  check TKX.MilkSolid's script on the server (item.script); spawn MilkSolid; the slow clock; spawn the WaterBottle,
+     fill it with CowMilk 0.5 and drink it (label MILK); speed 5;
      to_request(SOLID): eat MilkSolid (label SOLID); speed 5; the next request marked; end.
 PREDICTIONS:
   R4REQ   the live request minute after the milk's first sip row and after the solid's landing within max(3 min, 2 %)
@@ -69,10 +75,10 @@ PRED = {
 def scenario(S):
     X = S.out["phases"]["X"] = {}
     X["script"] = S.keep(S.step("X_script", L.SRV, "item.script", SOLID))
-    S.spawn(BOTTLE, 1, "spawn_bottle")
     S.spawn(SOLID, 1, "spawn_solid")
-    S.fast("X_fast0")
-    S.to_request("MILK")
+    # the milk first, at once, while THIRST is under the engine's 0.1 auto-drink gate (pre-run edit, finding F-T4-2)
+    S.slow("MILK_slow")
+    S.spawn(BOTTLE, 1, "spawn_bottle")
     S.drink(BOTTLE, MILK, MILK_L, "MILK")
     S.fast("MILK_fast")
     S.to_request("SOLID")
