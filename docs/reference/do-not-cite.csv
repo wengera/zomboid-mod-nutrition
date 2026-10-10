@@ -2386,3 +2386,484 @@ x26-regrade-20261010,readings.means.arms.MSOUP.live_180,0.17267517199114005,"The
 x26-regrade-20261010,readings.means.arms.MSOUP.replay_180,0.17373329788415273,"The full 180 minutes, past DLO's landing (`x264.json`); the file labels it contaminated.",`readings.means.arms.MSOUP.replay`
 x26-regrade-20261010,readings.snack_arms.C.dinner_from_lunch.P,1004.1406631469727,"Censored (`censored` true): the arm's dinner falls past the next live eat; the value is the ring's end, not a request (`x262.json`).",
 x26-regrade-20261010,readings.snack_arms.C.dinner_from_lunch.F,1004.1406631469727,"Censored (`censored` true): the arm's dinner falls past the next live eat; the value is the ring's end, not a request (`x262.json`).",
+x271-20261010-135751,session,"Plan 11f Task 5 session 1 of 5: the warm-up day and maintenance day 0, the fa...",Written before the run by the driver; not a reading.,
+x271-20261010-135751,predictions,an object of 7 keys,Written before the run by the driver; not a reading.,
+x271-20261010-135751,meta.phase_note,a ring row is sampled inside EveryOneMinute before the mod's queue drains tha...,Written before the run by the driver; not a reading.,
+x271-20261010-135751,meta.staged_at,983ebd6,Written before the run by the driver; not a reading. Cite `mod_commit` and `meta.staged_manifest_sha256` for the staged tree.,
+x271-20261010-135751,deviations,a list of 1,The driver's own text; not a reading.,
+x271-20261010-135751,world_changes,an object of 2 keys,The driver's own text; not a reading.,
+x271-20261010-135751,verdicts.STOPS.predicted,an object of 1 keys,Written before the run by the driver; not a reading.,`verdicts.STOPS.observed`
+x271-20261010-135751,profile,an object of 12 keys,"The booted profile; settings, not a reading.",
+x271-20261010-135751,doctor,a list of 5,"Pre-run checks, not a reading.",
+x271-20261010-135751,timeline,a list of 56,"Wall-clock marks of the driver, not game state.",
+x271-20261010-135751,phases.S.nutrition.calories,-12.671610832214355,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.carbs,-300,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.lipids,-70,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.proteins,-400,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,phases.S.nutrition.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x271-20261010-135751,steps[3].ack.calories,-12.671610832214355,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.carbs,-300,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.lipids,-70,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.proteins,-400,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[3].ack.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x271-20261010-135751,steps[5].ack.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x271-20261010-135751,steps[23].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_1030_0_eat).",
+x271-20261010-135751,steps[35].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_1030_1_eat).",
+x271-20261010-135751,steps[59].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Dm1_13_0_eat).",
+x271-20261010-135751,steps[79].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Dm1_13_1_eat).",
+x271-20261010-135751,steps[100].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_1630_0_eat).",
+x271-20261010-135751,steps[112].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_1630_1_eat).",
+x271-20261010-135751,steps[136].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Dm1_20_0_eat).",
+x271-20261010-135751,steps[156].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Dm1_20_1_eat).",
+x271-20261010-135751,steps[177].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_2330_0_eat).",
+x271-20261010-135751,steps[190].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_2330_1_eat).",
+x271-20261010-135751,steps[214].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_08_0_eat).",
+x271-20261010-135751,steps[234].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_08_1_eat).",
+x271-20261010-135751,steps[256].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_1030_0_eat).",
+x271-20261010-135751,steps[269].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_1030_1_eat).",
+x271-20261010-135751,steps[293].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_13_0_eat).",
+x271-20261010-135751,steps[313].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_13_1_eat).",
+x271-20261010-135751,steps[337].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_1630_0_eat).",
+x271-20261010-135751,steps[351].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_1630_1_eat).",
+x271-20261010-135751,steps[377].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_20_0_eat).",
+x271-20261010-135751,steps[404].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D0_20_1_eat).",
+x271-20261010-135751,steps[431].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_2330_0_eat).",
+x271-20261010-135751,steps[449].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W0_2330_1_eat).",
+x271-20261010-135751,phases.S.autodrink.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x271-20261010-135751,replay.inputs.player.macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x271-20261010-135751,macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x271-20261010-135751,replay.inputs.player.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x271-20261010-135751,weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x271-20261010-135751,phases.W.lastWrite_before,1791655128461,"Wall-clock stamp (epoch ms), not game state.",
+x271-20261010-135751,phases.W.lastWrite,1791655188555,"Wall-clock stamp (epoch ms), not game state.",
+x271-20261010-135751,replay.seconds,0.73,"Wall time of the run-time replay, not reproducible.",
+x271-20261010-135751,readings.requests.Wm1_1030_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Wm1_1030_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Dm1_13_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Dm1_13_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Wm1_1630_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Wm1_1630_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Dm1_20_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Dm1_20_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Wm1_2330_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.Wm1_2330_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_08_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_08_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_1030_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_1030_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_13_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_13_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_1630_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_1630_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_20_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.D0_20_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_2330_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.requests.W0_2330_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x271-20261010-135751,readings.hourly[0].es_replay,null,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[1].es_replay,1.029027671518476,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[2].es_replay,1.0442971291940408,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[3].es_replay,1.0430878552363467,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[4].es_replay,1.0336787028919936,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[5].es_replay,1.0278223769417285,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[6].es_replay,1.0248876372769977,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[7].es_replay,1.0245101389266908,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[8].es_replay,1.0264214474839772,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[9].es_replay,1.0387583004849859,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[10].es_replay,1.0375362100517476,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[11].es_replay,1.0281249720301302,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[12].es_replay,1.0222642032877702,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[13].es_replay,1.01932923489922,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[14].es_replay,1.0189408759591987,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[15].es_replay,1.020887735331718,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[16].es_replay,1.0332701677207239,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[17].es_replay,1.0484369806610012,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[18].es_replay,1.0637186253758208,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[19].es_replay,1.0792087773523429,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[20].es_replay,1.0944881109714562,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[21].es_replay,1.1119283221741254,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[22].es_replay,1.1106834320439616,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[23].es_replay,1.1013938007452282,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[24].es_replay,1.0819269802258895,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[25].es_replay,1.063673954442096,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[26].es_replay,1.0480707874873028,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[27].es_replay,1.0409698675841808,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[28].es_replay,1.0394038758639703,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[29].es_replay,1.0382854219463025,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[30].es_replay,1.0373513012722217,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[31].es_replay,1.0365391469681164,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[32].es_replay,1.035699556577839,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[33].es_replay,1.0317695153776987,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[34].es_replay,1.0343708666975786,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[35].es_replay,1.033668752236311,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[36].es_replay,1.0333571630049367,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[37].es_replay,1.0330914833831948,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[38].es_replay,1.0328643052335535,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[39].es_replay,1.0325097309349156,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[40].es_replay,1.0314919227203596,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[41].es_replay,1.0315452813965862,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[42].es_replay,1.0313888843881263,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[43].es_replay,1.0314240245904434,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[44].es_replay,1.0314709458579994,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.hourly[45].es_replay,1.032183344733271,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x271.json` `diff`
+x271-20261010-135751,readings.meal_es[0].es_replay_next,1.045475628094362,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x271-20261010-135751,readings.meal_es[1].es_replay_next,1.0397521866535888,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x271-20261010-135751,readings.meal_es[2].es_replay_next,1.1133939472039087,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x271-20261010-135751,readings.meal_es[3].es_replay_next,1.047758558862742,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x271-20261010-135751,readings.meal_es[4].es_replay_next,1.032392330193636,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x271-20261010-135751,chain.prev_prefix,null,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x271-20261010-135751,chain.prev_run,null,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x271-20261010-135751,readings.ladder,an object of 0 keys,Empty: the fast had run 12 h of its 36 at this session's end.,`x27-grade-20261010` `rows.json` `row6_7.ladder`
+x271-20261010-135751,readings.live_kcal_by_day.1,0.0,A partial day: chain day 1 (the fast) runs on into `x272-20261010-140932`.,`x27-grade-20261010` `rows.json` `row6_7.intake_by_day.live.1`
+x272-20261010-140932,session,Plan 11f Task 5 session 2 of 5: the rest of the 36 h fast and request-level d...,Written before the run by the driver; not a reading.,
+x272-20261010-140932,predictions,an object of 7 keys,Written before the run by the driver; not a reading.,
+x272-20261010-140932,meta.phase_note,a ring row is sampled inside EveryOneMinute before the mod's queue drains tha...,Written before the run by the driver; not a reading.,
+x272-20261010-140932,meta.staged_at,983ebd6,Written before the run by the driver; not a reading. Cite `mod_commit` and `meta.staged_manifest_sha256` for the staged tree.,
+x272-20261010-140932,deviations,a list of 0,The driver's own text; not a reading.,
+x272-20261010-140932,world_changes,an object of 2 keys,The driver's own text; not a reading.,
+x272-20261010-140932,verdicts.STOPS.predicted,an object of 1 keys,Written before the run by the driver; not a reading.,`verdicts.STOPS.observed`
+x272-20261010-140932,profile,an object of 12 keys,"The booted profile; settings, not a reading.",
+x272-20261010-140932,doctor,a list of 5,"Pre-run checks, not a reading.",
+x272-20261010-140932,timeline,a list of 49,"Wall-clock marks of the driver, not game state.",
+x272-20261010-140932,phases.S.nutrition.calories,-342.97625732421875,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.carbs,-57.07135009765625,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.lipids,5.577802658081055,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.proteins,20.986122131347656,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.weight,79.917225598262,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,phases.S.nutrition.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x272-20261010-140932,steps[3].ack.calories,-342.97625732421875,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.carbs,-57.07135009765625,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.lipids,5.577802658081055,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.proteins,20.986122131347656,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.weight,79.917225598262,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[3].ack.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x272-20261010-140932,steps[5].ack.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x272-20261010-140932,steps[25].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_1030_0_eat).",
+x272-20261010-140932,steps[44].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_1030_1_eat).",
+x272-20261010-140932,steps[73].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_1630_0_eat).",
+x272-20261010-140932,steps[93].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_1630_1_eat).",
+x272-20261010-140932,steps[122].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_2330_0_eat).",
+x272-20261010-140932,steps[142].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W1_2330_1_eat).",
+x272-20261010-140932,steps[173].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_08_0_eat).",
+x272-20261010-140932,steps[208].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_08_1_eat).",
+x272-20261010-140932,steps[228].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_08_2_eat).",
+x272-20261010-140932,steps[248].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_08_3_eat).",
+x272-20261010-140932,steps[277].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_1030_0_eat).",
+x272-20261010-140932,steps[297].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_1030_1_eat).",
+x272-20261010-140932,steps[327].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_13_0_eat).",
+x272-20261010-140932,steps[361].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_13_1_eat).",
+x272-20261010-140932,steps[390].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_1630_0_eat).",
+x272-20261010-140932,steps[410].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_1630_1_eat).",
+x272-20261010-140932,steps[441].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_20_0_eat).",
+x272-20261010-140932,steps[476].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_20_1_eat).",
+x272-20261010-140932,steps[496].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_20_2_eat).",
+x272-20261010-140932,steps[516].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D2_20_3_eat).",
+x272-20261010-140932,steps[545].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_2330_0_eat).",
+x272-20261010-140932,steps[565].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W2_2330_1_eat).",
+x272-20261010-140932,phases.S.autodrink.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x272-20261010-140932,replay.inputs.player.macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x272-20261010-140932,macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x272-20261010-140932,replay.inputs.player.weight,79.917225598262,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x272-20261010-140932,weight,79.917225598262,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x272-20261010-140932,phases.W.lastWrite_before,1791655804802,"Wall-clock stamp (epoch ms), not game state.",
+x272-20261010-140932,phases.W.lastWrite,1791655864979,"Wall-clock stamp (epoch ms), not game state.",
+x272-20261010-140932,replay.seconds,0.73,"Wall time of the run-time replay, not reproducible.",
+x272-20261010-140932,readings.requests.W1_1030_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W1_1030_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W1_1630_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W1_1630_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W1_2330_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W1_2330_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_08_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_08_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_08_2,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_08_3,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_1030_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_1030_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_13_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_13_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_1630_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_1630_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_20_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_20_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_20_2,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.D2_20_3,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_2330_0,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.requests.W2_2330_1,an object of 8 keys,"A per-eat request minute (each water and meal portion its own landing), not a row reading; the stop's meal is the unit the rows grade.",`x27-grade-20261010` `rows.json` `row6_7`
+x272-20261010-140932,readings.hourly[0].es_replay,null,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[1].es_replay,1.0950029825483025,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[2].es_replay,1.11338737924737,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[3].es_replay,1.129026205637038,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[4].es_replay,1.152524972624484,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[5].es_replay,1.17853756916715,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[6].es_replay,1.200812426037776,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[7].es_replay,1.2198993625425163,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[8].es_replay,1.2365891994045695,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[9].es_replay,1.250773718651318,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[10].es_replay,1.2578101909079342,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[11].es_replay,1.272093515706781,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[12].es_replay,1.2967035396004796,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[13].es_replay,1.3182483620742536,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[14].es_replay,1.3367002505229246,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[15].es_replay,1.3528478981362413,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[16].es_replay,1.3665203865904454,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[17].es_replay,1.370633835338433,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[18].es_replay,1.370889685781878,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[19].es_replay,1.3707031989734002,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[20].es_replay,1.3706944608820804,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[21].es_replay,1.3706857175515543,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[22].es_replay,1.3741904818962154,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[23].es_replay,1.3756899402158862,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[24].es_replay,1.3374012027874136,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[25].es_replay,1.31299801516337,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[26].es_replay,1.2919345297483864,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[27].es_replay,1.273908857550409,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[28].es_replay,1.2525593891452866,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[29].es_replay,1.2207339329407514,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[30].es_replay,1.1932625206358065,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[31].es_replay,1.1696957297166262,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[32].es_replay,1.1489741588433189,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[33].es_replay,1.1314603201248792,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[34].es_replay,1.1162149267433417,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[35].es_replay,1.0974874808416668,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[36].es_replay,1.0697877668041564,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[37].es_replay,1.045260732747983,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[38].es_replay,1.0241065843654622,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[39].es_replay,1.0055542699486029,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[40].es_replay,0.9898783105764712,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.hourly[41].es_replay,0.9766018309787031,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x272.json` `diff`
+x272-20261010-140932,readings.meal_es[0].es_replay_next,1.3749871329185788,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x272-20261010-140932,readings.meal_es[1].es_replay_next,1.2723701675964394,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x272-20261010-140932,readings.meal_es[2].es_replay_next,1.1152793239941339,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `rows.json` `row6_7.meal_es`
+x272-20261010-140932,chain.carry_in,-17.799999999999727,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.maint_kcal_in,2089.32,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_artifact,energy-1.json,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_end_snap,an object of 7 keys,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_flushed,true,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_last_ring_age,49.26785659790039,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_prefix,x271,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_run,C:\Users\Angus\repos\project_zomboid\testing\runs\x271-20261010-135751,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_run_id,x271-20261010-135751,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,chain.prev_stops,a list of 11,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x272-20261010-140932,readings.live_kcal_by_day.1,0.0,A partial day: chain day 1 (the fast) began in `x271-20261010-135751`.,`x27-grade-20261010` `rows.json` `row6_7.intake_by_day.live.1`
+x272-20261010-140932,readings.live_kcal_by_day.3,0.0,"A partial day: the session ends at age 92.25, before day 3's first meal; day 3 runs on in `x273-20261010-142109`.",`x27-grade-20261010` `rows.json` `row6_7.intake_by_day.live.3`
+x272-20261010-140932,readings.maint_kcal,2089.32,"Carried in by the chain from `x271-20261010-135751`'s maintenance read, not read in this session.",`x271-20261010-135751` `readings.maint_kcal`
+x272-20261010-140932,readings.maint_body,an object of 3 keys,"Carried in by the chain from `x271-20261010-135751`'s maintenance read, not read in this session.",`x271-20261010-135751` `readings.maint_body`
+x273-20261010-142109,session,"Plan 11f Task 5 session 3 of 5: request-level days 3 and 4, on the staged cop...",Written before the run by the driver; not a reading.,
+x273-20261010-142109,predictions,an object of 7 keys,Written before the run by the driver; not a reading.,
+x273-20261010-142109,meta.phase_note,a ring row is sampled inside EveryOneMinute before the mod's queue drains tha...,Written before the run by the driver; not a reading.,
+x273-20261010-142109,meta.staged_at,983ebd6,Written before the run by the driver; not a reading. Cite `mod_commit` and `meta.staged_manifest_sha256` for the staged tree.,
+x273-20261010-142109,deviations,a list of 0,The driver's own text; not a reading.,
+x273-20261010-142109,world_changes,an object of 2 keys,The driver's own text; not a reading.,
+x273-20261010-142109,profile,an object of 12 keys,"The booted profile; settings, not a reading.",
+x273-20261010-142109,doctor,a list of 5,"Pre-run checks, not a reading.",
+x273-20261010-142109,timeline,a list of 38,"Wall-clock marks of the driver, not game state.",
+x273-20261010-142109,phases.S.nutrition.calories,198.3017578125,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.carbs,8.29832649230957,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.lipids,25.915035247802734,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.proteins,69.25260925292969,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.weight,79.09497955298633,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,phases.S.nutrition.decWeight,true,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x273-20261010-142109,steps[3].ack.calories,198.3017578125,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.carbs,8.29832649230957,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.lipids,25.915035247802734,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.proteins,69.25260925292969,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.weight,79.09497955298633,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[3].ack.decWeight,true,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x273-20261010-142109,steps[5].ack.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x273-20261010-142109,steps[27].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_08_0_eat).",
+x273-20261010-142109,steps[47].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_08_1_eat).",
+x273-20261010-142109,steps[67].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_08_2_eat).",
+x273-20261010-142109,steps[87].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_08_3_eat).",
+x273-20261010-142109,steps[116].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_1030_0_eat).",
+x273-20261010-142109,steps[136].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_1030_1_eat).",
+x273-20261010-142109,steps[165].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_13_0_eat).",
+x273-20261010-142109,steps[208].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_1630_0_eat).",
+x273-20261010-142109,steps[228].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_1630_1_eat).",
+x273-20261010-142109,steps[259].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_20_0_eat).",
+x273-20261010-142109,steps[294].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_20_1_eat).",
+x273-20261010-142109,steps[313].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (D3_20_2_eat).",
+x273-20261010-142109,steps[343].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_2330_0_eat).",
+x273-20261010-142109,steps[362].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (W3_2330_1_eat).",
+x273-20261010-142109,phases.S.autodrink.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x273-20261010-142109,phases.W.lastWrite_before,1791656501856,"Wall-clock stamp (epoch ms), not game state.",
+x273-20261010-142109,phases.W.lastWrite,1791656561934,"Wall-clock stamp (epoch ms), not game state.",
+x273-20261010-142109,chain.carry_in,-24.412283017924324,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.maint_kcal_in,2089.32,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_artifact,energy-2.json,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_end_snap,an object of 7 keys,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_flushed,true,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_last_ring_age,92.25056457519531,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_prefix,x272,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_run,C:\Users\Angus\repos\project_zomboid\testing\runs\x272-20261010-140932,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_run_id,x272-20261010-140932,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,chain.prev_stops,a list of 9,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x273-20261010-142109,readings.maint_kcal,2089.32,"Carried in by the chain from `x271-20261010-135751`'s maintenance read, not read in this session.",`x271-20261010-135751` `readings.maint_kcal`
+x273-20261010-142109,readings.maint_body,an object of 3 keys,"Carried in by the chain from `x271-20261010-135751`'s maintenance read, not read in this session.",`x271-20261010-135751` `readings.maint_body`
+x273-20261010-142109,verdicts.RING,an object of 2 keys,"Falsified by the lib's `run_phase` defect (F-T5-2: `Timeline.mark` got `phase=` twice, so R, D and Z never ran), not by the mod. No ring page was read back.",
+x273-20261010-142109,verdicts.F,an object of 2 keys,"Falsified by the lib's `run_phase` defect (F-T5-2: `Timeline.mark` got `phase=` twice, so R, D and Z never ran), not by the mod. No departure flush was polled.",
+x273-20261010-142109,phases.X,an object of 5 keys,Budget-stopped at wall 869.37 s against `meta.budget_s` 780 s; the phase never closed (no `done`).,`budget_stop`
+x273-20261010-142109,readings.carry_out,623.5761643132719,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. The carry after six D4_08 portions that never landed.","`stops[4].carry_out` (D3_20, the last meal eaten)"
+x273-20261010-142109,stops[6],an object of 13 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Stop D4_08 at age 121.04: its read of the dead record (`read.es` 1.0608), target and portions.",
+x273-20261010-142109,eats[14],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_0 never landed.",
+x273-20261010-142109,eats[15],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_1 never landed.",
+x273-20261010-142109,eats[16],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_2 never landed.",
+x273-20261010-142109,eats[17],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_3 never landed.",
+x273-20261010-142109,eats[18],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_4 never landed.",
+x273-20261010-142109,eats[19],an object of 7 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. Eat D4_08_5 never landed.",
+x273-20261010-142109,steps[385].ack,an object of 8 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. The dead record's body read (D4_08_body).",
+x273-20261010-142109,steps[412].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_0_eat); its `before` is the vanilla block.",
+x273-20261010-142109,steps[511].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_1_eat); its `before` is the vanilla block.",
+x273-20261010-142109,steps[610].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_2_eat); its `before` is the vanilla block.",
+x273-20261010-142109,steps[709].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_3_eat); its `before` is the vanilla block.",
+x273-20261010-142109,steps[808].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_4_eat); its `before` is the vanilla block.",
+x273-20261010-142109,steps[907].ack,an object of 9 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. An eat queued on the dead admin (D4_08_5_eat); its `before` is the vanilla block.",
+x273-20261010-142109,rec,an object of 16 keys,"Post-mortem: the admin died at world age 113.77566528320312 (`server-stdout.log` lines 2788-2789, f:3919); not physiology. The slot files' record (`_a` gen 75, `satiety.t` 131.72; `_b` gen 74, 130.59), stepped about 18 game hours after the death (05-sodium-drain.md s5); the checker reads keys run-wide, so `start.json`'s pre-mortem `rec` (gen 53) shares this row.",`x27-grade-20261010` `rows.json` `row6_7.sodium.every_6h`; the live record before the death in `x272-20261010-140932`'s slot files
+x273-20261010-142109,server_errors,a list of 7,"Six lines are one vanilla Lua error after the death (f:4816, `ISEatFoodAction.lua:298` `new`, getContainer of a nil character, the dead admin's eat parsed on the server); one is the harness's `pzt-cmd.txt` FileNotFoundException transient; no mod error.",`verdicts.Z.observed`
+x273-20261010-142109,server_error_count,7,Counts the post-mortem vanilla error's lines and the harness transient; not a fault count of the mod.,`verdicts.Z.observed`
+x276-20261010-143855,session,"Plan 11f Task 5: row 8, six Mixed333 against three Mixed667 (a replay arm) on...",Written before the run by the driver; not a reading.,
+x276-20261010-143855,predictions,an object of 7 keys,Written before the run by the driver; not a reading.,
+x276-20261010-143855,meta.phase_note,a ring row is sampled inside EveryOneMinute before the mod's queue drains tha...,Written before the run by the driver; not a reading.,
+x276-20261010-143855,meta.staged_at,983ebd6,Written before the run by the driver; not a reading. Cite `mod_commit` and `meta.staged_manifest_sha256` for the staged tree.,
+x276-20261010-143855,deviations,a list of 0,The driver's own text; not a reading.,
+x276-20261010-143855,world_changes,an object of 2 keys,The driver's own text; not a reading.,
+x276-20261010-143855,verdicts.STOPS.predicted,an object of 1 keys,Written before the run by the driver; not a reading.,`verdicts.STOPS.observed`
+x276-20261010-143855,profile,an object of 12 keys,"The booted profile; settings, not a reading.",
+x276-20261010-143855,doctor,a list of 5,"Pre-run checks, not a reading.",
+x276-20261010-143855,timeline,a list of 37,"Wall-clock marks of the driver, not game state.",
+x276-20261010-143855,phases.S.nutrition.calories,-10.973764419555664,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.carbs,-300,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.lipids,-70,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.proteins,-400,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,phases.S.nutrition.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body.",
+x276-20261010-143855,steps[3].ack.calories,-10.973764419555664,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.carbs,-300,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.lipids,-70,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.proteins,-400,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.incWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.incWeightLot,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[3].ack.decWeight,false,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The step's ack of `phases.S.nutrition`.",
+x276-20261010-143855,steps[5].ack.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x276-20261010-143855,steps[24].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_13_0_eat).",
+x276-20261010-143855,steps[52].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (Wm1_18_0_eat).",
+x276-20261010-143855,steps[80].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_0_0_eat).",
+x276-20261010-143855,steps[100].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_1_0_eat).",
+x276-20261010-143855,steps[121].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_2_0_eat).",
+x276-20261010-143855,steps[142].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_3_0_eat).",
+x276-20261010-143855,steps[162].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_4_0_eat).",
+x276-20261010-143855,steps[183].ack.before,an object of 11 keys,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The vanilla block read before the eat (S0_5_0_eat).",
+x276-20261010-143855,phases.S.autodrink.after,false,"The setter's read-back; the flag does not hold (#2941, and `x263-20261010-122318`'s auto-drink).",
+x276-20261010-143855,replay.inputs.player.macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x276-20261010-143855,macros,a list of 4,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x276-20261010-143855,replay.inputs.player.weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. The replay's input copy of `player.json`.",
+x276-20261010-143855,weight,80,"The vanilla Nutrition block under Nutrition false (as in x250, x260 and x261-x266), not the mod's body. `player.json`.",
+x276-20261010-143855,phases.W.lastWrite_before,1791657566278,"Wall-clock stamp (epoch ms), not game state.",
+x276-20261010-143855,phases.W.lastWrite,1791657626937,"Wall-clock stamp (epoch ms), not game state.",
+x276-20261010-143855,replay.seconds,0.77,"Wall time of the run-time replay, not reproducible.",
+x276-20261010-143855,readings.requests.Wm1_13_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.Wm1_18_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_0_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_1_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_2_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_3_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_4_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.requests.S0_5_0,an object of 8 keys,"A per-eat request minute, not a row reading: row 8 grades the 24 h mean written HUNGER, and the six eats come every 150 min, before their requests.",`x27-grade-20261010` `rows.json` `row8`
+x276-20261010-143855,readings.hourly[0].es_replay,null,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[1].es_replay,1.029784226467254,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[2].es_replay,1.0450682030059737,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[3].es_replay,1.043991695999927,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[4].es_replay,1.035420694674367,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[5].es_replay,1.0301709601872606,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[6].es_replay,1.027774024870895,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[7].es_replay,1.0278358902924007,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[8].es_replay,1.0202260014334767,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[9].es_replay,1.0106641831640608,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[10].es_replay,1.0045584396941598,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[11].es_replay,1.0013967830090382,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[12].es_replay,1.000852963276878,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[13].es_replay,1.0025091712338454,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[14].es_replay,1.0140797515756939,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[15].es_replay,1.0294168847413232,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[16].es_replay,1.0447099020545967,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[17].es_replay,1.0600109568961436,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[18].es_replay,1.0753145595471714,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[19].es_replay,1.090589572865738,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[20].es_replay,1.1060758046077614,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[21].es_replay,1.123657596074073,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[22].es_replay,1.124386336663493,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[23].es_replay,1.1230287566539605,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[24].es_replay,1.1079202543193256,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[25].es_replay,1.0883391253853492,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[26].es_replay,1.0715605063245883,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[27].es_replay,1.0674874245311583,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[28].es_replay,1.0719751453747408,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[29].es_replay,1.073956044051986,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[30].es_replay,1.070350771064627,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[31].es_replay,1.0672021885982617,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[32].es_replay,1.0686195841039803,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[33].es_replay,1.0730692230211538,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[34].es_replay,1.075468705572726,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[35].es_replay,1.0716165087734963,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[36].es_replay,1.0683074575054254,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[37].es_replay,1.0654620317179322,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[38].es_replay,1.0548357633646936,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[39].es_replay,1.0481833243673135,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[40].es_replay,1.0478658882157594,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[41].es_replay,1.0478769920442106,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[42].es_replay,1.0479002331116203,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[43].es_replay,1.0477515870667728,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[44].es_replay,1.0477914091473923,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.hourly[45].es_replay,1.0489482044160172,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `diff`
+x276-20261010-143855,readings.meal_es[0].es_replay_next,1.1246747925271485,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[0]`
+x276-20261010-143855,readings.meal_es[1].es_replay_next,1.1150892855390897,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[1]`
+x276-20261010-143855,readings.meal_es[2].es_replay_next,1.0710913133140032,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[2]`
+x276-20261010-143855,readings.meal_es[3].es_replay_next,1.0740371787875909,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[3]`
+x276-20261010-143855,readings.meal_es[4].es_replay_next,1.0675888020204092,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[4]`
+x276-20261010-143855,readings.meal_es[5].es_replay_next,1.0750487878298305,The driver's copy of its run-time replay; the committed grade re-runs it.,`x27-grade-20261010` `x276.json` `meals[5]`
+x276-20261010-143855,chain.prev_prefix,null,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x276-20261010-143855,chain.prev_run,null,"A copy carried in from the previous session's artifact (null on a fresh fixture), not a reading of this session.",the previous session's own artifact
+x276-20261010-143855,readings.fast_es,an object of 1 keys,Not a fast: the session eats six meals on day 0; the lib's fast-hour read lands at age 49.0 by its schedule.,
+x276-20261010-143855,readings.ladder,an object of 0 keys,"Empty, and not a fast.",
+x276-20261010-143855,readings.fast_last_eat_age,null,Not a fast: the lib's last-eat-before-20:00 read.,
+x27-grade-20261010,row6_7.intake_by_day.live.4,0.0,"The only day-4 entry is a 0-kcal water landing (W3_2330_1 at 113.23, past the day boundary 113.0); day 4's meals never landed (post-mortem).",
+x27-grade-20261010,row6_7.row7.day5_hourly,a list of 0,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.hours_read,0,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.es_min,null,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.es_max,null,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.band_ok,null,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.replay_max_diff,null,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.replay_ok,null,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_day5_es` (a replay-arm projection)
+x27-grade-20261010,row6_7.row7.intake,an object of 2 keys,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5. Day 4 reads the 0-kcal water landing, day 5 null.",`row6_7.row7.projection_intake`
+x27-grade-20261010,row6_7.row7.intake.4,an object of 5 keys,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5. `live_kcal` 0 is the 0-kcal water landing.",`row6_7.row7.projection_intake.4`
+x27-grade-20261010,row6_7.row7.intake.5,an object of 5 keys,"Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5.",`row6_7.row7.projection_intake.5`
+x27-grade-20261010,row6_7.row7.billed_by_mod_day.0,an object of 5 keys,"A partial day: `body.eeDay` accumulates from the record's first sight (`firstSeen` 3.085), so day 0 bills about 20.9 h, and `kcal_per_h` divides by the hours from the first ring row (3.319).",`row6_7.row7.billed_by_mod_day.1` and `.2`
+x27-grade-20261010,row6_7.row7.billed_by_mod_day.3,an object of 5 keys,"An incomplete day (`complete` false): x273 has no ring, so the last row is x272's at 92.25.",`row6_7.row7.billed_by_mod_day.1` and `.2`
+x27-grade-20261010,row6_7.row7.live,"UNMEASURED: the chain admin died at age 113.78 (00:46 day 4, x273), before day 5","Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5. The string's 113.78 is hard-coded in `x27_grade.py`, not read from an artifact.",`x273-20261010-142109` `server-stdout.log` line 2788
+x27-grade-20261010,verdicts.R7,"unmeasured live: the chain admin died at age 113.78 (x273), before day 5; row...","Row 7 is unmeasured live: the chain admin died at age 113.77566528320312 (`x273-20261010-142109` `server-stdout.log` lines 2788-2789), before day 5. The string's 113.78 is hard-coded in `x27_grade.py`, not read from an artifact.",`x273-20261010-142109` `server-stdout.log` line 2788
+x27-grade-20261010,row6_7.sodium.x273_slots,a list of 2,"Post-mortem: x273's slot records (naPlasma 110.17 and 110.09, fluids.na -1803.9 and -1788.0, water -3549.8 and -3374.7) were stepped about 18 game hours after the death at 113.776 (`satiety_t` 131.72 and 130.59); not physiology at death.","`row6_7.sodium.every_6h[18]` (naPlasma 111.35, grade 3, at 112.12)"
+x27-grade-20261010,row6_7.meal_es[11],an object of 16 keys,Post-mortem: D4_08's read at age 121.04 is of the dead record; nothing landed.,
+x27-grade-20261010,meals[3],an object of 14 keys,"Post-mortem in `x273.json` (D4_08 at 121.04, the dead record). The checker reads keys run-wide, so `x271.json`'s and `x276.json`'s `meals[3]` (D0_13, S0_3) share this row.",`rows.json` `row6_7.meal_es[3]` for x271's D0_13; `x276-20261010-143855` `readings.meal_es[3]` for S0_3
+x27-grade-20261010,row8.server_path_70kg,an object of 2 keys,"Constants hard-coded in `x27_grade.py` (the Task 2c fix 2 oracle readings), not computed from these runs.",the oracle tests' pinned readings
+x27-grade-20261010,sessions.x273.autodrinks,0,"x273 has no ring, so the detector read nothing; 0 is not a finding.",
+x27-grade-20261010,driver_verdicts,an object of 6 keys,Copies of the runs' verdicts as graded at run time (x273's RING and F falsified by F-T5-2); not the grade's verdicts.,the run's own `verdicts.<phase>.verdict` where its guide allows
+x27-grade-20261010,sessions.x271.driver_verdicts,an object of 6 keys,Copies of the run's verdicts as graded at run time; not the grade's verdicts. `summary.json`.,`sessions.x271.replay_ok`
+x27-grade-20261010,sessions.x272.driver_verdicts,an object of 6 keys,Copies of the run's verdicts as graded at run time; not the grade's verdicts. `summary.json`.,`sessions.x272.replay_ok`
+x27-grade-20261010,sessions.x273.driver_verdicts,an object of 4 keys,Copies of the run's verdicts as graded at run time; not the grade's verdicts. `summary.json`.,`sessions.x273.replay_ok`
+x27-grade-20261010,sessions.x276.driver_verdicts,an object of 6 keys,Copies of the run's verdicts as graded at run time; not the grade's verdicts. `summary.json`.,`sessions.x276.replay_ok`

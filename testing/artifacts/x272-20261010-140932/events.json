@@ -1,0 +1,134 @@
+[
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W1_1030_0",
+  "s": 86
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W1_1030_1",
+  "s": 104
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W1_1630_0",
+  "s": 447
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W1_1630_1",
+  "s": 466
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W1_2330_0",
+  "s": 867
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W1_2330_1",
+  "s": 886
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_08_0",
+  "s": 1393
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_08_1",
+  "s": 1412
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_08_2",
+  "s": 1430
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_08_3",
+  "s": 1448
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W2_1030_0",
+  "s": 1526
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W2_1030_1",
+  "s": 1544
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_13_0",
+  "s": 1694
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D2_13_1",
+  "s": 1712
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W2_1630_0",
+  "s": 1889
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W2_1630_1",
+  "s": 1908
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_20_0",
+  "s": 2113
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_20_1",
+  "s": 2132
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_20_2",
+  "s": 2151
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_20_3",
+  "s": 2170
+ },
+ {
+  "food": "TKX.Water600",
+  "kind": "eat",
+  "label": "W2_2330_0",
+  "s": 2307
+ },
+ {
+  "food": "TKX.Water300",
+  "kind": "eat",
+  "label": "W2_2330_1",
+  "s": 2326
+ }
+]

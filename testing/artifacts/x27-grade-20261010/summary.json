@@ -1,0 +1,123 @@
+{
+ "grade_commit": "68897e7",
+ "sessions": {
+  "x271": {
+   "autodrinks": 0,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.00035344614108950845,
+     "n": 2683,
+     "over": 0,
+     "worst_s": 2754
+    },
+    "body.energyState": {
+     "max": 0.0011472353126995571,
+     "n": 2683,
+     "over": 0,
+     "worst_s": 2683
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 2683,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  },
+  "x272": {
+   "autodrinks": 0,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0006184271728773005,
+     "n": 2433,
+     "over": 0,
+     "worst_s": 929
+    },
+    "body.energyState": {
+     "max": 0.002110201317658822,
+     "n": 2433,
+     "over": 0,
+     "worst_s": 1536
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 2433,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  },
+  "x273": {
+   "autodrinks": 0,
+   "driver_verdicts": {
+    "F": "falsified",
+    "H1": "as_predicted",
+    "RING": "falsified",
+    "Z": "as_predicted"
+   },
+   "fields": null,
+   "replay_ok": null
+  },
+  "x276": {
+   "autodrinks": 0,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0003725289617760863,
+     "n": 2712,
+     "over": 0,
+     "worst_s": 2771
+    },
+    "body.energyState": {
+     "max": 0.0011872413405271676,
+     "n": 2712,
+     "over": 0,
+     "worst_s": 2687
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 2712,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  }
+ },
+ "tool_commit": "6575cc5",
+ "verdicts": {
+  "R6ES": true,
+  "R6RATIO": {
+   "2": true,
+   "3": true
+  },
+  "R7": "unmeasured live: the chain admin died at age 113.78 (x273), before day 5; rows.json row7 carries the replay-arm projection (projection_band_ok False)",
+  "R8AGREE": true,
+  "R8BAND": true
+ }
+}

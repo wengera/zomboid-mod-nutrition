@@ -1,0 +1,147 @@
+{
+ "autodrinks_detected": [],
+ "diff": {
+  "classes": {
+   "between": 8,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0003725289617760863,
+    "n": 2712,
+    "over": 0,
+    "worst_s": 2771
+   },
+   "body.energyState": {
+    "max": 0.0011872413405271676,
+    "n": 2712,
+    "over": 0,
+    "worst_s": 2687
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2712,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "meals": [
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.001026023045982205,
+   "es_read": 1.1254555818285477,
+   "es_replay": 1.1246747925271485,
+   "es_ring": 1.1257008155731307,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_0",
+   "portions": null,
+   "read_age": 25.03481674194336,
+   "ring_s": 1309,
+   "target": null
+  },
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.0011488619093271701,
+   "es_read": 1.1166641711770726,
+   "es_replay": 1.1150892855390897,
+   "es_ring": 1.1162381474484169,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_1",
+   "portions": null,
+   "read_age": 27.566925048828125,
+   "ring_s": 1461,
+   "target": null
+  },
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.0011813649203855636,
+   "es_read": 1.0722528384205017,
+   "es_replay": 1.0710913133140032,
+   "es_ring": 1.0722726782343888,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_2",
+   "portions": null,
+   "read_age": 30.041549682617188,
+   "ring_s": 1609,
+   "target": null
+  },
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.0011823415222127487,
+   "es_read": 1.0751416183447426,
+   "es_replay": 1.0740371787875909,
+   "es_ring": 1.0752195203098036,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_3",
+   "portions": null,
+   "read_age": 32.53572463989258,
+   "ring_s": 1759,
+   "target": null
+  },
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.0011796360024887154,
+   "es_read": 1.0685529419923976,
+   "es_replay": 1.0675888020204092,
+   "es_ring": 1.068768438022898,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_4",
+   "portions": null,
+   "read_age": 35.068687438964844,
+   "ring_s": 1911,
+   "target": null
+  },
+  {
+   "carry_in": null,
+   "carry_out": null,
+   "eaten_kcal": null,
+   "es_diff": 0.001180157101714041,
+   "es_read": 1.0761634744123363,
+   "es_replay": 1.0750487878298305,
+   "es_ring": 1.0762289449315445,
+   "hod": null,
+   "kind": "six",
+   "label": "S0_5",
+   "portions": null,
+   "read_age": 37.54847717285156,
+   "ring_s": 2059,
+   "target": null
+  }
+ ],
+ "no_ring": false,
+ "offset": 7,
+ "ring_first_age": 3.2501916885375977,
+ "ring_last_age": 49.501365661621094,
+ "rows": 2726,
+ "run_id": "x276-20261010-143855",
+ "start_age": 4.069238662719727
+}

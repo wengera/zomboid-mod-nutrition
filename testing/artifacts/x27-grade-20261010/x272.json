@@ -1,0 +1,111 @@
+{
+ "autodrinks_detected": [],
+ "diff": {
+  "classes": {
+   "between": 22,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0006184271728773005,
+    "n": 2433,
+    "over": 0,
+    "worst_s": 929
+   },
+   "body.energyState": {
+    "max": 0.002110201317658822,
+    "n": 2433,
+    "over": 0,
+    "worst_s": 1536
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2433,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "meals": [
+  {
+   "carry_in": -17.799999999999727,
+   "carry_out": 18.97887767331315,
+   "eaten_kcal": 800.0,
+   "es_diff": 0.001964665681954747,
+   "es_read": 1.3765711008171657,
+   "es_replay": 1.3749871329185788,
+   "es_ring": 1.3769517986005335,
+   "hod": 8.067436218261719,
+   "kind": "request",
+   "label": "D2_08",
+   "portions": {
+    "TKX.Mixed217": 0,
+    "TKX.Mixed650": 1,
+    "TKX.Unit50": 3
+   },
+   "read_age": 73.06743621826172,
+   "ring_s": 1361,
+   "target": 836.7788776733129
+  },
+  {
+   "carry_in": 18.97887767331315,
+   "carry_out": -18.940856811604817,
+   "eaten_kcal": 866.6666666666666,
+   "es_diff": 0.0020767861433528267,
+   "es_read": 1.2749711487956672,
+   "es_replay": 1.2723701675964394,
+   "es_ring": 1.2744469537397922,
+   "hod": 13.066818237304688,
+   "kind": "request",
+   "label": "D2_13",
+   "portions": {
+    "TKX.Mixed217": 1,
+    "TKX.Mixed650": 1,
+    "TKX.Unit50": 0
+   },
+   "read_age": 78.06681823730469,
+   "ring_s": 1661,
+   "target": 828.7469321817487
+  },
+  {
+   "carry_in": -18.940856811604817,
+   "carry_out": -24.412283017924324,
+   "eaten_kcal": 800.0,
+   "es_diff": 0.001840891143498169,
+   "es_read": 1.1173425738363552,
+   "es_replay": 1.1152793239941339,
+   "es_ring": 1.117120215137632,
+   "hod": 20.047378540039062,
+   "kind": "request",
+   "label": "D2_20",
+   "portions": {
+    "TKX.Mixed217": 0,
+    "TKX.Mixed650": 1,
+    "TKX.Unit50": 3
+   },
+   "read_age": 85.04737854003906,
+   "ring_s": 2079,
+   "target": 794.5285737936805
+  }
+ ],
+ "no_ring": false,
+ "offset": 7,
+ "ring_first_age": 50.4180793762207,
+ "ring_last_age": 92.25056457519531,
+ "rows": 2461,
+ "run_id": "x272-20261010-140932",
+ "start_age": 51.233909606933594
+}

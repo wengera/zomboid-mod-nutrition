@@ -1,0 +1,105 @@
+{
+ "autodrinks_detected": [],
+ "diff": {
+  "classes": null,
+  "fields": null,
+  "findings": [],
+  "findings_n": 0,
+  "ok": null
+ },
+ "driver_verdicts": {
+  "F": "falsified",
+  "H1": "as_predicted",
+  "RING": "falsified",
+  "Z": "as_predicted"
+ },
+ "meals": [
+  {
+   "carry_in": -24.412283017924324,
+   "carry_out": 21.228195268709555,
+   "eaten_kcal": 533.3333333333333,
+   "es_diff": null,
+   "es_read": 0.9733255791159542,
+   "es_replay": null,
+   "es_ring": null,
+   "hod": 8.052375793457031,
+   "kind": "request",
+   "label": "D3_08",
+   "portions": {
+    "TKX.Mixed217": 2,
+    "TKX.Mixed650": 0,
+    "TKX.Unit50": 2
+   },
+   "read_age": 97.05237579345703,
+   "ring_s": null,
+   "target": 578.9738116199671
+  },
+  {
+   "carry_in": 21.228195268709555,
+   "carry_out": 4.5604023926933905,
+   "eaten_kcal": 650.0,
+   "es_diff": null,
+   "es_read": 0.9914920362768298,
+   "es_replay": null,
+   "es_ring": null,
+   "hod": 13.051239013671875,
+   "kind": "request",
+   "label": "D3_13",
+   "portions": {
+    "TKX.Mixed217": 0,
+    "TKX.Mixed650": 1,
+    "TKX.Unit50": 0
+   },
+   "read_age": 102.05123901367188,
+   "ring_s": null,
+   "target": 633.3322071239838
+  },
+  {
+   "carry_in": 4.5604023926933905,
+   "carry_out": -10.33415371869728,
+   "eaten_kcal": 750.0,
+   "es_diff": null,
+   "es_read": 1.0393015979934714,
+   "es_replay": null,
+   "es_ring": null,
+   "hod": 20.033897399902344,
+   "kind": "request",
+   "label": "D3_20",
+   "portions": {
+    "TKX.Mixed217": 0,
+    "TKX.Mixed650": 1,
+    "TKX.Unit50": 2
+   },
+   "read_age": 109.03389739990234,
+   "ring_s": null,
+   "target": 735.1054438886093
+  },
+  {
+   "carry_in": -10.33415371869728,
+   "carry_out": 623.5761643132719,
+   "eaten_kcal": 0.0,
+   "es_diff": null,
+   "es_read": 1.0608376097529288,
+   "es_replay": null,
+   "es_ring": null,
+   "hod": 8.0355224609375,
+   "kind": "request",
+   "label": "D4_08",
+   "portions": {
+    "TKX.Mixed217": 2,
+    "TKX.Mixed650": 0,
+    "TKX.Unit50": 4
+   },
+   "read_age": 121.0355224609375,
+   "ring_s": null,
+   "target": 633.9103180319692
+  }
+ ],
+ "no_ring": true,
+ "offset": null,
+ "ring_first_age": null,
+ "ring_last_age": null,
+ "rows": 0,
+ "run_id": "x273-20261010-142109",
+ "start_age": 94.21736145019531
+}
