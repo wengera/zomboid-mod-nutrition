@@ -4034,13 +4034,22 @@ end)
 --   HUNGER, THIRST, FATIGUE, BOREDOM, UNHAPPINESS, NICOTINE_WITHDRAWAL  the written stats, through one getStats()
 --           and Stats:get(CharacterStat.<X>) each;
 --   norec   true when the store holds no record for the user (the paths are then absent);
+--   ev      TK.MR.events when the row was taken (the minute events seen since the load): a ring whose sample raised
+--           skips its row for that event, so a gap in ev between two rows of one ring shows the missed event, and
+--           that row's dtM spans the gap (lastAge does not advance on a raise);
+--   drained the mod's NutritionRevamp.server.players.drained (the count of players' drains begun, read through
+--           TK.walkPath from the globals) when the row was taken: it lines a row up with the mod's own work; absent
+--           when the counter is unreachable;
 --   <path>  each start path's value: a number, string or boolean as is, a table as the string "table", anything
 --           else as its type; a nil or unreachable path is ABSENT from the row (the start's probe names why).
 -- The phase: the sample is taken INSIDE the minute event, before the mod's players' queue drains that minute's runs
 -- (NR_Server_Players merges its queue in EveryOneMinute; the runs happen on later ticks), so a row reads the stats
 -- and record as the PREVIOUS drain left them. A replay aligns row k's reading with the runs before row k's event.
--- The sampling runs under one pcall per event: a raise is counted (errors, lastError) and never reaches the other
--- EveryOneMinute handlers.
+-- The sampling runs under one pcall per RING: a raise is counted on that ring (errors, lastError, returned by read
+-- and stop), drops only that ring's row, and never reaches the other rings or the other EveryOneMinute handlers.
+-- The harness-wide counters (TK.MR.errors, TK.MR.lastError; the clock read) come back as gErrors and gLastError.
+-- A start for a user without a record arms anyway: its probe is only error = "no record", and its rows read the
+-- stats and any `_G.` paths, with norec = true and every record path absent.
 --
 -- `read [<from>]` writes one page of up to TK.MR.PAGE rows, from sequence <from> (default: the oldest held; a <from>
 -- older than the oldest held is clamped and the gap counted as `skipped`), to pzt-results/minute-ring-<user>-<from>.json
@@ -4072,7 +4081,10 @@ end
 
 -- One row for ring R at world age `age` (the clock read once per event). Does not append.
 function TK.MR.sample(R, gt, age)
-    local row = { age = age }
+    local row = { age = age, ev = TK.MR.events }
+    if TK.MR.drainedSegs == nil then TK.MR.drainedSegs = TK.parsePath("NutritionRevamp.server.players.drained") end
+    local okD, dr = TK.walkPath(_G, TK.MR.drainedSegs)
+    if okD and type(dr) == "number" then row.drained = dr end
     if age ~= nil and R.lastAge ~= nil then row.dtM = (age - R.lastAge) * 60 end
     local okH, h = TK.call(gt, "getHour")
     if okH then row.hour = h end
@@ -4139,7 +4151,11 @@ function TK.MR.onMinute()
     local ran, err = pcall(function()
         local gt, age = TK.MR.clock()
         for _u, R in pairs(TK.MR.rings) do
-            TK.MR.append(R, TK.MR.sample(R, gt, age))
+            local okR, errR = pcall(function() TK.MR.append(R, TK.MR.sample(R, gt, age)) end)
+            if not okR then
+                R.errors = R.errors + 1
+                R.lastError = tostring(errR)
+            end
         end
     end)
     if not ran then
@@ -4166,7 +4182,7 @@ function TK.MR.safeName(user)
 end
 
 -- @args <user> start [<path> ...] | <user> read [<from>] | <user> stop  (up to 32 record paths in lua.read's grammar; a leading _G. reads from the globals)
--- @reply {ok, side, user, armed, cap, paths, stats, online, probe} | {ok, side, user, from, rows, skipped, next, more, oldest, newest, recorded, overwritten, cap, events, errors, lastError, result, file} | {ok, side, user, stopped, recorded, overwritten} | {ok, side, user, error} | string
+-- @reply {ok, side, user, armed, cap, paths, stats, online, probe} | {ok, side, user, from, rows, skipped, next, more, oldest, newest, recorded, overwritten, cap, events, errors, lastError, gErrors, gLastError, result, file} | {ok, side, user, stopped, recorded, overwritten, errors, lastError} | {ok, side, user, error} | string
 -- @purpose Test-only: on every EveryOneMinute event the server appends one row per watched user to a 4,320-row ring (world age, the event's dtM, hour and minute, the six written stats HUNGER THIRST FATIGUE BOREDOM UNHAPPINESS NICOTINE_WITHDRAWAL, the start paths' record values), read in 720-row pages to minute-ring-<user>-<from>.json.
 TK.register("minute.ring", function(argv)
     local usage = "usage: minute.ring <user> start [<path> ...] | <user> read [<from>] | <user> stop"
@@ -4179,7 +4195,7 @@ TK.register("minute.ring", function(argv)
         if not TK.minuteRingHooked then
             return { ok = false, side = TK.side, user = user, error = "no Events.EveryOneMinute on this side" }
         end
-        local R = { user = user, cap = TK.MR.CAP, count = 0, rows = {}, paths = {}, segs = {}, global = {},
+        local R = { user = user, cap = TK.MR.CAP, count = 0, errors = 0, rows = {}, paths = {}, segs = {}, global = {},
                     armedAt = TK.now() }
         for i = 3, #argv do
             local segs, global = TK.parsePath(argv[i])
@@ -4207,7 +4223,8 @@ TK.register("minute.ring", function(argv)
         TK.MR.rings[user] = nil
         local over = R.count - R.cap
         if over < 0 then over = 0 end
-        return { ok = true, side = TK.side, user = user, stopped = true, recorded = R.count, overwritten = over }
+        return { ok = true, side = TK.side, user = user, stopped = true, recorded = R.count, overwritten = over,
+                 errors = R.errors, lastError = R.lastError }
     end
     if verb ~= "read" then return usage end
     if R == nil then return { ok = false, side = TK.side, user = user, error = "no ring for this user" } end
@@ -4233,7 +4250,8 @@ TK.register("minute.ring", function(argv)
     if over < 0 then over = 0 end
     local out = { ok = true, side = TK.side, user = user, from = from, rows = #rows, skipped = skipped, next = s,
                   more = s <= R.count, oldest = oldest, newest = R.count, recorded = R.count, overwritten = over,
-                  cap = R.cap, events = TK.MR.events, errors = TK.MR.errors or 0, lastError = TK.MR.lastError }
+                  cap = R.cap, events = TK.MR.events, errors = R.errors, lastError = R.lastError,
+                  gErrors = TK.MR.errors or 0, gLastError = TK.MR.lastError }
     local doc = {}
     for k, v in pairs(out) do doc[k] = v end
     doc.rows_list = rows

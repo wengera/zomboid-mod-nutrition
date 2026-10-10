@@ -231,8 +231,8 @@ def test_minute_ring_refuses_a_bad_path_and_a_bad_verb():
     assert bad.ok is False and bad.error.startswith("bad path a..b")
     assert h.TK.MR.rings["admin"] is None
     assert isinstance(cmd(h, "minute.ring", "admin", "wobble"), str)
-    assert isinstance(cmd(h, "minute.ring", "admin", "read", "0"), str) or \
-        cmd(h, "minute.ring", "admin", "read", "0").ok is False
+    cmd(h, "minute.ring", "admin", "start")
+    assert isinstance(cmd(h, "minute.ring", "admin", "read", "0"), str)
 
 
 def test_bench_row_samples_every_watched_user_and_leaves_the_rings_untouched():
@@ -250,3 +250,31 @@ def test_bench_row_samples_every_watched_user_and_leaves_the_rings_untouched():
         h.TK.MR.benchRow, n)
     us = sec * 1e6 / n
     print("minute.ring per-row cost offline (lupa, 10 paths): %.2f us" % us)
+
+
+def test_minute_ring_a_raise_in_one_ring_drops_only_that_ring_row_and_the_gap_shows_in_ev():
+    h = boot()
+    p2 = h.player("second")
+    h.rt.eval(STATS)(p2)
+    h.online(h.p, p2)
+    cmd(h, "minute.ring", "admin", "start", "body.met")
+    cmd(h, "minute.ring", "second", "start", "body.met")
+    ok = h.p.getStats
+    h.p.getStats = h.rt.eval("function(s) return { get = function() error('boom') end } end")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()                                                     # admin raises, second lands
+    h.p.getStats = ok
+    h.T.age = h.T.age + 1 / 60
+    h.minute()                                                     # both land
+    a = cmd(h, "minute.ring", "admin", "read")
+    b = cmd(h, "minute.ring", "second", "read")
+    assert a.errors == 1 and a.lastError is not None and "boom" in a.lastError
+    assert b.errors == 0 and b.lastError is None
+    assert a.rows == 1 and b.rows == 2
+    arow = h.TK.results[a.result].rows_list[1]
+    brows = [h.TK.results[b.result].rows_list[i] for i in (1, 2)]
+    assert [r.ev for r in brows] == [1, 2] and arow.ev == 2          # the gap in ev: admin missed event 1
+    assert arow.dtM is None                                          # lastAge never advanced: first row of the ring
+    assert brows[0].drained == h.NR.server.players.drained
+    st = cmd(h, "minute.ring", "admin", "stop")
+    assert st.errors == 1 and st.lastError is not None
