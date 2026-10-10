@@ -1,14 +1,14 @@
 # testing/profiles/x26-cadence.toml - Plan 11f Task 3 session 1 (run x260): the cadence gate S0 at speed 1 and
 # settimespeed 5, the harness smoke of lua.read (H1) and minute.ring (H2), one TKX_StudyFoods Mixed650 eaten by
 # eat.action and replayed, and the departure-flush sequence.
-# PZTestKit + the STAGED copy of the tree at cbdf8df (the mod's last commit; HEAD 93db909)
+# PZTestKit + the STAGED copy of the tree at 983ebd6 (the mod's last commit; HEAD 6dc7074)
 # (release/x260-cadence/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
 # `python tools/release_pack.py stage mod/NutritionRevamp --out release/x260-cadence`; release/ is gitignored; mod/ is
 # never booted) + TKX_StudyFoods by its path. Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug).
 # The driver is testing/experiments/x260_cadence.py.
 # The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
 fixture = "default"
-description = "PZTestKit + the staged NutritionRevamp copy at cbdf8df + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the cadence gate S0, the H1/H2 smoke, one Mixed650 eat and its replay, the departure flush."
+description = "PZTestKit + the staged NutritionRevamp copy at 983ebd6 + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the cadence gate S0, the H1/H2 smoke, one Mixed650 eat and its replay, the departure flush."
 clients = ["admin"]
 run = { hold = 20 }
 verify = [

@@ -4,7 +4,7 @@
 damages the saved state), with a fresh client restore. The record, P, the trail, nicH, the monotony table and the
 world clock are compared across the restart; 30 game minutes are run on; the departure flush ends it, as in session 1.
 One boot of profile x26-chain (x26-cadence byte for byte below its header but the description: fixture default,
-admin -debug, Nutrition false, DayLength 1, the staged copy at cbdf8df plus TKX_StudyFoods). Written BEFORE the boot
+admin -debug, Nutrition false, DayLength 1, the staged copy at 983ebd6 plus TKX_StudyFoods). Written BEFORE the boot
 with every prediction in it and never edited after the run (CLAUDE.md s5, B3-1/B3-2).
 
 USAGE: python testing/experiments/x260b_chain.py <session 1 run dir or run id (testing/runs/<id>)>
@@ -93,7 +93,7 @@ CLI = "client"
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MOD_DIR = "mod/NutritionRevamp"
 STAGE_ROOT = "release/x260-cadence/NutritionRevamp"
-STAGED_AT = "cbdf8df"
+STAGED_AT = "983ebd6"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
 HARNESS_SERVER = LUA_DIR + "/server/PZTestKit_Server.lua"
 HARNESS_CORE = LUA_DIR + "/shared/PZTestKit_Core.lua"

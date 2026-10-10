@@ -2,7 +2,7 @@
 harness smoke test of H1 (`lua.read`) and H2 (`minute.ring`) -- this run is their acceptance run --, one
 TKX_StudyFoods Mixed650 eaten by `eat.action` and its booking read in the ring, the replay of this session's ring
 and event log through tools/replay_live.py, and the departure-flush sequence. One boot of profile x26-cadence
-(fixture default, admin -debug, Nutrition false, DayLength 1) on the STAGED copy of the tree at cbdf8df
+(fixture default, admin -debug, Nutrition false, DayLength 1) on the STAGED copy of the tree at 983ebd6
 (release/x260-cadence/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
 `python tools/release_pack.py stage mod/NutritionRevamp --out release/x260-cadence`; release/ is gitignored; mod/ is
 never booted) plus TKX_StudyFoods by its path. Build 42.21.0 (4a0e9546ec). Written BEFORE the boot with every
@@ -102,7 +102,7 @@ PROFILE = "x26-cadence"
 PREFIX = "x260"
 SESSION = ("Plan 11f Task 3 session 1: the cadence gate S0 at speed 1 and settimespeed 5, the H1/H2 smoke, one "
            "TKX_StudyFoods Mixed650 eaten by eat.action and replayed, and the departure flush, on the staged copy at "
-           "cbdf8df; one boot of " + PROFILE)
+           "983ebd6; one boot of " + PROFILE)
 ARTIFACT = "cadence.json"
 MANIFEST_NAME = "MANIFEST.json"
 USER = "admin"
@@ -111,7 +111,7 @@ CLI = "client"
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MOD_DIR = "mod/NutritionRevamp"
 STAGE_ROOT = "release/x260-cadence/NutritionRevamp"
-STAGED_AT = "cbdf8df"
+STAGED_AT = "983ebd6"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
 HARNESS_SERVER = LUA_DIR + "/server/PZTestKit_Server.lua"
 HARNESS_CORE = LUA_DIR + "/shared/PZTestKit_Core.lua"
