@@ -1446,21 +1446,21 @@ def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_hos
 
 
 def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure(met_host):
-    # the window: 1500 kcal eaten against 3000 spent, 800 kcal of it exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.5 > EX_BYPASS_HI 0.45, so the lag is bypassed
+    # the window: 1200 kcal eaten against 3000 spent, 800 kcal of it exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.6 > EX_BYPASS_HI 0.575 (Plan 11f Task 2c fix 1; 1500 kcal and 0.45 before), so the lag is bypassed
     # whole and es reads the balance as if the exercise were food restriction (S1325); the same record without the
     # 24 h expenditure bypasses nothing (the kernel's ee24h nil), so the adapter is what passes it
     h = met_host
     p = player(h, moving=False, rate=1.5)                  # idle: no exercise this minute, ex24h from the hour before
     record = fresh(h, p)
     body = record["body"]
-    seed(h, body, kcal=1500.0, ee=3000.0, ex=800.0)
+    seed(h, body, kcal=1200.0, ee=3000.0, ex=800.0)
     minute(h, p, record, 100.0 + 1 / 60)
     es = body["energyState"]
     with_ee = _activity_es(h, record)
     without = _activity_es(h, record, ee24=False)
     eb = h.K.energy.eb24h(body)
     assert es == with_ee
-    assert es > without + 0.05                             # the bypass moves es by about 0.5 x 800 / 7500
+    assert es > without + 0.05                             # the bypass moves es by about 0.5 x 0.3 x 800 / 3100
     assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 

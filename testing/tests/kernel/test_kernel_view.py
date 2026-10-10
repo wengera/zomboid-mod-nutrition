@@ -532,20 +532,21 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
     assert host.call("view.pushOffset", "", 60000) == 0
 
 
-# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11f Task 2c's span) ------
+# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11f Task 2c fix 1's span) --
 # eb24h is a trailing 24 h balance, so a sedentary fast plateaus at about -1,950 kcal (the 36 h fast's reading) and,
-# since the deficit drive's refit on the shipped pipeline (Plan 11f Task 2c: BALANCE_SPAN_KCAL 3300, 7500 before),
-# es = 1 + 0.5 x 1950 / 3300 + 0.5 x fatDep = 1.295 + 0.5 x fatDep. Level 1 comes from a 660 kcal trailing deficit
-# (about 8 h of a 1,950 kcal day without food; 1,500 kcal and about 18 h at the 7,500 kcal span), level 2 from the
-# plateau alone, levels 3 and 4 from fat depletion 0.209 and 0.509 (the ladder's values are ruling 9d-2's, unchanged).
-# Each is reached 0.005 past its stated value and not 0.005 short of it (level 1: 0.005 of es, 33 kcal).
+# since the deficit drive's refit on the shipped pipeline (Plan 11f Task 2c fix 1: BALANCE_SPAN_KCAL 3100; 3300 in
+# Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3100 + 0.5 x fatDep = 1.315 + 0.5 x fatDep. Level 1 comes from a 620
+# kcal trailing deficit (on the server path about 17 h after the last meal, and one skipped lunch peaks at 1.109;
+# 1,500 kcal at the 7,500 kcal span), level 2 from the plateau alone, levels 3 and 4 from fat depletion 0.171 and
+# 0.471 (the ladder's values are ruling 9d-2's, unchanged). Each is reached 0.005 past its stated value and not 0.005
+# short of it (level 1: 0.005 of es, 31 kcal).
 
 def test_a_resting_character_reaches_every_energy_level(host):
     E = host.K.energy
     level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
-    assert level(E.state(-627.0, 0)) == 0 and level(E.state(-693.0, 0)) == 1
-    assert level(E.state(-1950.0, 0)) == 2                      # the plateau alone: es 1.295
-    for want, dep in ((3, 0.209), (4, 0.509)):
+    assert level(E.state(-589.0, 0)) == 0 and level(E.state(-651.0, 0)) == 1
+    assert level(E.state(-1950.0, 0)) == 2                      # the plateau alone: es 1.315
+    for want, dep in ((3, 0.171), (4, 0.471)):
         assert level(E.state(-1950.0, dep + 0.005)) == want, (want, dep)
         assert level(E.state(-1950.0, dep - 0.005)) == want - 1, (want, dep)
 

@@ -936,7 +936,7 @@ PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ru
 # ENERGY_REPLAY beside it: a 70 kg body eats SIX_WARM_DAYS three-meal days of the same 2,000 kcal (ASSUMED, energy only,
 # no stomach or pool) before the protocol day, and from 08:00 of that day each meal also feeds P and the stomach, so
 # hungerTarget reads the live trailing-24 h energy state. With the state held at 1 it reproduces meal_frequency_ratio
-# exactly (0.969); live it reads 0.981 since the deficit drive's refit (Plan 11f Task 2c; 0.994 before, 0.998 on the
+# exactly (0.969); live it reads 0.983 since the deficit drive's refit (Plan 11f Task 2c fix 1; 0.981 in Task 2c, 0.994 before, 0.998 on the
 # same-span schedule, every 2 h from 08:00 to 18:00), still the opposite direction to S1608's 1.14. The warm-up count did
 # not move it (1, 3 and 6 days read the same at Plan 11e)
 

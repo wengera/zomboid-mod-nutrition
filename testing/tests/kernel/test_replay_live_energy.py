@@ -4,9 +4,11 @@ backend (ServerReplay: the mod's own adapters in their ORDER on the golden stand
 band and pins its readings. The simplified-path energy oracles these replace (the 36 h fast, the steady eater, six
 meals against three live, the low-carbohydrate day, Karl 2021, King 2011 at steady state and the S1255 arithmetic in
 test_satiety_meal_studies.py and test_satiety_activity.py) were deleted with the deficit drive's refit on this path
-(Plan 11f Task 2c: K.energy.BALANCE_SPAN_KCAL 3300 and K.hybrid.DEFICIT_FLOOR 0, from 7500 and 1.0, the point with the
-largest smallest margin across every band below); test_replay_live_oracle.py keeps the simplified composition only as
-the reference of the replay tool's oracle backend.
+(Plan 11f Task 2c, from 7500 and 1.0; its fix round 1 widened the search to K.energy.EX_BYPASS_HI and EX_BYPASS_LO and
+ranked the candidates by the worst case over twin K's plausible alternatives, the walk billed ClimbRope, Running10kmh
+or loaded Walking5kmh and no battery: K.energy.BALANCE_SPAN_KCAL 3100, K.hybrid.DEFICIT_FLOOR 0.02, EX_BYPASS_HI 0.575
+and EX_BYPASS_LO 0.28); test_replay_live_oracle.py keeps the simplified composition only as the reference of the
+replay tool's oracle backend.
 
 What the server path adds to every oracle: an eat reaches the trailing-24 h window only as the stomach empties
 (ctx.absorbed), the day partition moves fm and lm (fatDep enters the energy state), adaptive thermogenesis and the
@@ -195,37 +197,37 @@ def _lowcarb_comp(ev):
 def test_the_36_h_fast_on_the_server_path(host):
     # S1613 (Johnstone 2002: 12.2 against 10.2 MJ the day after a 36 h fast, 1.20) and S1614 (Clayton 2016: day 3 not
     # different, 1.0), each within 1.1x (ruling 11c-30); ruling 11d-3's direction, day 2 above 1 and day 3 below it.
-    # Since the refit (Plan 11f Task 2c): day 2 1.174 (0.978x S1613; 1.342 at 7500 / 1.0), day 3 0.974; the fed arm
-    # eats 1,949 and 1,940 kcal, the fast arm 2,288 on day 2 (2,637 before). At 12, 24 and 36 h of the fast es reads
-    # 1.001, 1.198 and 1.299 (1.001, 1.087 and 1.134 before), eb24 -1, -1300 and -1945 and g 1.0, 0.946 and 0.766 (the
-    # balance and g do not move with the drive)
+    # Since the refit (Plan 11f Task 2c fix 1): day 2 1.196 (0.997x S1613; 1.174 in Task 2c, 1.342 at 7500 / 1.0), day
+    # 3 0.969; the fed arm eats 1,951 and 1,940 kcal, the fast arm 2,333 on day 2 (2,637 before). At 12, 24 and 36 h of
+    # the fast es reads 1.001, 1.21 and 1.318 (1.001, 1.087 and 1.134 at 7500 / 1.0), eb24 -1, -1300 and -1945 and g
+    # 1.0, 0.946 and 0.766 (the balance and g do not move with the drive)
     f = fast_server()
     assert f["r2"] > 1 and f["r3"] < f["r2"], f
     assert M.ratio(f["r2"], 1.20) <= M.TOL and M.ratio(f["r3"], 1.0) <= M.TOL, f
-    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.174, 0.974), f
-    assert [round(x) for x in f["fed"]] == [1949, 1940] and round(f["fast"]) == 2288, f
-    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.001, 1.198, 1.299], f
+    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.196, 0.969), f
+    assert [round(x) for x in f["fed"]] == [1951, 1940] and round(f["fast"]) == 2333, f
+    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.001, 1.21, 1.318], f
     assert [round(x["body.eb24"]) for x in f["log"]] == [-1, -1300, -1945], f
     assert [round(x["acute.g"], 3) for x in f["log"]] == [1.0, 0.946, 0.766], f
 
 
 def test_the_steady_eater_on_the_server_path(host):
     # a balanced eater reads balance at every hour, and a request-level eater eats maintenance: STEADY_TOL 0.03. Days 2-4
-    # at 1.0003, 0.9957 and 0.9968 x maintenance (1.0083, 0.9956 and 1.0007 at 7500 / 1.0), es 1.0018 to 1.0022 over
+    # at 1.0011, 0.9956 and 0.997 x maintenance (1.0083, 0.9956 and 1.0007 at 7500 / 1.0), es 1.0018 to 1.0022 over
     # day 5 (1.0007 to 1.0011): the 20:00 dinner empties after midnight into the hour-slotted window
     ratios, es = steady_server()
     assert all(abs(r - 1) <= M.STEADY_TOL for r in ratios) and all(abs(e - 1) <= M.STEADY_TOL for e in es)
-    assert [round(r, 4) for r in ratios] == [1.0003, 0.9957, 0.9968], ratios
+    assert [round(r, 4) for r in ratios] == [1.0011, 0.9956, 0.997], ratios
     assert (round(min(es), 4), round(max(es), 4)) == (1.0018, 1.0022), es
 
 
 def test_six_meals_against_three_on_the_server_path(host):
     # S1608 (1.14) and S1607 (null): the ratio within [0.9, 1.3] (ruling 11d-3). Held at es 1 the server's satiety path
-    # is the satiety oracle's to 1e-12 (0.969); live it reads 0.980 (0.987 at 7500 / 1.0)
+    # is the satiety oracle's to 1e-12 (0.969); live it reads 0.981 (0.987 at 7500 / 1.0)
     held = six_held_sum(6, 150) / six_held_sum(3, 300)
     live = six_live_sum(6, 150) / six_live_sum(3, 300)
     assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.969, held
-    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.980, live
+    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.981, live
 
 
 def test_the_low_carbohydrate_day_on_the_server_path(host):
@@ -345,13 +347,13 @@ def karl_pass(bal, dfc):
 
 def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
     # S1325: hunger -55 % (BAL) and +26 % (DEF, 95 % CI -3 to 54) against REST, each within 1.5x (karl_pass). Since the
-    # refit (Plan 11f Task 2c) twin K reads BAL -43.3 and DEF +36.0, both inside; at 7500 / 1.0 it read -28.4 and +88.1,
-    # both outside. DEF's days 2 and 3 carry a trailing deficit of about 2,270 kcal, 0.48 of the 24 h expenditure, so the
-    # lag is bypassed whole, and the sleep factor's 1.18 from the 4 h nights; BAL's surplus excludes the lagged
-    # exercise share, so it reads a large one
+    # refit (Plan 11f Task 2c fix 1) twin K reads BAL -45.1 and DEF +30.3, both inside (-43.3 and +36.0 in Task 2c; at
+    # 7500 / 1.0 -28.4 and +88.1, both outside). DEF's days 2 and 3 carry a trailing deficit of about 2,270 kcal, 0.48
+    # of the 24 h expenditure, so the lag is bypassed by about 0.68 of the ramp, and the sleep factor's 1.18 from the
+    # 4 h nights; BAL's surplus excludes the lagged exercise share, so it reads a large one
     k = karl_k()
     assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-43.3, 36.0), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.1, 30.3), k
     # the calibration check against the doubly labelled water: the gap is a reading, never tuned
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]
     assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.02], k["ee"]
@@ -362,11 +364,12 @@ def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
 
 def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
     # the same kcal billed under the vigour bar (the loaded walks at DiggingSpade, 5.0, for 121 and 233 min): no acute
-    # suppression, so DEF overshoots, +47.0 against the band's 39 (BAL -40.2 passes). The writer's limitation names it:
+    # suppression, so DEF overshoots, +40.8 against the band's 39 (BAL -42.0 passes; +47.0 and -40.2 in Plan 11f Task
+    # 2c). The writer's limitation names it:
     # heavy work the model does not class as vigorous overshoots the hunger rise of a heavy labour deficit (S1325)
     k = karl_k(vigorous=False)
     assert karl_pass(k["bal"], k["dfc"]) == (True, False), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-40.2, 47.0), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-42.0, 40.8), k
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.88, 19.75], k["ee"]      # the vigorous twin's kcal
 
 
@@ -375,7 +378,10 @@ def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
 KING_KG = 116.0                   # the stand-in whose idle day (awake 16 h) is the oracle's 2,500 kcal
 
 
-def king_steady_server(host):
+def king_steady_server(host, bypass=None):
+    """(the bout's minutes, each arm's late mean HUNGER); bypass (LO, HI) replaces the ramp's ends on each replay."""
+    if bypass is not None:
+        return with_bypass(bypass, lambda: king_steady_server(host))
     run_kcal = 4715.0 * A.KCAL_PER_KJ
     cut = 4820.0 * A.KCAL_PER_KJ / 2
     day = 1440
@@ -403,7 +409,8 @@ def king_steady_server(host):
 
 def test_king_2011_at_steady_state_on_the_server_path(host):
     # S1312: exercise within a quarter of the restriction's rise and under 3.3 mm of control (Plan 11c Task 4b's band);
-    # since the refit (Plan 11f Task 2c) the rise reads 0.089 and the distance 0.62 mm (0.1043 and 2.43 mm before)
+    # since the refit (Plan 11f Task 2c fix 1) the rise reads 0.0906 and the distance 0.96 mm (0.089 and 0.62 mm in
+    # Task 2c, 0.1043 and 2.43 mm at 7500 / 1.0)
     assert abs(idle_day(host, KING_KG, 16) - 2500.0) < 2.0
     bout, k = king_steady_server(host)
     rise = k["restriction"] - k["control"]
@@ -411,6 +418,42 @@ def test_king_2011_at_steady_state_on_the_server_path(host):
     assert bout == 73
     assert rise > 0.02 and band < 0.25 * rise and band * A.MM_PER_HUNGER < 3.3, k
     assert (round(rise, 4), round(band * A.MM_PER_HUNGER, 2)) == READ["king"], (rise, band * A.MM_PER_HUNGER)
+
+
+def with_bypass(bypass, fn):
+    """fn() with every server replay built inside it reading K.energy.EX_BYPASS_LO and EX_BYPASS_HI = bypass."""
+    init = RL.ServerReplay.__init__
+
+    def patched(self, *a, **kw):
+        init(self, *a, **kw)
+        self.K.energy.EX_BYPASS_LO, self.K.energy.EX_BYPASS_HI = bypass
+
+    RL.ServerReplay.__init__ = patched
+    try:
+        return fn()
+    finally:
+        RL.ServerReplay.__init__ = init
+
+
+STEP = (0.25, 0.25 + 1e-12)       # ruling 11c-32 as first written: the whole lag bypassed from a 25 % deficit on
+NO_BYPASS = (5.0, 6.0)            # a share no day reaches
+
+
+def test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves(host):
+    # ruling 11c-32 as amended: the bypass is a ramp because a 25 % step breaks King 2011 at steady state (S1312:
+    # intake stays with control; S1318: Whybrow's 26-28 % arms compensate). On the server path (Plan 11f Task 2c fix 1)
+    # the step lifts the exercise arm 6.70 mm over control, past both a quarter of the restriction's rise (5.89 mm) and
+    # 3.3 mm, where the ramp reads 0.96 mm and no bypass 0.29 mm; the ramp only ever raises the lag's share
+    _, ramp = king_steady_server(host)
+    _, step = king_steady_server(host, STEP)
+    _, none = king_steady_server(host, NO_BYPASS)
+    assert step["control"] == ramp["control"] and step["restriction"] == ramp["restriction"]   # no exercise, no bypass
+    rise = ramp["restriction"] - ramp["control"]
+    lift = step["exercise"] - step["control"]
+    assert lift > 0.25 * rise and lift * A.MM_PER_HUNGER >= 3.3, (lift, rise)
+    assert none["exercise"] <= ramp["exercise"] < step["exercise"], (none, ramp, step)
+    assert round(lift * A.MM_PER_HUNGER, 2) == READ["king_step"], lift
+    assert round((none["exercise"] - none["control"]) * A.MM_PER_HUNGER, 2) == READ["king_nobypass"], none
 
 
 # --- the lag: Whybrow 2008 (S1318) and E-MECHANIC (S1320, S1664) ---------------------------------------------------
@@ -493,17 +536,20 @@ def deficit_server(host, days=7):
 
 def test_a_25_percent_deficit_on_the_server_path(host):
     # S1255 (CALERIE 2: < 10 mm over 2 y at a 25 % deficit): the 70 kg man's quarter deficit (-487 kcal) on the
-    # pipeline, a week in, reads es 1.0900 and 5.9 mm at the request since the refit (Plan 11f Task 2c), reproduced; at
-    # 7500 / 1.0 it read 16.0 mm, and the deleted arithmetic oracle 13.5 mm on a 2,500 kcal day
+    # pipeline, a week in, reads es 1.0947 and 6.7 mm at the request since the refit (Plan 11f Task 2c fix 1; 5.9 mm in
+    # Task 2c), reproduced; at 7500 / 1.0 it read 16.0 mm, and the deleted arithmetic oracle 13.5 mm on a 2,500 kcal day
     e, mm = deficit_server(host)
     assert mm < 10, (e, mm)
     assert (round(e, 4), round(mm, 1)) == READ["s1255"], (e, mm)
 
 
-# the readings the tests above pin that their own lines do not spell out (each at the refit constants, Plan 11f Task 2c)
+# the readings the tests above pin that their own lines do not spell out (each at the refit constants, Plan 11f Task 2c
+# fix 1)
 READ = {
     "lowcarb_g": (1.0, 1.0, 0.967),     # g: the mixed arm at 08:00 and 20:00 of day 1, the low arm at 20:00 (the simplified path 0.951)
     "lowcarb_des": 0.0,                 # the low arm's es less the mixed arm's at 20:00
-    "king": (0.089, 0.62),              # the restriction's late rise and exercise's distance in mm (0.1043 and 2.43 at 7500 / 1.0)
-    "s1255": (1.09, 5.9),               # es over day 7 and its rise at the request, mm (1.0492 and 16.0 at 7500 / 1.0)
+    "king": (0.0906, 0.96),             # the restriction's late rise and exercise's distance in mm (0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
+    "king_step": 6.7,                   # a 25 % step's exercise arm over control, mm (Plan 11f Task 2c fix 1)
+    "king_nobypass": 0.29,              # no bypass's, mm
+    "s1255": (1.0947, 6.7),             # es over day 7 and its rise at the request, mm (1.09 and 5.9 in Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
 }

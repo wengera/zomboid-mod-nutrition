@@ -287,29 +287,30 @@ def test_a_balanced_eater_reads_balance_before_breakfast(host):
     assert worst < 1950.0 / 1440 + 1e-6, worst          # at every hour end: within the one minute the slot attribution moves
 
 
-@pytest.mark.parametrize("eb,dep,es", [(-3300, 0, 1.5), (3300, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
-                                       (0, 0, 1.0), (-1650, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
+@pytest.mark.parametrize("eb,dep,es", [(-3100, 0, 1.5), (3100, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
+                                       (0, 0, 1.0), (-1550, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
                                        (-15000, 2, 2.0)])
 def test_state(host, eb, dep, es):
     assert _close(host.K.energy.state(eb, dep), es)
 
 
 def test_the_balance_span_is_the_refit_game_choice(host):
-    # Plan 11f Task 2c (ruling 2b-3): the state's balance term spans 3300 kcal (7500 from Plan 11d Task 9d, 1500
-    # before), refit on the shipped pipeline and labelled with the rows it was fitted to; state reads it at call time
+    # Plan 11f Task 2c fix 1 (ruling 2b-3, widened search): the state's balance term spans 3100 kcal (3300 from Task
+    # 2c, 7500 from Plan 11d Task 9d, 1500 before), refit on the shipped pipeline and labelled with the rows it was
+    # fitted to; state reads it at call time
     import os, re
     E = host.K.energy
-    assert E.BALANCE_SPAN_KCAL == 3300
+    assert E.BALANCE_SPAN_KCAL == 3100
     shared = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "mod", "NutritionRevamp", "common",
                           "media", "lua", "shared", "NR_Kernel_Energy.lua")
     with open(shared, encoding="utf-8") as fh:
         line = re.search(r"^K\.energy\.BALANCE_SPAN_KCAL = .*$", fh.read(), re.M).group(0)
-    assert "game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3)" in line
+    assert "game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search)" in line
     assert "S1271 open" in line
     assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325", "S1312", "S1608")), line
     E.BALANCE_SPAN_KCAL = 1500
     try:
         assert _close(E.state(-750, 0), 1.25)
     finally:
-        E.BALANCE_SPAN_KCAL = 3300
-    assert _close(E.state(-750, 0), 1 + 0.5 * 750 / 3300)
+        E.BALANCE_SPAN_KCAL = 3100
+    assert _close(E.state(-750, 0), 1 + 0.5 * 750 / 3100)

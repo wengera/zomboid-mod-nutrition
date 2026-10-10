@@ -26,7 +26,7 @@ The kernel bypasses the exercise lag on a linear ramp of the 24 h total deficit 
 of the 24 h expenditure (ruling 11c-32 as amended). Karl 2021 (S1325) and King 2011 at steady state (S1312), which this
 file replayed on the simplified energy path until Plan 11f Task 2c, are graded on the shipped server path since then
 (test_replay_live_energy.py: twin K, Karl as the paper ran it, and the King twin), where the deficit drive was refit;
-the step-bypass contrast that chose the ramp (ruling 11c-32) was read on the simplified path only and is not re-made.
+the step-bypass contrast that chose the ramp (ruling 11c-32) is re-made there on the King twin (Plan 11f Task 2c fix 1).
 
 Accepted only after the mutation pass (CLAUDE.md § 6): ACUTE_MAX, ACUTE_HALF_LIFE_H and EX_LAG_TAU_D at x2 and x0.5
 each fail a replay here (ACUTE_DECAY_HALF_LIFE_H's: Plan 11d Task 1, its x0.5 caught only by pins, because S1500 bounds the tail from above only; EX_LAG_GAIN's: Task 2). Only `host`; no `parametrize`.
