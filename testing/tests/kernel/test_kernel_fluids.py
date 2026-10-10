@@ -371,3 +371,32 @@ def test_clearance_reads_the_water_against_the_set_point_the_surplus_step_leaves
     assert _close(f.na, 1000 * (1 - 1 / 33.8))
     assert _close(f.water, F.weu(f, 80), 1e-6)
     assert f.water < 1000 / 140 * 1000 - 200
+
+
+def test_the_volume_defence_relaxes_the_hypotonic_cap(host):
+    # Plan 11f Task 5b fix 2 (review finding 1, candidate C-9): past the onset a volume-thirst term relaxes the
+    # hypotonic cap toward ordinary thirst by the defence weight, the set point's own ramp (x - a)/(b - a) on the
+    # contraction reached x = -weu, so a salt-depleted body drinks and dilutes (S1729: volume "relatively well
+    # maintained ... at the expense of the osmotic pressure"; S1731: the subjects drank freely; S1724: volume thirst)
+    F = host.K.fluids
+    T = F.thirstTarget
+    f = _new(host)
+    # inside the onset (1280 g = 179.2 mmol at 80 kg) there is no defence: the cap holds as before
+    for na in (500.0, 0.0, -100.0, -179.2 + 1e-6):
+        f.na = na
+        assert F.defence(f, 80) == 0, na
+    for d in (0.5, 2, 4, 8):
+        assert _close(T(d, 1, 130, True, 0), min(T(d, 1, 140, True), 0.09))
+        assert _close(T(d, 1, 130, True), T(d, 1, 130, True, 0))  # nil reads 0
+    # past it: 1000 mmol leaves weu at -3109.395032863671 g, so (3109.395032863671 - 1280) / 1920
+    f.na = -1000
+    r = (3109.395032863671 - 1280) / 1920
+    assert _close(F.defence(f, 80), r, 1e-9)
+    f.na = -5000
+    assert 0.99999 < F.defence(f, 80) <= 1
+    # the blend: the capped thirst plus r of what the cap removed; a full defence is ordinary thirst
+    assert _close(T(4, 1, 130, True, r), 0.09 + r * (0.70 - 0.09))
+    assert _close(T(4, 1, 130, True, 1), 0.70)
+    assert _close(T(0.5, 1, 130, True, 1), 0.06)  # under the cap the blend changes nothing
+    assert _close(T(8, 1, 130, False, 1), 0.83)  # the kill cap still applies after it
+    assert _close(T(2, 1, 140, True, 0.5), 0.25)  # a normal plasma ignores the weight

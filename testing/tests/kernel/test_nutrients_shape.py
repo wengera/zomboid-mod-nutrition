@@ -557,6 +557,30 @@ def test_the_thirst_views_osmotic_term_counts_the_pending_water(nut_host):
     assert f["thirstTarget"] < want_pool - 0.1
 
 
+def test_past_the_volume_defence_onset_the_server_relaxes_the_hypotonic_cap(nut_host):
+    # Plan 11f Task 5b fix 2 (review finding 1, C-9): the server passes the defence weight of the record's own set
+    # point, so a salt-depleted, hypotonic body with a water deficit reads thirst above autoDrink's 0.1 (#2770)
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    f, body = record["fluids"], record["body"]
+    f["na"] = -1000.0                                       # past the onset: weu -3109.4 g at 80 kg
+    f["water"] = -5000.0                                    # a 2.4 % deficit below it, the pool hypotonic
+    alone(h, p, record, 100.0 + 1 / 60)
+    F = h.K.fluids
+    w = body["fm"] + body["lm"]
+    assert f["naPlasma"] < 135
+    r = F.defence(f, w)
+    assert r > 0.9
+    st = record["stomach"]
+    pending = 0.0
+    if st is not None:
+        pending = h.K.stomach.water(st)
+    want = F.thirstTarget(f["viewPct"], F.conc(f, body["lm"], pending), f["naPlasma"], True, r)
+    assert abs(f["thirstTarget"] - want) < 1e-9
+    assert f["thirstTarget"] > 0.1
+
+
 def test_the_kill_cap_and_its_dial(nut_host):
     h = nut_host
     p = player(h)

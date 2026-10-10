@@ -11,7 +11,7 @@
 -- (Plan 3's K.body convention). Ruling T1-1: vanilla's autoDrink and ISTakeWaterAction size every sip from
 -- THIRST, so the thirst VIEW reads the pool plus the stomach's still-unabsorbed water (the extraG of dehydPct
 -- and, Plan 11f Task 5b fix 1, of conc, which the adapter passes) and THIRST falls at the drink; f.dehydPct and
--- f.c are the pool-only calls (extraG 0). thirstTarget is a pure function of the dehydPct and c it is given.
+-- f.c are the pool-only calls (extraG 0). thirstTarget is a pure function of the scalars it is given.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min / K.max reference is at call time.
 local K = NutritionRevamp.kernel
@@ -85,7 +85,7 @@ K.fluids.OSM_SLOPE = 0.03 -- design-phase-v1 game choice (open row S1099: the os
 K.fluids.OSM_GAIN = 0.25 -- design-phase-v1 game choice (open row S1099: the osmotic thirst slope)
 K.fluids.OSM_MAX = 4 -- design-phase-v1 game choice (open row S1099: the osmotic thirst slope)
 
--- Hypotonic suppression: below HYPO_NA mmol/L thirst stays under HYPO_CAP, under autoDrink's trigger (#2770).
+-- Hypotonic suppression: below HYPO_NA thirst stays under HYPO_CAP (#2770), relaxed past the defence onset (defence).
 K.fluids.HYPO_NA = 135 -- S0102
 K.fluids.HYPO_CAP = 0.09 -- game choice under #2770's 0.1 autoDrink trigger, so suppression stops drinking (open S1695)
 
@@ -232,14 +232,20 @@ function K.fluids.tVol(dehydPct)
     return y0 + (kn[seg][2] - y0) * (d - x0) / (kn[seg][1] - x0)
 end
 
--- The THIRST target: the volume and osmotic drives combined, then the hypotonic and the kill caps.
-function K.fluids.thirstTarget(dehydPct, c, naPlasma, canKill)
+-- The THIRST target: the volume and osmotic drives combined, then the hypotonic and the kill caps. defence (nil
+-- reads 0) is the volume-defence weight K.fluids.defence: past the onset a volume-thirst term relaxes the hypotonic cap
+-- toward the uncapped thirst by that weight (Plan 11f Task 5b fix 2), so a salt-depleted body keeps replacing its
+-- volume and its plasma falls (S1729: volume held at the expense of the osmotic pressure; S1731: the subjects drank
+-- freely; S1724: volume depletion raises thirst); the weight riding the set point's ramp is a game choice, and the
+-- human cut-off of hypotonic thirst is open (S1695, S1736). Below the onset the weight is 0 and the cap holds.
+function K.fluids.thirstTarget(dehydPct, c, naPlasma, canKill, defence)
     local F = K.fluids
     local tVol = F.tVol(dehydPct)
     local tOsm = F.OSM_GAIN * K.clamp((c - 1) / F.OSM_SLOPE, 0, F.OSM_MAX)
     local t = 1 - (1 - tVol) * (1 - K.min(tOsm, 1))
     if naPlasma < F.HYPO_NA then
-        t = K.min(t, F.HYPO_CAP)
+        local capped = K.min(t, F.HYPO_CAP)
+        t = capped + (defence or 0) * (t - capped)
     end
     if not canKill then
         t = K.min(t, F.KILL_CAP)
@@ -277,7 +283,7 @@ K.fluids.WATER_PER_MMOL = 1000 / 140 -- S1683: plasma sodium 140 mmol/L, so 7.14
 -- The body's ECF at euhydration, L per kg of body mass.
 K.fluids.ECF_PER_KG = 0.20 -- S1714: 14 L of ECF in the 70 kg man (derived 14 / 70); McCance also took 20 % (S1730)
 -- The contraction, as a share of ECF, at which vasopressin starts to defend volume over osmolality.
-K.fluids.DEFEND_ONSET = 0.08 -- S1717, S1722: an 8-10 % plasma-volume fall; applied to ECF: a game choice
+K.fluids.DEFEND_ONSET = 0.08 -- 8-10 % blood (rat, S1717) / plasma (review, S1722) volume fall; human dose-response open (S1736); applied to ECF, a game choice
 -- The contraction, as a share of ECF, at which the volume is fully defended.
 K.fluids.DEFEND_FULL = 0.20 -- S1729: McCance's weight levels at a 2-3 kg loss, about 15-23 % of ECF (Fig. 1 read by eye)
 
@@ -286,8 +292,9 @@ K.fluids.DEFEND_FULL = 0.20 -- S1729: McCance's weight levels at a 2-3 kg loss, 
 -- and water at weu reads c = 1 exactly. A deficit contracts it fully up to DEFEND_ONSET of ECF (a); past that the
 -- weight with which water follows sodium falls linearly with the contraction to 0 at DEFEND_FULL (b), so a requested
 -- contraction x gives b - (b - a) exp(-(x - a) / (b - a)), bounded by b: past the onset a further sodium loss leaves
--- the water in place, where it reads as dehydration (dehydPct) or, replaced as plain water, dilutes the pool (S1729's
--- second phase, S1730's falling serum sodium). A surplus is never bounded.
+-- the water in place. The same ramp relaxes the hypotonic thirst cap (K.fluids.defence, Plan 11f Task 5b fix 2), so
+-- water lost with it is drunk back and dilutes the pool (S1729's second phase, S1730's falling serum sodium); only water
+-- not yet replaced reads as dehydration (dehydPct). A surplus is never bounded.
 function K.fluids.weu(f, w)
     local F = K.fluids
     local iso = F.WATER_PER_MMOL * (f.na + f.k)
@@ -298,4 +305,15 @@ function K.fluids.weu(f, w)
     end
     local b = F.DEFEND_FULL * ecf
     return (b - a) * math.exp((iso + a) / (b - a)) - b
+end
+
+-- The volume-defence weight at body mass w kg, 0 to 1: the set point's own ramp, (x - a) / (b - a) on the contraction
+-- reached x = -weu, so 0 up to DEFEND_ONSET of ECF and toward 1 at DEFEND_FULL (Plan 11f Task 5b fix 2). thirstTarget
+-- relaxes the hypotonic cap by it; riding the set point's ramp is a game choice resting on S1729, S1731 and S1724.
+function K.fluids.defence(f, w)
+    local F = K.fluids
+    local ecf = F.ECF_PER_KG * w * 1000
+    local a = F.DEFEND_ONSET * ecf
+    local b = F.DEFEND_FULL * ecf
+    return K.clamp((-F.weu(f, w) - a) / (b - a), 0, 1)
 end
