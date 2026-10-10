@@ -1,0 +1,520 @@
+/* TKX_StudyFoods (Plan 11f Task 2): foods whose landed vector is a satiety oracle's own meal, so a live replay
+   inherits the oracle's study comparison. Test profiles only (CLAUDE.md section 5).
+   The vector rides the mod's declared-nutrients seam: the four macros are the item's own script values (Calories,
+   Carbohydrates, Lipids, Proteins; K.vector.resolve takes them from the item) and water and fibre ride the
+   NR_Nutrients script key, which the loader does not know, so it lands as a String in default modData (#0212,
+   #1281) and IN.declaredOf reads it (K.vector.declared; landing #3148 on TKX.DeclaredBar).
+   Boredom, unhappiness and stress changes are 0, so vanilla's mood adds never mix into a monotony reading (#3655).
+   HungerChange is about kcal / 20 (at least 1): it sets the share of an eat and vanilla's food timer only, since
+   the writer rewrites HUNGER every minute. No item rots within a year.
+   Each food and its oracle vector (testing/tests/kernel/test_satiety_meal_studies.py; test_kernel_monotony.py
+   for the two monotony foods, whose vector is the 650 kcal meal's per-kcal composition at 450 kcal; the unit
+   is that composition at 50 kcal):
+   - Mixed650: mixed(650)
+   - Mixed400: mixed(400, water=250)
+   - Mixed217: mixed(650/3, water=100, fibre=2)
+   - Mixed667: mixed(2000/3, water=300, fibre=6x(2000/3)/650)
+   - Mixed333: mixed(2000/6, water=150, fibre=6x(2000/6)/650)
+   - SnackP: snack(239, proteins, 0.77)
+   - SnackC: snack(239, carbs, 0.84)
+   - SnackF: snack(239, lipids, 0.58)
+   - Casserole: CASSEROLE
+   - Soup: SOUP
+   - Marc: MARC_SOLID
+   - MarcSoup: MARC_SOUP
+   - Dense400Lo: dense(400, 0.8)
+   - Dense400Hi: dense(400, 1.6)
+   - Water100: {water: 100}
+   - Water200: {water: 200}
+   - Water300: {water: 300}
+   - Water400: {water: 400}
+   - Water500: {water: 500}
+   - Water600: {water: 600}
+   - Mono450: mixed(450, water=300x450/650, fibre=6x450/650)
+   - Staple450: mixed(450, water=300x450/650, fibre=6x450/650)
+   - Unit50: mixed(50, water=300x50/650, fibre=6x50/650) */
+module TKX
+{
+    item Mixed650
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -32.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 650,
+        Carbohydrates = 81.25,
+        Lipids = 25.277778,
+        Proteins = 24.375,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:300;fibre:6,
+    }
+
+    item Mixed400
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 400,
+        Carbohydrates = 50,
+        Lipids = 15.555556,
+        Proteins = 15,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:250;fibre:6,
+    }
+
+    item Mixed217
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -11.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 216.666667,
+        Carbohydrates = 27.083333,
+        Lipids = 8.425926,
+        Proteins = 8.125,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:100;fibre:2,
+    }
+
+    item Mixed667
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -33.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 666.666667,
+        Carbohydrates = 83.333333,
+        Lipids = 25.925926,
+        Proteins = 25,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:300;fibre:6.153846,
+    }
+
+    item Mixed333
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -17.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 333.333333,
+        Carbohydrates = 41.666667,
+        Lipids = 12.962963,
+        Proteins = 12.5,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:150;fibre:3.076923,
+    }
+
+    item SnackP
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -12.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 239,
+        Carbohydrates = 6.87125,
+        Lipids = 3.053889,
+        Proteins = 46.0075,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:150,
+    }
+
+    item SnackC
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -12.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 239,
+        Carbohydrates = 50.19,
+        Lipids = 2.124444,
+        Proteins = 4.78,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:150,
+    }
+
+    item SnackF
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -12.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 239,
+        Carbohydrates = 12.5475,
+        Lipids = 15.402222,
+        Proteins = 12.5475,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:150,
+    }
+
+    item Casserole
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -14.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 270,
+        Carbohydrates = 25,
+        Lipids = 10,
+        Proteins = 20,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:200;fibre:4,
+    }
+
+    item Soup
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -14.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 270,
+        Carbohydrates = 25,
+        Lipids = 10,
+        Proteins = 20,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:556;fibre:4,
+    }
+
+    item Marc
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -12.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 241,
+        Carbohydrates = 24.1,
+        Lipids = 8.033333,
+        Proteins = 18.075,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:200;fibre:4,
+    }
+
+    item MarcSoup
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -12.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 241,
+        Carbohydrates = 24.1,
+        Lipids = 8.033333,
+        Proteins = 18.075,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:500;fibre:4,
+    }
+
+    item Dense400Lo
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 400,
+        Carbohydrates = 50,
+        Lipids = 15.555556,
+        Proteins = 15,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:415.752137;fibre:3.692308,
+    }
+
+    item Dense400Hi
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 400,
+        Carbohydrates = 50,
+        Lipids = 15.555556,
+        Proteins = 15,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:165.752137;fibre:3.692308,
+    }
+
+    item Water100
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:100,
+    }
+
+    item Water200
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:200,
+    }
+
+    item Water300
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:300,
+    }
+
+    item Water400
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:400,
+    }
+
+    item Water500
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:500,
+    }
+
+    item Water600
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -1.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 0,
+        Carbohydrates = 0,
+        Lipids = 0,
+        Proteins = 0,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:600,
+    }
+
+    item Mono450
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -22.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 450,
+        Carbohydrates = 56.25,
+        Lipids = 17.5,
+        Proteins = 16.875,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:207.692308;fibre:4.153846,
+    }
+
+    item Staple450
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -22.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 450,
+        Carbohydrates = 56.25,
+        Lipids = 17.5,
+        Proteins = 16.875,
+        FoodType = Bread,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:207.692308;fibre:4.153846,
+    }
+
+    item Unit50
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.1,
+        Icon = Apple,
+        HungerChange = -2.0,
+        ThirstChange = 0.0,
+        BoredomChange = 0.0,
+        UnhappyChange = 0.0,
+        StressChange = 0.0,
+        Calories = 50,
+        Carbohydrates = 6.25,
+        Lipids = 1.944444,
+        Proteins = 1.875,
+        FoodType = NoExplicit,
+        DaysFresh = 365,
+        DaysTotallyRotten = 730,
+        NR_Nutrients = water:23.076923;fibre:0.461538,
+    }
+}
