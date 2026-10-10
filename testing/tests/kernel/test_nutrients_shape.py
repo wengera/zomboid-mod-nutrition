@@ -474,11 +474,11 @@ def test_one_litre_of_water_lands_then_clears(nut_host):
     alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, water=1000.0)))
     assert KIN(h).lastAbsorbed is None                      # the handoff rides the context (Plan 10 R2)
     f = record["fluids"]
-    w1 = 1000.0 - 3700 / 1440 - 320 / 60                    # landed, the basal minute, the clearance minute
+    w1 = 1000.0 - 3700 / 1440 - 672 / 60                    # landed, the basal minute, the clearance minute (S1685)
     assert abs(f["water"] - w1) < 1e-6
     for i in range(2, 62):
         alone(h, p, record, 100.0 + i / 60)
-    assert f["water"] < w1 - 300                            # an hour's clearance at 320 g/h
+    assert f["water"] < w1 - 300                            # an hour's clearance at 672 g/h
     assert f["dehydPct"] == 0 and f["viewPct"] == 0
 
 
@@ -492,9 +492,10 @@ def test_ten_hours_at_rest(nut_host):
     w = body["fm"] + body["lm"]
     assert abs(w - 80.0) < 1e-6
     assert abs(f["water"] + 3700 * 600 / 1440) < 1e-6
-    assert abs(f["dehydPct"] - 1.9270833333333133) < 1e-6
-    # the basal sodium: -1541.67 g x 0.65 x 140 / 1000 = -140.29 mmol (T11-3)
-    assert abs(f["na"] + 3700 * 600 / 1440 / 1000 * 0.65 * 140) < 1e-6
+    # the deficit against the set point weu = 1000/140 x na: 100 x (1541.67 - 23.81) / 1000 / 80
+    assert abs(f["dehydPct"] - 1.8973214285714284) < 1e-6
+    # the basal sodium: S1665's obligatory 8 mmol/d over 10 h = -3.33 mmol (Plan 11f Task 5b; T11-3's 0.65 share gone)
+    assert abs(f["na"] + 8 * 600 / 1440) < 1e-6
     want, c = expected_thirst(f["dehydPct"], body["lm"], f["water"], f["na"])
     assert abs(f["c"] - c) < 1e-9
     assert abs(f["naPlasma"] - 140 * c) < 1e-6
@@ -577,7 +578,7 @@ def test_sweat_reads_the_thermoregulator_fluids_multiplier(nut_host):
     alone(h, p, record, 100.0 + 1 / 60)
     f = record["fluids"]
     assert abs(f["sweatLmin"] - 1.0 * 1.0 * 2.0 * 1.0 / 60) < 1e-12   # 1 L/h x 1 x 2 x sweatK 1, one minute
-    assert abs(f["na"] - (-(2.0 / 60) * 30.0 - 3700 / 1440 / 1000 * 0.65 * 140)) < 1e-9   # sweat sodium 30 plus the basal
+    assert abs(f["na"] - (-(2.0 / 60) * 30.0 - 8 / 1440)) < 1e-9   # sweat sodium 30 plus S1665's obligatory loss
     record["body"]["met"] = None
     p2 = player(h, fluids=NAN)                              # a non-finite read is 1
     record2 = fresh(h, p2)

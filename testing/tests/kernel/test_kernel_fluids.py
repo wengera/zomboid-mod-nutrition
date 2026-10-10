@@ -7,10 +7,12 @@ it): total body water 0.73 x lean mass (open S1091); the osmotic reference 140 m
 S1045's 135-145 normal range; the Edelman form (open S1092); basal turnover = the water AI 3700/2700 g/d
 (S0088; open S1093); sweat 1.0 L/h x clamp((MET - 3)/5, 0, 1.5) x thermoFluids x sweatK (S0090/S0091; open
 S1094); cold diuresis 0.1 L/h (open S1053); alcohol diuresis 4 g/g x (1 - 0.45 clamp(d/2, 0, 1)) (S0521-
-S0523; the 2 % knee open S1095); surplus clearance 320 g/h (S0521); the renal tau 24 h (open S1096/S1097);
-the thirst knots (#0509, S0092, S0709; open S1098), the osmotic term and the hypotonic cap (S0102; open
-S1099), the kill cap 0.83 (ruling 8); the hyponatraemia ladder 135/120/112 (S0102/S1047); and ruling T1-1's
-thirst view over the pool plus the stomach's pending water.
+S0523; the 2 % knee open S1095); the clearance of water above the set point at 672 g/h (S1685); the sodium
+tau 33.8 h (S1670) and the potassium tau 24 h (open S1097); the obligatory sodium loss 8 mmol/d (S1665); the
+set point weu = 1000/140 g per mmol of na + k (S1683; Plan 11f Task 5b); the thirst knots (#0509, S0092,
+S0709; open S1098), the osmotic term (open S1099) and the hypotonic cap 0.09 under autoDrink's 0.1 (#2770;
+open S1695), the kill cap 0.83 (ruling 8); the hyponatraemia ladder 135/120/112 (S0102/S1047); and ruling
+T1-1's thirst view over the pool plus the stomach's pending water.
 """
 import pytest
 
@@ -40,11 +42,12 @@ def test_constants(host):
     assert F.NA_SWEAT_MEAN == 37
     assert list(host.py(F.NA_SWEAT_RANGE).values()) == [10, 90]
     assert (F.K_SWEAT, F.COLD_DIURESIS_LH, F.ALC_DIURESIS_G_PER_G, F.ALC_HYPO_K, F.ALC_KNEE_PCT) == (5, 0.1, 4, 0.45, 2)
-    assert (F.CLEAR_GH, F.NA_TAU_H, F.K_TAU_H) == (320, 24, 24)
+    assert (F.CLEAR_GH, F.NA_TAU_H, F.K_TAU_H) == (672, 33.8, 24)
+    assert F.BASAL_NA == 8 and F.WATER_PER_MMOL == 1000 / 140
     assert (F.NA_MG_PER_MMOL, F.K_MG_PER_MMOL) == (23, 39.1)
     knots = [list(host.py(k).values()) for k in host.py(F.THIRST_KNOTS).values()]
     assert knots == [[0, 0], [1, 0.12], [2, 0.25], [4, 0.70], [6, 0.84], [8, 1.0]]
-    assert (F.OSM_SLOPE, F.OSM_GAIN, F.OSM_MAX, F.HYPO_NA, F.HYPO_CAP, F.KILL_CAP) == (0.03, 0.25, 4, 135, 0.11, 0.83)
+    assert (F.OSM_SLOPE, F.OSM_GAIN, F.OSM_MAX, F.HYPO_NA, F.HYPO_CAP, F.KILL_CAP) == (0.03, 0.25, 4, 135, 0.09, 0.83)
     assert list(host.py(F.HYPONAT).values()) == [135, 120, 112]
     assert (F.SWEAT_ACTIVE_SHARE, F.EMA_MIN, F.SEVERE_DEHYD_PCT) == (0.5, 360, 10)
 
@@ -123,35 +126,41 @@ def test_thirst_caps(host):
     T = host.K.fluids.thirstTarget
     assert _close(T(8, 1, 140, False), 0.83)  # the kill cap, ruling 8
     assert _close(T(2, 1, 140, False), 0.25)  # under the kill cap: unchanged
-    assert _close(T(2, 1, 130, True), 0.11)  # hypotonic: capped, S0102
+    assert _close(T(2, 1, 130, True), 0.09)  # hypotonic: capped under autoDrink's 0.1 trigger (#2770)
     assert _close(T(0.5, 1, 130, True), 0.06)  # 0.12*0.5 is under the hypotonic cap
 
 
 def test_basal_ten_hours_at_rest(host):
-    # -3700*600/1440 = -1541.6666666666506; dehydPct = 100*1.5416666/80 = 1.9270833333333133
+    # -3700*600/1440 = -1541.6666666666506 g of water
     F = host.K.fluids
     f = _new(host)
     ctx = _ctx(host)
     for _ in range(600):
         assert F.losses(f, ctx, 1) == 0
     assert _close(f.water, -1541.6666666666506, 1e-6)
-    # ruling T11-3: the basal loss carries sodium: -1541.6666666666506 / 1000 * 0.65 * 140 = -140.2916666666650
-    assert _close(f.na, -1541.6666666666506 / 1000 * 0.65 * 140, 1e-6)
-    assert _close(f.na, -140.29166666666, 1e-6) and _close(f.k, 0)
-    assert _close(F.dehydPct(f, 80), 1.9270833333333133, 1e-8)
+    # Plan 11f Task 5b: the basal loss carries S1665's obligatory 8 mmol/d, not ruling T11-3's isotonic 0.65 share
+    # (336.7 mmol/d, finding F-T5-1): -8*600/1440 = -3.3333333333333335
+    assert _close(f.na, -3.3333333333333335, 1e-9) and _close(f.k, 0)
+    # the deficit against the set point weu = 1000/140 * na = -23.80952380952381 g:
+    # 100*(1541.6666666666667 - 23.80952380952381)/1000/80 = 1.8973214285714284
+    assert _close(F.weu(f), 1000 / 140 * -3.3333333333333335, 1e-9)
+    assert _close(F.dehydPct(f, 80), 1.8973214285714284, 1e-8)
     c = F.conc(f, 65.6)
     p0 = 140 * 0.73 * 65.6
     t0 = 0.73 * 65.6
     assert _close(c, (p0 + f.na) / p0 * t0 / (t0 - 1.5416666666666506), 1e-9)
-    assert _close(c, 1.0116424, 1e-6)
+    assert _close(c, 1.0327503177422985, 1e-6)
     assert _close(F.naPlasma(c), 140 * c, 1e-9)
-    want = F.thirstTarget(1.9270833333333133, c, 140 * c, True)
-    tvol = 0.12 + 0.13 * 0.9270833333333133
+    want = F.thirstTarget(1.8973214285714284, c, 140 * c, True)
+    tvol = 0.12 + 0.13 * 0.8973214285714284
     tosm = 0.25 * ((c - 1) / 0.03)
     assert _close(want, 1 - (1 - tvol) * (1 - tosm), 1e-9)
-    assert _close(F.dehydPct(f, 80, 0), 1.9270833333333133, 1e-8)
-    # ruling T1-1: the thirst view reads the pool plus 1 L still in the stomach: 100*0.5416666/80
-    assert _close(F.dehydPct(f, 80, 1000), 0.6770833333333133, 1e-8)
+    # T11-3's motive re-priced: 10 h dry at rest reads 0.445 (it read 0.314 under the 0.65 share); reported against
+    # Thompson 1986's osmotic thirst slope (S1689), never tuned
+    assert _close(want, 0.4449842570965634, 1e-6)
+    assert _close(F.dehydPct(f, 80, 0), 1.8973214285714284, 1e-8)
+    # ruling T1-1: the thirst view reads the pool plus 1 L still in the stomach: 100*0.5178571/80
+    assert _close(F.dehydPct(f, 80, 1000), 0.6473214285714286, 1e-8)
     assert _close(F.dehydPct(f, 80, 5000), 0.0)  # a net surplus reads 0
     f2 = _new(host)
     F.losses(f2, _ctx(host, sex=2), 1440)
@@ -183,7 +192,7 @@ def test_sweat_losses_one_minute(host):
     assert _close(L, 1 / 60)
     assert _close(f.sweatLmin, 1 / 60)
     assert _close(f.water, -(1000 / 60 + 3700 / 1440))
-    assert _close(f.na, -(1 / 60) * 37 - 3700 / 1440 / 1000 * 0.65 * 140)
+    assert _close(f.na, -(1 / 60) * 37 - 8 / 1440)  # sweat sodium plus S1665's obligatory loss
     assert _close(f.k, -(1 / 60) * 5)
 
 
@@ -208,17 +217,36 @@ def test_alcohol_diuresis(host):
 
 
 def test_clearance_one_hour(host):
-    # 1000 g surplus cleared at 320/60 g per minute for 60 minutes -> 679.9999999999977
+    # 1000 g above a zero set point cleared at 672/60 g per minute for 60 minutes -> 328 (S1685)
+    F = host.K.fluids
+    f = _new(host)
+    f.water = 1000
+    for _ in range(60):
+        F.clearance(f, 1)
+    assert _close(f.water, 328, 1e-8)
+    # the surpluses first-order: na at tau 33.8 h, k at 24 h; 5000 g of water clears its hour's 672
+    f = _new(host)
+    f.water = 5000
+    f.na = 100
+    f.k = 100
+    for _ in range(60):
+        F.clearance(f, 1)
+    assert _close(f.na, 97.08404925098363, 1e-8)  # 100*(1 - 1/(60*33.8))^60
+    assert _close(f.k, 95.91755736193707, 1e-8)  # 100*(1 - 1/1440)^60
+    assert _close(f.water, 4328, 1e-8)
+
+
+def test_clearance_holds_the_water_a_sodium_surplus_carries(host):
+    # water follows sodium: 1000 g against a set point of 1000/140*(na + k), about 1400 g, is no surplus
     F = host.K.fluids
     f = _new(host)
     f.water = 1000
     f.na = 100
     f.k = 100
-    for _ in range(60):
-        F.clearance(f, 1)
-    assert _close(f.water, 680, 1e-8)
-    assert _close(f.na, 95.91755736193709, 1e-8)  # 100*(1 - 1/1440)^60
-    assert _close(f.k, 95.91755736193709, 1e-8)
+    F.clearance(f, 60)
+    assert _close(f.water, 1000)
+    assert F.weu(f) > 1000
+    assert F.dehydPct(f, 80) > 0  # below its set point: a deficit, though the pool holds a litre
 
 
 def test_clearance_keeps_a_deficit(host):
@@ -231,7 +259,7 @@ def test_clearance_keeps_a_deficit(host):
     assert (f.water, f.na, f.k) == (-500, -20, -5)
     f.water = 100
     F.clearance(f, 60)
-    assert _close(f.water, 0)  # a surplus under the hour's cap is cleared to 0, never past it
+    assert _close(f.water, -178.57142857142858)  # a surplus under the hour's cap is cleared to weu, never past it
 
 
 def test_hyponat_grade(host):

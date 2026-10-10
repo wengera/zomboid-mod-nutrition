@@ -37,7 +37,8 @@ NR.server.nutrients = {
     sleepDisabled = false,
     limitations = {
         "the one-minute lag: Metabolism's dmod and rmod read the previous minute's nutrient, fluid and acute stamps",
-        "metabolic water is omitted (S1093 reads the water AI as turnover)",
+        "metabolic water is omitted (the water AI, S0088, is read as basal turnover above S1688's minimum losses)",
+        "retained sodium carries its water isotonically (S1683; Plan 11f Task 5b): sodium stored without water at high sustained intakes (S1673, S1677) is not modelled, and a sodium deficit shows as a hidden contraction of the set point, never as dehydration",
         "respiratory water loss is 0 beyond basal (S1052 open)",
         "caffeine diuresis is 0 for a habitual drinker (S0528/S0529)",
         "liver glycogen is not modelled (S0110 open)",

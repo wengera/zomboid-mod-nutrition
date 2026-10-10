@@ -1,8 +1,8 @@
 -- NR_Kernel_Fluids.lua -- the fast pools (Plan 4): body water and the sodium and potassium balances, the
 -- per-minute loss terms that charge them, the surplus clearance, the derived scalars (dehydration per cent
 -- of body mass, the plasma-sodium index) and the THIRST view the writer writes (rulings 7, 8, T1-1).
--- The model (formulas briefing B1-B6): water is a gram balance against euhydration (< 0 a deficit, > 0 a
--- surplus); na and k are mmol balances against baseline; total body water is TBW_PER_LM x lean mass; the
+-- The model (formulas briefing B1-B6): water, na and k are gram and mmol balances against baseline, and the
+-- water is read against weu, the water na + k carries isotonically (Plan 11f Task 5b); TBW is TBW_PER_LM x lm; the
 -- plasma-sodium index follows the Edelman form, plasma Na proportional to (exchangeable Na + K) over total
 -- body water (open row S1092), with 1.0 = OSM_REF mmol/L. Metabolic water is omitted (stated). Caffeine
 -- diuresis is 0 for a habitual drinker (S0528/S0529) and respiratory loss is 0 beyond basal (open S1052);
@@ -25,8 +25,8 @@ K.fluids.OSM_REF = 140 -- midpoint of S1045's 135-145 normal range
 
 -- The basal water turnover (urine plus insensible loss at rest), g/day, indexed by sex.
 K.fluids.AI = {
-    3700, -- male: the total-water AI, S0088; as turnover a design-phase-v1 game choice (open row S1093)
-    2700, -- female: the total-water AI, S0088; as turnover a design-phase-v1 game choice (open row S1093)
+    3700, -- male: the total-water AI, S0088, as basal turnover: a game choice above S1688's minimum losses
+    2700, -- female: the total-water AI, S0088, as basal turnover: a game choice above S1688's minimum losses
 }
 
 -- Sweat: SWEAT_LH L/h at SWEAT_MET_HI, from zero at SWEAT_MET_LO, capped at SWEAT_CAP x the scale.
@@ -59,11 +59,11 @@ K.fluids.ALC_DIURESIS_G_PER_G = 4 -- S0521 (1279 - 1121 = 158 mL per ~40 g)
 K.fluids.ALC_HYPO_K = 0.45 -- S0522/S0523 (87 vs 158 mL: x0.55)
 K.fluids.ALC_KNEE_PCT = 2 -- design-phase-v1 game choice (open row S1095: the deficit at which alcohol diuresis is blunted)
 
--- Surplus water clearance, zero-order, g/h.
-K.fluids.CLEAR_GH = 320 -- S0521 (1279 mL in 4 h after 1 L, about 0.32 L/h)
+-- The clearance of water above the set point weu, zero-order, g/h.
+K.fluids.CLEAR_GH = 672 -- S1685: the maximal free-water clearance, 11.2 mL/min x 60 (derived)
 
 -- The renal time constants of a sodium and a potassium surplus, hours; a deficit is conserved.
-K.fluids.NA_TAU_H = 24 -- design-phase-v1 game choice (open row S1096: the renal tau of a sodium surplus)
+K.fluids.NA_TAU_H = 33.8 -- S1670: the 30-59 y half-time 23.4 h / ln 2 (derived; the mod has no age); S1672 agrees
 K.fluids.K_TAU_H = 24 -- design-phase-v1 game choice (open row S1097: the renal tau of a potassium surplus)
 
 -- mg per mmol.
@@ -85,9 +85,9 @@ K.fluids.OSM_SLOPE = 0.03 -- design-phase-v1 game choice (open row S1099: the os
 K.fluids.OSM_GAIN = 0.25 -- design-phase-v1 game choice (open row S1099: the osmotic thirst slope)
 K.fluids.OSM_MAX = 4 -- design-phase-v1 game choice (open row S1099: the osmotic thirst slope)
 
--- Hypotonic suppression: below HYPO_NA mmol/L thirst stays under HYPO_CAP (drink to thirst protects).
+-- Hypotonic suppression: below HYPO_NA mmol/L thirst stays under HYPO_CAP, under autoDrink's trigger (#2770).
 K.fluids.HYPO_NA = 135 -- S0102
-K.fluids.HYPO_CAP = 0.11 -- S0102 direction; design-phase-v1 game choice (open row S1099: the suppression below normal Na)
+K.fluids.HYPO_CAP = 0.09 -- game choice under #2770's 0.1 autoDrink trigger, so suppression stops drinking (open S1695)
 
 -- The view's cap while NR.DeficienciesCanKill is off: under vanilla's level-4 drain (#0518/#0519).
 K.fluids.KILL_CAP = 0.83 -- game choice, ruling 8
@@ -102,8 +102,8 @@ K.fluids.HYPONAT = {
 -- sweatActive: the sweat share of the last 6 h's water loss above which a deficit counts as sweat-caused.
 K.fluids.SWEAT_ACTIVE_SHARE = 0.5 -- design-phase-v1 game choice (open row S1100)
 
--- The share of basal water loss that carries sodium at the reference concentration.
-K.fluids.BASAL_NA_FRAC = 0.65 -- game choice (ruling T11-3): the urine share of basal loss near-isotonic, the insensible share solute-free; open S1092/S1093
+-- The obligatory sodium loss without sweating (urine, skin and faeces), mmol/day, whatever the intake.
+K.fluids.BASAL_NA = 8 -- S1665: the IOM's total obligatory loss, up to 8 mmol/d (Table 6-1, 1.7-8.0)
 
 -- The sweat sodium draw from a uniform roll r: 10 + 80 r^2 has mean 36.7 and range 10-90 (S0518; ruling T11-4).
 function K.fluids.naSweatOf(r)
@@ -177,7 +177,7 @@ function K.fluids.losses(f, ctx, dtM)
     local alcG = F.ALC_DIURESIS_G_PER_G * ctx.ethanolAbsG * blunt
     local lossG = basalG + sweatG + coldG + alcG
     f.water = f.water - lossG
-    f.na = f.na - basalG / 1000 * F.BASAL_NA_FRAC * F.OSM_REF
+    f.na = f.na - F.BASAL_NA / 1440 * dtM
     f.na = f.na - sweatL * f.naSweat
     f.k = f.k - sweatL * F.K_SWEAT
     local a = K.min(dtM / F.EMA_MIN, 1)
@@ -187,18 +187,18 @@ function K.fluids.losses(f, ctx, dtM)
     return sweatL
 end
 
--- The renal clearance of a surplus: water zero-order at CLEAR_GH, sodium and potassium first-order.
+-- The renal clearance: a sodium and a potassium surplus first-order, then the water above weu zero-order.
 function K.fluids.clearance(f, dtM)
     local F = K.fluids
-    f.water = f.water - K.min(K.max(f.water, 0), F.CLEAR_GH / 60 * dtM)
     f.na = f.na - K.max(f.na, 0) * (dtM / 60) / F.NA_TAU_H
     f.k = f.k - K.max(f.k, 0) * (dtM / 60) / F.K_TAU_H
+    f.water = f.water - K.min(K.max(f.water - F.weu(f), 0), F.CLEAR_GH / 60 * dtM)
 end
 
--- The water deficit in per cent of body mass w kg; extraG (nil = 0) is water counted as if in the pool:
--- the thirst view passes the stomach's pending water grams (ruling T1-1), the performance scalar 0.
+-- The water deficit against weu in per cent of body mass w kg; extraG (nil = 0) is water counted as if in the
+-- pool: the thirst view passes the stomach's pending water grams (ruling T1-1), the performance scalar 0.
 function K.fluids.dehydPct(f, w, extraG)
-    return 100 * K.max(0, -(f.water + (extraG or 0)) / 1000) / w
+    return 100 * K.max(0, (K.fluids.weu(f) - f.water - (extraG or 0)) / 1000) / w
 end
 
 -- The plasma-sodium index (1.0 = OSM_REF): the osmotic pool over its baseline, diluted by total body water
@@ -265,4 +265,17 @@ end
 -- Whether the last 6 h's water loss was mostly sweat.
 function K.fluids.sweatActive(f)
     return f.loss6h > 0 and f.sweat6h / f.loss6h > K.fluids.SWEAT_ACTIVE_SHARE
+end
+
+-- Water follows sodium (Plan 11f Task 5b, option B): the grams of water one retained mmol carries, the plasma's
+-- 140 mmol/L. LIMITATION: isotonic retention holds in the low-to-normal band (S1673's low-to-normal step, S1678's
+-- 50-200 mmol/d); at high sustained intakes sodium is also stored without water (S1673's normal-to-high step, S1677),
+-- which is not modelled, so above about 200 mmol/d the set point overstates the water retained.
+K.fluids.WATER_PER_MMOL = 1000 / 140 -- S1683: plasma sodium 140 mmol/L, so 7.14 g per mmol (derived)
+
+-- The euhydration set point weu, g against baseline: the water the sodium and potassium balances carry
+-- isotonically. Potassium's share is a game choice (no row prices it): conc counts na + k, so weu counts both,
+-- and water at weu reads c = 1 exactly.
+function K.fluids.weu(f)
+    return K.fluids.WATER_PER_MMOL * (f.na + f.k)
 end
