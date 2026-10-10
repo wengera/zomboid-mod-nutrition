@@ -295,6 +295,28 @@ def row6_7(sessions):
                    "replay_ok": (len(dif5) == 24 and max(dif5) <= TOL_ES) if dif5 else None,
                    "intake": intake, "billed_by_mod_day": billed}
     out["sodium"] = sodium(arms["chain_live"], ring_all)
+    out["sodium"]["x273_slots"] = slot_sodium(next(S for S in sessions if S.pre == "x273"), arms["chain_live"]["be"])
+    return out
+
+
+def slot_sodium(S, be):
+    """The x273 slot files' records (the dead admin's, the newest complete line of each): fluids, the plasma sodium by
+    the mod's own K.fluids.conc and naPlasma, the hyponatraemia grade."""
+    out = []
+    for f in sorted(os.listdir(S.dir)):
+        if not (f.startswith("slot-") and f.endswith(".json")):
+            continue
+        with open(os.path.join(S.dir, f), encoding="utf-8") as fh:
+            lines = [ln for ln in fh.read().splitlines() if ln.strip()]
+        doc = json.loads(lines[-1])
+        rec = doc["rec"]
+        fl = rec["fluids"]
+        t = be.table({"water": fl["water"], "na": fl["na"], "k": fl.get("k") or 0.0})
+        c = float(be.K.fluids.conc(t, rec["body"]["lm"]))
+        na = float(be.K.fluids.naPlasma(c))
+        out.append({"file": f, "gen": doc.get("gen"), "dead": rec.get("dead"), "satiety_t": rec["satiety"]["t"],
+                    "fluids.na": fl["na"], "fluids.water": fl["water"], "body.lm": rec["body"]["lm"],
+                    "naPlasma": na, "grade": int(be.K.fluids.hyponatGrade(na))})
     return out
 
 
