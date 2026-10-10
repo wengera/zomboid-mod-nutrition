@@ -268,3 +268,33 @@ def test_a_dead_record_is_not_stepped_after_its_death_minute():
     assert r.lastSeen == 100.0 + 63 / 60
     assert MIN.stats.runs == runs0
     assert MIN.stats.deadRuns == dead0 + 2           # the store step ran for each dead minute
+
+
+def test_a_stuck_dead_flag_under_a_living_player_heals_once():
+    # Plan 11f Task 5b fix 1 (review finding 6): a record left dead under a player that reads alive, with no reset
+    # pending, would freeze the model until a respawn that never comes; P.work logs it, clears the flag and counts it
+    h = host()
+    a = h.player("a")
+    h.online(a)
+    run_minute(h, 25, 1)
+    P = h.NR.server.players
+    MIN = h.NR.server.minute
+    r = h.record("a")
+    r.dead = True
+    healed0, dead0 = P.deadHealed, MIN.stats.deadRuns
+    run_minute(h, 25, 2)
+    assert r.dead is False
+    assert P.deadHealed == healed0 + 1
+    assert MIN.stats.deadRuns == dead0                 # the healing minute is stepped, not run as dead
+    run_minute(h, 25, 3)
+    assert P.deadHealed == healed0 + 1                 # once
+    # a pending reset owns the record: the flag is left for the reset to clear
+    r.dead = True
+    P.resetPending["a"] = True
+    P.work("a", a)
+    assert r.dead is True and P.deadHealed == healed0 + 1
+    P.resetPending["a"] = None
+    # a dead body is never healed
+    a.deadFlag = True
+    run_minute(h, 25, 4)
+    assert r.dead is True and P.deadHealed == healed0 + 1

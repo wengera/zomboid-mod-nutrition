@@ -11,7 +11,7 @@ local K = NR.kernel
 NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {},
                       minutes = 0, drained = 0, served = 0, sight = {}, resetPending = {}, extraSet = {},
                       tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
-                      budgetMs = 15, runCap = 1, wired = false }
+                      budgetMs = 15, runCap = 1, wired = false, deadHealed = 0 }
 local P = NR.server.players
 
 local function fire(list, username, player, record)
@@ -31,7 +31,9 @@ end
 -- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
 -- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).
 -- A dead record is never stepped (Plan 11f Task 5b): from its death minute until OnNewGame's reset only its store
--- step runs (MIN.runDead), so the record a slot file holds is the record at death.
+-- step runs (MIN.runDead), so the record a slot file holds is the record at death. A dead flag under a player that
+-- reads alive with no reset pending is a stuck flag (Plan 11f Task 5b fix 1): logged, cleared and counted in
+-- deadHealed, so the model never freezes waiting for a respawn that does not come.
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
@@ -42,6 +44,11 @@ function P.work(username, player)
     if okD and dead == true and r.dead ~= true then
         r.dead = true
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
+    end
+    if r.dead == true and okD and dead == false and P.resetPending[username] ~= true then
+        r.dead = false
+        P.deadHealed = P.deadHealed + 1
+        NR.log.say(2, "players: " .. tostring(username) .. " reads alive under a dead record with no reset pending; the flag is cleared")
     end
     if r.dead == true then
         NR.server.minute.runDead(username, player, r)
