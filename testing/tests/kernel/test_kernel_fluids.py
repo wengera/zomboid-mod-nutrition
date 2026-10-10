@@ -358,3 +358,16 @@ def test_past_the_bound_a_sodium_deficit_reads_as_dehydration(host):
     F.clearance(f, 60, 80)
     assert _close(f.water, -2672, 1e-6)  # an hour at 672 g/h toward the bounded set point (S1685)
     assert f.na == -1000  # a deficit is conserved
+
+
+def test_clearance_reads_the_water_against_the_set_point_the_surplus_step_leaves(host):
+    # the order (Plan 11f Task 5b): na and k clear first, then the water above the NEW set point; a step that cleared
+    # the water against the old one (mutation M1) leaves the hour's water at the old set point, above the new
+    F = host.K.fluids
+    f = _new(host)
+    f.na = 1000
+    f.water = F.weu(f, 80)
+    F.clearance(f, 60, 80)
+    assert _close(f.na, 1000 * (1 - 1 / 33.8))
+    assert _close(f.water, F.weu(f, 80), 1e-6)
+    assert f.water < 1000 / 140 * 1000 - 200

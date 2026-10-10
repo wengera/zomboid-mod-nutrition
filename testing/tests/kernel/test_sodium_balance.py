@@ -8,8 +8,9 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
 - the obligatory sodium loss, 8 mmol/d (S1665, IOM 2005 Table 6-1);
 - the renal adaptation time constant, the 30-59 y half-time 23.4 h of S1670 over ln 2 (the mod has no age, so the
   reference adult's band is the one used), against S1672's 458 mmol cumulative retention on a 20 -> 300 mmol/d step;
-- the 24 h urinary recovery at steady state, S1674's 92.8 % (95 % CI 90.7-95.0), widened to 88-97 % by the
-  obligatory loss the model charges outside the kidney;
+- the 24 h urinary recovery at steady state, S1674's 92.8 % (95 % CI 90.7-95.0), its bottom widened to 88 % by the
+  obligatory loss the model charges outside the kidney and its top kept at 95.0; the 220 mmol/d arm reads above the
+  CI (95.3-96.2 %), a named reading: the fixed 8 mmol/d is a smaller share of a larger intake (ceiling 212/220);
 - plasma sodium held by water, not by sodium excretion (S1678: 140 vs 138 mmol/L at 200 vs 50 mmol/d), with
   He 2005's fall of about 3 mmol/L after 5 days near zero sodium (S1680) as the named reading;
 - water follows sodium: the euhydration set point carries 1000/140 g of water per retained mmol (S1683), against
@@ -95,7 +96,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         tod = m % DAY
         if tod == 0:
             day = dict(na_in=0.0, urine=0.0, drunk=0.0, grade=0, pmin=1e9, pmax=-1e9, psum=0.0, water_sum=0.0,
-                       na_sum=0.0, cleared_g=0.0, dmax=0.0, weu_min=0.0)
+                       na_sum=0.0, k_sum=0.0, cleared_g=0.0, dmax=0.0, weu_min=0.0)
             out_days.append(day)
         na_now = na_day
         if switch_day is not None and m >= switch_day * DAY:
@@ -145,6 +146,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         day["psum"] += p
         day["water_sum"] += f.water
         day["na_sum"] += f.na
+        day["k_sum"] += f.k
         day["dmax"] = max(day["dmax"], f.dehydPct)
         day["weu_min"] = min(day["weu_min"], F.weu(f, w))
         if first_grade is None and p < F.HYPONAT[1]:
@@ -161,6 +163,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
             day["pmean"] = day["psum"] / DAY
             day["water_mean"] = day["water_sum"] / DAY
             day["na_mean"] = day["na_sum"] / DAY
+            day["k_mean"] = day["k_sum"] / DAY
             day["weu_end"] = F.weu(f, w)
         if m % 60 == 59:
             hourly.append(dict(m=m + 1, na=f.na, water=f.water, p=p, cleared=day["cleared_g"]))
@@ -195,7 +198,12 @@ def test_a_salted_diet_reaches_urinary_balance_with_plasma_held(na_day):
     assert all(d["grade"] == 0 for d in days), _table(days)
     for d in days[6:10]:
         share = d["urine"] / d["na_in"]
-        assert 0.88 <= share <= 0.97, (na_day, share)            # S1674, widened by the obligatory loss
+        if na_day == 120.0:
+            assert 0.88 <= share <= 0.950, (na_day, share)       # S1674's CI top; the bottom widened by the obligatory loss
+        else:
+            # a named reading above S1674's CI (Plan 11f Task 5b fix 1, review finding 3): the 8 mmol/d obligatory
+            # loss is 3.6 % of 220, so the share climbs toward 212/220 = 96.4 %; it read 95.3-96.2 % on days 7-10
+            assert 0.950 < share < (na_day - 8) / na_day, (na_day, share)
         assert 138 <= d["p_end"] <= 142, (na_day, d["p_end"])    # S1678: plasma defended by water
 
 
@@ -277,6 +285,20 @@ def test_heat_work_on_plain_water_bounds_the_contraction_and_dilutes_the_pool():
     assert 765 / 2 <= first["loss"] <= 765 * 2, first
 
 
+def test_a_potassium_surplus_carries_its_water_too():
+    # the set point counts potassium (Plan 11f Task 5b): a game choice with no row (review finding 5). Its effect,
+    # pinned: a 140 mmol/d potassium surplus holds 1000/140 g of water per retained mmol, as sodium does, and plasma
+    # stays defended; without it the surplus would read hypertonic and drive drinking
+    lo, _ = simulate(10, 120.0, 0.0, False)
+    hi, _ = simulate(10, 120.0, 140.0, False)
+    d_k = sum(d["k_mean"] for d in hi[7:]) / 3 - sum(d["k_mean"] for d in lo[7:]) / 3
+    d_w = sum(d["water_mean"] for d in hi[7:]) / 3 - sum(d["water_mean"] for d in lo[7:]) / 3
+    assert d_k > 100                                            # 140 mmol/d x K_TAU_H 24 h: about 140 mmol
+    assert abs(d_w / d_k - 1000 / 140) < 0.5, d_w / d_k
+    for d in hi[6:]:
+        assert 138 <= d["p_end"] <= 142, d["p_end"]
+
+
 # --- the renal kinetic -------------------------------------------------------------------------------------------
 
 def test_a_step_from_20_to_300_retains_what_bijlsma_measured_at_the_epstein_half_time():
@@ -309,8 +331,11 @@ def test_a_water_load_clears_at_the_maximal_free_water_rate_and_dilutes():
     days, hourly = simulate(1, 0.0, 0.0, False, None, None, (1800.0, 180))
     third = hourly[2]["cleared"] - hourly[1]["cleared"]
     assert 672 / 1.25 <= third <= 672 * 1.25, third
-    # drinking faster than the kidney clears dilutes plasma (S0102): Noakes's subjects fell from 144 to 136
-    assert hourly[2]["p"] < 136
+    # drinking faster than the kidney clears dilutes plasma (S0102): Noakes's subjects fell 8 mmol/L, 144 to 136; the
+    # fall is graded two-sided within 1.25x (Plan 11f Task 5b fix 1, review finding 7). The model starts at 140, so its
+    # 3 h reading of 131.9 against Noakes's 136 is a named reading of the absolute level, not a pass band
+    fall = 140 - hourly[2]["p"]
+    assert 8 / 1.25 <= fall <= 8 * 1.25, hourly[2]["p"]
 
 
 def test_the_heat_work_table_is_reported():
