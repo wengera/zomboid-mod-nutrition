@@ -1987,3 +1987,40 @@ x250-20261008-074210,phases.A.actions.2.result.admin.calories,-385.6524047851562
 x250-20261008-074210,phases.A.actions.2.result.bob.calories,-253.2220458984375,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut1 read); a negative calorie value is not a reading of this task.,
 x250-20261008-074210,phases.A.actions.7.result.admin.calories,-478.0779724121094,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
 x250-20261008-074210,phases.A.actions.7.result.bob.calories,-345.2622375488281,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
+x260-20261010-110247,session,the driver's text,Written before the run; not a reading.,
+x260-20261010-110247,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x260-20261010-110247,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x260-20261010-110247,deviations,the driver's list,Written before the run; not readings.,
+x260-20261010-110247,world_changes,the driver's text,"Written before the run; not readings. `left_in_place` says the Mixed650 was spawned by inventory.add, but the spawn was RCON `additem`: driver text, wrong.",`verdicts.EAT.observed`
+x260-20261010-110247,meta.build_expected,the driver's text,Written before the run; not a reading.,"cite `build`, `meta.jar_sha256`, `meta.steam_buildid`"
+x260-20261010-110247,meta.phase_note,the driver's text,The driver's own text; not a reading.,
+x260-20261010-110247,meta.s0_note,the driver's text,The driver's own text; not a reading.,
+x260-20261010-110247,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x260-20261010-110247,profile,the booted profile,"Settings of the run, not readings.",
+x260-20261010-110247,doctor,the doctor's lines,"Pre-run state, not a reading.",
+x260-20261010-110247,readings.benchRow.watched_users,1,"A constant of the call (one watched user), not a reading.",`readings.benchRow.us_per_row`
+x260-20261010-110247,phases.S.nutrition.calories,-9.455041885375977,The vanilla Nutrition block under Nutrition false (as in x250); not the mod's body.,
+x260-20261010-110247,phases.S.nutrition.carbs,-300,The vanilla Nutrition block under Nutrition false (as in x250); not the mod's body.,
+x260-20261010-110247,phases.S.nutrition.lipids,-70,The vanilla Nutrition block under Nutrition false (as in x250); not the mod's body.,
+x260-20261010-110247,phases.S.nutrition.proteins,-400,The vanilla Nutrition block under Nutrition false (as in x250); not the mod's body.,
+x260-20261010-110247,phases.S.nutrition.weight,80,"Vanilla's weight under Nutrition false, not the mod's body.",
+x260-20261010-110247,replay.inputs.player.macros,"-9.455041885375977, -300, -70, -400","The vanilla Nutrition block under Nutrition false (as in x250), copied into the replay's player input; not the mod's body. `player.json`'s `macros` are the same values.",
+x260-20261010-110247,replay.inputs.player.weight,80,"Vanilla's weight under Nutrition false, copied into the replay's player input; `player.json`'s `weight` is the same value.",
+x260-20261010-110247,phases.W.lastWrite_before,1791644660348,"Epoch ms of the writer's last write, a wall-clock stamp; not game state.",
+x260-20261010-110247,phases.W.lastWrite,1791644720559,"Epoch ms of the writer's last write, a wall-clock stamp; not game state.",
+x260-20261010-110247,verdicts.S0.observed,writes 1.000200693345909; dtM share 0.744,"S0 is falsified as graded (ruling S0-1, Plan 11f): never cite it as S0 passing; the dtM clause sat below the tick quantization.",`readings.speed5` and `readings.speed1`
+x260b-20261010-111433,session,the driver's text,Written before the run; not a reading.,
+x260b-20261010-111433,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x260b-20261010-111433,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x260b-20261010-111433,deviations,the driver's list,Written before the run; not readings.,
+x260b-20261010-111433,world_changes,the driver's text,Written before the run; not readings.,
+x260b-20261010-111433,meta.phase_note,the driver's text,The driver's own text; not a reading.,
+x260b-20261010-111433,meta.chain_note,the driver's text,The driver's own text; not a reading.,`session1_dir`
+x260b-20261010-111433,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x260b-20261010-111433,profile,the booted profile,"Settings of the run, not readings.",
+x260b-20261010-111433,doctor,the doctor's lines,"Pre-run state, not a reading.",
+x260b-20261010-111433,replay.inputs.player.macros,"-9.455041885375977, -300, -70, -400","Session 1's `player.json`, the vanilla Nutrition block under Nutrition false; not the mod's body. `player.json`'s `macros` are the same values.",
+x260b-20261010-111433,replay.inputs.player.weight,80,Session 1's vanilla weight under Nutrition false; `player.json`'s `weight` is the same value.,
+x260b-20261010-111433,verdicts.REPLAY.observed,ok true,"The verdict grades `replay.diff` (HUNGER, energyState, L) only; it is no match on P, which `replay.diff_extra` shows one row late.",`replay.diff` for HUNGER; P after the replay_live fix (ruling S0-3)
+x260b-20261010-111433,replay.diff_extra.fields.satiety.P,"max 0.01649413960392917, over 40 of 40","replay_live's one-row reconnect lag: it treats the online first-sight row with no record as offline, so its drain runs one row late (a tool limitation at 93db909), not a mod drift.",`readings.hunger_across` for live P
+x260b-20261010-111433,readings.hunger_across.s2_first_online.*.satiety.t,9.983892440795898 to 10.034379959106445,"The age of the previous drain, not of the row.",the row's `age`
