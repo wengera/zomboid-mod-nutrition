@@ -54,3 +54,21 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
   - A live idle day bills about 1.344 × REE (x261), which is in the sedentary range.
   - Twin construction needed body-size gymnastics because the Default class is a single flat MET.
 - **Candidate:** no change needed yet. It stays a note in case activity-class granularity limits later fits.
+
+## C-6: renal sodium conservation (found by x271–x273; fixed in Task 5b)
+- **Seen:** basal urine sodium was a fixed 337 mmol/d whatever the intake, so every diet drained and the character died (F-T5-1).
+- **Status:** fixed. Urine now tracks intake with the measured adaptation time constant, and water follows sodium (S1665–S1697).
+- **Left as candidates:**
+  - sodium stored without water at high intake (S1673, S1677);
+  - potassium in the set point, which has no row;
+  - the zero-sodium plasma dip of about −3 mmol/L (S1680) that the set point flattens.
+
+## C-7: salt and spices reach the body
+- **Seen:** `Base.Salt` carries no sodium. Salting a dish lands the spice in `Food.spices` (#0296, #2652), which the intake never reads.
+- **Candidate:** read `Food.spices` at the eat, at a per-use dose from the spice branch (#0381, open), and add a hypernatraemia rung for eating salt straight.
+- **Gain:** players can salt their food, which matters once sodium balance is real.
+
+## C-8: thirst reads the stomach's pending water
+- **Seen:** after the Task 5b fix, the osmotic thirst term reads the pool without the liquid lane's pending water, so autodrink re-fires until the lane empties: 4.0–5.4 L/d against about 3.7 before.
+- **Candidate:** the thirst view counts water still in the stomach (oropharyngeal and gastric satiation of thirst is real physiology).
+- **Gain:** realistic drinking volumes, and a simpler, more accurate thirst model.
