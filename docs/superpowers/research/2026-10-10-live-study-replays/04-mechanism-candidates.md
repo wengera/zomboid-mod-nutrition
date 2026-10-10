@@ -90,3 +90,10 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 ## C-12: a slow, low-sweat depletion arm
 - **Seen:** the heat oracle cannot see the volume-defence onset, because mutant B1 survives it.
 - **Candidate:** a slow sodium-depletion scenario (S1721) to grade the onset.
+
+## C-15: sweat-gland lag and heat acclimatisation
+- **Seen (Task 5b fix 3):**
+  - With no stored state, the deficit-driven sweat sodium becomes detectable 6.3 h into a deficit, against about 12 h onset (S1773) and a 1–4 day gland lag (S1748).
+  - A replete worker who acclimatises to heat does not adapt (S1755, S1739, S1743, S1744).
+- **Candidate:** one stored exponential moving average with a time constant in days, driven by both deficit and heat exposure.
+- **Gain:** a correct onset and acclimatisation in one field.
