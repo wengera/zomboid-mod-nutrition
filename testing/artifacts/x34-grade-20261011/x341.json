@@ -1,0 +1,245 @@
+{
+ "driver_verdicts": {
+  "CLIENT": "falsified",
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "NOJUMP": "as_predicted",
+  "PANIC": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SLEEP_OFF": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "autodrop": 32,
+  "eat": 7,
+  "stat": 10
+ },
+ "host": {
+  "free_gb_after": 16.9030075073242,
+  "free_gb_before_boot": 16.6194114685059,
+  "mem_min_gb": 12.0,
+  "stray_clients": []
+ },
+ "panic": {
+  "dehyd_max": 0.5545625532020757,
+  "dehyd_over_1_5_rows": 0,
+  "dehyd_rows": 3110,
+  "panic_max": 0,
+  "panic_over_5_rows": 0,
+  "panic_rows": 3110,
+  "rows": 3110,
+  "target_max": 0,
+  "target_rows": 3110
+ },
+ "ring_activity_events": 3060,
+ "ring_first_age": 3.4181976318359375,
+ "ring_last_age": 55.23490905761719,
+ "rows": 3066,
+ "rows_grade": {
+  "BORED_MAX": {
+   "B_max": 22.814346313476562,
+   "bound": 49.0,
+   "in_bt_max": 19.94454843028035,
+   "moodLast_b_max": 19.94454843028035,
+   "ok": true
+  },
+  "KEEP_U": {
+   "graded": 3103,
+   "over": 0
+  },
+  "MODEL_B": {
+   "band": [
+    -0.0001,
+    0.1
+   ],
+   "graded": 3067,
+   "max": 0.04797649383544922,
+   "min": 0.005468614399433136,
+   "outside": 0,
+   "worst": [
+    {
+     "age": 30.543689727783203,
+     "b_minus_model": 0.04797649383544922,
+     "s": 1628
+    },
+    {
+     "age": 17.028947830200195,
+     "b_minus_model": 0.04796648025512695,
+     "s": 817
+    },
+    {
+     "age": 26.029741287231445,
+     "b_minus_model": 0.04796600341796875,
+     "s": 1357
+    },
+    {
+     "age": 31.727569580078125,
+     "b_minus_model": 0.047962188720703125,
+     "s": 1699
+    },
+    {
+     "age": 29.777969360351562,
+     "b_minus_model": 0.04795265197753906,
+     "s": 1582
+    }
+   ]
+  },
+  "MODEL_U": {
+   "graded": 3099,
+   "max_abs": 9.5367431640625e-07,
+   "over": 0,
+   "tol": 0.0001,
+   "worst": [
+    {
+     "age": 49.45045852661133,
+     "s": 2763,
+     "u_minus_model": -9.5367431640625e-07
+    },
+    {
+     "age": 51.37482452392578,
+     "s": 2878,
+     "u_minus_model": 8.963870641309768e-07
+    },
+    {
+     "age": 50.059200286865234,
+     "s": 2799,
+     "u_minus_model": -8.152867394528585e-07
+    },
+    {
+     "age": 50.32485580444336,
+     "s": 2815,
+     "u_minus_model": -8.031588230039688e-07
+    },
+    {
+     "age": 49.485023498535156,
+     "s": 2765,
+     "u_minus_model": 7.928440624027644e-07
+    }
+   ]
+  },
+  "RISE_B_PER_H": {
+   "max": 28.608736327000575,
+   "median": 26.79793098510882,
+   "min": 22.86944205393001,
+   "n": 136
+  },
+  "RISE_B_ROWS": 136,
+  "RISE_U_PER_H": {
+   "max": 22.0,
+   "median": 22.0,
+   "min": 21.999940291378074,
+   "n": 65
+  },
+  "RISE_U_ROWS": 65,
+  "TRACK_B": {
+   "graded": 2924,
+   "max_over_twin": 10.501632732741124,
+   "min_over_twin": 0.023917719927458947,
+   "tol": 0.050100000000000006,
+   "under": 0
+  },
+  "TRACK_U": {
+   "graded": 3027,
+   "max_abs": 0.04999782031329403,
+   "over": 0,
+   "tol": 0.050100000000000006,
+   "worst": []
+  },
+  "TWIN": {
+   "graded": 3096,
+   "max_abs_b": 3.552713678800501e-15,
+   "max_abs_u": 3.552713678800501e-15,
+   "over": 0,
+   "tol": 1e-06,
+   "worst": [
+    {
+     "age": 34.76972961425781,
+     "s": 1882,
+     "twin_u_minus_in": -3.552713678800501e-15
+    },
+    {
+     "age": 39.33483123779297,
+     "s": 2156,
+     "twin_u_minus_in": -3.552713678800501e-15
+    },
+    {
+     "age": 51.81291198730469,
+     "s": 2904,
+     "twin_u_minus_in": 3.552713678800501e-15
+    },
+    {
+     "age": 27.15874481201172,
+     "s": 1425,
+     "twin_u_minus_in": 1.7763568394002505e-15
+    },
+    {
+     "age": 27.357995986938477,
+     "s": 1437,
+     "twin_u_minus_in": -1.7763568394002505e-15
+    }
+   ]
+  },
+  "U_max": 19.90177345275879,
+  "rows": 3103,
+  "twin_u_max": 19.948892900942493
+ },
+ "run_id": "x341-20261011-163142",
+ "tool_diff": {
+  "classes": {
+   "between": 49,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00039130204583404105,
+    "n": 3010,
+    "over": 0,
+    "worst_s": 2752
+   },
+   "body.energyState": {
+    "max": 0.0012126281051847432,
+    "n": 3010,
+    "over": 0,
+    "worst_s": 2762
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 3010,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "vs_replay": {
+  "BOREDOM": {
+   "max": 10.521059465457975,
+   "max_abs": 10.521059465457975,
+   "min": -0.009152591228485107,
+   "n": 3010,
+   "rows_over": 2984,
+   "tol": 0.051000000000000004,
+   "worst_live_minus_replay": 10.521059465457975,
+   "worst_s": 1068
+  },
+  "UNHAPPINESS": {
+   "max": 0.048171505211133336,
+   "max_abs": 0.048171505211133336,
+   "min": -0.00812174754031858,
+   "n": 3010,
+   "rows_over": 0,
+   "tol": 0.051000000000000004,
+   "worst_live_minus_replay": 0.048171505211133336,
+   "worst_s": 1781
+  }
+ },
+ "wall_seconds": 644.7
+}

@@ -1,0 +1,150 @@
+{
+ "grade_commit": "da63c4ae",
+ "lib_commit": "da63c4ae",
+ "regrade": {
+  "base_grade_commit": "da63c4ae",
+  "commit": "ef47385c",
+  "fixed": [
+   "R1 CLIENT_DAYEND",
+   "R2 reconnect",
+   "R3 release"
+  ]
+ },
+ "sessions": [
+  "x341",
+  "x342",
+  "x343"
+ ],
+ "tool_commit": "08eb7e60",
+ "verdicts": {
+  "A_FIRST_RISE_NEXT_MINUTE": {
+   "M0_1900": true,
+   "M1_0800": true,
+   "M1_1300": true,
+   "M1_1900": true,
+   "M2_0800": true,
+   "M2_1300": true,
+   "M2_1900": true,
+   "M3_0800": true,
+   "M3_1300": true,
+   "M3_1900": true,
+   "M4_0800": true,
+   "M4_1300": true
+  },
+  "A_NO_JUMP_PAIR": {
+   "M0_1900": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M1_0800": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M1_1300": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M1_1900": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M2_0800": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M2_1300": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M2_1900": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M3_0800": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M3_1300": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M3_1900": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M4_0800": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   },
+   "M4_1300": {
+    "BOREDOM": true,
+    "UNHAPPINESS": true
+   }
+  },
+  "A_NO_JUMP_RING": {
+   "M0_1900": true,
+   "M1_0800": true,
+   "M1_1300": true,
+   "M1_1900": true,
+   "M2_0800": true,
+   "M2_1300": true,
+   "M2_1900": true,
+   "M3_0800": true,
+   "M3_1300": true,
+   "M3_1900": true,
+   "M4_0800": true,
+   "M4_1300": true
+  },
+  "B_MODEL_B": true,
+  "B_MODEL_U": true,
+  "B_TRACK_B": true,
+  "B_TRACK_U": true,
+  "B_TWIN": true,
+  "CLIENT_DAYEND": {
+   "0": true,
+   "1": true,
+   "2": true,
+   "3": true,
+   "4": true,
+   "5": true,
+   "6": true
+  },
+  "C_BORED_UNDER_49": true,
+  "D_RELEASE": {
+   "B": true,
+   "U": true
+  },
+  "EXE_FALSE": {
+   "x341": true,
+   "x342": true,
+   "x343": true
+  },
+  "E_REPLAY": {
+   "x341": {
+    "BOREDOM": false,
+    "UNHAPPINESS": true
+   },
+   "x342": {
+    "BOREDOM": false,
+    "UNHAPPINESS": true
+   },
+   "x343": {
+    "BOREDOM": false,
+    "UNHAPPINESS": true
+   }
+  },
+  "PANIC_OVER_5_ROWS": {
+   "x341": 0,
+   "x342": 0,
+   "x343": 0
+  },
+  "RECONNECT_AWAY_GE_6H": true,
+  "RECONNECT_LANDED": true,
+  "REPLAY_TOOL_OK": {
+   "x341": true,
+   "x342": true,
+   "x343": true
+  },
+  "SODIUM_GRADE_MAX": 0
+ }
+}

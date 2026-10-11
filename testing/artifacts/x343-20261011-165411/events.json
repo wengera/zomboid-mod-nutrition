@@ -1,0 +1,294 @@
+[
+ {
+  "age": 115.78522491455078,
+  "autoDrop": 0.10052632891082958,
+  "g": 201.05265782165915,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 46
+ },
+ {
+  "age": 117.10426330566406,
+  "autoDrop": 0.10083510674051388,
+  "g": 201.67021348102776,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 125
+ },
+ {
+  "age": 117.22384643554688,
+  "kind": "stat",
+  "label": "setany-R5_0400",
+  "s": 132,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 118.41976928710938,
+  "autoDrop": 0.10040797699656923,
+  "g": 200.81595399313846,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 204
+ },
+ {
+  "age": 119.73546600341797,
+  "autoDrop": 0.10026121428618895,
+  "g": 200.5224285723779,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 283
+ },
+ {
+  "age": 121.06793212890625,
+  "autoDrop": 0.1006817075678983,
+  "g": 201.36341513579657,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 363
+ },
+ {
+  "food": "TKX.Mixed400",
+  "kind": "eat",
+  "label": "V5_0800",
+  "s": 378
+ },
+ {
+  "age": 123.68360137939453,
+  "kind": "stat",
+  "label": "setany-R5_1030",
+  "s": 520,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 124.02922821044922,
+  "autoDrop": 0.10023088294390747,
+  "g": 200.46176588781495,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 540
+ },
+ {
+  "age": 125.3458480834961,
+  "autoDrop": 0.1002095627373858,
+  "g": 200.4191254747716,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 619
+ },
+ {
+  "food": "TKX.Dense400Lo",
+  "kind": "eat",
+  "label": "V5_1300",
+  "s": 679
+ },
+ {
+  "age": 129.3941192626953,
+  "autoDrop": 0.10020533949137467,
+  "g": 200.41067898274935,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 862
+ },
+ {
+  "age": 129.67318725585938,
+  "kind": "stat",
+  "label": "setany-R5_1630",
+  "s": 879,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 130.70936584472656,
+  "autoDrop": 0.10014488055455961,
+  "g": 200.2897611091192,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 941
+ },
+ {
+  "age": 132.01815795898438,
+  "autoDrop": 0.10007786898087911,
+  "g": 200.15573796175823,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1020
+ },
+ {
+  "food": "TKX.Dense400Hi",
+  "kind": "eat",
+  "label": "V5_1900",
+  "s": 1036
+ },
+ {
+  "age": 140.53457641601562,
+  "autoDrop": 0.10056559434767254,
+  "g": 201.1311886953451,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1531
+ },
+ {
+  "age": 140.55052185058594,
+  "kind": "stat",
+  "label": "setany-R5_2200",
+  "s": 1532,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 141.17721557617188,
+  "kind": "stat",
+  "label": "setany-R6_0400",
+  "s": 1569,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 141.85372924804688,
+  "autoDrop": 0.10083115043828961,
+  "g": 201.66230087657922,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1610
+ },
+ {
+  "age": 143.16964721679688,
+  "autoDrop": 0.10040484627580626,
+  "g": 200.80969255161253,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1689
+ },
+ {
+  "age": 144.48648071289062,
+  "autoDrop": 0.10032204775449849,
+  "g": 200.64409550899697,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1768
+ },
+ {
+  "food": "TKX.Mixed333",
+  "kind": "eat",
+  "label": "V6_0800",
+  "s": 1819
+ },
+ {
+  "age": 146.78465270996094,
+  "autoDrop": 0.10005797871290756,
+  "g": 200.1159574258151,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1906
+ },
+ {
+  "age": 147.72900390625,
+  "kind": "stat",
+  "label": "setany-R6_1030",
+  "s": 1962,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 148.10107421875,
+  "autoDrop": 0.10012825792611779,
+  "g": 200.2565158522356,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1985
+ },
+ {
+  "age": 149.4298858642578,
+  "autoDrop": 0.10012186341674134,
+  "g": 200.2437268334827,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2064
+ },
+ {
+  "food": "TKX.Mixed667",
+  "kind": "eat",
+  "label": "V6_1300",
+  "s": 2128
+ },
+ {
+  "age": 152.70443725585938,
+  "autoDrop": 0.10016673775839502,
+  "g": 200.33347551679003,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2261
+ },
+ {
+  "age": 153.70147705078125,
+  "kind": "stat",
+  "label": "setany-R6_1630",
+  "s": 2321,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 154.01974487304688,
+  "autoDrop": 0.1001139597965568,
+  "g": 200.2279195931136,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2340
+ },
+ {
+  "age": 155.335693359375,
+  "autoDrop": 0.1001328377328865,
+  "g": 200.265675465773,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2419
+ },
+ {
+  "food": "TKX.SnackP",
+  "kind": "eat",
+  "label": "V6_1900",
+  "s": 2477
+ },
+ {
+  "age": 157.63629150390625,
+  "autoDrop": 0.10010069980413794,
+  "g": 200.20139960827586,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2557
+ },
+ {
+  "age": 158.95399475097656,
+  "autoDrop": 0.10020964058288206,
+  "g": 200.41928116576412,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2636
+ },
+ {
+  "age": 159.1667022705078,
+  "kind": "stat",
+  "label": "setany-R6_2200",
+  "s": 2649,
+  "stat": "BOREDOM",
+  "value": 0.0
+ },
+ {
+  "age": 160.2698516845703,
+  "autoDrop": 0.10017014805740632,
+  "g": 200.34029611481265,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2715
+ },
+ {
+  "age": 161.6009063720703,
+  "autoDrop": 0.10055840442179909,
+  "g": 201.11680884359816,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2795
+ }
+]
