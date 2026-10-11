@@ -139,6 +139,6 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Candidate:** a floor value or write timing that holds the moodle level. A tuned floor depends on clock speed, and writing more often is per-tick work (Rule 6).
 
 ## C-25: monotony's BOREDOM floor and vanilla's idle rise
-- **Seen (x341–x343, floor design):** vanilla's idle rise adds about 1.8 BOREDOM per game hour on top of the floor (F-T9r-4). A one-food player idling indoors would cross Bored level 2 (50) in about 11 idle hours, and vanilla then adds UNHAPPINESS through its boredom term.
+- **Seen (x341–x343, floor design):** vanilla's idle rise adds about 1.8-2.0 BOREDOM per game hour on top of the floor (F-T9r-4; no grade leaf yet). A one-food player idling (assumed indoors) would cross Bored level 2 (50) in about 10-11 idle hours, and vanilla then adds UNHAPPINESS through its boredom term.
 - **Candidate:** lower the BOREDOM cap, or count the floor against vanilla's idle path.
 - **Downside:** a lower cap loses the level-1 Bored moodle Angus chose (2026-10-11). Raise this with Angus at the close.
