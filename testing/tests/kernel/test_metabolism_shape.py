@@ -1135,7 +1135,7 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
         isServer = function() return true end
         SandboxVars = { Nutrition = true }
-        NutritionRevamp.server.players = { onFirstSight = {} }
+        NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
     """)
     for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua",
                      "NR_Server_Options.lua"]):
@@ -1151,8 +1151,11 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
     report = [s for s in printed if "NutritionRevamp v" in s]
     assert report and "nutritionOn=true" in report[0]   # set before the boot self-report
     fs = G.NutritionRevamp.server.players.onFirstSight
-    assert len(fs) == 1
+    assert len(fs) == 2                        # onFirstSight, then the held-rate forget (Plan 11f C-17 fix 1)
     assert rt.eval("rawequal")(fs[1], G.NutritionRevamp.server.metabolism.onFirstSight)
+    assert rt.eval("rawequal")(fs[2], G.NutritionRevamp.server.metabolism.forget)
+    ds = G.NutritionRevamp.server.players.onDeparture
+    assert len(ds) == 1 and rt.eval("rawequal")(ds[1], G.NutritionRevamp.server.metabolism.forget)
 
 
 def test_self_report_reads_nutrition_off_by_default():

@@ -255,10 +255,12 @@ KARL_BATTERY = (10 * 60, 25)      # the task battery: 10:00 (ASSUMED), 25 min of
 
 
 def karl_walk(start, dur, met, vigorous=True):
-    """A loaded walk billing `met` on the bout's mean: HeavyWork (billed 6.0) with Running10kmh (billed 9.3) on the
-    minutes a Bresenham share of (met - 6.0) / 3.3 picks, every minute vigorous aerobic; idle after. The walk moves
+    """A loaded walk billing `met` on the bout's mean: HeavyWork (billed 6.0) for the first minutes and Running10kmh
+    (billed 9.3) for the last int(dur * (met - 6.0) / 3.3), every minute vigorous aerobic; idle after. The walk moves
     (Plan 11f C-17): a still stand-in's step down from Running10kmh to HeavyWork reads as a falling rate and bills idle
-    (BAL -43.9 and DEF +26.7, both inside, with 1.5 MJ a day less billed), where a walker's moving flag keeps the class.
+    (BAL -43.9 and DEF +26.7, both inside, with 1.5 MJ a day less billed), where a walker's moving flag keeps the class;
+    fix 1 (ruling C17-5) caps a moving fall at Walking5kmh, so the Running minutes close the bout and the rate never
+    steps down inside it (the readings are those of the interleaved walk: BAL -45.1, DEF +30.2).
     Not vigorous: the same kcal above the idle class billed at DiggingSpade (5.0, under the bar), so the bout runs
     longer. Returns (the bout's minutes, its events)."""
     x = (met - 6.0) / (9.3 - 6.0)
@@ -268,8 +270,9 @@ def karl_walk(start, dur, met, vigorous=True):
         dur = int(round(dur * (billed - 1.3) / (5.0 - 1.3)))
         return dur, karl_bout(start, dur, "DiggingSpade")
     ev, prev = [], None
+    run = int(dur * x + 1e-9)                              # the Running minutes close the bout, so the rate never steps down
     for i in range(dur):
-        cls = "Running10kmh" if int((i + 1) * x + 1e-9) > int(i * x + 1e-9) else "HeavyWork"
+        cls = "Running10kmh" if i >= dur - run else "HeavyWork"
         if cls != prev:
             ev.append({"minute": start + i, "kind": "activity", "rate": RATE[cls], "moving": True})
             prev = cls

@@ -538,5 +538,24 @@ function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
 end
 
 MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills the Fitness class (6.0) while the server's exercise flag is set, whatever the exercise; walking, chopping and fighting keep the metabolic rate's rise lag"
-MET.limitations[#MET.limitations + 1] = "a minute whose metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall"
+MET.limitations[#MET.limitations + 1] = "a minute whose metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads 6.0 on every set minute and 1.3 on every standing fall"
 MET.limitations[#MET.limitations + 1] = "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length"
+
+-- Plan 11f C-17 fix 1 (ruling C17-4): the held rate and flag are per user and leave with the player. Appended so no
+-- line above moves.
+function MET.forget(username)
+    MET.prevRate[username] = nil
+    MET.prevExe[username] = nil
+end
+
+if Events ~= nil and Events.OnServerStarted ~= nil then
+    Events.OnServerStarted.Add(function()
+        if not NR.isServer() then return end
+        if MET.forgetWired then return end
+        local P = NR.server.players
+        if P == nil then return end
+        MET.forgetWired = true
+        if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.forget end
+        if P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = MET.forget end
+    end)
+end

@@ -71,7 +71,13 @@ def test_rate_falling(host, prev, rate, falls):
     ("Sleeping", True, False, True, "Sleeping"),          # asleep wins
     ("UsingTools", False, False, True, "Default"),        # a falling tail bills idle
     ("LightDomestic", False, False, True, "Default"),
-    ("UsingTools", False, True, True, "UsingTools"),      # moving keeps the rate's class
+    ("UsingTools", False, True, True, "UsingTools"),      # moving keeps the rate's class at or below Walking5kmh
+    ("DefaultExercise", False, True, True, "DefaultExercise"),
+    ("Walking5kmh", False, True, True, "Walking5kmh"),
+    ("Running10kmh", False, True, True, "Walking5kmh"),   # a moving fall above Walking5kmh is capped (ruling C17-5)
+    ("HeavyWork", False, True, True, "Walking5kmh"),
+    ("Running10kmh", False, True, False, "Running10kmh"), # a steady or rising moving rate keeps its class
+    ("Sleeping", False, True, True, "Sleeping"),
     ("UsingTools", False, False, False, "UsingTools"),    # a steady or rising rate keeps its class
     ("SeatedResting", False, False, True, "SeatedResting"),   # the gate never raises a bill
     ("StandingAtRest", False, False, True, "StandingAtRest"),
@@ -114,7 +120,7 @@ def test_a_flagged_minute_banks_f_and_releases_on_tau(host):
 
 def test_a_bad_pool_or_input_heals(host):
     E = host.K.energy
-    for bad in (float("nan"), float("inf"), -3.0):
+    for bad in (float("nan"), float("inf"), -3.0, "x", True):
         b = _body(host)
         b.epoc = bad
         rel, healed = E.epoc(b, False, 0.0, 1.0)
@@ -477,3 +483,83 @@ def test_ring_activity_events_emit_on_change_and_skip_offline_rows():
                    {"s": 3, "kind": "activity", "label": "ring-activity", "raw": 1.6, "exercising": False},
                    {"s": 5, "kind": "activity", "label": "ring-activity", "raw": 1.6, "exercising": True}]
     assert not RL.ring_carries_activity([{"s": 1, "age": 1.0}])
+
+
+def test_a_set_ended_by_walking_away_bills_walking_at_most_while_the_rate_falls(met_host):
+    h = met_host
+    _reset(h)
+    p = player(h, rate=6.0, exe="squats", moving=False)
+    record = fresh(h, p)
+    p.cfg.exe = None
+    p.cfg.moving = True                                   # the player walks off: the flag clears
+    p.cfg.rate = 5.0                                      # the falling rate would class DiggingSpade
+    pipe = h.rt.table()
+    minute(h, p, record, 100.0 + 1 / 60, pipe)
+    assert pipe["activityClass"] == "Walking5kmh"
+    assert record["body"]["met"] == 3.8                   # Walking5kmh, not the falling rate's 5.0
+    p.cfg.rate = 4.0                                      # still falling, still moving
+    minute(h, p, record, 100.0 + 2 / 60, pipe)
+    assert record["body"]["met"] == 3.8
+    p.cfg.rate = 3.1                                      # settled at the walking rate, still capped at its class
+    minute(h, p, record, 100.0 + 3 / 60, pipe)
+    assert record["body"]["met"] == 3.8
+
+
+def test_a_fall_under_a_constant_load_is_a_fall_of_the_stripped_rate(met_host):
+    # the carried load is constant; the raw rate falls with the stripped one but stays above the held stripped
+    # rate (4.13 over 4.0): a comparison of the raw rate against the held stripped one reads no fall
+    h = met_host
+    _reset(h)
+    f = 1 + 0.35 * 0.5 * 0.5
+    p = player(h, rate=4.0 * f, carried=10.0, maxW=20, moving=False)
+    record = fresh(h, p)
+    p.cfg.rate = 3.8 * f
+    assert 3.8 * f > 4.0
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert record["body"]["met"] == 1.3
+
+
+def test_a_departure_and_a_first_sight_clear_the_held_rate_and_flag(met_host):
+    h = met_host
+    _reset(h)
+    p = player(h, rate=6.0, exe="squats", moving=False)
+    fresh(h, p)
+    m = MET(h)
+    keys = [k for k in m.prevRate.keys()]
+    assert keys and m.prevExe[keys[0]] is True
+    m.forget(keys[0])
+    assert m.prevRate[keys[0]] is None and m.prevExe[keys[0]] is None
+
+
+def test_the_forget_hook_is_wired_to_departure_and_first_sight():
+    import lupa.lua51 as lua51
+    from .test_metabolism_shape import CORE, SERVER
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    ld = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    with open(CORE, encoding="utf-8") as fh:
+        ld(fh.read(), "@NR_Core.lua")()
+    rt.execute("""
+        NR_STARTED = {}
+        Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
+        isServer = function() return true end
+        SandboxVars = { Nutrition = false }
+        NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
+    """)
+    for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"]):
+        with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
+            ld(fh.read(), "@" + n)()
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")           # once
+    G = rt.globals()
+    met = G.NutritionRevamp.server.metabolism
+    same = rt.eval("rawequal")
+    P = G.NutritionRevamp.server.players
+    for hook_list in (P.onFirstSight, P.onDeparture):
+        hooks = [hook_list[i] for i in range(1, len(hook_list) + 1)]
+        assert len([x for x in hooks if same(x, met.forget)]) == 1
+        for x in hooks:
+            met.prevRate["a"] = 1.5
+            met.prevExe["a"] = True
+            x("a", None, None)
+            if same(x, met.forget):
+                assert met.prevRate["a"] is None and met.prevExe["a"] is None
