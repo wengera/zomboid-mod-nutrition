@@ -1,0 +1,204 @@
+{
+ "agreement": {
+  "body.energyState": {
+   "max_rel": 0.0008108494094216656,
+   "n": 2701,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2710
+  },
+  "body.epoc": {
+   "max_rel": 7.1856992336220345e-06,
+   "n": 2701,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2007
+  },
+  "body.trail.c.ex": {
+   "max_rel": 0.0037208588915144986,
+   "n": 2701,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2410
+  },
+  "satiety.L": {
+   "max_rel": 0.0011532664146980055,
+   "n": 2701,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2765
+  }
+ },
+ "diff": {
+  "classes": {
+   "between": 54,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0002209036339658743,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 1601
+   },
+   "body.energyState": {
+    "max": 0.0008108494094216656,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 2710
+   },
+   "body.trail.c.ex": {
+    "max": 0.0037208588915144986,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 2410
+   },
+   "satiety.L": {
+    "max": 0.0011532664146980055,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 2765
+   },
+   "satiety.S": {
+    "max": 3.469446951953614e-18,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 697
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BILLING": "as_predicted",
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "autodrop": 33,
+  "eat": 21
+ },
+ "met_agreement": {
+  "mismatches": 5,
+  "n": 2755,
+  "rows": [
+   {
+    "age": 61.50019836425781,
+    "between": false,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.9,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.807518720626831,
+    "rate_prev": 1.8109129667282104,
+    "replay": 1.3,
+    "s": 879
+   },
+   {
+    "age": 85.5340805053711,
+    "between": true,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.6,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.7022920846939087,
+    "rate_prev": 1.704358458518982,
+    "replay": 1.3,
+    "s": 2321
+   },
+   {
+    "age": 85.61900329589844,
+    "between": false,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.6,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.6915825605392456,
+    "rate_prev": 1.693920373916626,
+    "replay": 1.3,
+    "s": 2326
+   },
+   {
+    "age": 86.2512435913086,
+    "between": false,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.6,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.6276174783706665,
+    "rate_prev": 1.6289194822311401,
+    "replay": 1.3,
+    "s": 2364
+   },
+   {
+    "age": 86.55128479003906,
+    "between": false,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.6,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.6056342124938965,
+    "rate_prev": 1.6066973209381104,
+    "replay": 1.3,
+    "s": 2382
+   }
+  ],
+  "same": 2750
+ },
+ "ring_activity_events": 2756,
+ "ring_first_age": 46.86810302734375,
+ "ring_last_age": 93.71737670898438,
+ "rows": 2761,
+ "run_id": "x352-20261011-174106",
+ "start_age": 47.70011520385742,
+ "tool_diff": {
+  "classes": {
+   "between": 54,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0002209036339658743,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 1601
+   },
+   "body.energyState": {
+    "max": 0.0008108494094216656,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 2710
+   },
+   "satiety.L": {
+    "max": 0.0011532664146980055,
+    "n": 2701,
+    "over": 0,
+    "worst_s": 2765
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

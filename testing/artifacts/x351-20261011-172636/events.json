@@ -1,0 +1,354 @@
+[
+ {
+  "age": 5.189136505126953,
+  "autoDrop": 0.1008236851954376,
+  "g": 201.6473703908752,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 115
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_13_0",
+  "s": 185
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_13_1",
+  "s": 196
+ },
+ {
+  "age": 8.268901824951172,
+  "autoDrop": 0.1012052917849725,
+  "g": 202.410583569945,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 300
+ },
+ {
+  "age": 8.667437553405762,
+  "autoDrop": 0.10239879064142698,
+  "g": 204.79758128285397,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 324
+ },
+ {
+  "age": 9.050161361694336,
+  "autoDrop": 0.10208943259920988,
+  "g": 204.17886519841977,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 347
+ },
+ {
+  "age": 9.400657653808594,
+  "autoDrop": 0.10248761955303665,
+  "g": 204.9752391060733,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 368
+ },
+ {
+  "age": 9.684980392456055,
+  "autoDrop": 0.04181886692137504,
+  "g": 83.63773384275008,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 385
+ },
+ {
+  "age": 13.002286911010742,
+  "autoDrop": 0.449999986835806,
+  "g": 899.999973671612,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 584
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_20_0",
+  "s": 607
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D0_20_1",
+  "s": 618
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_20_2",
+  "s": 629
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_20_3",
+  "s": 641
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_20_4",
+  "s": 652
+ },
+ {
+  "age": 14.202320098876953,
+  "autoDrop": 0.14452348067994447,
+  "g": 289.04696135988894,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 656
+ },
+ {
+  "age": 15.172857284545898,
+  "autoDrop": 0.10081823609256546,
+  "g": 201.6364721851309,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 714
+ },
+ {
+  "age": 16.488265991210938,
+  "autoDrop": 0.10025484543756091,
+  "g": 200.50969087512183,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 793
+ },
+ {
+  "age": 17.803926467895508,
+  "autoDrop": 0.10011056716254652,
+  "g": 200.22113432509303,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 872
+ },
+ {
+  "age": 19.12008285522461,
+  "autoDrop": 0.00429282305422829,
+  "g": 8.58564610845658,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 951
+ },
+ {
+  "age": 19.186649322509766,
+  "autoDrop": 0.10062040273796402,
+  "g": 201.24080547592803,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 955
+ },
+ {
+  "age": 20.50228500366211,
+  "autoDrop": 0.10032267111126303,
+  "g": 200.64534222252607,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1034
+ },
+ {
+  "age": 21.817859649658203,
+  "autoDrop": 0.10021928432913552,
+  "g": 200.43856865827104,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1113
+ },
+ {
+  "age": 23.133846282958984,
+  "autoDrop": 0.10020294797197771,
+  "g": 200.40589594395541,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1192
+ },
+ {
+  "age": 24.45063018798828,
+  "autoDrop": 0.04863470446587148,
+  "g": 97.26940893174296,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1271
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_08_0",
+  "s": 1328
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D1_08_1",
+  "s": 1338
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_08_2",
+  "s": 1349
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_08_3",
+  "s": 1360
+ },
+ {
+  "age": 28.021602630615234,
+  "autoDrop": 0.10057759736790606,
+  "g": 201.1551947358121,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1485
+ },
+ {
+  "age": 29.338151931762695,
+  "autoDrop": 0.10033171060949941,
+  "g": 200.66342121899882,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1564
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_13_0",
+  "s": 1629
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D1_13_1",
+  "s": 1640
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_13_2",
+  "s": 1651
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_13_3",
+  "s": 1663
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_13_4",
+  "s": 1674
+ },
+ {
+  "age": 32.60158920288086,
+  "autoDrop": 0.10304502786406722,
+  "g": 206.09005572813444,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1760
+ },
+ {
+  "age": 32.90208435058594,
+  "autoDrop": 0.10143015409962775,
+  "g": 202.86030819925548,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1778
+ },
+ {
+  "age": 33.5767822265625,
+  "autoDrop": 0.10014468500547646,
+  "g": 200.28937001095292,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1818
+ },
+ {
+  "age": 34.8924560546875,
+  "autoDrop": 0.1000364167790333,
+  "g": 200.0728335580666,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1897
+ },
+ {
+  "age": 36.20863342285156,
+  "autoDrop": 0.10001426027903015,
+  "g": 200.0285205580603,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1976
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_20_0",
+  "s": 2047
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_20_1",
+  "s": 2058
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_20_2",
+  "s": 2070
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_20_3",
+  "s": 2082
+ },
+ {
+  "age": 39.953369140625,
+  "autoDrop": 0.10075645096359376,
+  "g": 201.51290192718753,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2201
+ },
+ {
+  "age": 41.26884078979492,
+  "autoDrop": 0.10039424026159982,
+  "g": 200.78848052319964,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2280
+ },
+ {
+  "age": 42.584102630615234,
+  "autoDrop": 0.1002591398977215,
+  "g": 200.51827979544302,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2359
+ },
+ {
+  "age": 43.912437438964844,
+  "autoDrop": 0.10021566080888367,
+  "g": 200.43132161776734,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2438
+ },
+ {
+  "age": 45.227725982666016,
+  "autoDrop": 0.10021200352400261,
+  "g": 200.42400704800522,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 2517
+ }
+]

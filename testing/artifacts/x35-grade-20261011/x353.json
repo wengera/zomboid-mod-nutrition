@@ -1,0 +1,149 @@
+{
+ "agreement": {
+  "body.energyState": {
+   "max_rel": 0.0007713748311924951,
+   "n": 2060,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2020
+  },
+  "body.epoc": {
+   "max_rel": 7.242260932137655e-06,
+   "n": 2060,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2039
+  },
+  "body.trail.c.ex": {
+   "max_rel": 0.001888883737752333,
+   "n": 2060,
+   "ok": true,
+   "over": 0,
+   "worst_s": 2116
+  },
+  "satiety.L": {
+   "max_rel": 0.0002987514368868312,
+   "n": 2060,
+   "ok": true,
+   "over": 0,
+   "worst_s": 1889
+  }
+ },
+ "diff": {
+  "classes": {
+   "between": 39,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0002226439245681111,
+    "n": 2060,
+    "over": 0,
+    "worst_s": 1614
+   },
+   "body.energyState": {
+    "max": 0.0007713748311924951,
+    "n": 2060,
+    "over": 0,
+    "worst_s": 2020
+   },
+   "body.trail.c.ex": {
+    "max": 0.001888883737752333,
+    "n": 2060,
+    "over": 0,
+    "worst_s": 2116
+   },
+   "satiety.L": {
+    "max": 0.0002987514368868312,
+    "n": 2060,
+    "over": 0,
+    "worst_s": 1889
+   },
+   "satiety.S": {
+    "max": 3.469446951953614e-18,
+    "n": 2060,
+    "over": 0,
+    "worst_s": 697
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BILLING": "as_predicted",
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "activity": 10,
+  "autodrop": 27,
+  "eat": 12
+ },
+ "met_agreement": {
+  "mismatches": 1,
+  "n": 2099,
+  "rows": [
+   {
+    "age": 109.6190185546875,
+    "between": false,
+    "exe": false,
+    "exe_prev": false,
+    "gap": false,
+    "live": 1.9,
+    "moving": false,
+    "moving_prev": false,
+    "rate": 1.7760804891586304,
+    "rate_prev": 1.7796636819839478,
+    "replay": 1.3,
+    "s": 892
+   }
+  ],
+  "same": 2098
+ },
+ "ring_activity_events": 2095,
+ "ring_first_age": 94.76690673828125,
+ "ring_last_age": 130.7184295654297,
+ "rows": 2106,
+ "run_id": "x353-20261011-175513",
+ "start_age": 95.61714172363281,
+ "tool_diff": {
+  "classes": {
+   "between": 49,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0002226439245681111,
+    "n": 2050,
+    "over": 0,
+    "worst_s": 1614
+   },
+   "body.energyState": {
+    "max": 0.0007713748311924951,
+    "n": 2050,
+    "over": 0,
+    "worst_s": 2020
+   },
+   "satiety.L": {
+    "max": 0.0002987514368868312,
+    "n": 2050,
+    "over": 0,
+    "worst_s": 1889
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

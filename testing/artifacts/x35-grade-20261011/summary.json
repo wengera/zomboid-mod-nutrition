@@ -1,0 +1,48 @@
+{
+ "grade_commit": "6c328e50",
+ "lib_commit": "6c328e50",
+ "mod_commit": "c648c178",
+ "sessions": [
+  "x351",
+  "x352",
+  "x353"
+ ],
+ "tool_commit": "08eb7e60",
+ "verdicts": {
+  "BILLED_6_FROM_FIRST": true,
+  "EPOC": true,
+  "EXE_END": true,
+  "EXE_END_POLL": false,
+  "FACTOR": true,
+  "GAPS_INSIDE_TAIL": 1,
+  "IDLE_AFTER": true,
+  "LAG_AGREEMENT": {
+   "x351": false,
+   "x352": true,
+   "x353": true
+  },
+  "MET_MISMATCHES": {
+   "x351": 7,
+   "x352": 5,
+   "x353": 1
+  },
+  "REPLAY_OK": {
+   "x351": {
+    "mine": false,
+    "tool": true
+   },
+   "x352": {
+    "mine": true,
+    "tool": true
+   },
+   "x353": {
+    "mine": true,
+    "tool": true
+   }
+  },
+  "SODIUM_GRADE_MAX": 0,
+  "S_DECAY": true,
+  "S_RISE": true,
+  "WALK_CAP": true
+ }
+}
