@@ -514,7 +514,7 @@ def test_the_release_takes_no_step_at_the_window_edge(host, release):
     assert max(drops_t) <= steep * (1 + 1e-9)
     assert max(drops_u) < eps + steep and max(drops_b) < eps + steep
     edge = next(i for i, r in enumerate(rows) if r[0] - last_apple > 168)
-    assert rows[edge][3] > 3 and rows[edge - 1][3] - rows[edge][3] < steep    # the edge: still about 4.6, no step
+    assert rows[edge][3] > 6.9 and rows[edge - 1][3] - rows[edge][3] < steep  # the edge: still about 7.0, no step
 
 
 def test_a_decaying_target_sets_the_stat_at_most_once_per_epsilon_of_fall(host, release):
