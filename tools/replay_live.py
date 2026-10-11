@@ -965,27 +965,29 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
     for k, age in enumerate(ages):
         seq = seqs[k] if seqs is not None else None
         if k in offline:
-            n = 0
+            n = nr = 0
             for i in due(k, prev, age, seq):
                 backend.apply(evs[i], _event_age(evs[i], prev, age))
                 done[i] = True
                 n += 1
+                nr += evs[i].get("label") == RING_ACTIVITY_LABEL
             if hasattr(backend, "step_offline"):
                 backend.step_offline(age)
             row = backend.row(paths)
             tod = backend.R.tod(age) if isinstance(backend, ServerReplay) else None
             row.update(_clock_row(age, prev, tod))
-            row.update({"k": k, "events": n, "on": False, "offline": True})
+            row.update({"k": k, "events": n, "ringEvents": nr, "on": False, "offline": True})
             out.append(row)
             prev = age
             away = True
             continue
         backend.begin(age)
-        n = 0
+        n = nr = 0
         for i in due(k, prev, age, seq):
             backend.apply(evs[i], _event_age(evs[i], prev, age))
             done[i] = True
             n += 1
+            nr += evs[i].get("label") == RING_ACTIVITY_LABEL
         if ring_rows is not None and feed:
             backend.feed(ring_rows[k], feed)
         if isinstance(backend, OracleReplay):
@@ -1000,6 +1002,7 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
         row.update(_clock_row(age, prev, tod))
         row["k"] = k
         row["events"] = n
+        row["ringEvents"] = nr
         if away and last is not None:
             row["gapM"] = (age - last) * 60
             row["clampM"] = min(row["gapM"], OFFLINE_CAP_M)
@@ -1116,6 +1119,9 @@ def detect_autodrinks(ring_rows, events, min_g=AUTODRINK_MIN_G, window=AUTODRINK
 RING_ACTIVITY_KEYS = ("rate", "raw", "exercising")
 
 
+RING_ACTIVITY_LABEL = "ring-activity"
+
+
 def ring_activity_events(rows):
     """The live activity read off the ring's exogenous fields (Plan 11f C-17): for each row, in order, that carries the
     harness's raw engine `rate` or exercise flag `exe` and is not offline, an event {s, kind activity, raw, exercising}
@@ -1134,7 +1140,7 @@ def ring_activity_events(rows):
         exe = last_exe if exe is None else bool(exe)
         if out and raw == last_raw and exe == last_exe:
             continue
-        ev = {"s": r["s"], "kind": "activity", "label": "ring-activity"}
+        ev = {"s": r["s"], "kind": "activity", "label": RING_ACTIVITY_LABEL}
         if raw is not None:
             ev["raw"] = raw
         if exe is not None:
@@ -1231,7 +1237,8 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
             for key in ("age", "dtM", "hour", "min"):
                 if key in nxt:
                     row[key] = nxt[key]
-            row["between"] = out[k + 1]["events"] > 0
+            # a ring-derived activity event lands at its own row on the ring's own timing: no landing ambiguity
+            row["between"] = out[k + 1]["events"] - out[k + 1]["ringEvents"] > 0
         else:
             row["s"] = use[k]["s"] + 1
             row["between"] = False

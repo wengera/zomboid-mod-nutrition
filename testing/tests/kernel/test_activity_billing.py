@@ -563,3 +563,35 @@ def test_the_forget_hook_is_wired_to_departure_and_first_sight():
             x("a", None, None)
             if same(x, met.forget):
                 assert met.prevRate["a"] is None and met.prevExe["a"] is None
+
+
+def test_ring_activity_events_never_mark_a_row_between_f_t7_1(ring_live):
+    """F-T7-1: the engine's raw rate changes on nearly every row of a lagged bout, and the diff graded 0 rows."""
+    slot, doc = ring_live
+    rows, paths = RL.load_ring([doc])
+    out, be = RL.replay_live(rows, [], slot, ring_paths=paths, sleep_allowed=True)
+    assert len(be.ring_activity) > 20                   # an event on many rows
+    assert not any(r["between"] for r in out)
+    assert sum(r["ringEvents"] for r in out) == len(be.ring_activity)
+    d = RL.diff(out, rows, tol={"body.energyState": ("abs", 1e-9)})
+    assert d["ok"] and d["fields"]["body.energyState"]["n"] == len(rows) - 1 and d["skipped"] == [], d
+
+
+def test_a_perturbed_output_is_still_caught_with_ring_activity_on(ring_live):
+    slot, doc = ring_live
+    rows, paths = RL.load_ring([doc])
+    out, _ = RL.replay_live(rows, [], slot, ring_paths=paths, sleep_allowed=True)
+    bad = [dict(r) for r in rows]
+    victim = next(r for r in bad if r["s"] == rows[30]["s"])
+    victim["body.energyState"] += 0.01
+    d = RL.diff(out, bad, tol={"body.energyState": ("abs", 1e-6)})
+    assert not d["ok"]
+    assert any(f.get("s") == victim["s"] for f in d["findings"]), d["findings"]
+
+
+def test_a_logged_drink_still_marks_its_next_row_between_beside_the_rings(ring_live):
+    slot, doc = ring_live
+    rows, paths = RL.load_ring([doc])
+    ev = [{"s": rows[10]["s"], "kind": "drink", "fluid": "Water", "litres": 0.3}]
+    out, _ = RL.replay_live(rows, ev, slot, ring_paths=paths, sleep_allowed=True)
+    assert sum(r["between"] for r in out) == 1
