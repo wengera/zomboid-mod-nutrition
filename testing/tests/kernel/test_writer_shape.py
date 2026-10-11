@@ -185,6 +185,17 @@ def test_float_noise_thirst_drop_is_not_a_sip():
     assert h.NR.server.writer.stats.sips == 1
 
 
+def test_a_small_real_sip_is_still_a_sip():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    step(h, p, rec, 1)
+    p.st.v.THIRST = p.st.sets.THIRST - 1e-3                # a small real sip, far above SIP_EPS (guards its upper bound)
+    step(h, p, rec, 2)
+    assert rec.fluids.autoDrop == pytest.approx(1e-3)
+    assert h.NR.server.writer.stats.sips == 1
+
+
 def test_a_landed_intake_is_never_counted_as_a_sip():
     h = boot()
     p = player(h)

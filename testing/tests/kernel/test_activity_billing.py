@@ -124,7 +124,7 @@ def test_a_bad_pool_or_input_heals(host):
         b = _body(host)
         b.epoc = bad
         rel, healed = E.epoc(b, False, 0.0, 1.0)
-        assert healed is True and rel == 0 and b.epoc == 0
+        assert healed is True and rel == 0 and b.epoc is None   # healed to 0, which is under the floor: pruned
     b = _body(host)
     for bad in (float("nan"), -5.0):
         rel, healed = E.epoc(b, True, bad, 1.0)
@@ -249,7 +249,7 @@ def test_a_bad_pool_heals_and_counts(met_host):
     record["body"]["epoc"] = float("nan")
     g0 = MET(h).guarded
     minute(h, p, record, 100.0 + 1 / 60)
-    assert record["body"]["epoc"] == 0 and MET(h).guarded == g0 + 1
+    assert record["body"]["epoc"] is None and MET(h).guarded == g0 + 1   # healed to 0, then pruned
 
 
 def test_a_steady_walker_never_carries_a_pool(met_host):
@@ -340,12 +340,29 @@ def test_billing_returns_to_idle_on_the_first_falling_minute(bout):
     assert all(rows[m]["body.met"] == 1.3 for m in range(BOUT[1], MINUTES))
 
 
+def test_a_decayed_pool_leaves_the_record_and_a_later_set_lays_it_again(host):
+    E = host.K.energy
+    b = _body(host)
+    E.epoc(b, True, 50.0, 1.0)
+    assert b.epoc is not None
+    billed = b.eeDay
+    pool = b.epoc
+    for _ in range(600):                                   # 10 idle hours: 20 tau
+        E.epoc(b, False, 0.0, 1.0)
+    assert b.epoc is None
+    assert b.eeDay == pytest.approx(billed + pool, rel=1e-9)   # the pruned remainder is billed, not dropped
+    rel, healed = E.epoc(b, False, 0.0, 1.0)
+    assert rel == 0 and b.epoc is None                     # nothing runs on a pruned pool
+    E.epoc(b, True, 50.0, 1.0)
+    assert b.epoc is not None and b.epoc > 0               # a later set re-creates it
+
+
 def test_the_after_burn_is_f_of_the_bouts_net_kcal(bout):
     (rows, be, _), (idle, _, _) = bout
     net, _ = _net(rows, be)
     extra = rows[-1]["body.eeDay"] - idle[-1]["body.eeDay"]     # the bout's activity above idle plus the release
     released = extra - net
-    total = released + rows[-1]["body.epoc"]
+    total = released + (rows[-1].get("body.epoc") or 0)   # 24 tau leaves under the floor: pruned to nil
     assert total == pytest.approx(be.K.energy.EPOC_F * net, rel=0.01)
     assert released == pytest.approx(be.K.energy.EPOC_F * net, rel=0.01)   # 12 h is 24 tau: all of it released
     assert 0.048 <= released / net <= 0.152               # inside the rows' 4.8-15.2 % (a reading; S1779, S1777)
