@@ -548,3 +548,9 @@ def test_one_portion_a_day_holds_under_the_cap(host):
     assert max(r[1] for r in rows) < steady < 30
     assert max(r[3] for r in rows[13 * 1440:]) == pytest.approx(day13, rel=1e-9)
     assert max(r[1] for r in rows[13 * 1440:]) == pytest.approx(day13, rel=5e-3)    # met a few minutes after the eat
+
+
+def test_an_unhealed_non_table_entry_reads_level_zero_and_does_not_raise(host):
+    m = host.rt.eval("{ t = { ['Base.A'] = 3, ['Base.B'] = 'x' } }")
+    assert M(host).level(3, AGE) == 0
+    assert tgt(host, m, AGE) == (0, 0)

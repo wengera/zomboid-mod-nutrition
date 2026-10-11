@@ -53,7 +53,8 @@ def test_the_kernel_twin_is_the_kernels_level_right_after_a_whole_portion():
 
 def test_the_replay_books_the_study_foods_as_the_kernel_does():
     """A stand-in replay of Mono450 and Staple450 eaten twice 24 h apart: since Plan 11f Task 9b (ruling T9-1) no eat
-    adds a mood, and the writer's floor holds both stats at the kernel twin's delta (the most repeated type's level)."""
+    adds a mood; the test reads K.monotony.target on the record (not a written stat), which equals the kernel twin's
+    delta (the most repeated type's level)."""
     ages = [1.0 + h for h in range(0, 30)]
     ev = [{"age": 3.0, "kind": "eat", "food": L.MONO}, {"age": 4.0, "kind": "eat", "food": L.STAPLE},
           {"age": 27.0, "kind": "eat", "food": L.MONO}, {"age": 28.0, "kind": "eat", "food": L.STAPLE}]

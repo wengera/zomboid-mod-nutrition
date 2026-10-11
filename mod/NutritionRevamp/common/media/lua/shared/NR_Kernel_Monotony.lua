@@ -181,6 +181,9 @@ K.monotony.BORED_MAX = 49 -- game choice, Plan 11f (ruling T9-3): the BOREDOM ta
 -- A type's level at ageH: f x min(CAP, SLOPE x max(0, n - 1)), n the count decayed to ageH (0 past the window) and f
 -- STAPLE for an entry marked a staple, else 1.
 function K.monotony.level(e, ageH)
+    if type(e) ~= "table" then
+        return 0
+    end
     local n = K.monotony.count(e, ageH)
     local f = 1
     if e.s == true then

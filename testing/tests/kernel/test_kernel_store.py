@@ -674,3 +674,15 @@ def test_a_monotony_that_is_not_a_table_is_a_corrupt_file(host):
     raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, monotony = 'x' }")
     with pytest.raises(Exception, match="store: input"):
         S(host).load(raw, None, None)
+
+
+def test_the_remembered_mood_targets_are_inputs(host):
+    for p in ("moodLast", "moodLast.u", "moodLast.b"):
+        assert S(host).isInput(p), p
+
+
+def test_a_loaded_record_keeps_its_remembered_mood_targets(host):
+    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, "
+                       "moodLast = { u = 30, b = 29 } }")
+    rec = S(host).load(raw, None, None)
+    assert host.py(rec.moodLast) == {"u": 30, "b": 29}

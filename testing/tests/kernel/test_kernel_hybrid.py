@@ -196,3 +196,17 @@ def test_a_held_fall_still_lets_a_stat_under_its_target_rise(host, stat, rise):
 def test_a_rising_target_is_remembered_as_it_is(host, stat):
     out = run(host, dtS=60, **{stat: 10, stat + "Target": 10.01, "last" + stat.capitalize() + "Target": 10})
     assert out[stat + "Target"] == 10.01
+
+
+def test_the_boredom_rise_waits_while_panic_is_above_five_and_the_target_is_remembered(host):
+    out = run(host, dtS=60, bored=0, boredTarget=30, lastBoredTarget=30, panic=7)
+    assert out.bored is None and out.boredTarget == 30
+    out = run(host, dtS=60, bored=0, boredTarget=30, lastBoredTarget=30, panic=5)
+    assert out.bored == pytest.approx(25 / 60)
+
+
+def test_the_panic_wait_does_not_hold_the_unhappiness_rise_or_a_boredom_fall(host):
+    out = run(host, dtS=60, unhappy=0, unhappyTarget=30, lastUnhappyTarget=30, panic=7)
+    assert out.unhappy == pytest.approx(22 / 60)
+    out = run(host, dtS=60, bored=20, boredTarget=0, lastBoredTarget=10, panic=7)
+    assert out.bored == pytest.approx(10)

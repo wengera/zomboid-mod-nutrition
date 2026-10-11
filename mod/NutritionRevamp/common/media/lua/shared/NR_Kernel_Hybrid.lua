@@ -75,7 +75,7 @@ function K.hybrid.write(inp, out, c)
     local ut = K.hybrid.target(inp.unhappyTarget)
     out.unhappy, out.unhappyTarget = K.hybrid.floor(inp.unhappy, ut, inp.lastUnhappyTarget, c.moodRiseUnhappy * s)
     local bt = K.hybrid.target(inp.boredTarget)
-    out.bored, out.boredTarget = K.hybrid.floor(inp.bored, bt, inp.lastBoredTarget, c.moodRiseBored * s)
+    out.bored, out.boredTarget = K.hybrid.floor(inp.bored, bt, inp.lastBoredTarget, K.hybrid.boredRise(inp, c, s))
     out.foodSick = nil
     if inp.foodSickTarget > 0 and inp.foodSick < inp.foodSickTarget then
         out.foodSick = K.min(inp.foodSickTarget, inp.foodSick + c.moodRiseSick * s)
@@ -142,4 +142,15 @@ function K.hybrid.floor(v0, ut, last, rise)
         return v, keep
     end
     return nil, keep
+end
+
+-- Plan 11f Task 9b fix 2 (Rule 6): BOREDOM's rise per this write. Vanilla resets BOREDOM every tick while PANIC > 5
+-- (BodyDamage.UpdateBoredom @482-@509, #3015), so a rise written then is wiped and only costs a Stats.set: 0 while
+-- the stat reads PANIC above 5. The target is still remembered (floor's second return), so the floor resumes at the
+-- rate once panic drops; a fall still lands.
+function K.hybrid.boredRise(inp, c, s)
+    if inp.panic > 5 then
+        return 0
+    end
+    return c.moodRiseBored * s
 end

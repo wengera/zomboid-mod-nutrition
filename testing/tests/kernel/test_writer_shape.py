@@ -1363,6 +1363,7 @@ def test_a_monotonous_record_raises_both_floors_at_the_writer_minute():
     h = boot()
     p = player(h)
     rec = record(h)
+    rec.effects.panicTarget = 0                              # the default target 10 would hold BOREDOM's rise (panic above 5)
     rec.monotony = mono(h, 3, 100.0)                        # target 4.3 x 2 = 8.6 on both
     step(h, p, rec, 0)                                     # the hoist's first minute steps 0 s
     step(h, p, rec, 1)
@@ -1409,6 +1410,7 @@ def test_a_staple_record_targets_a_quarter():
     h = boot()
     p = player(h)
     rec = record(h)
+    rec.effects.panicTarget = 0
     rec.monotony = mono(h, 3, 100.0, staple=True)
     for m in range(0, 61):
         step(h, p, rec, m)
@@ -1469,3 +1471,94 @@ def test_the_writer_reads_the_target_once_a_minute_and_no_eat_writes_mood():
     intake = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server",
                                "NR_Server_Intake.lua"), encoding="utf-8").read()
     assert '"add"' not in intake and "addMood" not in intake
+
+
+# --- Plan 11f Task 9b fix 2: the remembered floor targets live on the record (record.moodLast = { u, b }) ----------
+
+def _held_floor(h, p, rec):
+    """Hold a floor at the cap: n = 9 portions of one type at age 100 targets 30 on both stats; run until met."""
+    rec.effects.panicTarget = 0                              # vanilla wipes BOREDOM while PANIC > 5 (the default target 10)
+    rec.monotony = mono(h, 9, 100.0)
+    for m in range(0, 110):
+        step(h, p, rec, m)
+    assert p.st.v.UNHAPPINESS == pytest.approx(30) and p.st.v.BOREDOM == pytest.approx(30)
+
+
+def test_the_remembered_targets_are_written_on_the_record():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    _held_floor(h, p, rec)
+    assert rec.moodLast.u == pytest.approx(30) and rec.moodLast.b == pytest.approx(30)
+
+
+def test_a_reconnect_after_a_full_release_still_lands_the_fall_to_zero():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    _held_floor(h, p, rec)
+    q = player(h, "a")                                       # a reconnect: a new player object, a new hoist
+    q.st.v.UNHAPPINESS = p.st.v.UNHAPPINESS
+    q.st.v.BOREDOM = p.st.v.BOREDOM
+    assert not h.rt.eval("rawequal")(p, q)
+    h.T.age = 100.0 + 118 + 200                              # offline past the window: the counts have faded to 0
+    h.NR.server.writer.step("a", q, rec, None)
+    assert q.st.v.UNHAPPINESS == pytest.approx(0, abs=1e-9)
+    assert q.st.v.BOREDOM == pytest.approx(0, abs=1e-9)
+
+
+def test_the_same_hoist_lands_the_same_release_to_zero():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    _held_floor(h, p, rec)
+    h.T.age = 100.0 + 118 + 200
+    h.NR.server.writer.step("a", p, rec, None)
+    assert p.st.v.UNHAPPINESS == pytest.approx(0, abs=1e-9)
+    assert p.st.v.BOREDOM == pytest.approx(0, abs=1e-9)
+
+
+@pytest.mark.parametrize("raw", ["'x'", "{ u = 0 / 0, b = 'y' }", "{ u = 1 / 0 }", "{}"])
+def test_a_corrupt_or_absent_moodlast_reads_zero_and_is_laid_again(raw):
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.moodLast = h.rt.eval(raw)
+    rec.monotony = mono(h, 9, 100.0)
+    step(h, p, rec, 0)
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(22 / 3600 * 60)
+    assert rec.moodLast.u == pytest.approx(30) and rec.moodLast.b == pytest.approx(30)
+
+
+def test_the_boredom_rise_waits_while_panic_is_above_five_and_the_target_is_remembered():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.effects.panicTarget = 0
+    rec.monotony = mono(h, 9, 100.0)
+    p.st.v.PANIC = 7
+    step(h, p, rec, 0)
+    p.st.v.PANIC = 7
+    step(h, p, rec, 1)
+    assert p.st.sets.BOREDOM is None                         # vanilla resets it every tick: no useless write
+    assert p.st.sets.UNHAPPINESS == pytest.approx(22 / 3600 * 60)
+    assert rec.moodLast.b == pytest.approx(30)
+    p.st.v.PANIC = 0
+    step(h, p, rec, 2)
+    assert p.st.sets.BOREDOM == pytest.approx(25 / 3600 * 60)
+
+
+def test_the_monotony_table_is_healed_at_first_sight_and_not_every_minute():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)
+    step(h, p, rec, 0)
+    g0 = h.NR.server.writer.stats.guarded
+    rec.monotony = h.rt.eval("{ t = { ['Base.Apple'] = { n = 0 / 0, last = 1 } } }")   # corrupted mid-session
+    step(h, p, rec, 1)
+    assert h.NR.server.writer.stats.guarded == g0            # not scanned again: the eat's heal is its door
+    q = player(h)                                            # a new object is first sight again
+    step(h, q, rec, 2)
+    assert h.NR.server.writer.stats.guarded == g0 + 1
