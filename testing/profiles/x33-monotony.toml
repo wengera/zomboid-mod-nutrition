@@ -1,0 +1,42 @@
+# testing/profiles/x33-monotony.toml - Plan 11f Task 9 (runs x331, x332, x333): research row 13, monotony over five
+# game days with a staple arm and the effects floor (docs/superpowers/research/2026-10-10-live-study-replays/
+# 01-harness-facts.md s6 row 13), on one live body over a chain of three sessions (each later session copies the previous
+# one's <run>/server and boots it with reuse=True; the first restores the fixture).
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x33-monotony/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x33-monotony`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). Sleep stays off (the fixture's false/false), so no stop
+# falls in a sleep (vanilla's boredom updater returns for a sleeping player, #3015); the replay takes sleep_allowed false.
+# The drivers are testing/experiments/x331_monotony.py, x332_monotony.py and x333_monotony.py on
+# testing/experiments/x33_monotony_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study foods' scripts on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x33-monotony) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, sleep off, build 42.21.0 - the Plan 11f Task 9 monotony (row 13), a chain of three sessions."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mono450", expect = '"via"' },
+  { side = "server", cmd = "item.script", args = "TKX.Staple450", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x33-monotony/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1 (6.27 ticks, x222)
