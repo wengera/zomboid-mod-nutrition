@@ -1,0 +1,19 @@
+[
+ {
+  "age": 4.251689910888672,
+  "kind": "stat",
+  "label": "seed",
+  "s": 53,
+  "stat": "NICOTINE_WITHDRAWAL",
+  "value": 0.20000000298023224
+ },
+ {
+  "age": 4.668789863586426,
+  "kind": "stat",
+  "label": "smoke",
+  "s": 78,
+  "smoke": "G_SMOKE",
+  "stat": "NICOTINE_WITHDRAWAL",
+  "value": 0.20000000298023224
+ }
+]

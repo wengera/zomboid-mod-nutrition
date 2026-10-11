@@ -1,0 +1,117 @@
+{
+ "diff": {
+  "classes": {
+   "between": 26,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0006815480600080304,
+    "n": 2012,
+    "over": 0,
+    "worst_s": 302
+   },
+   "body.energyState": {
+    "max": 0.0011932030869519217,
+    "n": 2012,
+    "over": 0,
+    "worst_s": 2027
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2012,
+    "over": 0,
+    "worst_s": null
+   },
+   "satiety.nicH": {
+    "max": 0.0,
+    "n": 2012,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "drain_skew": {
+  "max_m": 0.0,
+  "mean_m": -0.004877434953193833,
+  "min_m": -3.92852783203125,
+  "n": 2043
+ },
+ "driver_verdicts": {
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "RISE": "as_predicted",
+  "SLEEP_OFF": "as_predicted",
+  "SMOKER": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "drink": 20,
+  "eat": 6
+ },
+ "guard": {
+  "asleep_rows": 0,
+  "asleep_s": [],
+  "exe_present_rows": 2084,
+  "exe_true_rows": 0,
+  "exe_true_s": [],
+  "moving_true_rows": 0,
+  "moving_true_s": [],
+  "rows": 2089
+ },
+ "held_rows": 26,
+ "regimes": {
+  "fade_s": null,
+  "seed_s": null,
+  "smoke_labels": [],
+  "smoke_s": [],
+  "t2f_s": null
+ },
+ "ring_activity_events": 2039,
+ "ring_first_age": 39.9344367980957,
+ "ring_last_age": 74.73512268066406,
+ "rows": 2044,
+ "run_id": "x322-20261011-103758",
+ "start_age": 40.668373107910156,
+ "tool_diff": {
+  "classes": {
+   "between": 26,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0006815480600080304,
+    "n": 2012,
+    "over": 0,
+    "worst_s": 302
+   },
+   "body.energyState": {
+    "max": 0.0011932030869519217,
+    "n": 2012,
+    "over": 0,
+    "worst_s": 2027
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2012,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

@@ -1,0 +1,265 @@
+[
+ {
+  "age": 77.02119445800781,
+  "autoDrop": 0.10005062987766633,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 65,
+  "vec": {
+   "water": 200.10125975533265
+  }
+ },
+ {
+  "age": 78.35026550292969,
+  "autoDrop": 0.10047692370977257,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 145,
+  "vec": {
+   "water": 200.95384741954513
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D3_13_0",
+  "s": 162
+ },
+ {
+  "age": 80.06861877441406,
+  "hold": [
+   249,
+   250
+  ],
+  "kind": "setpath",
+  "label": "edit-fade",
+  "path": "satiety.nicH",
+  "placement": "ambiguous",
+  "s": 248,
+  "shown_s": 249,
+  "value": -2103.931381225586
+ },
+ {
+  "age": 81.63409423828125,
+  "autoDrop": 0.10034607833412434,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 342,
+  "vec": {
+   "water": 200.69215666824869
+  }
+ },
+ {
+  "age": 82.9508056640625,
+  "autoDrop": 0.1002529279356208,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 421,
+  "vec": {
+   "water": 200.50585587124158
+  }
+ },
+ {
+  "age": 84.26749420166016,
+  "autoDrop": 0.1002279043081008,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 500,
+  "vec": {
+   "water": 200.4558086162016
+  }
+ },
+ {
+  "age": 85.6003189086914,
+  "autoDrop": 0.10074352784605456,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 580,
+  "vec": {
+   "water": 201.48705569210912
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D3_20_0",
+  "s": 581
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D3_20_1",
+  "s": 599
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D3_20_2",
+  "s": 618
+ },
+ {
+  "age": 86.41871643066406,
+  "hold": [
+   629,
+   630
+  ],
+  "kind": "setpath",
+  "label": "edit-t2f",
+  "path": "satiety.nicH",
+  "placement": "relaid",
+  "s": 629,
+  "shown_s": 630,
+  "value": null
+ },
+ {
+  "age": 89.19627380371094,
+  "autoDrop": 0.10023164120374173,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 795,
+  "vec": {
+   "water": 200.46328240748346
+  }
+ },
+ {
+  "age": 90.51750946044922,
+  "autoDrop": 0.10080247719768809,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 875,
+  "vec": {
+   "water": 201.60495439537618
+  }
+ },
+ {
+  "age": 90.61842346191406,
+  "kind": "stat",
+  "label": "smoke",
+  "s": 881,
+  "smoke": "SMOKE2",
+  "stat": "NICOTINE_WITHDRAWAL",
+  "value": 0
+ },
+ {
+  "age": 91.84213256835938,
+  "autoDrop": 0.10042542802786125,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 954,
+  "vec": {
+   "water": 200.85085605572252
+  }
+ },
+ {
+  "age": 93.15928649902344,
+  "autoDrop": 0.10031420242457834,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1033,
+  "vec": {
+   "water": 200.62840484915668
+  }
+ },
+ {
+  "age": 94.47552490234375,
+  "autoDrop": 0.10023265188562003,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1112,
+  "vec": {
+   "water": 200.46530377124006
+  }
+ },
+ {
+  "age": 95.79137420654297,
+  "autoDrop": 0.10017966602451778,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1191,
+  "vec": {
+   "water": 200.35933204903554
+  }
+ },
+ {
+  "age": 97.10002136230469,
+  "autoDrop": 0.04884803231667856,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1270,
+  "vec": {
+   "water": 97.69606463335711
+  }
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D4_08_0",
+  "s": 1288
+ },
+ {
+  "food": "TKX.Mixed217",
+  "kind": "eat",
+  "label": "D4_08_1",
+  "s": 1306
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_08_2",
+  "s": 1325
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_08_3",
+  "s": 1344
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_08_4",
+  "s": 1363
+ },
+ {
+  "age": 99.5022964477539,
+  "autoDrop": 0.10006384791078005,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1414,
+  "vec": {
+   "water": 200.12769582156008
+  }
+ },
+ {
+  "age": 100.81903076171875,
+  "autoDrop": 0.10013551279307409,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1493,
+  "vec": {
+   "water": 200.27102558614817
+  }
+ },
+ {
+  "age": 102.15149688720703,
+  "autoDrop": 0.10053783333008737,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1573,
+  "vec": {
+   "water": 201.07566666017473
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D4_13_0",
+  "s": 1602
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_13_1",
+  "s": 1620
+ }
+]

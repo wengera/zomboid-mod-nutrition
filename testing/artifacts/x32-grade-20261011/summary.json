@@ -1,0 +1,54 @@
+{
+ "grade_commit": "2fe18691",
+ "lib_commit": "2fe18691",
+ "sessions": [
+  "x321",
+  "x322",
+  "x323"
+ ],
+ "tool_commit": "51e6b2e9",
+ "verdicts": {
+  "EXE_FALSE": {
+   "x321": true,
+   "x322": true,
+   "x323": true
+  },
+  "FACTOR": true,
+  "FACTOR_SEGMENTS": {
+   "x321@before_gate_smoke": true,
+   "x321@rise": true,
+   "x321@w0": true,
+   "x322@cap": true,
+   "x322@rise": true,
+   "x323@after_second_smoke": true,
+   "x323@after_second_smoke_w0": true,
+   "x323@cap": true,
+   "x323@fade_edit": true,
+   "x323@t2f": true
+  },
+  "NEXT_DAY_WITHIN_2PCT": true,
+  "REPLAY_OK": {
+   "x321": {
+    "mine": true,
+    "tool": true
+   },
+   "x322": {
+    "mine": true,
+    "tool": true
+   },
+   "x323": {
+    "mine": true,
+    "tool": false
+   }
+  },
+  "SMOKES_FALL": {
+   "G_SMOKE": true,
+   "SMOKE2": true
+  },
+  "SMOKES_NO_LANDING": {
+   "G_SMOKE": true,
+   "SMOKE2": true
+  },
+  "SODIUM_GRADE_MAX": 0
+ }
+}

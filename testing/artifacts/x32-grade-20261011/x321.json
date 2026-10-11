@@ -1,0 +1,125 @@
+{
+ "diff": {
+  "classes": {
+   "between": 29,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0004855105201348464,
+    "n": 2042,
+    "over": 0,
+    "worst_s": 999
+   },
+   "body.energyState": {
+    "max": 0.0011504039632992402,
+    "n": 2042,
+    "over": 0,
+    "worst_s": 2117
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2042,
+    "over": 0,
+    "worst_s": null
+   },
+   "satiety.nicH": {
+    "max": 0.0,
+    "n": 2042,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "drain_skew": {
+  "max_m": 0.0,
+  "mean_m": -0.004886781549178107,
+  "min_m": -4.078216552734375,
+  "n": 2076
+ },
+ "driver_verdicts": {
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "GATE": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "RISE": "as_predicted",
+  "SLEEP_OFF": "as_predicted",
+  "SMOKER": "as_predicted",
+  "SMOKES": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "drink": 18,
+  "eat": 9,
+  "seed": 1,
+  "smoke": 1
+ },
+ "guard": {
+  "asleep_rows": 0,
+  "asleep_s": [],
+  "exe_present_rows": 2117,
+  "exe_true_rows": 0,
+  "exe_true_s": [],
+  "moving_true_rows": 0,
+  "moving_true_s": [],
+  "rows": 2122
+ },
+ "held_rows": 29,
+ "regimes": {
+  "fade_s": null,
+  "seed_s": 53,
+  "smoke_labels": [
+   "G_SMOKE"
+  ],
+  "smoke_s": [
+   78
+  ],
+  "t2f_s": null
+ },
+ "ring_activity_events": 2072,
+ "ring_first_age": 3.3847084045410156,
+ "ring_last_age": 38.73577117919922,
+ "rows": 2077,
+ "run_id": "x321-20261011-102913",
+ "start_age": 4.119032859802246,
+ "tool_diff": {
+  "classes": {
+   "between": 29,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0004855105201348464,
+    "n": 2042,
+    "over": 0,
+    "worst_s": 999
+   },
+   "body.energyState": {
+    "max": 0.0011504039632992402,
+    "n": 2042,
+    "over": 0,
+    "worst_s": 2117
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2042,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

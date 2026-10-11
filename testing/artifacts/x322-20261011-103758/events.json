@@ -1,0 +1,238 @@
+[
+ {
+  "age": 40.98490524291992,
+  "autoDrop": 0.10001302862562989,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 64,
+  "vec": {
+   "water": 200.02605725125977
+  }
+ },
+ {
+  "age": 42.312774658203125,
+  "autoDrop": 0.100031736051579,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 143,
+  "vec": {
+   "water": 200.063472103158
+  }
+ },
+ {
+  "age": 43.629146575927734,
+  "autoDrop": 0.10012920605647946,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 222,
+  "vec": {
+   "water": 200.25841211295892
+  }
+ },
+ {
+  "age": 44.946044921875,
+  "autoDrop": 0.10019689304374879,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 301,
+  "vec": {
+   "water": 200.39378608749757
+  }
+ },
+ {
+  "age": 46.26195526123047,
+  "autoDrop": 0.04962912806503339,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 380,
+  "vec": {
+   "water": 99.25825613006678
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_08_0",
+  "s": 581
+ },
+ {
+  "age": 49.66796112060547,
+  "autoDrop": 0.13714283382642578,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 585,
+  "vec": {
+   "water": 274.28566765285154
+  }
+ },
+ {
+  "age": 50.67048645019531,
+  "autoDrop": 0.10009844703682336,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 645,
+  "vec": {
+   "water": 200.19689407364672
+  }
+ },
+ {
+  "age": 51.98717498779297,
+  "autoDrop": 0.10014603888270945,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 724,
+  "vec": {
+   "water": 200.2920777654189
+  }
+ },
+ {
+  "age": 53.302947998046875,
+  "autoDrop": 0.10012865042674579,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 803,
+  "vec": {
+   "water": 200.25730085349159
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_13_0",
+  "s": 881
+ },
+ {
+  "age": 56.607566833496094,
+  "autoDrop": 0.10032888802144602,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1001,
+  "vec": {
+   "water": 200.65777604289204
+  }
+ },
+ {
+  "age": 57.924095153808594,
+  "autoDrop": 0.10023483660861088,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1080,
+  "vec": {
+   "water": 200.46967321722175
+  }
+ },
+ {
+  "age": 59.24205780029297,
+  "autoDrop": 0.10027426380841631,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1159,
+  "vec": {
+   "water": 200.54852761683262
+  }
+ },
+ {
+  "age": 60.55961608886719,
+  "autoDrop": 0.10028734603203981,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1238,
+  "vec": {
+   "water": 200.57469206407964
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_20_0",
+  "s": 1301
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_20_1",
+  "s": 1320
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D2_20_2",
+  "s": 1339
+ },
+ {
+  "age": 64.15867614746094,
+  "autoDrop": 0.10062098520811213,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1454,
+  "vec": {
+   "water": 201.24197041622426
+  }
+ },
+ {
+  "age": 65.47616577148438,
+  "autoDrop": 0.10039250531063282,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1533,
+  "vec": {
+   "water": 200.78501062126563
+  }
+ },
+ {
+  "age": 66.793212890625,
+  "autoDrop": 0.10029623128339638,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1612,
+  "vec": {
+   "water": 200.59246256679276
+  }
+ },
+ {
+  "age": 68.11003112792969,
+  "autoDrop": 0.10025684442729998,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1691,
+  "vec": {
+   "water": 200.51368885459996
+  }
+ },
+ {
+  "age": 69.42626953125,
+  "autoDrop": 0.04843342565009057,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1770,
+  "vec": {
+   "water": 96.86685130018114
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D3_08_0",
+  "s": 2021
+ },
+ {
+  "age": 73.6845474243164,
+  "autoDrop": 0.17710379971489965,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2026,
+  "vec": {
+   "water": 354.2075994297993
+  }
+ },
+ {
+  "age": 74.35172271728516,
+  "autoDrop": 0.10051596556312647,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2066,
+  "vec": {
+   "water": 201.03193112625294
+  }
+ }
+]

@@ -1,0 +1,137 @@
+{
+ "diff": {
+  "classes": {
+   "between": 33,
+   "gap": 0,
+   "offline": 4,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00032035080419845485,
+    "n": 1582,
+    "over": 0,
+    "worst_s": 582
+   },
+   "body.energyState": {
+    "max": 0.0011328253264970556,
+    "n": 1582,
+    "over": 0,
+    "worst_s": 1505
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1582,
+    "over": 0,
+    "worst_s": null
+   },
+   "satiety.nicH": {
+    "max": 0.0,
+    "n": 1582,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "drain_skew": {
+  "max_m": 0.0,
+  "mean_m": -0.0037359057421151175,
+  "min_m": -3.035888671875,
+  "n": 1619
+ },
+ "driver_verdicts": {
+  "EDITS": "falsified",
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "RISE": "as_predicted",
+  "SLEEP_OFF": "as_predicted",
+  "SMOKER": "as_predicted",
+  "SMOKES": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "drink": 16,
+  "eat": 11,
+  "setpath": 2,
+  "smoke": 1
+ },
+ "guard": {
+  "asleep_rows": 0,
+  "asleep_s": [],
+  "exe_present_rows": 1663,
+  "exe_true_rows": 0,
+  "exe_true_s": [],
+  "moving_true_rows": 0,
+  "moving_true_s": [],
+  "rows": 1667
+ },
+ "held_rows": 33,
+ "regimes": {
+  "fade_s": 248,
+  "seed_s": null,
+  "smoke_labels": [
+   "SMOKE2"
+  ],
+  "smoke_s": [
+   881
+  ],
+  "t2f_s": 629
+ },
+ "ring_activity_events": 1589,
+ "ring_first_age": 75.95262908935547,
+ "ring_last_age": 103.71708679199219,
+ "rows": 1620,
+ "run_id": "x323-20261011-104618",
+ "start_age": 76.71829223632812,
+ "tool_diff": {
+  "classes": {
+   "between": 30,
+   "gap": 0,
+   "offline": 4,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.009747688281176725,
+    "n": 1585,
+    "over": 1,
+    "worst_s": 249
+   },
+   "body.energyState": {
+    "max": 0.0011328253264970556,
+    "n": 1585,
+    "over": 0,
+    "worst_s": 1505
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1585,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [
+   {
+    "d": 0.009747688281176725,
+    "field": "HUNGER",
+    "live": 0.1739155650138855,
+    "replay": 0.16416787673270877,
+    "s": 249,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   }
+  ],
+  "findings_n": 1,
+  "ok": false
+ }
+}
