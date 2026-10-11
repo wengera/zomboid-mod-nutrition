@@ -122,6 +122,7 @@ The 24 classes and their values in MET, as the enum's static initialiser writes 
 Each class is therefore a floor rather than an assignment: the exercise class never lowers a sprinting target, and among the classes the highest one that applies sets the floor the next two terms start from [#2633/C/C-only].
 The target is then raised twice more through the same setter: to at least `clamp01(1 - endurance)` times `DefaultExercise` times the thermoregulator's `getEnergy()`, so a tired character's target can sit above a class below that floor, which tops out at `DefaultExercise` times the energy, and then by the factor `1 + 0.35 × clamp01(carried weight / max weight)²`, so a loaded character's target rises up to 1.35 times, capped at `MAX` [#2649/C/C-only].
 So the target can differ from the class when the character is tired or loaded, and a reading of the rate against a class has to hold endurance and load still or account for both [#2649/C/C-only].
+`Thermoregulator.updateMetabolicRate` moves the metabolic rate toward its target wherever the two differ, by the gap times `getSimulationMultiplier(MetabolicRateInc)` when the target is above the rate and times `getSimulationMultiplier(MetabolicRateDec)` when it is below, which return `GameTime.getMultiplier()` times 0.001 and times 0.0004, each times the static `simulationMultiplier`, so the rate is an asymmetric first-order lag of its target whose falling step is 0.4 of its rising step. [T10.38]
 The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's own `metabolics`; a per-exercise class such as `FitnessHeavy` at 9.0 reaches the thermoregulator through `ISFitnessAction:update`'s per-frame `setMetabolicTarget`, the timed action [exercise-and-training.md#exercise-path](exercise-and-training.md#exercise-path) describes [#2634/C/C-only].
 `IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [#2635/C/C-only].
 The classification is read from the bytecode [#2633/C/C-only], and on a dedicated server it is measured through the rate and not the target [#2875/M/n=1].
@@ -413,7 +414,7 @@ The mirror says Fitness reduces damage taken from long falls and gives a flat 2 
 The mirror never mentions the cold side's body effect; the thermoregulator's cold-side energy multiplier multiplies resting and sleeping calorie burn and nothing else, because the three moving branches never read it [#0589/C/C-only].
 The mirror tells a modder to call `hasTrait` with a String literal; on this build `hasTrait` takes only `CharacterTrait` or `CharacterTrait[]` and there is no String overload [#1260/C/C-only].
 
-Not covered: the temperature model behind the thermoregulator's primary and secondary totals; which weapon type selects which metabolic-rate class while attacking, and how far the rate moves toward its target per update; and the moodle texture and UI layer.
+Not covered: the temperature model behind the thermoregulator's primary and secondary totals; which weapon type selects which metabolic-rate class while attacking, and how many updates a game minute the rate's step is taken on a server; and the moodle texture and UI layer.
 
 ## Open
 <a id="open"></a>
