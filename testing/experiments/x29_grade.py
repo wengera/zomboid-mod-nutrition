@@ -36,7 +36,10 @@ after day 0's bout), against the day's bout, the mean bout and the mean whole da
 server-path oracle's arm (test_replay_live_energy.py lag_run: the 70 kg man, Running15kmh for 53 min at 02:00, meals of
 the idle day plus the bout) read at the same day ends and seven days after its first bout, and the oracles' pins
 (Whybrow over days 3-16 0.2985, day 1 0.0414; E-MECHANIC 0.70 at 24 weeks; King 2011 at steady state 0.92 mm) as
-readings; the drinking and the sodium per chain day (x28_grade's form).
+readings; the drinking and the sodium per chain day (x28_grade's form). Row 9 in the chain (added after the chain ran,
+before any lag output was committed: x292's B0 set ran past its window and reached HeavyWork): every vigorous episode
+(episodes(): the rise against the kernel's exact step, the decay against the half-life, the replay's S, the HUNGER
+factor against a no-acute replay of the session, 1 %, and the mm difference 30 min after it).
 """
 import argparse
 import datetime
@@ -439,17 +442,78 @@ def drinking_sodium(sessions):
                                    default=None)}
 
 
+def episodes(S):
+    """The vigorous episodes of a chain session (row 9's rise leg where the live chain reached it): runs of ring rows
+    whose satiety.S rose over the row before (a vigorous drain), grouped when under 4 rows apart. Per episode: its
+    ages, the billed MET and band2Day's rise on its rows (the kind: resistance while a Fitness exercise runs), S's max;
+    the rise against K.satiety.exerciseSuppression's exact step (S_k = w + (S_k-1 - w) x 0.5^(dt / ACUTE_HALF_LIFE_H),
+    dt the rows' satiety.t step, w the kind's weight); the decay after its last rising row against the half-life
+    decay (x29_exercise_lib.decay_reading's form, 1 %); the replay's S over the episode and its hour after; the HUNGER
+    factor live / no-acute replay against 1 - ACUTE_MAX x S (1 %) from the episode's start to an hour after it; the mm
+    difference 30 min after its last rising row; the mean live / no-acute ratio over the rising rows."""
+    K = L._kh_static().K
+    hl_up, hl_down = float(K.satiety.ACUTE_HALF_LIFE_H), float(K.satiety.ACUTE_DECAY_HALF_LIFE_H)
+    w_res, w_aer = float(K.satiety.ACUTE_KIND.resistance), float(K.satiety.ACUTE_KIND.aerobic)
+    ring = S.ring
+    idx = [i for i in range(1, len(ring)) if (L.num(ring[i].get("satiety.S")) or 0) > (L.num(ring[i - 1].get("satiety.S")) or 0) + 1e-12]
+    groups = []
+    for i in idx:
+        if groups and i - groups[-1][-1] < 4:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    out = []
+    for gidx in groups:
+        rise = []
+        for i in gidx:
+            p, r = ring[i - 1], ring[i]
+            b2 = (L.num(r.get(L.BAND2)) or 0) - (L.num(p.get(L.BAND2)) or 0)
+            w = w_res if b2 > 1e-9 else w_aer
+            dt = (L.num(r.get("satiety.t")) or 0) - (L.num(p.get("satiety.t")) or 0)
+            pred = w + ((L.num(p.get("satiety.S")) or 0) - w) * 0.5 ** (dt / hl_up)
+            S_ = L.num(r.get("satiety.S"))
+            rp = S.rep_by.get(r["s"])
+            rise.append({"s": r["s"], "age": r["age"], "met": r.get(L.MET), "band2_rise": b2, "kind_weight": w,
+                         "S": S_, "pred": pred, "rel": abs(S_ / pred - 1) if pred > 0 else None,
+                         "S_replay": L.num(rp.get("satiety.S")) if rp else None})
+        last = ring[gidx[-1]]
+        dec = L.decay_reading(ring, [{"kind": "setpath", "s": last["s"], "value": L.num(last.get("satiety.S")),
+                                      "label": "episode"}], hl_down)[0]
+        for x in dec["rows"]:
+            rp = S.rep_by.get(x["s"])
+            x["S_replay"] = L.num(rp.get("satiety.S")) if rp else None
+        a0, a1 = ring[gidx[0] - 1]["age"], last["age"]
+        fr = factor_rows(S, a0 - 1.0 / 60, a1 + 1.0) if S.na_by else []
+        okf = [x["rel"] for x in fr if x["rel"] is not None]
+        r30 = row_at(fr, a1 + 0.5) if fr else None
+        on_rise = [x for x in fr if a0 < x["age"] <= a1 + 1e-9 and x["rel"] is not None]
+        rep = [abs(x["S"] - x["S_replay"]) for x in rise + dec["rows"] if x.get("S_replay") is not None]
+        out.append({"first_age": ring[gidx[0]]["age"], "last_age": a1, "rows": len(gidx),
+                    "met": sorted({str(x["met"]) for x in rise}), "S_max": max(x["S"] for x in rise),
+                    "rise": rise, "rise_max_rel": max((x["rel"] for x in rise if x["rel"] is not None), default=None),
+                    "decay": {"t_e": dec["t_e"], "graded": dec["graded"], "max_rel": dec["max_rel"], "ok": dec["ok"],
+                              "rows": dec["rows"][:90]},
+                    "replay_S_max_diff": max(rep) if rep else None,
+                    "factor": {"graded": len(okf), "max_rel": max(okf) if okf else None,
+                               "ok": bool(okf) and max(okf) <= FACTOR_TOL, "rows": fr},
+                    "mean_ratio_on_rise": (sum(x["factor"] for x in on_rise) / len(on_rise)) if on_rise else None,
+                    "mm_30min_after_last": r30["mm"] if r30 else None})
+    return out
+
+
 def lag(out):
     sessions = []
     for n, pre in enumerate(CHAIN, 1):
         try:
-            sessions.append(Sess(pre, "lag-%d.json" % n))
+            sessions.append(Sess(pre, "lag-%d.json" % n, counterfactual=True))
         except SystemExit as e:
             print("skip %s: %s" % (pre, e))
     per = {}
+    eps = {}
     for S in sessions:
         doc = S.summary()
         doc["lag_agreement"] = lag_agreement(S)
+        eps[S.pre] = episodes(S)
         per[S.pre] = doc
         with open(os.path.join(out, S.pre + ".json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(doc, fh, indent=1, sort_keys=True, default=str)
@@ -457,10 +521,15 @@ def lag(out):
     series = lag_series(sessions, bl)
     rows = {"row10": {"bouts": bl, "series": series, "oracle_arm": oracle_arm(), "oracle_pins": ORACLE_PINS,
                       "agreement": {p: d["lag_agreement"] for p, d in per.items()}},
+            "row9_chain": {"episodes": eps, "oracle_pins": ORACLE_PINS},
             "drinking_sodium": drinking_sodium(sessions)}
     with open(os.path.join(out, "rows.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(rows, fh, indent=1, sort_keys=True, default=str)
+    ev = [e for v in eps.values() for e in v]
     return {"LAG_AGREEMENT": {p: all(v["ok"] for v in d["lag_agreement"].values()) for p, d in per.items()},
+            "EPISODES": {p: len(v) for p, v in eps.items()},
+            "EPISODE_DECAY": all(e["decay"]["ok"] for e in ev) if ev else None,
+            "EPISODE_FACTOR": all(e["factor"]["ok"] for e in ev) if ev else None,
             "REPLAY_OK": {p: {"tool": d["tool_diff"]["ok"], "mine": d["diff"]["ok"]} for p, d in per.items()},
             "SODIUM_GRADE_MAX": rows["drinking_sodium"]["grade_max_chain"]}
 
