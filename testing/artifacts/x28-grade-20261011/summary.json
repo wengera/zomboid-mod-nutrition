@@ -1,0 +1,160 @@
+{
+ "grade_commit": "548f71c",
+ "lib_commit": "1bbf6d3",
+ "sessions": {
+  "x281": {
+   "autodrops": 807,
+   "detector_beyond_autodrops": 0,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "SODIUM": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0005773435706907248,
+     "n": 957,
+     "over": 0,
+     "worst_s": 562
+    },
+    "body.energyState": {
+     "max": 0.001127407125870672,
+     "n": 957,
+     "over": 0,
+     "worst_s": 1635
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 957,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  },
+  "x282": {
+   "autodrops": 1001,
+   "detector_beyond_autodrops": 1,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "SODIUM": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0003277568881448478,
+     "n": 1026,
+     "over": 0,
+     "worst_s": 1552
+    },
+    "body.energyState": {
+     "max": 0.001121029108876126,
+     "n": 1026,
+     "over": 0,
+     "worst_s": 1678
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 1026,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  },
+  "x283": {
+   "autodrops": 977,
+   "detector_beyond_autodrops": 1,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "SODIUM": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0003686187786473005,
+     "n": 1054,
+     "over": 0,
+     "worst_s": 430
+    },
+    "body.energyState": {
+     "max": 0.0011309814509807836,
+     "n": 1054,
+     "over": 0,
+     "worst_s": 1917
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 1054,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  },
+  "x284": {
+   "autodrops": 857,
+   "detector_beyond_autodrops": 0,
+   "driver_verdicts": {
+    "F": "as_predicted",
+    "H1": "as_predicted",
+    "REPLAY": "as_predicted",
+    "RING": "as_predicted",
+    "SODIUM": "as_predicted",
+    "STOPS": "as_predicted",
+    "Z": "as_predicted"
+   },
+   "fields": {
+    "HUNGER": {
+     "max": 0.0005556606515272344,
+     "n": 922,
+     "over": 0,
+     "worst_s": 669
+    },
+    "body.energyState": {
+     "max": 0.0011185817516314867,
+     "n": 922,
+     "over": 0,
+     "worst_s": 1753
+    },
+    "satiety.L": {
+     "max": 0.0,
+     "n": 922,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "replay_ok": true
+  }
+ },
+ "tool_commit": "6575cc5",
+ "verdicts": {
+  "R7BAND": false,
+  "R7INTAKE": {
+   "2": true,
+   "3": true,
+   "4": true,
+   "5": true
+  },
+  "R7REPLAY": true,
+  "SESSIONS_REPLAY_OK": {
+   "x281": true,
+   "x282": true,
+   "x283": true,
+   "x284": true
+  },
+  "SODIUM_GRADE0": true
+ }
+}
