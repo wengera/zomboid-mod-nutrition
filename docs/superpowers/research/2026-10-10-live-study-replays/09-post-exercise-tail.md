@@ -7,7 +7,7 @@ Plan 11f, ruling T6-2: a read-only investigation of the tail, beside an EPOC sci
 - The mod's choice is to read that smoothed rate as the player's activity, and to bill it at a Compendium MET (Metabolic Equivalent of Task) above a 1.3 idle.
 - Measured on five tails, the fall has a time constant of 1.35–1.38 game hours at x29's `DayLength = 1`; the rise has 0.56 h. Both match the jar's coefficients.
 - Because the step is fixed in real time (about 51 s falling and 21 s rising at speed 1), the tail in game hours scales with the day length. At the fixture's `DayLength = 4` it would be about six times shorter, so x29's profile magnifies it six-fold.
-- EPOC (excess post-exercise oxygen consumption, the real after-exercise burn) is about 5–15 % of the exercise's net cost after moderate-to-hard aerobic work. After resistance work and calisthenics it is tens of kcal over 1–2 h. Live bills 2.3–2.7× the bout window after the window.
+- EPOC (excess post-exercise oxygen consumption, the real after-exercise burn) is about 5–15 % of the exercise's oxygen cost after moderate-to-hard aerobic work (S9.2's 6–15 %, S9.4's 15.2 %, S9.6's mean 4.8 %; the denominators differ, § 3). After resistance work and calisthenics it is tens of kcal over 1–2 h. Live bills 2.3–2.7× the bout window after the window.
 - **Recommended fix:** bill a running Fitness exercise at its class, bill the idle class while the rate is falling, and add an EPOC pool sized from the rows (§ 5).
 
 ## 1. The mechanism
@@ -116,29 +116,29 @@ The rows are S9.1–S9.24 settled and S9.25 open. Every citation was resolved th
 **Moderate and hard continuous aerobic exercise**
 - **As a share of the exercise's cost.**
   - EPOC is 6–15 % of the net total O2 cost, even where it is prolonged (LaForgia 2006 review, S9.2).
-  - After 20–80 min at 70 % VO2max, the 12-h EPOC is 15.2 ± 2.0 % of the exercise O2, at every duration (Bahr 1987, S9.4).
-  - In trained men the 8-h EPOC is 1.0–8.9 %, mean 4.8 %, of the net total O2 cost across 30–70 % VO2max and 20–80 min (Gore and Withers 1990, S9.6).
+  - After 20–80 min at 70 % VO2max, the 12-h EPOC is 15.2 ± 2.0 % (± unlabelled) of the total exercise O2 consumption, which the abstract does not call net or gross, with no difference across durations (Bahr 1987, S9.4).
+  - In trained men the 8-h EPOC is 1.0–8.9 %, mean 4.8 %, of the net total O2 cost (net exercise O2 plus the EPOC itself) across 30–70 % VO2max and 20–80 min (Gore and Withers 1990, S9.6).
   - Intensity explains five times more of the variance than duration (S9.7).
-- **Duration depends on intensity.** After 80 min it lasts 0.3 h at 29 % VO2max, 3.3 h at 50 % and 10.5 h at 75 % (Bahr and Sejersted 1991, S9.5). After short bouts in trained triathletes it lasts 20–33 min and costs 12–29 kcal (Sedlock 1989, S9.8).
+- **Duration depends on intensity.** After 80 min it lasts 0.3 h at 29 % VO2max, 3.3 h at 50 % and 10.5 h at 75 % (Bahr and Sejersted 1991, S9.5). After three cycling bouts in trained triathletes (high-intensity short, low-intensity short and low-intensity long; the abstract gives no doses) it lasts 20–33 min and costs 12–29 kcal (Sedlock 1989, S9.8).
 - **The ceiling.** Knab 2011's chamber study measured 190 ± 71.4 kcal over 14 h after 45 min at about 73 % VO2max, 37 % of the bout's 519 kcal (S9.10). It is the highest relative figure here, and it comes from a vigorous bout.
-- **Feeding.** EPOC is the same fed or fasted (S9.11).
-- **Pooled.** Moderate continuous exercise averages about 101 kJ (≤ 3 h) to 159 kJ (> 3 h) of EPOC, which is roughly 24–38 kcal (Panissa 2021 systematic review, S9.3, averages with no interval).
+- **Feeding.** EPOC did not differ fed or fasted (21.1 against 20.9 L over 7 h, NS at n = 6; S9.11).
+- **Averaged across studies.** In the studies comparing it with high-intensity intervals, moderate continuous exercise averages about 101 kJ (≤ 3 h) and 159 kJ (> 3 h) of EPOC; in those comparing it with sprint intervals its ≤ 3 h average is about 151 kJ (Panissa 2021 systematic review, S9.3: averages, not a pooled estimate, with no interval and no exercise dose). At 4.184 kJ/kcal that is roughly 24–38 kcal (my arithmetic, not a row).
 
 **Resistance exercise and calisthenics.** EPOC is larger per unit of exercise O2 than after steady aerobic work (S9.19, S9.22), but small in absolute terms:
 - About 19 kcal in the hour after 42 min of moderate lifting (S9.14).
 - 37.00–51.51 kcal in the hour after circuit training (S9.16).
 - A 6.2 L O2 rise over 2 h, back to control in the last 30 min (S9.17).
 - A greater EPOC for heavier loads (S9.18).
-- The longest reports are a small elevation in oxygen uptake for 2–3 h and a raised next-morning resting metabolic rate (+4.2–9.4 %) after 90–100 min of strenuous lifting (S9.15, S9.21). Schuenke 2002 is an uncontrolled outlier to 38 h (S9.20).
+- The longest reports follow 90–100 min of strenuous lifting: oxygen uptake raised through the whole 2–3 h measured (11–12 % in S9.15's last 6 min), and a next-morning resting metabolic rate 4.2–9.4 % above the previous morning's, with no control day behind those two readings (S9.15, S9.21). Schuenke 2002 is an uncontrolled outlier to 38 h (S9.20).
 
 Bodyweight work is the closest match to the game's burpees and squats:
-- After full-body calisthenics, expenditure above baseline is 1.7 kcal/min at 0–5 min and 0.5 at 6–10 min, and it is back to baseline (−0.1) by 31–60 min (Lee 2025, S9.23).
-- Bodyweight HIFT leaves an EPOC of 11.6 L over 60 min (Sturdy and Astorino 2024, S9.24).
+- After full-body calisthenics, expenditure above baseline is 1.7 kcal/min at 0–5 min and 0.5 at 6–10 min, and at 31–60 min it reads −0.1 ± 0.3 (no unit printed beside it), at or below baseline (Lee 2025, S9.23; the calisthenics value is the first of each printed pair, read from the sentence order).
+- Bodyweight HIFT leaves an EPOC of 11.6 L over 60 min, no different from kettlebell complexes, with oxygen uptake raised for 30–60 min and "55 extra calories expended" (Sturdy and Astorino 2024, S9.24; 11.6 L is read as HIFT from the abstract's KC-then-HIFT naming order).
 
 **Size for the game's bout.** These are my arithmetic, not a row.
-- A 1-h Fitness bout billed at its target is ≈ 387 kcal of net exercise.
-- The aerobic share range of 5–15 % gives ≈ 20–60 kcal. The resistance and calisthenics rows give tens of kcal, mostly within the first 30–60 min. Knab's vigorous ceiling of 37 % would be ≈ 140 kcal over 14 h.
-- Live bills 445–469 kcal after a clean bout (§ 2b). That is 7–20 times the central EPOC evidence, and 3 times Knab's ceiling.
+- A 1.03-h Fitness set billed at its target is ≈ 387 kcal of net exercise (§ 2c).
+- The aerobic share range of 5–15 % (oxygen shares whose denominators differ, § 3, applied here to kcal) gives ≈ 20–60 kcal. The resistance and calisthenics rows give tens of kcal, mostly within the first 30–60 min. Knab's vigorous ceiling of 37 % would be ≈ 140 kcal over 14 h.
+- Live bills 445–469 kcal after a clean bout (§ 2b). That is about 7–23 times the 20–60 kcal derived above, and about 3 times Knab's ceiling.
 
 ## 4. Fix options
 
@@ -188,8 +188,8 @@ The golden trace (`testing/tests/kernel/golden_trace.py`) has constant per-playe
 **C**: bill a running Fitness exercise at the `Fitness` class, bill idle while the rate falls with no exercise and no movement, and add a lazily created EPOC pool.
 
 - **The pool's two constants are game choices resting on the rows.**
-  - The fraction f ≈ 0.10 of the minute's net exercise kcal, inside S9.2's 6–15 % and S9.4's 15.2 %, above S9.6's trained 4.8 % and below S9.10's vigorous 37 %.
-  - The release time constant ≈ 0.5 game h, which empties most of the pool within the 30–60 min the calisthenics and resistance rows show (S9.16, S9.17, S9.23, S9.24). S9.25 stays open for a fitted shape.
+  - The fraction f ≈ 0.10 of the minute's net exercise kcal is a game choice. It lies inside S9.2's 6–15 %, below S9.4's 15.2 %, above S9.6's trained mean of 4.8 % and below S9.10's vigorous 37 %. The rows' denominators differ (S9.6's net total O2 cost includes the EPOC, S9.4's total exercise O2 is not called net or gross, and S9.10's is net exercise kcal), so the comparison is approximate.
+  - The release time constant ≈ 0.5 game h is a game choice with no fitted constant behind it (S9.25 stays open). It releases about 86 % of a pool within 1 h and about 98 % within 2 h (my arithmetic: 1 − e^(−2) and 1 − e^(−4)). The rows bound it only loosely. Expenditure is at or below baseline by 31–60 min after calisthenics (S9.23), and oxygen uptake stays raised for 30–60 min after HIFT (S9.24). After resistance work it returns to control in the last 30 min of 2 h (S9.17) and is still above control at 105–120 min after heavy sets (S9.18). After long or vigorous aerobic work it stays raised for 12–14 h (S9.4, S9.10). The constant therefore fits the bodyweight rows and front-loads the release after resistance and hard aerobic work.
 - **Why C.**
   - It removes the measured defect at every day length, from one read the adapter already makes, with no engine constant in the mod.
   - It keeps the mod in control of its own expenditure model, in line with Angus's criteria: long-term operability and control of our mod over vanilla quirks.
