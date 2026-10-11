@@ -1,0 +1,79 @@
+{
+ "grade_commit": "6a6cdb61",
+ "lib_commit": "6a6cdb61",
+ "sessions": [
+  "x331",
+  "x332",
+  "x333"
+ ],
+ "tool_commit": "51e6b2e9",
+ "verdicts": {
+  "ADDS_EQUAL_KERNEL": {
+   "M0": true,
+   "M1": true,
+   "M2": true,
+   "M3": true,
+   "M4": true,
+   "S0": true,
+   "S1": true,
+   "S2": true,
+   "S3": true,
+   "S4": true
+  },
+  "CLIENT": {
+   "M1": true,
+   "M2": true,
+   "M3": true,
+   "M4": true,
+   "S1": true,
+   "S2": true,
+   "S3": true,
+   "S4": true
+  },
+  "EQUAL_STATS": {
+   "M0": false,
+   "M1": false,
+   "M2": false,
+   "M3": false,
+   "M4": false,
+   "S0": false,
+   "S1": false,
+   "S2": false,
+   "S3": false,
+   "S4": false
+  },
+  "EXE_FALSE": {
+   "x331": true,
+   "x332": true,
+   "x333": true
+  },
+  "FIFTH": {
+   "M4": {
+    "bored": false,
+    "unhappy": true
+   },
+   "S4": {
+    "bored": false,
+    "unhappy": true
+   }
+  },
+  "FLOOR_NO_FALL": {
+   "M0": true,
+   "M1": true,
+   "M2": true,
+   "M3": true,
+   "M4": true,
+   "S0": true,
+   "S1": true,
+   "S2": true,
+   "S3": true,
+   "S4": true
+  },
+  "REPLAY_OK": {
+   "x331": false,
+   "x332": false,
+   "x333": false
+  },
+  "SODIUM_GRADE_MAX": 0
+ }
+}

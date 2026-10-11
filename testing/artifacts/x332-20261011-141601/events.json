@@ -1,0 +1,196 @@
+[
+ {
+  "age": 35.61284637451172,
+  "autoDrop": 0.10059782996452671,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 70,
+  "vec": {
+   "water": 201.19565992905342
+  }
+ },
+ {
+  "age": 36.92909622192383,
+  "autoDrop": 0.10034143176968346,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 149,
+  "vec": {
+   "water": 200.68286353936693
+  }
+ },
+ {
+  "age": 38.24639129638672,
+  "autoDrop": 0.10031191404944773,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 228,
+  "vec": {
+   "water": 200.62382809889544
+  }
+ },
+ {
+  "age": 39.56245422363281,
+  "autoDrop": 0.10024769513046572,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 307,
+  "vec": {
+   "water": 200.49539026093143
+  }
+ },
+ {
+  "age": 40.87908172607422,
+  "autoDrop": 0.04850112223940073,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 386,
+  "vec": {
+   "water": 97.00224447880146
+  }
+ },
+ {
+  "age": 51.66249084472656,
+  "autoDrop": 0.44999996981220125,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1033,
+  "vec": {
+   "water": 899.9999396244025
+  }
+ },
+ {
+  "age": 54.08333969116211,
+  "kind": "stat",
+  "label": "setany-M2",
+  "s": 1179,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 54.08333969116211,
+  "kind": "stat",
+  "label": "setany-M2",
+  "s": 1179,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Mono450",
+  "kind": "eat",
+  "label": "M2",
+  "s": 1195
+ },
+ {
+  "age": 54.96913146972656,
+  "autoDrop": 0.3779254713496232,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1232,
+  "vec": {
+   "water": 755.8509426992464
+  }
+ },
+ {
+  "age": 55.00103759765625,
+  "autoDrop": 0.07207450589406239,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1234,
+  "vec": {
+   "water": 144.14901178812477
+  }
+ },
+ {
+  "age": 55.118186950683594,
+  "kind": "stat",
+  "label": "setany-S2",
+  "s": 1241,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 55.118186950683594,
+  "kind": "stat",
+  "label": "setany-S2",
+  "s": 1241,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Staple450",
+  "kind": "eat",
+  "label": "S2",
+  "s": 1255
+ },
+ {
+  "age": 56.03342056274414,
+  "autoDrop": 0.100159333073496,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1296,
+  "vec": {
+   "water": 200.318666146992
+  }
+ },
+ {
+  "age": 57.35025405883789,
+  "autoDrop": 0.10017958928684378,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1375,
+  "vec": {
+   "water": 200.35917857368756
+  }
+ },
+ {
+  "age": 58.66709899902344,
+  "autoDrop": 0.10019092267713503,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1454,
+  "vec": {
+   "water": 200.38184535427007
+  }
+ },
+ {
+  "age": 59.98373031616211,
+  "autoDrop": 0.10019955396939217,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1533,
+  "vec": {
+   "water": 200.39910793878434
+  }
+ },
+ {
+  "age": 61.3010139465332,
+  "autoDrop": 0.1002469675008123,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1612,
+  "vec": {
+   "water": 200.4939350016246
+  }
+ },
+ {
+  "age": 62.617210388183594,
+  "autoDrop": 0.10022576146844986,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1691,
+  "vec": {
+   "water": 200.45152293689972
+  }
+ },
+ {
+  "age": 63.934356689453125,
+  "autoDrop": 0.049136776095744406,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1770,
+  "vec": {
+   "water": 98.27355219148882
+  }
+ }
+]

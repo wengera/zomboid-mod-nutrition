@@ -1,0 +1,100 @@
+{
+ "driver_verdicts": {
+  "ADDS": "as_predicted",
+  "CLIENT": "as_predicted",
+  "EQUAL": "falsified",
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "FLOOR": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "SLEEP_OFF": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "drink": 12,
+  "eat": 4,
+  "stat": 8
+ },
+ "ring_activity_events": 1657,
+ "ring_first_age": 3.350698471069336,
+ "ring_last_age": 33.21895217895508,
+ "rows": 1749,
+ "run_id": "x331-20261011-140738",
+ "tool_diff": {
+  "classes": {
+   "between": 20,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.002266833621352604,
+    "n": 1723,
+    "over": 3,
+    "worst_s": 1461
+   },
+   "body.energyState": {
+    "max": 0.0013593508186588998,
+    "n": 1723,
+    "over": 0,
+    "worst_s": 1788
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1723,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [
+   {
+    "d": 0.002266833621352604,
+    "field": "HUNGER",
+    "live": 0.4189840257167816,
+    "replay": 0.4212508593381342,
+    "s": 1461,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.0021522671030165808,
+    "field": "HUNGER",
+    "live": 0.4219497740268707,
+    "replay": 0.4241020411298873,
+    "s": 1462,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   },
+   {
+    "d": 0.002042580462202681,
+    "field": "HUNGER",
+    "live": 0.4248006343841553,
+    "replay": 0.42684321484635795,
+    "s": 1463,
+    "tol": [
+     "abs",
+     0.002
+    ]
+   }
+  ],
+  "findings_n": 3,
+  "ok": false
+ },
+ "unhappy_vs_replay": {
+  "max_abs": 20,
+  "n": 1723,
+  "rows_over_1e3": 4,
+  "worst_live": 20,
+  "worst_replay": 0,
+  "worst_s": 165
+ }
+}

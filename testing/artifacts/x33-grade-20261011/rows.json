@@ -1,0 +1,1527 @@
+{
+ "drinking_sodium": {
+  "BASAL_NA": 8.0,
+  "by_day": {
+   "0": {
+    "body.energyState_end": 1.0688763049034464,
+    "body.energyState_first": 1.0043622295391297,
+    "complete": false,
+    "fluids.naPlasma_end": 141.18779108184137,
+    "fluids.naPlasma_first": 140.12637165997796,
+    "fluids.na_end": -4.6404879887898725,
+    "fluids.na_first": -0.0948321024576823,
+    "fluids.water_end": -435.74183606532534,
+    "fluids.water_first": -43.86410696764956,
+    "grade_max": 0,
+    "mod_l": 1.3027411215824012,
+    "naPlasma_max": 141.5742619999118,
+    "naPlasma_min": 140.12637165997796,
+    "ring_hours": 13.634368896484375
+   },
+   "1": {
+    "body.energyState_end": 1.2275101716159584,
+    "body.energyState_first": 1.0690809122300742,
+    "complete": false,
+    "fluids.naPlasma_end": 140.92412015672568,
+    "fluids.naPlasma_first": 141.1935199023186,
+    "fluids.na_end": -12.635018348693865,
+    "fluids.na_first": -4.644920667012529,
+    "fluids.water_end": -403.41149259145635,
+    "fluids.water_first": -437.69856996270863,
+    "grade_max": 0,
+    "mod_l": 3.197201872970399,
+    "naPlasma_max": 146.21330372090918,
+    "naPlasma_min": 140.70125166300247,
+    "ring_hours": 22.74148178100586
+   },
+   "2": {
+    "body.energyState_end": 1.2304680481705763,
+    "body.energyState_first": 1.2275105522303376,
+    "complete": true,
+    "fluids.naPlasma_end": 141.1334458312532,
+    "fluids.naPlasma_first": 140.9209492540072,
+    "fluids.na_end": -20.63485813140868,
+    "fluids.na_first": -12.639452298482277,
+    "fluids.water_end": -529.1703242840578,
+    "fluids.water_first": -402.3754388882973,
+    "grade_max": 0,
+    "mod_l": 3.10067770225552,
+    "naPlasma_max": 145.72076680151122,
+    "naPlasma_min": 140.6950758382162,
+    "ring_hours": 23.97289276123047
+   },
+   "3": {
+    "body.energyState_end": 1.2326044450249796,
+    "body.energyState_first": 1.2304679546201986,
+    "complete": false,
+    "fluids.naPlasma_end": 141.1991199921383,
+    "fluids.naPlasma_first": 141.13905479760624,
+    "fluids.na_end": -28.627386411031043,
+    "fluids.na_first": -20.63929335276285,
+    "fluids.water_end": -606.3440553827843,
+    "fluids.water_first": -531.0757692811824,
+    "grade_max": 0,
+    "mod_l": 3.2152385814639466,
+    "naPlasma_max": 144.06132465984263,
+    "naPlasma_min": 140.7010265903326,
+    "ring_hours": 22.784141540527344
+   },
+   "4": {
+    "body.energyState_end": 1.2349293306260025,
+    "body.energyState_first": 1.2326041698687231,
+    "complete": false,
+    "fluids.naPlasma_end": 143.3997347964814,
+    "fluids.naPlasma_first": 141.2107020377733,
+    "fluids.na_end": -33.860934893290136,
+    "fluids.na_first": -28.636231422424274,
+    "fluids.water_end": -1359.036624270248,
+    "fluids.water_first": -610.2549201814384,
+    "grade_max": 0,
+    "mod_l": 2.0986675424917753,
+    "naPlasma_max": 146.29560703936318,
+    "naPlasma_min": 141.2107020377733,
+    "ring_hours": 15.744697570800781
+   }
+  },
+  "grade_max_chain": 0
+ },
+ "row13": {
+  "climb": {
+   "arms": {
+    "mono": [
+     {
+      "add": 0,
+      "day": 0,
+      "kernel_delta": 0.0,
+      "label": "M0",
+      "nominal_delta": 0.0,
+      "running_sum": 0.0
+     },
+     {
+      "add": 3.4121532440185547,
+      "day": 1,
+      "kernel_delta": 3.4121538711223307,
+      "label": "M1",
+      "nominal_delta": 3.4129122617316283,
+      "running_sum": 3.4121532440185547
+     },
+     {
+      "add": 6.121330261230469,
+      "day": 2,
+      "kernel_delta": 6.1213291893476445,
+      "label": "M2",
+      "nominal_delta": 6.121742519005606,
+      "running_sum": 9.533483505249023
+     },
+     {
+      "add": 8.270425796508789,
+      "day": 3,
+      "kernel_delta": 8.270425470504435,
+      "label": "M3",
+      "nominal_delta": 8.271742519005606,
+      "running_sum": 17.803909301757812
+     },
+     {
+      "add": 9.975353240966797,
+      "day": 4,
+      "kernel_delta": 9.975352963127214,
+      "label": "M4",
+      "nominal_delta": 9.978198649871421,
+      "running_sum": 27.77926254272461
+     }
+    ],
+    "staple": [
+     {
+      "add": 0,
+      "day": 0,
+      "kernel_delta": 0.0,
+      "label": "S0",
+      "nominal_delta": 0.0,
+      "running_sum": 0.0
+     },
+     {
+      "add": 0.8530616760253906,
+      "day": 1,
+      "kernel_delta": 0.8530617520439955,
+      "label": "S1",
+      "nominal_delta": 0.8532280654329071,
+      "running_sum": 0.8530616760253906
+     },
+     {
+      "add": 1.5311717987060547,
+      "day": 2,
+      "kernel_delta": 1.5311718706173505,
+      "label": "S2",
+      "nominal_delta": 1.5304356297514015,
+      "running_sum": 2.3842334747314453
+     },
+     {
+      "add": 2.067424774169922,
+      "day": 3,
+      "kernel_delta": 2.0674241019254924,
+      "label": "S3",
+      "nominal_delta": 2.0679356297514015,
+      "running_sum": 4.451658248901367
+     },
+     {
+      "add": 2.4946537017822266,
+      "day": 4,
+      "kernel_delta": 2.4946533524313974,
+      "label": "S4",
+      "nominal_delta": 2.4945496624678554,
+      "running_sum": 6.946311950683594
+     }
+    ]
+   },
+   "day_holds": [
+    {
+     "age0": 6.917247772216797,
+     "age1": 7.050251007080078,
+     "bored_first": 1.5366265773773193,
+     "bored_last": 1.7760342359542847,
+     "bored_max": 1.7760342359542847,
+     "from": "M0",
+     "rows": 9,
+     "session": "x331",
+     "target_max": 0,
+     "to": "S0",
+     "unhappy_first": 20,
+     "unhappy_last": 20,
+     "unhappy_max": 20,
+     "unhappy_min": 20
+    },
+    {
+     "age0": 7.933544158935547,
+     "age1": 30.03337860107422,
+     "bored_first": 1.546804666519165,
+     "bored_last": 0,
+     "bored_max": 27.269731521606445,
+     "from": "S0",
+     "rows": 1327,
+     "session": "x331",
+     "target_max": 0,
+     "to": "M1",
+     "unhappy_first": 20,
+     "unhappy_last": 20,
+     "unhappy_max": 20,
+     "unhappy_min": 20
+    },
+    {
+     "age0": 30.918977737426758,
+     "age1": 31.052021026611328,
+     "bored_first": 0,
+     "bored_last": 0,
+     "bored_max": 0,
+     "from": "M1",
+     "rows": 9,
+     "session": "x331",
+     "target_max": 0,
+     "to": "S1",
+     "unhappy_first": 23.412153244018555,
+     "unhappy_last": 23.412153244018555,
+     "unhappy_max": 23.412153244018555,
+     "unhappy_min": 23.412153244018555
+    },
+    {
+     "age0": 54.91861343383789,
+     "age1": 55.051612854003906,
+     "bored_first": 0,
+     "bored_last": 0,
+     "bored_max": 0,
+     "from": "M2",
+     "rows": 9,
+     "session": "x332",
+     "target_max": 0,
+     "to": "S2",
+     "unhappy_first": 26.12133026123047,
+     "unhappy_last": 26.12133026123047,
+     "unhappy_max": 26.12133026123047,
+     "unhappy_min": 26.12133026123047
+    },
+    {
+     "age0": 78.93380737304688,
+     "age1": 79.06678771972656,
+     "bored_first": 9.812172889709473,
+     "bored_last": 10.051536560058594,
+     "bored_max": 10.051536560058594,
+     "from": "M3",
+     "rows": 9,
+     "session": "x333",
+     "target_max": 0,
+     "to": "S3",
+     "unhappy_first": 28.27042579650879,
+     "unhappy_last": 28.27042579650879,
+     "unhappy_max": 28.27042579650879,
+     "unhappy_min": 28.27042579650879
+    },
+    {
+     "age0": 79.95258331298828,
+     "age1": 102.03448486328125,
+     "bored_first": 3.599590539932251,
+     "bored_last": 0,
+     "bored_max": 29.160720825195312,
+     "from": "S3",
+     "rows": 1326,
+     "session": "x333",
+     "target_max": 0,
+     "to": "M4",
+     "unhappy_first": 22.067424774169922,
+     "unhappy_last": 22.067424774169922,
+     "unhappy_max": 22.067424774169922,
+     "unhappy_min": 22.067424774169922
+    },
+    {
+     "age0": 102.93396759033203,
+     "age1": 103.06688690185547,
+     "bored_first": 0,
+     "bored_last": 0,
+     "bored_max": 0,
+     "from": "M4",
+     "rows": 9,
+     "session": "x333",
+     "target_max": 0,
+     "to": "S4",
+     "unhappy_first": 29.975353240966797,
+     "unhappy_last": 29.975353240966797,
+     "unhappy_max": 29.975353240966797,
+     "unhappy_min": 29.975353240966797
+    }
+   ],
+   "note": "the running sum is the UNHAPPINESS a one-food diet carries from each arm's adds with no vanilla term (the live day holds show whether one acted); the projections are offline arithmetic",
+   "one_a_day_reaches_100_on_day": 10,
+   "projection_one_a_day": [
+    {
+     "add": 0.0,
+     "day": 0,
+     "unhappy": 0.0
+    },
+    {
+     "add": 3.4129122617316283,
+     "day": 1,
+     "unhappy": 3.4129122617316283
+    },
+    {
+     "add": 6.121742519005606,
+     "day": 2,
+     "unhappy": 9.534654780737235
+    },
+    {
+     "add": 8.271742519005606,
+     "day": 3,
+     "unhappy": 17.80639729974284
+    },
+    {
+     "add": 9.978198649871421,
+     "day": 4,
+     "unhappy": 27.784595949614264
+    },
+    {
+     "add": 11.332613778508412,
+     "day": 5,
+     "unhappy": 39.117209728122674
+    },
+    {
+     "add": 12.407613778508411,
+     "day": 6,
+     "unhappy": 51.52482350663109
+    },
+    {
+     "add": 13.260841843941318,
+     "day": 7,
+     "unhappy": 64.7856653505724
+    },
+    {
+     "add": 13.938049408259811,
+     "day": 8,
+     "unhappy": 78.72371475883222
+    },
+    {
+     "add": 14.47554940825981,
+     "day": 9,
+     "unhappy": 93.19926416709202
+    },
+    {
+     "add": 14.902163440976265,
+     "day": 10,
+     "unhappy": 100.0
+    },
+    {
+     "add": 15.240767223135515,
+     "day": 11,
+     "unhappy": 100.0
+    },
+    {
+     "add": 15.509517223135516,
+     "day": 12,
+     "unhappy": 100.0
+    },
+    {
+     "add": 15.722824239493741,
+     "day": 13,
+     "unhappy": 100.0
+    }
+   ],
+   "projection_three_a_day": [
+    {
+     "add": 11.948559736454746,
+     "day": 0,
+     "unhappy": 11.948559736454746
+    },
+    {
+     "add": 42.73378344832882,
+     "day": 1,
+     "unhappy": 54.68234318478357
+    },
+    {
+     "add": 59.41678732543567,
+     "day": 2,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 3,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 4,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 5,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 6,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 7,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 8,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 9,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 10,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 11,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 12,
+     "unhappy": 100.0
+    },
+    {
+     "add": 60.0,
+     "day": 13,
+     "unhappy": 100.0
+    }
+   ],
+   "steady_daily_add": 16.543485038011216,
+   "three_a_day_reaches_100_on_day": 2
+  },
+  "constants": {
+   "CAP": 20.0,
+   "HALF_LIFE_H": 72.0,
+   "MEAL_KCAL": 400.0,
+   "SLOPE": 4.3,
+   "STAPLE": 0.25,
+   "WINDOW_H": 168.0
+  },
+  "eats": [
+   {
+    "add": {
+     "BOREDOM": 0.12424296140670776,
+     "UNHAPPINESS": 0
+    },
+    "add_equal": 0.12424296140670776,
+    "add_minus_kernel": {
+     "BOREDOM": 0.12424296140670776,
+     "UNHAPPINESS": 0.0
+    },
+    "client_before": {
+     "BOREDOM": 0.10531480610370636,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": null,
+    "client_reads": 6,
+    "day": 0,
+    "food": "TKX.Mono450",
+    "kernel_count_before": 0.0,
+    "kernel_delta": 0.0,
+    "kernel_n_after": 1.0,
+    "label": "M0",
+    "landed": true,
+    "landed_age_polled": 6.369184494018555,
+    "last_after": 6.318769454956055,
+    "last_before": null,
+    "monotony_counter_rose": 0,
+    "n_after": 1,
+    "n_after_minus_kernel": 0.0,
+    "n_before": null,
+    "nominal_delta": 0.0,
+    "post": {
+     "BOREDOM": 0.5501092076301575,
+     "HUNGER": 0.14748485386371613,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "post_age": 6.369184494018555,
+    "pre": {
+     "BOREDOM": 0.4258662462234497,
+     "HUNGER": 0.23942553997039795,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 6.300158500671387,
+    "replay": {
+     "age": 6.334722518920898,
+     "boredom": 0.0,
+     "fullType": "TKX.Mono450",
+     "kcal": 450,
+     "unhappy": 0.0
+    },
+    "replay_minus_add": {
+     "BOREDOM": -0.12424296140670776,
+     "UNHAPPINESS": 0.0
+    },
+    "session": "x331",
+    "set": {
+     "after_age": 6.084836959838867,
+     "before_age": 6.0502729415893555,
+     "bored": {
+      "after": 0,
+      "before": 3.9131851196289062,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": false,
+    "unhappy_over_set": 0.0,
+    "window": {
+     "bored_first": 0.5787698030471802,
+     "bored_last": 1.445623755455017,
+     "fall_below_post": 0.0,
+     "first_age": 6.385106086730957,
+     "first_s": 183,
+     "last_age": 6.866690635681152,
+     "last_s": 212,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 20,
+     "unhappy_last": 20,
+     "unhappy_max": 20,
+     "unhappy_min": 20
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0.10521626472473145,
+     "UNHAPPINESS": 0
+    },
+    "add_equal": 0.10521626472473145,
+    "add_minus_kernel": {
+     "BOREDOM": 0.10521626472473145,
+     "UNHAPPINESS": 0.0
+    },
+    "client_before": {
+     "BOREDOM": 0.15334387123584747,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0.5842790007591248,
+      "UNHAPPINESS": 20
+     },
+     "wall": 163.061
+    },
+    "client_reads": 6,
+    "day": 0,
+    "food": "TKX.Staple450",
+    "kernel_count_before": 0.0,
+    "kernel_delta": 0.0,
+    "kernel_n_after": 1.0,
+    "label": "S0",
+    "landed": true,
+    "landed_age_polled": 7.393506050109863,
+    "last_after": 7.372279167175293,
+    "last_before": null,
+    "monotony_counter_rose": 0,
+    "n_after": 1,
+    "n_after_minus_kernel": 0.0,
+    "n_before": null,
+    "nominal_delta": 0.0,
+    "post": {
+     "BOREDOM": 0.574736475944519,
+     "HUNGER": 0.09953941404819489,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "post_age": 7.393506050109863,
+    "pre": {
+     "BOREDOM": 0.4695202112197876,
+     "HUNGER": 0.17707324028015137,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 7.335054397583008,
+    "replay": {
+     "age": 7.385540008544922,
+     "boredom": 0.0,
+     "fullType": "TKX.Staple450",
+     "kcal": 450,
+     "unhappy": 0.0
+    },
+    "replay_minus_add": {
+     "BOREDOM": -0.10521626472473145,
+     "UNHAPPINESS": 0.0
+    },
+    "session": "x331",
+    "set": {
+     "after_age": 7.100831985473633,
+     "before_age": 7.068881034851074,
+     "bored": {
+      "after": 0,
+      "before": 1.8191617727279663,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 20,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": true,
+    "unhappy_over_set": 0.0,
+    "window": {
+     "bored_first": 0.589046061038971,
+     "bored_last": 1.4606951475143433,
+     "fall_below_post": 0.0,
+     "first_age": 7.401455879211426,
+     "first_s": 244,
+     "last_age": 7.88570499420166,
+     "last_s": 273,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 20,
+     "unhappy_last": 20,
+     "unhappy_max": 20,
+     "unhappy_min": 20
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 3.4121532440185547
+    },
+    "add_equal": 3.4121532440185547,
+    "add_minus_kernel": {
+     "BOREDOM": -3.4121538711223307,
+     "UNHAPPINESS": -6.271037760186005e-07
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 23.412153244018555
+     },
+     "wall": 366.349
+    },
+    "client_reads": 6,
+    "day": 1,
+    "food": "TKX.Mono450",
+    "kernel_count_before": 0.7935241560749606,
+    "kernel_delta": 3.4121538711223307,
+    "kernel_n_after": 1.7935241560749606,
+    "label": "M1",
+    "landed": true,
+    "landed_age_polled": 30.384273529052734,
+    "last_after": 30.341854095458984,
+    "last_before": 6.318769454956055,
+    "monotony_counter_rose": 1,
+    "n_after": 1.7935241560749606,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 1,
+    "nominal_delta": 3.4129122617316283,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.17751279473304749,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 23.412153244018555
+    },
+    "post_age": 30.384273529052734,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.5511402487754822,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 30.317947387695312,
+    "replay": {
+     "age": 30.35246467590332,
+     "boredom": 3.4123293706418147,
+     "fullType": "TKX.Mono450",
+     "kcal": 450,
+     "unhappy": 3.4123293706418147
+    },
+    "replay_minus_add": {
+     "BOREDOM": 3.4123293706418147,
+     "UNHAPPINESS": 0.00017612662326005335
+    },
+    "session": "x331",
+    "set": {
+     "after_age": 30.08656883239746,
+     "before_age": 30.052001953125,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 20,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": false,
+    "unhappy_over_set": 3.4121532440185547,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0,
+     "fall_below_post": 0.0,
+     "first_age": 30.400182723999023,
+     "first_s": 1624,
+     "last_age": 30.868391036987305,
+     "last_s": 1652,
+     "no_fall": true,
+     "rows": 29,
+     "target_max": 0,
+     "target_rows": 29,
+     "unhappy_first": 23.412153244018555,
+     "unhappy_last": 23.412153244018555,
+     "unhappy_max": 23.412153244018555,
+     "unhappy_min": 23.412153244018555
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 0.8530616760253906
+    },
+    "add_equal": 0.8530616760253906,
+    "add_minus_kernel": {
+     "BOREDOM": -0.8530617520439955,
+     "UNHAPPINESS": -7.601860485539902e-08
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 20.85306167602539
+     },
+     "wall": 405.161
+    },
+    "client_reads": 6,
+    "day": 1,
+    "food": "TKX.Staple450",
+    "kernel_count_before": 0.7935458158548796,
+    "kernel_delta": 0.8530617520439955,
+    "kernel_n_after": 1.7935458158548796,
+    "label": "S1",
+    "landed": true,
+    "landed_age_polled": 31.41641616821289,
+    "last_after": 31.392528533935547,
+    "last_before": 7.372279167175293,
+    "monotony_counter_rose": 1,
+    "n_after": 1.7935458158548796,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 1,
+    "nominal_delta": 0.8532280654329071,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.12105444818735123,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20.85306167602539
+    },
+    "post_age": 31.41641616821289,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.18483568727970123,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 31.352638244628906,
+    "replay": {
+     "age": 31.400501251220703,
+     "boredom": 0.85310518167375,
+     "fullType": "TKX.Staple450",
+     "kcal": 450,
+     "unhappy": 0.85310518167375
+    },
+    "replay_minus_add": {
+     "BOREDOM": 0.85310518167375,
+     "UNHAPPINESS": 4.3505648359420945e-05
+    },
+    "session": "x331",
+    "set": {
+     "after_age": 31.118499755859375,
+     "before_age": 31.067974090576172,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 23.412153244018555,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": true,
+    "unhappy_over_set": 0.8530616760253906,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0,
+     "fall_below_post": 0.0,
+     "first_age": 31.419071197509766,
+     "first_s": 1685,
+     "last_age": 31.900558471679688,
+     "last_s": 1714,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 20.85306167602539,
+     "unhappy_last": 20.85306167602539,
+     "unhappy_max": 20.85306167602539,
+     "unhappy_min": 20.85306167602539
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 6.121330261230469
+    },
+    "add_equal": 6.121330261230469,
+    "add_minus_kernel": {
+     "BOREDOM": -6.1213291893476445,
+     "UNHAPPINESS": 1.0718828242772815e-06
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 26.12133026123047
+     },
+     "wall": 253.311
+    },
+    "client_reads": 6,
+    "day": 2,
+    "food": "TKX.Mono450",
+    "kernel_count_before": 1.4235649277552664,
+    "kernel_delta": 6.1213291893476445,
+    "kernel_n_after": 2.423564927755266,
+    "label": "M2",
+    "landed": true,
+    "landed_age_polled": 54.378456115722656,
+    "last_after": 54.338653564453125,
+    "last_before": 30.341854095458984,
+    "monotony_counter_rose": 1,
+    "n_after": 2.423564927755266,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 1.7935241560749606,
+    "nominal_delta": 6.121742519005606,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.1779421865940094,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 26.12133026123047
+    },
+    "post_age": 54.378456115722656,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.5522399544715881,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 54.317405700683594,
+    "replay": {
+     "age": 54.3519287109375,
+     "boredom": 6.120546930883872,
+     "fullType": "TKX.Mono450",
+     "kcal": 450,
+     "unhappy": 6.120546930883872
+    },
+    "replay_minus_add": {
+     "BOREDOM": 6.120546930883872,
+     "UNHAPPINESS": -0.0007833303465965002
+    },
+    "session": "x332",
+    "set": {
+     "after_age": 54.06739807128906,
+     "before_age": 54.03548812866211,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 20.85306167602539,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": false,
+    "unhappy_over_set": 6.121330261230469,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0,
+     "fall_below_post": 0.0,
+     "first_age": 54.383766174316406,
+     "first_s": 1197,
+     "last_age": 54.86808395385742,
+     "last_s": 1226,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 26.12133026123047,
+     "unhappy_last": 26.12133026123047,
+     "unhappy_max": 26.12133026123047,
+     "unhappy_min": 26.12133026123047
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 1.5311717987060547
+    },
+    "add_equal": 1.5311717987060547,
+    "add_minus_kernel": {
+     "BOREDOM": -1.5311718706173505,
+     "UNHAPPINESS": -7.191129580697009e-08
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 21.531171798706055
+     },
+     "wall": 290.597
+    },
+    "client_reads": 6,
+    "day": 2,
+    "food": "TKX.Staple450",
+    "kernel_count_before": 1.424345926155675,
+    "kernel_delta": 1.5311718706173505,
+    "kernel_n_after": 2.424345926155675,
+    "label": "S2",
+    "landed": true,
+    "landed_age_polled": 55.368141174316406,
+    "last_after": 55.33361053466797,
+    "last_before": 31.392528533935547,
+    "monotony_counter_rose": 1,
+    "n_after": 2.424345926155675,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 1.7935458158548796,
+    "nominal_delta": 1.5304356297514015,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.12111292779445648,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 21.531171798706055
+    },
+    "post_age": 55.368141174316406,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.18266329169273376,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 55.301727294921875,
+    "replay": {
+     "age": 55.35220718383789,
+     "boredom": 1.5308977682860911,
+     "fullType": "TKX.Staple450",
+     "kcal": 450,
+     "unhappy": 1.5308977682860911
+    },
+    "replay_minus_add": {
+     "BOREDOM": 1.5308977682860911,
+     "UNHAPPINESS": -0.0002740304199635446
+    },
+    "session": "x332",
+    "set": {
+     "after_age": 55.10221481323242,
+     "before_age": 55.067588806152344,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 26.12133026123047,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": true,
+    "unhappy_over_set": 1.5311717987060547,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0.39258235692977905,
+     "fall_below_post": 0.0,
+     "first_age": 55.384063720703125,
+     "first_s": 1257,
+     "last_age": 55.85238265991211,
+     "last_s": 1285,
+     "no_fall": true,
+     "rows": 29,
+     "target_max": 0,
+     "target_rows": 29,
+     "unhappy_first": 21.531171798706055,
+     "unhappy_last": 21.531171798706055,
+     "unhappy_max": 21.531171798706055,
+     "unhappy_min": 21.531171798706055
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 8.380334794521332,
+     "UNHAPPINESS": 8.270425796508789
+    },
+    "add_equal": 0.10990899801254272,
+    "add_minus_kernel": {
+     "BOREDOM": 0.1099093240168969,
+     "UNHAPPINESS": 3.260043541786217e-07
+    },
+    "client_before": {
+     "BOREDOM": 0.10525119304656982,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 8.854039192199707,
+      "UNHAPPINESS": 28.27042579650879
+     },
+     "wall": 163.321
+    },
+    "client_reads": 6,
+    "day": 3,
+    "food": "TKX.Mono450",
+    "kernel_count_before": 1.9233547605824266,
+    "kernel_delta": 8.270425470504435,
+    "kernel_n_after": 2.9233547605824266,
+    "label": "M3",
+    "landed": true,
+    "landed_age_polled": 78.39619445800781,
+    "last_after": 78.35107421875,
+    "last_before": 54.338653564453125,
+    "monotony_counter_rose": 1,
+    "n_after": 2.9233547605824266,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 2.423564927755266,
+    "nominal_delta": 8.271742519005606,
+    "post": {
+     "BOREDOM": 8.844481468200684,
+     "HUNGER": 0.1784398853778839,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 28.27042579650879
+    },
+    "post_age": 78.39619445800781,
+    "pre": {
+     "BOREDOM": 0.4641466736793518,
+     "HUNGER": 0.5545083284378052,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 78.33513641357422,
+    "replay": {
+     "age": 78.36700439453125,
+     "boredom": 8.269157211122769,
+     "fullType": "TKX.Mono450",
+     "kcal": 450,
+     "unhappy": 8.269157211122769
+    },
+    "replay_minus_add": {
+     "BOREDOM": -0.11117758339856287,
+     "UNHAPPINESS": -0.001268585386020149
+    },
+    "session": "x333",
+    "set": {
+     "after_age": 78.10120391845703,
+     "before_age": 78.06929016113281,
+     "bored": {
+      "after": 0,
+      "before": 12.02702522277832,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 21.531171798706055,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": false,
+    "unhappy_over_set": 8.270425796508789,
+    "window": {
+     "bored_first": 8.854039192199707,
+     "bored_last": 9.725979804992676,
+     "fall_below_post": 0.0,
+     "first_age": 78.40150451660156,
+     "first_s": 480,
+     "last_age": 78.88591766357422,
+     "last_s": 509,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 28.27042579650879,
+     "unhappy_last": 28.27042579650879,
+     "unhappy_max": 28.27042579650879,
+     "unhappy_min": 28.27042579650879
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 2.158216804265976,
+     "UNHAPPINESS": 2.067424774169922
+    },
+    "add_equal": 0.09079203009605408,
+    "add_minus_kernel": {
+     "BOREDOM": 0.09079270234048353,
+     "UNHAPPINESS": 6.722444294560148e-07
+    },
+    "client_before": {
+     "BOREDOM": 0.1293897032737732,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 2.627532482147217,
+      "UNHAPPINESS": 22.067424774169922
+     },
+     "wall": 201.649
+    },
+    "client_reads": 6,
+    "day": 3,
+    "food": "TKX.Staple450",
+    "kernel_count_before": 1.9231852110934813,
+    "kernel_delta": 2.0674241019254924,
+    "kernel_n_after": 2.9231852110934815,
+    "label": "S3",
+    "landed": true,
+    "landed_age_polled": 79.41783905029297,
+    "last_after": 79.38865661621094,
+    "last_before": 55.33361053466797,
+    "monotony_counter_rose": 1,
+    "n_after": 2.9231852110934815,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 2.424345926155675,
+    "nominal_delta": 2.0679356297514015,
+    "post": {
+     "BOREDOM": 2.6370630264282227,
+     "HUNGER": 0.12165631353855133,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 22.067424774169922
+    },
+    "post_age": 79.41783905029297,
+    "pre": {
+     "BOREDOM": 0.4788462221622467,
+     "HUNGER": 0.20438605546951294,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 79.36740112304688,
+    "replay": {
+     "age": 79.40193176269531,
+     "boredom": 2.0671599011364297,
+     "fullType": "TKX.Staple450",
+     "kcal": 450,
+     "unhappy": 2.0671599011364297
+    },
+    "replay_minus_add": {
+     "BOREDOM": -0.09105690312954628,
+     "UNHAPPINESS": -0.0002648730334922078
+    },
+    "session": "x333",
+    "set": {
+     "after_age": 79.135986328125,
+     "before_age": 79.08540344238281,
+     "bored": {
+      "after": 0,
+      "before": 10.113799095153809,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 28.27042579650879,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": true,
+    "unhappy_over_set": 2.067424774169922,
+    "window": {
+     "bored_first": 2.6656789779663086,
+     "bored_last": 3.5085535049438477,
+     "fall_below_post": 0.0,
+     "first_age": 79.4337387084961,
+     "first_s": 542,
+     "last_age": 79.90200805664062,
+     "last_s": 570,
+     "no_fall": true,
+     "rows": 29,
+     "target_max": 0,
+     "target_rows": 29,
+     "unhappy_first": 22.067424774169922,
+     "unhappy_last": 22.067424774169922,
+     "unhappy_max": 22.067424774169922,
+     "unhappy_min": 22.067424774169922
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 9.975353240966797
+    },
+    "add_equal": 9.975353240966797,
+    "add_minus_kernel": {
+     "BOREDOM": -9.975352963127214,
+     "UNHAPPINESS": 2.778395824520885e-07
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 29.975353240966797
+     },
+     "wall": 405.283
+    },
+    "client_reads": 6,
+    "day": 4,
+    "food": "TKX.Mono450",
+    "kernel_count_before": 2.3198495263086545,
+    "kernel_delta": 9.975352963127214,
+    "kernel_n_after": 3.3198495263086545,
+    "label": "M4",
+    "landed": true,
+    "landed_age_polled": 102.40170288085938,
+    "last_after": 102.36981964111328,
+    "last_before": 78.35107421875,
+    "monotony_counter_rose": 1,
+    "n_after": 3.3198495263086545,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 2.9233547605824266,
+    "nominal_delta": 9.978198649871421,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.17836344242095947,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 29.975353240966797
+    },
+    "post_age": 102.40170288085938,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.555297315120697,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 102.33525085449219,
+    "replay": {
+     "age": 102.38577270507812,
+     "boredom": 9.974344328827176,
+     "fullType": "TKX.Mono450",
+     "kcal": 450,
+     "unhappy": 9.974344328827176
+    },
+    "replay_minus_add": {
+     "BOREDOM": 9.974344328827176,
+     "UNHAPPINESS": -0.0010089121396212875
+    },
+    "session": "x333",
+    "set": {
+     "after_age": 102.10101318359375,
+     "before_age": 102.05043029785156,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 22.067424774169922,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": false,
+    "unhappy_over_set": 9.975353240966797,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0,
+     "fall_below_post": 0.0,
+     "first_age": 102.4176254272461,
+     "first_s": 1921,
+     "last_age": 102.8834228515625,
+     "last_s": 1949,
+     "no_fall": true,
+     "rows": 29,
+     "target_max": 0,
+     "target_rows": 29,
+     "unhappy_first": 29.975353240966797,
+     "unhappy_last": 29.975353240966797,
+     "unhappy_max": 29.975353240966797,
+     "unhappy_min": 29.975353240966797
+    }
+   },
+   {
+    "add": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 2.4946537017822266
+    },
+    "add_equal": 2.4946537017822266,
+    "add_minus_kernel": {
+     "BOREDOM": -2.4946533524313974,
+     "UNHAPPINESS": 3.4935082915410476e-07
+    },
+    "client_before": {
+     "BOREDOM": 0,
+     "UNHAPPINESS": 20
+    },
+    "client_first_add": {
+     "i": 0,
+     "stats": {
+      "BOREDOM": 0,
+      "UNHAPPINESS": 22.494653701782227
+     },
+     "wall": 442.956
+    },
+    "client_reads": 6,
+    "day": 4,
+    "food": "TKX.Staple450",
+    "kernel_count_before": 2.3206077697036256,
+    "kernel_delta": 2.4946533524313974,
+    "kernel_n_after": 3.3206077697036256,
+    "label": "S4",
+    "landed": true,
+    "landed_age_polled": 103.40189361572266,
+    "last_after": 103.367431640625,
+    "last_before": 79.38865661621094,
+    "monotony_counter_rose": 1,
+    "n_after": 3.3206077697036256,
+    "n_after_minus_kernel": 0.0,
+    "n_before": 2.9231852110934815,
+    "nominal_delta": 2.4945496624678554,
+    "post": {
+     "BOREDOM": 0,
+     "HUNGER": 0.12182004749774933,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 22.494653701782227
+    },
+    "post_age": 103.40189361572266,
+    "pre": {
+     "BOREDOM": 0,
+     "HUNGER": 0.18367871642112732,
+     "PANIC": null,
+     "STRESS": null,
+     "UNHAPPINESS": 20
+    },
+    "pre_age": 103.33558654785156,
+    "replay": {
+     "age": 103.38334655761719,
+     "boredom": 2.4943802223164973,
+     "fullType": "TKX.Staple450",
+     "kcal": 450,
+     "unhappy": 2.4943802223164973
+    },
+    "replay_minus_add": {
+     "BOREDOM": 2.4943802223164973,
+     "UNHAPPINESS": -0.00027347946572930937
+    },
+    "session": "x333",
+    "set": {
+     "after_age": 103.1174087524414,
+     "before_age": 103.08548736572266,
+     "bored": {
+      "after": 0,
+      "before": 0,
+      "ok": true,
+      "reason": null
+     },
+     "unhappy": {
+      "after": 20,
+      "before": 29.975353240966797,
+      "ok": true,
+      "reason": null
+     }
+    },
+    "staple": true,
+    "unhappy_over_set": 2.4946537017822266,
+    "window": {
+     "bored_first": 0,
+     "bored_last": 0,
+     "fall_below_post": 0.0,
+     "first_age": 103.41779327392578,
+     "first_s": 1981,
+     "last_age": 103.90174865722656,
+     "last_s": 2010,
+     "no_fall": true,
+     "rows": 30,
+     "target_max": 0,
+     "target_rows": 30,
+     "unhappy_first": 22.494653701782227,
+     "unhappy_last": 22.494653701782227,
+     "unhappy_max": 22.494653701782227,
+     "unhappy_min": 22.494653701782227
+    }
+   }
+  ],
+  "fifth": {
+   "M4": {
+    "bored_add": 0,
+    "bored_minus_pin": -9.978,
+    "bored_within": false,
+    "kernel_delta": 9.975352963127214,
+    "measured": true,
+    "nominal_delta": 9.978198649871421,
+    "pin": 9.978,
+    "unhappy_add": 9.975353240966797,
+    "unhappy_minus_pin": -0.0026467590332028834,
+    "unhappy_within": true
+   },
+   "S4": {
+    "bored_add": 0,
+    "bored_minus_pin": -2.4945,
+    "bored_within": false,
+    "kernel_delta": 2.4946533524313974,
+    "measured": true,
+    "nominal_delta": 2.4945496624678554,
+    "pin": 2.4945,
+    "unhappy_add": 2.4946537017822266,
+    "unhappy_minus_pin": 0.0001537017822266229,
+    "unhappy_within": true
+   }
+  },
+  "guard": {
+   "x331": {
+    "asleep_rows": 0,
+    "asleep_s": [],
+    "exe_present_rows": 1788,
+    "exe_true_rows": 0,
+    "exe_true_s": [],
+    "moving_true_rows": 0,
+    "moving_true_s": [],
+    "rows": 1793
+   },
+   "x332": {
+    "asleep_rows": 0,
+    "asleep_s": [],
+    "exe_present_rows": 2081,
+    "exe_true_rows": 0,
+    "exe_true_s": [],
+    "moving_true_rows": 0,
+    "moving_true_s": [],
+    "rows": 2087
+   },
+   "x333": {
+    "asleep_rows": 0,
+    "asleep_s": [],
+    "exe_present_rows": 2056,
+    "exe_true_rows": 0,
+    "exe_true_s": [],
+    "moving_true_rows": 0,
+    "moving_true_s": [],
+    "rows": 2061
+   }
+  },
+  "oracle_pins": {
+   "fifth_non_staple": 9.978,
+   "fifth_staple": 2.4945,
+   "source": "testing/tests/kernel/test_kernel_monotony.py (test_the_fifth_daily_eat_reads_about_a_stale_item, test_staples_take_the_reduced_slope); research 01 s6 row 13",
+   "tolerance": 0.05
+  }
+ }
+}

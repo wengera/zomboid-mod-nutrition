@@ -1,0 +1,240 @@
+[
+ {
+  "age": 71.30239868164062,
+  "autoDrop": 0.3988272720765783,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 54,
+  "vec": {
+   "water": 797.6545441531566
+  }
+ },
+ {
+  "age": 71.3424072265625,
+  "autoDrop": 0.051172700095362345,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 56,
+  "vec": {
+   "water": 102.34540019072469
+  }
+ },
+ {
+  "age": 75.63780212402344,
+  "autoDrop": 0.33390186288477786,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 314,
+  "vec": {
+   "water": 667.8037257695557
+  }
+ },
+ {
+  "age": 75.67769622802734,
+  "autoDrop": 0.11609813504057753,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 316,
+  "vec": {
+   "water": 232.19627008115506
+  }
+ },
+ {
+  "age": 78.11714935302734,
+  "kind": "stat",
+  "label": "setany-M3",
+  "s": 463,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 78.11714935302734,
+  "kind": "stat",
+  "label": "setany-M3",
+  "s": 463,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Mono450",
+  "kind": "eat",
+  "label": "M3",
+  "s": 478
+ },
+ {
+  "age": 78.98433685302734,
+  "autoDrop": 0.15732398776503376,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 515,
+  "vec": {
+   "water": 314.6479755300675
+  }
+ },
+ {
+  "age": 79.1519546508789,
+  "kind": "stat",
+  "label": "setany-S3",
+  "s": 525,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 79.1519546508789,
+  "kind": "stat",
+  "label": "setany-S3",
+  "s": 525,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Staple450",
+  "kind": "eat",
+  "label": "S3",
+  "s": 540
+ },
+ {
+  "age": 81.21048736572266,
+  "autoDrop": 0.10029533695813286,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 648,
+  "vec": {
+   "water": 200.59067391626573
+  }
+ },
+ {
+  "age": 82.52701568603516,
+  "autoDrop": 0.10021532416036283,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 727,
+  "vec": {
+   "water": 200.43064832072565
+  }
+ },
+ {
+  "age": 83.84483337402344,
+  "autoDrop": 0.10026510218743911,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 806,
+  "vec": {
+   "water": 200.53020437487822
+  }
+ },
+ {
+  "age": 85.16190338134766,
+  "autoDrop": 0.10026548605579255,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 885,
+  "vec": {
+   "water": 200.5309721115851
+  }
+ },
+ {
+  "age": 86.47866821289062,
+  "autoDrop": 0.10025787948941423,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 964,
+  "vec": {
+   "water": 200.51575897882844
+  }
+ },
+ {
+  "age": 87.79576873779297,
+  "autoDrop": 0.0489962040185018,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1043,
+  "vec": {
+   "water": 97.9924080370036
+  }
+ },
+ {
+  "age": 99.6587905883789,
+  "autoDrop": 0.4499999914706254,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1755,
+  "vec": {
+   "water": 899.9999829412508
+  }
+ },
+ {
+  "age": 102.11697387695312,
+  "kind": "stat",
+  "label": "setany-M4",
+  "s": 1903,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 102.11697387695312,
+  "kind": "stat",
+  "label": "setany-M4",
+  "s": 1903,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Mono450",
+  "kind": "eat",
+  "label": "M4",
+  "s": 1919
+ },
+ {
+  "age": 103.00047302246094,
+  "autoDrop": 0.42632936169232793,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1956,
+  "vec": {
+   "water": 852.6587233846559
+  }
+ },
+ {
+  "age": 103.0350112915039,
+  "autoDrop": 0.02367060850552183,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1958,
+  "vec": {
+   "water": 47.34121701104365
+  }
+ },
+ {
+  "age": 103.13336181640625,
+  "kind": "stat",
+  "label": "setany-S4",
+  "s": 1964,
+  "stat": "BOREDOM",
+  "value": 0
+ },
+ {
+  "age": 103.13336181640625,
+  "kind": "stat",
+  "label": "setany-S4",
+  "s": 1964,
+  "stat": "UNHAPPINESS",
+  "value": 20
+ },
+ {
+  "food": "TKX.Staple450",
+  "kind": "eat",
+  "label": "S4",
+  "s": 1979
+ },
+ {
+  "age": 104.0000991821289,
+  "autoDrop": 0.1493338095774125,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2016,
+  "vec": {
+   "water": 298.667619154825
+  }
+ }
+]
