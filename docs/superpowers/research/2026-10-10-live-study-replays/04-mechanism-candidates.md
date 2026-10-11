@@ -97,3 +97,8 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
   - A replete worker who acclimatises to heat does not adapt (S1755, S1739, S1743, S1744).
 - **Candidate:** one stored exponential moving average with a time constant in days, driven by both deficit and heat exposure.
 - **Gain:** a correct onset and acclimatisation in one field.
+
+## C-16: drink bout size
+- **Seen (x281–x284):** every auto-drink is twice the 0.1 trigger, 0.2 L, about 13 times a day spread across 24 awake hours.
+- **Candidate:** drink toward the set point in realistic bouts (S1700: about 70 % of a deficit drunk at once; S1703).
+- **Gain:** realistic drinking patterns.
