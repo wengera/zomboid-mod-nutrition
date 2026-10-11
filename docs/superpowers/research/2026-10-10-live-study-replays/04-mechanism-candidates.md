@@ -117,3 +117,8 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 ## C-19: one-night debt repayment
 - **Seen:** a 1.85 h debt is repaid only 0.107 h by a following rested night (N3), so it persists.
 - **Candidate:** a decay, or repayment by recovery sleep, sized from the sleep-restriction recovery literature. This needs a science row first.
+
+## C-20: seed a first-seen nicotine anchor from the engine's timer
+- **Seen (x321–x323):** a first-seen or healed anchor starts fully faded (T2-F). The engine's `getTimeSinceLastSmoke` reads 10 at about 85 game h, apparently held there.
+- **Candidate:** seed the anchor from the engine's timer when the mod first sees a smoker in withdrawal.
+- **Needs first:** a jar read of the timer's hold and its day-length units, and a science row.
