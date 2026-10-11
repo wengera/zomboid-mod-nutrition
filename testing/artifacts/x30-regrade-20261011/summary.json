@@ -1,0 +1,82 @@
+{
+ "x301": {
+  "classes": {
+   "between": 120,
+   "gap": 208,
+   "offline": 5,
+   "suspect": 0
+  },
+  "field_max": {
+   "HUNGER": 0.0011506376520967754,
+   "body.energyState": 0.0018425762131022427,
+   "satiety.L": 0.0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0011506376520967754,
+    "n": 2321,
+    "over": 0,
+    "worst_s": 803
+   },
+   "body.energyState": {
+    "max": 0.0018425762131022427,
+    "n": 2321,
+    "over": 0,
+    "worst_s": 2491
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 2321,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "graded_n": {
+   "HUNGER": 2321,
+   "body.energyState": 2321,
+   "satiety.L": 2321
+  },
+  "ok": true,
+  "run_id": "x301-20261011-085950"
+ },
+ "x302": {
+  "classes": {
+   "between": 151,
+   "gap": 271,
+   "offline": 5,
+   "suspect": 0
+  },
+  "field_max": {
+   "HUNGER": 0.001723483710794338,
+   "body.energyState": 0.0016141704956569303,
+   "satiety.L": 0.0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.001723483710794338,
+    "n": 1708,
+    "over": 0,
+    "worst_s": 538
+   },
+   "body.energyState": {
+    "max": 0.0016141704956569303,
+    "n": 1708,
+    "over": 0,
+    "worst_s": 1037
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1708,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "graded_n": {
+   "HUNGER": 1708,
+   "body.energyState": 1708,
+   "satiety.L": 1708
+  },
+  "ok": true,
+  "run_id": "x302-20261011-091000"
+ }
+}

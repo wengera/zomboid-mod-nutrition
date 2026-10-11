@@ -1,0 +1,137 @@
+{
+ "asleep_agreement": {
+  "HUNGER_max_diff": 0.0012944926436012638,
+  "es_max_diff": 0.0015540719299582673,
+  "rows": 330
+ },
+ "diff": {
+  "classes": {
+   "between": 43,
+   "gap": 377,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.001723483710794338,
+    "n": 1816,
+    "over": 0,
+    "worst_s": 538
+   },
+   "acute.debtH": {
+    "max": 0.0,
+    "n": 1816,
+    "over": 0,
+    "worst_s": null
+   },
+   "acute.winSleptH": {
+    "max": 0.0,
+    "n": 1816,
+    "over": 0,
+    "worst_s": null
+   },
+   "body.energyState": {
+    "max": 0.0016141704956569303,
+    "n": 1816,
+    "over": 0,
+    "worst_s": 1037
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1816,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "CLOSES": "as_predicted",
+  "EXE": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "NIGHTS": "as_predicted",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "SLEEP_ON": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "drink": 25,
+  "eat": 18,
+  "sleep": 118
+ },
+ "guard": {
+  "exe_present_rows": 1909,
+  "exe_true_rows": 0,
+  "exe_true_s": [],
+  "met_check": {
+   "asleep_rows_not_billed_sleeping": 0,
+   "awake_rows_billed_1_0": 0
+  },
+  "moving_true_rows": 0,
+  "moving_true_s": [],
+  "rows": 1914
+ },
+ "ring_activity_events": 1860,
+ "ring_first_age": 56.93505859375,
+ "ring_last_age": 102.8858413696289,
+ "rows": 1865,
+ "run_id": "x302-20261011-091000",
+ "sleep_events": {
+  "asleep": 59,
+  "n": 118
+ },
+ "start_age": 57.73516082763672,
+ "tool_diff": {
+  "classes": {
+   "between": 1859,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0,
+    "n": 0,
+    "over": 0,
+    "worst_s": null
+   },
+   "body.energyState": {
+    "max": 0.0,
+    "n": 0,
+    "over": 0,
+    "worst_s": null
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 0,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [
+   {
+    "field": "HUNGER",
+    "n": 0,
+    "why": "compared on 0 rows"
+   },
+   {
+    "field": "body.energyState",
+    "n": 0,
+    "why": "compared on 0 rows"
+   },
+   {
+    "field": "satiety.L",
+    "n": 0,
+    "why": "compared on 0 rows"
+   }
+  ],
+  "findings_n": 3,
+  "ok": false
+ }
+}

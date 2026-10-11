@@ -1,0 +1,42 @@
+{
+ "grade_commit": "457df8c0",
+ "lib_commit": "457df8c0",
+ "sessions": [
+  "x301",
+  "x302"
+ ],
+ "tool_commit": "b4b9a298",
+ "verdicts": {
+  "CLOSES_KERNEL": true,
+  "CLOSES_REPLAY": true,
+  "EXE_FALSE": {
+   "x301": true,
+   "x302": true
+  },
+  "FACTOR": true,
+  "FACTOR_SEGMENTS": {
+   "x301@0.0000": true,
+   "x301@1.8544": true,
+   "x302@0.6341": true,
+   "x302@0.7409": true,
+   "x302@1.8544": true
+  },
+  "NIGHTS_AT_TARGET": {
+   "N0": true,
+   "N1": true,
+   "N2": true,
+   "N3": true
+  },
+  "REPLAY_OK": {
+   "x301": {
+    "mine": true,
+    "tool": false
+   },
+   "x302": {
+    "mine": true,
+    "tool": false
+   }
+  },
+  "SODIUM_GRADE_MAX": 0
+ }
+}

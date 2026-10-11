@@ -1,0 +1,972 @@
+[
+ {
+  "age": 5.221795082092285,
+  "autoDrop": 0.10083811184624347,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 115,
+  "vec": {
+   "water": 201.67622369248696
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_13_0",
+  "s": 185
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_13_1",
+  "s": 198
+ },
+ {
+  "age": 8.675924301147461,
+  "autoDrop": 0.10055307111669942,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 322,
+  "vec": {
+   "water": 201.10614223339886
+  }
+ },
+ {
+  "age": 9.99203872680664,
+  "autoDrop": 0.100338171106646,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 401,
+  "vec": {
+   "water": 200.676342213292
+  }
+ },
+ {
+  "age": 11.307392120361328,
+  "autoDrop": 0.10023979528975302,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 480,
+  "vec": {
+   "water": 200.47959057950604
+  }
+ },
+ {
+  "age": 12.621875762939453,
+  "autoDrop": 0.10081090585676977,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 559,
+  "vec": {
+   "water": 201.62181171353956
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_20_0",
+  "s": 603
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_20_1",
+  "s": 615
+ },
+ {
+  "age": 14.916744232177734,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 692
+ },
+ {
+  "age": 15.288963317871094,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 699
+ },
+ {
+  "age": 15.342279434204102,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 700
+ },
+ {
+  "age": 15.607995986938477,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 705
+ },
+ {
+  "age": 15.661003112792969,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 706
+ },
+ {
+  "age": 16.03261947631836,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 713
+ },
+ {
+  "age": 16.085735321044922,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 714
+ },
+ {
+  "age": 16.45710563659668,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 721
+ },
+ {
+  "age": 16.510169982910156,
+  "autoDrop": 0.11802926296127725,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 722,
+  "vec": {
+   "water": 236.0585259225545
+  }
+ },
+ {
+  "age": 16.510169982910156,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 722
+ },
+ {
+  "age": 16.6694278717041,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 725
+ },
+ {
+  "age": 16.722702026367188,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 726
+ },
+ {
+  "age": 17.094406127929688,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 733
+ },
+ {
+  "age": 17.14752769470215,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 734
+ },
+ {
+  "age": 17.5188045501709,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 741
+ },
+ {
+  "age": 17.571874618530273,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 742
+ },
+ {
+  "age": 17.73113250732422,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 745
+ },
+ {
+  "age": 17.78407096862793,
+  "autoDrop": 0.10511730415280385,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 746,
+  "vec": {
+   "water": 210.2346083056077
+  }
+ },
+ {
+  "age": 17.78407096862793,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 746
+ },
+ {
+  "age": 18.155683517456055,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 753
+ },
+ {
+  "age": 18.208755493164062,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 754
+ },
+ {
+  "age": 18.5799617767334,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 761
+ },
+ {
+  "age": 18.633140563964844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 762
+ },
+ {
+  "age": 18.792316436767578,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 765
+ },
+ {
+  "age": 18.84526252746582,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 766
+ },
+ {
+  "age": 19.216575622558594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 773
+ },
+ {
+  "age": 19.26976776123047,
+  "autoDrop": 0.11009906348764653,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 774,
+  "vec": {
+   "water": 220.19812697529306
+  }
+ },
+ {
+  "age": 19.26976776123047,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 774
+ },
+ {
+  "age": 19.641210556030273,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 781
+ },
+ {
+  "age": 19.694091796875,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 782
+ },
+ {
+  "age": 19.853212356567383,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 785
+ },
+ {
+  "age": 19.90628433227539,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 786
+ },
+ {
+  "age": 20.278057098388672,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 793
+ },
+ {
+  "age": 20.331069946289062,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 794
+ },
+ {
+  "age": 20.702672958374023,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 801
+ },
+ {
+  "age": 20.755882263183594,
+  "autoDrop": 0.11200766731266942,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 802,
+  "vec": {
+   "water": 224.01533462533885
+  }
+ },
+ {
+  "age": 20.755882263183594,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 802
+ },
+ {
+  "age": 20.9150447845459,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 805
+ },
+ {
+  "age": 20.968231201171875,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 806
+ },
+ {
+  "age": 21.33932876586914,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 813
+ },
+ {
+  "age": 21.3924560546875,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 814
+ },
+ {
+  "age": 21.763683319091797,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 821
+ },
+ {
+  "age": 21.816608428955078,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 822
+ },
+ {
+  "age": 21.97559356689453,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 825
+ },
+ {
+  "age": 22.028491973876953,
+  "autoDrop": 0.004746685601253131,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 826,
+  "vec": {
+   "water": 9.493371202506262
+  }
+ },
+ {
+  "age": 22.028491973876953,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 826
+ },
+ {
+  "age": 22.400053024291992,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 833
+ },
+ {
+  "age": 22.45319366455078,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 834
+ },
+ {
+  "age": 22.8244571685791,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 841
+ },
+ {
+  "age": 22.877660751342773,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 842
+ },
+ {
+  "age": 23.03702163696289,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 845
+ },
+ {
+  "age": 23.09011459350586,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 846
+ },
+ {
+  "age": 23.461326599121094,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 853
+ },
+ {
+  "age": 23.514244079589844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 854
+ },
+ {
+  "age": 23.885406494140625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 861
+ },
+ {
+  "age": 24.03419303894043,
+  "autoDrop": 0.19569376242916037,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 870,
+  "vec": {
+   "water": 391.3875248583207
+  }
+ },
+ {
+  "age": 24.534252166748047,
+  "autoDrop": 0.10055147037679735,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 900,
+  "vec": {
+   "water": 201.10294075359468
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_08_0",
+  "s": 950
+ },
+ {
+  "age": 27.82228660583496,
+  "autoDrop": 0.10043315790579876,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1097,
+  "vec": {
+   "water": 200.86631581159753
+  }
+ },
+ {
+  "age": 29.13779067993164,
+  "autoDrop": 0.10025912420102734,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1176,
+  "vec": {
+   "water": 200.51824840205467
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_13_0",
+  "s": 1252
+ },
+ {
+  "age": 32.43893814086914,
+  "autoDrop": 0.10094727834161166,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1374,
+  "vec": {
+   "water": 201.8945566832233
+  }
+ },
+ {
+  "age": 33.75505447387695,
+  "autoDrop": 0.10050514463225413,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1453,
+  "vec": {
+   "water": 201.01028926450826
+  }
+ },
+ {
+  "age": 35.07010269165039,
+  "autoDrop": 0.10031051780811684,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1532,
+  "vec": {
+   "water": 200.62103561623368
+  }
+ },
+ {
+  "age": 36.38602828979492,
+  "autoDrop": 0.1003033295765351,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1611,
+  "vec": {
+   "water": 200.60665915307018
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D1_20_0",
+  "s": 1675
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D1_20_1",
+  "s": 1689
+ },
+ {
+  "age": 39.828277587890625,
+  "autoDrop": 0.10008563907861723,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1817,
+  "vec": {
+   "water": 200.17127815723447
+  }
+ },
+ {
+  "age": 41.14354705810547,
+  "autoDrop": 0.10027036022801816,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1896,
+  "vec": {
+   "water": 200.54072045603633
+  }
+ },
+ {
+  "age": 41.318748474121094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1907
+ },
+ {
+  "age": 41.372032165527344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1908
+ },
+ {
+  "age": 41.42517852783203,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1909
+ },
+ {
+  "age": 41.69146728515625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1914
+ },
+ {
+  "age": 41.74464416503906,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1915
+ },
+ {
+  "age": 42.11708068847656,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1922
+ },
+ {
+  "age": 42.17033767700195,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1923
+ },
+ {
+  "age": 42.43552780151367,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1928
+ },
+ {
+  "age": 42.48877716064453,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1929
+ },
+ {
+  "age": 42.8604736328125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1936
+ },
+ {
+  "age": 42.91358947753906,
+  "autoDrop": 0.11865783520593898,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1937,
+  "vec": {
+   "water": 237.31567041187796
+  }
+ },
+ {
+  "age": 42.91358947753906,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1937
+ },
+ {
+  "age": 43.17933654785156,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1942
+ },
+ {
+  "age": 43.232505798339844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1943
+ },
+ {
+  "age": 43.49794387817383,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1948
+ },
+ {
+  "age": 43.551170349121094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1949
+ },
+ {
+  "age": 43.923439025878906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1956
+ },
+ {
+  "age": 43.97673034667969,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1957
+ },
+ {
+  "age": 44.24246597290039,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1962
+ },
+ {
+  "age": 44.29545593261719,
+  "autoDrop": 0.1105144862677101,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1963,
+  "vec": {
+   "water": 221.0289725354202
+  }
+ },
+ {
+  "age": 44.29545593261719,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1963
+ },
+ {
+  "age": 44.56103515625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1968
+ },
+ {
+  "age": 44.61397933959961,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1969
+ },
+ {
+  "age": 44.98570251464844,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1976
+ },
+ {
+  "age": 45.03859329223633,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1977
+ },
+ {
+  "age": 45.409202575683594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1984
+ },
+ {
+  "age": 45.46227264404297,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1985
+ },
+ {
+  "age": 45.62116241455078,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1988
+ },
+ {
+  "age": 45.674171447753906,
+  "autoDrop": 0.02047167263331795,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1989,
+  "vec": {
+   "water": 40.9433452666359
+  }
+ },
+ {
+  "age": 45.674171447753906,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1989
+ },
+ {
+  "age": 46.04558563232422,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1996
+ },
+ {
+  "age": 46.09860610961914,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1997
+ },
+ {
+  "age": 46.4698486328125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2004
+ },
+ {
+  "age": 46.522823333740234,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2005
+ },
+ {
+  "age": 46.68199157714844,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2008
+ },
+ {
+  "age": 46.735233306884766,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2009
+ },
+ {
+  "age": 47.1063232421875,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2016
+ },
+ {
+  "age": 47.159263610839844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2017
+ },
+ {
+  "age": 47.53022766113281,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2024
+ },
+ {
+  "age": 47.583194732666016,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2025
+ },
+ {
+  "age": 47.7421989440918,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2028
+ },
+ {
+  "age": 47.79533386230469,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2029
+ },
+ {
+  "age": 48.00714874267578,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 2033
+ },
+ {
+  "age": 48.13425827026367,
+  "autoDrop": 0.2111879806313829,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2041,
+  "vec": {
+   "water": 422.37596126276577
+  }
+ },
+ {
+  "age": 48.50637435913086,
+  "autoDrop": 0.101158715029938,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2063,
+  "vec": {
+   "water": 202.31743005987602
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_08_0",
+  "s": 2124
+ },
+ {
+  "age": 51.7957763671875,
+  "autoDrop": 0.10013850659940027,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2260,
+  "vec": {
+   "water": 200.27701319880055
+  }
+ },
+ {
+  "age": 53.11283874511719,
+  "autoDrop": 0.10023780074938216,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2339,
+  "vec": {
+   "water": 200.47560149876432
+  }
+ },
+ {
+  "age": 54.43402862548828,
+  "autoDrop": 0.10086608222895954,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2419,
+  "vec": {
+   "water": 201.73216445791908
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D2_13_0",
+  "s": 2431
+ }
+]

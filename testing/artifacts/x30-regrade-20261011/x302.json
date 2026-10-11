@@ -1,0 +1,51 @@
+{
+ "diff": {
+  "classes": {
+   "between": 151,
+   "gap": 271,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.001723483710794338,
+    "n": 1708,
+    "over": 0,
+    "worst_s": 538
+   },
+   "body.energyState": {
+    "max": 0.0016141704956569303,
+    "n": 1708,
+    "over": 0,
+    "worst_s": 1037
+   },
+   "satiety.L": {
+    "max": 0.0,
+    "n": 1708,
+    "over": 0,
+    "worst_s": null
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true,
+  "skipped_n": 151
+ },
+ "ring_activity_events": 1860,
+ "ring_rows": 1914,
+ "run_id": "x302-20261011-091000",
+ "tol": {
+  "HUNGER": [
+   "abs",
+   0.002
+  ],
+  "body.energyState": [
+   "abs",
+   0.005
+  ],
+  "satiety.L": [
+   "rel",
+   0.005
+  ]
+ }
+}
