@@ -341,7 +341,7 @@ Upstream of everything, the action refuses to start at a food-eaten moodle level
 
 The real multiplayer path lands about 5.5 s after the action is queued — one session on a dedicated server with one client [#1189/M/n=1].
 No duration term changes what a completed eat delivers, because the intake is fixed by the fraction the action was built with.
-That budget is a tick count whose behaviour under an accelerated clock has never been measured.
+A timed action's `maxTime` tick budget does not scale with `settimespeed`: on a dedicated server at DayLength 1 an eat with `maxTime` 464.04 took 10.194 s of driver wall from the queue to the polled landing at `settimespeed 5` (a game-time multiplier of 23.80) and one with `maxTime` 464.11 took 10.091 s at a multiplier of 0.80, so the eat's span in game time grows with the clock's speed [#0141/M/n=2/open].
 A measurement that needs a known quantity of intake therefore drives the store on the server rather than queuing timed eats, because the intake is then exact and the timing is not in the reading at all.
 
 <a id="overeating"></a>
@@ -422,7 +422,6 @@ Not covered: the food-to-health loop and the sickness rolls beyond their call si
 ## Open
 <a id="open"></a>
 
-- Whether a timed action's tick budget scales with an accelerated clock — settled by one queued eat at a raised time speed against the pair already taken at normal speed; both existing measurements ran at normal speed, the observed 42 or more ticks per wall second is consistent with a per-frame budget rather than a game-clock interval, and no accelerated run exists; no `X` id [#0141/M/n=2/open].
 - How far weight and hunger drift apart on a part-eaten custom-weight item, and whether the `f0` write is intentional — settled by eating a canned food a quarter at a time and logging its weight, `hungChange` and `baseHunger` at each step; no `X` id [#0142/C/open].
 - Which items ever set `baseHunger` different from `hungChange` at spawn — a split scales both fields of its input by one ratio, so a part-eaten input's unequal pair carries onto the output, the butcher paths and the Java craft summation set the two from one value, and `RecipeCodeOnCreate.makeCoffee` and `ItemStatsPacket.applyItemStats` are unread; settled by reading those two writers and whether an `InheritFood` input can be part-eaten; no `X` id [#0143/C/open].
 - What `getHealthFromFoodTimeByHunger()` returns — settled by a jar dump of the method, which scales the food-to-health loop rather than intake; no `X` id [#0146/C/open].
