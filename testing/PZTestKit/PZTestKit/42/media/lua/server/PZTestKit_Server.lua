@@ -4262,3 +4262,39 @@ TK.register("minute.ring", function(argv)
     TK.result(out.result, doc)
     return out
 end)
+
+-- ---- minute.ring C-17: the engine's raw metabolic rate and the server's exercise flag on every row (Plan 11f) ----
+-- Two more fields on every ring row, added by wrapping TK.MR.sample (so no line above moves):
+--   rate  the engine's metabolic rate, raw: player:getBodyDamage():getThermoregulator():getMetabolicRate(), read the way
+--         the mod reads it (NR_Server_Metabolism MET.readActivity) but BEFORE the load-factor division, so a replay
+--         grades an activity-billed exercise against the engine's own lagged rate rather than the mod's billed body.met;
+--   exe   the server's exercise flag: player:getFitness():getCurrentExe() ~= nil (the mod's own test, NR_Server_Metabolism
+--         `exercising`); a boolean, false when no exercise is current.
+-- Each is read under its own pcall and is ABSENT from the row when its object chain is unreachable or raises; the row
+-- itself still lands. The wrap is installed once per load (TK.MR.sampleBase holds the Plan 11f H2 sample).
+function TK.MR.sampleExtra(row, R)
+    local p = TK.MR.player(R.user)
+    if p == nil then return end
+    pcall(function()
+        local _, bd = TK.call(p, "getBodyDamage")
+        local _, th = TK.call(bd, "getThermoregulator")
+        local ok, rate = TK.call(th, "getMetabolicRate")
+        if ok and type(rate) == "number" then row.rate = rate end
+    end)
+    pcall(function()
+        local okF, fit = TK.call(p, "getFitness")
+        if okF and fit ~= nil then
+            local okE, exe = TK.call(fit, "getCurrentExe")
+            if okE then row.exe = exe ~= nil end
+        end
+    end)
+end
+
+if TK.MR.sampleBase == nil then
+    TK.MR.sampleBase = TK.MR.sample
+    function TK.MR.sample(R, gt, age)
+        local row = TK.MR.sampleBase(R, gt, age)
+        TK.MR.sampleExtra(row, R)
+        return row
+    end
+end

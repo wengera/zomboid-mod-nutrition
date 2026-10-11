@@ -278,3 +278,52 @@ def test_minute_ring_a_raise_in_one_ring_drops_only_that_ring_row_and_the_gap_sh
     assert brows[0].drained == h.NR.server.players.drained
     st = cmd(h, "minute.ring", "admin", "stop")
     assert st.errors == 1 and st.lastError is not None
+
+
+# ---- C-17: the raw engine metabolic rate and the server's exercise flag on every row (Plan 11f) ------------------
+
+RATE = r"""
+function(p, mode)
+    p.getBodyDamage = function(s)
+        return { getThermoregulator = function(b)
+            return { getMetabolicRate = function(t)
+                if mode == "raise" then error("no rate") end
+                return 4.75
+            end }
+        end }
+    end
+    p.getFitness = function(s)
+        return { getCurrentExe = function(f) if mode == "exe" then return {} end return nil end }
+    end
+end
+"""
+
+
+def test_minute_ring_rows_carry_the_raw_engine_rate_and_the_exercise_flag():
+    h = boot()
+    h.rt.eval(RATE)(h.p, "exe")
+    cmd(h, "minute.ring", "admin", "start")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    row = h.TK.results[cmd(h, "minute.ring", "admin", "read").result].rows_list[1]
+    assert row.rate == 4.75 and row.exe is True
+    h.rt.eval(RATE)(h.p, "idle")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    row2 = h.TK.results[cmd(h, "minute.ring", "admin", "read").result].rows_list[2]
+    assert row2.rate == 4.75 and row2.exe is False                  # no current exercise: false, not absent
+
+
+def test_minute_ring_an_unreachable_or_raising_rate_leaves_the_field_absent_and_the_row_lands():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()                                                     # the stand-in player has no thermoregulator
+    h.rt.eval(RATE)(h.p, "raise")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    rd = cmd(h, "minute.ring", "admin", "read")
+    rows = h.TK.results[rd.result].rows_list
+    assert rd.rows == 2 and rd.errors == 0
+    assert rows[1].rate is None and rows[1].exe is None and rows[1].HUNGER == 0.25
+    assert rows[2].rate is None and rows[2].exe is False and rows[2].HUNGER == 0.25
