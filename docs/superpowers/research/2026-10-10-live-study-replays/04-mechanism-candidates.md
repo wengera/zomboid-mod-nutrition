@@ -108,3 +108,12 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Candidate:** bill post-exercise expenditure at its measured size, excess post-exercise oxygen consumption (EPOC), not at the engine's rate decay.
 - **Gain:** accurate expenditure on exercise days, and a lag that reads the exercise itself.
 - **Evidence to harvest:** the magnitude and duration of EPOC by intensity and duration.
+
+## C-18: sleep debt booked at waking
+- **Seen (x301–x302):** debt books at the 24 h window's close, which is phased by the record's creation (10:06 here). The breakfast after a short night reads no debt; the breakfast after the recovery night still reads the short night's full debt.
+- **Candidate:** book debt at the end of the main sleep bout, or at a fixed clock hour.
+- **Gain:** the hunger factor follows the night that caused it.
+
+## C-19: one-night debt repayment
+- **Seen:** a 1.85 h debt is repaid only 0.107 h by a following rested night (N3), so it persists.
+- **Candidate:** a decay, or repayment by recovery sleep, sized from the sleep-restriction recovery literature. This needs a science row first.
