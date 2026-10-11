@@ -247,9 +247,9 @@ def projection(sessions, maint):
                 ev.append({"age": a, "kind": "meal", "size": "request", "food": L.MIX650})
         for e in L.autodrop_events(S.ring):
             ev.append({"age": e["age"], "kind": "drink", "vec": e["vec"]})
-    ev = [e for e in ev if e["age"] > S1.a0 + 1e-9]
-    ev.sort(key=lambda x: x["age"])
     end = L.at(6, 0.25)
+    ev = [e for e in ev if S1.a0 + 1e-9 < e["age"] < end - 1.0 / 60]     # inside the arm's synthetic clock
+    ev.sort(key=lambda x: x["age"])
     rows, be = RL.replay_arm(ev, start=S1.start, minutes=int(round((end - S1.a0) * 60)), start_age=S1.a0,
                              paths=ARM_PATHS, player=S1.player, stats=S1.stats, hour_offset=L.HOUR_OFFSET,
                              sleep_allowed=L.SLEEP_ALLOWED)
