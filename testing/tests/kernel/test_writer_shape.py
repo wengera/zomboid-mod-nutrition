@@ -1371,7 +1371,8 @@ def test_a_monotonous_record_raises_both_floors_at_the_writer_minute():
     for m in range(2, 40):
         step(h, p, rec, m)
     t = 4.3 * (3 * 2 ** (-(39 / 60) / 72.0) - 1)
-    assert p.st.v.UNHAPPINESS == pytest.approx(t, rel=1e-9) and p.st.v.BOREDOM == pytest.approx(t, rel=1e-9)
+    eps = h.K.hybrid.FLOOR_EPS                             # met, then the decaying target's fall held under one epsilon
+    assert t <= p.st.v.UNHAPPINESS < t + eps and t <= p.st.v.BOREDOM < t + eps
 
 
 def test_monotony_adds_to_the_effects_unhappiness_target_under_the_surface_cap():
@@ -1412,7 +1413,8 @@ def test_a_staple_record_targets_a_quarter():
     for m in range(0, 61):
         step(h, p, rec, m)
     t = 0.25 * 4.3 * (3 * 2 ** (-1 / 72.0) - 1)              # a quarter of the level, an hour on
-    assert p.st.v.UNHAPPINESS == pytest.approx(t, rel=1e-9) and p.st.v.BOREDOM == pytest.approx(t, rel=1e-9)
+    eps = h.K.hybrid.FLOOR_EPS
+    assert t <= p.st.v.UNHAPPINESS < t + eps and t <= p.st.v.BOREDOM < t + eps
 
 
 def test_no_monotony_writes_no_boredom():

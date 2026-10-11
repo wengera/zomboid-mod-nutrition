@@ -465,7 +465,7 @@ end
 --    so monotony is never hidden behind a larger effect target; an effects target that is not a finite number reads 0;
 --  * BOREDOM: monotony's target alone (no other BOREDOM target exists), held under K.monotony.BORED_MAX 49.
 -- K.hybrid.write raises each stat toward its target (UNHAPPINESS 22, BOREDOM 25 a game hour) and, when the target
--- falls, lowers the stat by the fall once (#3119), so the floor is bounded by the target and releases as a varied diet
+-- falls, lowers the stat by the fall once (#3119; a fall under K.hybrid.FLOOR_EPS 0.05 is held and folded into the next write, Plan 11f Task 9b fix 1, Rule 6), so the floor is bounded by the target and releases as a varied diet
 -- lets the counts decay. The release lowers the stat by the target's fall even when another source (vanilla, a food, an
 -- effect) also raised it: the downside Angus accepted. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
 -- @482-@509, #3015), the mod's own dehydration PANIC floor of 7 included (ruling T9-3), so the BOREDOM floor is wiped

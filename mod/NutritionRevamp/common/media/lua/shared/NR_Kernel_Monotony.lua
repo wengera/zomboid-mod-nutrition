@@ -13,7 +13,7 @@
 -- eat weighs w = min(1, kcal / MEAL_KCAL); an eat with no energy weighs 0 and is not booked. The record,
 -- record.monotony = { t = { [fullType] = { n = count, last = ageH, s = staple } } }: n is the type's recent portions
 -- decayed to its latest eat's world age `last` with a HALF_LIFE_H half-life, s true for a staple; a type whose latest
--- eat is more than WINDOW_H ago counts 0 and is pruned. The key is the item's full type, so an evolved dish is one type.
+-- eat is more than WINDOW_H ago counts 0 and is pruned once its count is one portion or less (its level already 0, so no step). The key is the item's full type, so an evolved dish is one type.
 -- A type's level is f x min(CAP, SLOPE x max(0, n - 1)), n its count decayed to the minute and f STAPLE for a staple
 -- (1 otherwise), and the target is the most repeated type's level (K.monotony.target): UNHAPPINESS's, and BOREDOM's
 -- held under BORED_MAX. Nothing is added at the eat (ruling T9-1): the writer raises the stats toward the target once a
@@ -23,10 +23,10 @@
 local K = NutritionRevamp.kernel
 K.monotony = {}
 
-K.monotony.WINDOW_H = 168 -- game choice, Plan 11e (ruling 11e-1): the 7 game days a type is remembered, measured from the type's latest eat; a type eaten daily keeps its decayed older eats (ruling T3-4); S1592's daily-against-weekly contrast and S1593's monotony week set the scale, not the size
+K.monotony.WINDOW_H = 168 -- game choice, Plan 11e (ruling 11e-1): the 7 game days a type is remembered, measured from the type's latest eat; a type eaten daily keeps its decayed older eats (ruling T3-4); S1592's daily-against-weekly contrast and S1593's monotony week set the scale, not the size; since Plan 11f Task 9b fix 1 a type past it is forgotten only once its decayed count is one portion or less, where its level is already 0, so the window bounds the record without a step in the floor
 K.monotony.HALF_LIFE_H = 72 -- game choice, Plan 11e (ruling 11e-1): the count's 3-day half-life inside the window, so a type left uneaten for days stops counting (S1592: spacing the presentations slows habituation)
 K.monotony.SLOPE = 4.3 -- game choice, Plan 11e (ruling 11e-1): the level per recent portion past the first, sized so right after the fifth meal-sized eat of one type at one a day the level reads 4.3 x (2^-1/3 + 2^-2/3 + 2^-1 + 2^-4/3) = 9.98 on each stat, vanilla's stale +10 (#0042); direction S1592-S1595, S1597
-K.monotony.CAP = 20 -- game choice, Plan 11e (ruling 11e-1), a level since Plan 11f (ruling T9-1): a type's level, and so the target, never exceeds vanilla's rotten +20 (#0042) on either stat
+K.monotony.CAP = 30 -- game choice, Plan 11e (ruling 11e-1), a level since Plan 11f (ruling T9-1), 30 since Plan 11f Task 9b fix 1 (Angus 2026-10-11, level-1 moodles; S1592-S1597 give direction, not size; thresholds #2369): a type's level, and so the target, never exceeds 30, so a one-food diet at three portions a day holds 30 from day 5, above UNHAPPY level 1 (20) by 10 and BORED level 1 (25) by 5 and under BORED level 2 (50); Moodle.Update sets a level only when the stat is strictly above its threshold (fcmpl/ifle: BORED @856-@873 L219-L220, UNHAPPY @967-@984 L237-L238 on 42.21); vanilla's stale +10 (#0042) still sizes SLOPE but no longer binds the cap, which was vanilla's rotten +20 (#0042) before the fix
 K.monotony.STAPLE = 0.25 -- game choice, Plan 11e (ruling 11e-1): a staple's level multiplier, outside the cap (Plan 11f Task 9b); S1593's potato product resisted monotony and S1595's bread and butter showed no fall in pleasantness, neither giving a size
 K.monotony.MEAL_KCAL = 400 -- game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595): the landed energy of one meal-sized portion, the weight-1 eat
 
@@ -70,14 +70,14 @@ function K.monotony.isStaple(fullType, foodType)
     return K.monotony.STAPLE_TYPES[fullType] == true
 end
 
--- An entry's count decayed to ageH: 0 for no entry or one whose last eat is beyond the window.
+-- An entry's count decayed to ageH: 0 for no entry, or past the window once it is one portion or less (K.monotony.faded).
 function K.monotony.count(e, ageH)
     if e == nil then
         return 0
     end
     local dt = ageH - e.last
     if dt > K.monotony.WINDOW_H then
-        return 0
+        return K.monotony.faded(e, dt)
     end
     return e.n * math.exp(-0.6931471805599453 * dt / K.monotony.HALF_LIFE_H)
 end
@@ -117,7 +117,7 @@ function K.monotony.record(m, typeKey, ageH, w, staple)
     return e
 end
 
--- Drop every type whose last eat is beyond the window at ageH. Returns the number dropped.
+-- Drop every type past the window whose count is one portion or less at ageH. Returns the number dropped.
 function K.monotony.prune(m, ageH)
     local gone = {}
     for k, e in pairs(m.t) do
@@ -129,10 +129,10 @@ function K.monotony.prune(m, ageH)
     return #gone
 end
 
--- One type into the prune's list when its last eat is beyond the window (the pairs body, kept out of the loop so
--- the line-granular coverage gate sees both outcomes).
+-- One type into the prune's list when it is past the window and counts 0 (the pairs body, kept out of the loop so
+-- the line-granular coverage gate sees both outcomes); a heavier type is kept until its level has faded to 0.
 function K.monotony.addGone(gone, k, e, ageH)
-    if ageH - e.last > K.monotony.WINDOW_H then
+    if ageH - e.last > K.monotony.WINDOW_H and K.monotony.count(e, ageH) <= 0 then
         gone[#gone + 1] = k
     end
 end
@@ -198,4 +198,15 @@ function K.monotony.target(m, ageH)
         u = K.max(u, K.monotony.level(e, ageH))
     end
     return u, K.min(K.monotony.BORED_MAX, u)
+end
+
+-- Plan 11f Task 9b fix 1: the count of an entry past the window, dt hours after its last eat: its decayed count while
+-- above one portion, else 0. Its level, SLOPE x max(0, n - 1), falls to 0 continuously as n reaches one portion, so the
+-- window no longer drops the floor in one minute; the entry is pruned only after (K.monotony.addGone).
+function K.monotony.faded(e, dt)
+    local n = e.n * math.exp(-0.6931471805599453 * dt / K.monotony.HALF_LIFE_H)
+    if n <= 1 then
+        return 0
+    end
+    return n
 end

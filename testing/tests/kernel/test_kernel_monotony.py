@@ -2,7 +2,7 @@
 
 A per-player record of recent eats by full type, record.monotony = { t = { [fullType] = { n, last, s } } }: n is the
 decayed count of meal-sized portions (ruling T3-3: each eat weighs w = min(1, kcal / MEAL_KCAL)) at world age
-`last`, decaying with a 3-day half-life, s marks a staple; an entry whose last eat is beyond the 7-day window counts 0.
+`last`, decaying with a 3-day half-life, s marks a staple; an entry whose last eat is beyond the 7-day window counts 0 once its decayed count is one portion or less (Plan 11f Task 9b fix 1: no step at the window edge).
 A type's level is f x min(CAP, SLOPE x max(0, n - 1)) (f STAPLE for a staple), the target the most repeated type's
 level, the same on UNHAPPINESS and BOREDOM, BOREDOM's held under BORED_MAX. Hand-computed from the constants.
 """
@@ -30,7 +30,7 @@ def decay(dt):
 
 def test_the_constants(host):
     m = M(host)
-    assert (m.WINDOW_H, m.HALF_LIFE_H, m.SLOPE, m.CAP, m.STAPLE) == (168, 72, 4.3, 20, 0.25)
+    assert (m.WINDOW_H, m.HALF_LIFE_H, m.SLOPE, m.CAP, m.STAPLE) == (168, 72, 4.3, 30, 0.25)
     assert m.MEAL_KCAL == 400
     assert m.BORED_MAX == 49
 
@@ -50,6 +50,10 @@ def test_each_constant_names_its_rows_and_its_label():
     assert "game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595)" in meal
     window = re.search(r"^K\.monotony\.WINDOW_H = .*$", src, re.M).group(0)
     assert "measured from the type's latest eat; a type eaten daily keeps its decayed older eats" in window
+    cap = re.search(r"^K\.monotony\.CAP = .*$", src, re.M).group(0)
+    for want in ("Angus 2026-10-11", "level-1 moodles", "S1592", "S1597", "direction, not size", "#2369",
+                 "Moodle.Update", "no longer binds the cap"):
+        assert want in cap, want
     bored = re.search(r"^K\.monotony\.BORED_MAX = .*$", src, re.M).group(0)
     assert "#2369" in bored and "UpdateBoredom @510-@575" in bored and "ruling T9-3" in bored
 
@@ -122,12 +126,26 @@ def test_the_level_follows_the_decaying_count(host):
     assert tgt(host, m, AGE + 144)[0] == 0                                   # n 0.75: under one portion
 
 
-def test_beyond_the_window_a_type_targets_nothing(host):
+def test_past_the_window_a_type_fades_with_its_count_and_takes_no_step(host):
+    # Plan 11f Task 9b fix 1: the window no longer cuts a level above 0; the type counts 0 past the window only once
+    # its decayed count is one portion or less, where its level is already 0
     m = M(host).new()
     for _ in range(10):
         M(host).record(m, "Base.Apple", AGE, 1, False)
     assert tgt(host, m, AGE + 168)[0] == pytest.approx(4.3 * (10 * decay(168) - 1))
-    assert tgt(host, m, AGE + 168.01) == (0, 0)
+    assert tgt(host, m, AGE + 168.01)[0] == pytest.approx(4.3 * (10 * decay(168.01) - 1))
+    one = 72 * math.log2(10)                                          # n falls to one portion: 239.2 h
+    assert tgt(host, m, AGE + one - 1)[0] == pytest.approx(4.3 * (10 * decay(one - 1) - 1))
+    assert tgt(host, m, AGE + one + 0.01) == (0, 0)
+    assert M(host).count(m.t["Base.Apple"], AGE + one - 1) == pytest.approx(10 * decay(one - 1))
+    assert M(host).count(m.t["Base.Apple"], AGE + one + 0.01) == 0
+
+
+def test_inside_the_window_a_count_under_one_portion_still_counts(host):
+    m = M(host).new()
+    M(host).record(m, "Base.Apple", AGE, 1, False)
+    assert M(host).count(m.t["Base.Apple"], AGE + 167) == pytest.approx(decay(167))
+    assert M(host).count(m.t["Base.Apple"], AGE + 169) == 0
 
 
 def test_a_staple_holds_a_quarter_of_the_level_also_at_the_cap(host):
@@ -140,14 +158,14 @@ def test_a_staple_holds_a_quarter_of_the_level_also_at_the_cap(host):
     for _ in range(20):
         M(host).record(m, "Base.Apple", AGE, 1, False)
         M(host).record(s, "Base.Bread", AGE, 1, True)
-    assert tgt(host, m, AGE)[0] == 20 and tgt(host, s, AGE)[0] == pytest.approx(5)
+    assert tgt(host, m, AGE)[0] == 30 and tgt(host, s, AGE)[0] == pytest.approx(7.5)
 
 
 def test_the_cap_holds(host):
     m = M(host).new()
     for _ in range(10):
         M(host).record(m, "Base.Apple", AGE, 1, False)
-    assert tgt(host, m, AGE) == (20, 20)
+    assert tgt(host, m, AGE) == (30, 30)
 
 
 def test_the_most_repeated_type_sets_the_target(host):
@@ -184,7 +202,7 @@ def test_the_boredom_target_stays_under_the_bored_level_2_step_whatever_the_cap(
         assert u == pytest.approx(4.3 * 29) and b == 49
     finally:
         k.CAP = cap
-    assert k.CAP == 20
+    assert k.CAP == 30
 
 
 def test_a_partial_eat_counts_its_share(host):
@@ -289,6 +307,20 @@ def test_prune_drops_only_the_types_beyond_the_window(host):
     M(host).record(m, "Base.New", AGE, 1)
     assert M(host).prune(m, AGE) == 2
     assert sorted(host.py(m.t)) == ["Base.Edge", "Base.New"]
+
+
+def test_prune_keeps_a_type_past_the_window_until_its_count_falls_to_one_portion(host):
+    # Plan 11f Task 9b fix 1: the prune drops only a type whose level is already 0, so it never takes a step
+    m = M(host).new()
+    for _ in range(10):
+        M(host).record(m, "Base.Heavy", AGE - 169, 1, False)
+    M(host).record(m, "Base.Old", AGE - 169, 1, False)
+    assert M(host).prune(m, AGE) == 1
+    assert list(host.py(m.t)) == ["Base.Heavy"]
+    one = AGE - 169 + 72 * math.log2(10)
+    assert M(host).prune(m, one - 0.01) == 0
+    assert M(host).prune(m, one + 0.01) == 1
+    assert host.py(m.t) == {}
 
 
 def test_prune_of_a_recent_record_removes_nothing(host):
@@ -405,10 +437,20 @@ def mono14(host):
 def test_a_one_food_diet_rises_to_a_bounded_floor_and_never_exceeds_it(mono14):
     peak_u = max(r[1] for r in mono14)
     peak_b = max(r[2] for r in mono14)
-    assert peak_u == pytest.approx(20) and peak_b == pytest.approx(20)
-    first = next(i for i, r in enumerate(mono14) if r[1] >= 20 - 1e-9)
-    assert first // 1440 == 2                                        # reached on day 2 (the eighth portion, 13:00)
-    assert all(abs(r[1] - 20) < 1e-9 and abs(r[2] - 20) < 1e-9 for r in mono14[3 * 1440:])
+    assert peak_u == pytest.approx(30) and peak_b == pytest.approx(30)
+    first = next(i for i, r in enumerate(mono14) if r[1] >= 30 - 1e-9)
+    assert first // 1440 == 3                                        # reached on day 3 (the twelfth portion, 19:00)
+    assert all(abs(r[1] - 30) < 1e-9 and abs(r[2] - 30) < 1e-9 for r in mono14[5 * 1440:])
+
+
+def test_a_one_food_diet_alone_shows_the_level_1_unhappy_and_bored_moodles(mono14):
+    # Angus 2026-10-11: monotony alone reaches the level-1 moodles. Moodle.Update sets a level when the stat is
+    # strictly above its threshold (fcmpl/ifle, 42.21): UNHAPPY 20 and BORED 25 for level 1, BORED 50 for level 2
+    # (#2369); the steady floor clears level 1 by a margin and stays under BORED level 2
+    steady = mono14[5 * 1440:]
+    assert all(r[1] > 20 + 5 and r[2] > 25 + 4 for r in steady)
+    assert all(r[2] < 50 for r in mono14)
+    assert all(r[1] > 25 for r in mono14[4 * 1440 + 8 * 60 + 30:])   # from day 4's breakfast on, both above level 1
 
 
 def test_the_floor_follows_the_target_and_takes_no_step_at_the_eat(host):
@@ -417,34 +459,83 @@ def test_the_floor_follows_the_target_and_takes_no_step_at_the_eat(host):
     assert rows[i][3] == pytest.approx(4.3 * 2 ** (-5 / 72.0))
     assert rows[i][1] == pytest.approx(22 / 60)                       # one minute of the rise, not the 4.3
     assert rows[i][2] == pytest.approx(25 / 60)                       # BOREDOM: one BORED level a game hour
-    assert rows[i + 15][1] == pytest.approx(rows[i + 15][3], rel=1e-9)
+    assert rows[i + 15][3] <= rows[i + 15][1] < rows[i + 15][3] + host.K.hybrid.FLOOR_EPS   # met, a held fall over
 
 
-def test_a_varied_diet_releases_the_floor_as_the_counts_decay(host):
+RELEASE_DAYS = 26                                       # 14 days of one food, then 12 of variety: past n = 1
+
+
+@pytest.fixture(scope="module")
+def release(host):
     def plan(day, minute):
         if minute not in MEALS_3:
             return None
         if day < 14:
             return ("Base.Apple", False)
         return ("Base.Var%d_%d" % (day, minute), False)               # every portion a new type
-    rows = floor_run(host, plan, 22)
+    rows = floor_run(host, plan, RELEASE_DAYS)
     last_apple = AGE + (13 * 1440 + MEALS_3[2]) / 60.0
-    # the count n0 after the last apple, then n0 x 2^(-t/72): the level leaves the cap when 4.3 (n - 1) < 20
     seq = [AGE + (d * 1440 + mm) / 60.0 for d in range(14) for mm in MEALS_3]
     n0 = sum(2 ** (-(last_apple - a) / 72.0) for a in seq)
+    return rows, last_apple, n0
+
+
+def EPS(host):
+    return host.K.hybrid.FLOOR_EPS
+
+
+def test_a_varied_diet_releases_the_floor_as_the_counts_decay(host, release):
+    rows, last_apple, n0 = release
+    eps = EPS(host)
+    # the count n0 after the last apple, then n0 x 2^(-t/72): the level leaves the cap when 4.3 (n - 1) < 30 and
+    # reaches 0 when n reaches one portion, the window edge at 168 h passing with no step
     for r in rows[14 * 1440:]:
         dt = r[0] - last_apple
-        want = 0.0 if dt > 168 else min(20.0, 4.3 * max(0.0, n0 * 2 ** (-dt / 72.0) - 1))
+        want = min(30.0, 4.3 * max(0.0, n0 * 2 ** (-dt / 72.0) - 1))
         assert r[3] == pytest.approx(want, abs=1e-9)
-        assert r[1] == pytest.approx(want, abs=1e-6) and r[2] == pytest.approx(want, abs=1e-6)
-    leave = last_apple + 72 * math.log2(n0 * 4.3 / 24.3)
-    assert 3.5 * 24 < leave - last_apple < 4 * 24                      # about 3.8 days at the cap
-    assert rows[-1][1] == 0 and rows[-1][2] == 0                       # past the window: released
+        assert want - 1e-9 <= r[1] < want + eps and want - 1e-9 <= r[2] < want + eps      # held under one epsilon
+    leave = 72 * math.log2(n0 * 4.3 / 34.3)
+    assert 2 * 24 < leave < 2.5 * 24                                   # about 2.2 days at the cap
+    zero = 72 * math.log2(n0)
+    assert 11 * 24 < zero < 11.5 * 24                                  # n reaches one portion about 11.2 days on
+    assert rows[-1][1] == pytest.approx(0, abs=1e-12) and rows[-1][2] == pytest.approx(0, abs=1e-12)   # landed
+
+
+def test_the_release_takes_no_step_at_the_window_edge(host, release):
+    # Plan 11f Task 9b fix 1: no single minute drops the target by more than the decay's own steepest per-minute
+    # fall (at the cap's exit, 4.3 x n x ln 2 / 72 / 60 with n = 30 / 4.3 + 1), nor the stat by more than that plus
+    # the write epsilon; before the fix the window edge dropped about 7 in one minute
+    rows, last_apple, n0 = release
+    eps = EPS(host)
+    steep = 4.3 * (30 / 4.3 + 1) * math.log(2) / 72 / 60
+    drops_t = [rows[i - 1][3] - rows[i][3] for i in range(14 * 1440 + 1, len(rows))]
+    drops_u = [rows[i - 1][1] - rows[i][1] for i in range(14 * 1440 + 1, len(rows))]
+    drops_b = [rows[i - 1][2] - rows[i][2] for i in range(14 * 1440 + 1, len(rows))]
+    assert max(drops_t) <= steep * (1 + 1e-9)
+    assert max(drops_u) < eps + steep and max(drops_b) < eps + steep
+    edge = next(i for i, r in enumerate(rows) if r[0] - last_apple > 168)
+    assert rows[edge][3] > 3 and rows[edge - 1][3] - rows[edge][3] < steep    # the edge: still about 4.6, no step
+
+
+def test_a_decaying_target_sets_the_stat_at_most_once_per_epsilon_of_fall(host, release):
+    # Rule 6: the floor holds a fall under FLOOR_EPS and folds it into the next write, so a decaying target writes
+    # each stat about once per FLOOR_EPS of fall, not every minute; the fall to 0 lands whatever its size
+    rows, last_apple, n0 = release
+    eps = EPS(host)
+    tail = rows[14 * 1440 + 60:]                                      # past the last apple's rise
+    for col in (1, 2):
+        sets = [(rows_i, a, b) for rows_i, (a, b) in enumerate(zip(tail, tail[1:])) if b[col] != a[col]]
+        assert sets
+        for _, a, b in sets:
+            assert a[col] - b[col] >= eps - 1e-12 or b[3] == 0
+        assert len(sets) <= 30 / eps + 1
+        minutes = sum(1 for a, b in zip(tail, tail[1:]) if b[3] < a[3])
+        assert len(sets) * 5 < minutes                                  # far fewer writes than falling minutes
 
 
 def test_a_staple_only_diet_sits_at_a_quarter(host, mono14):
     rows = floor_run(host, one_food("Base.Bread", True), 14)
-    assert max(r[1] for r in rows) == pytest.approx(5)
+    assert max(r[1] for r in rows) == pytest.approx(7.5)
     assert rows[-1][1] == pytest.approx(0.25 * mono14[-1][1])
 
 
@@ -454,6 +545,6 @@ def test_one_portion_a_day_holds_under_the_cap(host):
     rows = floor_run(host, plan, 14)
     steady = 4.3 * (1 / (1 - 2 ** (-24 / 72.0)) - 1)                 # 16.54, the limit after an eat
     day13 = 4.3 * (sum(2 ** (-24 * j / 72.0) for j in range(14)) - 1)
-    assert max(r[1] for r in rows) < steady < 20
+    assert max(r[1] for r in rows) < steady < 30
     assert max(r[3] for r in rows[13 * 1440:]) == pytest.approx(day13, rel=1e-9)
     assert max(r[1] for r in rows[13 * 1440:]) == pytest.approx(day13, rel=5e-3)    # met a few minutes after the eat

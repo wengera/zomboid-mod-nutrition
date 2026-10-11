@@ -73,11 +73,9 @@ function K.hybrid.write(inp, out, c)
         out.stress = K.min(inp.stressTarget, inp.stress + c.moodRiseStress * s)
     end
     local ut = K.hybrid.target(inp.unhappyTarget)
-    out.unhappy = K.hybrid.floor(inp.unhappy, ut, inp.lastUnhappyTarget, c.moodRiseUnhappy * s)
-    out.unhappyTarget = ut
+    out.unhappy, out.unhappyTarget = K.hybrid.floor(inp.unhappy, ut, inp.lastUnhappyTarget, c.moodRiseUnhappy * s)
     local bt = K.hybrid.target(inp.boredTarget)
-    out.bored = K.hybrid.floor(inp.bored, bt, inp.lastBoredTarget, c.moodRiseBored * s)
-    out.boredTarget = bt
+    out.bored, out.boredTarget = K.hybrid.floor(inp.bored, bt, inp.lastBoredTarget, c.moodRiseBored * s)
     out.foodSick = nil
     if inp.foodSickTarget > 0 and inp.foodSick < inp.foodSickTarget then
         out.foodSick = K.min(inp.foodSickTarget, inp.foodSick + c.moodRiseSick * s)
@@ -116,22 +114,32 @@ function K.hybrid.target(t)
     return t
 end
 
+K.hybrid.FLOOR_EPS = 0.05 -- game choice, Plan 11f Task 9b fix 1 (Rule 6): a mood floor's target fall under 0.05 of the stat (0-100) is held and folded into the next write, so a decaying monotony target sets UNHAPPINESS and BOREDOM about once per 0.05 of fall (every 9 game minutes or more at the steepest release) instead of every minute; a step of 0.05 is far under any moodle threshold's margin
+
 -- A mood floor (#3119): when the target fell since the last write (last), the stat v loses that fall once, never
--- below 0, whatever else raised it; then a stat under the target rises toward it by rise. Returns the value to write,
--- or nil when there is no target and no fall, or the value is unchanged.
+-- below 0, whatever else raised it; then a stat under the target rises toward it by rise. A fall under FLOOR_EPS to a
+-- target above 0 is held: last stays the remembered target, so the next write subtracts the whole fall since it (no
+-- drift), and a fall to 0 always lands. Returns the value to write (nil when there is no target and no fall, or the
+-- value is unchanged) and the target to remember as the next call's last.
 function K.hybrid.floor(v0, ut, last, rise)
-    if not (ut < last or ut > 0) then
-        return nil
+    local keep = ut
+    local fall = last - ut
+    if fall > 0 and fall < K.hybrid.FLOOR_EPS and ut > 0 then
+        keep = last
+        fall = 0
+    end
+    if not (fall > 0 or ut > 0) then
+        return nil, keep
     end
     local v = v0
-    if ut < last then
-        v = K.max(0, v - (last - ut))
+    if fall > 0 then
+        v = K.max(0, v - fall)
     end
     if v < ut then
         v = K.min(ut, v + rise)
     end
     if v ~= v0 then
-        return v
+        return v, keep
     end
-    return nil
+    return nil, keep
 end

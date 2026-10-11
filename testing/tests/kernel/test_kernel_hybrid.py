@@ -151,3 +151,48 @@ def test_a_non_finite_boredom_target_reads_zero(host):
 def test_the_default_input_writes_no_boredom(host):
     out = run(host, dtS=60)
     assert out.bored is None and out.boredTarget == 0 and out.unhappy is None
+
+
+# --- Plan 11f Task 9b fix 1 (Rule 6): the floor holds a fall under FLOOR_EPS and folds it into the next write ------
+
+
+def test_the_floor_epsilon_is_a_labelled_game_choice(host):
+    assert host.K.hybrid.FLOOR_EPS == 0.05
+    import os
+    import re
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    src = open(os.path.join(repo, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Hybrid.lua"),
+               encoding="utf-8").read()
+    line = re.search(r"^K\.hybrid\.FLOOR_EPS = .*$", src, re.M).group(0)
+    assert "game choice" in line and "Rule 6" in line and "Task 9b fix 1" in line
+
+
+@pytest.mark.parametrize("stat", ["unhappy", "bored"])
+def test_a_fall_under_the_epsilon_is_held_and_the_old_target_remembered(host, stat):
+    out = run(host, dtS=60, **{stat: 10, stat + "Target": 9.97, "last" + stat.capitalize() + "Target": 10})
+    assert out[stat] is None and out[stat + "Target"] == 10
+
+
+@pytest.mark.parametrize("stat", ["unhappy", "bored"])
+def test_held_falls_fold_into_the_next_write_with_no_drift(host, stat):
+    # the remembered target stays 10 while the target falls 0.03, then 0.06 in all: the whole 0.06 is subtracted
+    out = run(host, dtS=60, **{stat: 10, stat + "Target": 9.94, "last" + stat.capitalize() + "Target": 10})
+    assert out[stat] == pytest.approx(9.94, abs=1e-12) and out[stat + "Target"] == 9.94
+
+
+@pytest.mark.parametrize("stat", ["unhappy", "bored"])
+def test_a_fall_to_zero_lands_whatever_its_size(host, stat):
+    out = run(host, dtS=60, **{stat: 0.03, stat + "Target": 0, "last" + stat.capitalize() + "Target": 0.03})
+    assert out[stat] == 0 and out[stat + "Target"] == 0
+
+
+@pytest.mark.parametrize("stat,rise", [("unhappy", 22 / 60), ("bored", 25 / 60)])
+def test_a_held_fall_still_lets_a_stat_under_its_target_rise(host, stat, rise):
+    out = run(host, dtS=60, **{stat: 5, stat + "Target": 9.97, "last" + stat.capitalize() + "Target": 10})
+    assert out[stat] == pytest.approx(5 + rise) and out[stat + "Target"] == 10
+
+
+@pytest.mark.parametrize("stat", ["unhappy", "bored"])
+def test_a_rising_target_is_remembered_as_it_is(host, stat):
+    out = run(host, dtS=60, **{stat: 10, stat + "Target": 10.01, "last" + stat.capitalize() + "Target": 10})
+    assert out[stat + "Target"] == 10.01
