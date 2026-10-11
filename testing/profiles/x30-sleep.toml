@@ -1,0 +1,44 @@
+# testing/profiles/x30-sleep.toml - Plan 11f Task 7 (runs x301, x302): research row 11, sleep debt raises hunger
+# (docs/superpowers/research/2026-10-10-live-study-replays/01-harness-facts.md s3.3 and s6), on one live body over a
+# chain of two sessions (the second copies the first one's <run>/server and boots it with reuse=True; the first
+# restores the fixture).
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x30-sleep/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x30-sleep`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). SLEEP IS ON: [server] SleepAllowed and SleepNeeded true
+# reach the server ini at seed (harness.md [server] keys; #2947, #2948: with either false the fatigue reset erases each
+# write and the record's sleep state freezes, so the sleep factor is inert, #2961); the replay takes sleep_allowed true.
+# The drivers are testing/experiments/x301_sleep.py and x302_sleep.py on testing/experiments/x30_sleep_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x30-sleep) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, SleepAllowed and SleepNeeded true, build 42.21.0 - the Plan 11f Task 7 sleep debt (row 11), a chain of two sessions."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x30-sleep/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1 (6.27 ticks, x222)
