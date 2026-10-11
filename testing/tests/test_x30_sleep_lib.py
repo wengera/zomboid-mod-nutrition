@@ -5,6 +5,7 @@ game."""
 import os
 import sys
 import time
+import types
 
 import pytest
 
@@ -101,10 +102,30 @@ def test_the_window_closes_book_as_the_kernel_and_the_nights_read_their_debts():
     assert asleep and all(abs(r["body.met"] - 1.0) < 1e-12 for r in asleep)
 
 
+class FakeClock:
+    """The lib's time module, deterministic: the clock moves only when the fake server answers a poll (one wall second
+    per record read) or the lib sleeps, so the poll rate the lib derives never depends on host speed."""
+    def __init__(self):
+        self.now = 1000.0
+
+    def time(self):
+        return self.now
+
+    def sleep(self, s):
+        self.now += max(s, 0.01)
+
+
+def fake_clock(monkeypatch):
+    clock = FakeClock()
+    monkeypatch.setattr(L, "time", types.SimpleNamespace(time=clock.time, sleep=clock.sleep))
+    return clock
+
+
 class FakeServer:
     """The night's server side: each record read while the hold is armed advances the world 0.1 game h, booking 0.085 h
     (the asleep share #2840 reads); after the cancel the player is awake and a read advances 1 game minute."""
-    def __init__(self):
+    def __init__(self, clock=None):
+        self.clock = clock
         self.age, self.win, self.ws = 14.75, 0.0, 4.2
         self.holding = False
         self.cmds = []
@@ -119,6 +140,8 @@ class FakeServer:
         if cmd == "time.snapshot":
             return {"worldAge": self.age, "hour": 0, "minutes": 0, "mult": 1}
         if cmd == "lua.read":
+            if self.clock is not None:
+                self.clock.now += 1.0
             if self.holding:
                 self.age += 0.1
                 self.win += 0.085
@@ -133,7 +156,7 @@ class FakeServer:
 def night_session(tmp_path, fake, budget_at=None):
     S = object.__new__(L.Session)
     S.out = {"phase_walls": {}, "phase_errors": {}, "notes": [], "phases": {}, "deviations": [], "steps": []}
-    S.tl, S.t0, S.cur = Timeline(), time.time(), "X"
+    S.tl, S.t0, S.cur = Timeline(), (fake.clock.now if fake.clock else time.time()), "X"
     S.path = str(tmp_path / "doc.json")
     S.server, S.clients = None, {}
     S.stops, S.marks, S.speeds = [], [], []
@@ -158,7 +181,7 @@ def night_session(tmp_path, fake, budget_at=None):
 def test_the_night_stops_at_its_booked_target_and_cancels_the_hold(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "WAKE_SETTLE_S", 1.0)
     monkeypatch.setattr(L, "POLL_S", 0.0)
-    fake = FakeServer()
+    fake = FakeServer(fake_clock(monkeypatch))
     S = night_session(tmp_path, fake)
     st = S.night("N0", 14.75, {"target_h": 7.5, "role": "rested"})
     assert st["cancel"]["reason"] == "target"
@@ -172,7 +195,7 @@ def test_the_night_stops_at_its_booked_target_and_cancels_the_hold(tmp_path, mon
 def test_a_budget_stop_mid_night_still_cancels_the_hold(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "WAKE_SETTLE_S", 1.0)
     monkeypatch.setattr(L, "POLL_S", 0.0)
-    fake = FakeServer()
+    fake = FakeServer(fake_clock(monkeypatch))
     S = night_session(tmp_path, fake, budget_at=3)
     with pytest.raises(L.Budget):
         S.night("N0", 14.75, {"target_h": 7.5, "role": "rested"})
