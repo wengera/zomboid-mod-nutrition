@@ -133,3 +133,7 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 
 ## C-23: place setany events off the before-snapshot, and grade BOREDOM with a drift estimate
 - **Seen:** a harness-lib defect (F-T9-3, F-T9-2), not a mod mechanism. It belongs in future libs.
+
+## C-24: the panic-floor flicker
+- **Seen (x331–x333):** the dehydration PANIC floor of 7 (`NR_Data_Effects.lua:210-213`) decays under 6 between once-a-minute writes (5.74 live; vanilla decay about 1.12 per game minute, #3400, #3401). The level-1 panic moodle therefore flickers.
+- **Candidate:** a floor value or write timing that holds the moodle level. A tuned floor depends on clock speed, and writing more often is per-tick work (Rule 6).
