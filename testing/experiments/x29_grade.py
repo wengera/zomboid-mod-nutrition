@@ -10,7 +10,8 @@ events.json (the eats, the autoDrop drinks, and x29_exercise_lib's activity and 
 start-stats.json, player.json and the minute-ring pages. The tool is tools/replay_live.py at HEAD with the live server's
 sleep option (sleep_allowed false).
 
-Every session: the replay of live re-run, graded twice: the tool's own diff (HUNGER 0.002, es 0.005, L 0.5 %), whose
+Every session: the replay of live re-run (its stand-in starting at the activity in effect at the start record: the
+last activity event the lib held back, finding F-T6-1), graded twice: the tool's own diff (HUNGER 0.002, es 0.005, L 0.5 %), whose
 `between` rule skips the row before every event, the activity events included; and this script's diff, which skips a
 row only for an eat, drink or setpath event (an activity event changes what the NEXT drain bills, so no ring row sits
 between it and its effect; x29_exercise_lib change 2), under HUNGER 0.002, es 0.005, L 0.5 %, satiety.S 1e-6 and the
@@ -119,6 +120,18 @@ class Sess:
         rec = self.start.get("rec", self.start)
         self.a0 = L.num(L.g(rec, "satiety", "t")) or L.num(rec.get("kineticsAge"))
         self.ring_by = {r["s"]: r for r in self.ring}
+        # the activity in effect at the start record (finding F-T6-1): x29_exercise_lib's replay holds back the
+        # activity events at or before the first ring row after the record, so its stand-in starts idle; a session
+        # that attaches while the engine rate is still raised (x293: the bout's tail) bills above idle from its first
+        # drain. The stand-in starts at the last held event's rate instead (the tool's player cfg `rate`; an exercise
+        # flag cannot be carried in, named when the held state has it)
+        first = next((r for r in self.ring if self.a0 is None or r["age"] > self.a0 + 1e-9), None)
+        acts, _ = L.activity_events(self.ring)
+        held = [e for e in acts if first is not None and e["s"] <= first["s"]]
+        self.initial_activity = held[-1] if held else None
+        if held:
+            self.player = dict(self.player or {})
+            self.player["rate"] = held[-1]["rate"]
         if not self.ring:
             self.rows, self.diff, self.mine, self.rep_by, self.na_by = [], {"ok": None}, {"ok": None}, {}, {}
             return
@@ -148,7 +161,8 @@ class Sess:
                     "findings_n": len(self.diff.get("findings", [])), "findings": self.diff.get("findings", [])[:20]},
                 "diff": {k: self.mine.get(k) for k in ("fields", "classes", "ok")} | {
                     "findings_n": len(self.mine.get("findings", [])), "findings": self.mine.get("findings", [])[:40]},
-                "start_age": self.a0, "ring_first_age": self.ring[0]["age"] if self.ring else None,
+                "start_age": self.a0, "initial_activity": self.initial_activity,
+                "ring_first_age": self.ring[0]["age"] if self.ring else None,
                 "ring_last_age": self.ring[-1]["age"] if self.ring else None,
                 "driver_verdicts": {k: v.get("verdict") for k, v in (self.doc.get("verdicts") or {}).items()}}
 
