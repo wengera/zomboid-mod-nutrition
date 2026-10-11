@@ -122,3 +122,14 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Seen (x321–x323):** a first-seen or healed anchor starts fully faded (T2-F). The engine's `getTimeSinceLastSmoke` reads 10 at about 85 game h, apparently held there.
 - **Candidate:** seed the anchor from the engine's timer when the mod first sees a smoker in withdrawal.
 - **Needs first:** a jar read of the timer's hold and its day-length units, and a science row.
+
+## C-21: monotony's BOREDOM add and vanilla's panic reset
+- **Seen (x331–x333):** vanilla resets BOREDOM every tick while PANIC is above 5 (`BodyDamage.UpdateBoredom`). The test character's PANIC sat at about 5.7–6.3, so the add was wiped on 6 of 8 eats.
+- **Candidate:** find the PANIC source. Then either accept the wipe as vanilla behaviour or drop the BOREDOM add.
+
+## C-22: bound the UNHAPPINESS climb (Angus chose a self-limiting floor, 2026-10-11)
+- **Seen:** UNHAPPINESS never falls on its own, so a one-food diet's adds pile up: one eat a day reaches 100 by day 10, three by day 2.
+- **Status:** being built. Monotony becomes a floor target, bounded and self-releasing through the existing effects floor (`K.hybrid`, #3119).
+
+## C-23: place setany events off the before-snapshot, and grade BOREDOM with a drift estimate
+- **Seen:** a harness-lib defect (F-T9-3, F-T9-2), not a mod mechanism. It belongs in future libs.
