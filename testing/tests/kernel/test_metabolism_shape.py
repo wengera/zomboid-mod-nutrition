@@ -895,11 +895,13 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
     h = met_host
     lim = list(MET(h).limitations.values())
     assert ("the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the "
-            "Running classes are unreachable; the metabolic rate lags activity by tens of seconds; the current "
+            "Running classes are unreachable; the metabolic rate lags activity (a first-order lag fixed in real "
+            "seconds, so its game-time length scales with the day length), and only a Fitness exercise bills its "
+            "class from the first minute, from the server" + chr(39) + "s exercise flag; the current "
             "timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions "
             "bill at the class rate") in lim
     assert ("an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as "
-            "HeavyWork, never Fitness") in lim
+            "HeavyWork, and Fitness only from the exercise flag") in lim
     assert ("offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until "
             "the next normal close) and reuses today's immobilised reading; the catch-up stamps every close "
             "with the catch-up minute's age, so the first blend after an offline gap counts yesterday in "
@@ -1417,10 +1419,11 @@ def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
 
 def test_the_minute_stamps_the_class_and_the_exercise_flag_on_the_context_for_the_writer(met_host):
     # Ruling T6-2: the writer names the activity kind from the minute's class (S1301); FitnessHeavy is the one
-    # resistance class classOf reaches (9.0 exactly), and Fitness.getCurrentExe is the flag for a 6.0 exercise
+    # resistance class classOf reaches (9.0 exactly), and Fitness.getCurrentExe is the flag for a 6.0 exercise, which
+    # the minute bills at the Fitness class since Plan 11f C-17 (it read HeavyWork, the rate's class, before)
     h = met_host
     for kw, cls, ex in ((dict(rate=9.0), "FitnessHeavy", False), (dict(rate=3.1), "Walking5kmh", False),
-                        (dict(rate=6.0, exe="squats"), "HeavyWork", True)):
+                        (dict(rate=6.0, exe="squats"), "Fitness", True)):
         p = player(h, **kw)
         record = fresh(h, p)
         pipe = h.rt.table()

@@ -39,7 +39,9 @@ step m, at its start). Kinds:
            650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
            ruling 11c-31; research section 3.7 form 1), es the state the last drain left and hour the event's
   sleep    {asleep}
-  activity {rate, moving, exercising}: the engine MET the thermoregulator answers, and the flags
+  activity {rate | raw, moving, exercising}: rate is the engine MET before the stand-in's load factor, raw the
+           engine's raw rate the thermoregulator answers as is (a ring row's `rate`; null hands back to rate), and
+           the flags
   stat     {stat, value}: the stand-in's stat
   setpath  {path, value}: a record path (lua.read grammar)
   trait    {trait, on}
@@ -48,6 +50,14 @@ Mode "live" uses the ring's clock and feeds the stand-in's NICOTINE_WITHDRAWAL f
 refused as a feed); mode "arm" substitutes another event list (ruling 11f-3), on the ring's clock or a synthetic one,
 and feeds nothing the arm does not name. The replay never reads a ring row's outputs (HUNGER, the record paths, the
 other stats): the stand-in's stats start at --start-stats or its defaults.
+
+The activity of a live replay (Plan 11f C-17, ruling C17-1): the engine's raw metabolic rate and the server's exercise
+flag are exogenous inputs, and the mod's bill (body.met) a graded output. When the ring's rows carry the harness's
+`rate` and `exe` fields (3daaca9), mode live takes the activity from them (ring_activity_events: an activity event
+{s, raw, exercising} before each row's drain where either changed), and an activity event in the log that names rate,
+raw or exercising is refused; --ring-activity off keeps the log's own. The row is sampled inside EveryOneMinute and the
+drain reads the rate a few ticks later, so the input carries that sub-minute skew; the ring has no moving flag, so the
+stand-in stays still unless the log moves it, and its load factor is the stand-in's (--player inv, maxW).
 
 The ring's own bookkeeping marks each compared row (link_marks): a jump in s or ev, or a dtM above 2.05 (the server's
 tick granularity alternates dtM 0.8 and 1.6 at speed 5 and 0.94-1.11 at speed 1; ruling S0-1), is a gap (the replay
@@ -318,9 +328,10 @@ getGameTime = function()
              getHour = function(s) return math.floor(tod) end,
              getMinutes = function(s) return math.floor((tod - math.floor(tod)) * 60) end }
 end
--- the replay's own control of a decorated stand-in: asleep, moving, a Fitness exercise, the engine MET
+-- the replay's own control of a decorated stand-in: asleep, moving, a Fitness exercise, the engine MET (rate, before
+-- the load factor; raw, when set, the rate answered as is: a ring row's raw engine rate)
 function NR_R.adopt(p, name, rate, inv, maxW)
-    local u = { asleep = false, rate = rate, moving = false, exercising = false }
+    local u = { asleep = false, rate = rate, moving = false, exercising = false, raw = nil }
     NR_R.u[name] = u
     p.isAsleep = function(s) return u.asleep end
     p.isPlayerMoving = function(s) return u.moving end
@@ -328,7 +339,10 @@ function NR_R.adopt(p, name, rate, inv, maxW)
     p.getFitness = function(s) return fitness end
     local th = p:getBodyDamage():getThermoregulator()
     local f = math.min(math.max(inv / maxW, 0), 1)
-    th.getMetabolicRate = function(s) return u.rate * (1 + 0.35 * f * f) end
+    th.getMetabolicRate = function(s)
+        if u.raw ~= nil then return u.raw end
+        return u.rate * (1 + 0.35 * f * f)
+    end
     return u
 end
 function NR_R.record(user)
@@ -711,6 +725,8 @@ class ServerReplay(_Backend):
         u = self.R.u[self.user]
         if "rate" in ev:
             u.rate = float(ev["rate"])
+        if "raw" in ev:
+            u.raw = None if ev["raw"] is None else float(ev["raw"])
         if "moving" in ev:
             u.moving = bool(ev["moving"])
         if "exercising" in ev:
@@ -1097,9 +1113,45 @@ def detect_autodrinks(ring_rows, events, min_g=AUTODRINK_MIN_G, window=AUTODRINK
     return out
 
 
+RING_ACTIVITY_KEYS = ("rate", "raw", "exercising")
+
+
+def ring_activity_events(rows):
+    """The live activity read off the ring's exogenous fields (Plan 11f C-17): for each row, in order, that carries the
+    harness's raw engine `rate` or exercise flag `exe` and is not offline, an event {s, kind activity, raw, exercising}
+    due before that row's drain, emitted where either value changed since the last event (a row missing a field keeps
+    the last value). Never reads body.met or any other output the mod writes."""
+    out = []
+    last_raw, last_exe = None, None
+    for r in rows:
+        if offline_row(r) or r.get("s") is None:
+            continue
+        raw = r.get("rate")
+        exe = r.get("exe")
+        if raw is None and exe is None:
+            continue
+        raw = last_raw if raw is None else float(raw)
+        exe = last_exe if exe is None else bool(exe)
+        if out and raw == last_raw and exe == last_exe:
+            continue
+        ev = {"s": r["s"], "kind": "activity", "label": "ring-activity"}
+        if raw is not None:
+            ev["raw"] = raw
+        if exe is not None:
+            ev["exercising"] = exe
+        out.append(ev)
+        last_raw, last_exe = raw, exe
+    return out
+
+
+def ring_carries_activity(rows):
+    """Whether any ring row carries the harness's raw `rate` or exercise flag `exe` (3daaca9)."""
+    return any(r.get("rate") is not None or r.get("exe") is not None for r in rows)
+
+
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
                 hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
-                sleep_allowed=None, detect_autodrink=False):
+                sleep_allowed=None, detect_autodrink=False, ring_activity=None):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1116,7 +1168,11 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
     `sleep_allowed` (or `sleepAllowed` in the start document) is REQUIRED: the live server SleepAllowed and
     SleepNeeded, which the host cannot read (F-T4-1). `detect_autodrink` (opt-in) injects the unlogged liquid-lane
-    rises of detect_autodrinks as drink events, named on backend.injected."""
+    rises of detect_autodrinks as drink events, named on backend.injected.
+
+    `ring_activity` (None: on when the ring carries the harness's `rate` or `exe`): the activity comes from the ring's
+    exogenous fields (ring_activity_events, named on backend.ring_activity), and an activity event in `events` that
+    names rate, raw or exercising is refused (the inputs would come from two places). False keeps the log's own."""
     rows = [r for r in ring_rows if r.get("age") is not None]
     if isinstance(start, dict) and "sleepAllowed" in start:
         start = dict(start)
@@ -1138,6 +1194,14 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
                       stats=start_stats, sleep_allowed=sleep_allowed)
     sr.injected = injected
+    if ring_activity is None:
+        ring_activity = ring_carries_activity(rows)
+    sr.ring_activity = []
+    if ring_activity:
+        for e in events or []:
+            if e.get("kind") == "activity" and any(k in e for k in RING_ACTIVITY_KEYS):
+                raise ValueError("an activity event naming %s while the activity comes from the ring's rate and exe: "
+                                 "%r (pass ring_activity=False to keep the log's)" % (", ".join(RING_ACTIVITY_KEYS), e))
     sa = sr.start_age()
     use = [r for r in rows if sa is None or r["age"] > sa + 1e-9]
     if not use:
@@ -1153,6 +1217,9 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
                              "at %r: key it by age" % (e["s"], read))
         early = ("age" in e and read is not None and e["age"] <= read + 1e-12) or ("s" in e and e["s"] < use[0]["s"])
         (sr.dropped if early else keep).append(e)       # an event at or before the read is in the record already
+    if ring_activity:
+        sr.ring_activity = ring_activity_events(use)
+        keep = keep + sr.ring_activity
     marks = link_marks(use)
     offline = [k for k, r in enumerate(use) if offline_row(r)]
     out = run(sr, [r["age"] for r in use], keep, paths, start_age=sa, seqs=[r["s"] for r in use],
@@ -1317,6 +1384,9 @@ def main(argv=None):
             p.add_argument("--sleep-allowed", type=parse_bool,
                            help="REQUIRED (or sleepAllowed in the start document): the live server SleepAllowed and "
                                 "SleepNeeded, true|false; false freezes the sleep state as live did")
+            p.add_argument("--ring-activity", choices=("auto", "on", "off"), default="auto",
+                           help="the activity from the ring's raw engine rate and exercise flag (auto: when the ring "
+                                "carries them; Plan 11f C-17)")
             p.add_argument("--detect-autodrink", action="store_true",
                            help="opt in: inject each unlogged liquid-lane rise in the ring as a drink event of its "
                                 "water mass (the engine auto-drink, F-T4-2); named under `injected`")
@@ -1339,7 +1409,8 @@ def main(argv=None):
         out, be = replay_live(rows, events, start, paths=paths, user=a.user, player=player, steps=a.steps,
                               hour_offset=a.hour_offset, hold_hour=a.hold_hour, start_read_age=a.start_read_age,
                               start_stats=_read_json(a.start_stats), sleep_allowed=a.sleep_allowed,
-                              detect_autodrink=a.detect_autodrink)
+                              detect_autodrink=a.detect_autodrink,
+                              ring_activity={"auto": None, "on": True, "off": False}[a.ring_activity])
         d = diff(out, rows)
         offset = be.R.offset
     else:

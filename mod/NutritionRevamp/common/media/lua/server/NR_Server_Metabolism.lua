@@ -9,9 +9,9 @@
 -- trailing-24 h total deficit is large against the trailing-24 h expenditure.
 --
 -- The activity read (ruling T5-2, run x141a-20261005-111005): the server's thermoregulator TARGET reads
--- -1 at every tick, so it is never read; the RATE classifies but lags activity by tens of seconds and
--- already carries the engine's load factor, which is divided out (ruling 6) before the bucketing.
--- isAsleep wins over the rate. A missing or non-finite rate reads the Default class and counts a bad
+-- -1 at every tick, so it is never read; the RATE classifies but lags activity (a first-order lag, Plan 11f C-17) and
+-- already carries the engine's load factor, which is divided out (ruling 6) before the bucketing; the bill then reads the
+-- exercise flag and the rate's fall beside it (MET.readBilled, K.energy.billClass). isAsleep wins. A missing or non-finite rate reads the Default class and counts a bad
 -- read. The current timed action is unreadable server-side (getCharacterActions is empty there, X38),
 -- so the calorie modifier is always 1 and getCharacterActions is never called.
 --
@@ -31,8 +31,8 @@ NR.server.metabolism = {
     lastError = nil,
     wired = false,
     limitations = {
-        "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity by tens of seconds; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
-        "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, never Fitness",
+        "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity (a first-order lag fixed in real seconds, so its game-time length scales with the day length), and only a Fitness exercise bills its class from the first minute, from the server's exercise flag; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
+        "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, and Fitness only from the exercise flag",
         "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading; the catch-up stamps every close with the catch-up minute's age, so the first blend after an offline gap counts yesterday in full",
         "the disuse arm needs a leg fracture or splint",
         "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; the pipeline's ORDER runs the nutrients step after this one)",
@@ -68,7 +68,7 @@ MET.BUILD_TRAITS = {
 -- window (Plan 11d Task 9c) takes values this minute only in its age and its current hour's slot, so those are guarded.
 MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
               "inDayClosed", "dayIndex", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
-              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp" }
+              "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp", "epoc" }
 MET.GUARD_RINGS = { "eb7", "p7", "mass7" }
 MET.GUARD_TRAIL = { "at" }
 MET.TRAIL_SLOT = { 1 }
@@ -232,7 +232,7 @@ function MET.readActivity(player, ageH)
         hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
     end
     return className, moving, 1, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised, hourOfDay,
-        maxW, heatLevel, climbClass
+        maxW, heatLevel, climbClass, okR and finite(rate) and rate or nil
 end
 
 -- One day close: the disuse day count (before the partition, so the first immobilised day runs with
@@ -381,7 +381,7 @@ local function step(username, player, record, ctx)
         K.energy.intake(body, handoff, dtM)
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass = MET.readActivity(player, ageH)
+        hourOfDay, maxW, heatLevel, climbClass, rateClass = MET.readBilled(username, player, ageH)
     local met = K.energy.activityMet(className, moving, modifier, loadKg)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
@@ -392,9 +392,9 @@ local function step(username, player, record, ctx)
     end
     if finite(coldMult) then body.coldMult = coldMult else body.coldMult = 1 end
     local ex0 = body.exKcalDay
-    K.energy.minute(body, met, not moving, coldMult, dtM)
+    MET.spend(username, body, met, not moving, coldMult, dtM, exercising)   -- the minute's bill and the after-burn pool
     sat.L = K.energy.exerciseLag(sat.L, body.exKcalDay - ex0, dtM / 60)   -- the minute's exercise kcal (spec § 5c)
-    K.training.sample(body, K.energy.CLASS_MET[className], heavyLevel, w, exercising, swiping, dtM)
+    K.training.sample(body, K.energy.CLASS_MET[rateClass], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     if maxW > 0 then K.training.loadMinute(body, loadKg, maxW, dtM) end
     K.training.actionMinute(body, modifier, moving, dtM)
@@ -498,3 +498,45 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.onFirstSight end
     end)
 end
+
+-- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise billed by the activity. Appended so no line
+-- above moves. readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
+-- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the load-stripped
+-- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along last, for the
+-- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
+-- minute's stripped rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
+-- no fall. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
+-- tick after the clear can still read the rate's last rise.
+MET.prevRate = {}
+MET.prevExe = {}
+
+function MET.readBilled(username, player, ageH)
+    local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
+        hourOfDay, maxW, heatLevel, climbClass, rate = MET.readActivity(player, ageH)
+    local stripped = nil
+    if rate ~= nil then stripped = K.energy.stripLoad(rate, loadKg, maxW) end
+    local falling = K.energy.rateFalling(MET.prevRate[username], stripped)
+    if MET.prevExe[username] == true and not exercising then falling = true end
+    MET.prevRate[username] = stripped
+    MET.prevExe[username] = exercising
+    local billClass = K.energy.billClass(className, exercising, moving, falling)
+    return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
+        hourOfDay, maxW, heatLevel, climbClass, className
+end
+
+-- The minute's expenditure (K.energy.minute) and the after-burn pool (K.energy.epoc), fed by the minute's exercise
+-- kcal while the flag is set. The pool's release is expenditure, never exercise kcal: the lag L the caller steps on
+-- exKcalDay's rise does not see it. A pool the kernel healed counts in MET.guarded.
+function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
+    local ex0 = body.exKcalDay
+    K.energy.minute(body, met, resting, coldMult, dtM)
+    local _, healed = K.energy.epoc(body, exercising, body.exKcalDay - ex0, dtM)
+    if healed then
+        MET.guarded = MET.guarded + 1
+        NR.log.say(2, "metabolism: non-finite or negative body.epoc for " .. tostring(username) .. "; stamped 0")
+    end
+end
+
+MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills the Fitness class (6.0) while the server's exercise flag is set, whatever the exercise; walking, chopping and fighting keep the metabolic rate's rise lag"
+MET.limitations[#MET.limitations + 1] = "a minute whose metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall"
+MET.limitations[#MET.limitations + 1] = "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length"

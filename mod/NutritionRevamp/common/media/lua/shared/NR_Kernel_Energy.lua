@@ -328,3 +328,91 @@ K.energy.EX_LAG_GAIN = 0.7 -- game choice, Plan 11d (ruling 11d-4): the plateau 
 -- balance term reaches its 0.5 cap (a surplus of the span reaches -0.5). Fitted jointly with K.hybrid.DEFICIT_FLOOR
 -- on the server-path replays (refit in Plan 11f Task 2c and its fix round 1). Appended so no line above moves.
 K.energy.BALANCE_SPAN_KCAL = 3100 -- game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search), from Plan 11f Task 2c's 3300, Plan 11d's 7500 (ruling 9c-1) and Plan 3 ruling 14's 1500 (S1271 open: no row gives a hunger rise per kcal of deficit): fitted with K.hybrid.DEFICIT_FLOOR 0.02 and K.energy.EX_BYPASS_LO 0.282 and EX_BYPASS_HI 0.575 on the server-path replays at the point with the best worst-case smallest margin over twin K's plausible alternatives (0.283 of a half-width at LO 0.282, set from the search's 0.28 for S1318's 0.2814; the search's 0.286 at 0.28 sat within the 0.02 tie that prefers a floor above 0 and then the nearest the shipped constants): Karl 2021 as the paper ran it reads DEF +30.2 % against S1325's +26 % and BAL -45.1 % against -55 % (each within 1.5x), the 36 h fast's next-day intake 1.196 against S1613's 1.20 (Johnstone 2002, within 1.1x) and day 3 0.969 against S1614's 1.0 (Clayton 2016), King 2011 at steady state within 0.92 mm of control (S1312), six meals against three 0.981 (S1608, within 0.9-1.3; the band that binds as built, 0.40), the steady eater at balance; S1255 (CALERIE 2: < 10 mm at a 25 % deficit) reads 6.7 mm, reproduced
+
+-- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise is billed by the activity, not by the engine's
+-- lagged metabolic rate. The engine moves its rate toward the activity's target as an asymmetric first-order lag (0.001
+-- of the gap per update rising, 0.0004 falling, times GameTime's multiplier: Thermoregulator.updateMetabolicRate), so a
+-- rate read alone under-bills a bout's rise and bills its slow fall as exercise: about 450 kcal after a 1 h Fitness set at
+-- DayLength 1, where the after-burn is tens of kcal (S1775, S1777, S1779). billClass names the class a minute bills:
+-- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
+-- exercise minute; while the load-stripped rate falls (rateFalling) with no exercise and no movement, the idle class
+-- (Default, COMPENDIUM 1.3) for any class billing above it; otherwise the rate's own class. Every other activity keeps the
+-- engine's lag: a walk, a chop or a fight still under-bills its rise, and a moving minute keeps the falling rate's class.
+-- The cost of the flag: getCurrentExe cannot say which exercise, so every Fitness set bills 6.0 (candidate C-2 stays open
+-- for graded intensity), and 6.0 is COMPENDIUM.HeavyWork, so every set minute is vigorous for the writer's acute hunger
+-- term (W.vigorous, resistance kind). Appended so no line above moves.
+K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the load-stripped rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
+
+-- Whether the load-stripped rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
+function K.energy.rateFalling(prev, rate)
+    if prev == nil or rate == nil then
+        return false
+    end
+    if prev - prev ~= 0 or rate - rate ~= 0 then
+        return false
+    end
+    return rate < prev - K.energy.FALL_EPS
+end
+
+-- The class a minute bills: rateClass is the rate's classOf (or Sleeping, which wins); exercising the server's
+-- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute.
+function K.energy.billClass(rateClass, exercising, moving, falling)
+    if rateClass == "Sleeping" then
+        return rateClass
+    end
+    if exercising then
+        return "Fitness"
+    end
+    if falling and not moving then
+        local bill = K.energy.COMPENDIUM[rateClass] or K.energy.COMPENDIUM.Default
+        if bill > K.energy.COMPENDIUM.Default then
+            return "Default"
+        end
+    end
+    return rateClass
+end
+
+-- The after-burn pool (EPOC, excess post-exercise oxygen consumption): body.epoc, kcal, created lazily by the first
+-- exercise minute (a character who never exercises never carries it). Each minute with the exercise flag set adds
+-- EPOC_F of its exercise kcal (the MET above the idle class times mass, exKcalDay's quantity); the pool releases with
+-- the game-time constant EPOC_TAU_H, and the release is billed as expenditure (eeDay, ebDay and the window's ee), never
+-- as exercise kcal: it does not enter exKcalDay, the window's ex or the exercise lag L. The decision: EPOC is a raised
+-- resting metabolism after the bout (S1774, S1775), not the exercise the appetite lag compensates (S1318 counts the
+-- exercise sessions' expenditure), so it enters the energy state at once, as resting expenditure does. Only the flag's
+-- minutes feed it: the other activities keep the engine's lagged rate, whose own fall bills their tail.
+K.energy.EPOC_F = 0.10 -- game choice (Plan 11f C-17): the fraction f of the minute's net exercise kcal the pool takes. It lies inside S1775's 6-15 %, below S1777's 15.2 %, above S1779's trained mean of 4.8 % and below S1783's vigorous 37 %. The rows' denominators differ (S1779's net total O2 cost includes the EPOC, S1777's total exercise O2 is not called net or gross, and S1783's is net exercise kcal), so the comparison is approximate
+K.energy.EPOC_TAU_H = 0.5 -- game choice (Plan 11f C-17): the release time constant, game hours, with no fitted constant behind it (S1798 stays open); it releases about 86 % of a pool within 1 h and about 98 % within 2 h. The rows bound it only loosely: expenditure is at or below baseline by 31-60 min after calisthenics (S1796), and oxygen uptake stays raised for 30-60 min after HIFT (S1797); after resistance work it returns to control in the last 30 min of 2 h (S1790) and is still above control at 105-120 min after heavy sets (S1791); after long or vigorous aerobic work it stays raised for 12-14 h (S1777, S1783). The constant therefore fits the bodyweight rows and front-loads the release after resistance and hard aerobic work
+
+-- One pool step of dtM game minutes: the minute's exercise kcal exKcal (a negative or non-finite one reads none) feeds
+-- the pool when exercising; an existing pool then releases (1 - exp(-dtM / (60 EPOC_TAU_H))) of itself into the body's
+-- expenditure. A pool that is non-finite or negative is stamped 0 first. Returns the kcal released and whether the pool
+-- was healed; with no pool and no exercise it returns 0, false and lays nothing.
+function K.energy.epoc(body, exercising, exKcal, dtM)
+    local pool = body.epoc
+    local healed = false
+    if pool ~= nil and (pool - pool ~= 0 or pool < 0) then
+        pool = 0
+        healed = true
+    end
+    if exKcal - exKcal ~= 0 or exKcal < 0 then
+        exKcal = 0
+    end
+    if exercising and exKcal > 0 then
+        if pool == nil then
+            pool = 0
+        end
+        pool = pool + K.energy.EPOC_F * exKcal
+    end
+    if pool == nil then
+        return 0, healed
+    end
+    local rel = 0
+    if dtM > 0 then
+        rel = pool * (1 - math.exp(-dtM / (60 * K.energy.EPOC_TAU_H)))
+    end
+    body.epoc = pool - rel
+    body.eeDay = body.eeDay + rel
+    body.ebDay = body.inDay - body.eeDay
+    K.body.trailAdd(body.trail, "ee", rel)
+    return rel, healed
+end

@@ -68,7 +68,8 @@ CROSS = (
         ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
         ("store", ("fm", "lm", "lastAgeH", "dayIndex", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
-                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp")),
+                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp",
+                   "epoc")),       # epoc: the after-burn pool (Plan 11f C-17), saved; Metabolism's own next minute heals it too
     ])
     + _rows("metabolism", "body.eb7", [("store", (7,))])
     + _rows("metabolism", "body.p7", [("effects", (7,)), ("store", (7,))])

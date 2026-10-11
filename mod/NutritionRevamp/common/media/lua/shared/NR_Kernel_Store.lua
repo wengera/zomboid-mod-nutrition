@@ -69,7 +69,7 @@ K.store.INPUTS = {
     "body.trail.lip.*",
     -- body, adaptation (K.aerobic.tacDay steps tac from its last value at each close; K.energy.atStep steps
     -- at): both are multi-day accumulators, never recomputed from the masses
-    "body.tac", "body.at",
+    "body.tac", "body.at", "body.epoc", -- epoc: the after-burn pool (K.energy.epoc, Plan 11f C-17), laid by the first exercise minute
     -- body, training (K.training.sample, event, decay and closeDay): the decaying volumes and the day's
     -- MET-minutes and band minutes
     "body.vStr", "body.vHyp", "body.vStrHigh", "body.metMinDay", "body.band1Day", "body.band2Day",

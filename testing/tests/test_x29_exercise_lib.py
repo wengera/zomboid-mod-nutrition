@@ -22,14 +22,23 @@ PATHS = ("satiety.S", "satiety.L", "satiety.t", "body.met", "body.metMinDay", "b
 # and JumpFence too; HeavyWork exercising (resistance) and not (aerobic); FitnessHeavy; Running10kmh; idle
 TRUTH = [(10, 3.2, False), (14, 3.0, False), (18, 3.9, True), (22, 4.0, True), (26, 6.0, True), (34, 9.0, True),
          (40, 6.0, False), (44, 6.9, False), (48, 1.5, False), (70, 5.5, True), (75, 1.5, False)]
+# Plan 11f C-17: the build bills a flagged minute at Fitness (6.0) whatever the rate, and a standing minute whose rate fell
+# at the idle class, so body.met no longer names the rate on those minutes and the lib's inversion (written for the
+# x291-x296 build) cannot read TRUTH back; new runs take the activity from the ring's raw rate and exe (replay_live's
+# ring_activity_events). The inversion still holds where the bill is the rate's class: rises, falls to idle, and a flag
+# only at the 6.0 rate, which TRUTH_C17 keeps (LightWork and DefaultExercise both bill 3.0, MediumWork 4.0 and
+# JumpFence too, HeavyWork exercising, Running10kmh, idle)
+TRUTH_C17 = [(10, 3.0, False), (14, 3.2, False), (18, 3.9, False), (22, 4.0, False), (26, 6.0, True), (40, 1.5, False),
+             (44, 6.9, False), (48, 1.5, False), (70, 6.0, True), (75, 1.5, False)]
 
 
 def arm(events, minutes=150):
     return RL.replay_arm(events, minutes=minutes, start_age=10.0, paths=PATHS, backend="server", sleep_allowed=False)[0]
 
 
-def truth_events():
-    return [{"minute": m, "kind": "activity", "rate": r, "exercising": x, "moving": False} for m, r, x in TRUTH]
+def truth_events(truth=None):
+    return [{"minute": m, "kind": "activity", "rate": r, "exercising": x, "moving": False}
+            for m, r, x in (TRUTH_C17 if truth is None else truth)]
 
 
 def test_the_activity_read_off_the_ring_reproduces_it():
@@ -44,9 +53,15 @@ def test_the_activity_read_off_the_ring_reproduces_it():
         for p in PATHS:
             assert a.get(p) == b.get(p), (a["s"], p, a.get(p), b.get(p))
     got = {e["s"]: (e["rate"], e["class"]) for e in ev}
-    assert got[10] == (3.2, "LightWork") and got[14] == (3.0, "DefaultExercise")
+    assert got[10] == (3.0, "DefaultExercise") and got[14] == (3.2, "LightWork")
     assert got[18] == (3.9, "MediumWork") and got[22] == (4.0, "JumpFence")
     assert max(r["satiety.S"] for r in rows) > 0.05                   # the vigorous minutes moved the acute state
+    # the x29 build's TRUTH (a flag at 3.9-9.0, standing falls between classes) no longer reads back (C-17)
+    old = arm(truth_events(TRUTH))
+    ev_old, _ = L.activity_events(old)
+    back_old = arm([{"minute": e["s"], "kind": "activity", "rate": e["rate"], "exercising": e["exercising"],
+                     "moving": False} for e in ev_old])
+    assert any(a.get(p) != b.get(p) for a, b in zip(old, back_old) for p in PATHS)
 
 
 def test_rate_for_prefers_the_idle_class_among_the_unbilled():
@@ -124,8 +139,8 @@ def test_the_activity_round_trip_in_the_rings_own_phase():
     t0 = start["rec"]["satiety"]["t"]
     paths = list(L.RING_RECORD)
     clock = [{"s": i + 1, "age": t0 + (i + 1) / 60.0, "dtM": 1.0, "on": True} for i in range(200)]
-    truth = [(20, 3.2, False), (25, 3.0, False), (30, 6.0, True), (45, 9.0, True), (55, 6.9, False), (60, 1.5, False),
-             (100, 6.0, False), (110, 1.5, False)]
+    truth = [(20, 3.0, False), (25, 3.2, False), (30, 6.0, True), (45, 1.5, False), (55, 6.9, False), (60, 1.5, False),
+             (100, 6.0, False), (110, 1.5, False)]           # C-17: rises, falls to idle, a flag only at 6.0 (TRUTH_C17)
     ev = [{"s": s, "kind": "activity", "rate": r, "exercising": x, "moving": False} for s, r, x in truth]
     ev.append({"s": 150, "kind": "setpath", "path": "satiety.S", "value": 1.0})
     out, _ = RL.replay_live(clock, ev, start, paths=paths, sleep_allowed=False)
