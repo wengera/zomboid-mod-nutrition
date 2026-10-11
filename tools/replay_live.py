@@ -35,6 +35,9 @@ step m, at its start). Kinds:
            (the driver's before/after read) or from lastIntake.frac, never from satiety.P; the replay derives
            nothing from P
   drink    {fluid, litres} or {vec}: the liquid lane
+  autodrop {g}: g grams of water added to the record's fluids.autoDrop before the drain, which the mod's own Nutrients
+           step lands after Kinetics (the writer's sip; a `drink` event would land it one drain early, F-T9-4). The row
+           before it is `between`, as for any event: the live ring row already shows the autoDrop the replay's lacks
   meal     {size: "maint" | "request" | kcal, comp: {p, c, f}, food, sate}: an energy-oracle meal; "request" eats
            650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
            ruling 11c-31; research section 3.7 form 1), es the state the last drain left and hour the event's
@@ -688,6 +691,21 @@ class ServerReplay(_Backend):
         else:
             vec = self.R.drink(self.user, ev["fluid"], float(ev["litres"]))
         self._log(at, "drink", ev.get("fluid"), vec, b0)
+
+    def ev_autodrop(self, ev, at):
+        """The writer's auto-drink sip as the mod lands it: `g` grams of water ADDED to the record's fluids.autoDrop
+        (in thirst units, g / (LITRES_PER_THIRST x 1000)), so the Nutrients step of the drain that follows lands it
+        as liquid after Kinetics has emptied the stomach (NR_Server_Nutrients.lua:423-433). It books nothing a
+        drink does (no IN.land, no landed guard, no eats log row)."""
+        g = ev.get("g")
+        if isinstance(g, bool) or not isinstance(g, (int, float)) or not g >= 0:
+            raise ValueError("autodrop needs g, a water mass in grams >= 0: %r" % (ev,))
+        self._set_age(at)
+        f = self.record()["fluids"]
+        if f is None:
+            raise ValueError("autodrop: the record has no fluids table")
+        per = self.NR.server.nutrients.LITRES_PER_THIRST * 1000.0
+        f["autoDrop"] = (f["autoDrop"] or 0.0) + float(g) / per
 
     def maint(self):
         if self.maint_kcal is None:
