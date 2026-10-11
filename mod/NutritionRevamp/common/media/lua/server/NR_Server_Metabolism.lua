@@ -501,7 +501,7 @@ end
 
 -- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise billed by the activity. Appended so no line
 -- above moves. readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
--- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the load-stripped
+-- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the raw engine
 -- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along last, for the
 -- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
 -- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
