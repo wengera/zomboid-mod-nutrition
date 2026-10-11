@@ -335,7 +335,7 @@ K.energy.BALANCE_SPAN_KCAL = 3100 -- game choice, refit on the shipped pipeline 
 -- rate read alone under-bills a bout's rise and bills its slow fall as exercise: about 450 kcal after a 1 h Fitness set at
 -- DayLength 1, where the after-burn is tens of kcal (S1775, S1777, S1779). billClass names the class a minute bills:
 -- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
--- exercise minute; while the raw engine rate falls (Plan 11f C-26: raw against raw) (rateFalling) with no exercise and no movement, the idle class
+-- exercise minute; while the raw engine rate falls (rateFalling, raw against raw, Plan 11f C-26) with no exercise and no movement, the idle class
 -- (Default, COMPENDIUM 1.3) for any class billing above it; otherwise the rate's own class. Every other activity keeps the
 -- engine's lag: a walk, a chop or a fight still under-bills its rise, and a moving fall bills at most Walking5kmh.
 -- The cost of the flag: getCurrentExe cannot say which exercise, so every Fitness set bills 6.0 (candidate C-2 stays open
