@@ -169,6 +169,21 @@ def test_an_auto_drink_sip_is_folded_and_handed_to_the_pool():
     assert h.NR.server.writer.stats.sips == 1
 
 
+def test_float_noise_thirst_drop_is_not_a_sip():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    step(h, p, rec, 1)                                     # writes THIRST 0.3
+    p.st.v.THIRST = 0.3 - 1e-10                            # float noise seen live (x281-x284)
+    step(h, p, rec, 2)
+    assert rec.fluids.autoDrop == 0
+    assert h.NR.server.writer.stats.sips == 0
+    p.st.v.THIRST = p.st.sets.THIRST - 0.1                 # a real drink
+    step(h, p, rec, 3)
+    assert rec.fluids.autoDrop == pytest.approx(0.1)
+    assert h.NR.server.writer.stats.sips == 1
+
+
 def test_a_landed_intake_is_never_counted_as_a_sip():
     h = boot()
     p = player(h)

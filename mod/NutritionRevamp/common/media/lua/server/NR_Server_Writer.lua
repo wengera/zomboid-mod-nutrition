@@ -40,7 +40,7 @@ W.BED = { badBed = 0.9, badBedPillow = 0.95, averageBedPillow = 1.05, goodBed = 
 W.c = K.hybrid.defaults()
 W.input = K.hybrid.input()
 W.output = K.hybrid.output()
-
+W.SIP_EPS = 1e-6 -- game choice: far below a real drink (~0.1 of THIRST) and far above float noise (~1e-10 seen live, x281-x284); out.sip is in THIRST units (0..1)
 -- The rates the server ran before the zeroing (nil when unread), else the live table's value.
 function NR.vanillaRate(key)
     if W.saved ~= nil and W.saved[key] ~= nil then return W.saved[key] end
@@ -287,7 +287,7 @@ function W.step(username, player, record, ctx)
     set(h, CS.HUNGER, out.hunger)
     set(h, CS.THIRST, out.thirst)
     h.lastThirst = out.thirst
-    if out.sip > 0 and fl ~= nil then
+    if out.sip > W.SIP_EPS and fl ~= nil then
         fl.autoDrop = (fl.autoDrop or 0) + out.sip      -- landed as water at the next minute (ruling 7)
         W.stats.sips = W.stats.sips + 1
     end
