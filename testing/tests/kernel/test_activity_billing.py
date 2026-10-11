@@ -205,8 +205,10 @@ def test_the_first_minute_after_a_boot_reads_no_fall(met_host):
     assert record["body"]["met"] == 3.0
 
 
-def test_the_fall_reads_the_load_stripped_rate(met_host):
-    # a carried load that drops between minutes lowers the raw rate, not the stripped one: no fall
+def test_the_fall_reads_the_raw_rate_so_a_load_drop_at_a_steady_class_bills_one_idle_minute(met_host):
+    # Plan 11f ruling C26-1: both minutes compare on the raw engine rate. A carried load that drops between minutes
+    # lowers the raw rate while the stripped one holds; the raw fall reads as a fall (the accepted cost: one idle
+    # minute for a still player at a sustained class who drops weight)
     h = met_host
     _reset(h)
     loaded = 3.1 * (1 + 0.35 * 0.5 * 0.5)
@@ -215,6 +217,8 @@ def test_the_fall_reads_the_load_stripped_rate(met_host):
     p.cfg.rate = 3.1
     p.cfg.carried = 0.0
     minute(h, p, record, 100.0 + 1 / 60)
+    assert record["body"]["met"] == 1.3
+    minute(h, p, record, 100.0 + 2 / 60)                  # steady at 3.1: the class again
     assert record["body"]["met"] == 3.8
 
 
@@ -505,18 +509,44 @@ def test_a_set_ended_by_walking_away_bills_walking_at_most_while_the_rate_falls(
     assert record["body"]["met"] == 3.8
 
 
-def test_a_fall_under_a_constant_load_is_a_fall_of_the_stripped_rate(met_host):
-    # the carried load is constant; the raw rate falls with the stripped one but stays above the held stripped
-    # rate (4.13 over 4.0): a comparison of the raw rate against the held stripped one reads no fall
+def test_a_fall_under_a_constant_load_is_a_fall_of_the_raw_rate(met_host):
+    # the carried load is constant; the raw rate falls (4.0 f to 3.8 f), the stripped one with it: a fall on either basis
     h = met_host
     _reset(h)
     f = 1 + 0.35 * 0.5 * 0.5
     p = player(h, rate=4.0 * f, carried=10.0, maxW=20, moving=False)
     record = fresh(h, p)
     p.cfg.rate = 3.8 * f
-    assert 3.8 * f > 4.0
     minute(h, p, record, 100.0 + 1 / 60)
     assert record["body"]["met"] == 1.3
+
+
+def test_a_post_set_fall_with_a_load_drop_mid_fall_bills_idle_on_every_still_minute(met_host):
+    # Plan 11f ruling C26-1 (F-T6r-3): the engine's raw rate lags toward base x load factor; an eat drops the
+    # inventory load (lf 1.0875 to 1.0) at once while the raw rate still carries the old load. The stripped rate
+    # (raw / new lf) then rises over the previous minute's although the raw rate fell: a stripped comparison missed it
+    h = met_host
+    _reset(h)
+    lf_loaded = 1 + 0.35 * 0.5 * 0.5
+    p = player(h, rate=6.0 * lf_loaded, carried=10.0, maxW=20, exe="squats", moving=False)
+    record = fresh(h, p)
+    p.cfg.exe = None
+    raw = 6.0 * lf_loaded
+    prev_stripped = None
+    misses = 0
+    for m in range(1, 15):
+        lf = lf_loaded if m < 8 else 1.0                  # the eat at minute 8 drops the load
+        if m == 8:
+            p.cfg.carried = 0.0
+        raw += (1.5 * lf - raw) * 0.12                    # the lag toward base x lf
+        p.cfg.rate = raw
+        stripped = raw / lf
+        if prev_stripped is not None and stripped >= prev_stripped:
+            misses += 1                                   # a stripped comparison reads no fall here
+        prev_stripped = stripped
+        minute(h, p, record, 100.0 + m / 60)
+        assert record["body"]["met"] == 1.3, (m, raw)
+    assert misses >= 1                                    # the scenario really does lift the stripped rate
 
 
 def test_a_departure_and_a_first_sight_clear_the_held_rate_and_flag(met_host):
@@ -595,3 +625,18 @@ def test_a_logged_drink_still_marks_its_next_row_between_beside_the_rings(ring_l
     ev = [{"s": rows[10]["s"], "kind": "drink", "fluid": "Water", "litres": 0.3}]
     out, _ = RL.replay_live(rows, ev, slot, ring_paths=paths, sleep_allowed=True)
     assert sum(r["between"] for r in out) == 1
+
+
+def test_the_replay_holds_the_rings_raw_rate_for_the_fall_gate_under_a_load():
+    # Plan 11f ruling C26-1: the stand-in answers the ring's raw rate as is and the mod holds that raw value, never
+    # the rate with the stand-in's load factor divided out (inv 10 of maxW 20: 1.0875)
+    a = RL.ServerReplay(start=None, user="admin", hour_offset=7.0, player={"inv": 10.0, "maxW": 20.0},
+                        stats={"HUNGER": 0.3, "THIRST": 0.2, "FATIGUE": 0.1, "NICOTINE_WITHDRAWAL": 0.0})
+    age = A0
+    u = a.R.u["admin"]
+    for raw in (4.2, 4.1, 4.0):
+        u.raw = raw
+        age += 1 / 60
+        a.step(age)
+        assert a.NR.server.metabolism.prevRate["admin"] == raw
+

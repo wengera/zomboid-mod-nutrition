@@ -504,8 +504,11 @@ end
 -- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the load-stripped
 -- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along last, for the
 -- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
--- minute's stripped rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
--- no fall. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
+-- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
+-- no fall. The fall is decided raw against raw (Plan 11f ruling C26-1, F-T6r-3): the engine's rate lags toward base x
+-- load factor, so an eat or a sip drops the inventory load at once while the raw rate still carries the old load, and
+-- dividing it by the new, smaller factor lifts the stripped rate and hides the fall. The class still comes from the
+-- stripped rate. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
 -- tick after the clear can still read the rate's last rise.
 MET.prevRate = {}
 MET.prevExe = {}
@@ -513,11 +516,9 @@ MET.prevExe = {}
 function MET.readBilled(username, player, ageH)
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
         hourOfDay, maxW, heatLevel, climbClass, rate = MET.readActivity(player, ageH)
-    local stripped = nil
-    if rate ~= nil then stripped = K.energy.stripLoad(rate, loadKg, maxW) end
-    local falling = K.energy.rateFalling(MET.prevRate[username], stripped)
+    local falling = K.energy.rateFalling(MET.prevRate[username], rate)
     if MET.prevExe[username] == true and not exercising then falling = true end
-    MET.prevRate[username] = stripped
+    MET.prevRate[username] = rate
     MET.prevExe[username] = exercising
     local billClass = K.energy.billClass(className, exercising, moving, falling)
     return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
@@ -538,7 +539,7 @@ function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
 end
 
 MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills the Fitness class (6.0) while the server's exercise flag is set, whatever the exercise; walking, chopping and fighting keep the metabolic rate's rise lag"
-MET.limitations[#MET.limitations + 1] = "a minute whose metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads 6.0 on every set minute and 1.3 on every standing fall"
+MET.limitations[#MET.limitations + 1] = "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads 6.0 on every set minute and 1.3 on every standing fall"
 MET.limitations[#MET.limitations + 1] = "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length"
 
 -- Plan 11f C-17 fix 1 (ruling C17-4): the held rate and flag are per user and leave with the player. Appended so no

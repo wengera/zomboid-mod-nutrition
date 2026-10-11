@@ -335,15 +335,15 @@ K.energy.BALANCE_SPAN_KCAL = 3100 -- game choice, refit on the shipped pipeline 
 -- rate read alone under-bills a bout's rise and bills its slow fall as exercise: about 450 kcal after a 1 h Fitness set at
 -- DayLength 1, where the after-burn is tens of kcal (S1775, S1777, S1779). billClass names the class a minute bills:
 -- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
--- exercise minute; while the load-stripped rate falls (rateFalling) with no exercise and no movement, the idle class
+-- exercise minute; while the raw engine rate falls (Plan 11f C-26: raw against raw) (rateFalling) with no exercise and no movement, the idle class
 -- (Default, COMPENDIUM 1.3) for any class billing above it; otherwise the rate's own class. Every other activity keeps the
 -- engine's lag: a walk, a chop or a fight still under-bills its rise, and a moving fall bills at most Walking5kmh.
 -- The cost of the flag: getCurrentExe cannot say which exercise, so every Fitness set bills 6.0 (candidate C-2 stays open
 -- for graded intensity), and 6.0 is COMPENDIUM.HeavyWork, so every set minute is vigorous for the writer's acute hunger
 -- term (W.vigorous, resistance kind). Appended so no line above moves.
-K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the load-stripped rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
+K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the raw engine rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
 
--- Whether the load-stripped rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
+-- Whether the raw engine rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
 function K.energy.rateFalling(prev, rate)
     if prev == nil or rate == nil then
         return false
