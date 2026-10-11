@@ -4298,3 +4298,27 @@ if TK.MR.sampleBase == nil then
         return row
     end
 end
+
+-- ---- minute.ring C-17 fix 1: the movement flag on every row (Plan 11f) ----
+-- One more field on every ring row, a second wrap of TK.MR.sample appended after sampleExtra's (so no line above
+-- moves): moving = player:isPlayerMoving() == true, read the way the mod reads it (NR_Server_Metabolism MET.readActivity
+-- `flag(player, "isPlayerMoving")`), so a replay can tell a set ended by walking away (the exercise flag clears on
+-- movement) from a set ended standing. A boolean; ABSENT from the row when the player or the method is unreachable or
+-- raises, and the row itself still lands.
+function TK.MR.sampleMoving(row, R)
+    local p = TK.MR.player(R.user)
+    if p == nil then return end
+    pcall(function()
+        local ok, mv = TK.call(p, "isPlayerMoving")
+        if ok then row.moving = mv == true end
+    end)
+end
+
+if TK.MR.sampleBaseMoving == nil then
+    TK.MR.sampleBaseMoving = TK.MR.sample
+    function TK.MR.sample(R, gt, age)
+        local row = TK.MR.sampleBaseMoving(R, gt, age)
+        TK.MR.sampleMoving(row, R)
+        return row
+    end
+end

@@ -327,3 +327,39 @@ def test_minute_ring_an_unreachable_or_raising_rate_leaves_the_field_absent_and_
     assert rd.rows == 2 and rd.errors == 0
     assert rows[1].rate is None and rows[1].exe is None and rows[1].HUNGER == 0.25
     assert rows[2].rate is None and rows[2].exe is False and rows[2].HUNGER == 0.25
+
+
+# ---- C-17 fix 1: the movement flag on every row ----------------------------------------------------------------------
+
+def test_minute_ring_rows_carry_the_movement_flag_as_the_mod_reads_it():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start")
+    h.p.isPlayerMoving = lambda s: True
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    h.p.isPlayerMoving = lambda s: False
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    h.p.isPlayerMoving = lambda s: "yes"                          # only true counts, as NR.flag reads it
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    rows = h.TK.results[cmd(h, "minute.ring", "admin", "read").result].rows_list
+    assert rows[1].moving is True and rows[2].moving is False and rows[3].moving is False
+    assert rows[1].HUNGER == 0.25                                  # the earlier fields are untouched
+
+
+def test_minute_ring_an_unreachable_or_raising_movement_leaves_the_field_absent_and_the_row_lands():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()                                                     # the stand-in player has no isPlayerMoving
+    def boom(s):
+        raise RuntimeError("no movement")
+    h.p.isPlayerMoving = boom
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    rd = cmd(h, "minute.ring", "admin", "read")
+    rows = h.TK.results[rd.result].rows_list
+    assert rd.rows == 2 and rd.errors == 0
+    assert rows[1].moving is None and rows[2].moving is None and rows[2].HUNGER == 0.25
+
