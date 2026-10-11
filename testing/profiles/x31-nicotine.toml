@@ -1,0 +1,40 @@
+# testing/profiles/x31-nicotine.toml - Plan 11f Task 8 (runs x311, x312, x313): research row 12, nicotine withdrawal
+# raises hunger (docs/superpowers/research/2026-10-10-live-study-replays/01-harness-facts.md s3.2 and s6), on one live
+# body over a chain of three sessions (each later session copies the previous one's <run>/server and boots it with
+# reuse=True; the first restores the fixture).
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x31-nicotine/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x31-nicotine`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). Sleep stays off (the fixture's false/false), so no drain
+# runs asleep and vanilla's withdrawal rise never pauses for sleep (#3630); the replay takes sleep_allowed false.
+# The drivers are testing/experiments/x311_nicotine.py, x312_nicotine.py and x313_nicotine.py on
+# testing/experiments/x31_nicotine_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x31-nicotine) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, sleep off, build 42.21.0 - the Plan 11f Task 8 nicotine withdrawal (row 12), a chain of three sessions."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x31-nicotine/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1 (6.27 ticks, x222)
