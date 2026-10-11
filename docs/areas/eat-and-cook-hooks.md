@@ -100,7 +100,7 @@ Every post-intake seat also sees the stores after their clamps have discarded an
 A wrapper that calls the original and then acts again takes a third seat, later than the eat hook.
 There the stores are written, the eat hook has run and the item has been consumed or scaled down and synced, all on the server, the only side the wrapper acts on [#0006, #1032/M/n=1].
 It is a post-intake seat like the eat hook, with the same push of lag for anything it writes.
-A mood add made there lands after `Eat`'s own boredom and unhappiness adds [#3655/C/C-only]. The worked example's monotony no longer adds at the eat: its wrapper only books the eat, and its writer holds a mood floor once a game minute instead ([T10.1], [body-effects.md#effects-seats](body-effects.md#effects-seats)).
+A mood add made there lands after `Eat`'s own boredom and unhappiness adds [#3655/C/C-only]. The worked example's monotony no longer adds at the eat: its wrapper only books the eat, and its writer holds a mood floor once a game minute instead ([#3658/C/inference], [body-effects.md#effects-seats](body-effects.md#effects-seats)).
 Where a mod uses both the wrapper and the eat hook, the server runs them in that order and the client runs the eat hook alone [#1033/M/n=1].
 The client's eat-hook call is later still, after the eat packet has replaced the client's store, and it reads the post-intake values the server's arm read [#1034/M/n=1].
 
