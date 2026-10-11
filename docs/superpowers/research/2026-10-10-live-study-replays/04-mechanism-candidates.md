@@ -102,3 +102,9 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Seen (x281–x284):** every auto-drink is twice the 0.1 trigger, 0.2 L, about 13 times a day spread across 24 awake hours.
 - **Candidate:** drink toward the set point in realistic bouts (S1700: about 70 % of a deficit drunk at once; S1703).
 - **Gain:** realistic drinking patterns.
+
+## C-17: the post-exercise billing tail
+- **Seen (x292–x296):** after each bout the server bills 1.6–2.0 MET for about 6.9 h, as the engine's rate decays. A day's exercise kcal is therefore 2.4–3.3× the bout's, and the lag (L) mostly takes in the tail.
+- **Candidate:** bill post-exercise expenditure at its measured size, excess post-exercise oxygen consumption (EPOC), not at the engine's rate decay.
+- **Gain:** accurate expenditure on exercise days, and a lag that reads the exercise itself.
+- **Evidence to harvest:** the magnitude and duration of EPOC by intensity and duration.
