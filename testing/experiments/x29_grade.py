@@ -28,8 +28,10 @@ vigour, its mean ratio over the vigorous span.
 
 lag (x292..x296; row 10): per session the agreement of satiety.L, es and body.trail.c.ex with the replay (0.5 %); per
 bout its billed exercise kcal off the ring (exKcalDay's rise from the bout's start to 15 game minutes past its end);
-L at each day's end and at 15:00 each day; the lag's share lagged(L) / bout kcal (K.energy.lagged: EX_LAG_GAIN x L) at
-each day's end and at 15:00 on day 7 (seven days after day 0's bout), against the day's bout and the mean bout; the
+L at each day's end and at 15:00 each day; the billed exercise kcal per chain day (every MET above the idle 1.3, the
+post-bout tail included: x291 billed 1.9-2.0 for the hour after burpees) and the tail's return to idle; the lag's
+share lagged(L) / bout kcal (K.energy.lagged: EX_LAG_GAIN x L) at each day's end and at 15:00 on day 7 (seven days
+after day 0's bout), against the day's bout, the mean bout and the mean whole day's exercise kcal (days 1-6); the
 server-path oracle's arm (test_replay_live_energy.py lag_run: the 70 kg man, Running15kmh for 53 min at 02:00, meals of
 the idle day plus the bout) read at the same day ends and seven days after its first bout, and the oracles' pins
 (Whybrow over days 3-16 0.2985, day 1 0.0414; E-MECHANIC 0.70 at 24 weeks; King 2011 at steady state 0.92 mm) as
@@ -303,11 +305,40 @@ def bouts(sessions):
     return out
 
 
+def ex_by_day(ring):
+    """The billed exercise kcal per chain day (from 00:00): the sum of exKcalDay's non-negative rises between
+    consecutive ring rows (the mod day's close at 07:00 resets it: that row's rise is lost, named), with the ring's
+    hours that day; and the post-exercise tail: the game hours from each day's last row billing at or above 1.9 MET
+    after 15:00 back to the idle 1.3."""
+    out = {}
+    for p, r in zip(ring, ring[1:]):
+        d = L.day_of(r["age"])
+        x = out.setdefault(d, {"kcal": 0.0, "hours": 0.0, "resets": 0})
+        a, b = L.num(p.get(L.EXK)), L.num(r.get(L.EXK))
+        if a is not None and b is not None:
+            if b >= a:
+                x["kcal"] += b - a
+            else:
+                x["resets"] += 1
+        if L.day_of(p["age"]) == d:
+            x["hours"] += r["age"] - p["age"]
+    for d, x in out.items():
+        x["complete"] = x["hours"] > 23.5
+        rows = [r for r in ring if L.day_of(r["age"]) == d and r["age"] >= L.at(d, 15.0)]
+        hi = [r for r in rows if (L.num(r.get(L.MET)) or 0) >= 1.9 - 1e-9]
+        idle = [r for r in rows if hi and r["age"] > hi[-1]["age"] and (L.num(r.get(L.MET)) or 0) <= 1.3 + 1e-9]
+        x["tail_back_to_idle_age"] = idle[0]["age"] if idle else None
+    return out
+
+
 def lag_series(sessions, bl):
     K = L._kh_static().K
     ring = [r for S in sessions for r in S.ring]
     kc = {b["day"]: b["kcal_ring"] for b in bl if b["kcal_ring"] is not None}
     mean_k = (sum(kc.values()) / len(kc)) if kc else None
+    exd = ex_by_day(ring)
+    full = [x["kcal"] for d, x in exd.items() if x["complete"] and 1 <= d <= 6]
+    mean_day = (sum(full) / len(full)) if full else None
     days = []
     for d in range(0, 8):
         row = {"day": d}
@@ -322,9 +353,11 @@ def lag_series(sessions, bl):
             row[name] = {"age": a, "row_age": r["age"], "s": r["s"], "L": Lv, "lagged": lag,
                          "es": r.get("body.energyState"), "trail_c_ex": r.get("body.trail.c.ex"),
                          "share_day_bout": (lag / k) if (lag is not None and k) else None,
-                         "share_mean_bout": (lag / mean_k) if (lag is not None and mean_k) else None}
+                         "share_mean_bout": (lag / mean_k) if (lag is not None and mean_k) else None,
+                         "share_mean_day_ex": (lag / mean_day) if (lag is not None and mean_day) else None}
         days.append(row)
     return {"by_day": days, "bout_kcal_by_day": kc, "mean_bout_kcal": mean_k,
+            "ex_kcal_by_day": {str(d): x for d, x in sorted(exd.items())}, "mean_day_ex_kcal_days_1_6": mean_day,
             "reading_7_days_after_first_bout": days[7]["at_1500"] if len(days) > 7 else None}
 
 
