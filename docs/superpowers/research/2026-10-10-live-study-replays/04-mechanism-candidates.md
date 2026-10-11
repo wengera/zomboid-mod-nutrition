@@ -137,3 +137,8 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 ## C-24: the panic-floor flicker
 - **Seen (x331–x333):** the dehydration PANIC floor of 7 (`NR_Data_Effects.lua:210-213`) decays under 6 between once-a-minute writes (5.74 live; vanilla decay about 1.12 per game minute, #3400, #3401). The level-1 panic moodle therefore flickers.
 - **Candidate:** a floor value or write timing that holds the moodle level. A tuned floor depends on clock speed, and writing more often is per-tick work (Rule 6).
+
+## C-25: monotony's BOREDOM floor and vanilla's idle rise
+- **Seen (x341–x343, floor design):** vanilla's idle rise adds about 1.8 BOREDOM per game hour on top of the floor (F-T9r-4). A one-food player idling indoors would cross Bored level 2 (50) in about 11 idle hours, and vanilla then adds UNHAPPINESS through its boredom term.
+- **Candidate:** lower the BOREDOM cap, or count the floor against vanilla's idle path.
+- **Downside:** a lower cap loses the level-1 Bored moodle Angus chose (2026-10-11). Raise this with Angus at the close.
