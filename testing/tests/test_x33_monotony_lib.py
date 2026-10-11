@@ -32,15 +32,16 @@ def test_the_calendar_and_the_ring():
     assert "monotony.t.[TKX.Mono450].n" in L.RING_RECORD and L.UTARGET in L.RING_RECORD
 
 
-def test_the_kernel_twin_is_the_kernels_own_delta():
+def test_the_kernel_twin_is_the_kernels_level_right_after_a_whole_portion():
+    # the lib was run on the add at the eat (Plan 11f Task 9, commit 6a6cdb61); since Task 9b (ruling T9-1) the kernel
+    # holds a floor at the type's level instead, which for a whole portion under the cap is the twin's delta
     k = K()
     m = k.monotony.new()
     nb, last = None, None
     for i, age in enumerate((0.0, 23.9, 48.2, 72.0, 96.5)):
-        d_lua, _ = k.monotony.delta(m, "TKX.Mono450", age, False, 1)
         d_py, c, n = L.kernel_delta(k, nb, last, age, False)
-        assert abs(d_lua - d_py) < 1e-12
-        e = k.monotony.record(m, "TKX.Mono450", age, 1)
+        e = k.monotony.record(m, "TKX.Mono450", age, 1, False)
+        assert abs(k.monotony.level(e, age) - d_py) < 1e-12
         assert abs(e.n - n) < 1e-12
         nb, last = e.n, e.last
     assert abs(L.nominal_delta(k, 4, False) - 9.978) < 1e-3
@@ -51,8 +52,8 @@ def test_the_kernel_twin_is_the_kernels_own_delta():
 
 
 def test_the_replay_books_the_study_foods_as_the_kernel_does():
-    """A stand-in replay of Mono450 and Staple450 eaten twice 24 h apart: the replay's eats log carries the kernel
-    twin's delta on both stats (the staple at a quarter)."""
+    """A stand-in replay of Mono450 and Staple450 eaten twice 24 h apart: since Plan 11f Task 9b (ruling T9-1) no eat
+    adds a mood, and the writer's floor holds both stats at the kernel twin's delta (the most repeated type's level)."""
     ages = [1.0 + h for h in range(0, 30)]
     ev = [{"age": 3.0, "kind": "eat", "food": L.MONO}, {"age": 4.0, "kind": "eat", "food": L.STAPLE},
           {"age": 27.0, "kind": "eat", "food": L.MONO}, {"age": 28.0, "kind": "eat", "food": L.STAPLE}]
@@ -60,10 +61,12 @@ def test_the_replay_books_the_study_foods_as_the_kernel_does():
     RL.run(be, ages, ev, (), start_age=0.0)
     log = [x for x in be.eats if x["kind"] == "eat"]
     assert [x["fullType"] for x in log] == [L.MONO, L.STAPLE, L.MONO, L.STAPLE]
-    assert log[0]["unhappy"] == 0 and log[1]["unhappy"] == 0
+    assert all(x["unhappy"] == 0 and x["boredom"] == 0 for x in log)
     d = L.kernel_delta(K(), 1.0, 3.0, 27.0, False)[0]
-    assert abs(log[2]["unhappy"] - d) < 1e-9 and abs(log[2]["boredom"] - d) < 1e-9
-    assert abs(log[3]["unhappy"] - d * 0.25) < 1e-9
+    rec = be.record()
+    u, b = be.K.monotony.target(rec.monotony, 27.0)
+    assert abs(u - d) < 1e-9 and abs(b - d) < 1e-9
+    assert rec.monotony.t[L.STAPLE].s is True
 
 
 def test_the_setany_events_sit_at_the_first_row_after_the_set():

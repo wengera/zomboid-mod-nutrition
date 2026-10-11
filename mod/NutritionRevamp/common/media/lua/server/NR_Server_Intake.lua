@@ -365,7 +365,7 @@ function IN.readBefore(action)
     if username == nil then return nil end
     local rawBefore = read(item, "getHungChange")          -- the RAW stored hunger (#0002)
     if type(rawBefore) ~= "number" then return nil end
-    local b = { item = item, username = username, rawBefore = rawBefore, char = char } -- char: monotony's stats add
+    local b = { item = item, username = username, rawBefore = rawBefore }
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
@@ -851,27 +851,17 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- Monotony at the eat (Plan 11e Task 3, ruling 11e-1; the kernel is NR_Kernel_Monotony.lua). readAfterAndLand calls
--- IN.atEat once per landed eat (a complete, or a cancel that ate a part), after IN.land and before the wrapper's
--- credit: the eat's type is booked into record.monotony and a repeat within the window adds the kernel's delta to
--- BOREDOM and to UNHAPPINESS through the eater's Stats.add. The eat counts in meal-sized portions (ruling T3-3): its
--- weight is K.monotony.weightOf of vec.calories, the landed vector's energy that IN.land has just landed and IN.feed
--- weighed (the eaten fraction's kcal), over the kernel's MEAL_KCAL; an eat with no energy, or energy that is not a
--- finite number, books nothing and adds nothing. Nothing here reads or writes HUNGER, so monotony never reaches the
--- meal pool or the written hunger (ruling 11d-9).
--- The seam, an add on the server right after vanilla's own eat writes (seam (a) of the Task 3 amendments):
---  * the eat runs on the server alone: a multiplayer client never runs complete or Eat (#0109), and EatOnClient runs
---    only a Food's OnEat hook on a receiver (#0130, #3634);
---  * vanilla delivers a food's boredom and unhappiness the same way, Stats.add calls in BodyDamage.JustAteFood inside
---    Eat (#3597), so this add lands after them inside the same wrap;
---  * Stats.add is get plus set, clamped once to the stat's range (#2800, #2208), BOREDOM and UNHAPPINESS 0-100;
---  * the player-stats packet is a full snapshot of the stats registry at 1 Hz (#0564, #1149), and a server write of
---    UNHAPPINESS outside the stat hook survived the next update and reached the client about a second later
---    (#3048, #3049); the body-damage sub-updaters add to or remove from BOREDOM and UNHAPPINESS and never set a
---    level (#3017), so the add is the base they move from: BOREDOM then falls at vanilla's rates as a food's boredom
---    does (#3015), and UNHAPPINESS has no passive fall but an antidepressant's (#3033);
---  * the writer's UNHAPPINESS floor reads the stat each minute and only raises it toward its target or subtracts a
---    target's fall (K.hybrid.write, #3119), so it builds on the add and never undoes it.
+-- Monotony booked at the eat (Plan 11e Task 3, ruling 11e-1; Plan 11f Task 9b, rulings T9-1 and T9-3; the kernel is
+-- NR_Kernel_Monotony.lua). readAfterAndLand calls IN.atEat once per landed eat (a complete, or a cancel that ate a
+-- part), after IN.land and before the wrapper's credit: the eat's type is booked into record.monotony, weighed in
+-- meal-sized portions (ruling T3-3: K.monotony.weightOf of vec.calories, the landed vector's energy that IN.land has
+-- just landed and IN.feed weighed, over the kernel's MEAL_KCAL) and marked a staple when K.monotony.isStaple reads the
+-- item's FoodType or full type as one; an eat with no energy, or energy that is not a finite number, books nothing.
+-- Nothing is added to a stat here (ruling T9-1, Angus's choice of 2026-10-11): live, UNHAPPINESS never fell on its own
+-- (#3033), so adds at each eat piled up without bound (x331-x333). The writer instead reads the record's target once a
+-- minute and holds a self-releasing floor under UNHAPPINESS and BOREDOM (NR_Server_Writer W.monotony, K.hybrid.write,
+-- #3119), so a repeat shows at the writer's next minute, rising at the floor's rate, not at the eat. Nothing here reads
+-- or writes HUNGER, so monotony never reaches the meal pool or the written hunger (ruling 11d-9).
 -- Under its own pcall: a raise is counted (monotonyFailures) and named, and never reaches the landing or the credit.
 function IN.atEat(record, b, kcal)
     local ok, err = pcall(IN.monotony, record, b, kcal)
@@ -882,9 +872,9 @@ function IN.atEat(record, b, kcal)
     return 0
 end
 
--- The booking and the add; returns the delta added to each stat (0 when none). A record whose monotony is corrupt is
--- reset by the kernel's heal and counted (monotonyHealed); a type past the window is pruned at every eat. No world
--- age, no energy or no full type books nothing.
+-- The booking; returns the portion weight booked (0 when none) and counts it (IN.stats.monotony). A record whose
+-- monotony is corrupt is reset by the kernel's heal and counted (monotonyHealed); a type past the window is pruned at
+-- every eat. No world age, no energy or no full type books nothing.
 function IN.monotony(record, b, kcal)
     local ageH = worldAge()
     local w = K.monotony.weightOf(kcal)
@@ -898,22 +888,9 @@ function IN.monotony(record, b, kcal)
     end
     record.monotony = m
     K.monotony.prune(m, ageH)
-    local boredom, unhappy = K.monotony.delta(m, typeKey, ageH, K.monotony.isStaple(typeKey, b.foodType), w)
-    K.monotony.record(m, typeKey, ageH, w)
-    if boredom > 0 then IN.addMood(b.char, boredom, unhappy) end
-    return boredom
-end
-
--- The add itself: one Stats.add on BOREDOM and one on UNHAPPINESS, through the eater's stats object (none, or no
--- CharacterStat enum, adds nothing). A raising add propagates to IN.atEat's pcall.
-function IN.addMood(char, boredom, unhappy)
-    if CharacterStat == nil then return false end
-    local stats = NR.obj(char, "getStats")
-    if stats == nil then return false end
-    NR.call(stats, "add", CharacterStat.BOREDOM, boredom)
-    NR.call(stats, "add", CharacterStat.UNHAPPINESS, unhappy)
+    K.monotony.record(m, typeKey, ageH, w, K.monotony.isStaple(typeKey, b.foodType))
     IN.stats.monotony = IN.stats.monotony + 1
-    return true
+    return w
 end
 
-IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; an eat counts as its landed kcal over a 400 kcal meal-sized portion, at most one, so an eat with no energy books nothing and a small snack counts a sliver of a meal; drinks and world water book no monotony; the delta is a game choice anchored on vanilla's stale item, and a staple (FoodType Bread, Rice or Pasta, or a named potato, oat, bread or plain-pasta type) takes a quarter of it"
+IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; an eat counts as its landed kcal over a 400 kcal meal-sized portion, at most one, so an eat with no energy books nothing and a small snack counts a sliver of a meal; drinks and world water book no monotony; monotony is a self-releasing floor, not an add at the eat: the writer holds UNHAPPINESS and BOREDOM up to the most repeated type's level once a minute, a game choice anchored on vanilla's stale item and capped at its rotten one (20), where a staple (FoodType Bread, Rice or Pasta, or a named potato, oat, bread or plain-pasta type) holds a quarter of it, so a repeat shows at the next minute and rises at the floor's rate; as the counts decay the floor's release lowers the stat by the target's fall even when another source also raised it; vanilla resets BOREDOM while PANIC above 5, the mod's own dehydration panic floor included, so monotony's BOREDOM floor is wiped while the character panics"

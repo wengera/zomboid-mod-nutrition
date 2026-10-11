@@ -1,6 +1,6 @@
 -- NR_Kernel_Hybrid.lua -- the once-a-minute stat writer's arithmetic (Plan 11 Task 13; Decision 1 (c), the hybrid).
 -- With vanilla's hunger, thirst and fatigue rise rates zeroed at the server's OnGameBoot (#3364-#3368), the writer
--- sets HUNGER, THIRST and FATIGUE, the STRESS, UNHAPPINESS and FOOD_SICKNESS floors, PANIC, TEMPERATURE and
+-- sets HUNGER, THIRST and FATIGUE, the STRESS, UNHAPPINESS, BOREDOM and FOOD_SICKNESS floors, PANIC, TEMPERATURE and
 -- INTOXICATION once a player-minute, stepping by elapsed world age (#3371), after the minute's eats (#3383), with
 -- each auto-drink sip folded into the THIRST target (#3382). Mode 2 (Overlay) writes everything but the first three.
 -- Pure: inp, out and c are tables the adapter owns and reuses; an out field left nil means "no write".
@@ -13,7 +13,7 @@ function K.hybrid.defaults()
         thirstCap = 0.83,                -- under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14)
         moodRiseUnhappy = 22 / 3600,     -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
         moodRiseSick = 25 / 3600,        -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
-        moodRiseStress = 5.0e-5,         -- per game-second: VANILLA #2231 reused (open S1146)
+        moodRiseStress = 5.0e-5, moodRiseBored = 25 / 3600, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
         maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (the pipeline's clamp)
     }
 end
@@ -24,12 +24,12 @@ function K.hybrid.input()
         lastThirst = nil, sipOK = true, fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0,
         stress = 0, stressTarget = 0, unhappy = 0, unhappyTarget = 0, lastUnhappyTarget = 0, foodSick = 0,
         foodSickTarget = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
-        endurance = 1, lastEndurance = nil, rmod = 1,
+        endurance = 1, lastEndurance = nil, rmod = 1, bored = 0, boredTarget = 0, lastBoredTarget = 0,
     }
 end
 
 function K.hybrid.output()
-    return { sip = 0, unhappyTarget = 0 }
+    return { sip = 0, unhappyTarget = 0, boredTarget = 0 }
 end
 
 -- The hunger target from a fill-like scalar x (0 empty .. 1 sated: since Plan 11c the satiety read Z) and the energy
@@ -72,25 +72,12 @@ function K.hybrid.write(inp, out, c)
     if inp.stress < inp.stressTarget then
         out.stress = K.min(inp.stressTarget, inp.stress + c.moodRiseStress * s)
     end
-    out.unhappy = nil
-    local ut = inp.unhappyTarget
-    if ut ~= ut then
-        ut = 0
-    end
-    local last = inp.lastUnhappyTarget
-    if ut < last or ut > 0 then
-        local v = inp.unhappy
-        if ut < last then
-            v = K.max(0, v - (last - ut))
-        end
-        if v < ut then
-            v = K.min(ut, v + c.moodRiseUnhappy * s)
-        end
-        if v ~= inp.unhappy then
-            out.unhappy = v
-        end
-    end
+    local ut = K.hybrid.target(inp.unhappyTarget)
+    out.unhappy = K.hybrid.floor(inp.unhappy, ut, inp.lastUnhappyTarget, c.moodRiseUnhappy * s)
     out.unhappyTarget = ut
+    local bt = K.hybrid.target(inp.boredTarget)
+    out.bored = K.hybrid.floor(inp.bored, bt, inp.lastBoredTarget, c.moodRiseBored * s)
+    out.boredTarget = bt
     out.foodSick = nil
     if inp.foodSickTarget > 0 and inp.foodSick < inp.foodSickTarget then
         out.foodSick = K.min(inp.foodSickTarget, inp.foodSick + c.moodRiseSick * s)
@@ -119,3 +106,32 @@ function K.hybrid.write(inp, out, c)
 end
 
 K.hybrid.DEFICIT_FLOOR = 0.02 -- game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search), from Plan 11f Task 2c's 0, Plan 11d's 1.0 (ruling 9c-1) and Plan 3 ruling 14's 0.15 (S1271 open): the deficit floor's coefficient, the hunger a deficit adds whatever the satiety read: fitted and weak (Task 2c's search read 0 and the widened search 0.02, a tie broken toward a floor above 0), and Plan 11d ruling 9c-1's floor role, keeping a deficit's hunger up at a full satiety read, is superseded in substance by the refit (Plan 11f ruling 2c-4); S1254 sets the deficit's direction, which the energy state also carries through (1 - x) x energyState; fitted with K.energy.BALANCE_SPAN_KCAL 3100 and K.energy.EX_BYPASS_LO 0.282 and EX_BYPASS_HI 0.575 on the server-path replays for the best worst-case margin over twin K's alternatives: S1325 (Karl 2021 as the paper ran it, DEF +30.2 % against +26 %), S1613 (the 36 h fast's next day 1.196 against 1.20) and S1614 (day 3 0.969 against 1.0); S1255 (CALERIE 2: < 10 mm over 2 y at a 25 % deficit) reads 6.7 mm under the request-anchored mapping, reproduced
+
+-- Plan 11f Task 9b (rulings T9-1, T9-3): the UNHAPPINESS and BOREDOM floors share one rule, moved here from write().
+-- A floor target that is nil or not a number reads 0.
+function K.hybrid.target(t)
+    if t == nil or t ~= t then
+        return 0
+    end
+    return t
+end
+
+-- A mood floor (#3119): when the target fell since the last write (last), the stat v loses that fall once, never
+-- below 0, whatever else raised it; then a stat under the target rises toward it by rise. Returns the value to write,
+-- or nil when there is no target and no fall, or the value is unchanged.
+function K.hybrid.floor(v0, ut, last, rise)
+    if not (ut < last or ut > 0) then
+        return nil
+    end
+    local v = v0
+    if ut < last then
+        v = K.max(0, v - (last - ut))
+    end
+    if v < ut then
+        v = K.min(ut, v + rise)
+    end
+    if v ~= v0 then
+        return v
+    end
+    return nil
+end

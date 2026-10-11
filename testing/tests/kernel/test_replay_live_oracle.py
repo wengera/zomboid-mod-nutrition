@@ -249,15 +249,15 @@ def test_the_nicotine_next_day_ratio(host):
     assert round(r, 4) == M.PIN_NEXT == 1.1304
 
 
-def test_the_fifth_daily_eat_of_a_study_food_reads_a_stale_item(host):
+def test_the_fifth_daily_eat_of_a_study_food_holds_a_stale_item(host):
     want = 4.3 * sum(2 ** (-k * 24 / 72.0) for k in range(1, 5))
     for food, scale, pin in (("TKX.Mono450", 1.0, 9.978), ("TKX.Staple450", 0.25, 2.4945)):
         a0 = 1000.0
         ev = [{"age": a0 + d * 24, "kind": "eat", "food": food} for d in range(5)]
         rows, be = RL.replay_arm(ev, ages=[a0 + d * 24 + 1 / 60 for d in range(5)], start_age=a0 - 1 / 60,
                                  paths=("lastIntake.source",))
-        adds = [e["boredom"] for e in be.eats]
-        assert adds[0] == 0 and [e["unhappy"] for e in be.eats] == adds
-        assert adds[4] == pytest.approx(want * scale, rel=1e-12)
-        assert round(adds[4], 4 if scale < 1 else 3) == pin
+        assert all(e["boredom"] == 0 and e["unhappy"] == 0 for e in be.eats)     # no add at the eat (Plan 11f Task 9b)
+        lvl = be.K.monotony.target(be.record().monotony, a0 + 4 * 24)[0]          # the floor's target after the fifth
+        assert lvl == pytest.approx(want * scale, rel=1e-12)
+        assert round(lvl, 4 if scale < 1 else 3) == pin
         assert rows[-1]["lastIntake.source"] == "declared"

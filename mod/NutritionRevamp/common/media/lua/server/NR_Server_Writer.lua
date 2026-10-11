@@ -270,7 +270,7 @@ function W.step(username, player, record, ctx)
     inp.stress = get(h, CS.STRESS) or 0
     inp.stressTarget = E.stressTarget or 0
     inp.unhappy = get(h, CS.UNHAPPINESS) or 0
-    inp.unhappyTarget = E.unhappyTarget or 0
+    W.monotony(h, record, inp, E, ageH)                   -- UNHAPPINESS: the effects' target plus monotony's; BOREDOM: monotony's (Plan 11f Task 9b)
     inp.lastUnhappyTarget = h.unhappyLast
     inp.foodSick = get(h, CS.FOOD_SICKNESS) or 0
     inp.foodSickTarget = E.foodSickTarget or 0
@@ -294,7 +294,7 @@ function W.step(username, player, record, ctx)
     set(h, CS.FATIGUE, out.fatigue)
     set(h, CS.STRESS, out.stress)
     set(h, CS.UNHAPPINESS, out.unhappy)
-    h.unhappyLast = out.unhappyTarget
+    W.moodWrote(h, out)                                   -- the targets remembered, and BOREDOM written (Plan 11f Task 9b)
     set(h, CS.FOOD_SICKNESS, out.foodSick)
     set(h, CS.PANIC, out.panic)
     set(h, CS.TEMPERATURE, out.temp)
@@ -455,4 +455,53 @@ function W.nicotine(h, s, ageH)
     end
     h.nicLast = w
     return K.satiety.nicotineFactor(w, (ageH - s.nicH) / 24)
+end
+
+-- Plan 11f Task 9b (rulings T9-1, T9-3; Angus's choice of 2026-10-11): monotony as a self-releasing floor. Once a
+-- writer minute, W.step reads record.monotony's target (K.monotony.target at the minute's world age: the most repeated
+-- food type's level, from the counts the intake books at each eat) and composes it:
+--  * UNHAPPINESS: the effects' target plus monotony's, clamped at the effects surface's own cap (59, one under the
+--    UNHAPPY level-3 step 60, #2369; NR.data.effects.SURF.unhappyTarget). The sum, the surface's own fold (op add),
+--    so monotony is never hidden behind a larger effect target; an effects target that is not a finite number reads 0;
+--  * BOREDOM: monotony's target alone (no other BOREDOM target exists), held under K.monotony.BORED_MAX 49.
+-- K.hybrid.write raises each stat toward its target (UNHAPPINESS 22, BOREDOM 25 a game hour) and, when the target
+-- falls, lowers the stat by the fall once (#3119), so the floor is bounded by the target and releases as a varied diet
+-- lets the counts decay. The release lowers the stat by the target's fall even when another source (vanilla, a food, an
+-- effect) also raised it: the downside Angus accepted. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
+-- @482-@509, #3015), the mod's own dehydration PANIC floor of 7 included (ruling T9-3), so the BOREDOM floor is wiped
+-- while the character panics and rises again after. A record.monotony the heal finds corrupt is reset and counted in
+-- guarded. No eat adds a mood any more (NR_Server_Intake IN.monotony books only). Appended so no line above moves.
+W.UNHAPPY_HI = 59 -- the fallback for the effects surface's cap (NR_Data_Effects.lua SURF.unhappyTarget.hi, #2369)
+
+function W.unhappyHi()
+    local D = NR.data and NR.data.effects
+    local surf = D and D.SURF and D.SURF.unhappyTarget
+    if surf ~= nil and NR.finite(surf.hi) then return surf.hi end
+    return W.UNHAPPY_HI
+end
+
+function W.monotony(h, record, inp, E, ageH)
+    local u, b = 0, 0
+    local m = record.monotony
+    if m ~= nil then
+        local healed
+        m, healed = K.monotony.heal(m, ageH)
+        if healed then
+            record.monotony = m
+            W.stats.guarded = W.stats.guarded + 1
+        end
+        u, b = K.monotony.target(m, ageH)
+    end
+    local eu = E.unhappyTarget
+    if not NR.finite(eu) then eu = 0 end
+    inp.unhappyTarget = K.min(eu + u, W.unhappyHi())
+    inp.boredTarget = b
+    inp.lastBoredTarget = h.boredLast or 0
+    inp.bored = get(h, CharacterStat.BOREDOM) or 0
+end
+
+function W.moodWrote(h, out)
+    h.unhappyLast = out.unhappyTarget
+    set(h, CharacterStat.BOREDOM, out.bored)
+    h.boredLast = out.boredTarget
 end

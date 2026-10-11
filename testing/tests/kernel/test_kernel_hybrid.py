@@ -115,3 +115,39 @@ def test_the_unhappiness_floor_never_pulls_an_added_stat_down(host):
     assert out.unhappy is None
     out = run(host, dtS=60, unhappy=35, unhappyTarget=15, lastUnhappyTarget=20)
     assert out.unhappy == pytest.approx(30)
+
+
+# --- Plan 11f Task 9b (ruling T9-1, T9-3): the BOREDOM floor, monotony's second target -------------------------------
+
+
+def test_boredom_rises_toward_its_target_at_one_bored_level_a_game_hour(host):
+    out = run(host, dtS=60, bored=0, boredTarget=20, lastBoredTarget=0)
+    assert out.bored == pytest.approx(25 / 3600 * 60) and out.boredTarget == 20
+    out = run(host, dtS=3600, bored=0, boredTarget=20, lastBoredTarget=0)
+    assert out.bored == pytest.approx(20)
+
+
+def test_a_falling_boredom_target_releases_its_fall_once(host):
+    out = run(host, dtS=60, bored=20, boredTarget=5, lastBoredTarget=20)
+    assert out.bored == pytest.approx(5)
+    out = run(host, dtS=60, bored=3, boredTarget=0, lastBoredTarget=20)
+    assert out.bored == 0                                               # never below 0
+    out = run(host, dtS=60, bored=35, boredTarget=15, lastBoredTarget=20)
+    assert out.bored == pytest.approx(30)                               # only the fall, whatever raised it
+
+
+def test_a_boredom_at_or_over_its_target_is_left_alone(host):
+    assert run(host, dtS=60, bored=35, boredTarget=20, lastBoredTarget=20).bored is None
+    assert run(host, dtS=60, bored=0, boredTarget=0, lastBoredTarget=0).bored is None
+
+
+def test_a_non_finite_boredom_target_reads_zero(host):
+    out = run(host, dtS=60, bored=3, boredTarget=NAN, lastBoredTarget=0)
+    assert out.bored is None and out.boredTarget == 0
+    out = run(host, dtS=60, bored=3, boredTarget=None, lastBoredTarget=0)
+    assert out.bored is None and out.boredTarget == 0
+
+
+def test_the_default_input_writes_no_boredom(host):
+    out = run(host, dtS=60)
+    assert out.bored is None and out.boredTarget == 0 and out.unhappy is None

@@ -32,7 +32,7 @@ Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and P (g5, 140); g1's P overflows (170).
 g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.
-Each eat carries its eater (NR_T.chars), whose stats answer add: monotony's adds (11e T3) are traced as `added`.
+Each eat carries its eater (NR_T.chars), whose stats answer add, traced as `added` (empty since 11f T9b: no eat adds).
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
 body-damage counters and parts, the Nutrition stores, `written`: the writer's last set value per stat, `statSets`),
 the counters of a FIXED list of NR.server adapters (STATS_NAMES; a new module's stats never move the trace), the
@@ -260,7 +260,7 @@ NR_T.decorate = function(p, cfg)
     local stats = {}
     stats.get = function(s, k) return sv[k] end
     stats.set = function(s, k, v) sv[k] = v; wst.written[k] = v; wst.sets = wst.sets + 1 end
-    -- Stats.add (Plan 11e Task 3: monotony's BOREDOM and UNHAPPINESS adds at the eat): the sum, and `added` per stat
+    -- Stats.add (Plan 11e Task 3's monotony adds, retired by Plan 11f Task 9b's floor): the sum, and `added` per stat
     stats.add = function(s, k, v) sv[k] = (sv[k] or 0) + v; wst.added[k] = (wst.added[k] or 0) + v; return true end
     NR_T.chars[p:getUsername()] = p
     p.getStats = function(s) return stats end

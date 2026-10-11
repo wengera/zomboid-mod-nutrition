@@ -20,7 +20,8 @@ ZomboidGlobals = { HungerIncrease = 9.6e-6, HungerIncreaseWhenWellFed = 0.0, Hun
 SandboxVars = { NR = { Mode = NR_T.mode or 1 } }
 CharacterStat = { HUNGER = "HUNGER", THIRST = "THIRST", FATIGUE = "FATIGUE", ENDURANCE = "ENDURANCE",
                   STRESS = "STRESS", UNHAPPINESS = "UNHAPPINESS", FOOD_SICKNESS = "FOOD_SICKNESS", PANIC = "PANIC",
-                  TEMPERATURE = "TEMPERATURE", INTOXICATION = "INTOXICATION", NICOTINE_WITHDRAWAL = "NICOTINE_WITHDRAWAL" }
+                  TEMPERATURE = "TEMPERATURE", INTOXICATION = "INTOXICATION", NICOTINE_WITHDRAWAL = "NICOTINE_WITHDRAWAL",
+                  BOREDOM = "BOREDOM" }
 MoodleType = { FOOD_EATEN = "FOOD_EATEN" }
 CharacterTrait = { NEEDS_LESS_SLEEP = "NLS", NEEDS_MORE_SLEEP = "NMS", INSOMNIAC = "INS", NIGHT_OWL = "NO",
                    HEARTY_APPETITE = "HA", LIGHT_EATER = "LE" }
@@ -1341,3 +1342,128 @@ def test_the_anchor_survives_a_restart_through_the_store():
     W.h["a"] = None
     step(h, _smoker(h, 0.51), back, 2)
     assert back.satiety.nicH == pytest.approx(AGE1 - 91 * 24)
+
+
+# --- Plan 11f Task 9b (rulings T9-1, T9-3): monotony's floor, read once a writer minute -----------------------------
+# record.monotony's target (K.monotony.target at the minute's world age) joins the effects' UNHAPPINESS target by
+# sum, clamped at the surface's 59, and is the BOREDOM target alone; both rise at the hybrid's rates and are released
+# by the target's fall.
+
+def mono(h, n, last, staple=False):
+    t = h.rt.eval("{ t = {} }")
+    e = h.rt.eval("{}")
+    e.n, e.last = n, last
+    if staple:
+        e.s = True
+    t.t["Base.Apple"] = e
+    return t
+
+
+def test_a_monotonous_record_raises_both_floors_at_the_writer_minute():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)                        # target 4.3 x 2 = 8.6 on both
+    step(h, p, rec, 0)                                     # the hoist's first minute steps 0 s
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(22 / 3600 * 60)
+    assert p.st.sets.BOREDOM == pytest.approx(25 / 3600 * 60)
+    for m in range(2, 40):
+        step(h, p, rec, m)
+    t = 4.3 * (3 * 2 ** (-(39 / 60) / 72.0) - 1)
+    assert p.st.v.UNHAPPINESS == pytest.approx(t, rel=1e-9) and p.st.v.BOREDOM == pytest.approx(t, rel=1e-9)
+
+
+def test_monotony_adds_to_the_effects_unhappiness_target_under_the_surface_cap():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)
+    rec.effects.unhappyTarget = 10
+    p.st.v.UNHAPPINESS = 18.6
+    p.st.v.BOREDOM = 8.6
+    step(h, p, rec, 0)
+    assert p.st.sets.UNHAPPINESS is None and p.st.sets.BOREDOM is None       # 10 + 8.6 held: nothing to write
+    rec.effects.unhappyTarget = 55
+    p.st.v.UNHAPPINESS = 58.9
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(59)      # 55 + 8.6 clamped at the surface's 59 (#2369)
+
+
+def test_the_monotony_release_lowers_the_stat_by_the_targets_fall_whatever_raised_it():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)
+    p.st.v.UNHAPPINESS = 30                                 # raised above the target by another source
+    p.st.v.BOREDOM = 8.6
+    step(h, p, rec, 0)
+    rec.monotony = h.rt.eval("{ t = {} }")                  # the diet varied past the window: the target falls 8.6
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(30 - 8.6)
+    assert p.st.sets.BOREDOM == pytest.approx(0, abs=1e-12)
+
+
+def test_a_staple_record_targets_a_quarter():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0, staple=True)
+    for m in range(0, 61):
+        step(h, p, rec, m)
+    t = 0.25 * 4.3 * (3 * 2 ** (-1 / 72.0) - 1)              # a quarter of the level, an hour on
+    assert p.st.v.UNHAPPINESS == pytest.approx(t, rel=1e-9) and p.st.v.BOREDOM == pytest.approx(t, rel=1e-9)
+
+
+def test_no_monotony_writes_no_boredom():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    step(h, p, rec, 1)
+    step(h, p, rec, 2)
+    assert p.st.sets.BOREDOM is None and p.st.sets.UNHAPPINESS is None
+
+
+def test_without_the_boredom_enum_unhappiness_still_takes_the_floor():
+    h = boot()
+    h.rt.execute("CharacterStat.BOREDOM = nil")
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)
+    step(h, p, rec, 0)
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(22 / 3600 * 60) and p.st.sets.BOREDOM is None
+
+
+@pytest.mark.parametrize("raw", ["'junk'", "{ t = 4 }", "{ t = { ['Base.Apple'] = { n = 0 / 0, last = 1 } } }",
+                                 "{ t = { ['Base.Apple'] = { n = 9, last = 999 } } }"])
+def test_a_corrupt_monotony_is_reset_and_counted_and_targets_nothing(raw):
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = h.rt.eval(raw)
+    g0 = h.NR.server.writer.stats.guarded
+    step(h, p, rec, 1)
+    assert h.NR.server.writer.stats.guarded == g0 + 1
+    assert list(rec.monotony.t.keys()) == []
+    assert p.st.sets.UNHAPPINESS is None and p.st.sets.BOREDOM is None
+
+
+def test_a_non_finite_effects_target_reads_zero_beside_monotony():
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.monotony = mono(h, 3, 100.0)
+    rec.effects.unhappyTarget = float("nan")
+    step(h, p, rec, 0)
+    step(h, p, rec, 1)
+    assert p.st.sets.UNHAPPINESS == pytest.approx(22 / 3600 * 60)     # monotony's target alone
+
+
+def test_the_writer_reads_the_target_once_a_minute_and_no_eat_writes_mood():
+    src = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Writer.lua"),
+               encoding="utf-8").read()
+    assert src.count("K.monotony.target(") == 1
+    intake = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server",
+                               "NR_Server_Intake.lua"), encoding="utf-8").read()
+    assert '"add"' not in intake and "addMood" not in intake

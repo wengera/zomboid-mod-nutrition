@@ -1,33 +1,33 @@
--- NR_Kernel_Monotony.lua -- monotony at the eat (Plan 11e Task 3, ruling 11e-1; spec memo C11). Repeated eats of one
--- food type within the last 7 game days raise BOREDOM and UNHAPPINESS at the eat; nothing here reads into hunger
--- (ruling 11d-9): S1596's field rations cut intake as the sole food but not in a cafeteria setting, so the setting,
--- not the food, drives the intake fall, and the mod puts monotony into mood alone. The direction rests on S1592 (daily
--- presentation habituated faster than once-weekly: the decayed count), S1593 (acceptance and intake fell over a
--- monotony week and not over a variety week; a potato product resisted, green beans did not: the staple reduction),
--- S1594 (boredom rose and acceptance fell with repetition, most under imposed monotony and least under free choice),
--- S1595 (daily chocolate lost pleasantness over 22 days, bread and butter did not: a second staple anchor) and S1597
--- (ration bars cut intake and mood, menu fatigue implicated). S1594's free choice is the mechanic: the player who
--- chooses variety never pays it. The sizes are game choices anchored on vanilla's own per-item scale (#0042: stale
--- +10, rotten +20 on both getBoredomChange and getUnhappyChange).
--- The unit is a meal-sized portion, not an item (ruling T3-3; the studies count presentations of a served portion,
--- S1592-S1595): an eat weighs w = min(1, kcal / MEAL_KCAL), its landed energy over one meal's, so a grasshopper or a
--- sugar packet counts a sliver of a meal and a whole loaf counts one; an eat with no energy weighs 0 and is not booked.
--- The record, record.monotony = { t = { [fullType] = { n = count, last = ageH } } }: n is the count of recent
--- portions of the type (the sum of its eats' weights) decayed to the world age `last` of the type's latest eat, with
--- a HALF_LIFE_H half-life; a type whose latest eat is more than WINDOW_H ago counts 0 and is pruned. The key is the
--- item's full type, so an evolved dish (a pot of rice with anything added) is one type whatever its ingredients. An
--- eat's delta, the same on BOREDOM and UNHAPPINESS, is w x min(CAP, slope x max(0, n - 1)), n the decayed count
--- including this eat and slope SLOPE (STAPLE x SLOPE for a staple): the first portion of a type, eaten whole or in
--- parts or as many small items, adds nothing.
--- Pure: Lua tables in, no Java. Run once per eat by NR_Server_Intake (IN.atEat), never per tick.
+-- NR_Kernel_Monotony.lua -- monotony as a self-releasing floor (Plan 11e Task 3, ruling 11e-1; Plan 11f Task 9b,
+-- rulings T9-1 and T9-3; spec memo C11). Repeated eats of one food type within the last 7 game days hold a floor
+-- under BOREDOM and UNHAPPINESS; nothing here reads into hunger (ruling 11d-9): S1596's field rations cut intake as
+-- the sole food but not in a cafeteria setting, so the setting, not the food, drives the intake fall, and the mod puts
+-- monotony into mood alone. The direction rests on S1592 (daily presentation habituated faster than once-weekly: the
+-- decayed count), S1593 (acceptance and intake fell over a monotony week and not over a variety week; a potato product
+-- resisted, green beans did not: the staple reduction), S1594 (boredom rose and acceptance fell with repetition, most
+-- under imposed monotony and least under free choice), S1595 (daily chocolate lost pleasantness over 22 days, bread and
+-- butter did not: a second staple anchor) and S1597 (ration bars cut intake and mood, menu fatigue implicated). S1594's
+-- free choice is the mechanic: the player who chooses variety never pays it. The sizes are game choices anchored on
+-- vanilla's own per-item scale (#0042: stale +10, rotten +20 on both getBoredomChange and getUnhappyChange).
+-- The unit is a meal-sized portion (ruling T3-3; the studies count presentations of a served portion, S1592-S1595): an
+-- eat weighs w = min(1, kcal / MEAL_KCAL); an eat with no energy weighs 0 and is not booked. The record,
+-- record.monotony = { t = { [fullType] = { n = count, last = ageH, s = staple } } }: n is the type's recent portions
+-- decayed to its latest eat's world age `last` with a HALF_LIFE_H half-life, s true for a staple; a type whose latest
+-- eat is more than WINDOW_H ago counts 0 and is pruned. The key is the item's full type, so an evolved dish is one type.
+-- A type's level is f x min(CAP, SLOPE x max(0, n - 1)), n its count decayed to the minute and f STAPLE for a staple
+-- (1 otherwise), and the target is the most repeated type's level (K.monotony.target): UNHAPPINESS's, and BOREDOM's
+-- held under BORED_MAX. Nothing is added at the eat (ruling T9-1): the writer raises the stats toward the target once a
+-- minute and lowers them by the target's fall (K.hybrid.write, #3119), so variety lets the counts decay and releases it.
+-- Pure: Lua tables in, no Java. K.monotony.record runs once per eat (NR_Server_Intake IN.atEat), K.monotony.target once
+-- per writer minute (NR_Server_Writer W.monotony), never per tick.
 local K = NutritionRevamp.kernel
 K.monotony = {}
 
 K.monotony.WINDOW_H = 168 -- game choice, Plan 11e (ruling 11e-1): the 7 game days a type is remembered, measured from the type's latest eat; a type eaten daily keeps its decayed older eats (ruling T3-4); S1592's daily-against-weekly contrast and S1593's monotony week set the scale, not the size
 K.monotony.HALF_LIFE_H = 72 -- game choice, Plan 11e (ruling 11e-1): the count's 3-day half-life inside the window, so a type left uneaten for days stops counting (S1592: spacing the presentations slows habituation)
-K.monotony.SLOPE = 4.3 -- game choice, Plan 11e (ruling 11e-1): the rise per recent portion, sized so the fifth meal-sized eat of one type at one a day reads 4.3 x (2^-1/3 + 2^-2/3 + 2^-1 + 2^-4/3) = 9.98 on each stat, vanilla's stale +10 (#0042); direction S1592-S1595, S1597
-K.monotony.CAP = 20 -- game choice, Plan 11e (ruling 11e-1): one eat's delta never exceeds vanilla's rotten +20 (#0042) on either stat
-K.monotony.STAPLE = 0.25 -- game choice, Plan 11e (ruling 11e-1): a staple's slope multiplier; S1593's potato product resisted monotony and S1595's bread and butter showed no fall in pleasantness, neither giving a size
+K.monotony.SLOPE = 4.3 -- game choice, Plan 11e (ruling 11e-1): the level per recent portion past the first, sized so right after the fifth meal-sized eat of one type at one a day the level reads 4.3 x (2^-1/3 + 2^-2/3 + 2^-1 + 2^-4/3) = 9.98 on each stat, vanilla's stale +10 (#0042); direction S1592-S1595, S1597
+K.monotony.CAP = 20 -- game choice, Plan 11e (ruling 11e-1), a level since Plan 11f (ruling T9-1): a type's level, and so the target, never exceeds vanilla's rotten +20 (#0042) on either stat
+K.monotony.STAPLE = 0.25 -- game choice, Plan 11e (ruling 11e-1): a staple's level multiplier, outside the cap (Plan 11f Task 9b); S1593's potato product resisted monotony and S1595's bread and butter showed no fall in pleasantness, neither giving a size
 K.monotony.MEAL_KCAL = 400 -- game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595): the landed energy of one meal-sized portion, the weight-1 eat
 
 -- The staple rule (ruling 11e-1; bread, rice, potato, pasta and oats): the script's FoodType, the food data's own
@@ -99,21 +99,9 @@ function K.monotony.portion(w)
     return K.clamp(w, 0, 1)
 end
 
--- The BOREDOM and UNHAPPINESS an eat of typeKey at ageH weighing w adds (read before K.monotony.record books it):
--- both the same.
-function K.monotony.delta(m, typeKey, ageH, staple, w)
-    local s = K.monotony.portion(w)
-    local n = K.monotony.count(m.t[typeKey], ageH) + s
-    local slope = K.monotony.SLOPE
-    if staple then
-        slope = slope * K.monotony.STAPLE
-    end
-    local d = K.min(K.monotony.CAP, slope * K.max(0, n - 1)) * s
-    return d, d
-end
-
--- Book an eat of typeKey at ageH weighing w: the count decayed to the eat plus w, stamped ageH. Returns the entry.
-function K.monotony.record(m, typeKey, ageH, w)
+-- Book an eat of typeKey at ageH weighing w: the count decayed to the eat plus w, stamped ageH, and marked a staple
+-- when staple is true (the latest eat's reading stands; s is left nil otherwise). Returns the entry.
+function K.monotony.record(m, typeKey, ageH, w, staple)
     local n = K.monotony.count(m.t[typeKey], ageH) + K.monotony.portion(w)
     local e = m.t[typeKey]
     if e == nil then
@@ -122,6 +110,10 @@ function K.monotony.record(m, typeKey, ageH, w)
     end
     e.n = n
     e.last = ageH
+    e.s = nil
+    if staple == true then
+        e.s = true
+    end
     return e
 end
 
@@ -146,7 +138,8 @@ function K.monotony.addGone(gone, k, e, ageH)
 end
 
 -- The heal (the #2833 pattern): a stored monotony that is not a table, whose t is not a table, or with any entry not
--- a { n, last } of finite numbers under a string key, with n negative or last ahead of ageH, is reset to a fresh
+-- a { n, last } of finite numbers with an absent or boolean s under a string key, with n negative or last ahead of
+-- ageH, is reset to a fresh
 -- table. Returns the table to keep and whether it was reset (nil reads fresh, not reset).
 function K.monotony.heal(m, ageH)
     if m == nil then
@@ -176,5 +169,33 @@ function K.monotony.badEntry(bad, k, e, ageH)
     if not K.vector.finite(e.n) or not K.vector.finite(e.last) then
         return true
     end
+    if e.s ~= nil and type(e.s) ~= "boolean" then
+        return true
+    end
     return e.n < 0 or e.last > ageH
+end
+
+-- Plan 11f Task 9b (rulings T9-1, T9-3): the floor. Appended so no line above moves.
+K.monotony.BORED_MAX = 49 -- game choice, Plan 11f (ruling T9-3): the BOREDOM target is held one under the BORED level-2 step 50 (#2369; MoodleStat.<clinit> @118-@133 L16 on 42.21), because vanilla adds UNHAPPINESS while the BORED moodle is above level 1 (BodyDamage.UpdateBoredom @510-@575 L2042-L2043 on 42.21), so monotony alone never drives that term; vanilla also resets BOREDOM while PANIC > 5 (UpdateBoredom @482-@509, #3015), the mod's own dehydration PANIC floor included (ruling T9-3), so the BOREDOM floor is wiped while the character panics
+
+-- A type's level at ageH: f x min(CAP, SLOPE x max(0, n - 1)), n the count decayed to ageH (0 past the window) and f
+-- STAPLE for an entry marked a staple, else 1.
+function K.monotony.level(e, ageH)
+    local n = K.monotony.count(e, ageH)
+    local f = 1
+    if e.s == true then
+        f = K.monotony.STAPLE
+    end
+    return f * K.min(K.monotony.CAP, K.monotony.SLOPE * K.max(0, n - 1))
+end
+
+-- The floor's targets at ageH, UNHAPPINESS's and BOREDOM's: the most repeated type's level (the maximum over the
+-- types, so a rotation of k foods reads one food's level at a k-th of the eats, and a varied diet's counts decay
+-- under one portion and release it), BOREDOM's held at BORED_MAX. m is a healed record (K.monotony.heal).
+function K.monotony.target(m, ageH)
+    local u = 0
+    for k, e in pairs(m.t) do
+        u = K.max(u, K.monotony.level(e, ageH))
+    end
+    return u, K.min(K.monotony.BORED_MAX, u)
 end

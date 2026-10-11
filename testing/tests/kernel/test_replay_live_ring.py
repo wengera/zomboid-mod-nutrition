@@ -211,7 +211,8 @@ def test_a_drink_lands_in_the_liquid_lane_and_a_typed_vector_eat_books_monotony(
     rp.apply({"kind": "eat", "vec": v, "fullType": "TKX.Typed"}, 100.0)
     rp.apply({"kind": "eat", "vec": v, "fullType": "TKX.Typed"}, 124.0)
     assert rp.record().monotony.t["TKX.Typed"].n == pytest.approx(1 + 2 ** (-24 / 72.0))
-    assert rp.eats[-1]["boredom"] == pytest.approx(4.3 * 2 ** (-24 / 72.0))
+    assert rp.eats[-1]["boredom"] == 0                                   # no add at the eat (Plan 11f Task 9b)
+    assert rp.K.monotony.target(rp.record().monotony, 124.0)[0] == pytest.approx(4.3 * 2 ** (-24 / 72.0))
     assert st.buffer.water == pytest.approx(400.0)
 
 
