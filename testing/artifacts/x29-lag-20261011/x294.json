@@ -1,0 +1,117 @@
+{
+ "diff": {
+  "classes": {
+   "between": 38,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00042032903799726906,
+    "n": 1996,
+    "over": 0,
+    "worst_s": 131
+   },
+   "body.energyState": {
+    "max": 0.0008211679608143285,
+    "n": 1996,
+    "over": 0,
+    "worst_s": 2014
+   },
+   "body.trail.c.ex": {
+    "max": 1.4787289902655313e-06,
+    "n": 1996,
+    "over": 0,
+    "worst_s": 2047
+   },
+   "satiety.L": {
+    "max": 7.003575939289309e-07,
+    "n": 1996,
+    "over": 0,
+    "worst_s": 2085
+   },
+   "satiety.S": {
+    "max": 8.200532357869981e-143,
+    "n": 1996,
+    "over": 0,
+    "worst_s": 79
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "activity": 36,
+  "drink": 21,
+  "eat": 17
+ },
+ "initial_activity": null,
+ "lag_agreement": {
+  "body.energyState": {
+   "max_rel": 0.0008010741131111172,
+   "n": 1996,
+   "ok": true,
+   "over": 0
+  },
+  "body.trail.c.ex": {
+   "max_rel": 1.4787289902655313e-06,
+   "n": 1996,
+   "ok": true,
+   "over": 0
+  },
+  "satiety.L": {
+   "max_rel": 7.003575939289309e-07,
+   "n": 1996,
+   "ok": true,
+   "over": 0
+  }
+ },
+ "ring_first_age": 70.91737365722656,
+ "ring_last_age": 105.73529052734375,
+ "rows": 2040,
+ "run_id": "x294-20261011-052507",
+ "start_age": 71.73348236083984,
+ "tool_diff": {
+  "classes": {
+   "between": 74,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00042032903799726906,
+    "n": 1960,
+    "over": 0,
+    "worst_s": 131
+   },
+   "body.energyState": {
+    "max": 0.0008211679608143285,
+    "n": 1960,
+    "over": 0,
+    "worst_s": 2014
+   },
+   "satiety.L": {
+    "max": 7.003575939289309e-07,
+    "n": 1960,
+    "over": 0,
+    "worst_s": 2085
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

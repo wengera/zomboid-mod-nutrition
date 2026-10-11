@@ -1,0 +1,117 @@
+{
+ "diff": {
+  "classes": {
+   "between": 35,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.000698530538326525,
+    "n": 1940,
+    "over": 0,
+    "worst_s": 66
+   },
+   "body.energyState": {
+    "max": 0.0008513629320126004,
+    "n": 1940,
+    "over": 0,
+    "worst_s": 2027
+   },
+   "body.trail.c.ex": {
+    "max": 1.353732583067316e-07,
+    "n": 1940,
+    "over": 0,
+    "worst_s": 971
+   },
+   "satiety.L": {
+    "max": 1.949569645423322e-08,
+    "n": 1940,
+    "over": 0,
+    "worst_s": 2006
+   },
+   "satiety.S": {
+    "max": 1.0507614211323843e-286,
+    "n": 1940,
+    "over": 0,
+    "worst_s": 72
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "activity": 25,
+  "drink": 19,
+  "eat": 16
+ },
+ "initial_activity": null,
+ "lag_agreement": {
+  "body.energyState": {
+   "max_rel": 0.0008156892589365526,
+   "n": 1940,
+   "ok": true,
+   "over": 0
+  },
+  "body.trail.c.ex": {
+   "max_rel": 1.353732583067316e-07,
+   "n": 1940,
+   "ok": true,
+   "over": 0
+  },
+  "satiety.L": {
+   "max_rel": 1.949569645423322e-08,
+   "n": 1940,
+   "ok": true,
+   "over": 0
+  }
+ },
+ "ring_first_age": 142.85043334960938,
+ "ring_last_age": 176.7186737060547,
+ "rows": 1982,
+ "run_id": "x296-20261011-054630",
+ "start_age": 143.6848907470703,
+ "tool_diff": {
+  "classes": {
+   "between": 59,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.000698530538326525,
+    "n": 1916,
+    "over": 0,
+    "worst_s": 66
+   },
+   "body.energyState": {
+    "max": 0.0008513629320126004,
+    "n": 1916,
+    "over": 0,
+    "worst_s": 2027
+   },
+   "satiety.L": {
+    "max": 1.949569645423322e-08,
+    "n": 1916,
+    "over": 0,
+    "worst_s": 2006
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

@@ -1,0 +1,117 @@
+{
+ "diff": {
+  "classes": {
+   "between": 32,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00048418141927297764,
+    "n": 1739,
+    "over": 0,
+    "worst_s": 464
+   },
+   "body.energyState": {
+    "max": 0.0016903773749763484,
+    "n": 1739,
+    "over": 0,
+    "worst_s": 1797
+   },
+   "body.trail.c.ex": {
+    "max": 6.53304206685678e-05,
+    "n": 1739,
+    "over": 0,
+    "worst_s": 1788
+   },
+   "satiety.L": {
+    "max": 9.754122441059413e-05,
+    "n": 1739,
+    "over": 0,
+    "worst_s": 1823
+   },
+   "satiety.S": {
+    "max": 3.469446951953614e-18,
+    "n": 1739,
+    "over": 0,
+    "worst_s": 411
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "as_predicted",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "activity": 37,
+  "drink": 20,
+  "eat": 12
+ },
+ "initial_activity": null,
+ "lag_agreement": {
+  "body.energyState": {
+   "max_rel": 0.0016229530653409905,
+   "n": 1739,
+   "ok": true,
+   "over": 0
+  },
+  "body.trail.c.ex": {
+   "max_rel": 6.53304206685678e-05,
+   "n": 1739,
+   "ok": true,
+   "over": 0
+  },
+  "satiety.L": {
+   "max_rel": 9.754122441059413e-05,
+   "n": 1739,
+   "ok": true,
+   "over": 0
+  }
+ },
+ "ring_first_age": 3.234585762023926,
+ "ring_last_age": 33.683815002441406,
+ "rows": 1777,
+ "run_id": "x292-20261011-050522",
+ "start_age": 4.069286346435547,
+ "tool_diff": {
+  "classes": {
+   "between": 69,
+   "gap": 0,
+   "offline": 5,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.00048418141927297764,
+    "n": 1702,
+    "over": 0,
+    "worst_s": 464
+   },
+   "body.energyState": {
+    "max": 0.001690317907625305,
+    "n": 1702,
+    "over": 0,
+    "worst_s": 1798
+   },
+   "satiety.L": {
+    "max": 9.754122441059413e-05,
+    "n": 1702,
+    "over": 0,
+    "worst_s": 1823
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

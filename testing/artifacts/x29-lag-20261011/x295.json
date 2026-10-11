@@ -1,0 +1,128 @@
+{
+ "diff": {
+  "classes": {
+   "between": 33,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0004441918345388096,
+    "n": 2004,
+    "over": 0,
+    "worst_s": 2057
+   },
+   "body.energyState": {
+    "max": 0.0008227968760579074,
+    "n": 2004,
+    "over": 0,
+    "worst_s": 2088
+   },
+   "body.trail.c.ex": {
+    "max": 3.2585998571098414e-06,
+    "n": 2004,
+    "over": 0,
+    "worst_s": 1751
+   },
+   "satiety.L": {
+    "max": 5.097662648548958e-07,
+    "n": 2004,
+    "over": 0,
+    "worst_s": 1838
+   },
+   "satiety.S": {
+    "max": 2.900835519859558e-216,
+    "n": 2004,
+    "over": 0,
+    "worst_s": 118
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ },
+ "driver_verdicts": {
+  "BOUTS": "as_predicted",
+  "F": "as_predicted",
+  "H1": "as_predicted",
+  "REPLAY": "falsified",
+  "RING": "as_predicted",
+  "SODIUM": "as_predicted",
+  "STOPS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "events_by_kind": {
+  "activity": 28,
+  "drink": 21,
+  "eat": 13
+ },
+ "initial_activity": {
+  "age": 107.55242919921875,
+  "class": "UsingTools",
+  "est": 2.5000000000000098,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2.5,
+  "moving": false,
+  "rate": 2.5,
+  "s": 43
+ },
+ "lag_agreement": {
+  "body.energyState": {
+   "max_rel": 0.0007934805570705241,
+   "n": 2004,
+   "ok": true,
+   "over": 0
+  },
+  "body.trail.c.ex": {
+   "max_rel": 3.2585998571098414e-06,
+   "n": 2004,
+   "ok": true,
+   "over": 0
+  },
+  "satiety.L": {
+   "max_rel": 5.097662648548958e-07,
+   "n": 2004,
+   "ok": true,
+   "over": 0
+  }
+ },
+ "ring_first_age": 106.85038757324219,
+ "ring_last_age": 141.73439025878906,
+ "rows": 2044,
+ "run_id": "x295-20261011-053630",
+ "start_age": 107.66682434082031,
+ "tool_diff": {
+  "classes": {
+   "between": 61,
+   "gap": 0,
+   "offline": 6,
+   "suspect": 0
+  },
+  "fields": {
+   "HUNGER": {
+    "max": 0.0004441918345388096,
+    "n": 1976,
+    "over": 0,
+    "worst_s": 2057
+   },
+   "body.energyState": {
+    "max": 0.0008227968760579074,
+    "n": 1976,
+    "over": 0,
+    "worst_s": 2088
+   },
+   "satiety.L": {
+    "max": 5.097662648548958e-07,
+    "n": 1976,
+    "over": 0,
+    "worst_s": 1838
+   }
+  },
+  "findings": [],
+  "findings_n": 0,
+  "ok": true
+ }
+}

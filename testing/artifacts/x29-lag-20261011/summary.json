@@ -1,0 +1,47 @@
+{
+ "grade_commit": "fe77260",
+ "lib_commit": "082fe51",
+ "part": "lag",
+ "tool_commit": "6575cc5",
+ "verdicts": {
+  "EPISODES": {
+   "x292": 1,
+   "x293": 0,
+   "x294": 0,
+   "x295": 0,
+   "x296": 0
+  },
+  "EPISODE_DECAY": true,
+  "EPISODE_FACTOR": true,
+  "LAG_AGREEMENT": {
+   "x292": true,
+   "x293": true,
+   "x294": true,
+   "x295": true,
+   "x296": true
+  },
+  "REPLAY_OK": {
+   "x292": {
+    "mine": true,
+    "tool": true
+   },
+   "x293": {
+    "mine": true,
+    "tool": true
+   },
+   "x294": {
+    "mine": true,
+    "tool": true
+   },
+   "x295": {
+    "mine": true,
+    "tool": true
+   },
+   "x296": {
+    "mine": true,
+    "tool": true
+   }
+  },
+  "SODIUM_GRADE_MAX": 0
+ }
+}

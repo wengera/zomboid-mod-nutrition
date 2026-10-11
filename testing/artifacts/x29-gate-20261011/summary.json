@@ -1,0 +1,20 @@
+{
+ "grade_commit": "fe77260",
+ "lib_commit": "082fe51",
+ "part": "gate",
+ "tool_commit": "6575cc5",
+ "verdicts": {
+  "DECAY_FACTOR": true,
+  "DECAY_HALF_LIFE": true,
+  "FACTOR_ALL": true,
+  "REPLAY_OK": {
+   "mine": true,
+   "tool": true
+  },
+  "VIGOUR": {
+   "BURPEES": false,
+   "MELEE": false,
+   "SQUATS": false
+  }
+ }
+}

@@ -1,0 +1,626 @@
+[
+ {
+  "age": 108.20886993408203,
+  "class": "HeavyDomestic",
+  "est": 2.0000000000000244,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2,
+  "moving": false,
+  "rate": 2.0,
+  "s": 82
+ },
+ {
+  "age": 108.2884521484375,
+  "autoDrop": 0.10025694037524047,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 87,
+  "vec": {
+   "water": 200.51388075048092
+  }
+ },
+ {
+  "age": 108.92579650878906,
+  "class": "Walking2kmh",
+  "est": 1.8999999999999608,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.9,
+  "moving": false,
+  "rate": 1.9,
+  "s": 125
+ },
+ {
+  "age": 109.61727905273438,
+  "autoDrop": 0.10050734148552565,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 167,
+  "vec": {
+   "water": 201.0146829710513
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D4_20_0",
+  "s": 169
+ },
+ {
+  "age": 109.78485107421875,
+  "class": "LightDomestic",
+  "est": 1.5999999999999843,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.6,
+  "moving": false,
+  "rate": 1.6,
+  "s": 177
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_20_1",
+  "s": 187
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D4_20_2",
+  "s": 205
+ },
+ {
+  "age": 111.96748352050781,
+  "class": "Default",
+  "est": 1.5,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.3,
+  "moving": false,
+  "rate": 1.5,
+  "s": 308
+ },
+ {
+  "age": 113.20464324951172,
+  "autoDrop": 0.10049948113607488,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 382,
+  "vec": {
+   "water": 200.99896227214975
+  }
+ },
+ {
+  "age": 114.52086639404297,
+  "autoDrop": 0.10040426821317816,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 461,
+  "vec": {
+   "water": 200.8085364263563
+  }
+ },
+ {
+  "age": 115.83626556396484,
+  "autoDrop": 0.10035275652987952,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 540,
+  "vec": {
+   "water": 200.70551305975903
+  }
+ },
+ {
+  "age": 117.15315246582031,
+  "autoDrop": 0.10040345598515166,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 619,
+  "vec": {
+   "water": 200.8069119703033
+  }
+ },
+ {
+  "age": 118.4687271118164,
+  "autoDrop": 0.10036926336368646,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 698,
+  "vec": {
+   "water": 200.7385267273729
+  }
+ },
+ {
+  "age": 119.78498840332031,
+  "autoDrop": 0.10039017238889314,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 777,
+  "vec": {
+   "water": 200.78034477778627
+  }
+ },
+ {
+  "age": 121.10193634033203,
+  "autoDrop": 0.048484332096765836,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 856,
+  "vec": {
+   "water": 96.96866419353168
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D5_08_0",
+  "s": 886
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_08_1",
+  "s": 904
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_08_2",
+  "s": 922
+ },
+ {
+  "age": 124.00881958007812,
+  "autoDrop": 0.10000540870239394,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1030,
+  "vec": {
+   "water": 200.01081740478787
+  }
+ },
+ {
+  "age": 125.32546997070312,
+  "autoDrop": 0.10025557865859847,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1109,
+  "vec": {
+   "water": 200.51115731719693
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D5_13_0",
+  "s": 1188
+ },
+ {
+  "age": 126.63357543945312,
+  "autoDrop": 0.10032197131118537,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1188,
+  "vec": {
+   "water": 200.64394262237073
+  }
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_13_1",
+  "s": 1207
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_13_2",
+  "s": 1226
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_13_3",
+  "s": 1245
+ },
+ {
+  "age": 128.085205078125,
+  "class": "Default",
+  "est": 1.5,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.3,
+  "moving": false,
+  "rate": 1.5,
+  "s": 1275
+ },
+ {
+  "age": 128.1011505126953,
+  "class": "LightDomestic",
+  "est": 1.6,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.6,
+  "moving": false,
+  "rate": 1.6,
+  "s": 1276
+ },
+ {
+  "age": 128.1171112060547,
+  "class": "Walking2kmh",
+  "est": 1.9,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.9,
+  "moving": false,
+  "rate": 1.9,
+  "s": 1277
+ },
+ {
+  "age": 128.1516876220703,
+  "class": "HeavyDomestic",
+  "est": 2.0,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2,
+  "moving": false,
+  "rate": 2.0,
+  "s": 1279
+ },
+ {
+  "age": 128.18360900878906,
+  "class": "UsingTools",
+  "est": 2.5,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2.5,
+  "moving": false,
+  "rate": 2.5,
+  "s": 1281
+ },
+ {
+  "age": 128.26869201660156,
+  "class": "DefaultExercise",
+  "est": 2.999999999999999,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3,
+  "moving": false,
+  "rate": 3.0,
+  "s": 1286
+ },
+ {
+  "age": 128.3191680908203,
+  "class": "Walking5kmh",
+  "est": 3.1000000000000005,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3.8,
+  "moving": false,
+  "rate": 3.1,
+  "s": 1289
+ },
+ {
+  "age": 128.33509826660156,
+  "class": "LightWork",
+  "est": 3.1999999999999993,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3,
+  "moving": false,
+  "rate": 3.2,
+  "s": 1290
+ },
+ {
+  "age": 128.41744995117188,
+  "class": "MediumWork",
+  "est": 3.900000000000001,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 3.9,
+  "s": 1295
+ },
+ {
+  "age": 128.50257873535156,
+  "class": "MediumWork",
+  "est": 3.900000000000002,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 3.9,
+  "s": 1300
+ },
+ {
+  "age": 128.6356201171875,
+  "class": "MediumWork",
+  "est": 3.9000000000000017,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 3.9,
+  "s": 1308
+ },
+ {
+  "age": 128.7021026611328,
+  "class": "JumpFence",
+  "est": 4.000000000000006,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 4.0,
+  "s": 1312
+ },
+ {
+  "age": 128.98379516601562,
+  "class": "DiggingSpade",
+  "est": 5.500000000000007,
+  "exercising": true,
+  "kind": "activity",
+  "label": "activity",
+  "met": 5,
+  "moving": false,
+  "rate": 5.5,
+  "s": 1329
+ },
+ {
+  "age": 129.06887817382812,
+  "class": "DiggingSpade",
+  "est": 5.4999999999999964,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 5,
+  "moving": false,
+  "rate": 5.5,
+  "s": 1334
+ },
+ {
+  "age": 129.15133666992188,
+  "class": "JumpFence",
+  "est": 4.000000000000012,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 4.0,
+  "s": 1339
+ },
+ {
+  "age": 129.2017822265625,
+  "autoDrop": 0.10006178056922732,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1342,
+  "vec": {
+   "water": 200.12356113845465
+  }
+ },
+ {
+  "age": 129.54513549804688,
+  "class": "MediumWork",
+  "est": 3.9000000000000004,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 4,
+  "moving": false,
+  "rate": 3.9,
+  "s": 1362
+ },
+ {
+  "age": 129.7712860107422,
+  "autoDrop": 0.10231247145291578,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1376,
+  "vec": {
+   "water": 204.62494290583155
+  }
+ },
+ {
+  "age": 129.81114196777344,
+  "class": "LightWork",
+  "est": 3.199999999999998,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3,
+  "moving": false,
+  "rate": 3.2,
+  "s": 1378
+ },
+ {
+  "age": 130.1036834716797,
+  "class": "Walking5kmh",
+  "est": 3.099999999999982,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3.8,
+  "moving": false,
+  "rate": 3.1,
+  "s": 1396
+ },
+ {
+  "age": 130.18360900878906,
+  "class": "DefaultExercise",
+  "est": 2.9999999999999645,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 3,
+  "moving": false,
+  "rate": 3.0,
+  "s": 1401
+ },
+ {
+  "age": 130.47634887695312,
+  "class": "UsingTools",
+  "est": 2.5,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2.5,
+  "moving": false,
+  "rate": 2.5,
+  "s": 1418
+ },
+ {
+  "age": 130.94212341308594,
+  "autoDrop": 0.10017471961618596,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1446,
+  "vec": {
+   "water": 200.3494392323719
+  }
+ },
+ {
+  "age": 131.19476318359375,
+  "class": "HeavyDomestic",
+  "est": 1.9999999999999891,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 2,
+  "moving": false,
+  "rate": 2.0,
+  "s": 1461
+ },
+ {
+  "age": 131.9132080078125,
+  "class": "Walking2kmh",
+  "est": 1.9000000000000132,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.9,
+  "moving": false,
+  "rate": 1.9,
+  "s": 1504
+ },
+ {
+  "age": 132.25926208496094,
+  "autoDrop": 0.10020343556268829,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1525,
+  "vec": {
+   "water": 200.4068711253766
+  }
+ },
+ {
+  "age": 132.72479248046875,
+  "class": "LightDomestic",
+  "est": 1.6000000000000358,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.6,
+  "moving": false,
+  "rate": 1.6,
+  "s": 1553
+ },
+ {
+  "age": 133.5677032470703,
+  "autoDrop": 0.10019090796252272,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1604,
+  "vec": {
+   "water": 200.38181592504546
+  }
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D5_20_0",
+  "s": 1609
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_20_1",
+  "s": 1628
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D5_20_2",
+  "s": 1646
+ },
+ {
+  "age": 134.8122100830078,
+  "class": "Default",
+  "est": 1.5,
+  "exercising": false,
+  "kind": "activity",
+  "label": "activity",
+  "met": 1.3,
+  "moving": false,
+  "rate": 1.5,
+  "s": 1678
+ },
+ {
+  "age": 137.1525421142578,
+  "autoDrop": 0.10045589126470622,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1819,
+  "vec": {
+   "water": 200.91178252941245
+  }
+ },
+ {
+  "age": 138.46836853027344,
+  "autoDrop": 0.10040346509159903,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1898,
+  "vec": {
+   "water": 200.80693018319806
+  }
+ },
+ {
+  "age": 139.78353881835938,
+  "autoDrop": 0.10036551552200745,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 1977,
+  "vec": {
+   "water": 200.7310310440149
+  }
+ },
+ {
+  "age": 141.1129608154297,
+  "autoDrop": 0.1004117857711394,
+  "kind": "drink",
+  "label": "autodrop",
+  "s": 2056,
+  "vec": {
+   "water": 200.8235715422788
+  }
+ }
+]

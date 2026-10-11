@@ -1,0 +1,5705 @@
+{
+ "run_id": "x291-20261011-045658",
+ "session": "Plan 11f Task 6 session 1: the vigour gate (squats, burpees, melee) and the decay leg of row 9, on the staged copy; one boot of x29-exercise",
+ "driver": "x291_gate.py",
+ "lib": "x29_exercise_lib.py",
+ "user": "admin",
+ "users": [
+  "admin"
+ ],
+ "profile": {
+  "name": "x29-exercise",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x29-exercise.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp copy (release/x29-exercise) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the Plan 11f Task 6 exercise rows 9 and 10: the vigour gate and decay leg, then the lag chain.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_StudyFoods"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\x29-exercise\\NutritionRevamp\\Contents\\mods\\NutritionRevamp",
+   "TKX_StudyFoods": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_StudyFoods"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "082fe51",
+ "mod_commit": "5244b4a",
+ "mod_dirty_not_booted": false,
+ "harness_lua_commit": "6c98c5c",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "457f39f",
+ "study_foods_commit": "77fcca7",
+ "study_foods_dirty": false,
+ "replay_tool_commit": "6575cc5",
+ "lib_commit": "082fe51",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 238 mods",
+  "ok   pytest available"
+ ],
+ "host": {
+  "free_gb_before_boot": 16.7615432739258,
+  "mem_min_gb": 12.0,
+  "stray_clients": [],
+  "free_gb_after": 16.5468215942383
+ },
+ "meta": {
+  "staged_mod": "release/x29-exercise/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_at": "5244b4a",
+  "staged_manifest": "release/x29-exercise/NutritionRevamp/MANIFEST.json",
+  "phase_note": "a ring row is sampled inside EveryOneMinute before the mod's queue drains that minute: row k reads the state drain k-1 left (harness H2's comment block)",
+  "budget_s": 780.0,
+  "staged_manifest_sha256": "34260e7157a3ddeb9e23a824cf2c9d905ce0a2ebb5cb8b85ed84ffb384a56542",
+  "harness_server_sha256": "a8f1ceec97a31d776e5fefb2295358783548f5f6997ff4e131990fe044a59c6d",
+  "harness_core_sha256": "16704985ab018c329bc2d23c3c3290694ffbfc266e62db117b8fee946fe5cecc",
+  "study_foods_sha256": "4307c885717bec71d90dde9b887c30497ec89691129ccd7007ca738cff5e270e",
+  "jar_bytes": 65682033,
+  "jar_sha256": "e1a69eb743ede60b213a0fe7f8b83d4fcab773036d256cc4543a336f3b058a33",
+  "steam_buildid": "25485521"
+ },
+ "predictions": {
+  "VIGOUR": {
+   "SQUATS": false,
+   "BURPEES": null,
+   "MELEE": null
+  },
+  "DECAY": {
+   "every graded row": "S within 1 % of 0.5^((t - t_e) / 0.15)",
+   "S_30min": 0.099,
+   "factor_30min": 0.931
+  },
+  "REPLAY": {
+   "whole session diff": "ok (HUNGER 0.002, es 0.005, L 0.5 %)"
+  },
+  "STOPS": {
+   "this session's legs": "done"
+  },
+  "SODIUM": {
+   "every chain day": "hyponatraemia grade 0"
+  },
+  "H1": {
+   "ring record paths": "resolved"
+  },
+  "RING": {
+   "pages": "all read, errors 0"
+  },
+  "F": {
+   "departure flush": "within 90 s"
+  },
+  "Z": {
+   "mod error lines": 0,
+   "admin parked": false
+  }
+ },
+ "deviations": [],
+ "world_changes": {
+  "restored": "fixture default restored into the run dir (server and the admin client cache)",
+  "left_in_place": [
+   "RCON additem TKX.Mixed650 x1"
+  ]
+ },
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 57.074,
+   "wall_after": 57.33,
+   "epoch_ms_before": 1791709075159,
+   "epoch_ms_after": 1791709075415,
+   "took": 0.256,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 57.33,
+   "wall_after": 58.088,
+   "epoch_ms_before": 1791709075415,
+   "epoch_ms_after": 1791709076173,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 3.18402099609375,
+    "hour": 10,
+    "minutes": 11,
+    "mult": 4.590951442718506,
+    "wall": 1791709076004
+   }
+  },
+  {
+   "step": "S_mode",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.writer.mode",
+   "phase": "S",
+   "wall_before": 58.088,
+   "wall_after": 58.852,
+   "epoch_ms_before": 1791709076173,
+   "epoch_ms_after": 1791709076937,
+   "took": 0.764,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.writer.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "S_nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 58.852,
+   "wall_after": 59.359,
+   "epoch_ms_before": 1791709076937,
+   "epoch_ms_after": 1791709077444,
+   "took": 0.507,
+   "ack": {
+    "calories": -11.281601905822754,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 80,
+    "hunger": 0.1902415156364441,
+    "thirst": 0.005829767789691687,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "S_stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 59.359,
+   "wall_after": 60.122,
+   "epoch_ms_before": 1791709077444,
+   "epoch_ms_after": 1791709078207,
+   "took": 0.763,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.01319422759115696,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.19044920802116394,
+     "Idleness": 0.09432093799114227,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.95054626464844,
+     "Thirst": 0.006592964753508568,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791709078000,
+    "user": "admin",
+    "worldAge": 3.23586368560791,
+    "mult": 4.708277702331543
+   }
+  },
+  {
+   "step": "S_autodrink",
+   "side": "server",
+   "cmd": "autodrink.set",
+   "args": "admin true",
+   "phase": "S",
+   "wall_before": 60.122,
+   "wall_after": 60.625,
+   "epoch_ms_before": 1791709078207,
+   "epoch_ms_after": 1791709078710,
+   "took": 0.503,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": true,
+    "before": true,
+    "after": true
+   }
+  },
+  {
+   "step": "H_h1_record",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin satiety.P satiety.S satiety.L satiety.t body.energyState body.met body.exKcalDay body.metMinDay body.band2Day body.trail.c.ex acute.debtH stomachFill stomach.liquid body.inDay kineticsAge body.eeDay body.fm body.lm fluids.water fluids.na fluids.naPlasma fluids.sweat6h fluids.autoDrop fluids.thirstTarget firstSeen resets body.sex body.fm body.lm",
+   "phase": "H",
+   "wall_before": 60.627,
+   "wall_after": 61.135,
+   "epoch_ms_before": 1791709078712,
+   "epoch_ms_after": 1791709079220,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 29,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "satiety.P": 1100.4641341907932,
+     "satiety.S": 0,
+     "satiety.L": 0,
+     "satiety.t": 3.2516136169433594,
+     "body.energyState": 1.0025801127599063,
+     "body.met": 1.3,
+     "body.exKcalDay": 0,
+     "body.metMinDay": 0,
+     "body.band2Day": 0,
+     "body.trail.c.ex": 0,
+     "acute.debtH": 0,
+     "stomachFill": 0,
+     "stomach.liquid": 0,
+     "body.inDay": 0,
+     "kineticsAge": 3.2516136169433594,
+     "body.eeDay": 15.996699111418742,
+     "body.fm": 14.399999999999999,
+     "body.lm": 65.6,
+     "fluids.water": -25.944346891977265,
+     "fluids.na": -0.05609321594238282,
+     "fluids.naPlasma": 140.0747171282164,
+     "fluids.sweat6h": 0,
+     "fluids.autoDrop": 0,
+     "fluids.thirstTarget": 0.008261959638288574,
+     "firstSeen": 3.083333969116211,
+     "resets": 0,
+     "body.sex": 1
+    }
+   }
+  },
+  {
+   "step": "H_h1_globals",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.writer.stats.writes NutritionRevamp.server.writer.stats.sips NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.version",
+   "phase": "H",
+   "wall_before": 61.135,
+   "wall_after": 61.395,
+   "epoch_ms_before": 1791709079220,
+   "epoch_ms_after": 1791709079480,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.writer.stats.writes": 12,
+     "NutritionRevamp.server.writer.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.version": "1.0.0"
+    }
+   }
+  },
+  {
+   "step": "H_ring_start",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start satiety.P satiety.S satiety.L satiety.t body.energyState body.met body.exKcalDay body.metMinDay body.band2Day body.trail.c.ex acute.debtH stomachFill stomach.liquid body.inDay kineticsAge body.eeDay body.fm body.lm fluids.water fluids.na fluids.naPlasma fluids.sweat6h fluids.autoDrop fluids.thirstTarget _G.NutritionRevamp.server.writer.stats.writes _G.NutritionRevamp.server.writer.stats.sips _G.NutritionRevamp.server.intake.stats.eats _G.NutritionRevamp.server.intake.stats.landed _G.NutritionRevamp.server.intake.stats.sips",
+   "phase": "H",
+   "wall_before": 61.395,
+   "wall_after": 61.907,
+   "epoch_ms_before": 1791709079480,
+   "epoch_ms_after": 1791709079991,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "satiety.P",
+     "satiety.S",
+     "satiety.L",
+     "satiety.t",
+     "body.energyState",
+     "body.met",
+     "body.exKcalDay",
+     "body.metMinDay",
+     "body.band2Day",
+     "body.trail.c.ex",
+     "acute.debtH",
+     "stomachFill",
+     "stomach.liquid",
+     "body.inDay",
+     "kineticsAge",
+     "body.eeDay",
+     "body.fm",
+     "body.lm",
+     "fluids.water",
+     "fluids.na",
+     "fluids.naPlasma",
+     "fluids.sweat6h",
+     "fluids.autoDrop",
+     "fluids.thirstTarget",
+     "_G.NutritionRevamp.server.writer.stats.writes",
+     "_G.NutritionRevamp.server.writer.stats.sips",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed",
+     "_G.NutritionRevamp.server.intake.stats.sips"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 29,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "satiety.P": 1083.3774224404046,
+      "satiety.S": 0,
+      "satiety.L": 0,
+      "satiety.t": 3.2674169540405273,
+      "body.energyState": 1.002822435339204,
+      "body.met": 1.3,
+      "body.exKcalDay": 0,
+      "body.metMinDay": 0,
+      "body.band2Day": 0,
+      "body.trail.c.ex": 0,
+      "acute.debtH": 0,
+      "stomachFill": 0,
+      "stomach.liquid": 0,
+      "body.inDay": 0,
+      "kineticsAge": 3.2674169540405273,
+      "body.eeDay": 17.499099103064793,
+      "body.fm": 14.399999999999999,
+      "body.lm": 65.6,
+      "fluids.water": -28.380995565437203,
+      "fluids.na": -0.06136099497477214,
+      "fluids.naPlasma": 140.0817386027211,
+      "fluids.sweat6h": 0,
+      "fluids.autoDrop": 0,
+      "fluids.thirstTarget": 0.009036405596110297,
+      "_G.NutritionRevamp.server.writer.stats.writes": 12,
+      "_G.NutritionRevamp.server.writer.stats.sips": 0,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0,
+      "_G.NutritionRevamp.server.intake.stats.sips": 0
+     }
+    }
+   }
+  },
+  {
+   "step": "H_ring_start_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "H",
+   "wall_before": 61.907,
+   "wall_after": 62.67,
+   "epoch_ms_before": 1791709079991,
+   "epoch_ms_after": 1791709080755,
+   "took": 0.763,
+   "ack": {
+    "worldAge": 3.3017616271972656,
+    "hour": 10,
+    "minutes": 18,
+    "mult": 4.76584529876709,
+    "wall": 1791709080501
+   }
+  },
+  {
+   "step": "W_lw0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.players.online.admin NutritionRevamp.server.store.file.lastWrite.admin NutritionRevamp.server.store.file.stats.writes",
+   "phase": "W",
+   "wall_before": 62.673,
+   "wall_after": 63.181,
+   "epoch_ms_before": 1791709080758,
+   "epoch_ms_after": 1791709081266,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {
+     "NutritionRevamp.server.players.online.admin": "userdata"
+    },
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.store.file.lastWrite.admin": 1791709050297,
+     "NutritionRevamp.server.store.file.stats.writes": 1
+    }
+   }
+  },
+  {
+   "step": "W_last",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.file.last.admin",
+   "phase": "W",
+   "wall_before": 93.161,
+   "wall_after": 93.42,
+   "epoch_ms_before": 1791709111246,
+   "epoch_ms_after": 1791709111504,
+   "took": 0.259,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.file.last.admin",
+    "type": "string",
+    "resolved": true,
+    "value": "{\"gen\":1,\"rec\":{\"username\":\"admin\",\"firstSeen\":3.083333969116211,\"lastSeen\":4.101822853088379,\"resets\":0,\"dead\":false,\"satiety\":{\"P\":474.1868313208905,\"S\":0,\"L\":0,\"t\":4.101822853088379,\"nicH\":4.101822853088379},\"kineticsAge\":4.101822853088379,\"stomach\":{\"liquid\":0,\"buffer\":{\"calories\":0,\"carbs\":0,\"lipids\":0,\"proteins\":0,\"fibre\":0,\"water\":0,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0}},\"pool\":{\"calories\":0,\"carbs\":0,\"lipids\":0,\"proteins\":0,\"fibre\":0,\"water\":0,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0},\"nutrients\":{\"vitC\":{\"p\":0.9979893203631659,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"thiamine\":{\"p\":0.9978234748562436,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"riboflavin\":{\"p\":0.9978234748562436,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"niacin\":{\"p\":0.998930931409379,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB6\":{\"p\":0.9989862000210101,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"folate\":{\"p\":0.9989148681995482,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB12\":{\"p\":0.9999575638636061,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"choline\":{\"p\":0.9975699555289785,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitA\":{\"p\":0.999628807740861,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitD\":{\"p\":0.9995098682799552,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitE\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitK\":{\"p\":0.9890495323122234,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"pantothenate\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"biotin\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"iron\":{\"p\":0.9999575629631672,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"S\":999.9575629631672,\"H\":2666.6666666666665},\"zinc\":{\"p\":0.9986667686672872,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"copper\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"magnesium\":{\"p\":0.9994484706694281,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"calcium\":{\"p\":0.9999939375661666,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"bone\":1399991.5125926333},\"iodine\":{\"p\":0.9995757196640469,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"selenium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"fibre\":{\"p\":0.9916308997126871,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"efa\":{\"p\":0.9979011262629819,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"sodium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"potassium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"caffeine\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"ethanol\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"epoch\":0,\"lastAgeH\":4.101822853088379,\"lastDayIndex\":0},\"body\":{\"fm0\":14.399999999999999,\"lm0\":65.6,\"lm0dis\":65.6,\"fmRef\":14.399999999999999,\"l0\":5,\"sex\":1,\"r\":1.2066067964323572,\"traitCarry\":1,\"bornAge\":3.083333969116211,\"fm\":14.399999999999999,\"lm\":65.6,\"dayIndex\":0,\"lastAgeH\":4.101822853088379,\"strAgeH\":4.101822853088379,\"inDay\":0,\"eeDay\":96.88865669872058,\"ebDay\":-96.88865669872058,\"actKcalDay\":24.443733215332035,\"exKcalDay\":0,\"pDay\":0,\"carbDay\":0,\"lipDay\":0,\"alcDay\":0,\"pPrevKg\":0.8,\"eb7\":[0,0,0,0,0,0,0],\"mass7\":[80,80,80,80,80,80,80],\"p7\":[0,0,0,0,0,0,0],\"bandWeek\":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],\"trail\":{\"at\":4.101822853088379,\"kcal\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ee\":[0,0,0,85.74348861352377,11.14516808519681,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ex\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"p\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"carb\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"lip\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},\"tac\":1,\"at\":0,\"vStr\":0,\"vHyp\":0,\"vStrHigh\":0,\"metMinDay\":0,\"band1Day\":0,\"band2Day\":0,\"n\":0,\"nPeak\":0,\"tPeakD\":0,\"nHist\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"cumDef\":0,\"tDisuse\":0,\"shownL\":5,\"riseHeldH\":0,\"lastFallAge\":3.083333969116211},\"acute\":{\"gutAlc\":0,\"gutCaf\":0,\"caf\":0,\"cafMean\":0,\"cafTol\":0,\"cafLowH\":0,\"slowMet\":true,\"alc\":0,\"alcPeak\":0,\"hang\":0,\"hangH\":0,\"glyc\":451.48805511226425,\"bg\":5,\"awakeH\":0,\"debtH\":0,\"sleptH\":0,\"boutH\":0,\"gapH\":0,\"winStartH\":4.101822853088379,\"winSleptH\":0,\"S\":0.17,\"starvedDays\":0,\"lowDay\":false,\"mass90max\":0,\"mass90ageH\":3.083333969116211,\"bmi\":0,\"refeedRisk\":0,\"refeedDayN\":-1,\"refeedEvent\":false,\"exEma\":0,\"lastVigAgeH\":-1000000000,\"boutVig\":false,\"coldH\":0,\"retEma\":0,\"alc7\":0,\"alcDayG\":0,\"lastFedAgeH\":3.083333969116211,\"lastB1\":0,\"lastB2\":0},\"fluids\":{\"water\":-157.1242712839629,\"na\":-0.3394962946573893,\"k\":0,\"sweatK\":0.9530059695243835,\"naSweat\":10.198764616571907,\"sweat6h\":0,\"loss6h\":0.40194792324148343,\"autoDrop\":0},\"effects\":{\"dirty\":false,\"epoch\":1,\"own\":{\"nv\":false,\"ss\":false},\"nvDays\":0,\"pe\":1,\"ea\":30,\"lastDay\":0,\"exSeen\":0},\"reconcile\":{\"count\":0}},\"done\":true}"
+   }
+  },
+  {
+   "step": "W_stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "W",
+   "wall_before": 93.42,
+   "wall_after": 93.926,
+   "epoch_ms_before": 1791709111504,
+   "epoch_ms_after": 1791709112011,
+   "took": 0.506,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.5996819138526917,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.2031746804714203,
+     "Idleness": 0.6330459713935852,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.79419708251953,
+     "Thirst": 0.05035627260804176,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791709111802,
+    "user": "admin",
+    "worldAge": 4.133734703063965,
+    "mult": 4.783580303192139
+   }
+  },
+  {
+   "step": "W_read_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "W",
+   "wall_before": 93.926,
+   "wall_after": 94.437,
+   "epoch_ms_before": 1791709112011,
+   "epoch_ms_after": 1791709112522,
+   "took": 0.511,
+   "ack": {
+    "worldAge": 4.152329444885254,
+    "hour": 11,
+    "minutes": 9,
+    "mult": 4.783481597900391,
+    "wall": 1791709112501
+   }
+  },
+  {
+   "step": "X_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 95.202,
+   "wall_after": 95.21,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "X_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 95.21,
+   "wall_after": 95.722,
+   "epoch_ms_before": 1791709113295,
+   "epoch_ms_after": 1791709113807,
+   "took": 0.512,
+   "ack": {
+    "worldAge": 4.184230804443359,
+    "hour": 11,
+    "minutes": 11,
+    "mult": 4.771203517913818,
+    "wall": 1791709113696
+   }
+  },
+  {
+   "step": "G_MEAL_spawn_Mixed650_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"TKX.Mixed650\" 1",
+   "phase": "X",
+   "wall_before": 95.722,
+   "wall_after": 95.836,
+   "ack": {
+    "ok": true,
+    "reply": "Item TKX.Mixed650 Added in admin's inventory."
+   }
+  },
+  {
+   "step": "G_MEAL_spawn_Mixed650_seen",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/TKX.Mixed650 getID",
+   "phase": "X",
+   "wall_before": 95.836,
+   "wall_after": 96.092,
+   "epoch_ms_before": 1791709113921,
+   "epoch_ms_after": 1791709114177,
+   "took": 0.256,
+   "ack": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/TKX.Mixed650",
+    "resolved": "admin/TKX.Mixed650 #2113437115",
+    "fields": {
+     "getID": 2113437115
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 4.261578559875488,
+    "count": 1
+   }
+  },
+  {
+   "step": "G_MEAL_0_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "X",
+   "wall_before": 96.093,
+   "wall_after": 96.349,
+   "epoch_ms_before": 1791709114177,
+   "epoch_ms_after": 1791709114434,
+   "took": 0.256,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "G_MEAL_0_before",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 96.349,
+   "wall_after": 97.113,
+   "epoch_ms_before": 1791709114434,
+   "epoch_ms_after": 1791709115198,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "TKX.Mixed650 1",
+   "phase": "X",
+   "wall_before": 97.113,
+   "wall_after": 97.623,
+   "epoch_ms_before": 1791709115198,
+   "epoch_ms_after": 1791709115708,
+   "took": 0.51,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2113437115,
+    "itemBefore": {
+     "fullType": "TKX.Mixed650",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.3199999928474426,
+     "baseHunger": -0.3199999928474426,
+     "calories": 650,
+     "carbs": 81.25,
+     "lipids": 25.27777862548828,
+     "proteins": 24.375,
+     "id": 2113437115,
+     "uses": 0.3199999928474426,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.3199999928474426,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 464.0351791381836,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": -108.02433776855469,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.20468826591968536,
+     "thirst": 0.05521634221076965,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 97.623,
+   "wall_after": 98.129,
+   "epoch_ms_before": 1791709115708,
+   "epoch_ms_after": 1791709116214,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 98.379,
+   "wall_after": 98.89,
+   "epoch_ms_before": 1791709116464,
+   "epoch_ms_after": 1791709116975,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 99.14,
+   "wall_after": 99.403,
+   "epoch_ms_before": 1791709117225,
+   "epoch_ms_after": 1791709117488,
+   "took": 0.263,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 99.653,
+   "wall_after": 100.16,
+   "epoch_ms_before": 1791709117738,
+   "epoch_ms_after": 1791709118245,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 100.411,
+   "wall_after": 100.667,
+   "epoch_ms_before": 1791709118496,
+   "epoch_ms_after": 1791709118752,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 100.917,
+   "wall_after": 101.425,
+   "epoch_ms_before": 1791709119002,
+   "epoch_ms_after": 1791709119510,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 101.675,
+   "wall_after": 101.932,
+   "epoch_ms_before": 1791709119760,
+   "epoch_ms_after": 1791709120017,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 102.183,
+   "wall_after": 102.691,
+   "epoch_ms_before": 1791709120268,
+   "epoch_ms_after": 1791709120776,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 102.941,
+   "wall_after": 103.202,
+   "epoch_ms_before": 1791709121026,
+   "epoch_ms_after": 1791709121287,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 103.452,
+   "wall_after": 103.96,
+   "epoch_ms_before": 1791709121537,
+   "epoch_ms_after": 1791709122045,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 104.211,
+   "wall_after": 104.468,
+   "epoch_ms_before": 1791709122296,
+   "epoch_ms_after": 1791709122553,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 104.718,
+   "wall_after": 105.226,
+   "epoch_ms_before": 1791709122803,
+   "epoch_ms_after": 1791709123311,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 105.476,
+   "wall_after": 105.733,
+   "epoch_ms_before": 1791709123561,
+   "epoch_ms_after": 1791709123818,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 105.984,
+   "wall_after": 106.491,
+   "epoch_ms_before": 1791709124069,
+   "epoch_ms_after": 1791709124576,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_poll",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.sips NutritionRevamp.server.intake.stats.failures",
+   "phase": "X",
+   "wall_before": 106.742,
+   "wall_after": 107.0,
+   "epoch_ms_before": 1791709124827,
+   "epoch_ms_after": 1791709125085,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 1,
+     "NutritionRevamp.server.intake.stats.landed": 1,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0
+    }
+   }
+  },
+  {
+   "step": "G_MEAL_0_landed_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 107.0,
+   "wall_after": 107.256,
+   "epoch_ms_before": 1791709125085,
+   "epoch_ms_after": 1791709125341,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 4.4924421310424805,
+    "hour": 11,
+    "minutes": 29,
+    "mult": 4.771731853485107,
+    "wall": 1791709125300
+   }
+  },
+  {
+   "step": "IDLE_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 107.771,
+   "wall_after": 107.824,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "IDLE_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 107.824,
+   "wall_after": 108.331,
+   "epoch_ms_before": 1791709125909,
+   "epoch_ms_after": 1791709126416,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 4.518956184387207,
+    "hour": 11,
+    "minutes": 31,
+    "mult": 4.775247097015381,
+    "wall": 1791709126305
+   }
+  },
+  {
+   "step": "SQUATS_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 122.805,
+   "wall_after": 122.921,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "SQUATS_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 122.921,
+   "wall_after": 123.427,
+   "epoch_ms_before": 1791709141006,
+   "epoch_ms_after": 1791709141512,
+   "took": 0.506,
+   "ack": {
+    "worldAge": 4.917713165283203,
+    "hour": 11,
+    "minutes": 55,
+    "mult": 4.778558254241943,
+    "wall": 1791709141305
+   }
+  },
+  {
+   "step": "SQUATS_set_do",
+   "side": "client",
+   "cmd": "exercise.do",
+   "args": "squats 20",
+   "phase": "X",
+   "wall_before": 123.935,
+   "wall_after": 124.196,
+   "epoch_ms_before": 1791709142020,
+   "epoch_ms_after": 1791709142281,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "exercise": "squats",
+    "minutes": 20,
+    "queued": true,
+    "queueLen": 1
+   }
+  },
+  {
+   "step": "BURPEES_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 155.913,
+   "wall_after": 156.038,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "BURPEES_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 156.038,
+   "wall_after": 156.545,
+   "epoch_ms_before": 1791709174123,
+   "epoch_ms_after": 1791709174630,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 5.80040168762207,
+    "hour": 12,
+    "minutes": 48,
+    "mult": 4.785455226898193,
+    "wall": 1791709174503
+   }
+  },
+  {
+   "step": "BURPEES_set_do",
+   "side": "client",
+   "cmd": "exercise.do",
+   "args": "burpees 20",
+   "phase": "X",
+   "wall_before": 157.304,
+   "wall_after": 157.564,
+   "epoch_ms_before": 1791709175388,
+   "epoch_ms_after": 1791709175649,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "exercise": "burpees",
+    "minutes": 20,
+    "queued": true,
+    "queueLen": 1
+   }
+  },
+  {
+   "step": "DECAY_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 196.876,
+   "wall_after": 196.954,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "DECAY_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 196.954,
+   "wall_after": 197.463,
+   "epoch_ms_before": 1791709215039,
+   "epoch_ms_after": 1791709215548,
+   "took": 0.509,
+   "ack": {
+    "worldAge": 6.884932518005371,
+    "hour": 13,
+    "minutes": 53,
+    "mult": 4.784427165985107,
+    "wall": 1791709215300
+   }
+  },
+  {
+   "step": "DECAY_t0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 197.463,
+   "wall_after": 197.973,
+   "epoch_ms_before": 1791709215548,
+   "epoch_ms_after": 1791709216058,
+   "took": 0.51,
+   "ack": {
+    "worldAge": 6.900887489318848,
+    "hour": 13,
+    "minutes": 54,
+    "mult": 4.788987636566162,
+    "wall": 1791709215900
+   }
+  },
+  {
+   "step": "DECAY_set",
+   "side": "server",
+   "cmd": "lua.setpath",
+   "args": "NutritionRevamp.server.store.records.admin.satiety.S 1",
+   "phase": "X",
+   "wall_before": 197.973,
+   "wall_after": 198.478,
+   "epoch_ms_before": 1791709216058,
+   "epoch_ms_after": 1791709216563,
+   "took": 0.505,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.store.records.admin.satiety.S",
+    "before": "0",
+    "after": "1"
+   }
+  },
+  {
+   "step": "DECAY_t1",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 198.478,
+   "wall_after": 199.24,
+   "epoch_ms_before": 1791709216563,
+   "epoch_ms_after": 1791709217324,
+   "took": 0.762,
+   "ack": {
+    "worldAge": 6.935449600219727,
+    "hour": 13,
+    "minutes": 56,
+    "mult": 4.780754089355469,
+    "wall": 1791709217195
+   }
+  },
+  {
+   "step": "MELEE_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "X",
+   "wall_before": 237.528,
+   "wall_after": 237.641,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "MELEE_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "X",
+   "wall_before": 237.641,
+   "wall_after": 238.148,
+   "epoch_ms_before": 1791709255726,
+   "epoch_ms_after": 1791709256233,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 7.9673051834106445,
+    "hour": 14,
+    "minutes": 58,
+    "mult": 4.785976886749268,
+    "wall": 1791709255997
+   }
+  },
+  {
+   "step": "MELEE_horde",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "createhorde 1 admin",
+   "phase": "X",
+   "wall_before": 238.656,
+   "wall_after": 238.776,
+   "ack": {
+    "ok": true,
+    "reply": "Horde spawned."
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 238.776,
+   "wall_after": 239.283,
+   "epoch_ms_before": 1791709256861,
+   "epoch_ms_after": 1791709257368,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 241.283,
+   "wall_after": 241.793,
+   "epoch_ms_before": 1791709259368,
+   "epoch_ms_after": 1791709259878,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 243.793,
+   "wall_after": 244.301,
+   "epoch_ms_before": 1791709261878,
+   "epoch_ms_after": 1791709262386,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 246.301,
+   "wall_after": 246.809,
+   "epoch_ms_before": 1791709264386,
+   "epoch_ms_after": 1791709264894,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 248.81,
+   "wall_after": 249.319,
+   "epoch_ms_before": 1791709266894,
+   "epoch_ms_after": 1791709267404,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 251.32,
+   "wall_after": 251.828,
+   "epoch_ms_before": 1791709269405,
+   "epoch_ms_after": 1791709269912,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 253.828,
+   "wall_after": 254.088,
+   "epoch_ms_before": 1791709271913,
+   "epoch_ms_after": 1791709272173,
+   "took": 0.26,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 256.088,
+   "wall_after": 256.602,
+   "epoch_ms_before": 1791709274173,
+   "epoch_ms_after": 1791709274687,
+   "took": 0.514,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 258.602,
+   "wall_after": 259.11,
+   "epoch_ms_before": 1791709276687,
+   "epoch_ms_after": 1791709277195,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 261.111,
+   "wall_after": 261.618,
+   "epoch_ms_before": 1791709279196,
+   "epoch_ms_after": 1791709279703,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 263.618,
+   "wall_after": 264.127,
+   "epoch_ms_before": 1791709281703,
+   "epoch_ms_after": 1791709282212,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 266.127,
+   "wall_after": 266.639,
+   "epoch_ms_before": 1791709284212,
+   "epoch_ms_after": 1791709284724,
+   "took": 0.512,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 268.639,
+   "wall_after": 269.148,
+   "epoch_ms_before": 1791709286724,
+   "epoch_ms_after": 1791709287233,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_horde",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "createhorde 1 admin",
+   "phase": "X",
+   "wall_before": 269.148,
+   "wall_after": 269.216,
+   "ack": {
+    "ok": true,
+    "reply": "Horde spawned."
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 271.217,
+   "wall_after": 271.727,
+   "epoch_ms_before": 1791709289302,
+   "epoch_ms_after": 1791709289812,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 273.728,
+   "wall_after": 274.236,
+   "epoch_ms_before": 1791709291813,
+   "epoch_ms_after": 1791709292321,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 276.237,
+   "wall_after": 276.745,
+   "epoch_ms_before": 1791709294322,
+   "epoch_ms_after": 1791709294830,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 278.745,
+   "wall_after": 279.254,
+   "epoch_ms_before": 1791709296830,
+   "epoch_ms_after": 1791709297338,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 281.254,
+   "wall_after": 281.766,
+   "epoch_ms_before": 1791709299339,
+   "epoch_ms_after": 1791709299851,
+   "took": 0.512,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 283.767,
+   "wall_after": 284.274,
+   "epoch_ms_before": 1791709301851,
+   "epoch_ms_after": 1791709302359,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 286.274,
+   "wall_after": 286.783,
+   "epoch_ms_before": 1791709304359,
+   "epoch_ms_after": 1791709304868,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 288.784,
+   "wall_after": 289.292,
+   "epoch_ms_before": 1791709306869,
+   "epoch_ms_after": 1791709307377,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 291.293,
+   "wall_after": 291.799,
+   "epoch_ms_before": 1791709309378,
+   "epoch_ms_after": 1791709309884,
+   "took": 0.506,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 293.8,
+   "wall_after": 294.307,
+   "epoch_ms_before": 1791709311885,
+   "epoch_ms_after": 1791709312392,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 296.308,
+   "wall_after": 296.815,
+   "epoch_ms_before": 1791709314393,
+   "epoch_ms_after": 1791709314900,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "MELEE_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "20",
+   "phase": "X",
+   "wall_before": 298.816,
+   "wall_after": 299.324,
+   "epoch_ms_before": 1791709316901,
+   "epoch_ms_after": 1791709317408,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "R_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "R",
+   "wall_before": 319.642,
+   "wall_after": 320.149,
+   "epoch_ms_before": 1791709337727,
+   "epoch_ms_after": 1791709338234,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 412,
+    "skipped": 0,
+    "next": 413,
+    "more": false,
+    "oldest": 1,
+    "newest": 412,
+    "recorded": 412,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 412,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "D_rcon_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "D",
+   "wall_before": 320.164,
+   "wall_after": 320.175,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "D_q0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 320.175,
+   "wall_after": 320.684,
+   "epoch_ms_before": 1791709338260,
+   "epoch_ms_after": 1791709338769,
+   "took": 0.509,
+   "ack": {
+    "worldAge": 10.166942596435547,
+    "hour": 17,
+    "minutes": 10,
+    "mult": 4.496248722076416,
+    "wall": 1791709338704
+   }
+  },
+  {
+   "step": "D_pre",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.players.online.admin NutritionRevamp.server.store.file.lastWrite.admin NutritionRevamp.server.store.file.stats.writes",
+   "phase": "D",
+   "wall_before": 320.684,
+   "wall_after": 321.444,
+   "epoch_ms_before": 1791709338769,
+   "epoch_ms_after": 1791709339529,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {
+     "NutritionRevamp.server.players.online.admin": "userdata"
+    },
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.store.file.lastWrite.admin": 1791709305512,
+     "NutritionRevamp.server.store.file.stats.writes": 7
+    }
+   }
+  },
+  {
+   "step": "D_last",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.file.last.admin",
+   "phase": "D",
+   "wall_before": 323.499,
+   "wall_after": 324.011,
+   "epoch_ms_before": 1791709341583,
+   "epoch_ms_after": 1791709342095,
+   "took": 0.512,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.file.last.admin",
+    "type": "string",
+    "resolved": true,
+    "value": "{\"gen\":6,\"rec\":{\"username\":\"admin\",\"firstSeen\":3.083333969116211,\"lastSeen\":10.184637069702148,\"resets\":0,\"dead\":false,\"satiety\":{\"P\":3.9208919535901883,\"S\":2.570114787331587E-7,\"L\":16.065939763534985,\"t\":10.184637069702148,\"nicH\":10.184637069702148},\"kineticsAge\":10.184637069702148,\"stomach\":{\"liquid\":0,\"buffer\":{\"calories\":5.23689054311542,\"carbs\":0.6546113178894275,\"lipids\":0.20365686128428456,\"proteins\":0.19638339536682828,\"fibre\":0.04834052700980125,\"water\":2.4170263504900613,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0}},\"pool\":{\"calories\":644.7631094568846,\"carbs\":80.59538868211058,\"lipids\":25.07412176420403,\"proteins\":24.178616604633167,\"fibre\":5.951659338879748,\"water\":297.58296694398723,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0},\"nutrients\":{\"vitC\":{\"p\":0.9860646502092365,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"thiamine\":{\"p\":0.9849226939953858,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"riboflavin\":{\"p\":0.9849226939953858,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"niacin\":{\"p\":0.9997833359678765,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB6\":{\"p\":0.9929527534045396,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"folate\":{\"p\":0.9924585092249556,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB12\":{\"p\":0.9997041561412361,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"choline\":{\"p\":0.9831792348786259,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitA\":{\"p\":0.9974147693170045,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitD\":{\"p\":0.9965876075579211,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitE\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitK\":{\"p\":0.9261009224533258,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"pantothenate\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"biotin\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"iron\":{\"p\":0.9997041123708077,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"S\":999.7041123708077,\"H\":2666.6666666666665},\"zinc\":{\"p\":0.9907411170077328,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"copper\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"magnesium\":{\"p\":0.9961608492759797,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"calcium\":{\"p\":0.9999577303386865,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"bone\":1399940.8224741612},\"iodine\":{\"p\":0.9970454968682689,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"selenium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"fibre\":{\"p\":0.9732616941407796,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":4.731547998989526,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"efa\":{\"p\":0.9854572342765606,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"sodium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"potassium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"caffeine\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"ethanol\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"epoch\":0,\"lastAgeH\":10.184637069702148,\"lastDayIndex\":0},\"body\":{\"fm0\":14.399999999999999,\"lm0\":65.6,\"lm0dis\":65.6,\"fmRef\":14.399999999999999,\"l0\":5,\"sex\":1,\"r\":1.2066067964323572,\"traitCarry\":1,\"bornAge\":3.083333969116211,\"fm\":14.399999999999999,\"lm\":65.6,\"dayIndex\":0,\"lastAgeH\":10.184637069702148,\"strAgeH\":10.184637069702148,\"inDay\":644.7631094568846,\"eeDay\":934.8904274942222,\"ebDay\":-290.12731803733755,\"actKcalDay\":429.61775970458984,\"exKcalDay\":259.18648529052734,\"pDay\":24.178616604633167,\"carbDay\":80.59538868211058,\"lipDay\":25.07412176420403,\"alcDay\":0,\"pPrevKg\":0.8,\"eb7\":[0,0,0,0,0,0,0],\"mass7\":[80,80,80,80,80,80,80],\"p7\":[0,0,0,0,0,0,0],\"bandWeek\":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],\"trail\":{\"at\":10.184637069702148,\"kcal\":[0,0,0,0,85.59292581287134,148.20496269723358,127.57429614324519,110.11168364438005,94.48481662301923,74.08902680525924,4.705397730875659,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ee\":[0,0,0,85.74348861352377,97.18526820364717,152.19374120641393,183.7560623678459,147.1722689668601,125.87168162638487,119.06523302978445,23.902683479762484,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ex\":[0,0,0,0,1.9774475097656248,57.05363464355469,88.72854614257812,51.86857604980469,30.78160858154297,23.967361450195316,4.809310913085938,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"p\":[0,0,0,0,3.209734717982675,5.557686101146257,4.784036105371693,4.12918813666425,3.5431806233632215,2.778338505197224,0.17645241490783725,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"carb\":[0,0,0,0,10.699115726608918,18.525620337154198,15.946787017905649,13.763960455547506,11.810602077877403,9.261128350657405,0.5881747163594574,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"lip\":[0,0,0,0,3.32861389323939,5.763526520399106,4.961222794171445,4.282121174219143,3.6744096585639094,2.8812400279403314,0.18298769567069245,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},\"tac\":1,\"at\":0,\"vStr\":0.15598831017790812,\"vHyp\":0.19498538772238494,\"vStrHigh\":0,\"metMinDay\":131.37805366516113,\"band1Day\":12.911396026611328,\"band2Day\":12.911396026611328,\"n\":8.629117842758669E-5,\"nPeak\":0,\"tPeakD\":0,\"nHist\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"cumDef\":0,\"tDisuse\":0,\"shownL\":5,\"riseHeldH\":0,\"lastFallAge\":3.083333969116211},\"acute\":{\"gutAlc\":0,\"gutCaf\":0,\"caf\":0,\"cafMean\":0,\"cafTol\":0,\"cafLowH\":0,\"slowMet\":true,\"alc\":0,\"alcPeak\":0,\"hang\":0,\"hangH\":0,\"glyc\":408.67924833950826,\"bg\":5,\"awakeH\":0,\"debtH\":0,\"sleptH\":0,\"boutH\":0,\"gapH\":0,\"winStartH\":10.184637069702148,\"winSleptH\":0,\"S\":0.17,\"starvedDays\":0,\"lowDay\":false,\"mass90max\":0,\"mass90ageH\":3.083333969116211,\"bmi\":0,\"refeedRisk\":0,\"refeedDayN\":-1,\"refeedEvent\":false,\"exEma\":6.044370056615354,\"lastVigAgeH\":5.967778205871582,\"boutVig\":false,\"coldH\":0,\"retEma\":0,\"alc7\":0,\"alcDayG\":0,\"lastFedAgeH\":9.318641662597656,\"lastB1\":12.911396026611328,\"lastB2\":12.911396026611328},\"fluids\":{\"water\":-798.1717430523138,\"na\":-2.3671010335286464,\"k\":0,\"sweatK\":0.9530059695243835,\"naSweat\":10.198764616571907,\"sweat6h\":0,\"loss6h\":1.7856313794550214,\"autoDrop\":0},\"effects\":{\"dirty\":false,\"epoch\":3,\"own\":{\"nv\":false,\"ss\":false},\"nvDays\":0,\"pe\":1,\"ea\":30,\"lastDay\":0,\"exSeen\":259.18648529052734},\"reconcile\":{\"count\":0},\"monotony\":{\"t\":{\"TKX.Mixed650\":{\"n\":1,\"last\":4.481808662414551}}}},\"done\":true}"
+   }
+  },
+  {
+   "step": "D_end_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 324.011,
+   "wall_after": 324.768,
+   "epoch_ms_before": 1791709342096,
+   "epoch_ms_after": 1791709342853,
+   "took": 0.757,
+   "ack": {
+    "worldAge": 10.267156600952148,
+    "hour": 17,
+    "minutes": 16,
+    "mult": 4.715561866760254,
+    "wall": 1791709342602
+   }
+  },
+  {
+   "step": "D_tail_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read 413",
+   "phase": "D",
+   "wall_before": 324.768,
+   "wall_after": 325.278,
+   "epoch_ms_before": 1791709342853,
+   "epoch_ms_after": 1791709343363,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 413,
+    "rows": 8,
+    "skipped": 0,
+    "next": 421,
+    "more": false,
+    "oldest": 1,
+    "newest": 420,
+    "recorded": 420,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 420,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-413",
+    "file": "pzt-results/minute-ring-admin-413.json"
+   }
+  },
+  {
+   "step": "D_ring_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "D",
+   "wall_before": 325.284,
+   "wall_after": 326.043,
+   "epoch_ms_before": 1791709343369,
+   "epoch_ms_after": 1791709344128,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 421,
+    "overwritten": 0,
+    "errors": 0
+   }
+  }
+ ],
+ "notes": [
+  {
+   "wall": 299.324,
+   "phase": "X",
+   "note": "leg MELEE: no zombie within 2 tiles for 60.0 s; 0 window(s) run"
+  }
+ ],
+ "phases": {
+  "S": {
+   "ready": [
+    {
+     "t": 18.0,
+     "phase": "client_launch",
+     "user": "admin",
+     "restored": true
+    },
+    {
+     "t": 55.3,
+     "phase": "client_ready",
+     "took": 36.8,
+     "user": "admin"
+    }
+   ],
+   "players": {
+    "wall": 57.074,
+    "wall_after": 57.33,
+    "side": "server",
+    "raw": [
+     "admin"
+    ]
+   },
+   "time": {
+    "worldAge": 3.18402099609375,
+    "hour": 10,
+    "minutes": 11,
+    "mult": 4.590951442718506,
+    "wall": 57.33,
+    "wall_after": 58.088,
+    "tag": "S_time"
+   },
+   "mode": {
+    "side": "server",
+    "name": "NutritionRevamp.server.writer.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1,
+    "wall": 58.088,
+    "wall_after": 58.852
+   },
+   "nutrition": {
+    "calories": -11.281601905822754,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 80,
+    "hunger": 0.1902415156364441,
+    "thirst": 0.005829767789691687,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "wall": 58.852,
+    "wall_after": 59.359,
+    "side": "server"
+   },
+   "stats": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.01319422759115696,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.19044920802116394,
+     "Idleness": 0.09432093799114227,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.95054626464844,
+     "Thirst": 0.006592964753508568,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 59.359,
+    "user": "admin",
+    "worldAge": 3.23586368560791,
+    "mult": 4.708277702331543,
+    "wall_after": 60.122
+   },
+   "autodrink": {
+    "ok": true,
+    "side": "server",
+    "requested": true,
+    "before": true,
+    "after": true,
+    "wall": 60.122,
+    "wall_after": 60.625
+   }
+  },
+  "H": {
+   "ring_paths": [
+    "satiety.P",
+    "satiety.S",
+    "satiety.L",
+    "satiety.t",
+    "body.energyState",
+    "body.met",
+    "body.exKcalDay",
+    "body.metMinDay",
+    "body.band2Day",
+    "body.trail.c.ex",
+    "acute.debtH",
+    "stomachFill",
+    "stomach.liquid",
+    "body.inDay",
+    "kineticsAge",
+    "body.eeDay",
+    "body.fm",
+    "body.lm",
+    "fluids.water",
+    "fluids.na",
+    "fluids.naPlasma",
+    "fluids.sweat6h",
+    "fluids.autoDrop",
+    "fluids.thirstTarget",
+    "_G.NutritionRevamp.server.writer.stats.writes",
+    "_G.NutritionRevamp.server.writer.stats.sips",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.intake.stats.sips"
+   ],
+   "h1_record": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 29,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "satiety.P": 1100.4641341907932,
+     "satiety.S": 0,
+     "satiety.L": 0,
+     "satiety.t": 3.2516136169433594,
+     "body.energyState": 1.0025801127599063,
+     "body.met": 1.3,
+     "body.exKcalDay": 0,
+     "body.metMinDay": 0,
+     "body.band2Day": 0,
+     "body.trail.c.ex": 0,
+     "acute.debtH": 0,
+     "stomachFill": 0,
+     "stomach.liquid": 0,
+     "body.inDay": 0,
+     "kineticsAge": 3.2516136169433594,
+     "body.eeDay": 15.996699111418742,
+     "body.fm": 14.399999999999999,
+     "body.lm": 65.6,
+     "fluids.water": -25.944346891977265,
+     "fluids.na": -0.05609321594238282,
+     "fluids.naPlasma": 140.0747171282164,
+     "fluids.sweat6h": 0,
+     "fluids.autoDrop": 0,
+     "fluids.thirstTarget": 0.008261959638288574,
+     "firstSeen": 3.083333969116211,
+     "resets": 0,
+     "body.sex": 1
+    },
+    "wall": 60.627,
+    "wall_after": 61.135
+   },
+   "h1_globals": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.writer.stats.writes": 12,
+     "NutritionRevamp.server.writer.stats.sips": 0,
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.sips": 0,
+     "NutritionRevamp.version": "1.0.0"
+    },
+    "wall": 61.135,
+    "wall_after": 61.395
+   },
+   "ring_start": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "satiety.P",
+     "satiety.S",
+     "satiety.L",
+     "satiety.t",
+     "body.energyState",
+     "body.met",
+     "body.exKcalDay",
+     "body.metMinDay",
+     "body.band2Day",
+     "body.trail.c.ex",
+     "acute.debtH",
+     "stomachFill",
+     "stomach.liquid",
+     "body.inDay",
+     "kineticsAge",
+     "body.eeDay",
+     "body.fm",
+     "body.lm",
+     "fluids.water",
+     "fluids.na",
+     "fluids.naPlasma",
+     "fluids.sweat6h",
+     "fluids.autoDrop",
+     "fluids.thirstTarget",
+     "_G.NutritionRevamp.server.writer.stats.writes",
+     "_G.NutritionRevamp.server.writer.stats.sips",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed",
+     "_G.NutritionRevamp.server.intake.stats.sips"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 29,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "satiety.P": 1083.3774224404046,
+      "satiety.S": 0,
+      "satiety.L": 0,
+      "satiety.t": 3.2674169540405273,
+      "body.energyState": 1.002822435339204,
+      "body.met": 1.3,
+      "body.exKcalDay": 0,
+      "body.metMinDay": 0,
+      "body.band2Day": 0,
+      "body.trail.c.ex": 0,
+      "acute.debtH": 0,
+      "stomachFill": 0,
+      "stomach.liquid": 0,
+      "body.inDay": 0,
+      "kineticsAge": 3.2674169540405273,
+      "body.eeDay": 17.499099103064793,
+      "body.fm": 14.399999999999999,
+      "body.lm": 65.6,
+      "fluids.water": -28.380995565437203,
+      "fluids.na": -0.06136099497477214,
+      "fluids.naPlasma": 140.0817386027211,
+      "fluids.sweat6h": 0,
+      "fluids.autoDrop": 0,
+      "fluids.thirstTarget": 0.009036405596110297,
+      "_G.NutritionRevamp.server.writer.stats.writes": 12,
+      "_G.NutritionRevamp.server.writer.stats.sips": 0,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0,
+      "_G.NutritionRevamp.server.intake.stats.sips": 0
+     }
+    },
+    "wall": 61.395,
+    "wall_after": 61.907
+   },
+   "ring_start_snap": {
+    "worldAge": 3.3017616271972656,
+    "hour": 10,
+    "minutes": 18,
+    "mult": 4.76584529876709,
+    "wall": 61.907,
+    "wall_after": 62.67,
+    "tag": "H_ring_start_t"
+   }
+  },
+  "W": {
+   "lastWrite_before": 1791709050297,
+   "saved": true,
+   "lastWrite": 1791709110610,
+   "saw_wall": 92.903,
+   "polls": 48,
+   "last": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.file.last.admin",
+    "type": "string",
+    "resolved": true,
+    "value": "{\"gen\":1,\"rec\":{\"username\":\"admin\",\"firstSeen\":3.083333969116211,\"lastSeen\":4.101822853088379,\"resets\":0,\"dead\":false,\"satiety\":{\"P\":474.1868313208905,\"S\":0,\"L\":0,\"t\":4.101822853088379,\"nicH\":4.101822853088379},\"kineticsAge\":4.101822853088379,\"stomach\":{\"liquid\":0,\"buffer\":{\"calories\":0,\"carbs\":0,\"lipids\":0,\"proteins\":0,\"fibre\":0,\"water\":0,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0}},\"pool\":{\"calories\":0,\"carbs\":0,\"lipids\":0,\"proteins\":0,\"fibre\":0,\"water\":0,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0},\"nutrients\":{\"vitC\":{\"p\":0.9979893203631659,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"thiamine\":{\"p\":0.9978234748562436,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"riboflavin\":{\"p\":0.9978234748562436,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"niacin\":{\"p\":0.998930931409379,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB6\":{\"p\":0.9989862000210101,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"folate\":{\"p\":0.9989148681995482,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB12\":{\"p\":0.9999575638636061,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"choline\":{\"p\":0.9975699555289785,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitA\":{\"p\":0.999628807740861,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitD\":{\"p\":0.9995098682799552,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitE\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitK\":{\"p\":0.9890495323122234,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"pantothenate\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"biotin\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"iron\":{\"p\":0.9999575629631672,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"S\":999.9575629631672,\"H\":2666.6666666666665},\"zinc\":{\"p\":0.9986667686672872,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"copper\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"magnesium\":{\"p\":0.9994484706694281,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"calcium\":{\"p\":0.9999939375661666,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"bone\":1399991.5125926333},\"iodine\":{\"p\":0.9995757196640469,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"selenium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"fibre\":{\"p\":0.9916308997126871,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"efa\":{\"p\":0.9979011262629819,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"sodium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"potassium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"caffeine\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"ethanol\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":1.018488883972168,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"epoch\":0,\"lastAgeH\":4.101822853088379,\"lastDayIndex\":0},\"body\":{\"fm0\":14.399999999999999,\"lm0\":65.6,\"lm0dis\":65.6,\"fmRef\":14.399999999999999,\"l0\":5,\"sex\":1,\"r\":1.2066067964323572,\"traitCarry\":1,\"bornAge\":3.083333969116211,\"fm\":14.399999999999999,\"lm\":65.6,\"dayIndex\":0,\"lastAgeH\":4.101822853088379,\"strAgeH\":4.101822853088379,\"inDay\":0,\"eeDay\":96.88865669872058,\"ebDay\":-96.88865669872058,\"actKcalDay\":24.443733215332035,\"exKcalDay\":0,\"pDay\":0,\"carbDay\":0,\"lipDay\":0,\"alcDay\":0,\"pPrevKg\":0.8,\"eb7\":[0,0,0,0,0,0,0],\"mass7\":[80,80,80,80,80,80,80],\"p7\":[0,0,0,0,0,0,0],\"bandWeek\":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],\"trail\":{\"at\":4.101822853088379,\"kcal\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ee\":[0,0,0,85.74348861352377,11.14516808519681,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ex\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"p\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"carb\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"lip\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},\"tac\":1,\"at\":0,\"vStr\":0,\"vHyp\":0,\"vStrHigh\":0,\"metMinDay\":0,\"band1Day\":0,\"band2Day\":0,\"n\":0,\"nPeak\":0,\"tPeakD\":0,\"nHist\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"cumDef\":0,\"tDisuse\":0,\"shownL\":5,\"riseHeldH\":0,\"lastFallAge\":3.083333969116211},\"acute\":{\"gutAlc\":0,\"gutCaf\":0,\"caf\":0,\"cafMean\":0,\"cafTol\":0,\"cafLowH\":0,\"slowMet\":true,\"alc\":0,\"alcPeak\":0,\"hang\":0,\"hangH\":0,\"glyc\":451.48805511226425,\"bg\":5,\"awakeH\":0,\"debtH\":0,\"sleptH\":0,\"boutH\":0,\"gapH\":0,\"winStartH\":4.101822853088379,\"winSleptH\":0,\"S\":0.17,\"starvedDays\":0,\"lowDay\":false,\"mass90max\":0,\"mass90ageH\":3.083333969116211,\"bmi\":0,\"refeedRisk\":0,\"refeedDayN\":-1,\"refeedEvent\":false,\"exEma\":0,\"lastVigAgeH\":-1000000000,\"boutVig\":false,\"coldH\":0,\"retEma\":0,\"alc7\":0,\"alcDayG\":0,\"lastFedAgeH\":3.083333969116211,\"lastB1\":0,\"lastB2\":0},\"fluids\":{\"water\":-157.1242712839629,\"na\":-0.3394962946573893,\"k\":0,\"sweatK\":0.9530059695243835,\"naSweat\":10.198764616571907,\"sweat6h\":0,\"loss6h\":0.40194792324148343,\"autoDrop\":0},\"effects\":{\"dirty\":false,\"epoch\":1,\"own\":{\"nv\":false,\"ss\":false},\"nvDays\":0,\"pe\":1,\"ea\":30,\"lastDay\":0,\"exSeen\":0},\"reconcile\":{\"count\":0}},\"done\":true}",
+    "wall": 93.161,
+    "wall_after": 93.42
+   },
+   "stats": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.5996819138526917,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.2031746804714203,
+     "Idleness": 0.6330459713935852,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.79419708251953,
+     "Thirst": 0.05035627260804176,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 93.42,
+    "user": "admin",
+    "worldAge": 4.133734703063965,
+    "mult": 4.783580303192139,
+    "wall_after": 93.926
+   },
+   "read": {
+    "worldAge": 4.152329444885254,
+    "hour": 11,
+    "minutes": 9,
+    "mult": 4.783481597900391,
+    "wall": 93.926,
+    "wall_after": 94.437,
+    "tag": "W_read_t"
+   },
+   "start_age": 4.101822853088379,
+   "start_gen": 1
+  },
+  "X": {
+   "start_age": 4.168277740478516,
+   "missed": [],
+   "late": [],
+   "refills_skipped": [],
+   "end_age": 10.135883331298828,
+   "done": true
+  },
+  "R": {
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "side": "server",
+      "user": "admin",
+      "from": 1,
+      "rows": 412,
+      "skipped": 0,
+      "next": 413,
+      "more": false,
+      "oldest": 1,
+      "newest": 412,
+      "recorded": 412,
+      "overwritten": 0,
+      "cap": 4320,
+      "events": 412,
+      "errors": 0,
+      "gErrors": 0,
+      "result": "minute-ring-admin-1",
+      "file": "pzt-results/minute-ring-admin-1.json",
+      "wall": 319.642,
+      "wall_after": 320.149
+     },
+     "doc_rows": 412,
+     "file": "minute-ring-admin-1.json"
+    }
+   ],
+   "next": 413
+  },
+  "D": {
+   "rcon_one": {
+    "ok": true,
+    "reply": ""
+   },
+   "q0": {
+    "worldAge": 10.166942596435547,
+    "hour": 17,
+    "minutes": 10,
+    "mult": 4.496248722076416,
+    "wall": 320.175,
+    "wall_after": 320.684,
+    "tag": "D_q0"
+   },
+   "pre": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {
+     "NutritionRevamp.server.players.online.admin": "userdata"
+    },
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.store.file.lastWrite.admin": 1791709305512,
+     "NutritionRevamp.server.store.file.stats.writes": 7
+    },
+    "wall": 320.684,
+    "wall_after": 321.444
+   },
+   "quit_rc": 0,
+   "quit_walls": [
+    321.444,
+    323.238
+   ],
+   "flushed": true,
+   "flushed_wall": 323.238,
+   "polls": [
+    {
+     "wall": 323.238,
+     "online_present": false,
+     "online_missing": "nil",
+     "lastWrite": 1791709340003,
+     "writes": 8
+    }
+   ],
+   "poll_count": 1,
+   "last": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.file.last.admin",
+    "type": "string",
+    "resolved": true,
+    "value": "{\"gen\":6,\"rec\":{\"username\":\"admin\",\"firstSeen\":3.083333969116211,\"lastSeen\":10.184637069702148,\"resets\":0,\"dead\":false,\"satiety\":{\"P\":3.9208919535901883,\"S\":2.570114787331587E-7,\"L\":16.065939763534985,\"t\":10.184637069702148,\"nicH\":10.184637069702148},\"kineticsAge\":10.184637069702148,\"stomach\":{\"liquid\":0,\"buffer\":{\"calories\":5.23689054311542,\"carbs\":0.6546113178894275,\"lipids\":0.20365686128428456,\"proteins\":0.19638339536682828,\"fibre\":0.04834052700980125,\"water\":2.4170263504900613,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0}},\"pool\":{\"calories\":644.7631094568846,\"carbs\":80.59538868211058,\"lipids\":25.07412176420403,\"proteins\":24.178616604633167,\"fibre\":5.951659338879748,\"water\":297.58296694398723,\"vitC\":0,\"iron\":0,\"phytate\":0,\"retinol\":0,\"carotene\":0,\"vitD\":0,\"vitE\":0,\"vitK\":0,\"thiamine\":0,\"riboflavin\":0,\"niacin\":0,\"vitB6\":0,\"folate\":0,\"vitB12\":0,\"choline\":0,\"sodium\":0,\"potassium\":0,\"calcium\":0,\"magnesium\":0,\"zinc\":0,\"iodine\":0,\"selenium\":0,\"efa\":0,\"caffeine\":0,\"ethanol\":0},\"nutrients\":{\"vitC\":{\"p\":0.9860646502092365,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"thiamine\":{\"p\":0.9849226939953858,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"riboflavin\":{\"p\":0.9849226939953858,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"niacin\":{\"p\":0.9997833359678765,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB6\":{\"p\":0.9929527534045396,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"folate\":{\"p\":0.9924585092249556,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitB12\":{\"p\":0.9997041561412361,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"choline\":{\"p\":0.9831792348786259,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitA\":{\"p\":0.9974147693170045,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitD\":{\"p\":0.9965876075579211,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitE\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"vitK\":{\"p\":0.9261009224533258,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"pantothenate\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"biotin\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"iron\":{\"p\":0.9997041123708077,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"S\":999.7041123708077,\"H\":2666.6666666666665},\"zinc\":{\"p\":0.9907411170077328,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"copper\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"magnesium\":{\"p\":0.9961608492759797,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"calcium\":{\"p\":0.9999577303386865,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0,\"bone\":1399940.8224741612},\"iodine\":{\"p\":0.9970454968682689,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"selenium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"fibre\":{\"p\":0.9732616941407796,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":4.731547998989526,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"efa\":{\"p\":0.9854572342765606,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"sodium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"potassium\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"caffeine\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"ethanol\":{\"p\":1,\"p2\":1,\"g\":1,\"gl\":1,\"ah\":7.1013031005859375,\"e24\":0,\"dmg\":0,\"ext\":0,\"ax\":0,\"axr\":0},\"epoch\":0,\"lastAgeH\":10.184637069702148,\"lastDayIndex\":0},\"body\":{\"fm0\":14.399999999999999,\"lm0\":65.6,\"lm0dis\":65.6,\"fmRef\":14.399999999999999,\"l0\":5,\"sex\":1,\"r\":1.2066067964323572,\"traitCarry\":1,\"bornAge\":3.083333969116211,\"fm\":14.399999999999999,\"lm\":65.6,\"dayIndex\":0,\"lastAgeH\":10.184637069702148,\"strAgeH\":10.184637069702148,\"inDay\":644.7631094568846,\"eeDay\":934.8904274942222,\"ebDay\":-290.12731803733755,\"actKcalDay\":429.61775970458984,\"exKcalDay\":259.18648529052734,\"pDay\":24.178616604633167,\"carbDay\":80.59538868211058,\"lipDay\":25.07412176420403,\"alcDay\":0,\"pPrevKg\":0.8,\"eb7\":[0,0,0,0,0,0,0],\"mass7\":[80,80,80,80,80,80,80],\"p7\":[0,0,0,0,0,0,0],\"bandWeek\":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],\"trail\":{\"at\":10.184637069702148,\"kcal\":[0,0,0,0,85.59292581287134,148.20496269723358,127.57429614324519,110.11168364438005,94.48481662301923,74.08902680525924,4.705397730875659,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ee\":[0,0,0,85.74348861352377,97.18526820364717,152.19374120641393,183.7560623678459,147.1722689668601,125.87168162638487,119.06523302978445,23.902683479762484,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"ex\":[0,0,0,0,1.9774475097656248,57.05363464355469,88.72854614257812,51.86857604980469,30.78160858154297,23.967361450195316,4.809310913085938,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"p\":[0,0,0,0,3.209734717982675,5.557686101146257,4.784036105371693,4.12918813666425,3.5431806233632215,2.778338505197224,0.17645241490783725,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"carb\":[0,0,0,0,10.699115726608918,18.525620337154198,15.946787017905649,13.763960455547506,11.810602077877403,9.261128350657405,0.5881747163594574,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"lip\":[0,0,0,0,3.32861389323939,5.763526520399106,4.961222794171445,4.282121174219143,3.6744096585639094,2.8812400279403314,0.18298769567069245,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},\"tac\":1,\"at\":0,\"vStr\":0.15598831017790812,\"vHyp\":0.19498538772238494,\"vStrHigh\":0,\"metMinDay\":131.37805366516113,\"band1Day\":12.911396026611328,\"band2Day\":12.911396026611328,\"n\":8.629117842758669E-5,\"nPeak\":0,\"tPeakD\":0,\"nHist\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"cumDef\":0,\"tDisuse\":0,\"shownL\":5,\"riseHeldH\":0,\"lastFallAge\":3.083333969116211},\"acute\":{\"gutAlc\":0,\"gutCaf\":0,\"caf\":0,\"cafMean\":0,\"cafTol\":0,\"cafLowH\":0,\"slowMet\":true,\"alc\":0,\"alcPeak\":0,\"hang\":0,\"hangH\":0,\"glyc\":408.67924833950826,\"bg\":5,\"awakeH\":0,\"debtH\":0,\"sleptH\":0,\"boutH\":0,\"gapH\":0,\"winStartH\":10.184637069702148,\"winSleptH\":0,\"S\":0.17,\"starvedDays\":0,\"lowDay\":false,\"mass90max\":0,\"mass90ageH\":3.083333969116211,\"bmi\":0,\"refeedRisk\":0,\"refeedDayN\":-1,\"refeedEvent\":false,\"exEma\":6.044370056615354,\"lastVigAgeH\":5.967778205871582,\"boutVig\":false,\"coldH\":0,\"retEma\":0,\"alc7\":0,\"alcDayG\":0,\"lastFedAgeH\":9.318641662597656,\"lastB1\":12.911396026611328,\"lastB2\":12.911396026611328},\"fluids\":{\"water\":-798.1717430523138,\"na\":-2.3671010335286464,\"k\":0,\"sweatK\":0.9530059695243835,\"naSweat\":10.198764616571907,\"sweat6h\":0,\"loss6h\":1.7856313794550214,\"autoDrop\":0},\"effects\":{\"dirty\":false,\"epoch\":3,\"own\":{\"nv\":false,\"ss\":false},\"nvDays\":0,\"pe\":1,\"ea\":30,\"lastDay\":0,\"exSeen\":259.18648529052734},\"reconcile\":{\"count\":0},\"monotony\":{\"t\":{\"TKX.Mixed650\":{\"n\":1,\"last\":4.481808662414551}}}},\"done\":true}",
+    "wall": 323.499,
+    "wall_after": 324.011
+   },
+   "end_snap": {
+    "worldAge": 10.267156600952148,
+    "hour": 17,
+    "minutes": 16,
+    "mult": 4.715561866760254,
+    "wall": 324.011,
+    "wall_after": 324.768,
+    "tag": "D_end_t"
+   },
+   "tail": [
+    {
+     "reply": {
+      "ok": true,
+      "side": "server",
+      "user": "admin",
+      "from": 413,
+      "rows": 8,
+      "skipped": 0,
+      "next": 421,
+      "more": false,
+      "oldest": 1,
+      "newest": 420,
+      "recorded": 420,
+      "overwritten": 0,
+      "cap": 4320,
+      "events": 420,
+      "errors": 0,
+      "gErrors": 0,
+      "result": "minute-ring-admin-413",
+      "file": "pzt-results/minute-ring-admin-413.json",
+      "wall": 324.768,
+      "wall_after": 325.278
+     },
+     "doc_rows": 8,
+     "file": "minute-ring-admin-413.json"
+    }
+   ],
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 421,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 325.284,
+    "wall_after": 326.043
+   }
+  },
+  "Z": {
+   "server_mod_error_lines": [],
+   "admin_parked": false
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "S": {
+   "start": 57.074,
+   "end": 60.625
+  },
+  "H": {
+   "start": 60.627,
+   "end": 62.67
+  },
+  "W": {
+   "start": 62.673,
+   "end": 94.439
+  },
+  "X": {
+   "start": 94.444,
+   "end": 319.637
+  },
+  "R": {
+   "start": 319.642,
+   "end": 320.161
+  },
+  "D": {
+   "start": 320.164,
+   "end": 326.043
+  },
+  "Z": {
+   "start": 326.046,
+   "end": 326.046
+  }
+ },
+ "verdicts": {
+  "H1": {
+   "observed": {
+    "ok": true,
+    "missing_needed": {},
+    "missing_all": {},
+    "ring_start_ok": true,
+    "armed": true
+   },
+   "verdict": "as_predicted"
+  },
+  "RING": {
+   "observed": {
+    "pages": 2,
+    "files": [
+     "minute-ring-admin-1.json",
+     "minute-ring-admin-413.json"
+    ],
+    "errors": [
+     0,
+     0
+    ],
+    "overwritten": [
+     0,
+     0
+    ]
+   },
+   "verdict": "as_predicted"
+  },
+  "F": {
+   "observed": {
+    "flushed": true,
+    "polls": 1
+   },
+   "verdict": "as_predicted"
+  },
+  "Z": {
+   "observed": {
+    "server_mod_error_lines": [],
+    "admin_lua_error": false
+   },
+   "verdict": "as_predicted"
+  },
+  "REPLAY": {
+   "observed": {
+    "ok": true,
+    "fields": {
+     "HUNGER": {
+      "n": 348,
+      "max": 2.854881619451799e-05,
+      "over": 0,
+      "worst_s": 415
+     },
+     "body.energyState": {
+      "n": 348,
+      "max": 9.826519572020409e-05,
+      "over": 0,
+      "worst_s": 415
+     },
+     "satiety.L": {
+      "n": 348,
+      "max": 0.0,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "classes": {
+     "gap": 0,
+     "suspect": 0,
+     "offline": 5,
+     "between": 16
+    },
+    "findings_n": 0
+   },
+   "verdict": "as_predicted"
+  },
+  "STOPS": {
+   "predicted": {
+    "this session's legs": "done"
+   },
+   "observed": {
+    "done": [
+     "G_MEAL"
+    ],
+    "missed": [],
+    "late": [],
+    "refills_skipped": [],
+    "not_landed": [],
+    "fill_failed": [],
+    "scenario_done": true,
+    "budget_stop": null
+   },
+   "verdict": "as_predicted"
+  },
+  "SODIUM": {
+   "predicted": {
+    "every chain day": "hyponatraemia grade 0"
+   },
+   "observed": {
+    "0": {
+     "grade_max": 0,
+     "naPlasma_min": 140.0817386027211
+    }
+   },
+   "verdict": "as_predicted"
+  },
+  "VIGOUR": {
+   "observed": {
+    "SQUATS": {
+     "predicted": false,
+     "observed": {
+      "vigorous": false,
+      "met_max": 2,
+      "minutes_at_or_over_6": 0,
+      "S_max": 0,
+      "S_rises": 0
+     },
+     "verdict": "as_predicted"
+    },
+    "BURPEES": {
+     "predicted": null,
+     "observed": {
+      "vigorous": false,
+      "met_max": 3,
+      "minutes_at_or_over_6": 0,
+      "S_max": 0,
+      "S_rises": 0
+     },
+     "verdict": "as_predicted"
+    },
+    "MELEE": {
+     "predicted": null,
+     "observed": {
+      "vigorous": false,
+      "met_max": 1.9,
+      "minutes_at_or_over_6": 0,
+      "S_max": 0.006644898886032477,
+      "S_rises": 0
+     },
+     "verdict": "as_predicted"
+    }
+   },
+   "verdict": "as_predicted"
+  },
+  "DECAY": {
+   "predicted": {
+    "every graded row": "S within 1 % of 0.5^((t - t_e) / 0.15)",
+    "S_30min": 0.099,
+    "factor_30min": 0.931
+   },
+   "observed": [
+    {
+     "s": 219,
+     "graded": 119,
+     "max_rel": 8.881784197001252e-16
+    }
+   ],
+   "verdict": "as_predicted"
+  }
+ },
+ "readings": {
+  "requests": {
+   "G_MEAL_0": {
+    "food": "TKX.Mixed650",
+    "landing_s": 73,
+    "landing_age": 4.484468460083008,
+    "live_min": 294.04449462890625,
+    "replay_min": 295.0033950805664,
+    "diff_min": -0.9589004516601562,
+    "tol_min": 5.900067901611329,
+    "ok": true
+   }
+  },
+  "last_ring_age": 10.267156600952148,
+  "live_kcal_by_day": {
+   "0": 650.0
+  },
+  "meal_es": [],
+  "hourly": [
+   {
+    "hour_age": 4,
+    "s": 43,
+    "age": 3.984769821166992,
+    "es": 1.0135844119633075,
+    "es_replay": null,
+    "eeDay": 84.22335417250608,
+    "HUNGER": 0.20097286999225616,
+    "THIRST": 0.04316705837845802,
+    "naPlasma": 140.3942725451589,
+    "na": -0.29515616099039715
+   },
+   {
+    "hour_age": 5,
+    "s": 103,
+    "age": 4.984151840209961,
+    "es": 1.0155550216900622,
+    "es_replay": 1.0155245157035744,
+    "eeDay": 180.64340334157822,
+    "HUNGER": 0.11902301013469696,
+    "THIRST": 0,
+    "naPlasma": 140.72928698324185,
+    "na": -0.6282895406087237
+   },
+   {
+    "hour_age": 6,
+    "s": 163,
+    "age": 5.983726501464844,
+    "es": 1.0073315416068058,
+    "es_replay": 1.007280343939658,
+    "eeDay": 331.43658224647965,
+    "HUNGER": 0.14851626753807068,
+    "THIRST": 0.04440665990114212,
+    "naPlasma": 140.97596602285046,
+    "na": -0.96148141225179
+   },
+   {
+    "hour_age": 7,
+    "s": 223,
+    "age": 6.983343124389648,
+    "es": 1.0026661833050556,
+    "es_replay": 1.00261338233598,
+    "eeDay": 516.4656010541961,
+    "HUNGER": 0.08645231276750565,
+    "THIRST": 0.09210716933012009,
+    "naPlasma": 141.25145628352513,
+    "na": -1.294678370157877
+   },
+   {
+    "hour_age": 8,
+    "s": 283,
+    "age": 7.985918045043945,
+    "es": 1.000600943216405,
+    "es_replay": 1.0005475630237775,
+    "eeDay": 663.3878237890988,
+    "HUNGER": 0.20700988173484802,
+    "THIRST": 0.1387694627046585,
+    "naPlasma": 141.55269674283568,
+    "na": -1.627990404764811
+   },
+   {
+    "hour_age": 9,
+    "s": 343,
+    "age": 8.98560905456543,
+    "es": 1.0008720034309617,
+    "es_replay": 1.0008085286266621,
+    "eeDay": 789.6997014247468,
+    "HUNGER": 0.23798730969429016,
+    "THIRST": 0.18438130617141724,
+    "naPlasma": 141.8766638197888,
+    "na": -1.961207707722982
+   },
+   {
+    "hour_age": 10,
+    "s": 403,
+    "age": 9.984249114990234,
+    "es": 1.0042866922786446,
+    "es_replay": 1.0041956615829792,
+    "eeDay": 909.0824598107271,
+    "HUNGER": 0.2668343186378479,
+    "THIRST": 0.22903726994991302,
+    "naPlasma": 142.2305909837106,
+    "na": -2.29498036702474
+   }
+  ],
+  "fluid_days": {
+   "0": {
+    "rows": 420,
+    "first_age": 3.2858943939208984,
+    "last_age": 10.267156600952148,
+    "fluids.na_end": -2.3671010335286464,
+    "fluids.water_end": -798.1717430523138,
+    "fluids.naPlasma_end": 142.32272970708186,
+    "body.energyState_end": 1.006804353319562,
+    "naPlasma_min": 140.0817386027211,
+    "naPlasma_max": 142.32272970708186,
+    "sweat6h_max": 0,
+    "grade_max": 0
+   }
+  },
+  "refills": [],
+  "legs": [
+   {
+    "label": "IDLE",
+    "kind": "idle",
+    "age0": 4.534893035888672,
+    "age1": 4.901763916015625,
+    "ring": {
+     "rows": 22,
+     "age0": 4.534893035888672,
+     "age1": 4.901763916015625,
+     "met_max": 1.3,
+     "met_hist": {
+      "1.3": 22
+     },
+     "minutes_at_or_over_6": 0,
+     "S_max": 0,
+     "S_rises": 0,
+     "S_rise_rows": [],
+     "band2_rise_min": 0.0,
+     "exKcal_rise": 0.0
+    }
+   },
+   {
+    "label": "SQUATS",
+    "kind": "exercise",
+    "age0": 4.933652877807617,
+    "age1": 5.784427642822266,
+    "ring": {
+     "rows": 51,
+     "age0": 4.933652877807617,
+     "age1": 5.784427642822266,
+     "met_max": 2,
+     "met_hist": {
+      "1.3": 1,
+      "1.6": 1,
+      "1.9": 29,
+      "2": 20
+     },
+     "minutes_at_or_over_6": 0,
+     "S_max": 0,
+     "S_rises": 0,
+     "S_rise_rows": [],
+     "band2_rise_min": 3.9862060546875,
+     "exKcal_rise": 42.30279541015625
+    },
+    "set": {
+     "started": true,
+     "ended": true,
+     "age_queued": 4.95225715637207,
+     "age_end": 5.085082054138184,
+     "polls": 2,
+     "exe_seen": [
+      "nil",
+      "zombie.characters.BodyDamage.Fitness$FitnessExercise@6a00b08c"
+     ],
+     "met_max": 2,
+     "rate_max": 2.059187889099121
+    }
+   },
+   {
+    "label": "BURPEES",
+    "kind": "exercise",
+    "age0": 5.819025039672852,
+    "age1": 6.868973731994629,
+    "ring": {
+     "rows": 63,
+     "age0": 5.819025039672852,
+     "age1": 6.868973731994629,
+     "met_max": 3,
+     "met_hist": {
+      "1.9": 2,
+      "2": 9,
+      "2.5": 47,
+      "3": 5
+     },
+     "minutes_at_or_over_6": 0,
+     "S_max": 0,
+     "S_rises": 0,
+     "S_rise_rows": [],
+     "band2_rise_min": 8.925189971923828,
+     "exKcal_rise": 95.58394622802734
+    },
+    "set": {
+     "started": true,
+     "ended": true,
+     "age_queued": 5.834987640380859,
+     "age_end": 6.084726333618164,
+     "polls": 4,
+     "exe_seen": [
+      "nil",
+      "zombie.characters.BodyDamage.Fitness$FitnessExercise@413195dc"
+     ],
+     "met_max": 3,
+     "rate_max": 2.7760653495788574
+    }
+   },
+   {
+    "label": "DECAY",
+    "kind": "setS",
+    "age0": 6.900887489318848,
+    "age1": 7.951350212097168,
+    "ring": {
+     "rows": 63,
+     "age0": 6.900887489318848,
+     "age1": 7.951350212097168,
+     "met_max": 2,
+     "met_hist": {
+      "2": 34,
+      "1.9": 29
+     },
+     "minutes_at_or_over_6": 0,
+     "S_max": 1,
+     "S_rises": 0,
+     "S_rise_rows": [],
+     "band2_rise_min": 0.0,
+     "exKcal_rise": 54.06090545654297
+    }
+   },
+   {
+    "label": "MELEE",
+    "kind": "melee",
+    "age0": 7.985918045043945,
+    "age1": 10.130558013916016,
+    "ring": {
+     "rows": 128,
+     "age0": 7.985918045043945,
+     "age1": 10.130558013916016,
+     "met_max": 1.9,
+     "met_hist": {
+      "1.9": 18,
+      "1.6": 110
+     },
+     "minutes_at_or_over_6": 0,
+     "S_max": 0.006644898886032477,
+     "S_rises": 0,
+     "S_rise_rows": [],
+     "band2_rise_min": 0.0,
+     "exKcal_rise": 57.55817413330078
+    },
+    "melee": {
+     "windows": 0,
+     "states": {},
+     "swings": [],
+     "returns": [],
+     "target_dead": [],
+     "hordes": 2
+    }
+   }
+  ],
+  "decay": [
+   {
+    "event": {
+     "s": 219,
+     "kind": "setpath",
+     "path": "satiety.S",
+     "value": 1,
+     "label": "DECAY",
+     "age_before": 6.900887489318848
+    },
+    "t_e": 6.900887489318848,
+    "rows": [
+     {
+      "s": 220,
+      "age": 6.935449600219727,
+      "t": 6.916847229003906,
+      "S": 0.9289042093083085,
+      "pred": 0.9289042093083085,
+      "rel": 0.0,
+      "HUNGER": 0.061801183968782425
+     },
+     {
+      "s": 221,
+      "age": 6.951404571533203,
+      "t": 6.935449600219727,
+      "S": 0.8523902093245168,
+      "pred": 0.8523902093245168,
+      "rel": 0.0,
+      "HUNGER": 0.07148806750774384
+     },
+     {
+      "s": 222,
+      "age": 6.967369079589844,
+      "t": 6.951404571533203,
+      "S": 0.7918063003223482,
+      "pred": 0.7918063003223481,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.07921650260686874
+     },
+     {
+      "s": 223,
+      "age": 6.983343124389648,
+      "t": 6.967369079589844,
+      "S": 0.7354959988203456,
+      "pred": 0.7354959988203454,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.08645231276750565
+     },
+     {
+      "s": 224,
+      "age": 7.00197696685791,
+      "t": 6.983343124389648,
+      "S": 0.6831601683491658,
+      "pred": 0.6831601683491657,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.09322867542505264
+     },
+     {
+      "s": 225,
+      "age": 7.017945289611816,
+      "t": 7.00197696685791,
+      "S": 0.6267969869151302,
+      "pred": 0.6267969869151302,
+      "rel": 0.0,
+      "HUNGER": 0.10058940201997757
+     },
+     {
+      "s": 226,
+      "age": 7.033908843994141,
+      "t": 7.017945289611816,
+      "S": 0.5822112672896698,
+      "pred": 0.5822112672896698,
+      "rel": 0.0,
+      "HUNGER": 0.10646478086709976
+     },
+     {
+      "s": 227,
+      "age": 7.052524566650391,
+      "t": 7.033908843994141,
+      "S": 0.540808963619996,
+      "pred": 0.5408089636199959,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.1119682788848877
+     },
+     {
+      "s": 228,
+      "age": 7.068480491638184,
+      "t": 7.052524566650391,
+      "S": 0.4962318191437266,
+      "pred": 0.49623181914372655,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.11795242130756378
+     },
+     {
+      "s": 229,
+      "age": 7.084440231323242,
+      "t": 7.068480491638184,
+      "S": 0.4609599511617938,
+      "pred": 0.4609599511617937,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.12273669987916946
+     },
+     {
+      "s": 230,
+      "age": 7.100396156311035,
+      "t": 7.084440231323242,
+      "S": 0.42818763895674256,
+      "pred": 0.4281876389567425,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.12722669541835785
+     },
+     {
+      "s": 231,
+      "age": 7.118990898132324,
+      "t": 7.100396156311035,
+      "S": 0.3977523115752,
+      "pred": 0.3977523115751999,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.13144047558307648
+     },
+     {
+      "s": 232,
+      "age": 7.134943008422852,
+      "t": 7.118990898132324,
+      "S": 0.36500225307986023,
+      "pred": 0.3650022530798601,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.13602901995182037
+     },
+     {
+      "s": 233,
+      "age": 7.1508989334106445,
+      "t": 7.134943008422852,
+      "S": 0.33906408288432205,
+      "pred": 0.33906408288432194,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.13970910012722015
+     },
+     {
+      "s": 234,
+      "age": 7.166863441467285,
+      "t": 7.1508989334106445,
+      "S": 0.31496360583400407,
+      "pred": 0.31496360583400396,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.1431703269481659
+     },
+     {
+      "s": 235,
+      "age": 7.185483932495117,
+      "t": 7.166863441467285,
+      "S": 0.2925645726368062,
+      "pred": 0.29256457263680613,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.14642852544784546
+     },
+     {
+      "s": 236,
+      "age": 7.201441764831543,
+      "t": 7.185483932495117,
+      "S": 0.26844350024561536,
+      "pred": 0.2684435002456153,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.1499885618686676
+     },
+     {
+      "s": 237,
+      "age": 7.217395782470703,
+      "t": 7.201441764831543,
+      "S": 0.24936049514898576,
+      "pred": 0.24936049514898564,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.15284855663776398
+     },
+     {
+      "s": 238,
+      "age": 7.233341217041016,
+      "t": 7.217395782470703,
+      "S": 0.231638138350208,
+      "pred": 0.2316381383502079,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.15554440021514893
+     },
+     {
+      "s": 239,
+      "age": 7.251949310302734,
+      "t": 7.233341217041016,
+      "S": 0.2151838657221805,
+      "pred": 0.21518386572218046,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.15808667242527008
+     },
+     {
+      "s": 240,
+      "age": 7.267910957336426,
+      "t": 7.251949310302734,
+      "S": 0.1974539125371042,
+      "pred": 0.19745391253710415,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.16087503731250763
+     },
+     {
+      "s": 241,
+      "age": 7.283870697021484,
+      "t": 7.267910957336426,
+      "S": 0.18341415391324842,
+      "pred": 0.1834141539132484,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.16312476992607117
+     },
+     {
+      "s": 242,
+      "age": 7.302492141723633,
+      "t": 7.283870697021484,
+      "S": 0.17037417961673842,
+      "pred": 0.17037417961673834,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.16525255143642426
+     },
+     {
+      "s": 243,
+      "age": 7.318464279174805,
+      "t": 7.302492141723633,
+      "S": 0.15632665008701488,
+      "pred": 0.15632665008701482,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.16759249567985535
+     },
+     {
+      "s": 244,
+      "age": 7.334429740905762,
+      "t": 7.318464279174805,
+      "S": 0.14520416433065295,
+      "pred": 0.1452041643306529,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.169485941529274
+     },
+     {
+      "s": 245,
+      "age": 7.350397109985352,
+      "t": 7.334429740905762,
+      "S": 0.13487719305790094,
+      "pred": 0.1348771930579009,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.1712813675403595
+     },
+     {
+      "s": 246,
+      "age": 7.369010925292969,
+      "t": 7.350397109985352,
+      "S": 0.1252835753846903,
+      "pred": 0.12528357538469026,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.17298643290996552
+     },
+     {
+      "s": 247,
+      "age": 7.384955406188965,
+      "t": 7.369010925292969,
+      "S": 0.11495786619528833,
+      "pred": 0.11495786619528832,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.17486804723739624
+     },
+     {
+      "s": 248,
+      "age": 7.400923728942871,
+      "t": 7.384955406188965,
+      "S": 0.10679237552850455,
+      "pred": 0.10679237552850454,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.17639558017253876
+     },
+     {
+      "s": 249,
+      "age": 7.41688346862793,
+      "t": 7.400923728942871,
+      "S": 0.0991959527427398,
+      "pred": 0.09919595274273976,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.17785315215587616
+     },
+     {
+      "s": 250,
+      "age": 7.435502052307129,
+      "t": 7.41688346862793,
+      "S": 0.09214353804907906,
+      "pred": 0.09214353804907903,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.17924264073371887
+     },
+     {
+      "s": 251,
+      "age": 7.451465606689453,
+      "t": 7.435502052307129,
+      "S": 0.08454732461203378,
+      "pred": 0.08454732461203375,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.18078473210334778
+     },
+     {
+      "s": 252,
+      "age": 7.467426300048828,
+      "t": 7.451465606689453,
+      "S": 0.07853498131895162,
+      "pred": 0.0785349813189516,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.18204417824745178
+     },
+     {
+      "s": 253,
+      "age": 7.483395576477051,
+      "t": 7.467426300048828,
+      "S": 0.07295115323516888,
+      "pred": 0.07295115323516886,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.18324948847293854
+     },
+     {
+      "s": 254,
+      "age": 7.502026557922363,
+      "t": 7.483395576477051,
+      "S": 0.06776164705270421,
+      "pred": 0.06776164705270418,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.1844054013490677
+     },
+     {
+      "s": 255,
+      "age": 7.517995834350586,
+      "t": 7.502026557922363,
+      "S": 0.06217188837121279,
+      "pred": 0.06217188837121276,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.18569524586200714
+     },
+     {
+      "s": 256,
+      "age": 7.533953666687012,
+      "t": 7.517995834350586,
+      "S": 0.05774918379740256,
+      "pred": 0.05774918379740255,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.18675415217876434
+     },
+     {
+      "s": 257,
+      "age": 7.552577972412109,
+      "t": 7.533953666687012,
+      "S": 0.05364393271952688,
+      "pred": 0.053643932719526846,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.18777237832546234
+     },
+     {
+      "s": 258,
+      "age": 7.568523406982422,
+      "t": 7.552577972412109,
+      "S": 0.04922028355692212,
+      "pred": 0.0492202835569221,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.18891391158103943
+     },
+     {
+      "s": 259,
+      "age": 7.584473609924316,
+      "t": 7.568523406982422,
+      "S": 0.04572395100027737,
+      "pred": 0.04572395100027733,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.18985408544540405
+     },
+     {
+      "s": 260,
+      "age": 7.600417137145996,
+      "t": 7.584473609924316,
+      "S": 0.0424750423464719,
+      "pred": 0.04247504234647186,
+      "rel": 8.881784197001252e-16,
+      "HUNGER": 0.1907627433538437
+     },
+     {
+      "s": 261,
+      "age": 7.619009971618652,
+      "t": 7.600417137145996,
+      "S": 0.03945820162482506,
+      "pred": 0.03945820162482504,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.19164139032363892
+     },
+     {
+      "s": 262,
+      "age": 7.634969711303711,
+      "t": 7.619009971618652,
+      "S": 0.036209618439827986,
+      "pred": 0.03620961843982798,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19263134896755219
+     },
+     {
+      "s": 263,
+      "age": 7.650928497314453,
+      "t": 7.634969711303711,
+      "S": 0.03363526698620396,
+      "pred": 0.03363526698620395,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.19345347583293915
+     },
+     {
+      "s": 264,
+      "age": 7.66688346862793,
+      "t": 7.650928497314453,
+      "S": 0.031244078774267516,
+      "pred": 0.031244078774267502,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.1942518800497055
+     },
+     {
+      "s": 265,
+      "age": 7.685500144958496,
+      "t": 7.66688346862793,
+      "S": 0.029023395799955966,
+      "pred": 0.029023395799955963,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19502805173397064
+     },
+     {
+      "s": 266,
+      "age": 7.701444625854492,
+      "t": 7.685500144958496,
+      "S": 0.026630973217377122,
+      "pred": 0.02663097321737712,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19590787589550018
+     },
+     {
+      "s": 267,
+      "age": 7.7173871994018555,
+      "t": 7.701444625854492,
+      "S": 0.024739367445185307,
+      "pred": 0.024739367445185304,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19664087891578674
+     },
+     {
+      "s": 268,
+      "age": 7.733336448669434,
+      "t": 7.7173871994018555,
+      "S": 0.022982325542328704,
+      "pred": 0.022982325542328694,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.19735625386238098
+     },
+     {
+      "s": 269,
+      "age": 7.751953125,
+      "t": 7.733336448669434,
+      "S": 0.021349413845533825,
+      "pred": 0.02134941384553382,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19805555045604706
+     },
+     {
+      "s": 270,
+      "age": 7.767912864685059,
+      "t": 7.751953125,
+      "S": 0.019589563958879484,
+      "pred": 0.01958956395887948,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.19885262846946716
+     },
+     {
+      "s": 271,
+      "age": 7.783875465393066,
+      "t": 7.767912864685059,
+      "S": 0.018196828419917484,
+      "pred": 0.018196828419917477,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.19952067732810974
+     },
+     {
+      "s": 272,
+      "age": 7.802488327026367,
+      "t": 7.783875465393066,
+      "S": 0.016902887045284042,
+      "pred": 0.016902887045284032,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.20017576217651367
+     },
+     {
+      "s": 273,
+      "age": 7.818443298339844,
+      "t": 7.802488327026367,
+      "S": 0.015509841449483988,
+      "pred": 0.015509841449483981,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20092430710792542
+     },
+     {
+      "s": 274,
+      "age": 7.834408760070801,
+      "t": 7.818443298339844,
+      "S": 0.014407474466927687,
+      "pred": 0.014407474466927684,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20155379176139832
+     },
+     {
+      "s": 275,
+      "age": 7.850369453430176,
+      "t": 7.834408760070801,
+      "S": 0.013382809812034858,
+      "pred": 0.013382809812034853,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20217326283454895
+     },
+     {
+      "s": 276,
+      "age": 7.868951797485352,
+      "t": 7.850369453430176,
+      "S": 0.012431293583045438,
+      "pred": 0.012431293583045434,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20278283953666687
+     },
+     {
+      "s": 277,
+      "age": 7.8848981857299805,
+      "t": 7.868951797485352,
+      "S": 0.011408381527181322,
+      "pred": 0.011408381527181318,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20348119735717773
+     },
+     {
+      "s": 278,
+      "age": 7.90084171295166,
+      "t": 7.8848981857299805,
+      "S": 0.01059794746079464,
+      "pred": 0.010597947460794633,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.20407147705554962
+     },
+     {
+      "s": 279,
+      "age": 7.916783332824707,
+      "t": 7.90084171295166,
+      "S": 0.009845215557556063,
+      "pred": 0.009845215557556058,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20465391874313354
+     },
+     {
+      "s": 280,
+      "age": 7.935393333435059,
+      "t": 7.916783332824707,
+      "S": 0.009146027949809406,
+      "pred": 0.009146027949809402,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20522908866405487
+     },
+     {
+      "s": 281,
+      "age": 7.951350212097168,
+      "t": 7.935393333435059,
+      "S": 0.008392372168907501,
+      "pred": 0.008392372168907501,
+      "rel": 0.0,
+      "HUNGER": 0.20589211583137512
+     },
+     {
+      "s": 282,
+      "age": 7.9673051834106445,
+      "t": 7.951350212097168,
+      "S": 0.007795812899461753,
+      "pred": 0.007795812899461752,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20645390450954437
+     },
+     {
+      "s": 283,
+      "age": 7.985918045043945,
+      "t": 7.9673051834106445,
+      "S": 0.0072417229836786974,
+      "pred": 0.007241722983678697,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20700988173484802
+     },
+     {
+      "s": 284,
+      "age": 8.001529693603516,
+      "t": 7.985918045043945,
+      "S": 0.006644898886032477,
+      "pred": 0.006644898886032474,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20765173435211182
+     },
+     {
+      "s": 285,
+      "age": 8.01701545715332,
+      "t": 8.001529693603516,
+      "S": 0.006182411099590811,
+      "pred": 0.006182411099590809,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20818491280078888
+     },
+     {
+      "s": 286,
+      "age": 8.03523063659668,
+      "t": 8.01701545715332,
+      "S": 0.005755459707528064,
+      "pred": 0.005755459707528064,
+      "rel": 0.0,
+      "HUNGER": 0.2087094634771347
+     },
+     {
+      "s": 287,
+      "age": 8.050951957702637,
+      "t": 8.03523063659668,
+      "S": 0.005290839435961888,
+      "pred": 0.005290839435961887,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.20932132005691528
+     },
+     {
+      "s": 288,
+      "age": 8.066750526428223,
+      "t": 8.050951957702637,
+      "S": 0.0049201006494462764,
+      "pred": 0.004920100649446275,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.20984525978565216
+     },
+     {
+      "s": 289,
+      "age": 8.085240364074707,
+      "t": 8.066750526428223,
+      "S": 0.004573707286046095,
+      "pred": 0.004573707286046093,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.21036818623542786
+     },
+     {
+      "s": 290,
+      "age": 8.101133346557617,
+      "t": 8.085240364074707,
+      "S": 0.004199153284967149,
+      "pred": 0.004199153284967149,
+      "rel": 0.0,
+      "HUNGER": 0.21097593009471893
+     },
+     {
+      "s": 291,
+      "age": 8.117050170898438,
+      "t": 8.101133346557617,
+      "S": 0.0039018146228126044,
+      "pred": 0.003901814622812602,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.21149493753910065
+     },
+     {
+      "s": 292,
+      "age": 8.135640144348145,
+      "t": 8.117050170898438,
+      "S": 0.0036251308591152874,
+      "pred": 0.0036251308591152866,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.21201179921627045
+     },
+     {
+      "s": 293,
+      "age": 8.151595115661621,
+      "t": 8.135640144348145,
+      "S": 0.003326718786550819,
+      "pred": 0.0033267187865508173,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.21261204779148102
+     },
+     {
+      "s": 294,
+      "age": 8.16756534576416,
+      "t": 8.151595115661621,
+      "S": 0.0030902711760134854,
+      "pred": 0.0030902711760134862,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.21312448382377625
+     },
+     {
+      "s": 295,
+      "age": 8.183541297912598,
+      "t": 8.16756534576416,
+      "S": 0.0028704267530599444,
+      "pred": 0.0028704267530599453,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.21363505721092224
+     },
+     {
+      "s": 296,
+      "age": 8.202178955078125,
+      "t": 8.183541297912598,
+      "S": 0.0026661517445535454,
+      "pred": 0.0026661517445535463,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.21414363384246826
+     },
+     {
+      "s": 297,
+      "age": 8.218169212341309,
+      "t": 8.202178955078125,
+      "S": 0.0024461414755100777,
+      "pred": 0.0024461414755100764,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.21473439037799835
+     },
+     {
+      "s": 298,
+      "age": 8.23415756225586,
+      "t": 8.218169212341309,
+      "S": 0.0022719107031020013,
+      "pred": 0.002271910703102,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.21523919701576233
+     },
+     {
+      "s": 299,
+      "age": 8.25014591217041,
+      "t": 8.23415756225586,
+      "S": 0.002110108425035556,
+      "pred": 0.002110108425035556,
+      "rel": 0.0,
+      "HUNGER": 0.21574221551418304
+     },
+     {
+      "s": 300,
+      "age": 8.268794059753418,
+      "t": 8.25014591217041,
+      "S": 0.0019598294771562288,
+      "pred": 0.0019598294771562296,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.21624359488487244
+     },
+     {
+      "s": 301,
+      "age": 8.284778594970703,
+      "t": 8.268794059753418,
+      "S": 0.0017980176069863393,
+      "pred": 0.00179801760698634,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.21682648360729218
+     },
+     {
+      "s": 302,
+      "age": 8.30077075958252,
+      "t": 8.284778594970703,
+      "S": 0.0016699947650976362,
+      "pred": 0.0016699947650976369,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.21732397377490997
+     },
+     {
+      "s": 303,
+      "age": 8.316755294799805,
+      "t": 8.30077075958252,
+      "S": 0.0015510327504538034,
+      "pred": 0.0015510327504538034,
+      "rel": 0.0,
+      "HUNGER": 0.21782039105892181
+     },
+     {
+      "s": 304,
+      "age": 8.33541488647461,
+      "t": 8.316755294799805,
+      "S": 0.0014405957781994732,
+      "pred": 0.0014405957781994732,
+      "rel": 0.0,
+      "HUNGER": 0.21831537783145905
+     },
+     {
+      "s": 305,
+      "age": 8.351399421691895,
+      "t": 8.33541488647461,
+      "S": 0.0013215841629666749,
+      "pred": 0.001321584162966675,
+      "rel": 1.1102230246251565e-16,
+      "HUNGER": 0.21889178454875946
+     },
+     {
+      "s": 306,
+      "age": 8.36738395690918,
+      "t": 8.351399421691895,
+      "S": 0.0012274844390926238,
+      "pred": 0.001227484439092624,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.21938441693782806
+     },
+     {
+      "s": 307,
+      "age": 8.383373260498047,
+      "t": 8.36738395690918,
+      "S": 0.0011400848242856304,
+      "pred": 0.0011400848242856306,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.21987611055374146
+     },
+     {
+      "s": 308,
+      "age": 8.402016639709473,
+      "t": 8.383373260498047,
+      "S": 0.0010588849236026535,
+      "pred": 0.001058884923602653,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.22036704421043396
+     },
+     {
+      "s": 309,
+      "age": 8.418004035949707,
+      "t": 8.402016639709473,
+      "S": 0.0009714802795429575,
+      "pred": 0.0009714802795429575,
+      "rel": 0.0,
+      "HUNGER": 0.22093841433525085
+     },
+     {
+      "s": 310,
+      "age": 8.433991432189941,
+      "t": 8.418004035949707,
+      "S": 0.0009022967996471405,
+      "pred": 0.0009022967996471404,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2214275449514389
+     },
+     {
+      "s": 311,
+      "age": 8.452651977539062,
+      "t": 8.433991432189941,
+      "S": 0.0008380401865043436,
+      "pred": 0.0008380401865043435,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22191596031188965
+     },
+     {
+      "s": 312,
+      "age": 8.46863842010498,
+      "t": 8.452651977539062,
+      "S": 0.0007688039728782652,
+      "pred": 0.0007688039728782654,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.22248521447181702
+     },
+     {
+      "s": 313,
+      "age": 8.484628677368164,
+      "t": 8.46863842010498,
+      "S": 0.0007140571310871169,
+      "pred": 0.0007140571310871168,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22297221422195435
+     },
+     {
+      "s": 314,
+      "age": 8.500625610351562,
+      "t": 8.484628677368164,
+      "S": 0.0006631971433315595,
+      "pred": 0.0006631971433315594,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22345875203609467
+     },
+     {
+      "s": 315,
+      "age": 8.519278526306152,
+      "t": 8.500625610351562,
+      "S": 0.000615940747495891,
+      "pred": 0.0006159407474958911,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22394496202468872
+     },
+     {
+      "s": 316,
+      "age": 8.535268783569336,
+      "t": 8.519278526306152,
+      "S": 0.000565073604298332,
+      "pred": 0.0005650736042983319,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2245112508535385
+     },
+     {
+      "s": 317,
+      "age": 8.551249504089355,
+      "t": 8.535268783569336,
+      "S": 0.0005248252329224351,
+      "pred": 0.000524825232922435,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22499622404575348
+     },
+     {
+      "s": 318,
+      "age": 8.56723690032959,
+      "t": 8.551249504089355,
+      "S": 0.00048746510498347327,
+      "pred": 0.00048746510498347295,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.22548045217990875
+     },
+     {
+      "s": 319,
+      "age": 8.585895538330078,
+      "t": 8.56723690032959,
+      "S": 0.00045275052250486395,
+      "pred": 0.0004527505225048636,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.2259645015001297
+     },
+     {
+      "s": 320,
+      "age": 8.601892471313477,
+      "t": 8.585895538330078,
+      "S": 0.0004153493757541476,
+      "pred": 0.00041534937575414766,
+      "rel": 1.1102230246251565e-16,
+      "HUNGER": 0.22652894258499146
+     },
+     {
+      "s": 321,
+      "age": 8.617881774902344,
+      "t": 8.601892471313477,
+      "S": 0.00038575347850384377,
+      "pred": 0.0003857534785038435,
+      "rel": 6.661338147750939e-16,
+      "HUNGER": 0.2270124852657318
+     },
+     {
+      "s": 322,
+      "age": 8.633880615234375,
+      "t": 8.617881774902344,
+      "S": 0.0003582790805683639,
+      "pred": 0.00035827908056836397,
+      "rel": 1.1102230246251565e-16,
+      "HUNGER": 0.2274954617023468
+     },
+     {
+      "s": 323,
+      "age": 8.652545928955078,
+      "t": 8.633880615234375,
+      "S": 0.00033274681880373936,
+      "pred": 0.0003327468188037394,
+      "rel": 1.1102230246251565e-16,
+      "HUNGER": 0.2279784381389618
+     },
+     {
+      "s": 324,
+      "age": 8.66854190826416,
+      "t": 8.652545928955078,
+      "S": 0.00030524960929680003,
+      "pred": 0.0003052496092968001,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2285415381193161
+     },
+     {
+      "s": 325,
+      "age": 8.684525489807129,
+      "t": 8.66854190826416,
+      "S": 0.00028350016730889423,
+      "pred": 0.0002835001673088943,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.22902381420135498
+     },
+     {
+      "s": 326,
+      "age": 8.70051383972168,
+      "t": 8.684525489807129,
+      "S": 0.000263315486956221,
+      "pred": 0.0002633154869562209,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2295054793357849
+     },
+     {
+      "s": 327,
+      "age": 8.71916389465332,
+      "t": 8.70051383972168,
+      "S": 0.00024456252911262257,
+      "pred": 0.0002445625291126226,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2299870401620865
+     },
+     {
+      "s": 328,
+      "age": 8.735152244567871,
+      "t": 8.71916389465332,
+      "S": 0.00022436842736271465,
+      "pred": 0.00022436842736271462,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.23054850101470947
+     },
+     {
+      "s": 329,
+      "age": 8.751136779785156,
+      "t": 8.735152244567871,
+      "S": 0.0002083892242083365,
+      "pred": 0.0002083892242083366,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.23102959990501404
+     },
+     {
+      "s": 330,
+      "age": 8.767118453979492,
+      "t": 8.751136779785156,
+      "S": 0.0001935514492063167,
+      "pred": 0.0001935514492063168,
+      "rel": 4.440892098500626e-16,
+      "HUNGER": 0.23151040077209473
+     },
+     {
+      "s": 331,
+      "age": 8.785765647888184,
+      "t": 8.767118453979492,
+      "S": 0.00017977253340584196,
+      "pred": 0.000179772533405842,
+      "rel": 3.3306690738754696e-16,
+      "HUNGER": 0.23199093341827393
+     },
+     {
+      "s": 332,
+      "age": 8.801755905151367,
+      "t": 8.785765647888184,
+      "S": 0.00016493047408017408,
+      "pred": 0.00016493047408017408,
+      "rel": 0.0,
+      "HUNGER": 0.23255138099193573
+     },
+     {
+      "s": 333,
+      "age": 8.81773567199707,
+      "t": 8.801755905151367,
+      "S": 0.00015318300804833843,
+      "pred": 0.00015318300804833843,
+      "rel": 0.0,
+      "HUNGER": 0.23303179442882538
+     },
+     {
+      "s": 334,
+      "age": 8.833724975585938,
+      "t": 8.81773567199707,
+      "S": 0.00014227917311632372,
+      "pred": 0.0001422791731163238,
+      "rel": 5.551115123125783e-16,
+      "HUNGER": 0.23351174592971802
+     },
+     {
+      "s": 335,
+      "age": 8.852371215820312,
+      "t": 8.833724975585938,
+      "S": 0.00013214566859086823,
+      "pred": 0.00013214566859086823,
+      "rel": 0.0,
+      "HUNGER": 0.2339918464422226
+     },
+     {
+      "s": 336,
+      "age": 8.86835765838623,
+      "t": 8.852371215820312,
+      "S": 0.00012123622782407313,
+      "pred": 0.0001212362278240732,
+      "rel": 5.551115123125783e-16,
+      "HUNGER": 0.2345515340566635
+     },
+     {
+      "s": 337,
+      "age": 8.884346961975098,
+      "t": 8.86835765838623,
+      "S": 0.00011260294701623433,
+      "pred": 0.00011260294701623434,
+      "rel": 1.1102230246251565e-16,
+      "HUNGER": 0.23503123223781586
+     },
+     {
+      "s": 338,
+      "age": 8.900338172912598,
+      "t": 8.884346961975098,
+      "S": 0.00010458306295185525,
+      "pred": 0.00010458306295185522,
+      "rel": 2.220446049250313e-16,
+      "HUNGER": 0.2355109006166458
+     },
+     {
+      "s": 339,
+      "age": 8.918987274169922,
+      "t": 8.900338172912598,
+      "S": 9.713352043111122e-05,
+      "pred": 9.713352043111124e-05,
+      "rel": null,
+      "HUNGER": 0.235990509390831
+     },
+     {
+      "s": 340,
+      "age": 8.934975624084473,
+      "t": 8.918987274169922,
+      "S": 8.911337049669279e-05,
+      "pred": 8.911337049669284e-05,
+      "rel": null,
+      "HUNGER": 0.23654967546463013
+     },
+     {
+      "s": 341,
+      "age": 8.950968742370605,
+      "t": 8.934975624084473,
+      "S": 8.276684185326631e-05,
+      "pred": 8.27668418532663e-05,
+      "rel": null,
+      "HUNGER": 0.23702894151210785
+     },
+     {
+      "s": 342,
+      "age": 8.966957092285156,
+      "t": 8.950968742370605,
+      "S": 7.687061020614667e-05,
+      "pred": 7.687061020614665e-05,
+      "rel": null,
+      "HUNGER": 0.23750825226306915
+     },
+     {
+      "s": 343,
+      "age": 8.98560905456543,
+      "t": 8.966957092285156,
+      "S": 7.139599369470984e-05,
+      "pred": 7.139599369470987e-05,
+      "rel": null,
+      "HUNGER": 0.23798730969429016
+     },
+     {
+      "s": 344,
+      "age": 9.001596450805664,
+      "t": 8.98560905456543,
+      "S": 6.550008169832133e-05,
+      "pred": 6.550008169832137e-05,
+      "rel": null,
+      "HUNGER": 0.23854604363441467
+     },
+     {
+      "s": 345,
+      "age": 9.017580032348633,
+      "t": 9.001596450805664,
+      "S": 6.083552629686523e-05,
+      "pred": 6.083552629686526e-05,
+      "rel": null,
+      "HUNGER": 0.23902486264705658
+     },
+     {
+      "s": 346,
+      "age": 9.033567428588867,
+      "t": 9.017580032348633,
+      "S": 5.650415089047636e-05,
+      "pred": 5.6504150890476376e-05,
+      "rel": null,
+      "HUNGER": 0.23950345814228058
+     },
+     {
+      "s": 347,
+      "age": 9.052225112915039,
+      "t": 9.033567428588867,
+      "S": 5.248023618064758e-05,
+      "pred": 5.248023618064759e-05,
+      "rel": null,
+      "HUNGER": 0.23998209834098816
+     },
+     {
+      "s": 348,
+      "age": 9.068214416503906,
+      "t": 9.052225112915039,
+      "S": 4.814512256531255e-05,
+      "pred": 4.8145122565312575e-05,
+      "rel": null,
+      "HUNGER": 0.24054054915905
+     },
+     {
+      "s": 349,
+      "age": 9.084207534790039,
+      "t": 9.068214416503906,
+      "S": 4.47160977354077e-05,
+      "pred": 4.471609773540771e-05,
+      "rel": null,
+      "HUNGER": 0.24101904034614563
+     },
+     {
+      "s": 350,
+      "age": 9.100202560424805,
+      "t": 9.084207534790039,
+      "S": 4.153056516343122e-05,
+      "pred": 4.153056516343122e-05,
+      "rel": null,
+      "HUNGER": 0.24149754643440247
+     },
+     {
+      "s": 351,
+      "age": 9.118854522705078,
+      "t": 9.100202560424805,
+      "S": 3.857162695844815e-05,
+      "pred": 3.857162695844814e-05,
+      "rel": null,
+      "HUNGER": 0.2419760376214981
+     },
+     {
+      "s": 352,
+      "age": 9.134851455688477,
+      "t": 9.118854522705078,
+      "S": 3.5386365344512696e-05,
+      "pred": 3.5386365344512696e-05,
+      "rel": null,
+      "HUNGER": 0.24253390729427338
+     },
+     {
+      "s": 353,
+      "age": 9.150836944580078,
+      "t": 9.134851455688477,
+      "S": 3.286489476111204e-05,
+      "pred": 3.286489476111205e-05,
+      "rel": null,
+      "HUNGER": 0.24301226437091827
+     },
+     {
+      "s": 354,
+      "age": 9.166828155517578,
+      "t": 9.150836944580078,
+      "S": 3.052470683491609e-05,
+      "pred": 3.052470683491607e-05,
+      "rel": null,
+      "HUNGER": 0.24349020421504974
+     },
+     {
+      "s": 355,
+      "age": 9.18547248840332,
+      "t": 9.166828155517578,
+      "S": 2.835040542241458e-05,
+      "pred": 2.8350405422414578e-05,
+      "rel": null,
+      "HUNGER": 0.24396823346614838
+     },
+     {
+      "s": 356,
+      "age": 9.20146369934082,
+      "t": 9.18547248840332,
+      "S": 2.601013367624321e-05,
+      "pred": 2.6010133676243198e-05,
+      "rel": null,
+      "HUNGER": 0.2445254623889923
+     },
+     {
+      "s": 357,
+      "age": 9.217445373535156,
+      "t": 9.20146369934082,
+      "S": 2.4157409235760828e-05,
+      "pred": 2.4157409235760824e-05,
+      "rel": null,
+      "HUNGER": 0.24500331282615662
+     },
+     {
+      "s": 358,
+      "age": 9.233440399169922,
+      "t": 9.217445373535156,
+      "S": 2.2437644753592867e-05,
+      "pred": 2.243764475359286e-05,
+      "rel": null,
+      "HUNGER": 0.24548079073429108
+     },
+     {
+      "s": 359,
+      "age": 9.25208854675293,
+      "t": 9.233440399169922,
+      "S": 2.083902445960025e-05,
+      "pred": 2.0839024459600237e-05,
+      "rel": null,
+      "HUNGER": 0.2459585964679718
+     },
+     {
+      "s": 360,
+      "age": 9.268077850341797,
+      "t": 9.25208854675293,
+      "S": 1.9118465829562263e-05,
+      "pred": 1.911846582956225e-05,
+      "rel": null,
+      "HUNGER": 0.24651554226875305
+     },
+     {
+      "s": 361,
+      "age": 9.284059524536133,
+      "t": 9.268077850341797,
+      "S": 1.7756797387440792e-05,
+      "pred": 1.7756797387440792e-05,
+      "rel": null,
+      "HUNGER": 0.24699299037456512
+     },
+     {
+      "s": 362,
+      "age": 9.300031661987305,
+      "t": 9.284059524536133,
+      "S": 1.6492692070270934e-05,
+      "pred": 1.6492692070270934e-05,
+      "rel": null,
+      "HUNGER": 0.24747014045715332
+     },
+     {
+      "s": 363,
+      "age": 9.318641662597656,
+      "t": 9.300031661987305,
+      "S": 1.5319253424118503e-05,
+      "pred": 1.5319253424118496e-05,
+      "rel": null,
+      "HUNGER": 0.24794691801071167
+     },
+     {
+      "s": 364,
+      "age": 9.334613800048828,
+      "t": 9.318641662597656,
+      "S": 1.4056908287459612e-05,
+      "pred": 1.40569082874596e-05,
+      "rel": null,
+      "HUNGER": 0.24850232899188995
+     },
+     {
+      "s": 365,
+      "age": 9.3505859375,
+      "t": 9.334613800048828,
+      "S": 1.3056773236150519e-05,
+      "pred": 1.3056773236150517e-05,
+      "rel": null,
+      "HUNGER": 0.24897892773151398
+     },
+     {
+      "s": 366,
+      "age": 9.369230270385742,
+      "t": 9.3505859375,
+      "S": 1.2127796799552556e-05,
+      "pred": 1.2127796799552534e-05,
+      "rel": null,
+      "HUNGER": 0.24945543706417084
+     },
+     {
+      "s": 367,
+      "age": 9.385210037231445,
+      "t": 9.369230270385742,
+      "S": 1.1126670368716382e-05,
+      "pred": 1.1126670368716372e-05,
+      "rel": null,
+      "HUNGER": 0.2500115633010864
+     },
+     {
+      "s": 368,
+      "age": 9.401191711425781,
+      "t": 9.385210037231445,
+      "S": 1.0334654474857335e-05,
+      "pred": 1.0334654474857316e-05,
+      "rel": null,
+      "HUNGER": 0.25048813223838806
+     },
+     {
+      "s": 369,
+      "age": 9.417179107666016,
+      "t": 9.401191711425781,
+      "S": 9.59893105651048e-06,
+      "pred": 9.598931056510462e-06,
+      "rel": null,
+      "HUNGER": 0.2509646415710449
+     },
+     {
+      "s": 370,
+      "age": 9.435829162597656,
+      "t": 9.417179107666016,
+      "S": 8.915348005208755e-06,
+      "pred": 8.91534800520874e-06,
+      "rel": null,
+      "HUNGER": 0.25144127011299133
+     },
+     {
+      "s": 371,
+      "age": 9.45181655883789,
+      "t": 9.435829162597656,
+      "S": 8.179186805836647e-06,
+      "pred": 8.17918680583664e-06,
+      "rel": null,
+      "HUNGER": 0.2519971430301666
+     },
+     {
+      "s": 372,
+      "age": 9.467802047729492,
+      "t": 9.45181655883789,
+      "S": 7.596710127862342e-06,
+      "pred": 7.596710127862335e-06,
+      "rel": null,
+      "HUNGER": 0.2524735629558563
+     },
+     {
+      "s": 373,
+      "age": 9.483781814575195,
+      "t": 9.467802047729492,
+      "S": 7.055776421874342e-06,
+      "pred": 7.05577642187433e-06,
+      "rel": null,
+      "HUNGER": 0.2529498338699341
+     },
+     {
+      "s": 374,
+      "age": 9.502439498901367,
+      "t": 9.483781814575195,
+      "S": 6.553533892487261e-06,
+      "pred": 6.5535338924872605e-06,
+      "rel": null,
+      "HUNGER": 0.25342583656311035
+     },
+     {
+      "s": 375,
+      "age": 9.518428802490234,
+      "t": 9.502439498901367,
+      "S": 6.0121812600774705e-06,
+      "pred": 6.0121812600774646e-06,
+      "rel": null,
+      "HUNGER": 0.25398150086402893
+     },
+     {
+      "s": 376,
+      "age": 9.534414291381836,
+      "t": 9.518428802490234,
+      "S": 5.583977576625897e-06,
+      "pred": 5.5839775766258966e-06,
+      "rel": null,
+      "HUNGER": 0.25445759296417236
+     },
+     {
+      "s": 377,
+      "age": 9.550407409667969,
+      "t": 9.534414291381836,
+      "S": 5.1863631311833015e-06,
+      "pred": 5.1863631311832964e-06,
+      "rel": null,
+      "HUNGER": 0.2549334764480591
+     },
+     {
+      "s": 378,
+      "age": 9.569063186645508,
+      "t": 9.550407409667969,
+      "S": 4.816891519813238e-06,
+      "pred": 4.816891519813234e-06,
+      "rel": null,
+      "HUNGER": 0.25540947914123535
+     },
+     {
+      "s": 379,
+      "age": 9.58505630493164,
+      "t": 9.569063186645508,
+      "S": 4.419032639791671e-06,
+      "pred": 4.41903263979167e-06,
+      "rel": null,
+      "HUNGER": 0.25596463680267334
+     },
+     {
+      "s": 380,
+      "age": 9.601045608520508,
+      "t": 9.58505630493164,
+      "S": 4.10422492794751e-06,
+      "pred": 4.104224927947509e-06,
+      "rel": null,
+      "HUNGER": 0.2564404308795929
+     },
+     {
+      "s": 381,
+      "age": 9.61703872680664,
+      "t": 9.601045608520508,
+      "S": 3.8119110146044772e-06,
+      "pred": 3.8119110146044705e-06,
+      "rel": null,
+      "HUNGER": 0.25691601634025574
+     },
+     {
+      "s": 382,
+      "age": 9.635698318481445,
+      "t": 9.61703872680664,
+      "S": 3.5403540739619742e-06,
+      "pred": 3.540354073961968e-06,
+      "rel": null,
+      "HUNGER": 0.25739163160324097
+     },
+     {
+      "s": 383,
+      "age": 9.651689529418945,
+      "t": 9.635698318481445,
+      "S": 3.247875598587815e-06,
+      "pred": 3.247875598587809e-06,
+      "rel": null,
+      "HUNGER": 0.2579464018344879
+     },
+     {
+      "s": 384,
+      "age": 9.667680740356445,
+      "t": 9.651689529418945,
+      "S": 3.016526595308908e-06,
+      "pred": 3.0165265953089077e-06,
+      "rel": null,
+      "HUNGER": 0.25842171907424927
+     },
+     {
+      "s": 385,
+      "age": 9.683643341064453,
+      "t": 9.667680740356445,
+      "S": 2.8016567827174203e-06,
+      "pred": 2.8016567827174178e-06,
+      "rel": null,
+      "HUNGER": 0.25889691710472107
+     },
+     {
+      "s": 386,
+      "age": 9.702251434326172,
+      "t": 9.683643341064453,
+      "S": 2.6024363721588137e-06,
+      "pred": 2.602436372158809e-06,
+      "rel": null,
+      "HUNGER": 0.25937119126319885
+     },
+     {
+      "s": 387,
+      "age": 9.718223571777344,
+      "t": 9.702251434326172,
+      "S": 2.3880100958640686e-06,
+      "pred": 2.3880100958640644e-06,
+      "rel": null,
+      "HUNGER": 0.25992390513420105
+     },
+     {
+      "s": 388,
+      "age": 9.73419189453125,
+      "t": 9.718223571777344,
+      "S": 2.2181055513573428e-06,
+      "pred": 2.2181055513573407e-06,
+      "rel": null,
+      "HUNGER": 0.26039308309555054
+     },
+     {
+      "s": 389,
+      "age": 9.750160217285156,
+      "t": 9.73419189453125,
+      "S": 2.0603258646692723e-06,
+      "pred": 2.0603258646692685e-06,
+      "rel": null,
+      "HUNGER": 0.26085346937179565
+     },
+     {
+      "s": 390,
+      "age": 9.768777847290039,
+      "t": 9.750160217285156,
+      "S": 1.9137694624259625e-06,
+      "pred": 1.913769462425962e-06,
+      "rel": null,
+      "HUNGER": 0.2613055408000946
+     },
+     {
+      "s": 391,
+      "age": 9.784746170043945,
+      "t": 9.768777847290039,
+      "S": 1.756008120113024e-06,
+      "pred": 1.7560081201130222e-06,
+      "rel": null,
+      "HUNGER": 0.2618227005004883
+     },
+     {
+      "s": 392,
+      "age": 9.800714492797852,
+      "t": 9.784746170043945,
+      "S": 1.6310986401094257e-06,
+      "pred": 1.6310986401094228e-06,
+      "rel": null,
+      "HUNGER": 0.26225823163986206
+     },
+     {
+      "s": 393,
+      "age": 9.81668472290039,
+      "t": 9.800714492797852,
+      "S": 1.5150743002233828e-06,
+      "pred": 1.5150743002233826e-06,
+      "rel": null,
+      "HUNGER": 0.26268666982650757
+     },
+     {
+      "s": 394,
+      "age": 9.835309982299805,
+      "t": 9.81668472290039,
+      "S": 1.4072906733851613e-06,
+      "pred": 1.4072906733851611e-06,
+      "rel": null,
+      "HUNGER": 0.2631084620952606
+     },
+     {
+      "s": 395,
+      "age": 9.851280212402344,
+      "t": 9.835309982299805,
+      "S": 1.291235321975075e-06,
+      "pred": 1.291235321975075e-06,
+      "rel": null,
+      "HUNGER": 0.26359233260154724
+     },
+     {
+      "s": 396,
+      "age": 9.867233276367188,
+      "t": 9.851280212402344,
+      "S": 1.1993757834141132e-06,
+      "pred": 1.199375783414113e-06,
+      "rel": null,
+      "HUNGER": 0.26400068402290344
+     },
+     {
+      "s": 397,
+      "age": 9.885835647583008,
+      "t": 9.867233276367188,
+      "S": 1.114139582624287e-06,
+      "pred": 1.114139582624287e-06,
+      "rel": null,
+      "HUNGER": 0.2644028663635254
+     },
+     {
+      "s": 398,
+      "age": 9.901798248291016,
+      "t": 9.885835647583008,
+      "S": 1.0223677129819542e-06,
+      "pred": 1.0223677129819542e-06,
+      "rel": null,
+      "HUNGER": 0.2648650109767914
+     },
+     {
+      "s": 399,
+      "age": 9.917753219604492,
+      "t": 9.901798248291016,
+      "S": 9.496691166447626e-07,
+      "pred": 9.496691166447618e-07,
+      "rel": null,
+      "HUNGER": 0.26525598764419556
+     },
+     {
+      "s": 400,
+      "age": 9.933696746826172,
+      "t": 9.917753219604492,
+      "S": 8.821710779348038e-07,
+      "pred": 8.821710779348037e-07,
+      "rel": null,
+      "HUNGER": 0.2656418979167938
+     },
+     {
+      "s": 401,
+      "age": 9.952312469482422,
+      "t": 9.933696746826172,
+      "S": 8.195138212412419e-07,
+      "pred": 8.195138212412405e-07,
+      "rel": null,
+      "HUNGER": 0.2660228908061981
+     },
+     {
+      "s": 402,
+      "age": 9.96827507019043,
+      "t": 9.952312469482422,
+      "S": 7.5196393122973e-07,
+      "pred": 7.519639312297293e-07,
+      "rel": null,
+      "HUNGER": 0.26646217703819275
+     },
+     {
+      "s": 403,
+      "age": 9.984249114990234,
+      "t": 9.96827507019043,
+      "S": 6.98493226313638e-07,
+      "pred": 6.984932263136369e-07,
+      "rel": null,
+      "HUNGER": 0.2668343186378479
+     },
+     {
+      "s": 404,
+      "age": 10.000223159790039,
+      "t": 9.984249114990234,
+      "S": 6.487904092537899e-07,
+      "pred": 6.487904092537899e-07,
+      "rel": null,
+      "HUNGER": 0.267202764749527
+     },
+     {
+      "s": 405,
+      "age": 10.018844604492188,
+      "t": 10.000223159790039,
+      "S": 6.026243051220289e-07,
+      "pred": 6.026243051220284e-07,
+      "rel": null,
+      "HUNGER": 0.26756739616394043
+     },
+     {
+      "s": 406,
+      "age": 10.03481674194336,
+      "t": 10.018844604492188,
+      "S": 5.529373000806902e-07,
+      "pred": 5.529373000806901e-07,
+      "rel": null,
+      "HUNGER": 0.2679879665374756
+     },
+     {
+      "s": 407,
+      "age": 10.050773620605469,
+      "t": 10.03481674194336,
+      "S": 5.13596360830182e-07,
+      "pred": 5.135963608301811e-07,
+      "rel": null,
+      "HUNGER": 0.2683449685573578
+     },
+     {
+      "s": 408,
+      "age": 10.066730499267578,
+      "t": 10.050773620605469,
+      "S": 4.770881288737895e-07,
+      "pred": 4.770881288737894e-07,
+      "rel": null,
+      "HUNGER": 0.26869842410087585
+     },
+     {
+      "s": 409,
+      "age": 10.085344314575195,
+      "t": 10.066730499267578,
+      "S": 4.43175030182024e-07,
+      "pred": 4.4317503018202357e-07,
+      "rel": null,
+      "HUNGER": 0.269048810005188
+     },
+     {
+      "s": 410,
+      "age": 10.101299285888672,
+      "t": 10.085344314575195,
+      "S": 4.066491211184229e-07,
+      "pred": 4.0664912111842245e-07,
+      "rel": null,
+      "HUNGER": 0.26945385336875916
+     },
+     {
+      "s": 411,
+      "age": 10.117259979248047,
+      "t": 10.101299285888672,
+      "S": 3.7774640370080534e-07,
+      "pred": 3.777464037008053e-07,
+      "rel": null,
+      "HUNGER": 0.26979801058769226
+     },
+     {
+      "s": 412,
+      "age": 10.135883331298828,
+      "t": 10.117259979248047,
+      "S": 3.5088867811013923e-07,
+      "pred": 3.5088867811013864e-07,
+      "rel": null,
+      "HUNGER": 0.2701396644115448
+     },
+     {
+      "s": 413,
+      "age": 10.151823043823242,
+      "t": 10.135883331298828,
+      "S": 3.2195470147610806e-07,
+      "pred": 3.2195470147610806e-07,
+      "rel": null,
+      "HUNGER": 0.2705351412296295
+     },
+     {
+      "s": 414,
+      "age": 10.166942596435547,
+      "t": 10.151823043823242,
+      "S": 2.99092755705818e-07,
+      "pred": 2.9909275570581773e-07,
+      "rel": null,
+      "HUNGER": 0.2708710730075836
+     },
+     {
+      "s": 415,
+      "age": 10.184637069702148,
+      "t": 10.166942596435547,
+      "S": 2.789092824960786e-07,
+      "pred": 2.7890928249607855e-07,
+      "rel": null,
+      "HUNGER": 0.2711876332759857
+     },
+     {
+      "s": 416,
+      "age": 10.200002670288086,
+      "t": 10.184637069702148,
+      "S": 2.570114787331587e-07,
+      "pred": 2.5701147873315827e-07,
+      "rel": null,
+      "HUNGER": null
+     },
+     {
+      "s": 417,
+      "age": 10.217813491821289,
+      "t": 10.184637069702148,
+      "S": 2.570114787331587e-07,
+      "pred": 2.5701147873315827e-07,
+      "rel": null,
+      "HUNGER": null
+     },
+     {
+      "s": 418,
+      "age": 10.235855102539062,
+      "t": 10.184637069702148,
+      "S": 2.570114787331587e-07,
+      "pred": 2.5701147873315827e-07,
+      "rel": null,
+      "HUNGER": null
+     },
+     {
+      "s": 419,
+      "age": 10.251459121704102,
+      "t": 10.184637069702148,
+      "S": 2.570114787331587e-07,
+      "pred": 2.5701147873315827e-07,
+      "rel": null,
+      "HUNGER": null
+     },
+     {
+      "s": 420,
+      "age": 10.267156600952148,
+      "t": 10.184637069702148,
+      "S": 2.570114787331587e-07,
+      "pred": 2.5701147873315827e-07,
+      "rel": null,
+      "HUNGER": null
+     }
+    ],
+    "graded": 119,
+    "max_rel": 8.881784197001252e-16,
+    "ok": true
+   }
+  ]
+ },
+ "eats": [
+  {
+   "label": "G_MEAL_0",
+   "food": "TKX.Mixed650",
+   "landed": true,
+   "foodtimer": 0,
+   "before": {
+    "eats": 0,
+    "landed": 0,
+    "sips": 0,
+    "failures": 0
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2113437115,
+    "validStart": true,
+    "maxTime": 464.0351791381836,
+    "moodleFoodEaten": 0,
+    "wall": 97.113
+   },
+   "after": {
+    "eats": 1,
+    "landed": 1,
+    "sips": 0,
+    "failures": 0
+   },
+   "landed_age_polled": 4.4924421310424805,
+   "landed_wall": 107.0,
+   "stop": "G_MEAL",
+   "ring_s": 73,
+   "ring_age": 4.484468460083008
+  }
+ ],
+ "drinks": [],
+ "marks": [],
+ "speeds": [
+  {
+   "mode": "one",
+   "age": 4.184230804443359,
+   "mult": 4.771203517913818,
+   "wall": 95.21
+  },
+  {
+   "mode": "one",
+   "age": 4.518956184387207,
+   "mult": 4.775247097015381,
+   "wall": 107.824
+  },
+  {
+   "mode": "one",
+   "age": 4.917713165283203,
+   "mult": 4.778558254241943,
+   "wall": 122.921
+  },
+  {
+   "mode": "one",
+   "age": 5.80040168762207,
+   "mult": 4.785455226898193,
+   "wall": 156.038
+  },
+  {
+   "mode": "one",
+   "age": 6.884932518005371,
+   "mult": 4.784427165985107,
+   "wall": 196.954
+  },
+  {
+   "mode": "one",
+   "age": 7.9673051834106445,
+   "mult": 4.785976886749268,
+   "wall": 237.641
+  }
+ ],
+ "stops": [
+  {
+   "label": "G_MEAL",
+   "kind": "gate_meal",
+   "eats": [
+    "G_MEAL_0"
+   ],
+   "landed": [
+    true
+   ],
+   "age": 4.500398635864258
+  }
+ ],
+ "legs": [
+  {
+   "label": "IDLE",
+   "kind": "idle",
+   "minutes": 20.0,
+   "age0": 4.534893035888672,
+   "age1": 4.901763916015625
+  },
+  {
+   "label": "SQUATS",
+   "kind": "exercise",
+   "exercise": "squats",
+   "minutes": 20.0,
+   "rest_min": 40.0,
+   "age0": 4.933652877807617,
+   "set": {
+    "label": "SQUATS_set",
+    "exercise": "squats",
+    "requested_min": 20,
+    "queued": {
+     "ok": true,
+     "queued": true,
+     "queueLen": 1,
+     "error": null,
+     "queueError": null,
+     "wall": 123.935
+    },
+    "age_queued": 4.95225715637207,
+    "started": true,
+    "ended": true,
+    "polls": [
+     {
+      "age": 5.018682479858398,
+      "wall": 127.237,
+      "exe": "zombie.characters.BodyDamage.Fitness$FitnessExercise@6a00b08c",
+      "on": true,
+      "rate": 1.8811231851577759,
+      "met": 1.9,
+      "S": 0,
+      "band2": 3.029937744140625,
+      "exKcal": 1.9774475097656248
+     },
+     {
+      "age": 5.077104568481445,
+      "wall": 129.268,
+      "exe": "nil",
+      "on": false,
+      "rate": 2.059187889099121,
+      "met": 2,
+      "S": 0,
+      "band2": 3.9862060546875,
+      "exKcal": 5.695823669433594
+     }
+    ],
+    "age_end": 5.085082054138184
+   },
+   "age_set_end": 5.101018905639648,
+   "age1": 5.784427642822266
+  },
+  {
+   "label": "BURPEES",
+   "kind": "exercise",
+   "exercise": "burpees",
+   "minutes": 20.0,
+   "rest_min": 45.0,
+   "age0": 5.819025039672852,
+   "set": {
+    "label": "BURPEES_set",
+    "exercise": "burpees",
+    "requested_min": 20,
+    "queued": {
+     "ok": true,
+     "queued": true,
+     "queueLen": 1,
+     "error": null,
+     "queueError": null,
+     "wall": 157.304
+    },
+    "age_queued": 5.834987640380859,
+    "started": true,
+    "ended": true,
+    "polls": [
+     {
+      "age": 5.885439872741699,
+      "wall": 159.852,
+      "exe": "zombie.characters.BodyDamage.Fitness$FitnessExercise@413195dc",
+      "on": true,
+      "rate": 2.114365577697754,
+      "met": 2,
+      "S": 0,
+      "band2": 6.855354309082031,
+      "exKcal": 47.279754638671875
+     },
+     {
+      "age": 5.935929298400879,
+      "wall": 161.631,
+      "exe": "zombie.characters.BodyDamage.Fitness$FitnessExercise@413195dc",
+      "on": true,
+      "rate": 2.4551312923431396,
+      "met": 2.5,
+      "S": 0,
+      "band2": 9.883689880371094,
+      "exKcal": 51.381263732910156
+     },
+     {
+      "age": 6.002306938171387,
+      "wall": 164.165,
+      "exe": "zombie.characters.BodyDamage.Fitness$FitnessExercise@413195dc",
+      "on": true,
+      "rate": 2.7661664485931396,
+      "met": 3,
+      "S": 0,
+      "band2": 12.911396026611328,
+      "exKcal": 56.86211395263672
+     },
+     {
+      "age": 6.068772315979004,
+      "wall": 166.699,
+      "exe": "nil",
+      "on": false,
+      "rate": 2.7760653495788574,
+      "met": 3,
+      "S": 0,
+      "band2": 12.911396026611328,
+      "exKcal": 65.8949203491211
+     }
+    ],
+    "age_end": 6.084726333618164
+   },
+   "age_set_end": 6.087409973144531,
+   "age1": 6.868973731994629
+  },
+  {
+   "label": "DECAY",
+   "kind": "setS",
+   "value": 1,
+   "minutes": 60.0,
+   "setpath": {
+    "label": "DECAY",
+    "path": "satiety.S",
+    "value": 1,
+    "ok": true,
+    "before": "0",
+    "after": "1",
+    "err": null,
+    "age_before": 6.900887489318848,
+    "age_after": 6.935449600219727,
+    "wall_before": 197.463,
+    "wall_after": 198.478
+   },
+   "age0": 6.900887489318848,
+   "age1": 7.951350212097168
+  },
+  {
+   "label": "MELEE",
+   "kind": "melee",
+   "windows": [],
+   "hordes": [
+    {
+     "ok": true,
+     "reply": "Horde spawned."
+    },
+    {
+     "ok": true,
+     "reply": "Horde spawned."
+    }
+   ],
+   "misses": 25,
+   "age0": 7.985918045043945,
+   "age1": 10.130558013916016
+  }
+ ],
+ "setpaths": [
+  {
+   "label": "DECAY",
+   "path": "satiety.S",
+   "value": 1,
+   "ok": true,
+   "before": "0",
+   "after": "1",
+   "err": null,
+   "age_before": 6.900887489318848,
+   "age_after": 6.935449600219727,
+   "wall_before": 197.463,
+   "wall_after": 198.478
+  }
+ ],
+ "bout_ex": null,
+ "chain": {
+  "prev_run": null,
+  "prev_prefix": null,
+  "end_age": null
+ },
+ "lint_errors": [],
+ "server_launch_wall": 2.945,
+ "server_started_wall": 17.918,
+ "session_ready_wall": 55.28,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "TKX.Mixed650",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.Mixed650",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -32,
+    "ThirstChange": 0,
+    "DaysFresh": 365,
+    "DaysTotallyRotten": 730,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "item.script",
+   "args": "TKX.Mixed650",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.Mixed650",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -32,
+    "ThirstChange": 0,
+    "DaysFresh": 365,
+    "DaysTotallyRotten": 730,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "admin": []
+ },
+ "timeline": [
+  {
+   "t": 17.9,
+   "phase": "server_started"
+  },
+  {
+   "t": 18.0,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 55.3,
+   "phase": "client_ready",
+   "took": 36.8,
+   "user": "admin"
+  },
+  {
+   "t": 55.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 56.0,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 56.6,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 56.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.Mixed650\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 57.1,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.Mixed650\", \"via\": \"getItem\", \"side\": \"client\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 95.2,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 95.8,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"TKX.Mixed650\" 1",
+   "ok": true
+  },
+  {
+   "t": 107.8,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 122.9,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 156.0,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 197.0,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 237.6,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 238.8,
+   "phase": "rcon",
+   "cmd": "createhorde 1 admin",
+   "ok": true
+  },
+  {
+   "t": 269.2,
+   "phase": "rcon",
+   "cmd": "createhorde 1 admin",
+   "ok": true
+  },
+  {
+   "t": 320.2,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 323.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 333.5,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "server_stop_wall": 333.546,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 34.3,
+   "ready": 36.8
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "life": "minute: \\w+ failed|players: hook failed|players: task|store: |writer: ",
+   "log": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+   "echo_excluded": "PZTK: "
+  },
+  "limits": {
+   "log": 400
+  },
+  "clients": {
+   "admin": [
+    {
+     "console": "clients\\admin\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\clients\\admin\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     ],
+     "echo_lines_excluded": 0
+    }
+   ]
+  },
+  "server": {
+   "life_lines": [
+    "LOG  : Lua          f:0 st:2,051,778,465> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart"
+   ],
+   "life_echo_excluded": 0,
+   "lines": [
+    "LOG  : Mod          f:0 st:2,051,768,946> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:2,051,768,949> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:2,051,768,949> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:2,051,768,949> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:2,051,768,949> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "ERROR: General      f:0 st:2,051,776,930> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,930> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,931> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,931> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,933> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,933> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,935> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,935> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,936> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,936> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\TKX_StudyFoods\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,937> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,051,776,938> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x291-20261011-045658\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "LOG  : Lua          f:0 st:2,051,778,367> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:2,051,778,367> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,051,778,367> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:2,051,778,367> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:2,051,778,465> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+    "ERROR: WorldGen     f:0 st:2,051,778,790> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderW",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,051,778,790> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderS at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderS",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,051,778,790> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderE at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderE",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,051,778,790> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderN at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderN",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,051,778,792> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: WindowShape at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: WindowShape",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:2,051,781,489> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:2,051,781,490> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+    "LOG  : Lua          f:0 st:2,051,781,490> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=12 nutritionOn=false log=2",
+    "LOG  : Lua          f:345 st:2,051,817,277> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:3027 st:2,052,085,477> [NutritionRevamp] players: admin left"
+   ],
+   "echo_lines_excluded": 74
+  }
+ },
+ "slots": {
+  "files": [
+   {
+    "path": "server/Lua/NutritionRevamp/pzt/p_00610064006d0069006e_a.json",
+    "bytes": 7328,
+    "sha256": "5648367838ec15d81dd2b7d27a9b4e3f63ea6f2c3cff6c7d52568435c952a9af",
+    "copy": "slot-p_00610064006d0069006e_a.json"
+   },
+   {
+    "path": "server/Lua/NutritionRevamp/pzt/p_00610064006d0069006e_b.json",
+    "bytes": 7493,
+    "sha256": "352c2b4716bc04493e409e55dc54062ad8324157607ea8c9b27b127a1f926261",
+    "copy": "slot-p_00610064006d0069006e_b.json"
+   }
+  ]
+ },
+ "replay": {
+  "inputs": {
+   "ring": [
+    "minute-ring-admin-1.json",
+    "minute-ring-admin-413.json"
+   ],
+   "events_n": 16,
+   "notes": [],
+   "player": {
+    "female": false,
+    "weight": 80,
+    "macros": [
+     -11.281601905822754,
+     -300,
+     -70,
+     -400
+    ]
+   },
+   "start_stats": {
+    "BOREDOM": 0.5996819138526917,
+    "FATIGUE": 0,
+    "HUNGER": 0.2031746804714203,
+    "NICOTINE_WITHDRAWAL": 0,
+    "THIRST": 0.05035627260804176,
+    "UNHAPPINESS": 0
+   },
+   "start_age": 4.101822853088379,
+   "read_age": 4.152329444885254,
+   "cli": "python tools/replay_live.py live --ring minute-ring-admin-1.json minute-ring-admin-413.json --events events.json --start start.json --start-stats start-stats.json --player player.json --sleep-allowed false --out replay.json"
+  },
+  "activity": {
+   "n": 14,
+   "held_in_start": [],
+   "unknown_met": []
+  },
+  "setpaths": {
+   "events": [
+    {
+     "s": 219,
+     "kind": "setpath",
+     "path": "satiety.S",
+     "value": 1,
+     "label": "DECAY",
+     "age_before": 6.900887489318848
+    }
+   ],
+   "notes": []
+  },
+  "autodrops": {
+   "n": 0,
+   "water_g": 0,
+   "held_in_start": [],
+   "first_ring_s_after_start": 51
+  },
+  "autodrink_check": {
+   "detected_beyond_autodrops": [],
+   "injected": false,
+   "detector_alone": {
+    "n": 0,
+    "litres": 0
+   }
+  },
+  "seconds": 0.13,
+  "offset": 7,
+  "rows": 370,
+  "eats_replayed": 1,
+  "diff": {
+   "fields": {
+    "HUNGER": {
+     "n": 348,
+     "max": 2.854881619451799e-05,
+     "over": 0,
+     "worst_s": 415
+    },
+    "body.energyState": {
+     "n": 348,
+     "max": 9.826519572020409e-05,
+     "over": 0,
+     "worst_s": 415
+    },
+    "satiety.L": {
+     "n": 348,
+     "max": 0.0,
+     "over": 0,
+     "worst_s": null
+    }
+   },
+   "classes": {
+    "gap": 0,
+    "suspect": 0,
+    "offline": 5,
+    "between": 16
+   },
+   "ok": true,
+   "findings": [],
+   "findings_n": 0
+  },
+  "diff_extra": {
+   "fields": {
+    "satiety.P": {
+     "n": 348,
+     "max": 0.0,
+     "over": 0,
+     "worst_s": null
+    },
+    "satiety.S": {
+     "n": 348,
+     "max": 1.1102230246251565e-16,
+     "over": 0,
+     "worst_s": 225
+    },
+    "stomachFill": {
+     "n": 348,
+     "max": 9.329764294463416e-09,
+     "over": 0,
+     "worst_s": 74
+    }
+   },
+   "classes": {
+    "gap": 0,
+    "suspect": 0,
+    "offline": 5,
+    "between": 16
+   },
+   "ok": true,
+   "findings": [],
+   "findings_n": 0
+  }
+ },
+ "copied": [
+  "MANIFEST.json",
+  "events.json",
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-413.json",
+  "player.json",
+  "replay.json",
+  "slot-p_00610064006d0069006e_a.json",
+  "slot-p_00610064006d0069006e_b.json",
+  "start-stats.json",
+  "start.json"
+ ],
+ "wall_seconds": 334.4
+}
