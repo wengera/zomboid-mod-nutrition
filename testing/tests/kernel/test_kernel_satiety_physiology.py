@@ -39,7 +39,7 @@ def test_the_constants(host):
         assert S[gone] is None, gone                                 # the meal pool P, retired in Plan 11g Task 4
     assert (S.ATWATER_P, S.ATWATER_C, S.ATWATER_F) == (4, 4, 9)
     assert (S.CIRCADIAN_A, S.CIRCADIAN_PEAK_H) == (0.085, 19.8333)
-    assert host.K.deficit.DEFICIT_FLOOR == 0.02                       # refit, Plan 11f Task 2c fix 1 (ruling 2b-3, widened search); 0 from Task 2c, 1.0 from Plan 11d Task 9d
+    assert host.K.deficit.DEFICIT_FLOOR == 0                          # refit, Plan 11g Task 7 (deficit studies alone); 0.02 from Plan 11f Task 2c fix 1, 0 from its Task 2c, 1.0 from Plan 11d Task 9d
 
 
 def test_each_constant_names_its_row_or_its_label():
@@ -65,9 +65,9 @@ def test_each_constant_names_its_row_or_its_label():
     with open(os.path.join(SHARED, "NR_Kernel_Deficit.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
     line = re.search(r"^K\.deficit\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)
-    assert "game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search)" in line
+    assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line
     assert "S1271 open" in line and "S1254" in line
-    assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325")), line   # the rows it was fitted to
+    assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312")), line   # the rows it was fitted to
 
 
 def test_fill_is_mass_over_the_maximal_capacity_clamped(host):
@@ -371,14 +371,14 @@ def test_circadian_is_periodic_across_midnight(host):
 
 def test_hunger_target_reads_the_named_deficit_floor(host):
     # follow-up pin: hungerTarget's value is unchanged by naming its coefficient
-    assert host.call("deficit.hungerTarget", 1, 1.5) == pytest.approx(0.02 * 0.5)     # Plan 11f Task 2c fix 1: 0.02 (0 from Task 2c, 1.0 before)
+    assert host.call("deficit.hungerTarget", 1, 1.5) == 0                           # Plan 11g Task 7: the floor at 0 (0.02 from Plan 11f Task 2c fix 1, 0 from its Task 2c, 1.0 before)
     # the coefficient is read from the constant, not a literal: patch it and the value follows
     host.K.deficit.DEFICIT_FLOOR = 0.3
     try:
         assert host.call("deficit.hungerTarget", 1, 1.5) == pytest.approx(0.3 * 0.5)
     finally:
-        host.K.deficit.DEFICIT_FLOOR = 0.02
-    assert host.call("deficit.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 0.02 * 0.5)
+        host.K.deficit.DEFICIT_FLOOR = 0
+    assert host.call("deficit.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5)
 
 
 @pytest.mark.parametrize("E", [50, 300, 650, 1200])

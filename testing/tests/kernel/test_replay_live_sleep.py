@@ -72,7 +72,8 @@ def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it(
     found = RL.detect_autodrinks(rr, rd["events"])
     assert [x["s"] for x in found] == [179]
     assert found[0]["litres"] == pytest.approx(0.2, abs=0.002)
-    kw = dict(paths=rp, user="admin", player=rd["player"], start_stats=rd["start-stats"], sleep_allowed=False)
+    kw = dict(paths=rp, user="admin", player=rd["player"], start_stats=rd["start-stats"], sleep_allowed=False,
+              constants=RL.DEFICIT_11F)                          # the ring's build's deficit drive (Plan 11g Task 7)
     rows_off, be_off = RL.replay_live(rr, rd["events"], rd["start"], **kw)
     assert be_off.injected == []
     rows_on, be_on = RL.replay_live(rr, rd["events"], rd["start"], detect_autodrink=True, **kw)

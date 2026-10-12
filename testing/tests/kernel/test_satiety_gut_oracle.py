@@ -415,13 +415,16 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
     # S1325 (Karl 2021): hunger -55 % (95 % CI -73, -38) in BAL against REST. Task 6 asserts the mean over the study's
     # eight daily sampling points (before and after each meal and the morning exercise; research 03, difference 1) in
     # -64 % to -46 % (S1892, open: +/- 9 points, about one standard error, a labelled design choice). The refit
-    # (Task 6c fix 2) reads -54.49 % (fix 1's fit -54.47 %, Task 6c's -52.73 %) on the server path (test_replay_live_energy's twin K), inside: F counted past 730 g gives
+    # (Task 6c fix 2) read -54.49 % (fix 1's fit -54.47 %, Task 6c's -52.73 %) on the server path (test_replay_live_energy's twin K), and
+    # -49.21 % under the deficit drive's refit on the deficit studies alone (Task 7, which holds the arm in this band as a constraint), inside: F counted past 730 g gives
     # BAL's fuller stomach its own fullness (spec § 7). The gut stage's fit (Task 6) -44.67 %, named; under G's
     # provisional constants (Task 4) -45.76 %; on the P model (Task 3) -45.08 %.
     # Shape checks, relative to REST (ruling T3-1: model HUNGER and the study's VAS / 10 are on different scales):
     # troughs_rel and pre_breakfast_rel against the figures derived from S1872 (troughs 0.215 / 0.209 / 0.106 over
     # REST's 2.71 cm; pre-breakfast 1.000 / 0.562 / 0.519 over REST's 5.18 cm) within gut_oracles.KARL_SHAPE_TOL, a
-    # labelled DESIGN CHOICE (S1892). The refit (Task 6c fix 2): troughs_rel 0.522 / 0.362 / 0.388, days 1 and 3 named
+    # labelled DESIGN CHOICE (S1892). Under the deficit refit (Task 7): troughs_rel 0.536 / 0.432 / 0.457, all three named,
+    # pre_breakfast_rel 1.000 / 0.721 / 0.763, days 2 and 3 named; per day -41.5 / -54.4 / -51.7 %.
+    # The satiety refit (Task 6c fix 2): troughs_rel 0.522 / 0.362 / 0.388, days 1 and 3 named
     # (day 2 inside), pre_breakfast_rel 1.000 / 0.603 / 0.646, day 3 named; per day -42.6 / -61.8 / -59.1 % (study -46 /
     # -61 / -65). Fix 1's fit: troughs_rel 0.525 / 0.365 / 0.390, the rest alike to 0.1. Task 6c's fit: 0.548 / 0.381 / 0.408, 1.000 / 0.598 / 0.640, -40.1 / -60.4 / -57.6 %.
     # The gut stage's fit (Task 6): troughs_rel 0.887 / 0.609 / 0.652, all three named, pre_breakfast_rel 1.000 / 0.590 /
@@ -441,7 +444,8 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
         assert near_all(dist(tuple(r[k]), STUDY["karl_" + k]), DIST["karl_" + k]), (k, r)
 
 
-# The readings under the refit meal pool M (Plan 11g Task 6c fix 2, fit-11g-20261012d; fix 1's fit-11g-20261012c and Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
+# The readings under the refit meal pool M (Plan 11g Task 6c fix 2, fit-11g-20261012d; Karl's surplus day's under the
+# deficit drive's refit, Task 7, fit-11g-deficit-20261012; fix 1's fit-11g-20261012c and Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
 # model's in Task 3 at the mod tree 44115b1a, d62ed4ea), to 9 decimals: PIN the readings, DIST their named distances to
 # STUDY (model less study). The targets are asserted from the registry (gut_oracles.check).
 PIN = {
@@ -475,15 +479,15 @@ PIN = {
                       'liquid': ([-0.430224171, -0.35372768, -0.257924274, -0.167711007, -0.080822144], 302)},
     'fasted_diekmann': {'hf': ([-0.633988974, -0.577250398, -0.466143798, -0.246912023, -0.026811308], 375),
                         'lf': ([-0.653444393, -0.594919199, -0.480539613, -0.255641276, -0.030611033], 377)},
-    'karl_bal': -54.489096513,
-    'karl_by_day': [-42.578773999, -61.789617359, -59.098898181],
-    'karl_rest': 0.148344871,
-    'karl_troughs': [0.038178298, 0.026519603, 0.028382355],
-    'karl_rest_trough': 0.073166582,
-    'karl_pre_breakfast': [0.277547857, 0.167349456, 0.17921317],
-    'karl_rest_pre_breakfast': 0.277547857,
-    'karl_troughs_rel': [0.521799664, 0.362455131, 0.387914185],
-    'karl_pre_breakfast_rel': [1.0, 0.602957117, 0.645701867],
+    'karl_bal': -49.210607787,
+    'karl_by_day': [-41.4698928, -54.426095899, -51.735834662],
+    'karl_rest': 0.150385805,
+    'karl_troughs': [0.039781418, 0.032040333, 0.033928533],
+    'karl_rest_trough': 0.074172729,
+    'karl_pre_breakfast': [0.281351094, 0.202777695, 0.214800682],
+    'karl_rest_pre_breakfast': 0.281351094,
+    'karl_troughs_rel': [0.536334828, 0.43196918, 0.457425972],
+    'karl_pre_breakfast_rel': [1.0, 0.720728297, 0.763461335],
 }
 DIST = {
     'cut40': 0.015702383,
@@ -501,10 +505,10 @@ DIST = {
     'marmonier': (123, 122, 135),
     'melanson': (154, 91),
     'moore': -88,
-    'karl_bal': 0.510903487,
-    'karl_by_day': (3.421226001, -0.789617359, 5.901101819),
-    'karl_troughs_rel': (0.306799664, 0.153455131, 0.281914185),
-    'karl_pre_breakfast_rel': (0.0, 0.040957117, 0.126701867),
+    'karl_bal': 5.789392213,
+    'karl_by_day': (4.5301072, 6.573904101, 13.264165338),
+    'karl_troughs_rel': (0.321334828, 0.22296918, 0.351425972),
+    'karl_pre_breakfast_rel': (0.0, 0.158728297, 0.244461335),
 }
 
 

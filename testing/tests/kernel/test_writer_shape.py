@@ -63,11 +63,11 @@ def player(h, name="a"):
 
 # Plan 11c Task 6: the written HUNGER, recomputed in doubles from the kernels' constants at HEAD (NR_Kernel_Satiety.lua,
 # NR_Kernel_Deficit.lua): mealRead(M) = 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP); sated(F, Mn) = 1 - (1 - FULL_WEIGHT F) (1 - Mn),
-# MEAL_REQ, MEAL_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6c, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es + FLOOR max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.02 (Plan 11f Task 2c fix 1; 0 from Task 2c, 1.0 before);
+# MEAL_REQ, MEAL_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6c, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es + FLOOR max(0, es - 1), 0, 1), DEFICIT_FLOOR 0 (Plan 11g Task 7, at its bound; 0.02 from Plan 11f Task 2c fix 1, 0 from its Task 2c, 1.0 before);
 # circadian(h) = 1 + 0.085 cos(2 pi (h - 19.8333) / 24); acuteFactor(S) = 1 - 0.7 S; the writer's composition
 # (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The host's clock
 # reads the hour of day as fmod(age, 24), and step() sets age 100 + minute / 60, so minute m is hour 4 + m / 60.
-FLOOR = 0.02                    # K.deficit.DEFICIT_FLOOR (Plan 11f Task 2c fix 1, ruling 2b-3, widened search)
+FLOOR = 0                       # K.deficit.DEFICIT_FLOOR (Plan 11g Task 7, the deficit studies alone; 0.02 from Plan 11f Task 2c fix 1)
 
 
 def _satiety_constant(name):
@@ -574,9 +574,9 @@ def test_the_energy_term_raises_the_hunger_of_a_deficit():
     h = boot()
     p = player(h)
     rec = record(h)
-    rec.body.energyState = 1.2                             # the deficit floor 0.02 since Plan 11f Task 2c fix 1
+    rec.body.energyState = 1.2                             # the deficit floor 0 since Plan 11g Task 7 (0.02 before)
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx((H0 * 1.2 + 0.02 * 0.2) * 0.9540165460822252)
+    assert p.st.sets.HUNGER == pytest.approx(H0 * 1.2 * 0.9540165460822252)
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, es=1.2))
 
 
@@ -1164,7 +1164,7 @@ def test_a_malformed_liquid_lane_reads_the_stamp():
 # SEED_FLOOR es + FLOOR max(0, es - 1) times the factors (SEED_FLOOR 1 - mealRead(MEAL_SEED_MAX), 0.214 since Plan 11g Task 6c fix 1, 0.196 in Task 6c,
 # 0.244 in Task 6, 0.203 before); ceiling: a HUNGER above hungerTarget(FULL_WEIGHT F, es) x the factors seeds M = 0
 # and writes that ceiling. Review B's case moved to es 1.1 (Plan 11d Task 9d: at es 1.5 the floor's 1.0 reached the
-# cap). Since Plan 11f Task 2c fix 1 the floor is 0.02 (0 in Task 2c), so the deficit reaches both mostly through es.
+# cap). Since Plan 11g Task 7 the floor is 0 (0.02 from Plan 11f Task 2c fix 1), so the deficit reaches both through es alone.
 
 def _seeded(es, read, F, minute, S=0.0):
     h = boot()
@@ -1184,7 +1184,7 @@ def test_the_seed_floor_reads_hunger_targets_deficit_term(es):
     written, fac = _seeded(es, 0.1, 0.0, peak)
     floor = 1 - _mread(MEAL_SEED_MAX)
     assert written == pytest.approx((floor * es + FLOOR * max(0.0, es - 1)) * fac, abs=5e-4)
-    assert written > floor * es * fac                                      # the deficit raises the seed floor
+    assert written > floor * fac                                           # the deficit raises the seed floor (through es)
     assert round(floor, 3) == 0.214                                        # LIMITATION_FOUR's figure
 
 

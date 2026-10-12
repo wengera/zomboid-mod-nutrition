@@ -403,3 +403,18 @@ class TestSleepOptionCli(unittest.TestCase):
         self.assertEqual(RL.parse_bool("false"), False)
         with self.assertRaises(ValueError):
             RL.parse_bool("maybe")
+
+
+class ReplayConstantsTest(unittest.TestCase):
+    """Plan 11g Task 7: a ring replays at its recording build's kernel constants (ServerReplay's `constants`)."""
+
+    def test_the_constants_are_set_on_the_server_host_and_an_unknown_one_is_refused(self):
+        be = RL.ServerReplay(constants=RL.DEFICIT_11F)
+        for name, value in RL.DEFICIT_11F.items():
+            mod, key = name.split(".")
+            self.assertEqual(be.K[mod][key], value)
+        self.assertNotEqual(RL.ServerReplay().K.deficit.BALANCE_SPAN_KCAL, 3100.0)      # the shipped fit moved it
+        with self.assertRaises(ValueError):
+            RL.ServerReplay(constants={"deficit.NO_SUCH": 1.0})
+        with self.assertRaises(ValueError):
+            RL.ServerReplay(constants={"nosuch.BALANCE_SPAN_KCAL": 1.0})

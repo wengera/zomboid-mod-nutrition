@@ -167,8 +167,8 @@ def test_the_36_h_fast_ratios_and_log(host):
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     o2, o3, olog, _, _ = M.fast_reading(host)
     assert r2 == o2 and r3 == o3
-    assert round(r2, 3) == 1.186 and round(r3, 3) == 0.976              # Plan 11f Task 2c fix 1 (1.166, 0.979 in Task 2c; 1.304, 0.986 before)
-    assert [round(ifed[W + 2]), round(ifed[W + 3])] == [1952, 1938] and round(ifast[W + 2]) == 2316
+    assert round(r2, 3) == 1.141 and round(r3, 3) == 0.985              # Plan 11g Task 7 (1.186, 0.976 in Plan 11f Task 2c fix 1; 1.166, 0.979 in its Task 2c; 1.304, 0.986 before)
+    assert [round(ifed[W + 2]), round(ifed[W + 3])] == [1948, 1939] and round(ifast[W + 2]) == 2223
     at = [M.at_hour(0, 20 + 12), M.at_hour(0, 20 + 24), M.at_hour(0, 20 + 36)]
     assert [rx[m - 1]["body.energyState"] for m in at] == [x["es"] for x in olog]
     assert [round(rx[m - 1]["body.eb24"]) for m in at] == [-1, -1301, -1950]
@@ -182,10 +182,10 @@ def test_the_steady_eater(host):
     by = RL.intake_by_day(be.eats)
     ratios = [by[d] / be.maint() for d in (1, 2, 3)]
     assert ratios == M.steady_reading(host)[0]
-    assert [round(r, 4) for r in ratios] == [1.0017, 0.9947, 0.9963]     # Plan 11f Task 2c fix 1
+    assert [round(r, 4) for r in ratios] == [0.9998, 0.995, 0.9958]      # Plan 11g Task 7 (1.0017, 0.9947, 0.9963 in Plan 11f Task 2c fix 1)
     hours = [int((M.STEADY_DAYS - 1) * 1440 + h * 60) for h in range(1, 25)]
     es = [rows[m - 1]["body.energyState"] for m in hours]
-    assert round(min(es), 4) == 1.0013 and round(max(es), 4) == 1.0015
+    assert round(min(es), 4) == 1.0012 and round(max(es), 4) == 1.0012   # Plan 11g Task 7 (1.0013 to 1.0015 before)
 
 
 def six_sum(n, gap, hold):
@@ -211,7 +211,7 @@ def test_six_meals_against_three_held_and_live(host):
     held = six_sum(6, 150, True) / six_sum(3, 300, True)
     live = six_sum(6, 150, False) / six_sum(3, 300, False)
     assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.974   # Plan 11g Task 6c fix 1's refit (Task 6c 0.951; the gut stage's fit 1.020; P: 0.969)
-    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.988     # Plan 11g Task 6c fix 1's refit (Task 6c 0.964; the gut stage's fit 1.035; P: 0.983, Plan 11f Task 2c fix 1)
+    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.984     # Plan 11g Task 7's deficit refit (0.988 under Task 6c fix 1's satiety refit; Task 6c 0.964; the gut stage's fit 1.035; P: 0.983, Plan 11f Task 2c fix 1)
 
 
 def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
@@ -225,7 +225,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
     ifed, ifast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     assert r2 > 1 and r3 < r2                                   # the oracle's direction (ruling 11d-3)
-    assert (round(r2, 3), round(r3, 3)) == (1.196, 0.969), (r2, r3)      # a reading (Plan 11f Task 2c fix 1; 1.174 in Task 2c, 1.342 before)
+    assert (round(r2, 3), round(r3, 3)) == (1.148, 0.981), (r2, r3)      # a reading (Plan 11g Task 7; 1.196, 0.969 in Plan 11f Task 2c fix 1; 1.174 in its Task 2c, 1.342 before)
 
 
 # --- the writer replays and monotony through the server adapters ----------------------------------------------------

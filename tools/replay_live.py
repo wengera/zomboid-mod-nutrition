@@ -540,11 +540,29 @@ class _Backend:
         return float(size)
 
 
+# The deficit drive the Plan 11f live rings were recorded under (x260b at 9fbc0ca, x263 at 77fcca7, x332 at 6a6cdb61:
+# Plan 11f Task 2c fix 2's constants, before Plan 11g Task 7's refit): a ring replays at its recording build's constants
+# (`constants`), so its energy state is graded against the pipeline that produced it, not against a later fit.
+DEFICIT_11F = {"deficit.BALANCE_SPAN_KCAL": 3100.0, "deficit.DEFICIT_FLOOR": 0.02, "deficit.EX_BYPASS_LO": 0.282,
+               "deficit.EX_BYPASS_HI": 0.575}
+
+
+def set_constants(K, constants):
+    """Set each {"table.NAME": value} on the kernel table K; refuses a name the kernel does not hold as a number."""
+    for name, value in (constants or {}).items():
+        mod, key = name.split(".")
+        cur = K[mod][key] if K[mod] is not None else None
+        if isinstance(cur, bool) or not isinstance(cur, (int, float)):
+            raise ValueError("unknown kernel constant %s" % name)
+        K[mod][key] = float(value)
+
+
 class ServerReplay(_Backend):
-    """The mod's server adapters on server_host.Host with the golden stand-ins (see the module docstring)."""
+    """The mod's server adapters on server_host.Host with the golden stand-ins (see the module docstring). `constants`
+    ({"table.NAME": value}) sets kernel constants after the host loads (set_constants), as the recording build had them."""
 
     def __init__(self, start=None, user="admin", player=None, steps=None, hold_hour=None, hour_offset=0.0,
-                 rng=None, stats=None, sleep_allowed=None):
+                 rng=None, stats=None, sleep_allowed=None, constants=None):
         super().__init__()
         self.injected = []
         lua51, server_host, golden_trace = _lua()
@@ -554,6 +572,7 @@ class ServerReplay(_Backend):
         self.G = self.h.G
         self.NR = self.h.NR
         self.K = self.h.K
+        set_constants(self.K, constants)
         self.R = self.G.NR_R
         self.R.offset = float(hour_offset or 0.0)
         if hold_hour is not None:
@@ -1185,7 +1204,7 @@ def ring_carries_activity(rows):
 
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
                 hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
-                sleep_allowed=None, detect_autodrink=False, ring_activity=None):
+                sleep_allowed=None, detect_autodrink=False, ring_activity=None, constants=None):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1206,7 +1225,9 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
     `ring_activity` (None: on when the ring carries the harness's `rate` or `exe`): the activity comes from the ring's
     exogenous fields (ring_activity_events, named on backend.ring_activity), and an activity event in `events` that
-    names rate, raw or exercising is refused (the inputs would come from two places). False keeps the log's own."""
+    names rate, raw or exercising is refused (the inputs would come from two places). False keeps the log's own.
+
+    `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants."""
     rows = [r for r in ring_rows if r.get("age") is not None]
     if isinstance(start, dict) and "sleepAllowed" in start:
         start = dict(start)
@@ -1226,7 +1247,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
         if start_read_age is None:
             start_read_age = carried
     sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
-                      stats=start_stats, sleep_allowed=sleep_allowed)
+                      stats=start_stats, sleep_allowed=sleep_allowed, constants=constants)
     sr.injected = injected
     if ring_activity is None:
         ring_activity = ring_carries_activity(rows)

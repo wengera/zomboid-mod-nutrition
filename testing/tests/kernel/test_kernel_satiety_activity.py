@@ -44,7 +44,7 @@ def test_the_constants(host):
     assert host.K.deficit.EX_LAG_TAU_D == 16
     assert host.K.deficit.EX_LAG_GAIN == 0.7
     assert host.K.deficit.EX_BYPASS_LO == 0.282           # Plan 11f Task 2c fix 2 (S1318's 0.2814 bound); 0.28 in fix 1, 0.30 before
-    assert host.K.deficit.EX_BYPASS_HI == 0.575           # 0.45 before
+    assert host.K.deficit.EX_BYPASS_HI == 0.44            # Plan 11g Task 7 (the plateau's tie, fit-11g-deficit-20261012b); 0.575 in Plan 11f Task 2c fix 1, 0.45 before
 
 
 def test_each_activity_constant_names_its_rows_and_its_label():
@@ -73,15 +73,19 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     line = re.search(r"^K\.deficit\.EX_LAG_GAIN = .*$", eng, re.M).group(0)
     assert "game choice, Plan 11d (ruling 11d-4)" in line
     assert "S1320" in line and "S1664" in line and "S1516" in line
+    # Plan 11g Task 7: the four fitted constants name the fit, its artifact and the deficit rows it scored (S1613,
+    # S1614, S1325's DEF arm, S1312), and S1892, the band Karl's BAL arm is held in as a constraint
+    for name in ("BALANCE_SPAN_KCAL", "DEFICIT_FLOOR", "EX_BYPASS_LO", "EX_BYPASS_HI"):
+        line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
+        assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line, name
+        assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312", "S1892")), name
     for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
-        assert "game choice" in line and "ruling 11c-32" in line, name
-        assert "(Plan 11f ruling 2b-3, widened search)" in line, name
-        assert "S1325" in line and "S1312" in line, name
+        assert "ruling 11c-32" in line, name
     line = re.search(r"^K\.deficit\.EX_BYPASS_LO = .*$", eng, re.M).group(0)
-    assert "S1325" in line and "S1312" in line and "S1318" in line
+    assert "S1318" in line and "at its bound" in line
     line = re.search(r"^K\.deficit\.DEFICIT_FLOOR = .*$", eng, re.M).group(0)
-    assert "fitted and weak" in line and "superseded in substance by the refit (Plan 11f ruling 2c-4)" in line
+    assert "at its bound 0" in line and "inert" in line and "S1254" in line and "S1271 open" in line
 
 
 # --- the acute suppression term --------------------------------------------------------------------------------------
@@ -238,9 +242,9 @@ def test_lagged_reads_the_state_non_negative_and_finite(host):
 # --- the energy state the writer hands to hungerTarget --------------------------------------------------------------
 
 def test_a_food_deficit_enters_at_once(host):
-    es = host.call("deficit.activityState", -1550.0, 0, 0, 0)
-    assert es == pytest.approx(host.call("deficit.state", -1550.0, 0))
-    assert es == pytest.approx(1.25)                     # half the 3,100 kcal span (Plan 11f Task 2c fix 1; 3,300 in Task 2c, 7,500 from Plan 11d Task 9d)
+    es = host.call("deficit.activityState", -1985.275, 0, 0, 0)
+    assert es == pytest.approx(host.call("deficit.state", -1985.275, 0))
+    assert es == pytest.approx(1.25)                     # half the 3,970.55 kcal span (Plan 11g Task 7; 3,100 in Plan 11f Task 2c fix 1, 3,300 in its Task 2c, 7,500 from Plan 11d Task 9d)
 
 
 def test_the_exercise_share_enters_only_through_the_lag(host):
@@ -250,7 +254,7 @@ def test_the_exercise_share_enters_only_through_the_lag(host):
     assert host.call("deficit.activityState", -1127.0, 1127.0, 300.0, 0) == pytest.approx(
         1 + 0.5 * host.K.deficit.EX_LAG_GAIN * 300 / host.K.deficit.BALANCE_SPAN_KCAL)
     # today's form (activity billed at once) would read 1.182
-    assert host.call("deficit.state", -1127.0, 0) == pytest.approx(1 + 0.5 * 1127 / 3100)
+    assert host.call("deficit.state", -1127.0, 0) == pytest.approx(1 + 0.5 * 1127 / 3970.55)
 
 
 def test_the_fat_arm_passes_through(host):

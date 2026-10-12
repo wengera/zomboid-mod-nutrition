@@ -287,30 +287,30 @@ def test_a_balanced_eater_reads_balance_before_breakfast(host):
     assert worst < 1950.0 / 1440 + 1e-6, worst          # at every hour end: within the one minute the slot attribution moves
 
 
-@pytest.mark.parametrize("eb,dep,es", [(-3100, 0, 1.5), (3100, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
-                                       (0, 0, 1.0), (-1550, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
+@pytest.mark.parametrize("eb,dep,es", [(-3970.55, 0, 1.5), (3970.55, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
+                                       (0, 0, 1.0), (-1985.275, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
                                        (-15000, 2, 2.0)])
 def test_state(host, eb, dep, es):
     assert _close(host.K.deficit.state(eb, dep), es)
 
 
 def test_the_balance_span_is_the_refit_game_choice(host):
-    # Plan 11f Task 2c fix 1 (ruling 2b-3, widened search): the state's balance term spans 3100 kcal (3300 from Task
-    # 2c, 7500 from Plan 11d Task 9d, 1500 before), refit on the shipped pipeline and labelled with the rows it was
-    # fitted to; state reads it at call time
+    # Plan 11g Task 7 (the deficit studies alone, Karl's well-fed arm a constraint): the state's balance term spans
+    # 3970.55 kcal (3100 from Plan 11f Task 2c fix 1, 3300 from its Task 2c, 7500 from Plan 11d Task 9d, 1500 before),
+    # refit on the shipped pipeline and labelled with the rows it was fitted to; state reads it at call time
     import os, re
     E = host.K.deficit
-    assert E.BALANCE_SPAN_KCAL == 3100
+    assert E.BALANCE_SPAN_KCAL == 3970.55
     shared = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "mod", "NutritionRevamp", "common",
                           "media", "lua", "shared", "NR_Kernel_Deficit.lua")
     with open(shared, encoding="utf-8") as fh:
         line = re.search(r"^K\.deficit\.BALANCE_SPAN_KCAL = .*$", fh.read(), re.M).group(0)
-    assert "game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search)" in line
+    assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line
     assert "S1271 open" in line
-    assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325", "S1312", "S1608")), line
+    assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325", "S1312", "S1608", "S1892")), line
     E.BALANCE_SPAN_KCAL = 1500
     try:
         assert _close(E.state(-750, 0), 1.25)
     finally:
-        E.BALANCE_SPAN_KCAL = 3100
-    assert _close(E.state(-750, 0), 1 + 0.5 * 750 / 3100)
+        E.BALANCE_SPAN_KCAL = 3970.55
+    assert _close(E.state(-750, 0), 1 + 0.5 * 750 / 3970.55)

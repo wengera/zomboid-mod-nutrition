@@ -378,11 +378,13 @@ NAMED = {
 # the figures derived from S1872, within harvest 13's +/- 0.05 on the unit scale over REST's study value at that point
 # (0.271 at the troughs, 0.518 before breakfast): a DESIGN CHOICE (S1892, open). Reported, not in the fit's loss.
 KARL_SHAPE_TOL = {"troughs_rel": 0.05 / 0.271, "pre_breakfast_rel": 0.05 / 0.518}
-# the days outside it after the fit (fit-11g-20261012d): the post-meal troughs of days 1 and 3 (0.522 and 0.388 against
-# 0.215 and 0.106; day 2's 0.362 against 0.209 lands inside; fix 1's fit read 0.525 / 0.365 / 0.390, Task 6c 0.548 /
-# 0.381 / 0.408, the gut stage 0.887 / 0.609 / 0.652, F's count past 730 g deepening BAL's troughs) and day 3's
-# pre-breakfast (0.646 against 0.519)
-KARL_SHAPE_NAMED = {"troughs_rel": (0, 2), "pre_breakfast_rel": (2,)}
+# the days outside it under the deficit drive's refit (Plan 11g Task 7, fit-11g-deficit-20261012): every post-meal trough
+# (0.536 / 0.432 / 0.457 against 0.215 / 0.209 / 0.106) and the pre-breakfasts of days 2 and 3 (0.721 and 0.763 against
+# 0.562 and 0.519): the wider span lowers BAL's surplus energy state less, so BAL's hunger sits nearer REST's (-49.2 %
+# against -54.5 %); under the satiety fit alone (fit-11g-20261012d, the span 3100) days 1 and 3's troughs (0.522 and
+# 0.388; day 2's 0.362 inside) and day 3's pre-breakfast (0.646) were named; fix 1's fit read 0.525 / 0.365 / 0.390,
+# Task 6c 0.548 / 0.381 / 0.408, the gut stage 0.887 / 0.609 / 0.652, F's count past 730 g deepening BAL's troughs
+KARL_SHAPE_NAMED = {"troughs_rel": (0, 1, 2), "pre_breakfast_rel": (1, 2)}
 
 PIN_TOL = 1e-6
 

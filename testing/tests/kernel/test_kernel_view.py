@@ -532,21 +532,23 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
     assert host.call("view.pushOffset", "", 60000) == 0
 
 
-# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11f Task 2c fix 1's span) --
+# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11g Task 7's span) -------
 # eb24h is a trailing 24 h balance, so a sedentary fast plateaus at about -1,950 kcal (the 36 h fast's reading) and,
-# since the deficit drive's refit on the shipped pipeline (Plan 11f Task 2c fix 1: BALANCE_SPAN_KCAL 3100; 3300 in
-# Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3100 + 0.5 x fatDep = 1.315 + 0.5 x fatDep. Level 1 comes from a 620
-# kcal trailing deficit (on the server path about 17 h after the last meal, and one skipped lunch peaks at 1.109;
-# 1,500 kcal at the 7,500 kcal span), level 2 from the plateau alone, levels 3 and 4 from fat depletion 0.171 and
-# 0.471 (the ladder's values are ruling 9d-2's, unchanged). Each is reached 0.005 past its stated value and not 0.005
-# short of it (level 1: 0.005 of es, 31 kcal).
+# since the deficit drive's refit on the deficit studies alone (Plan 11g Task 7: BALANCE_SPAN_KCAL 3970.55; 3100 in
+# Plan 11f Task 2c fix 1, 3300 in its Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3970.55 + 0.5 x fatDep = 1.2456 +
+# 0.5 x fatDep. Level 1 comes from a 794 kcal trailing deficit (on the server path about 18 h after the last meal; 620
+# kcal at the 3,100 kcal span, 1,500 at 7,500), level 2 no longer from the plateau alone (1.2456 sits 0.0044 under
+# 1.25, so a sedentary fast's es crosses it back and forth between about 52 and 76 h as fat depletion grows: a reading
+# for a ruling on ENERGY_AT, whose values are ruling 9d-2's, unchanged) but from fat depletion 0.0089, levels 3 and 4
+# from fat depletion 0.309 and 0.609. Each is reached 0.005 past its stated value and not 0.005 short of it (level 1:
+# 0.005 of es, 40 kcal).
 
 def test_a_resting_character_reaches_every_energy_level(host):
     E = host.K.deficit
     level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
-    assert level(E.state(-589.0, 0)) == 0 and level(E.state(-651.0, 0)) == 1
-    assert level(E.state(-1950.0, 0)) == 2                      # the plateau alone: es 1.315
-    for want, dep in ((3, 0.171), (4, 0.471)):
+    assert level(E.state(-754.0, 0)) == 0 and level(E.state(-834.0, 0)) == 1
+    assert level(E.state(-1950.0, 0)) == 1                      # the plateau alone: es 1.2456, under level 2's 1.25
+    for want, dep in ((2, 0.0089), (3, 0.3089), (4, 0.6089)):
         assert level(E.state(-1950.0, dep + 0.005)) == want, (want, dep)
         assert level(E.state(-1950.0, dep - 0.005)) == want - 1, (want, dep)
 
