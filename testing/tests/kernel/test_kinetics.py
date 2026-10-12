@@ -154,14 +154,14 @@ def test_first_call_leaves_a_buffer_untouched(kin_host):
 
 def test_the_liquid_lane_half_empties_on_waters_half_time_with_no_energy(kin_host):
     # 13 one-minute substeps at WATER_HALF_MIN 13 (an empty solid lane): 215 g halves to 107.5 g, and F reads
-    # LIQUID_WEIGHT x 107.5 / CAPACITY_MAX_G = 0.2 x 107.5 / 730 (amendment 2)
+    # LIQUID_WEIGHT x 107.5 / CAPACITY_MAX_G (amendment 2)
     h = kin_host
     record = rec(h, 0)
     record["stomach"]["liquid"] = 215.0
     run(h, record, 100.0)
     run(h, record, 100.0 + 13 / 60)
     assert abs(record["stomach"]["liquid"] - 107.5) < 1e-9
-    assert abs(record["stomachFill"] - 0.2 * 107.5 / 730) < 1e-12
+    assert abs(record["stomachFill"] - _satiety_constant("LIQUID_WEIGHT") * 107.5 / 730) < 1e-12
 
 
 def test_second_call_moves_the_substepped_zero_order_share_into_the_pool(kin_host):
@@ -489,9 +489,22 @@ def test_a_pool_that_is_not_a_table_heals(kin_host):
 # the substep at G_HALF_LIFE_H, scaled by the appetite trait and the sandbox's stats-decrease multiplier. The writer
 # seeds G at first sight and reads it.
 
+def _satiety_constant(name):
+    """A K.satiety constant read off the kernel file (fitted in Plan 11g Task 6, so no value is re-typed here)."""
+    import os
+    import re
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "mod", "NutritionRevamp", "common",
+                        "media", "lua", "shared", "NR_Kernel_Satiety.lua")
+    with open(path, encoding="utf-8") as fh:
+        return float(re.search(r"^K\.satiety\.%s = ([0-9.]+)" % name, fh.read(), re.M).group(1))
+
+
+HL = _satiety_constant("G_HALF_LIFE_H")       # G's half-life in game hours
+
+
 def _clear(dtM, trait=1.0):
     """K.satiety.gClear's factor over dtM game minutes in doubles, in the kernel's operation order."""
-    return math.exp(-LN2 * (dtM / 60) * trait / 0.7)
+    return math.exp(-LN2 * (dtM / 60) * trait / HL)
 
 
 def test_a_minute_feeds_g_the_weighed_kcal_the_stomach_emptied(kin_host):
@@ -522,7 +535,7 @@ def test_the_feed_weighs_the_emptied_macronutrients(kin_host):
     run(h, r, 100.0 + 1 / 60)
     emptied = 100 * _frac(100.0, 1.0)
     assert abs(r.satiety.G - h.G.NutritionRevamp.kernel.satiety.W_PROTEIN * emptied * _clear(1.0)) < 1e-9
-    assert h.G.NutritionRevamp.kernel.satiety.W_PROTEIN == 2.5
+    assert h.G.NutritionRevamp.kernel.satiety.W_PROTEIN == _satiety_constant("W_PROTEIN") != 1
 
 
 @pytest.mark.parametrize("sat", [None, "{ S = 0, L = 0 }", "{ G = 0 / 0, S = 0, L = 0 }", "{ G = 1 / 0, S = 0, L = 0 }"])
@@ -566,15 +579,16 @@ def test_a_non_finite_step_keeps_g_and_counts_a_failure(kin_host):
 
 
 def test_g_clears_at_its_half_life_of_game_time(kin_host):
-    # G_HALF_LIFE_H 0.7: 42 game minutes on an empty stomach halve G; a gap past 60 minutes clears over one hour only
+    # one G_HALF_LIFE_H of game time on an empty stomach halves G; a gap past 60 minutes clears over one hour only
     h = kin_host
     r = rec(h, 0)
     r.satiety = h.rt.eval("{ G = 6, S = 0, L = 0 }")
     run(h, r, 1.0)
-    run(h, r, 1.0 + 42 / 60)
+    run(h, r, 1.0 + HL / 2)                                       # two steps: each under the 60-minute gap cap
+    run(h, r, 1.0 + HL)
     assert r.satiety.G == pytest.approx(3.0)
-    run(h, r, 1.0 + 42 / 60 + 3)
-    assert r.satiety.G == pytest.approx(3.0 * 2 ** (-1 / 0.7))
+    run(h, r, 1.0 + HL + 3)
+    assert r.satiety.G == pytest.approx(3.0 * 2 ** (-1 / HL))
 
 
 def _meal(h, r):
@@ -648,7 +662,8 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
         r = rec(h, 0)
         r.satiety = h.rt.eval("{ G = 6, S = 0, L = 0 }")
         h.rt.eval(CASE_PLAYER)(r, 1.0, p)
-        h.rt.eval(CASE_PLAYER)(r, 1.0 + 42 / 60, p)
+        h.rt.eval(CASE_PLAYER)(r, 1.0 + HL / 2, p)                 # each step under the 60-minute gap cap
+        h.rt.eval(CASE_PLAYER)(r, 1.0 + HL, p)
         assert r.satiety.G == pytest.approx(expected)
     finally:
         h.G.CharacterTrait = saved[1]
@@ -666,7 +681,7 @@ def test_a_restart_through_the_store_clears_g_over_the_gap(kin_host):
     back = K.store.load(K.store.inputsOnly(r), None, None)
     assert back.kineticsAge == 1.0 and back.satiety.G == 6
     run(h, back, 4.0)
-    assert back.satiety.G == pytest.approx(6 * 2 ** (-1 / 0.7))
+    assert back.satiety.G == pytest.approx(6 * 2 ** (-1 / HL))
 
 
 def test_a_stamp_rounded_to_fourteen_digits_adds_no_substep(kin_host):

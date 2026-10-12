@@ -3,12 +3,14 @@
 before any model change and pinned at the P model (meal pool P fed in full at the eat, HALF_LIFE_H 0.7 h). Each
 test pins today's reading and its distance to the study figure, so a change is noticed; its comment names the study
 row, the target, and the tolerance Task 6 will assert. A tolerance no row evidences is labelled a design choice.
-Plan 11g Task 4 re-pinned every reading under the gut stage G (fed at emptying) with its provisional constants
-(G_HALF_LIFE_H 0.7, G_REQ 6, G_STEEP 0.05, G_SEED_MAX 1300: the P fits carried over); each test's comment gives the
-G reading beside the P model's (Task 3's), and Task 6 turns each into the target its comment names. STUDY and the
-distances' definitions are unchanged; DIST is re-pinned with PIN.
-STUDY and VAS_DETECT live in gut_oracles.py since Plan 11g Task 5, beside the oracle registry the joint fit
-(tools/fit_gut_satiety.py) scores, so a target lives in one place.
+Plan 11g Task 4 re-pinned every reading under the gut stage G (fed at emptying) with its provisional constants (the
+P fits carried over). Plan 11g Task 6 fitted G's constants (tools/fit_gut_satiety.py, fit-11g-20261012) and turned
+each target into an assertion of its registry entry (gut_oracles.check: the band and kind read from gut_oracles.ORACLES,
+never re-typed); a target the fit leaves outside its band is a named non-reproduction (gut_oracles.NAMED), pinned at
+its reading and asserted still outside. Every other reading stays pinned (PIN, and DIST its distance to STUDY), so a
+change is noticed; each comment gives the fitted reading beside the provisional G's and the P model's.
+STUDY and VAS_DETECT live in gut_oracles.py since Plan 11g Task 5, beside the oracle registry the joint fit scores, so
+a target lives in one place.
 
 The replays are the existing ones, reused, not copied:
 - the time courses and the protein contrast run test_satiety_meal_studies.py's satiety replay (REPLAY: one step a game
@@ -30,11 +32,12 @@ pinned leaves beyond PIN_TOL. The leaves it leaves are structural under P, not c
 minutes (always the first minute, P fed in full at the eat) and the four monotone flags, Melanson's fat minus
 carbohydrate at x2 (both arms move together, 0 against 0), and S1272's half-emptying, a stomach reading P does not
 enter (named in its test). Plan 11g Task 4's mutation pass (G_HALF_LIFE_H at x2 and x0.5, the feed removed, seedG
-uncapped) is in its report.
+uncapped) is in its report. Plan 11g Task 6's (each fitted constant at x2 and x0.5 on a scratch copy fails 22 to 27 of
+the 50 tests of this file, test_satiety_meal_studies.py and test_replay_live_oracle.py; LIQUID_WEIGHT 9) is in its report.
 """
 from . import test_replay_live_energy as E
 from . import test_satiety_meal_studies as M
-from .gut_oracles import STUDY, VAS_DETECT
+from .gut_oracles import STUDY, VAS_DETECT, check, check_karl_shape
 
 PIN_TOL = 1e-6                  # a pin's tolerance: today's reading to 1e-6
 
@@ -241,10 +244,11 @@ def test_meal_size_grades_hunger_at_a_40_percent_cut(host):
     # time interaction after the 20 % cut (p > 0.291). S1838 (open): no source tabulates the values, so the target is
     # the pattern. Task 6 asserts: the 40 % cut's difference positive at each of LEWIS_T and its 30-240 min mean at
     # least VAS_DETECT, the 20 % cut's mean below VAS_DETECT (VAS_DETECT a DESIGN CHOICE: 5 mm under ruling 11c-31's
-    # 260 mm a unit). Under G (Task 4, provisional constants): cut40 0.0347 (9.0 mm), cut20 0.0172 (4.5 mm, 0.0020
-    # under the threshold): the pattern holds, with little margin on the 20 % side. On the P model (Task 3): cut40
-    # 0.0370 (9.6 mm), cut20 0.0181 (4.7 mm, 0.0011 under)
+    # 260 mm a unit). The fitted G (Task 6): cut40 0.0423 (11.0 mm), cut20 0.0211 (5.5 mm, 0.0019 over the threshold):
+    # the 20 % cut a named non-reproduction. Under G's provisional constants (Task 4): cut40 0.0347, cut20 0.0172 (4.5
+    # mm). On the P model (Task 3): cut40 0.0370 (9.6 mm), cut20 0.0181 (4.7 mm)
     r = meal_sizes(host)
+    check({"meal_sizes": r}, "lewis_cut40_at", "lewis_cut40_mean", "lewis_cut20_mean")
     assert near(r["cut40"]["mean"], PIN["cut40_mean"]) and near(r["cut20"]["mean"], PIN["cut20_mean"]), r
     assert near_all(r["cut40"]["at"], PIN["cut40_at"]) and near_all(r["cut20"]["at"], PIN["cut20_at"]), r
     assert near(dist(r["cut40"]["mean"], VAS_DETECT), DIST["cut40"]), r
@@ -263,11 +267,12 @@ def test_the_540_kcal_meal_replacements_at_four_hours(host):
     # solid, the solid lower at every time point (15-240 min); the arms differ in composition, fibre and mass (the
     # row's caveat). Task 6 asserts each arm's 4 h reading within the study's +/- (liquid +4 to +24 %, solid -64 to
     # -26 %; the row's spread taken as the tolerance, a DESIGN CHOICE) and the solid below the liquid at each of
-    # TIEKEN_T. Under G (Task 4, provisional constants) both arms read about -13.5 % at 4 h (liquid -27.9 points from
-    # the study, solid +31.6), the liquid lower than the solid at every time point (its 553 g fill the stomach more),
-    # and both back at the request at 471 / 473 min. On the P model (Task 3): both about -6 % at 4 h (liquid -20
-    # points, solid +39), the liquid lower, back near 293 min
+    # TIEKEN_T. The fitted G (Task 6) reads both arms about -4 % at 4 h (liquid -4.5 %, -18.5 points from the study;
+    # solid -3.7 %, +41.3), the liquid lower at every time point: all three named non-reproductions (gut_oracles.NAMED:
+    # the stomach empties both arms' kcal alike, so G cannot separate them). Under G's provisional constants (Task 4)
+    # both about -13.5 %, back at 471 / 473 min; on the P model (Task 3) both about -6 %, back near 293 min
     r = tieken(host)
+    check({"tieken": r}, "tieken_liquid_4h", "tieken_solid_4h", "tieken_solid_below_liquid")
     for arm in ("solid", "liquid"):
         assert near_all(r[arm]["at"], PIN["tieken_%s_at" % arm]), r
         assert r[arm]["back"] == PIN["tieken_%s_back" % arm], r
@@ -285,10 +290,11 @@ def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
     # recovery about 4 h after 540 kcal and over 6 h after about 1,000 kcal, scaling with emptying time (S1840:
     # r = 0.75 against the time for 90 % to empty). Task 6 asserts each arm below H_REQ at 360 min, its recovery
     # minute after 360, and the 1,000 kcal recovery later than the 540 kcal liquid's (the ordering a DESIGN CHOICE for
-    # the scaling: the rows give no ratio). Under G (Task 4, provisional constants) both arms are about -17.5 % at 6 h
-    # and back at 616 min (+256 past 360), against Tieken's 471 / 473. On the P model (Task 3): about -5 % at 6 h and
-    # back at 391 / 392 min (+31 / +32), against Tieken's 292 / 295
+    # the scaling: the rows give no ratio). The fitted G (Task 6): back at 448 / 457 min (+88 / +97 past 360), 133 min
+    # after Tieken's liquid: each target holds. Under G's provisional constants (Task 4) both back at 616 min; on the P
+    # model (Task 3) at 391 / 392 min
     r = diekmann(host)
+    check({"diekmann": r, "tieken": tieken(host)}, "diekmann_hf_6h", "diekmann_lf_6h", "diekmann_after_tieken")
     for arm in ("hf", "lf"):
         assert near_all(r[arm]["at"], PIN["diekmann_%s_at" % arm]), r
         assert r[arm]["back"] == PIN["diekmann_%s_back" % arm], r
@@ -303,9 +309,10 @@ def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
 def test_the_single_early_nadir_is_a_reading(host):
     # Harvest 11 § 7 (inference, never asserted as a target): the hunger courses read as one early nadir (S1833:
     # 15 min, the only one stated in text) and a monotone recovery. Pinned as a reading: each course's nadir minute,
-    # its hunger and whether hunger never falls after it. Under G (Task 4, provisional constants) the nadirs fall at
-    # minutes 22 (solid), 12 (liquid), 42 (HF) and 52 (LF), G rising while the meal empties, and every recovery is
-    # monotone. On the P model (Task 3) every nadir was the first minute (P fed in full at the eat)
+    # its hunger and whether hunger never falls after it. The fitted G (Task 6): the Tieken arms' nadir is the first
+    # minute (the flat read leaves fullness to carry the early fall) and the Diekmann arms' at minutes 69 and 78.
+    # Under G's provisional constants (Task 4) minutes 22, 12, 42 and 52; on the P model (Task 3) every nadir was the
+    # first minute (P fed in full at the eat)
     t, d = tieken(host), diekmann(host)
     got = {"solid": t["solid"], "liquid": t["liquid"], "hf": d["hf"], "lf": d["lf"]}
     for arm, x in got.items():
@@ -322,10 +329,12 @@ def test_protein_against_carbohydrate_at_equal_energy(host):
     # (-7 mm). Null: S1818 (van der Klaauw 2013, n = 8, AUC P = 0.634), S1821 (Blom 2006), S1814 (Foster-Schubert
     # 2008), S1225 (Raben 2003). Task 6 asserts belza_hp in [-0.25, 0] and belza_mhp in [belza_hp, 0] (Belza's size
     # the floor, the nulls the ceiling: a DESIGN CHOICE between the two sides) and smeets_30, smeets_120 at or below 0;
-    # vdk is read, never asserted. Under G (Task 4, provisional constants): belza_hp -21.8 % (+3.2 points from Belza),
-    # belza_mhp -8.6 % (+6.4), Smeets -0.030 and -0.019, and vdk -21.3 % where the study reads no difference. On the P
-    # model (Task 3): belza_hp -21.5 %, belza_mhp -8.4 %, Smeets -0.028 and -0.019, vdk -21.2 %
+    # vdk is read, never asserted. The fitted G (Task 6): belza_hp -23.4 % (+1.6 points from Belza), belza_mhp -10.5 %
+    # (+4.5), Smeets -0.033 and -0.029, each target holding; vdk -21.2 % where the study reads no difference. Under
+    # G's provisional constants (Task 4): -21.8 %, -8.6 %, -0.030, -0.019, vdk -21.3 %; on the P model (Task 3):
+    # -21.5 %, -8.4 %, -0.028, -0.019, vdk -21.2 %
     r = protein_at_equal_energy(host)
+    check({"protein": r}, "belza_hp", "belza_mhp", "belza_mhp_above_hp", "smeets_30", "smeets_120")
     for k in ("belza_mhp", "belza_hp", "smeets_30", "smeets_120", "vdk"):
         assert near(r[k], PIN["protein"][k]), r
     for k in ("belza_mhp", "belza_hp", "vdk"):
@@ -339,12 +348,15 @@ def test_the_fat_weight_readings_are_pinned(host):
     # oracle's 1.5x; the fit residual is reported beside them. Ruling T2-3: Task 6 fits W_FAT between S1228 (Melanson 1999: fat's request 61 min after carbohydrate's) and S1224
     # (Marmonier 2000: fat's delay 9 min shorter than carbohydrate's), with the hunger nulls on the other side (S1810,
     # S1816, S1818, S1830) and S1828 reversed (more hunger after high fat, +6.94 mm on the 6 h mean, 0.0267 of the
-    # scale, derived under ruling 11c-31). W_FAT is 1: under G (Task 4, provisional constants) Melanson's fat minus
-    # carbohydrate reads 0 (-61 from the study), Marmonier's +6 (+15), Diekmann's HF minus LF +0.0023 (the study's
-    # direction, -0.024 from its size). On the P model (Task 3): 0, +8 and +0.0024
+    # scale, derived under ruling 11c-31). The fit sets W_FAT 0.405618 (Task 6): Melanson's fat minus carbohydrate
+    # reads -15 (-76 from the study), a named non-reproduction; Marmonier's -6 (+3, inside 1.5x) and Diekmann's HF
+    # minus LF +0.0025 (the study's direction) hold. At W_FAT 1, under G's provisional constants (Task 4): 0, +6 and
+    # +0.0023; on the P model (Task 3): 0, +8 and +0.0024
     mel = M.melanson(host)
     mar = M.marmonier(host)
     d = diekmann(host)
+    check({"melanson": mel, "marmonier": mar, "diekmann": d}, "melanson_f_minus_c", "diekmann_hf_minus_lf",
+          "marmonier_f_minus_c")
     got = {"melanson_f_minus_c": mel[1] - mel[0], "marmonier_f_minus_c": mar["f"] - mar["c"],
            "diekmann_hf_minus_lf": d["hf"]["mean"] - d["lf"]["mean"]}
     for k, x in got.items():
@@ -356,9 +368,8 @@ def test_the_fat_weight_readings_are_pinned(host):
 
 def test_s1224_absolute_snack_delays_re_read(host):
     # S1224 (Marmonier 2000): the protein, carbohydrate and fat snacks delayed the dinner request 60, 34 and 25 min.
-    # Under G (Task 4, provisional constants) 152 / 125 / 131 (+92 / +91 / +106); on the P model (Task 3) 193 / 159 /
-    # 167 (+133 / +125 / +142). Task 6: a target within 1.5x (the difference oracle's tolerance) if
-    # G reproduces them, otherwise named with the new reading (ruling 11g-3)
+    # Re-read under the fitted G (ruling 11g-3, Task 6): 149 / 132 / 126 (+89 / +98 / +101), 2.5-5x long, so it stays
+    # named. Under G's provisional constants (Task 4) 152 / 125 / 131; on the P model (Task 3) 193 / 159 / 167
     d = M.marmonier(host)
     got = (d["p"], d["c"], d["f"])
     assert got == PIN["marmonier"], d
@@ -366,18 +377,19 @@ def test_s1224_absolute_snack_delays_re_read(host):
 
 
 def test_s1228_fasted_drinks_re_read(host):
-    # S1228 (Melanson 1999): the request 65 min after the carbohydrate drink and 126 after the fat drink. Under G (Task
-    # 4, provisional constants) 329 for both (+264 / +203); on the P model (Task 3) 236 for both (+171 / +110). Task 6:
-    # a target within 1.5x if G reaches it, otherwise named (ruling 11g-3)
+    # S1228 (Melanson 1999): the request 65 min after the carbohydrate drink and 126 after the fat drink. Re-read under
+    # the fitted G (ruling 11g-3, Task 6): 156 / 141 (+91 / +15): the fat drink within 1.5x (1.12x), the carbohydrate
+    # drink 2.4x long, so it stays named. Under G's provisional constants (Task 4) 329 for both; on the P model (Task
+    # 3) 236 for both
     got = tuple(M.melanson(host))
     assert got == PIN["melanson"], got
     assert dist(got, STUDY["melanson"]) == DIST["melanson"], got
 
 
 def test_s1272_half_emptying_re_read(host):
-    # S1272 (Moore 1981): 277 min solid half-emptying for the 1692 g meal. Today 189 (-88), on the P model and under G
-    # alike. A stomach reading: G does not enter it, so the G_HALF_LIFE_H mutation leaves it unmoved (G is fed by the
-    # drain, never the reverse; ruling 11g-3)
+    # S1272 (Moore 1981): 277 min solid half-emptying for the 1692 g meal. Re-read under the fitted G (ruling 11g-3,
+    # Task 6): 189 (-88), as on the P model and under the provisional G, so it stays named. A stomach reading: G does
+    # not enter it, so no G constant moves it (G is fed by the drain, never the reverse)
     t = M.moore_half_emptying(host)
     assert t == PIN["moore"], t
     assert dist(t, STUDY["moore"]) == DIST["moore"], t
@@ -388,18 +400,19 @@ def test_s1272_half_emptying_re_read(host):
 def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
     # S1325 (Karl 2021): hunger -55 % (95 % CI -73, -38) in BAL against REST. Task 6 asserts the mean over the study's
     # eight daily sampling points (before and after each meal and the morning exercise; research 03, difference 1) in
-    # -64 % to -46 % (S1892, open: +/- 9 points, about one standard error, a labelled design choice). Under G (Task 4,
-    # provisional constants) -45.76 % on the server path (test_replay_live_energy's twin K), +9.2 points from the
-    # study and 0.24 outside the band's -46 edge; on the P model (Task 3) -45.08 %, +9.9 and 0.9 outside. Shape checks, relative to REST (ruling T3-1: model HUNGER and the study's VAS / 10 are on different
-    # scales, REST reading 0.085 at the troughs against the study's 0.271): Task 6 asserts BAL / REST at each point,
+    # -64 % to -46 % (S1892, open: +/- 9 points, about one standard error, a labelled design choice). The fitted G
+    # (Task 6) reads -44.67 % on the server path (test_replay_live_energy's twin K), 1.33 outside the band's -46 edge:
+    # a named non-reproduction. Under G's provisional constants (Task 4) -45.76 %; on the P model (Task 3) -45.08 %.
+    # Shape checks, relative to REST (ruling T3-1: model HUNGER and the study's VAS / 10 are on different scales):
     # troughs_rel and pre_breakfast_rel against the figures derived from S1872 (troughs 0.215 / 0.209 / 0.106 over
-    # REST's 2.71 cm; pre-breakfast 1.000 / 0.562 / 0.519 over REST's 5.18 cm), at a tolerance that is a labelled DESIGN
-    # CHOICE (S1892). Under G (Task 4, provisional constants) troughs_rel 0.877 / 0.592 / 0.634 and pre_breakfast_rel
-    # 1.000 / 0.514 / 0.551 (the relative shape is the open misfit); the absolute troughs 0.085 / 0.057 / 0.061 and
-    # pre-breakfast 0.240 / 0.123 / 0.132 are pinned as readings only; per day -29.7 / -55.4 / -52.2 % (study -46 /
-    # -61 / -65). On the P model (Task 3): troughs_rel 0.865 / 0.601 / 0.643, pre_breakfast_rel 1.000 / 0.599 /
-    # 0.641, per day -30.6 / -53.9 / -50.7 %
+    # REST's 2.71 cm; pre-breakfast 1.000 / 0.562 / 0.519 over REST's 5.18 cm) within gut_oracles.KARL_SHAPE_TOL, a
+    # labelled DESIGN CHOICE (S1892). The fitted G: troughs_rel 0.887 / 0.609 / 0.652, all three named (the BAL
+    # troughs sit near REST's), pre_breakfast_rel 1.000 / 0.590 / 0.632, day 3 named; per day -30.0 / -53.6 / -50.4 %
+    # (study -46 / -61 / -65). Under G's provisional constants (Task 4) troughs_rel 0.877 / 0.592 / 0.634 and
+    # pre_breakfast_rel 1.000 / 0.514 / 0.551; on the P model (Task 3) 0.865 / 0.601 / 0.643 and 1.000 / 0.599 / 0.641
     r = surplus_day(host)
+    check({"karl": r}, "karl_bal")
+    check_karl_shape(r)
     assert near(r["bal"], PIN["karl_bal"]) and near(r["rest"], PIN["karl_rest"]), r
     assert near_all(r["by_day"], PIN["karl_by_day"]), r
     assert near_all(r["troughs"], PIN["karl_troughs"]) and near(r["rest_trough"], PIN["karl_rest_trough"]), r
@@ -411,68 +424,68 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
         assert near_all(dist(tuple(r[k]), STUDY["karl_" + k]), DIST["karl_" + k]), (k, r)
 
 
-# The readings under G with the provisional constants (Plan 11g Task 4; the P model's were pinned in Task 3 at the mod
-# tree 44115b1a, d62ed4ea), to 9 decimals: PIN the readings, DIST their named distances to STUDY (model less study).
-# Task 6 turns each into the target its test names.
+# The readings under the fitted G (Plan 11g Task 6, fit-11g-20261012; the provisional G's were pinned in Task 4, the P
+# model's in Task 3 at the mod tree 44115b1a, d62ed4ea), to 9 decimals: PIN the readings, DIST their named distances to
+# STUDY (model less study). The targets are asserted from the registry (gut_oracles.check).
 PIN = {
-    'cut20_mean': 0.017234316,
-    'cut40_mean': 0.034748304,
-    'cut20_at': [0.022126648, 0.020332514, 0.017578484, 0.015353387, 0.013471594],
-    'cut40_at': [0.044556727, 0.040969296, 0.03545166, 0.030991527, 0.026787646],
-    'tieken_solid_at': [-0.264489444, -0.250484134, -0.210774103, -0.170716798, -0.133613078],
-    'tieken_liquid_at': [-0.34050973, -0.300858654, -0.238475769, -0.184421231, -0.139338423],
-    'tieken_solid_back': 471,
-    'tieken_liquid_back': 473,
-    'diekmann_hf_at': [-0.596079897, -0.568363772, -0.469931933, -0.303354712, -0.173294134],
-    'diekmann_lf_at': [-0.596079897, -0.588411638, -0.485310004, -0.311544041, -0.176128512],
-    'diekmann_hf_back': 616,
-    'diekmann_lf_back': 616,
-    'nadir_minute': {'solid': 22, 'liquid': 12, 'hf': 42, 'lf': 52},
-    'nadir_hunger': {'solid': 0.183525664, 'liquid': 0.164767196, 'hf': 0.100179655, 'lf': 0.099666129},
+    'cut20_mean': 0.021111877,
+    'cut40_mean': 0.042276142,
+    'cut20_at': [0.026918231, 0.025017578, 0.021639334, 0.018743186, 0.016253094],
+    'cut40_at': [0.053874547, 0.050096812, 0.043366034, 0.037585725, 0.03146697],
+    'tieken_solid_at': [-0.255164872, -0.202632272, -0.13998061, -0.085135764, -0.037208256],
+    'tieken_liquid_at': [-0.34240025, -0.263847607, -0.175371874, -0.103484253, -0.044943655],
+    'tieken_solid_back': 307,
+    'tieken_liquid_back': 315,
+    'diekmann_hf_at': [-0.543568947, -0.544185562, -0.438905823, -0.233478536, -0.078903513],
+    'diekmann_lf_at': [-0.544033381, -0.544886728, -0.457239056, -0.244452788, -0.084384018],
+    'diekmann_hf_back': 448,
+    'diekmann_lf_back': 457,
+    'nadir_minute': {'solid': 1, 'liquid': 1, 'hf': 69, 'lf': 78},
+    'nadir_hunger': {'solid': 0.181880608, 'liquid': 0.157744519, 'hf': 0.113925008, 'lf': 0.113704246},
     'monotone': {'solid': True, 'liquid': True, 'hf': True, 'lf': True},
-    'protein': {'belza_mhp': -0.085958219, 'belza_hp': -0.217888627, 'smeets_30': -0.029792299, 'smeets_120': -0.018672617, 'vdk': -0.212950661},
-    'melanson_f_minus_c': 0,
-    'marmonier_f_minus_c': 6,
-    'diekmann_hf_minus_lf': 0.002331459,
-    'marmonier': (152, 125, 131),
-    'melanson': (329, 329),
+    'protein': {'belza_mhp': -0.105068169, 'belza_hp': -0.234218299, 'smeets_30': -0.032911953, 'smeets_120': -0.029045331, 'vdk': -0.212306162},
+    'melanson_f_minus_c': -15,
+    'marmonier_f_minus_c': -6,
+    'diekmann_hf_minus_lf': 0.002542515,
+    'marmonier': (149, 132, 126),
+    'melanson': (156, 141),
     'moore': 189,
     # an unasserted reading: the same meals from a fasted start at 08:00 (G 0, circadian on), as Callahan's oracle reads
-    'fasted_lewis': {'cut20_mean': 0.016074644, 'cut40_mean': 0.032413661,
-                     'cut20_at': [0.020337078, 0.018709377, 0.01632602, 0.014474725, 0.012944126],
-                     'cut40_at': [0.040971145, 0.03770609, 0.032927991, 0.029218784, 0.025739801]},
-    'fasted_tieken': {'solid': ([-0.323824685, -0.310705567, -0.267177734, -0.218266945, -0.167585881], 427),
-                      'liquid': ([-0.393807644, -0.357052444, -0.292906317, -0.231188362, -0.173087953], 428)},
-    'fasted_diekmann': {'hf': ([-0.629366432, -0.603128153, -0.507846054, -0.330678394, -0.170224307], 525),
-                        'lf': ([-0.629366432, -0.621561346, -0.522124179, -0.338546524, -0.17306921], 525)},
-    'karl_bal': -45.764187927,
-    'karl_by_day': [-29.6522792, -55.390513371, -52.249771209],
-    'karl_rest': 0.142558159,
-    'karl_troughs': [0.084663563, 0.057156037, 0.061171432],
-    'karl_rest_trough': 0.096551108,
-    'karl_pre_breakfast': [0.240208468, 0.123490557, 0.132244453],
-    'karl_rest_pre_breakfast': 0.240208468,
-    'karl_troughs_rel': [0.876878205, 0.591977013, 0.633565299],
-    'karl_pre_breakfast_rel': [1.0, 0.514097435, 0.550540346],
+    'fasted_lewis': {'cut20_mean': 0.019865649, 'cut40_mean': 0.039825092,
+                     'cut20_at': [0.02521658, 0.023325902, 0.02025805, 0.017766729, 0.015677864],
+                     'cut40_at': [0.050567331, 0.046782204, 0.040641104, 0.035654807, 0.030389989]},
+    'fasted_tieken': {'solid': ([-0.301371531, -0.260332819, -0.198019486, -0.135470461, -0.073566912], 334),
+                      'liquid': ([-0.383939592, -0.31759366, -0.231318239, -0.153004552, -0.081142298], 337)},
+    'fasted_diekmann': {'hf': ([-0.575488015, -0.577529807, -0.477017136, -0.262554381, -0.074978624], 414),
+                        'lf': ([-0.576603737, -0.578643042, -0.494402516, -0.273268158, -0.080563617], 416)},
+    'karl_bal': -44.665225755,
+    'karl_by_day': [-29.994203305, -53.633084726, -50.368389234],
+    'karl_rest': 0.150968455,
+    'karl_troughs': [0.095189026, 0.065323659, 0.069912276],
+    'karl_rest_trough': 0.107276607,
+    'karl_pre_breakfast': [0.226458355, 0.13368072, 0.143157452],
+    'karl_rest_pre_breakfast': 0.226458355,
+    'karl_troughs_rel': [0.887323237, 0.608927337, 0.651701033],
+    'karl_pre_breakfast_rel': [1.0, 0.590310392, 0.632157964],
 }
 DIST = {
-    'cut40': 0.015517534,
-    'cut20': -0.001996454,
-    'tieken_liquid_4h': -0.279338423,
-    'tieken_solid_4h': 0.316386922,
-    'diekmann_hf_back': 256,
-    'diekmann_lf_back': 256,
-    'belza_mhp': 0.064041781,
-    'belza_hp': 0.032111373,
-    'vdk': -0.212950661,
-    'melanson_f_minus_c': -61,
-    'marmonier_f_minus_c': 15,
-    'diekmann_hf_minus_lf': -0.024377942,
-    'marmonier': (92, 91, 106),
-    'melanson': (264, 203),
+    'cut40': 0.023045373,
+    'cut20': 0.001881108,
+    'tieken_liquid_4h': -0.184943655,
+    'tieken_solid_4h': 0.412791744,
+    'diekmann_hf_back': 88,
+    'diekmann_lf_back': 97,
+    'belza_mhp': 0.044931831,
+    'belza_hp': 0.015781701,
+    'vdk': -0.212306162,
+    'melanson_f_minus_c': -76,
+    'marmonier_f_minus_c': 3,
+    'diekmann_hf_minus_lf': -0.024166887,
+    'marmonier': (89, 98, 101),
+    'melanson': (91, 15),
     'moore': -88,
-    'karl_bal': 9.235812073,
-    'karl_by_day': (16.3477208, 5.609486629, 12.750228791),
-    'karl_troughs_rel': (0.661878205, 0.382977013, 0.527565299),
-    'karl_pre_breakfast_rel': (0.0, -0.047902565, 0.031540346),
+    'karl_bal': 10.334774245,
+    'karl_by_day': (16.005796695, 7.366915274, 14.631610766),
+    'karl_troughs_rel': (0.672323237, 0.399927337, 0.545701033),
+    'karl_pre_breakfast_rel': (0.0, 0.028310392, 0.113157964),
 }

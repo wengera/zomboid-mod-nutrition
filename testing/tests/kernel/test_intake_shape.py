@@ -1706,13 +1706,13 @@ def test_the_intake_no_longer_reads_a_hunger_change():
 # since Plan 11g Task 4 the landing only puts the vector in the stomach, and NR_Server_Kinetics feeds the gut stage G
 # the weighted kcal of what the stomach empties each minute, and clears it (K.satiety.gStep per substep, ruling T4-3).
 
-def _weighed(v):
-    """K.satiety.weigh in doubles: the delivered kcal split by Atwater 4/4/9 shares, protein weighted 2.5 (W_PROTEIN),
-    carbohydrate and fat 1 (W_CARB, W_FAT); a vector with no macronutrient grams at the neutral weight 1."""
+def _weighed(v, S):
+    """K.satiety.weigh in doubles: the delivered kcal split by Atwater 4/4/9 shares, each share times its weight
+    (S.W_PROTEIN, S.W_CARB, S.W_FAT, the fitted constants); a vector with no macronutrient grams at the neutral weight 1."""
     p, c, f = 4 * v["proteins"], 4 * v["carbs"], 9 * v["lipids"]
     if p + c + f <= 0:
         return v["calories"] * 1
-    return v["calories"] * (2.5 * p + c + f) / (p + c + f)
+    return v["calories"] * (S.W_PROTEIN * p + S.W_CARB * c + S.W_FAT * f) / (p + c + f)
 
 
 def test_a_landing_leaves_g_to_the_emptying(rec_host):
@@ -1730,8 +1730,9 @@ def test_a_landing_leaves_g_to_the_emptying(rec_host):
     I(h).land(record, "u", _vec(h, water=300.0, calories=42.0, carbs=10.5), "liquid")   # a drink: its energy in the buffer
     assert record["satiety"]["G"] == 12.5
     assert record["stomach"]["buffer"]["calories"] == 242.0 and record["stomach"]["liquid"] == 300.0
-    rise = _weighed(v)                                                   # what G gains once all of it has emptied
-    assert abs(rise - 200 * (2.5 * 40 + 100 + 60.03) / 200.03) < 1e-12
+    S = h.K.satiety
+    rise = _weighed(v, S)                                                # what G gains once all of it has emptied
+    assert abs(rise - 200 * (S.W_PROTEIN * 40 + 100 + S.W_FAT * 60.03) / 200.03) < 1e-12
     assert abs(h.K.satiety.weigh(_vec(h, **v)) - rise) < 1e-9
     I(h).lastError = None
 

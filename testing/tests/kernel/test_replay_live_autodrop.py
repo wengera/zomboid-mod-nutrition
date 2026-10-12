@@ -99,5 +99,7 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
     # HUNGER's distance under G is pinned as a reading until a live run on G (Plan 11g Task 8)
     assert worst(old, "stomach.liquid") > 50.0                     # the drink event runs a minute ahead: 73 g
     assert worst(new, "stomach.liquid") < 1e-9                     # the autodrop lands where the mod lands it
-    assert worst(old, "stomachFill") > 0.2 and worst(new, "stomachFill") < 1e-9
-    assert (round(worst(old), 4), round(worst(new), 4)) == (0.0514, 0.0536)   # the P ring against G: readings
+    # stomachFill weighs the liquid lane at LIQUID_WEIGHT, which Plan 11g Task 6 refit (0.2 to 0.181397): the ring's
+    # fill was taken at 0.2, so the autodrop's fill now reads a little under the ring's, a reading
+    assert worst(old, "stomachFill") > 0.2 and round(worst(new, "stomachFill"), 4) == 0.022
+    assert (round(worst(old), 4), round(worst(new), 4)) == (0.149, 0.1504)   # the P ring against the fitted G: readings (0.0514, 0.0536 under its provisional constants)

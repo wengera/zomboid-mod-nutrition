@@ -295,13 +295,13 @@ def test_fill_after_an_apple_is_its_satiety_mass_over_the_maximal_capacity_and_i
 
 
 def test_fill_clamps_at_one_and_counts_drunk_liquid_at_a_fifth(host):
-    # LIQUID_WEIGHT 0.2 (ruling 11c-30): 5000 g drunk reads 1000 g of satiety mass, over 730 g: clamped to 1;
-    # 1825 g drunk reads 0.2 x 1825 = 365 g, half of 730 g; the same 365 g eaten counts whole
+    # LIQUID_WEIGHT (ruling 11c-30; fitted in Plan 11g Task 6): 5000 g drunk reads 5000 x LIQUID_WEIGHT of satiety mass,
+    # over 730 g: clamped to 1; 365 / LIQUID_WEIGHT g drunk reads 365 g, half of 730 g; the same 365 g eaten counts whole
     st = host.K.stomach["new"]()
     host.K.stomach.ingestLiquid(st, _vec(host, water=5000))
     assert host.K.stomach.fill(st) == 1
     st2 = host.K.stomach["new"]()
-    host.K.stomach.ingestLiquid(st2, _vec(host, water=1825))
+    host.K.stomach.ingestLiquid(st2, _vec(host, water=365 / host.K.satiety.LIQUID_WEIGHT))
     assert abs(host.K.stomach.fill(st2) - 0.5) < TOL
     st3 = host.K.stomach["new"]()
     host.K.stomach.ingest(st3, _vec(host, water=365))

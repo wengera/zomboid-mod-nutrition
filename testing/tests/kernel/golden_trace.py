@@ -92,11 +92,11 @@ DEBT_G1 = 1.0
 # minutes 80, 120, 140: the writer's satiety guards (W.satiety, W.satietyG, W.satietyDtH); 170: Kinetics' G guard (KIN.landG). A NaN S (g2), t (g4) and G (g5)
 # is healed in the step before any snapshot reads it (L is healed by Metabolism first, so no guard there). At 170
 # g1 gets a G of GUARD_G_G1 and one StatsDecrease read of GUARD_SD. Since Plan 11g Task 4 fix 1 (ruling T4-3) the read
-# is Kinetics' (KIN.gTrait, the first in g1's minute), so its step's clearance overflows to inf (exp of +0.58 or more)
+# is Kinetics' (KIN.gTrait, the first in g1's minute), so its step's clearance overflows to inf (exp of +0.92)
 # and KIN.landG keeps the previous G, counted in kinetics' failures; the writer then reads the kept 1e308; the writer's own i.sd (Effects' fatigue) reads 1 that minute, so g1's FATIGUE and acute.S move -- a fixture artifact of the one-shot stub, since a real sandbox read is the same for every reader in a minute
 GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_G_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
 GUARD_G_G1 = 1e308
-GUARD_SD = -50.0
+GUARD_SD = -100.0               # -50 until Plan 11g Task 6: at G_HALF_LIFE_H 1.25 a -50 read clears by exp(+0.46), finite
 # Plan 11e Task 2 fix 1 (ruling T2-E): g5 is the smoker stand-in, the only stats object answering NICOTINE_WITHDRAWAL
 # (every other player's reads nil, so the writer's factor is 1 and no anchor is laid). The minute events:
 NIC_START_G5 = 0.0              # minute 1 on: the stat reads 0, so W.nicotine lays the anchor at each minute

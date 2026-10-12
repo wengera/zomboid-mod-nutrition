@@ -453,12 +453,13 @@ def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
 
 def test_a_stored_stomach_loads_its_buffer_and_liquid_and_its_fill_from_satiety_mass(host):
     # amendment 2: F = satietyMass / CAPACITY_MAX_G; 365 g of food water reads 365 / 730 = 0.5, and 1825 g drunk reads
-    # LIQUID_WEIGHT x 1825 = 365 g, 0.5 too; 3650 g drunk reads 730 g, full
+    # 365 / LIQUID_WEIGHT g drunk reads 365 g, 0.5 too; twice that reads 730 g, full
     r = host.py(S(host).load(host.table({"stomach": {"buffer": {"water": 365}}}), order(host), recs(host)))
     assert r["stomach"]["liquid"] == 0 and r["stomachFill"] == 0.5
-    r = host.py(S(host).load(host.table({"stomach": {"liquid": 1825}}), order(host), recs(host)))
-    assert r["stomach"]["liquid"] == 1825 and abs(r["stomachFill"] - 0.5) < 1e-12
-    r = host.py(S(host).load(host.table({"stomach": {"liquid": 3650}}), order(host), recs(host)))
+    half = 365 / host.K.satiety.LIQUID_WEIGHT
+    r = host.py(S(host).load(host.table({"stomach": {"liquid": half}}), order(host), recs(host)))
+    assert r["stomach"]["liquid"] == half and abs(r["stomachFill"] - 0.5) < 1e-12
+    r = host.py(S(host).load(host.table({"stomach": {"liquid": 2 * half}}), order(host), recs(host)))
     assert r["stomachFill"] == 1
 
 

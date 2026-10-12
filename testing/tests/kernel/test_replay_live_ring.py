@@ -252,4 +252,4 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_with_no_lag():
     assert d["ok"], d["findings"][:3]
     assert all(d["fields"][f]["n"] > 30 for f in tol)
     h = RL.diff(out, rows, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
-    assert h["n"] == 41 and round(h["max"], 4) == 0.0223, h                 # the P ring against G: a reading
+    assert h["n"] == 41 and round(h["max"], 4) == 0.0069, h                 # the P ring against the fitted G: a reading (0.0223 under G's provisional constants)

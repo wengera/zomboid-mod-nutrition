@@ -16,8 +16,9 @@ SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", 
 NAMES = ("W_PROTEIN", "W_CARB", "W_FAT", "W_NEUTRAL", "G_HALF_LIFE_H", "G_REQ", "G_STEEP", "FULL_WEIGHT",
          "LIQUID_WEIGHT", "G_SEED_MAX", "DISCOMFORT_MAX", "ATWATER_P", "ATWATER_C", "ATWATER_F", "CIRCADIAN_A", "CIRCADIAN_PEAK_H",
          "PROTEIN_FILL")
-FITTED = ("W_PROTEIN", "FULL_WEIGHT", "LIQUID_WEIGHT")
-PROVISIONAL = ("G_HALF_LIFE_H", "G_REQ", "G_STEEP", "G_SEED_MAX")      # Plan 11g Task 4: carried over, Task 6 refits them
+# the joint fit's constants (Plan 11g Task 6, tools/fit_gut_satiety.py, fit-11g-20261012), each at the value the fit chose
+FIT = {"FULL_WEIGHT": 0.542383, "G_HALF_LIFE_H": 1.25, "G_REQ": 158.606, "G_STEEP": 0.019723, "LIQUID_WEIGHT": 0.181397,
+       "PROTEIN_FILL": 11.8338, "W_FAT": 0.405618, "W_PROTEIN": 1.5}
 
 
 def _vec(host, **kw):
@@ -29,9 +30,9 @@ def _vec(host, **kw):
 
 def test_the_constants(host):
     S = host.K.satiety
-    assert (S.W_PROTEIN, S.W_CARB, S.W_FAT, S.W_NEUTRAL) == (2.5, 1, 1, 1)
-    assert (S.G_HALF_LIFE_H, S.G_REQ, S.G_STEEP, S.FULL_WEIGHT, S.LIQUID_WEIGHT) == (0.7, 6, 0.05, 0.55, 0.2)
-    assert (S.G_SEED_MAX, S.DISCOMFORT_MAX, S.PROTEIN_FILL) == (1300, 100, 8)
+    assert {k: S[k] for k in FIT} == FIT
+    assert (S.W_CARB, S.W_NEUTRAL) == (1, 1)
+    assert (S.G_SEED_MAX, S.DISCOMFORT_MAX) == (870, 100)
     assert S.P50 is None and S.PN_MAX is None                        # retired by structure D (ruling 11c-30)
     for gone in ("P_REQ", "HALF_LIFE_H", "P_SEED_MAX", "STEEP", "feed", "decay", "post", "seedP"):
         assert S[gone] is None, gone                                 # the meal pool P, retired in Plan 11g Task 4
@@ -46,21 +47,17 @@ def test_each_constant_names_its_row_or_its_label():
     for name in NAMES:
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert re.search(r"S\d{4}|game choice|neutral|CharacterStat", line), name
-    for name in FITTED:
+    assert "provisional" not in src.lower()                             # Plan 11g Task 6: every constant labelled
+    for name in FIT:
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "game choice, fitted in Task 4 (Plan 11c)" in line, name  # the label the amendments set
-        assert re.search(r"S\d{4}", line), name                          # the rows it was fitted against
-    for name in PROVISIONAL:
+        assert "game choice, fitted in Plan 11g Task 6 against S" in line, name     # the label the amendments set
+        assert "(tools/fit_gut_satiety.py, fit-11g-20261012" in line, name           # the fit and its artifact
+        assert len(re.findall(r"S\d{4}", line)) >= 2, name                          # the rows that bound it
+    for name in ("W_PROTEIN", "W_FAT", "G_HALF_LIFE_H", "G_REQ", "G_STEEP"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "provisional, refit in Plan 11g Task 6" in line, name     # the label Plan 11g Task 4 sets
-        assert "carried: game choice" in line, name                      # the P constant's label kept in full
-    for name in ("W_PROTEIN", "G_HALF_LIFE_H", "G_REQ", "G_STEEP"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "open" in line, name                                      # an open row is never cited as evidence
-        assert re.search(r"S\d{4}", line), name                         # the rows it was fitted against
-    for name in ("G_STEEP", "FULL_WEIGHT"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "refit in Plan 11d Task 5 (rulings 11d-5 and T5-1)" in line, name   # the joint refit with PROTEIN_FILL
+        assert re.search(r"S12(68|70) open", line), name                 # an open row is named open, never as evidence
+    line = re.search(r"^K\.satiety\.G_SEED_MAX = .*$", src, re.M).group(0)
+    assert "game choice (ruling 11c-30; re-derived in Plan 11g Task 6)" in line and "0.244" in line
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert "S1273" in line, name                                     # Scheer 2013, minted as S1273
@@ -82,13 +79,15 @@ def test_fill_is_mass_over_the_maximal_capacity_clamped(host):
 
 def test_weigh_splits_the_calories_by_atwater_share(host):
     v = _vec(host, calories=400, proteins=25, carbs=50, lipids=200 / 9)      # 100, 200 and 200 kcal by Atwater
-    assert host.call("satiety.weigh", v) == pytest.approx(400 * (2.5 * 100 + 200 + 200) / 500)
+    S = host.K.satiety
+    assert host.call("satiety.weigh", v) == pytest.approx(400 * (S.W_PROTEIN * 100 + 200 + S.W_FAT * 200) / 500)
 
 
 def test_the_delivered_calories_govern_the_energy(host):
     # macros summing to 500 kcal by Atwater on a vector that delivered 250 kcal: weighed at 250 (spec § 3.2)
     v = _vec(host, calories=250, proteins=25, carbs=50, lipids=200 / 9)
-    assert host.call("satiety.weigh", v) == pytest.approx(250 * (2.5 * 100 + 200 + 200) / 500)
+    S = host.K.satiety
+    assert host.call("satiety.weigh", v) == pytest.approx(250 * (S.W_PROTEIN * 100 + 200 + S.W_FAT * 200) / 500)
 
 
 def test_a_vector_with_no_macros_takes_the_neutral_weight(host):
@@ -100,7 +99,8 @@ def test_g_feed_adds_the_weighted_kcal_of_what_emptied(host):
     v = _vec(host, calories=100, proteins=0, carbs=25, lipids=0)
     assert host.call("satiety.gFeed", 10.0, v) == 10.0 + host.call("satiety.weigh", v)
     assert host.call("satiety.gFeed", 50, _vec(host, calories=100, carbs=25)) == pytest.approx(150)
-    assert host.call("satiety.gFeed", 50, _vec(host, calories=40, proteins=10)) == pytest.approx(150)   # W_PROTEIN 2.5
+    assert host.call("satiety.gFeed", 50, _vec(host, calories=40, proteins=10)) == pytest.approx(
+        50 + 40 * host.K.satiety.W_PROTEIN)                                                            # W_PROTEIN
     assert host.call("satiety.gFeed", 7, _vec(host)) == 7                                              # nothing emptied
 
 
@@ -159,7 +159,7 @@ def test_g_clear_reads_the_named_half_life(host):
         assert host.call("satiety.gClear", 80, 2.0, 1) == pytest.approx(40)
     finally:
         S.G_HALF_LIFE_H = old                                    # the saved value, so a mutated constant survives
-    assert host.call("satiety.gClear", 80, 0.7, 1) == pytest.approx(40)
+    assert host.call("satiety.gClear", 80, old, 1) == pytest.approx(40)
 
 
 def test_g_read_is_the_request_level_at_g_req_on_an_empty_stomach(host):
@@ -168,14 +168,15 @@ def test_g_read_is_the_request_level_at_g_req_on_an_empty_stomach(host):
     assert host.call("satiety.gRead", 0) == 0
     assert host.call("satiety.gRead", -3) == 0
     for G in (0.01, 1, 60, 650, 1e6):
-        x = (G / 6) ** 0.05
+        x = (G / greq) ** host.K.satiety.G_STEEP
         assert host.call("satiety.gRead", G) == pytest.approx(1 - 1 / (1 + 3 * x)), G
 
 
 def test_g_read_is_near_logarithmic(host):
-    # G_STEEP 0.05: each tenfold of G moves the read's odds by the same factor, 10^0.05
+    # each tenfold of G moves the read's odds by the same factor, 10^G_STEEP
+    k = 10 ** host.K.satiety.G_STEEP
     odds = [host.call("satiety.gRead", G) / (1 - host.call("satiety.gRead", G)) for G in (6, 60, 600)]
-    assert odds[1] / odds[0] == pytest.approx(10 ** 0.05) and odds[2] / odds[1] == pytest.approx(10 ** 0.05)
+    assert odds[1] / odds[0] == pytest.approx(k) and odds[2] / odds[1] == pytest.approx(k)
 
 
 def test_g_read_reads_the_named_constants(host):
@@ -199,16 +200,17 @@ def test_g_read_reads_the_named_constants(host):
 
 def test_sated_compounds_the_two_signals(host):
     assert host.call("satiety.sated", 0, 0) == 0
-    assert host.call("satiety.sated", 1, 0) == pytest.approx(0.55)
+    fw = host.K.satiety.FULL_WEIGHT
+    assert host.call("satiety.sated", 1, 0) == pytest.approx(fw)
     assert host.call("satiety.sated", 0, 0.5) == 0.5
-    assert host.call("satiety.sated", 1, 0.5) == pytest.approx(0.775)
+    assert host.call("satiety.sated", 1, 0.5) == pytest.approx(1 - (1 - fw) * 0.5)
 
 
 def test_target_is_the_hunger_target_of_the_sated_read(host):
     for F, G, es in ((0, 6, 1), (0.6, 120, 1.2), (0.3, 0, 0.9), (1, 1300, 1.5)):
         z = host.call("satiety.sated", F, host.call("satiety.gRead", G))
         assert host.call("satiety.target", F, G, es) == host.call("hybrid.hungerTarget", z, es), (F, G, es)
-    assert host.call("satiety.target", 0, 6, 1) == pytest.approx(0.25)          # G_REQ on an empty stomach: the request
+    assert host.call("satiety.target", 0, host.K.satiety.G_REQ, 1) == pytest.approx(0.25)   # G_REQ, empty: the request
 
 
 def test_fullness_is_the_fullness_mass_over_the_maximal_capacity(host):
@@ -237,19 +239,21 @@ def test_seed_g_inverts_the_read_and_caps(host):
 
 
 def test_seed_g_reads_g_req_at_the_request(host):
-    assert host.call("satiety.seedG", 0.25, 0, 1) == pytest.approx(6)
+    assert host.call("satiety.seedG", 0.25, 0, 1) == pytest.approx(host.K.satiety.G_REQ)
 
 
 def test_seed_g_clamps_what_it_cannot_reach(host):
-    assert host.call("satiety.seedG", 0, 0, 1) == 1300               # HUNGER 0: the cap, about a large meal's G
-    assert host.call("satiety.seedG", 0.01, 0, 1) == 1300            # an inverse past the cap (about 1e20) is capped
-    assert host.call("satiety.seedG", 0.2, 0, 1) == 1300             # G_STEEP 0.05: an empty stomach's floor is 0.203
-    G = host.call("satiety.seedG", 0.22, 0, 1)                       # below the cap, the exact inverse
-    assert G == pytest.approx(6 * (0.78 / (3 * 0.22)) ** (1 / 0.05)) and G < 1300
+    S = host.K.satiety
+    assert host.call("satiety.seedG", 0, 0, 1) == 870                # HUNGER 0: the cap, about a large meal's G
+    assert host.call("satiety.seedG", 0.01, 0, 1) == 870             # an inverse past the cap is capped
+    assert host.call("satiety.seedG", 0.243, 0, 1) == 870            # an empty stomach's floor is 0.244 (Plan 11g Task 6)
+    assert round(1 - host.call("satiety.gRead", 870), 3) == 0.244
+    G = host.call("satiety.seedG", 0.247, 0, 1)                      # below the cap, the exact inverse
+    assert G == pytest.approx(S.G_REQ * (0.753 / (3 * 0.247)) ** (1 / S.G_STEEP)) and G < 870
     assert host.call("satiety.seedG", 0.6, 0.9, 0.8) == 0            # hungrier than an empty G gives at this F
     assert host.call("satiety.seedG", 0.3, 0, 0) == 0                # no energy state
     assert host.call("satiety.seedG", 0.3, 2.5, 1) == 0              # a fullness past 1 / FULL_WEIGHT
-    assert host.call("satiety.seedG", 0, 1 / 0.55, 1) in (0, 1300)    # a fullness at 1 / FULL_WEIGHT: 0 or the cap
+    assert host.call("satiety.seedG", 0, 1 / S.FULL_WEIGHT, 1) in (0, 870)   # a fullness at 1 / FULL_WEIGHT: 0 or the cap
 
 
 def test_seed_g_reads_the_cap_constant(host):
@@ -274,14 +278,14 @@ def test_seed_g_returns_zero_for_non_finite_inputs(host):
 def test_seed_g_is_finite_and_non_negative_over_a_grid(host):
     # as the Plan 11c Task 3 review did: no negative, NaN or infinite G for finite inputs; inside the cap the read inverts
     hungers = [-0.5, 0, 1e-9, 0.01, 0.1, 0.2, 0.25, 0.3, 0.45, 0.69, 0.9, 1, 1.5]
-    fills = [-1, 0, 0.1, 0.5, 0.9, 1, 1 / 0.6, 1 / 0.55, 2, 5]
+    fills = [-1, 0, 0.1, 0.5, 0.9, 1, 1 / 0.6, 1 / host.K.satiety.FULL_WEIGHT, 2, 5]
     states = [-1, 0, 1e-9, 0.5, 0.8, 1, 1.2, 1.5, 3]
     for h in hungers:
         for F in fills:
             for es in states:
                 G = host.call("satiety.seedG", h, F, es)
-                assert G == G and 0 <= G <= 1300, (h, F, es, G)
-                if 0 < G < 1300 and 0 <= h <= 1 and 0 <= F <= 1:          # hungerTarget clamps to [0, 1]
+                assert G == G and 0 <= G <= 870, (h, F, es, G)
+                if 0 < G < 870 and 0 <= h <= 1 and 0 <= F <= 1:          # hungerTarget clamps to [0, 1]
                     z = host.call("satiety.sated", F, host.call("satiety.gRead", G))
                     assert host.call("hybrid.hungerTarget", z, es) == pytest.approx(h, abs=1e-9), (h, F, es)
 
@@ -303,11 +307,11 @@ def test_the_file_is_grouped_into_its_sections():
 
 
 def test_satiety_mass_weights_the_liquid_lane(host):
-    # structure D: the solid lane mass plus LIQUID_WEIGHT x the liquid lane (drunk water at a fifth, S1231 / S1233)
+    # structure D: the solid lane mass plus LIQUID_WEIGHT x the liquid lane (S1231 / S1233)
     st = host.K.stomach["new"]()
     host.call("stomach.ingest", st, _vec(host, water=200, proteins=20, carbs=25, lipids=10, fibre=4, calories=270))
     host.call("stomach.ingestLiquid", st, _vec(host, water=356))
-    assert host.call("stomach.satietyMass", st) == pytest.approx(259 + 0.2 * 356)
+    assert host.call("stomach.satietyMass", st) == pytest.approx(259 + host.K.satiety.LIQUID_WEIGHT * 356)
     assert host.call("stomach.mass", st) == pytest.approx(259 + 356)          # the soft cap still reads both whole
     old = host.K.satiety.LIQUID_WEIGHT
     host.K.satiety.LIQUID_WEIGHT = 0.5
@@ -400,9 +404,9 @@ def test_protein_fill_names_its_label_and_rows():
     with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
         src = fh.read()
     line = re.search(r"^K\.satiety\.PROTEIN_FILL = .*$", src, re.M).group(0)
-    assert "game choice, Plan 11d (ruling 11d-5" in line
+    assert "game choice, fitted in Plan 11g Task 6" in line and "(ruling 11d-5" in line
     assert "no row names gastric fullness from protein" in line
-    for row in ("S1222", "S1380", "S1383", "S1231", "S1233", "S1247", "S1384"):
+    for row in ("S1222", "S1380", "S1383", "S1384"):
         assert row in line, row
 
 
@@ -411,17 +415,19 @@ def test_fullness_mass_adds_the_protein_term_to_the_satiety_mass(host):
     st = host.K.stomach["new"]()
     host.call("stomach.ingest", st, _vec(host, water=200, proteins=20, carbs=25, lipids=10, fibre=4, calories=270))
     host.call("stomach.ingestLiquid", st, _vec(host, water=356))
-    assert host.call("stomach.satietyMass", st) == pytest.approx(259 + 0.2 * 356)          # its callers unchanged
-    assert host.call("stomach.fullnessMass", st) == pytest.approx(259 + 0.2 * 356 + 8 * 20)
+    lw, pf = host.K.satiety.LIQUID_WEIGHT, host.K.satiety.PROTEIN_FILL
+    assert host.call("stomach.satietyMass", st) == pytest.approx(259 + lw * 356)           # its callers unchanged
+    assert host.call("stomach.fullnessMass", st) == pytest.approx(259 + lw * 356 + pf * 20)
     assert host.call("stomach.mass", st) == pytest.approx(259 + 356)                        # the soft cap: no term
-    assert host.call("stomach.fill", st) == pytest.approx((259 + 0.2 * 356) / 730)          # stomachFill: no term (T5-2)
+    assert host.call("stomach.fill", st) == pytest.approx((259 + lw * 356) / 730)           # stomachFill: no term (T5-2)
 
 
 def test_a_drinks_protein_fills_from_the_solid_lane(host):
     # ingestLiquid lands a drink's non-water keys, its protein among them, in the solid buffer (ruling 11c-12)
     st = host.K.stomach["new"]()
     host.call("stomach.ingestLiquid", st, _vec(host, water=300, proteins=25, calories=100))
-    assert host.call("stomach.fullnessMass", st) == pytest.approx(25 + 0.2 * 300 + 8 * 25)
+    S = host.K.satiety
+    assert host.call("stomach.fullnessMass", st) == pytest.approx(25 + S.LIQUID_WEIGHT * 300 + S.PROTEIN_FILL * 25)
 
 
 def test_a_protein_free_stomach_reads_the_satiety_mass(host):
@@ -435,14 +441,15 @@ def test_the_protein_term_reads_the_constant_and_clamps_at_one(host):
     S = host.K.satiety
     st = host.K.stomach["new"]()
     host.call("stomach.ingest", st, _vec(host, water=100, proteins=10, calories=40))
+    old = S.PROTEIN_FILL
     S.PROTEIN_FILL = 3
     try:
         assert host.call("stomach.fullnessMass", st) == pytest.approx(110 + 30)
         S.PROTEIN_FILL = 100
         assert host.call("satiety.fill", host.call("stomach.fullnessMass", st), 730) == 1   # 1110 g past 730: F clamps
     finally:
-        S.PROTEIN_FILL = 8
-    assert host.call("stomach.fullnessMass", st) == pytest.approx(110 + 80)
+        S.PROTEIN_FILL = old                                     # the saved value, never a literal (Plan 11g Task 6)
+    assert host.call("stomach.fullnessMass", st) == pytest.approx(110 + 10 * old)
 
 
 def test_the_protein_term_fades_as_the_lane_empties(host):
@@ -455,11 +462,12 @@ def test_the_protein_term_fades_as_the_lane_empties(host):
     for _ in range(4):
         terms.append(host.call("stomach.fullnessMass", st) - host.call("stomach.satietyMass", st))
         host.call("stomach.drain", st, 1.0)
-    assert terms[0] == pytest.approx(8 * 30)
+    pf = host.K.satiety.PROTEIN_FILL
+    assert terms[0] == pytest.approx(pf * 30)
     assert all(a > b > 0 for a, b in zip(terms, terms[1:])), terms
     left = host.call("stomach.fullnessMass", st) - host.call("stomach.satietyMass", st)
     assert 0 < left < 0.01 * terms[0], (terms, left)
-    assert left == pytest.approx(8 * st.buffer.proteins)
+    assert left == pytest.approx(pf * st.buffer.proteins)
 
 
 def test_stomach_fill_stays_physical_whatever_the_protein_fill(host):
@@ -470,11 +478,12 @@ def test_stomach_fill_stays_physical_whatever_the_protein_fill(host):
     st = host.K.stomach["new"]()
     host.call("stomach.ingest", st, _vec(host, water=98.1, proteins=46.5, lipids=5.4, calories=248))
     f8 = host.call("stomach.fill", st)
+    old = S.PROTEIN_FILL
     S.PROTEIN_FILL = 0
     try:
         f0 = host.call("stomach.fill", st)
     finally:
-        S.PROTEIN_FILL = 8
+        S.PROTEIN_FILL = old
     assert f8 == f0 == pytest.approx(150 / 730)
 
 

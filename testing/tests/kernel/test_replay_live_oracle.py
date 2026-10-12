@@ -75,11 +75,12 @@ def test_the_neutral_hour_holds_the_circadian_factor_at_exactly_1(host):
 
 
 def test_the_650_kcal_meal_returns_to_the_request_at_the_oracles_minute(host):
-    # 512 under G's provisional constants (Plan 11g Task 4; 320 on the P model), the oracle's pin
+    # 349 under the fitted G (Plan 11g Task 6; 512 under G's provisional constants, 320 on the P model), the oracle's
+    # reading (a named non-reproduction of the 240-300 anchor, gut_oracles.NAMED)
     hs = server_hunger(host, {0: [("food", M.mixed(650))]}, 900)
     ref = M.hunger(host, {0: [("food", M.mixed(650))]}, 900)
     assert max(abs(a - b) for a, b in zip(hs, ref)) < 1e-12
-    assert M.request(hs) == M.request(ref) == 512
+    assert M.request(hs) == M.request(ref) == 349
 
 
 def test_callahans_minutes_from_the_request_and_fasted_at_09_00(host):
@@ -87,7 +88,7 @@ def test_callahans_minutes_from_the_request_and_fasted_at_09_00(host):
               for k in (190.0, 400.0, 825.0)]
     fasted = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, G0=0.0, h0=M.CALLAHAN_H),
                         fasted=True) for k in (190.0, 400.0, 825.0)]
-    assert seeded == fasted == [297, 370, 476]                  # Plan 11g Task 4 under G (P model: 250, 279, 339)
+    assert seeded == fasted == [234, 273, 360]                  # Plan 11g Task 6, the fitted G (P model: 250, 279, 339)
 
 
 def test_marmoniers_snack_delays(host):
@@ -96,13 +97,13 @@ def test_marmoniers_snack_delays(host):
     for name, main, share in (("p", "proteins", 0.77), ("c", "carbs", 0.84), ("f", "lipids", 0.58)):
         hs = server_hunger(host, {0: [("food", M.mixed(650))], 240: [("food", M.snack(239.0, main, share))]}, 1500)
         d[name] = M.request(hs, after=245) - base
-    assert (d["p"], d["c"], d["f"]) == (152, 125, 131)         # Plan 11g Task 4 under G (P model: 193, 159, 167)
+    assert (d["p"], d["c"], d["f"]) == (149, 132, 126)         # Plan 11g Task 6, the fitted G (P model: 193, 159, 167)
 
 
 def test_melansons_fasted_drinks(host):
     got = [M.request(server_hunger(host, {0: [("drink", M.snack(239.0, main, 0.70, water=400.0))]}, 900, G0=0.0),
                      fasted=True) for main in ("carbs", "lipids")]
-    assert got == M.melanson(host) == [329, 329]               # Plan 11g Task 4 under G (P model: 236, 236)
+    assert got == M.melanson(host) == [156, 141]               # Plan 11g Task 6, the fitted G (P model: 236, 236)
 
 
 def test_the_fasted_400_kcal_breakfast_and_the_protein_contrast(host):
@@ -114,7 +115,7 @@ def test_the_fasted_400_kcal_breakfast_and_the_protein_contrast(host):
     hh = server_hunger(host, {0: [("food", hi)]}, 240)
     hl = server_hunger(host, {0: [("food", lo)]}, 240)
     d = sum(b - a for a, b in zip(hh, hl)) / 240
-    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 4) == 0.0136   # Plan 11g Task 4 under G (P model: 0.0134)
+    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 4) == 0.0196   # Plan 11g Task 6, the fitted G (P model: 0.0134)
 
 
 def test_rolls_1999_and_the_minute_1_fullness(host):
@@ -209,8 +210,8 @@ def six_sum(n, gap, hold):
 def test_six_meals_against_three_held_and_live(host):
     held = six_sum(6, 150, True) / six_sum(3, 300, True)
     live = six_sum(6, 150, False) / six_sum(3, 300, False)
-    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 1.004   # Plan 11g Task 4 under G (P: 0.969)
-    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 1.019     # Plan 11g Task 4 under G (P: 0.983, Plan 11f Task 2c fix 1)
+    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 1.020   # Plan 11g Task 6, the fitted G (P: 0.969)
+    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 1.035     # Plan 11g Task 6, the fitted G (P: 0.983, Plan 11f Task 2c fix 1)
 
 
 def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
@@ -244,7 +245,7 @@ def nicotine_written(host, ageH, w, anchorH):
 def test_the_nicotine_next_day_ratio(host):
     quit = [nicotine_written(host, 24 + m / 60, 0.51, 0.0) for m in M.MEAL_MINUTES]
     ctrl = [nicotine_written(host, 24 + m / 60, 0.0, None) for m in M.MEAL_MINUTES]
-    assert all(abs(x - M.H_REQ) < 1e-9 for x in ctrl)
+    assert all(abs(x - M.request_written(host, 24 + m / 60)) < 1e-9 for x, m in zip(ctrl, M.MEAL_MINUTES))
     r = sum(650.0 * x / M.H_REQ for x in quit) / sum(650.0 * x / M.H_REQ for x in ctrl)
     assert r == M.nicotine_ratio(M.writer_host(), 1)
     assert round(r, 4) == M.PIN_NEXT == 1.1304

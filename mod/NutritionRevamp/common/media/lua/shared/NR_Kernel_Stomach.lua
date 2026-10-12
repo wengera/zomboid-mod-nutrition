@@ -169,7 +169,7 @@ end
 
 -- The physical fill (record.stomachFill) the acute dose test and the mirror read, and the writer's fallback (the
 -- writer's F is W.satietyF, the fullness mass with the protein term): the stomach's satiety mass (structure D: the solid
--- lane plus a fifth of drunk liquid, K.stomach.satietyMass) over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
+-- lane plus LIQUID_WEIGHT x drunk liquid, K.stomach.satietyMass) over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
 -- ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass whole, never this fill.
 function K.stomach.fill(stomach)
     return K.satiety.fill(K.stomach.satietyMass(stomach), K.stomach.CAPACITY_MAX_G)
@@ -273,7 +273,7 @@ function K.stomach.drain(stomach, dtH)
 end
 
 -- The hunger-relevant mass (structure D, ruling 11c-30): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
--- liquid lane, drunk liquid counting at a fifth (S1231's null for water drunk alongside; S1233's drink volumes). The
+-- liquid lane, drunk liquid counting at LIQUID_WEIGHT (S1231's null for water drunk alongside; S1233's drink volumes). The
 -- fill (K.stomach.fill) passes it to K.satiety.fill and stays physical, while the writer's F reads K.stomach.fullnessMass, it plus the protein term (W.satietyF, ruling T5-2); the soft cap still reads K.stomach.mass, both lanes whole (S1250).
 function K.stomach.satietyMass(stomach)
     return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * stomach.liquid

@@ -129,7 +129,7 @@ def test_the_later_minus_earlier_pickers_pass_a_late_none_and_miss_an_early_one(
 
 
 def test_an_arm_that_never_returns_scores_zero_on_the_diekmann_lower_bounds():
-    r = F.evaluate({"G_HALF_LIFE_H": 1.5})
+    r = F.evaluate({"G_HALF_LIFE_H": 5.0})                # neither arm back inside 900 min (1.5 before the Task 6 fit)
     by = {o.name: o for o in GO.ORACLES}
     assert r["readings"]["diekmann"]["hf"]["back"] is None and r["readings"]["diekmann"]["lf"]["back"] is None
     for name in ("diekmann_hf_6h", "diekmann_lf_6h"):

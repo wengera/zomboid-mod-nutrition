@@ -79,17 +79,18 @@ def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it(
     assert [x["s"] for x in be_on.injected] == [179]
     # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer
     # loaded, so the replay seeds G from HUNGER), and HUNGER no longer replays within DEFAULT_TOL (the P model's replay
-    # held it under 0.002 with the drink injected: this test at 0f14044f). The injected drink is read off the stomach
-    # fill, which the satiety model does not enter; HUNGER's distance under G is pinned as a reading until a live run
-    # on G (Plan 11g Task 8)
+    # held it under 0.002 with the drink injected: this test at 0f14044f). The injected drink is read off the liquid
+    # lane, which no satiety constant enters (Plan 11g Task 6: the stomach fill weighs the lane at LIQUID_WEIGHT, refit
+    # from the ring's 0.2, so the fill no longer replays to 0.002); HUNGER's distance under G is pinned as a reading
+    # until a live run on G (Plan 11g Task 8)
     tol = {"body.energyState": RL.DEFAULT_TOL["body.energyState"], "satiety.L": RL.DEFAULT_TOL["satiety.L"],
-           "stomachFill": ("abs", 0.002)}
+           "stomach.liquid": ("abs", 1.0)}
     d_off = RL.diff(rows_off, rr, tol)
     d_on = RL.diff(rows_on, rr, tol)
     assert not d_off["ok"] and d_on["ok"], (d_off["findings"][:2], d_on["findings"][:2])
-    assert d_off["fields"]["stomachFill"]["over"] > 0 and d_on["fields"]["stomachFill"]["max"] < 0.001
+    assert d_off["fields"]["stomach.liquid"]["over"] > 0 and d_on["fields"]["stomach.liquid"]["max"] < 0.5
     h = RL.diff(rows_on, rr, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
-    assert round(h["max"], 4) == 0.0194, h                                  # the P ring against G: a reading
+    assert round(h["max"], 4) == 0.031, h                               # the P ring against the fitted G: a reading
 
 
 def test_x265_logged_milk_is_not_injected():

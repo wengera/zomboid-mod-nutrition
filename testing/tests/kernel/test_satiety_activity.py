@@ -373,4 +373,4 @@ def test_the_bout_replay_pins_its_readings(host):
     # 11f Task 2c's refit of the deficit drive; -3.8 from Plan 11d Task 9d, -3.9 before)
     r = replay_bout(host, minutes=60, kind="aerobic")
     assert round(r.mean_ratio(0, 60), 3) == 0.674, r
-    assert round(r.mm_difference(90), 1) == -3.7, r
+    assert round(r.mm_difference(90), 1) == -3.5, r                 # -3.7 before the gut-satiety fit (Plan 11g Task 6)

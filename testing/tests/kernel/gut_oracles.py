@@ -268,3 +268,81 @@ ORACLES += [
 del _i, _k, _ml
 
 assert len({o.name for o in ORACLES}) == len(ORACLES)
+
+BY_NAME = {o.name: o for o in ORACLES}
+
+
+# --- the targets after the joint fit (Plan 11g Task 6) -----------------------------------------------------------------
+# Every hard and one-sided oracle is asserted inside its band by the test that reads its group (check, below), except
+# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012, loss
+# 1.8465) leave outside their band. Each is pinned at its reading, so a change is noticed, and asserted still outside
+# its band, so a reading that comes back inside is promoted to a target; each awaits a ruling (Plan 11g Task 6 report).
+NAMED = {
+    # S1247: the 825 kcal preload's request at 360 min against 321 (1.121x; the band ends at 353.1); G fed at emptying
+    # holds the largest preload past it while the 190 and 400 kcal preloads land inside
+    "callahan_825": 360,
+    "callahan_fasted_825": 360,
+    # S1247, S1248: the 650 kcal meal back at 349 min against the anchor's 240-300 (1.163x; the band ends at 330)
+    "meal650": 349,
+    # S1231: the casserole alone 1836.0 kJ against 1639 (1.120x); soup, casserole with water and the drop land inside
+    "rolls_cas": 1836.0338637027323,
+    # S1233: the 600 mL milk 0.740 against 0.605 (1.223x; the check's band ends at 1.15x); 300 and 450 mL and the
+    # ordering land inside
+    "rolls98_600": 0.7397571294055789,
+    # S1224's differences: protein over carbohydrate 17 min against 26 (1.529x) and over fat 23 against 35 (1.522x),
+    # each just past the 1.5x band (the model reads whole minutes)
+    "marmonier_pc": 17,
+    "marmonier_pf": 23,
+    # S1809: the 20 % cut's 30-240 min mean 0.0211 (5.5 mm) against the detection threshold 0.0192 (5 mm, a DESIGN
+    # CHOICE): the 20 % cut reads as detectable, 0.5 mm over
+    "lewis_cut20_mean": 0.021111877302099926,
+    # S1833: both 540 kcal arms empty the same kcal at the same rate (K.stomach.drain is energy-limited, Hunt 1985,
+    # S0131), so G cannot tell the liquid from the solid: the liquid -4.5 % at 4 h against +14 % (+4 to +24), the solid
+    # -3.7 % against -45 % (-64 to -26), and the liquid below the solid at every time point (its 553 g fill more); a
+    # stomach mechanism (liquid emptying faster than solid), not a gut stage, is what would separate them
+    "tieken_liquid_4h": -0.04494365466051953,
+    "tieken_solid_4h": -0.03720825573445019,
+    "tieken_solid_below_liquid": -0.08723537751303345,
+    # S1325, S1892: BAL against REST -44.67 % against -55 % (the band's edge -46); harvest 13 attributes the depth to G
+    # plus a fuller stomach (S1874: BAL's emptying 612 min against 182), which the stomach does not slow for
+    "karl_bal": -44.665225754851164,
+    # S1228: the fat drink's request 15 min before the carbohydrate drink's against 61 min after (ruling T2-3: W_FAT
+    # fitted below 1, where S1224 and S1828 outweigh S1228)
+    "melanson_f_minus_c": -15,
+}
+
+# Karl 2021's shape relative to REST (ruling T3-1): BAL / REST at the post-meal troughs and before breakfast against
+# the figures derived from S1872, within harvest 13's +/- 0.05 on the unit scale over REST's study value at that point
+# (0.271 at the troughs, 0.518 before breakfast): a DESIGN CHOICE (S1892, open). Reported, not in the fit's loss.
+KARL_SHAPE_TOL = {"troughs_rel": 0.05 / 0.271, "pre_breakfast_rel": 0.05 / 0.518}
+# the days outside it after the fit: every post-meal trough (0.887 / 0.609 / 0.652 against 0.215 / 0.209 / 0.106: the
+# model's BAL troughs sit near REST's) and day 3's pre-breakfast (0.632 against 0.519)
+KARL_SHAPE_NAMED = {"troughs_rel": (0, 1, 2), "pre_breakfast_rel": (2,)}
+
+PIN_TOL = 1e-6
+
+
+def check(readings, *names):
+    """Asserts each named oracle on `readings` ({group: reading}): inside its band, or, for a named non-reproduction
+    (NAMED), at its pinned reading and still outside its band. Returns {name: value}."""
+    out = {}
+    for name in names:
+        o = BY_NAME[name]
+        assert o.kind != "reading", name
+        v = o.pick(readings)
+        m = o.miss(v)
+        if name in NAMED:
+            assert v is not None and abs(v - NAMED[name]) < PIN_TOL, (name, v, NAMED[name])
+            assert m > 0, (name, v, "inside its band now: promote it to a target")
+        else:
+            assert m == 0, (name, v, o.lo, o.hi, m)
+        out[name] = v
+    return out
+
+
+def check_karl_shape(r):
+    """Karl's BAL / REST shape (ruling T3-1) against S1872's figures within KARL_SHAPE_TOL, the named days outside."""
+    for key, tol in KARL_SHAPE_TOL.items():
+        for i, (m, s) in enumerate(zip(r[key], STUDY["karl_" + key])):
+            inside = abs(m - s) <= tol
+            assert inside != (i in KARL_SHAPE_NAMED[key]), (key, i, m, s, tol)

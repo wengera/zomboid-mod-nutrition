@@ -7,9 +7,11 @@ mass, the satiety mass plus PROTEIN_FILL x the protein, rulings 11d-5 and T5-2, 
 hunger is min(0.69, K.satiety.target(F, G, 1) x circadian(h)), target = hungerTarget(sated(F, gRead(G)), es). Trait 1
 and StatsDecrease 1 (ruling 11c-23).
 
-Plan 11g Task 4 (G replaces P, its constants the P fits carried over, provisional): a hard replay that misses its
-tolerance under G is pinned at its G reading, its test naming the P model's reading and Task 6, which refits G's
-constants and restores the target; an assertion that still passes stays an assertion.
+Plan 11g Task 4 replaced P with the gut stage G; Plan 11g Task 6 fitted G's constants with FULL_WEIGHT, LIQUID_WEIGHT,
+PROTEIN_FILL and the macronutrient weights jointly against every oracle of gut_oracles.py (tools/fit_gut_satiety.py,
+fit-11g-20261012). Each hard replay asserts its registry entry (gut_oracles.check: the band read from the registry, so
+a target lives once); one the fit leaves outside its band is a named non-reproduction (gut_oracles.NAMED), pinned at
+its reading and asserted still outside, so a change is noticed.
 
 The protocol (spike 2, task-4s2-report.md):
 - The meal request is displayed HUNGER 0.25, vanilla's HUNGRY level 2 (ruling 11c-17, a game choice).
@@ -27,11 +29,15 @@ The protocol (spike 2, task-4s2-report.md):
 The tolerance (ruling 11c-30): the hard replays land within 1.1x of the study's figure; S1233 is a check at 1.15x.
 
 What the model does not reproduce, named and pinned so that a change is noticed:
-- S1224's absolute snack delays (Marmonier 2000: 60 / 34 / 25 min; the model about 152 / 125 / 131 min under G, 193 /
-  159 / 167 on the P model). No additive pool meets both S1224 and S1247 (spike 1). Their differences are read, see
-  the protein weight below.
-- (S1222's VAS level is reproduced at about half since Plan 11d Task 5: 0.0134 against about 0.025, see below.)
-- S1228's fasted 1 MJ drinks (Melanson 1999: 65 / 126 min; the model 329 min for both under G, 236 on the P model).
+- the joint fit's named non-reproductions (gut_oracles.NAMED, Plan 11g Task 6): Callahan's 825 kcal preload (360 min
+  against 321), the 650 kcal anchor (349 min against 240-300), Rolls 1999's casserole alone (1.120x), Rolls 1998's
+  600 mL arm (1.223x), and Marmonier's two differences (17 and 23 min against 26 and 35, each just past 1.5x).
+- S1224's absolute snack delays (Marmonier 2000: 60 / 34 / 25 min; the model 149 / 132 / 126 min under the fitted G,
+  193 / 159 / 167 on the P model). No additive pool meets both S1224 and S1247 (spike 1). Their differences are read,
+  see the protein weight below.
+- (S1222's VAS level is reproduced at 0.0196 since Plan 11g Task 6 against about 0.025, see below.)
+- S1228's fasted 1 MJ drinks (Melanson 1999: 65 / 126 min; the model 156 / 141 min under the fitted G, 236 for both
+  on the P model): the fat drink's request within 1.12x, the carbohydrate drink's 2.4x long and before the fat's.
 - S1272's 1692 g meal (Moore 1981: 277 min solid half-emptying; the model 189 min for an assumed 1500 kcal).
 - Viscous fibre's own effect (ruling 11c-6): fibre counts only through mass.
 
@@ -48,7 +54,8 @@ checked, never asserted: the model reads about 8 mm (whey_against_carbohydrate, 
 
 Accepted only after the mutation pass (CLAUDE.md § 6; on the P model, Plan 11c and 11d): each of HALF_LIFE_H, P_REQ, STEEP, FULL_WEIGHT, LIQUID_WEIGHT,
 PROTEIN_FILL and W_PROTEIN at x2 and x0.5 fails a check (W_PROTEIN: the Marmonier difference check; PROTEIN_FILL 0 too), and the
-09:00 circadian factor dropped fails the Callahan minutes. Every test takes only `host`, so the mutation script calls each one
+09:00 circadian factor dropped fails the Callahan minutes. Plan 11g Task 6 re-ran it under the fitted G: each of the eight
+fitted constants at x2 and x0.5 fails 9 to 27 of the oracle tests (its report). Every test takes only `host`, so the mutation script calls each one
 on a patched host; no test uses `parametrize`.
 """
 import math
@@ -318,45 +325,46 @@ def hard_ratios(host):
 
 # --- time to returning hunger (S1247, S1248) -------------------------------------------------------------------------
 
+def _check(readings, *names):
+    from . import gut_oracles as GO          # imported late: gut_oracles imports this module
+    return GO.check(readings, *names)
+
+
 def test_callahans_preloads_from_the_request(host):
     # S1247 (Callahan 2004): 247 +/- 24, 286 +/- 20 and 321 +/- 27 min to the meal request, preloads at 09:00; the
-    # target each within TOL. Under G's provisional constants (Plan 11g Task 4) the replay misses: 297 / 370 / 476
-    # (1.20x, 1.29x, 1.48x), pinned; Task 6 refits G's constants and restores the TOL assertion (P model: 250 / 279 /
-    # 339, within TOL)
-    ts = callahan(host)
-    assert ts == [297, 370, 476], ts
-    assert [round(ratio(t, s), 3) for t, s in zip(ts, CALLAHAN_MIN)] == [1.202, 1.294, 1.483], ts
+    # target each within TOL. The fitted G (Plan 11g Task 6) reads 234 / 273 / 360: the 825 kcal preload a named
+    # non-reproduction (1.121x; P model: 250 / 279 / 339, within TOL; G's provisional constants: 297 / 370 / 476)
+    _check({"callahan": callahan(host)}, "callahan_190", "callahan_400", "callahan_825")
 
 
 def test_callahans_preloads_from_a_fasted_start(host):
     # S1247 from an empty gut stage (G = 0): the preload first brings hunger below the request, then it returns; the
-    # target each within TOL. Under G's provisional constants (Plan 11g Task 4) the replay misses: 297 / 370 / 476,
-    # pinned; Task 6 restores the TOL assertion (P model: 250 / 279 / 339, within TOL)
-    ts = callahan(host, fasted=True)
-    assert ts == [297, 370, 476], ts
-    assert [round(ratio(t, s), 3) for t, s in zip(ts, CALLAHAN_MIN)] == [1.202, 1.294, 1.483], ts
+    # target each within TOL. The fitted G reads 234 / 273 / 360, the 825 kcal preload named (P model: 250 / 279 / 339)
+    _check({"callahan_fasted": callahan(host, fasted=True)}, "callahan_fasted_190", "callahan_fasted_400",
+           "callahan_fasted_825")
 
 
 def test_callahans_replay_minutes_are_pinned_and_the_09_00_factor_matters(host):
-    # S1247's replay minutes (the study's 247 / 286 / 321): under G's provisional constants (Plan 11g Task 4) 297, 370,
-    # 476 from the request and fasted (P model, Plan 11d Task 5: 250, 279, 339); the 09:00 factor matters
-    assert callahan(host) == [297, 370, 476]
-    assert callahan(host, fasted=True) == [297, 370, 476]
-    # the factor held at 1 (a different seed too) moves the minutes: under G every request comes later without it
-    # (on the P model the 190 kcal request came earlier without it: 227 / 273 / 353). The direction check below is a
-    # reading under G's provisional constants, flipped from the P model's (>), pinned; Task 6 refits G's constants
-    # and re-reads the direction
-    assert callahan(host, h0=None) == [302, 416, 572]
-    assert callahan(host)[0] < callahan(host, h0=None)[0]
+    # S1247's replay minutes (the study's 247 / 286 / 321): under the fitted G (Plan 11g Task 6) 234, 273, 360 from the
+    # request and fasted (P model, Plan 11d Task 5: 250, 279, 339; G's provisional constants: 297, 370, 476); the
+    # 09:00 factor matters
+    assert callahan(host) == [234, 273, 360]
+    assert callahan(host, fasted=True) == [234, 273, 360]
+    # the factor held at 1 (a different seed too) moves the minutes: under the fitted G the 190 kcal request comes
+    # earlier without it (142), as on the P model (227 / 273 / 353; G's provisional constants read it later, 302); the
+    # flat read (G_STEEP 0.0197) makes the factor weigh more than it did
+    assert callahan(host, h0=None) == [142, 249, 407]
+    assert callahan(host)[0] > callahan(host, h0=None)[0]
     assert callahan(host, fasted=True, h0=None) != callahan(host, fasted=True)
 
 
 def test_a_650_kcal_mixed_meal_holds_hunger_off_for_four_to_five_hours(host):
     # the spec's anchor 240-300 min (S1247: 247-321), within 1.1x, and inside Cummings' outer 425 (S1248: 320-425).
-    # Under G's provisional constants (Plan 11g Task 4) the replay misses: 512 min, past 300 x 1.1 and past 425,
-    # pinned; Task 6 refits G's constants and restores the assertion (P model: inside the anchor)
+    # The fitted G reads 349 min: past 300 x 1.1, inside 425, a named non-reproduction (P model: inside the anchor;
+    # G's provisional constants: 512)
     t = request(hunger(host, {0: [("food", mixed(650))]}, 900))
-    assert t == 512, t
+    _check({"meal650": t}, "meal650")
+    assert t <= 425, t                                                    # S1248's outer bound
 
 
 def test_a_fasted_400_kcal_breakfast_holds_hunger_below_the_request_for_three_hours(host):
@@ -381,26 +389,19 @@ def test_one_meal_or_three_items_of_the_same_total_give_the_same_interval(host):
 def test_rolls_1999_soup_casserole_with_water_and_casserole_alone(host):
     # S1231 (Rolls 1999): lunch 1209 +/- 125 kJ after the soup, 1657 +/- 148 after the casserole with its water drunk,
     # 1639 +/- 148 after the casserole alone; under the intake mapping (labelled inference), each within 1.1x, and the
-    # soup's drop of 448 kJ within 1.1x. Under G's provisional constants (Plan 11g Task 4) the casserole alone misses:
-    # 1819 kJ (1.110x), pinned; Task 6 restores its assertion (P model: within 1.1x)
-    ro = rolls_1999(host)
-    assert ratio(ro["soup"], ROLLS_1999["soup"]) <= TOL, ro
-    assert ratio(ro["cw"], ROLLS_1999["cw"]) <= TOL, ro
-    assert round(ro["cas"], 1) == 1819.1 and round(ratio(ro["cas"], ROLLS_1999["cas"]), 3) == 1.110, ro
-    assert ratio(ro["cw"] - ro["soup"], ROLLS_1999["cw"] - ROLLS_1999["soup"]) <= TOL, ro
+    # soup's drop of 448 kJ within 1.1x. The fitted G reads 1244 / 1737 / 1836 kJ: the casserole alone a named
+    # non-reproduction (1.120x; P model: within 1.1x; G's provisional constants: 1819, 1.110x)
+    _check({"rolls_1999": rolls_1999(host)}, "rolls_soup", "rolls_cw", "rolls_cas", "rolls_drop")
 
 
 def test_rolls_1998_milk_volume_check(host):
     # S1233 (Rolls 1998), a check at 1.15x: lunch including the preload 5263 / 5011 / 4703 kJ against 4323 kJ with no
     # preload; less the drink's 2088 kJ, lunch over the no-preload lunch is 0.734 / 0.676 / 0.605; the model's
     # control is the replayed no-preload hunger (about 0.2575), the ratios about 1.076 / 1.012 / 1.082 on the P model.
-    # Under G's provisional constants (Plan 11g Task 4) the 600 mL arm misses: 0.698 against 0.605 (1.153x), pinned;
-    # Task 6 restores its check (the 300 and 450 mL arms read 0.727 and 0.713, within 1.15x)
-    study = ROLLS_1998
+    # The fitted G reads 0.769 / 0.755 / 0.740: the 600 mL arm a named non-reproduction (1.223x; G's provisional
+    # constants: 0.698, 1.153x), the order held
     model = rolls_1998(host)
-    for m, s in zip(model[:2], study[:2]):
-        assert ratio(m, s) <= CHECK_TOL, (model, study)
-    assert round(model[2], 4) == 0.6977 and round(ratio(model[2], study[2]), 3) == 1.153, (model, study)
+    _check({"rolls_1998": model}, "rolls98_300", "rolls98_450", "rolls98_600", "rolls98_ordering")
     assert model[0] > model[1] > model[2], model         # a larger drink, a smaller lunch
 
 
@@ -454,21 +455,20 @@ def test_a_protein_preload_leaves_less_hunger_than_a_lower_protein_one(host):
 def test_marmonier_snack_delay_differences_bound_the_protein_weight(host):
     # S1224 (Marmonier 2000), read as differences: the protein snack's delay over the carbohydrate snack's (study 26
     # min) and over the fat snack's (study 35 min), each within 1.5x; the P model read 34 and 26. The absolute delays
-    # stay a named non-reproduction (below). W_PROTEIN at x2 and x0.5 each failed this on the P model. Under G's
-    # provisional constants (Plan 11g Task 4) the model reads 27 and 21: protein over fat misses (1.667x), pinned;
-    # Task 6 refits G's constants (and re-checks W_PROTEIN) and restores the 1.5x assertion
-    pc, pf = marmonier_differences(host)
-    assert ratio(pc, MARMONIER_DIFF[0]) <= 1.5, (pc, pf)
-    assert pf == 21 and round(ratio(pf, MARMONIER_DIFF[1]), 3) == 1.667, (pc, pf)
+    # stay a named non-reproduction (below). W_PROTEIN at x2 and x0.5 each failed this on the P model. The fitted G
+    # (W_PROTEIN 1.5) reads 17 and 23, each just past 1.5x (1.529x, 1.522x): named non-reproductions (G's provisional
+    # constants: 27 and 21)
+    _check({"marmonier": marmonier(host)}, "marmonier_pc", "marmonier_pf")
 
 
 # --- named non-reproductions, pinned (a change is noticed) -----------------------------------------------------------
 
 def test_marmonier_snack_delays_stay_a_named_non_reproduction(host):
     # S1224 (Marmonier 2000): 60 / 34 / 25 min (p / c / f); the model's delays sit 2.5-5x long and the order of p over
-    # c and f is kept. Under G's provisional constants (Plan 11g Task 4) 152 / 125 / 131 (P model: 193 / 159 / 167)
+    # c and f is kept. Under the fitted G (Plan 11g Task 6) 149 / 132 / 126 (P model: 193 / 159 / 167; G's provisional
+    # constants: 152 / 125 / 131)
     d = marmonier(host)
-    assert (d["p"], d["c"], d["f"]) == (152, 125, 131), d
+    assert (d["p"], d["c"], d["f"]) == (149, 132, 126), d
     assert d["p"] > d["c"] and d["p"] > d["f"]
 
 
@@ -476,16 +476,17 @@ def test_s1222_vas_level_is_reproduced_at_half_or_more(host):
     # S1222 (Kohanmoo 2020: hunger -7 mm), S1380, S1383. Under a request-anchored mapping (a LABELLED ASSUMPTION: no
     # row gives a pre-meal VAS; about 65 mm read as 0.25) the target is about 0.025. The pool alone read 0.0027; with
     # the protein fill (Plan 11d Task 5, ruling 11d-5) the P model read 0.0134, in [0.0125, 0.04] (half the target,
-    # 1.6x); under G's provisional constants (Plan 11g Task 4) 0.0136
+    # 1.6x); under G's provisional constants (Plan 11g Task 4) 0.0136; under the fitted G (Plan 11g Task 6) 0.0196
     d = protein_contrast(host)
-    assert round(d, 4) == 0.0136, d
-    assert S1222_BAND[0] <= d <= S1222_BAND[1], d
+    assert round(d, 4) == 0.0196, d
+    _check({"protein_contrast": d}, "s1222_contrast")
 
 
 def test_melanson_fasted_drinks_stay_a_named_non_reproduction(host):
-    # S1228 (Melanson 1999): 65 min (carbohydrate) and 126 min (fat); the model 329 min for both under G's provisional
-    # constants (Plan 11g Task 4; P model: 236 for both)
-    assert melanson(host) == [329, 329]
+    # S1228 (Melanson 1999): 65 min (carbohydrate) and 126 min (fat); the model 156 / 141 min under the fitted G (Plan
+    # 11g Task 6; W_FAT 0.406, so the fat drink returns first); 329 for both under G's provisional constants, 236 for
+    # both on the P model
+    assert melanson(host) == [156, 141]
 
 
 def test_moores_1692_g_meal_stays_a_named_non_reproduction(host):
@@ -513,6 +514,14 @@ CLOCK_H = 8.0                   # the acute record's world age 0 is 08:00
 def writer_host():
     from .test_writer_shape import boot
     return boot()
+
+
+def request_written(wh, ageH):
+    """What a fresh record seeded at the request writes at world age ageH with no other factor: the request, or the seed's
+    floor times the circadian factor where the clock puts the request below it (Plan 11g Task 6: the floor, 1 -
+    gRead(G_SEED_MAX), is 0.244, so the 19:00 meal's request, 0.25 / 1.083, seeds the cap and writes 0.264)."""
+    c = wh.K.satiety.circadian((ageH + CLOCK_H) % 24)
+    return max(H_REQ, (1 - wh.K.satiety.gRead(wh.K.satiety.G_SEED_MAX)) * c)
 
 
 def written_hunger(wh, a, ageH):
@@ -571,6 +580,8 @@ def sleep_debt_reading(host):
     rested = wh.K.acute.new(0.0)
     tr = acute_night(wh, rested, 0.0, 7.5)
     hr = next_day_hungers(wh, rested, tr)
+    want = [request_written(wh, tr + m / 60) for m in MEAL_MINUTES]
+    assert all(abs(x - w) < 1e-9 for x, w in zip(hr, want)), (hr, want)   # the rested writer writes the request
     rise_mm = (hs[0] - H_REQ) * MM_PER_HUNGER
     intake = sum(650.0 * x / H_REQ for x in hs) / sum(650.0 * x / H_REQ for x in hr)
     b = wh.K.acute.new(0.0)
@@ -585,7 +596,7 @@ def test_one_short_night_raises_hunger_at_the_request_by_the_pooled_size(host):
     # within 1.5x of it (model 0.25 x 0.18 x 260 = 11.7 mm)
     debt, rise_mm, _, _, _, hr = sleep_debt_reading(host)
     assert abs(debt - 2.0) < 1e-9, debt                                # the acute kernel books a full debt
-    assert all(abs(x - H_REQ) < 1e-9 for x in hr), hr                  # the rested writer writes the request
+    assert abs(hr[0] - H_REQ) < 1e-9, hr                              # the rested writer writes the request at 08:01
     assert ratio(rise_mm, 13.4) <= 1.5, rise_mm
     assert abs(rise_mm - 11.7) < 1e-6, rise_mm
 
@@ -835,11 +846,12 @@ def test_six_meals_against_three_is_pinned_inside_the_band(host):
     # S1607's null. It is schedule-sensitive: the six-meal arm's last meal is at 20:30 against 18:00 for three meals.
     # On a same-span schedule (six meals every 2 h from 08:00 to 18:00) the model reads 0.993 (0.996 before Task 5;
     # the Task 4 review read 0.970 with the energy state live, before Task 5). The model never reaches S1608's
-    # direction under any of these schedules. Under G's provisional constants (Plan 11g Task 4) the ratio reads 1.004:
-    # inside the band and, unlike the P model's 0.969, in S1608's direction (1.14x below it); Task 6 re-reads it
+    # direction under any of these schedules. Under G's provisional constants (Plan 11g Task 4) the ratio read 1.004;
+    # under the fitted G (Plan 11g Task 6) 1.020: inside the band and, unlike the P model's 0.969, in S1608's direction
+    # (1.12x below it)
     r = meal_frequency_ratio(host)
     assert 0.9 <= r <= 1.3, r
-    assert round(r, 3) == 1.004, r
+    assert round(r, 3) == 1.020, r
 
 
 # --- the protein fill (Plan 11d Task 5, ruling 11d-5; spec § 5d) ---------------------------------------------------
@@ -939,7 +951,8 @@ def nicotine_ratio(wh, day):
     """The intake ratio of day `day` after the quit (day 1 the next day), quitting arm over control."""
     quit = [nicotine_written(wh, day * 24 + m / 60, 0.51, 0.0) for m in MEAL_MINUTES]
     ctrl = [nicotine_written(wh, day * 24 + m / 60, 0.0, None) for m in MEAL_MINUTES]
-    assert all(abs(x - H_REQ) < 1e-9 for x in ctrl), ctrl                 # the control arm writes the request
+    want = [request_written(wh, day * 24 + m / 60) for m in MEAL_MINUTES]
+    assert all(abs(x - w) < 1e-9 for x, w in zip(ctrl, want)), (ctrl, want)   # the control arm writes the request
     return sum(650.0 * x / H_REQ for x in quit) / sum(650.0 * x / H_REQ for x in ctrl)
 
 
@@ -978,7 +991,7 @@ PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ru
 # ENERGY_REPLAY beside it: a 70 kg body eats SIX_WARM_DAYS three-meal days of the same 2,000 kcal (ASSUMED, energy only,
 # no stomach or G) before the protocol day, and from 08:00 of that day each meal also lands in the stomach (feeding G as it empties), so
 # hungerTarget reads the live trailing-24 h energy state. With the state held at 1 it reproduces meal_frequency_ratio
-# exactly (1.004 under G's provisional constants, Plan 11g Task 4; 0.969 on the P model); live it reads 1.019 under G,
+# exactly (1.020 under the fitted G, Plan 11g Task 6; 0.969 on the P model); live it reads 1.035 under the fitted G (1.019 under its provisional constants),
 # in S1608's direction (1.14). On the P model it read 0.983 since the deficit drive's refit (Plan 11f Task 2c fix 1; 0.981
 # in Task 2c, 0.994 before, 0.998 on the same-span schedule, every 2 h from 08:00 to 18:00), the opposite direction to
 # S1608's 1.14. The warm-up count did not move it (1, 3 and 6 days read the same at Plan 11e)
