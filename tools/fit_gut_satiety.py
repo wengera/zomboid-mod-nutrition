@@ -55,6 +55,7 @@ DEFAULT_PARAMS = ("FULL_WEIGHT", "G_REQ", "G_STEEP", "G_HALF_LIFE_H", "W_PROTEIN
 STAGE_A_PARAMS = ("A_REQ", "A_STEEP", "A_HALF_LIFE_H")
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.25}
 SIG = 6                         # significant digits a refined value keeps
+BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 1)}    # (exclusive low, inclusive high); any other: (0, inf)
 
 _ACTIVE = {}                    # the candidate's patch while it runs, read by the server path's patched hosts
 
@@ -78,7 +79,20 @@ def _apply(K, patch):
         t[segs[-1]] = float(value)
 
 
+def _bounds(name):
+    return BOUNDS.get(name, (0, math.inf))
+
+
+class ReadError(str):
+    """A reading group that raised: its error string stands in for the reading, and every oracle on it misses."""
+    def __getitem__(self, k):
+        raise TypeError("the reading failed: %s" % str(self))
+
+
 def _patch_server_path():
+    """Wraps the top-level server_host module's Host.__init__ once so the active candidate's patch reaches the hosts
+    tools/replay_live.py builds. The rebind is process-wide and permanent (it marks the class `_fit_patched`), and a
+    no-op while _ACTIVE is empty, so nothing else in the process sees a patch."""
     _, server_host, _ = RL._lua()
     if getattr(server_host.Host, "_fit_patched", False):
         return
@@ -130,14 +144,24 @@ def evaluate(patch):
     _ACTIVE = dict(patch)
     try:
         h = new_host(patch)
-        readings = GO.read_all(h)
+        readings = {}
+        for name, fn in GO.GROUPS.items():
+            try:
+                readings[name] = fn(h)
+            except Exception as e:               # a candidate the kernel cannot run scores NONE_MISS, not a crash
+                readings[name] = ReadError("%s: %s" % (type(e).__name__, e))
     finally:
         _ACTIVE = {}
     oracles = {}
     loss = 0.0
     for o in GO.ORACLES:
-        v = o.pick(readings)
-        m = o.miss(v)
+        try:
+            if isinstance(readings[o.group], ReadError):
+                raise TypeError(readings[o.group])
+            v = o.pick(readings)
+            m = o.miss(v)
+        except Exception:
+            v, m = None, (None if o.kind == "reading" else GO.NONE_MISS)
         oracles[o.name] = {"value": _clean(v), "miss": m}
         if m is not None:
             loss += m
@@ -170,6 +194,10 @@ def load_spec(spec):
     for name, values in params.items():
         if not isinstance(values, list) or not values or not all(isinstance(v, (int, float)) for v in values):
             raise ValueError("params.%s is not a non-empty list of numbers" % name)
+        lo, hi = _bounds(name)
+        for v in values:
+            if not lo < v <= hi:
+                raise ValueError("params.%s: %r is outside its bound (%g, %g]" % (name, v, lo, hi))
     refine = spec.get("refine", {})
     for name in refine.get("params", []):
         if name not in params:
@@ -233,8 +261,13 @@ def search(spec, jobs=1):
             moved = False
             for n in rnames:
                 here = s.score([point], "refine")[0]
-                trial = [dict(point, **{n: round_sig(point[n] * factor)}), dict(point, **{n: round_sig(point[n] / factor)})]
-                for r in s.score(trial, "refine"):
+                hi = _bounds(n)[1]
+                vals = []
+                for v in (round_sig(point[n] * factor), round_sig(point[n] / factor)):
+                    v = min(v, hi)
+                    if v != point[n] and v not in vals:
+                        vals.append(v)
+                for r in (s.score([dict(point, **{n: v}) for v in vals], "refine") if vals else []):
                     if r["loss"] < here["loss"]:
                         here = r
                 if here["params"] != point:
@@ -253,8 +286,7 @@ def head_sha():
 
 def fit(spec, out, jobs=1):
     """Runs the search and writes <out>/fit.json; returns the chosen candidate."""
-    for name in spec["params"]:
-        current([name])                                  # refuse an unknown constant before any run
+    current(list(spec["params"]))                        # refuse an unknown constant before any run
     cands, chosen = search(spec, jobs)
     doc = {"grid": spec, "head": head_sha(), "date": datetime.datetime.now().isoformat(timespec="seconds"),
            "oracles": [{"name": o.name, "kind": o.kind, "row": o.row, "target": _clean(o.target), "lo": o.lo,

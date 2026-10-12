@@ -17,6 +17,8 @@ ratio is not. A reading-kind entry is reported, never in the loss. Every hard an
 
 The bands that are not a row's own figure are labelled DESIGN CHOICE beside their entry.
 """
+import math
+
 from . import test_satiety_meal_studies as M
 
 NONE_MISS = 10.0                # a reading of None: the request never came back inside the replay (a DESIGN CHOICE: worse
@@ -49,13 +51,13 @@ STUDY = {
                                                        # over REST's 5.18 cm
 }
 
-# the meal studies' figures (test_satiety_meal_studies.py's hard replays and checks, whose tests carry them too)
-CALLAHAN = (247.0, 286.0, 321.0)    # S1247: minutes to the request after the 190, 400 and 825 kcal preloads
-MEAL650 = (240.0, 300.0)            # S1247, S1248: the 650 kcal anchor's minutes
-ROLLS_1999 = {"soup": 1209.0, "cw": 1657.0, "cas": 1639.0}   # S1231: lunch kJ after each preload
-ROLLS_1998 = tuple((x - 2088.0) / 4323.0 for x in (5263.0, 5011.0, 4703.0))   # S1233: lunch over the no-preload lunch
-MARMONIER_DIFF = (26.0, 35.0)       # S1224: protein over carbohydrate, protein over fat (min)
-S1222 = (0.0125, 0.04)              # S1222: the protein contrast at half the study's 0.025 or more (the test's band)
+# the meal studies' figures live in test_satiety_meal_studies.py (the hard replays and their tests read the same tuples)
+CALLAHAN = M.CALLAHAN_MIN
+MEAL650 = M.MEAL650_MIN
+ROLLS_1999 = M.ROLLS_1999
+ROLLS_1998 = M.ROLLS_1998
+MARMONIER_DIFF = M.MARMONIER_DIFF
+S1222 = M.S1222_BAND
 
 
 # --- the readings: each group run once per host ----------------------------------------------------------------------
@@ -68,6 +70,7 @@ def _gut():
 GROUPS = {
     "callahan": lambda h: M.callahan(h),
     "callahan_fasted": lambda h: M.callahan(h, fasted=True),
+    "breakfast400": M.breakfast400,
     "meal650": lambda h: M.request(M.hunger(h, {0: [("food", M.mixed(650))]}, 900)),
     "rolls_1999": M.rolls_1999,
     "rolls_1998": M.rolls_1998,
@@ -91,19 +94,26 @@ def read_all(host):
 # --- the oracles -----------------------------------------------------------------------------------------------------
 
 class Oracle:
-    def __init__(self, name, group, pick, target, lo=None, hi=None, scale=None, kind="two-sided", row="", tol=""):
+    def __init__(self, name, group, pick, target, lo=None, hi=None, scale=None, kind="two-sided", row="", tol="",
+                 none_is="miss"):
         self.name, self.group, self.pick, self.target = name, group, pick, target
         self.lo, self.hi, self.kind, self.row, self.tol = lo, hi, kind, row, tol
+        self.none_is = none_is          # "miss": a None reading misses NONE_MISS; "inf": it is +inf (never returns)
         self.scale = scale
         if scale is None and kind != "reading":
             self.scale = abs(target)
+        assert self.kind == "reading" or self.scale > 0, "oracle %s: scale %r is not positive" % (name, self.scale)
 
     def miss(self, value):
         """The relative miss beyond the tolerance: 0 inside the band; None for a reading-kind entry."""
         if self.kind == "reading":
             return None
         if value is None:
-            return NONE_MISS
+            if self.none_is != "inf":
+                return NONE_MISS
+            value = math.inf
+        elif math.isnan(value) or math.isinf(value) and not (value > 0 and self.none_is == "inf"):
+            return NONE_MISS            # a NaN or an infinite reading (+inf passes only where it means "never returns")
         out = 0.0
         if self.lo is not None and value < self.lo:
             out = self.lo - value
@@ -133,8 +143,19 @@ def _diff(a, b):
     return None if a is None or b is None else a - b
 
 
-def _min_or_none(xs):
-    return None if any(x is None for x in xs) else min(xs)
+def _later_minus_earlier(later, earlier):
+    """later - earlier for two return minutes, None being "never returns" (+inf; a none_is="inf" oracle's pick): a None
+    later arm passes (+inf), a None earlier arm only gives -inf (a miss), both None is -inf (NONE_MISS)."""
+    later = math.inf if later is None else later
+    earlier = math.inf if earlier is None else earlier
+    if math.isinf(later) and math.isinf(earlier):
+        return -math.inf
+    return later - earlier
+
+
+def _min_back(r):
+    """The earlier of the two Diekmann arms' recoveries; None is +inf (the arm never returns)."""
+    return min(math.inf if x is None else x for x in (r["diekmann"]["hf"]["back"], r["diekmann"]["lf"]["back"]))
 
 
 ORACLES = []
@@ -144,6 +165,11 @@ for _i, _k in enumerate((190, 400, 825)):
     ORACLES.append(ratio_oracle("callahan_fasted_%d" % _k, "callahan_fasted", _sub("callahan_fasted", _i), CALLAHAN[_i],
                                 M.TOL, "S1247"))
 ORACLES += [
+    # the 400 kcal breakfast's hold (test_a_fasted_400_kcal_breakfast_holds_hunger_below_the_request_for_three_hours; ruling
+    # T5-2): an asserted test with no row of its own, so it joins the loss as a one-sided entry on the shorter hold
+    Oracle("breakfast400_held", "breakfast400", lambda r: min(d for _, d in r["breakfast400"]), M.BREAKFAST_HOLD_MIN,
+           lo=M.BREAKFAST_HOLD_MIN, scale=M.BREAKFAST_HOLD_MIN, kind="one-sided", row="",
+           tol=">= 180 min at h0 None and 8.0 (the existing test's assertion, no row)"),
     Oracle("meal650", "meal650", _sub("meal650"), sum(MEAL650) / 2, lo=MEAL650[0] / M.TOL, hi=MEAL650[1] * M.TOL,
            row="S1247, S1248", tol="1.1x of 240-300"),
     ratio_oracle("rolls_soup", "rolls_1999", _sub("rolls_1999", "soup"), ROLLS_1999["soup"], M.TOL, "S1231"),
@@ -156,6 +182,12 @@ for _i, _ml in enumerate((300, 450, 600)):
     ORACLES.append(ratio_oracle("rolls98_%d" % _ml, "rolls_1998", _sub("rolls_1998", _i), ROLLS_1998[_i], M.CHECK_TOL,
                                 "S1233"))
 ORACLES += [
+    # S1233's ordering, 300 > 450 > 600 mL (ruling T5-2; test_rolls_1998_milk_volume_check asserts it): the smaller of
+    # the two steps at or above 0, its scale the study's smaller step (a DESIGN CHOICE)
+    Oracle("rolls98_ordering", "rolls_1998", lambda r: min(r["rolls_1998"][0] - r["rolls_1998"][1],
+                                                           r["rolls_1998"][1] - r["rolls_1998"][2]),
+           0.0, lo=0.0, scale=min(ROLLS_1998[0] - ROLLS_1998[1], ROLLS_1998[1] - ROLLS_1998[2]), kind="one-sided",
+           row="S1233", tol="300 > 450 > 600 mL"),
     Oracle("s1222_contrast", "protein_contrast", _sub("protein_contrast"), 0.025, lo=S1222[0], hi=S1222[1],
            row="S1222", tol="0.0125-0.04"),
     ratio_oracle("marmonier_pc", "marmonier", lambda r: _diff(r["marmonier"]["p"], r["marmonier"]["c"]),
@@ -183,13 +215,14 @@ ORACLES += [
     # liquid's (S1840's scaling with emptying; the ordering a DESIGN CHOICE, the rows give no ratio; its scale the 2 h
     # between harvest 11 § 6's about 4 h and over 6 h)
     Oracle("diekmann_hf_6h", "diekmann", _sub("diekmann", "hf", "back"), STUDY["diekmann_6h_min"],
-           lo=STUDY["diekmann_6h_min"] + 1, kind="one-sided", row="S1828", tol="recovery after 360 min"),
+           lo=STUDY["diekmann_6h_min"] + 1, kind="one-sided", row="S1828", tol="recovery after 360 min",
+           none_is="inf"),
     Oracle("diekmann_lf_6h", "diekmann", _sub("diekmann", "lf", "back"), STUDY["diekmann_6h_min"],
-           lo=STUDY["diekmann_6h_min"] + 1, kind="one-sided", row="S1828", tol="recovery after 360 min"),
+           lo=STUDY["diekmann_6h_min"] + 1, kind="one-sided", row="S1828", tol="recovery after 360 min",
+           none_is="inf"),
     Oracle("diekmann_after_tieken", "diekmann",
-           lambda r: _diff(_min_or_none([r["diekmann"]["hf"]["back"], r["diekmann"]["lf"]["back"]]),
-                           r["tieken"]["liquid"]["back"]),
-           120.0, lo=0.0, scale=120.0, kind="one-sided", row="S1828, S1833, S1840", tol=">= 0 min"),
+           lambda r: _later_minus_earlier(_min_back(r), r["tieken"]["liquid"]["back"]),
+           120.0, lo=0.0, scale=120.0, kind="one-sided", row="S1828, S1833, S1840", tol=">= 0 min", none_is="inf"),
     # S1820 (Belza 2013) and the nulls (S1818, S1821, S1814, S1225): belza_hp in [-0.25, 0] and belza_mhp in
     # [belza_hp, 0] (a DESIGN CHOICE between the two sides); S1822 (Smeets 2008) the HP arm at or below AP at 30 and
     # 120 min (the row rates satiety, so its scale is VAS_DETECT, a DESIGN CHOICE)
@@ -209,8 +242,8 @@ ORACLES += [
            tol="-64 to -46 %"),
     # the fat trio (ruling T3-3; ruling T2-3's W_FAT fit): Melanson f - c >= 0, Diekmann HF - LF >= 0, Marmonier f - c
     # within the difference oracle's 1.5x
-    Oracle("melanson_f_minus_c", "melanson", lambda r: _diff(r["melanson"][1], r["melanson"][0]),
-           STUDY["melanson_f_minus_c"], lo=0.0, kind="one-sided", row="S1228", tol=">= 0"),
+    Oracle("melanson_f_minus_c", "melanson", lambda r: _later_minus_earlier(r["melanson"][1], r["melanson"][0]),
+           STUDY["melanson_f_minus_c"], lo=0.0, kind="one-sided", row="S1228", tol=">= 0", none_is="inf"),
     Oracle("diekmann_hf_minus_lf", "diekmann", lambda r: r["diekmann"]["hf"]["mean"] - r["diekmann"]["lf"]["mean"],
            STUDY["diekmann_hf_minus_lf"], lo=0.0, kind="one-sided", row="S1828", tol=">= 0"),
     ratio_oracle("marmonier_f_minus_c", "marmonier", lambda r: _diff(r["marmonier"]["f"], r["marmonier"]["c"]),

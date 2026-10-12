@@ -58,6 +58,14 @@ TOL = 1.1                       # the hard replays' tolerance (ruling 11c-30)
 CHECK_TOL = 1.15                # S1233's check (ruling 11c-30)
 KJ_PER_HUNGER = 650.0 * 4.184 / H_REQ   # the intake mapping (labelled inference): 10,878.4 kJ x displayed hunger
 CALLAHAN_H = 9.0                # S1247: preloads at 0900 h
+# the study figures the hard replays and the joint fit (tools/fit_gut_satiety.py, via gut_oracles.py) are read against, once
+CALLAHAN_MIN = (247.0, 286.0, 321.0)    # S1247: minutes to the request after the 190, 400 and 825 kcal preloads
+MEAL650_MIN = (240.0, 300.0)            # S1247, S1248: the 650 kcal anchor's minutes
+ROLLS_1999 = {"soup": 1209.0, "cw": 1657.0, "cas": 1639.0}   # S1231: lunch kJ after each preload
+ROLLS_1998 = tuple((x - 2088.0) / 4323.0 for x in (5263.0, 5011.0, 4703.0))   # S1233: lunch over the no-preload lunch
+MARMONIER_DIFF = (26.0, 35.0)           # S1224: protein over carbohydrate, protein over fat (min)
+S1222_BAND = (0.0125, 0.04)             # S1222: the protein contrast at half the study's 0.025 or more (the test's band)
+BREAKFAST_HOLD_MIN = 180                # the brief's anchor: a fasted 400 kcal breakfast holds hunger below the request
 
 # The replay runs with the coverage line hook off (every kernel line it runs is covered by the kernels' own tests).
 REPLAY = r"""
@@ -242,6 +250,16 @@ def rolls_1998(host):
     return [hunger(host, {0: [("drink", milk(ml))]}, 30)[29] / control for ml in (300.0, 450.0, 600.0)]
 
 
+def breakfast400(host):
+    """The brief's anchor: (first minute below the request, minutes held) of a fasted 400 kcal breakfast (G = 0), with the
+    circadian factor at 1 and at 08:00."""
+    out = []
+    for h0 in (None, 8.0):
+        first, dur, _ = held(hunger(host, {0: [("food", mixed(400, water=250.0))]}, 900, G0=0.0, h0=h0))
+        out.append((first, dur))
+    return out
+
+
 def marmonier(host):
     """S1224: a 239 kcal (1 MJ) snack 240 min after the start of a 650 kcal lunch; the dinner request's delay."""
     base = request(hunger(host, {0: [("food", mixed(650))]}, 1500))
@@ -281,20 +299,20 @@ def moore_half_emptying(host):
 def hard_ratios(host):
     """Every hard replay's ratio (model against study, the worse way), for the tests and the mutation script."""
     r = {}
-    for i, (t, s) in enumerate(zip(callahan(host), (247.0, 286.0, 321.0))):
+    for i, (t, s) in enumerate(zip(callahan(host), CALLAHAN_MIN)):
         r["callahan%d" % i] = ratio(t, s)
-    for i, (t, s) in enumerate(zip(callahan(host, fasted=True), (247.0, 286.0, 321.0))):
+    for i, (t, s) in enumerate(zip(callahan(host, fasted=True), CALLAHAN_MIN)):
         r["callahan_fasted%d" % i] = ratio(t, s)
     t = request(hunger(host, {0: [("food", mixed(650))]}, 900))
-    r["meal650"] = math.inf if t is None else (240.0 / t if t < 240 else (t / 300.0 if t > 300 else 1.0))
+    r["meal650"] = math.inf if t is None else (MEAL650_MIN[0] / t if t < MEAL650_MIN[0] else (t / MEAL650_MIN[1] if t > MEAL650_MIN[1] else 1.0))
     ro = rolls_1999(host)
-    r["rolls_soup"] = ratio(ro["soup"], 1209.0)
-    r["rolls_cw"] = ratio(ro["cw"], 1657.0)
-    r["rolls_cas"] = ratio(ro["cas"], 1639.0)
-    r["rolls_drop"] = ratio(ro["cw"] - ro["soup"], 1657.0 - 1209.0)
+    r["rolls_soup"] = ratio(ro["soup"], ROLLS_1999["soup"])
+    r["rolls_cw"] = ratio(ro["cw"], ROLLS_1999["cw"])
+    r["rolls_cas"] = ratio(ro["cas"], ROLLS_1999["cas"])
+    r["rolls_drop"] = ratio(ro["cw"] - ro["soup"], ROLLS_1999["cw"] - ROLLS_1999["soup"])
     pc, pf = marmonier_differences(host)
-    r["marmonier_pc"] = ratio(pc, 26.0)
-    r["marmonier_pf"] = ratio(pf, 35.0)
+    r["marmonier_pc"] = ratio(pc, MARMONIER_DIFF[0])
+    r["marmonier_pf"] = ratio(pf, MARMONIER_DIFF[1])
     return r
 
 
@@ -307,7 +325,7 @@ def test_callahans_preloads_from_the_request(host):
     # 339, within TOL)
     ts = callahan(host)
     assert ts == [297, 370, 476], ts
-    assert [round(ratio(t, s), 3) for t, s in zip(ts, (247.0, 286.0, 321.0))] == [1.202, 1.294, 1.483], ts
+    assert [round(ratio(t, s), 3) for t, s in zip(ts, CALLAHAN_MIN)] == [1.202, 1.294, 1.483], ts
 
 
 def test_callahans_preloads_from_a_fasted_start(host):
@@ -316,7 +334,7 @@ def test_callahans_preloads_from_a_fasted_start(host):
     # pinned; Task 6 restores the TOL assertion (P model: 250 / 279 / 339, within TOL)
     ts = callahan(host, fasted=True)
     assert ts == [297, 370, 476], ts
-    assert [round(ratio(t, s), 3) for t, s in zip(ts, (247.0, 286.0, 321.0))] == [1.202, 1.294, 1.483], ts
+    assert [round(ratio(t, s), 3) for t, s in zip(ts, CALLAHAN_MIN)] == [1.202, 1.294, 1.483], ts
 
 
 def test_callahans_replay_minutes_are_pinned_and_the_09_00_factor_matters(host):
@@ -344,9 +362,8 @@ def test_a_650_kcal_mixed_meal_holds_hunger_off_for_four_to_five_hours(host):
 def test_a_fasted_400_kcal_breakfast_holds_hunger_below_the_request_for_three_hours(host):
     # the brief's anchor: from an empty pool, a 400 kcal breakfast brings hunger below the request and holds it there
     # at least 180 min, with the factor at 1 and at 08:00
-    for h0 in (None, 8.0):
-        first, dur, _ = held(hunger(host, {0: [("food", mixed(400, water=250.0))]}, 900, G0=0.0, h0=h0))
-        assert first is not None and dur >= 180, (h0, first, dur)
+    for h0, (first, dur) in zip((None, 8.0), breakfast400(host)):
+        assert first is not None and dur >= BREAKFAST_HOLD_MIN, (h0, first, dur)
 
 
 def test_one_meal_or_three_items_of_the_same_total_give_the_same_interval(host):
@@ -367,10 +384,10 @@ def test_rolls_1999_soup_casserole_with_water_and_casserole_alone(host):
     # soup's drop of 448 kJ within 1.1x. Under G's provisional constants (Plan 11g Task 4) the casserole alone misses:
     # 1819 kJ (1.110x), pinned; Task 6 restores its assertion (P model: within 1.1x)
     ro = rolls_1999(host)
-    assert ratio(ro["soup"], 1209.0) <= TOL, ro
-    assert ratio(ro["cw"], 1657.0) <= TOL, ro
-    assert round(ro["cas"], 1) == 1819.1 and round(ratio(ro["cas"], 1639.0), 3) == 1.110, ro
-    assert ratio(ro["cw"] - ro["soup"], 448.0) <= TOL, ro
+    assert ratio(ro["soup"], ROLLS_1999["soup"]) <= TOL, ro
+    assert ratio(ro["cw"], ROLLS_1999["cw"]) <= TOL, ro
+    assert round(ro["cas"], 1) == 1819.1 and round(ratio(ro["cas"], ROLLS_1999["cas"]), 3) == 1.110, ro
+    assert ratio(ro["cw"] - ro["soup"], ROLLS_1999["cw"] - ROLLS_1999["soup"]) <= TOL, ro
 
 
 def test_rolls_1998_milk_volume_check(host):
@@ -379,7 +396,7 @@ def test_rolls_1998_milk_volume_check(host):
     # control is the replayed no-preload hunger (about 0.2575), the ratios about 1.076 / 1.012 / 1.082 on the P model.
     # Under G's provisional constants (Plan 11g Task 4) the 600 mL arm misses: 0.698 against 0.605 (1.153x), pinned;
     # Task 6 restores its check (the 300 and 450 mL arms read 0.727 and 0.713, within 1.15x)
-    study = [(5263.0 - 2088.0) / 4323.0, (5011.0 - 2088.0) / 4323.0, (4703.0 - 2088.0) / 4323.0]
+    study = ROLLS_1998
     model = rolls_1998(host)
     for m, s in zip(model[:2], study[:2]):
         assert ratio(m, s) <= CHECK_TOL, (model, study)
@@ -441,8 +458,8 @@ def test_marmonier_snack_delay_differences_bound_the_protein_weight(host):
     # provisional constants (Plan 11g Task 4) the model reads 27 and 21: protein over fat misses (1.667x), pinned;
     # Task 6 refits G's constants (and re-checks W_PROTEIN) and restores the 1.5x assertion
     pc, pf = marmonier_differences(host)
-    assert ratio(pc, 26.0) <= 1.5, (pc, pf)
-    assert pf == 21 and round(ratio(pf, 35.0), 3) == 1.667, (pc, pf)
+    assert ratio(pc, MARMONIER_DIFF[0]) <= 1.5, (pc, pf)
+    assert pf == 21 and round(ratio(pf, MARMONIER_DIFF[1]), 3) == 1.667, (pc, pf)
 
 
 # --- named non-reproductions, pinned (a change is noticed) -----------------------------------------------------------
@@ -462,7 +479,7 @@ def test_s1222_vas_level_is_reproduced_at_half_or_more(host):
     # 1.6x); under G's provisional constants (Plan 11g Task 4) 0.0136
     d = protein_contrast(host)
     assert round(d, 4) == 0.0136, d
-    assert 0.0125 <= d <= 0.04, d
+    assert S1222_BAND[0] <= d <= S1222_BAND[1], d
 
 
 def test_melanson_fasted_drinks_stay_a_named_non_reproduction(host):
@@ -844,9 +861,9 @@ def test_the_protein_fill_is_what_lifts_the_contrast(host):
         worst = max(v for k, v in hard_ratios(host).items() if not k.startswith("marmonier"))
     finally:
         S.PROTEIN_FILL = keep
-    assert d0 < 0.0125 / 5, d0
+    assert d0 < S1222_BAND[0] / 5, d0
     assert worst > TOL, worst
-    assert protein_contrast(host) >= 0.0125
+    assert protein_contrast(host) >= S1222_BAND[0]
 
 
 def whey_against_carbohydrate(host):
