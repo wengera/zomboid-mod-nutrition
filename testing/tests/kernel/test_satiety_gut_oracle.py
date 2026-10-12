@@ -7,6 +7,8 @@ Plan 11g Task 4 re-pinned every reading under the gut stage G (fed at emptying) 
 (G_HALF_LIFE_H 0.7, G_REQ 6, G_STEEP 0.05, G_SEED_MAX 1300: the P fits carried over); each test's comment gives the
 G reading beside the P model's (Task 3's), and Task 6 turns each into the target its comment names. STUDY and the
 distances' definitions are unchanged; DIST is re-pinned with PIN.
+STUDY and VAS_DETECT live in gut_oracles.py since Plan 11g Task 5, beside the oracle registry the joint fit
+(tools/fit_gut_satiety.py) scores, so a target lives in one place.
 
 The replays are the existing ones, reused, not copied:
 - the time courses and the protein contrast run test_satiety_meal_studies.py's satiety replay (REPLAY: one step a game
@@ -32,10 +34,9 @@ uncapped) is in its report.
 """
 from . import test_replay_live_energy as E
 from . import test_satiety_meal_studies as M
+from .gut_oracles import STUDY, VAS_DETECT
 
 PIN_TOL = 1e-6                  # a pin's tolerance: today's reading to 1e-6
-VAS_DETECT = 5.0 / M.MM_PER_HUNGER   # a DESIGN CHOICE (no row): 5 mm of VAS, read under ruling 11c-31's 260 mm a unit, as
-                                     # the smallest mean hunger difference a single crossover of S1809's size detects
 
 
 def near(x, pin):
@@ -220,32 +221,6 @@ def surplus_day(host):
             "pre_breakfast": [day[KARL_PRE_BREAKFAST] for day in bal], "rest_pre_breakfast": rest[KARL_PRE_BREAKFAST],
             "troughs_rel": [t / rest_trough for t in troughs],
             "pre_breakfast_rel": [day[KARL_PRE_BREAKFAST] / rest[KARL_PRE_BREAKFAST] for day in bal]}
-
-
-# --- the study figures each distance is read against ---------------------------------------------------------------
-
-STUDY = {
-    "tieken_liquid_4h": 0.14,          # S1833: +14 +/- 10 % above fasting at 4 h after the liquid
-    "tieken_solid_4h": -0.45,          # S1833: -45 +/- 19 % below fasting at 4 h after the solid
-    "diekmann_6h_min": 360,            # S1828: still below baseline at 6.0 h (a recovery minute after 360)
-    "belza_mhp": -0.15,                # S1820: hunger -15 % at 25 % protein against 14 %
-    "belza_hp": -0.25,                 # S1820: hunger -25 % at 50 % protein against 14 %
-    "vdk": 0.0,                        # S1818: no difference (AUC P = 0.634)
-    "melanson_f_minus_c": 126 - 65,    # S1228: the fat drink's request 61 min later than the carbohydrate drink's
-    "marmonier_f_minus_c": 25 - 34,    # S1224: the fat snack's delay 9 min shorter than the carbohydrate snack's
-    "diekmann_hf_minus_lf": 250.0 / 360 * 10 / M.MM_PER_HUNGER,   # S1828: HF minus LF hunger iAUC +250 min x score
-                                                # (0-10 scale) over 6 h: 6.94 mm mean, derived (x10 mm a score), read
-                                                # under ruling 11c-31's 260 mm a unit
-    "marmonier": (60, 34, 25),         # S1224: the protein, carbohydrate and fat snacks' delays (min)
-    "melanson": (65, 126),             # S1228: the carbohydrate and fat drinks' requests (min)
-    "moore": 277,                      # S1272: the 1692 g meal's solid half-emptying (min)
-    "karl_bal": -55.0,                 # S1325: BAL against REST (%)
-    "karl_by_day": (-46.0, -61.0, -65.0),       # S1892 (derived from S1872's read): per day (%)
-    "karl_troughs_rel": (0.215, 0.209, 0.106),     # derived from S1872: BAL's post-meal means (0.058, 0.057, 0.029,
-                                                   # cm / 10) over REST's (2.25 + 2.35 + 3.53) / 3 = 2.71 cm
-    "karl_pre_breakfast_rel": (1.000, 0.562, 0.519),   # derived from S1872: BAL's pre-breakfast (0.518, 0.291, 0.269)
-                                                       # over REST's 5.18 cm
-}
 
 
 def dist(model, study):
