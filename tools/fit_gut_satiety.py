@@ -1,6 +1,7 @@
 """The gut-satiety joint fit (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 4).
 
     python tools/fit_gut_satiety.py --out <dir> [--grid <spec.json>] [--jobs N] [--stage A]
+    python tools/fit_gut_satiety.py --compact <fit.json> --out <dir>
 
 Scores candidate constants against every oracle of testing/tests/kernel/gut_oracles.py (ORACLES: the 11c/11d meal-study
 replays, the gut-satiety oracles of Task 3, Karl's surplus day, the fat trio of ruling T3-3 and the stability checks of
@@ -29,11 +30,17 @@ fit.json is deterministic: the same spec on the same tree gives byte-identical o
 spec, the HEAD sha, the date, every candidate (its phase, params, loss, and each oracle's value and miss) and the chosen
 point.
 
+A fit run also writes <dir>/fit-compact.json, the projection that is committed (ruling T6c-4; the full fit.json stays in
+the gitignored testing/runs/). --compact rebuilds it from a full fit.json: a pure function of the file's bytes, holding
+source_sha256 and source_bytes, head, spec (the grid), candidates (the count), chosen (as fit.json records it) and
+profile (for each parameter, every distinct value tried with the best loss seen at it, sorted by value).
+
 --stage A adds the absorbed stage's constants (STAGE_A_PARAMS) to the search; no kernel builds A (Task 6 ruled a single
 stage), so it exits 2, naming the constants it did not find.
 """
 import argparse
 import datetime
+import hashlib
 import itertools
 import json
 import math
@@ -303,13 +310,42 @@ def fit(spec, out, jobs=1):
     return chosen
 
 
+def compact(src):
+    """The compact projection of a full fit.json (a pure function of its bytes); see the module doc."""
+    with open(src, "rb") as fh:
+        raw = fh.read()
+    doc = json.loads(raw.decode("utf-8"))
+    best = {}
+    for c in doc["candidates"]:
+        for name, v in c["params"].items():
+            row = best.setdefault(name, {})
+            if v not in row or c["loss"] < row[v]:
+                row[v] = c["loss"]
+    profile = {n: [{"value": v, "best_loss": row[v]} for v in sorted(row)] for n, row in best.items()}
+    return {"source_sha256": hashlib.sha256(raw).hexdigest(), "source_bytes": len(raw), "head": doc["head"],
+            "spec": doc["grid"], "candidates": len(doc["candidates"]), "chosen": doc["chosen"], "profile": profile}
+
+
+def write_compact(src, out):
+    os.makedirs(out, exist_ok=True)
+    path = os.path.join(out, "fit-compact.json")
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(compact(src), fh, indent=1, sort_keys=True)
+        fh.write("\n")
+    return path
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--grid", help="the grid spec: a JSON file or a JSON string (default: the shipped values, refined)")
-    ap.add_argument("--out", required=True, help="the directory fit.json is written to")
+    ap.add_argument("--out", required=True, help="the directory fit.json and fit-compact.json are written to")
+    ap.add_argument("--compact", metavar="FIT_JSON", help="write <out>/fit-compact.json from this full fit.json; no fit runs")
     ap.add_argument("--jobs", type=int, default=1, help="candidates scored in parallel (one host per process)")
     ap.add_argument("--stage", choices=("A",), help="A: add the absorbed stage's constants to the search")
     args = ap.parse_args(argv)
+    if args.compact:
+        print("wrote " + write_compact(args.compact, args.out))
+        return 0
     spec = load_spec(args.grid) if args.grid else default_spec()
     if args.stage == "A":
         h = LuaHost()
@@ -323,6 +359,7 @@ def main(argv=None):
             if "params" in spec.get("refine", {}) and name not in spec["refine"]["params"]:
                 spec["refine"]["params"].append(name)
     chosen = fit(spec, args.out, args.jobs)
+    write_compact(os.path.join(args.out, "fit.json"), args.out)
     print("chosen: loss %.6g at %s" % (chosen["loss"], json.dumps(chosen["params"], sort_keys=True)))
     return 0
 

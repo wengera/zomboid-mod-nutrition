@@ -240,3 +240,48 @@ def test_liquid_weight_is_fitted_inside_s1231s_bound():
         assert "LIQUID_WEIGHT" in str(e) and "bound" in str(e)
     else:
         raise AssertionError("0.2 was accepted")
+
+
+def _compact_pair(tmp):
+    run_fit(TWO_POINTS, tmp)
+    src = os.path.join(tmp, "fit.json")
+    out = os.path.join(tmp, "c")
+    F.write_compact(src, out)
+    return src, os.path.join(out, "fit-compact.json")
+
+
+def test_the_compact_artifact_is_deterministic_and_hashed_to_its_source():
+    import hashlib
+    with tempfile.TemporaryDirectory() as tmp:
+        src, comp = _compact_pair(tmp)
+        first = open(comp, "rb").read()
+        F.write_compact(src, os.path.join(tmp, "c"))
+        assert open(comp, "rb").read() == first
+        doc = json.loads(first)
+        raw = open(src, "rb").read()
+        assert doc["source_sha256"] == hashlib.sha256(raw).hexdigest() and doc["source_bytes"] == len(raw)
+        assert os.path.exists(os.path.join(tmp, "fit-compact.json")) is False
+
+
+def test_the_compact_chosen_is_the_full_chosen_and_the_profile_minimum_is_its_loss():
+    with tempfile.TemporaryDirectory() as tmp:
+        src, comp = _compact_pair(tmp)
+        full = json.load(open(src))
+        doc = json.load(open(comp))
+        assert doc["chosen"] == full["chosen"] and doc["candidates"] == len(full["candidates"])
+        assert doc["spec"] == full["grid"] and doc["head"] == full["head"]
+        for name, rows in doc["profile"].items():
+            assert min(r["best_loss"] for r in rows) == full["chosen"]["loss"]
+            assert [r["value"] for r in rows] == sorted(r["value"] for r in rows)
+        assert [r["value"] for r in doc["profile"]["FULL_WEIGHT"]] == [0.3, 0.55]
+
+
+def test_a_fit_run_writes_the_compact_file_beside_fit_json():
+    with tempfile.TemporaryDirectory() as tmp:
+        spec = os.path.join(tmp, "g.json")
+        json.dump(TWO_POINTS, open(spec, "w"))
+        assert F.main(["--grid", spec, "--out", os.path.join(tmp, "o")]) == 0
+        assert os.path.exists(os.path.join(tmp, "o", "fit-compact.json"))
+        assert F.main(["--compact", os.path.join(tmp, "o", "fit.json"), "--out", os.path.join(tmp, "p")]) == 0
+        assert open(os.path.join(tmp, "p", "fit-compact.json"), "rb").read() == \
+            open(os.path.join(tmp, "o", "fit-compact.json"), "rb").read()
