@@ -13,7 +13,8 @@ The miss (the fit's loss term): how far the reading sits outside its band, over 
 size unless the entry says otherwise), 0 inside the band; a reading of None (the request never returned inside the
 replay) misses NONE_MISS. A ratio tolerance t on a figure s is the band [s / t, s x t] (sorted for a negative s), so the
 miss above it is r - t and below it 1 / t - r, r = model / s: continuous through a sign change, where the worse-way
-ratio is not. A reading-kind entry is reported, never in the loss. Every hard and one-sided oracle counts at weight 1.
+ratio is not. A reading-kind entry is reported, never in the loss; one with a band (Tieken's three, ruling T6c-2) reports
+its distance outside it (Oracle.outside). Every hard and one-sided oracle counts at weight 1.
 
 The bands that are not a row's own figure are labelled DESIGN CHOICE beside their entry.
 """
@@ -126,14 +127,20 @@ class Oracle:
         self.lo, self.hi, self.kind, self.row, self.tol = lo, hi, kind, row, tol
         self.none_is = none_is          # "miss": a None reading misses NONE_MISS; "inf": it is +inf (never returns)
         self.scale = scale
-        if scale is None and kind != "reading":
+        banded = lo is not None or hi is not None
+        if scale is None and (kind != "reading" or banded):
             self.scale = abs(target)
-        assert self.kind == "reading" or self.scale > 0, "oracle %s: scale %r is not positive" % (name, self.scale)
+        assert (self.kind == "reading" and not banded) or self.scale > 0,             "oracle %s: scale %r is not positive" % (name, self.scale)
 
     def miss(self, value):
         """The relative miss beyond the tolerance: 0 inside the band; None for a reading-kind entry."""
         if self.kind == "reading":
             return None
+        return self.outside(value)
+
+    def outside(self, value):
+        """How far `value` sits outside the band, over the scale (0 inside), whatever the kind: miss for a scored entry,
+        and the reported distance of a reading-kind entry with a band (ruling T6c-2)."""
         if value is None:
             if self.none_is != "inf":
                 return NONE_MISS
@@ -215,6 +222,12 @@ ORACLES += [
                                                            r["rolls_1998"][1] - r["rolls_1998"][2]),
            0.0, lo=0.0, scale=min(ROLLS_1998[0] - ROLLS_1998[1], ROLLS_1998[1] - ROLLS_1998[2]), kind="one-sided",
            row="S1233", tol="300 > 450 > 600 mL"),
+    # S1233's volume slope (ruling T6c-3): the 300 mL arm's lunch ratio less the 600 mL arm's, (5263 - 4703) / 4323 =
+    # 0.130 in the study, within 1.5x either way (a DESIGN CHOICE: the 1.5x the registry gives Marmonier's minute
+    # differences; the band 0.086-0.194); with S1231's null for water drunk alongside (rolls_cw, rolls_drop) it sets
+    # LIQUID_WEIGHT, fitted in (0, 0.19]
+    ratio_oracle("rolls98_slope", "rolls_1998", lambda r: r["rolls_1998"][0] - r["rolls_1998"][2],
+                 ROLLS_1998[0] - ROLLS_1998[2], 1.5, "S1233"),
     Oracle("s1222_contrast", "protein_contrast", _sub("protein_contrast"), 0.025, lo=S1222[0], hi=S1222[1],
            row="S1222", tol="0.0125-0.04"),
     ratio_oracle("marmonier_pc", "marmonier", lambda r: _diff(r["marmonier"]["p"], r["marmonier"]["c"]),
@@ -229,14 +242,17 @@ ORACLES += [
     Oracle("lewis_cut20_mean", "meal_sizes", _sub("meal_sizes", "cut20", "mean"), VAS_DETECT, hi=VAS_DETECT,
            kind="one-sided", row="S1809", tol="<= VAS_DETECT"),
     # S1833 (Tieken 2007): each arm's 4 h reading within the row's spread (a DESIGN CHOICE: the spread as the
-    # tolerance), the solid below the liquid at each rating time (the scale the study's 4 h gap, a DESIGN CHOICE)
+    # tolerance), the solid below the liquid at each rating time (the scale the study's 4 h gap, a DESIGN CHOICE).
+    # Reading-kind (ruling T6c-2): spec § 7 accepts liquid against solid as out of reach under every form, so the three
+    # are pinned, named and reported (their distance outside the band, Oracle.outside), never scored; scored, they
+    # carried 1.146 of Task 6c's 1.361 and steered LIQUID_WEIGHT
     Oracle("tieken_liquid_4h", "tieken", lambda r: r["tieken"]["liquid"]["at"][-1], STUDY["tieken_liquid_4h"],
-           lo=0.04, hi=0.24, row="S1833", tol="+/- 0.10"),
+           lo=0.04, hi=0.24, kind="reading", row="S1833", tol="+/- 0.10"),
     Oracle("tieken_solid_4h", "tieken", lambda r: r["tieken"]["solid"]["at"][-1], STUDY["tieken_solid_4h"],
-           lo=-0.64, hi=-0.26, row="S1833", tol="+/- 0.19"),
+           lo=-0.64, hi=-0.26, kind="reading", row="S1833", tol="+/- 0.19"),
     Oracle("tieken_solid_below_liquid", "tieken",
            lambda r: min(b - a for a, b in zip(r["tieken"]["solid"]["at"], r["tieken"]["liquid"]["at"])),
-           STUDY["tieken_liquid_4h"] - STUDY["tieken_solid_4h"], lo=0.0, kind="one-sided", row="S1833",
+           STUDY["tieken_liquid_4h"] - STUDY["tieken_solid_4h"], lo=0.0, kind="reading", row="S1833",
            tol="liquid - solid >= 0 at each rating time"),
     # S1828 (Diekmann 2026): both arms still below the request at 6 h; the 1,000 kcal recovery later than the 540 kcal
     # liquid's (S1840's scaling with emptying; the ordering a DESIGN CHOICE, the rows give no ratio; its scale the 2 h
@@ -311,42 +327,47 @@ assert len({o.name for o in ORACLES}) == len(ORACLES)
 BY_NAME = {o.name: o for o in ORACLES}
 
 
-# --- the targets after the joint fit (Plan 11g Task 6c) ----------------------------------------------------------------
+# --- the targets after the joint fit (Plan 11g Task 6c fix 1) ----------------------------------------------------------
 # Every hard and one-sided oracle is asserted inside its band by the test that reads its group (check, below), except
-# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012b, loss
-# 1.3609) leave outside their band. Each is pinned at its reading, so a change is noticed, and asserted still outside
-# its band, so a reading that comes back inside is promoted to a target; each awaits a ruling (Plan 11g Task 6c
-# report). The Task 6 fit of the gut stage G named 13 (Callahan 825, the 650 kcal anchor, Rolls' casserole and 600 mL,
-# Marmonier's two differences, Lewis' 20 % cut, Karl): the meal pool M fed at the eat, with F counted to the hard
-# capacity, brings all of them inside.
+# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012c, loss
+# 0.6719) leave outside their band, and Tieken's three reading-kind entries (ruling T6c-2). Each is pinned at its
+# reading, so a change is noticed, and asserted still outside its band, so a reading that comes back inside is promoted
+# to a target; each awaits a ruling (Plan 11g Task 6c fix 1 report). Task 6c's fit (fit-11g-20261012b, loss 1.3609 with
+# Tieken scored) named S1222's protein contrast, which the refit brings inside (0.01267); the refit names S1233's
+# volume slope (newly scored, ruling T6c-3) and Marmonier's protein-over-fat difference.
 NAMED = {
-    # S1222: the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) 0.01245 against the band's
-    # lower edge 0.0125 (half the study's -7 mm; 0.4 % short): W_PROTEIN 2.5 and PROTEIN_FILL 8 trade it against
-    # Belza's 50 % arm (S1820) and Marmonier's differences
-    "s1222_contrast": 0.012445683588922164,
-    # S1833: the stomach empties both 540 kcal arms' kcal at the same rate (K.stomach.drain is energy-limited, Hunt
-    # 1985, S0131) and M is fed alike at the eat, so the model cannot tell the liquid from the solid: the liquid -4.6 %
-    # at 4 h against +14 % (+4 to +24), the solid -4.1 % against -45 % (-64 to -26), and the liquid below the solid at
-    # its worst time point (its 553 g fill more); a stomach mechanism (liquid emptying faster than solid), not the
-    # meal pool, is what would separate them, and the products differ in composition too (S1833)
-    "tieken_liquid_4h": -0.046375732352362586,
-    "tieken_solid_4h": -0.04076353047318948,
-    "tieken_solid_below_liquid": -0.024462066093629886,
+    # S1233: the volume slope, the 300 mL arm's lunch ratio less the 600 mL arm's, 0.0260 against the study's 0.130 (the
+    # band 0.086-0.194): LIQUID_WEIGHT sits at its bound 0.19, where S1231's null for water drunk alongside holds it
+    # (rolls_drop fails past it), and drunk volume moves the model's hunger at lunch a fifth of what the study's intake
+    # moved (ruling T6c-3: named, not fitted past the bound)
+    "rolls98_slope": 0.026043990025466646,
+    # S1224: protein's delay over fat's 23 min against 35 (the 1.5x band 23.3-52.5; a third of a minute short on the
+    # replay's whole minutes): W_PROTEIN and W_FAT trade it against S1228 and S1224's fat difference
+    "marmonier_pf": 23,
+    # S1833 (reading-kind, ruling T6c-2): the stomach empties both 540 kcal arms' kcal at the same rate (K.stomach.drain
+    # is energy-limited, Hunt 1985, S0131) and M is fed alike at the eat, so the model cannot tell the liquid from the
+    # solid: the liquid -4.3 % at 4 h against +14 % (+4 to +24), the solid -3.7 % against -45 % (-64 to -26), and the
+    # liquid below the solid at its worst time point (its 553 g fill more, now drunk liquid counting at 0.19); a stomach
+    # mechanism (liquid emptying faster than solid), not the meal pool, is what would separate them, and the products
+    # differ in composition too (S1833); spec § 7 accepts it as out of reach
+    "tieken_liquid_4h": -0.042978073898698455,
+    "tieken_solid_4h": -0.03708149694478724,
+    "tieken_solid_below_liquid": -0.06569931697381559,
     # S1228: the fat drink's request 2 min before the carbohydrate drink's against 61 min after (ruling T2-3: W_FAT
-    # fitted at 0.894, the fat trio's two minute differences on Melanson's 61 min scale, spec § 7)
+    # fitted at 0.881, the fat trio's two minute differences on Melanson's 61 min scale, spec § 7)
     "melanson_f_minus_c": -2,
-    # S1224: fat's delay 5 min longer than carbohydrate's against 9 min shorter (the 1.5x band -13.5 to -6): the other
+    # S1224: fat's delay 4 min longer than carbohydrate's against 9 min shorter (the 1.5x band -13.5 to -6): the other
     # side of the same W_FAT trade
-    "marmonier_f_minus_c": 5,
+    "marmonier_f_minus_c": 4,
 }
 
 # Karl 2021's shape relative to REST (ruling T3-1): BAL / REST at the post-meal troughs and before breakfast against
 # the figures derived from S1872, within harvest 13's +/- 0.05 on the unit scale over REST's study value at that point
 # (0.271 at the troughs, 0.518 before breakfast): a DESIGN CHOICE (S1892, open). Reported, not in the fit's loss.
 KARL_SHAPE_TOL = {"troughs_rel": 0.05 / 0.271, "pre_breakfast_rel": 0.05 / 0.518}
-# the days outside it after the fit: the post-meal troughs of days 1 and 3 (0.548 and 0.408 against 0.215 and 0.106;
-# day 2's 0.381 against 0.209 lands inside: about halfway from the gut stage's 0.887 / 0.609 / 0.652, F's count past
-# 730 g deepening BAL's troughs) and day 3's pre-breakfast (0.640 against 0.519)
+# the days outside it after the fit (fit-11g-20261012c): the post-meal troughs of days 1 and 3 (0.525 and 0.390 against
+# 0.215 and 0.106; day 2's 0.365 against 0.209 lands inside; Task 6c read 0.548 / 0.381 / 0.408, the gut stage 0.887 /
+# 0.609 / 0.652, F's count past 730 g deepening BAL's troughs) and day 3's pre-breakfast (0.646 against 0.519)
 KARL_SHAPE_NAMED = {"troughs_rel": (0, 2), "pre_breakfast_rel": (2,)}
 
 PIN_TOL = 1e-6
@@ -354,13 +375,14 @@ PIN_TOL = 1e-6
 
 def check(readings, *names):
     """Asserts each named oracle on `readings` ({group: reading}): inside its band, or, for a named non-reproduction
-    (NAMED), at its pinned reading and still outside its band. Returns {name: value}."""
+    (NAMED; a reading-kind entry with a band is only ever named, ruling T6c-2), at its pinned reading and still outside
+    its band. Returns {name: value}."""
     out = {}
     for name in names:
         o = BY_NAME[name]
-        assert o.kind != "reading", name
+        assert o.kind != "reading" or name in NAMED, name
         v = o.pick(readings)
-        m = o.miss(v)
+        m = o.outside(v)
         if name in NAMED:
             assert v is not None and abs(v - NAMED[name]) < PIN_TOL, (name, v, NAMED[name])
             assert m > 0, (name, v, "inside its band now: promote it to a target")

@@ -281,10 +281,9 @@ def test_fill_fresh_is_zero(host):
     assert host.K.stomach.fill(host.K.stomach["new"]()) == 0
 
 
-def test_fill_after_an_apple_is_its_satiety_mass_over_the_maximal_capacity_and_it_falls(host):
-    # Plan 11c Task 6 amendment 2: F = K.satiety.fill(K.stomach.satietyMass(st), CAPACITY_MAX_G) (ruling 11c-19,
-    # structure D); the apple's water and fibre are solid-lane mass, (155.8 + 4.4) / 730 = 0.219452..., the stub
-    # carrying no macronutrient grams
+def test_fill_after_an_apple_is_its_mass_over_the_maximal_capacity_and_it_falls(host):
+    # the physical fill K.satiety.fill(K.stomach.mass(st), CAPACITY_MAX_G) (ruling 11c-19; ruling T6c-1); the apple's
+    # water and fibre are solid-lane mass, (155.8 + 4.4) / 730 = 0.219452..., the stub carrying no macronutrient grams
     st = host.K.stomach["new"]()
     host.K.stomach.ingest(st, _apple(host))
     f0 = host.K.stomach.fill(st)
@@ -294,14 +293,15 @@ def test_fill_after_an_apple_is_its_satiety_mass_over_the_maximal_capacity_and_i
     assert host.K.stomach.fill(st) < f0
 
 
-def test_fill_clamps_at_one_and_counts_drunk_liquid_at_its_weight(host):
-    # LIQUID_WEIGHT (ruling 11c-30; fitted in Plan 11g Task 6c): 1000 / LIQUID_WEIGHT g drunk reads 1000 g of satiety
-    # mass, over 730 g: clamped to 1; 365 / LIQUID_WEIGHT g drunk reads 365 g, half of 730 g; the same 365 g eaten counts whole
+def test_fill_clamps_at_one_and_counts_drunk_liquid_whole(host):
+    # ruling T6c-1: the physical fill reads both lanes at density 1, the scale CAPACITY_MAX_G was measured on (S1250,
+    # 734 mL of water); LIQUID_WEIGHT weighs satiety alone. 1000 g drunk is past 730 g: clamped to 1; 365 g drunk reads
+    # half of 730 g, as the same 365 g eaten does
     st = host.K.stomach["new"]()
-    host.K.stomach.ingestLiquid(st, _vec(host, water=1000 / host.K.satiety.LIQUID_WEIGHT))
+    host.K.stomach.ingestLiquid(st, _vec(host, water=1000))
     assert host.K.stomach.fill(st) == 1
     st2 = host.K.stomach["new"]()
-    host.K.stomach.ingestLiquid(st2, _vec(host, water=365 / host.K.satiety.LIQUID_WEIGHT))
+    host.K.stomach.ingestLiquid(st2, _vec(host, water=365))
     assert abs(host.K.stomach.fill(st2) - 0.5) < TOL
     st3 = host.K.stomach["new"]()
     host.K.stomach.ingest(st3, _vec(host, water=365))
@@ -391,3 +391,56 @@ def test_a_30g_fat_meal_over_a_day_absorbs_the_replayed_fraction(host):
     assert abs(tot.vitD / 15 - 0.9764225940195675) < 1e-6
     assert abs(lip - exp_buf["lipids"]) < 1e-9                       # under 1e-20 g left after the day
     assert tot.retinol / 900 > 18 * 0.05
+
+
+# --- the physical fill and the food fill (Plan 11g Task 6c fix 1, ruling T6c-1) ---
+
+def test_a_drunk_500_ml_of_water_reads_a_physical_fill_of_about_0_68_and_a_food_fill_of_0(host):
+    # both lanes at density 1: 500 / 730 = 0.685; the food fill reads the solid lane alone, which drunk water never enters
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingestLiquid(st, _vec(host, water=500))
+    assert abs(host.K.stomach.fill(st) - 500 / 730) < TOL
+    assert round(host.K.stomach.fill(st), 2) == 0.68
+    assert host.K.stomach.foodFill(st) == 0
+
+
+def test_the_physical_fill_never_reads_the_liquid_weight(host):
+    # the mutation that puts LIQUID_WEIGHT back into the physical fill (K.stomach.satietyMass in K.stomach.fill) fails
+    # here at any LIQUID_WEIGHT below 1: the satiety mass moves with it, the physical fill does not
+    S = host.K.satiety
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _vec(host, water=200, carbs=25))
+    host.K.stomach.ingestLiquid(st, _vec(host, water=300))
+    old = S.LIQUID_WEIGHT
+    try:
+        for lw in (old, 0.01, 0.5):
+            S.LIQUID_WEIGHT = lw
+            assert abs(host.K.stomach.fill(st) - 525 / 730) < TOL, lw
+            assert abs(host.K.stomach.satietyMass(st) - (225 + lw * 300)) < TOL, lw
+    finally:
+        S.LIQUID_WEIGHT = old
+
+
+def test_the_food_fill_reads_the_solid_lane_alone_and_clamps_at_one(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _vec(host, water=100, proteins=10, carbs=20, lipids=5, fibre=3, calories=165))
+    host.K.stomach.ingestLiquid(st, _vec(host, water=400, carbs=10, calories=40))   # its carbohydrate lands as food
+    assert abs(host.K.stomach.foodFill(st) - 148 / 730) < TOL
+    assert abs(host.K.stomach.fill(st) - 548 / 730) < TOL
+    host.K.stomach.ingest(st, _vec(host, water=900))
+    assert host.K.stomach.foodFill(st) == 1
+
+
+def test_record_food_fill_reads_the_live_stomach_and_is_empty_without_one(host):
+    rec = host.rt.table()
+    assert host.K.stomach.recordFoodFill(rec) == 0                            # no stomach: empty (ruling 11c-15)
+    rec.stomach = host.rt.table()
+    assert host.K.stomach.recordFoodFill(rec) == 0                            # no solid buffer
+    rec.stomach = host.K.stomach["new"]()
+    rec.stomachFill = 0.9                                                     # the physical stamp is never read
+    host.K.stomach.ingestLiquid(rec.stomach, _vec(host, water=600))
+    assert host.K.stomach.recordFoodFill(rec) == 0
+    host.K.stomach.ingest(rec.stomach, _vec(host, water=73))
+    assert abs(host.K.stomach.recordFoodFill(rec) - 0.1) < TOL
+    rec.stomach.buffer.water = float("nan")
+    assert host.K.stomach.recordFoodFill(rec) == 0                            # a non-finite fill reads empty

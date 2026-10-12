@@ -35,7 +35,7 @@
 --     INGESTED, before the B12 ceiling), which NR_Server_Nutrients reads and clears once a slow minute
 --     (the excess ladder, the alcohol day total);
 --  2. the acute dose test (ruling 18), IN.acuteAtEat: K.nutrients.acuteTest per record with an `acute`
---     field on the landed vector, against the body mass fm + lm and the pre-eat record.stomachFill,
+--     field on the landed vector, against the body mass fm + lm and the pre-eat food fill (recordFoodFill),
 --     stamping record.nutrients[key].ax = ACUTE_DECAY_H and .axr = the rung (a live flag's higher rung is
 --     kept); NR_Server_Nutrients exposes no acuteAtEat, so it is here, under its own pcall;
 --  3. the B12 per-eat ceiling (ruling 20, S0357/S0358): vector.vitB12 = K.interact.b12Ceiling(vitB12).
@@ -150,8 +150,8 @@ function IN.addIngested(username, vec)
 end
 
 -- The acute dose test at the eat (ruling 18): every record with an `acute` field and a vector key is
--- tested on the landed vector against the body mass (fm + lm) and the record's stomachFill (the slow
--- clock's stamp, the fill before this eat; nil or non-finite reads the stomach's own fill, else empty: ruling C-2).
+-- tested on the landed vector against the body mass (fm + lm) and the stomach's food fill before this eat
+-- (K.stomach.recordFoodFill, the solid lane alone, ruling T6c-1: drunk water is not food; no stomach reads empty).
 -- A rung > 0 stamps the key's state ax = ACUTE_DECAY_H and axr = the rung, keeping a still-live flag's higher rung. records defaults
 -- to NR.data.records; no records or no body tests nothing. A missing record.nutrients is made the way
 -- NR_Server_Nutrients makes it. Returns the number of keys flagged.
@@ -162,8 +162,8 @@ function IN.acuteAtEat(record, vec, records)
     if body == nil then return 0 end
     local w = (body.fm or 0) + (body.lm or 0)
     if not IN.isFinite(w) or w <= 0 then return 0 end
-    local fill = K.stomach.recordFill(record)
-    -- ruling C-2: a missing fill is the stomach's own, else empty (since 11c-15 a new stomach is empty)
+    local fill = K.stomach.recordFoodFill(record)
+    -- ruling T6c-1: the solid lane alone, live, before the ingest below; no stomach is empty (ruling 11c-15)
     if record.nutrients == nil then record.nutrients = K.nutrients.newState(records) end
     local n = record.nutrients
     local order = records.ORDER

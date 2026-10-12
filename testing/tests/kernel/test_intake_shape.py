@@ -988,8 +988,14 @@ def _records(h):
 
 
 def _record(h, fill=0.8, fm=16.0, lm=64.0):
+    # the gate reads the food fill (K.stomach.recordFoodFill, ruling T6c-1): a stomach holding fill x 730 g of food;
+    # fill None leaves the record with no stomach
     body = tbl(h, {"fm": fm, "lm": lm})
-    return tbl(h, {"body": body, "stomachFill": fill})
+    record = tbl(h, {"body": body})
+    if fill is not None:
+        record["stomach"] = h.K.stomach.new()
+        h.K.stomach.ingest(record["stomach"], _vec(h, water=fill * 730))
+    return record
 
 
 def _vec(h, **kw):
@@ -1056,9 +1062,8 @@ def test_acute_without_a_body_or_records_tests_nothing(rec_host):
         h.G.NutritionRevamp.data.records = saved
 
 
-def test_acute_nan_fill_reads_the_stomachs_own(rec_host):
-    # Plan 11c close (ruling C-2): a non-finite fill is unknown and reads the stomach's own; a record with no stomach
-    # reads empty (0), so the x1.5 applies: 13.75 mg/kg x 1.5 = 20.6 -> rung 2
+def test_acute_nan_fill_reads_empty(rec_host):
+    # a non-finite food fill reads empty (0), so the x1.5 applies: 13.75 mg/kg x 1.5 = 20.6 -> rung 2
     h = rec_host
     record = _record(h, fill=float("nan"))
     assert I(h).acuteAtEat(record, _vec(h, iron=1100.0), _records(h)) == 1
@@ -1080,14 +1085,33 @@ def test_acute_missing_fill_reads_an_empty_stomach(rec_host):
 
 
 def test_acute_missing_fill_reads_the_stomachs_own_fill(rec_host):
-    # a nil fill beside a stomach holding 700 g reads 700 / 730 (no x1.5): 18.75 mg/kg flags nothing; 100 g reads
-    # 0.137, under 0.2, so the x1.5 applies
+    # a stomach holding 700 g of food reads 700 / 730 (no x1.5): 18.75 mg/kg flags nothing; 100 g reads 0.137, under
+    # 0.2, so the x1.5 applies
     h = rec_host
     for grams, flagged in ((700.0, 0), (100.0, 1)):
         record = _record(h, fill=None, fm=15.0, lm=65.0)
         record["stomach"] = h.K.stomach.new()
         h.K.stomach.ingest(record["stomach"], _vec(h, water=grams))
         assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == flagged, grams
+
+
+def test_acute_reads_the_food_fill_so_drunk_water_is_an_empty_stomach(rec_host):
+    # ruling T6c-1: the gate reads the solid lane alone (K.stomach.recordFoodFill). 700 g of water drunk reads a
+    # physical fill of 0.96 but a food fill of 0, so the x1.5 applies to 1500 mg at 80 kg (18.75 -> 28.1 mg/kg, rung
+    # 2); the physical stamp is never read; 700 g of food beside it flags nothing
+    h = rec_host
+    record = _record(h, fill=None, fm=15.0, lm=65.0)
+    record["stomach"] = h.K.stomach.new()
+    h.K.stomach.ingestLiquid(record["stomach"], _vec(h, water=700.0))
+    record["stomachFill"] = h.K.stomach.fill(record["stomach"])
+    assert record["stomachFill"] > 0.9
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 1
+    assert record["nutrients"]["iron"]["axr"] == 2
+    record = _record(h, fill=None, fm=15.0, lm=65.0)
+    record["stomach"] = h.K.stomach.new()
+    h.K.stomach.ingest(record["stomach"], _vec(h, water=700.0))
+    record["stomachFill"] = 0.0                                   # a stale stamp is not the gate's input
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 0
 
 
 def test_land_caps_b12_and_sums_the_ingested_amount(rec_host):

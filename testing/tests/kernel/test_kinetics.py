@@ -153,15 +153,15 @@ def test_first_call_leaves_a_buffer_untouched(kin_host):
 
 
 def test_the_liquid_lane_half_empties_on_waters_half_time_with_no_energy(kin_host):
-    # 13 one-minute substeps at WATER_HALF_MIN 13 (an empty solid lane): 215 g halves to 107.5 g, and F reads
-    # LIQUID_WEIGHT x 107.5 / CAPACITY_MAX_G (amendment 2)
+    # 13 one-minute substeps at WATER_HALF_MIN 13 (an empty solid lane): 215 g halves to 107.5 g, and the physical fill
+    # reads 107.5 / CAPACITY_MAX_G, both lanes at density 1 (ruling T6c-1)
     h = kin_host
     record = rec(h, 0)
     record["stomach"]["liquid"] = 215.0
     run(h, record, 100.0)
     run(h, record, 100.0 + 13 / 60)
     assert abs(record["stomach"]["liquid"] - 107.5) < 1e-9
-    assert abs(record["stomachFill"] - _satiety_constant("LIQUID_WEIGHT") * 107.5 / 730) < 1e-12
+    assert abs(record["stomachFill"] - 107.5 / 730) < 1e-12
 
 
 def test_second_call_moves_the_substepped_zero_order_share_into_the_pool(kin_host):

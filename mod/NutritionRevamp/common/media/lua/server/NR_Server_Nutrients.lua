@@ -91,7 +91,7 @@ NUT.guarded = 0
 local EMPTY = {}
 
 -- The stomach fill above which the stomach counts as fed (the glucose term's empty-stomach clock).
-NUT.FED_FILL = 0.05 -- game choice: a stomach below 5 % of full is empty for the alcohol-fasting glucose term (since Plan 11c the fill is satiety mass over 730 g, so about 37 g, ruling 11c-14)
+NUT.FED_FILL = 0.05 -- game choice: a stomach below 5 % of full is empty for the alcohol-fasting glucose term; the food fill, the solid lane's mass over 730 g (K.stomach.recordFoodFill, ruling T6c-1: drunk water is not food), so about 37 g of food (ruling 11c-14)
 -- The alcohol-history refeeding criterion: the 7-day mean daily alcohol above this, g per kg.
 NUT.ALC_HISTORY_GKG = 0.5 -- game choice: S0115 names alcohol misuse with no dose; no row
 -- The 7-day mean's daily weight.
@@ -466,7 +466,7 @@ local function step(username, player, record, ctx)
     a.alcDayG = a.alcDayG + ethIng
     local cho24 = K.body.trail24(body.trail, "carb") / w    -- the trailing-24 h carbohydrate g/kg
     K.acute.glycogen(a, met, coldMult, cho24, dtH)
-    if (record.stomachFill or 0) > NUT.FED_FILL then a.lastFedAgeH = ageH end
+    if K.stomach.recordFoodFill(record) > NUT.FED_FILL then a.lastFedAgeH = ageH end
     K.acute.glucose(a, met, absorbed.carbs or 0, a.bac, ageH - a.lastFedAgeH, dtH)
     -- the Plan 5 memories (Task 5): the band before the sleep step, which latches boutVig off lastVigAgeH
     K.acute.exerciseMinute(a, minuteBand(a, body, K.max(0, closedDays)), ageH, dtH)

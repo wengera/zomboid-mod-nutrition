@@ -167,12 +167,12 @@ function K.stomach.toPool(pool, absorbed)
     return pool
 end
 
--- The physical fill (record.stomachFill) the acute dose test and the mirror read, and the writer's fallback (the
--- writer's F is W.satietyF, the fullness mass with the protein term): the stomach's satiety mass (structure D: the solid
--- lane plus LIQUID_WEIGHT x drunk liquid, K.stomach.satietyMass) over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
--- ruling 11c-19, Plan 11c Task 6 amendment 2). The soft cap reads K.stomach.mass whole, never this fill.
+-- The physical fill (record.stomachFill) the mirror reads, and the writer's fallback (the writer's F is W.satietyF, the
+-- fullness mass with the protein term): the stomach's whole mass, both lanes at density 1 (K.stomach.mass, the scale
+-- CAPACITY_MAX_G was measured on: S1250, 734 mL of water), over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
+-- ruling 11c-19; Plan 11g Task 6c fix 1, ruling T6c-1: LIQUID_WEIGHT weighs satiety alone, never this fill).
 function K.stomach.fill(stomach)
-    return K.satiety.fill(K.stomach.satietyMass(stomach), K.stomach.CAPACITY_MAX_G)
+    return K.satiety.fill(K.stomach.mass(stomach), K.stomach.CAPACITY_MAX_G)
 end
 
 -- Plan 11c (spec § 5a rulings 11c-4, 11c-5 and 11c-8): fill by mass and the stomach's two lanes. Appended below the
@@ -274,12 +274,12 @@ end
 
 -- The hunger-relevant mass (structure D, ruling 11c-30): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
 -- liquid lane, drunk liquid counting at LIQUID_WEIGHT (S1231's null for water drunk alongside; S1233's drink volumes). The
--- fill (K.stomach.fill) passes it to K.satiety.fill and stays physical, while the writer's F reads K.stomach.fullnessMass, it plus the protein term (W.satietyF, ruling T5-2); the soft cap still reads K.stomach.mass, both lanes whole (S1250).
+-- satiety reads it alone, inside K.stomach.fullnessMass (the writer's F, W.satietyF, ruling T5-2: it plus the protein term); the physical fill (K.stomach.fill) and the soft cap read K.stomach.mass, both lanes whole (S1250; ruling T6c-1).
 function K.stomach.satietyMass(stomach)
     return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * stomach.liquid
 end
 
--- Plan 11c close (ruling C-2): the fill a reader takes from a record (the intake's acute dose test, the mirror):
+-- Plan 11c close (ruling C-2): the fill a reader takes from a record (the mirror; the gates read recordFoodFill):
 -- record.stomachFill, the kinetics' stamp, when finite; else the stomach's own fill when the record holds a stomach with
 -- a solid buffer and a liquid lane; else 0, since ruling 11c-15 a new stomach is empty. A non-finite stomach, or one
 -- whose liquid lane is not a number (malformed, ruling C9-9), reads 0.
@@ -299,10 +299,33 @@ function K.stomach.recordFill(record)
     return f
 end
 
--- Plan 11d Task 5 (rulings 11d-5, T5-2): the mass the writer's satiety F reads (W.satietyF; never K.stomach.fill, whose
--- physical stomachFill gates emptiness): the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's protein, where a
+-- Plan 11d Task 5 (rulings 11d-5, T5-2): the mass the writer's satiety F reads (W.satietyF; never K.stomach.fill, the
+-- physical stomachFill the mirror reads): the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's protein, where a
 -- drink's protein lands too (ruling 11c-12). The protein leaves in proportion to the lane's energy (drain), so the term
 -- fades as the meal empties. Appended so no line above moves; one statement a line for the coverage gate.
 function K.stomach.fullnessMass(stomach)
     return K.stomach.satietyMass(stomach) + K.satiety.PROTEIN_FILL * stomach.buffer.proteins
+end
+
+-- Plan 11g Task 6c fix 1 (ruling T6c-1): the food fill the two "fed" gates read (NUT.FED_FILL, the alcohol-fasting
+-- glucose clock; K.nutrients.ACUTE_EMPTY_FILL, the acute dose test): the solid lane's mass over CAPACITY_MAX_G, clamped
+-- to [0, 1]. Food in the stomach slows gastric emptying and absorption; drunk water, in the liquid lane, is not food.
+-- Appended so no line above moves; one statement a line for the coverage gate.
+function K.stomach.foodFill(stomach)
+    return K.satiety.fill(K.stomach.massOf(stomach.buffer), K.stomach.CAPACITY_MAX_G)
+end
+
+-- The food fill a gate reads off a record, live: the buffer before the eat lands at the intake's acute test (it runs
+-- before the ingest), and after the minute's drain in Nutrients (which runs after Kinetics). 0 for no stomach or no
+-- solid buffer (since ruling 11c-15 a new stomach is empty) and for a non-finite fill.
+function K.stomach.recordFoodFill(record)
+    local s = record.stomach
+    if s == nil or s.buffer == nil then
+        return 0
+    end
+    local f = K.stomach.foodFill(s)
+    if f - f ~= 0 then
+        return 0
+    end
+    return f
 end

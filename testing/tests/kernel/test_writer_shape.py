@@ -456,10 +456,10 @@ LIMITATION_FOUR = (
     "overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x"
     " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
     "fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the "
-    "1100 g hard capacity, drunk liquid counting at 0.015 of its mass, and M the meal pool, the weighted kcal eaten, "
+    "1100 g hard capacity, drunk liquid counting at 0.19 of its mass, and M the meal pool, the weighted kcal eaten, "
     "fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and "
     "reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it "
-    "on its first minute: hungerTarget(0.804, energy state), that is 0.196 x es + 0.02 x max(0, es - 1), times the "
+    "on its first minute: hungerTarget(0.786, energy state), that is 0.214 x es + 0.02 x max(0, es - 1), times the "
     "minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap MEAL_SEED_MAX);"
     " protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes "
     "through a direct Eat call reaches the stomach and M through the reconcile path a minute late and as its macros "
@@ -1161,7 +1161,7 @@ def test_a_malformed_liquid_lane_reads_the_stamp():
 
 # --- Plan 11d close (ruling C-2): LIMITATION_FOUR's seed floor and ceiling in hungerTarget's form ----------------------
 # floor: an empty stomach under a HUNGER below it seeds MEAL_SEED_MAX and writes hungerTarget(mealRead(MEAL_SEED_MAX), es) =
-# SEED_FLOOR es + FLOOR max(0, es - 1) times the factors (SEED_FLOOR 1 - mealRead(MEAL_SEED_MAX), 0.196 since Plan 11g Task 6c,
+# SEED_FLOOR es + FLOOR max(0, es - 1) times the factors (SEED_FLOOR 1 - mealRead(MEAL_SEED_MAX), 0.214 since Plan 11g Task 6c fix 1, 0.196 in Task 6c,
 # 0.244 in Task 6, 0.203 before); ceiling: a HUNGER above hungerTarget(FULL_WEIGHT F, es) x the factors seeds M = 0
 # and writes that ceiling. Review B's case moved to es 1.1 (Plan 11d Task 9d: at es 1.5 the floor's 1.0 reached the
 # cap). Since Plan 11f Task 2c fix 1 the floor is 0.02 (0 in Task 2c), so the deficit reaches both mostly through es.
@@ -1185,7 +1185,7 @@ def test_the_seed_floor_reads_hunger_targets_deficit_term(es):
     floor = 1 - _mread(MEAL_SEED_MAX)
     assert written == pytest.approx((floor * es + FLOOR * max(0.0, es - 1)) * fac, abs=5e-4)
     assert written > floor * es * fac                                      # the deficit raises the seed floor
-    assert round(floor, 3) == 0.196                                        # LIMITATION_FOUR's figure
+    assert round(floor, 3) == 0.214                                        # LIMITATION_FOUR's figure
 
 
 @pytest.mark.parametrize("es", [1.5, 2.0])

@@ -183,8 +183,9 @@ def test_a_group_that_raises_scores_its_oracles_as_misses_and_the_rest_still_run
         GO.GROUPS["moore"], GO.GROUPS["tieken"] = saved
     assert "RuntimeError" in r["readings"]["moore"] and "the kernel rejected" in r["readings"]["moore"]
     assert r["oracles"]["moore_half_emptying"] == {"value": None, "miss": None}              # a reading: reported only
-    for name in ("tieken_liquid_4h", "tieken_solid_below_liquid", "diekmann_after_tieken"):
-        assert r["oracles"][name]["miss"] == GO.NONE_MISS, name
+    for name in ("tieken_liquid_4h", "tieken_solid_below_liquid"):                       # readings (ruling T6c-2)
+        assert r["oracles"][name] == {"value": None, "miss": None}, name
+    assert r["oracles"]["diekmann_after_tieken"]["miss"] == GO.NONE_MISS
     assert r["oracles"]["meal650"]["miss"] is not None and r["oracles"]["meal650"]["value"] is not None
 
 
@@ -201,3 +202,41 @@ def test_the_two_hard_bounds_join_the_registry_with_their_figures_from_the_meal_
     assert GO.MARMONIER_DIFF is M.MARMONIER_DIFF and GO.MEAL650 is M.MEAL650_MIN and GO.S1222 is M.S1222_BAND
     shipped = F.evaluate({})["oracles"]
     assert shipped["breakfast400_held"]["miss"] == 0.0 and shipped["rolls98_ordering"]["miss"] == 0.0
+
+
+def test_tieken_is_read_only_and_reports_its_distance_outside_the_band():
+    # ruling T6c-2: Tieken's three entries are reading-kind, never in the loss, with their band kept for the report
+    by = {o.name: o for o in GO.ORACLES}
+    for name in ("tieken_liquid_4h", "tieken_solid_4h", "tieken_solid_below_liquid"):
+        o = by[name]
+        assert o.kind == "reading" and o.row == "S1833" and o.miss(0.5) is None, name
+        assert name in GO.NAMED, name
+    o = by["tieken_liquid_4h"]
+    assert o.outside(0.1) == 0 and abs(o.outside(-0.046) - (0.04 + 0.046) / 0.14) < 1e-12
+    r = F.evaluate({})
+    assert all(r["oracles"][n]["miss"] is None for n in ("tieken_liquid_4h", "tieken_solid_4h",
+                                                          "tieken_solid_below_liquid"))
+    assert abs(r["loss"] - sum(v["miss"] for v in r["oracles"].values() if v["miss"] is not None)) < 1e-12
+
+
+def test_s1233s_volume_slope_is_scored_two_sided_at_one_and_a_half_times():
+    # ruling T6c-3: r300 - r600 against (5263 - 4703) / 4323 = 0.1295, the band [0.1295 / 1.5, 0.1295 x 1.5]
+    o = {o.name: o for o in GO.ORACLES}["rolls98_slope"]
+    s = (5263.0 - 4703.0) / 4323.0
+    assert o.kind == "two-sided" and o.row == "S1233" and o.tol == "1.5x"
+    assert abs(o.target - s) < 1e-12 and abs(o.lo - s / 1.5) < 1e-12 and abs(o.hi - s * 1.5) < 1e-12
+    assert o.miss(o.pick({"rolls_1998": [0.73, 0.68, 0.60]})) == 0.0
+    assert o.miss(o.pick({"rolls_1998": [0.69, 0.689, 0.688]})) > 0                  # flat: below the band
+    assert o.miss(o.pick({"rolls_1998": [0.9, 0.7, 0.6]})) > 0                       # too steep: above it
+
+
+def test_liquid_weight_is_fitted_inside_s1231s_bound():
+    # ruling T6c-3: LIQUID_WEIGHT is a fitted constant (a default parameter), bounded at 0.19
+    assert "LIQUID_WEIGHT" in F.DEFAULT_PARAMS and F.BOUNDS["LIQUID_WEIGHT"] == (0, 0.19)
+    assert F.load_spec({"params": {"LIQUID_WEIGHT": [0.19]}})
+    try:
+        F.load_spec({"params": {"LIQUID_WEIGHT": [0.2]}})
+    except ValueError as e:
+        assert "LIQUID_WEIGHT" in str(e) and "bound" in str(e)
+    else:
+        raise AssertionError("0.2 was accepted")

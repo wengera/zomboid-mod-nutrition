@@ -52,11 +52,14 @@ from kernel import gut_oracles as GO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 import replay_live as RL  # noqa: E402
 
-DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL")
+DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL",
+                  "LIQUID_WEIGHT")
 STAGE_A_PARAMS = ("A_REQ", "A_STEEP", "A_HALF_LIFE_H")
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.25}
 SIG = 6                         # significant digits a refined value keeps
-BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 1)}    # (exclusive low, inclusive high); any other: (0, inf)
+# (exclusive low, inclusive high); any other: (0, inf). LIQUID_WEIGHT's 0.19 is S1231's null for water drunk alongside
+# (ruling T6c-3: it is fitted freely below it, against S1233's volume slope)
+BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 0.19)}
 
 _ACTIVE = {}                    # the candidate's patch while it runs, read by the server path's patched hosts
 

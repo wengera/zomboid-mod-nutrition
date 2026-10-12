@@ -1236,3 +1236,26 @@ def test_limitations_name_the_sweat_sodium_adaptation(nut_host):
     # Plan 11f Task 5b fix 3 (candidate C-14): the sweat side adapts to a deficit only
     lims = list(NUT(nut_host).limitations.values())
     assert "sweat sodium adapts to a sodium deficit, not to heat exposure alone (Plan 11f Task 5b fix 3): the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration here although S1755, S1739 and S1743 fall without a known deficit, no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)" in lims
+
+
+# --- the alcohol-fasting glucose clock's fed gate reads the food fill (Plan 11g Task 6c fix 1, ruling T6c-1) ---
+
+def test_the_fed_gate_reads_the_food_fill_not_drunk_water(nut_host):
+    # NUT.FED_FILL gates on K.stomach.recordFoodFill, the solid lane alone: 500 g of water drunk (a physical fill of
+    # 0.68, stamped) leaves the empty-stomach clock running; 50 g of food (0.068 > 0.05) stamps the minute as fed
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    K = h.K
+    record["stomach"] = K.stomach.new()
+    K.stomach.ingestLiquid(record["stomach"], vec(h, water=500.0))
+    record["stomachFill"] = K.stomach.fill(record["stomach"])
+    assert round(record["stomachFill"], 2) == 0.68
+    a = record["acute"]
+    a["lastFedAgeH"] = 50.0
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert a["lastFedAgeH"] == 50.0
+    K.stomach.ingest(record["stomach"], vec(h, water=50.0))
+    record["stomachFill"] = 0.0                                   # a stale stamp is not the gate's input
+    alone(h, p, record, 100.0 + 2 / 60)
+    assert a["lastFedAgeH"] == 100.0 + 2 / 60

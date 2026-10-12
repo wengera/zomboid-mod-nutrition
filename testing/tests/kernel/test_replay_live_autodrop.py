@@ -99,7 +99,8 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
     # HUNGER's distance under G is pinned as a reading until a live run on G (Plan 11g Task 8)
     assert worst(old, "stomach.liquid") > 50.0                     # the drink event runs a minute ahead: 73 g
     assert worst(new, "stomach.liquid") < 1e-9                     # the autodrop lands where the mod lands it
-    # stomachFill weighs the liquid lane at LIQUID_WEIGHT, which Plan 11g Task 6c refit to 0.0151122 (0.181397 in Task 6):
-    # the ring's fill was taken at 0.2, so the autodrop's fill now reads well under the ring's, a reading (0.022 in Task 6)
-    assert worst(old, "stomachFill") > 0.2 and round(worst(new, "stomachFill"), 4) == 0.2184
-    assert (round(worst(old), 4), round(worst(new), 4)) == (0.1123, 0.1119)   # the P ring against the refit M (Plan 11g Task 6c): readings (0.149, 0.1504 under the gut stage's fit; 0.0514, 0.0536 under its provisional constants)
+    # stomachFill reads both lanes whole since Plan 11g Task 6c fix 1 (ruling T6c-1; it weighed the liquid lane at
+    # LIQUID_WEIGHT before): the ring's fill was taken at 0.2, so the autodrop's fill now reads well over the ring's, a
+    # reading (0.2184 at Task 6c's LIQUID_WEIGHT 0.0151, 0.022 at Task 6's 0.181)
+    assert worst(old, "stomachFill") > 0.2 and round(worst(new, "stomachFill"), 4) == 0.7972
+    assert (round(worst(old), 4), round(worst(new), 4)) == (0.0322, 0.0343)   # the P ring against the refit M (Plan 11g Task 6c fix 1): readings (0.1123, 0.1119 under Task 6c's fit; 0.149, 0.1504 under the gut stage's fit; 0.0514, 0.0536 under its provisional constants)
