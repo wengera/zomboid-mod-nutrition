@@ -47,7 +47,7 @@ answer, and no duplicate row was filed for it.
     cite the restating source and are graded `TXT`, as the 11f sweat harvest did for restated primaries.
 - **Meal appearance (S1863, Woerle 2003).** Over 6 h after a meal carrying about 78 g glucose, splanchnic tissues
   took up about 23 g at first, and about 75 g left the systemic circulation (11 volunteers). The meal's glucose is
-  thus essentially all absorbed within the 6 h.
+  thus essentially all absorbed within the 6 h (inference from the disposal balance, not a measured absorption).
 - **Glycaemic index is not appearance rate (S1864, S1865).** Corn flakes and bran cereal (50 g available
   carbohydrate) gave the same rate of appearance over 180 min despite a GI ratio above 2 (Schenk 2003, n = 6).
   Pasta gave a slower exogenous appearance than bread with the same glycaemic response (Eelderink 2012, n = 10).
@@ -89,13 +89,15 @@ across them:
      - lipid at 0.25 and 1.5 kcal/min (S1873);
      - lipid at 1.33 kcal/min for 150 min (S1874);
      - protein at 0.5 and 1.5 kcal/min (S1875).
-2. **Above it, intake falls.**
+   - Fructose at 2 kcal/min (S1879) is the exception at this rate: it lowered intake.
+2. **Above it, intake mostly falls.**
    - Glucose at 4 kcal/min for 120 min (S1872).
-   - Lipid at 4 kcal/min for 50 min (S1873): 1,139 against 1,289 kcal, derived −150 kcal for 200 kcal infused.
+   - Lipid at 4 kcal/min for 50 min (S1873): 1,139 against 1,289 kcal, derived −150 kcal for 200 kcal infused. The
+     same load and duration in Pilichiewicz 2006 (S1874, n = 11) had no significant effect on appetite or energy
+     intake, so the two studies disagree at this rate.
    - Protein at 3 kcal/min (S1875).
    - Lipid or protein at 3 kcal/min for 90 min (S1876).
    - Lipid at 2.86 kcal/min for 120 min: −22 % against saline and −15 % against glucose (S1877, S1878).
-   - Fructose at 2 kcal/min (S1879).
    - Lipid's effect partly comes with nausea (S1876).
 3. **The macronutrient order at equal kcal is weak.**
    - In the duodenum, lipid sated more than glucose in young men (S1877, S1878).
@@ -115,8 +117,8 @@ across them:
 5. **Time course.**
    - GLP-1 rose at 15–30 min of a 1 kcal/min glucose infusion and fell back to baseline while the infusion went on;
      GIP and insulin stayed up (S1881).
-   - After a 4 kcal/min lipid arm stopped, PYY and the motor effects persisted (S1874), but no appetite effect was
-     measured.
+   - After a 4 kcal/min lipid arm stopped, PYY and the motor effects persisted (S1874), but appetite and intake were
+     unchanged.
    - No study read varies the delay between an infusion's end and the test meal (open row S1889, § 7).
 
 ## 6. The statements the plan asks for
@@ -126,8 +128,9 @@ derived from the rows above; no source measures it directly (§ 7).
 
 - **Lower bound, 0.5 h.** A signal that tracks the nutrient load in the proximal small intestine clears about as fast
   as the lumen does.
-  - The modelled gut compartment for glucose has a 30 min half-life (S1861).
-  - GLP-1 tracks a low duodenal glucose load only transiently (S1881).
+  - The modelled gut compartment for glucose has a 30 min half-life (S1861), whose primary fit is unidentified.
+  - GLP-1 fell back to baseline while a low duodenal glucose load continued (S1881). That is adaptation under
+    continued delivery, not clearance after the nutrient has gone, so it does not support a fast clearance of G.
   - Hunger returns as gastric emptying ends, even before the stomach is empty (S1860).
   - A G much faster than this would make hunger mirror the emptying rate minute by minute.
 - **Upper bound, 2 h.** A slower signal follows the nutrients that stay longer in the gut.
@@ -195,10 +198,11 @@ absent; the arXiv HTML version was read instead.
 3. **Read shape.**
    - At normal delivery rates the gut signal alone barely moves hunger (S1871–S1875). It acts mainly with gastric
      fullness.
-   - A steep `G_STEEP` (a threshold-like read) matches the 3–4 kcal/min threshold in the infusion studies.
+   - A steep `G_STEEP` (a threshold-like read) matches the 3–4 kcal/min threshold in the infusion studies, which is disputed: lipid at 4 kcal/min for 50 min lowered intake in S1873 and had no effect in S1874.
 4. **Mechanism candidates for the ledger.**
    - **Distal spill.** Large meals deliver nutrient past the proximal absorptive capacity, and ileal nutrient is
-     2.4–4.2 times as potent per kcal (S1882, S1884). A surplus day of large meals would therefore sate more per kcal
+     2.4–4.2 times as potent per kcal (the 4.2 is ileal against duodenal glucose, S1882; the 2.4 is the low end of ileal fat, casein or
+     sucrose against saline, S1884; the comparators differ). A surplus day of large meals would therefore sate more per kcal
      than the same energy spread thin. That is a candidate route to Karl's well-fed arm without the energy-balance term.
    - **An F × G interaction in place of the probabilistic OR.** The gut signal amplifies gastric fullness rather than
      acting alone (S1871; French & Cecil 2001, Physiol Behav 74:729, a review not filed). The candidate is an

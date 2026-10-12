@@ -220,12 +220,16 @@ multi-day store does not hold it.
 - **Ohkawara (S1608).** More frequent isoenergetic meals raise 24-h hunger AUC.
 
 **The next meal largely resets the previous one (Thomas 2015, S1937).**
-- A 25 %-of-day breakfast lowered pre-lunch hunger AUC by 51.1 cm × 240 min:
+- A 25 %-of-day breakfast lowered pre-lunch hunger AUC from 158 to 88.2 cm × 240 min, −44 % over the whole sample
+  (derived: cell means averaged over the two groups of 9). The Table 3 estimate of −51.1 (P < .0001) is the skippers'
+  contrast under a significant day × group interaction, not the whole sample's:
   - −50 % in habitual eaters (90.1 against 179, derived);
   - −37 % in skippers (86.2 against 137, derived).
 - After a fixed lunch at 240 min (35 % of the day), post-lunch hunger AUC (270–540 min) was only 10.7 lower: 76.5
   against 87.3, −12 % (derived), with P = 0.116.
-- Post-lunch satiety AUC stayed higher, by 31.5 (P = 0.005).
+- Post-lunch satiety AUC stayed higher by 31.5 (P = 0.005) in the skippers (174 against 143, derived), but not in
+  the eaters (162 against 163): the interaction is −32.5 (P = 0.029). The eaters' satiety returned to equal, which
+  supports the reading that the next meal resets the previous one.
 - Astbury 2011 (S1938): a 10 %-of-day breakfast lowered lunch intake by about 17 %.
 - Levitsky and Pacanowski (S1612): a 335–360 kcal breakfast did not change lunch intake.
 

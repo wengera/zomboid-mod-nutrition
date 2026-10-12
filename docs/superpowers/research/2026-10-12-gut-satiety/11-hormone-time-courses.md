@@ -98,7 +98,7 @@ macronutrient contrasts are robust and which are null.
   preload energy rose, and acyl ghrelin fell in grades. The values are in figures only.
 
 **Robust:** meal size moves every hormone and hunger in a graded way. The hunger difference is detectable at
-about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewis).
+about a 40 % step (about 245–315 kcal) and not at a 20 % step (about 120–160 kcal) (Lewis; derived: kJ step / 4.184, men and women).
 
 ## 3. Macronutrient at equal energy
 
@@ -166,8 +166,8 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
 
 - Hunger reaches its nadir early (15 min, S1833) and then rises steadily. It is back above fasting by 4 h after
   540 kcal of liquid, and still below baseline at 6 h after ~1,000 kcal (S1828).
-- The return of hunger correlates with the time for 90 % of the meal to empty (r = 0.75, S1838). It starts to
-  rise while over 40 % of the meal is still in the stomach, and keeps rising after emptying has stopped.
+- The return of hunger correlates with the time for 90 % of the meal to empty (r = 0.75, S1860). In three of ten
+  subjects it starts to rise while over 40 % of the meal is still in the stomach, and keeps rising after emptying has stopped.
 - Spontaneous meal requests come 247–321 min after preloads of 7.5–33 % of daily expenditure (S1247), and
   320–425 min after a lunch (S1248).
 - **The two-phase literature.** It defines an early (0–60 min) and a late (60–180 min) satiety phase by analysis
@@ -180,8 +180,9 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
 ## 7. The statements the plan asks for
 
 **One phase or two? One in hunger ratings, two in the hormones.**
-- Every hunger time course read here has a single early nadir (15–30 min) followed by a monotone recovery:
-  Tieken, Lewis, Diekmann, Giezenaar, van der Klaauw, Martens.
+- Inference from the figure shapes: the hunger time courses read here look like a single early nadir followed by a
+  monotone recovery (Tieken, Lewis, Diekmann, Giezenaar, van der Klaauw, Martens). Only Tieken states the nadir in
+  text (15 min); the others were read from figures that were not digitised or from abstracts.
 - None shows a second dip or plateau that would mark a separate late phase. Two signals would sum smoothly in a
   rating, so this does not rule them out; it means the data cannot identify them.
 - The hormones do split:
@@ -201,7 +202,7 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
     is log2(1.9 / 0.3) = 2.7 halvings in 120 min, an apparent t½ of about 45 min (derived: 120 / 2.7)
     including the slow tail of emptying (late-phase emptying 0.3–0.5 kcal/min, Table 1).
   - The decay after delivery ends is faster than that, but these data cannot say how much faster: two points,
-    sex-averaged, and the end of emptying differs by sex. Read it as t½ ≲ 0.75 h for CCK, a weak bound.
+    sex-averaged, and the end of emptying differs by sex. Read 0.75 h as an inferred point estimate for CCK with no upper cap: the 180 min excess (3.4 against 3.1 pmol/L) is not significant, so the endpoint cannot be told from 0 or from about 1 pmol/L (an excess of 1.0 would give about 130 min), and at 60 min only 72 % (men) and 65 % (women) of the drink had emptied.
 - **Ghrelin.**
   - Plasma t½ is about 30 min (S1799); suppression lasts as long as secretion is inhibited.
   - Nadir: 60–186 min, by composition (S1812, S1834). Recovery to baseline: about 4 h after 500–540 kcal
@@ -213,6 +214,7 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
     400 min (derived: 1,000 / 2.5) and 540 kcal about 216 min (derived: 540 / 2.5).
   - So the hormone persistence lasts about as long as gastric delivery does. Nothing read here requires a
     post-delivery clearance of more than about an hour.
+  - Caveat on composition: Hunt's 2.5 kcal/min is for Polycose liquid meals, and fat and protein slow emptying per kcal (S1243), so a mixed solid meal of this size takes longer.
 - **Hunger.** The recovery takes about 4 h at 540 kcal and over 6 h at ~1,000 kcal. That scales with emptying
   time, not with a fixed decay. A G fed by emptying, with a short clearance, produces this shape directly.
 
@@ -236,14 +238,14 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
     cannot produce an overshoot either. If ever wanted, it is a separate mechanism candidate (a carbohydrate
     rebound term), not A.
 - **G_HALF_LIFE_H.**
-  - Evidence bound: the post-delivery hormone decay is short, an apparent t½ ≲ 0.75 h for CCK including the emptying tail (derived above, a weak bound); ghrelin's
+  - Evidence bound: the post-delivery hormone decay is short, an apparent t½ of about 0.75 h for CCK including the emptying tail (a point estimate, inference, no upper cap, derived above); ghrelin's
     plasma half-life is about 0.5 h (S1799).
   - Suggested fit window: 0.25–1.5 h, starting near 0.5 h. Wider than the CCK bound, because PYY's distal
     persistence may add a slower tail. Pin it against the hunger-recovery oracles, not the hormones.
   - S1270 stays open: no record states a decay constant for a satiety signal. Its bound may cite this
     derivation.
 - **Macronutrient weights (S1268).**
-  - **W_FAT = 1.** Fat raises the hormones but not satiety at equal energy (four nulls, one reversal).
+  - **W_FAT = 1.** Fat raises the hormones but not satiety at equal energy in the hunger-rating studies (four nulls, one reversal). Contrary readings: S1228 (Melanson 1999: the meal request came 126 ± 21 min after a high-fat drink against 65 ± 15 min after a simple-carbohydrate drink) and S1224 (Marmonier 2000: protein, then carbohydrate, then fat by request delay) both say fat satiates more per kcal. A time-to-request measure disagrees with the VAS nulls, so S1268 stays open, and the weight is not settled here: Task 6 fits W_FAT with S1228 and S1224 on one side and the hunger nulls on the other, and labels the result a ruling (ruling T2-3).
   - **W_CARB = 1.**
   - **W_PROTEIN** is the only weight with direct hunger support: Belza −25 % at 50 % against 14 % protein energy,
     Smeets +11 % satiety AUC (derived: 263 / 236), and the pooled S1222. Four single studies are null.
@@ -313,5 +315,5 @@ about a 40 % (300–320 kcal) step and not at a 20 % (130–160 kcal) step (Lewi
 | S1835 | Martens 2011 | § 5 |
 | S1836 | Santangelo 1998 | § 5 |
 | S1837 | Juvonen 2011 | § 5 |
-| S1838 | Sepple & Read 1989 | § 6 |
+| S1860 | Sepple & Read 1989 | § 6 |
 | S1839 (open) | tabulated hunger at three meal sizes | § 9 |
