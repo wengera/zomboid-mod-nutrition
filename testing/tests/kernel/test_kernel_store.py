@@ -504,7 +504,7 @@ def test_a_new_record_has_no_satiety_for_the_writer_to_seed(host):
 
 
 def test_the_pool_its_activity_state_and_its_stamp_are_inputs_and_their_table_is_not(host):
-    for p in ("satiety.P", "satiety.S", "satiety.L", "satiety.t", "stomach.liquid", "body.trail.at", "body.trail.ex.3"):
+    for p in ("satiety.G", "satiety.S", "satiety.L", "satiety.t", "stomach.liquid", "body.trail.at", "body.trail.ex.3"):
         assert S(host).isInput(p), p
     assert not S(host).isInput("satiety")
 
@@ -516,9 +516,9 @@ def test_a_loaded_record_without_satiety_keeps_it_unset(host):
 
 
 def test_a_loaded_record_keeps_its_pool_and_activity_state(host):
-    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 88, S = 0.3, L = 120, junk = 1 } }")
+    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { G = 88, S = 0.3, L = 120, junk = 1 } }")
     rec = S(host).load(raw, None, None)
-    assert rec.satiety.P == 88 and rec.satiety.S == 0.3 and rec.satiety.L == 120
+    assert rec.satiety.G == 88 and rec.satiety.S == 0.3 and rec.satiety.L == 120
     assert rec.satiety.junk is None
 
 
@@ -630,7 +630,7 @@ def test_the_save_phase_is_inside_the_gap_differs_by_name_and_seeds_the_first_wr
 def test_the_writers_step_stamp_is_an_input(host):
     # Plan 11c close (ruling C-1): the writer's last step age, read across a restart
     assert S(host).isInput("satiety.t")
-    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { P = 6, S = 0, L = 0, t = 101.5 } }")
+    raw = host.rt.eval("{ username = 'a', firstSeen = 1.0, lastSeen = 2.0, resets = 0, dead = false, satiety = { G = 6, S = 0, L = 0, t = 101.5 } }")
     rec = S(host).load(raw, None, None)
     assert rec.satiety.t == 101.5 and S(host).inputsOnly(rec).satiety.t == 101.5
 

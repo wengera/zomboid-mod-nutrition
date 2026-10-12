@@ -27,9 +27,9 @@ stays in its own field for one minute and the next pre-step heal takes it (the a
 
 Kinetics (Plan 11c Task 8) heals by resetting the stomach empty rather than re-stamping: its GUARD lists name the
 fields that reset fires on (the liquid lane, the solid lane's energy, which sets every key's drain next minute, and
-the gram keys of the mass); the writer's own pool P is guarded inside the writer (test_writer_shape.py). Two writes
-and reads sit outside the minute: the intake feeds satiety.P at the eat (IN.feed), and the writer heals a
-non-finite P by re-seeding it; the client's Overfull level reads the mirror's stomachMass, which K.mirror.stomachMass
+the gram keys of the mass); the gut stage G is guarded inside Kinetics' feed (KIN.feedG, test_kinetics.py) and the
+writer (test_writer_shape.py). One write and read sits outside the minute: the writer heals a non-finite G by
+re-seeding it (since Plan 11g Task 4 the intake no longer feeds satiety at the eat); the client's Overfull level reads the mirror's stomachMass, which K.mirror.stomachMass
 reads as 0 for a non-finite mass, and K.view.fullnessLevel reads a non-finite mass as 0 as well. Metabolism's
 satiety.L (Plan 11c Task 6) is re-stamped by its guard, and its pre-step heal (MET.healActivity) stamps 0 on it when
 it arrives non-finite.
@@ -351,11 +351,11 @@ SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients
                 "satiety": "metabolism", "stomach": "kinetics", "stomach.buffer": "kinetics"}
 # Reads of a producer sub-table that need no guard: a boolean (never NaN), and the writer's own sip accumulator,
 # which it reads only to add a finite sip to (it is finite by construction: K.hybrid.sip of two finite reads); the
-# writer's own satiety state (P, S and the step stamp t, ruling C-1), which no other step reads in the minute and the writer heals
+# writer's own satiety state (G, S and the step stamp t, ruling C-1; Kinetics feeds G before the writer and keeps a non-finite feed out), which no other step reads in the minute and the writer heals
 # itself (W.stats.guarded, test_writer_shape.py). The writer's satiety F (W.satietyF, ruling T5-2) reads the stomach's
 # liquid lane and the buffer's mass keys, each guarded by the kinetics heal (a non-finite F also falls back to
 # record.stomachFill); the buffer table itself is a container read, so the test proxies it one level down.
-WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.P", "satiety.S", "satiety.t"}
+WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.G", "satiety.S", "satiety.t"}
 
 BUFFER_PROXY = r"""
 function(rec, log)

@@ -87,11 +87,17 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
     new, _ = RL.replay_live(ring, events, rd("start"), **kw)
     live = {r["s"]: r for r in ring}
 
-    def worst(rows):
-        d = [abs(r["HUNGER"] - live[r["s"]]["HUNGER"]) for r in rows
+    def worst(rows, f="HUNGER"):
+        d = [abs(r[f] - live[r["s"]][f]) for r in rows
              if 1033 <= r["s"] <= 1049 and not r.get("between") and not r.get("suspect") and not r.get("offline")
-             and r.get("HUNGER") is not None and live.get(r["s"], {}).get("HUNGER") is not None]
+             and r.get(f) is not None and live.get(r["s"], {}).get(f) is not None]
         return max(d)
-    tol = RL.DEFAULT_TOL["HUNGER"][1]
-    assert worst(old) > tol            # the drink event runs ahead (the investigation: 0.00495)
-    assert worst(new) <= tol           # the investigation measured 0.00055 with a setpath stand-in
+    # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer loaded,
+    # so the replay seeds G from HUNGER), and HUNGER no longer replays within DEFAULT_TOL: on the P model the drink
+    # event ran ahead (0.00495, over the tolerance) and the autodrop event held it (0.00055 measured with a setpath
+    # stand-in; this test at 0f14044f). The order is read off the liquid lane, which the satiety model does not enter;
+    # HUNGER's distance under G is pinned as a reading until a live run on G (Plan 11g Task 8)
+    assert worst(old, "stomach.liquid") > 50.0                     # the drink event runs a minute ahead: 73 g
+    assert worst(new, "stomach.liquid") < 1e-9                     # the autodrop lands where the mod lands it
+    assert worst(old, "stomachFill") > 0.2 and worst(new, "stomachFill") < 1e-9
+    assert (round(worst(old), 4), round(worst(new), 4)) == (0.0514, 0.0536)   # the P ring against G: readings

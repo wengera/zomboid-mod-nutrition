@@ -48,7 +48,7 @@
 --     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
 --     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
 --  5. K.stomach.ingest, or K.stomach.ingestLiquid for a drink (Plan 11c ruling 11c-12: its water in the liquid lane);
---  6. the satiety pool P fed with the delivered vector's weighted kcal (IN.feed; Plan 11c rulings 11c-27, 11c-30).
+--  6. nothing feeds satiety here: since Plan 11g the gut stage G is fed by Kinetics with what the stomach empties.
 --
 -- The vector's source (Plan 6 rulings 13-14, IN.assemble): a dish's ingredient list, else a craft map,
 -- else the eaten item's own chain IN.chainOne -- declared (the item's NR_Nutrients default-modData
@@ -188,10 +188,10 @@ function IN.acuteAtEat(record, vec, records)
     return flagged
 end
 
--- The landing every route shares (the header's six steps): the ingested sum and the acute test read
+-- The landing every route shares (the header's steps): the ingested sum and the acute test read
 -- the vector as ingested; the B12 ceiling then caps vitB12 in place; the ethanol and caffeine leave the
 -- vector for the gut lane's pending sums; the stomach takes the result -- lane "liquid" (a drink, world water)
--- lands the water in the liquid lane, anything else lands as food -- and the satiety pool is fed with it.
+-- lands the water in the liquid lane, anything else lands as food. Satiety reads it as it empties (Kinetics feeds G).
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
 function IN.land(record, username, vec, lane)
@@ -216,22 +216,13 @@ function IN.land(record, username, vec, lane)
     else
         K.stomach.ingest(record.stomach, vec)
     end
-    IN.feed(record, vec)
     return vec
 end
 
--- Plan 11c (rulings 11c-27, 11c-30; Task 6 amendment 1): the meal pool P is fed at the eat with the delivered
--- vector's weighted kcal (K.satiety.feed), on every route that lands -- the eat, the drink, world water and the
--- reconcile path -- and a partial eat's vector is already its fraction. A record whose satiety or P is absent or
--- non-finite is left for the writer's seed at its next minute: an eat in a fresh record's first minute
--- shows only through the HUNGER the seed reads (a named limitation, the writer's limitation 4). A feed that comes
--- out non-finite is not kept.
-function IN.feed(record, vec)
-    local s = record.satiety
-    if type(s) ~= "table" or not IN.isFinite(s.P) then return end
-    local P = K.satiety.feed(s.P, vec)
-    if IN.isFinite(P) then s.P = P end
-end
+-- Plan 11g Task 4: satiety now comes from the stomach's emptying. The meal pool P that IN.feed fed here at the eat
+-- (Plan 11c rulings 11c-27, 11c-30) is gone; every route that lands -- the eat, the drink, world water and the
+-- reconcile path -- puts the vector in the stomach, and NR_Server_Kinetics feeds the gut stage G with the weighted
+-- kcal of what the stomach empties each minute (KIN.feedG).
 
 -- The vector's source: dish > craft > the eaten item's own chain step (K.intake.sourceOf).
 IN.sourceOf = K.intake.sourceOf
@@ -855,13 +846,13 @@ end
 -- NR_Kernel_Monotony.lua). readAfterAndLand calls IN.atEat once per landed eat (a complete, or a cancel that ate a
 -- part), after IN.land and before the wrapper's credit: the eat's type is booked into record.monotony, weighed in
 -- meal-sized portions (ruling T3-3: K.monotony.weightOf of vec.calories, the landed vector's energy that IN.land has
--- just landed and IN.feed weighed, over the kernel's MEAL_KCAL) and marked a staple when K.monotony.isStaple reads the
+-- just landed, over the kernel's MEAL_KCAL) and marked a staple when K.monotony.isStaple reads the
 -- item's FoodType or full type as one; an eat with no energy, or energy that is not a finite number, books nothing.
 -- Nothing is added to a stat here (ruling T9-1, Angus's choice of 2026-10-11): live, UNHAPPINESS never fell on its own
 -- (#3033), so adds at each eat piled up without bound (x331-x333). The writer instead reads the record's target once a
 -- minute and holds a self-releasing floor under UNHAPPINESS and BOREDOM (NR_Server_Writer W.monotony, K.hybrid.write,
 -- #3119), so a repeat shows at the writer's next minute, rising at the floor's rate, not at the eat. Nothing here reads
--- or writes HUNGER, so monotony never reaches the meal pool or the written hunger (ruling 11d-9).
+-- or writes HUNGER, so monotony never reaches the gut stage or the written hunger (ruling 11d-9).
 -- Under its own pcall: a raise is counted (monotonyFailures) and named, and never reaches the landing or the credit.
 function IN.atEat(record, b, kcal)
     local ok, err = pcall(IN.monotony, record, b, kcal)

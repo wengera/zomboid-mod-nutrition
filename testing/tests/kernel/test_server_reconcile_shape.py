@@ -196,17 +196,21 @@ def test_a_rise_with_no_wrapped_eat_lands_the_macros_only(h):
     assert rec["stomach"]["liquid"] == 0                                 # J4: a reconciled intake reaches the solid buffer, macros only
 
 
-def test_a_reconciled_rise_feeds_the_pool_by_its_weighed_kcal(h):
-    # amendment 1: the reconcile path lands through IN.land, which feeds P with the delivered vector; 300 kcal of
-    # 20 g carbohydrate alone takes the carbohydrate weight 1 (W_CARB), so P rises by 300 weighted kcal
+def test_a_reconciled_rise_reaches_g_only_through_the_stomach(h):
+    # the reconcile path lands through IN.land, which puts the delivered vector in the stomach and feeds no satiety
+    # (Plan 11g Task 4: Kinetics feeds G as the stomach empties); 300 kcal of 20 g carbohydrate, then 100 kcal of 25 g
+    # protein, reach the buffer while G is untouched
     p, rec = seeded(h)
-    rec.satiety = h.rt.eval("{ P = 2, S = 0, L = 0 }")
+    rec.satiety = h.rt.eval("{ G = 2, S = 0, L = 0 }")
+    before = rec["stomach"]["buffer"]["calories"] if rec["stomach"] is not None else 0
     p.nut.cal, p.nut.carb = 1300.0, 120.0
     RC(h).minute("admin", p, rec)
-    assert abs(rec["satiety"]["P"] - (2 + 300)) < TOL
+    assert rec["satiety"]["G"] == 2
+    assert abs(rec["stomach"]["buffer"]["calories"] - before - 300) < TOL
     p.nut.cal, p.nut.pro = 1400.0, 85.0                                  # 100 kcal more with 25 g protein
     RC(h).minute("admin", p, rec)
-    assert abs(rec["satiety"]["P"] - (302 + 100 * 2.5)) < TOL            # all protein: weight 2.5 (W_PROTEIN)
+    assert rec["satiety"]["G"] == 2
+    assert abs(rec["stomach"]["buffer"]["calories"] - before - 400) < TOL
 
 
 def test_the_same_rise_is_not_landed_twice(h):

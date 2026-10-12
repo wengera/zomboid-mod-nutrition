@@ -6,8 +6,8 @@
 -- writer's fallback, the acute dose test and the mirror to read. A gap of more than a minute drains in one-minute substeps (the
 -- solid rate rises with the load, and the oracle's replays step a minute), and a gap is capped at 60 game minutes:
 -- offline time is not integrated, as Metabolism and Nutrients clamp. A record with no stomach starts with an empty one
--- (spec § 4, ruling 11c-15); hunger carries over through the satiety pool P, which the intake feeds at the eat and the
--- writer seeds from HUNGER at its first minute. The energy-state term is NR_Server_Metabolism's per-minute stamp
+-- (spec § 4, ruling 11c-15); hunger carries over through the gut stage G (record.satiety.G, Plan 11g), which this step
+-- feeds with what the stomach emptied (KIN.feedG below) and the writer seeds from HUNGER at its first minute and clears. The energy-state term is NR_Server_Metabolism's per-minute stamp
 -- (record.body.energyState; the writer reads nil or NaN as 1).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
@@ -90,6 +90,7 @@ local function step(username, player, record, ctx)
     if dtH > 0 then
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
         local emptied = KIN.drain(record.stomach, dtH * 60)
+        KIN.feedG(record, emptied, username)
         local absorbed = K.stomach.absorb(emptied, meal)
         K.stomach.toPool(record.pool, absorbed)
         if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
@@ -206,4 +207,24 @@ function KIN.malformedPool(pool, username)
     KIN.lastError = "kinetics: malformed pool for " .. tostring(username) .. "; pool reset to zero"
     NR.log.say(2, KIN.lastError)
     return true
+end
+
+-- Plan 11g Task 4 (spec § 3.1): the gut stage G is fed here with the weighted kcal of what the stomach emptied this
+-- step (K.satiety.gFeed), so every substep of a gap feeds it; the writer, later in the minute's ORDER, clears and
+-- reads it. A record whose satiety is not a table, or whose G is absent or non-finite, is left for the writer's seed
+-- (the first minute's emptying is not fed). A feed that comes out non-finite (a non-finite emptied vector) keeps the
+-- previous G and counts a failure, as the step's other guards do.
+function KIN.feedG(record, emptied, username)
+    local s = record.satiety
+    if type(s) ~= "table" or not NR.finite(s.G) then
+        return
+    end
+    local G = K.satiety.gFeed(s.G, emptied)
+    if NR.finite(G) then
+        s.G = G
+        return
+    end
+    KIN.stats.failures = KIN.stats.failures + 1
+    KIN.lastError = "kinetics: non-finite gut stage feed for " .. tostring(username) .. "; G kept"
+    NR.log.say(2, KIN.lastError)
 end

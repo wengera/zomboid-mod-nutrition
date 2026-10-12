@@ -1,12 +1,12 @@
 """tools/replay_live.py's own oracle (Plan 11f Task 2): fed the oracle tests' event lists, the replay reproduces their
 pins exactly.
 
-Where the oracle steps the satiety kernels (test_satiety_meal_studies.py's REPLAY: the stomach, the pool P and the
-hunger function, one game minute a step), the replay runs the mod's own server adapters (ServerReplay) on the pipeline
-steps that compose the same thing, kinetics then the writer, every other step left out so the energy state reads the
-fresh body's 1 as the oracle holds it: the stomach drains in NR_Server_Kinetics, P decays and HUNGER is written by
+Where the oracle steps the satiety kernels (test_satiety_meal_studies.py's REPLAY: the stomach, the gut stage G and
+the hunger function, one game minute a step), the replay runs the mod's own server adapters (ServerReplay) on the
+pipeline steps that compose the same thing, kinetics then the writer, every other step left out so the energy state
+reads the fresh body's 1 as the oracle holds it: the stomach drains and feeds G in NR_Server_Kinetics, G clears and HUNGER is written by
 NR_Server_Writer at the clock's circadian factor, held at 1 at 13:50 (NEUTRAL_HOUR) where the oracle holds it, and the
-eats land through IN.land. The start record carries the oracle's P0 and the stamps (satiety.t, kineticsAge) so the first
+eats land through IN.land. The start record carries the oracle's G0 and the stamps (satiety.t, kineticsAge) so the first
 minute steps as the oracle's does. Each reading equals the oracle function's own (and its pin).
 
 The writer replays (the nicotine replay, test_satiety_meal_studies.py's nicotine_written) run the writer step alone on a
@@ -57,13 +57,13 @@ def meal_events(events):
     return out
 
 
-def server_hunger(host, events, minutes, P0=None, h0=None):
+def server_hunger(host, events, minutes, G0=None, h0=None):
     """The written HUNGER per minute (index i is minute i + 1), as M.hunger reads it."""
-    if P0 is None:
-        P0 = M.start_p(host, h0)
+    if G0 is None:
+        G0 = M.start_g(host, h0)
     a0 = 0.0 if h0 is None else h0
     start = {"username": "admin", "firstSeen": a0, "lastSeen": a0, "kineticsAge": a0,
-             "satiety": {"P": P0, "S": 0, "L": 0, "t": a0}}
+             "satiety": {"G": G0, "S": 0, "L": 0, "t": a0}}
     rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=minutes, start_age=a0, steps=SATIETY_STEPS,
                             hold_hour=RL.NEUTRAL_HOUR if h0 is None else None)
     assert [r["age"] for r in rows] == RL.synthetic_ages(minutes, a0)
@@ -74,19 +74,20 @@ def test_the_neutral_hour_holds_the_circadian_factor_at_exactly_1(host):
     assert host.call("satiety.circadian", RL.NEUTRAL_HOUR) == 1.0
 
 
-def test_the_650_kcal_meal_returns_to_the_request_at_minute_320(host):
+def test_the_650_kcal_meal_returns_to_the_request_at_the_oracles_minute(host):
+    # 512 under G's provisional constants (Plan 11g Task 4; 320 on the P model), the oracle's pin
     hs = server_hunger(host, {0: [("food", M.mixed(650))]}, 900)
     ref = M.hunger(host, {0: [("food", M.mixed(650))]}, 900)
     assert max(abs(a - b) for a, b in zip(hs, ref)) < 1e-12
-    assert M.request(hs) == M.request(ref) == 320
+    assert M.request(hs) == M.request(ref) == 512
 
 
 def test_callahans_minutes_from_the_request_and_fasted_at_09_00(host):
     seeded = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, h0=M.CALLAHAN_H))
               for k in (190.0, 400.0, 825.0)]
-    fasted = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, P0=0.0, h0=M.CALLAHAN_H),
+    fasted = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, G0=0.0, h0=M.CALLAHAN_H),
                         fasted=True) for k in (190.0, 400.0, 825.0)]
-    assert seeded == fasted == [250, 279, 339]
+    assert seeded == fasted == [297, 370, 476]                  # Plan 11g Task 4 under G (P model: 250, 279, 339)
 
 
 def test_marmoniers_snack_delays(host):
@@ -95,25 +96,25 @@ def test_marmoniers_snack_delays(host):
     for name, main, share in (("p", "proteins", 0.77), ("c", "carbs", 0.84), ("f", "lipids", 0.58)):
         hs = server_hunger(host, {0: [("food", M.mixed(650))], 240: [("food", M.snack(239.0, main, share))]}, 1500)
         d[name] = M.request(hs, after=245) - base
-    assert (d["p"], d["c"], d["f"]) == (193, 159, 167)
+    assert (d["p"], d["c"], d["f"]) == (152, 125, 131)         # Plan 11g Task 4 under G (P model: 193, 159, 167)
 
 
 def test_melansons_fasted_drinks(host):
-    got = [M.request(server_hunger(host, {0: [("drink", M.snack(239.0, main, 0.70, water=400.0))]}, 900, P0=0.0),
+    got = [M.request(server_hunger(host, {0: [("drink", M.snack(239.0, main, 0.70, water=400.0))]}, 900, G0=0.0),
                      fasted=True) for main in ("carbs", "lipids")]
-    assert got == M.melanson(host) == [236, 236]
+    assert got == M.melanson(host) == [329, 329]               # Plan 11g Task 4 under G (P model: 236, 236)
 
 
 def test_the_fasted_400_kcal_breakfast_and_the_protein_contrast(host):
     v = M.mixed(400, water=250.0)
-    assert M.held(server_hunger(host, {0: [("food", v)]}, 900, P0=0.0)) == M.held(
-        M.hunger(host, {0: [("food", v)]}, 900, P0=0.0))
+    assert M.held(server_hunger(host, {0: [("food", v)]}, 900, G0=0.0)) == M.held(
+        M.hunger(host, {0: [("food", v)]}, 900, G0=0.0))
     hi = M.mixed(400.0, water=300.0, p=0.30, c=0.35, f=0.35)
     lo = M.mixed(400.0, water=300.0, p=0.10, c=0.55, f=0.35)
     hh = server_hunger(host, {0: [("food", hi)]}, 240)
     hl = server_hunger(host, {0: [("food", lo)]}, 240)
     d = sum(b - a for a, b in zip(hh, hl)) / 240
-    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 4) == 0.0134
+    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 4) == 0.0136   # Plan 11g Task 4 under G (P model: 0.0134)
 
 
 def test_rolls_1999_and_the_minute_1_fullness(host):
@@ -208,8 +209,8 @@ def six_sum(n, gap, hold):
 def test_six_meals_against_three_held_and_live(host):
     held = six_sum(6, 150, True) / six_sum(3, 300, True)
     live = six_sum(6, 150, False) / six_sum(3, 300, False)
-    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.969
-    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.983     # Plan 11f Task 2c fix 1
+    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 1.004   # Plan 11g Task 4 under G (P: 0.969)
+    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 1.019     # Plan 11g Task 4 under G (P: 0.983, Plan 11f Task 2c fix 1)
 
 
 def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
@@ -231,7 +232,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
 def nicotine_written(host, ageH, w, anchorH):
     """M.nicotine_written's reading: a fresh record eaten at the request, the writer step alone."""
     c = host.call("satiety.circadian", (ageH + M.CLOCK_H) % 24)
-    sat = {"P": host.call("satiety.seedP", M.H_REQ / c, 0, 1), "S": 0, "L": 0}
+    sat = {"G": host.call("satiety.seedG", M.H_REQ / c, 0, 1), "S": 0, "L": 0}
     if anchorH is not None:
         sat["nicH"] = anchorH + M.CLOCK_H
     rec = {"username": "admin", "firstSeen": 0.0, "lastSeen": 0.0, "satiety": sat}

@@ -189,7 +189,8 @@ def test_a_gap_over_sixty_minutes_drains_sixty_minutes_only(kin_host):
 
 
 def test_no_emptied_vector_rides_the_context(kin_host):
-    # amendment 1: P is fed at the eat, so the writer reads no emptied vector; only absorption's handoffs ride
+    # Plan 11g Task 4: G is fed inside this step (KIN.feedG), so no emptied vector rides the context to the writer;
+    # only absorption's handoffs ride
     h = kin_host
     record = rec(h, 100)
     run(h, record, 100.0)
@@ -481,3 +482,73 @@ def test_a_pool_that_is_not_a_table_heals(kin_host):
     r.pool = 5
     run(h, r, 100.0 + 1 / 60)
     assert all(isinstance(v, (int, float)) and math.isfinite(v) for v in r.pool.values())
+
+
+# Plan 11g Task 4 (spec § 3.1): the gut stage G is fed here, with the weighed kcal of what the stomach emptied this step
+# (KIN.feedG, K.satiety.gFeed), every substep of a gap included; the writer clears and reads it later in the minute.
+
+def test_a_minute_feeds_g_the_weighed_kcal_the_stomach_emptied(kin_host):
+    # 100 kcal with no macronutrient grams (the neutral weight 1) over a 60-minute gap: G rises by exactly the kcal
+    # the 60 substeps emptied
+    h = kin_host
+    r = rec(h, 100)
+    r.satiety = h.rt.eval("{ G = 10, S = 0, L = 0 }")
+    run(h, r, 100.0)
+    assert r.satiety.G == 10                                       # no elapsed time: nothing emptied, nothing fed
+    run(h, r, 101.0)
+    left = _substeps(100.0, 60.0)
+    assert abs(r.satiety.G - (10 + 100 - left)) < 1e-9
+    assert abs(r.satiety.G - (10 + r.pool.calories)) < 1e-9       # the emptied kcal is what the pool absorbed
+
+
+def test_the_feed_weighs_the_emptied_macronutrients(kin_host):
+    # protein alone in the solid lane: every key leaves in the energy's proportion, so G gains W_PROTEIN x the kcal
+    h = kin_host
+    r = rec(h, 100)
+    r.stomach.buffer.proteins = 25.0                               # 100 kcal by Atwater 4
+    r.satiety = h.rt.eval("{ G = 0, S = 0, L = 0 }")
+    run(h, r, 100.0)
+    run(h, r, 100.0 + 1 / 60)
+    emptied = 100 * _frac(100.0, 1.0)
+    assert abs(r.satiety.G - h.G.NutritionRevamp.kernel.satiety.W_PROTEIN * emptied) < 1e-9
+    assert h.G.NutritionRevamp.kernel.satiety.W_PROTEIN == 2.5
+
+
+@pytest.mark.parametrize("sat", [None, "{ S = 0, L = 0 }", "{ G = 0 / 0, S = 0, L = 0 }", "{ G = 1 / 0, S = 0, L = 0 }"])
+def test_an_unseeded_g_is_left_for_the_writers_seed(kin_host, sat):
+    # a record whose satiety is absent, or whose G is absent or non-finite, is not fed: the writer seeds it from HUNGER
+    h = kin_host
+    r = rec(h, 300)
+    if sat is not None:
+        r.satiety = h.rt.eval(sat)
+    f0 = KIN(h).stats.failures
+    run(h, r, 100.0)
+    run(h, r, 100.0 + 1 / 60)
+    assert r.stomach.buffer.calories < 300                         # the stomach still empties
+    if sat is None:
+        assert r.satiety is None
+    else:
+        g = r.satiety.G
+        assert g is None or not math.isfinite(g)
+    assert KIN(h).stats.failures == f0
+
+
+def test_a_non_finite_feed_keeps_g_and_counts_a_failure(kin_host):
+    h = kin_host
+    K = h.G.NutritionRevamp.kernel
+    r = rec(h, 300)
+    r.satiety = h.rt.eval("{ G = 42, S = 0, L = 0 }")
+    run(h, r, 100.0)
+    orig = K.satiety.gFeed
+    K.satiety.gFeed = h.rt.eval("function(G, e) return 0 / 0 end")
+    try:
+        f0 = KIN(h).stats.failures
+        run(h, r, 100.0 + 1 / 60)
+    finally:
+        K.satiety.gFeed = orig
+    assert r.satiety.G == 42
+    assert KIN(h).stats.failures == f0 + 1
+    assert "gut stage" in KIN(h).lastError
+    run(h, r, 100.0 + 2 / 60)                                      # the next minute feeds again
+    assert r.satiety.G > 42
+    assert KIN(h).stats.failures == f0 + 1

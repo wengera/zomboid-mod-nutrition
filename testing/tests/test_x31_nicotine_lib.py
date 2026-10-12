@@ -19,7 +19,7 @@ from pzt.session import Timeline   # noqa: E402
 RL = L.RL
 START = 40.0
 NW = L.NW
-PATHS = ("satiety.nicH", "satiety.t", "satiety.P")
+PATHS = ("satiety.nicH", "satiety.t", "satiety.G")
 
 
 def test_the_calendar_and_the_schedule():

@@ -1500,11 +1500,11 @@ def test_a_non_finite_or_negative_lag_heals_and_counts(met_host):
 
 
 def test_a_record_without_satiety_gets_a_lag_and_no_pool(met_host):
-    # Metabolism lays record.satiety for its L; P is the writer's to seed from HUNGER
+    # Metabolism lays record.satiety for its L; G is the writer's to seed from HUNGER
     h = met_host
     p = player(h)
     record = fresh(h, p)
-    assert record["satiety"]["L"] == 0 and record["satiety"]["P"] is None
+    assert record["satiety"]["L"] == 0 and record["satiety"]["G"] is None
 
 
 # --- the window's minors (Plan 11d Task 9d; the Task 9c review's weak oracles for M3b and M8) ---------------------
