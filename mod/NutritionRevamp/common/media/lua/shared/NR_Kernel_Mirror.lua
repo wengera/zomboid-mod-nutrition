@@ -151,7 +151,7 @@ end
 
 -- Plan 11c Task 7 (ruling 11c-25): the stomach pair. stomachFill, the physical fill (K.stomach.recordFill, ruling C-2; the writer's fallback, the writer's F being W.satietyF),
 -- and stomachMass, the stomach's whole mass in grams, both lanes (K.stomach.mass), rounded to 1 g, the Overfull
--- moodle's input (K.view.fullnessLevel; F clamps at 1 at 730 g and cannot place a level above it). 0 when the record
+-- moodle's input (K.view.fullnessLevel; the physical fill clamps at 1 at 730 g and cannot place a level above it). 0 when the record
 -- has no stomach or no solid buffer, and when the mass is not finite.
 function K.mirror.stomach(m, record)
     m.stomachFill = K.stomach.recordFill(record)

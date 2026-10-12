@@ -1,30 +1,34 @@
 -- NR_Kernel_Satiety.lua -- satiety from physiology (Plan 11c; spec docs/superpowers/specs/2026-10-08-satiety-physiology-
--- design.md; the gut stage, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md). Two signals sate:
--- the stomach's fullness F (fill, fullness) and the gut stage G, the weighted kcal the stomach has emptied (weigh,
--- gFeed, gClear, gStep, drain, gRead, seedG); sated(F, gRead(G)), which K.hybrid.hungerTarget turns into hunger (target); the soft
--- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to G's
+-- design.md; the meal pool M, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 7). Two signals
+-- sate: the stomach's fullness F, counted past the comfortable maximum up to the hard capacity (fill, fullness), and
+-- the meal pool M, the weighted kcal eaten, fed in full at the eat and cleared first-order (weigh, mealFeed, mealClear,
+-- drain, mealRead, seedMeal); sated(F, mealRead(M)), which K.hybrid.hungerTarget turns into hunger (target); the soft
+-- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to M's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
--- withdrawal. Plan 11g Task 4 replaced the meal pool P (fed in full at the eat) with G (fed at emptying) and grouped the
--- file by section, every constant first. Pure; one statement a line for the coverage gate.
+-- withdrawal. Plan 11g Task 4 replaced the meal pool P with the gut stage G, fed at emptying, and grouped the file by
+-- section, every constant first; Task 6c (spec § 7) went back to the eat feed as M, because G fed at emptying counted
+-- the meal's size a second time (the stomach's energy-limited emptying already carries it in F), and let F count past
+-- the comfortable maximum. Pure; one statement a line for the coverage gate.
 local K = NutritionRevamp.kernel
 K.satiety = {}
 
--- Constants: one line each, its label its provenance. The joint fit (Plan 11g Task 6, fit-11g-20261012) set
--- FULL_WEIGHT, LIQUID_WEIGHT, PROTEIN_FILL, W_PROTEIN, W_FAT, G_HALF_LIFE_H, G_REQ and G_STEEP together, loss 1.8465
--- over the 49 oracles of testing/tests/kernel/gut_oracles.py.
+-- Constants: one line each, its label its provenance. The joint fit (Plan 11g Task 6c, fit-11g-20261012b) set
+-- FULL_WEIGHT, LIQUID_WEIGHT, PROTEIN_FILL, W_PROTEIN, W_FAT, MEAL_HALF_LIFE_H, MEAL_REQ and MEAL_STEEP together, loss
+-- 1.3609 over the 40 scored oracles of testing/tests/kernel/gut_oracles.py (the Task 6 fit of the gut stage G,
+-- fit-11g-20261012, was degenerate and is superseded).
 K.satiety.HEARTY = 1.5 -- #0485: vanilla's game number, not science (spec sec. 3.4)
 K.satiety.LIGHT = 0.75 -- #0485: vanilla's game number, not science (spec sec. 3.4)
-K.satiety.W_PROTEIN = 1.5 -- game choice, fitted in Plan 11g Task 6 against S1222, S1224, S1820 and S1822 (tools/fit_gut_satiety.py, fit-11g-20261012): protein's weight per kcal on G, a little above carbohydrate's as harvest 11 advises (S1820: hunger -25 % at 50 % protein; S1822; the pooled S1222; the nulls S1818, S1821, S1814 and S1225), bounded by S1224's delay differences (ruling 11c-31); S1268 open
+K.satiety.W_PROTEIN = 2.5 -- game choice, fitted in Plan 11g Task 6c against S1224, S1247 and S1820 (tools/fit_gut_satiety.py, fit-11g-20261012b): protein's weight per kcal on M, 2.5 times carbohydrate's, above harvest 11's advice of slightly above 1 (S1820: hunger -25 % at 50 % protein; S1822; the pooled S1222; the nulls S1818, S1821, S1814 and S1225 pull it down); at x2 S1224's protein-over-carbohydrate delay difference and Belza's 50 % arm (S1820) fail, at x0.5 S1224's two differences and Callahan's 400 kcal preload (S1247) (ruling 11c-31); S1268 open
 K.satiety.W_CARB = 1 -- neutral (ruling 11c-7): carbohydrate against fat is disputed (S1226, S1227, S1228, S1229), so both take the common weight; not an evidenced tie
-K.satiety.W_FAT = 0.405618 -- game choice, fitted in Plan 11g Task 6 against S1224, S1828 and S1228 (tools/fit_gut_satiety.py, fit-11g-20261012) (ruling T2-3: the fit decides): fat's weight per kcal on G, below carbohydrate's, where S1224 (Marmonier 2000: fat's delay 9 min shorter than carbohydrate's) and S1828 (Diekmann 2026: more hunger after high fat) outweigh S1228 (Melanson 1999: fat's request 61 min later; the model reads it 15 min earlier, a named non-reproduction); the hunger nulls (S1810, S1816, S1818, S1830) would put it at 1; S1268 open
+K.satiety.W_FAT = 0.894427 -- game choice, fitted in Plan 11g Task 6c against S1224, S1228 and S1247 (tools/fit_gut_satiety.py, fit-11g-20261012b) (ruling T2-3: the fit decides): fat's weight per kcal on M, a little below carbohydrate's, the two minute differences scored on one scale (Melanson's 61 min, spec § 7): S1224 (Marmonier 2000: fat's delay 9 min shorter than carbohydrate's; the model reads it 5 min longer) against S1228 (Melanson 1999: fat's request 61 min later; the model reads it 2 min earlier), both named non-reproductions; at x0.5 Callahan's 400 kcal preload (S1247) fails too; the hunger nulls (S1810, S1816, S1818, S1830) would put it at 1; S1268 open
 K.satiety.W_NEUTRAL = 1 -- neutral (spec § 3.1): the common weight of a vector with no macronutrient grams
-K.satiety.G_HALF_LIFE_H = 1.25 -- game choice, fitted in Plan 11g Task 6 against S1247, S1248, S1231, S1233, S1809, S1828 and S1325 (tools/fit_gut_satiety.py, fit-11g-20261012): G's clearance half-life in game hours, inside harvest 12's 0.5-2 h (S1841, S1847, S1850, S1854, S1861; inference) and harvest 11's 0.25-1.5 h (S1799); S1270 open: no row measures a satiety signal's decay
-K.satiety.G_REQ = 158.606 -- game choice, fitted in Plan 11g Task 6 against S1247, S1248, S1231 and S1828 (tools/fit_gut_satiety.py, fit-11g-20261012): G in weighted kcal at which an empty stomach reads the request level 0.25; S1270 open: no row gives a satiety signal's scale
-K.satiety.G_STEEP = 0.019723 -- game choice, fitted in Plan 11g Task 6 against S1247, S1809 and S1325 (tools/fit_gut_satiety.py, fit-11g-20261012): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247); flat enough that the gut signal alone barely moves hunger at normal delivery, acting mainly with fullness (S1851-S1855, harvest 12); S1270 open
-K.satiety.G_SEED_MAX = 870 -- game choice (ruling 11c-30; re-derived in Plan 11g Task 6): the seed's cap, about the weighted kcal of a 1,000 kcal mixed meal (15/50/35 % of energy, 867 under the fitted weights), so a HUNGER of 0 does not seed a G that sates for days; it sets the seed's floor, an empty stomach's read at the cap, 0.244 under the fitted G_REQ and G_STEEP: a vanilla HUNGER below it seeds the cap and writes hungerTarget(0.756, energy state), that is 0.244 x es + 0.02 x max(0, es - 1) (the deficit floor 0.02, Plan 11f Task 2c fix 1), times the circadian, acute and sleep factors
-K.satiety.FULL_WEIGHT = 0.542383 -- game choice, fitted in Plan 11g Task 6 against S1231, S1233, S1247 and S1325 (tools/fit_gut_satiety.py, fit-11g-20261012): fullness's weight in the sated product; S1235 has fullness track gastric volume, and harvest 13 credits F with part of Karl 2021's surplus troughs (S1874: BAL's emptying 612 min)
-K.satiety.LIQUID_WEIGHT = 0.181397 -- game choice, fitted in Plan 11g Task 6 against S1231 and S1233 (tools/fit_gut_satiety.py, fit-11g-20261012): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake)
-K.satiety.PROTEIN_FILL = 11.8338 -- game choice, fitted in Plan 11g Task 6 against S1222, S1224 and S1820 (tools/fit_gut_satiety.py, fit-11g-20261012) (ruling 11d-5: no row names gastric fullness from protein): the extra grams of fullness mass a gram of protein in the solid lane counts for; the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) reads 0.0196, inside S1222's band 0.0125-0.04 (hunger -7 mm; S1380 and S1383: less eaten after protein); S1384's short-term null for whey against carbohydrate is not reproduced
+K.satiety.MEAL_HALF_LIFE_H = 0.6 -- game choice, fitted in Plan 11g Task 6c against S1247, S1248, S1224 and S1828 (tools/fit_gut_satiety.py, fit-11g-20261012b): M's clearance half-life in game hours (at x2 and x0.5 Callahan's preloads, the 650 kcal anchor and Marmonier's differences fail, and at x2 the stability checks), inside harvest 12's 0.5-2 h (S1841, S1847, S1850, S1854, S1861; inference) and harvest 11's 0.25-1.5 h (S1799); S1270 open: no row measures a satiety signal's decay
+K.satiety.MEAL_REQ = 4.47214 -- game choice, fitted in Plan 11g Task 6c against S1247, S1231, S1233 and S1828 (tools/fit_gut_satiety.py, fit-11g-20261012b): M in weighted kcal at which an empty stomach reads the request level 0.25 (at x2 Callahan's 190 and 400 kcal preloads, Rolls' drop and 600 mL arm and Diekmann's 6 h fail; at x0.5 only the named pins move); S1270 open: no row gives a satiety signal's scale
+K.satiety.MEAL_STEEP = 0.0559017 -- game choice, fitted in Plan 11g Task 6c against S1247, S1231, S1233 and S1828 (tools/fit_gut_satiety.py, fit-11g-20261012b): the read's exponent, near-logarithmic so a snack leaves hunger intermediate while the interval grows with the log of the meal (S1247); not at a search bound (the grid spanned 0.02-0.15 and both refined neighbours read worse), so the stability checks hold (the 650 kcal meal at 19:00 back at 291 min, spread 26 min over hunger x0.98-x1.02; hunger 0.495 at +24 h; at x0.5 the fasting rise fails); S1270 open
+K.satiety.MEAL_SEED_MAX = 1190 -- game choice (ruling 11c-30; re-derived in Plan 11g Task 6c): the seed's cap, about the weighted kcal of a 1,000 kcal mixed meal (15/50/35 % of energy, 1188 under the fitted weights), so a HUNGER of 0 does not seed an M that sates for days; it sets the seed's floor, an empty stomach's read at the cap, 0.196 under the fitted MEAL_REQ and MEAL_STEEP: a vanilla HUNGER below it seeds the cap and writes hungerTarget(0.804, energy state), that is 0.196 x es + 0.02 x max(0, es - 1) (the deficit floor 0.02, Plan 11f Task 2c fix 1), times the circadian, acute and sleep factors
+K.satiety.FULL_WEIGHT = 0.5 -- game choice, fitted in Plan 11g Task 6c against S1231, S1233, S1828 and S1325 (tools/fit_gut_satiety.py, fit-11g-20261012b): fullness's weight in the sated product, F counted to the hard capacity (spec § 7); at x2 and x0.5 Rolls 1999 and Karl 2021's BAL arm fail; S1235 has fullness track gastric volume, and harvest 13 credits F with part of Karl 2021's surplus troughs (S1874: BAL's emptying 612 min)
+K.satiety.LIQUID_WEIGHT = 0.0151122 -- game choice, fitted in Plan 11g Task 6c against S1231 and S1233 (tools/fit_gut_satiety.py, fit-11g-20261012b): drunk liquid's weight in the satiety mass (K.stomach.satietyMass), between S1231 (water drunk alongside did not affect satiety) and S1233 (a drink's volume moved intake); weakly held: the loss still falls toward 0 (1.3552 at 1e-6 against 1.3609), and at x2 and x0.5 only S1833's named pins move
+K.satiety.PROTEIN_FILL = 8 -- game choice, fitted in Plan 11g Task 6c against S1231, S1233 and S1820 (tools/fit_gut_satiety.py, fit-11g-20261012b) (ruling 11d-5: no row names gastric fullness from protein): the extra grams of fullness mass a gram of protein in the solid lane counts for (at x2 Rolls 1999 and Belza's 50 % arm fail, at x0.5 Rolls' casserole and 600 mL arm); the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) reads 0.0124, 0.4 % under S1222's band 0.0125-0.04 (hunger -7 mm; S1380 and S1383: less eaten after protein), a named non-reproduction; S1384's short-term null for whey against carbohydrate is not reproduced
 K.satiety.DISCOMFORT_MAX = 100 -- not science: the soft cap's discomfort scale, borrowed from the DISCOMFORT stat's range 0-100 (CharacterStat.<clinit> registers 'Discomfort' with 0.0 and 100.0; Task 5 cites it on 42.21); ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel and nothing writes DISCOMFORT
 K.satiety.ATWATER_P = 4 -- S1209 (Atwater general factors: protein 4.0 kcal/g)
 K.satiety.ATWATER_C = 4 -- S1209 (carbohydrate 4.0 kcal/g)
@@ -33,7 +37,7 @@ K.satiety.CIRCADIAN_A = 0.085 -- labelled inference (ruling 11c-24; S1273): the 
 K.satiety.CIRCADIAN_PEAK_H = 19.8333 -- S1273 (ruling 11c-24): Scheer 2013's circadian hunger peak at 19:50 (trough 07:50), in game hours of the day
 K.satiety.ACUTE_MAX = 0.7 -- game choice, fitted in Task 4b (Plan 11c) while its against-control row was open (now S1500 and S1502; kept at 0.7, ruling 11d-1): with ACUTE_HALF_LIFE_H, to S1303 (Douglas 2017: ES >= 0.60 at 0.5, 1.0 and 1.5 h of a trial whose bout ran 0-1 h) and S1306 (Goltz 2018: ES 0.62-1.47 just after a 60 min run), under the request-anchored mapping (ruling 11c-31: 65 mm read as 0.25, an assumption) and an SD of 25.7 mm read off S1303's main effect (an inference); since Plan 11d S1500 (no effect 30-90 min after the bout) overrides S1303's 1.5 h reading, the decay being ACUTE_DECAY_HALF_LIFE_H (ruling 11d-1)
 K.satiety.ACUTE_HALF_LIFE_H = 0.5 -- game choice, fitted in Task 4b (Plan 11c) (fitted while its against-control row was open; now S1500 and S1502, ruling 11d-1): the state's rise half-life in game hours, while vigorous, fitted with ACUTE_MAX to S1303 and S1306; it reads S1502's -33 % during a 60 min bout (the replay's mean 0.674 of control); the decay is ACUTE_DECAY_HALF_LIFE_H (Plan 11d)
-K.satiety.ACUTE_DECAY_HALF_LIFE_H = 0.15 -- game choice, Plan 11d (ruling 11d-1): the post-bout decay, fitted to S1500 (no effect 30-90 min after) and S1502 (-33 % during); the rise keeps ACUTE_HALF_LIFE_H; fitted at 0.15 h, the activity replay of a 60 min aerobic bout reads 0.674 of control's hunger over the bout (S1502: 41 against 61 mm, 0.67) and -3.5 mm 30 min after it (-3.7 before the gut-satiety fit, Plan 11g Task 6; -3.8 before the deficit drive's refit on the shipped pipeline, Plan 11f Task 2c, and -3.9 before ruling 9c-1) (S1500: no larger than the pooled -8.465 mm immediately after)
+K.satiety.ACUTE_DECAY_HALF_LIFE_H = 0.15 -- game choice, Plan 11d (ruling 11d-1): the post-bout decay, fitted to S1500 (no effect 30-90 min after) and S1502 (-33 % during); the rise keeps ACUTE_HALF_LIFE_H; fitted at 0.15 h, the activity replay of a 60 min aerobic bout reads 0.674 of control's hunger over the bout (S1502: 41 against 61 mm, 0.67) and -3.8 mm 30 min after it (Plan 11g Task 6c's refit; -3.5 under the gut stage's fit, Task 6, -3.7 before it; -3.8 before the deficit drive's refit on the shipped pipeline, Plan 11f Task 2c, and -3.9 before ruling 9c-1) (S1500: no larger than the pooled -8.465 mm immediately after)
 K.satiety.ACUTE_KIND = {}
 K.satiety.ACUTE_KIND.aerobic = 1 -- S1300, S1303, S1306: running suppresses hunger (the weight is the scale's unit)
 K.satiety.ACUTE_KIND.resistance = 0.5 -- game choice (S1301: suppressed during resistance work too; S1305: less marked and not observed consistently), the swing state
@@ -44,26 +48,33 @@ K.satiety.NIC_MAX = 0.1313 -- game choice, Plan 11e (rulings 11e-2 and T2-D): th
 K.satiety.NIC_FADE_DAYS = 182 -- game choice, Plan 11e (ruling 11e-2): 26 weeks, the fade's end, from S1577 (Hall 1989: abstinent women's intake about baseline by week 26, men's below it), linear between; the size it fades is S1576's (n = 13, low certainty) and the shape of the fade is not measured
 K.satiety.NIC_WITHDRAWAL_MAX = 0.51 -- CharacterStat.NICOTINE_WITHDRAWAL's maximum, the stat's cap a full smoke removes (#3632)
 
--- Fullness: the stomach's F (Plan 11c, spec § 3.1, ruling 11c-30; Plan 11d Task 5, ruling T5-2).
--- The fullness F: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8); K.stomach.fill
--- passes K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the tolerated maximum (ruling 11c-19).
+-- Fullness: the stomach's F (Plan 11c, spec § 3.1, ruling 11c-30; Plan 11d Task 5, ruling T5-2; Plan 11g spec § 7).
+-- The physical fill: mass over capacity, clamped to [0, 1] (liquid and food taken at density 1, ruling 11c-8);
+-- K.stomach.fill passes K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the tolerated maximum
+-- (ruling 11c-19). record.stomachFill stays this physical fill; the satiety F below is not clamped at 1.
 function K.satiety.fill(mass, capacity)
     return K.clamp(mass / capacity, 0, 1)
 end
 
 -- The F a stomach sates with: its fullness mass (K.stomach.fullnessMass, the satiety mass plus PROTEIN_FILL x the solid
--- lane's protein, rulings 11d-5 and T5-2) over K.stomach.CAPACITY_MAX_G. Protein fills while it is in the stomach and
--- leaves with the lane's energy, so the term fades as the meal empties; no row names gastric fullness from protein, so
--- PROTEIN_FILL is a game choice fitted with FULL_WEIGHT and the read's exponent (ruling 11c-31's request-anchored
--- mapping, an assumption). The writer's W.satietyF and the replays read it; record.stomachFill stays physical.
+-- lane's protein, rulings 11d-5 and T5-2) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G /
+-- CAPACITY_MAX_G] (1100 / 730 = 1.507; Plan 11g spec § 7): fullness keeps rising past the tolerated maximum up to
+-- maximal discomfort (S1250, S1253), so a well-fed stomach past 730 g sates more than one at it, where a clamp at 1
+-- read Karl 2021's resting and well-fed post-meal stomachs alike (harvest 13: BAL's emptying 612 min against 182,
+-- S1874). Protein fills while it is in the stomach and leaves with the lane's energy, so the term fades as the meal
+-- empties; no row names gastric fullness from protein, so PROTEIN_FILL is a game choice fitted with FULL_WEIGHT and the
+-- read's exponent (ruling 11c-31's request-anchored mapping, an assumption). The writer's W.satietyF and the replays
+-- read it; the soft cap's discomfort and the Overfull moodle read the mass (K.view.fullnessLevel), never F.
 function K.satiety.fullness(stomach)
-    return K.satiety.fill(K.stomach.fullnessMass(stomach), K.stomach.CAPACITY_MAX_G)
+    local cap = K.stomach.CAPACITY_MAX_G
+    return K.clamp(K.stomach.fullnessMass(stomach) / cap, 0, K.stomach.CAPACITY_HARD_G / cap)
 end
 
--- The gut stage G (Plan 11g, spec § 3.1; ruling T4-3).
--- G is the weighted kcal the stomach has emptied. The kinetics step runs gStep on every one-minute substep: G is fed
--- what K.stomach.drain emptied in that substep, then cleared first-order over it; the writer seeds G and reads it.
--- G replaced the meal pool P, which the intake fed in full at the eat (Plan 11c rulings 11c-27 and 11c-30).
+-- The meal pool M, the weighted kcal eaten, fed at the eat (Plan 11g Task 6c, spec § 7).
+-- The intake feeds M in full at the eat with the landed vector's weighted kcal (mealFeed; NR_Server_Intake's IN.feed, on
+-- every route that lands); the kinetics step clears it first-order on every one-minute substep of the stomach's drain
+-- (drain), and the writer seeds M and reads it. The meal pool P (Plan 11c rulings 11c-27 and 11c-30) was fed the same
+-- way; Plan 11g Task 4's gut stage G, fed with what the stomach emptied, fitted flat (Task 6) and was withdrawn.
 -- A vector's weighted kcal: its delivered calories split by the Atwater share of its protein, carbohydrate and fat
 -- grams, each share times its weight; a vector with no macronutrient grams takes the neutral weight.
 function K.satiety.weigh(vector)
@@ -77,52 +88,46 @@ function K.satiety.weigh(vector)
     return vector.calories * (K.satiety.W_PROTEIN * p + K.satiety.W_CARB * c + K.satiety.W_FAT * f) / atwater
 end
 
--- Feed G with the vector the stomach emptied: its weighted kcal, by the absolute kcal emptied.
-function K.satiety.gFeed(G, emptied)
-    return G + K.satiety.weigh(emptied)
+-- Feed M with an eaten vector: its weighted kcal, in full at the eat.
+function K.satiety.mealFeed(M, vector)
+    return M + K.satiety.weigh(vector)
 end
 
--- First-order clearance over dtH game hours at G_HALF_LIFE_H, scaled by trait (the appetite trait times the sandbox's
+-- First-order clearance over dtH game hours at MEAL_HALF_LIFE_H, scaled by trait (the appetite trait times the sandbox's
 -- stats-decrease multiplier, ruling 11c-11); nothing for no time. No asleep factor: the same clearance asleep and awake (ruling 11c-24).
-function K.satiety.gClear(G, dtH, trait)
+function K.satiety.mealClear(M, dtH, trait)
     if dtH <= 0 then
-        return G
+        return M
     end
-    return G * math.exp(-0.6931471805599453 * dtH * trait / K.satiety.G_HALF_LIFE_H)
-end
-
--- One step of G over dtH game hours (Plan 11g Task 4 fix 1, ruling T4-3): feed what the stomach emptied in the step,
--- then clear over the step. The order is one fact: Kinetics runs it per substep, and every stand-in calls it.
-function K.satiety.gStep(G, emptied, dtH, trait)
-    return K.satiety.gClear(K.satiety.gFeed(G, emptied), dtH, trait)
+    return M * math.exp(-0.6931471805599453 * dtH * trait / K.satiety.MEAL_HALF_LIFE_H)
 end
 
 -- The stomach's drain over dtM game minutes in ceil(dtM) equal substeps of at most one minute (Plan 11c Task 6
 -- amendment 5; moved here from KIN.drain in Plan 11g Task 6), the emptied vectors summed into the first, which is
--- returned. gut is nil or a {G, trait} state whose G takes one gStep per substep on what that substep emptied. A float
--- one-minute gap (60 x 1/60 h, or a stamp a 14-digit slot rounded) is one substep (ruling T4-4). Kinetics calls it with
--- its gap capped, and the replays' stand-ins call it, so every path splits a step alike.
-function K.satiety.drain(stomach, dtM, gut)
+-- returned. pool is nil or a {M, trait} state whose M is cleared over each substep (mealClear; nothing feeds it here:
+-- the eat does). A float one-minute gap (60 x 1/60 h, or a stamp a 14-digit slot rounded) is one substep (ruling
+-- T4-4). Kinetics calls it with its gap capped, and the replays' stand-ins call it, so every path splits a step alike.
+function K.satiety.drain(stomach, dtM, pool)
     local n = math.ceil(dtM - 1e-6)
     if n < 1 then
         n = 1
     end
     local dtH = dtM / n / 60
     local emptied = K.stomach.drain(stomach, dtH)
-    if gut ~= nil then
-        gut.G = K.satiety.gStep(gut.G, emptied, dtH, gut.trait)
+    if pool ~= nil then
+        pool.M = K.satiety.mealClear(pool.M, dtH, pool.trait)
     end
     for i = 2, n do
         local e = K.stomach.drain(stomach, dtH)
-        if gut ~= nil then
-            gut.G = K.satiety.gStep(gut.G, e, dtH, gut.trait)
+        if pool ~= nil then
+            pool.M = K.satiety.mealClear(pool.M, dtH, pool.trait)
         end
         K.vector.add(emptied, e, 1)
     end
     return emptied
 end
 
--- The appetite trait's factor on G's clearance (#0485): HEARTY for a hearty appetite, LIGHT for a light eater, else 1.
+-- The appetite trait's factor on M's clearance (#0485): HEARTY for a hearty appetite, LIGHT for a light eater, else 1.
 function K.satiety.trait(hearty, light)
     if hearty then
         return K.satiety.HEARTY
@@ -133,32 +138,34 @@ function K.satiety.trait(hearty, light)
     return 1
 end
 
--- The read and composition (Plan 11c structure D, ruling 11c-30).
--- G's read 1 - 1 / (1 + 3 (G / G_REQ)^G_STEEP), in [0, 1): 3 = (1 - 0.25) / 0.25, so an empty stomach reads the
--- request level 0.25 at G = G_REQ; G_STEEP makes the read near-logarithmic.
-function K.satiety.gRead(G)
-    if G <= 0 then
+-- The read and composition (Plan 11c structure D, ruling 11c-30; Plan 11g spec § 7).
+-- M's read 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP), in [0, 1): 3 = (1 - 0.25) / 0.25, so an empty stomach reads the
+-- request level 0.25 at M = MEAL_REQ; MEAL_STEEP makes the read near-logarithmic.
+function K.satiety.mealRead(M)
+    if M <= 0 then
         return 0
     end
-    local x = math.exp(K.satiety.G_STEEP * math.log(G / K.satiety.G_REQ))
+    local x = math.exp(K.satiety.MEAL_STEEP * math.log(M / K.satiety.MEAL_REQ))
     return 1 - 1 / (1 + 3 * x)
 end
 
--- Sated: either signal sates and together they compound, 1 - (1 - FULL_WEIGHT x F) x (1 - Gn).
-function K.satiety.sated(F, Gn)
-    return 1 - (1 - K.satiety.FULL_WEIGHT * F) * (1 - Gn)
+-- Sated: either signal sates and together they compound, 1 - (1 - FULL_WEIGHT x F) x (1 - Mn), clamped to [0, 1]:
+-- with F counted to the hard capacity FULL_WEIGHT x F can pass 1, and the product then reads 1 (spec § 7).
+function K.satiety.sated(F, Mn)
+    return K.clamp(1 - (1 - K.satiety.FULL_WEIGHT * F) * (1 - Mn), 0, 1)
 end
 
--- The hunger target before the factors: K.hybrid.hungerTarget(sated(F, gRead(G)), energyState). The writer multiplies
+-- The hunger target before the factors: K.hybrid.hungerTarget(sated(F, mealRead(M)), energyState). The writer multiplies
 -- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH) and caps it at 0.69; the replays read it.
-function K.satiety.target(F, G, energyState)
-    return K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.gRead(G)), energyState)
+function K.satiety.target(F, M, energyState)
+    return K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.mealRead(M)), energyState)
 end
 
--- The seed (spec § 4; Plan 11g spec § 3.3): the G for which target(F, G, energyState) equals hunger, the inverse of
--- gRead, G_REQ (gn / (3 (1 - gn)))^(1 / G_STEEP), capped at G_SEED_MAX; 0 where no G reaches it, and 0 for a
--- non-finite input (x - x is NaN for NaN and for an infinity), so a bad read never loops NaN through G.
-function K.satiety.seedG(hunger, F, energyState)
+-- The seed (spec § 4; Plan 11g spec § 3.3): the M for which target(F, M, energyState) equals hunger, the inverse of
+-- mealRead, MEAL_REQ (mn / (3 (1 - mn)))^(1 / MEAL_STEEP), capped at MEAL_SEED_MAX; 0 where no M reaches it (a
+-- fullness at or past 1 / FULL_WEIGHT, which F up to the hard capacity can reach, sates fully alone), and 0 for a
+-- non-finite input (x - x is NaN for NaN and for an infinity), so a bad read never loops NaN through M.
+function K.satiety.seedMeal(hunger, F, energyState)
     if hunger - hunger ~= 0 or F - F ~= 0 or energyState - energyState ~= 0 then
         return 0
     end
@@ -170,15 +177,15 @@ function K.satiety.seedG(hunger, F, energyState)
     if rest <= 0 then
         return 0
     end
-    local gn = 1 - free / rest
-    if gn <= 0 then
+    local mn = 1 - free / rest
+    if mn <= 0 then
         return 0
     end
-    if gn >= 1 then
-        return K.satiety.G_SEED_MAX
+    if mn >= 1 then
+        return K.satiety.MEAL_SEED_MAX
     end
-    local G = K.satiety.G_REQ * math.exp(math.log(gn / (3 * (1 - gn))) / K.satiety.G_STEEP)
-    return K.min(G, K.satiety.G_SEED_MAX)
+    local M = K.satiety.MEAL_REQ * math.exp(math.log(mn / (3 * (1 - mn))) / K.satiety.MEAL_STEEP)
+    return K.min(M, K.satiety.MEAL_SEED_MAX)
 end
 
 -- Discomfort: the soft cap's scale (ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel;

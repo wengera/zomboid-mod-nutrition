@@ -189,7 +189,7 @@ def test_a_gap_over_sixty_minutes_drains_sixty_minutes_only(kin_host):
 
 
 def test_no_emptied_vector_rides_the_context(kin_host):
-    # Plan 11g Task 4: G is stepped inside this step (K.satiety.gStep), so no emptied vector rides the context to the writer;
+    # Plan 11g Task 4: the satiety pool is stepped inside this step (Task 6c: M cleared by K.satiety.drain), so no emptied vector rides the context to the writer;
     # only absorption's handoffs ride
     h = kin_host
     record = rec(h, 100)
@@ -484,10 +484,10 @@ def test_a_pool_that_is_not_a_table_heals(kin_host):
     assert all(isinstance(v, (int, float)) and math.isfinite(v) for v in r.pool.values())
 
 
-# Plan 11g Task 4 (spec § 3.1) and its fix 1 (ruling T4-3): the gut stage G's dynamics are Kinetics'. Each substep of
-# a gap runs K.satiety.gStep: G is fed the weighed kcal of what the stomach emptied in that substep, then cleared over
-# the substep at G_HALF_LIFE_H, scaled by the appetite trait and the sandbox's stats-decrease multiplier. The writer
-# seeds G at first sight and reads it.
+# Plan 11g Task 4 fix 1 (ruling T4-3) and Task 6c (spec § 7): the meal pool M's clearance is Kinetics'. The intake
+# feeds M at the eat (IN.feed, test_intake_shape.py); each substep of a gap clears it (K.satiety.mealClear) at
+# MEAL_HALF_LIFE_H, scaled by the appetite trait and the sandbox's stats-decrease multiplier, and nothing the stomach
+# empties feeds it. The writer seeds M at first sight and reads it.
 
 def _satiety_constant(name):
     """A K.satiety constant read off the kernel file (fitted in Plan 11g Task 6, so no value is re-typed here)."""
@@ -499,48 +499,46 @@ def _satiety_constant(name):
         return float(re.search(r"^K\.satiety\.%s = ([0-9.]+)" % name, fh.read(), re.M).group(1))
 
 
-HL = _satiety_constant("G_HALF_LIFE_H")       # G's half-life in game hours
+HL = _satiety_constant("MEAL_HALF_LIFE_H")       # M's half-life in game hours
 
 
 def _clear(dtM, trait=1.0):
-    """K.satiety.gClear's factor over dtM game minutes in doubles, in the kernel's operation order."""
+    """K.satiety.mealClear's factor over dtM game minutes in doubles, in the kernel's operation order."""
     return math.exp(-LN2 * (dtM / 60) * trait / HL)
 
 
-def test_a_minute_feeds_g_the_weighed_kcal_the_stomach_emptied(kin_host):
-    # 100 kcal with no macronutrient grams (the neutral weight 1) over a 60-minute gap: each substep feeds what it
-    # emptied and clears it over that substep only
+def test_a_minute_clears_m_and_the_emptying_feeds_nothing(kin_host):
+    # 100 kcal with no macronutrient grams over a 60-minute gap: the stomach empties and the pool absorbs it, while M
+    # is only cleared, substep by substep (Plan 11g Task 6c: M is fed at the eat, never by the emptying)
     h = kin_host
     r = rec(h, 100)
-    r.satiety = h.rt.eval("{ G = 10, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 10, S = 0, L = 0 }")
     run(h, r, 100.0)
-    assert r.satiety.G == 10                                       # no elapsed time: nothing emptied, nothing fed
+    assert r.satiety.M == 10                                       # no elapsed time: nothing cleared
     run(h, r, 101.0)
-    G, E = 10.0, 100.0
+    m = 10.0
     for _ in range(60):
-        e = E * _frac(E, 1.0)
-        E -= e
-        G = (G + e) * _clear(1.0)
-    assert abs(r.satiety.G - G) < 1e-9
+        m = m * _clear(1.0)
+    assert abs(r.satiety.M - m) < 1e-12
     assert abs(r.pool.calories - (100 - _substeps(100.0, 60.0))) < 1e-9   # the emptied kcal is what the pool absorbed
 
 
-def test_the_feed_weighs_the_emptied_macronutrients(kin_host):
-    # protein alone in the solid lane: every key leaves in the energy's proportion, so G gains W_PROTEIN x the kcal
+def test_the_emptied_macronutrients_feed_nothing(kin_host):
+    # protein alone in the solid lane, from M 0: the minute empties some of it and M stays 0 (the weighed feed is the
+    # eat's, K.satiety.mealFeed through IN.feed)
     h = kin_host
     r = rec(h, 100)
     r.stomach.buffer.proteins = 25.0                               # 100 kcal by Atwater 4
-    r.satiety = h.rt.eval("{ G = 0, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 0, S = 0, L = 0 }")
     run(h, r, 100.0)
     run(h, r, 100.0 + 1 / 60)
-    emptied = 100 * _frac(100.0, 1.0)
-    assert abs(r.satiety.G - h.G.NutritionRevamp.kernel.satiety.W_PROTEIN * emptied * _clear(1.0)) < 1e-9
-    assert h.G.NutritionRevamp.kernel.satiety.W_PROTEIN == _satiety_constant("W_PROTEIN") != 1
+    assert r.stomach.buffer.calories < 100
+    assert r.satiety.M == 0
 
 
-@pytest.mark.parametrize("sat", [None, "{ S = 0, L = 0 }", "{ G = 0 / 0, S = 0, L = 0 }", "{ G = 1 / 0, S = 0, L = 0 }"])
-def test_an_unseeded_g_is_left_for_the_writers_seed(kin_host, sat):
-    # a record whose satiety is absent, or whose G is absent or non-finite, is not fed: the writer seeds it from HUNGER
+@pytest.mark.parametrize("sat", [None, "{ S = 0, L = 0 }", "{ M = 0 / 0, S = 0, L = 0 }", "{ M = 1 / 0, S = 0, L = 0 }"])
+def test_an_unseeded_m_is_left_for_the_writers_seed(kin_host, sat):
+    # a record whose satiety is absent, or whose M is absent or non-finite, is not cleared: the writer seeds it from HUNGER
     h = kin_host
     r = rec(h, 300)
     if sat is not None:
@@ -552,43 +550,43 @@ def test_an_unseeded_g_is_left_for_the_writers_seed(kin_host, sat):
     if sat is None:
         assert r.satiety is None
     else:
-        g = r.satiety.G
+        g = r.satiety.M
         assert g is None or not math.isfinite(g)
     assert KIN(h).stats.failures == f0
 
 
-def test_a_non_finite_step_keeps_g_and_counts_a_failure(kin_host):
+def test_a_non_finite_clearance_keeps_m_and_counts_a_failure(kin_host):
     h = kin_host
     K = h.G.NutritionRevamp.kernel
     r = rec(h, 300)
-    r.satiety = h.rt.eval("{ G = 42, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 42, S = 0, L = 0 }")
     run(h, r, 100.0)
-    orig = K.satiety.gStep
-    K.satiety.gStep = h.rt.eval("function(G, e, dtH, t) return 0 / 0 end")
+    orig = K.satiety.mealClear
+    K.satiety.mealClear = h.rt.eval("function(M, dtH, t) return 0 / 0 end")
     try:
         f0 = KIN(h).stats.failures
         run(h, r, 100.0 + 1 / 60)
     finally:
-        K.satiety.gStep = orig
-    assert r.satiety.G == 42
+        K.satiety.mealClear = orig
+    assert r.satiety.M == 42
     assert KIN(h).stats.failures == f0 + 1
-    assert "gut stage" in KIN(h).lastError
-    run(h, r, 100.0 + 2 / 60)                                      # the next minute feeds again
-    assert r.satiety.G > 42
+    assert "meal pool" in KIN(h).lastError
+    run(h, r, 100.0 + 2 / 60)                                      # the next minute clears again
+    assert 0 < r.satiety.M < 42
     assert KIN(h).stats.failures == f0 + 1
 
 
-def test_g_clears_at_its_half_life_of_game_time(kin_host):
-    # one G_HALF_LIFE_H of game time on an empty stomach halves G; a gap past 60 minutes clears over one hour only
+def test_meal_clears_at_its_half_life_of_game_time(kin_host):
+    # one MEAL_HALF_LIFE_H of game time on an empty stomach halves M; a gap past 60 minutes clears over one hour only
     h = kin_host
     r = rec(h, 0)
-    r.satiety = h.rt.eval("{ G = 6, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 6, S = 0, L = 0 }")
     run(h, r, 1.0)
     run(h, r, 1.0 + HL / 2)                                       # two steps: each under the 60-minute gap cap
     run(h, r, 1.0 + HL)
-    assert r.satiety.G == pytest.approx(3.0)
+    assert r.satiety.M == pytest.approx(3.0)
     run(h, r, 1.0 + HL + 3)
-    assert r.satiety.G == pytest.approx(3.0 * 2 ** (-1 / HL))
+    assert r.satiety.M == pytest.approx(3.0 * 2 ** (-1 / HL))
 
 
 def _meal(h, r):
@@ -600,13 +598,12 @@ def _meal(h, r):
     v.lipids = 23.3
     v.water = 300.0
     K.stomach.ingest(r.stomach, v)
-    r.satiety = h.rt.eval("{ G = 40, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 40, S = 0, L = 0 }")
 
 
-def test_a_gap_reads_the_same_g_as_its_single_minutes(kin_host):
-    # ruling T4-3: a 60-minute gap runs K.satiety.gStep per substep, so a meal still emptying late in the gap is
-    # cleared over the minutes left after it emptied, exactly as 60 single minutes clear it; ages near 1 h keep the
-    # single minutes' world-age differences exact to about 1e-14
+def test_a_gap_reads_the_same_m_as_its_single_minutes(kin_host):
+    # a 60-minute gap drains the stomach and clears M in one-minute substeps (K.satiety.drain), exactly as 60 single
+    # minutes do; ages near 1 h keep the single minutes' world-age differences exact to about 1e-14
     h = kin_host
     a = rec(h, 0)
     b = rec(h, 0)
@@ -619,10 +616,8 @@ def test_a_gap_reads_the_same_g_as_its_single_minutes(kin_host):
         run(h, b, 1.0 + m / 60)                                    # sixty single minutes
     assert abs(a.stomach.buffer.calories - b.stomach.buffer.calories) < 1e-9
     assert a.stomach.buffer.calories > 0                           # the meal is still emptying at the gap's end
-    assert abs(a.satiety.G - b.satiety.G) < 1e-9
-    # the gap's emptying fed at once and cleared over the whole hour reads far lower: the late food matters
-    once = (40 + h.G.NutritionRevamp.kernel.satiety.weigh(a.pool)) * _clear(60.0)
-    assert abs(a.satiety.G - once) > 1
+    assert abs(a.satiety.M - b.satiety.M) < 1e-9
+    assert abs(a.satiety.M - 40 * _clear(60.0)) < 1e-9            # nothing the hour emptied fed M: an hour's clearance
 
 
 TRAIT_PLAYER = r"""
@@ -660,34 +655,35 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
     try:
         p = h.rt.eval(TRAIT_PLAYER)(trait, asleep)
         r = rec(h, 0)
-        r.satiety = h.rt.eval("{ G = 6, S = 0, L = 0 }")
+        r.satiety = h.rt.eval("{ M = 6, S = 0, L = 0 }")
         h.rt.eval(CASE_PLAYER)(r, 1.0, p)
         h.rt.eval(CASE_PLAYER)(r, 1.0 + HL / 2, p)                 # each step under the 60-minute gap cap
         h.rt.eval(CASE_PLAYER)(r, 1.0 + HL, p)
-        assert r.satiety.G == pytest.approx(expected)
+        assert r.satiety.M == pytest.approx(expected)
     finally:
         h.G.CharacterTrait = saved[1]
         h.G.getSandboxOptions = saved[2]
         h.G.NutritionRevamp.so = None
 
 
-def test_a_restart_through_the_store_clears_g_over_the_gap(kin_host):
-    # the stamp kineticsAge and G are stored (K.store.INPUTS), so a restart three hours later clears one capped hour
+def test_a_restart_through_the_store_clears_m_over_the_gap(kin_host):
+    # the stamp kineticsAge and M are stored (K.store.INPUTS), so a restart three hours later clears one capped hour
     h = kin_host
     K = h.G.NutritionRevamp.kernel
     r = rec(h, 0)
-    r.satiety = h.rt.eval("{ G = 6, S = 0, L = 0 }")
+    r.satiety = h.rt.eval("{ M = 6, S = 0, L = 0 }")
     run(h, r, 1.0)
     back = K.store.load(K.store.inputsOnly(r), None, None)
-    assert back.kineticsAge == 1.0 and back.satiety.G == 6
+    assert back.kineticsAge == 1.0 and back.satiety.M == 6
     run(h, back, 4.0)
-    assert back.satiety.G == pytest.approx(6 * 2 ** (-1 / HL))
+    assert back.satiety.M == pytest.approx(6 * 2 ** (-1 / HL))
 
 
 def test_a_stamp_rounded_to_fourteen_digits_adds_no_substep(kin_host):
-    # Plan 11g Task 4 fix 1: G is stepped per substep, so the substep count reaches G. A world-age stamp that passed
-    # through a 14-significant-digit format (the harness slot, x260b's mid-ring start) is off by up to about 3e-9
-    # game minutes at 1000 h; that gap still runs ceil(dtM - 1e-6) = 2 substeps, as the exact one does
+    # Plan 11g Task 4 fix 1 (ruling T4-4): the stomach drains per substep, so the substep count reaches the stomach (and,
+    # while G was fed at emptying, G). A world-age stamp that passed through a 14-significant-digit format (the harness
+    # slot, x260b's mid-ring start) is off by up to about 3e-9 game minutes at 1000 h; that gap still runs
+    # ceil(dtM - 1e-6) = 2 substeps, as the exact one does
     h = kin_host
     a = rec(h, 0)
     b = rec(h, 0)
@@ -699,4 +695,5 @@ def test_a_stamp_rounded_to_fourteen_digits_adds_no_substep(kin_host):
     assert 1e-9 < ((1001.1833333333333 + 2 / 60) - b.kineticsAge) * 60 - 2 < 1e-6
     run(h, a, 1001.1833333333333 + 2 / 60)
     run(h, b, 1001.1833333333333 + 2 / 60)
-    assert abs(a.satiety.G - b.satiety.G) < 1e-7                   # the 2e-9 min longer gap feeds about 5e-9; 3 substeps 0.018
+    assert abs(a.stomach.buffer.calories - b.stomach.buffer.calories) < 1e-7   # the same two substeps
+    assert abs(a.satiety.M - b.satiety.M) < 1e-8                    # the 2e-9 min longer gap clears about 1.5e-9 more

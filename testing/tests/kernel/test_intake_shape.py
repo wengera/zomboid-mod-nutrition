@@ -1701,10 +1701,11 @@ def test_the_intake_no_longer_reads_a_hunger_change():
     assert "IN.sate" not in src
 
 
-# --- Plan 11g Task 4: the landing feeds no satiety; G is fed at emptying (Kinetics, test_kinetics.py) -------------
+# --- Plan 11g Task 6c: the landing feeds the meal pool M at the eat (IN.feed); Kinetics clears it ---------------
 # Plan 11c Task 6 (amendment 1, rulings 11c-27 and 11c-30) fed the meal pool P at the eat with the delivered vector;
-# since Plan 11g Task 4 the landing only puts the vector in the stomach, and NR_Server_Kinetics feeds the gut stage G
-# the weighted kcal of what the stomach empties each minute, and clears it (K.satiety.gStep per substep, ruling T4-3).
+# Plan 11g Task 4 moved the feed to the stomach's emptying (the gut stage G), and Task 6c (spec § 7) put it back at the
+# eat as the meal pool M: every route that lands feeds M the weighted kcal of the delivered vector, and NR_Server_Kinetics
+# clears it on every substep (K.satiety.drain).
 
 def _weighed(v, S):
     """K.satiety.weigh in doubles: the delivered kcal split by Atwater 4/4/9 shares, each share times its weight
@@ -1715,33 +1716,45 @@ def _weighed(v, S):
     return v["calories"] * (S.W_PROTEIN * p + S.W_CARB * c + S.W_FAT * f) / (p + c + f)
 
 
-def test_a_landing_leaves_g_to_the_emptying(rec_host):
-    # 200 kcal of 10 g protein, 25 g carbohydrate and 6.67 g fat land in the stomach whole; G is not fed at the eat
-    # (IN.feed is gone): Kinetics feeds it as the stomach empties, the weighed kcal of each minute's emptied vector
+def test_a_landing_feeds_m_the_weighed_kcal_at_the_eat(rec_host):
+    # 200 kcal of 10 g protein, 25 g carbohydrate and 6.67 g fat land in the stomach whole and feed M their weighed kcal
+    # at once; a drink's energy feeds it too (IN.feed on every route that lands)
     h = rec_host
-    assert I(h).feed is None
     record = _record(h)
     record["stomach"] = h.K.stomach.new()
-    record["satiety"] = h.rt.eval("{ G = 12.5, S = 0, L = 0 }")
+    record["satiety"] = h.rt.eval("{ M = 12.5, S = 0, L = 0 }")
     v = dict(calories=200.0, proteins=10.0, carbs=25.0, lipids=6.67, water=80.0)
+    S = h.K.satiety
+    rise = _weighed(v, S)
+    assert abs(rise - 200 * (S.W_PROTEIN * 40 + 100 + S.W_FAT * 60.03) / 200.03) < 1e-12
     I(h).land(record, "u", _vec(h, **v))
-    assert record["satiety"]["G"] == 12.5
+    assert abs(record["satiety"]["M"] - (12.5 + rise)) < 1e-9
     assert record["stomach"]["buffer"]["calories"] == 200.0 and record["stomach"]["buffer"]["proteins"] == 10.0
     I(h).land(record, "u", _vec(h, water=300.0, calories=42.0, carbs=10.5), "liquid")   # a drink: its energy in the buffer
-    assert record["satiety"]["G"] == 12.5
+    assert abs(record["satiety"]["M"] - (12.5 + rise + 42.0)) < 1e-9                    # carbohydrate weighs W_CARB 1
     assert record["stomach"]["buffer"]["calories"] == 242.0 and record["stomach"]["liquid"] == 300.0
-    S = h.K.satiety
-    rise = _weighed(v, S)                                                # what G gains once all of it has emptied
-    assert abs(rise - 200 * (S.W_PROTEIN * 40 + 100 + S.W_FAT * 60.03) / 200.03) < 1e-12
-    assert abs(h.K.satiety.weigh(_vec(h, **v)) - rise) < 1e-9
+    I(h).land(record, "u", _vec(h, water=250.0), "liquid")                               # water alone feeds nothing
+    assert abs(record["satiety"]["M"] - (12.5 + rise + 42.0)) < 1e-9
     I(h).lastError = None
 
 
-def test_a_landing_on_an_unseeded_g_feeds_nothing(rec_host):
-    # a record whose satiety or G is absent or non-finite is seeded at the next writer minute from the HUNGER it
-    # reads; the landing never touches it, so no NaN is fed
+def test_a_non_finite_feed_is_not_kept(rec_host):
+    # a feed that comes out non-finite (an infinite kcal vector the landing did not reject) leaves M as it was
     h = rec_host
-    for sat in (None, "{ G = 0 / 0 }", "{ S = 0, L = 0 }"):
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    record["satiety"] = h.rt.eval("{ M = 7, S = 0, L = 0 }")
+    I(h).feed(record, _vec(h, calories=float("inf"), carbs=1.0))
+    assert record["satiety"]["M"] == 7
+    I(h).feed(record, _vec(h, calories=float("nan")))
+    assert record["satiety"]["M"] == 7
+
+
+def test_a_landing_on_an_unseeded_m_feeds_nothing(rec_host):
+    # a record whose satiety or M is absent or non-finite is seeded at the next writer minute from the HUNGER it
+    # reads; the feed skips it, so no NaN is fed (an eat before the first writer minute shows only through that seed)
+    h = rec_host
+    for sat in (None, "{ M = 0 / 0 }", "{ S = 0, L = 0 }"):
         record = _record(h)
         record["stomach"] = h.K.stomach.new()
         record["satiety"] = None if sat is None else h.rt.eval(sat)
@@ -1750,7 +1763,7 @@ def test_a_landing_on_an_unseeded_g_feeds_nothing(rec_host):
         if sat is None:
             assert s is None
         else:
-            assert s["G"] is None or s["G"] != s["G"]                    # left for the writer's seed
+            assert s["M"] is None or s["M"] != s["M"]                    # left for the writer's seed
         assert record["stomach"]["buffer"]["calories"] == 200.0          # the stomach still takes the eat
     I(h).lastError = None
 
@@ -1759,7 +1772,7 @@ PARTIAL_EAT = r"""
 function(after)
     local IN = NutritionRevamp.server.intake
     local rec = NutritionRevamp.kernel.store.new("admin", 12.5)
-    rec.satiety = { G = 5, S = 0, L = 0 }
+    rec.satiety = { M = 5, S = 0, L = 0 }
     NutritionRevamp.server.store.records.admin = rec
     local hung = -0.2
     local item = {}
@@ -1789,15 +1802,16 @@ end
 """
 
 
-def test_a_partial_eat_lands_its_delivered_fraction_and_feeds_no_g(server_host):
+def test_a_partial_eat_lands_its_delivered_fraction_and_feeds_m_that_half(server_host):
     # half the apple eaten (getHungChange -0.2 -> -0.1): the delivered vector carries half the macros, and the stomach
-    # takes that half, never the whole item; G is fed later, as the stomach empties it (Kinetics)
+    # takes that half, never the whole item; M is fed that half's weighed kcal at the eat (IN.feed, Plan 11g Task 6c)
     h = server_host
     rec, vec, err = h.rt.eval(PARTIAL_EAT)(-0.1)
     assert vec is not None, err
     v = {k: vec[k] for k in ("calories", "proteins", "carbs", "lipids")}
     assert abs(v["calories"] - 47.5) < TOL                                # 95 kcal x the half eaten
-    assert rec.satiety.G == 5
+    assert abs(rec.satiety.M - (5 + h.K.satiety.weigh(vec))) < 1e-9
+    assert 5 + 40 < rec.satiety.M < 5 + 60                                # about 47.5 weighed kcal, never the whole 95
     assert abs(rec.stomach.buffer.calories - 47.5) < TOL                  # not the whole item
 
 

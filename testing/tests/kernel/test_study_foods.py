@@ -120,14 +120,14 @@ def test_the_layout_passes_the_lint_and_the_release_check_with_no_error():
 def test_an_eat_lands_the_oracle_vector_through_the_declared_chain(full):
     want = oracle_vectors()[full]
     rp = RL.ServerReplay(start={"username": "admin", "firstSeen": 99.0, "lastSeen": 99.0,
-                                "satiety": {"G": 10.0, "S": 0, "L": 0, "t": 99.0}}, user="admin")
+                                "satiety": {"M": 10.0, "S": 0, "L": 0, "t": 99.0}}, user="admin")
     rp.apply({"kind": "eat", "food": full}, 100.0)
     rec = rp.record()
     v = rp.K.vector.new()
     for k, x in want.items():
         v[k] = x
-    assert rec.satiety.G == 10.0                                          # Plan 11g Task 4: G is fed at emptying, not at the eat
-    assert rp.K.satiety.weigh(rec.stomach.buffer) == pytest.approx(rp.K.satiety.weigh(v), rel=REL)   # what G will gain
+    assert rec.satiety.M == pytest.approx(10.0 + rp.K.satiety.weigh(v), rel=REL)   # Plan 11g Task 6c: M fed at the eat
+    assert rp.K.satiety.weigh(rec.stomach.buffer) == pytest.approx(rp.K.satiety.weigh(v), rel=REL)
     assert rec.lastIntake.source == "declared" and rec.lastIntake.share == 1 and rec.lastIntake.frac == 1
     assert list(rec.lastIntake.declared.values()) == [full]
     buf = rec.stomach.buffer

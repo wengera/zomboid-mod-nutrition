@@ -22,11 +22,11 @@ from .test_replay_live_ring import SLOT, live_run
 sys.path.insert(0, os.path.join(REPO, "tools"))
 import replay_live as RL  # noqa: E402
 
-PATHS = ("satiety.G", "satiety.S", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH",
+PATHS = ("satiety.M", "satiety.S", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH",
          "body.lastAgeH")
-TIGHT = {"HUNGER": ("abs", 1e-9), "satiety.G": ("rel", 1e-9), "satiety.L": ("rel", 1e-9),
+TIGHT = {"HUNGER": ("abs", 1e-9), "satiety.M": ("rel", 1e-9), "satiety.L": ("rel", 1e-9),
          "body.energyState": ("abs", 1e-9), "stomachFill": ("rel", 1e-9)}
-OUTPUTS = ("HUNGER", "satiety.G", "satiety.S", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH",
+OUTPUTS = ("HUNGER", "satiety.M", "satiety.S", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH",
            "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS")
 
 
@@ -118,7 +118,7 @@ def test_the_replay_matches_the_live_ring_across_the_offline_window(offline_run)
         r.pop("norec", None)
     out2, _ = RL.replay_live(stepped, events, slots[0], ring_paths=paths, sleep_allowed=True)
     late = [r for r in rows if r["s"] > 135]
-    assert not RL.diff([r for r in out2 if r["s"] > 135], late, {"satiety.G": ("rel", 1e-9)})["ok"]
+    assert not RL.diff([r for r in out2 if r["s"] > 135], late, {"satiety.M": ("rel", 1e-9)})["ok"]
 
 
 def test_an_online_norec_row_is_the_first_sight_and_is_drained(offline_run):
@@ -166,7 +166,7 @@ def test_a_missing_row_is_a_gap_and_the_next_row_still_compares(plain_run):
     out, _ = RL.replay_live(cut, events, slots[0], ring_paths=paths, sleep_allowed=True)
     assert [r["s"] for r in out if r.get("gap")] == [51, 61]
     assert 61 in [r["s"] for r in out]
-    d = RL.diff(out, cut, {"HUNGER": ("abs", 0.002), "satiety.G": ("rel", 0.005)})
+    d = RL.diff(out, cut, {"HUNGER": ("abs", 0.002), "satiety.M": ("rel", 0.005)})
     assert d["classes"]["gap"] == 2 and d["gap"] == [51, 61], d
     # the lost drain shows at the gap row only, graded and marked; the rows after it converge
     assert d["findings"] and all(f.get("gap") and f["s"] == 61 for f in d["findings"]), d["findings"]
@@ -243,11 +243,11 @@ def test_a_read_age_before_the_record_or_an_ambiguous_s_keyed_event_raises(read_
 
 # --- the event fraction contract ------------------------------------------------------------------------------------
 
-def test_an_eats_kcal_comes_from_the_item_and_its_fraction_never_from_g():
+def test_an_eats_kcal_comes_from_the_item_and_its_fraction_never_from_m():
     kcal = []
-    for G in (0.0, 10.0, 900.0):
+    for m0 in (0.0, 10.0, 900.0):
         rp = RL.ServerReplay(start={"username": "admin", "firstSeen": 99.0, "lastSeen": 99.0,
-                                    "satiety": {"G": G, "S": 0, "L": 0, "t": 99.0}})
+                                    "satiety": {"M": m0, "S": 0, "L": 0, "t": 99.0}})
         rp.apply({"kind": "eat", "food": "TKX.Mixed650", "frac": 0.5}, 100.0)
         kcal.append(rp.eats[0]["kcal"])
     assert kcal[0] == kcal[1] == kcal[2] == pytest.approx(325.0)

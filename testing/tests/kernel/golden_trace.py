@@ -30,8 +30,8 @@ sleep debt set to DEBT_G1 at minute 20; g6's macro stores raised by an external 
 Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.fluid, IN.land); g3 dies at minute
 100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
-Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and G (g5, 140; P until Plan 11g Task 4); g1's G overflows (170;
-Kinetics' guard since Plan 11g Task 4 fix 1).
+Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and M (g5, 140; P until Plan 11g Task 4, G until
+Task 6c); g1's M overflows (170; Kinetics' guard since Plan 11g Task 4 fix 1).
 g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.
 Each eat carries its eater (NR_T.chars), whose stats answer add, traced as `added` (empty since 11f T9b: no eat adds).
 A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
@@ -89,14 +89,14 @@ STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's ea
 # K.acute.sleepMinute: no 24 h close falls in the trace's 4 h, so the writer's sleep factor (above 1 at half of
 # K.satiety.SLEEP_DEBT_FULL_H) is reached only this way
 DEBT_G1 = 1.0
-# minutes 80, 120, 140: the writer's satiety guards (W.satiety, W.satietyG, W.satietyDtH); 170: Kinetics' G guard (KIN.landG). A NaN S (g2), t (g4) and G (g5)
+# minutes 80, 120, 140: the writer's satiety guards (W.satiety, W.satietyMeal, W.satietyDtH); 170: Kinetics' M guard (KIN.landMeal). A NaN S (g2), t (g4) and M (g5)
 # is healed in the step before any snapshot reads it (L is healed by Metabolism first, so no guard there). At 170
-# g1 gets a G of GUARD_G_G1 and one StatsDecrease read of GUARD_SD. Since Plan 11g Task 4 fix 1 (ruling T4-3) the read
-# is Kinetics' (KIN.gTrait, the first in g1's minute), so its step's clearance overflows to inf (exp of +0.92)
-# and KIN.landG keeps the previous G, counted in kinetics' failures; the writer then reads the kept 1e308; the writer's own i.sd (Effects' fatigue) reads 1 that minute, so g1's FATIGUE and acute.S move -- a fixture artifact of the one-shot stub, since a real sandbox read is the same for every reader in a minute
-GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_G_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
-GUARD_G_G1 = 1e308
-GUARD_SD = -100.0               # -50 until Plan 11g Task 6: at G_HALF_LIFE_H 1.25 a -50 read clears by exp(+0.46), finite
+# g1 gets an M of GUARD_M_G1 and one StatsDecrease read of GUARD_SD. Since Plan 11g Task 4 fix 1 (ruling T4-3) the read
+# is Kinetics' (KIN.mealTrait, the first in g1's minute), so its step's clearance overflows to inf (exp of +0.92)
+# and KIN.landMeal keeps the previous M, counted in kinetics' failures; the writer then reads the kept 1e308; the writer's own i.sd (Effects' fatigue) reads 1 that minute, so g1's FATIGUE and acute.S move -- a fixture artifact of the one-shot stub, since a real sandbox read is the same for every reader in a minute
+GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_M_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
+GUARD_M_G1 = 1e308
+GUARD_SD = -100.0               # -50 until Plan 11g Task 6: at a 1.25 h half-life a -50 read cleared by exp(+0.46), finite; at Task 6c's 0.6 h -100 clears by exp(+1.93)
 # Plan 11e Task 2 fix 1 (ruling T2-E): g5 is the smoker stand-in, the only stats object answering NICOTINE_WITHDRAWAL
 # (every other player's reads nil, so the writer's factor is 1 and no anchor is laid). The minute events:
 NIC_START_G5 = 0.0              # minute 1 on: the stat reads 0, so W.nicotine lays the anchor at each minute
@@ -656,10 +656,10 @@ def run(host):
             h.record("g2")["satiety"]["S"] = float("nan")
         if m == GUARD_T_MINUTE:
             h.record("g4")["satiety"]["t"] = float("nan")
-        if m == GUARD_G_MINUTE:
-            h.record("g5")["satiety"]["G"] = float("nan")
+        if m == GUARD_M_MINUTE:
+            h.record("g5")["satiety"]["M"] = float("nan")
         if m == GUARD_RESTORE_MINUTE:
-            h.record("g1")["satiety"]["G"] = GUARD_G_G1
+            h.record("g1")["satiety"]["M"] = GUARD_M_G1
             h.T.sdOnce = GUARD_SD
         if m == NIC_RISE_MINUTE:
             players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_RISE

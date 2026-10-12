@@ -3,7 +3,8 @@
     python tools/fit_gut_satiety.py --out <dir> [--grid <spec.json>] [--jobs N] [--stage A]
 
 Scores candidate constants against every oracle of testing/tests/kernel/gut_oracles.py (ORACLES: the 11c/11d meal-study
-replays, the gut-stage oracles of Task 3, Karl's surplus day and the fat trio of ruling T3-3) and writes <dir>/fit.json.
+replays, the gut-satiety oracles of Task 3, Karl's surplus day, the fat trio of ruling T3-3 and the stability checks of
+Task 6c) and writes <dir>/fit.json.
 
 The search: every point of the grid (the product of the spec's value lists, in the spec's order), then a coordinate
 refinement from the best point: for each refined constant in turn, the value times and over the step factor; a move is
@@ -19,8 +20,8 @@ while the candidate runs; no tracked file is ever written. A constant is named u
 kernel path (stomach.CAPACITY_MAX_G); an unknown or non-numeric one is refused.
 
 The spec (JSON):
-    {"params": {"FULL_WEIGHT": [0.5, 0.55], "G_REQ": [6]},
-     "refine": {"rounds": 3, "factor": 1.25, "params": ["FULL_WEIGHT", "G_REQ"]}}
+    {"params": {"FULL_WEIGHT": [0.5, 0.55], "MEAL_REQ": [6]},
+     "refine": {"rounds": 3, "factor": 1.25, "params": ["FULL_WEIGHT", "MEAL_REQ"]}}
 `refine.params` defaults to every grid parameter, `rounds` to 3 and `factor` to 1.25; rounds 0 runs the grid alone.
 Without --grid the spec is DEFAULT_PARAMS at their shipped values, refined.
 
@@ -28,8 +29,8 @@ fit.json is deterministic: the same spec on the same tree gives byte-identical o
 spec, the HEAD sha, the date, every candidate (its phase, params, loss, and each oracle's value and miss) and the chosen
 point.
 
---stage A adds the absorbed stage's constants (STAGE_A_PARAMS) to the search; until Task 6 builds A in the kernel it
-exits 2, naming the constants it did not find.
+--stage A adds the absorbed stage's constants (STAGE_A_PARAMS) to the search; no kernel builds A (Task 6 ruled a single
+stage), so it exits 2, naming the constants it did not find.
 """
 import argparse
 import datetime
@@ -51,7 +52,7 @@ from kernel import gut_oracles as GO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 import replay_live as RL  # noqa: E402
 
-DEFAULT_PARAMS = ("FULL_WEIGHT", "G_REQ", "G_STEEP", "G_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL")
+DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL")
 STAGE_A_PARAMS = ("A_REQ", "A_STEEP", "A_HALF_LIFE_H")
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.25}
 SIG = 6                         # significant digits a refined value keeps

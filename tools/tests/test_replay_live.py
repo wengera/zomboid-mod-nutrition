@@ -63,18 +63,18 @@ class TestPaths(unittest.TestCase):
                 RL.parse_path(bad)
 
     def test_nest_builds_a_record_from_an_h1_reply(self):
-        rec = RL.nest({"satiety.G": 6.5, "body.trail.kcal.3": 12.0, "monotony.t.[TKX.Mono450].n": 2.0})
-        self.assertEqual(rec, {"satiety": {"G": 6.5}, "body": {"trail": {"kcal": {3: 12.0}}},
+        rec = RL.nest({"satiety.M": 6.5, "body.trail.kcal.3": 12.0, "monotony.t.[TKX.Mono450].n": 2.0})
+        self.assertEqual(rec, {"satiety": {"M": 6.5}, "body": {"trail": {"kcal": {3: 12.0}}},
                                "monotony": {"t": {"TKX.Mono450": {"n": 2.0}}}})
 
 
 class TestRing(unittest.TestCase):
     def test_pages_merge_by_s_sorted_and_paths_kept_in_order(self):
-        p1 = {"paths": ["satiety.G"], "rows_list": [{"s": 3, "age": 1.05}, {"s": 1, "age": 1.0}]}
-        p2 = {"paths": ["satiety.G", "body.met"], "rows_list": [{"s": 2, "age": 1.02}, {"s": 3, "age": 1.05}]}
+        p1 = {"paths": ["satiety.M"], "rows_list": [{"s": 3, "age": 1.05}, {"s": 1, "age": 1.0}]}
+        p2 = {"paths": ["satiety.M", "body.met"], "rows_list": [{"s": 2, "age": 1.02}, {"s": 3, "age": 1.05}]}
         rows, paths = RL.load_ring([p2, p1])
         self.assertEqual([r["s"] for r in rows], [1, 2, 3])
-        self.assertEqual(paths, ["satiety.G", "body.met"])
+        self.assertEqual(paths, ["satiety.M", "body.met"])
 
     def test_pages_load_from_files(self):
         with tempfile.TemporaryDirectory() as d:
@@ -185,13 +185,13 @@ class TestFix1(unittest.TestCase):
 
     def test_the_feed_takes_only_the_exogenous_inputs(self):
         self.assertEqual(RL.ALLOWED_FEED, ("NICOTINE_WITHDRAWAL",))
-        for bad in ("HUNGER", "G", "S", "L", "es", "satiety.G", "satiety.S", "satiety.L", "body.energyState",
+        for bad in ("HUNGER", "M", "S", "L", "es", "satiety.M", "satiety.S", "satiety.L", "body.energyState",
                     "FATIGUE", "THIRST", "BOREDOM", "UNHAPPINESS", "STRESS", "nonsense"):
             with self.assertRaises(ValueError, msg=bad):
                 RL.run(FakeBackend(), [1.0], [], ring_rows=[{bad: 0.3}], feed=(bad,))
             with self.assertRaisesRegex(ValueError, "graded" if bad in RL.GRADED_FEED else "exogenous", msg=bad):
                 RL.check_feed((bad,))
-        self.assertEqual(set(RL.GRADED_FEED), {"HUNGER", "G", "S", "L", "es", "satiety.G", "satiety.S", "satiety.L",
+        self.assertEqual(set(RL.GRADED_FEED), {"HUNGER", "M", "S", "L", "es", "satiety.M", "satiety.S", "satiety.L",
                                                "body.energyState", "FATIGUE", "THIRST", "BOREDOM", "UNHAPPINESS"})
         be = FakeBackend()
         RL.run(be, [1.0], [], ring_rows=[{"NICOTINE_WITHDRAWAL": 0.3}], feed=RL.ALLOWED_FEED)
@@ -256,7 +256,7 @@ class TestFix1(unittest.TestCase):
 
     def test_the_contracts_are_in_the_docstring_and_the_help(self):
         doc = " ".join(RL.__doc__.split())
-        for text in ("lastIntake.frac", "never from satiety.G", "start-read-age", "no eat since the last drain",
+        for text in ("lastIntake.frac", "never from satiety.M", "start-read-age", "no eat since the last drain",
                      "offline", "suspect", "gap"):
             self.assertIn(text, doc)
         for mode in ("live", "arm"):
@@ -264,7 +264,7 @@ class TestFix1(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             h = " ".join(r.stdout.split())
             self.assertIn("lastIntake.frac", h)
-            self.assertIn("never from satiety.G", h)
+            self.assertIn("never from satiety.M", h)
         r = subprocess.run([sys.executable, CLI, "live", "--help"], capture_output=True, text=True)
         h = " ".join(r.stdout.split())
         self.assertIn("--start-read-age", h)
@@ -305,15 +305,15 @@ class TestCli(unittest.TestCase):
                                                                   "carbs": 81.25, "lipids": 25.2777, "water": 300.0,
                                                                   "fibre": 6.0}}], fh)
             r = subprocess.run([sys.executable, CLI, "arm", "--events", ev, "--minutes", "30", "--backend", "oracle",
-                                "--paths", "satiety.G", "--out", out], capture_output=True, text=True)
+                                "--paths", "satiety.M", "--out", out], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
             with open(out, encoding="utf-8") as fh:
                 doc = json.load(fh)
             self.assertEqual(doc["mode"], "arm")
             self.assertEqual(len(doc["rows"]), 30)
             self.assertEqual(doc["eats"][0]["kcal"], 650.0)
-            self.assertGreater(doc["rows"][0]["satiety.G"], 0.0)                     # fed by the first minute's emptying
-            self.assertLess(doc["rows"][0]["satiety.G"], doc["rows"][-1]["satiety.G"])  # G rises while the meal empties
+            self.assertGreater(doc["rows"][0]["satiety.M"], 500.0)                   # fed in full at the eat
+            self.assertGreater(doc["rows"][0]["satiety.M"], doc["rows"][-1]["satiety.M"])   # then only cleared
             self.assertIsNone(doc["diff"])
 
     def test_live_needs_a_ring(self):

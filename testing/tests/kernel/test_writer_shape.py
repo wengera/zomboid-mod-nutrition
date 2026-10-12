@@ -62,8 +62,8 @@ def player(h, name="a"):
 
 
 # Plan 11c Task 6: the written HUNGER, recomputed in doubles from the kernels' constants at HEAD (NR_Kernel_Satiety.lua,
-# NR_Kernel_Hybrid.lua): gRead(G) = 1 - 1 / (1 + 3 (G / G_REQ)^G_STEEP); sated(F, Gn) = 1 - (1 - FULL_WEIGHT F) (1 - Gn),
-# G_REQ, G_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es + FLOOR max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.02 (Plan 11f Task 2c fix 1; 0 from Task 2c, 1.0 before);
+# NR_Kernel_Hybrid.lua): mealRead(M) = 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP); sated(F, Mn) = 1 - (1 - FULL_WEIGHT F) (1 - Mn),
+# MEAL_REQ, MEAL_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6c, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es + FLOOR max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.02 (Plan 11f Task 2c fix 1; 0 from Task 2c, 1.0 before);
 # circadian(h) = 1 + 0.085 cos(2 pi (h - 19.8333) / 24); acuteFactor(S) = 1 - 0.7 S; the writer's composition
 # (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The host's clock
 # reads the hour of day as fmod(age, 24), and step() sets age 100 + minute / 60, so minute m is hour 4 + m / 60.
@@ -76,35 +76,35 @@ def _satiety_constant(name):
         return float(re.search(r"^K\.satiety\.%s = ([0-9.]+)" % name, fh.read(), re.M).group(1))
 
 
-G_REQ = _satiety_constant("G_REQ")
-G_STEEP = _satiety_constant("G_STEEP")
+MEAL_REQ = _satiety_constant("MEAL_REQ")
+MEAL_STEEP = _satiety_constant("MEAL_STEEP")
 FULL_WEIGHT = _satiety_constant("FULL_WEIGHT")
 PROTEIN_FILL = _satiety_constant("PROTEIN_FILL")
-G_SEED_MAX = _satiety_constant("G_SEED_MAX")
+MEAL_SEED_MAX = _satiety_constant("MEAL_SEED_MAX")
 
 
-def _gread(G):
-    return 0.0 if G <= 0 else 1 - 1 / (1 + 3 * math.exp(G_STEEP * math.log(G / G_REQ)))
+def _mread(M):
+    return 0.0 if M <= 0 else 1 - 1 / (1 + 3 * math.exp(MEAL_STEEP * math.log(M / MEAL_REQ)))
 
 
 def _circ(hour):
     return 1 + 0.085 * math.cos(6.283185307179586 * (hour - 19.8333) / 24)
 
 
-def _hunger(G, F=0.6, es=1.0, minute=1, S=0.0):
-    x = 1 - (1 - FULL_WEIGHT * F) * (1 - _gread(G))
+def _hunger(M, F=0.6, es=1.0, minute=1, S=0.0):
+    x = 1 - (1 - FULL_WEIGHT * F) * (1 - _mread(M))
     target = min(max((1 - x) * es + FLOOR * max(0.0, es - 1), 0.0), 1.0)
     return min(0.69, target * _circ(math.fmod(100 + minute / 60, 24)) * (1 - 0.7 * min(max(S, 0.0), 1.0)))
 
 
-# the default record's minute-1 HUNGER: G 6 reads gRead(6), so H0 = (1 - FULL_WEIGHT x 0.6) x (1 - gRead(6)), times
+# the default record's minute-1 HUNGER: M 6 reads mealRead(6), so H0 = (1 - FULL_WEIGHT x 0.6) x (1 - mealRead(6)), times
 # the circadian factor at 04:01 (0.9540165460822252)
-H0 = (1 - FULL_WEIGHT * 0.6) * (1 - _gread(6))
+H0 = (1 - FULL_WEIGHT * 0.6) * (1 - _mread(6))
 H1 = H0 * 0.9540165460822252
 
 
 def record(h, **over):
-    r = h.rt.eval("""{ stomachFill = 0.6, satiety = { G = 6, S = 0, L = 0 }, body = { energyState = 1, rmod = 1 },
+    r = h.rt.eval("""{ stomachFill = 0.6, satiety = { M = 6, S = 0, L = 0 }, body = { energyState = 1, rmod = 1 },
         fluids = { thirstTarget = 0.3, autoDrop = 0 }, acute = { S = 0.2, circ = 0.05, frozen = false },
         effects = { fOff = 0.01, panicTarget = 10, stressTarget = 0, unhappyTarget = 0, foodSickTarget = 0,
                     tempTarget = 0, tempAdj = 0, intoxTarget = 0 } }""")
@@ -164,13 +164,13 @@ def test_the_stomach_fill_drives_hunger_through_its_weight():
     rec = record(h)
     rec.stomachFill = 0.0
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, F=0.0))           # (1 - gRead(6)) x c(04:01)
-    assert p.st.sets.HUNGER == pytest.approx((1 - _gread(6)) * 0.9540165460822252)
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, F=0.0))           # (1 - mealRead(6)) x c(04:01)
+    assert p.st.sets.HUNGER == pytest.approx((1 - _mread(6)) * 0.9540165460822252)
     p2 = player(h, "b")
     rec2 = record(h)
     rec2.stomachFill = float("nan")                                        # a non-finite fill reads empty
     step(h, p2, rec2, 1, name="b")
-    assert p2.st.sets.HUNGER == pytest.approx((1 - _gread(6)) * 0.9540165460822252)
+    assert p2.st.sets.HUNGER == pytest.approx((1 - _mread(6)) * 0.9540165460822252)
 
 
 def test_an_auto_drink_sip_is_folded_and_handed_to_the_pool():
@@ -357,7 +357,7 @@ def test_a_new_player_object_is_hoisted_again():
     p1 = player(h)
     step(h, p1, rec, 1)
     p2 = player(h)
-    step(h, p2, rec, 2)                                    # a new hoist (ruling C-1); G is Kinetics' to clear (T4-3)
+    step(h, p2, rec, 2)                                    # a new hoist (ruling C-1); M is Kinetics' to clear (T4-3)
     assert h.G.rawequal(h.NR.server.writer.h["a"].p, p2) and p2.st.sets.HUNGER == pytest.approx(_hunger(6, minute=2))
 
 
@@ -453,45 +453,45 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
-    "overwrites it with the satiety target, hungerTarget(sated(F, gRead(G)), energyState) x the circadian factor x "
-    "the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
-    "fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid counting at 0.18 of its mass, "
-    "and G the gut stage, which the kinetics step feeds with the weighted kcal of what the stomach empties and clears "
-    "on game time asleep or awake while the writer seeds and reads it, "
-    "so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it on "
-    "its first minute: hungerTarget(0.756, energy state), that is 0.244 x es + 0.02 x max(0, es - 1), times the "
-    "minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap G_SEED_MAX); "
-    "protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes "
-    "through a direct Eat call reaches the stomach, and G as it empties, through the reconcile path a minute late and "
-    "as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call "
-    "outside the intake's wraps is not seen; what the stomach empties in a fresh record's first minute, before the "
-    "writer has seeded G, is not fed into G; the exercise share of the energy deficit enters hunger through a lag of "
-    "weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not "
-    "class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour "
-    "deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g (the "
-    "soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level 3 "
-    "stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the "
-    "evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, "
-    "hungerTarget(0.542 F, energy state), that is (1 - 0.542 F) x es + 0.02 x max(0, es - 1), times the minute's "
-    "circadian, acute, sleep and nicotine factors, seeds an empty gut stage, so a fresh character's first written "
-    "HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or "
-    "graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short "
+    "overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x"
+    " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
+    "fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the "
+    "1100 g hard capacity, drunk liquid counting at 0.015 of its mass, and M the meal pool, the weighted kcal eaten, "
+    "fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and "
+    "reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it "
+    "on its first minute: hungerTarget(0.804, energy state), that is 0.196 x es + 0.02 x max(0, es - 1), times the "
+    "minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap MEAL_SEED_MAX);"
+    " protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes "
+    "through a direct Eat call reaches the stomach and M through the reconcile path a minute late and as its macros "
+    "only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the "
+    "intake's wraps is not seen; an eat in a fresh record's first minute, before the writer has seeded M, is not fed "
+    "into M (it shows only through the HUNGER the seed reads); the exercise share of the energy deficit enters hunger"
+    " through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the"
+    " model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise "
+    "of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels "
+    "to 1100 g (the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN "
+    "moodle's level 3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one "
+    "weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness "
+    "ceiling, hungerTarget(0.5 F, energy state), that is (1 - 0.5 F) x es + 0.02 x max(0, es - 1), times the minute's"
+    " circadian, acute, sleep and nicotine factors, seeds an empty meal pool, so a fresh character's first written "
+    "HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or"
+    " graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short "
     "night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly "
-    "the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the "
-    "acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises "
-    "hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es "
-    "about 1.31 from about 30 h, the balance term's cap is reached only by very heavy work, and higher energy states "
-    "come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches hunger "
-    "through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating "
-    "rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one "
-    "small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a "
+    "the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the"
+    " acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer "
+    "raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at "
+    "es about 1.31 from about 30 h, the balance term's cap is reached only by very heavy work, and higher energy "
+    "states come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches "
+    "hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and "
+    "eating rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on "
+    "one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a "
     "character first seen in withdrawal reads none until a smoke; the deficit drive is fitted against Karl 2021's "
     "well-fed arm, whose hunger suppression the paper attributes to slowed gastric emptying and gut hormones the "
     "model does not simulate; every Fitness set bills 6.0 from the server's exercise flag, so every set minute is "
     "vigorous resistance work for the acute term whatever the exercise (a light stretch and burpees alike)")
 
 
-def test_limitation_four_names_the_overwrite_and_the_gut_stage():
+def test_limitation_four_names_the_overwrite_and_the_meal_pool():
     lim = list(Host().NR.server.writer.limitations.values())
     assert len(lim) == 12                                  # the self-report prints the count: kept at 12
     assert lim[3] == LIMITATION_FOUR
@@ -511,7 +511,7 @@ def test_a_dry_writer_computes_and_sets_nothing():
     p.st.v.THIRST = 0.1                                    # a fall a live writer would book as a sip
     step(h, p, rec, 2)
     assert len(list(p.st.sets.keys())) == 0                # no stat written
-    assert rec.satiety.G == 6 and rec.satiety.S == 0   # the gut stage neither cleared nor seeded
+    assert rec.satiety.M == 6 and rec.satiety.S == 0   # the meal pool neither cleared nor seeded
     assert rec.fluids.autoDrop == 0.05                     # no sip folded into the pool
     assert h.NR.server.intake.landed["a"] is True          # the landing mark left for the real step
     assert W.h["a"] is None and W.inp["a"] is None         # nothing hoisted, no engine read
@@ -585,7 +585,7 @@ def test_the_written_hunger_is_capped_at_0_69():
     p = player(h)
     rec = record(h)
     rec.stomachFill = 0.0
-    rec.satiety.G = 0.0                                    # an empty stomach and an empty G: target 1 x c
+    rec.satiety.M = 0.0                                    # an empty stomach and an empty M: target 1 x c
     rec.body.energyState = 2.0
     step(h, p, rec, 1)
     assert p.st.sets.HUNGER == pytest.approx(0.69)
@@ -599,7 +599,7 @@ def test_a_record_without_satiety_seeds_p_from_hunger():
     rec.satiety = None
     step(h, p, rec, 1)
     assert h.NR.server.writer.stats.seeded == 1
-    assert rec.satiety.G == pytest.approx(h.K.satiety.seedG(0.31 / _circ(4 + 1 / 60), 0.6, 1))
+    assert rec.satiety.M == pytest.approx(h.K.satiety.seedMeal(0.31 / _circ(4 + 1 / 60), 0.6, 1))
     assert rec.satiety.S == 0 and rec.satiety.L == 0
     assert p.st.sets.HUNGER == pytest.approx(0.31)
 
@@ -628,7 +628,7 @@ def test_a_new_record_with_acute_suppression_writes_back_the_hunger_it_read():
         rec.satiety = h.rt.eval("{ S = 0.5 }")
         step(h, p, rec, 1)
         assert p.st.sets.HUNGER == pytest.approx(hunger)
-        assert rec.satiety.S == 0.5 and rec.satiety.G is not None
+        assert rec.satiety.S == 0.5 and rec.satiety.M is not None
 
 
 def test_a_stepped_g_survives_a_restart():
@@ -639,7 +639,7 @@ def test_a_stepped_g_survives_a_restart():
     saved = h.K.store.inputsOnly(rec)
     saved.body = None                                                       # the stand-in body is no stored body
     back = h.K.store.load(saved, None, None)
-    assert back.satiety.G == pytest.approx(6)
+    assert back.satiety.M == pytest.approx(6)
     assert back.satiety.S == 0 and back.satiety.L == 0
     back.stomachFill = 0.6                                                  # kinetics stamps it each minute
     back.body = h.rt.eval("{ energyState = 1, rmod = 1 }")
@@ -653,23 +653,23 @@ def test_a_non_finite_or_absent_g_is_seeded_again():
     p = player(h)
     p.st.v.HUNGER = 0.31
     rec = record(h)
-    rec.satiety.G = float("nan")
+    rec.satiety.M = float("nan")
     step(h, p, rec, 1)
     W = h.NR.server.writer
     assert p.st.sets.HUNGER == pytest.approx(0.31) and W.stats.seeded == 1
-    assert W.stats.guarded == 1                                             # a non-finite G is a heal too
+    assert W.stats.guarded == 1                                             # a non-finite M is a heal too
     p2 = player(h, "b")
     p2.st.v.HUNGER = 0.31
     rec2 = record(h)
-    rec2.satiety.G = None
+    rec2.satiety.M = None
     step(h, p2, rec2, 1, name="b")
     assert p2.st.sets.HUNGER == pytest.approx(0.31) and W.stats.seeded == 2
-    assert W.stats.guarded == 1                                             # an absent G is a seed, not a heal
+    assert W.stats.guarded == 1                                             # an absent M is a seed, not a heal
 
 
-# Plan 11g Task 4 fix 1 (ruling T4-3): G's clearance is Kinetics' (test_kinetics.py: the half-life, the appetite
-# traits, the sandbox multiplier, sleep, the 60-minute cap and a restart); the writer seeds G at first sight and reads
-# it, so a seeded G passes every writer step unchanged.
+# Plan 11g Task 4 fix 1 (ruling T4-3): M's clearance is Kinetics' (test_kinetics.py: the half-life, the appetite
+# traits, the sandbox multiplier, sleep, the 60-minute cap and a restart); the writer seeds M at first sight and reads
+# it, so a seeded M passes every writer step unchanged.
 
 def test_the_writer_leaves_g_to_kinetics_over_game_time():
     h = boot()
@@ -678,7 +678,7 @@ def test_the_writer_leaves_g_to_kinetics_over_game_time():
     step(h, p, rec, 1)
     step(h, p, rec, 61)
     step(h, p, rec, 121)                                                    # two hour-long steps
-    assert rec.satiety.G == 6
+    assert rec.satiety.M == 6
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=121))
 
 
@@ -695,7 +695,7 @@ def test_no_trait_sandbox_or_sleep_read_moves_g_in_the_writer(trait, sd, asleep)
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 43)
-    assert rec.satiety.G == 6
+    assert rec.satiety.M == 6
 
 
 def test_a_gap_over_sixty_minutes_leaves_g_to_kinetics():
@@ -704,7 +704,7 @@ def test_a_gap_over_sixty_minutes_leaves_g_to_kinetics():
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 181)                                                    # three game hours since the last write
-    assert rec.satiety.G == 6
+    assert rec.satiety.M == 6
 
 
 def test_overlay_writes_no_hunger_and_leaves_g():
@@ -713,25 +713,24 @@ def test_overlay_writes_no_hunger_and_leaves_g():
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 43)
-    assert p.st.sets.HUNGER is None and rec.satiety.G == 6
+    assert p.st.sets.HUNGER is None and rec.satiety.M == 6
 
 
 def test_the_writer_never_steps_g():
-    # the writer calls neither the clearance nor the step: a NaN from either would surface in G or in guarded
+    # the writer calls neither the clearance nor the feed: a NaN from either would surface in M or in guarded
     h = boot()
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
     nan = h.rt.eval("function() return 0 / 0 end")
-    orig = (h.K.satiety.gClear, h.K.satiety.gStep, h.K.satiety.gFeed)
-    h.K.satiety.gClear = nan
-    h.K.satiety.gStep = nan
-    h.K.satiety.gFeed = nan
+    orig = (h.K.satiety.mealClear, h.K.satiety.mealFeed)
+    h.K.satiety.mealClear = nan
+    h.K.satiety.mealFeed = nan
     try:
         step(h, p, rec, 2)
     finally:
-        h.K.satiety.gClear, h.K.satiety.gStep, h.K.satiety.gFeed = orig
-    assert rec.satiety.G == 6 and h.NR.server.writer.stats.guarded == 0
+        h.K.satiety.mealClear, h.K.satiety.mealFeed = orig
+    assert rec.satiety.M == 6 and h.NR.server.writer.stats.guarded == 0
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=2))
 
 
@@ -750,7 +749,7 @@ def test_a_swing_steps_the_acute_state_as_resistance_work():
     step(h, p, rec, 1)
     step(h, p, rec, 31)
     assert rec.satiety.S == pytest.approx(0.25)
-    assert rec.satiety.G == 6                                               # G is Kinetics' to clear (T4-3)
+    assert rec.satiety.M == 6                                               # M is Kinetics' to clear (T4-3)
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=31, S=0.25))
 
 
@@ -852,13 +851,13 @@ def test_a_non_finite_acute_state_or_lag_heals_and_counts():
 # --- Plan 11c close (ruling C-1): the writer's step across a reconnect or a restart ---------------------------------
 # The writer stamps its last step's world age on record.satiety.t (game hours). A new IsoPlayer object (a reconnect, a
 # respawn) or a restart re-hoists h with no ageH, so the step reads the gap from that stamp, clamped at maxStepS (60
-# min) as a same-object gap is: S decays toward 0 at ACUTE_DECAY_HALF_LIFE_H 0.15 h over one hour (ruling 11d-1). G's
-# clearance across the gap is Kinetics' (its stored kineticsAge, ruling T4-3), so the writer leaves G as it finds it.
+# min) as a same-object gap is: S decays toward 0 at ACUTE_DECAY_HALF_LIFE_H 0.15 h over one hour (ruling 11d-1). M's
+# clearance across the gap is Kinetics' (its stored kineticsAge, ruling T4-3), so the writer leaves M as it finds it.
 
 def _fed(h, name="a"):
     p = player(h, name)
     rec = record(h)
-    rec.satiety.G = 600.0
+    rec.satiety.M = 600.0
     rec.satiety.S = 1.0
     step(h, p, rec, 1, name=name)
     step(h, p, rec, 2, name=name)
@@ -872,7 +871,7 @@ def test_the_writer_stamps_its_step_age_on_the_satiety_record():
     assert rec.satiety.t is None                                            # the fixture's record has no stamp
     step(h, p, rec, 1)
     assert rec.satiety.t == pytest.approx(100.0 + 1 / 60)
-    assert rec.satiety.G == 6                                               # no stamp: the first minute steps 0
+    assert rec.satiety.M == 6                                               # no stamp: the first minute steps 0
     step(h, p, rec, 7)
     assert rec.satiety.t == pytest.approx(100.0 + 7 / 60)
 
@@ -881,15 +880,15 @@ def test_a_reconnect_decays_s_as_the_same_object_does():
     # the review's probe2: a player away 180 game minutes returns as a new object; S takes the 60-minute catch-up
     h = boot()
     p, same = _fed(h, "a")
-    G2, S2 = same.satiety.G, same.satiety.S
+    M2, S2 = same.satiety.M, same.satiety.S
     step(h, p, same, 182, name="a")                                         # same object, 180 minutes later
     h2 = boot()
     _, back = _fed(h2, "a")
-    assert back.satiety.G == G2 and back.satiety.S == S2
+    assert back.satiety.M == M2 and back.satiety.S == S2
     step(h2, player(h2, "a"), back, 182, name="a")                          # a new object, 180 minutes later
-    assert same.satiety.G == G2
+    assert same.satiety.M == M2
     assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
-    assert back.satiety.G == G2
+    assert back.satiety.M == M2
     assert back.satiety.S == pytest.approx(same.satiety.S)
     assert back.satiety.t == pytest.approx(100.0 + 182 / 60)
 
@@ -897,17 +896,17 @@ def test_a_reconnect_decays_s_as_the_same_object_does():
 def test_a_reconnect_inside_the_clamp_decays_s_over_the_gap():
     h = boot()
     _, rec = _fed(h)
-    G2, S2 = rec.satiety.G, rec.satiety.S
+    M2, S2 = rec.satiety.M, rec.satiety.S
     step(h, player(h), rec, 23)                                             # a new object 21 minutes later
     assert rec.satiety.S == pytest.approx(S2 * 2 ** (-(21 / 60) / 0.15))
-    assert rec.satiety.G == G2
+    assert rec.satiety.M == M2
 
 
 def test_a_restart_through_the_store_decays_s():
     h = boot()
     W = h.NR.server.writer
     _, rec = _fed(h)
-    G2, S2 = rec.satiety.G, rec.satiety.S
+    M2, S2 = rec.satiety.M, rec.satiety.S
     saved = h.K.store.inputsOnly(rec)
     saved.body = None                                                       # the stand-in body is no stored body
     back = h.K.store.load(saved, None, None)
@@ -917,7 +916,7 @@ def test_a_restart_through_the_store_decays_s():
     W.h["a"] = None                                                         # the restart: no hoist survives
     step(h, player(h), back, 182)
     assert W.stats.seeded == 0
-    assert back.satiety.G == G2                                             # stored and left: Kinetics clears it
+    assert back.satiety.M == M2                                             # stored and left: Kinetics clears it
     assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
 
 
@@ -926,10 +925,10 @@ def test_a_non_finite_stamp_heals_and_counts(bad):
     h = boot()
     W = h.NR.server.writer
     _, rec = _fed(h)
-    G2 = rec.satiety.G
+    M2 = rec.satiety.M
     rec.satiety.t = bad
     step(h, player(h), rec, 182)                                            # a new object: the stamp is read
-    assert rec.satiety.G == G2                                              # read as no stamp: the minute steps 0
+    assert rec.satiety.M == M2                                              # read as no stamp: the minute steps 0
     assert W.stats.guarded == 1
     assert rec.satiety.t == pytest.approx(100.0 + 182 / 60)                 # re-stamped
 
@@ -938,9 +937,9 @@ def test_a_v3_or_fresh_record_has_no_stamp_and_steps_zero_on_its_first_minute():
     h = boot()
     p = player(h)
     rec = h.K.store.new("a", 100.0)
-    rec.satiety = h.rt.eval("{ G = 6, S = 0.5 }")
+    rec.satiety = h.rt.eval("{ M = 6, S = 0.5 }")
     step(h, p, rec, 181)
-    assert rec.satiety.G == 6 and rec.satiety.S == 0.5
+    assert rec.satiety.M == 6 and rec.satiety.S == 0.5
     assert h.NR.server.writer.stats.guarded == 0
 
 
@@ -1009,7 +1008,7 @@ def test_the_writers_f_falls_back_to_the_stamp():
 
 
 # --- Plan 11d Task 6: the sleep-debt factor in the writer (ruling 11d-2, spec § 5d) ---------------------------------
-# The written HUNGER is min(0.69, hungerTarget(sated(F, gRead(G)), es) x circadian(h) x acuteFactor(S) x
+# The written HUNGER is min(0.69, hungerTarget(sated(F, mealRead(M)), es) x circadian(h) x acuteFactor(S) x
 # sleepFactor(debtH)), debtH read off record.acute.debtH; sleepFactor(d) = 1 + 0.18 clamp(d / 2, 0, 1), 1 for a
 # non-finite debt (K.satiety.SLEEP_MAX 0.18, SLEEP_DEBT_FULL_H 2). The seed divides by the same three factors.
 
@@ -1048,7 +1047,7 @@ def test_the_sleep_factor_sits_inside_the_cap():
     p2 = player(h2)
     rec2 = record(h2)
     rec2.stomachFill = 0.0
-    rec2.satiety.G = 0.0                                   # target 1 x 0.954: the cap binds with or without the debt
+    rec2.satiety.M = 0.0                                   # target 1 x 0.954: the cap binds with or without the debt
     rec2.acute.debtH = 2.0
     step(h2, p2, rec2, 1)
     assert p2.st.sets.HUNGER == pytest.approx(0.69)
@@ -1086,7 +1085,7 @@ def test_the_seed_writes_back_the_hunger_it_read_under_a_sleep_debt_and_acute_su
             rec.acute = h.rt.eval("{ debtH = %r }" % debt)
             step(h, p, rec, minute)
             assert p.st.sets.HUNGER == pytest.approx(hunger), (hunger, debt, minute)
-            assert rec.satiety.S == 0.5 and rec.satiety.G is not None
+            assert rec.satiety.S == 0.5 and rec.satiety.M is not None
 
 
 def test_the_seed_divides_by_the_sleep_factor():
@@ -1097,12 +1096,12 @@ def test_the_seed_divides_by_the_sleep_factor():
     rec.satiety = None
     rec.acute.debtH = 2.0
     step(h, p, rec, 1)
-    assert rec.satiety.G == pytest.approx(h.K.satiety.seedG(0.31 / (_circ(4 + 1 / 60) * 1.18), 0.6, 1))
+    assert rec.satiety.M == pytest.approx(h.K.satiety.seedMeal(0.31 / (_circ(4 + 1 / 60) * 1.18), 0.6, 1))
     assert p.st.sets.HUNGER == pytest.approx(0.31)
 
 
 # --- Plan 11d Task 6 fix (ruling T6-1): the divisor guard. A product the factors make non-finite or not positive reads
-# 1: the write is the factor-1 target and the seed divides by 1, so G is seeded finite.
+# 1: the write is the factor-1 target and the seed divides by 1, so M is seeded finite.
 
 @pytest.mark.parametrize("bad", ["0/0", "0"])
 def test_a_non_finite_or_zero_factor_product_reads_one(bad):
@@ -1118,8 +1117,8 @@ def test_a_non_finite_or_zero_factor_product_reads_one(bad):
     rec = record(h2)
     rec.satiety = None
     step(h2, p2, rec, 1)
-    assert math.isfinite(rec.satiety.G) and rec.satiety.G == pytest.approx(h2.K.satiety.seedG(0.31, 0.6, 1))
-    assert rec.satiety.G > 0 and p2.st.sets.HUNGER == pytest.approx(0.31)
+    assert math.isfinite(rec.satiety.M) and rec.satiety.M == pytest.approx(h2.K.satiety.seedMeal(0.31, 0.6, 1))
+    assert rec.satiety.M > 0 and p2.st.sets.HUNGER == pytest.approx(0.31)
 
 
 # --- Plan 11d close (ruling C-1): a malformed stomach buffer never stops the writer ---------------------------------
@@ -1161,9 +1160,9 @@ def test_a_malformed_liquid_lane_reads_the_stamp():
 
 
 # --- Plan 11d close (ruling C-2): LIMITATION_FOUR's seed floor and ceiling in hungerTarget's form ----------------------
-# floor: an empty stomach under a HUNGER below it seeds G_SEED_MAX and writes hungerTarget(gRead(G_SEED_MAX), es) =
-# SEED_FLOOR es + FLOOR max(0, es - 1) times the factors (SEED_FLOOR 1 - gRead(G_SEED_MAX), 0.244 since Plan 11g Task 6,
-# 0.203 before); ceiling: a HUNGER above hungerTarget(FULL_WEIGHT F, es) x the factors seeds G = 0
+# floor: an empty stomach under a HUNGER below it seeds MEAL_SEED_MAX and writes hungerTarget(mealRead(MEAL_SEED_MAX), es) =
+# SEED_FLOOR es + FLOOR max(0, es - 1) times the factors (SEED_FLOOR 1 - mealRead(MEAL_SEED_MAX), 0.196 since Plan 11g Task 6c,
+# 0.244 in Task 6, 0.203 before); ceiling: a HUNGER above hungerTarget(FULL_WEIGHT F, es) x the factors seeds M = 0
 # and writes that ceiling. Review B's case moved to es 1.1 (Plan 11d Task 9d: at es 1.5 the floor's 1.0 reached the
 # cap). Since Plan 11f Task 2c fix 1 the floor is 0.02 (0 in Task 2c), so the deficit reaches both mostly through es.
 
@@ -1183,10 +1182,10 @@ def _seeded(es, read, F, minute, S=0.0):
 def test_the_seed_floor_reads_hunger_targets_deficit_term(es):
     peak = round((19.8333 - 4) * 60)
     written, fac = _seeded(es, 0.1, 0.0, peak)
-    floor = 1 - _gread(G_SEED_MAX)
+    floor = 1 - _mread(MEAL_SEED_MAX)
     assert written == pytest.approx((floor * es + FLOOR * max(0.0, es - 1)) * fac, abs=5e-4)
     assert written > floor * es * fac                                      # the deficit raises the seed floor
-    assert round(floor, 3) == 0.244                                        # LIMITATION_FOUR's figure
+    assert round(floor, 3) == 0.196                                        # LIMITATION_FOUR's figure
 
 
 @pytest.mark.parametrize("es", [1.5, 2.0])
@@ -1233,7 +1232,7 @@ def test_half_the_withdrawal_reads_half_the_rise():
 
 
 def test_the_seed_divides_by_the_nicotine_factor():
-    # a record with no G, a capped stat and an anchor 30 days back: the seed inverts hunger / (circadian x the
+    # a record with no M, a capped stat and an anchor 30 days back: the seed inverts hunger / (circadian x the
     # nicotine factor), so the first write is the 0.31 read
     h = boot()
     p = _smoker(h, 0.51)
@@ -1243,7 +1242,7 @@ def test_the_seed_divides_by_the_nicotine_factor():
     step(h, p, rec, 1)
     nic = 1 + NIC * (1 - 30 / 182)
     assert h.NR.server.writer.stats.seeded == 1
-    assert rec.satiety.G == pytest.approx(h.K.satiety.seedG(0.31 / (_circ(4 + 1 / 60) * nic), 0.6, 1))
+    assert rec.satiety.M == pytest.approx(h.K.satiety.seedMeal(0.31 / (_circ(4 + 1 / 60) * nic), 0.6, 1))
     assert p.st.sets.HUNGER == pytest.approx(0.31)
 
 

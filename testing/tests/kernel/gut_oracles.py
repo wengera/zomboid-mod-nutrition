@@ -83,7 +83,33 @@ GROUPS = {
     "diekmann": lambda h: _gut().diekmann(h),
     "protein": lambda h: _gut().protein_at_equal_energy(h),
     "karl": lambda h: _gut().surplus_day(h),        # the server path (tools/replay_live.py); the host is not read
+    "stability": lambda h: stability(h),
 }
+
+
+STABILITY_MULTS = (0.98, 1.0, 1.02)    # the hunger factors the evening meal is replayed under (spec § 7)
+
+
+def stability(host):
+    """The stability readings (Plan 11g spec § 7; Task 6c): the 650 kcal meal at 19:00 from the request, its return
+    minute under hunger x0.98, x1.00 and x1.02 (`back`), and the hunger 24 h after one 650 kcal meal at 08:00 from the
+    request (`rise`). A read gone flat swings the evening return by hours on a 2 % factor and slows the fasting rise
+    (the Task 6 fit: 954 / 303 / 282 min and 0.265)."""
+    meal = {0: [("food", M.mixed(650))]}
+    back = [M.request(M.hunger(host, meal, 1200, h0=19.0, mult=m)) for m in STABILITY_MULTS]
+    rise = M.hunger(host, meal, 24 * 60, h0=8.0)[-1]
+    return {"back": back, "rise": rise}
+
+
+def _spread(r):
+    """The latest return less the earliest, None when an arm never returns."""
+    b = r["stability"]["back"]
+    return None if any(x is None for x in b) else max(b) - min(b)
+
+
+def _latest(r):
+    b = r["stability"]["back"]
+    return None if any(x is None for x in b) else max(b)
 
 
 def read_all(host):
@@ -122,10 +148,11 @@ class Oracle:
         return out / self.scale
 
 
-def ratio_oracle(name, group, pick, target, tol, row):
-    """Within `tol` x of `target`, the worse way: the band [target / tol, target x tol]."""
+def ratio_oracle(name, group, pick, target, tol, row, scale=None):
+    """Within `tol` x of `target`, the worse way: the band [target / tol, target x tol]; the miss over `scale` (the
+    target's size unless given)."""
     a, b = sorted((target / tol, target * tol))
-    return Oracle(name, group, pick, target, lo=a, hi=b, kind="two-sided", row=row, tol="%gx" % tol)
+    return Oracle(name, group, pick, target, lo=a, hi=b, scale=scale, kind="two-sided", row=row, tol="%gx" % tol)
 
 
 def _sub(group, *keys):
@@ -241,13 +268,25 @@ ORACLES += [
     Oracle("karl_bal", "karl", _sub("karl", "bal"), STUDY["karl_bal"], lo=-64.0, hi=-46.0, row="S1325, S1892",
            tol="-64 to -46 %"),
     # the fat trio (ruling T3-3; ruling T2-3's W_FAT fit): Melanson f - c >= 0, Diekmann HF - LF >= 0, Marmonier f - c
-    # within the difference oracle's 1.5x
+    # within the difference oracle's 1.5x; the two minute differences on one common scale, Melanson's 61 min (Plan 11g
+    # spec § 7: on Marmonier's own 9 min its miss outweighed Melanson's sevenfold, and W_FAT went low on the scales
+    # alone, the Task 6 review's finding 2)
     Oracle("melanson_f_minus_c", "melanson", lambda r: _later_minus_earlier(r["melanson"][1], r["melanson"][0]),
            STUDY["melanson_f_minus_c"], lo=0.0, kind="one-sided", row="S1228", tol=">= 0", none_is="inf"),
     Oracle("diekmann_hf_minus_lf", "diekmann", lambda r: r["diekmann"]["hf"]["mean"] - r["diekmann"]["lf"]["mean"],
            STUDY["diekmann_hf_minus_lf"], lo=0.0, kind="one-sided", row="S1828", tol=">= 0"),
     ratio_oracle("marmonier_f_minus_c", "marmonier", lambda r: _diff(r["marmonier"]["f"], r["marmonier"]["c"]),
-                 float(STUDY["marmonier_f_minus_c"]), 1.5, "S1224"),
+                 float(STUDY["marmonier_f_minus_c"]), 1.5, "S1224", scale=float(STUDY["melanson_f_minus_c"])),
+    # the stability checks (Plan 11g spec § 7, Task 6c), so no fit can go flat unseen; DESIGN CHOICES with no row of
+    # their own: the 650 kcal meal at 19:00 returns within S1248's 425 min under hunger x0.98, x1.00 and x1.02, the
+    # three returns spread at most 60 min, and hunger 24 h after one 650 kcal meal at 08:00 is at least 0.9 x the P
+    # model's 0.42 (0.378); each scale its bound
+    Oracle("stability_latest", "stability", _latest, 425.0, hi=425.0, scale=425.0, kind="one-sided", row="S1248",
+           tol="<= 425 min at x0.98 / x1.00 / x1.02 (a DESIGN CHOICE on S1248's figure)"),
+    Oracle("stability_spread", "stability", _spread, 60.0, hi=60.0, scale=60.0, kind="one-sided", row="",
+           tol="<= 60 min (a DESIGN CHOICE)"),
+    Oracle("stability_rise", "stability", lambda r: r["stability"]["rise"], 0.378, lo=0.378, scale=0.378,
+           kind="one-sided", row="", tol=">= 0.9 x the P model's 0.42 at +24 h (a DESIGN CHOICE)"),
     # reported, never in the loss: harvest 11 § 7's nadir (inference), van der Klaauw's null, Karl's per-day shape
     # (ruling T3-1), and ruling 11g-3's three non-reproductions
     Oracle("nadir_minutes", "tieken", lambda r: [r["tieken"]["solid"]["nadir"][0], r["tieken"]["liquid"]["nadir"][0],
@@ -272,52 +311,43 @@ assert len({o.name for o in ORACLES}) == len(ORACLES)
 BY_NAME = {o.name: o for o in ORACLES}
 
 
-# --- the targets after the joint fit (Plan 11g Task 6) -----------------------------------------------------------------
+# --- the targets after the joint fit (Plan 11g Task 6c) ----------------------------------------------------------------
 # Every hard and one-sided oracle is asserted inside its band by the test that reads its group (check, below), except
-# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012, loss
-# 1.8465) leave outside their band. Each is pinned at its reading, so a change is noticed, and asserted still outside
-# its band, so a reading that comes back inside is promoted to a target; each awaits a ruling (Plan 11g Task 6 report).
+# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012b, loss
+# 1.3609) leave outside their band. Each is pinned at its reading, so a change is noticed, and asserted still outside
+# its band, so a reading that comes back inside is promoted to a target; each awaits a ruling (Plan 11g Task 6c
+# report). The Task 6 fit of the gut stage G named 13 (Callahan 825, the 650 kcal anchor, Rolls' casserole and 600 mL,
+# Marmonier's two differences, Lewis' 20 % cut, Karl): the meal pool M fed at the eat, with F counted to the hard
+# capacity, brings all of them inside.
 NAMED = {
-    # S1247: the 825 kcal preload's request at 360 min against 321 (1.121x; the band ends at 353.1); G fed at emptying
-    # holds the largest preload past it while the 190 and 400 kcal preloads land inside
-    "callahan_825": 360,
-    "callahan_fasted_825": 360,
-    # S1247, S1248: the 650 kcal meal back at 349 min against the anchor's 240-300 (1.163x; the band ends at 330)
-    "meal650": 349,
-    # S1231: the casserole alone 1836.0 kJ against 1639 (1.120x); soup, casserole with water and the drop land inside
-    "rolls_cas": 1836.0338637027323,
-    # S1233: the 600 mL milk 0.740 against 0.605 (1.223x; the check's band ends at 1.15x); 300 and 450 mL and the
-    # ordering land inside
-    "rolls98_600": 0.7397571294055789,
-    # S1224's differences: protein over carbohydrate 17 min against 26 (1.529x) and over fat 23 against 35 (1.522x),
-    # each just past the 1.5x band (the model reads whole minutes)
-    "marmonier_pc": 17,
-    "marmonier_pf": 23,
-    # S1809: the 20 % cut's 30-240 min mean 0.0211 (5.5 mm) against the detection threshold 0.0192 (5 mm, a DESIGN
-    # CHOICE): the 20 % cut reads as detectable, 0.5 mm over
-    "lewis_cut20_mean": 0.021111877302099926,
-    # S1833: both 540 kcal arms empty the same kcal at the same rate (K.stomach.drain is energy-limited, Hunt 1985,
-    # S0131), so G cannot tell the liquid from the solid: the liquid -4.5 % at 4 h against +14 % (+4 to +24), the solid
-    # -3.7 % against -45 % (-64 to -26), and the liquid below the solid at every time point (its 553 g fill more); a
-    # stomach mechanism (liquid emptying faster than solid), not a gut stage, is what would separate them
-    "tieken_liquid_4h": -0.04494365466051953,
-    "tieken_solid_4h": -0.03720825573445019,
-    "tieken_solid_below_liquid": -0.08723537751303345,
-    # S1325, S1892: BAL against REST -44.67 % against -55 % (the band's edge -46); harvest 13 attributes the depth to G
-    # plus a fuller stomach (S1874: BAL's emptying 612 min against 182), which the stomach does not slow for
-    "karl_bal": -44.665225754851164,
-    # S1228: the fat drink's request 15 min before the carbohydrate drink's against 61 min after (ruling T2-3: W_FAT
-    # fitted below 1, where S1224 and S1828 outweigh S1228)
-    "melanson_f_minus_c": -15,
+    # S1222: the protein contrast (30 % against 10 % protein at 400 kcal, mean over 240 min) 0.01245 against the band's
+    # lower edge 0.0125 (half the study's -7 mm; 0.4 % short): W_PROTEIN 2.5 and PROTEIN_FILL 8 trade it against
+    # Belza's 50 % arm (S1820) and Marmonier's differences
+    "s1222_contrast": 0.012445683588922164,
+    # S1833: the stomach empties both 540 kcal arms' kcal at the same rate (K.stomach.drain is energy-limited, Hunt
+    # 1985, S0131) and M is fed alike at the eat, so the model cannot tell the liquid from the solid: the liquid -4.6 %
+    # at 4 h against +14 % (+4 to +24), the solid -4.1 % against -45 % (-64 to -26), and the liquid below the solid at
+    # its worst time point (its 553 g fill more); a stomach mechanism (liquid emptying faster than solid), not the
+    # meal pool, is what would separate them, and the products differ in composition too (S1833)
+    "tieken_liquid_4h": -0.046375732352362586,
+    "tieken_solid_4h": -0.04076353047318948,
+    "tieken_solid_below_liquid": -0.024462066093629886,
+    # S1228: the fat drink's request 2 min before the carbohydrate drink's against 61 min after (ruling T2-3: W_FAT
+    # fitted at 0.894, the fat trio's two minute differences on Melanson's 61 min scale, spec § 7)
+    "melanson_f_minus_c": -2,
+    # S1224: fat's delay 5 min longer than carbohydrate's against 9 min shorter (the 1.5x band -13.5 to -6): the other
+    # side of the same W_FAT trade
+    "marmonier_f_minus_c": 5,
 }
 
 # Karl 2021's shape relative to REST (ruling T3-1): BAL / REST at the post-meal troughs and before breakfast against
 # the figures derived from S1872, within harvest 13's +/- 0.05 on the unit scale over REST's study value at that point
 # (0.271 at the troughs, 0.518 before breakfast): a DESIGN CHOICE (S1892, open). Reported, not in the fit's loss.
 KARL_SHAPE_TOL = {"troughs_rel": 0.05 / 0.271, "pre_breakfast_rel": 0.05 / 0.518}
-# the days outside it after the fit: every post-meal trough (0.887 / 0.609 / 0.652 against 0.215 / 0.209 / 0.106: the
-# model's BAL troughs sit near REST's) and day 3's pre-breakfast (0.632 against 0.519)
-KARL_SHAPE_NAMED = {"troughs_rel": (0, 1, 2), "pre_breakfast_rel": (2,)}
+# the days outside it after the fit: the post-meal troughs of days 1 and 3 (0.548 and 0.408 against 0.215 and 0.106;
+# day 2's 0.381 against 0.209 lands inside: about halfway from the gut stage's 0.887 / 0.609 / 0.652, F's count past
+# 730 g deepening BAL's troughs) and day 3's pre-breakfast (0.640 against 0.519)
+KARL_SHAPE_NAMED = {"troughs_rel": (0, 2), "pre_breakfast_rel": (2,)}
 
 PIN_TOL = 1e-6
 

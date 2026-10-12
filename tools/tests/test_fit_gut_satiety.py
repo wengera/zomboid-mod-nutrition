@@ -129,7 +129,7 @@ def test_the_later_minus_earlier_pickers_pass_a_late_none_and_miss_an_early_one(
 
 
 def test_an_arm_that_never_returns_scores_zero_on_the_diekmann_lower_bounds():
-    r = F.evaluate({"G_HALF_LIFE_H": 5.0})                # neither arm back inside 900 min (1.5 before the Task 6 fit)
+    r = F.evaluate({"MEAL_HALF_LIFE_H": 5.0})                # neither arm back inside 900 min (1.5 before the Task 6 fit)
     by = {o.name: o for o in GO.ORACLES}
     assert r["readings"]["diekmann"]["hf"]["back"] is None and r["readings"]["diekmann"]["lf"]["back"] is None
     for name in ("diekmann_hf_6h", "diekmann_lf_6h"):
@@ -147,7 +147,7 @@ def test_an_oracle_needs_a_positive_scale_unless_it_is_a_reading():
 
 
 def test_a_bounded_constant_is_refused_out_of_bounds_and_the_refinement_stops_at_the_bound():
-    for spec in ({"FULL_WEIGHT": [1.5]}, {"FULL_WEIGHT": [0]}, {"LIQUID_WEIGHT": [2]}, {"G_REQ": [-1.0]}, {"G_REQ": [0]}):
+    for spec in ({"FULL_WEIGHT": [1.5]}, {"FULL_WEIGHT": [0]}, {"LIQUID_WEIGHT": [2]}, {"MEAL_REQ": [-1.0]}, {"MEAL_REQ": [0]}):
         try:
             F.load_spec({"params": spec})
         except ValueError as e:

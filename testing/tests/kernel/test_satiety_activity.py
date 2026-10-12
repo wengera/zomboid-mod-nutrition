@@ -1,8 +1,8 @@
 """The activity oracle (Plan 11c Task 4b; spec § 5c; ruling 11c-29): published exercise protocols replayed through the
-real kernels -- structure D's stomach, gut stage G (the meal pool P until Plan 11g Task 4) and hunger function (as test_satiety_meal_studies.py runs them) with
+real kernels -- structure D's stomach, meal pool M (the meal pool P until Plan 11g Task 4, the gut stage G until Task 6c) and hunger function (as test_satiety_meal_studies.py runs them) with
 the acute suppression term (K.satiety.exerciseSuppression, acuteFactor) and the energy state built by
 K.energy.activityState from a trailing-24 h balance and the exercise lag (K.energy.exerciseLag) -- one step a game
-minute. Displayed hunger is the writer's form (Task 6 amendment 3's cap form), min(0.69, hungerTarget(sated(F, gRead(G)),
+minute. Displayed hunger is the writer's form (Task 6 amendment 3's cap form), min(0.69, hungerTarget(sated(F, mealRead(M)),
 es) x circadian(h) x acuteFactor(S)): the cap bounds the product, the acute factor inside it.
 
 The mappings (each a labelled assumption or inference, not a row):
@@ -55,7 +55,7 @@ function(cfg)
     local hook, mask = debug.gethook()
     debug.sethook()
     local st = K.stomach.new()
-    local G = cfg.G0
+    local pool = { M = cfg.M0, trait = 1 }
     local S = 0
     local L = 0
     local ring = {}
@@ -81,6 +81,7 @@ function(cfg)
                     v[k] = x
                 end
                 K.stomach.ingest(st, v)
+                pool.M = K.satiety.mealFeed(pool.M, v)
                 inMin = inMin + v.calories
             end
         end
@@ -96,7 +97,7 @@ function(cfg)
         local kind = cfg.vig[m]
         S = K.satiety.exerciseSuppression(S, 1 / 60, kind ~= nil, kind)
         L = K.energy.exerciseLag(L, exMin, 1 / 60)
-        G = K.satiety.gStep(G, K.stomach.drain(st, 1 / 60), 1 / 60, 1)
+        K.satiety.drain(st, 1, pool)
         local F = K.satiety.fullness(st)
         local eb = inS - eeS
         local ee24 = eeS
@@ -111,7 +112,7 @@ function(cfg)
             e = K.max(e, K.energy.state(eb, 0))
         end
         local c = K.satiety.circadian((cfg.h0 + (m + 1) / 60) % 24)
-        hs[m + 1] = K.min(0.69, K.satiety.target(F, G, e) * c * K.satiety.acuteFactor(S))
+        hs[m + 1] = K.min(0.69, K.satiety.target(F, pool.M, e) * c * K.satiety.acuteFactor(S))
         es[m + 1] = e
         ss[m + 1] = S
         ls[m + 1] = K.energy.lagged(L)
@@ -122,7 +123,7 @@ end
 """
 
 
-def run(host, minutes, h0, meals=None, vig=None, ex=None, ee=2500.0 / 1440, ee0=None, mode="lag", G0=None):
+def run(host, minutes, h0, meals=None, vig=None, ex=None, ee=2500.0 / 1440, ee0=None, mode="lag", M0=None):
     """Displayed hunger, energy state, suppression state and lagged deficit per minute (index i is minute i + 1)."""
     rt = host.rt
     tm = rt.table()
@@ -137,10 +138,10 @@ def run(host, minutes, h0, meals=None, vig=None, ex=None, ee=2500.0 / 1440, ee0=
     tx = rt.table()
     for minute, kcal in (ex or {}).items():
         tx[minute] = kcal
-    if G0 is None:
-        G0 = host.call("satiety.seedG", H_REQ / host.call("satiety.circadian", h0 % 24), 0, 1)
+    if M0 is None:
+        M0 = host.call("satiety.seedMeal", H_REQ / host.call("satiety.circadian", h0 % 24), 0, 1)
     cfg = host.table({"minutes": minutes, "h0": h0, "ee": ee, "ee0": ee if ee0 is None else ee0, "mode": mode,
-                      "G0": G0})
+                      "M0": M0})
     cfg.meals = tm
     cfg.vig = tv
     cfg.ex = tx
@@ -373,4 +374,4 @@ def test_the_bout_replay_pins_its_readings(host):
     # 11f Task 2c's refit of the deficit drive; -3.8 from Plan 11d Task 9d, -3.9 before)
     r = replay_bout(host, minutes=60, kind="aerobic")
     assert round(r.mean_ratio(0, 60), 3) == 0.674, r
-    assert round(r.mm_difference(90), 1) == -3.5, r                 # -3.7 before the gut-satiety fit (Plan 11g Task 6)
+    assert round(r.mm_difference(90), 1) == -3.8, r                 # Plan 11g Task 6c's refit M (-3.5 under the gut stage's fit, Task 6; -3.7 before)

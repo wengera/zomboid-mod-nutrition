@@ -16,12 +16,12 @@ Two backends share one event engine:
   getSandboxOptions at StatsDecrease 1) and a replay clock. Each minute fires EveryOneMinute and ticks the mod's own
   queue (NR_Server_Players) until it drains, so the whole pipeline runs in its ORDER (or a named subset). Eats go
   through the intake adapter: a TKX_StudyFoods item (or any item spec) through IN.readAfterAndLand on a
-  before-snapshot, so the declared-nutrients chain, the landing, the stomach (whose emptying Kinetics feeds into G) and monotony are the mod's; a raw vector
+  before-snapshot, so the declared-nutrients chain, the landing, the stomach, the meal pool M (fed at the landing, cleared by Kinetics) and monotony are the mod's; a raw vector
   through IN.land and IN.atEat; a drink through IN.fluidVector and IN.land's liquid lane. The start record is placed
   in the store's records table and loaded by the store's own first-sight load (K.store.load: the inputs kept, the
   derived fields rebuilt), as after a restart.
 - `oracle` (`OracleReplay`): the satiety oracles' own kernel composition, one minute a step
-  (test_satiety_meal_studies.py's REPLAY, ENERGY_REPLAY and SIX_LIVE_REPLAY: the stomach and the gut stage G, the 70 kg man's
+  (test_satiety_meal_studies.py's REPLAY, ENERGY_REPLAY and SIX_LIVE_REPLAY: the stomach and the meal pool M, the 70 kg man's
   trailing-24 h energy path, the hunger function), driven by the same event lists. It exists so the event engine
   can be checked against the oracles' pins where they step kernels directly, and so a live run's distance from the
   oracle's 70 kg man can be named (ruling 11f-4).
@@ -32,8 +32,8 @@ age), at `s` (applied before the drain of ring row s, at its age: the landing a 
 step m, at its start). Kinds:
   eat      {food | fullType+cal+carb+lip+pro+hunger+declared+foodType, frac (default 1)} or {vec, lane, fullType}:
            an eat's kcal comes from the item (its script values, or the vector given) and its fraction from the item
-           (the driver's before/after read) or from lastIntake.frac, never from satiety.G; the replay derives
-           nothing from G
+           (the driver's before/after read) or from lastIntake.frac, never from satiety.M; the replay derives
+           nothing from M
   drink    {fluid, litres} or {vec}: the liquid lane
   autodrop {g}: g grams of water added to the record's fluids.autoDrop before the drain, which the mod's own Nutrients
            step lands after Kinetics (the writer's sip; a `drink` event would land it one drain early, F-T9-4). The row
@@ -110,7 +110,7 @@ NEUTRAL_HOUR = 13.8333                # circadian(13:50) is 1.0 exactly: the fac
 # (NR_Server_Writer reads it at :442; every other stat it reads it also writes, :287-302). A graded or tolerance field
 # fed from the ring would grade the ring against itself, so those names are refused by name.
 ALLOWED_FEED = ("NICOTINE_WITHDRAWAL",)
-GRADED_FEED = ("HUNGER", "G", "S", "L", "es", "satiety.G", "satiety.S", "satiety.L", "body.energyState", "FATIGUE",
+GRADED_FEED = ("HUNGER", "M", "S", "L", "es", "satiety.M", "satiety.S", "satiety.L", "body.energyState", "FATIGUE",
                "THIRST", "BOREDOM", "UNHAPPINESS")
 DEFAULT_FEED = ALLOWED_FEED
 GAP_DTM = 2.05                        # a ring row whose dtM exceeds this is a long minute: marked gap (ruling S0-1:
@@ -418,10 +418,10 @@ end
 ORACLE_LUA = r"""
 NR_O = {}
 NR_O.MAX_GAP_M = 60     -- NR_Server_Kinetics' MAX_GAP_M: a step's drain is capped as the server caps it
-function NR_O.new(G0, energy, satiety, holdEs, holdHour)
+function NR_O.new(M0, energy, satiety, holdEs, holdHour)
     local K = NutritionRevamp.kernel
-    local o = { G = G0, es = 1, L = 0, eb24 = 0, hunger = nil, energy = energy, satiety = satiety, holdEs = holdEs,
-                holdHour = holdHour, asleep = false, trait = 1, gut = { G = G0, trait = 1 } }
+    local o = { M = M0, es = 1, L = 0, eb24 = 0, hunger = nil, energy = energy, satiety = satiety, holdEs = holdEs,
+                holdHour = holdHour, asleep = false, trait = 1 }
     o.st = K.stomach.new()
     o.body = K.body.new(70, 1, {}, 5, 1, 1, 0)       -- the energy oracles' 70 kg man
     local w0 = o.body.fm + o.body.lm
@@ -455,6 +455,7 @@ function NR_O.eat(o, src, lane, sate)
         local u = K.vector.new()
         for k, x in pairs(src) do u[k] = x end
         if lane == "liquid" then K.stomach.ingestLiquid(o.st, u) else K.stomach.ingest(o.st, u) end
+        o.M = K.satiety.mealFeed(o.M, u)                 -- IN.feed's: M fed in full at the eat
     end
 end
 function NR_O.requestKcal(o, ageStart, H_REQ, KCAL_PER_H)
@@ -483,19 +484,16 @@ function NR_O.minute(o, ageH, dtM)
         o.es = K.energy.activityState(o.eb24, ex24, o.L, 0, ee24)
     end
     if o.satiety then
-        o.gut.G = o.G
-        o.gut.trait = o.trait
-        K.satiety.drain(o.st, K.min(dtM, NR_O.MAX_GAP_M), o.gut)   -- KIN.drain's: one-minute substeps, each a gStep (T4-3)
-        o.G = o.gut.G
+        K.satiety.drain(o.st, K.min(dtM, NR_O.MAX_GAP_M), o)   -- KIN.drain's: one-minute substeps, each clearing o.M
         local F = K.satiety.fullness(o.st)
         local x = o.es
         if o.holdEs then x = 1 end
         local c = 1
         local hod = NR_O.tod(o, ageH)
         if hod ~= nil then c = K.satiety.circadian(hod) end
-        o.hunger = K.min(0.69, K.satiety.target(F, o.G, x) * c)
+        o.hunger = K.min(0.69, K.satiety.target(F, o.M, x) * c)
     end
-    o.rec.satiety.G = o.G
+    o.rec.satiety.M = o.M
     o.rec.satiety.L = o.L
     o.rec.es = o.es
     o.rec.eb24 = o.eb24
@@ -830,11 +828,11 @@ class ServerReplay(_Backend):
 
 class OracleReplay(_Backend):
     """The oracles' kernel composition (see the module docstring); HUNGER is the displayed hunger, and the paths
-    satiety.G, satiety.L, body.energyState and body.eb24 read its state."""
+    satiety.M, satiety.L, body.energyState and body.eb24 read its state."""
 
-    ALIAS = {"body.energyState": "es", "body.eb24": "eb24", "satiety.G": "G", "satiety.L": "L"}
+    ALIAS = {"body.energyState": "es", "body.eb24": "eb24", "satiety.M": "M", "satiety.L": "L"}
 
-    def __init__(self, G0=0.0, energy=True, satiety=True, hold_es=False, hold_hour=False):
+    def __init__(self, M0=0.0, energy=True, satiety=True, hold_es=False, hold_hour=False):
         super().__init__()
         lua51, server_host, _ = _lua()
         self.lua51 = lua51
@@ -845,7 +843,7 @@ class OracleReplay(_Backend):
         self.rt.execute(ORACLE_LUA)
         self.G = self.rt.globals()
         self.O = self.G.NR_O
-        self.o = self.O.new(float(G0), bool(energy), bool(satiety), bool(hold_es), bool(hold_hour))
+        self.o = self.O.new(float(M0), bool(energy), bool(satiety), bool(hold_es), bool(hold_hour))
         self.traits = set()
 
     def table(self, d):
@@ -886,7 +884,7 @@ class OracleReplay(_Backend):
         self.o.asleep = bool(ev["asleep"])
 
     def ev_trait(self, ev, at):
-        """The appetite traits' factor on G's clearance, K.satiety.trait as KIN.gTrait reads the player's (the
+        """The appetite traits' factor on M's clearance, K.satiety.trait as KIN.mealTrait reads the player's (the
         stand-in's sandbox multiplier is 1); the oracle's composition reads no other trait."""
         if ev.get("on", True):
             self.traits.add(ev["trait"])
@@ -1280,7 +1278,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
-               G0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None):
+               M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
     start_age at dtM). Returns (rows, backend)."""
     synthetic = False
@@ -1291,7 +1289,7 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
             ages = synthetic_ages(minutes, start_age, dtM)
             synthetic = True
     if backend == "oracle":
-        be = OracleReplay(G0=G0, energy=energy, satiety=satiety, hold_es=hold_es, hold_hour=hold_hour is not None)
+        be = OracleReplay(M0=M0, energy=energy, satiety=satiety, hold_es=hold_es, hold_hour=hold_hour is not None)
         sa = start_age
     else:
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
@@ -1401,7 +1399,7 @@ def main(argv=None):
         p.add_argument("--ring", nargs="*", default=[])
         p.add_argument("--events", required=True,
                        help="the event list (JSON); an eat's kcal and fraction come from the item or from "
-                            "lastIntake.frac, never from satiety.G")
+                            "lastIntake.frac, never from satiety.M")
         p.add_argument("--start")
         p.add_argument("--user", default="admin")
         p.add_argument("--player")

@@ -5,8 +5,8 @@
 -- step after weight and before store (after the minute's eats and the effects build, #3383), it writes HUNGER,
 -- THIRST and FATIGUE and the floors, PANIC, TEMPERATURE and INTOXICATION through K.hybrid.write, stepping by elapsed
 -- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). The HUNGER target is
--- hungerTarget(sated(F, gRead(G)), energyState) x circadian(hour) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor (Plan 11e, W.nicotine), capped at 0.69 (Plan 11c, Plan 11d; NR_Kernel_Satiety.lua):
--- the stomach's fullness F (W.satietyF), the gut stage G (Plan 11g: fed and cleared by Kinetics, seeded and read here), the acute suppression S
+-- hungerTarget(sated(F, mealRead(M)), energyState) x circadian(hour) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor (Plan 11e, W.nicotine), capped at 0.69 (Plan 11c, Plan 11d; NR_Kernel_Satiety.lua):
+-- the stomach's fullness F (W.satietyF), the meal pool M (Plan 11g Task 6c: fed at the eat, cleared by Kinetics, seeded and read here), the acute suppression S
 -- of vigorous work (stepped here) and the acute record's sleep debt debtH (W.satietyFactor). It registers no stat hook.
 -- Every Java read goes through NR.num / NR.obj / NR.flag; every Java global is named inside a function behind a
 -- nil check, so the file loads with no engine. Slow-clock code: no @fastpath region.
@@ -19,7 +19,7 @@ NR.server.writer = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla (Decision 1)",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, gRead(G)), energyState) x the circadian factor x the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid counting at 0.18 of its mass, and G the gut stage, which the kinetics step feeds with the weighted kcal of what the stomach empties and clears on game time asleep or awake while the writer seeds and reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it on its first minute: hungerTarget(0.756, energy state), that is 0.244 x es + 0.02 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap G_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach, and G as it empties, through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; what the stomach empties in a fresh record's first minute, before the writer has seeded G, is not fed into G; the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g (the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level 3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.542 F, energy state), that is (1 - 0.542 F) x es + 0.02 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors, seeds an empty gut stage, so a fresh character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.31 from about 30 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a character first seen in withdrawal reads none until a smoke; the deficit drive is fitted against Karl 2021's well-fed arm, whose hunger suppression the paper attributes to slowed gastric emptying and gut hormones the model does not simulate; every Fitness set bills 6.0 from the server's exercise flag, so every set minute is vigorous resistance work for the acute term whatever the exercise (a light stretch and burpees alike)",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the 1100 g hard capacity, drunk liquid counting at 0.015 of its mass, and M the meal pool, the weighted kcal eaten, fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it on its first minute: hungerTarget(0.804, energy state), that is 0.196 x es + 0.02 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap MEAL_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and M through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat in a fresh record's first minute, before the writer has seeded M, is not fed into M (it shows only through the HUNGER the seed reads); the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g (the soft cap: shown, never a block), and vanilla's own refusal to start an eat at the FOOD_EATEN moodle's level 3 stands; fibre sates only through its mass, and carbohydrate, sugar, starch and fat take one weight per kcal (the evidence is mixed or absent: rulings 11c-6 and 11c-7); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.5 F, energy state), that is (1 - 0.5 F) x es + 0.02 x max(0, es - 1), times the minute's circadian, acute, sleep and nicotine factors, seeds an empty meal pool, so a fresh character's first written HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect (ruling T1-3); glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.31 from about 30 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion (rulings T4-1 and 9c-1); heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect, aerated foods' volume and eating rate are neutral; injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a character first seen in withdrawal reads none until a smoke; the deficit drive is fitted against Karl 2021's well-fed arm, whose hunger suppression the paper attributes to slowed gastric emptying and gut hormones the model does not simulate; every Fitness set bills 6.0 from the server's exercise flag, so every set minute is vigorous resistance work for the acute term whatever the exercise (a light stretch and burpees alike)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -27,7 +27,7 @@ NR.server.writer = {
         "the sleep-onset latency terms (solAddH, solMul) are not applied: vanilla sets the sleep delay",
         "the Effects step reads the writer's engine reads of the previous minute",
         "in Overlay (Mode 2) vanilla owns HUNGER, THIRST and FATIGUE; the floors, PANIC, TEMPERATURE and INTOXICATION are still written; auto-drink is not captured",
-        "another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the gut stage clears at its own half-life, never at those rates)",
+        "another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the meal pool clears at its own half-life, never at those rates)",
     },
 }
 local W = NR.server.writer
@@ -166,11 +166,11 @@ function W.vigorous(h, player, record, ctx)
 end
 
 -- Plan 11c (spec § 3.1, § 5b, § 5c; Task 6 amendments 3 and 4): satiety from physiology. record.satiety is
--- { G, S, L, t }: the gut stage G (weighted kcal, fed and cleared by Kinetics, Plan 11g, ruling T4-3), the acute
+-- { M, S, L, t }: the meal pool M (weighted kcal, fed at the eat and cleared by Kinetics, Plan 11g Task 6c), the acute
 -- suppression state S and the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or
 -- L, or a negative L, is stamped 0 and counted in guarded; S is clamped to [0, 1]) and S is stepped over the elapsed
--- world age toward the vigorous kind's weight; then W.satietyG seeds G at first sight. The target is
--- K.satiety.target(F, G, es) = hungerTarget(sated(F, gRead(G)), es), times circadian(hour) x acuteFactor(S) x
+-- world age toward the vigorous kind's weight; then W.satietyMeal seeds M at first sight. The target is
+-- K.satiety.target(F, M, es) = hungerTarget(sated(F, mealRead(M)), es), times circadian(hour) x acuteFactor(S) x
 -- W.nicotine's factor x sleepFactor(record.acute.debtH), which K.hybrid.write caps at hungerCap 0.69 once:
 -- min(0.69, target x circadian x acute x nicotine x sleep), so a swing minute's hunger is never above the same minute
 -- idle (ruling 11c-29 (3)); F is W.satietyF's fullness mass (ruling T5-2), the factor W.satietyFactor's (Plan 11d Task 6).
@@ -196,19 +196,19 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
     local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
     factor = W.satietyFactor(factor, record)
-    W.satietyG(s, inp, F, es, factor)
-    inp.hungerTarget = K.satiety.target(F, s.G, es) * factor
+    W.satietyMeal(s, inp, F, es, factor)
+    inp.hungerTarget = K.satiety.target(F, s.M, es) * factor
 end
 
--- The gut stage's seed (Plan 11g Task 4 and its fix 1, ruling T4-3): a G that is absent or non-finite is seeded so the
--- HUNGER written equals the HUNGER read, inverting the composition (K.satiety.seedG on hunger / factor, W.satietyFactor's
--- divisor that is non-finite or not positive reading 1; counted in seeded, and a non-finite G in guarded too). A
--- finite G is left as it is: its dynamics are Kinetics', which fed and cleared it over this minute's substeps before
--- this step (the pipeline's ORDER runs kinetics before writer, K.satiety.gStep).
-function W.satietyG(s, inp, F, es, factor)
-    if not NR.finite(s.G) then
-        if s.G ~= nil then W.stats.guarded = W.stats.guarded + 1 end
-        s.G = K.satiety.seedG(inp.hunger / factor, F, es)
+-- The meal pool's seed (Plan 11g Task 4 and its fix 1, ruling T4-3): an M that is absent or non-finite is seeded so the
+-- HUNGER written equals the HUNGER read, inverting the composition (K.satiety.seedMeal on hunger / factor, W.satietyFactor's
+-- divisor that is non-finite or not positive reading 1; counted in seeded, and a non-finite M in guarded too). A
+-- finite M is left as it is: the intake fed it at each eat, and Kinetics cleared it over this minute's substeps before
+-- this step (the pipeline's ORDER runs kinetics before writer, K.satiety.drain).
+function W.satietyMeal(s, inp, F, es, factor)
+    if not NR.finite(s.M) then
+        if s.M ~= nil then W.stats.guarded = W.stats.guarded + 1 end
+        s.M = K.satiety.seedMeal(inp.hunger / factor, F, es)
         W.stats.seeded = W.stats.seeded + 1
     end
 end
@@ -216,7 +216,7 @@ end
 function W.step(username, player, record, ctx)
     -- The dry seam (Plan 11 Task 19, ruling 15): nil in production, set true only by the test harness around its
     -- ghost runs. A dry minute computes and sets nothing -- no stat write, no hoist, no engine read, and no record
-    -- mutation (the gut stage's seed, the acute state, the sip fold, the landing mark) -- and is counted in stats.dry. It
+    -- mutation (the meal pool's seed, the acute state, the sip fold, the landing mark) -- and is counted in stats.dry. It
     -- sits first, so every step added here later inherits it.
     if W.dry == true then
         W.stats.dry = W.stats.dry + 1
@@ -340,7 +340,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- Plan 11c close (ruling C-1): the satiety step's length in game hours, S's step (G's clearance is Kinetics'). A minute on the same
+-- Plan 11c close (ruling C-1): the satiety step's length in game hours, S's step (M's clearance is Kinetics'). A minute on the same
 -- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
 -- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
 -- every step (game hours; stored, K.store.INPUTS), so S decays across the gap as Kinetics and Metabolism catch it

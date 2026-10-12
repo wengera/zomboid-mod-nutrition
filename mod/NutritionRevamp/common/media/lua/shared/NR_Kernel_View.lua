@@ -491,7 +491,7 @@ end
 -- Plan 11c Task 7 (ruling 11c-25): the soft cap shown as the mod's own Overfull moodle, a seventh moodle class beside
 -- the six (the panel's class rows stay the six of K.view.CLASSES). Its level reads the stomach's whole mass, both
 -- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
--- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the fill F, which clamps at 1 at 730 g.
+-- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
 -- The moodle is shown and never blocks an eat. Appended so no line above moves.
 K.view.OVERFULL_AT = {
     100 / 3, -- gc: level 2 from a third of the way to the full scale (about 853 g); a game choice on ruling 11c-8's inferences, S1250 and S1253

@@ -6,8 +6,8 @@
 -- writer's fallback, the acute dose test and the mirror to read. A gap of more than a minute drains in one-minute substeps (the
 -- solid rate rises with the load, and the oracle's replays step a minute), and a gap is capped at 60 game minutes:
 -- offline time is not integrated, as Metabolism and Nutrients clamp. A record with no stomach starts with an empty one
--- (spec § 4, ruling 11c-15); hunger carries over through the gut stage G (record.satiety.G, Plan 11g), whose dynamics are this step's: each substep feeds G what the stomach emptied
--- and clears it (K.satiety.gStep, ruling T4-3); the writer seeds G from HUNGER at its first minute and reads it. The energy-state term is NR_Server_Metabolism's per-minute stamp
+-- (spec § 4, ruling 11c-15); hunger carries over through the meal pool M (record.satiety.M, Plan 11g Task 6c), which the intake feeds at the eat and this step clears
+-- on every substep (K.satiety.drain); the writer seeds M from HUNGER at its first minute and reads it. The energy-state term is NR_Server_Metabolism's per-minute stamp
 -- (record.body.energyState; the writer reads nil or NaN as 1).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
@@ -52,11 +52,10 @@ end
 
 -- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in one-minute substeps
 -- (K.satiety.drain, the kernel's since Plan 11g Task 6, so the replays' stand-ins split a step as the server does).
--- Returns the emptied vector. gut is nil or KIN.gut's state: each substep then steps its G by what that substep emptied
--- (K.satiety.gStep, ruling T4-3), so food emptied late in a gap is cleared over the substeps after it only.
+-- Returns the emptied vector. pool is nil or KIN.meal's state, whose M each substep clears (K.satiety.mealClear).
 local MAX_GAP_M = 60 -- game minutes: the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), no row needed
-function KIN.drain(stomach, dtM, gut)
-    return K.satiety.drain(stomach, K.min(dtM, MAX_GAP_M), gut)
+function KIN.drain(stomach, dtM, pool)
+    return K.satiety.drain(stomach, K.min(dtM, MAX_GAP_M), pool)
 end
 
 local function step(username, player, record, ctx)
@@ -83,9 +82,9 @@ local function step(username, player, record, ctx)
     record.kineticsAge = age
     if dtH > 0 then
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
-        local gut = KIN.gut(record, player)                       -- nil for a G the writer has yet to seed
-        local emptied = KIN.drain(record.stomach, dtH * 60, gut)
-        KIN.landG(record, gut, username)
+        local pool = KIN.meal(record, player)                      -- nil for an M the writer has yet to seed
+        local emptied = KIN.drain(record.stomach, dtH * 60, pool)
+        KIN.landMeal(record, pool, username)
         local absorbed = K.stomach.absorb(emptied, meal)
         K.stomach.toPool(record.pool, absorbed)
         if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
@@ -204,28 +203,28 @@ function KIN.malformedPool(pool, username)
     return true
 end
 
--- Plan 11g Task 4 and its fix 1 (spec § 3.1, ruling T4-3): the gut stage G's dynamics. KIN.drain steps G on every
--- substep (K.satiety.gStep: feed what the substep emptied, then clear over it), and the writer, later in the minute's
--- ORDER, seeds G at first sight and reads it.
--- KIN.gut: the one gut state, overwritten every step: G as stepped, and the clearance factor, the appetite trait (#0485)
--- times the sandbox's stats-decrease multiplier (ruling 11c-11). Returns nil for a record whose satiety is not a table,
--- or whose G is absent or non-finite: that G is left for the writer's seed (the first minute's emptying is not fed).
-KIN.gutState = { G = 0, trait = 1 }
-function KIN.gut(record, player)
+-- Plan 11g Task 4 and its fix 1 (ruling T4-3), Task 6c (spec § 7): the meal pool M's clearance. The intake feeds M at
+-- the eat (IN.feed); KIN.drain clears it on every substep (K.satiety.mealClear), and the writer, later in the minute's
+-- ORDER, seeds M at first sight and reads it.
+-- KIN.meal: the one pool state, overwritten every step: M as cleared, and the clearance factor, the appetite trait
+-- (#0485) times the sandbox's stats-decrease multiplier (ruling 11c-11). Returns nil for a record whose satiety is not
+-- a table, or whose M is absent or non-finite: that M is left for the writer's seed.
+KIN.mealState = { M = 0, trait = 1 }
+function KIN.meal(record, player)
     local s = record.satiety
-    if type(s) ~= "table" or not NR.finite(s.G) then
+    if type(s) ~= "table" or not NR.finite(s.M) then
         return nil
     end
-    local gut = KIN.gutState
-    gut.G = s.G
-    gut.trait = KIN.gTrait(player)
-    return gut
+    local pool = KIN.mealState
+    pool.M = s.M
+    pool.trait = KIN.mealTrait(player)
+    return pool
 end
 
 -- The clearance factor: K.satiety.trait of the player's HEARTY_APPETITE and LIGHT_EATER, times the sandbox's
 -- getStatsDecreaseMultiplier (1 when the sandbox or a trait is unreadable; a nil player reads no trait), read off the
 -- sandbox object NR.sandbox() caches for every adapter.
-function KIN.gTrait(player)
+function KIN.mealTrait(player)
     local T = CharacterTrait
     local hearty = false
     local light = false
@@ -237,17 +236,17 @@ function KIN.gTrait(player)
     return K.satiety.trait(hearty, light) * NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
 end
 
--- Lands the stepped G on the record. A G the steps made non-finite (a non-finite emptied vector, or a clearance that
--- overflows) keeps the previous G and counts a failure, as the step's other guards do.
-function KIN.landG(record, gut, username)
-    if gut == nil then
+-- Lands the cleared M on the record. An M the clearance made non-finite (a clearance that overflows) keeps the previous
+-- M and counts a failure, as the step's other guards do.
+function KIN.landMeal(record, pool, username)
+    if pool == nil then
         return
     end
-    if NR.finite(gut.G) then
-        record.satiety.G = gut.G
+    if NR.finite(pool.M) then
+        record.satiety.M = pool.M
         return
     end
     KIN.stats.failures = KIN.stats.failures + 1
-    KIN.lastError = "kinetics: non-finite gut stage step for " .. tostring(username) .. "; G kept"
+    KIN.lastError = "kinetics: non-finite meal pool clearance for " .. tostring(username) .. "; M kept"
     NR.log.say(2, KIN.lastError)
 end

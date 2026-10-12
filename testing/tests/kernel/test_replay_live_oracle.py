@@ -1,12 +1,12 @@
 """tools/replay_live.py's own oracle (Plan 11f Task 2): fed the oracle tests' event lists, the replay reproduces their
 pins exactly.
 
-Where the oracle steps the satiety kernels (test_satiety_meal_studies.py's REPLAY: the stomach, the gut stage G and
+Where the oracle steps the satiety kernels (test_satiety_meal_studies.py's REPLAY: the stomach, the meal pool M and
 the hunger function, one game minute a step), the replay runs the mod's own server adapters (ServerReplay) on the
 pipeline steps that compose the same thing, kinetics then the writer, every other step left out so the energy state
 reads the fresh body's 1 as the oracle holds it: the stomach drains and feeds G in NR_Server_Kinetics, G clears and HUNGER is written by
 NR_Server_Writer at the clock's circadian factor, held at 1 at 13:50 (NEUTRAL_HOUR) where the oracle holds it, and the
-eats land through IN.land. The start record carries the oracle's G0 and the stamps (satiety.t, kineticsAge) so the first
+eats land through IN.land. The start record carries the oracle's M0 and the stamps (satiety.t, kineticsAge) so the first
 minute steps as the oracle's does. Each reading equals the oracle function's own (and its pin).
 
 The writer replays (the nicotine replay, test_satiety_meal_studies.py's nicotine_written) run the writer step alone on a
@@ -57,13 +57,13 @@ def meal_events(events):
     return out
 
 
-def server_hunger(host, events, minutes, G0=None, h0=None):
+def server_hunger(host, events, minutes, M0=None, h0=None):
     """The written HUNGER per minute (index i is minute i + 1), as M.hunger reads it."""
-    if G0 is None:
-        G0 = M.start_g(host, h0)
+    if M0 is None:
+        M0 = M.start_m(host, h0)
     a0 = 0.0 if h0 is None else h0
     start = {"username": "admin", "firstSeen": a0, "lastSeen": a0, "kineticsAge": a0,
-             "satiety": {"G": G0, "S": 0, "L": 0, "t": a0}}
+             "satiety": {"M": M0, "S": 0, "L": 0, "t": a0}}
     rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=minutes, start_age=a0, steps=SATIETY_STEPS,
                             hold_hour=RL.NEUTRAL_HOUR if h0 is None else None)
     assert [r["age"] for r in rows] == RL.synthetic_ages(minutes, a0)
@@ -75,20 +75,20 @@ def test_the_neutral_hour_holds_the_circadian_factor_at_exactly_1(host):
 
 
 def test_the_650_kcal_meal_returns_to_the_request_at_the_oracles_minute(host):
-    # 349 under the fitted G (Plan 11g Task 6; 512 under G's provisional constants, 320 on the P model), the oracle's
-    # reading (a named non-reproduction of the 240-300 anchor, gut_oracles.NAMED)
+    # 302 under the refit M (Plan 11g Task 6c; 349 under the gut stage's fit, Task 6, 512 under G's provisional
+    # constants, 320 on the P model), the oracle's reading, inside the 240-300 anchor's 1.1x
     hs = server_hunger(host, {0: [("food", M.mixed(650))]}, 900)
     ref = M.hunger(host, {0: [("food", M.mixed(650))]}, 900)
     assert max(abs(a - b) for a, b in zip(hs, ref)) < 1e-12
-    assert M.request(hs) == M.request(ref) == 349
+    assert M.request(hs) == M.request(ref) == 302
 
 
 def test_callahans_minutes_from_the_request_and_fasted_at_09_00(host):
     seeded = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, h0=M.CALLAHAN_H))
               for k in (190.0, 400.0, 825.0)]
-    fasted = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, G0=0.0, h0=M.CALLAHAN_H),
+    fasted = [M.request(server_hunger(host, {0: [("drink", M.preload(k))]}, 900, M0=0.0, h0=M.CALLAHAN_H),
                         fasted=True) for k in (190.0, 400.0, 825.0)]
-    assert seeded == fasted == [234, 273, 360]                  # Plan 11g Task 6, the fitted G (P model: 250, 279, 339)
+    assert seeded == fasted == [234, 261, 321]                  # Plan 11g Task 6c, the refit M (G: 234, 273, 360; P: 250, 279, 339)
 
 
 def test_marmoniers_snack_delays(host):
@@ -97,25 +97,25 @@ def test_marmoniers_snack_delays(host):
     for name, main, share in (("p", "proteins", 0.77), ("c", "carbs", 0.84), ("f", "lipids", 0.58)):
         hs = server_hunger(host, {0: [("food", M.mixed(650))], 240: [("food", M.snack(239.0, main, share))]}, 1500)
         d[name] = M.request(hs, after=245) - base
-    assert (d["p"], d["c"], d["f"]) == (149, 132, 126)         # Plan 11g Task 6, the fitted G (P model: 193, 159, 167)
+    assert (d["p"], d["c"], d["f"]) == (189, 160, 165)         # Plan 11g Task 6c, the refit M (G: 149, 132, 126; P: 193, 159, 167)
 
 
 def test_melansons_fasted_drinks(host):
-    got = [M.request(server_hunger(host, {0: [("drink", M.snack(239.0, main, 0.70, water=400.0))]}, 900, G0=0.0),
+    got = [M.request(server_hunger(host, {0: [("drink", M.snack(239.0, main, 0.70, water=400.0))]}, 900, M0=0.0),
                      fasted=True) for main in ("carbs", "lipids")]
-    assert got == M.melanson(host) == [156, 141]               # Plan 11g Task 6, the fitted G (P model: 236, 236)
+    assert got == M.melanson(host) == [217, 215]               # Plan 11g Task 6c, the refit M (G: 156, 141; P: 236, 236)
 
 
 def test_the_fasted_400_kcal_breakfast_and_the_protein_contrast(host):
     v = M.mixed(400, water=250.0)
-    assert M.held(server_hunger(host, {0: [("food", v)]}, 900, G0=0.0)) == M.held(
-        M.hunger(host, {0: [("food", v)]}, 900, G0=0.0))
+    assert M.held(server_hunger(host, {0: [("food", v)]}, 900, M0=0.0)) == M.held(
+        M.hunger(host, {0: [("food", v)]}, 900, M0=0.0))
     hi = M.mixed(400.0, water=300.0, p=0.30, c=0.35, f=0.35)
     lo = M.mixed(400.0, water=300.0, p=0.10, c=0.55, f=0.35)
     hh = server_hunger(host, {0: [("food", hi)]}, 240)
     hl = server_hunger(host, {0: [("food", lo)]}, 240)
     d = sum(b - a for a, b in zip(hh, hl)) / 240
-    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 4) == 0.0196   # Plan 11g Task 6, the fitted G (P model: 0.0134)
+    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 5) == 0.01245   # Plan 11g Task 6c, the refit M (G: 0.0196; P: 0.0134)
 
 
 def test_rolls_1999_and_the_minute_1_fullness(host):
@@ -210,8 +210,8 @@ def six_sum(n, gap, hold):
 def test_six_meals_against_three_held_and_live(host):
     held = six_sum(6, 150, True) / six_sum(3, 300, True)
     live = six_sum(6, 150, False) / six_sum(3, 300, False)
-    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 1.020   # Plan 11g Task 6, the fitted G (P: 0.969)
-    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 1.035     # Plan 11g Task 6, the fitted G (P: 0.983, Plan 11f Task 2c fix 1)
+    assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.951   # Plan 11g Task 6c, the refit M (the gut stage's fit 1.020; P: 0.969)
+    assert live == M.meal_frequency_ratio_live(host) and round(live, 3) == 0.964     # Plan 11g Task 6c, the refit M (the gut stage's fit 1.035; P: 0.983, Plan 11f Task 2c fix 1)
 
 
 def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
@@ -233,7 +233,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
 def nicotine_written(host, ageH, w, anchorH):
     """M.nicotine_written's reading: a fresh record eaten at the request, the writer step alone."""
     c = host.call("satiety.circadian", (ageH + M.CLOCK_H) % 24)
-    sat = {"G": host.call("satiety.seedG", M.H_REQ / c, 0, 1), "S": 0, "L": 0}
+    sat = {"M": host.call("satiety.seedMeal", M.H_REQ / c, 0, 1), "S": 0, "L": 0}
     if anchorH is not None:
         sat["nicH"] = anchorH + M.CLOCK_H
     rec = {"username": "admin", "firstSeen": 0.0, "lastSeen": 0.0, "satiety": sat}
@@ -267,9 +267,9 @@ def test_the_fifth_daily_eat_of_a_study_food_holds_a_stale_item(host):
 
 # --- the stand-in's step (Plan 11g Task 6, carried from the Task 4 fix 1 review) ----------------------------------
 
-def oracle_g(steps, trait=None):
-    """OracleReplay's G and HUNGER after a 600 kcal meal at G 40, stepped by `steps` (game minutes each)."""
-    be = RL.OracleReplay(G0=40.0, energy=False, satiety=True, hold_es=True, hold_hour=True)
+def oracle_m(steps, trait=None):
+    """OracleReplay's M and HUNGER after a 600 kcal meal at M 40, stepped by `steps` (game minutes each)."""
+    be = RL.OracleReplay(M0=40.0, energy=False, satiety=True, hold_es=True, hold_hour=True)
     if trait is not None:
         be.ev_trait({"trait": trait}, 0.0)
     be.ev_eat({"vec": M.mixed(600)}, 0.0)
@@ -277,25 +277,37 @@ def oracle_g(steps, trait=None):
     for d in steps:
         age += d / 60
         be.step(age, float(d))
-    return be.o.G, be.o.hunger
+    return be.o.M, be.o.hunger
 
 
 def test_a_three_minute_step_equals_three_one_minute_steps():
-    # the stand-in drains the stomach and steps G in Kinetics' one-minute substeps (K.satiety.drain), so a ring step
+    # the stand-in drains the stomach and clears M in Kinetics' one-minute substeps (K.satiety.drain), so a ring step
     # of 3 minutes reads what three 1-minute steps read, as on the server
-    g3, h3 = oracle_g([3] * 20)
-    g1, h1 = oracle_g([1] * 60)
-    assert g3 == pytest.approx(g1, rel=1e-9) and h3 == pytest.approx(h1, rel=1e-9)
-    g60, _ = oracle_g([60])
-    assert g60 == pytest.approx(g1, rel=1e-9)
+    m3, h3 = oracle_m([3] * 20)
+    m1, h1 = oracle_m([1] * 60)
+    assert m3 == pytest.approx(m1, rel=1e-9) and h3 == pytest.approx(h1, rel=1e-9)
+    m60, _ = oracle_m([60])
+    assert m60 == pytest.approx(m1, rel=1e-9)
 
 
-def test_the_stand_in_clears_g_at_the_appetite_traits_factor():
-    # the record's trait factor (K.satiety.trait, KIN.gTrait's; the stand-in's sandbox multiplier is 1): a hearty
+def test_a_ninety_minute_step_equals_a_sixty_minute_capped_step():
+    # the Task 6 review's finding 6: the stand-in caps a step's drain at NR_O.MAX_GAP_M, as KIN.drain caps the gap at
+    # MAX_GAP_M (60 game minutes), so a 90-minute step drains and clears what a 60-minute step does, and a step past the
+    # cap reads the same however far past it is
+    m90, h90 = oracle_m([90])
+    m60, h60 = oracle_m([60])
+    assert m90 == m60 and h90 == h60
+    assert oracle_m([300]) == (m60, h60)
+    m61, _ = oracle_m([30, 31])                                    # under the cap each step clears its own length
+    assert m61 < m60
+
+
+def test_the_stand_in_clears_m_at_the_appetite_traits_factor():
+    # the record's trait factor (K.satiety.trait, KIN.mealTrait's; the stand-in's sandbox multiplier is 1): a hearty
     # appetite clears faster, a light eater slower, each the same over a 3-minute step as over three 1-minute steps
-    g, _ = oracle_g([1] * 60)
-    ha3, _ = oracle_g([3] * 20, "HEARTY_APPETITE")
-    ha1, _ = oracle_g([1] * 60, "HEARTY_APPETITE")
-    le, _ = oracle_g([1] * 60, "LIGHT_EATER")
+    m, _ = oracle_m([1] * 60)
+    ha3, _ = oracle_m([3] * 20, "HEARTY_APPETITE")
+    ha1, _ = oracle_m([1] * 60, "HEARTY_APPETITE")
+    le, _ = oracle_m([1] * 60, "LIGHT_EATER")
     assert ha3 == pytest.approx(ha1, rel=1e-9)
-    assert ha1 < g < le
+    assert ha1 < m < le

@@ -29,9 +29,9 @@ K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the key, the first and last world age seen, the respawn
     -- count, the death flag
     "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- satiety (Plan 11c, Plan 11g; NR_Server_Kinetics, NR_Server_Writer, NR_Server_Metabolism): the gut stage G (weighted kcal), which the writer
+    -- satiety (Plan 11c, Plan 11g; NR_Server_Intake, NR_Server_Kinetics, NR_Server_Writer, NR_Server_Metabolism): the meal pool M (weighted kcal), which the writer
     -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
-    "satiety.G", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1); nicH: the world age at the last minute the server's NICOTINE_WITHDRAWAL read 0 or fell, the nicotine fade's anchor (Plan 11e, ruling T2-A)
+    "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1); nicH: the world age at the last minute the server's NICOTINE_WITHDRAWAL read 0 or fell, the nicotine fade's anchor (Plan 11e, ruling T2-A)
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
     -- solid buffer (ingest and ingestLiquid add, drain empties), the absorbed pool (toPool accumulates; a diagnostic
     -- no step reads back, kept because it cannot be rebuilt)
@@ -267,7 +267,7 @@ function K.store.overlayKey(dst, src, k, segs, i)
 end
 
 -- Ruling C9-10: a stored input must have its default's type (a number where the constructor lays a number), and
--- one with no default (a lazily laid field: iron's S and H, calcium's bone, the satiety gut stage) must be a number, a
+-- one with no default (a lazily laid field: iron's S and H, calcium's bone, the satiety meal pool) must be a number, a
 -- boolean or a table. Anything else is a corrupt file: the load raises, and the server lays a fresh record
 -- (NR_Server_Store's S.load), never a record that every step fails on.
 function K.store.checkLeaf(dv, sv, k)
@@ -325,7 +325,7 @@ function K.store.load(raw, order, records)
     local rec = K.store.new(raw.username, raw.firstSeen)
     K.store.defaults(rec, raw, order)
     if type(raw.satiety) == "table" then
-        rec.satiety = {} -- the stored G, S, L, t and nicH overwrite it
+        rec.satiety = {} -- the stored M, S, L, t and nicH overwrite it
     end
     local segs = K.store.SEGS
     for i = 1, #segs do

@@ -293,7 +293,7 @@ end
 
 -- Plan 11c Task 6 (amendment 4): the exercise lag, healed before the minute: a lag that is non-finite or negative
 -- (the Task 4b re-review's residual: exerciseLag passes a negative L through) is stamped 0, logged and counted in
--- MET.guarded. record.satiety is laid for its L when absent; its G is the writer's to seed (Kinetics feeds and clears it). (The closed day's
+-- MET.guarded. record.satiety is laid for its L when absent; its M is the writer's to seed (the intake feeds it, Kinetics clears it). (The closed day's
 -- exercise bank it healed beside the lag went with the 24 h blend, Plan 11d Task 9c.) Returns the satiety table.
 function MET.healActivity(username, record, body)
     local healed = nil

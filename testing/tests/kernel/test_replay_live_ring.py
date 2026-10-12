@@ -6,7 +6,7 @@ record paths. Its clock steps unevenly (1, 2, 0.5, 3 game-minute gaps), so the r
 eats a TKX_StudyFoods meal, drinks water, falls asleep and wakes, and its engine-owned NICOTINE_WITHDRAWAL moves with
 no event logged. The slot file line A's store would write (K.store.inputsOnly through K.json.encode at the store's
 own fmt) is the start record; the ring page read through `minute.ring admin read` is the ring. The replay of that
-page and the event log (mode live) must then match every ring row it is compared with, HUNGER, satiety.G,
+page and the event log (mode live) must then match every ring row it is compared with, HUNGER, satiety.M,
 body.energyState and satiety.L within 1e-9 (the slot line keeps 14 digits, tostring's %.14g), skipping exactly the
 rows an event landed before; a replay that compared drain k with ring row k (the wrong phase), or stepped a fixed
 1-minute clock, or fed no NICOTINE_WITHDRAWAL, fails. The harness is never a kernel file, so the coverage gate is
@@ -23,7 +23,7 @@ from .test_harness_minute_ring import CORE, SERVER, STUB_TK, load, section
 sys.path.insert(0, os.path.join(REPO, "tools"))
 import replay_live as RL  # noqa: E402
 
-PATHS = ("satiety.G", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH", "body.trail.kcal.3",
+PATHS = ("satiety.M", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH", "body.trail.kcal.3",
          "_G.NutritionRevamp.server.intake.stats.landed")
 A0 = 1000.0                       # world age at the warm-up's start (hours)
 WARM = 40                         # warm-up minutes before the slot line is taken
@@ -126,7 +126,7 @@ def test_the_live_replay_matches_every_ring_row_but_those_an_event_landed_before
         if r["between"]:
             continue
         live_row = by_s[r["s"]]
-        for f in ("HUNGER", "THIRST", "satiety.G", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH"):
+        for f in ("HUNGER", "THIRST", "satiety.M", "satiety.L", "body.energyState", "stomachFill", "satiety.nicH"):
             assert r[f] == pytest.approx(live_row[f], rel=1e-9, abs=1e-12), (r["s"], f, r[f], live_row[f])
         assert r["age"] == live_row["age"] and r["dtM"] == live_row.get("dtM")
         compared += 1
@@ -154,7 +154,7 @@ def test_the_eat_count_path_shows_each_landing_in_the_row_after_it(live):
     b, _ = RL.replay_live(rows, [s_keyed(e, rows) for e in events], slot, ring_paths=RL.load_ring([doc])[1], sleep_allowed=True)
     assert [r["between"] for r in a] == [r["between"] for r in b]
     for ra, rb in zip(a, b):
-        assert rb["satiety.G"] == pytest.approx(ra["satiety.G"], rel=1e-9)
+        assert rb["satiety.M"] == pytest.approx(ra["satiety.M"], rel=1e-9)
 
 
 def test_a_wrong_phase_or_a_fixed_clock_or_no_feed_is_caught(live):
@@ -163,7 +163,7 @@ def test_a_wrong_phase_or_a_fixed_clock_or_no_feed_is_caught(live):
     out, _ = RL.replay_live(rows, events, slot, ring_paths=paths, sleep_allowed=True)
     # drain k against ring row k: the wrong phase moves HUNGER past the tolerance somewhere
     wrong = [dict(r, s=r["s"] - 1) for r in out]
-    tight = {"satiety.G": ("rel", 1e-9), "HUNGER": ("abs", 1e-9)}
+    tight = {"satiety.M": ("rel", 1e-9), "HUNGER": ("abs", 1e-9)}
     assert not RL.diff(wrong, rows, tight)["ok"]
     # a fixed one-minute clock in place of the ring's ages (the events keyed by the row that shows them)
     fixed = [dict(r, age=rows[0]["age"] + i / 60) for i, r in enumerate(rows)]
@@ -183,7 +183,7 @@ def test_mode_arm_on_the_rings_clock_with_the_same_events_reproduces_the_live_mo
     arm, _ = RL.replay_arm(events, start=slot, ring_rows=use, paths=paths, hour_offset=OFFSET,
                            stats={k: use[0][k] for k in RL.STATS if use[0].get(k) is not None})
     for a, b in zip(out, arm):
-        assert a["HUNGER"] == b["HUNGER"] and a["satiety.G"] == b["satiety.G"]
+        assert a["HUNGER"] == b["HUNGER"] and a["satiety.M"] == b["satiety.M"]
 
 
 def test_a_start_record_taken_mid_ring_drops_the_rows_and_events_it_holds(live):
@@ -193,7 +193,7 @@ def test_a_start_record_taken_mid_ring_drops_the_rows_and_events_it_holds(live):
     out, be = RL.replay_live(rows, events, a.mid_slot, ring_paths=paths, sleep_allowed=True)
     assert out[0]["s"] == next(r["s"] for r in rows if r["age"] > sa + 1e-9) + 1 == 23   # row 21 is the slot's own minute
     assert be.dropped == [e for e in events if e["age"] <= sa] and len(be.dropped) == 1
-    d = RL.diff(out, rows, {"HUNGER": ("abs", 1e-9), "satiety.G": ("rel", 1e-9), "body.energyState": ("abs", 1e-9)})
+    d = RL.diff(out, rows, {"HUNGER": ("abs", 1e-9), "satiety.M": ("rel", 1e-9), "body.energyState": ("abs", 1e-9)})
     assert d["ok"] and d["fields"]["HUNGER"]["n"] > 80, d
     out2, be2 = RL.replay_live(rows, [s_keyed(e, rows) for e in events], a.mid_slot, ring_paths=paths, sleep_allowed=True)
     assert len(be2.dropped) == 1 and [r["HUNGER"] for r in out2] == [r["HUNGER"] for r in out]
@@ -201,7 +201,7 @@ def test_a_start_record_taken_mid_ring_drops_the_rows_and_events_it_holds(live):
 
 def test_a_drink_lands_in_the_liquid_lane_and_a_typed_vector_eat_books_monotony():
     rp = RL.ServerReplay(start={"username": "admin", "firstSeen": 99.0, "lastSeen": 99.0,
-                                "satiety": {"G": 10.0, "S": 0, "L": 0, "t": 99.0}})
+                                "satiety": {"M": 10.0, "S": 0, "L": 0, "t": 99.0}})
     rp.apply({"kind": "drink", "fluid": "Water", "litres": 0.3}, 100.0)
     st = rp.record().stomach
     assert st.buffer.water == 0 and st.liquid > 250
@@ -252,4 +252,4 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_with_no_lag():
     assert d["ok"], d["findings"][:3]
     assert all(d["fields"][f]["n"] > 30 for f in tol)
     h = RL.diff(out, rows, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
-    assert h["n"] == 41 and round(h["max"], 4) == 0.0069, h                 # the P ring against the fitted G: a reading (0.0223 under G's provisional constants)
+    assert h["n"] == 41 and round(h["max"], 4) == 0.0229, h                 # the P ring against the refit M (Plan 11g Task 6c): a reading (0.0069 under the gut stage's fit, 0.0223 under its provisional constants)
