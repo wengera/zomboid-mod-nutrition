@@ -253,4 +253,4 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_with_no_lag():
     assert d["ok"], d["findings"][:3]
     assert all(d["fields"][f]["n"] > 30 for f in tol)
     h = RL.diff(out, rows, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
-    assert h["n"] == 41 and round(h["max"], 4) == 0.0097, h                 # the P ring against the refit M (Plan 11g Task 6c fix 2): a reading (0.0096 under fix 1's refit, 0.0229 under Task 6c's fit, 0.0069 under the gut stage's fit, 0.0223 under its provisional constants)
+    assert h["n"] == 41 and round(h["max"], 4) == 0.0097, h                 # the P ring against the refit M (Plan 11g Task 6c fix 2): a reading (0.0096 under fix 1's refit, 0.0229 under Task 6c's fit, 0.0069 under the gut stage's fit, 0.0223 under its provisional constants), at DEFICIT_11F, the ring's deficit drive (Plan 11g Task 7)

@@ -1452,7 +1452,7 @@ def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_hos
 
 
 def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure(met_host):
-    # the window: 1200 kcal eaten against 3000 spent, 800 kcal of it exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.6 > EX_BYPASS_HI 0.575 (Plan 11f Task 2c fix 1; 1500 kcal and 0.45 before), so the lag is bypassed
+    # the window: 1200 kcal eaten against 3000 spent, 800 kcal of it exercise; the 24 h total deficit d = -eb24h / ee24h is about 0.6 > EX_BYPASS_HI 0.405 (Plan 11g Task 7 fix 1; 0.44 in Task 7, 0.575 in Plan 11f Task 2c fix 1, 1500 kcal and 0.45 before), so the lag is bypassed
     # whole and es reads the balance as if the exercise were food restriction (S1325); the same record without the
     # 24 h expenditure bypasses nothing (the kernel's ee24h nil), so the adapter is what passes it
     h = met_host

@@ -44,7 +44,7 @@ def test_the_constants(host):
     assert host.K.deficit.EX_LAG_TAU_D == 16
     assert host.K.deficit.EX_LAG_GAIN == 0.7
     assert host.K.deficit.EX_BYPASS_LO == 0.282           # Plan 11f Task 2c fix 2 (S1318's 0.2814 bound); 0.28 in fix 1, 0.30 before
-    assert host.K.deficit.EX_BYPASS_HI == 0.44            # Plan 11g Task 7 (the plateau's tie, fit-11g-deficit-20261012b); 0.575 in Plan 11f Task 2c fix 1, 0.45 before
+    assert host.K.deficit.EX_BYPASS_HI == 0.405           # Plan 11g Task 7 fix 1 (ruling T7-6: mid-plateau, fit-11g-deficit-20261012b); 0.44 in Task 7 (the plateau's tie), 0.575 in Plan 11f Task 2c fix 1, 0.45 before
 
 
 def test_each_activity_constant_names_its_rows_and_its_label():
@@ -73,12 +73,22 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     line = re.search(r"^K\.deficit\.EX_LAG_GAIN = .*$", eng, re.M).group(0)
     assert "game choice, Plan 11d (ruling 11d-4)" in line
     assert "S1320" in line and "S1664" in line and "S1516" in line
-    # Plan 11g Task 7: the four fitted constants name the fit, its artifact and the deficit rows it scored (S1613,
-    # S1614, S1325's DEF arm, S1312), and S1892, the band Karl's BAL arm is held in as a constraint
+    # Plan 11g Task 7: the three fitted constants name the fit and its artifact; BALANCE_SPAN_KCAL alone carries the
+    # deficit rows it was scored on (S1613, S1614, S1325's DEF arm, S1312) and S1892, the band Karl's BAL arm is held
+    # in as a constraint, and the ramp's ends point to it (fix round 1: the paragraph is not copied) with their own
+    # holding clauses
     for name in ("BALANCE_SPAN_KCAL", "EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
         assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line, name
-        assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312", "S1892")), name
+    line = re.search(r"^K\.deficit\.BALANCE_SPAN_KCAL = .*$", eng, re.M).group(0)
+    assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312", "S1892")) and "held as constraints" in line
+    for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
+        line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
+        assert "fitted with BALANCE_SPAN_KCAL (see its label)" in line and "held as constraints" not in line, name
+        assert "S1613" not in line and "S1892" not in line, name
+    line = re.search(r"^K\.deficit\.EX_BYPASS_HI = .*$", eng, re.M).group(0)
+    assert "ruling T7-6" in line and "fit-11g-deficit-20261012b" in line and "0.49205" in line
+    assert "ruling T7-3" in line and "King" in line and "S1312" in line and "S1325" in line
     for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
         assert "ruling 11c-32" in line, name
