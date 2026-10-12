@@ -17,9 +17,9 @@ SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", 
 NAMES = ("W_PROTEIN", "W_CARB", "W_FAT", "W_NEUTRAL", "MEAL_HALF_LIFE_H", "MEAL_REQ", "MEAL_STEEP", "FULL_WEIGHT",
          "LIQUID_WEIGHT", "MEAL_SEED_MAX", "DISCOMFORT_MAX", "ATWATER_P", "ATWATER_C", "ATWATER_F", "CIRCADIAN_A", "CIRCADIAN_PEAK_H",
          "PROTEIN_FILL")
-# the joint fit's constants (Plan 11g Task 6c fix 1, tools/fit_gut_satiety.py, fit-11g-20261012c), each at the value the fit chose
-FIT = {"FULL_WEIGHT": 0.517741, "MEAL_HALF_LIFE_H": 0.583495, "MEAL_REQ": 3.80654, "MEAL_STEEP": 0.0353777,
-       "LIQUID_WEIGHT": 0.19, "PROTEIN_FILL": 8, "W_FAT": 0.881368, "W_PROTEIN": 2.4913}
+# the joint fit's constants (Plan 11g Task 6c fix 2, tools/fit_gut_satiety.py, fit-11g-20261012d), each at the value the fit chose
+FIT = {"FULL_WEIGHT": 0.517741, "MEAL_HALF_LIFE_H": 0.583749, "MEAL_REQ": 3.80654, "MEAL_STEEP": 0.0356875,
+       "LIQUID_WEIGHT": 0.278815, "PROTEIN_FILL": 7.91676, "W_FAT": 0.878683, "W_PROTEIN": 2.49782}
 
 
 def _vec(host, **kw):
@@ -51,14 +51,14 @@ def test_each_constant_names_its_row_or_its_label():
     assert "provisional" not in src.lower()                             # Plan 11g Task 6: every constant labelled
     for name in FIT:
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
-        assert "game choice, fitted in Plan 11g Task 6c fix 1 against S" in line, name    # the label the brief sets
-        assert "(tools/fit_gut_satiety.py, fit-11g-20261012c)" in line, name        # the fit and its artifact
+        assert "game choice, fitted in Plan 11g Task 6c fix 2 against S" in line, name    # the label the brief sets
+        assert "(tools/fit_gut_satiety.py, fit-11g-20261012d)" in line, name        # the fit and its artifact
         assert len(re.findall(r"S\d{4}", line)) >= 2, name                          # the rows that bound it
     for name in ("W_PROTEIN", "W_FAT", "MEAL_HALF_LIFE_H", "MEAL_REQ", "MEAL_STEEP"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert re.search(r"S12(68|70) open", line), name                 # an open row is named open, never as evidence
     line = re.search(r"^K\.satiety\.MEAL_SEED_MAX = .*$", src, re.M).group(0)
-    assert "game choice (ruling 11c-30; re-derived in Plan 11g Task 6c fix 1)" in line and "0.214" in line
+    assert "game choice (ruling 11c-30; re-derived in Plan 11g Task 6c fix 1, unchanged by fix 2)" in line and "0.214" in line
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert "S1273" in line, name                                     # Scheer 2013, minted as S1273

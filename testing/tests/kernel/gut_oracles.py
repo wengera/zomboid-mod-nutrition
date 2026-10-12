@@ -56,6 +56,7 @@ STUDY = {
 CALLAHAN = M.CALLAHAN_MIN
 MEAL650 = M.MEAL650_MIN
 ROLLS_1999 = M.ROLLS_1999
+ROLLS_1999_SE = 148.0            # S1231: the casserole arms' +/- 148 kJ (the tolerance of S1231's null, a DESIGN CHOICE)
 ROLLS_1998 = M.ROLLS_1998
 MARMONIER_DIFF = M.MARMONIER_DIFF
 S1222 = M.S1222_BAND
@@ -211,6 +212,14 @@ ORACLES += [
     ratio_oracle("rolls_cas", "rolls_1999", _sub("rolls_1999", "cas"), ROLLS_1999["cas"], M.TOL, "S1231"),
     ratio_oracle("rolls_drop", "rolls_1999", lambda r: r["rolls_1999"]["cw"] - r["rolls_1999"]["soup"],
                  ROLLS_1999["cw"] - ROLLS_1999["soup"], M.TOL, "S1231"),
+    # S1231's null (ruling T6c-5): water drunk alongside did not lower intake, the casserole with its water 18 kJ above
+    # the casserole alone (1657 against 1639 kJ, each +/- 148); the model's cw - cas within +/- 148 kJ of the study's
+    # +18 (a DESIGN CHOICE: the arms' SE as the tolerance, the band -130 to +166 kJ), its miss over the same 148 kJ; it
+    # holds LIQUID_WEIGHT from above, the drunk water's weight lowering the cw arm
+    Oracle("rolls_cw_minus_cas", "rolls_1999", lambda r: r["rolls_1999"]["cw"] - r["rolls_1999"]["cas"],
+           ROLLS_1999["cw"] - ROLLS_1999["cas"], lo=ROLLS_1999["cw"] - ROLLS_1999["cas"] - ROLLS_1999_SE,
+           hi=ROLLS_1999["cw"] - ROLLS_1999["cas"] + ROLLS_1999_SE, scale=ROLLS_1999_SE, row="S1231",
+           tol="+/- 148 kJ of +18 (the arms' SE, a DESIGN CHOICE)"),
 ]
 for _i, _ml in enumerate((300, 450, 600)):
     ORACLES.append(ratio_oracle("rolls98_%d" % _ml, "rolls_1998", _sub("rolls_1998", _i), ROLLS_1998[_i], M.CHECK_TOL,
@@ -224,8 +233,9 @@ ORACLES += [
            row="S1233", tol="300 > 450 > 600 mL"),
     # S1233's volume slope (ruling T6c-3): the 300 mL arm's lunch ratio less the 600 mL arm's, (5263 - 4703) / 4323 =
     # 0.130 in the study, within 1.5x either way (a DESIGN CHOICE: the 1.5x the registry gives Marmonier's minute
-    # differences; the band 0.086-0.194); with S1231's null for water drunk alongside (rolls_cw, rolls_drop) it sets
-    # LIQUID_WEIGHT, fitted in (0, 0.19]
+    # differences; the band 0.086-0.194); it pulls LIQUID_WEIGHT up, and S1231's null for water drunk alongside
+    # (rolls_cw_minus_cas, at its band's lower edge at the fit, with the soup's drop rolls_drop just inside its own)
+    # holds it from above (ruling T6c-5: fitted in (0, 1], at 0.279)
     ratio_oracle("rolls98_slope", "rolls_1998", lambda r: r["rolls_1998"][0] - r["rolls_1998"][2],
                  ROLLS_1998[0] - ROLLS_1998[2], 1.5, "S1233"),
     Oracle("s1222_contrast", "protein_contrast", _sub("protein_contrast"), 0.025, lo=S1222[0], hi=S1222[1],
@@ -327,34 +337,37 @@ assert len({o.name for o in ORACLES}) == len(ORACLES)
 BY_NAME = {o.name: o for o in ORACLES}
 
 
-# --- the targets after the joint fit (Plan 11g Task 6c fix 1) ----------------------------------------------------------
+# --- the targets after the joint fit (Plan 11g Task 6c fix 2) ----------------------------------------------------------
 # Every hard and one-sided oracle is asserted inside its band by the test that reads its group (check, below), except
-# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012c, loss
-# 0.6719) leave outside their band, and Tieken's three reading-kind entries (ruling T6c-2). Each is pinned at its
+# the named non-reproductions: the oracles the fitted constants (tools/fit_gut_satiety.py, fit-11g-20261012d, loss
+# 0.5782) leave outside their band, and Tieken's three reading-kind entries (ruling T6c-2). Each is pinned at its
 # reading, so a change is noticed, and asserted still outside its band, so a reading that comes back inside is promoted
-# to a target; each awaits a ruling (Plan 11g Task 6c fix 1 report). Task 6c's fit (fit-11g-20261012b, loss 1.3609 with
-# Tieken scored) named S1222's protein contrast, which the refit brings inside (0.01267); the refit names S1233's
-# volume slope (newly scored, ruling T6c-3) and Marmonier's protein-over-fat difference.
+# to a target; each awaits a ruling (Plan 11g Task 6c fix 2 report). Task 6c's fit (fit-11g-20261012b, loss 1.3609 with
+# Tieken scored) named S1222's protein contrast, which the refits bring inside (0.01256); fix 1's refit
+# (fit-11g-20261012c, loss 0.6719) named S1233's volume slope (newly scored, ruling T6c-3) and Marmonier's
+# protein-over-fat difference; fix 2's (S1231's null scored, ruling T6c-5) names the same.
 NAMED = {
-    # S1233: the volume slope, the 300 mL arm's lunch ratio less the 600 mL arm's, 0.0260 against the study's 0.130 (the
-    # band 0.086-0.194): LIQUID_WEIGHT sits at its bound 0.19, where S1231's null for water drunk alongside holds it
-    # (rolls_drop fails past it), and drunk volume moves the model's hunger at lunch a fifth of what the study's intake
-    # moved (ruling T6c-3: named, not fitted past the bound)
-    "rolls98_slope": 0.026043990025466646,
+    # S1233: the volume slope, the 300 mL arm's lunch ratio less the 600 mL arm's, 0.0382 against the study's 0.130 (the
+    # band 0.086-0.194): LIQUID_WEIGHT is fitted at 0.279, where S1231's null for water drunk alongside holds it from
+    # above (rolls_cw_minus_cas at -130 kJ, its band's lower edge; rolls_drop, the soup's drop, fails just past it), and
+    # drunk volume moves the model's hunger at lunch under a third of what the study's intake moved (ruling T6c-5: two
+    # rows set the weight, the slope named)
+    "rolls98_slope": 0.038171694200791584,
     # S1224: protein's delay over fat's 23 min against 35 (the 1.5x band 23.3-52.5; a third of a minute short on the
     # replay's whole minutes): W_PROTEIN and W_FAT trade it against S1228 and S1224's fat difference
     "marmonier_pf": 23,
     # S1833 (reading-kind, ruling T6c-2): the stomach empties both 540 kcal arms' kcal at the same rate (K.stomach.drain
     # is energy-limited, Hunt 1985, S0131) and M is fed alike at the eat, so the model cannot tell the liquid from the
     # solid: the liquid -4.3 % at 4 h against +14 % (+4 to +24), the solid -3.7 % against -45 % (-64 to -26), and the
-    # liquid below the solid at its worst time point (its 553 g fill more, now drunk liquid counting at 0.19); a stomach
+    # liquid below the solid at its worst time point (    # the liquid -4.3 % at 4 h against +14 % (+4 to +24), the solid -3.7 % against -45 % (-64 to -26), and the
+    # liquid below the solid at its worst time point (its 553 g fill more, drunk liquid counting at 0.279); a stomach
     # mechanism (liquid emptying faster than solid), not the meal pool, is what would separate them, and the products
     # differ in composition too (S1833); spec § 7 accepts it as out of reach
-    "tieken_liquid_4h": -0.042978073898698455,
-    "tieken_solid_4h": -0.03708149694478724,
-    "tieken_solid_below_liquid": -0.06569931697381559,
+    "tieken_liquid_4h": -0.04341651182859696,
+    "tieken_solid_4h": -0.03707758145007123,
+    "tieken_solid_below_liquid": -0.08527689915388592,
     # S1228: the fat drink's request 2 min before the carbohydrate drink's against 61 min after (ruling T2-3: W_FAT
-    # fitted at 0.881, the fat trio's two minute differences on Melanson's 61 min scale, spec § 7)
+    # fitted at 0.879, the fat trio's two minute differences on Melanson's 61 min scale, spec § 7)
     "melanson_f_minus_c": -2,
     # S1224: fat's delay 4 min longer than carbohydrate's against 9 min shorter (the 1.5x band -13.5 to -6): the other
     # side of the same W_FAT trade
@@ -365,9 +378,10 @@ NAMED = {
 # the figures derived from S1872, within harvest 13's +/- 0.05 on the unit scale over REST's study value at that point
 # (0.271 at the troughs, 0.518 before breakfast): a DESIGN CHOICE (S1892, open). Reported, not in the fit's loss.
 KARL_SHAPE_TOL = {"troughs_rel": 0.05 / 0.271, "pre_breakfast_rel": 0.05 / 0.518}
-# the days outside it after the fit (fit-11g-20261012c): the post-meal troughs of days 1 and 3 (0.525 and 0.390 against
-# 0.215 and 0.106; day 2's 0.365 against 0.209 lands inside; Task 6c read 0.548 / 0.381 / 0.408, the gut stage 0.887 /
-# 0.609 / 0.652, F's count past 730 g deepening BAL's troughs) and day 3's pre-breakfast (0.646 against 0.519)
+# the days outside it after the fit (fit-11g-20261012d): the post-meal troughs of days 1 and 3 (0.522 and 0.388 against
+# 0.215 and 0.106; day 2's 0.362 against 0.209 lands inside; fix 1's fit read 0.525 / 0.365 / 0.390, Task 6c 0.548 /
+# 0.381 / 0.408, the gut stage 0.887 / 0.609 / 0.652, F's count past 730 g deepening BAL's troughs) and day 3's
+# pre-breakfast (0.646 against 0.519)
 KARL_SHAPE_NAMED = {"troughs_rel": (0, 2), "pre_breakfast_rel": (2,)}
 
 PIN_TOL = 1e-6

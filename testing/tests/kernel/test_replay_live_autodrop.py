@@ -103,4 +103,4 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
     # LIQUID_WEIGHT before): the ring's fill was taken at 0.2, so the autodrop's fill now reads well over the ring's, a
     # reading (0.2184 at Task 6c's LIQUID_WEIGHT 0.0151, 0.022 at Task 6's 0.181)
     assert worst(old, "stomachFill") > 0.2 and round(worst(new, "stomachFill"), 4) == 0.7972
-    assert (round(worst(old), 4), round(worst(new), 4)) == (0.0322, 0.0343)   # the P ring against the refit M (Plan 11g Task 6c fix 1): readings (0.1123, 0.1119 under Task 6c's fit; 0.149, 0.1504 under the gut stage's fit; 0.0514, 0.0536 under its provisional constants)
+    assert (round(worst(old), 4), round(worst(new), 4)) == (0.04, 0.0465)   # the P ring against the refit M (Plan 11g Task 6c fix 2): readings (0.0322, 0.0343 under fix 1's refit; 0.1123, 0.1119 under Task 6c's fit; 0.149, 0.1504 under the gut stage's fit; 0.0514, 0.0536 under its provisional constants)

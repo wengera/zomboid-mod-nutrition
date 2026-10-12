@@ -223,14 +223,14 @@ def test_the_steady_eater_on_the_server_path(host):
 
 def test_six_meals_against_three_on_the_server_path(host):
     # S1608 (1.14) and S1607 (null): the ratio within [0.9, 1.3] (ruling 11d-3). Held at es 1 the server's satiety path
-    # is the satiety oracle's to 1e-12 (0.974 under Plan 11g Task 6c fix 1's refit; 0.951 under Task 6c's fit; 1.020
+    # is the satiety oracle's to 1e-12 (0.974 under Plan 11g Task 6c fix 1's and fix 2's refits; 0.951 under Task 6c's fit; 1.020
     # under the gut stage G's fit, Task 6; 1.004 under G's provisional constants; 0.969 on the P model); live it reads
-    # 0.986 under the refit (0.962 under Task 6c's fit, 1.033 under the gut stage's fit, 1.016 under its provisional
+    # 0.985 under the refit (Task 6c fix 2; 0.986 under fix 1's, 0.962 under Task 6c's fit, 1.033 under the gut stage's fit, 1.016 under its provisional
     # constants, 0.981 on the P model, 0.987 at 7500 / 1.0)
     held = six_held_sum(6, 150) / six_held_sum(3, 300)
     live = six_live_sum(6, 150) / six_live_sum(3, 300)
     assert abs(held - M.meal_frequency_ratio(host)) < 1e-12 and round(held, 3) == 0.974, held
-    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.986, live
+    assert 0.9 <= live <= 1.3 and round(live, 3) == 0.985, live
 
 
 def test_the_low_carbohydrate_day_on_the_server_path(host):
@@ -426,7 +426,7 @@ def king_steady_server(host, bypass=None):
 def test_king_2011_at_steady_state_on_the_server_path(host):
     # S1312: exercise within a quarter of the restriction's rise and under 3.3 mm of control (Plan 11c Task 4b's band);
     # since the refit (Plan 11f Task 2c fix 1) the rise read 0.0906 and the distance 0.92 mm on the P model, 0.0863 and
-    # 0.92 mm under G's provisional constants (Plan 11g Task 4), 0.0995 and 0.98 mm under the gut stage's fit (Task 6), 0.0916 and 0.92 mm under the refit M (Task 6c), 0.0947 and 0.94 mm under its fix 1's refit (0.96 before fix 2's EX_BYPASS_LO 0.282; 0.089 and 0.62 mm in
+    # 0.92 mm under G's provisional constants (Plan 11g Task 4), 0.0995 and 0.98 mm under the gut stage's fit (Task 6), 0.0916 and 0.92 mm under the refit M (Task 6c), 0.0947 and 0.94 mm under its fix 1's refit, 0.0944 and 0.94 mm under its fix 2's (Plan 11g Task 6c fix 2, the READ below) (0.96 before fix 2's EX_BYPASS_LO 0.282; 0.089 and 0.62 mm in
     # Task 2c, 0.1043 and 2.43 mm at 7500 / 1.0)
     assert abs(idle_day(host, KING_KG, 16) - 2500.0) < 2.0
     bout, k = king_steady_server(host)
@@ -462,7 +462,7 @@ def test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves(host):
     # the step lifted the exercise arm 6.70 mm over control on the P model, past both a quarter of the restriction's rise
     # (5.89 mm) and 3.3 mm, where the ramp read 0.92 mm and no bypass 0.29 mm; under G's provisional constants (Plan 11g
     # Task 4) 6.66 mm against a quarter rise of 5.61 mm, the ramp 0.92 mm and no bypass 0.29 mm; under the refit
-    # (Task 6c fix 1) READ's king_step and king_nobypass; the ramp only ever
+    # (Task 6c fix 2) READ's king_step and king_nobypass; the ramp only ever
     # raises the lag's share
     _, ramp = king_steady_server(host)
     _, step = king_steady_server(host, STEP)
@@ -583,8 +583,8 @@ def test_a_25_percent_deficit_on_the_server_path(host):
 READ = {
     "lowcarb_g": (1.0, 1.0, 0.967),     # g: the mixed arm at 08:00 and 20:00 of day 1, the low arm at 20:00 (the simplified path 0.951)
     "lowcarb_des": 0.0,                 # the low arm's es less the mixed arm's at 20:00
-    "king": (0.0947, 0.94),             # the restriction's late rise and exercise's distance in mm under the refit (Plan 11g Task 6c fix 1; 0.0916 and 0.92 under Task 6c's fit; 0.0995 and 0.98 under the gut stage's fit, Task 6; 0.0863 and 0.92 under its provisional constants, Task 4; 0.0906 and 0.92 on the P model, 0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
-    "king_step": 6.82,                  # a 25 % step's exercise arm over control, mm, under the refit (Plan 11g Task 6c fix 1; 6.7 under Task 6c's fit; 7.09 under the gut stage's fit, Task 6; 6.66 under its provisional constants; 6.70 on the P model, Plan 11f Task 2c fix 1)
-    "king_nobypass": 0.29,              # no bypass's, mm, under the refit (Plan 11g Task 6c fix 1, as under Task 6c's fit; 0.3 under the gut stage's fit, 0.29 under its provisional constants)
+    "king": (0.0944, 0.94),             # the restriction's late rise and exercise's distance in mm under the refit (Plan 11g Task 6c fix 2; 0.0947 and 0.94 under fix 1's; 0.0916 and 0.92 under Task 6c's fit; 0.0995 and 0.98 under the gut stage's fit, Task 6; 0.0863 and 0.92 under its provisional constants, Task 4; 0.0906 and 0.92 on the P model, 0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
+    "king_step": 6.83,                  # a 25 % step's exercise arm over control, mm, under the refit (Plan 11g Task 6c fix 2; 6.82 under fix 1's; 6.7 under Task 6c's fit; 7.09 under the gut stage's fit, Task 6; 6.66 under its provisional constants; 6.70 on the P model, Plan 11f Task 2c fix 1)
+    "king_nobypass": 0.29,              # no bypass's, mm, under the refit (Plan 11g Task 6c fix 2 and fix 1, as under Task 6c's fit; 0.3 under the gut stage's fit, 0.29 under its provisional constants)
     "s1255": (1.0947, 6.7),             # es over day 7 and its rise at the request, mm (1.09 and 5.9 in Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
 }

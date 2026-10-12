@@ -230,16 +230,35 @@ def test_s1233s_volume_slope_is_scored_two_sided_at_one_and_a_half_times():
     assert o.miss(o.pick({"rolls_1998": [0.9, 0.7, 0.6]})) > 0                       # too steep: above it
 
 
-def test_liquid_weight_is_fitted_inside_s1231s_bound():
-    # ruling T6c-3: LIQUID_WEIGHT is a fitted constant (a default parameter), bounded at 0.19
-    assert "LIQUID_WEIGHT" in F.DEFAULT_PARAMS and F.BOUNDS["LIQUID_WEIGHT"] == (0, 0.19)
-    assert F.load_spec({"params": {"LIQUID_WEIGHT": [0.19]}})
-    try:
-        F.load_spec({"params": {"LIQUID_WEIGHT": [0.2]}})
-    except ValueError as e:
-        assert "LIQUID_WEIGHT" in str(e) and "bound" in str(e)
-    else:
-        raise AssertionError("0.2 was accepted")
+def test_liquid_weight_is_fitted_in_zero_to_one():
+    # ruling T6c-5: LIQUID_WEIGHT is a fitted constant (a default parameter) in (0, 1], a weight on drunk liquid's mass;
+    # two rows set it (S1231's null above, S1233's slope below), not the bound
+    assert "LIQUID_WEIGHT" in F.DEFAULT_PARAMS and F.BOUNDS["LIQUID_WEIGHT"] == (0, 1)
+    assert F.load_spec({"params": {"LIQUID_WEIGHT": [0.19, 0.5, 1.0]}})
+    for bad in (1.01, 0.0):
+        try:
+            F.load_spec({"params": {"LIQUID_WEIGHT": [bad]}})
+        except ValueError as e:
+            assert "LIQUID_WEIGHT" in str(e) and "bound" in str(e)
+        else:
+            raise AssertionError("%r was accepted" % bad)
+
+
+def test_s1231s_null_for_water_drunk_alongside_is_scored_two_sided():
+    # ruling T6c-5: S1231's casserole with its water drunk against the casserole alone, 1657 - 1639 = +18 kJ in the
+    # study, within +/- 148 kJ (the arms' SE, a DESIGN CHOICE) either way; the miss over the same 148 kJ
+    o = {o.name: o for o in GO.ORACLES}["rolls_cw_minus_cas"]
+    assert o.kind == "two-sided" and o.row == "S1231" and o.group == "rolls_1999"
+    assert o.target == 18.0 and o.lo == 18.0 - 148.0 and o.hi == 18.0 + 148.0 and o.scale == 148.0
+    assert o.pick({"rolls_1999": {"soup": 1209.0, "cw": 1657.0, "cas": 1639.0}}) == 18.0
+    assert o.miss(o.pick({"rolls_1999": {"soup": 1200.0, "cw": 1700.0, "cas": 1788.0}})) == 0.0     # -88 kJ: inside
+    assert abs(o.miss(-278.0) - 1.0) < 1e-12                     # 148 kJ below the band: a miss of 1
+    assert abs(o.miss(314.0) - 1.0) < 1e-12                      # 148 kJ above it
+    # it is in the loss: the shipped point scores it
+    r = F.evaluate({})
+    assert r["oracles"]["rolls_cw_minus_cas"]["miss"] == 0.0
+    # water drunk at full weight lowers the casserole-with-water lunch far past the band (the null S1231 reports)
+    assert F.evaluate({"LIQUID_WEIGHT": 1.0})["oracles"]["rolls_cw_minus_cas"]["miss"] > 0
 
 
 def _compact_pair(tmp):

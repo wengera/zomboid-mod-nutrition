@@ -9,9 +9,10 @@ an assertion of its registry entry (gut_oracles.check: the band and kind read fr
 re-typed); a target the fit leaves outside its band is a named non-reproduction (gut_oracles.NAMED), pinned at its
 reading and asserted still outside. Plan 11g Task 6c (spec § 7) replaced G with the meal pool M, fed in full at the
 eat, counted F to the hard capacity and refit (tools/fit_gut_satiety.py, fit-11g-20261012b); its fix 1 made Tieken
-read-only (ruling T6c-2), scored S1233's volume slope (ruling T6c-3) and refit (fit-11g-20261012c). Every other reading
-stays pinned (PIN, and DIST its distance to STUDY), so a change is noticed; each comment gives the refit's reading
-beside Task 6c's, the gut stage's and the P model's.
+read-only (ruling T6c-2), scored S1233's volume slope (ruling T6c-3) and refit (fit-11g-20261012c); its fix 2 scored
+S1231's null for water drunk alongside, lifted LIQUID_WEIGHT's bound to (0, 1] (ruling T6c-5) and refit
+(fit-11g-20261012d). Every other reading stays pinned (PIN, and DIST its distance to STUDY), so a change is noticed; each
+comment gives the refit's reading beside the earlier fits', the gut stage's and the P model's.
 STUDY and VAS_DETECT live in gut_oracles.py since Plan 11g Task 5, beside the oracle registry the joint fit scores, so
 a target lives in one place.
 
@@ -37,7 +38,7 @@ carbohydrate at x2 (both arms move together, 0 against 0), and S1272's half-empt
 enter (named in its test). Plan 11g Task 4's mutation pass (MEAL_HALF_LIFE_H at x2 and x0.5, the feed removed, seedMeal
 uncapped) is in its report. Plan 11g Task 6's (each fitted constant at x2 and x0.5 on a scratch copy fails 22 to 27 of
 the 50 tests of this file, test_satiety_meal_studies.py and test_replay_live_oracle.py; LIQUID_WEIGHT 9) is in its report,
-and Plan 11g Task 6c's and its fix 1's in theirs.
+and Plan 11g Task 6c's and its fix 1's and fix 2's in theirs.
 """
 from . import test_replay_live_energy as E
 from . import test_satiety_meal_studies as M
@@ -248,8 +249,8 @@ def test_meal_size_grades_hunger_at_a_40_percent_cut(host):
     # time interaction after the 20 % cut (p > 0.291). S1838 (open): no source tabulates the values, so the target is
     # the pattern. Task 6 asserts: the 40 % cut's difference positive at each of LEWIS_T and its 30-240 min mean at
     # least VAS_DETECT, the 20 % cut's mean below VAS_DETECT (VAS_DETECT a DESIGN CHOICE: 5 mm under ruling 11c-31's
-    # 260 mm a unit). The refit (Task 6c fix 1): cut40 0.0350 (9.1 mm), cut20 0.0173 (4.5 mm): each target holds (Task
-    # 6c's fit: cut40 0.0342, cut20 0.0167). The gut
+    # 260 mm a unit). The refit (Task 6c fix 2): cut40 0.0349 (9.1 mm), cut20 0.0172 (4.5 mm): each target holds (fix
+    # 1's fit: 0.0350, 0.0173; Task 6c's fit: cut40 0.0342, cut20 0.0167). The gut
     # stage's fit (Task 6): cut40 0.0423, cut20 0.0211 (5.5 mm, named). Under G's provisional constants (Task 4): cut40
     # 0.0347, cut20 0.0172 (4.5 mm). On the P model (Task 3): cut40 0.0370 (9.6 mm), cut20 0.0181 (4.7 mm)
     r = meal_sizes(host)
@@ -273,10 +274,10 @@ def test_the_540_kcal_meal_replacements_at_four_hours(host):
     # row's caveat). Task 6 asserts each arm's 4 h reading within the study's +/- (liquid +4 to +24 %, solid -64 to
     # -26 %; the row's spread taken as the tolerance, a DESIGN CHOICE) and the solid below the liquid at each of
     # TIEKEN_T. Since Task 6c fix 1 the three are reading-kind (ruling T6c-2: pinned, named and reported, never
-    # scored). The refit (Task 6c fix 1) reads both arms about -4 % at 4 h (liquid -4.3 %, -18.3 points from the study;
+    # scored). The refit (Task 6c fix 2) reads both arms about -4 % at 4 h (liquid -4.3 %, -18.3 points from the study;
     # solid -3.7 %, +41.3), the liquid lower at every time point, back at 279 / 276 min: all three named
-    # non-reproductions (gut_oracles.NAMED: the stomach empties both arms' kcal alike and M is fed alike at the eat).
-    # Task 6c's fit: -4.6 % and -4.1 %, back at 274 / 272.
+    # non-reproductions (gut_oracles.NAMED: the stomach empties both arms' kcal alike and M is fed alike at the eat);
+    # fix 1's fit read the same to 0.1 point. Task 6c's fit: -4.6 % and -4.1 %, back at 274 / 272.
     # The gut stage's fit (Task 6): -4.5 % and -3.7 %, named; under G's provisional constants (Task 4) both about
     # -13.5 %, back at 471 / 473 min; on the P model (Task 3) both about -6 %, back near 293 min
     r = tieken(host)
@@ -298,8 +299,9 @@ def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
     # recovery about 4 h after 540 kcal and over 6 h after about 1,000 kcal, scaling with emptying time (S1840:
     # r = 0.75 against the time for 90 % to empty). Task 6 asserts each arm below H_REQ at 360 min, its recovery
     # minute after 360, and the 1,000 kcal recovery later than the 540 kcal liquid's (the ordering a DESIGN CHOICE for
-    # the scaling: the rows give no ratio). The refit (Task 6c fix 1): back at 382 / 384 min (+22 / +24 past 360), 103
-    # min after Tieken's liquid: each target holds (Task 6c's fit: 365 / 368, 91 min after). The gut stage's fit (Task 6): 448 / 457; under G's provisional
+    # the scaling: the rows give no ratio). The refit (Task 6c fix 2): back at 381 / 383 min (+21 / +23 past 360), 102
+    # min after Tieken's liquid: each target holds (fix 1's fit: 382 / 384, 103 min after; Task 6c's fit: 365 / 368, 91
+    # min after). The gut stage's fit (Task 6): 448 / 457; under G's provisional
     # constants (Task 4) both back at 616 min; on the P model (Task 3) at 391 / 392 min
     r = diekmann(host)
     check({"diekmann": r, "tieken": tieken(host)}, "diekmann_hf_6h", "diekmann_lf_6h", "diekmann_after_tieken")
@@ -317,7 +319,7 @@ def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
 def test_the_single_early_nadir_is_a_reading(host):
     # Harvest 11 § 7 (inference, never asserted as a target): the hunger courses read as one early nadir (S1833:
     # 15 min, the only one stated in text) and a monotone recovery. Pinned as a reading: each course's nadir minute,
-    # its hunger and whether hunger never falls after it. The refit (Task 6c and its fix 1): every nadir is the first minute (M fed in
+    # its hunger and whether hunger never falls after it. The refit (Task 6c, its fix 1 and fix 2): every nadir is the first minute (M fed in
     # full at the eat, as P was; the study's 15 min is an accepted downside, spec § 7). The gut stage's fit (Task 6):
     # minutes 1, 1, 69 and 78; under G's provisional constants (Task 4) minutes 22, 12, 42 and 52; on the P model
     # (Task 3) every nadir was the first minute
@@ -337,9 +339,9 @@ def test_protein_against_carbohydrate_at_equal_energy(host):
     # (-7 mm). Null: S1818 (van der Klaauw 2013, n = 8, AUC P = 0.634), S1821 (Blom 2006), S1814 (Foster-Schubert
     # 2008), S1225 (Raben 2003). Task 6 asserts belza_hp in [-0.25, 0] and belza_mhp in [belza_hp, 0] (Belza's size
     # the floor, the nulls the ceiling: a DESIGN CHOICE between the two sides) and smeets_30, smeets_120 at or below 0;
-    # vdk is read, never asserted. The refit (Task 6c fix 1, W_PROTEIN 2.49): belza_hp -24.9 % (+0.1 points from
-    # Belza), belza_mhp -7.7 % (+7.3), Smeets -0.027 and -0.018, each target holding; vdk -28.3 % where the study reads
-    # no difference. Task 6c's fit (W_PROTEIN 2.5): -24.1 %, -7.5 %, -0.025, -0.017, vdk -27.2 %. The gut stage's fit (Task 6): -23.4 %, -10.5 %, -0.033, -0.029, vdk -21.2 %; under G's provisional
+    # vdk is read, never asserted. The refit (Task 6c fix 2, W_PROTEIN 2.50): belza_hp -24.7 % (+0.3 points from
+    # Belza), belza_mhp -7.6 % (+7.4), Smeets -0.027 and -0.018, each target holding; vdk -28.0 % where the study reads
+    # no difference. Fix 1's fit (W_PROTEIN 2.49): -24.9 %, -7.7 %, -0.027, -0.018, vdk -28.3 %. Task 6c's fit (W_PROTEIN 2.5): -24.1 %, -7.5 %, -0.025, -0.017, vdk -27.2 %. The gut stage's fit (Task 6): -23.4 %, -10.5 %, -0.033, -0.029, vdk -21.2 %; under G's provisional
     # constants (Task 4): -21.8 %, -8.6 %, -0.030, -0.019, vdk -21.3 %; on the P model (Task 3): -21.5 %, -8.4 %, -0.028,
     # -0.019, vdk -21.2 %
     r = protein_at_equal_energy(host)
@@ -357,7 +359,7 @@ def test_the_fat_weight_readings_are_pinned(host):
     # oracle's 1.5x; the fit residual is reported beside them. Ruling T2-3: Task 6 fits W_FAT between S1228 (Melanson 1999: fat's request 61 min after carbohydrate's) and S1224
     # (Marmonier 2000: fat's delay 9 min shorter than carbohydrate's), with the hunger nulls on the other side (S1810,
     # S1816, S1818, S1830) and S1828 reversed (more hunger after high fat, +6.94 mm on the 6 h mean, 0.0267 of the
-    # scale, derived under ruling 11c-31). The refit (Task 6c fix 1) sets W_FAT 0.881368 with the two minute
+    # scale, derived under ruling 11c-31). The refit (Task 6c fix 2) sets W_FAT 0.878683 (fix 1's 0.881368) with the two minute
     # differences on Melanson's 61 min scale (spec § 7): Melanson's fat minus carbohydrate reads -2 (-63 from the study)
     # and Marmonier's +4 (+13, past 1.5x), both named non-reproductions; Diekmann's HF minus LF +0.0031 (the study's
     # direction) holds. Task 6c's fit (W_FAT 0.894427): -2, +5 and +0.0030. The gut stage's fit (Task 6, W_FAT 0.405618 on Marmonier's own 9 min scale): -15, -6 and
@@ -379,7 +381,7 @@ def test_the_fat_weight_readings_are_pinned(host):
 
 def test_s1224_absolute_snack_delays_re_read(host):
     # S1224 (Marmonier 2000): the protein, carbohydrate and fat snacks delayed the dinner request 60, 34 and 25 min.
-    # Re-read under the refit (ruling 11g-3, Task 6c fix 1): 183 / 156 / 160 (+123 / +122 / +135), 3-7x long, so it
+    # Re-read under the refit (ruling 11g-3, Task 6c fix 1 and fix 2 alike): 183 / 156 / 160 (+123 / +122 / +135), 3-7x long, so it
     # stays named (Task 6c's fit: 189 / 160 / 165). The gut stage's fit (Task 6): 149 / 132 / 126; under G's provisional constants (Task 4) 152 / 125 / 131; on
     # the P model (Task 3) 193 / 159 / 167
     d = M.marmonier(host)
@@ -413,15 +415,15 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
     # S1325 (Karl 2021): hunger -55 % (95 % CI -73, -38) in BAL against REST. Task 6 asserts the mean over the study's
     # eight daily sampling points (before and after each meal and the morning exercise; research 03, difference 1) in
     # -64 % to -46 % (S1892, open: +/- 9 points, about one standard error, a labelled design choice). The refit
-    # (Task 6c fix 1) reads -54.47 % (Task 6c's fit -52.73 %) on the server path (test_replay_live_energy's twin K), inside: F counted past 730 g gives
+    # (Task 6c fix 2) reads -54.49 % (fix 1's fit -54.47 %, Task 6c's -52.73 %) on the server path (test_replay_live_energy's twin K), inside: F counted past 730 g gives
     # BAL's fuller stomach its own fullness (spec § 7). The gut stage's fit (Task 6) -44.67 %, named; under G's
     # provisional constants (Task 4) -45.76 %; on the P model (Task 3) -45.08 %.
     # Shape checks, relative to REST (ruling T3-1: model HUNGER and the study's VAS / 10 are on different scales):
     # troughs_rel and pre_breakfast_rel against the figures derived from S1872 (troughs 0.215 / 0.209 / 0.106 over
     # REST's 2.71 cm; pre-breakfast 1.000 / 0.562 / 0.519 over REST's 5.18 cm) within gut_oracles.KARL_SHAPE_TOL, a
-    # labelled DESIGN CHOICE (S1892). The refit (Task 6c fix 1): troughs_rel 0.525 / 0.365 / 0.390, days 1 and 3 named
+    # labelled DESIGN CHOICE (S1892). The refit (Task 6c fix 2): troughs_rel 0.522 / 0.362 / 0.388, days 1 and 3 named
     # (day 2 inside), pre_breakfast_rel 1.000 / 0.603 / 0.646, day 3 named; per day -42.6 / -61.8 / -59.1 % (study -46 /
-    # -61 / -65). Task 6c's fit: 0.548 / 0.381 / 0.408, 1.000 / 0.598 / 0.640, -40.1 / -60.4 / -57.6 %.
+    # -61 / -65). Fix 1's fit: troughs_rel 0.525 / 0.365 / 0.390, the rest alike to 0.1. Task 6c's fit: 0.548 / 0.381 / 0.408, 1.000 / 0.598 / 0.640, -40.1 / -60.4 / -57.6 %.
     # The gut stage's fit (Task 6): troughs_rel 0.887 / 0.609 / 0.652, all three named, pre_breakfast_rel 1.000 / 0.590 /
     # 0.632. Under G's provisional constants (Task 4) troughs_rel 0.877 / 0.592 / 0.634 and
     # pre_breakfast_rel 1.000 / 0.514 / 0.551; on the P model (Task 3) 0.865 / 0.601 / 0.643 and 1.000 / 0.599 / 0.641
@@ -439,70 +441,70 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
         assert near_all(dist(tuple(r[k]), STUDY["karl_" + k]), DIST["karl_" + k]), (k, r)
 
 
-# The readings under the refit meal pool M (Plan 11g Task 6c fix 1, fit-11g-20261012c; Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
+# The readings under the refit meal pool M (Plan 11g Task 6c fix 2, fit-11g-20261012d; fix 1's fit-11g-20261012c and Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
 # model's in Task 3 at the mod tree 44115b1a, d62ed4ea), to 9 decimals: PIN the readings, DIST their named distances to
 # STUDY (model less study). The targets are asserted from the registry (gut_oracles.check).
 PIN = {
-    'cut20_mean': 0.017251753,
-    'cut40_mean': 0.035034321,
-    'cut20_at': [0.020538636, 0.01949754, 0.017589148, 0.015891787, 0.014382887],
-    'cut40_at': [0.041618329, 0.039541798, 0.035736359, 0.032352976, 0.028293301],
-    'tieken_solid_at': [-0.292559692, -0.238025256, -0.168236694, -0.101386893, -0.037081497],
-    'tieken_liquid_at': [-0.358259009, -0.28429971, -0.194857828, -0.1150594, -0.042978074],
+    'cut20_mean': 0.017198996,
+    'cut40_mean': 0.034933153,
+    'cut20_at': [0.020461346, 0.019428265, 0.017534168, 0.015849054, 0.014350634],
+    'cut40_at': [0.041467636, 0.03940724, 0.035630595, 0.032271906, 0.028236862],
+    'tieken_solid_at': [-0.292458156, -0.238007373, -0.168276757, -0.101429669, -0.037077581],
+    'tieken_liquid_at': [-0.377735055, -0.296824468, -0.200741067, -0.117139639, -0.043416512],
     'tieken_solid_back': 276,
     'tieken_liquid_back': 279,
-    'diekmann_hf_at': [-0.601324334, -0.54060683, -0.425393628, -0.216520233, -0.030939809],
-    'diekmann_lf_at': [-0.622570431, -0.559841226, -0.440897398, -0.225588282, -0.034701063],
-    'diekmann_hf_back': 382,
-    'diekmann_lf_back': 384,
+    'diekmann_hf_at': [-0.600590382, -0.540000942, -0.424972183, -0.21622066, -0.030495647],
+    'diekmann_lf_at': [-0.621820172, -0.559225491, -0.440476849, -0.225303806, -0.034278718],
+    'diekmann_hf_back': 381,
+    'diekmann_lf_back': 383,
     'nadir_minute': {'solid': 1, 'liquid': 1, 'hf': 1, 'lf': 1},
-    'nadir_hunger': {'solid': 0.17251359, 'liquid': 0.154380509, 'hf': 0.084460867, 'lf': 0.078638168},
+    'nadir_hunger': {'solid': 0.172547373, 'liquid': 0.148889013, 'hf': 0.084681493, 'lf': 0.078864622},
     'monotone': {'solid': True, 'liquid': True, 'hf': True, 'lf': True},
-    'protein': {'belza_mhp': -0.077153139, 'belza_hp': -0.249482642, 'smeets_30': -0.027163979, 'smeets_120': -0.018135668, 'vdk': -0.282905574},
+    'protein': {'belza_mhp': -0.076345732, 'belza_hp': -0.24681606, 'smeets_30': -0.026867065, 'smeets_120': -0.017954711, 'vdk': -0.280346256},
     'melanson_f_minus_c': -2,
     'marmonier_f_minus_c': 4,
-    'diekmann_hf_minus_lf': 0.003144235,
+    'diekmann_hf_minus_lf': 0.003145698,
     'marmonier': (183, 156, 160),
     'melanson': (219, 217),
     'moore': 189,
     # an unasserted reading: the same meals from a fasted start at 08:00 (M 0, circadian on), as Callahan's oracle reads
-    'fasted_lewis': {'cut20_mean': 0.016094963, 'cut40_mean': 0.032690077,
-                     'cut20_at': [0.018826, 0.017923832, 0.01633561, 0.014987134, 0.01382687],
-                     'cut40_at': [0.038152238, 0.036354703, 0.033194259, 0.030516311, 0.027205315]},
-    'fasted_tieken': {'solid': ([-0.352228695, -0.29968153, -0.227739795, -0.152854464, -0.074728209], 300),
-                      'liquid': ([-0.412391725, -0.342217309, -0.252462893, -0.165750956, -0.080401962], 302)},
-    'fasted_diekmann': {'hf': ([-0.634661896, -0.577807616, -0.466535557, -0.247200531, -0.027257984], 375),
-                        'lf': ([-0.654132212, -0.595485417, -0.480930486, -0.255915214, -0.031035734], 377)},
-    'karl_bal': -54.470723625,
-    'karl_by_day': [-42.556693835, -61.773662847, -59.081814193],
-    'karl_rest': 0.148103857,
-    'karl_troughs': [0.038237346, 0.026560619, 0.028426252],
-    'karl_rest_trough': 0.072859002,
-    'karl_pre_breakfast': [0.277017596, 0.167053844, 0.178896601],
-    'karl_rest_pre_breakfast': 0.277017596,
-    'karl_troughs_rel': [0.524812926, 0.364548221, 0.390154294],
-    'karl_pre_breakfast_rel': [1.0, 0.603044162, 0.645795084],
+    'fasted_lewis': {'cut20_mean': 0.016045926, 'cut40_mean': 0.032596107,
+                     'cut20_at': [0.018755232, 0.017860228, 0.016284631, 0.01494692, 0.013795954],
+                     'cut40_at': [0.038014301, 0.0362312, 0.033096238, 0.030440071, 0.027151279]},
+    'fasted_tieken': {'solid': ([-0.352134786, -0.299664094, -0.227775909, -0.152893625, -0.074723198], 300),
+                      'liquid': ([-0.430224171, -0.35372768, -0.257924274, -0.167711007, -0.080822144], 302)},
+    'fasted_diekmann': {'hf': ([-0.633988974, -0.577250398, -0.466143798, -0.246912023, -0.026811308], 375),
+                        'lf': ([-0.653444393, -0.594919199, -0.480539613, -0.255641276, -0.030611033], 377)},
+    'karl_bal': -54.489096513,
+    'karl_by_day': [-42.578773999, -61.789617359, -59.098898181],
+    'karl_rest': 0.148344871,
+    'karl_troughs': [0.038178298, 0.026519603, 0.028382355],
+    'karl_rest_trough': 0.073166582,
+    'karl_pre_breakfast': [0.277547857, 0.167349456, 0.17921317],
+    'karl_rest_pre_breakfast': 0.277547857,
+    'karl_troughs_rel': [0.521799664, 0.362455131, 0.387914185],
+    'karl_pre_breakfast_rel': [1.0, 0.602957117, 0.645701867],
 }
 DIST = {
-    'cut40': 0.015803552,
-    'cut20': -0.001979016,
-    'tieken_liquid_4h': -0.182978074,
-    'tieken_solid_4h': 0.412918503,
-    'diekmann_hf_back': 22,
-    'diekmann_lf_back': 24,
-    'belza_mhp': 0.072846861,
-    'belza_hp': 0.000517358,
-    'vdk': -0.282905574,
+    'cut40': 0.015702383,
+    'cut20': -0.002031773,
+    'tieken_liquid_4h': -0.183416512,
+    'tieken_solid_4h': 0.412922419,
+    'diekmann_hf_back': 21,
+    'diekmann_lf_back': 23,
+    'belza_mhp': 0.073654268,
+    'belza_hp': 0.00318394,
+    'vdk': -0.280346256,
     'melanson_f_minus_c': -63,
     'marmonier_f_minus_c': 13,
-    'diekmann_hf_minus_lf': -0.023565167,
+    'diekmann_hf_minus_lf': -0.023563704,
     'marmonier': (123, 122, 135),
     'melanson': (154, 91),
     'moore': -88,
-    'karl_bal': 0.529276375,
-    'karl_by_day': (3.443306165, -0.773662847, 5.918185807),
-    'karl_troughs_rel': (0.309812926, 0.155548221, 0.284154294),
-    'karl_pre_breakfast_rel': (0.0, 0.041044162, 0.126795084),
+    'karl_bal': 0.510903487,
+    'karl_by_day': (3.421226001, -0.789617359, 5.901101819),
+    'karl_troughs_rel': (0.306799664, 0.153455131, 0.281914185),
+    'karl_pre_breakfast_rel': (0.0, 0.040957117, 0.126701867),
 }
 
 
@@ -512,14 +514,14 @@ DIST = {
 # 0.265 at +24 h (the P model 311 / 296 / 281 and 0.422).
 
 def test_the_stability_checks_hold(host):
-    # the refit (fit-11g-20261012c, Plan 11g Task 6c fix 1): back at 299 / 282 / 267 min (latest 299 <= 425, S1248;
-    # spread 32 <= 60) and hunger 0.3944 at +24 h after one 650 kcal meal at 08:00 (>= 0.378); Task 6c's fit read 291 /
-    # 277 / 265 and 0.4948
+    # the refit (fit-11g-20261012d, Plan 11g Task 6c fix 2): back at 298 / 282 / 266 min (latest 298 <= 425, S1248;
+    # spread 32 <= 60) and hunger 0.3959 at +24 h after one 650 kcal meal at 08:00 (>= 0.378); fix 1's fit read 299 /
+    # 282 / 267 and 0.3944, Task 6c's 291 / 277 / 265 and 0.4948
     from . import gut_oracles as GOR
     r = {"stability": GOR.stability(host)}
     got = check(r, "stability_latest", "stability_spread", "stability_rise")
-    assert r["stability"]["back"] == [299, 282, 267], r
-    assert got["stability_spread"] == 32 and round(got["stability_rise"], 4) == 0.3944, got
+    assert r["stability"]["back"] == [298, 282, 266], r
+    assert got["stability_spread"] == 32 and round(got["stability_rise"], 4) == 0.3959, got
 
 
 def test_a_flat_read_fails_the_stability_checks(host):

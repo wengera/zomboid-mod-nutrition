@@ -115,7 +115,7 @@ def test_the_fasted_400_kcal_breakfast_and_the_protein_contrast(host):
     hh = server_hunger(host, {0: [("food", hi)]}, 240)
     hl = server_hunger(host, {0: [("food", lo)]}, 240)
     d = sum(b - a for a, b in zip(hh, hl)) / 240
-    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 5) == 0.01267   # Plan 11g Task 6c fix 1's refit (Task 6c: 0.01245; G: 0.0196; P: 0.0134)
+    assert abs(d - M.protein_contrast(host)) < 1e-12 and round(d, 5) == 0.01256   # Plan 11g Task 6c fix 2's refit (fix 1: 0.01267; Task 6c: 0.01245; G: 0.0196; P: 0.0134)
 
 
 def test_rolls_1999_and_the_minute_1_fullness(host):

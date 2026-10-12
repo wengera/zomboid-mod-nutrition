@@ -456,7 +456,7 @@ LIMITATION_FOUR = (
     "overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x"
     " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
     "fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the "
-    "1100 g hard capacity, drunk liquid counting at 0.19 of its mass, and M the meal pool, the weighted kcal eaten, "
+    "1100 g hard capacity, drunk liquid counting at 0.279 of its mass, and M the meal pool, the weighted kcal eaten, "
     "fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and "
     "reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it "
     "on its first minute: hungerTarget(0.786, energy state), that is 0.214 x es + 0.02 x max(0, es - 1), times the "

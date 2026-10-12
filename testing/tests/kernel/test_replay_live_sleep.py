@@ -90,7 +90,7 @@ def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it(
     assert not d_off["ok"] and d_on["ok"], (d_off["findings"][:2], d_on["findings"][:2])
     assert d_off["fields"]["stomach.liquid"]["over"] > 0 and d_on["fields"]["stomach.liquid"]["max"] < 0.5
     h = RL.diff(rows_on, rr, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
-    assert round(h["max"], 4) == 0.0121, h                              # the P ring against the refit M (Plan 11g Task 6c fix 1): a reading (0.0171 under Task 6c's fit, 0.031 under the gut stage's fit)
+    assert round(h["max"], 4) == 0.0121, h                              # the P ring against the refit M (Plan 11g Task 6c fix 1, and fix 2's alike): a reading (0.0171 under Task 6c's fit, 0.031 under the gut stage's fit)
 
 
 def test_x265_logged_milk_is_not_injected():

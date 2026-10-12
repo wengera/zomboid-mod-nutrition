@@ -64,9 +64,11 @@ DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "
 STAGE_A_PARAMS = ("A_REQ", "A_STEEP", "A_HALF_LIFE_H")
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.25}
 SIG = 6                         # significant digits a refined value keeps
-# (exclusive low, inclusive high); any other: (0, inf). LIQUID_WEIGHT's 0.19 is S1231's null for water drunk alongside
-# (ruling T6c-3: it is fitted freely below it, against S1233's volume slope)
-BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 0.19)}
+# (exclusive low, inclusive high); any other: (0, inf). LIQUID_WEIGHT is a weight on drunk liquid's mass, at most the
+# solid lane's 1 (ruling T6c-5): the bound is the quantity's own range, and two scored rows set the value inside it,
+# S1231's null for water drunk alongside (rolls_cw_minus_cas, and the soup's drop rolls_drop) from above and S1233's
+# volume slope (rolls98_slope) from below
+BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 1)}
 
 _ACTIVE = {}                    # the candidate's patch while it runs, read by the server path's patched hosts
 
