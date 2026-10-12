@@ -103,3 +103,14 @@ function NR.flag(o, name, ...)
     if not ok then NR.noteRaise(name, present) end
     return ok and present and v == true
 end
+
+-- The sandbox options object (getSandboxOptions), fetched once per Lua state and kept in NR.so; nil while the global
+-- is absent or raises, and fetched again on the next call (Plan 11g Task 6: one helper for Kinetics and the writer,
+-- which each kept their own copy).
+function NR.sandbox()
+    if NR.so == nil and getSandboxOptions ~= nil then
+        local ok, so = pcall(getSandboxOptions)
+        if ok then NR.so = so end
+    end
+    return NR.so
+end

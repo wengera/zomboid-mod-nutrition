@@ -1,7 +1,7 @@
 -- NR_Kernel_Satiety.lua -- satiety from physiology (Plan 11c; spec docs/superpowers/specs/2026-10-08-satiety-physiology-
 -- design.md; the gut stage, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md). Two signals sate:
 -- the stomach's fullness F (fill, fullness) and the gut stage G, the weighted kcal the stomach has emptied (weigh,
--- gFeed, gClear, gStep, gRead, seedG); sated(F, gRead(G)), which K.hybrid.hungerTarget turns into hunger (target); the soft
+-- gFeed, gClear, gStep, drain, gRead, seedG); sated(F, gRead(G)), which K.hybrid.hungerTarget turns into hunger (target); the soft
 -- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to G's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
 -- withdrawal. Plan 11g Task 4 replaced the meal pool P (fed in full at the eat) with G (fed at emptying) and grouped the
@@ -93,6 +93,31 @@ end
 -- then clear over the step. The order is one fact: Kinetics runs it per substep, and every stand-in calls it.
 function K.satiety.gStep(G, emptied, dtH, trait)
     return K.satiety.gClear(K.satiety.gFeed(G, emptied), dtH, trait)
+end
+
+-- The stomach's drain over dtM game minutes in ceil(dtM) equal substeps of at most one minute (Plan 11c Task 6
+-- amendment 5; moved here from KIN.drain in Plan 11g Task 6), the emptied vectors summed into the first, which is
+-- returned. gut is nil or a {G, trait} state whose G takes one gStep per substep on what that substep emptied. A float
+-- one-minute gap (60 x 1/60 h, or a stamp a 14-digit slot rounded) is one substep (ruling T4-4). Kinetics calls it with
+-- its gap capped, and the replays' stand-ins call it, so every path splits a step alike.
+function K.satiety.drain(stomach, dtM, gut)
+    local n = math.ceil(dtM - 1e-6)
+    if n < 1 then
+        n = 1
+    end
+    local dtH = dtM / n / 60
+    local emptied = K.stomach.drain(stomach, dtH)
+    if gut ~= nil then
+        gut.G = K.satiety.gStep(gut.G, emptied, dtH, gut.trait)
+    end
+    for i = 2, n do
+        local e = K.stomach.drain(stomach, dtH)
+        if gut ~= nil then
+            gut.G = K.satiety.gStep(gut.G, e, dtH, gut.trait)
+        end
+        K.vector.add(emptied, e, 1)
+    end
+    return emptied
 end
 
 -- The appetite trait's factor on G's clearance (#0485): HEARTY for a hearty appetite, LIGHT for a light eater, else 1.

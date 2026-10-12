@@ -50,24 +50,13 @@ local function nonFinite(stomach)
     return false
 end
 
--- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in ceil(dtM) equal substeps of
--- at most one minute, the emptied vectors summed into the first. Returns the emptied vector. gut is nil or KIN.gut's
--- state: each substep then steps its G by what that substep emptied (K.satiety.gStep, ruling T4-3), so food emptied
--- late in a gap is cleared over the substeps after it only.
+-- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in one-minute substeps
+-- (K.satiety.drain, the kernel's since Plan 11g Task 6, so the replays' stand-ins split a step as the server does).
+-- Returns the emptied vector. gut is nil or KIN.gut's state: each substep then steps its G by what that substep emptied
+-- (K.satiety.gStep, ruling T4-3), so food emptied late in a gap is cleared over the substeps after it only.
 local MAX_GAP_M = 60 -- game minutes: the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), no row needed
 function KIN.drain(stomach, dtM, gut)
-    dtM = K.min(dtM, MAX_GAP_M)
-    local n = math.ceil(dtM - 1e-6)                       -- a float one-minute gap (60 x 1/60 h, or a stamp a 14-digit slot rounded) is one substep
-    if n < 1 then n = 1 end
-    local dtH = dtM / n / 60
-    local emptied = K.stomach.drain(stomach, dtH)
-    if gut ~= nil then gut.G = K.satiety.gStep(gut.G, emptied, dtH, gut.trait) end
-    for i = 2, n do
-        local e = K.stomach.drain(stomach, dtH)
-        if gut ~= nil then gut.G = K.satiety.gStep(gut.G, e, dtH, gut.trait) end
-        K.vector.add(emptied, e, 1)
-    end
-    return emptied
+    return K.satiety.drain(stomach, K.min(dtM, MAX_GAP_M), gut)
 end
 
 local function step(username, player, record, ctx)
@@ -234,8 +223,8 @@ function KIN.gut(record, player)
 end
 
 -- The clearance factor: K.satiety.trait of the player's HEARTY_APPETITE and LIGHT_EATER, times the sandbox's
--- getStatsDecreaseMultiplier (1 when the sandbox or a trait is unreadable; a nil player reads no trait). The sandbox
--- options object is fetched once and kept in KIN.so, as the writer keeps W.so.
+-- getStatsDecreaseMultiplier (1 when the sandbox or a trait is unreadable; a nil player reads no trait), read off the
+-- sandbox object NR.sandbox() caches for every adapter.
 function KIN.gTrait(player)
     local T = CharacterTrait
     local hearty = false
@@ -245,11 +234,7 @@ function KIN.gTrait(player)
         hearty = T.HEARTY_APPETITE ~= nil and NR.flag(traits, "get", T.HEARTY_APPETITE)
         light = T.LIGHT_EATER ~= nil and NR.flag(traits, "get", T.LIGHT_EATER)
     end
-    if KIN.so == nil and getSandboxOptions ~= nil then
-        local ok, so = pcall(getSandboxOptions)
-        if ok then KIN.so = so end
-    end
-    return K.satiety.trait(hearty, light) * NR.num(KIN.so, "getStatsDecreaseMultiplier", 1)
+    return K.satiety.trait(hearty, light) * NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
 end
 
 -- Lands the stepped G on the record. A G the steps made non-finite (a non-finite emptied vector, or a clearance that

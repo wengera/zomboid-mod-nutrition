@@ -66,3 +66,36 @@ def test_no_adapter_keeps_a_zero_age_wrapper():
         if re.search(r"worldAge\(\)\s*or\s*0|NR\.worldAge\(\)\s*or\s*0|okA and age or 0", text):
             bad.append(os.path.basename(path))
     assert bad == []
+
+
+def test_sandbox_is_fetched_once_and_shared_by_kinetics_and_the_writer():
+    # Plan 11g Task 6 (refactor carried from the Task 4 review): one cached sandbox object, NR.sandbox(), in place of
+    # KIN.so and W.so
+    h = Host()
+    h.NR.so = None
+    h.rt.execute("NR_SB_CALLS = 0; getSandboxOptions = function() NR_SB_CALLS = NR_SB_CALLS + 1; "
+                 "return { getStatsDecreaseMultiplier = function(s) return 2 end } end")
+    a = h.NR.sandbox()
+    b = h.NR.sandbox()
+    assert a is not None and h.rt.eval("function(x, y) return rawequal(x, y) end")(a, b)
+    assert h.G.NR_SB_CALLS == 1
+    assert h.NR.server.kinetics.so is None and h.NR.server.writer.so is None
+    src = [open(p, encoding="utf-8").read() for p in _server_files("NR_Server_Kinetics.lua", "NR_Server_Writer.lua")]
+    assert all("getSandboxOptions" not in s for s in src)
+
+
+def test_sandbox_is_nil_and_refetched_while_the_global_is_absent_or_raises():
+    h = Host()
+    h.NR.so = None
+    h.G.getSandboxOptions = None
+    assert h.NR.sandbox() is None
+    h.rt.execute("getSandboxOptions = function() error('not yet') end")
+    assert h.NR.sandbox() is None and h.NR.so is None
+    h.rt.execute("getSandboxOptions = function() return { k = 1 } end")
+    assert h.NR.sandbox().k == 1
+
+
+def _server_files(*names):
+    import os
+    from .server_host import SERVER
+    return [os.path.join(SERVER, n) for n in names]

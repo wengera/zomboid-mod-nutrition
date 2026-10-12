@@ -642,7 +642,7 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
     h.rt.execute("CharacterTrait = { HEARTY_APPETITE = 'HA', LIGHT_EATER = 'LE' }")
     h.rt.execute("getSandboxOptions = function() return { getStatsDecreaseMultiplier = function(s) return %r end } end"
                  % float(sd))
-    KIN(h).so = None
+    h.G.NutritionRevamp.so = None
     try:
         p = h.rt.eval(TRAIT_PLAYER)(trait, asleep)
         r = rec(h, 0)
@@ -653,7 +653,7 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
     finally:
         h.G.CharacterTrait = saved[1]
         h.G.getSandboxOptions = saved[2]
-        KIN(h).so = None
+        h.G.NutritionRevamp.so = None
 
 
 def test_a_restart_through_the_store_clears_g_over_the_gap(kin_host):

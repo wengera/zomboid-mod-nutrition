@@ -13,7 +13,7 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.writer = {
-    h = {}, inp = {}, saved = nil, zeroed = false, mode = 1, wired = false, so = nil,
+    h = {}, inp = {}, saved = nil, zeroed = false, mode = 1, wired = false,
     stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, guarded = 0, nms = false, dry = 0 },
     limitations = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
@@ -105,10 +105,6 @@ function W.hoist(username, p)
         if ok then h.swipe = sw end
     end
     pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- ruling 19 kept: the writer owns INTOXICATION
-    if W.so == nil and getSandboxOptions ~= nil then
-        local ok, so = pcall(getSandboxOptions)
-        if ok then W.so = so end
-    end
     return h
 end
 
@@ -125,7 +121,7 @@ function W.readEngine(username, h, p)
     i.sitting = NR.flag(p, "isSitOnGround") or NR.flag(p, "isSittingOnFurniture")
     i.resting = NR.flag(p, "isResting")
     i.thermoFatigue = NR.num(h.thermo, "getFatigueMultiplier", 1)
-    i.sd = NR.num(W.so, "getStatsDecreaseMultiplier", 1)
+    i.sd = NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
     i.needsLess = T ~= nil and trait(h, T.NEEDS_LESS_SLEEP)
     i.needsMore = T ~= nil and trait(h, T.NEEDS_MORE_SLEEP)
     i.insomniac = T ~= nil and trait(h, T.INSOMNIAC)

@@ -262,3 +262,39 @@ def test_the_fifth_daily_eat_of_a_study_food_holds_a_stale_item(host):
         assert lvl == pytest.approx(want * scale, rel=1e-12)
         assert round(lvl, 4 if scale < 1 else 3) == pin
         assert rows[-1]["lastIntake.source"] == "declared"
+
+
+# --- the stand-in's step (Plan 11g Task 6, carried from the Task 4 fix 1 review) ----------------------------------
+
+def oracle_g(steps, trait=None):
+    """OracleReplay's G and HUNGER after a 600 kcal meal at G 40, stepped by `steps` (game minutes each)."""
+    be = RL.OracleReplay(G0=40.0, energy=False, satiety=True, hold_es=True, hold_hour=True)
+    if trait is not None:
+        be.ev_trait({"trait": trait}, 0.0)
+    be.ev_eat({"vec": M.mixed(600)}, 0.0)
+    age = 0.0
+    for d in steps:
+        age += d / 60
+        be.step(age, float(d))
+    return be.o.G, be.o.hunger
+
+
+def test_a_three_minute_step_equals_three_one_minute_steps():
+    # the stand-in drains the stomach and steps G in Kinetics' one-minute substeps (K.satiety.drain), so a ring step
+    # of 3 minutes reads what three 1-minute steps read, as on the server
+    g3, h3 = oracle_g([3] * 20)
+    g1, h1 = oracle_g([1] * 60)
+    assert g3 == pytest.approx(g1, rel=1e-9) and h3 == pytest.approx(h1, rel=1e-9)
+    g60, _ = oracle_g([60])
+    assert g60 == pytest.approx(g1, rel=1e-9)
+
+
+def test_the_stand_in_clears_g_at_the_appetite_traits_factor():
+    # the record's trait factor (K.satiety.trait, KIN.gTrait's; the stand-in's sandbox multiplier is 1): a hearty
+    # appetite clears faster, a light eater slower, each the same over a 3-minute step as over three 1-minute steps
+    g, _ = oracle_g([1] * 60)
+    ha3, _ = oracle_g([3] * 20, "HEARTY_APPETITE")
+    ha1, _ = oracle_g([1] * 60, "HEARTY_APPETITE")
+    le, _ = oracle_g([1] * 60, "LIGHT_EATER")
+    assert ha3 == pytest.approx(ha1, rel=1e-9)
+    assert ha1 < g < le

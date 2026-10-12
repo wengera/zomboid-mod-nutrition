@@ -417,10 +417,11 @@ end
 
 ORACLE_LUA = r"""
 NR_O = {}
+NR_O.MAX_GAP_M = 60     -- NR_Server_Kinetics' MAX_GAP_M: a step's drain is capped as the server caps it
 function NR_O.new(G0, energy, satiety, holdEs, holdHour)
     local K = NutritionRevamp.kernel
     local o = { G = G0, es = 1, L = 0, eb24 = 0, hunger = nil, energy = energy, satiety = satiety, holdEs = holdEs,
-                holdHour = holdHour, asleep = false }
+                holdHour = holdHour, asleep = false, trait = 1, gut = { G = G0, trait = 1 } }
     o.st = K.stomach.new()
     o.body = K.body.new(70, 1, {}, 5, 1, 1, 0)       -- the energy oracles' 70 kg man
     local w0 = o.body.fm + o.body.lm
@@ -482,8 +483,10 @@ function NR_O.minute(o, ageH, dtM)
         o.es = K.energy.activityState(o.eb24, ex24, o.L, 0, ee24)
     end
     if o.satiety then
-        local dtH = dtM / 60
-        o.G = K.satiety.gStep(o.G, K.stomach.drain(o.st, dtH), dtH, 1)   -- Kinetics' step: the feed, then the clearance (T4-3)
+        o.gut.G = o.G
+        o.gut.trait = o.trait
+        K.satiety.drain(o.st, K.min(dtM, NR_O.MAX_GAP_M), o.gut)   -- KIN.drain's: one-minute substeps, each a gStep (T4-3)
+        o.G = o.gut.G
         local F = K.satiety.fullness(o.st)
         local x = o.es
         if o.holdEs then x = 1 end
@@ -843,6 +846,7 @@ class OracleReplay(_Backend):
         self.G = self.rt.globals()
         self.O = self.G.NR_O
         self.o = self.O.new(float(G0), bool(energy), bool(satiety), bool(hold_es), bool(hold_hour))
+        self.traits = set()
 
     def table(self, d):
         t = self.rt.table()
@@ -880,6 +884,16 @@ class OracleReplay(_Backend):
 
     def ev_sleep(self, ev, at):
         self.o.asleep = bool(ev["asleep"])
+
+    def ev_trait(self, ev, at):
+        """The appetite traits' factor on G's clearance, K.satiety.trait as KIN.gTrait reads the player's (the
+        stand-in's sandbox multiplier is 1); the oracle's composition reads no other trait."""
+        if ev.get("on", True):
+            self.traits.add(ev["trait"])
+        else:
+            self.traits.discard(ev["trait"])
+        self.o.trait = self.G.NutritionRevamp.kernel.satiety.trait("HEARTY_APPETITE" in self.traits,
+                                                                   "LIGHT_EATER" in self.traits)
 
     def feed(self, row, names):
         pass

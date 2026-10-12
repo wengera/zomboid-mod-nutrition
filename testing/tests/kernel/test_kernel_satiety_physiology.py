@@ -127,6 +127,30 @@ def test_g_step_feeds_then_clears_over_the_step(host):
         assert host.call("satiety.gStep", G, w, dtH, tr) == want
 
 
+def test_drain_steps_the_stomach_and_g_in_one_minute_substeps(host):
+    # Plan 11g Task 6 (KIN.drain's loop moved to the kernel so the stand-ins share it): a 3-minute drain is three
+    # one-minute drains, G stepped on each; a sub-minute or zero step is one substep; no gut leaves G alone
+    meal = _vec(host, calories=600, proteins=22.5, carbs=75, lipids=23.3, water=300)
+    run = host.rt.eval("""function(meal, steps, withGut)
+        local K = NutritionRevamp.kernel
+        local st = K.stomach.new()
+        K.stomach.ingest(st, meal)
+        local gut = nil
+        if withGut then gut = { G = 40, trait = 1.5 } end
+        local kcal = 0
+        for i = 1, #steps do kcal = kcal + K.satiety.drain(st, steps[i], gut).calories end
+        local G = nil
+        if gut ~= nil then G = gut.G end
+        return G, kcal, st.buffer.calories
+    end""")
+    g3, k3, b3 = run(meal, host.rt.table(*([3.0] * 20)), True)
+    g1, k1, b1 = run(meal, host.rt.table(*([1.0] * 60)), True)
+    assert g3 == pytest.approx(g1, rel=1e-12) and k3 == pytest.approx(k1, rel=1e-12) and b3 == pytest.approx(b1, rel=1e-12)
+    g0, k0, _ = run(meal, host.rt.table(0.0, 0.5, 1.0 + 1e-7), True)
+    assert k0 > 0 and g0 > 0
+    none, kn, bn = run(meal, host.rt.table(*([1.0] * 60)), False)
+    assert none is None and kn == pytest.approx(k1, rel=1e-12) and bn == pytest.approx(b1, rel=1e-12)
+
 def test_g_clear_reads_the_named_half_life(host):
     S = host.K.satiety
     old = S.G_HALF_LIFE_H
