@@ -138,15 +138,15 @@ function K.view.rung(v, at)
     return n
 end
 
--- The six class levels of a mirror m (nil reads all zero); last, the classes built from the previous mirror (nil or a
--- table), holds the energy level (K.view.energyLevel). m is a Lua-shaped table (the client's stored copy), so pairs
+-- The six class levels of a mirror m (nil reads all zero); the energy level is the one the server holds
+-- (K.view.mirrorEnergy). m is a Lua-shaped table (the client's stored copy), so pairs
 -- is allowed; the deficiency and excess scans read every nut_<key>_g and nut_<key>_x it carries.
-function K.view.classes(m, last)
+function K.view.classes(m)
     local c = { energy = 0, hydration = 0, deficiency = 0, excess = 0, stimulant = 0, sleep = 0 }
     if m == nil then
         return c
     end
-    c.energy = K.view.energyLevel(m.body_energyState, K.view.lastEnergy(last))
+    c.energy = K.view.mirrorEnergy(m)
     c.hydration = K.view.rung(m.fluids_dehydPct, K.view.HYDRATION_AT)
     c.stimulant = K.view.rung(m.acute_caf, K.view.STIMULANT_AT)
     c.sleep = K.view.rung(m.acute_debtH, K.view.SLEEP_AT)
@@ -214,14 +214,14 @@ end
 -- are listed (nil: none; K.view.gradedOrder gives the graded ones). Every level: the six class rows; Bands and up:
 -- the body block (band word, weight, energy word), the hydration word and each graded key's grade word (a key the
 -- engine has not graded yet, g < 1, has no row); Numbers: the fat and lean mass, each listed key's pool percentage
--- and excess rung, and the caffeine, alcohol and sleep-debt figures. last holds the energy level (K.view.classes).
-function K.view.rows(m, level, order, last)
+-- and excess rung, and the caffeine, alcohol and sleep-debt figures. The energy level is the server's (K.view.classes).
+function K.view.rows(m, level, order)
     local mm = m
     if mm == nil then
         mm = {}
     end
     local lv = K.view.clampLevel(level)
-    local c = K.view.classes(mm, last)
+    local c = K.view.classes(mm)
     local rows = {}
     for i = 1, #K.view.CLASSES do
         local cls = K.view.CLASSES[i]
@@ -515,10 +515,10 @@ function K.view.fullnessLevel(massG)
     return 1 + K.view.rung(d, K.view.OVERFULL_AT)
 end
 
--- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads (last holds the energy level),
+-- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads (the server's energy level),
 -- plus overfull from the mirror's stomachMass (a mirror without it reads 0).
-function K.view.moodleClasses(m, last)
-    local c = K.view.classes(m, last)
+function K.view.moodleClasses(m)
+    local c = K.view.classes(m)
     c.overfull = 0
     if m == nil then
         return c
@@ -527,14 +527,17 @@ function K.view.moodleClasses(m, last)
     return c
 end
 
--- --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2) ----------------------------------------------
--- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.19 to 1.29 at 48 h from 50 to 100
--- kg on the server path) and then drifts on a slow daily sawtooth (at most 0.0024), so a plain rung flickers for the
--- body whose plateau sits at a bound: the 70 kg man's 1.2456, 0.0044 under level 2, crossed 1.25 at 52, 67.6 and 76 h.
+-- --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2; one holder, fix 2, ruling T7-7) -----------
+-- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.1904, 1.2118, 1.2482 and 1.2901
+-- at 48 h for the 50 and 60 kg women and the 70 and 100 kg men on the server path, test_replay_live_energy's
+-- test_a_sedentary_fast_never_steps_an_energy_level_down) and then drifts on a slow daily sawtooth (the largest fall
+-- under its running peak from 24 h on 0.00234, the 70 kg man, in the same test), so a plain rung flickers for the body
+-- whose plateau sits at a bound: the 70 kg man's 1.2456, 0.0044 under level 2, crossed 1.25 at 52, 67.6 and 76 h.
 -- A threshold move only moves the flicker to another body; a level once reached is held instead, until the state
--- falls ENERGY_BAND under that level's bound. The server keys its push on the held level (the last signature's energy
--- digit) and the client holds it on the classes it last built, so each side holds without new state.
-K.view.ENERGY_BAND = 0.01 -- gc: game choice, Plan 11g Task 7 fix 1 (ruling T7-2): the fall under a reached level's bound that steps the energy class down, about 79 kcal of trailing deficit at the 3,970.55 kcal span; four times a resting fast's largest daily fall on the server path (0.0024), and far under a meal's fall (a 600 kcal meal lowers es by about 0.075 as it empties into the trailing window), so a meal still steps the level down as it is absorbed
+-- falls ENERGY_BAND under that level's bound. The server alone holds it: it keys its push on the held level (the last
+-- signature's energy digit), every mirror carries that digit as body_energyLevel and the client shows it
+-- (K.view.mirrorEnergy), so no new state is stored and a change of the held level marks a push like any class change.
+K.view.ENERGY_BAND = 0.01 -- gc: game choice, Plan 11g Task 7 fix 1 (ruling T7-2): the fall under a reached level's bound that steps the energy class down, about 79 kcal of trailing deficit at the 3,970.55 kcal span; about four times a resting fast's largest fall on the server path (0.00234, the 70 kg man in test_a_sedentary_fast_never_steps_an_energy_level_down; its deepest fall under a reached bound 0.00092), and far under a meal's fall (a 600 kcal meal lowers es by about 0.075 as it empties into the trailing window), so a meal still steps the level down as it is absorbed
 
 -- The energy class of a state: its rung on ENERGY_AT, or last (the level held before) while the state stays within
 -- ENERGY_BAND under last's bound; never above the rung of the state plus the band. A non-number state reads its rung
@@ -547,12 +550,15 @@ function K.view.energyLevel(energyState, last)
     return K.min(last, K.view.rung(energyState + K.view.ENERGY_BAND, K.view.ENERGY_AT))
 end
 
--- The energy level held in a classes table (K.view.classes' last), nil when it is not a table.
-function K.view.lastEnergy(last)
-    if type(last) ~= "table" then
-        return nil
+-- The energy class of a mirror m: its body_energyLevel, the level the server holds (ruling T7-7), when that is a whole
+-- number from 0 to #ENERGY_AT; else (a mirror sent before the player's first flush, or a malformed field) the plain
+-- rung of its body_energyState.
+function K.view.mirrorEnergy(m)
+    local v = m.body_energyLevel
+    if type(v) == "number" and v >= 0 and v <= #K.view.ENERGY_AT and math.floor(v) == v then
+        return v
     end
-    return last.energy
+    return K.view.rung(m.body_energyState, K.view.ENERGY_AT)
 end
 
 -- The energy digit of a push signature (K.view.pushSignature), nil when sig is not a number.

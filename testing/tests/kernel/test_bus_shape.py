@@ -131,6 +131,42 @@ def test_the_bus_holds_a_reached_energy_level_inside_the_band():
     assert seen == [2, 2, 2, 1, 1]
 
 
+MIRRORS = r"""
+NR_T.mirrors = {}
+local send = sendServerCommand
+sendServerCommand = function(p, module, cmd, m) NR_T.mirrors[#NR_T.mirrors + 1] = m; send(p, module, cmd, m) end
+"""
+
+
+def test_every_mirror_carries_the_level_the_server_holds():
+    # Plan 11g Task 7 fix 2 (ruling T7-7): each mirror sent carries body_energyLevel, the energy digit of the
+    # player's last signature, so the client shows the server's held level; with no signature yet (first sight,
+    # before the first flush) the field is absent and the client reads the rung
+    h = Host(extra_env=SEND + MIRRORS)
+    p = online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    last = lambda: h.T.mirrors[len(h.T.mirrors)]
+    seen = []
+    for es in (1.26, 1.245, 1.2405, 1.235, 1.2498):
+        h.record("a").body.energyState = es
+        h.minute(); h.tick(25)
+        assert B.sendMirror(p, h.record("a")) is True
+        assert last().body_energyLevel == h.K.view.signatureEnergy(B.lastSig["a"])
+        seen.append(last().body_energyLevel)
+    assert seen == [2, 2, 2, 1, 1]
+    n0 = len(h.T.mirrors)
+    for _ in range(3):                                   # a flush that pushes carries the level it just keyed on
+        h.record("a").body.energyState = 1.26
+        h.T.now = h.T.now + 60001
+        h.T.age = h.T.age + 1 / 60
+        h.minute(); h.tick(25)
+    assert len(h.T.mirrors) > n0 and last().body_energyLevel == 2
+    B.forgetEffects("a", p, h.record("a"))               # first sight: no signature, no field
+    assert B.sendMirror(p, h.record("a")) is True
+    assert last().body_energyLevel is None and type(last().body_energyState) is float
+
+
 def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
     h = Host(extra_env=SEND)
     online(h)

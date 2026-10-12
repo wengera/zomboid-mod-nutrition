@@ -635,7 +635,7 @@ FAST_SIG = "_G.NutritionRevamp.server.bus.lastSig.admin"      # the bus's signat
 
 def long_fast_levels(player, fast_days=6):
     """A sedentary fast on the server path: the warm maintenance days and protocol day 0's three meals, then nothing
-    for fast_days days. Returns (the bus's energy level, the plain rung of es) at each minute from the last meal."""
+    for fast_days days. Returns (the bus's energy level, the plain rung of es, es) at each minute from the last meal."""
     plan = M.warm()
     plan.update(M.meals_of(0, "maint"))
     last = max(plan)
@@ -646,8 +646,24 @@ def long_fast_levels(player, fast_days=6):
                              player=player, rng="half")
     at = [be.K.view.ENERGY_AT[i] for i in range(1, 5)]
     bus = [int(r[FAST_SIG] // 1000) % 10 for r in rows[last:]]
-    plain = [sum(1 for a in at if r["body.energyState"] >= a) for r in rows[last:]]
-    return bus, plain
+    es = [r["body.energyState"] for r in rows[last:]]
+    plain = [sum(1 for a in at if e >= a) for e in es]
+    return bus, plain, es
+
+
+def deepest_held_fall(bus, es):
+    """The deepest es under the bound of a level the bus holds (0 when no level is held under its bound)."""
+    at = (1.10, 1.25, 1.40, 1.55)
+    return max([at[b - 1] - e for b, e in zip(bus, es) if b >= 1] + [0.0])
+
+
+def largest_drawdown(es, after_min=1440):
+    """The largest fall of es under its running peak from after_min minutes after the last meal on."""
+    peak, fall = es[after_min], 0.0
+    for e in es[after_min:]:
+        peak = max(peak, e)
+        fall = max(fall, peak - e)
+    return fall
 
 
 def level_changes(levels):
@@ -661,19 +677,28 @@ def level_changes(levels):
 
 def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
     # ruling T7-2: the energy moodle never flickers in a resting fast. The plain rung did: the 70 kg man's es plateaus
-    # at 1.2456, 0.0044 under level 2's 1.25, and its slow daily sawtooth (at most 0.0024) crossed 1.25 at 52.0 h, back
-    # at 67.6 h and again at 76.0 h. The bus now holds a reached level until es falls ENERGY_BAND (0.01) under its bound
-    # (K.view.energyLevel, a game choice), so over six days of fasting no body steps a level down. Level 1 stays about
-    # 18 h after the last meal (ruling 9d-2: 18.1 h for the man, 17 h at the 3,100 kcal span); level 2 comes at 52.0 h
-    # for the man and from the plateau alone at 27.1 h for the 100 kg man, and the 50 and 60 kg women stay at level 1
-    # (es 1.201 and 1.223 at six days). A threshold move instead (ENERGY_AT[2] under the man's plateau) was rejected: a
-    # plateau sits wherever a body's expenditure puts it (es 1.19 to 1.29 at 48 h from 50 to 100 kg), so any bound
-    # flickers for some body (at 1.22 a 60 kg woman's es crosses it at 124.0, 140.9 and 148.0 h)
+    # at 1.2456, 0.0044 under level 2's 1.25, and its slow daily sawtooth (its largest fall under the running peak from
+    # 24 h on 0.00234, pinned below) crossed 1.25 at 52.0 h, back at 67.6 h and again at 76.0 h. The bus now holds a
+    # reached level until es falls ENERGY_BAND (0.01) under its bound (K.view.energyLevel, a game choice), and the
+    # mirror carries that held level to the client (ruling T7-7), so over six days of fasting no body steps a level
+    # down; the deepest es under a held level's bound is the man's 0.00092. Level 1 stays about 18 h after the last
+    # meal (ruling 9d-2: 18.1 h for the man, 17 h at the 3,100 kcal span); level 2 comes at 52.0 h for the man and from
+    # the plateau alone at 27.1 h for the 100 kg man, and the 50 and 60 kg women stay at level 1 (es 1.201 and 1.223 at
+    # six days). A threshold move instead (ENERGY_AT[2] under the man's plateau) was rejected: a plateau sits wherever a
+    # body's expenditure puts it (es 1.1904, 1.2118, 1.2482 and 1.2901 at 48 h for the 50 and 60 kg women and the 70
+    # and 100 kg men, pinned below), so a bound inside that range meets some body's sawtooth
     want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.1), (2, 52.0)],
             (100.0, False): [(1, 17.7), (2, 27.1)]}
+    got = {}
     for (w, female), changes in want.items():
-        bus, plain = long_fast_levels({"weight": w, "female": female})
+        bus, plain, es = long_fast_levels({"weight": w, "female": female})
         assert all(b >= a for a, b in zip(bus, bus[1:])), (w, female, level_changes(bus))
         assert level_changes(bus) == changes, (w, female, level_changes(bus))
         if w == 70.0:
             assert level_changes(plain) == [(1, 18.1), (2, 52.0), (1, 67.6), (2, 76.0)]   # the flicker the band removes
+        got[(w, female)] = (round(deepest_held_fall(bus, es), 5), round(largest_drawdown(es), 5),
+                            round(es[48 * 60], 4), round(es[-1], 4))
+    # per body: the deepest es under a held level's bound, the largest fall under es's running peak from 24 h on, and
+    # es at 48 h and at six days, ENERGY_BAND's evidence (its label cites these)
+    assert got == {(50.0, True): (0.0, 0.00173, 1.1904, 1.201), (60.0, True): (0.0, 0.00161, 1.2118, 1.223),
+                   (70.0, False): (0.00092, 0.00234, 1.2482, 1.2563), (100.0, False): (0.0, 0.00071, 1.2901, 1.3053)}, got

@@ -50,7 +50,7 @@ end
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end
     if sendServerCommand == nil then return false end
-    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER)
+    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER, K.view.signatureEnergy(B.lastSig[record.username]))
     if not okB then
         B.build.failed = B.build.failed + 1
         NR.log.say(2, "bus: mirror build failed for " .. tostring(record.username) .. ": " .. tostring(m))
@@ -154,5 +154,5 @@ function B.markBand(username)
     B.markEffects(username)
 end
 
--- Plan 11g Task 7 fix 1 (ruling T7-2): the energy class's hysteresis. Appended so no line above moves.
-B.limitations[#B.limitations + 1] = "the energy class holds a reached level until the energy state falls K.view.ENERGY_BAND (0.01) under its bound, on the server off the last signature and on the client off the classes it last built; both start unheld at first sight (the bus forgets the signature, a reconnecting client has no classes), so a state inside the band under a bound reads the level below until it rises past the bound again, and while a push waits out the gap the two sides can each hold a different level for a state inside the band until the next push or a move past the band"
+-- Plan 11g Task 7 fix 1 (ruling T7-2): the energy class's hysteresis; fix 2 (ruling T7-7): the server is its one holder.
+B.limitations[#B.limitations + 1] = "the energy class holds a reached level until the energy state falls K.view.ENERGY_BAND (0.01) under its bound, held on the server alone off the player's last signature; every mirror carries that level as body_energyLevel and the client shows it; the level starts unheld at first sight (the bus forgets the signature, so a mirror sent before the player's first flush carries none and the client reads the plain rung of the mirrored state), a state inside the band under a bound then reads the level below until it rises past the bound again, and a mirror answered on request carries the level of the last flush beside the state of the moment"

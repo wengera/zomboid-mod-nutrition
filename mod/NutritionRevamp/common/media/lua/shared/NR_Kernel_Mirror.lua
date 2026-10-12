@@ -9,8 +9,10 @@ local K = NutritionRevamp.kernel
 K.mirror = {}
 
 -- record: the stored inputs; meta: { mode, version, build }; order: the nutrient keys to carry as nut_<key>_g
--- (the adapter passes NR.data.records.ORDER; nil carries none). Returns a new flat table.
-function K.mirror.build(record, meta, order)
+-- (the adapter passes NR.data.records.ORDER; nil carries none); energyLevel: the energy class the bus holds (its last
+-- signature's energy digit, K.view.signatureEnergy; Plan 11g Task 7 fix 2, ruling T7-7), carried as body_energyLevel,
+-- absent when nil. Returns a new flat table.
+function K.mirror.build(record, meta, order, energyLevel)
     local m = {}
     m.username = record.username
     m.firstSeen = record.firstSeen
@@ -25,6 +27,7 @@ function K.mirror.build(record, meta, order)
     K.mirror.fluids(m, record.fluids)
     K.mirror.acute(m, record.acute)
     K.mirror.body(m, record.body)
+    m.body_energyLevel = energyLevel
     K.mirror.effects(m, record.effects)
     return m
 end

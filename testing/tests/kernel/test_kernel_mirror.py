@@ -36,6 +36,16 @@ def test_mirror_is_flat_scalars_only(host):
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
 
+def test_mirror_carries_the_held_energy_level_only_when_given(host):
+    # Plan 11g Task 7 fix 2 (ruling T7-7): body_energyLevel, the bus's held level (its last signature's energy digit),
+    # is the build's fourth argument; with none the key is absent and the client reads the rung of body_energyState
+    meta = host.table(META)
+    m = host.py(host.call("mirror.build", rec(host), meta, None, 2))
+    assert m["body_energyLevel"] == 2
+    assert "body_energyLevel" not in host.py(host.call("mirror.build", rec(host), meta, None, None))
+    assert "body_energyLevel" not in host.py(host.call("mirror.build", rec(host), meta))
+
+
 def test_mirror_copies_rather_than_aliases_the_record(host):
     r = rec(host)
     m = host.call("mirror.build", r, host.table({"mode": 2, "version": "x", "build": "y"}))

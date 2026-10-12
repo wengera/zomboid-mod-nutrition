@@ -333,17 +333,24 @@ def test_the_mirror_handler_calls_onMirror_once_per_arrival():
     assert v.stats.rebuilds == 2 and v.classes.hydration == 0
 
 
-def test_the_view_holds_a_reached_energy_level_inside_the_band():
-    # Plan 11g Task 7 fix 1 (ruling T7-2): each rebuild reads the classes it last built as the level held, so the
-    # moodle and the class row keep a level until the mirrored state falls K.view.ENERGY_BAND under its bound
+def test_the_view_shows_the_servers_held_energy_level():
+    # Plan 11g Task 7 fix 2 (ruling T7-7): the moodle and the class row show the mirror's body_energyLevel, the
+    # server's held level, whatever the client built before; a mirror without it or with a malformed one reads the
+    # plain rung of the mirrored es
     rt = rt_env()
     v = V(rt)
     got = []
-    for es in (1.26, 1.245, 1.2405, 1.235, 1.245):
-        receive(rt, "{ body_energyState = %r }" % es)
+    for m in ("{ body_energyState = 1.2498, body_energyLevel = 2 }",      # case A: a fresh client, the server holds 2
+              "{ body_energyState = 1.26, body_energyLevel = 2 }",
+              "{ body_energyState = 1.2498, body_energyLevel = 1 }",      # case B: shown 2 before, the server reads 1
+              "{ body_energyState = 1.2502, body_energyLevel = 1 }",
+              "{ body_energyState = 1.2498 }",                            # no held level: the rung
+              "{ body_energyState = 1.2502, body_energyLevel = 'x' }",    # malformed: the rung
+              "{ body_energyState = 1.2502, body_energyLevel = 1.5 }"):
+        receive(rt, m)
         row = next(v.rows[i] for i in range(1, len(v.rows) + 1) if v.rows[i].key == "energy")
         got.append((v.classes.energy, row.n))
-    assert got == [(2, 2), (2, 2), (2, 2), (1, 1), (1, 1)]
+    assert got == [(2, 2), (2, 2), (1, 1), (1, 1), (1, 1), (2, 2), (2, 2)]
 
 
 def test_the_grade_rows_use_the_graded_order_never_the_raw_order():
