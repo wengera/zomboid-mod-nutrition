@@ -110,3 +110,35 @@ Each task's brief names its refactor scope, and each review judges structure and
 - **Too many constants.** The model has more constants than today's. The stage rule and the oracle count guard against over-fitting.
 - **A full refit.** Every 11c/11d satiety constant, oracle and the golden move. The refit is one named change per task (ruling T2-1).
 - **The seeding cap.** The cap and its read on a fresh record need re-deriving. Today's floor of 0.203 at the cap changes.
+
+## 7. Amendment (Angus, 2026-10-12, after the Task 6 fit)
+**What happened.**
+- The Task 6 fit of the emptying-fed G was degenerate. G's read went flat (G_STEEP 0.0197), because the stomach's energy-limited emptying already carries meal size into fullness F, and G fed at emptying counted it a second time.
+- The costs: a fasting rise about 4x slower than under P; evening requests swinging about 10 h on a 2 % factor; and Karl's post-meal lows never deepening.
+- A spike over six model forms (`.superpowers/sdd/2026-10-12-plan-11g-gut-satiety/task-6b-spike-report.md`) drove the eat-feed fraction to 1 in every fit.
+
+**Angus chose (option 1):**
+- **G is fed in full at the eat.** It is the weighted-kcal meal pool, cleared first-order, and Kinetics clears it per substep through `K.satiety.drain`. The feed at emptying (§ 3.1) is withdrawn.
+- **F counts past the comfortable maximum up to the hard capacity.** F = mass / CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G / CAPACITY_MAX_G] (1100 / 730 = 1.507; S1250, S1253) instead of [0, 1]. The sated product is clamped to [0, 1].
+  - Reason: the resting and well-fed post-meal stomachs both sat at F = 1, so the clamp hid the well-fed day's fuller stomach (harvest 13: gastric emptying 612 against 182 min).
+- **Three stability checks join the oracle registry**, so no later fit can go flat unseen:
+  - the 650 kcal meal at 19:00 under hunger x0.98 / x1.00 / x1.02 returns within S1248's 425 min, spread at most 60 min;
+  - after one 650 kcal meal at 08:00, hunger at +24 h is at least 0.9 x P's 0.42.
+
+  These are design choices with no row, labelled as such.
+- **The fat trio is scored on one common scale** (Melanson's), so W_FAT is not a scale artefact.
+
+**The spike's result for this form:**
+- loss 1.378;
+- Karl −52.94 % (in band);
+- fasting rise 0.466 at +24 h;
+- no cliff;
+- 8 named misses against 13.
+
+**Accepted downsides:**
+- the hunger nadir stays at minute 1 (studies: about 15);
+- LIQUID_WEIGHT is weakly held;
+- Karl's post-meal lows improve (0.55 / 0.38 / 0.41 of REST) but stay above the study's 0.21 / 0.21 / 0.11;
+- Tieken's liquid against solid stays out of reach under every form.
+
+The C-1 hormone mechanism the evidence describes is real, but the oracles at hand do not need a delayed feed: the stomach's overfill carries the well-fed effect.
