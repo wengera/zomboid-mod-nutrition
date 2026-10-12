@@ -222,7 +222,7 @@ end
 -- Plan 11g Task 4: satiety now comes from the stomach's emptying. The meal pool P that IN.feed fed here at the eat
 -- (Plan 11c rulings 11c-27, 11c-30) is gone; every route that lands -- the eat, the drink, world water and the
 -- reconcile path -- puts the vector in the stomach, and NR_Server_Kinetics feeds the gut stage G with the weighted
--- kcal of what the stomach empties each minute (KIN.feedG).
+-- kcal of what the stomach empties each minute, and clears it (K.satiety.gStep per substep, ruling T4-3).
 
 -- The vector's source: dish > craft > the eaten item's own chain step (K.intake.sourceOf).
 IN.sourceOf = K.intake.sourceOf

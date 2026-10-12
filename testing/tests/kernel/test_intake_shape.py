@@ -1704,7 +1704,7 @@ def test_the_intake_no_longer_reads_a_hunger_change():
 # --- Plan 11g Task 4: the landing feeds no satiety; G is fed at emptying (Kinetics, test_kinetics.py) -------------
 # Plan 11c Task 6 (amendment 1, rulings 11c-27 and 11c-30) fed the meal pool P at the eat with the delivered vector;
 # since Plan 11g Task 4 the landing only puts the vector in the stomach, and NR_Server_Kinetics feeds the gut stage G
-# the weighted kcal of what the stomach empties each minute (KIN.feedG).
+# the weighted kcal of what the stomach empties each minute, and clears it (K.satiety.gStep per substep, ruling T4-3).
 
 def _weighed(v):
     """K.satiety.weigh in doubles: the delivered kcal split by Atwater 4/4/9 shares, protein weighted 2.5 (W_PROTEIN),

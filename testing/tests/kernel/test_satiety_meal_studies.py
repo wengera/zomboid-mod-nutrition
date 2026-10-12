@@ -1,8 +1,8 @@
 """The satiety oracle (Plan 11c Task 4; spec § 5b and § 6; ruling 11c-30): published protocols replayed through the
 real kernels -- the stomach's two lanes (K.stomach), the gut stage G (K.satiety; the meal pool P until Plan 11g Task 4)
 and the hunger function (K.hybrid.hungerTarget) -- one step a game minute. Each step runs, in order: the minute's eats
-land in the stomach; the stomach drains and G is fed the weighted kcal of what it emptied (K.satiety.gFeed, Kinetics'
-feed); G clears (K.satiety.gClear, the writer's); F is the writer's (K.satiety.fullness, W.satietyF's: the fullness
+land in the stomach; the stomach drains and G takes one step (K.satiety.gStep, Kinetics' per substep: fed the weighted
+kcal of what the stomach emptied, then cleared, ruling T4-3); F is the writer's (K.satiety.fullness, W.satietyF's: the fullness
 mass, the satiety mass plus PROTEIN_FILL x the protein, rulings 11d-5 and T5-2, over CAPACITY_MAX_G); and the displayed
 hunger is min(0.69, K.satiety.target(F, G, 1) x circadian(h)), target = hungerTarget(sated(F, gRead(G)), es). Trait 1
 and StatsDecrease 1 (ruling 11c-23).
@@ -86,7 +86,7 @@ function(events, minutes, G0, h0)
                 end
             end
         end
-        G = K.satiety.gClear(K.satiety.gFeed(G, K.stomach.drain(st, 1 / 60)), 1 / 60, 1)
+        G = K.satiety.gStep(G, K.stomach.drain(st, 1 / 60), 1 / 60, 1)
         local F = K.satiety.fullness(st)
         local c = 1
         if h0 ~= nil then
@@ -325,7 +325,9 @@ def test_callahans_replay_minutes_are_pinned_and_the_09_00_factor_matters(host):
     assert callahan(host) == [297, 370, 476]
     assert callahan(host, fasted=True) == [297, 370, 476]
     # the factor held at 1 (a different seed too) moves the minutes: under G every request comes later without it
-    # (on the P model the 190 kcal request came earlier without it: 227 / 273 / 353)
+    # (on the P model the 190 kcal request came earlier without it: 227 / 273 / 353). The direction check below is a
+    # reading under G's provisional constants, flipped from the P model's (>), pinned; Task 6 refits G's constants
+    # and re-reads the direction
     assert callahan(host, h0=None) == [302, 416, 572]
     assert callahan(host)[0] < callahan(host, h0=None)[0]
     assert callahan(host, fasted=True, h0=None) != callahan(host, fasted=True)
@@ -959,10 +961,10 @@ PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ru
 # ENERGY_REPLAY beside it: a 70 kg body eats SIX_WARM_DAYS three-meal days of the same 2,000 kcal (ASSUMED, energy only,
 # no stomach or G) before the protocol day, and from 08:00 of that day each meal also lands in the stomach (feeding G as it empties), so
 # hungerTarget reads the live trailing-24 h energy state. With the state held at 1 it reproduces meal_frequency_ratio
-# exactly (1.004 under G's provisional constants, Plan 11g Task 4; 0.969 on the P model); live it reads 1.019 under G
-# (0.983 on the P model since the deficit drive's refit (Plan 11f Task 2c fix 1; 0.981 in Task 2c, 0.994 before, 0.998 on the
-# same-span schedule, every 2 h from 08:00 to 18:00), still the opposite direction to S1608's 1.14. The warm-up count did
-# not move it (1, 3 and 6 days read the same at Plan 11e)
+# exactly (1.004 under G's provisional constants, Plan 11g Task 4; 0.969 on the P model); live it reads 1.019 under G,
+# in S1608's direction (1.14). On the P model it read 0.983 since the deficit drive's refit (Plan 11f Task 2c fix 1; 0.981
+# in Task 2c, 0.994 before, 0.998 on the same-span schedule, every 2 h from 08:00 to 18:00), the opposite direction to
+# S1608's 1.14. The warm-up count did not move it (1, 3 and 6 days read the same at Plan 11e)
 
 SIX_WARM_DAYS = 3
 
@@ -1011,7 +1013,7 @@ function(plan, days, start)
         local ex24 = K.body.trail24(body.trail, "ex")
         es = K.energy.activityState(K.energy.eb24h(body), ex24, L, 0, ee24)
         if m >= start and m < start + 1440 then
-            G = K.satiety.gClear(K.satiety.gFeed(G, K.stomach.drain(st, 1 / 60)), 1 / 60, 1)
+            G = K.satiety.gStep(G, K.stomach.drain(st, 1 / 60), 1 / 60, 1)
             local F = K.satiety.fullness(st)
             sum = sum + K.min(0.69, K.satiety.target(F, G, es) * K.satiety.circadian(ageH % 24))
         end

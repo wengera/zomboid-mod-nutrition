@@ -27,7 +27,7 @@ stays in its own field for one minute and the next pre-step heal takes it (the a
 
 Kinetics (Plan 11c Task 8) heals by resetting the stomach empty rather than re-stamping: its GUARD lists name the
 fields that reset fires on (the liquid lane, the solid lane's energy, which sets every key's drain next minute, and
-the gram keys of the mass); the gut stage G is guarded inside Kinetics' feed (KIN.feedG, test_kinetics.py) and the
+the gram keys of the mass); the gut stage G is guarded inside Kinetics' step (KIN.landG, test_kinetics.py) and the
 writer (test_writer_shape.py). One write and read sits outside the minute: the writer heals a non-finite G by
 re-seeding it (since Plan 11g Task 4 the intake no longer feeds satiety at the eat); the client's Overfull level reads the mirror's stomachMass, which K.mirror.stomachMass
 reads as 0 for a non-finite mass, and K.view.fullnessLevel reads a non-finite mass as 0 as well. Metabolism's

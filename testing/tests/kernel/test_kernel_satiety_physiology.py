@@ -113,6 +113,20 @@ def test_g_clears_first_order_at_its_half_life(host):
     assert host.call("satiety.gClear", 80, hl, 1.5) == pytest.approx(80 * 2 ** -1.5)   # the trait scales the clearance
 
 
+def test_g_step_feeds_then_clears_over_the_step(host):
+    # Plan 11g Task 4 fix 1 (ruling T4-3): one step of G is the feed of what the stomach emptied this step, then the
+    # clearance over the step; Kinetics runs it per substep and every stand-in calls it
+    hl = host.K.satiety.G_HALF_LIFE_H
+    v = _vec(host, calories=100, carbs=25)
+    assert host.call("satiety.gStep", 50, v, hl, 1) == pytest.approx(75)              # (50 + 100) x 2^-1
+    assert host.call("satiety.gStep", 50, v, 0, 1) == pytest.approx(150)             # no time: the feed alone
+    assert host.call("satiety.gStep", 50, _vec(host), hl, 1.5) == pytest.approx(50 * 2 ** -1.5)
+    for G, dtH, tr in ((0.0, 1 / 60, 1), (300.0, 0.25, 0.75), (1200.0, 1.0, 2.0)):
+        w = _vec(host, calories=40, proteins=10)
+        want = host.call("satiety.gClear", host.call("satiety.gFeed", G, w), dtH, tr)
+        assert host.call("satiety.gStep", G, w, dtH, tr) == want
+
+
 def test_g_clear_reads_the_named_half_life(host):
     S = host.K.satiety
     old = S.G_HALF_LIFE_H
@@ -257,6 +271,8 @@ def test_the_file_is_grouped_into_its_sections():
              "-- Discomfort:", "-- The circadian, acute, sleep and nicotine factors"]
     at = [src.index(h) for h in heads]
     assert at == sorted(at), at
+    gut = src[src.index("-- The gut stage G"):].splitlines()[0]
+    assert gut.endswith(".") and len(gut) <= 120, gut                       # the gut stage's header is one line
     first_fn = src.index("\nfunction ")
     for m in re.finditer(r"^K\.satiety\.[A-Z_]+(\.[a-z]+)? = ", src, re.M):
         assert m.start() < first_fn, m.group(0)

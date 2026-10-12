@@ -96,7 +96,7 @@ function(cfg)
         local kind = cfg.vig[m]
         S = K.satiety.exerciseSuppression(S, 1 / 60, kind ~= nil, kind)
         L = K.energy.exerciseLag(L, exMin, 1 / 60)
-        G = K.satiety.gClear(K.satiety.gFeed(G, K.stomach.drain(st, 1 / 60)), 1 / 60, 1)
+        G = K.satiety.gStep(G, K.stomach.drain(st, 1 / 60), 1 / 60, 1)
         local F = K.satiety.fullness(st)
         local eb = inS - eeS
         local ee24 = eeS

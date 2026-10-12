@@ -1,7 +1,7 @@
 -- NR_Kernel_Satiety.lua -- satiety from physiology (Plan 11c; spec docs/superpowers/specs/2026-10-08-satiety-physiology-
 -- design.md; the gut stage, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md). Two signals sate:
 -- the stomach's fullness F (fill, fullness) and the gut stage G, the weighted kcal the stomach has emptied (weigh,
--- gFeed, gClear, gRead, seedG); sated(F, gRead(G)), which K.hybrid.hungerTarget turns into hunger (target); the soft
+-- gFeed, gClear, gStep, gRead, seedG); sated(F, gRead(G)), which K.hybrid.hungerTarget turns into hunger (target); the soft
 -- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to G's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
 -- withdrawal. Plan 11g Task 4 replaced the meal pool P (fed in full at the eat) with G (fed at emptying) and grouped the
@@ -58,9 +58,10 @@ function K.satiety.fullness(stomach)
     return K.satiety.fill(K.stomach.fullnessMass(stomach), K.stomach.CAPACITY_MAX_G)
 end
 
--- The gut stage G (Plan 11g, spec § 3.1): the weighted kcal the stomach has emptied, fed each minute by the kinetics
--- step with what K.stomach.drain emptied and cleared first-order by the writer; it replaced the meal pool P, which
--- the intake fed in full at the eat (Plan 11c rulings 11c-27 and 11c-30).
+-- The gut stage G (Plan 11g, spec § 3.1; ruling T4-3).
+-- G is the weighted kcal the stomach has emptied. The kinetics step runs gStep on every one-minute substep: G is fed
+-- what K.stomach.drain emptied in that substep, then cleared first-order over it; the writer seeds G and reads it.
+-- G replaced the meal pool P, which the intake fed in full at the eat (Plan 11c rulings 11c-27 and 11c-30).
 -- A vector's weighted kcal: its delivered calories split by the Atwater share of its protein, carbohydrate and fat
 -- grams, each share times its weight; a vector with no macronutrient grams takes the neutral weight.
 function K.satiety.weigh(vector)
@@ -86,6 +87,12 @@ function K.satiety.gClear(G, dtH, trait)
         return G
     end
     return G * math.exp(-0.6931471805599453 * dtH * trait / K.satiety.G_HALF_LIFE_H)
+end
+
+-- One step of G over dtH game hours (Plan 11g Task 4 fix 1, ruling T4-3): feed what the stomach emptied in the step,
+-- then clear over the step. The order is one fact: Kinetics runs it per substep, and every stand-in calls it.
+function K.satiety.gStep(G, emptied, dtH, trait)
+    return K.satiety.gClear(K.satiety.gFeed(G, emptied), dtH, trait)
 end
 
 -- The appetite trait's factor on G's clearance (#0485): HEARTY for a hearty appetite, LIGHT for a light eater, else 1.

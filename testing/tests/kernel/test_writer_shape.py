@@ -342,8 +342,8 @@ def test_a_new_player_object_is_hoisted_again():
     p1 = player(h)
     step(h, p1, rec, 1)
     p2 = player(h)
-    step(h, p2, rec, 2)                                    # a new hoist: the stamp's minute clears G (ruling C-1)
-    assert h.G.rawequal(h.NR.server.writer.h["a"].p, p2) and p2.st.sets.HUNGER == pytest.approx(_hunger(6 * 2 ** (-(1 / 60) / 0.7), minute=2))
+    step(h, p2, rec, 2)                                    # a new hoist (ruling C-1); G is Kinetics' to clear (T4-3)
+    assert h.G.rawequal(h.NR.server.writer.h["a"].p, p2) and p2.st.sets.HUNGER == pytest.approx(_hunger(6, minute=2))
 
 
 def test_a_departure_drops_the_handles():
@@ -441,8 +441,9 @@ LIMITATION_FOUR = (
     "overwrites it with the satiety target, hungerTarget(sated(F, gRead(G)), energyState) x the circadian factor x "
     "the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
     "fullness mass (its satiety mass plus the protein term) over its 730 g maximum, drunk liquid counting at a fifth, "
-    "and G the gut stage, fed with the weighted kcal of what the stomach empties and clearing on game time asleep or "
-    "awake, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it on "
+    "and G the gut stage, which the kinetics step feeds with the weighted kcal of what the stomach empties and clears "
+    "on game time asleep or awake while the writer seeds and reads it, "
+    "so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it on "
     "its first minute: hungerTarget(0.797, energy state), that is 0.203 x es + 0.02 x max(0, es - 1), times the "
     "minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap G_SEED_MAX); "
     "protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes "
@@ -651,87 +652,71 @@ def test_a_non_finite_or_absent_g_is_seeded_again():
     assert W.stats.guarded == 1                                             # an absent G is a seed, not a heal
 
 
-def test_g_clears_at_its_half_life_of_game_time():
-    # G_HALF_LIFE_H 0.7: two game hours leave 6 x 2^(-2 / 0.7) weighted kcal
+# Plan 11g Task 4 fix 1 (ruling T4-3): G's clearance is Kinetics' (test_kinetics.py: the half-life, the appetite
+# traits, the sandbox multiplier, sleep, the 60-minute cap and a restart); the writer seeds G at first sight and reads
+# it, so a seeded G passes every writer step unchanged.
+
+def test_the_writer_leaves_g_to_kinetics_over_game_time():
     h = boot()
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 61)
-    step(h, p, rec, 121)                                                    # two hour-long steps (the cap is 60 min)
-    assert rec.satiety.G == pytest.approx(6 * 2 ** (-2 / 0.7))
+    step(h, p, rec, 121)                                                    # two hour-long steps
+    assert rec.satiety.G == 6
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=121))
 
 
-def test_sleep_does_not_slow_the_clearance():
+@pytest.mark.parametrize("trait,sd,asleep", [(None, 1, True), ("HA", 1, False), ("LE", 1, False), (None, 2, False)])
+def test_no_trait_sandbox_or_sleep_read_moves_g_in_the_writer(trait, sd, asleep):
     h = boot()
+    if sd != 1:
+        h.G.getSandboxOptions = h.rt.eval("function() return { getStatsDecreaseMultiplier = function(s) return %r end } end"
+                                          % float(sd))
     p = player(h)
-    p.asleep = True
-    rec = record(h)
-    step(h, p, rec, 1)
-    step(h, p, rec, 43)                                                     # 42 game minutes: one half-life
-    assert rec.satiety.G == pytest.approx(3.0)                             # ruling 11c-24: G runs on game time asleep
-
-
-def test_hearty_appetite_scales_the_clearance_by_one_and_a_half():
-    h = boot()
-    p = player(h)
-    p.getCharacterTraits = h.rt.eval("function(s) return { get = function(c, t) return t == 'HA' end } end")
+    p.asleep = asleep
+    if trait is not None:
+        p.getCharacterTraits = h.rt.eval("function(s) return { get = function(c, t) return t == '%s' end } end" % trait)
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 43)
-    assert rec.satiety.G == pytest.approx(6 * 2 ** -1.5)                   # #0485, vanilla's game number
+    assert rec.satiety.G == 6
 
 
-def test_light_eater_scales_the_clearance_by_three_quarters():
-    h = boot()
-    p = player(h)
-    p.getCharacterTraits = h.rt.eval("function(s) return { get = function(c, t) return t == 'LE' end } end")
-    rec = record(h)
-    step(h, p, rec, 1)
-    step(h, p, rec, 43)
-    assert rec.satiety.G == pytest.approx(6 * 2 ** -0.75)
-
-
-def test_the_sandbox_decrease_multiplier_scales_the_clearance():
-    h = boot()
-    h.G.getSandboxOptions = h.rt.eval("function() return { getStatsDecreaseMultiplier = function(s) return 2 end } end")
-    p = player(h)
-    rec = record(h)
-    step(h, p, rec, 1)
-    step(h, p, rec, 43)
-    assert rec.satiety.G == pytest.approx(6 * 2 ** -2)                     # ruling 11c-11: trait x sd
-
-
-def test_a_gap_over_sixty_minutes_clears_over_one_hour_only():
+def test_a_gap_over_sixty_minutes_leaves_g_to_kinetics():
     h = boot()
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 181)                                                    # three game hours since the last write
-    assert rec.satiety.G == pytest.approx(6 * 2 ** (-1 / 0.7))
+    assert rec.satiety.G == 6
 
 
-def test_overlay_steps_p_without_writing_hunger():
+def test_overlay_writes_no_hunger_and_leaves_g():
     h = boot(mode=2)
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
     step(h, p, rec, 43)
-    assert p.st.sets.HUNGER is None and rec.satiety.G == pytest.approx(3.0)
+    assert p.st.sets.HUNGER is None and rec.satiety.G == 6
 
 
-def test_a_g_the_clearance_made_non_finite_is_restamped():
+def test_the_writer_never_steps_g():
+    # the writer calls neither the clearance nor the step: a NaN from either would surface in G or in guarded
     h = boot()
     p = player(h)
     rec = record(h)
     step(h, p, rec, 1)
-    orig = h.K.satiety.gClear
-    h.K.satiety.gClear = h.rt.eval("function(G, dtH, t) return 0 / 0 end")
+    nan = h.rt.eval("function() return 0 / 0 end")
+    orig = (h.K.satiety.gClear, h.K.satiety.gStep, h.K.satiety.gFeed)
+    h.K.satiety.gClear = nan
+    h.K.satiety.gStep = nan
+    h.K.satiety.gFeed = nan
     try:
         step(h, p, rec, 2)
     finally:
-        h.K.satiety.gClear = orig
-    assert rec.satiety.G == pytest.approx(6) and h.NR.server.writer.stats.guarded == 1
+        h.K.satiety.gClear, h.K.satiety.gStep, h.K.satiety.gFeed = orig
+    assert rec.satiety.G == 6 and h.NR.server.writer.stats.guarded == 0
     assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=2))
 
 
@@ -750,9 +735,8 @@ def test_a_swing_steps_the_acute_state_as_resistance_work():
     step(h, p, rec, 1)
     step(h, p, rec, 31)
     assert rec.satiety.S == pytest.approx(0.25)
-    G = 6 * 2 ** (-0.5 / 0.7)
-    assert rec.satiety.G == pytest.approx(G)
-    assert p.st.sets.HUNGER == pytest.approx(_hunger(G, minute=31, S=0.25))
+    assert rec.satiety.G == 6                                               # G is Kinetics' to clear (T4-3)
+    assert p.st.sets.HUNGER == pytest.approx(_hunger(6, minute=31, S=0.25))
 
 
 def test_the_heavy_work_band_steps_the_acute_state_as_aerobic_work():
@@ -850,10 +834,11 @@ def test_a_non_finite_acute_state_or_lag_heals_and_counts():
     assert p2.st.sets.HUNGER == pytest.approx(H1 * 0.3)                     # acuteFactor(1) = 1 - 0.7
 
 
-# --- Plan 11c close (ruling C-1): the writer's clearance across a reconnect or a restart --------------------------------
+# --- Plan 11c close (ruling C-1): the writer's step across a reconnect or a restart ---------------------------------
 # The writer stamps its last step's world age on record.satiety.t (game hours). A new IsoPlayer object (a reconnect, a
 # respawn) or a restart re-hoists h with no ageH, so the step reads the gap from that stamp, clamped at maxStepS (60
-# min) as a same-object gap is: G clears at G_HALF_LIFE_H 0.7 h and S toward 0 at ACUTE_DECAY_HALF_LIFE_H 0.15 h over one hour (ruling 11d-1).
+# min) as a same-object gap is: S decays toward 0 at ACUTE_DECAY_HALF_LIFE_H 0.15 h over one hour (ruling 11d-1). G's
+# clearance across the gap is Kinetics' (its stored kineticsAge, ruling T4-3), so the writer leaves G as it finds it.
 
 def _fed(h, name="a"):
     p = player(h, name)
@@ -877,8 +862,8 @@ def test_the_writer_stamps_its_step_age_on_the_satiety_record():
     assert rec.satiety.t == pytest.approx(100.0 + 7 / 60)
 
 
-def test_a_reconnect_clears_g_and_decays_s_as_the_same_object_does():
-    # the review's probe2: a player away 180 game minutes returns as a new object; G and S take the 60-minute catch-up
+def test_a_reconnect_decays_s_as_the_same_object_does():
+    # the review's probe2: a player away 180 game minutes returns as a new object; S takes the 60-minute catch-up
     h = boot()
     p, same = _fed(h, "a")
     G2, S2 = same.satiety.G, same.satiety.S
@@ -887,22 +872,23 @@ def test_a_reconnect_clears_g_and_decays_s_as_the_same_object_does():
     _, back = _fed(h2, "a")
     assert back.satiety.G == G2 and back.satiety.S == S2
     step(h2, player(h2, "a"), back, 182, name="a")                          # a new object, 180 minutes later
-    assert same.satiety.G == pytest.approx(G2 * 2 ** (-1 / 0.7))
+    assert same.satiety.G == G2
     assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
-    assert back.satiety.G == pytest.approx(same.satiety.G)
+    assert back.satiety.G == G2
     assert back.satiety.S == pytest.approx(same.satiety.S)
     assert back.satiety.t == pytest.approx(100.0 + 182 / 60)
 
 
-def test_a_reconnect_inside_the_clamp_clears_over_the_gap():
+def test_a_reconnect_inside_the_clamp_decays_s_over_the_gap():
     h = boot()
     _, rec = _fed(h)
-    G2 = rec.satiety.G
+    G2, S2 = rec.satiety.G, rec.satiety.S
     step(h, player(h), rec, 23)                                             # a new object 21 minutes later
-    assert rec.satiety.G == pytest.approx(G2 * 2 ** (-(21 / 60) / 0.7))
+    assert rec.satiety.S == pytest.approx(S2 * 2 ** (-(21 / 60) / 0.15))
+    assert rec.satiety.G == G2
 
 
-def test_a_restart_through_the_store_clears_g():
+def test_a_restart_through_the_store_decays_s():
     h = boot()
     W = h.NR.server.writer
     _, rec = _fed(h)
@@ -916,7 +902,7 @@ def test_a_restart_through_the_store_clears_g():
     W.h["a"] = None                                                         # the restart: no hoist survives
     step(h, player(h), back, 182)
     assert W.stats.seeded == 0
-    assert back.satiety.G == pytest.approx(G2 * 2 ** (-1 / 0.7))
+    assert back.satiety.G == G2                                             # stored and left: Kinetics clears it
     assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
 
 

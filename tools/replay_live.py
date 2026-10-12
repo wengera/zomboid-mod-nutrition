@@ -483,7 +483,7 @@ function NR_O.minute(o, ageH, dtM)
     end
     if o.satiety then
         local dtH = dtM / 60
-        o.G = K.satiety.gClear(K.satiety.gFeed(o.G, K.stomach.drain(o.st, dtH)), dtH, 1)   -- Kinetics' feed, then the writer's clearance
+        o.G = K.satiety.gStep(o.G, K.stomach.drain(o.st, dtH), dtH, 1)   -- Kinetics' step: the feed, then the clearance (T4-3)
         local F = K.satiety.fullness(o.st)
         local x = o.es
         if o.holdEs then x = 1 end
