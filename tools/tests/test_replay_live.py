@@ -412,9 +412,29 @@ class ReplayConstantsTest(unittest.TestCase):
         be = RL.ServerReplay(constants=RL.DEFICIT_11F)
         for name, value in RL.DEFICIT_11F.items():
             mod, key = name.split(".")
-            self.assertEqual(be.K[mod][key], value)
+            if mod != "replay":
+                self.assertEqual(be.K[mod][key], value)
         self.assertNotEqual(RL.ServerReplay().K.deficit.BALANCE_SPAN_KCAL, 3100.0)      # the shipped fit moved it
         with self.assertRaises(ValueError):
             RL.ServerReplay(constants={"deficit.NO_SUCH": 1.0})
         with self.assertRaises(ValueError):
             RL.ServerReplay(constants={"nosuch.BALANCE_SPAN_KCAL": 1.0})
+        with self.assertRaises(ValueError):
+            RL.ServerReplay(constants={"replay.NO_SUCH": 1.0})
+
+    def test_the_11f_rings_replay_their_deficit_floor_which_the_shipped_kernel_lacks(self):
+        # Plan 11g Task 7 fix 1 (ruling T7-1): the kernel lost the deficit floor; the 11f rings were recorded with
+        # 0.02 x max(0, es - 1) added to the hunger target (and taken off first by its inverse), so DEFICIT_11F carries
+        # it as a replay-only constant that restores the recording build's two functions on that replay's host only
+        self.assertEqual(RL.DEFICIT_11F["replay.DEFICIT_FLOOR"], 0.02)
+        be = RL.ServerReplay(constants=RL.DEFICIT_11F)
+        ht, un = be.K.deficit.hungerTarget, be.K.deficit.unsated
+        self.assertAlmostEqual(ht(1.0, 1.5), 0.01, places=12)
+        self.assertAlmostEqual(ht(0.7, 1.5), 0.3 * 1.5 + 0.01, places=12)
+        self.assertEqual(ht(0.0, 1.9), 1)                                     # clamped
+        self.assertAlmostEqual(ht(0.7, 0.8), 0.3 * 0.8, places=12)            # no floor in a surplus
+        self.assertAlmostEqual(un(0.46, 1.5), (0.46 - 0.01) / 1.5, places=12)
+        shipped = RL.ServerReplay()
+        self.assertIsNone(shipped.K.deficit.DEFICIT_FLOOR)
+        self.assertEqual(shipped.K.deficit.hungerTarget(1.0, 1.5), 0)       # the shipped kernel has no floor
+        self.assertAlmostEqual(shipped.K.deficit.unsated(0.45, 1.5), 0.3, places=12)

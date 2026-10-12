@@ -21,7 +21,7 @@ from kernel import deficit_oracles as DO  # noqa: E402  (fit_gut_satiety puts te
 from kernel import test_replay_live_energy as E  # noqa: E402
 from kernel import test_satiety_meal_studies as M  # noqa: E402
 
-LO, HI, SPAN, FLOOR = "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI", "deficit.BALANCE_SPAN_KCAL", "deficit.DEFICIT_FLOOR"
+LO, HI, SPAN = "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI", "deficit.BALANCE_SPAN_KCAL"
 
 
 def readings(dfc=30.0, bal=-55.0, r2=1.2, r3=1.0, dmm=0.5, rise=0.09, steady=1.0, six=1.0, mm=5.0):
@@ -68,14 +68,14 @@ def test_king_reads_the_distance_under_its_bound_and_fails_a_flat_restriction():
 
 
 def test_the_spec_is_bounded_and_the_ramp_must_rise():
-    for spec in ({LO: [0.28]}, {SPAN: [0]}, {FLOOR: [-0.01]}, {HI: [1.2]}):
+    for spec in ({LO: [0.28]}, {SPAN: [0]}, {HI: [1.2]}):
         try:
             F.load_spec({"params": spec})
         except ValueError as e:
             assert next(iter(spec)) in str(e) and "bound" in str(e)
         else:
             raise AssertionError(spec)
-    assert F.load_spec({"params": {LO: [0.282], FLOOR: [0]}})
+    assert F.load_spec({"params": {LO: [0.282], SPAN: [3100]}})
     assert not F._valid({LO: 0.5, HI: 0.4}) and F._valid({LO: 0.3, HI: 0.4})
 
 
@@ -85,30 +85,42 @@ def test_the_search_skips_a_falling_ramp_stays_in_bounds_and_scores_nothing_twic
     def fake(args):
         patch, fixed = args
         seen.append(dict(patch))
-        # best at the largest span and the floor 0: the refinement walks the span up and tries the floor's zero step
-        return {"params": dict(patch), "loss": -patch[SPAN] / 1e4 + patch[FLOOR], "feasible": True, "smallest": 0.0}
+        # best at the largest span and the lowest LO: the refinement walks the span up and holds LO at its bound
+        return {"params": dict(patch), "loss": -patch[SPAN] / 1e4 + patch[LO], "feasible": True, "smallest": 0.0}
     saved = F._worker
     F._worker = fake
     try:
-        spec = F.load_spec({"params": {SPAN: [3000, 4000], FLOOR: [0], LO: [0.282, 0.6], HI: [0.5, 0.7]},
+        spec = F.load_spec({"params": {SPAN: [3000, 4000], LO: [0.282, 0.6], HI: [0.5, 0.7]},
                             "refine": {"rounds": 2, "factor": 1.1}})
-        cands, chosen, _, _ = F.search(spec, fixed={}, start={SPAN: 3100, FLOOR: 0.02, LO: 0.282, HI: 0.575})
+        cands, chosen, _, _ = F.search(spec, fixed={}, start={SPAN: 3100, LO: 0.282, HI: 0.575})
     finally:
         F._worker = saved
     assert all(F._valid(p) for p in seen)                                    # no LO 0.6 with HI 0.5
     assert len(seen) == len({tuple(sorted(p.items())) for p in seen})
     assert all(F._inside(k, v) for p in seen for k, v in p.items())
-    assert any(p[FLOOR] == F.ZERO_STEP for p in seen)                         # the zero is stepped off
-    assert chosen["params"][SPAN] > 4000 and chosen["params"][FLOOR] == 0
+    assert chosen["params"][SPAN] > 4000 and chosen["params"][LO] == 0.282
 
 
 def test_the_tie_rule_prefers_the_point_nearer_the_start():
-    start = {SPAN: 3100.0, FLOOR: 0.02}
-    far = {"params": {SPAN: 6000.0, FLOOR: 0.02}, "loss": -0.5000}
-    near = {"params": {SPAN: 3200.0, FLOOR: 0.02}, "loss": -0.4995}
-    worse = {"params": {SPAN: 3100.0, FLOOR: 0.02}, "loss": -0.4}
+    start = {SPAN: 3100.0, HI: 0.575}
+    far = {"params": {SPAN: 6000.0, HI: 0.575}, "loss": -0.5000}
+    near = {"params": {SPAN: 3200.0, HI: 0.575}, "loss": -0.4995}
+    worse = {"params": {SPAN: 3100.0, HI: 0.575}, "loss": -0.4}
     assert F.choose([far, near, worse], start) is near
     assert F.choose([far, worse], start) is far
+
+
+def test_the_fit_has_no_deficit_floor():
+    # Plan 11g Task 7 fix 1 (ruling T7-1): the floor fitted at its bound 0 and was removed from the kernel, so the fit
+    # searches the span and the bypass ramp's two ends only, and a spec naming the floor is refused before any run
+    assert F.PARAMS == (SPAN, LO, HI) and not any("FLOOR" in k for k in F.BOUNDS)
+    assert not hasattr(F, "ZERO_STEP")
+    try:
+        F.FG.current(["deficit.DEFICIT_FLOOR"])
+    except Exception as e:
+        assert "DEFICIT_FLOOR" in str(e)
+    else:
+        raise AssertionError("the floor is still a kernel constant")
 
 
 def test_the_registry_bands_are_the_tests_bands():
@@ -127,9 +139,9 @@ def test_a_patch_reaches_both_hosts_and_no_tracked_file():
     tracked = subprocess.run(["git", "status", "--porcelain", "--", "mod"], cwd=F.FG.REPO, capture_output=True,
                              text=True).stdout
     base = F.read_groups({}, ("s1255", "fast"))
-    moved = F.read_groups({FLOOR: 0.5, SPAN: 6000.0}, ("s1255", "fast"))
-    assert base["s1255"]["mm"] != moved["s1255"]["mm"]               # the kernel host (hungerTarget's floor) and the
-    assert base["fast"]["r2"] != moved["fast"]["r2"]                 # server path (the span) are both patched
+    moved = F.read_groups({SPAN: 6000.0}, ("s1255", "fast"))
+    assert base["s1255"]["mm"] != moved["s1255"]["mm"]               # the kernel host and the server path (the span)
+    assert base["fast"]["r2"] != moved["fast"]["r2"]                 # are both patched
     again = F.read_groups({}, ("fast",))
     assert again["fast"]["r2"] == base["fast"]["r2"]                 # and the patch is undone
     assert subprocess.run(["git", "status", "--porcelain", "--", "mod"], cwd=F.FG.REPO, capture_output=True,

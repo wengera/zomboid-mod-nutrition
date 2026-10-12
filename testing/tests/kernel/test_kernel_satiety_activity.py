@@ -75,7 +75,7 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     assert "S1320" in line and "S1664" in line and "S1516" in line
     # Plan 11g Task 7: the four fitted constants name the fit, its artifact and the deficit rows it scored (S1613,
     # S1614, S1325's DEF arm, S1312), and S1892, the band Karl's BAL arm is held in as a constraint
-    for name in ("BALANCE_SPAN_KCAL", "DEFICIT_FLOOR", "EX_BYPASS_LO", "EX_BYPASS_HI"):
+    for name in ("BALANCE_SPAN_KCAL", "EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = re.search(r"^K\.deficit\.%s = .*$" % name, eng, re.M).group(0)
         assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line, name
         assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312", "S1892")), name
@@ -84,8 +84,7 @@ def test_each_activity_constant_names_its_rows_and_its_label():
         assert "ruling 11c-32" in line, name
     line = re.search(r"^K\.deficit\.EX_BYPASS_LO = .*$", eng, re.M).group(0)
     assert "S1318" in line and "at its bound" in line
-    line = re.search(r"^K\.deficit\.DEFICIT_FLOOR = .*$", eng, re.M).group(0)
-    assert "at its bound 0" in line and "inert" in line and "S1254" in line and "S1271 open" in line
+    assert "DEFICIT_FLOOR" not in eng                                  # removed in Plan 11g Task 7 fix 1 (ruling T7-1)
 
 
 # --- the acute suppression term --------------------------------------------------------------------------------------

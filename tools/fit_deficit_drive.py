@@ -3,9 +3,10 @@
     python tools/fit_deficit_drive.py --out <dir> [--grid <spec.json>] [--jobs N]
     python tools/fit_deficit_drive.py --compact <fit.json> --out <dir>
 
-Scores candidate constants of the deficit drive (K.deficit, NR_Kernel_Deficit.lua: the balance span, the deficit floor
-and the bypass ramp's two ends) against testing/tests/kernel/deficit_oracles.py on the server path and writes
-<dir>/fit.json and <dir>/fit-compact.json (the compact projection is fit_gut_satiety's, ruling T6c-4).
+Scores candidate constants of the deficit drive (K.deficit, NR_Kernel_Deficit.lua: the balance span and the bypass
+ramp's two ends; the deficit floor, fitted at its bound 0, was removed in Plan 11g Task 7 fix 1, ruling T7-1) against
+testing/tests/kernel/deficit_oracles.py on the server path and writes <dir>/fit.json and <dir>/fit-compact.json (the
+compact projection is fit_gut_satiety's, ruling T6c-4).
 
 The objective (deficit_oracles.objective): a candidate is feasible when every constraint holds (Karl's BAL arm, now
 carried by satiety, inside -64 to -46 %; the steady eater; six meals against three; S1255's ceiling) and every fixed
@@ -25,9 +26,9 @@ they are read once at the start point and once at the chosen point (both written
 
 The search: every point of the grid (the product of the spec's value lists, in the spec's order) whose bypass ramp
 rises (EX_BYPASS_HI above EX_BYPASS_LO), then a coordinate refinement from the best point as in fit_gut_satiety: each
-refined constant times and over the factor (a zero tries ZERO_STEP), a move kept when it lowers the loss, a round
-with no move taking the square root of the factor. Values are rounded to six significant digits and clamped to their
-bounds; a point already scored is not re-run.
+refined constant times and over the factor, a move kept when it lowers the loss, a round with no move taking the
+square root of the factor. Values are rounded to six significant digits and clamped to their bounds; a point already
+scored is not re-run.
 
 The spec (JSON): {"params": {"deficit.BALANCE_SPAN_KCAL": [3100, 3800], ...}, "refine": {"rounds": 3, "factor": 1.1}}
 Without --grid the spec is PARAMS at their shipped values, refined. fit.json is deterministic apart from `date`.
@@ -48,15 +49,14 @@ import fit_gut_satiety as FG  # noqa: E402  (puts testing/tests and tools on sys
 from kernel import deficit_oracles as DO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 
-PARAMS = ("deficit.BALANCE_SPAN_KCAL", "deficit.DEFICIT_FLOOR", "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI")
-# (low, high, low inclusive): the span positive; the floor non-negative; LO at least S1318's bound (Whybrow 2008: the
-# men's high-exercise arm runs a 24-h deficit share of 0.2814, which compensates about 30 % and so takes a bypass weight
-# of 0: LO >= 0.282, Plan 11f Task 2c fix 2); HI at most a whole day's expenditure
-BOUNDS = {"deficit.BALANCE_SPAN_KCAL": (0.0, math.inf, False), "deficit.DEFICIT_FLOOR": (0.0, math.inf, True),
-          "deficit.EX_BYPASS_LO": (0.282, 1.0, True), "deficit.EX_BYPASS_HI": (0.282, 1.0, False)}
+PARAMS = ("deficit.BALANCE_SPAN_KCAL", "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI")
+# (low, high, low inclusive): the span positive; LO at least S1318's bound (Whybrow 2008: the men's high-exercise arm
+# runs a 24-h deficit share of 0.2814, which compensates about 30 % and so takes a bypass weight of 0: LO >= 0.282,
+# Plan 11f Task 2c fix 2); HI at most a whole day's expenditure
+BOUNDS = {"deficit.BALANCE_SPAN_KCAL": (0.0, math.inf, False), "deficit.EX_BYPASS_LO": (0.282, 1.0, True),
+          "deficit.EX_BYPASS_HI": (0.282, 1.0, False)}
 PENALTY = 10.0                  # a DESIGN CHOICE: the loss per unit of constraint shortfall (margins run -inf..1)
 TIE = 0.001                     # a DESIGN CHOICE: Plan 11f Task 2c's tie (its margins rounded to 0.001)
-ZERO_STEP = 0.005               # the refinement's step away from a zero (the floor)
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.1}
 
 
@@ -185,7 +185,7 @@ class _Search:
 
 
 def distance(params, start):
-    """The distance from the start point: each constant's relative change (the floor's over 0.1), squared, summed."""
+    """The distance from the start point: each constant's relative change (over 0.1 for one under 0.1), squared, summed."""
     d = 0.0
     for k, v in params.items():
         v0 = start.get(k, v)
@@ -221,8 +221,7 @@ def search(spec, jobs=1, fixed=None, start=None):
             for n in rnames:
                 here = s.score([point], "refine")[0]
                 vals = []
-                cands = (ZERO_STEP,) if point[n] == 0 else (round_sig(point[n] * factor), round_sig(point[n] / factor))
-                for v in cands:
+                for v in (round_sig(point[n] * factor), round_sig(point[n] / factor)):
                     lo, hi, _ = _bounds(n)
                     v = min(max(v, lo), hi)
                     if v != point[n] and v not in vals and _inside(n, v) and _valid(dict(point, **{n: v})):

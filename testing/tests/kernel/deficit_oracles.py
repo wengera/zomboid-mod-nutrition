@@ -1,8 +1,8 @@
 """The deficit-drive oracle registry (Plan 11g Task 7): one table of every server-path oracle the deficit drive's fit
 (tools/fit_deficit_drive.py) scores and test_replay_live_energy.py's tests read, so a band lives in one place.
 
-The deficit drive (K.deficit: the balance span, the exercise lag and its bypass ramp, the deficit floor and the hunger
-target) was fitted in Plan 11f Task 2c against Karl 2021 as reported, the well-fed arm (BAL) included (ruling 2c-2).
+The deficit drive (K.deficit: the balance span, the exercise lag and its bypass ramp, and the hunger target; the
+deficit floor until Plan 11g Task 7 fix 1) was fitted in Plan 11f Task 2c against Karl 2021 as reported, the well-fed arm (BAL) included (ruling 2c-2).
 Since Plan 11g Task 6c the meal pool M and the stomach's fill to its hard capacity carry BAL inside its band (-54.5 %),
 so this refit scores the deficit studies alone and holds BAL as a constraint.
 
@@ -12,7 +12,7 @@ its role and its row:
     "constraint"  a band the fit must keep (Karl's BAL arm, now satiety's; the steady eater; six meals against three;
                   S1255's ceiling); outside it the candidate is infeasible;
     "fixed"       a deficit study no fitted constant moves (Whybrow and E-MECHANIC read the exercise lag L, which the
-                  span, the floor and the bypass never touch); read and asserted, its margin reported.
+                  span and the bypass never touch); read and asserted, its margin reported.
 The margin of a reading is its distance inside the band over the band's half-width (1 at the centre, 0 at an edge,
 negative outside); a one-sided band's margin is its distance inside over its `scale`. King 2011's band is the
 exercise arm's distance from control under min(3.3 mm, a quarter of the restriction's rise), with the rise above 0.02.

@@ -542,14 +542,40 @@ class _Backend:
 
 # The deficit drive the Plan 11f live rings were recorded under (x260b at 9fbc0ca, x263 at 77fcca7, x332 at 6a6cdb61:
 # Plan 11f Task 2c fix 2's constants, before Plan 11g Task 7's refit): a ring replays at its recording build's constants
-# (`constants`), so its energy state is graded against the pipeline that produced it, not against a later fit.
-DEFICIT_11F = {"deficit.BALANCE_SPAN_KCAL": 3100.0, "deficit.DEFICIT_FLOOR": 0.02, "deficit.EX_BYPASS_LO": 0.282,
+# (`constants`), so its energy state is graded against the pipeline that produced it, not against a later fit. Those
+# builds added a deficit floor, 0.02 x max(0, es - 1), to the hunger target, which the shipped kernel lost in Plan 11g
+# Task 7 fix 1 (ruling T7-1): "replay.DEFICIT_FLOOR" is a replay-only constant (REPLAY_ONLY) that restores the
+# recording build's K.deficit.hungerTarget and K.deficit.unsated on that replay's host, so the rings' HUNGER readings
+# stay those of the pipeline that produced them.
+DEFICIT_11F = {"deficit.BALANCE_SPAN_KCAL": 3100.0, "replay.DEFICIT_FLOOR": 0.02, "deficit.EX_BYPASS_LO": 0.282,
                "deficit.EX_BYPASS_HI": 0.575}
 
+# The recording build's hunger target and its inverse with the deficit floor F (NR_Kernel_Deficit.lua at 5af809b5,
+# lines 96-104, the coefficient made a literal): set on a replay host only, never shipped.
+_FLOOR_LUA = ("local K = NutritionRevamp.kernel\n"
+              "K.deficit.hungerTarget = function(x, energyState) return K.clamp((1 - x) * energyState + %r * "
+              "K.max(0, energyState - 1), 0, 1) end\n"
+              "K.deficit.unsated = function(hunger, energyState) return (hunger - %r * K.max(0, energyState - 1)) / "
+              "energyState end\n")
 
-def set_constants(K, constants):
-    """Set each {"table.NAME": value} on the kernel table K; refuses a name the kernel does not hold as a number."""
+
+def _replay_floor(rt, value):
+    rt.execute(_FLOOR_LUA % (float(value), float(value)))
+
+
+REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor}
+
+
+def set_constants(K, constants, rt=None):
+    """Set each {"table.NAME": value} on the kernel table K; refuses a name the kernel does not hold as a number. A
+    REPLAY_ONLY name ("replay.NAME") runs its setter on the runtime rt instead (a recording build's code the kernel has
+    since lost)."""
     for name, value in (constants or {}).items():
+        if name.startswith("replay."):
+            if name not in REPLAY_ONLY or rt is None:
+                raise ValueError("unknown replay-only constant %s" % name)
+            REPLAY_ONLY[name](rt, value)
+            continue
         mod, key = name.split(".")
         cur = K[mod][key] if K[mod] is not None else None
         if isinstance(cur, bool) or not isinstance(cur, (int, float)):
@@ -572,7 +598,7 @@ class ServerReplay(_Backend):
         self.G = self.h.G
         self.NR = self.h.NR
         self.K = self.h.K
-        set_constants(self.K, constants)
+        set_constants(self.K, constants, self.rt)
         self.R = self.G.NR_R
         self.R.offset = float(hour_offset or 0.0)
         if hold_hour is not None:

@@ -15,7 +15,8 @@ registry where every band below lives; fit-11g-deficit-20261012 and its plateau 
 days, Karl's DEF arm at the worst of twin K's five billings and King 2011 scored; Karl's BAL arm, carried by satiety
 since Plan 11g Task 6c, held inside S1892's -64 to -46 % as a constraint with the steady eater, six against three and
 S1255; Whybrow and E-MECHANIC fixed (no fitted constant moves the lag). The constants: BALANCE_SPAN_KCAL 3970.55,
-DEFICIT_FLOOR 0, EX_BYPASS_LO 0.282, EX_BYPASS_HI 0.44.
+EX_BYPASS_LO 0.282, EX_BYPASS_HI 0.44, and the deficit floor at its bound 0 (removed in the task's fix round 1,
+ruling T7-1).
 
 What the server path adds to every oracle: an eat reaches the trailing-24 h window only as the stomach empties
 (ctx.absorbed), the day partition moves fm and lm (fatDep enters the energy state), adaptive thermogenesis and the

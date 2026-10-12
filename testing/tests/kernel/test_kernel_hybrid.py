@@ -14,7 +14,7 @@ def run(host, **kw):
 def test_the_hunger_target_moved_from_the_takeover(host):
     assert host.call("deficit.hungerTarget", 1.0, 1.0) == 0
     assert host.call("deficit.hungerTarget", 0.5, 1.0) == pytest.approx(0.5)
-    assert host.call("deficit.hungerTarget", 1.0, 1.5) == 0                    # the deficit floor 0 (Plan 11g Task 7; 0.02 x 0.5 = 0.01 from Plan 11f Task 2c fix 1, 1.0 from Plan 11d Task 9d)
+    assert host.call("deficit.hungerTarget", 1.0, 1.5) == 0                    # no deficit floor (removed in Plan 11g Task 7 fix 1, ruling T7-1; 0.02 x 0.5 = 0.01 from Plan 11f Task 2c fix 1, 1.0 from Plan 11d Task 9d)
     assert host.call("deficit.hungerTarget", 0.5, 1.5) == pytest.approx(0.75)
 
 

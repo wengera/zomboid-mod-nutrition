@@ -681,7 +681,7 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # --- the diagnostic replays: a 36 h fast, and six meals against three (Plan 11d Task 4, ruling 11d-3; spec § 5d) ---
 # Since Plan 11f Task 2c (option (b) of task-2b-options.md, ruling 2b-3) the fast, the steady eater, six against three
 # live and the low-carbohydrate day are graded on the shipped server path, test_replay_live_energy.py, where the deficit
-# drive (K.deficit.DEFICIT_FLOOR, K.deficit.BALANCE_SPAN_KCAL) was refit; the simplified energy path below
+# drive (the deficit floor, removed in Plan 11g Task 7 fix 1, and K.deficit.BALANCE_SPAN_KCAL) was refit; the simplified energy path below
 # (ENERGY_REPLAY, SIX_LIVE_REPLAY) stays only as the reference of the replay tool's oracle backend
 # (test_replay_live_oracle.py). Six against three held at the energy state 1 is still graded here.
 #
@@ -704,7 +704,7 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # The intake mapping is ruling 11c-31 (a LABELLED ASSUMPTION, no row): a request-level meal eats 650 kcal x that
 # hunger / 0.25, at fixed clock times (08:00, 13:00, 20:00, ASSUMED). So the next-day intake ratio is the ratio of the
 # summed written hunger at the meal requests, fast arm over fed arm: what it measures is the energy state's lift of
-# the request-level hunger (the -eb24h / span slope and DEFICIT_FLOOR, through hungerTarget), fed
+# the request-level hunger (the -eb24h / span slope, through hungerTarget), fed
 # back through each meal's kcal into the next meal's eb24h. It does not measure the meal pool or the stomach, and it
 # does not measure when a meal is asked for (the times are fixed).
 #
