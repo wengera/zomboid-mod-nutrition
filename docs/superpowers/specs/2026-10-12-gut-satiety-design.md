@@ -96,6 +96,15 @@ There is no migration: the mod is unreleased (CLAUDE.md § 6).
 7. **The record.** Rows, pages, the lessons rule if a platform fact is found, and the 11b amendments.
 8. **The close.**
 
+## 5a. Refactoring (Angus, 2026-10-12)
+Every task that touches code refactors heavily as it goes (CLAUDE.md § 6). Expected targets here:
+- the satiety kernel's structure once P leaves;
+- where the stomach drain and the satiety feed live, and how the writer reaches them;
+- the long constant labels, which may move into a data table;
+- the energy and hybrid split around the deficit drive.
+
+Each task's brief names its refactor scope, and each review judges structure and performance beside correctness.
+
 ## 6. Risks
 - **Thin hormone evidence.** Hormone studies are mostly short, small-sample sessions, and hunger ratings follow hormones only loosely. The fit therefore targets hunger over time, not hormone levels. Part of G's time course may stay a labelled game choice.
 - **Too many constants.** The model has more constants than today's. The stage rule and the oracle count guard against over-fitting.
