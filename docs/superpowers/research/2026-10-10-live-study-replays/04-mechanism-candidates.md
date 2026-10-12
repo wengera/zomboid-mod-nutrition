@@ -142,3 +142,7 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Seen (x341–x343, floor design):** vanilla's idle rise adds about 1.8-2.0 BOREDOM per game hour on top of the floor (F-T9r-4; no grade leaf yet). A one-food player idling (assumed indoors) would cross Bored level 2 (50) in about 10-11 idle hours, and vanilla then adds UNHAPPINESS through its boredom term.
 - **Candidate:** lower the BOREDOM cap, or count the floor against vanilla's idle path.
 - **Downside:** a lower cap loses the level-1 Bored moodle Angus chose (2026-10-11). Raise this with Angus at the close.
+
+## C-26: decide a falling metabolic rate on the raw engine rate
+- **Seen (x351–x353, F-T6r-3):** 13 still post-set minutes at eats and sips billed 1.6–2.0 where idle was due. The engine's rate lags toward base × load factor, so dividing the lagged rate by the instantaneous, lower load factor hid the fall.
+- **Status:** built (2a411e4e, ruling C26-1). Unmeasured live; owed to Plan 11b.
