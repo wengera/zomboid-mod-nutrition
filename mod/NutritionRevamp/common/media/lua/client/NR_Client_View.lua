@@ -111,10 +111,10 @@ local function rebuild(received)
         V.order = K.view.gradedOrder(nr.data.records)
     end
     local m = nr.client.mirror
-    local rows = K.view.rows(m, V.level, V.order)
+    local rows = K.view.rows(m, V.level, V.order, V.classes)
     resolveRows(rows)
     V.rows = rows
-    V.classes = K.view.moodleClasses(m)
+    V.classes = K.view.moodleClasses(m, V.classes)
     V.lastReceived = received
     V.lastLevel = V.level
     V.stats.rebuilds = V.stats.rebuilds + 1

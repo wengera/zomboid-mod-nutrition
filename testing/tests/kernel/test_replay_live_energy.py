@@ -626,3 +626,54 @@ def test_karl_2021_over_twin_k_five_billings_the_fit_ranks_by(host):
         "asbuilt": (-49.2, 30.4), "climb": (-48.4, 33.7), "run10": (-49.1, 32.8), "loadwalk": (-49.4, 25.8),
         "nobattery": (-49.3, 29.4)}, k
     assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.492, k
+
+
+# --- the energy moodle over a resting fast (Plan 11g Task 7 fix 1, ruling T7-2) ----------------------------------------
+
+FAST_SIG = "_G.NutritionRevamp.server.bus.lastSig.admin"      # the bus's signature, the level the push is keyed on
+
+
+def long_fast_levels(player, fast_days=6):
+    """A sedentary fast on the server path: the warm maintenance days and protocol day 0's three meals, then nothing
+    for fast_days days. Returns (the bus's energy level, the plain rung of es) at each minute from the last meal."""
+    plan = M.warm()
+    plan.update(M.meals_of(0, "maint"))
+    last = max(plan)
+    days = M.FAST_WARM_DAYS + 1 + fast_days
+    ev = sleep_events(days) + [{"minute": m, "kind": "meal", "size": k} for m, k in sorted(plan.items())]
+    ev.sort(key=lambda e: e["minute"])
+    rows, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", paths=("body.energyState", FAST_SIG),
+                             player=player, rng="half")
+    at = [be.K.view.ENERGY_AT[i] for i in range(1, 5)]
+    bus = [int(r[FAST_SIG] // 1000) % 10 for r in rows[last:]]
+    plain = [sum(1 for a in at if r["body.energyState"] >= a) for r in rows[last:]]
+    return bus, plain
+
+
+def level_changes(levels):
+    """[(level, hours from the last meal)] at each change."""
+    out = []
+    for i in range(1, len(levels)):
+        if levels[i] != levels[i - 1]:
+            out.append((levels[i], round(i / 60.0, 1)))
+    return out
+
+
+def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
+    # ruling T7-2: the energy moodle never flickers in a resting fast. The plain rung did: the 70 kg man's es plateaus
+    # at 1.2456, 0.0044 under level 2's 1.25, and its slow daily sawtooth (at most 0.0024) crossed 1.25 at 52.0 h, back
+    # at 67.6 h and again at 76.0 h. The bus now holds a reached level until es falls ENERGY_BAND (0.01) under its bound
+    # (K.view.energyLevel, a game choice), so over six days of fasting no body steps a level down. Level 1 stays about
+    # 18 h after the last meal (ruling 9d-2: 18.1 h for the man, 17 h at the 3,100 kcal span); level 2 comes at 52.0 h
+    # for the man and from the plateau alone at 27.1 h for the 100 kg man, and the 50 and 60 kg women stay at level 1
+    # (es 1.201 and 1.223 at six days). A threshold move instead (ENERGY_AT[2] under the man's plateau) was rejected: a
+    # plateau sits wherever a body's expenditure puts it (es 1.19 to 1.29 at 48 h from 50 to 100 kg), so any bound
+    # flickers for some body (at 1.22 a 60 kg woman's es crosses it at 124.0, 140.9 and 148.0 h)
+    want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.1), (2, 52.0)],
+            (100.0, False): [(1, 17.7), (2, 27.1)]}
+    for (w, female), changes in want.items():
+        bus, plain = long_fast_levels({"weight": w, "female": female})
+        assert all(b >= a for a, b in zip(bus, bus[1:])), (w, female, level_changes(bus))
+        assert level_changes(bus) == changes, (w, female, level_changes(bus))
+        if w == 70.0:
+            assert level_changes(plain) == [(1, 18.1), (2, 52.0), (1, 67.6), (2, 76.0)]   # the flicker the band removes

@@ -333,6 +333,19 @@ def test_the_mirror_handler_calls_onMirror_once_per_arrival():
     assert v.stats.rebuilds == 2 and v.classes.hydration == 0
 
 
+def test_the_view_holds_a_reached_energy_level_inside_the_band():
+    # Plan 11g Task 7 fix 1 (ruling T7-2): each rebuild reads the classes it last built as the level held, so the
+    # moodle and the class row keep a level until the mirrored state falls K.view.ENERGY_BAND under its bound
+    rt = rt_env()
+    v = V(rt)
+    got = []
+    for es in (1.26, 1.245, 1.2405, 1.235, 1.245):
+        receive(rt, "{ body_energyState = %r }" % es)
+        row = next(v.rows[i] for i in range(1, len(v.rows) + 1) if v.rows[i].key == "energy")
+        got.append((v.classes.energy, row.n))
+    assert got == [(2, 2), (2, 2), (2, 2), (1, 1), (1, 1)]
+
+
 def test_the_grade_rows_use_the_graded_order_never_the_raw_order():
     rt = rt_env()
     K = G(rt).NutritionRevamp.kernel

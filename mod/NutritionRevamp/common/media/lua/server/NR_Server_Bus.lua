@@ -94,7 +94,7 @@ function B.flushEffects(username, player, record)
     if username == nil or record == nil then return false end
     if not NR.isServer() then return false end
     local body, fl, ac = record.body, record.fluids, record.acute
-    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record))
+    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record), K.view.signatureEnergy(B.lastSig[username]))
     if B.lastSig[username] ~= nil and B.lastSig[username] ~= sig then B.effects.dirty[username] = true end
     B.lastSig[username] = sig
     local E = record.effects
@@ -153,3 +153,6 @@ function B.markBand(username)
     B.effects.stats.bandMarks = B.effects.stats.bandMarks + 1
     B.markEffects(username)
 end
+
+-- Plan 11g Task 7 fix 1 (ruling T7-2): the energy class's hysteresis. Appended so no line above moves.
+B.limitations[#B.limitations + 1] = "the energy class holds a reached level until the energy state falls K.view.ENERGY_BAND (0.01) under its bound, on the server off the last signature and on the client off the classes it last built; both start unheld at first sight (the bus forgets the signature, a reconnecting client has no classes), so a state inside the band under a bound reads the level below until it rises past the bound again, and while a push waits out the gap the two sides can each hold a different level for a state inside the band until the next push or a move past the band"

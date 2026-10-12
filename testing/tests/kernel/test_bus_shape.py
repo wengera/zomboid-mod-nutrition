@@ -116,6 +116,21 @@ def test_a_level_that_changes_every_five_seconds_pushes_at_most_once_per_gap():
     assert B.effects.stats.deferred > d0
 
 
+def test_the_bus_holds_a_reached_energy_level_inside_the_band():
+    # Plan 11g Task 7 fix 1 (ruling T7-2): the flush reads the last signature's energy digit as the level held, so a
+    # state that falls under a bound by less than K.view.ENERGY_BAND keeps the level (and pushes nothing for it)
+    h = Host(extra_env=SEND)
+    online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    seen = []
+    for es in (1.26, 1.245, 1.2405, 1.235, 1.245):      # the bus is first in ORDER, so it reads the state set here
+        h.record("a").body.energyState = es
+        h.minute(); h.tick(25)
+        seen.append(h.K.view.signatureEnergy(B.lastSig["a"]))
+    assert seen == [2, 2, 2, 1, 1]
+
+
 def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
     h = Host(extra_env=SEND)
     online(h)

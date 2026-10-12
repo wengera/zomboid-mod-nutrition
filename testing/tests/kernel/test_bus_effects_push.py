@@ -43,8 +43,10 @@ end
 STUBS = r"""
 NutritionRevamp.kernel.mirror = { build = function(record, meta, order) return { username = record.username } end, stomachMass = function() return 0 end }
 -- K.view stubbed (Plan 11a Task 4): a constant class signature and a zero push phase, so these tests pin the gap
--- and the dedupe alone; the signature and the phase are test_bus_shape.py's and test_kernel_view.py's.
-NutritionRevamp.kernel.view = { pushSignature = function() return 0 end, pushOffset = function(u, gap) return 0 end }
+-- and the dedupe alone (no held energy level: signatureEnergy reads none, Plan 11g Task 7 fix 1); the signature and
+-- the phase are test_bus_shape.py's and test_kernel_view.py's.
+NutritionRevamp.kernel.view = { pushSignature = function() return 0 end, pushOffset = function(u, gap) return 0 end,
+                             signatureEnergy = function(sig) return nil end }
 NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
 NutritionRevamp.server.store = { get = function(u, age) return NR_T.records[u] end }
 NR_T.records = {}

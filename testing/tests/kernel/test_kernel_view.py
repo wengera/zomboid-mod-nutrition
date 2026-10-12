@@ -537,11 +537,11 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
 # since the deficit drive's refit on the deficit studies alone (Plan 11g Task 7: BALANCE_SPAN_KCAL 3970.55; 3100 in
 # Plan 11f Task 2c fix 1, 3300 in its Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3970.55 + 0.5 x fatDep = 1.2456 +
 # 0.5 x fatDep. Level 1 comes from a 794 kcal trailing deficit (on the server path about 18 h after the last meal; 620
-# kcal at the 3,100 kcal span, 1,500 at 7,500), level 2 no longer from the plateau alone (1.2456 sits 0.0044 under
-# 1.25, so a sedentary fast's es crosses it back and forth between about 52 and 76 h as fat depletion grows: a reading
-# for a ruling on ENERGY_AT, whose values are ruling 9d-2's, unchanged) but from fat depletion 0.0089, levels 3 and 4
-# from fat depletion 0.309 and 0.609. Each is reached 0.005 past its stated value and not 0.005 short of it (level 1:
-# 0.005 of es, 40 kcal).
+# kcal at the 3,100 kcal span, 1,500 at 7,500), level 2 not from the plateau alone (1.2456 sits 0.0044 under 1.25) but
+# from fat depletion 0.0089, levels 3 and 4 from fat depletion 0.309 and 0.609. Each is reached 0.005 past its stated
+# value and not 0.005 short of it (level 1: 0.005 of es, 40 kcal). A reached level is held until es falls ENERGY_BAND
+# under its bound (Plan 11g Task 7 fix 1, ruling T7-2), so the slow daily sawtooth of a resting fast's es (at most
+# 0.0024 on the server path) never steps a level back down: test_a_sedentary_fast_never_steps_an_energy_level_down.
 
 def test_a_resting_character_reaches_every_energy_level(host):
     E = host.K.deficit
@@ -555,3 +555,45 @@ def test_a_resting_character_reaches_every_energy_level(host):
 
 def test_the_energy_ladder_is_the_ruling_9d_2_game_choice(host):
     assert lst(V(host).ENERGY_AT) == [1.10, 1.25, 1.40, 1.55]
+
+
+# --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2) -------------------------------------------------
+
+def test_the_energy_band_is_the_ruling_t7_2_game_choice(host):
+    assert V(host).ENERGY_BAND == 0.01
+
+
+def test_an_energy_level_is_held_until_the_state_falls_the_band_under_its_bound(host):
+    lv = lambda es, last=None: host.call("view.energyLevel", es, last)
+    assert lv(1.26) == 2 and lv(1.245) == 1 and lv(1.245, 1) == 1          # no last, or a lower one: the plain rung
+    assert lv(1.245, 2) == 2 and lv(1.2401, 2) == 2                        # inside the band under 1.25: held
+    assert lv(1.2399, 2) == 1 and lv(1.0, 4) == 0                          # past the band: down to the plain rung
+    assert lv(1.395, 3) == 3 and lv(1.389, 3) == 2                         # each level's own bound
+    assert lv(1.5, 1) == 3 and lv(1.6, 0) == 4                             # a rise is never held back
+    assert lv(1.245, 4) == 2                                               # a held level is never above the band's rung
+    assert lv(None, 2) == 0 and lv(float("nan"), 2) == 0 and lv("x", 2) == 0
+    assert lv(1.245, "x") == 1 and lv(1.245, float("nan")) == 1             # a junk last reads none
+
+
+def test_the_classes_rows_and_moodles_hold_the_energy_level_on_the_last_classes(host):
+    v = V(host)
+    m = host.table({"body_energyState": 1.245})
+    last = host.table({"energy": 2})
+    assert v.classes(m)["energy"] == 1 and v.classes(m, last)["energy"] == 2
+    assert v.classes(m, None)["energy"] == 1 and v.classes(m, host.table({}))["energy"] == 1
+    assert v.moodleClasses(m)["energy"] == 1 and v.moodleClasses(m, last)["energy"] == 2
+    row = lambda rows, key: next(rows[i] for i in range(1, len(rows) + 1) if rows[i].key == key)
+    assert row(v.rows(m, 1, None), "energy").n == 1 and row(v.rows(m, 1, None, last), "energy").n == 2
+    assert row(v.rows(m, 2, None, last), "body_energyState").text == "UI_NR_Class_energy_2"
+
+
+def test_the_push_signature_holds_the_energy_digit_on_the_last_signature(host):
+    sig = lambda es, lastE=None: host.call("view.pushSignature", es, 0.0, 0.0, 0.0, 0, lastE)
+    assert host.call("view.signatureEnergy", sig(1.26)) == 2
+    assert host.call("view.signatureEnergy", sig(1.245)) == 1
+    assert host.call("view.signatureEnergy", sig(1.245, 2)) == 2
+    assert host.call("view.signatureEnergy", sig(1.235, 2)) == 1
+    assert sig(1.245, None) == host.call("view.pushSignature", 1.245, 0.0, 0.0, 0.0, 0)   # the five-argument call is unchanged
+    s = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 1100)
+    assert host.call("view.signatureEnergy", s) == 4
+    assert host.call("view.signatureEnergy", None) is None and host.call("view.signatureEnergy", "x") is None
