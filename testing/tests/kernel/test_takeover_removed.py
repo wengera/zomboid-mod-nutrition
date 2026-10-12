@@ -17,6 +17,6 @@ def test_no_mod_file_registers_the_stat_hook():
     assert hits == []
 
 
-def test_the_hunger_target_lives_in_the_writer_kernel(host):
+def test_the_hunger_target_lives_in_the_deficit_kernel(host):
     assert host.K.fast is None
-    assert host.call("hybrid.hungerTarget", 1.0, 1.0) == 0
+    assert host.call("deficit.hungerTarget", 1.0, 1.0) == 0

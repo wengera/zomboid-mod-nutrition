@@ -102,7 +102,7 @@ def test_class_names_in_order(host):
 @pytest.mark.parametrize("es,want", [(0, 0), (0.5, 0), (1.0, 0), (1.09, 0), (1.1, 1), (1.3, 2), (1.4, 3),
                                      (1.54, 3), (1.55, 4), (2.0, 4)])
 def test_energy_map(host, es, want):
-    # the K.energy.state scalar (0.5..2.0, 1 neutral; the mirror's 0 = no body yet) onto 0-4
+    # the K.deficit.state scalar (0.5..2.0, 1 neutral; the mirror's 0 = no body yet) onto 0-4
     assert V(host).classes(host.table({"body_energyState": es}))["energy"] == want
 
 
@@ -542,7 +542,7 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
 # short of it (level 1: 0.005 of es, 31 kcal).
 
 def test_a_resting_character_reaches_every_energy_level(host):
-    E = host.K.energy
+    E = host.K.deficit
     level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
     assert level(E.state(-589.0, 0)) == 0 and level(E.state(-651.0, 0)) == 1
     assert level(E.state(-1950.0, 0)) == 2                      # the plateau alone: es 1.315

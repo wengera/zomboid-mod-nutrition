@@ -642,7 +642,7 @@ def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
     body.fm = body["fmRef"] / 2
     minute(h, p, record, 100.0 + 1 / 60)
     eb = h.K.energy.eb24h(body)                # the trailing-24 h window (Plan 11d Task 9c)
-    expected = h.K.energy.state(eb, 0.5)
+    expected = h.K.deficit.state(eb, 0.5)
     assert abs(body["energyState"] - expected) < TOL
     assert abs(body["energyState"] - 1.75) < TOL  # the balance term saturates: 1 + 0.5 + 0.5 x 0.5
 
@@ -667,8 +667,8 @@ def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(me
     spent = h.K.body.trail24(body["trail"], "ee") - ee0
     assert spent > 0 and abs(h.K.energy.eb24h(body) - (before - spent)) < 1e-9
     fat_dep = (body["fmRef"] - body["fm"]) / body["fmRef"]   # the close's partition paid some fat
-    assert abs(body["energyState"] - h.K.energy.state(h.K.energy.eb24h(body), fat_dep)) < TOL
-    assert body["energyState"] > 1 + 0.5 * 1000 / h.K.energy.BALANCE_SPAN_KCAL
+    assert abs(body["energyState"] - h.K.deficit.state(h.K.energy.eb24h(body), fat_dep)) < TOL
+    assert body["energyState"] > 1 + 0.5 * 1000 / h.K.deficit.BALANCE_SPAN_KCAL
 
 
 def test_the_window_moves_with_the_world_age(met_host):
@@ -1206,16 +1206,16 @@ def _plan4(h, nutrients=None, fluids=None, acute=None, alcDay=None, **pkw):
 
 def _activity_es(h, record, fatDep=0, ee24=True):
     """The energy state Metabolism stamps since Plan 11c Task 6 (spec s5c; amendment 4), rebuilt from the record:
-    K.energy.activityState(eb24h, ex24h, L, fatDep, ee24h), each 24 h figure off the trailing-24 h window (Plan 11d
+    K.deficit.activityState(eb24h, ex24h, L, fatDep, ee24h), each 24 h figure off the trailing-24 h window (Plan 11d
     Task 9c): ex24h its exercise kcal and ee24h its expenditure floored at the resting expenditure (MET.ee24, as the
     Nutrients adapter reads it)."""
-    E, B = h.K.energy, h.K.body
+    E, B, D = h.K.energy, h.K.body, h.K.deficit
     body = record["body"]
     t = body["trail"]
     ex24 = B.trail24(t, "ex")
     ee24h = max(B.trail24(t, "ee"), E.ree(body["lm"]))
     L = record["satiety"]["L"]
-    return E.activityState(E.eb24h(body), ex24, L, fatDep, ee24h if ee24 else None)
+    return D.activityState(E.eb24h(body), ex24, L, fatDep, ee24h if ee24 else None)
 
 
 def _excess(h, body):
@@ -1404,7 +1404,7 @@ def test_met_stamp_falls_back_to_one_when_the_kernel_returns_a_non_finite(met_ho
 
 def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
     # a walker (engine 3.1, Walking5kmh, billed at Compendium 3.8): the minute banks (3.8 - 1.3) x w / 60 kcal of
-    # exercise into exKcalDay, and L relaxes toward that rate by K.energy.exerciseLag over the minute
+    # exercise into exKcalDay, and L relaxes toward that rate by K.deficit.exerciseLag over the minute
     h = met_host
     p = player(h)
     record = fresh(h, p)
@@ -1415,7 +1415,7 @@ def test_the_exercise_lag_steps_on_the_minutes_exercise_kcal(met_host):
     minute(h, p, record, 100.0 + 1 / 60)
     ex = body["exKcalDay"] - ex0
     assert abs(ex - (3.8 - 1.3) * w / 60) < 1e-9
-    assert record["satiety"]["L"] == pytest.approx(h.K.energy.exerciseLag(0, ex, 1 / 60), rel=1e-12)
+    assert record["satiety"]["L"] == pytest.approx(h.K.deficit.exerciseLag(0, ex, 1 / 60), rel=1e-12)
     assert record["satiety"]["L"] > 0
     assert body["energyState"] == _activity_es(h, record)
 
@@ -1437,7 +1437,7 @@ def test_the_minute_stamps_the_class_and_the_exercise_flag_on_the_context_for_th
 
 def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_host):
     # S1330-S1332: with yesterday in surplus, balanced and in deficit, the walker's es is never below the state the
-    # same intake reads with no activity, K.energy.state(eb24h + ex24h): the exercise kcal added back to the balance
+    # same intake reads with no activity, K.deficit.state(eb24h + ex24h): the exercise kcal added back to the balance
     h = met_host
     for eb in (1200.0, 0.0, -800.0):
         p = player(h)
@@ -1446,7 +1446,7 @@ def test_an_activity_surplus_never_lowers_es_below_the_no_activity_value(met_hos
         seed(h, body, kcal=2000.0 + eb, ee=2000.0, ex=600.0)   # the hour before: the balance eb, 600 kcal of it exercise
         minute(h, p, record, 100.0 + 1 / 60)
         ex24 = h.K.body.trail24(body["trail"], "ex")
-        plain = h.K.energy.state(h.K.energy.eb24h(body) + ex24, 0)
+        plain = h.K.deficit.state(h.K.energy.eb24h(body) + ex24, 0)
         assert ex24 > 590 and body["energyState"] >= plain, eb
         assert body["energyState"] == _activity_es(h, record)
 
@@ -1467,7 +1467,7 @@ def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure
     eb = h.K.energy.eb24h(body)
     assert es == with_ee
     assert es > without + 0.05                             # the bypass is whole here (w = 1: d = 0.6 >= 0.575, L = 0) and moves es by 0.5 x 800 / 3100 = 0.129
-    assert abs(es - h.K.energy.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
+    assert abs(es - h.K.deficit.state(eb, 0)) < 1e-9     # whole: the exercise share enters at once
 
 
 def test_the_window_keeps_the_exercise_a_day_close_zeroes(met_host):

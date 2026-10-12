@@ -4,9 +4,9 @@ backend (ServerReplay: the mod's own adapters in their ORDER on the golden stand
 band and pins its readings. The simplified-path energy oracles these replace (the 36 h fast, the steady eater, six
 meals against three live, the low-carbohydrate day, Karl 2021, King 2011 at steady state and the S1255 arithmetic in
 test_satiety_meal_studies.py and test_satiety_activity.py) were deleted with the deficit drive's refit on this path
-(Plan 11f Task 2c, from 7500 and 1.0; its fix round 1 widened the search to K.energy.EX_BYPASS_HI and EX_BYPASS_LO and
+(Plan 11f Task 2c, from 7500 and 1.0; its fix round 1 widened the search to K.deficit.EX_BYPASS_HI and EX_BYPASS_LO and
 ranked the candidates by the worst case over twin K's plausible alternatives, the walk billed ClimbRope, Running10kmh
-or loaded Walking5kmh and no battery: K.energy.BALANCE_SPAN_KCAL 3100, K.hybrid.DEFICIT_FLOOR 0.02, EX_BYPASS_HI 0.575
+or loaded Walking5kmh and no battery: K.deficit.BALANCE_SPAN_KCAL 3100, K.deficit.DEFICIT_FLOOR 0.02, EX_BYPASS_HI 0.575
 and EX_BYPASS_LO 0.28); test_replay_live_oracle.py keeps the simplified composition only as the reference of the
 replay tool's oracle backend.
 
@@ -61,7 +61,7 @@ The replays, and where each departs from the study or the deleted oracle (each d
   30-minute synthetic step: the lag kernel is the exact solution for an input constant over its step, so the step
   does not move L where the bout fills whole steps (the 24-week runs take 24,192 steps where minutes would take
   241,920).
-- S1255: the deleted oracle was K.energy.state's arithmetic, path-independent; the replay here is the 70 kg man eating
+- S1255: the deleted oracle was K.deficit.state's arithmetic, path-independent; the replay here is the 70 kg man eating
   75 % of his maintenance for a week, the request-level rise read off the energy state the pipeline stamps on day 7.
 Only `host`; no `parametrize`.
 """
@@ -438,12 +438,12 @@ def test_king_2011_at_steady_state_on_the_server_path(host):
 
 
 def with_bypass(bypass, fn):
-    """fn() with every server replay built inside it reading K.energy.EX_BYPASS_LO and EX_BYPASS_HI = bypass."""
+    """fn() with every server replay built inside it reading K.deficit.EX_BYPASS_LO and EX_BYPASS_HI = bypass."""
     init = RL.ServerReplay.__init__
 
     def patched(self, *a, **kw):
         init(self, *a, **kw)
-        self.K.energy.EX_BYPASS_LO, self.K.energy.EX_BYPASS_HI = bypass
+        self.K.deficit.EX_BYPASS_LO, self.K.deficit.EX_BYPASS_HI = bypass
 
     RL.ServerReplay.__init__ = patched
     try:
@@ -511,7 +511,7 @@ def lag_shares(rows, be, days, dtM, bout_min, from_day):
     spd = 1440 // dtM
     a, b = 120 // dtM - 1, (120 + bout_min) // dtM - 1
     k = [rows[d * spd + b]["body.exKcalDay"] - rows[d * spd + a]["body.exKcalDay"] for d in range(days)]
-    out = [be.K.energy.lagged(rows[i]["satiety.L"]) / k[i // spd] for i in range(from_day * spd, days * spd)]
+    out = [be.K.deficit.lagged(rows[i]["satiety.L"]) / k[i // spd] for i in range(from_day * spd, days * spd)]
     return out, k
 
 
@@ -565,7 +565,7 @@ def deficit_server(host, days=7):
     rows, _ = RL.replay_arm(ev, minutes=(days + 1) * 1440, backend="server", paths=("body.energyState",), **MAN)
     es = [r["body.energyState"] for r in rows[days * 1440:]]
     e = sum(es) / len(es)
-    rise = host.call("hybrid.hungerTarget", 1 - M.H_REQ, e) - host.call("hybrid.hungerTarget", 1 - M.H_REQ, 1)
+    rise = host.call("deficit.hungerTarget", 1 - M.H_REQ, e) - host.call("deficit.hungerTarget", 1 - M.H_REQ, 1)
     return e, rise * M.MM_PER_HUNGER
 
 

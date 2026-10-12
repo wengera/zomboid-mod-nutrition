@@ -32,13 +32,6 @@ function K.hybrid.output()
     return { sip = 0, unhappyTarget = 0, boredTarget = 0 }
 end
 
--- The hunger target from a fill-like scalar x (0 empty .. 1 sated: since Plan 11c the satiety read Z) and the energy
--- state (Plan 3 ruling 14, moved from the takeover's K.fast.hungerTarget): (1 - x) x energyState, plus a deficit
--- floor DEFICIT_FLOOR x (energyState - 1), clamped to [0, 1].
-function K.hybrid.hungerTarget(x, energyState)
-    return K.clamp((1 - x) * energyState + K.hybrid.DEFICIT_FLOOR * K.max(0, energyState - 1), 0, 1)
-end
-
 -- The auto-drink sip since the last write: THIRST's fall below the value written, when no intake landed this
 -- minute (Plan 11 ruling 7) and a value was written.
 function K.hybrid.sip(thirst, lastThirst, sipOK)
@@ -102,8 +95,6 @@ function K.hybrid.write(inp, out, c)
         out.endurance = K.clamp(e0 + (inp.endurance - e0) * inp.rmod, 0, 1)
     end
 end
-
-K.hybrid.DEFICIT_FLOOR = 0.02 -- game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search), from Plan 11f Task 2c's 0, Plan 11d's 1.0 (ruling 9c-1) and Plan 3 ruling 14's 0.15 (S1271 open): the deficit floor's coefficient, the hunger a deficit adds whatever the satiety read: fitted and weak (Task 2c's search read 0 and the widened search 0.02, a tie broken toward a floor above 0), and Plan 11d ruling 9c-1's floor role, keeping a deficit's hunger up at a full satiety read, is superseded in substance by the refit (Plan 11f ruling 2c-4); S1254 sets the deficit's direction, which the energy state also carries through (1 - x) x energyState; fitted with K.energy.BALANCE_SPAN_KCAL 3100 and K.energy.EX_BYPASS_LO 0.282 and EX_BYPASS_HI 0.575 on the server-path replays for the best worst-case margin over twin K's alternatives: S1325 (Karl 2021 as the paper ran it, DEF +30.2 % against +26 %), S1613 (the 36 h fast's next day 1.196 against 1.20) and S1614 (day 3 0.969 against 1.0); S1255 (CALERIE 2: < 10 mm over 2 y at a 25 % deficit) reads 6.7 mm under the request-anchored mapping, reproduced
 
 -- Plan 11f Task 9b (rulings T9-1, T9-3): the UNHAPPINESS and BOREDOM floors share one rule, moved here from write().
 -- A floor target that is nil or not a number reads 0.

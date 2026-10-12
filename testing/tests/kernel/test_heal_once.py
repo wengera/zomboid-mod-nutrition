@@ -128,7 +128,7 @@ CROSS = (
 # on the pipeline context, never on the record, so they have no rows.
 
 # The kernel function each producer calls near its step's end: the injection lands after it returns.
-NEAR_END = {"metabolism": "energy.state", "nutrients": "acute.iu", "effects": "effects.drain", "kinetics": "stomach.fill"}
+NEAR_END = {"metabolism": "deficit.state", "nutrients": "acute.iu", "effects": "effects.drain", "kinetics": "stomach.fill"}
 
 # Every guarded (producer, sub-table, field), once.
 GUARDED = sorted({(p, s, f) for p, s, f, _ in CROSS}, key=lambda r: (r[0], r[1], str(r[2])))
@@ -258,7 +258,7 @@ def test_a_guard_that_restamps_counts_and_logs():
     h = settle()
     rec = h.record("a")
     before = rec.body.fm
-    h.rt.eval(WRAP)("energy.state", rec, "body", "fm")
+    h.rt.eval(WRAP)("deficit.state", rec, "body", "fm")
     n0 = len(h.printed())
     next_minute(h, 4)
     assert h.NR.server.metabolism.guarded == 1
@@ -271,7 +271,7 @@ def test_a_satiety_guard_restores_the_lag_it_does_not_zero():
     h = settle()
     rec = h.record("a")
     rec.satiety.L = 500.0
-    h.rt.eval(WRAP)("energy.state", rec, "satiety", "L")
+    h.rt.eval(WRAP)("deficit.state", rec, "satiety", "L")
     next_minute(h, 4)
     assert h.NR.server.metabolism.guarded == 1
     assert rec.satiety.L == 500.0                                 # restored from its pre-step value, not stamped 0
@@ -327,7 +327,7 @@ def test_a_nutrient_nan_reaches_one_mirror_then_the_heal_takes_it():
 def test_a_step_made_vstr_nan_never_reaches_the_mirror_doses():
     h = settle()
     rec = h.record("a")
-    h.rt.eval(WRAP)("energy.state", rec, "body", "vStr")
+    h.rt.eval(WRAP)("deficit.state", rec, "body", "vStr")
     next_minute(h, 4)
     m = build_mirror(h, rec)
     assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
@@ -339,7 +339,7 @@ def test_a_step_made_vstr_nan_never_reaches_the_mirror_doses():
 def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
     h = settle()
     rec = h.record("a")
-    h.rt.eval(WRAP)("energy.state", rec, "body", "vHyp")
+    h.rt.eval(WRAP)("deficit.state", rec, "body", "vHyp")
     next_minute(h, 4)
     m = build_mirror(h, rec)
     assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])

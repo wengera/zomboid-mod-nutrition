@@ -17,7 +17,7 @@ K.view = {}
 K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" }
 
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
--- energy: the K.energy.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
+-- energy: the K.deficit.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
 -- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
 -- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.315 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal; the 3,100 kcal span, Plan 11f Task 2c fix 1).
 K.view.ENERGY_AT = {

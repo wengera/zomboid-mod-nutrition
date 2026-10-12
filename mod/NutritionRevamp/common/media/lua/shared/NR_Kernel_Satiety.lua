@@ -2,7 +2,7 @@
 -- design.md; the meal pool M, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 7). Two signals
 -- sate: the stomach's fullness F, counted past the comfortable maximum up to the hard capacity (fill, fullness), and
 -- the meal pool M, the weighted kcal eaten, fed in full at the eat and cleared first-order (weigh, mealFeed, mealClear,
--- drain, mealRead, seedMeal); sated(F, mealRead(M)), which K.hybrid.hungerTarget turns into hunger (target); the soft
+-- drain, mealRead, seedMeal); sated(F, mealRead(M)), which K.deficit.hungerTarget turns into hunger (target); the soft
 -- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to M's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
 -- withdrawal. Plan 11g Task 4 replaced the meal pool P with the gut stage G, fed at emptying, and grouped the file by
@@ -155,10 +155,10 @@ function K.satiety.sated(F, Mn)
     return K.clamp(1 - (1 - K.satiety.FULL_WEIGHT * F) * (1 - Mn), 0, 1)
 end
 
--- The hunger target before the factors: K.hybrid.hungerTarget(sated(F, mealRead(M)), energyState). The writer multiplies
+-- The hunger target before the factors: K.deficit.hungerTarget(sated(F, mealRead(M)), energyState). The writer multiplies
 -- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH) and caps it at 0.69; the replays read it.
 function K.satiety.target(F, M, energyState)
-    return K.hybrid.hungerTarget(K.satiety.sated(F, K.satiety.mealRead(M)), energyState)
+    return K.deficit.hungerTarget(K.satiety.sated(F, K.satiety.mealRead(M)), energyState)
 end
 
 -- The seed (spec § 4; Plan 11g spec § 3.3): the M for which target(F, M, energyState) equals hunger, the inverse of
@@ -172,7 +172,7 @@ function K.satiety.seedMeal(hunger, F, energyState)
     if energyState <= 0 then
         return 0
     end
-    local free = (hunger - K.hybrid.DEFICIT_FLOOR * K.max(0, energyState - 1)) / energyState
+    local free = K.deficit.unsated(hunger, energyState)
     local rest = 1 - K.satiety.FULL_WEIGHT * F
     if rest <= 0 then
         return 0

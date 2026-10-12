@@ -4,7 +4,7 @@
 -- Kinetics handed off, samples the training signal, steps the neural term, closes each elapsed game day
 -- (the partition, the strength bookkeeping, adaptive thermogenesis, TAC, the rings), and stamps the
 -- drain and regeneration coefficients and the energy state the writer reads. Since Plan 11c Task 6 (spec § 5c,
--- rulings 11c-29 and 11c-32 amended) the energy state is K.energy.activityState: the exercise share of the deficit
+-- rulings 11c-29 and 11c-32 amended) the energy state is K.deficit.activityState: the exercise share of the deficit
 -- enters through the lag L (record.satiety.L, stepped here on the minute's exercise kcal), bypassed on a ramp when the
 -- trailing-24 h total deficit is large against the trailing-24 h expenditure.
 --
@@ -393,7 +393,7 @@ local function step(username, player, record, ctx)
     if finite(coldMult) then body.coldMult = coldMult else body.coldMult = 1 end
     local ex0 = body.exKcalDay
     MET.spend(username, body, met, not moving, coldMult, dtM, exercising)   -- the minute's bill and the after-burn pool
-    sat.L = K.energy.exerciseLag(sat.L, body.exKcalDay - ex0, dtM / 60)   -- the minute's exercise kcal (spec § 5c)
+    sat.L = K.deficit.exerciseLag(sat.L, body.exKcalDay - ex0, dtM / 60)   -- the minute's exercise kcal (spec § 5c)
     K.training.sample(body, K.energy.CLASS_MET[rateClass], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     if maxW > 0 then K.training.loadMinute(body, loadKg, maxW, dtM) end
@@ -426,7 +426,7 @@ local function step(username, player, record, ctx)
     body.dmod = K.aerobic.dmod(body.tac, g, dehydPct, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), ironGrade, awakeH, cafEffect, cafTol)
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
     local ex24 = K.body.trail24(body.trail, "ex")          -- the trailing-24 h exercise kcal
-    body.energyState = K.energy.activityState(K.energy.eb24h(body), ex24, sat.L, fatDep, MET.ee24(body))
+    body.energyState = K.deficit.activityState(K.energy.eb24h(body), ex24, sat.L, fatDep, MET.ee24(body))
     body.lastAgeH = ageH
     local ng = guardAll(body, sat)
     if ng > 0 then

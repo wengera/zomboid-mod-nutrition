@@ -62,12 +62,12 @@ def player(h, name="a"):
 
 
 # Plan 11c Task 6: the written HUNGER, recomputed in doubles from the kernels' constants at HEAD (NR_Kernel_Satiety.lua,
-# NR_Kernel_Hybrid.lua): mealRead(M) = 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP); sated(F, Mn) = 1 - (1 - FULL_WEIGHT F) (1 - Mn),
+# NR_Kernel_Deficit.lua): mealRead(M) = 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP); sated(F, Mn) = 1 - (1 - FULL_WEIGHT F) (1 - Mn),
 # MEAL_REQ, MEAL_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6c, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es + FLOOR max(0, es - 1), 0, 1), DEFICIT_FLOOR 0.02 (Plan 11f Task 2c fix 1; 0 from Task 2c, 1.0 before);
 # circadian(h) = 1 + 0.085 cos(2 pi (h - 19.8333) / 24); acuteFactor(S) = 1 - 0.7 S; the writer's composition
 # (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The host's clock
 # reads the hour of day as fmod(age, 24), and step() sets age 100 + minute / 60, so minute m is hour 4 + m / 60.
-FLOOR = 0.02                    # K.hybrid.DEFICIT_FLOOR (Plan 11f Task 2c fix 1, ruling 2b-3, widened search)
+FLOOR = 0.02                    # K.deficit.DEFICIT_FLOOR (Plan 11f Task 2c fix 1, ruling 2b-3, widened search)
 
 
 def _satiety_constant(name):

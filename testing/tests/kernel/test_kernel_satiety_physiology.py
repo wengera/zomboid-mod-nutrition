@@ -1,6 +1,6 @@
 """Satiety from physiology (Plan 11c Task 3; spec § 3.1 and § 5a; the meal pool M, Plan 11g Task 6c, spec § 7):
 K.satiety.fill, fullness, weigh, mealFeed, mealClear, drain, mealRead, sated, target, seedMeal, discomfort and circadian,
-K.stomach.satietyMass and K.hybrid.DEFICIT_FLOOR, on the kernel host. Hand-computed from the constants; the oracle
+K.stomach.satietyMass and K.deficit.DEFICIT_FLOOR, on the kernel host. Hand-computed from the constants; the oracle
 (test_satiety_meal_studies.py) replays the studies. The physical fill is read against K.stomach.CAPACITY_MAX_G (ruling
 11c-19) and the satiety F counted up to K.stomach.CAPACITY_HARD_G; the circadian term is ruling 11c-24's. Structure D
 (spec § 5b, ruling 11c-30, Plan 11c Task 4), its pool P replaced by the gut stage G in Plan 11g Task 4 and G by the meal
@@ -39,7 +39,7 @@ def test_the_constants(host):
         assert S[gone] is None, gone                                 # the meal pool P, retired in Plan 11g Task 4
     assert (S.ATWATER_P, S.ATWATER_C, S.ATWATER_F) == (4, 4, 9)
     assert (S.CIRCADIAN_A, S.CIRCADIAN_PEAK_H) == (0.085, 19.8333)
-    assert host.K.hybrid.DEFICIT_FLOOR == 0.02                       # refit, Plan 11f Task 2c fix 1 (ruling 2b-3, widened search); 0 from Task 2c, 1.0 from Plan 11d Task 9d
+    assert host.K.deficit.DEFICIT_FLOOR == 0.02                       # refit, Plan 11f Task 2c fix 1 (ruling 2b-3, widened search); 0 from Task 2c, 1.0 from Plan 11d Task 9d
 
 
 def test_each_constant_names_its_row_or_its_label():
@@ -62,9 +62,9 @@ def test_each_constant_names_its_row_or_its_label():
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
         assert "S1273" in line, name                                     # Scheer 2013, minted as S1273
-    with open(os.path.join(SHARED, "NR_Kernel_Hybrid.lua"), encoding="utf-8") as fh:
+    with open(os.path.join(SHARED, "NR_Kernel_Deficit.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
-    line = re.search(r"^K\.hybrid\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)
+    line = re.search(r"^K\.deficit\.DEFICIT_FLOOR = .*$", hyb, re.M).group(0)
     assert "game choice, refit on the shipped pipeline against Karl 2021 as reported (Plan 11f ruling 2b-3, widened search)" in line
     assert "S1271 open" in line and "S1254" in line
     assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325")), line   # the rows it was fitted to
@@ -215,7 +215,7 @@ def test_sated_is_clamped_to_one_past_full(host):
 def test_target_is_the_hunger_target_of_the_sated_read(host):
     for F, M, es in ((0, 6, 1), (0.6, 120, 1.2), (0.3, 0, 0.9), (1, 1300, 1.5)):
         z = host.call("satiety.sated", F, host.call("satiety.mealRead", M))
-        assert host.call("satiety.target", F, M, es) == host.call("hybrid.hungerTarget", z, es), (F, M, es)
+        assert host.call("satiety.target", F, M, es) == host.call("deficit.hungerTarget", z, es), (F, M, es)
     assert host.call("satiety.target", 0, host.K.satiety.MEAL_REQ, 1) == pytest.approx(0.25)   # MEAL_REQ, empty: the request
 
 
@@ -252,13 +252,13 @@ def test_fullness_counts_past_the_comfortable_maximum_to_the_hard_capacity(host)
 def test_seed_meal_inverts_the_hunger_function(host, hunger, F, es):
     M = host.call("satiety.seedMeal", hunger, F, es)
     z = host.call("satiety.sated", F, host.call("satiety.mealRead", M))
-    assert host.call("hybrid.hungerTarget", z, es) == pytest.approx(hunger)
+    assert host.call("deficit.hungerTarget", z, es) == pytest.approx(hunger)
 
 
 def test_seed_meal_inverts_the_read_and_caps(host):
     g = host.call("satiety.seedMeal", 0.25, 0.0, 1.0)
     sated = host.call("satiety.sated", 0.0, host.call("satiety.mealRead", g))
-    assert abs(host.call("hybrid.hungerTarget", sated, 1.0) - 0.25) < 1e-6
+    assert abs(host.call("deficit.hungerTarget", sated, 1.0) - 0.25) < 1e-6
     assert host.call("satiety.seedMeal", 0.0, 0.0, 1.0) == host.K.satiety.MEAL_SEED_MAX
 
 
@@ -311,7 +311,7 @@ def test_seed_meal_is_finite_and_non_negative_over_a_grid(host):
                 assert M == M and 0 <= M <= 1180, (h, F, es, M)
                 if 0 < M < 1180 and 0 <= h <= 1 and 0 <= F <= 1:          # hungerTarget clamps to [0, 1]
                     z = host.call("satiety.sated", F, host.call("satiety.mealRead", M))
-                    assert host.call("hybrid.hungerTarget", z, es) == pytest.approx(h, abs=1e-9), (h, F, es)
+                    assert host.call("deficit.hungerTarget", z, es) == pytest.approx(h, abs=1e-9), (h, F, es)
 
 
 def test_the_file_is_grouped_into_its_sections():
@@ -371,14 +371,14 @@ def test_circadian_is_periodic_across_midnight(host):
 
 def test_hunger_target_reads_the_named_deficit_floor(host):
     # follow-up pin: hungerTarget's value is unchanged by naming its coefficient
-    assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.02 * 0.5)     # Plan 11f Task 2c fix 1: 0.02 (0 from Task 2c, 1.0 before)
+    assert host.call("deficit.hungerTarget", 1, 1.5) == pytest.approx(0.02 * 0.5)     # Plan 11f Task 2c fix 1: 0.02 (0 from Task 2c, 1.0 before)
     # the coefficient is read from the constant, not a literal: patch it and the value follows
-    host.K.hybrid.DEFICIT_FLOOR = 0.3
+    host.K.deficit.DEFICIT_FLOOR = 0.3
     try:
-        assert host.call("hybrid.hungerTarget", 1, 1.5) == pytest.approx(0.3 * 0.5)
+        assert host.call("deficit.hungerTarget", 1, 1.5) == pytest.approx(0.3 * 0.5)
     finally:
-        host.K.hybrid.DEFICIT_FLOOR = 0.02
-    assert host.call("hybrid.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 0.02 * 0.5)
+        host.K.deficit.DEFICIT_FLOOR = 0.02
+    assert host.call("deficit.hungerTarget", 0.7, 1.5) == pytest.approx(0.3 * 1.5 + 0.02 * 0.5)
 
 
 @pytest.mark.parametrize("E", [50, 300, 650, 1200])

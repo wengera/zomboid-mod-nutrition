@@ -402,7 +402,7 @@ function NR_R.mealVec(kcal, p, c, f)
 end
 function NR_R.requestKcal(es, hod, H_REQ, KCAL_PER_H)
     local K = NutritionRevamp.kernel
-    return KCAL_PER_H * K.min(0.69, K.hybrid.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
+    return KCAL_PER_H * K.min(0.69, K.deficit.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
 end
 function NR_R.maint(body)
     local K = NutritionRevamp.kernel
@@ -463,7 +463,7 @@ function NR_O.requestKcal(o, ageStart, H_REQ, KCAL_PER_H)
     local c = 1
     local hod = NR_O.tod(o, ageStart)
     if hod ~= nil then c = K.satiety.circadian(hod) end
-    return KCAL_PER_H * K.min(0.69, K.hybrid.hungerTarget(1 - H_REQ, o.es) * c)
+    return KCAL_PER_H * K.min(0.69, K.deficit.hungerTarget(1 - H_REQ, o.es) * c)
 end
 function NR_O.minute(o, ageH, dtM)
     local K = NutritionRevamp.kernel
@@ -473,7 +473,7 @@ function NR_O.minute(o, ageH, dtM)
         if o.asleep then met = K.energy.COMPENDIUM.Sleeping end
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, dtM)
-        o.L = K.energy.exerciseLag(o.L, body.exKcalDay - ex0, dtM / 60)
+        o.L = K.deficit.exerciseLag(o.L, body.exKcalDay - ex0, dtM / 60)
         if math.floor(ageH / 24) > body.dayIndex then
             body.inDayClosed = body.inDay
             K.partition.closeDay(body)
@@ -481,7 +481,7 @@ function NR_O.minute(o, ageH, dtM)
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
         local ex24 = K.body.trail24(body.trail, "ex")
         o.eb24 = K.energy.eb24h(body)
-        o.es = K.energy.activityState(o.eb24, ex24, o.L, 0, ee24)
+        o.es = K.deficit.activityState(o.eb24, ex24, o.L, 0, ee24)
     end
     if o.satiety then
         K.satiety.drain(o.st, K.min(dtM, NR_O.MAX_GAP_M), o)   -- KIN.drain's: one-minute substeps, each clearing o.M
@@ -821,7 +821,7 @@ class ServerReplay(_Backend):
         return out
 
     # a path the record does not store, read as the mod reads it: body.eb24 is K.energy.eb24h(record.body), the
-    # trailing-24 h balance the metabolism step hands to K.energy.activityState (the oracle backend's alias of the same
+    # trailing-24 h balance the metabolism step hands to K.deficit.activityState (the oracle backend's alias of the same
     # name reads its own)
     DERIVED = {"body.eb24": lambda K, body: K.energy.eb24h(body)}
 

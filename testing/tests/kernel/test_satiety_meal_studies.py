@@ -1,6 +1,6 @@
 """The satiety oracle (Plan 11c Task 4; spec § 5b and § 6; ruling 11c-30): published protocols replayed through the
 real kernels -- the stomach's two lanes (K.stomach), the meal pool M (K.satiety; the meal pool P until Plan 11g Task 4,
-the gut stage G until Task 6c) and the hunger function (K.hybrid.hungerTarget) -- one step a game minute. Each step
+the gut stage G until Task 6c) and the hunger function (K.deficit.hungerTarget) -- one step a game minute. Each step
 runs, in order: the minute's eats land in the stomach and feed M their weighted kcal (K.satiety.mealFeed, the intake's
 IN.feed); the stomach drains and M is cleared over the minute (K.satiety.drain, Kinetics' per substep); F is the
 writer's (K.satiety.fullness, W.satietyF's: the fullness mass, the satiety mass plus PROTEIN_FILL x the protein, rulings
@@ -681,15 +681,15 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # --- the diagnostic replays: a 36 h fast, and six meals against three (Plan 11d Task 4, ruling 11d-3; spec § 5d) ---
 # Since Plan 11f Task 2c (option (b) of task-2b-options.md, ruling 2b-3) the fast, the steady eater, six against three
 # live and the low-carbohydrate day are graded on the shipped server path, test_replay_live_energy.py, where the deficit
-# drive (K.hybrid.DEFICIT_FLOOR, K.energy.BALANCE_SPAN_KCAL) was refit; the simplified energy path below
+# drive (K.deficit.DEFICIT_FLOOR, K.deficit.BALANCE_SPAN_KCAL) was refit; the simplified energy path below
 # (ENERGY_REPLAY, SIX_LIVE_REPLAY) stays only as the reference of the replay tool's oracle backend
 # (test_replay_live_oracle.py). Six against three held at the energy state 1 is still graded here.
 #
 # The fast replay runs the energy path the way NR_Server_Metabolism.step and NR_Server_Nutrients build it, one game
 # minute a step: the trailing-24 h window moved to the minute's age (K.body.trailTo, Plan 11d Task 9c), the eat books
 # its vector into the day and the window (K.energy.intake), the minute's expenditure (K.energy.minute), the exercise
-# lag (K.energy.exerciseLag), the day close (K.partition.closeDay, with inDayClosed stamped as closeDay stamps it), the
-# energy state (K.energy.activityState on K.energy.eb24h, the window's exercise kcal, the lag, fatDep and the 24 h
+# lag (K.deficit.exerciseLag), the day close (K.partition.closeDay, with inDayClosed stamped as closeDay stamps it), the
+# energy state (K.deficit.activityState on K.energy.eb24h, the window's exercise kcal, the lag, fatDep and the 24 h
 # expenditure MET.ee24 reads), then the glycogen step (K.acute.glycogen on the window's carbohydrate g/kg), logged
 # beside the state, which does not read it (ruling T4-1). Its simplifications, stated:
 # - one 70 kg man from K.body.new (sex 1, no build flags, Strength 5, carry and responder 1), awake 07:00-23:00 at
@@ -743,7 +743,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
             local kcal = maint / 3
             local p, c, f = 0.15, 0.50, 0.35
             if kind == "request" then
-                kcal = KCAL_PER_H * K.min(0.69, K.hybrid.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
+                kcal = KCAL_PER_H * K.min(0.69, K.deficit.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
             elseif kind == "lowcarb" then
                 c = LOWCARB_G * 4 / maint
                 p = 0.20
@@ -765,7 +765,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
         end
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, 1)
-        L = K.energy.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
+        L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
         if math.floor(ageH / 24) > body.dayIndex then
             body.inDayClosed = body.inDay
             K.partition.closeDay(body)
@@ -773,7 +773,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
         local ex24 = K.body.trail24(body.trail, "ex")
         local eb24 = K.energy.eb24h(body)
-        es = K.energy.activityState(eb24, ex24, L, 0, ee24)
+        es = K.deficit.activityState(eb24, ex24, L, 0, ee24)
         if logs[m + 1] then
             out[m + 1] = {
                 g = a.g,
@@ -1055,14 +1055,14 @@ function(plan, days, start)
         end
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, 1)
-        L = K.energy.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
+        L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
         if math.floor(ageH / 24) > body.dayIndex then
             body.inDayClosed = body.inDay
             K.partition.closeDay(body)
         end
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
         local ex24 = K.body.trail24(body.trail, "ex")
-        es = K.energy.activityState(K.energy.eb24h(body), ex24, L, 0, ee24)
+        es = K.deficit.activityState(K.energy.eb24h(body), ex24, L, 0, ee24)
         if m >= start and m < start + 1440 then
             K.satiety.drain(st, 1, pool)
             local F = K.satiety.fullness(st)

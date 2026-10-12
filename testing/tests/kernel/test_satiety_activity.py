@@ -1,7 +1,7 @@
 """The activity oracle (Plan 11c Task 4b; spec § 5c; ruling 11c-29): published exercise protocols replayed through the
 real kernels -- structure D's stomach, meal pool M (the meal pool P until Plan 11g Task 4, the gut stage G until Task 6c) and hunger function (as test_satiety_meal_studies.py runs them) with
 the acute suppression term (K.satiety.exerciseSuppression, acuteFactor) and the energy state built by
-K.energy.activityState from a trailing-24 h balance and the exercise lag (K.energy.exerciseLag) -- one step a game
+K.deficit.activityState from a trailing-24 h balance and the exercise lag (K.deficit.exerciseLag) -- one step a game
 minute. Displayed hunger is the writer's form (Task 6 amendment 3's cap form), min(0.69, hungerTarget(sated(F, mealRead(M)),
 es) x circadian(h) x acuteFactor(S)): the cap bounds the product, the acute factor inside it.
 
@@ -96,7 +96,7 @@ function(cfg)
         r[3] = exMin
         local kind = cfg.vig[m]
         S = K.satiety.exerciseSuppression(S, 1 / 60, kind ~= nil, kind)
-        L = K.energy.exerciseLag(L, exMin, 1 / 60)
+        L = K.deficit.exerciseLag(L, exMin, 1 / 60)
         K.satiety.drain(st, 1, pool)
         local F = K.satiety.fullness(st)
         local eb = inS - eeS
@@ -104,18 +104,18 @@ function(cfg)
         if cfg.mode == "nobypass" or cfg.mode == "step" then
             ee24 = nil
         end
-        local e = K.energy.activityState(eb, exS, L, 0, ee24)
+        local e = K.deficit.activityState(eb, exS, L, 0, ee24)
         if cfg.mode == "raw" then
-            e = K.energy.state(eb, 0)
+            e = K.deficit.state(eb, 0)
         end
         if cfg.mode == "step" and eb <= -0.25 * eeS then
-            e = K.max(e, K.energy.state(eb, 0))
+            e = K.max(e, K.deficit.state(eb, 0))
         end
         local c = K.satiety.circadian((cfg.h0 + (m + 1) / 60) % 24)
         hs[m + 1] = K.min(0.69, K.satiety.target(F, pool.M, e) * c * K.satiety.acuteFactor(S))
         es[m + 1] = e
         ss[m + 1] = S
-        ls[m + 1] = K.energy.lagged(L)
+        ls[m + 1] = K.deficit.lagged(L)
     end
     debug.sethook(hook, mask)
     return hs, es, ss, ls
@@ -221,11 +221,11 @@ def whybrow(host, mj_per_day=3.5):
     day1 = None
     for m in range(16 * 1440):
         exm = kcal / 60 if 120 <= m % 1440 < 180 else 0.0
-        L = host.call("energy.exerciseLag", L, exm, 1 / 60)
+        L = host.call("deficit.exerciseLag", L, exm, 1 / 60)
         if m >= 2 * 1440:
-            shares.append(host.call("energy.lagged", L) / kcal)
+            shares.append(host.call("deficit.lagged", L) / kcal)
         if m == 1440 - 1:
-            day1 = host.call("energy.lagged", L) / kcal
+            day1 = host.call("deficit.lagged", L) / kcal
     return mean(shares), day1
 
 
@@ -335,9 +335,9 @@ function(kcal, days)
         if m % 1440 >= 120 and m % 1440 < 180 then
             exm = kcal / 60
         end
-        L = K.energy.exerciseLag(L, exm, 1 / 60)
+        L = K.deficit.exerciseLag(L, exm, 1 / 60)
         if m >= (days - 7) * 1440 then
-            sum = sum + K.energy.lagged(L) / kcal
+            sum = sum + K.deficit.lagged(L) / kcal
             n = n + 1
         end
     end

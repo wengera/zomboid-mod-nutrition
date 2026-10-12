@@ -235,7 +235,7 @@ def test_the_pools_release_never_reaches_the_lag(met_host):
     ex0, ee0 = body["exKcalDay"], body["eeDay"]
     minute(h, p, record, 100.0 + 2 / 60)
     assert body["exKcalDay"] == ex0                       # the idle minute: no exercise kcal
-    assert record["satiety"]["L"] == pytest.approx(h.K.energy.exerciseLag(L0, 0, 1 / 60), rel=1e-12)
+    assert record["satiety"]["L"] == pytest.approx(h.K.deficit.exerciseLag(L0, 0, 1 / 60), rel=1e-12)
     w = body["fm"] + body["lm"]
     rest = h.K.energy.ree(body["lm"]) / 1440 * (1 - body["at"]) + (1.3 - 1.0) * w / 60
     assert body["eeDay"] - ee0 > rest                     # the release is billed as expenditure
@@ -387,7 +387,7 @@ def test_the_lag_steps_on_the_exercise_kcal_alone(bout):
     assert rows[-1]["satiety.L"] > 0
     L = rows[0]["satiety.L"]
     for m in range(1, MINUTES):
-        L = be.K.energy.exerciseLag(L, rows[m]["body.exKcalDay"] - rows[m - 1]["body.exKcalDay"], 1 / 60)
+        L = be.K.deficit.exerciseLag(L, rows[m]["body.exKcalDay"] - rows[m - 1]["body.exKcalDay"], 1 / 60)
     assert rows[-1]["satiety.L"] == pytest.approx(L, rel=1e-9)
 
 
