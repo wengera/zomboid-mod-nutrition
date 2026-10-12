@@ -217,7 +217,6 @@ def surplus_day(host):
             "pre_breakfast_rel": [day[KARL_PRE_BREAKFAST] / rest[KARL_PRE_BREAKFAST] for day in bal]}
 
 
-
 # --- the study figures each distance is read against ---------------------------------------------------------------
 
 STUDY = {
