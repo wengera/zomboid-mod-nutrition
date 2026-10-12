@@ -93,7 +93,7 @@ DEBT_G1 = 1.0
 # is healed in the step before any snapshot reads it (L is healed by Metabolism first, so no guard there). At 170
 # g1 gets a G of GUARD_G_G1 and one StatsDecrease read of GUARD_SD. Since Plan 11g Task 4 fix 1 (ruling T4-3) the read
 # is Kinetics' (KIN.gTrait, the first in g1's minute), so its step's clearance overflows to inf (exp of +0.58 or more)
-# and KIN.landG keeps the previous G, counted in kinetics' failures; the writer then reads the kept 1e308
+# and KIN.landG keeps the previous G, counted in kinetics' failures; the writer then reads the kept 1e308; the writer's own i.sd (Effects' fatigue) reads 1 that minute, so g1's FATIGUE and acute.S move -- a fixture artifact of the one-shot stub, since a real sandbox read is the same for every reader in a minute
 GUARD_S_MINUTE, GUARD_T_MINUTE, GUARD_G_MINUTE, GUARD_RESTORE_MINUTE = 80, 120, 140, 170
 GUARD_G_G1 = 1e308
 GUARD_SD = -50.0
