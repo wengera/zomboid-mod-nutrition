@@ -323,11 +323,17 @@ def karl_vas(day0, am_dur):
     return sorted(out)
 
 
+def karl_rows(arm, vigorous=True, paths=()):
+    """(the server-path replay's per-minute rows of twin K's `arm`, its day count, the morning walk's minutes)."""
+    ev, days, am_dur = karl_events(arm, vigorous)
+    rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, paths=paths,
+                            player={"weight": KARL_KG, "female": False}, rng="half")
+    return rows, days, am_dur
+
+
 def karl_k_arm(arm, vigorous=True):
     """(mean HUNGER at the VAS rows of the arm's study days, each study day's billed expenditure in MJ)."""
-    ev, days, am_dur = karl_events(arm, vigorous)
-    rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, paths=("body.eeDay",),
-                            player={"weight": KARL_KG, "female": False}, rng="half")
+    rows, days, am_dur = karl_rows(arm, vigorous, ("body.eeDay",))
     reads = [rows[m]["HUNGER"] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440, am_dur)]
     ee = [rows[d * 1440 + 1438]["body.eeDay"] / KCAL_PER_MJ for d in range(days)]   # the day's 1,440 steps
     return sum(reads) / len(reads), ee[KARL_WARM:]

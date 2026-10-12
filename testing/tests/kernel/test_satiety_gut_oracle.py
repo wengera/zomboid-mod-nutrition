@@ -87,10 +87,15 @@ DIEKMANN_T = (30, 60, 120, 240, 360)   # S1828's rating times after the meal (mi
 
 # --- the readings, shared by the tests and the mutation script ------------------------------------------------------
 
-def time_course(host, kcal, composition, minutes):
+FASTED = {"P0": 0.0, "h0": 8.0}     # a fasted start at 08:00, as Callahan's oracle reads (test_satiety_meal_studies.callahan)
+
+
+def time_course(host, kcal, composition, minutes, start=None):
     """Displayed HUNGER a minute (index i is minute i + 1) after one meal of `kcal` at `composition` (vec's keys plus
-    `kind`, "food" or "drink") eaten at minute 0 from the request, the circadian factor held at 1."""
-    return M.hunger(host, {0: [(composition["kind"], vec(kcal, composition))]}, minutes)
+    `kind`, "food" or "drink") eaten at minute 0. ASSUMED start (no row gives the studies' start state): from the
+    request (HUNGER 0.25, not fasted), the circadian factor held at 1 (not about 08:00). `start` = FASTED reads a fasted
+    start at 08:00 instead."""
+    return M.hunger(host, {0: [(composition["kind"], vec(kcal, composition))]}, minutes, **(start or {}))
 
 
 def at(hs, t):
@@ -110,36 +115,36 @@ def rises_after_nadir(hs):
     return all(b >= a - 1e-12 for a, b in zip(hs[n - 1:], hs[n:]))
 
 
-def meal_sizes(host):
+def meal_sizes(host, start=None):
     """S1808 / S1809 (Lewis 2015): the full breakfast and its 20 % and 40 % cuts, from the request. Returns {cut: the
     hunger difference cut minus full at each of LEWIS_T, and its mean over minutes 30-240}."""
-    full = time_course(host, LEWIS_KCAL, lewis_comp(LEWIS_KCAL), 240)
+    full = time_course(host, LEWIS_KCAL, lewis_comp(LEWIS_KCAL), 240, start)
     out = {}
     for name, share in (("cut20", 0.8), ("cut40", 0.6)):
         k = LEWIS_KCAL * share
-        hs = time_course(host, k, lewis_comp(k), 240)
+        hs = time_course(host, k, lewis_comp(k), 240, start)
         d = [a - b for a, b in zip(hs, full)]
         out[name] = {"at": [at(d, t) for t in LEWIS_T], "mean": sum(d[29:240]) / len(d[29:240])}
     return out
 
 
-def tieken(host):
+def tieken(host, start=None):
     """S1833 (Tieken 2007): the 540 kcal solid and liquid meal replacements. Returns {arm: {at: hunger / H_REQ - 1 at
     each of TIEKEN_T, back: the recovery minute, nadir: (minute, hunger), monotone}}."""
     out = {}
     for name, comp in (("solid", TIEKEN_SOLID), ("liquid", TIEKEN_LIQUID)):
-        hs = time_course(host, TIEKEN_KCAL, comp, 900)
+        hs = time_course(host, TIEKEN_KCAL, comp, 900, start)
         out[name] = {"at": [at(hs, t) / M.H_REQ - 1 for t in TIEKEN_T], "back": M.request(hs),
                      "nadir": nadir(hs), "monotone": rises_after_nadir(hs)}
     return out
 
 
-def diekmann(host):
+def diekmann(host, start=None):
     """S1828 (Diekmann 2026): the ~1,000 kcal high-fat and low-fat meals. Returns {arm: {at: hunger / H_REQ - 1 at each
     of DIEKMANN_T, back, nadir, monotone, mean: mean hunger over 0-6 h}}."""
     out = {}
     for name, comp in (("hf", DIEKMANN_HF), ("lf", DIEKMANN_LF)):
-        hs = time_course(host, DIEKMANN_KCAL, comp, 900)
+        hs = time_course(host, DIEKMANN_KCAL, comp, 900, start)
         out[name] = {"at": [at(hs, t) / M.H_REQ - 1 for t in DIEKMANN_T], "back": M.request(hs),
                      "nadir": nadir(hs), "monotone": rises_after_nadir(hs), "mean": sum(hs[:360]) / 360}
     return out
@@ -155,9 +160,10 @@ def protein_arm(host, p, c, f, minutes=240):
                        minutes)
 
 
-def protein_contrast(host):
+def protein_at_equal_energy(host):
     """The protein-against-carbohydrate oracle at equal energy (harvest 11 § 3). The rows' meal energies are not given
-    (ASSUMED 650 kcal each). Returns:
+    (ASSUMED 650 kcal each). Under P the contrast is carried by PROTEIN_FILL and FULL_WEIGHT: W_PROTEIN at x0.5 or x2
+    leaves belza_hp in band, so Task 6's mutation pass must re-check W_PROTEIN against this oracle under G. Returns:
     - belza_mhp, belza_hp: S1820 (Belza 2013), 25 % and 50 % protein against 14 % (fat held at 30 %, ASSUMED, the
       carbohydrate taking the rest): the 4-h mean hunger's change against NP (study -15 % and -25 %);
     - smeets_30, smeets_120: S1822 (Smeets 2008), 25/45/30 against 10/60/30 % protein/carbohydrate/fat: the hunger
@@ -167,7 +173,6 @@ def protein_contrast(host):
     np_ = protein_arm(host, 0.14, 0.56, 0.30)
     mhp = protein_arm(host, 0.25, 0.45, 0.30)
     hp = protein_arm(host, 0.50, 0.20, 0.30)
-    s_hp = protein_arm(host, 0.25, 0.45, 0.30)
     s_ap = protein_arm(host, 0.10, 0.60, 0.30)
     v_p = protein_arm(host, 0.60, 0.20, 0.20)
     v_c = protein_arm(host, 0.20, 0.60, 0.20)
@@ -175,7 +180,7 @@ def protein_contrast(host):
     def mean(hs):
         return sum(hs) / len(hs)
     return {"belza_mhp": mean(mhp) / mean(np_) - 1, "belza_hp": mean(hp) / mean(np_) - 1,
-            "smeets_30": at(s_hp, 30) - at(s_ap, 30), "smeets_120": at(s_hp, 120) - at(s_ap, 120),
+            "smeets_30": at(mhp, 30) - at(s_ap, 30), "smeets_120": at(mhp, 120) - at(s_ap, 120),
             "vdk": mean(v_p) / mean(v_c) - 1}
 
 
@@ -184,12 +189,10 @@ KARL_PRE_BREAKFAST = 0          # 06:59
 
 
 def karl_vas_rows(arm):
-    """Twin K's eight VAS readings a study day for `arm` (test_replay_live_energy.karl_events on the server path),
+    """Twin K's eight VAS readings a study day for `arm` (test_replay_live_energy.karl_rows on the server path),
     one list per study day, in karl_vas's order: pre- and post-breakfast, pre- and post-exercise, pre- and post-lunch,
     pre- and post-dinner."""
-    ev, days, am_dur = E.karl_events(arm)
-    rows, _ = E.RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0,
-                              player={"weight": E.KARL_KG, "female": False}, rng="half")
+    rows, days, am_dur = E.karl_rows(arm)
     return [[rows[m]["HUNGER"] for m in E.karl_vas(d * 1440, am_dur)] for d in range(E.KARL_WARM, days)]
 
 
@@ -197,17 +200,21 @@ def surplus_day(host):
     """S1325 / S1872 / S1892 (Karl 2021): the well-fed arm (BAL, 22.7 MJ/d over three SUSOPS days) against the
     sedentary REST day, at the study's eight daily sampling points, on the server path. Returns {bal: the mean daily
     hunger's change against REST in %, by_day: each SUSOPS day's, rest: REST's mean, troughs: the mean post-meal hunger
-    of each BAL day, rest_trough, pre_breakfast: BAL's pre-breakfast hunger by day, rest_pre_breakfast}."""
+    of each BAL day, rest_trough, pre_breakfast: BAL's pre-breakfast hunger by day, rest_pre_breakfast, troughs_rel:
+    each BAL day's trough over REST's, pre_breakfast_rel: each day's pre-breakfast over REST's (ruling T3-1: model
+    HUNGER and the study's VAS / 10 are on different scales, so the shape is read relative to REST)}."""
     rest = karl_vas_rows("REST")[0]
     bal = karl_vas_rows("BAL")
     r = sum(rest) / len(rest)
     allbal = [x for day in bal for x in day]
+    rest_trough = sum(rest[i] for i in KARL_POST) / 3
+    troughs = [sum(day[i] for i in KARL_POST) / 3 for day in bal]
     return {"bal": 100 * (sum(allbal) / len(allbal) / r - 1),
             "by_day": [100 * (sum(day) / len(day) / r - 1) for day in bal], "rest": r,
-            "troughs": [sum(day[i] for i in KARL_POST) / 3 for day in bal],
-            "rest_trough": sum(rest[i] for i in KARL_POST) / 3,
-            "pre_breakfast": [day[KARL_PRE_BREAKFAST] for day in bal], "rest_pre_breakfast": rest[KARL_PRE_BREAKFAST]}
-
+            "troughs": troughs, "rest_trough": rest_trough,
+            "pre_breakfast": [day[KARL_PRE_BREAKFAST] for day in bal], "rest_pre_breakfast": rest[KARL_PRE_BREAKFAST],
+            "troughs_rel": [t / rest_trough for t in troughs],
+            "pre_breakfast_rel": [day[KARL_PRE_BREAKFAST] / rest[KARL_PRE_BREAKFAST] for day in bal]}
 
 
 
@@ -222,15 +229,18 @@ STUDY = {
     "vdk": 0.0,                        # S1818: no difference (AUC P = 0.634)
     "melanson_f_minus_c": 126 - 65,    # S1228: the fat drink's request 61 min later than the carbohydrate drink's
     "marmonier_f_minus_c": 25 - 34,    # S1224: the fat snack's delay 9 min shorter than the carbohydrate snack's
-    "diekmann_hf_minus_lf": 250.0 / 360 / 10,   # S1828: HF minus LF hunger iAUC +250 min x score (0-10 scale) over
-                                                # 6 h, derived as a mean on the unit scale: 0.0694
+    "diekmann_hf_minus_lf": 250.0 / 360 * 10 / M.MM_PER_HUNGER,   # S1828: HF minus LF hunger iAUC +250 min x score
+                                                # (0-10 scale) over 6 h: 6.94 mm mean, derived (x10 mm a score), read
+                                                # under ruling 11c-31's 260 mm a unit
     "marmonier": (60, 34, 25),         # S1224: the protein, carbohydrate and fat snacks' delays (min)
     "melanson": (65, 126),             # S1228: the carbohydrate and fat drinks' requests (min)
     "moore": 277,                      # S1272: the 1692 g meal's solid half-emptying (min)
     "karl_bal": -55.0,                 # S1325: BAL against REST (%)
     "karl_by_day": (-46.0, -61.0, -65.0),       # S1892 (derived from S1872's read): per day (%)
-    "karl_troughs": (0.058, 0.057, 0.029),      # S1872: BAL's post-meal means by day (cm / 10)
-    "karl_pre_breakfast": (0.518, 0.291, 0.269),   # S1872: BAL's pre-breakfast by day (cm / 10)
+    "karl_troughs_rel": (0.215, 0.209, 0.106),     # derived from S1872: BAL's post-meal means (0.058, 0.057, 0.029,
+                                                   # cm / 10) over REST's (2.25 + 2.35 + 3.53) / 3 = 2.71 cm
+    "karl_pre_breakfast_rel": (1.000, 0.562, 0.519),   # derived from S1872: BAL's pre-breakfast (0.518, 0.291, 0.269)
+                                                       # over REST's 5.18 cm
 }
 
 
@@ -259,6 +269,11 @@ def test_meal_size_grades_hunger_at_a_40_percent_cut(host):
     assert near_all(r["cut40"]["at"], PIN["cut40_at"]) and near_all(r["cut20"]["at"], PIN["cut20_at"]), r
     assert near(dist(r["cut40"]["mean"], VAS_DETECT), DIST["cut40"]), r
     assert near(dist(r["cut20"]["mean"], VAS_DETECT), DIST["cut20"]), r
+    # ASSUMED start: from the request, the clock held at 1 (no row gives the study's start state); the fasted start at
+    # 08:00 is an unasserted reading
+    f = meal_sizes(host, FASTED)
+    for k in ("cut20", "cut40"):
+        assert near(f[k]["mean"], PIN["fasted_lewis"][k + "_mean"]) and near_all(f[k]["at"], PIN["fasted_lewis"][k + "_at"]), f
 
 
 # --- the time courses: recovery scaling with emptying (S1833, S1828, S1840) ----------------------------------------
@@ -276,6 +291,11 @@ def test_the_540_kcal_meal_replacements_at_four_hours(host):
         assert r[arm]["back"] == PIN["tieken_%s_back" % arm], r
     assert near(dist(r["liquid"]["at"][-1], STUDY["tieken_liquid_4h"]), DIST["tieken_liquid_4h"]), r
     assert near(dist(r["solid"]["at"][-1], STUDY["tieken_solid_4h"]), DIST["tieken_solid_4h"]), r
+    # ASSUMED start: from the request, the clock held at 1 (the row gives neither); a fasted start at 08:00 is an
+    # unasserted reading
+    f = tieken(host, FASTED)
+    for arm in ("solid", "liquid"):
+        assert near_all(f[arm]["at"], PIN["fasted_tieken"][arm][0]) and f[arm]["back"] == PIN["fasted_tieken"][arm][1], f
 
 
 def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
@@ -290,6 +310,11 @@ def test_the_1000_kcal_meal_still_sates_at_six_hours(host):
         assert near_all(r[arm]["at"], PIN["diekmann_%s_at" % arm]), r
         assert r[arm]["back"] == PIN["diekmann_%s_back" % arm], r
         assert dist(r[arm]["back"], STUDY["diekmann_6h_min"]) == DIST["diekmann_%s_back" % arm], r
+    # ASSUMED start: from the request, the clock held at 1 (the row gives neither); a fasted start at 08:00 is an
+    # unasserted reading
+    f = diekmann(host, FASTED)
+    for arm in ("hf", "lf"):
+        assert near_all(f[arm]["at"], PIN["fasted_diekmann"][arm][0]) and f[arm]["back"] == PIN["fasted_diekmann"][arm][1], f
 
 
 def test_the_single_early_nadir_is_a_reading(host):
@@ -315,7 +340,7 @@ def test_protein_against_carbohydrate_at_equal_energy(host):
     # the floor, the nulls the ceiling: a DESIGN CHOICE between the two sides) and smeets_30, smeets_120 at or below 0;
     # vdk is read, never asserted. Today belza_hp -21.5 % (+3.5 points from Belza), belza_mhp -8.4 % (+6.6), Smeets
     # -0.028 and -0.019, and vdk -21.2 % where the study reads no difference
-    r = protein_contrast(host)
+    r = protein_at_equal_energy(host)
     for k in ("belza_mhp", "belza_hp", "smeets_30", "smeets_120", "vdk"):
         assert near(r[k], PIN["protein"][k]), r
     for k in ("belza_mhp", "belza_hp", "vdk"):
@@ -325,11 +350,12 @@ def test_protein_against_carbohydrate_at_equal_energy(host):
 # --- the fat weight (ruling T2-3): S1228 and S1224 against the hunger nulls -----------------------------------------
 
 def test_the_fat_weight_readings_are_pinned(host):
-    # Ruling T2-3: Task 6 fits W_FAT between S1228 (Melanson 1999: fat's request 61 min after carbohydrate's) and S1224
+    # Ruling T3-3, Task 6's form: Melanson f - c >= 0; Diekmann HF - LF >= 0; Marmonier f - c within the difference
+    # oracle's 1.5x; the fit residual is reported beside them. Ruling T2-3: Task 6 fits W_FAT between S1228 (Melanson 1999: fat's request 61 min after carbohydrate's) and S1224
     # (Marmonier 2000: fat's delay 9 min shorter than carbohydrate's), with the hunger nulls on the other side (S1810,
-    # S1816, S1818, S1830) and S1828 reversed (more hunger after high fat, +0.0694 of the scale on the 6 h mean,
-    # derived). W_FAT is 1 today: Melanson's fat minus carbohydrate reads 0 (-61 from the study), Marmonier's +8 (+17),
-    # Diekmann's HF minus LF +0.0024 (the study's direction, -0.067 from its size)
+    # S1816, S1818, S1830) and S1828 reversed (more hunger after high fat, +6.94 mm on the 6 h mean, 0.0267 of the
+    # scale, derived under ruling 11c-31). W_FAT is 1 today: Melanson's fat minus carbohydrate reads 0 (-61 from the study), Marmonier's +8 (+17),
+    # Diekmann's HF minus LF +0.0024 (the study's direction, -0.024 from its size)
     mel = M.melanson(host)
     mar = M.marmonier(host)
     d = diekmann(host)
@@ -376,18 +402,22 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
     # eight daily sampling points (before and after each meal and the morning exercise; research 03, difference 1) in
     # -64 % to -46 % (S1892, open: +/- 9 points, about one standard error, a labelled design choice). Today -45.08 %
     # on the server path (test_replay_live_energy's twin K), +9.9 points from the study and 0.9 outside the band's
-    # -46 edge. Shape checks, pinned as readings (S1872's figure read; S1892: tolerance +/- 0.05 a design choice): the
-    # post-meal troughs 0.074 / 0.051 / 0.055 (study 0.058 / 0.057 / 0.029; REST 0.085 against the study's 0.271);
-    # pre-breakfast 0.284 on day 1 (REST's own) and 0.170 / 0.182 on days 2-3 (study 0.518 and 0.291 / 0.269); per
-    # day -30.6 / -53.9 / -50.7 % (study -46 / -61 / -65)
+    # -46 edge. Shape checks, relative to REST (ruling T3-1: model HUNGER and the study's VAS / 10 are on different
+    # scales, REST reading 0.085 at the troughs against the study's 0.271): Task 6 asserts BAL / REST at each point,
+    # troughs_rel and pre_breakfast_rel against the figures derived from S1872 (troughs 0.215 / 0.209 / 0.106 over
+    # REST's 2.71 cm; pre-breakfast 1.000 / 0.562 / 0.519 over REST's 5.18 cm), at a tolerance that is a labelled DESIGN
+    # CHOICE (S1892). Today troughs_rel 0.865 / 0.601 / 0.643 and pre_breakfast_rel 1.000 / 0.599 / 0.641 (the
+    # relative shape is the open misfit); the absolute troughs 0.074 / 0.051 / 0.055 and pre-breakfast 0.284 / 0.170 /
+    # 0.182 are pinned as readings only; per day -30.6 / -53.9 / -50.7 % (study -46 / -61 / -65)
     r = surplus_day(host)
     assert near(r["bal"], PIN["karl_bal"]) and near(r["rest"], PIN["karl_rest"]), r
     assert near_all(r["by_day"], PIN["karl_by_day"]), r
     assert near_all(r["troughs"], PIN["karl_troughs"]) and near(r["rest_trough"], PIN["karl_rest_trough"]), r
     assert near_all(r["pre_breakfast"], PIN["karl_pre_breakfast"]), r
     assert near(r["rest_pre_breakfast"], PIN["karl_rest_pre_breakfast"]), r
+    assert near_all(r["troughs_rel"], PIN["karl_troughs_rel"]) and near_all(r["pre_breakfast_rel"], PIN["karl_pre_breakfast_rel"]), r
     assert near(dist(r["bal"], STUDY["karl_bal"]), DIST["karl_bal"]), r
-    for k in ("by_day", "troughs", "pre_breakfast"):
+    for k in ("by_day", "troughs_rel", "pre_breakfast_rel"):
         assert near_all(dist(tuple(r[k]), STUDY["karl_" + k]), DIST["karl_" + k]), (k, r)
 
 
@@ -417,6 +447,14 @@ PIN = {
     'marmonier': (193, 159, 167),
     'melanson': (236, 236),
     'moore': 189,
+    # an unasserted reading: the same meals from a fasted start at 08:00 (P 0, circadian on), as Callahan's oracle reads
+    'fasted_lewis': {'cut20_mean': 0.016920452, 'cut40_mean': 0.034559244,
+                     'cut20_at': [0.019427399, 0.01859706, 0.017138411, 0.015904645, 0.014847414],
+                     'cut40_at': [0.039556205, 0.037906988, 0.035015975, 0.032578985, 0.029439937]},
+    'fasted_tieken': {'solid': ([-0.387232716, -0.33188736, -0.255757347, -0.176111548, -0.092583668], 311),
+                      'liquid': ([-0.450677623, -0.376818804, -0.281881791, -0.189709839, -0.098544313], 313)},
+    'fasted_diekmann': {'hf': ([-0.656995323, -0.619148943, -0.505012345, -0.277079519, -0.044543675], 383),
+                        'lf': ([-0.656995323, -0.636838031, -0.51937268, -0.285577724, -0.047819477], 384)},
     'karl_bal': -45.075541914,
     'karl_by_day': [-30.592975541, -53.938868545, -50.694781657],
     'karl_rest': 0.150347889,
@@ -424,6 +462,8 @@ PIN = {
     'karl_rest_trough': 0.085453764,
     'karl_pre_breakfast': [0.283971775, 0.169994054, 0.182045248],
     'karl_rest_pre_breakfast': 0.283971775,
+    'karl_troughs_rel': [0.865221528, 0.601003248, 0.643218067],
+    'karl_pre_breakfast_rel': [1.0, 0.598630108, 0.641068106],
 }
 DIST = {
     'cut40': 0.017777551,
@@ -437,12 +477,12 @@ DIST = {
     'vdk': -0.212435452,
     'melanson_f_minus_c': -61,
     'marmonier_f_minus_c': 17,
-    'diekmann_hf_minus_lf': -0.067046143,
+    'diekmann_hf_minus_lf': -0.024311101,
     'marmonier': (133, 125, 142),
     'melanson': (171, 110),
     'moore': -88,
     'karl_bal': 9.924458086,
     'karl_by_day': (15.407024459, 7.061131455, 14.305218343),
-    'karl_troughs': (0.015936436, -0.00564201, 0.025965405),
-    'karl_pre_breakfast': (-0.234028225, -0.121005946, -0.086954752),
+    'karl_troughs_rel': (0.650221528, 0.392003248, 0.537218067),
+    'karl_pre_breakfast_rel': (0.0, 0.036630108, 0.122068106),
 }
