@@ -1,7 +1,7 @@
 # Gut satiety harvest 13: surplus and repeated meals (Plan 11g Task 1, Step 3)
 
 Harvester: claude-opus-5-5, 2026-10-12. No tracked file was edited except this page and its part file,
-`13-rows.tsv`. The part file holds 24 rows, provisional ids `S1919`–`S1942`: 21 settled and 3 open.
+`13-rows.tsv`. The part file holds 24 rows, provisional ids `S1871`–`S1894`: 21 settled and 3 open.
 `python tools/science_check.py --part` reads 0 findings on it. No subagent ran, and no package was installed.
 
 **Scope.** This harvest covers three things:
@@ -42,7 +42,7 @@ Sources: Karl JP et al. 2021, Br J Nutr 126:1571-1584 (doi:10.1017/S000711452100
 
 ### 1.1 The design facts a surplus oracle needs
 
-- **Intake** (Table 1, S1923): REST 10.6, DEF 10.5, BAL 22.7 MJ/d. Macronutrient shares are matched (about
+- **Intake** (Table 1, S1875): REST 10.6, DEF 10.5, BAL 22.7 MJ/d. Macronutrient shares are matched (about
   60/10/30 % carbohydrate/protein/fat).
   - BAL ate 2.14 times REST's absolute food (derived: 22.7 / 10.6).
   - BAL's balance is +18 (sd 20) % against measured TDEE (DLW, n 9).
@@ -54,7 +54,7 @@ Sources: Karl JP et al. 2021, Br J Nutr 126:1571-1584 (doi:10.1017/S000711452100
 - **Sampling.** Ratings were taken on a 10-cm pen-and-paper VAS, eight times a day: before and after breakfast, the
   morning exercise, lunch and dinner. REST is one day of eight ratings; each SUSOPS arm is three days.
 
-### 1.2 The meal-by-meal profile (Suppl. Fig. 1B; S1920)
+### 1.2 The meal-by-meal profile (Suppl. Fig. 1B; S1872)
 
 Suppl. Fig. 1 is vector artwork. I read each series' polyline coordinates from the PDF (PyMuPDF `get_drawings`, already
 installed) and mapped them onto the panel's drawn y-axis (0 at y = 302.38 pt, 10 at y = 191.34 pt). The precision is
@@ -84,7 +84,7 @@ Mean hunger (cm):
   - DEF 4.57, 3.55 and 4.20 cm.
 - **Pre-meal peaks** (mean of the three pre-meal points): REST 5.83 cm; BAL 4.32, 3.00 and 2.78 cm.
 - **BAL pre-breakfast** on days 2 and 3 is 2.91 and 2.69 cm against 5.18 cm on day 1, which is −44 % and −48 %. Day 1's
-  pre-breakfast point equals REST's (both 5.18), because it precedes any surplus.
+  pre-breakfast point equals REST's (both 5.18), presumably because it precedes any surplus (inference).
 
 **What the profile shows (inference).**
 - **The surplus deepens the troughs.** BAL post-meal hunger sits at 0.1–1.0 cm, 1–10 % of the scale, against REST's
@@ -92,10 +92,10 @@ Mean hunger (cm):
   model bottoms out near 0.08 (spec § 1).
 - **It lowers the peaks.** Pre-meal BAL hunger is 25–60 % below REST.
 - **It carries overnight.** Days 2–3 open at about half of day 1's pre-breakfast hunger. That carry-over makes the
-  suppression grow day on day, as Suppl. Table 1 shows (S1921): hunger, BAL against REST, d = 0.75, 1.06, 1.15, with
+  suppression grow day on day, as Suppl. Table 1 shows (S1873): hunger, BAL against REST, d = 0.75, 1.06, 1.15, with
   condition × day P = 0.02.
 
-### 1.3 Regression on energy balance (Table 2; S1919)
+### 1.3 Regression on energy balance (Table 2; S1871)
 
 Hunger change against REST = −26.8 % + (−1.1) × energy balance (%).
 - n 9; P = 0.004 for the slope and P = 0.02 for the intercept.
@@ -108,7 +108,7 @@ Hunger change against REST = −26.8 % + (−1.1) × energy balance (%).
 already sit about 27 % below the sedentary day. So roughly half of BAL's −55 % comes from the large absolute intake at
 high turnover, and the rest from the surplus.
 
-### 1.4 Gastric emptying and hormones (S1922, S1924)
+### 1.4 Gastric emptying and hormones (S1874, S1876)
 
 - **Gastric emptying (SmartPill, swallowed after breakfast, then the normal schedule).** Median GET: REST 182 min,
   DEF 222, BAL 612 min.
@@ -130,16 +130,16 @@ high turnover, and the rest from the surplus.
 
 | study | surplus, days | hunger reading | row |
 |---|---|---|---|
-| Hägele 2019 | +25 %, 1 day per condition, at PAL 1.3/1.6/1.8 | 15-h hunger AUC −26 %, −25 %, −26 % against zero balance (derived) | S1930 |
-| Thomas 2013 | +40 %, 1 day | next-morning fasting hunger 67.8 → 51.5 mm, −24 % (derived) | S1926 |
-| Halliday 2020 | +40 %, 3 days | daily pre-meal hunger −23 % (OP) and −21 % (OR) (derived from Fig. 2B) | S1928 |
-| Cornier 2004 | +50 %, 3 days | pre-meal hunger, thin 68 → 41 mm (−40 %, derived); reduced-obese 63 → 65 (n.s.) | S1925 |
-| Cornier 2007 | +30 %, 2 days | lower hunger, higher satiety (direction only) | S1931 |
-| Johnstone 1996 | +0.6 × RMR, 1 day, by macronutrient | protein more satiating on the day; no next-day intake effect | S1932 |
-| Levitsky 2005 | +35 %, 13 days | intake afterwards back to baseline "immediately" (no hunger ratings) | S1933 |
-| Wadden 2012 / Cahill 2011 | +70 %, 7 days | fasting acylated ghrelin +62.14 ng/L; fasting PYY up (no ratings) | S1934, S1935 |
+| Hägele 2019 | +25 %, 1 day per condition, at PAL 1.3/1.6/1.8 | 15-h hunger AUC −26 %, −25 %, −26 % against zero balance (derived) | S1882 |
+| Thomas 2013 | +40 %, 1 day | next-morning fasting hunger 67.8 → 51.5 mm, −24 % (derived) | S1878 |
+| Halliday 2020 | +40 %, 3 days | daily pre-meal hunger −23 % (OP) and −21 % (OR) (derived from Fig. 2B) | S1880 |
+| Cornier 2004 | +50 %, 3 days | pre-meal hunger, thin 68 → 41 mm (−40 %, derived); reduced-obese 63 → 65 (n.s.) | S1877 |
+| Cornier 2007 | +30 %, 2 days | lower hunger, higher satiety (direction only) | S1883 |
+| Johnstone 1996 | +0.6 × RMR, 1 day, by macronutrient | protein more satiating on the day; no next-day intake effect | S1884 |
+| Levitsky 2005 | +35 %, 13 days | intake afterwards back to baseline "immediately" (no hunger ratings) | S1885 |
+| Wadden 2012 / Cahill 2011 | +70 %, 7 days | fasting acylated ghrelin +62.14 ng/L; fasting PYY up (no ratings) | S1886, S1887 |
 
-### 2.1 Hägele 2019: the cleanest single-day surplus (S1930)
+### 2.1 Hägele 2019: the cleanest single-day surplus (S1882)
 
 The design is 16 adults in a metabolic chamber.
 - Each day is CR (75 %), zero EB or OF (125 %) of the requirement, measured in the ad libitum condition.
@@ -156,7 +156,7 @@ Table 2 hunger (mm × 15 h), low / medium / high turnover:
 
 **Derived:**
 - OF against EB: −26.3 %, −25.3 % and −25.9 %. That is about −1.0 % of hunger per % of surplus, the same as Karl's
-  slope of −1.1 (S1919).
+  slope of −1.1 (S1871).
 - High against low turnover at zero EB: 409 / 559, which is −26.8 %. The more food eaten at balance under more
   activity, the less hunger, and the size matches Karl's zero-balance intercept of −26.8 %.
 - Fullness, OF against EB: +32.5 %, +27.8 % and +23.8 %.
@@ -165,7 +165,7 @@ The table tests turnover within each balance condition, not OF against EB, so th
 tested. The paper was read through two independent passes of the publisher page; direct download is behind a bot
 wall. The OF low-turnover SD (347) is as printed.
 
-### 2.2 Thomas 2013: carry-over to the next morning, and the meal's increment (S1926, S1927)
+### 2.2 Thomas 2013: carry-over to the next morning, and the meal's increment (S1878, S1879)
 
 After one day at +40 %, fasting hunger the next morning (at least 10 h fasted) fell from 67.8 to 51.5 mm. A test
 breakfast sized at 25 % of the previous day's diet (so 40 % larger after OF) followed. Its 180-min hunger AUC was
@@ -173,11 +173,11 @@ breakfast sized at 25 % of the previous day's diet (so 40 % larger after OF) fol
 phase, suggesting that the differences in total AUC were driven by the differences in fasting ratings."
 
 **Inference.** A 40 % bigger meal on top of a sated state did not produce a measurably bigger hunger drop. That points
-to a saturating read: added gut load buys less on a full gut. Marmonier 2002 (S1939) agrees: a snack eaten in a
+to a saturating read: added gut load buys less on a full gut. Marmonier 2002 (S1891) agrees: a snack eaten in a
 non-hungry state "has poor satiating efficiency irrespective of its composition" (a high-carbohydrate snack did not
 delay dinner).
 
-### 2.3 Halliday 2020: three days, then release (S1928, S1929)
+### 2.3 Halliday 2020: three days, then release (S1880, S1881)
 
 - **During OF.** "OF decreased pre-meal hunger and PFC and increased post-meal satiety similarly in both groups during
   days 5-7". Fig. 2B pre-meal hunger, EU against OF:
@@ -196,7 +196,7 @@ multi-day store does not hold it.
 ### 2.4 Longer and free-living
 
 - **Levitsky 2005.** After 13 days at +35 %, intake returned "immediately" to baseline.
-- **De Castro 1998 (S1936).** In free-living diaries, one day's intake relates weakly to the next day's (r = −0.07) and
+- **De Castro 1998 (S1888).** In free-living diaries, one day's intake relates weakly to the next day's (r = −0.07) and
   more to the second day's (r = −0.18).
 - **Johnstone 1996 and 1998.** A one-day overfeed did not change the next day's ad libitum intake. The 1998 study
   (monoglyceride against triglyceride) has no maintenance-against-overfeed hunger contrast in its abstract, so no row
@@ -212,14 +212,14 @@ multi-day store does not hold it.
 ## 3. Satiety across a day's meals
 
 **At balance there is no build-up within the day (inference from four sources).**
-- **Karl's REST day (S1920).**
+- **Karl's REST day (S1872).**
   - Pre-meal hunger: 5.18 (breakfast), 7.04 (lunch), 5.26 cm (dinner).
   - Post-meal: 2.25, 2.35, 3.53 cm. Post-dinner is the highest.
 - **De Castro 1987 (S1277).** "humans obtain less satiety from a given amount of food later in the day than earlier".
 - **Scheer (S1273).** The circadian rhythm raises evening hunger.
 - **Ohkawara (S1608).** More frequent isoenergetic meals raise 24-h hunger AUC.
 
-**The next meal largely resets the previous one (Thomas 2015, S1937).**
+**The next meal largely resets the previous one (Thomas 2015, S1889).**
 - A 25 %-of-day breakfast lowered pre-lunch hunger AUC from 158 to 88.2 cm × 240 min, −44 % over the whole sample
   (derived: cell means averaged over the two groups of 9). The Table 3 estimate of −51.1 (P < .0001) is the skippers'
   contrast under a significant day × group interaction, not the whole sample's:
@@ -230,7 +230,7 @@ multi-day store does not hold it.
 - Post-lunch satiety AUC stayed higher by 31.5 (P = 0.005) in the skippers (174 against 143, derived), but not in
   the eaters (162 against 163): the interaction is −32.5 (P = 0.029). The eaters' satiety returned to equal, which
   supports the reading that the next meal resets the previous one.
-- Astbury 2011 (S1938): a 10 %-of-day breakfast lowered lunch intake by about 17 %.
+- Astbury 2011 (S1890): a 10 %-of-day breakfast lowered lunch intake by about 17 %.
 - Levitsky and Pacanowski (S1612): a 335–360 kcal breakfast did not change lunch intake.
 
 **Under a surplus, the carry-over grows and reaches the next morning.**
@@ -253,7 +253,7 @@ G mostly clears before the next. Under large or frequent meals, G never empties 
 2. **Overfeeding of 1–14 days.**
    - It lowers hunger by about 1 % per 1 % of surplus over a day: Hägele −26 % at +25 % (derived), and Karl's slope
      −1.1 %/%.
-   - Pre-meal and fasting readings fall less per % of surplus: −21 % to −24 % at +40 % (Thomas 2013, Halliday 2020).
+   - Pre-meal and fasting readings fall less per % of surplus (inference from the studies' different designs): −21 % to −24 % at +40 % (Thomas 2013, Halliday 2020).
      The exception is Cornier 2004's thin group, −40 % at +50 %.
    - Reduced-obese adults showed no fall (Cornier 2004).
    - The effect clears within about a day of the surplus ending (Halliday 2020; Levitsky 2005).
@@ -265,7 +265,7 @@ G mostly clears before the next. Under large or frequent meals, G never empties 
 ## 5. The figure a G model must hit
 
 - **Target.** −55 % mean hunger, BAL against REST (S1325). The tolerance (inference) is ±9 points, which is one
-  standard error from the reported CI (derived: (73 − 38) / (2 × 1.96) = 8.9). The acceptance band is −46 % to −64 %.
+  standard error from the reported CI (derived: (73 − 38) / (2 × 1.96) = 8.9; from n 10 and sd 25 the SE is 7.9, so ±9 is about 1.1 SE — a labelled design choice, S1892, citation review 13). The acceptance band is −46 % to −64 %.
   - Today's model reads −45 %, just outside the band. That matches the spec's diagnosis.
   - The full 95 % CI (−73 to −38) is too wide to discriminate.
 - **Sampling.** The oracle should average the model at the study's eight sampling points: before and after each
@@ -275,7 +275,7 @@ G mostly clears before the next. Under large or frequent meals, G never empties 
   - **REST** in the oracle should be one sedentary day at 10.6 MJ/d.
   - **BAL** should be 22.7 MJ/d at about 20 MJ/d TDEE, with three meal times matched to REST. The snack schedule is
     not given and is a design choice.
-- **Shape checks** (secondary, inference, open row S1940):
+- **Shape checks** (secondary, inference, open row S1892):
   - BAL post-meal troughs about 0.05 on a 0–1 scale (0.48 cm mean; per day 0.58, 0.57, 0.29), against REST 0.27;
   - BAL pre-breakfast on days 2–3 about 0.28, against 0.52 on day 1;
   - per-day suppression growing from about −46 % to −65 %.
@@ -286,9 +286,9 @@ G mostly clears before the next. Under large or frequent meals, G never empties 
 - Karl 2021: meal and snack counts per arm, the clock times of the eight ratings, and per-meal energy. The SEMs in
   Suppl. Fig. 1 were not read. Suppl. Table 3 (hormone concentrations) was not read.
 - **Any study rating hunger hourly through the 12–36 h after a surplus ends.** The decay is bounded only by Thomas 2013
-  (still −24 % after at least 10 h) and Halliday 2020 (back to EU on the ad libitum days). Open row S1941.
+  (still −24 % after at least 10 h) and Halliday 2020 (back to EU on the ad libitum days). Open row S1893.
 - **Any study giving graded first-meal sizes with hunger sampled after the second and third meals.** It would give the
-  meal-on-meal carry-over fraction; only Thomas 2015's one pair was found. Open row S1942.
+  meal-on-meal carry-over fraction; only Thomas 2015's one pair was found. Open row S1894.
 - Full texts not reached:
   - Cornier 2004, Cornier 2007, Johnstone 1996, Levitsky 2005, Cahill 2011 and Astbury 2011 (read from the abstract only;
     no full text was sought);
@@ -334,29 +334,29 @@ G mostly clears before the next. Under large or frequent meals, G never empties 
 
 | id | study | what |
 |---|---|---|
-| S1919 | Karl 2021 | Table 2 regression on balance |
-| S1920 | Karl 2021 | Suppl. Fig. 1B profile (vector read) |
-| S1921 | Karl 2021 | Suppl. Table 1 day-by-day effect sizes |
-| S1922 | Karl 2021 | gastric emptying time (topic `digestion`) |
-| S1923 | Karl 2021 | Table 1 intake and expenditure |
-| S1924 | Karl 2021 | hormones, BAL against DEF |
-| S1925 | Cornier 2004 | 3 d +50 %, thin against reduced-obese |
-| S1926 | Thomas 2013 | fasting hunger after 1 d +40 % |
-| S1927 | Thomas 2013 | test-breakfast AUC; increment null |
-| S1928 | Halliday 2020 | 3 d +40 % VAS, then ad libitum |
-| S1929 | Halliday 2020 | ad libitum intake, PYY, ghrelin |
-| S1930 | Hägele 2019 | 15-h AUC by balance and turnover |
-| S1931 | Cornier 2007 | 2 d +30 % (direction) |
-| S1932 | Johnstone 1996 | macronutrient overfeed day |
-| S1933 | Levitsky 2005 | 13 d +35 %, then intake |
-| S1934 | Wadden 2012 | fasting ghrelin, 7 d +70 % |
-| S1935 | Cahill 2011 | fasting PYY, 7 d +70 % |
-| S1936 | de Castro 1998 | day-lagged intake autocorrelation |
-| S1937 | Thomas 2015 | breakfast, pre- and post-lunch hunger |
-| S1938 | Astbury 2011 | breakfast, preload appetite, lunch intake |
-| S1939 | Marmonier 2002 | snack in a sated state |
-| S1940 | open | the surplus-day target and its tolerance |
-| S1941 | open | the clearance time of surplus suppression |
-| S1942 | open | meal-on-meal carry-over fraction |
+| S1871 | Karl 2021 | Table 2 regression on balance |
+| S1872 | Karl 2021 | Suppl. Fig. 1B profile (vector read) |
+| S1873 | Karl 2021 | Suppl. Table 1 day-by-day effect sizes |
+| S1874 | Karl 2021 | gastric emptying time (topic `digestion`) |
+| S1875 | Karl 2021 | Table 1 intake and expenditure |
+| S1876 | Karl 2021 | hormones, BAL against DEF |
+| S1877 | Cornier 2004 | 3 d +50 %, thin against reduced-obese |
+| S1878 | Thomas 2013 | fasting hunger after 1 d +40 % |
+| S1879 | Thomas 2013 | test-breakfast AUC; increment null |
+| S1880 | Halliday 2020 | 3 d +40 % VAS, then ad libitum |
+| S1881 | Halliday 2020 | ad libitum intake, PYY, ghrelin |
+| S1882 | Hägele 2019 | 15-h AUC by balance and turnover |
+| S1883 | Cornier 2007 | 2 d +30 % (direction) |
+| S1884 | Johnstone 1996 | macronutrient overfeed day |
+| S1885 | Levitsky 2005 | 13 d +35 %, then intake |
+| S1886 | Wadden 2012 | fasting ghrelin, 7 d +70 % |
+| S1887 | Cahill 2011 | fasting PYY, 7 d +70 % |
+| S1888 | de Castro 1998 | day-lagged intake autocorrelation |
+| S1889 | Thomas 2015 | breakfast, pre- and post-lunch hunger |
+| S1890 | Astbury 2011 | breakfast, preload appetite, lunch intake |
+| S1891 | Marmonier 2002 | snack in a sated state |
+| S1892 | open | the surplus-day target and its tolerance |
+| S1893 | open | the clearance time of surplus suppression |
+| S1894 | open | meal-on-meal carry-over fraction |
 
 No new topic slug is requested: the rows use `satiety` and `digestion`.

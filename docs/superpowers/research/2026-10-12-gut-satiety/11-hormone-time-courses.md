@@ -1,7 +1,7 @@
 # Hormone and hunger time courses after meals of known size and composition (Plan 11g Task 1, harvest 11)
 
 Harvester: claude-opus-5-5, 2026-10-12. No tracked file was edited except this page and its part file,
-`11-rows.tsv` (41 rows, ids S1799–S1839 from the reserved block S1799–S1858; 40 settled, 1 open). No subagent ran.
+`11-rows.tsv` (41 rows filed; 40 after the citation review dropped one duplicate, minted as S1799–S1838). No subagent ran.
 `python tools/science_check.py --part 11-rows.tsv` reads 0 findings.
 
 **The question.** The satiety model is replacing the meal pool P (fed in full at the eat, half-life 0.7 game h)
@@ -166,7 +166,7 @@ about a 40 % step (about 245–315 kcal) and not at a 20 % step (about 120–160
 
 - Hunger reaches its nadir early (15 min, S1833) and then rises steadily. It is back above fasting by 4 h after
   540 kcal of liquid, and still below baseline at 6 h after ~1,000 kcal (S1828).
-- The return of hunger correlates with the time for 90 % of the meal to empty (r = 0.75, S1860). In three of ten
+- The return of hunger correlates with the time for 90 % of the meal to empty (r = 0.75, S1840). In three of ten
   subjects it starts to rise while over 40 % of the meal is still in the stomach, and keeps rising after emptying has stopped.
 - Spontaneous meal requests come 247–321 min after preloads of 7.5–33 % of daily expenditure (S1247), and
   320–425 min after a lunch (S1248).
@@ -273,7 +273,7 @@ about a 40 % step (about 245–315 kcal) and not at a 20 % step (about 120–160
 **Not found or not read.**
 - Tabulated hunger values at fixed timepoints for three or more meal sizes of one composition. Lewis 2015 and
   the Parastika preprint give them in figures only; de Graaf 1992 gives them in words. Filed as the open row
-  S1839.
+  S1838.
   - The tool that would fill it is a figure digitiser such as WebPlotDigitizer, on Lewis 2015 Figure 5. Nothing
     was installed.
 - The full texts of Gibbons 2013 (OUP bot wall), le Roux 2005 and 2006, Belza 2013, Blom 2006 (AJCN), Smeets
@@ -315,5 +315,5 @@ about a 40 % step (about 245–315 kcal) and not at a 20 % step (about 120–160
 | S1835 | Martens 2011 | § 5 |
 | S1836 | Santangelo 1998 | § 5 |
 | S1837 | Juvonen 2011 | § 5 |
-| S1860 | Sepple & Read 1989 | § 6 |
-| S1839 (open) | tabulated hunger at three meal sizes | § 9 |
+| S1840 | Sepple & Read 1989 | § 6 |
+| S1838 (open) | tabulated hunger at three meal sizes | § 9 |
