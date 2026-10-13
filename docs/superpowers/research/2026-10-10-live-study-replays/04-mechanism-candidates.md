@@ -2,7 +2,7 @@
 
 Angus, 2026-10-10: "As we try to see if the actual observable effects and timings match what we find in studies, keep an eye out for if simulating something else would potentially even simplify getting to an accurate output or otherwise just make it noteably more accurate with it, something to note and think on as you proceed and report".
 
-This is a running list, kept by the controller through Plan 11f and Plan 11g. Each entry records:
+This is a running list, kept by the controller through Plan 11f, Plan 11g and Plan 11h. Each entry records:
 - **Seen:** what was observed;
 - **Candidate:** what simulating it would replace or improve;
 - **Evidence:** the evidence it would rest on;
@@ -37,6 +37,11 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
   - It removes the twin-billing sensitivity and the non-vigorous overshoot.
   - It is simpler: one curve, not a class bar plus a ramp.
 - **Evidence:** the acute-exercise appetite meta-analyses already in the register (S1500, S1502 and others), which report intensity effects.
+- **Status: built in Plan 11h, in a narrower form** (spec `docs/superpowers/specs/2026-10-13-exercise-grading-design.md`; Angus, 2026-10-13: general or moderate intensity):
+  - **What was built:** each Fitness set minute bills its exercise's own MET from `K.energy.EXERCISE_MET`, the 2024 Compendium's general or moderate codes (S1895-S1903): squats 3.0, push-ups and sit-ups 3.8, the three weight exercises 3.5, burpees 7.5. The type comes from a server wrapper of `ISFitnessAction.serverStart` and `serverStop` (`NR_Server_Fitness.lua`, 7df9f6b9 and 328ffe22). A set with no recorded or no known type bills the flat 6.0 and is counted (`exeFallbacks`). The training model reads the recorded type first.
+  - **What stayed binary:** the acute suppression. Resistance work suppresses hunger regardless of load (S1508, S1509, S1301), so every set minute is resistance-vigorous from the exercise flag, before any MET test and whatever its bill, with an asleep guard (ruling T2-1). The 6.0 bar stays for aerobic work, and the exercise bypass is unchanged. So a light set costs less but suppresses hunger as before; the continuous intensity curve this entry proposed was not built.
+  - **Measured:** live runs x371 and x372 (Plan 11h Task 4) recorded each of the seven types and billed every flagged drain of a timer-ended set at its table MET, with no fallback; the replay matched the live bill. Two candidates followed, C-30 and C-31.
+  - **What it moved:** no oracle (Plan 11h Task 3): no study arm carries a Fitness minute.
 
 ## C-3: absorption-timed versus ingestion-timed energy for the deficit signal
 - **Seen:**
@@ -168,6 +173,19 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Status: not a defect; named a limitation** (ruling T8-1, `a24436a9`: a writer limitation with an equivalence test). An empty window reads exactly as one seeded at balance and spread evenly over its first 24 h, since eb24h(t) = -ee_rate x t in both, and a spawn's 8.4 h unfed sits inside a skipped-meal range (about 5-18 h). No oracle covers a fresh record's first day, because every oracle warms up first.
 - **The inconsistency left:** M seeds from vanilla HUNGER (a recently fed body), while the window reads an even eater.
 - **Candidate (Angus's choice at the close):** a lumped seed, placing the M seed's equivalent kcal in the window's current hour. Downsides: fictitious kcal reach the legacy calorie mirror, the energy state reads below 1 for the first hours, and a step comes at 24 h.
+
+## C-30: bill a set no longer than its asked length
+- **Seen (x372, Plan 11h Task 4, F-2 and F-5):** a squats set the harness's queue clear and a queued walk left running kept the server's exercise flag set for 44.56 game minutes past the stop, past its own 20-minute ask, until the client quit. Every drain billed squats' 3.0. The queued walk's `StartAction` cleared the character's action stack without calling `stop()`, so the set was orphaned (the Task 4 review's finding 1).
+- **Candidate:** the wrapper also records the action's `timeToExe` and `endMS`, and a flagged minute past `endMS` plus a slack bills idle and counts a new counter.
+- **Gain:** no runaway exercise bill when vanilla leaves the flag set.
+- **Downsides:** `endMS` is on the client's game calendar, and x35's sets ran 1.2 to 2.5 times their ask under the timer, so the slack must be wide and a legitimate overrun is cut.
+- **Ruling T4-1: not built.** The exposure needs another mod or a modified client: a disconnect or a crash ends the set (the Task 4 review). The server never ends a set itself, and a cap would part the bill from vanilla's server-side reps and endurance, which keep running. The runaway is named a limitation instead: a set the client abandons without a stop bills its type until the client disconnects (an open-questions decision, and owed as a limitation line in `NR_Server_Fitness`).
+
+## C-31: a harness command that stops a started action
+- **Seen (x372):** the movement end case was not reached. The harness's `player.stop` runs vanilla's `clearQueue`, which force-cancels only actions not yet started, so it never stops a started set. The harness has no movement key press. The same wall left X33's cancelled eats unmeasured (#2834), and the Plan 11h audit found earlier drivers' started walks running on past the stop in 10 of 19 windows (rulings T4-3, T4-4).
+- **Candidate (the harness, not the mod):** a bus command that stops the current action the way vanilla does, through `ISTimedActionQueue.clear` (which calls `StopAllActionQueue`, whose `stop()` reaches `serverStop`), or through the action's `forceStop`, which the movement press calls.
+- **Gain:** the movement end and a cancelled eat become measurable, and a driver can close an idle window cleanly.
+- **Ruling T4-2:** the movement end is recorded meanwhile as inference on the timer end, whose server route is the same three calls (`ISFitnessAction.lua:39-43` and `:45-49`) and which cleared the record on 7 of 7 sets. The real cancel path joins Plan 11b's live acceptance, with the command added there. Future drivers stop through `ISTimedActionQueue.clear` or wait for the server's moving flag (a lessons rule now).
 
 ## Decisions (Angus, 2026-10-13)
 - **C-27:** left as is. The hunger nadir stays at minute 1 after an eat, a named miss against the studies' 15 minutes.
