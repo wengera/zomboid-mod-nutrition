@@ -86,8 +86,8 @@ TK.register("player.stop", function()
     local p = getPlayer()
     if not p then return "no local player" end
     local out = {}
-    -- There is no ISTimedActionQueue.clear; the queue object is fetched and cleared
-    -- (ISTimedActionQueue.lua:148 / :46).
+    -- clearQueue wipes the Lua queue only (ISTimedActionQueue.lua:148 / :46); an action already started keeps
+    -- running (ISTimedActionQueue.clear at :236 would stop it; not used, so frozen drivers keep their meaning).
     if ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue then
         local ran, err = pcall(function()
             ISTimedActionQueue.getTimedActionQueue(p):clearQueue()
