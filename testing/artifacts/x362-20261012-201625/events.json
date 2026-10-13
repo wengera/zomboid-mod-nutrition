@@ -1,0 +1,232 @@
+[
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_12_0",
+  "s": 110
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_12_1",
+  "s": 113
+ },
+ {
+  "age": 7.357779502868652,
+  "autoDrop": 0.10002153544395131,
+  "g": 200.04307088790262,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 243
+ },
+ {
+  "age": 8.67247486114502,
+  "autoDrop": 0.10064967624433474,
+  "g": 201.29935248866948,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 322
+ },
+ {
+  "age": 9.987197875976562,
+  "autoDrop": 0.10027608440485991,
+  "g": 200.55216880971983,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 401
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "D0_18_0",
+  "s": 470
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "D0_18_1",
+  "s": 473
+ },
+ {
+  "age": 13.436895370483398,
+  "autoDrop": 0.10070179663791468,
+  "g": 201.40359327582934,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 608
+ },
+ {
+  "age": 14.752143859863281,
+  "autoDrop": 0.10031861055381841,
+  "g": 200.63722110763683,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 687
+ },
+ {
+  "age": 16.067249298095703,
+  "autoDrop": 0.10016745558207663,
+  "g": 200.33491116415325,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 766
+ },
+ {
+  "age": 17.394269943237305,
+  "autoDrop": 0.10004955638331248,
+  "g": 200.09911276662496,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 845
+ },
+ {
+  "age": 18.709117889404297,
+  "autoDrop": 0.10006591843359669,
+  "g": 200.13183686719339,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 924
+ },
+ {
+  "age": 20.02412986755371,
+  "autoDrop": 0.10007997329435026,
+  "g": 200.1599465887005,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1003
+ },
+ {
+  "age": 21.33895492553711,
+  "autoDrop": 0.10070614356379015,
+  "g": 201.4122871275803,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1082
+ },
+ {
+  "age": 22.65329933166504,
+  "autoDrop": 0.10029943585830281,
+  "g": 200.59887171660563,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1161
+ },
+ {
+  "age": 23.967269897460938,
+  "autoDrop": 0.1001314400032789,
+  "g": 200.2628800065578,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1240
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_07_0",
+  "s": 1249
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_07_1",
+  "s": 1253
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_07_2",
+  "s": 1256
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_07_3",
+  "s": 1258
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_07_4",
+  "s": 1261
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_07_5",
+  "s": 1264
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_12_0",
+  "s": 1550
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_12_1",
+  "s": 1554
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_12_2",
+  "s": 1556
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_12_3",
+  "s": 1559
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_12_4",
+  "s": 1562
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_12_5",
+  "s": 1564
+ },
+ {
+  "age": 34.40727233886719,
+  "autoDrop": 0.10058968628699672,
+  "g": 201.17937257399342,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1866
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_18_0",
+  "s": 1910
+ },
+ {
+  "food": "TKX.Mixed650",
+  "kind": "eat",
+  "label": "S1_18_1",
+  "s": 1914
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_18_2",
+  "s": 1917
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_18_3",
+  "s": 1920
+ },
+ {
+  "food": "TKX.Unit50",
+  "kind": "eat",
+  "label": "S1_18_4",
+  "s": 1923
+ }
+]

@@ -1,0 +1,43 @@
+[
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "W500",
+  "litres": 0.1875,
+  "s": 57
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "W500",
+  "litres": 0.1875,
+  "s": 58
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "W500",
+  "litres": 0.125,
+  "s": 59
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MILK",
+  "litres": 0.34375,
+  "s": 113
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MILK",
+  "litres": 0.15625,
+  "s": 114
+ },
+ {
+  "food": "TKX.MilkSolid",
+  "kind": "eat",
+  "label": "SOLID",
+  "s": 292
+ }
+]

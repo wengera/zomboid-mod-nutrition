@@ -1,0 +1,5 @@
+{"params": {"deficit.BALANCE_SPAN_KCAL": [3970.55],
+            "deficit.DEFICIT_FLOOR": [0],
+            "deficit.EX_BYPASS_LO": [0.282],
+            "deficit.EX_BYPASS_HI": [0.3693, 0.372, 0.374759, 0.38, 0.39, 0.40, 0.41, 0.42, 0.43, 0.44, 0.45]},
+ "refine": {"rounds": 0}}

@@ -1,0 +1,10 @@
+{"params": {
+  "G_HALF_LIFE_H": [0.35, 0.6, 1.0, 1.6],
+  "G_REQ": [40, 120, 360],
+  "G_STEEP": [0.02, 0.04],
+  "FULL_WEIGHT": [0.45, 0.55, 0.65],
+  "W_PROTEIN": [1.0, 1.5, 2.5],
+  "W_FAT": [0.4, 0.7, 1.0, 1.4],
+  "PROTEIN_FILL": [4, 8, 12],
+  "LIQUID_WEIGHT": [0.2]},
+ "refine": {"rounds": 8, "factor": 1.25}}

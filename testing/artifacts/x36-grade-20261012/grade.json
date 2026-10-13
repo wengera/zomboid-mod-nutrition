@@ -1,0 +1,4647 @@
+{
+ "commit": "3704f9e0",
+ "lib_commit": "3704f9e0",
+ "replay_tool_commit": "80af8292",
+ "script": "testing/experiments/x36_grade.py",
+ "sessions": {
+  "x361": {
+   "determinism": {
+    "compared": 669,
+    "max_abs_HUNGER": 0
+   },
+   "diff": {
+    "classes": {
+     "between": 2,
+     "gap": 0,
+     "offline": 6,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0001007167628699901,
+      "n": 660,
+      "over": 0,
+      "worst_s": 713
+     },
+     "body.energyState": {
+      "max": 0.00038885489839191045,
+      "n": 660,
+      "over": 0,
+      "worst_s": 713
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 660,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "events": 2,
+   "grade": {
+    "classes": {
+     "between": 2,
+     "gap": 0,
+     "offline": 6,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0001007167628699901,
+      "n": 660,
+      "over": 0,
+      "worst_s": 713
+     },
+     "body.energyState": {
+      "max": 0.00038885489839191045,
+      "n": 660,
+      "over": 0,
+      "worst_s": 713
+     },
+     "foodFill": {
+      "max": 9.328411154641003e-09,
+      "n": 660,
+      "over": 0,
+      "worst_s": 213
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 660,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.M": {
+      "max": 0.0,
+      "n": 660,
+      "over": 0,
+      "worst_s": null
+     },
+     "stomach.buffer.calories": {
+      "max": 0.0,
+      "n": 660,
+      "over": 0,
+      "worst_s": null
+     },
+     "stomachFill": {
+      "max": 9.328411154641003e-09,
+      "n": 660,
+      "over": 0,
+      "worst_s": 213
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "readings": {
+    "courses": {
+     "C400": {
+      "a0": 11.050237655639648,
+      "a1": 15.085641860961914,
+      "capped": false,
+      "diff": {
+       "classes": {
+        "between": 0,
+        "gap": 0,
+        "offline": 0,
+        "suspect": 0
+       },
+       "fields": {
+        "HUNGER": {
+         "max": 9.850879027728521e-05,
+         "n": 242,
+         "over": 0,
+         "worst_s": 706
+        },
+        "body.energyState": {
+         "max": 0.0003843015359545898,
+         "n": 242,
+         "over": 0,
+         "worst_s": 706
+        },
+        "foodFill": {
+         "max": 3.5866848380194938e-09,
+         "n": 242,
+         "over": 0,
+         "worst_s": 465
+        },
+        "satiety.L": {
+         "max": 0.0,
+         "n": 242,
+         "over": 0,
+         "worst_s": null
+        },
+        "satiety.M": {
+         "max": 0.0,
+         "n": 242,
+         "over": 0,
+         "worst_s": null
+        },
+        "stomach.buffer.calories": {
+         "max": 0.0,
+         "n": 242,
+         "over": 0,
+         "worst_s": null
+        },
+        "stomachFill": {
+         "max": 3.5866848380194938e-09,
+         "n": 242,
+         "over": 0,
+         "worst_s": 465
+        }
+       },
+       "findings": [],
+       "findings_n": 0,
+       "ok": true
+      },
+      "food": "TKX.Mixed400",
+      "landing_s": 464,
+      "minutes": 242.12425231933594,
+      "nadir": {
+       "live": {
+        "HUNGER": 0.14573612809181213,
+        "minute": 1.0103988647460938
+       },
+       "replay": {
+        "HUNGER": 0.1457022157871882,
+        "minute": 1.0103988647460938
+       }
+      },
+      "ok": true,
+      "request": {
+       "diff_min": 0.0,
+       "live_min": 215.12672424316406,
+       "ok": true,
+       "replay_min": 215.12672424316406,
+       "tol_min": 4.302534484863282
+      },
+      "series": [
+       {
+        "HUNGER": 0.052567169070243835,
+        "HUNGER_replay": 0.2525085693335189,
+        "body.energyState": 1.027119419082618,
+        "body.energyState_replay": 1.0268810645894382,
+        "foodFill": 0.5646011339283835,
+        "foodFill_replay": 0.10356612169763803,
+        "minute": 0.0,
+        "satiety.M": 478.22912258185585,
+        "satiety.M_replay": 5.344304608130868,
+        "stomach.buffer.calories": 512.4783982837832,
+        "stomach.buffer.calories_replay": 112.47839828378324,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.10356612007632937,
+        "stomachFill_replay": 0.10356612169763803
+       },
+       {
+        "HUNGER": 0.15358618208616848,
+        "HUNGER_replay": 0.15354908439426962,
+        "body.energyState": 1.0254250537585028,
+        "body.energyState_replay": 1.0251774103977964,
+        "foodFill": 0.5234584398829345,
+        "foodFill_replay": 0.5234584365412775,
+        "minute": 15.0,
+        "satiety.M": 355.1715794015515,
+        "satiety.M_replay": 355.1715794015515,
+        "stomach.buffer.calories": 475.13390731758943,
+        "stomach.buffer.calories_replay": 475.13390731758943,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.5234584398829344,
+        "stomachFill_replay": 0.5234584365412774
+       },
+       {
+        "HUNGER": 0.1618163540854408,
+        "HUNGER_replay": 0.1617758088249396,
+        "body.energyState": 1.0239080989962526,
+        "body.energyState_replay": 1.0236514996272585,
+        "foodFill": 0.48394874437986796,
+        "foodFill_replay": 0.48394874129043336,
+        "minute": 30.0,
+        "satiety.M": 264.01129074413785,
+        "satiety.M_replay": 264.01129074413785,
+        "stomach.buffer.calories": 439.27166005781015,
+        "stomach.buffer.calories_replay": 439.27166005781015,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.48394874437986796,
+        "stomachFill_replay": 0.48394874129043336
+       },
+       {
+        "HUNGER": 0.16989580667892124,
+        "HUNGER_replay": 0.16985170788104864,
+        "body.energyState": 1.0225563515731069,
+        "body.energyState_replay": 1.0222909540513752,
+        "foodFill": 0.44587115245303643,
+        "foodFill_replay": 0.44587114960668167,
+        "minute": 45.0,
+        "satiety.M": 196.21568460114344,
+        "satiety.M_replay": 196.21568460114344,
+        "stomach.buffer.calories": 404.70930771998894,
+        "stomach.buffer.calories_replay": 404.70930771998894,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.44587115245303643,
+        "stomachFill_replay": 0.4458711496066818
+       },
+       {
+        "HUNGER": 0.17782052165576814,
+        "HUNGER_replay": 0.17777279308999258,
+        "body.energyState": 1.02136435038465,
+        "body.energyState_replay": 1.0210902229560728,
+        "foodFill": 0.4091839781825472,
+        "foodFill_replay": 0.40918397557039626,
+        "minute": 60.0,
+        "satiety.M": 145.81605012736003,
+        "satiety.M_replay": 145.81605012736003,
+        "stomach.buffer.calories": 371.40901273672887,
+        "stomach.buffer.calories_replay": 371.40901273672887,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.4091839781825472,
+        "stomachFill_replay": 0.4091839755703964
+       },
+       {
+        "HUNGER": 0.1855854166888086,
+        "HUNGER_replay": 0.18553396471640698,
+        "body.energyState": 1.0203268028298238,
+        "body.energyState_replay": 1.0200439589724444,
+        "foodFill": 0.3738513648933301,
+        "foodFill_replay": 0.37385136250673573,
+        "minute": 75.0,
+        "satiety.M": 108.36585803257492,
+        "satiety.M_replay": 108.36585803257492,
+        "stomach.buffer.calories": 339.338228642386,
+        "stomach.buffer.calories_replay": 339.338228642386,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.3738513648933301,
+        "stomachFill_replay": 0.3738513625067356
+       },
+       {
+        "HUNGER": 0.19312574710301667,
+        "HUNGER_replay": 0.19307052736217986,
+        "body.energyState": 1.0194448455155722,
+        "body.energyState_replay": 1.0191533356422864,
+        "foodFill": 0.3401029028127742,
+        "foodFill_replay": 0.3401029006416234,
+        "minute": 90.0,
+        "satiety.M": 80.73695077372545,
+        "satiety.M_replay": 80.73695077372545,
+        "stomach.buffer.calories": 308.7053503992153,
+        "stomach.buffer.calories_replay": 308.7053503992153,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.3401029028127742,
+        "stomachFill_replay": 0.34010290064162335
+       },
+       {
+        "HUNGER": 0.2005700654155444,
+        "HUNGER_replay": 0.20051093921248275,
+        "body.energyState": 1.0186978806431382,
+        "body.energyState_replay": 1.0183975821988995,
+        "foodFill": 0.3073083829591106,
+        "foodFill_replay": 0.3073083809973135,
+        "minute": 105.0,
+        "satiety.M": 59.998740626092435,
+        "satiety.M_replay": 59.998740626092435,
+        "stomach.buffer.calories": 278.9383485333936,
+        "stomach.buffer.calories_replay": 278.9383485333936,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.30730838295911067,
+        "stomachFill_replay": 0.30730838099731356
+       },
+       {
+        "HUNGER": 0.20785003078110806,
+        "HUNGER_replay": 0.20778692170476837,
+        "body.energyState": 1.0180889848355217,
+        "body.energyState_replay": 1.0177798314545687,
+        "foodFill": 0.27572251270057035,
+        "foodFill_replay": 0.27572251094041134,
+        "minute": 120.0,
+        "satiety.M": 44.58805698110925,
+        "satiety.M_replay": 44.58805698110925,
+        "stomach.buffer.calories": 250.2684163887845,
+        "stomach.buffer.calories_replay": 250.2684163887845,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.27572251270057035,
+        "stomachFill_replay": 0.27572251094041134
+       },
+       {
+        "HUNGER": 0.21496481404584997,
+        "HUNGER_replay": 0.21489761347371122,
+        "body.energyState": 1.0176130352961716,
+        "body.energyState_replay": 1.0172949510691185,
+        "foodFill": 0.24529825142358025,
+        "foodFill_replay": 0.24529824985764392,
+        "minute": 135.0,
+        "satiety.M": 33.13531168217538,
+        "satiety.M_replay": 33.13531168217538,
+        "stomach.buffer.calories": 222.65285603786086,
+        "stomach.buffer.calories_replay": 222.65285603786086,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.24529825142358028,
+        "stomachFill_replay": 0.24529824985764392
+       },
+       {
+        "HUNGER": 0.22191360938252452,
+        "HUNGER_replay": 0.22184225967738916,
+        "body.energyState": 1.0172651308997425,
+        "body.energyState_replay": 1.0169380388765654,
+        "foodFill": 0.2159907586498077,
+        "foodFill_replay": 0.2159907572709646,
+        "minute": 150.0,
+        "satiety.M": 24.623492627446158,
+        "satiety.M_replay": 24.623492627446158,
+        "stomach.buffer.calories": 196.05096657668653,
+        "stomach.buffer.calories_replay": 196.05096657668653,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.2159907586498077,
+        "stomachFill_replay": 0.21599075727096465
+       },
+       {
+        "HUNGER": 0.2287549716353758,
+        "HUNGER_replay": 0.2286793377707825,
+        "body.energyState": 1.0170391208711362,
+        "body.energyState_replay": 1.0167028583978561,
+        "foodFill": 0.18751269514656596,
+        "foodFill_replay": 0.1875126939495213,
+        "minute": 165.0,
+        "satiety.M": 18.249015612377534,
+        "satiety.M_replay": 18.249015612377534,
+        "stomach.buffer.calories": 170.20193529894132,
+        "stomach.buffer.calories_replay": 170.20193529894132,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.18751269514656596,
+        "stomachFill_replay": 0.1875126939495213
+       },
+       {
+        "HUNGER": 0.23536566841845696,
+        "HUNGER_replay": 0.23528571104851412,
+        "body.energyState": 1.0169345311378395,
+        "body.energyState_replay": 1.0165890873772412,
+        "foodFill": 0.16033416438385775,
+        "foodFill_replay": 0.16033416336031558,
+        "minute": 180.0,
+        "satiety.M": 13.561450276824448,
+        "satiety.M_replay": 13.561450276824448,
+        "stomach.buffer.calories": 145.5324667556033,
+        "stomach.buffer.calories_replay": 145.5324667556033,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.16033416438385778,
+        "stomachFill_replay": 0.16033416336031558
+       },
+       {
+        "HUNGER": 0.241807520751175,
+        "HUNGER_replay": 0.24172318440414206,
+        "body.energyState": 1.0169443822193738,
+        "body.energyState_replay": 1.0165896664858198,
+        "foodFill": 0.1341563185705144,
+        "foodFill_replay": 0.1341563177140865,
+        "minute": 195.0,
+        "satiety.M": 10.078006340530766,
+        "satiety.M_replay": 10.078006340530766,
+        "stomach.buffer.calories": 121.77130212669243,
+        "stomach.buffer.calories_replay": 121.77130212669243,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.13415631857051438,
+        "stomachFill_replay": 0.1341563177140865
+       },
+       {
+        "HUNGER": 0.24808036557367544,
+        "HUNGER_replay": 0.24799156538370531,
+        "body.energyState": 1.0170644517415282,
+        "body.energyState_replay": 1.0167003756424784,
+        "foodFill": 0.10894323364310018,
+        "foodFill_replay": 0.10894323294762776,
+        "minute": 210.0,
+        "satiety.M": 7.489439989613793,
+        "satiety.M_replay": 7.489439989613793,
+        "stomach.buffer.calories": 98.88583377934542,
+        "stomach.buffer.calories_replay": 98.88583377934542,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.1089432336431002,
+        "stomachFill_replay": 0.10894323294762776
+       },
+       {
+        "HUNGER": 0.25418395751755263,
+        "HUNGER_replay": 0.2540906198828491,
+        "body.energyState": 1.0172906382819553,
+        "body.energyState_replay": 1.0169171169601505,
+        "foodFill": 0.08466213887896762,
+        "foodFill_replay": 0.08466213833850096,
+        "minute": 225.0,
+        "satiety.M": 5.566042227986568,
+        "satiety.M_replay": 5.566042227986568,
+        "stomach.buffer.calories": 76.84631631199683,
+        "stomach.buffer.calories_replay": 76.84631631199683,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.08466213887896762,
+        "stomachFill_replay": 0.08466213833850096
+       },
+       {
+        "HUNGER": 0.2601212961485736,
+        "HUNGER_replay": 0.2600233712551871,
+        "body.energyState": 1.0176191080720434,
+        "body.energyState_replay": 1.0172360604924078,
+        "foodFill": 0.06127044045810722,
+        "foodFill_replay": 0.061270440066968634,
+        "minute": 240.0,
+        "satiety.M": 4.136375571176252,
+        "satiety.M_replay": 4.136375571176252,
+        "stomach.buffer.calories": 55.61408807247572,
+        "stomach.buffer.calories_replay": 55.61408807247572,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.061270440458107235,
+        "stomachFill_replay": 0.061270440066968634
+       }
+      ]
+     },
+     "C650": {
+      "a0": 6.850187301635742,
+      "a1": 10.984321594238281,
+      "capped": false,
+      "diff": {
+       "classes": {
+        "between": 0,
+        "gap": 0,
+        "offline": 0,
+        "suspect": 0
+       },
+       "fields": {
+        "HUNGER": {
+         "max": 5.758887065587803e-05,
+         "n": 248,
+         "over": 0,
+         "worst_s": 460
+        },
+        "body.energyState": {
+         "max": 0.0002358854402750854,
+         "n": 248,
+         "over": 0,
+         "worst_s": 460
+        },
+        "foodFill": {
+         "max": 9.328411154641003e-09,
+         "n": 248,
+         "over": 0,
+         "worst_s": 213
+        },
+        "satiety.L": {
+         "max": 0.0,
+         "n": 248,
+         "over": 0,
+         "worst_s": null
+        },
+        "satiety.M": {
+         "max": 0.0,
+         "n": 248,
+         "over": 0,
+         "worst_s": null
+        },
+        "stomach.buffer.calories": {
+         "max": 0.0,
+         "n": 248,
+         "over": 0,
+         "worst_s": null
+        },
+        "stomachFill": {
+         "max": 9.328411154641003e-09,
+         "n": 248,
+         "over": 0,
+         "worst_s": 213
+        }
+       },
+       "findings": [],
+       "findings_n": 0,
+       "ok": true
+      },
+      "food": "TKX.Mixed650",
+      "landing_s": 212,
+      "minutes": 248.04805755615234,
+      "nadir": {
+       "live": {
+        "HUNGER": 0.12539035081863403,
+        "minute": 1.1168289184570312
+       },
+       "replay": {
+        "HUNGER": 0.12537952692234344,
+        "minute": 1.1168289184570312
+       }
+      },
+      "ok": true,
+      "request": {
+       "diff_min": 0.0,
+       "live_min": 247.08995819091797,
+       "ok": true,
+       "replay_min": 247.08995819091797,
+       "tol_min": 4.941799163818359
+      },
+      "series": [
+       {
+        "HUNGER": 0.0,
+        "HUNGER_replay": 0.25180109603111134,
+        "body.energyState": 1.0443847688419003,
+        "body.energyState_replay": 1.0442953212489332,
+        "foodFill": 0.5984969476518566,
+        "foodFill_replay": 0.0,
+        "minute": 0.0,
+        "satiety.M": 783.0257242405232,
+        "satiety.M_replay": 14.58789405626616,
+        "stomach.buffer.calories": 650.0,
+        "stomach.buffer.calories_replay": 0.0,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.0,
+        "stomachFill_replay": 0.0
+       },
+       {
+        "HUNGER": 0.13297020136084886,
+        "HUNGER_replay": 0.13295760936705178,
+        "body.energyState": 1.0420517046679765,
+        "body.energyState_replay": 1.0419530489526578,
+        "foodFill": 0.559443468936914,
+        "foodFill_replay": 0.5594434776948991,
+        "minute": 15.0,
+        "satiety.M": 581.5442937190813,
+        "satiety.M_replay": 581.5442937190813,
+        "stomach.buffer.calories": 607.5858134877591,
+        "stomach.buffer.calories_replay": 607.5858134877591,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.5594434689369139,
+        "stomachFill_replay": 0.5594434776948991
+       },
+       {
+        "HUNGER": 0.14100897886586494,
+        "HUNGER_replay": 0.140994406565989,
+        "body.energyState": 1.0399196438073814,
+        "body.energyState_replay": 1.039812159183695,
+        "foodFill": 0.5219094625322264,
+        "foodFill_replay": 0.5219094707026234,
+        "minute": 30.0,
+        "satiety.M": 432.1819487450268,
+        "satiety.M_replay": 432.1819487450268,
+        "stomach.buffer.calories": 566.8218559458426,
+        "stomach.buffer.calories_replay": 566.8218559458426,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.5219094625322265,
+        "stomachFill_replay": 0.5219094707026234
+       },
+       {
+        "HUNGER": 0.14899001852453553,
+        "HUNGER_replay": 0.14897335210090998,
+        "body.energyState": 1.0379762975303468,
+        "body.energyState_replay": 1.037860182553025,
+        "foodFill": 0.48575658212184836,
+        "foodFill_replay": 0.4857565897262788,
+        "minute": 45.0,
+        "satiety.M": 321.18088794446635,
+        "satiety.M_replay": 321.18088794446635,
+        "stomach.buffer.calories": 527.5578758053538,
+        "stomach.buffer.calories_replay": 527.5578758053538,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.48575658212184847,
+        "stomachFill_replay": 0.4857565897262788
+       },
+       {
+        "HUNGER": 0.15691492665622495,
+        "HUNGER_replay": 0.15689605183084995,
+        "body.energyState": 1.036214677585875,
+        "body.energyState_replay": 1.0360900281938277,
+        "foodFill": 0.4509311923435772,
+        "foodFill_replay": 0.45093119940282256,
+        "minute": 60.0,
+        "satiety.M": 238.68245131568364,
+        "satiety.M_replay": 238.68245131568364,
+        "stomach.buffer.calories": 489.73562216698804,
+        "stomach.buffer.calories_replay": 489.73562216698804,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.4509311923435772,
+        "stomachFill_replay": 0.45093119940282256
+       },
+       {
+        "HUNGER": 0.1647826189518616,
+        "HUNGER_replay": 0.16476140776121592,
+        "body.energyState": 1.034628435105361,
+        "body.energyState_replay": 1.0344952829750411,
+        "foodFill": 0.4173897992594834,
+        "foodFill_replay": 0.41738980579364443,
+        "minute": 75.0,
+        "satiety.M": 177.37800339985813,
+        "satiety.M_replay": 177.37800339985813,
+        "stomach.buffer.calories": 453.3078582657708,
+        "stomach.buffer.calories_replay": 453.3078582657708,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.4173897992594834,
+        "stomachFill_replay": 0.4173898057936443
+       },
+       {
+        "HUNGER": 0.17259250655187636,
+        "HUNGER_replay": 0.17256883559329328,
+        "body.energyState": 1.0332111218103264,
+        "body.energyState_replay": 1.0330694575330241,
+        "foodFill": 0.38508486510088136,
+        "foodFill_replay": 0.38508487112931444,
+        "minute": 90.0,
+        "satiety.M": 131.82181820009063,
+        "satiety.M_replay": 131.82181820009063,
+        "stomach.buffer.calories": 418.2229555181866,
+        "stomach.buffer.calories_replay": 418.2229555181866,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.3850848651008814,
+        "stomachFill_replay": 0.38508487112931444
+       },
+       {
+        "HUNGER": 0.18034503086813328,
+        "HUNGER_replay": 0.18031877200955718,
+        "body.energyState": 1.031956249895693,
+        "body.energyState_replay": 1.031806032849184,
+        "foodFill": 0.3539637680555095,
+        "foodFill_replay": 0.35396377359674747,
+        "minute": 105.0,
+        "satiety.M": 97.96074932474157,
+        "satiety.M_replay": 97.96074932474157,
+        "stomach.buffer.calories": 384.42376379489184,
+        "stomach.buffer.calories_replay": 384.42376379489184,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.3539637680555095,
+        "stomachFill_replay": 0.35396377359674747
+       },
+       {
+        "HUNGER": 0.18803587312682835,
+        "HUNGER_replay": 0.18800689742853213,
+        "body.energyState": 1.0308582502347443,
+        "body.energyState_replay": 1.0306994234051896,
+        "foodFill": 0.32399230966517667,
+        "foodFill_replay": 0.32399231473721707,
+        "minute": 120.0,
+        "satiety.M": 72.80071274968276,
+        "satiety.M_replay": 72.80071274968276,
+        "stomach.buffer.calories": 351.87314172380223,
+        "stomach.buffer.calories_replay": 351.87314172380223,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.32399230966517667,
+        "stomachFill_replay": 0.323992314737217
+       },
+       {
+        "HUNGER": 0.19566375014673112,
+        "HUNGER_replay": 0.19563193178953783,
+        "body.energyState": 1.0299111655914104,
+        "body.energyState_replay": 1.0297436546266059,
+        "foodFill": 0.29512326718485316,
+        "foodFill_replay": 0.29512327180495385,
+        "minute": 135.0,
+        "satiety.M": 54.1023571107378,
+        "satiety.M_replay": 54.1023571107378,
+        "stomach.buffer.calories": 320.5198028541013,
+        "stomach.buffer.calories_replay": 320.5198028541013,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.29512326718485316,
+        "stomachFill_replay": 0.29512327180495385
+       },
+       {
+        "HUNGER": 0.20322519095566952,
+        "HUNGER_replay": 0.20319038711078624,
+        "body.energyState": 1.0291094997649268,
+        "body.energyState_replay": 1.0289332299049978,
+        "foodFill": 0.26731771756652595,
+        "foodFill_replay": 0.26731772175133584,
+        "minute": 150.0,
+        "satiety.M": 40.20703264707616,
+        "satiety.M_replay": 40.20703264707616,
+        "stomach.buffer.calories": 290.3214746540618,
+        "stomach.buffer.calories_replay": 290.3214746540618,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.267317717566526,
+        "stomachFill_replay": 0.26731772175133584
+       },
+       {
+        "HUNGER": 0.21071715204858318,
+        "HUNGER_replay": 0.21067921674218784,
+        "body.energyState": 1.0284478659565868,
+        "body.energyState_replay": 1.0282627476455504,
+        "foodFill": 0.24053487270165783,
+        "foodFill_replay": 0.24053487646718716,
+        "minute": 165.0,
+        "satiety.M": 29.880277940365374,
+        "satiety.M_replay": 29.880277940365374,
+        "stomach.buffer.calories": 261.2338590355257,
+        "stomach.buffer.calories_replay": 261.2338590355257,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.24053487270165785,
+        "stomachFill_replay": 0.2405348764671872
+       },
+       {
+        "HUNGER": 0.21813629102741108,
+        "HUNGER_replay": 0.2180951015517349,
+        "body.energyState": 1.0279210974188167,
+        "body.energyState_replay": 1.0277270292378382,
+        "foodFill": 0.21473517874345938,
+        "foodFill_replay": 0.2147351821050992,
+        "minute": 180.0,
+        "satiety.M": 22.205150898871885,
+        "satiety.M_replay": 22.205150898871885,
+        "stomach.buffer.calories": 233.21399838523564,
+        "stomach.buffer.calories_replay": 233.21399838523564,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.21473517874345938,
+        "stomachFill_replay": 0.2147351821050992
+       },
+       {
+        "HUNGER": 0.22547744115776017,
+        "HUNGER_replay": 0.22543287422008185,
+        "body.energyState": 1.0275243140581796,
+        "body.energyState_replay": 1.0273211972376834,
+        "foodFill": 0.1898857635653882,
+        "foodFill_replay": 0.18988576653801506,
+        "minute": 195.0,
+        "satiety.M": 16.50160703895497,
+        "satiety.M_replay": 16.50160703895497,
+        "stomach.buffer.calories": 206.2261917988905,
+        "stomach.buffer.calories_replay": 206.2261917988905,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.1898857635653882,
+        "stomachFill_replay": 0.18988576653801503
+       },
+       {
+        "HUNGER": 0.23273508452657443,
+        "HUNGER_replay": 0.23268698941494206,
+        "body.energyState": 1.027252754528947,
+        "body.energyState_replay": 1.0270404928961867,
+        "foodFill": 0.16595508771052214,
+        "foodFill_replay": 0.16595509030851857,
+        "minute": 210.0,
+        "satiety.M": 12.263683358601698,
+        "satiety.M_replay": 12.263683358601698,
+        "stomach.buffer.calories": 180.23618572335204,
+        "stomach.buffer.calories_replay": 180.23618572335204,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.16595508771052214,
+        "stomachFill_replay": 0.16595509030851857
+       },
+       {
+        "HUNGER": 0.23990711551618268,
+        "HUNGER_replay": 0.23985537543192306,
+        "body.energyState": 1.0271017208792317,
+        "body.energyState_replay": 1.0268802141701294,
+        "foodFill": 0.14290087986273542,
+        "foodFill_replay": 0.1429008820998225,
+        "minute": 225.0,
+        "satiety.M": 9.113632598491005,
+        "satiety.M_replay": 9.113632598491005,
+        "stomach.buffer.calories": 155.19807122693828,
+        "stomach.buffer.calories_replay": 155.19807122693828,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.14290087986273542,
+        "stomachFill_replay": 0.1429008820998225
+       },
+       {
+        "HUNGER": 0.24698661502907743,
+        "HUNGER_replay": 0.2469311055001315,
+        "body.energyState": 1.0270668290189215,
+        "body.energyState_replay": 1.0268359885584772,
+        "foodFill": 0.120697523839299,
+        "foodFill_replay": 0.1206975257287966,
+        "minute": 240.0,
+        "satiety.M": 6.772912361313626,
+        "satiety.M_replay": 6.772912361313626,
+        "stomach.buffer.calories": 131.08402775210203,
+        "stomach.buffer.calories_replay": 131.08402775210203,
+        "stomach.liquid": 0.0,
+        "stomach.liquid_replay": 0.0,
+        "stomachFill": 0.120697523839299,
+        "stomachFill_replay": 0.12069752572879663
+       }
+      ]
+     }
+    },
+    "readings": {
+     "C400_held_vs_180": {
+      "anchor_min": 180.0,
+      "dist": 35.12672424316406,
+      "live_min": 215.12672424316406,
+      "note": "at a request, not fasted at 08:00: a reading",
+      "replay_min": 215.12672424316406
+     },
+     "C650_request_vs_anchor": {
+      "anchor": [
+       240.0,
+       300.0
+      ],
+      "band": [
+       218.18181818181816,
+       330.0
+      ],
+      "dist_to_anchor_mid": -22.91004180908203,
+      "inside_band": true,
+      "live_min": 247.08995819091797,
+      "replay_min": 247.08995819091797
+     }
+    }
+   },
+   "rows": 719,
+   "run": "x361-20261012-200722"
+  },
+  "x362": {
+   "determinism": {
+    "compared": 2139,
+    "max_abs_HUNGER": 0
+   },
+   "diff": {
+    "classes": {
+     "between": 34,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0002126227706076289,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1248
+     },
+     "body.energyState": {
+      "max": 0.0008681405075858795,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1543
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 2099,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "events": 34,
+   "grade": {
+    "classes": {
+     "between": 34,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0002126227706076289,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1248
+     },
+     "body.energyState": {
+      "max": 0.0008681405075858795,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1543
+     },
+     "foodFill": {
+      "max": 1.5651021922913344e-08,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1344
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 2099,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.M": {
+      "max": 3.0041581986210694e-16,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 156
+     },
+     "stomach.buffer.calories": {
+      "max": 8.881784197001252e-16,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 876
+     },
+     "stomachFill": {
+      "max": 1.5428611721546304e-08,
+      "n": 2099,
+      "over": 0,
+      "worst_s": 1729
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "readings": {
+    "ages": [
+     24.100217819213867,
+     24.36696434020996,
+     25.0,
+     26.066666666666666,
+     29.117015838623047,
+     29.366897583007812,
+     35.11692428588867,
+     35.35035705566406
+    ],
+    "day": {
+     "live": {
+      "a0": 24.0,
+      "a1": 39.0,
+      "ages": [
+       24.100217819213867,
+       24.36696434020996,
+       25.0,
+       26.066666666666666,
+       29.117015838623047,
+       29.366897583007812,
+       35.11692428588867,
+       35.35035705566406
+      ],
+      "mean": 0.0755502601953855,
+      "points": [
+       0.30991441011428833,
+       0.025964148342609406,
+       0.046217242628655765,
+       0.06364460898031514,
+       0.16135592758655548,
+       0.02430020645260811,
+       0.1533755511045456,
+       0.024613015353679657
+      ],
+      "points_mean": 0.10117313882040718
+     },
+     "replay": {
+      "a0": 24.0,
+      "a1": 39.0,
+      "ages": [
+       24.100217819213867,
+       24.36696434020996,
+       25.0,
+       26.066666666666666,
+       29.117015838623047,
+       29.366897583007812,
+       35.11692428588867,
+       35.35035705566406
+      ],
+      "mean": 0.07664946423077165,
+      "points": [
+       0.3097017873436807,
+       0.04593203558435623,
+       0.046183597982103815,
+       0.0635954154355083,
+       0.16121356068935583,
+       0.044260939293995084,
+       0.15323058127964453,
+       0.044570687480928586
+      ],
+      "points_mean": 0.10858607563619664
+     }
+    },
+    "maint_kcal": 2089.32,
+    "notes": [],
+    "rest": {
+     "day": {
+      "a0": 24.0,
+      "a1": 39.0,
+      "ages": [
+       24.100217819213867,
+       24.36696434020996,
+       25.0,
+       26.066666666666666,
+       29.117015838623047,
+       29.366897583007812,
+       35.11692428588867,
+       35.35035705566406
+      ],
+      "mean": 0.18669108145904897,
+      "points": [
+       0.3097017873436807,
+       0.11251281344499324,
+       0.13104311509034428,
+       0.1615629355502159,
+       0.2412425744777484,
+       0.1096108542354129,
+       0.28385415294946836,
+       0.12700952365456614
+      ],
+      "points_mean": 0.18456721959330374
+     },
+     "es_at_22": {
+      "live": 0.8183622713089226,
+      "replay": 0.8175429926889476,
+      "rest": 1.025655371258691
+     },
+     "karl": {
+      "band": [
+       -64.0,
+       -46.0
+      ],
+      "live_vs_rest_mean": -59.53193928443894,
+      "live_vs_rest_mean_dist": -4.531939284438941,
+      "live_vs_rest_mean_in_band": true,
+      "live_vs_rest_points": -45.183581871502696,
+      "live_vs_rest_points_dist": 9.816418128497304,
+      "live_vs_rest_points_in_band": false,
+      "replay_vs_rest_mean": -58.94315698868302,
+      "replay_vs_rest_mean_dist": -3.943156988683022,
+      "replay_vs_rest_mean_in_band": true,
+      "replay_vs_rest_points": -41.167193245112834,
+      "replay_vs_rest_points_dist": 13.832806754887166,
+      "replay_vs_rest_points_in_band": false,
+      "study_bal": -55.0
+     },
+     "meals": [
+      {
+       "kcal": 700.0,
+       "label": "S1_07",
+       "portions": {
+        "TKX.Mixed217": 0,
+        "TKX.Mixed650": 1,
+        "TKX.Unit50": 1
+       },
+       "s": 1249
+      },
+      {
+       "kcal": 700.0,
+       "label": "S1_12",
+       "portions": {
+        "TKX.Mixed217": 0,
+        "TKX.Mixed650": 1,
+        "TKX.Unit50": 1
+       },
+       "s": 1550
+      },
+      {
+       "kcal": 700.0,
+       "label": "S1_18",
+       "portions": {
+        "TKX.Mixed217": 0,
+        "TKX.Mixed650": 1,
+        "TKX.Unit50": 1
+       },
+       "s": 1910
+      }
+     ]
+    }
+   },
+   "rows": 2189,
+   "run": "x362-20261012-201625"
+  },
+  "x363": {
+   "determinism": {
+    "compared": 427,
+    "max_abs_HUNGER": 0
+   },
+   "diff": {
+    "classes": {
+     "between": 6,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 6.680632485295268e-05,
+      "n": 415,
+      "over": 0,
+      "worst_s": 471
+     },
+     "body.energyState": {
+      "max": 0.00023998869587704696,
+      "n": 415,
+      "over": 0,
+      "worst_s": 471
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 415,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "events": 6,
+   "grade": {
+    "classes": {
+     "between": 6,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 6.680632485295268e-05,
+      "n": 415,
+      "over": 0,
+      "worst_s": 471
+     },
+     "body.energyState": {
+      "max": 0.00023998869587704696,
+      "n": 415,
+      "over": 0,
+      "worst_s": 471
+     },
+     "foodFill": {
+      "max": 3.7344725100155185e-05,
+      "n": 415,
+      "over": 0,
+      "worst_s": 471
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 415,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.M": {
+      "max": 0.0011765833322370084,
+      "n": 415,
+      "over": 0,
+      "worst_s": 240
+     },
+     "stomach.buffer.calories": {
+      "max": 0.0015405336029201174,
+      "n": 415,
+      "over": 0,
+      "worst_s": 289
+     },
+     "stomachFill": {
+      "max": 0.0011945219482257796,
+      "n": 415,
+      "over": 0,
+      "worst_s": 60
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "readings": {
+    "MILK": {
+     "first_age": 5.200267791748047,
+     "food_fill_rise_max": 0.056722981185129244,
+     "peak_fill": 0.718868147548048,
+     "peak_fill_replay": 0.7191660865889269,
+     "rows": [
+      {
+       "age": 5.183774948120117,
+       "fill": 0.03814834626502701,
+       "fill_replay": 0.038222986092028975,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 27.848292773469716,
+       "liquid_replay": 27.90277984718115,
+       "s": 112,
+       "sip": false
+      },
+      {
+       "age": 5.200267791748047,
+       "fill": 0.036136514770412645,
+       "fill_replay": 0.036207218312636444,
+       "foodFill": 0.056722981185129244,
+       "foodFill_replay": 0.0,
+       "liquid": 352.2070952687558,
+       "liquid_replay": 26.431269368224605,
+       "s": 113,
+       "sip": true
+      },
+      {
+       "age": 5.216714859008789,
+       "fill": 0.561836356095401,
+       "fill_replay": 0.5094294935399697,
+       "foodFill": 0.07855406045438944,
+       "foodFill_replay": 0.05387696414553538,
+       "liquid": 474.17883370002687,
+       "liquid_replay": 332.55334645793704,
+       "s": 114,
+       "sip": true
+      },
+      {
+       "age": 5.233593940734863,
+       "fill": 0.718868147548048,
+       "fill_replay": 0.7191660865889269,
+       "foodFill": 0.07805063178125454,
+       "foodFill_replay": 0.07806528011139326,
+       "liquid": 467.79678650975916,
+       "liquid_replay": 468.0035887285996,
+       "s": 115,
+       "sip": false
+      },
+      {
+       "age": 5.250073432922363,
+       "fill": 0.7094500909678448,
+       "fill_replay": 0.7097452882318962,
+       "foodFill": 0.07753526929976587,
+       "foodFill_replay": 0.07754988058926102,
+       "liquid": 461.2978198176976,
+       "liquid_replay": 461.5026475791237,
+       "s": 116,
+       "sip": false
+      },
+      {
+       "age": 5.277515411376953,
+       "fill": 0.7003442030456093,
+       "fill_replay": 0.7006367357815672,
+       "foodFill": 0.077033364621536,
+       "foodFill_replay": 0.07704793983764022,
+       "liquid": 455.01691204957353,
+       "liquid_replay": 455.21982103906663,
+       "s": 117,
+       "sip": false
+      },
+      {
+       "age": 5.290828704833984,
+       "fill": 0.6853478403690546,
+       "fill_replay": 0.6856359567188347,
+       "foodFill": 0.07620033121105221,
+       "foodFill_replay": 0.07621484655455275,
+       "liquid": 444.67768168534167,
+       "liquid_replay": 444.87741041992587,
+       "s": 118,
+       "sip": false
+      },
+      {
+       "age": 5.304115295410156,
+       "fill": 0.6781495581341306,
+       "fill_replay": 0.6784355418080817,
+       "foodFill": 0.07579742423466049,
+       "foodFill_replay": 0.0758119106200311,
+       "liquid": 439.7170577466132,
+       "liquid_replay": 439.9152507672769,
+       "s": 119,
+       "sip": false
+      },
+      {
+       "age": 5.31743049621582,
+       "fill": 0.6710160197861881,
+       "fill_replay": 0.6712998816280165,
+       "foodFill": 0.07539612676548386,
+       "foodFill_replay": 0.07541058430840465,
+       "liquid": 434.8025219051141,
+       "liquid_replay": 434.9991870433166,
+       "s": 120,
+       "sip": false
+      },
+      {
+       "age": 5.34404182434082,
+       "fill": 0.6639174734641387,
+       "fill_replay": 0.6641992155407572,
+       "foodFill": 0.07499476674223741,
+       "foodFill_replay": 0.07500919543821244,
+       "liquid": 429.91357590698794,
+       "liquid_replay": 430.1087146748577,
+       "s": 121,
+       "sip": false
+      },
+      {
+       "age": 5.357352256774902,
+       "fill": 0.6498809992104474,
+       "fill_replay": 0.6501585248398551,
+       "foodFill": 0.0741950196521521,
+       "foodFill_replay": 0.07420939086791087,
+       "liquid": 420.2507650775556,
+       "liquid_replay": 420.4428677995193,
+       "s": 122,
+       "sip": false
+      },
+      {
+       "age": 5.370650291442871,
+       "fill": 0.6429352572997878,
+       "fill_replay": 0.6432106840621615,
+       "foodFill": 0.0737961989143499,
+       "foodFill_replay": 0.07381054146566891,
+       "liquid": 415.47151262136975,
+       "liquid_replay": 415.6621040954396,
+       "s": 123,
+       "sip": false
+      },
+      {
+       "age": 5.383950233459473,
+       "fill": 0.636045752491565,
+       "fill_replay": 0.6363190891266316,
+       "foodFill": 0.07339854401758251,
+       "foodFill_replay": 0.0734128579882543,
+       "liquid": 410.73246218600724,
+       "liquid_replay": 410.9215487310155,
+       "s": 124,
+       "sip": false
+      },
+      {
+       "age": 5.4105424880981445,
+       "fill": 0.6292049021754804,
+       "fill_replay": 0.6294761552108568,
+       "foodFill": 0.07300162466895813,
+       "foodFill_replay": 0.07301591011184871,
+       "liquid": 406.02839257976126,
+       "liquid_replay": 406.21597892227584,
+       "s": 125,
+       "sip": false
+      },
+      {
+       "age": 5.423923492431641,
+       "fill": 0.6156754690586459,
+       "fill_replay": 0.6159425767231917,
+       "foodFill": 0.07221038413564959,
+       "foodFill_replay": 0.07222461270971561,
+       "liquid": 396.7295119937873,
+       "liquid_replay": 396.9141137298376,
+       "s": 126,
+       "sip": false
+      },
+      {
+       "age": 5.437227249145508,
+       "fill": 0.6089421882132845,
+       "fill_replay": 0.6092072204675625,
+       "foodFill": 0.07181343043952498,
+       "foodFill_replay": 0.07182763048334116,
+       "liquid": 392.10399317484445,
+       "liquid_replay": 392.28710068848153,
+       "s": 127,
+       "sip": false
+      },
+      {
+       "age": 5.450511932373047,
+       "fill": 0.6022970015013142,
+       "fill_replay": 0.6025599773217652,
+       "foodFill": 0.07141955740054298,
+       "foodFill_replay": 0.07143372913552534,
+       "liquid": 387.54053419356296,
+       "liquid_replay": 387.7221611759552,
+       "s": 128,
+       "sip": false
+      },
+      {
+       "age": 5.47707462310791,
+       "fill": 0.5957102396821654,
+       "fill_replay": 0.5959711690307785,
+       "foodFill": 0.0710270325819389,
+       "foodFill_replay": 0.07104117610498809,
+       "liquid": 383.0187411831654,
+       "liquid_replay": 383.198894835827,
+       "s": 129,
+       "sip": false
+      },
+      {
+       "age": 5.490389823913574,
+       "fill": 0.5826860647604967,
+       "fill_replay": 0.582942923381046,
+       "foodFill": 0.07024452187678992,
+       "foodFill_replay": 0.07025860915845342,
+       "liquid": 374.0823263051059,
+       "liquid_replay": 374.2595493824926,
+       "s": 130,
+       "sip": false
+      },
+      {
+       "age": 5.50369930267334,
+       "fill": 0.5762304010233682,
+       "fill_replay": 0.5764852298078244,
+       "foodFill": 0.0698534407832102,
+       "foodFill_replay": 0.06986749995670533,
+       "liquid": 369.6551809753153,
+       "liquid_replay": 369.8309427913169,
+       "s": 131,
+       "sip": false
+      },
+      {
+       "age": 5.517070770263672,
+       "fill": 0.569826035302244,
+       "fill_replay": 0.570078842320139,
+       "foodFill": 0.06946330756825546,
+       "foodFill_replay": 0.06947733870170911,
+       "liquid": 365.26479124581164,
+       "liquid_replay": 365.43909764145377,
+       "s": 132,
+       "sip": false
+      },
+      {
+       "age": 5.543601989746094,
+       "fill": 0.5634406147476677,
+       "fill_replay": 0.5636913978838745,
+       "foodFill": 0.06907214084527158,
+       "foodFill_replay": 0.06908614386440246,
+       "liquid": 360.88898594874917,
+       "liquid_replay": 361.06183543421463,
+       "s": 133,
+       "sip": false
+      },
+      {
+       "age": 5.556951522827148,
+       "fill": 0.5509146906175675,
+       "fill_replay": 0.5511614797623045,
+       "foodFill": 0.06829831979774532,
+       "foodFill_replay": 0.06831226720004223,
+       "liquid": 352.3099506984702,
+       "liquid_replay": 352.4799251704514,
+       "s": 134,
+       "sip": false
+      },
+      {
+       "age": 5.570192337036133,
+       "fill": 0.5446843140357983,
+       "fill_replay": 0.5449291045987024,
+       "foodFill": 0.06791012457340412,
+       "foodFill_replay": 0.0679240440749487,
+       "liquid": 348.0451583075478,
+       "liquid_replay": 348.2136941823402,
+       "s": 135,
+       "sip": false
+      },
+      {
+       "age": 5.5834503173828125,
+       "fill": 0.5385520938218931,
+       "fill_replay": 0.53879490939749,
+       "foodFill": 0.06752585791843468,
+       "foodFill_replay": 0.06753974980158503,
+       "liquid": 343.8491522095246,
+       "liquid_replay": 344.01626650501066,
+       "s": 136,
+       "sip": false
+      },
+      {
+       "age": 5.609971046447754,
+       "fill": 0.5324592047489362,
+       "fill_replay": 0.5327000501456529,
+       "foodFill": 0.0671418570043206,
+       "foodFill_replay": 0.06715572128817628,
+       "liquid": 339.6816638535693,
+       "liquid_replay": 339.84736006595796,
+       "s": 137,
+       "sip": false
+      },
+      {
+       "age": 5.623276710510254,
+       "fill": 0.5204125901835658,
+       "fill_replay": 0.5206495167787415,
+       "foodFill": 0.06637600494340926,
+       "foodFill_replay": 0.06638981418318585,
+       "liquid": 331.44670722531424,
+       "liquid_replay": 331.6095828947556,
+       "s": 138,
+       "sip": false
+      },
+      {
+       "age": 5.63654899597168,
+       "fill": 0.5144394512673163,
+       "fill_replay": 0.5146744230356617,
+       "foodFill": 0.06599291695249841,
+       "foodFill_replay": 0.06600669865859489,
+       "liquid": 327.365970049817,
+       "liquid_replay": 327.5274387952587,
+       "s": 139,
+       "sip": false
+      },
+      {
+       "age": 5.663069725036621,
+       "fill": 0.50852813571703,
+       "fill_replay": 0.5087611650969308,
+       "foodFill": 0.0656115509294782,
+       "foodFill_replay": 0.06562530522565754,
+       "liquid": 323.3291068949128,
+       "liquid_replay": 323.48917770602947,
+       "s": 140,
+       "sip": false
+      },
+      {
+       "age": 5.676369667053223,
+       "fill": 0.4968557187505676,
+       "fill_replay": 0.4970848895461132,
+       "foodFill": 0.0648517745007095,
+       "foodFill_replay": 0.06486547418948362,
+       "liquid": 315.3628793023964,
+       "liquid_replay": 315.5201732103396,
+       "s": 141,
+       "sip": false
+      },
+      {
+       "age": 5.689650535583496,
+       "fill": 0.4910718840417602,
+       "fill_replay": 0.4912991312638843,
+       "foodFill": 0.06447188888621044,
+       "foodFill_replay": 0.06448556127146882,
+       "liquid": 311.41799646355133,
+       "liquid_replay": 311.57390609446327,
+       "s": 142,
+       "sip": false
+      },
+      {
+       "age": 5.702927589416504,
+       "fill": 0.4853426209135535,
+       "fill_replay": 0.4855679550078107,
+       "foodFill": 0.06409330355265928,
+       "foodFill_replay": 0.06410694872785698,
+       "liquid": 307.5120016734528,
+       "liquid_replay": 307.6665345843662,
+       "s": 143,
+       "sip": false
+      },
+      {
+       "age": 5.729483604431152,
+       "fill": 0.4796610847441646,
+       "fill_replay": 0.47988451397688286,
+       "foodFill": 0.06371558007726252,
+       "foodFill_replay": 0.06372919810434388,
+       "liquid": 303.6402184068385,
+       "liquid_replay": 303.79338058695345,
+       "s": 144,
+       "sip": false
+      },
+      {
+       "age": 5.742781639099121,
+       "fill": 0.4684348207640272,
+       "fill_replay": 0.46865446329217825,
+       "foodFill": 0.06296233216693413,
+       "foodFill_replay": 0.06297589605583441,
+       "liquid": 295.99491667587796,
+       "liquid_replay": 296.145354082531,
+       "s": 145,
+       "sip": false
+      },
+      {
+       "age": 5.7560882568359375,
+       "fill": 0.46288187298816524,
+       "fill_replay": 0.4630996310514711,
+       "foodFill": 0.0625862661016706,
+       "foodFill_replay": 0.06259980296157755,
+       "liquid": 292.2157930271411,
+       "liquid_replay": 292.3648745056223,
+       "s": 146,
+       "sip": false
+      },
+      {
+       "age": 5.7693891525268555,
+       "fill": 0.45737098026129935,
+       "fill_replay": 0.45758686053223463,
+       "foodFill": 0.06221070742738405,
+       "foodFill_replay": 0.06222421729476536,
+       "liquid": 288.46699916875815,
+       "liquid_replay": 288.61472956335257,
+       "s": 147,
+       "sip": false
+      },
+      {
+       "age": 5.795962333679199,
+       "fill": 0.45190790812035053,
+       "fill_replay": 0.45212191932327817,
+       "foodFill": 0.06183605863097295,
+       "foodFill_replay": 0.06184954157122429,
+       "liquid": 284.75245012724565,
+       "liquid_replay": 284.8988357589993,
+       "s": 148,
+       "sip": false
+      },
+      {
+       "age": 5.809267997741699,
+       "fill": 0.4411289331926153,
+       "fill_replay": 0.441339234114148,
+       "foodFill": 0.06108980160007288,
+       "foodFill_replay": 0.061103230904598585,
+       "liquid": 277.428566062556,
+       "liquid_replay": 277.57228234297105,
+       "s": 149,
+       "sip": false
+      },
+      {
+       "age": 5.82254695892334,
+       "fill": 0.435799220425104,
+       "fill_replay": 0.43600767555224496,
+       "foodFill": 0.06071725355446832,
+       "foodFill_replay": 0.06073065608285128,
+       "liquid": 273.80983581556404,
+       "liquid_replay": 273.95222421265737,
+       "s": 150,
+       "sip": false
+      },
+      {
+       "age": 5.8358354568481445,
+       "fill": 0.4305248671387578,
+       "fill_replay": 0.4307314882002989,
+       "foodFill": 0.06034619374310923,
+       "foodFill_replay": 0.06035956960231334,
+       "liquid": 270.23043157882347,
+       "liquid_replay": 270.37150057652946,
+       "s": 151,
+       "sip": false
+      },
+      {
+       "age": 5.862471580505371,
+       "fill": 0.425291253851007,
+       "fill_replay": 0.4254960475952618,
+       "foodFill": 0.05997560659535857,
+       "foodFill_replay": 0.05998895581935554,
+       "liquid": 266.6804224966234,
+       "liquid_replay": 266.82017699641153,
+       "s": 152,
+       "sip": false
+      },
+      {
+       "age": 5.875774383544922,
+       "fill": 0.4149342129505488,
+       "fill_replay": 0.4151353683593123,
+       "foodFill": 0.05923500392806684,
+       "foodFill_replay": 0.05924829992273417,
+       "liquid": 259.6604225864118,
+       "liquid_replay": 259.79755995870204,
+       "s": 153,
+       "sip": false
+      },
+      {
+       "age": 5.889091491699219,
+       "fill": 0.40982793363732106,
+       "fill_replay": 0.4100272842210269,
+       "foodFill": 0.05886623331998506,
+       "foodFill_replay": 0.058879502810005424,
+       "liquid": 256.2020412316553,
+       "liquid_replay": 256.3378804300457,
+       "s": 154,
+       "sip": false
+      },
+      {
+       "age": 5.902381896972656,
+       "fill": 0.4047601951979661,
+       "fill_replay": 0.40495774724213884,
+       "foodFill": 0.058497802460335306,
+       "foodFill_replay": 0.05851104547012741,
+       "liquid": 252.77154669847044,
+       "liquid_replay": 252.90609229356838,
+       "s": 155,
+       "sip": false
+      },
+      {
+       "age": 5.92899227142334,
+       "fill": 0.39974633767446943,
+       "fill_replay": 0.39994210301308564,
+       "foodFill": 0.058130843383616015,
+       "foodFill_replay": 0.0581440600189613,
+       "liquid": 249.37931083232297,
+       "liquid_replay": 249.5125713857108,
+       "s": 156,
+       "sip": false
+      },
+      {
+       "age": 5.942286491394043,
+       "fill": 0.38983812343869206,
+       "fill_replay": 0.3900303362412596,
+       "foodFill": 0.057398304030485056,
+       "foodFill_replay": 0.057411468016035215,
+       "liquid": 242.68106816799113,
+       "liquid_replay": 242.8117738044138,
+       "s": 157,
+       "sip": false
+      },
+      {
+       "age": 5.955626487731934,
+       "fill": 0.3849530088744247,
+       "fill_replay": 0.38514345934282324,
+       "foodFill": 0.057033430093239454,
+       "foodFill_replay": 0.05704656785420802,
+       "liquid": 239.3812925102652,
+       "liquid_replay": 239.51073078668912,
+       "s": 158,
+       "sip": false
+      },
+      {
+       "age": 5.968923568725586,
+       "fill": 0.380094347330263,
+       "fill_replay": 0.3802830377988801,
+       "foodFill": 0.05666803041429387,
+       "foodFill_replay": 0.056681141912894216,
+       "liquid": 236.10121134865744,
+       "liquid_replay": 236.22938399676968,
+       "s": 159,
+       "sip": false
+      },
+      {
+       "age": 5.995532989501953,
+       "fill": 0.37529421244502564,
+       "fill_replay": 0.375481156961934,
+       "foodFill": 0.056304533155992494,
+       "foodFill_replay": 0.056317618528957294,
+       "liquid": 232.8624658809942,
+       "liquid_replay": 232.989383056073,
+       "s": 160,
+       "sip": false
+      },
+      {
+       "age": 6.008819580078125,
+       "fill": 0.36581642432147365,
+       "fill_replay": 0.3659999002192107,
+       "foodFill": 0.05557929503368435,
+       "foodFill_replay": 0.05559232828161533,
+       "liquid": 226.4731043800862,
+       "liquid_replay": 226.59752751444458,
+       "s": 161,
+       "sip": false
+      },
+      {
+       "age": 6.022200584411621,
+       "fill": 0.36114749568446675,
+       "fill_replay": 0.36132925230843826,
+       "foodFill": 0.055218251938665794,
+       "foodFill_replay": 0.055231259237349284,
+       "liquid": 223.3283479344347,
+       "liquid_replay": 223.45153494189498,
+       "s": 162,
+       "sip": false
+      },
+      {
+       "age": 6.035470962524414,
+       "fill": 0.35648797437129737,
+       "fill_replay": 0.3566680080966625,
+       "foodFill": 0.05485536980690586,
+       "foodFill_replay": 0.05486835102416475,
+       "liquid": 220.1918013320058,
+       "liquid_replay": 220.31374966292336,
+       "s": 163,
+       "sip": false
+      },
+      {
+       "age": 6.062013626098633,
+       "fill": 0.35190885472714273,
+       "fill_replay": 0.35208718829655283,
+       "foodFill": 0.05449620640381037,
+       "foodFill_replay": 0.05450916180692083,
+       "liquid": 217.11123327603258,
+       "liquid_replay": 217.23195933743133,
+       "s": 164,
+       "sip": false
+      },
+      {
+       "age": 6.075279235839844,
+       "fill": 0.34287458930633163,
+       "fill_replay": 0.3430495478915628,
+       "foodFill": 0.05377996948323241,
+       "foodFill_replay": 0.05379287340825235,
+       "liquid": 211.03907247086244,
+       "liquid_replay": 211.1573723728166,
+       "s": 165,
+       "sip": false
+      },
+      {
+       "age": 6.088597297668457,
+       "fill": 0.3384213124321385,
+       "fill_replay": 0.33859459708248457,
+       "foodFill": 0.053423072756533935,
+       "foodFill_replay": 0.05343595103031827,
+       "liquid": 208.04871496319134,
+       "liquid_replay": 208.16581161808142,
+       "s": 166,
+       "sip": false
+      },
+      {
+       "age": 6.101874351501465,
+       "fill": 0.3339917215796429,
+       "fill_replay": 0.3341633343241378,
+       "foodFill": 0.05306547853706439,
+       "foodFill_replay": 0.053078331109482194,
+       "liquid": 205.0761574210823,
+       "liquid_replay": 205.19205234669857,
+       "s": 167,
+       "sip": false
+      },
+      {
+       "age": 6.128436088562012,
+       "fill": 0.3296167037889258,
+       "fill_replay": 0.3297866584055513,
+       "foodFill": 0.05270969576028689,
+       "foodFill_replay": 0.052722522761531984,
+       "liquid": 202.14211586090644,
+       "liquid_replay": 202.25681902013412,
+       "s": 168,
+       "sip": false
+      },
+      {
+       "age": 6.141720771789551,
+       "fill": 0.3209861593093217,
+       "fill_replay": 0.3211528227064201,
+       "foodFill": 0.052000048941309995,
+       "foodFill_replay": 0.05201282493811492,
+       "liquid": 196.35986056864854,
+       "liquid_replay": 196.4721983708628,
+       "s": 169,
+       "sip": false
+      },
+      {
+       "age": 6.155074119567871,
+       "fill": 0.31673029980919915,
+       "fill_replay": 0.3168953301728846,
+       "foodFill": 0.05164618289494508,
+       "foodFill_replay": 0.05165893345833847,
+       "liquid": 193.51140534740546,
+       "liquid_replay": 193.62256960161872,
+       "s": 170,
+       "sip": false
+      },
+      {
+       "age": 6.168335914611816,
+       "fill": 0.312492985783719,
+       "fill_replay": 0.3126563834877289,
+       "foodFill": 0.05129119773714914,
+       "foodFill_replay": 0.051303922786697084,
+       "liquid": 190.67730527399598,
+       "liquid_replay": 190.78729631175324,
+       "s": 171,
+       "sip": false
+      },
+      {
+       "age": 6.194904327392578,
+       "fill": 0.3083246573297843,
+       "fill_replay": 0.30848644230375966,
+       "foodFill": 0.05093934945477491,
+       "foodFill_replay": 0.050952049215934055,
+       "liquid": 187.89127474875687,
+       "liquid_replay": 188.00010695411268,
+       "s": 172,
+       "sip": false
+      }
+     ],
+     "sip_s": [
+      113,
+      114
+     ]
+    },
+    "W500": {
+     "first_age": 4.266767501831055,
+     "food_fill_rise_max": 0.0,
+     "peak_fill": 0.6105190584228916,
+     "peak_fill_replay": 0.6117135803711173,
+     "rows": [
+      {
+       "age": 4.25026798248291,
+       "fill": 0,
+       "fill_replay": 0,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 0,
+       "liquid_replay": 0,
+       "s": 56,
+       "sip": false
+      },
+      {
+       "age": 4.266767501831055,
+       "fill": 0,
+       "fill_replay": 0,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 180.525794506073,
+       "liquid_replay": 0,
+       "s": 57,
+       "sip": true
+      },
+      {
+       "age": 4.283647537231445,
+       "fill": 0.24241197724950908,
+       "fill_replay": 0.24339966490799406,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 371.874316627415,
+       "liquid_replay": 177.68175538283566,
+       "s": 58,
+       "sip": true
+      },
+      {
+       "age": 4.300098419189453,
+       "fill": 0.4973642429953495,
+       "fill_replay": 0.47370783467133554,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 469.7625969260281,
+       "liquid_replay": 345.8067193100749,
+       "s": 59,
+       "sip": true
+      },
+      {
+       "age": 4.317013740539551,
+       "fill": 0.6105190584228916,
+       "fill_replay": 0.6117135803711173,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 445.6789126487108,
+       "liquid_replay": 446.55091367091563,
+       "s": 60,
+       "sip": false
+      },
+      {
+       "age": 4.333498001098633,
+       "fill": 0.5783591344219182,
+       "fill_replay": 0.5794907332974857,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 422.2021681280003,
+       "liquid_replay": 423.02823530716455,
+       "s": 61,
+       "sip": false
+      },
+      {
+       "age": 4.352591514587402,
+       "fill": 0.5486493575597601,
+       "fill_replay": 0.5497228272417354,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 400.51403101862485,
+       "liquid_replay": 401.2976638864668,
+       "s": 62,
+       "sip": false
+      },
+      {
+       "age": 4.368541717529297,
+       "fill": 0.5161393080238044,
+       "fill_replay": 0.5171491695887637,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 376.78169485737715,
+       "liquid_replay": 377.51889379979747,
+       "s": 63,
+       "sip": false
+      },
+      {
+       "age": 4.384488105773926,
+       "fill": 0.4904629594751148,
+       "fill_replay": 0.49142258352255763,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 358.0379604168338,
+       "liquid_replay": 358.73848597146707,
+       "s": 64,
+       "sip": false
+      },
+      {
+       "age": 4.400419235229492,
+       "fill": 0.46606961832996796,
+       "fill_replay": 0.4669815151509034,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 340.2308213808766,
+       "liquid_replay": 340.8965060601595,
+       "s": 65,
+       "sip": false
+      },
+      {
+       "age": 4.419002532958984,
+       "fill": 0.4429111084403347,
+       "fill_replay": 0.4437776940658706,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 323.32510916144435,
+       "liquid_replay": 323.95771666808554,
+       "s": 66,
+       "sip": false
+      },
+      {
+       "age": 4.434935569763184,
+       "fill": 0.4173472066360651,
+       "fill_replay": 0.4181637747537669,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 304.6634608443275,
+       "liquid_replay": 305.25955557024986,
+       "s": 67,
+       "sip": false
+      },
+      {
+       "age": 4.4508819580078125,
+       "fill": 0.3966072421614834,
+       "fill_replay": 0.39738323113193585,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 289.5232867778829,
+       "liquid_replay": 290.08975872631316,
+       "s": 68,
+       "sip": false
+      },
+      {
+       "age": 4.466828346252441,
+       "fill": 0.37688184685531295,
+       "fill_replay": 0.3776192417519103,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 275.12374820437844,
+       "liquid_replay": 275.6620464788945,
+       "s": 69,
+       "sip": false
+      },
+      {
+       "age": 4.485438346862793,
+       "fill": 0.3581375007550625,
+       "fill_replay": 0.35883822106711916,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 261.44037555119564,
+       "liquid_replay": 261.951901378997,
+       "s": 70,
+       "sip": false
+      },
+      {
+       "age": 4.501401901245117,
+       "fill": 0.33743772680610085,
+       "fill_replay": 0.33809794660639747,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 246.3295405684536,
+       "liquid_replay": 246.81150102267017,
+       "s": 71,
+       "sip": false
+      },
+      {
+       "age": 4.517361640930176,
+       "fill": 0.320637538454382,
+       "fill_replay": 0.3212648875466417,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 234.06540307169885,
+       "liquid_replay": 234.5233679090484,
+       "s": 72,
+       "sip": false
+      },
+      {
+       "age": 4.535977363586426,
+       "fill": 0.3046775080416481,
+       "fill_replay": 0.30527363025186477,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 222.4145808704031,
+       "liquid_replay": 222.84975008386127,
+       "s": 73,
+       "sip": false
+      },
+      {
+       "age": 4.551924705505371,
+       "fill": 0.2870623811437201,
+       "fill_replay": 0.28762403816335824,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 209.5555382349157,
+       "liquid_replay": 209.96554785925153,
+       "s": 74,
+       "sip": false
+      },
+      {
+       "age": 4.567868232727051,
+       "fill": 0.27278440429441764,
+       "fill_replay": 0.27331812548390033,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 199.13261513492486,
+       "liquid_replay": 199.52223160324723,
+       "s": 75,
+       "sip": false
+      },
+      {
+       "age": 4.583796501159668,
+       "fill": 0.25921975228134037,
+       "fill_replay": 0.25972693330909324,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 189.23041916537846,
+       "liquid_replay": 189.60066131563806,
+       "s": 76,
+       "sip": false
+      },
+      {
+       "age": 4.602360725402832,
+       "fill": 0.24634164972062458,
+       "fill_replay": 0.24682363386721864,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 179.82940429605594,
+       "liquid_replay": 180.1812527230696,
+       "s": 77,
+       "sip": false
+      },
+      {
+       "age": 4.618283271789551,
+       "fill": 0.23213748980484417,
+       "fill_replay": 0.23259168254912013,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 169.46036755753624,
+       "liquid_replay": 169.7919282608577,
+       "s": 78,
+       "sip": false
+      },
+      {
+       "age": 4.634206771850586,
+       "fill": 0.2206088792105464,
+       "fill_replay": 0.22104051544622946,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 161.04448182369887,
+       "liquid_replay": 161.35957627574751,
+       "s": 79,
+       "sip": false
+      },
+      {
+       "age": 4.650136947631836,
+       "fill": 0.2096521727005644,
+       "fill_replay": 0.2100623713967868,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 153.04608607141202,
+       "liquid_replay": 153.34553111965437,
+       "s": 80,
+       "sip": false
+      },
+      {
+       "age": 4.668730735778809,
+       "fill": 0.19923538426024673,
+       "fill_replay": 0.19962520180333343,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 145.44183050998012,
+       "liquid_replay": 145.7263973164334,
+       "s": 81,
+       "sip": false
+      },
+      {
+       "age": 4.684659004211426,
+       "fill": 0.187729634670342,
+       "fill_replay": 0.18809694043394157,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 137.04263330934967,
+       "liquid_replay": 137.31076651677733,
+       "s": 82,
+       "sip": false
+      },
+      {
+       "age": 4.700595855712891,
+       "fill": 0.1784031791526064,
+       "fill_replay": 0.17875223707338858,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 130.23432078140266,
+       "liquid_replay": 130.48913306357366,
+       "s": 83,
+       "sip": false
+      },
+      {
+       "age": 4.719181060791016,
+       "fill": 0.16953540905045236,
+       "fill_replay": 0.16986711657754464,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 123.76084860683022,
+       "liquid_replay": 124.00299510160758,
+       "s": 84,
+       "sip": false
+      },
+      {
+       "age": 4.735130310058594,
+       "fill": 0.1597492054432598,
+       "fill_replay": 0.1600617655992138,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 116.61691997357966,
+       "liquid_replay": 116.84508888742609,
+       "s": 85,
+       "sip": false
+      },
+      {
+       "age": 4.751073837280273,
+       "fill": 0.15180263526167317,
+       "fill_replay": 0.15209964741406523,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 110.81592374102142,
+       "liquid_replay": 111.03274261226761,
+       "s": 86,
+       "sip": false
+      },
+      {
+       "age": 4.767021179199219,
+       "fill": 0.1442540001873225,
+       "fill_replay": 0.1445362429231811,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 105.30542013674544,
+       "liquid_replay": 105.51145733392221,
+       "s": 87,
+       "sip": false
+      },
+      {
+       "age": 4.785634994506836,
+       "fill": 0.13707906048645419,
+       "fill_replay": 0.13734726496612465,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 100.06771415511156,
+       "liquid_replay": 100.263503425271,
+       "s": 88,
+       "sip": false
+      },
+      {
+       "age": 4.8015947341918945,
+       "fill": 0.12915453415704237,
+       "fill_replay": 0.12940723376344285,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 94.28280993464094,
+       "liquid_replay": 94.46728064731327,
+       "s": 89,
+       "sip": false
+      },
+      {
+       "age": 4.817551612854004,
+       "fill": 0.12272574761188199,
+       "fill_replay": 0.1229658688613537,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 89.58979575667385,
+       "liquid_replay": 89.7650842687882,
+       "s": 90,
+       "sip": false
+      },
+      {
+       "age": 4.833492279052734,
+       "fill": 0.11661802724896492,
+       "fill_replay": 0.11684619832927079,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 85.13115989174439,
+       "liquid_replay": 85.29772478036767,
+       "s": 91,
+       "sip": false
+      },
+      {
+       "age": 4.85209846496582,
+       "fill": 0.11082001883978938,
+       "fill_replay": 0.1110368457233741,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 80.89861375304625,
+       "liquid_replay": 81.0568973780631,
+       "s": 92,
+       "sip": false
+      },
+      {
+       "age": 4.868032455444336,
+       "fill": 0.10441607350098256,
+       "fill_replay": 0.1046203706311437,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 76.22373365571727,
+       "liquid_replay": 76.3728705607349,
+       "s": 93,
+       "sip": false
+      },
+      {
+       "age": 4.883971214294434,
+       "fill": 0.09922684025264307,
+       "fill_replay": 0.09942098429597736,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 72.43559338442944,
+       "liquid_replay": 72.57731853606347,
+       "s": 94,
+       "sip": false
+      },
+      {
+       "age": 4.902580261230469,
+       "fill": 0.09429406125291658,
+       "fill_replay": 0.09447855397955628,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 68.8346647146291,
+       "liquid_replay": 68.96934440507609,
+       "s": 95,
+       "sip": false
+      },
+      {
+       "age": 4.9185333251953125,
+       "fill": 0.08884428659233978,
+       "fill_replay": 0.08901811646520755,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 64.85632921240804,
+       "liquid_replay": 64.9832250196015,
+       "s": 96,
+       "sip": false
+      },
+      {
+       "age": 4.934487342834473,
+       "fill": 0.08442378293334979,
+       "fill_replay": 0.08458896379097385,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 61.62936154134535,
+       "liquid_replay": 61.7499435674109,
+       "s": 97,
+       "sip": false
+      },
+      {
+       "age": 4.950446128845215,
+       "fill": 0.08022297947341797,
+       "fill_replay": 0.08037994117413963,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 58.562775015595115,
+       "liquid_replay": 58.67735705712193,
+       "s": 98,
+       "sip": false
+      },
+      {
+       "age": 4.96906852722168,
+       "fill": 0.07623003894999476,
+       "fill_replay": 0.0763791881917483,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 55.647928433496176,
+       "liquid_replay": 55.75680737997626,
+       "s": 99,
+       "sip": false
+      },
+      {
+       "age": 4.985027313232422,
+       "fill": 0.07182121614515162,
+       "fill_replay": 0.07196173922604487,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 52.42948778596068,
+       "liquid_replay": 52.53206963501275,
+       "s": 100,
+       "sip": false
+      },
+      {
+       "age": 5.000988960266113,
+       "fill": 0.0682464568147214,
+       "fill_replay": 0.0683799856365151,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 49.81991347474662,
+       "liquid_replay": 49.91738951465602,
+       "s": 101,
+       "sip": false
+      },
+      {
+       "age": 5.016944885253906,
+       "fill": 0.06484903052304858,
+       "fill_replay": 0.06497591204986124,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 47.33979228182546,
+       "liquid_replay": 47.43241579639871,
+       "s": 102,
+       "sip": false
+      },
+      {
+       "age": 5.035555839538574,
+       "fill": 0.06162186198678524,
+       "fill_replay": 0.06174242933946361,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 44.98395925035322,
+       "liquid_replay": 45.07197341780844,
+       "s": 103,
+       "sip": false
+      },
+      {
+       "age": 5.051509857177734,
+       "fill": 0.05806003991993051,
+       "fill_replay": 0.058173638326143036,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 42.38382914154927,
+       "liquid_replay": 42.466755978084414,
+       "s": 104,
+       "sip": false
+      },
+      {
+       "age": 5.067469596862793,
+       "fill": 0.05517105759640711,
+       "fill_replay": 0.055279003512749135,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 40.27487204537719,
+       "liquid_replay": 40.35367256430687,
+       "s": 105,
+       "sip": false
+      },
+      {
+       "age": 5.083430290222168,
+       "fill": 0.05242486711170618,
+       "fill_replay": 0.052527439920095675,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 38.27015299154551,
+       "liquid_replay": 38.34503114166984,
+       "s": 106,
+       "sip": false
+      },
+      {
+       "age": 5.102042198181152,
+       "fill": 0.04981521881817645,
+       "fill_replay": 0.04991268567267186,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 36.36510973726881,
+       "liquid_replay": 36.43626054105046,
+       "s": 107,
+       "sip": false
+      },
+      {
+       "age": 5.11800479888916,
+       "fill": 0.04693569255807943,
+       "fill_replay": 0.04702752542413382,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 34.263055567397984,
+       "liquid_replay": 34.33009355961769,
+       "s": 108,
+       "sip": false
+      },
+      {
+       "age": 5.133960723876953,
+       "fill": 0.0445990167863389,
+       "fill_replay": 0.04468627778775332,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 32.5572822540274,
+       "liquid_replay": 32.62098278505992,
+       "s": 109,
+       "sip": false
+      },
+      {
+       "age": 5.152579307556152,
+       "fill": 0.04237957661028263,
+       "fill_replay": 0.042462495126451914,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 30.937090925506322,
+       "liquid_replay": 30.9976214423099,
+       "s": 110,
+       "sip": false
+      },
+      {
+       "age": 5.166839599609375,
+       "fill": 0.03992900855395564,
+       "fill_replay": 0.040007132367505055,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 29.148176244387617,
+       "liquid_replay": 29.205206628278688,
+       "s": 111,
+       "sip": false
+      },
+      {
+       "age": 5.183774948120117,
+       "fill": 0.03814834626502701,
+       "fill_replay": 0.038222986092028975,
+       "foodFill": 0.0,
+       "foodFill_replay": 0.0,
+       "liquid": 27.848292773469716,
+       "liquid_replay": 27.90277984718115,
+       "s": 112,
+       "sip": false
+      },
+      {
+       "age": 5.200267791748047,
+       "fill": 0.036136514770412645,
+       "fill_replay": 0.036207218312636444,
+       "foodFill": 0.056722981185129244,
+       "foodFill_replay": 0.0,
+       "liquid": 352.2070952687558,
+       "liquid_replay": 26.431269368224605,
+       "s": 113,
+       "sip": false
+      }
+     ],
+     "sip_s": [
+      57,
+      58,
+      59
+     ]
+    },
+    "courses": {
+     "MILK": {
+      "a0": 5.200267791748047,
+      "a1": 8.183358146118165,
+      "diff": {
+       "classes": {
+        "between": 1,
+        "gap": 0,
+        "offline": 0,
+        "suspect": 0
+       },
+       "fields": {
+        "HUNGER": {
+         "max": 4.449739729261992e-05,
+         "n": 177,
+         "over": 0,
+         "worst_s": 291
+        },
+        "body.energyState": {
+         "max": 0.0001322295229413406,
+         "n": 177,
+         "over": 0,
+         "worst_s": 291
+        },
+        "foodFill": {
+         "max": 1.4648330138714027e-05,
+         "n": 177,
+         "over": 0,
+         "worst_s": 115
+        },
+        "satiety.L": {
+         "max": 0.0,
+         "n": 177,
+         "over": 0,
+         "worst_s": null
+        },
+        "satiety.M": {
+         "max": 0.0011765833322370084,
+         "n": 177,
+         "over": 0,
+         "worst_s": 240
+        },
+        "stomach.buffer.calories": {
+         "max": 0.0015405336029201174,
+         "n": 177,
+         "over": 0,
+         "worst_s": 289
+        },
+        "stomachFill": {
+         "max": 0.0002979390408789362,
+         "n": 177,
+         "over": 0,
+         "worst_s": 115
+        }
+       },
+       "findings": [],
+       "findings_n": 0,
+       "ok": true
+      },
+      "minutes": 178.98542126220707,
+      "nadir": {
+       "live": {
+        "HUNGER": 0.12090092897415161,
+        "minute": 0.9868240356445312
+       },
+       "replay": {
+        "HUNGER": 0.1683397130636689,
+        "minute": 1.9995689392089844
+       }
+      },
+      "ok": true,
+      "request": {
+       "diff_min": 0.0,
+       "live_min": 175.03469467163086,
+       "ok": true,
+       "replay_min": 175.03469467163086,
+       "tol_min": 3.5006938934326173
+      },
+      "series": [
+       {
+        "HUNGER": 0.045361123979091644,
+        "HUNGER_replay": 0.22482406624984114,
+        "body.energyState": 1.0247776373543707,
+        "body.energyState_replay": 1.0247469358609282,
+        "foodFill": 0.056722981185129244,
+        "foodFill_replay": 0.0,
+        "minute": 0.0,
+        "satiety.M": 383.5623242431768,
+        "satiety.M_replay": 101.42948172504603,
+        "stomach.buffer.calories": 225.52449572980402,
+        "stomach.buffer.calories_replay": 0.0,
+        "stomach.liquid": 352.2070952687558,
+        "stomach.liquid_replay": 26.431269368224605,
+        "stomachFill": 0.036136514770412645,
+        "stomachFill_replay": 0.036207218312636444
+       },
+       {
+        "HUNGER": 0.17617559773367425,
+        "HUNGER_replay": 0.1761512225972138,
+        "body.energyState": 1.0240186327043157,
+        "body.energyState_replay": 1.0239863741169988,
+        "foodFill": 0.07142679584260898,
+        "foodFill_replay": 0.07144096809783983,
+        "minute": 15.0,
+        "satiety.M": 367.40966973816523,
+        "satiety.M_replay": 367.84246705378945,
+        "stomach.buffer.calories": 283.98528739923006,
+        "stomach.buffer.calories_replay": 284.04163476757213,
+        "stomach.liquid": 387.62439962782054,
+        "stomach.liquid_replay": 387.8060538188272,
+        "stomachFill": 0.6024191240998974,
+        "stomachFill_replay": 0.6026821377126715
+       },
+       {
+        "HUNGER": 0.18466115342617687,
+        "HUNGER_replay": 0.18463584172173025,
+        "body.energyState": 1.0233861062437863,
+        "body.energyState_replay": 1.0233449922708715,
+        "foodFill": 0.06416914570861922,
+        "foodFill_replay": 0.06418279633481959,
+        "minute": 30.0,
+        "satiety.M": 273.04458430931425,
+        "satiety.M_replay": 273.3662224502456,
+        "stomach.buffer.calories": 255.12964807185836,
+        "stomach.buffer.calories_replay": 255.18392149906407,
+        "stomach.liquid": 308.2944912201835,
+        "stomach.liquid_replay": 308.44929992998186,
+        "stomachFill": 0.4864903665581856,
+        "stomachFill_replay": 0.48671608391013715
+       },
+       {
+        "HUNGER": 0.1927523554662551,
+        "HUNGER_replay": 0.19272592621981646,
+        "body.energyState": 1.0228874536904098,
+        "body.energyState_replay": 1.022837442658362,
+        "foodFill": 0.05718000048596057,
+        "foodFill_replay": 0.05719314878138181,
+        "minute": 45.0,
+        "satiety.M": 202.92684285431025,
+        "satiety.M_replay": 203.16588444763036,
+        "stomach.buffer.calories": 227.34155550355572,
+        "stomach.buffer.calories_replay": 227.39383171740488,
+        "stomach.liquid": 240.70681720434314,
+        "stomach.liquid_replay": 240.83676458112686,
+        "stomachFill": 0.3869153665193073,
+        "stomachFill_replay": 0.3871065249199117
+       },
+       {
+        "HUNGER": 0.20023178898301688,
+        "HUNGER_replay": 0.20020410089974294,
+        "body.energyState": 1.022527428156587,
+        "body.energyState_replay": 1.0224687482163122,
+        "foodFill": 0.050655429135354896,
+        "foodFill_replay": 0.05066810849031119,
+        "minute": 60.0,
+        "satiety.M": 152.23669784301245,
+        "satiety.M_replay": 152.4160280011242,
+        "stomach.buffer.calories": 201.4005588747637,
+        "stomach.buffer.calories_replay": 201.4509706315678,
+        "stomach.liquid": 185.67091415448,
+        "stomach.liquid_replay": 185.77881618111303,
+        "stomachFill": 0.3049991471551905,
+        "stomachFill_replay": 0.30515963750553454
+       },
+       {
+        "HUNGER": 0.20760139588303952,
+        "HUNGER_replay": 0.20757221652060054,
+        "body.energyState": 1.0222778662226364,
+        "body.energyState_replay": 1.022210180978273,
+        "foodFill": 0.04416715675491845,
+        "foodFill_replay": 0.0441793697783253,
+        "minute": 75.0,
+        "satiety.M": 113.1513629377316,
+        "satiety.M_replay": 113.28465177080331,
+        "stomach.buffer.calories": 175.60388306218917,
+        "stomach.buffer.calories_replay": 175.65244073471678,
+        "stomach.liquid": 138.74976685817995,
+        "stomach.liquid_replay": 138.8371401287866,
+        "stomachFill": 0.23423533053324716,
+        "stomachFill_replay": 0.23436723296844392
+       },
+       {
+        "HUNGER": 0.2148684187450257,
+        "HUNGER_replay": 0.21483749438039254,
+        "body.energyState": 1.0221456575211239,
+        "body.energyState_replay": 1.02206859898351,
+        "foodFill": 0.03771705926614698,
+        "foodFill_replay": 0.03772880870174819,
+        "minute": 90.0,
+        "satiety.M": 83.29337172153,
+        "satiety.M_replay": 83.39148875725213,
+        "stomach.buffer.calories": 149.95898652870756,
+        "stomach.buffer.calories_replay": 150.00570102579007,
+        "stomach.liquid": 99.81553415603742,
+        "stomach.liquid_replay": 99.8841669432289,
+        "stomachFill": 0.17445066769907497,
+        "stomachFill_replay": 0.1745564346513768
+       },
+       {
+        "HUNGER": 0.22161104736694423,
+        "HUNGER_replay": 0.22157823325191664,
+        "body.energyState": 1.0221347015228142,
+        "body.energyState_replay": 1.0220484800662146,
+        "foodFill": 0.0316976403730604,
+        "foodFill_replay": 0.03170895717501513,
+        "minute": 105.0,
+        "satiety.M": 61.89269929454139,
+        "satiety.M_replay": 61.96560699490352,
+        "stomach.buffer.calories": 126.02642194753393,
+        "stomach.buffer.calories_replay": 126.07141633959156,
+        "stomach.liquid": 70.24363504708644,
+        "stomach.liquid_replay": 70.29652874308594,
+        "stomachFill": 0.12792179797180897,
+        "stomachFill_replay": 0.12800557189157122
+       },
+       {
+        "HUNGER": 0.22808633954013435,
+        "HUNGER_replay": 0.2280514305710272,
+        "body.energyState": 1.0222347239832195,
+        "body.energyState_replay": 1.0221392663699174,
+        "foodFill": 0.025902327609691484,
+        "foodFill_replay": 0.025913227885178098,
+        "minute": 120.0,
+        "satiety.M": 45.99606520446999,
+        "satiety.M_replay": 46.05024715772115,
+        "stomach.buffer.calories": 102.98487932674657,
+        "stomach.buffer.calories_replay": 103.02821765419479,
+        "stomach.liquid": 47.64437067117899,
+        "stomach.liquid_replay": 47.683913286129965,
+        "stomachFill": 0.09116858880308736,
+        "stomachFill_replay": 0.09123365704426023
+       },
+       {
+        "HUNGER": 0.23413517985784507,
+        "HUNGER_replay": 0.2340980554723872,
+        "body.energyState": 1.022433473361687,
+        "body.energyState_replay": 1.0223290012303288,
+        "foodFill": 0.02049612424934222,
+        "foodFill_replay": 0.02050663596481766,
+        "minute": 135.0,
+        "satiety.M": 34.5117426436733,
+        "satiety.M_replay": 34.55239641738683,
+        "stomach.buffer.calories": 81.49039400207222,
+        "stomach.buffer.calories_replay": 81.53218745654742,
+        "stomach.liquid": 31.38957907744988,
+        "stomach.liquid_replay": 31.418409964139737,
+        "stomachFill": 0.06349554764310918,
+        "stomachFill_replay": 0.06354555372391318
+       },
+       {
+        "HUNGER": 0.24019451173257897,
+        "HUNGER_replay": 0.24015491547442122,
+        "body.energyState": 1.022740028540482,
+        "body.energyState_replay": 1.0226261646075252,
+        "foodFill": 0.015112029514704643,
+        "foodFill_replay": 0.015122154259182057,
+        "minute": 150.0,
+        "satiety.M": 25.643924046277576,
+        "satiety.M_replay": 25.67413180182525,
+        "stomach.buffer.calories": 60.083810204446216,
+        "stomach.buffer.calories_replay": 60.12406510369443,
+        "stomach.liquid": 19.362013968154077,
+        "stomach.liquid_replay": 19.381941853413835,
+        "stomachFill": 0.041635336320395164,
+        "stomachFill_replay": 0.04167275953783115
+       },
+       {
+        "HUNGER": 0.24627820181055057,
+        "HUNGER_replay": 0.24623585778225826,
+        "body.energyState": 1.0231603276814278,
+        "body.energyState_replay": 1.023036694454638,
+        "foodFill": 0.00976610934600167,
+        "foodFill_replay": 0.009775849863201166,
+        "minute": 165.0,
+        "satiety.M": 18.878508077923104,
+        "satiety.M_replay": 18.900746381081913,
+        "stomach.buffer.calories": 38.829004390844126,
+        "stomach.buffer.calories_replay": 38.867731643602525,
+        "stomach.liquid": 10.99691808072361,
+        "stomach.liquid_replay": 11.009794821884759,
+        "stomachFill": 0.02483038068945867,
+        "stomachFill_replay": 0.024857760578111798
+       }
+      ]
+     },
+     "SOLID": {
+      "a0": 8.183359146118164,
+      "a1": 11.250137329101562,
+      "diff": {
+       "classes": {
+        "between": 0,
+        "gap": 0,
+        "offline": 5,
+        "suspect": 0
+       },
+       "fields": {
+        "HUNGER": {
+         "max": 6.680632485295268e-05,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        },
+        "body.energyState": {
+         "max": 0.00023998869587704696,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        },
+        "foodFill": {
+         "max": 3.7344725100155185e-05,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        },
+        "satiety.L": {
+         "max": 0.0,
+         "n": 179,
+         "over": 0,
+         "worst_s": null
+        },
+        "satiety.M": {
+         "max": 4.154418192422564e-05,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        },
+        "stomach.buffer.calories": {
+         "max": 0.0006105301209151743,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        },
+        "stomachFill": {
+         "max": 3.759966793888403e-05,
+         "n": 179,
+         "over": 0,
+         "worst_s": 471
+        }
+       },
+       "findings": [],
+       "findings_n": 0,
+       "ok": true
+      },
+      "minutes": 184.0066909790039,
+      "nadir": {
+       "live": {
+        "HUNGER": 0.12504060566425323,
+        "minute": 1.6251754760742188
+       },
+       "replay": {
+        "HUNGER": 0.12502059594363577,
+        "minute": 1.6251754760742188
+       }
+      },
+      "ok": true,
+      "request": {
+       "diff_min": 0.0,
+       "live_min": 173.01795959472656,
+       "ok": true,
+       "replay_min": 173.01795959472656,
+       "tol_min": 3.4603591918945313
+      },
+      "series": [
+       {
+        "HUNGER": 0.09156671166419983,
+        "HUNGER_replay": 0.25152215153655305,
+        "body.energyState": 1.0236587203903442,
+        "body.energyState_replay": 1.023525650520806,
+        "foodFill": 0.7059994336461193,
+        "foodFill_replay": 0.005254805215811548,
+        "minute": 0.0,
+        "satiety.M": 407.37163837842047,
+        "satiety.M_replay": 14.384552382264275,
+        "stomach.buffer.calories": 335.0103507558991,
+        "stomach.buffer.calories_replay": 20.89254252322218,
+        "stomach.liquid": 6.181641175002313,
+        "stomach.liquid_replay": 6.1898497482867585,
+        "stomachFill": 0.013714711621392007,
+        "stomachFill_replay": 0.013734051446341353
+       },
+       {
+        "HUNGER": 0.13598628222437845,
+        "HUNGER_replay": 0.13596339671755914,
+        "body.energyState": 1.022780206556849,
+        "body.energyState_replay": 1.0226376973150668,
+        "foodFill": 0.6404264540692755,
+        "foodFill_replay": 0.6404375819901493,
+        "minute": 15.0,
+        "satiety.M": 301.60809395457505,
+        "satiety.M_replay": 301.62062453667244,
+        "stomach.buffer.calories": 303.8947069731604,
+        "stomach.buffer.calories_replay": 303.92569327740426,
+        "stomach.liquid": 5.036650857518423,
+        "stomach.liquid_replay": 5.043415243399841,
+        "stomachFill": 0.6473259757919034,
+        "stomachFill_replay": 0.6473463699948067
+       },
+       {
+        "HUNGER": 0.14743388290963794,
+        "HUNGER_replay": 0.14740782368863625,
+        "body.energyState": 1.0220556729481185,
+        "body.energyState_replay": 1.0219042090196677,
+        "foodFill": 0.5780781421641527,
+        "foodFill_replay": 0.5780921404491091,
+        "minute": 30.0,
+        "satiety.M": 224.14815717787187,
+        "satiety.M_replay": 224.15746961656887,
+        "stomach.buffer.calories": 274.309230207972,
+        "stomach.buffer.calories_replay": 274.33907613328734,
+        "stomach.liquid": 4.051293391907682,
+        "stomach.liquid_replay": 4.056801966560562,
+        "stomachFill": 0.5836278591393688,
+        "stomachFill_replay": 0.5836494034170002
+       },
+       {
+        "HUNGER": 0.15838771784118386,
+        "HUNGER_replay": 0.1583584497029303,
+        "body.energyState": 1.0214857070831638,
+        "body.energyState_replay": 1.0213257707282337,
+        "foodFill": 0.5200023838598334,
+        "foodFill_replay": 0.520019055810935,
+        "minute": 45.0,
+        "satiety.M": 168.25965947451127,
+        "satiety.M_replay": 168.26664997482928,
+        "stomach.buffer.calories": 246.75116254853384,
+        "stomach.buffer.calories_replay": 246.77994624186584,
+        "stomach.liquid": 3.2296739865177835,
+        "stomach.liquid_replay": 3.234123609859661,
+        "stomachFill": 0.5244265948002688,
+        "stomachFill_replay": 0.5244493621258112
+       },
+       {
+        "HUNGER": 0.16963679466792628,
+        "HUNGER_replay": 0.1696040193895806,
+        "body.energyState": 1.0210245394582806,
+        "body.energyState_replay": 1.0208558933004677,
+        "foodFill": 0.46192965726819096,
+        "foodFill_replay": 0.4619490027458653,
+        "minute": 60.0,
+        "satiety.M": 124.93461999480932,
+        "satiety.M_replay": 124.93981051702681,
+        "stomach.buffer.calories": 219.19453349524574,
+        "stomach.buffer.calories_replay": 219.22225501204602,
+        "stomach.liquid": 2.5046779940830324,
+        "stomach.liquid_replay": 2.5081815304703188,
+        "stomachFill": 0.46536072301351017,
+        "stomachFill_replay": 0.4653848678560986
+       },
+       {
+        "HUNGER": 0.18108017885914215,
+        "HUNGER_replay": 0.18104362038680658,
+        "body.energyState": 1.020683878356981,
+        "body.energyState_replay": 1.0205062844813515,
+        "foodFill": 0.40444523744906763,
+        "foodFill_replay": 0.40446722936910673,
+        "minute": 75.0,
+        "satiety.M": 91.99072498128072,
+        "satiety.M_replay": 91.99454681946968,
+        "stomach.buffer.calories": 191.9170673545903,
+        "stomach.buffer.calories_replay": 191.94373745525678,
+        "stomach.liquid": 1.8849771169643954,
+        "stomach.liquid_replay": 1.8876602853654771,
+        "stomachFill": 0.4070273978832654,
+        "stomachFill_replay": 0.4070530653764567
+       },
+       {
+        "HUNGER": 0.1920539188680133,
+        "HUNGER_replay": 0.1920135234983777,
+        "body.energyState": 1.0204780990876645,
+        "body.energyState_replay": 1.0202917895458403,
+        "foodFill": 0.35078354251796795,
+        "foodFill_replay": 0.3508080048914497,
+        "minute": 90.0,
+        "satiety.M": 68.3666897334903,
+        "satiety.M_replay": 68.36953008968634,
+        "stomach.buffer.calories": 166.45355791778982,
+        "stomach.buffer.calories_replay": 166.47924652169587,
+        "stomach.liquid": 1.3952070545339947,
+        "stomach.liquid_replay": 1.3972313145504414,
+        "stomachFill": 0.35269478505842544,
+        "stomachFill_replay": 0.35272202039083383
+       },
+       {
+        "HUNGER": 0.20290535006580657,
+        "HUNGER_replay": 0.2028609250922475,
+        "body.energyState": 1.0203903836579866,
+        "body.energyState_replay": 1.020195285151497,
+        "foodFill": 0.2990848129672592,
+        "foodFill_replay": 0.2991116554240489,
+        "minute": 105.0,
+        "satiety.M": 50.80562867604652,
+        "satiety.M_replay": 50.807739442016974,
+        "stomach.buffer.calories": 141.92151342170501,
+        "stomach.buffer.calories_replay": 141.94625643237842,
+        "stomach.liquid": 1.0034613036069402,
+        "stomach.liquid_replay": 1.0049489876646973,
+        "stomachFill": 0.3004594174927481,
+        "stomachFill_replay": 0.30048829787290465
+       },
+       {
+        "HUNGER": 0.21327153637429674,
+        "HUNGER_replay": 0.21322306307001385,
+        "body.energyState": 1.020413910417709,
+        "body.energyState_replay": 1.020210227762876,
+        "foodFill": 0.25092615309908956,
+        "foodFill_replay": 0.2509552126630217,
+        "minute": 120.0,
+        "satiety.M": 38.135111817978,
+        "satiety.M_replay": 38.136696175821875,
+        "stomach.buffer.calories": 119.06930028174878,
+        "stomach.buffer.calories_replay": 119.09316244867163,
+        "stomach.liquid": 0.7071061470044314,
+        "stomach.liquid_replay": 0.708179667399967,
+        "stomachFill": 0.25189479165662987,
+        "stomachFill_replay": 0.2519253217964463
+       },
+       {
+        "HUNGER": 0.22388494053956384,
+        "HUNGER_replay": 0.22383209083718258,
+        "body.energyState": 1.0205462609708575,
+        "body.energyState_replay": 1.0203335735351675,
+        "foodFill": 0.20281752737760553,
+        "foodFill_replay": 0.20284880174522885,
+        "minute": 135.0,
+        "satiety.M": 28.321856285401203,
+        "satiety.M_replay": 28.323032942634402,
+        "stomach.buffer.calories": 96.24082930960746,
+        "stomach.buffer.calories_replay": 96.26381154792648,
+        "stomach.liquid": 0.4733313092619714,
+        "stomach.liquid_replay": 0.47407054424926875,
+        "stomachFill": 0.20346592643138905,
+        "stomachFill_replay": 0.2034982134496799
+       },
+       {
+        "HUNGER": 0.23466499223069778,
+        "HUNGER_replay": 0.23460745512783446,
+        "body.energyState": 1.020793351823053,
+        "body.energyState_replay": 1.0205712697757663,
+        "foodFill": 0.1551545757665672,
+        "foodFill_replay": 0.15518804442013445,
+        "minute": 150.0,
+        "satiety.M": 20.852866050956404,
+        "satiety.M_replay": 20.85373240220912,
+        "stomach.buffer.calories": 73.62383930040713,
+        "stomach.buffer.calories_replay": 73.64594976170444,
+        "stomach.liquid": 0.29831461982745777,
+        "stomach.liquid_replay": 0.29879660578587997,
+        "stomachFill": 0.1555632259307144,
+        "stomachFill_replay": 0.15559735483901924
+       },
+       {
+        "HUNGER": 0.2449758909824418,
+        "HUNGER_replay": 0.24491362149273035,
+        "body.energyState": 1.021136422124338,
+        "body.energyState_replay": 1.0209050984328985,
+        "foodFill": 0.11065638930369884,
+        "foodFill_replay": 0.11069190654514818,
+        "minute": 165.0,
+        "satiety.M": 15.496562312804576,
+        "satiety.M_replay": 15.497206131555417,
+        "stomach.buffer.calories": 52.50859140574779,
+        "stomach.buffer.calories_replay": 52.52988797501468,
+        "stomach.liquid": 0.18008852603950434,
+        "stomach.liquid_replay": 0.18039101665329169,
+        "stomachFill": 0.11090308591471183,
+        "stomachFill_replay": 0.11093901752686501
+       },
+       {
+        "HUNGER": null,
+        "HUNGER_replay": 0.2549888486676497,
+        "body.energyState": 1.0215734205526268,
+        "body.energyState_replay": 1.0213328010945202,
+        "foodFill": 0.06814466438181405,
+        "foodFill_replay": 0.06818213875930518,
+        "minute": 180.0,
+        "satiety.M": 11.54413023315977,
+        "satiety.M_replay": 11.544609844531395,
+        "stomach.buffer.calories": 32.33595783327157,
+        "stomach.buffer.calories_replay": 32.3564768437914,
+        "stomach.liquid": 0.10192724950387595,
+        "stomach.liquid_replay": 0.10210651314614815,
+        "stomachFill": 0.06828429075099746,
+        "stomachFill_replay": 0.06832201069512182
+       }
+      ]
+     }
+    },
+    "swap_arms": {
+     "as_live": {
+      "milk_at_slot1": 175.03469467163086,
+      "solid_at_slot2": 173.01795959472656
+     },
+     "kind": "replay arms (ruling 11f-3): the milk's sips moved to the solid's landing row (as many rows on) and the solid put at the milk's first sip row",
+     "liquid_over_solid_slot1": 0.5345980613662992,
+     "liquid_over_solid_slot2": 0.8578771495131143,
+     "swapped": {
+      "milk_at_slot2": 148.42815399169922,
+      "solid_at_slot1": 327.41363525390625
+     }
+    }
+   },
+   "rows": 476,
+   "run": "x363-20261012-202827"
+  },
+  "x364": {
+   "determinism": {
+    "compared": 1932,
+    "max_abs_HUNGER": 0
+   },
+   "diff": {
+    "classes": {
+     "between": 0,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0006987756084864127,
+      "n": 1926,
+      "over": 0,
+      "worst_s": 1847
+     },
+     "body.energyState": {
+      "max": 0.001396821053831987,
+      "n": 1926,
+      "over": 0,
+      "worst_s": 1976
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 1926,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "events": 0,
+   "grade": {
+    "classes": {
+     "between": 0,
+     "gap": 0,
+     "offline": 5,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 0.0006987756084864127,
+      "n": 1926,
+      "over": 0,
+      "worst_s": 1847
+     },
+     "body.energyState": {
+      "max": 0.001396821053831987,
+      "n": 1926,
+      "over": 0,
+      "worst_s": 1976
+     },
+     "foodFill": {
+      "max": 0.0,
+      "n": 1926,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 1926,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.M": {
+      "max": 2.2101943399475997e-16,
+      "n": 1926,
+      "over": 0,
+      "worst_s": 276
+     },
+     "stomach.buffer.calories": {
+      "max": 0.0,
+      "n": 1926,
+      "over": 0,
+      "worst_s": null
+     },
+     "stomachFill": {
+      "max": 0.0,
+      "n": 1926,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "readings": {
+    "energy_pairs": {
+     "changes": [
+      {
+       "after_wall": 149.667,
+       "age": 11.629219055175781,
+       "from": 0,
+       "seen_wall": 152.22,
+       "to": 1
+      },
+      {
+       "after_wall": 244.645,
+       "age": 24.167356491088867,
+       "from": 1,
+       "seen_wall": 246.696,
+       "to": 2
+      }
+     ],
+     "equal": 98,
+     "lag": 19,
+     "max_wall_gap": 0.7630000000000052,
+     "mismatch": 0,
+     "ok": true,
+     "pairs": [
+      {
+       "age": 4.21905517578125,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0131637809608869,
+       "server_level": 0,
+       "tag": "E_start",
+       "wall_gap": 0.5060000000000002
+      },
+      {
+       "age": 4.644260406494141,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0180434325878922,
+       "server_level": 0,
+       "tag": "E_4.472",
+       "wall_gap": 0.5060000000000002
+      },
+      {
+       "age": 4.909588813781738,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.021384954279074,
+       "server_level": 0,
+       "tag": "E_4.777",
+       "wall_gap": 0.2609999999999957
+      },
+      {
+       "age": 5.228425025939941,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0250513987568897,
+       "server_level": 0,
+       "tag": "E_5.042",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 5.427641868591309,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0274448399553822,
+       "server_level": 0,
+       "tag": "E_5.295",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 5.693277359008789,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.030791990014616,
+       "server_level": 0,
+       "tag": "E_5.560",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 5.9718780517578125,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.033978005557426,
+       "server_level": 0,
+       "tag": "E_5.826",
+       "wall_gap": 0.2600000000000051
+      },
+      {
+       "age": 6.277423858642578,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0376470979970742,
+       "server_level": 0,
+       "tag": "E_6.105",
+       "wall_gap": 0.5120000000000005
+      },
+      {
+       "age": 6.556182861328125,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.040993687857222,
+       "server_level": 0,
+       "tag": "E_6.410",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 6.821768760681152,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0441838414498235,
+       "server_level": 0,
+       "tag": "E_6.689",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 7.100757598876953,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.04737348999467,
+       "server_level": 0,
+       "tag": "E_6.955",
+       "wall_gap": 0.25900000000000034
+      },
+      {
+       "age": 7.379651069641113,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0508826046856379,
+       "server_level": 0,
+       "tag": "E_7.234",
+       "wall_gap": 0.2600000000000051
+      },
+      {
+       "age": 7.671943664550781,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.054392211917631,
+       "server_level": 0,
+       "tag": "E_7.512",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 7.9510602951049805,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0575838993431883,
+       "server_level": 0,
+       "tag": "E_7.818",
+       "wall_gap": 0.2600000000000051
+      },
+      {
+       "age": 8.21668529510498,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0610932305664476,
+       "server_level": 0,
+       "tag": "E_8.084",
+       "wall_gap": 0.25799999999999557
+      },
+      {
+       "age": 8.495638847351074,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.064284987910472,
+       "server_level": 0,
+       "tag": "E_8.363",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 8.827914237976074,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0684340159680643,
+       "server_level": 0,
+       "tag": "E_8.628",
+       "wall_gap": 0.7580000000000098
+      },
+      {
+       "age": 9.067075729370117,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0713071245882297,
+       "server_level": 0,
+       "tag": "E_8.894",
+       "wall_gap": 0.5090000000000146
+      },
+      {
+       "age": 9.3458251953125,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.07449651609619,
+       "server_level": 0,
+       "tag": "E_9.213",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 9.611059188842773,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0778412340970998,
+       "server_level": 0,
+       "tag": "E_9.478",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 9.889482498168945,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0810258044323424,
+       "server_level": 0,
+       "tag": "E_9.744",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 10.155075073242188,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0842161079798518,
+       "server_level": 0,
+       "tag": "E_10.022",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 10.46053695678711,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0880438877907121,
+       "server_level": 0,
+       "tag": "E_10.288",
+       "wall_gap": 0.5150000000000148
+      },
+      {
+       "age": 10.739192962646484,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0912324636579203,
+       "server_level": 0,
+       "tag": "E_10.606",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 11.004875183105469,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.0944231821129515,
+       "server_level": 0,
+       "tag": "E_10.872",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 11.283910751342773,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "equal",
+       "server_es": 1.097615264613264,
+       "server_level": 0,
+       "tag": "E_11.151",
+       "wall_gap": 0.25499999999999545
+      },
+      {
+       "age": 11.629219055175781,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1019223382676244,
+       "server_level": 1,
+       "tag": "E_11.430",
+       "wall_gap": 0.7620000000000005
+      },
+      {
+       "age": 11.854917526245117,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1046334906887232,
+       "server_level": 1,
+       "tag": "E_11.696",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 12.133831024169922,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1078257427029166,
+       "server_level": 1,
+       "tag": "E_11.988",
+       "wall_gap": 0.2569999999999766
+      },
+      {
+       "age": 12.41253662109375,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1113342546022555,
+       "server_level": 1,
+       "tag": "E_12.280",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 12.678167343139648,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.114524861274503,
+       "server_level": 1,
+       "tag": "E_12.545",
+       "wall_gap": 0.2569999999999766
+      },
+      {
+       "age": 13.010103225708008,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1186730987337994,
+       "server_level": 1,
+       "tag": "E_12.811",
+       "wall_gap": 0.7630000000000052
+      },
+      {
+       "age": 13.262001037597656,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1215408041014387,
+       "server_level": 1,
+       "tag": "E_13.076",
+       "wall_gap": 0.5109999999999957
+      },
+      {
+       "age": 13.461135864257812,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1239319171878472,
+       "server_level": 1,
+       "tag": "E_13.328",
+       "wall_gap": 0.2609999999999957
+      },
+      {
+       "age": 13.72698974609375,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1271256515083186,
+       "server_level": 1,
+       "tag": "E_13.594",
+       "wall_gap": 0.2539999999999907
+      },
+      {
+       "age": 14.00621223449707,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1304802299711638,
+       "server_level": 1,
+       "tag": "E_13.860",
+       "wall_gap": 0.25499999999999545
+      },
+      {
+       "age": 14.271728515625,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1336720201758357,
+       "server_level": 1,
+       "tag": "E_14.139",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 14.57699203491211,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.137500107562596,
+       "server_level": 1,
+       "tag": "E_14.404",
+       "wall_gap": 0.5109999999999957
+      },
+      {
+       "age": 14.855669021606445,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1406880880847305,
+       "server_level": 1,
+       "tag": "E_14.710",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 15.121713638305664,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.143884609099937,
+       "server_level": 1,
+       "tag": "E_14.989",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 15.400745391845703,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1470789214569133,
+       "server_level": 1,
+       "tag": "E_15.255",
+       "wall_gap": 0.2580000000000098
+      },
+      {
+       "age": 15.679731369018555,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1505909565186236,
+       "server_level": 1,
+       "tag": "E_15.534",
+       "wall_gap": 0.2609999999999957
+      },
+      {
+       "age": 15.972103118896484,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.154104485549093,
+       "server_level": 1,
+       "tag": "E_15.813",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 16.251066207885742,
+       "client_level": 0,
+       "client_moodle": 0,
+       "client_view": 0,
+       "kind": "lag",
+       "server_es": 1.1572988500003425,
+       "server_level": 1,
+       "tag": "E_16.105",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 16.516921997070312,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1608105591292837,
+       "server_level": 1,
+       "tag": "E_16.384",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 16.795974731445312,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1640059548361132,
+       "server_level": 1,
+       "tag": "E_16.663",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 17.061365127563477,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.167357762902948,
+       "server_level": 1,
+       "tag": "E_16.929",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 17.379222869873047,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1710164330229258,
+       "server_level": 1,
+       "tag": "E_17.194",
+       "wall_gap": 0.5089999999999861
+      },
+      {
+       "age": 17.578271865844727,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1734087177763732,
+       "server_level": 1,
+       "tag": "E_17.446",
+       "wall_gap": 0.25799999999998136
+      },
+      {
+       "age": 17.843788146972656,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1765995197524737,
+       "server_level": 1,
+       "tag": "E_17.711",
+       "wall_gap": 0.2569999999999766
+      },
+      {
+       "age": 18.109365463256836,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1799506564940345,
+       "server_level": 1,
+       "tag": "E_17.976",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 18.388301849365234,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1831436597356302,
+       "server_level": 1,
+       "tag": "E_18.255",
+       "wall_gap": 0.25899999999998613
+      },
+      {
+       "age": 18.693986892700195,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1868173510149689,
+       "server_level": 1,
+       "tag": "E_18.521",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 18.95978546142578,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1901723418266628,
+       "server_level": 1,
+       "tag": "E_18.827",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 19.238813400268555,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.193366706693483,
+       "server_level": 1,
+       "tag": "E_19.106",
+       "wall_gap": 0.26300000000000523
+      },
+      {
+       "age": 19.504343032836914,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1965582567362871,
+       "server_level": 1,
+       "tag": "E_19.372",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 19.78333854675293,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.1997514165431797,
+       "server_level": 1,
+       "tag": "E_19.650",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 20.128751754760742,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2040622336656936,
+       "server_level": 1,
+       "tag": "E_19.929",
+       "wall_gap": 0.757000000000005
+      },
+      {
+       "age": 20.354572296142578,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2067770113397471,
+       "server_level": 1,
+       "tag": "E_20.195",
+       "wall_gap": 0.5090000000000146
+      },
+      {
+       "age": 20.633838653564453,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2099741689541688,
+       "server_level": 1,
+       "tag": "E_20.488",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 20.912715911865234,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2134874565696492,
+       "server_level": 1,
+       "tag": "E_20.780",
+       "wall_gap": 0.2609999999999957
+      },
+      {
+       "age": 21.178316116333008,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2166788478577701,
+       "server_level": 1,
+       "tag": "E_21.045",
+       "wall_gap": 0.2560000000000002
+      },
+      {
+       "age": 21.444175720214844,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.22003435137889,
+       "server_level": 1,
+       "tag": "E_21.311",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 21.762693405151367,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2237043376381753,
+       "server_level": 1,
+       "tag": "E_21.577",
+       "wall_gap": 0.5069999999999766
+      },
+      {
+       "age": 21.9619140625,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2260989072348591,
+       "server_level": 1,
+       "tag": "E_21.829",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 22.227266311645508,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2294487331142139,
+       "server_level": 1,
+       "tag": "E_22.095",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 22.505924224853516,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.232638388720842,
+       "server_level": 1,
+       "tag": "E_22.360",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 22.771644592285156,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.235832457719414,
+       "server_level": 1,
+       "tag": "E_22.639",
+       "wall_gap": 0.25799999999998136
+      },
+      {
+       "age": 23.077226638793945,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2396656447520062,
+       "server_level": 1,
+       "tag": "E_22.904",
+       "wall_gap": 0.5080000000000098
+      },
+      {
+       "age": 23.342941284179688,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2428598282746692,
+       "server_level": 1,
+       "tag": "E_23.210",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 23.62205696105957,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2460559850229873,
+       "server_level": 1,
+       "tag": "E_23.489",
+       "wall_gap": 0.25499999999999545
+      },
+      {
+       "age": 23.901344299316406,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "equal",
+       "server_es": 1.2492532212826446,
+       "server_level": 1,
+       "tag": "E_23.755",
+       "wall_gap": 0.2610000000000241
+      },
+      {
+       "age": 24.167356491088867,
+       "client_level": 1,
+       "client_moodle": 1,
+       "client_view": 1,
+       "kind": "lag",
+       "server_es": 1.2564154112597579,
+       "server_level": 2,
+       "tag": "E_24.034",
+       "wall_gap": 0.26300000000000523
+      },
+      {
+       "age": 24.472599029541016,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.259903626013902,
+       "server_level": 2,
+       "tag": "E_24.300",
+       "wall_gap": 0.5060000000000002
+      },
+      {
+       "age": 24.73782730102539,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2630698187166935,
+       "server_level": 2,
+       "tag": "E_24.605",
+       "wall_gap": 0.2569999999999766
+      },
+      {
+       "age": 25.029870986938477,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.26623826792063,
+       "server_level": 2,
+       "tag": "E_24.884",
+       "wall_gap": 0.2609999999999957
+      },
+      {
+       "age": 25.295551300048828,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.269728146000116,
+       "server_level": 2,
+       "tag": "E_25.163",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 25.561086654663086,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2730573364491193,
+       "server_level": 2,
+       "tag": "E_25.428",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 25.866867065429688,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2767076242845405,
+       "server_level": 2,
+       "tag": "E_25.694",
+       "wall_gap": 0.5120000000000005
+      },
+      {
+       "age": 26.07928466796875,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2790876393128978,
+       "server_level": 2,
+       "tag": "E_25.947",
+       "wall_gap": 0.2589999999999577
+      },
+      {
+       "age": 26.34463882446289,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2824144853052957,
+       "server_level": 2,
+       "tag": "E_26.212",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 26.622833251953125,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2855797553153783,
+       "server_level": 2,
+       "tag": "E_26.477",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 26.927719116210938,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2892199286547656,
+       "server_level": 2,
+       "tag": "E_26.755",
+       "wall_gap": 0.5100000000000477
+      },
+      {
+       "age": 27.19286346435547,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.290896380684201,
+       "server_level": 2,
+       "tag": "E_27.060",
+       "wall_gap": 0.26000000000004775
+      },
+      {
+       "age": 27.47154998779297,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291207041742856,
+       "server_level": 2,
+       "tag": "E_27.339",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 27.737037658691406,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2915181060452516,
+       "server_level": 2,
+       "tag": "E_27.604",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 28.029327392578125,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2918449406403416,
+       "server_level": 2,
+       "tag": "E_27.896",
+       "wall_gap": 0.26099999999996726
+      },
+      {
+       "age": 28.321714401245117,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2918620745362452,
+       "server_level": 2,
+       "tag": "E_28.162",
+       "wall_gap": 0.5059999999999718
+      },
+      {
+       "age": 28.58751106262207,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2918360966787852,
+       "server_level": 2,
+       "tag": "E_28.455",
+       "wall_gap": 0.25900000000001455
+      },
+      {
+       "age": 28.879898071289062,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2918103137565997,
+       "server_level": 2,
+       "tag": "E_28.734",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 29.145572662353516,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2917903807266369,
+       "server_level": 2,
+       "tag": "E_29.013",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 29.411121368408203,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2917886047456686,
+       "server_level": 2,
+       "tag": "E_29.278",
+       "wall_gap": 0.25600000000002865
+      },
+      {
+       "age": 29.729774475097656,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291786900705647,
+       "server_level": 2,
+       "tag": "E_29.544",
+       "wall_gap": 0.5060000000000286
+      },
+      {
+       "age": 29.929031372070312,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2917857691385888,
+       "server_level": 2,
+       "tag": "E_29.796",
+       "wall_gap": 0.25499999999999545
+      },
+      {
+       "age": 30.194732666015625,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2917616613406102,
+       "server_level": 2,
+       "tag": "E_30.062",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 30.460407257080078,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2917154802000594,
+       "server_level": 2,
+       "tag": "E_30.327",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 30.739229202270508,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291671761068463,
+       "server_level": 2,
+       "tag": "E_30.606",
+       "wall_gap": 0.26200000000000045
+      },
+      {
+       "age": 31.044662475585938,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2916218058668019,
+       "server_level": 2,
+       "tag": "E_30.872",
+       "wall_gap": 0.5120000000000005
+      },
+      {
+       "age": 31.309843063354492,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291617873172115,
+       "server_level": 2,
+       "tag": "E_31.177",
+       "wall_gap": 0.25900000000001455
+      },
+      {
+       "age": 31.588420867919922,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2916156413192579,
+       "server_level": 2,
+       "tag": "E_31.456",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 31.867263793945312,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291613690809983,
+       "server_level": 2,
+       "tag": "E_31.721",
+       "wall_gap": 0.26099999999996726
+      },
+      {
+       "age": 32.14582061767578,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291611716813502,
+       "server_level": 2,
+       "tag": "E_32.013",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 32.43769073486328,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2916097494490488,
+       "server_level": 2,
+       "tag": "E_32.278",
+       "wall_gap": 0.5120000000000005
+      },
+      {
+       "age": 32.72981643676758,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2916082770620654,
+       "server_level": 2,
+       "tag": "E_32.570",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 32.99549865722656,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2916070141667886,
+       "server_level": 2,
+       "tag": "E_32.863",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 33.261112213134766,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2915764045109335,
+       "server_level": 2,
+       "tag": "E_33.128",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 33.52666473388672,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2915360045801678,
+       "server_level": 2,
+       "tag": "E_33.394",
+       "wall_gap": 0.257000000000005
+      },
+      {
+       "age": 33.84501266479492,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914921697310677,
+       "server_level": 2,
+       "tag": "E_33.659",
+       "wall_gap": 0.5109999999999673
+      },
+      {
+       "age": 34.04407501220703,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914637927573072,
+       "server_level": 2,
+       "tag": "E_33.911",
+       "wall_gap": 0.25799999999998136
+      },
+      {
+       "age": 34.30935287475586,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914640919243303,
+       "server_level": 2,
+       "tag": "E_34.177",
+       "wall_gap": 0.25600000000002865
+      },
+      {
+       "age": 34.58838653564453,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.291465881011835,
+       "server_level": 2,
+       "tag": "E_34.442",
+       "wall_gap": 0.2559999999999718
+      },
+      {
+       "age": 34.85400390625,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914678118357656,
+       "server_level": 2,
+       "tag": "E_34.721",
+       "wall_gap": 0.2610000000000241
+      },
+      {
+       "age": 35.159358978271484,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914697363676086,
+       "server_level": 2,
+       "tag": "E_34.987",
+       "wall_gap": 0.507000000000005
+      },
+      {
+       "age": 35.43865203857422,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914708693771184,
+       "server_level": 2,
+       "tag": "E_35.292",
+       "wall_gap": 0.26000000000004775
+      },
+      {
+       "age": 35.704288482666016,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914719724759305,
+       "server_level": 2,
+       "tag": "E_35.572",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 35.9962158203125,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.29147314239036,
+       "server_level": 2,
+       "tag": "E_35.837",
+       "wall_gap": 0.2599999999999909
+      },
+      {
+       "age": 36.13420867919922,
+       "client_level": 2,
+       "client_moodle": 2,
+       "client_view": 2,
+       "kind": "equal",
+       "server_es": 1.2914742378533437,
+       "server_level": 2,
+       "tag": "E_end",
+       "wall_gap": 0.2599999999999909
+      }
+     ],
+     "server_levels": [
+      0,
+      1,
+      2
+     ],
+     "steps_down": 0
+    },
+    "es_cross_diff_min": -0.79742431640625,
+    "es_cross_live_age": 11.443166732788086,
+    "es_cross_replay_age": 11.456457138061523,
+    "es_end": 1.2914751310712116,
+    "fast_h_at_level1": 7.287845611572266,
+    "level1_change": {
+     "age": 11.456457138061523,
+     "es": 1.1003263693638394,
+     "from": 0,
+     "s": 490,
+     "to": 1
+    },
+    "ring_levels": {
+     "changes": [
+      {
+       "age": 11.456457138061523,
+       "es": 1.1003263693638394,
+       "from": 0,
+       "s": 490,
+       "to": 1
+      },
+      {
+       "age": 23.941242218017578,
+       "es": 1.250372878400336,
+       "from": 1,
+       "s": 1239,
+       "to": 2
+      }
+     ],
+     "last": 2,
+     "steps_down": 0
+    }
+   },
+   "rows": 1981,
+   "run": "x364-20261012-203308"
+  }
+ },
+ "skipped": [],
+ "tol_default": {
+  "HUNGER": [
+   "abs",
+   0.002
+  ],
+  "body.energyState": [
+   "abs",
+   0.005
+  ],
+  "satiety.L": [
+   "rel",
+   0.005
+  ]
+ },
+ "tol_grade": {
+  "HUNGER": [
+   "abs",
+   0.002
+  ],
+  "body.energyState": [
+   "abs",
+   0.005
+  ],
+  "foodFill": [
+   "abs",
+   0.002
+  ],
+  "satiety.L": [
+   "rel",
+   0.005,
+   1e-09
+  ],
+  "satiety.M": [
+   "rel",
+   0.005,
+   1.0
+  ],
+  "stomach.buffer.calories": [
+   "rel",
+   0.005,
+   0.5
+  ],
+  "stomachFill": [
+   "abs",
+   0.002
+  ]
+ }
+}

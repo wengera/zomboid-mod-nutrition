@@ -1,0 +1,532 @@
+{
+ "candidates": 2968,
+ "chosen": {
+  "loss": 1.3609102108203415,
+  "oracles": {
+   "belza_hp": {
+    "miss": 0.0,
+    "value": -0.24084444087779444
+   },
+   "belza_mhp": {
+    "miss": 0.0,
+    "value": -0.0750289723602473
+   },
+   "belza_mhp_above_hp": {
+    "miss": 0.0,
+    "value": 0.16581546851754714
+   },
+   "breakfast400_held": {
+    "miss": 0.0,
+    "value": 246
+   },
+   "callahan_190": {
+    "miss": 0.0,
+    "value": 234
+   },
+   "callahan_400": {
+    "miss": 0.0,
+    "value": 261
+   },
+   "callahan_825": {
+    "miss": 0.0,
+    "value": 321
+   },
+   "callahan_fasted_190": {
+    "miss": 0.0,
+    "value": 234
+   },
+   "callahan_fasted_400": {
+    "miss": 0.0,
+    "value": 261
+   },
+   "callahan_fasted_825": {
+    "miss": 0.0,
+    "value": 321
+   },
+   "diekmann_after_tieken": {
+    "miss": 0.0,
+    "value": 91
+   },
+   "diekmann_hf_6h": {
+    "miss": 0.0,
+    "value": 365
+   },
+   "diekmann_hf_minus_lf": {
+    "miss": 0.0,
+    "value": 0.0029554959014022053
+   },
+   "diekmann_lf_6h": {
+    "miss": 0.0,
+    "value": 368
+   },
+   "karl_bal": {
+    "miss": 0.0,
+    "value": -52.730430089400905
+   },
+   "karl_by_day": {
+    "miss": null,
+    "value": [
+     -40.12091781214647,
+     -60.428750717918476,
+     -57.64162173813774
+    ]
+   },
+   "karl_pre_breakfast_rel": {
+    "miss": null,
+    "value": [
+     1.0,
+     0.5976766299742114,
+     0.6400470382917317
+    ]
+   },
+   "karl_troughs_rel": {
+    "miss": null,
+    "value": [
+     0.548395978804647,
+     0.38092942386284556,
+     0.4076861241095609
+    ]
+   },
+   "lewis_cut20_mean": {
+    "miss": 0.0,
+    "value": 0.016699519687831735
+   },
+   "lewis_cut40_at": {
+    "miss": 0.0,
+    "value": 0.02913246464766639
+   },
+   "lewis_cut40_mean": {
+    "miss": 0.0,
+    "value": 0.03423133278393188
+   },
+   "marmonier_delays": {
+    "miss": null,
+    "value": [
+     189,
+     160,
+     165
+    ]
+   },
+   "marmonier_f_minus_c": {
+    "miss": 0.18032786885245902,
+    "value": 5
+   },
+   "marmonier_pc": {
+    "miss": 0.0,
+    "value": 29
+   },
+   "marmonier_pf": {
+    "miss": 0.0,
+    "value": 24
+   },
+   "meal650": {
+    "miss": 0.0,
+    "value": 302
+   },
+   "melanson_f_minus_c": {
+    "miss": 0.03278688524590164,
+    "value": -2
+   },
+   "melanson_requests": {
+    "miss": null,
+    "value": [
+     217,
+     215
+    ]
+   },
+   "moore_half_emptying": {
+    "miss": null,
+    "value": 189
+   },
+   "nadir_minutes": {
+    "miss": null,
+    "value": [
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   "rolls98_300": {
+    "miss": 0.0,
+    "value": 0.6886420657394897
+   },
+   "rolls98_450": {
+    "miss": 0.0,
+    "value": 0.6877133412200694
+   },
+   "rolls98_600": {
+    "miss": 0.0,
+    "value": 0.6867846167006488
+   },
+   "rolls98_ordering": {
+    "miss": 0.0,
+    "value": 0.0009287245194202765
+   },
+   "rolls_cas": {
+    "miss": 0.0,
+    "value": 1700.662273682521
+   },
+   "rolls_cw": {
+    "miss": 0.0,
+    "value": 1694.2624121281908
+   },
+   "rolls_drop": {
+    "miss": 0.0,
+    "value": 482.81097979490323
+   },
+   "rolls_soup": {
+    "miss": 0.0,
+    "value": 1211.4514323332876
+   },
+   "s1222_contrast": {
+    "miss": 0.0021726564431134854,
+    "value": 0.012445683588922164
+   },
+   "smeets_120": {
+    "miss": 0.0,
+    "value": -0.017306050958672103
+   },
+   "smeets_30": {
+    "miss": 0.0,
+    "value": -0.024857226572995827
+   },
+   "stability_latest": {
+    "miss": 0.0,
+    "value": 291
+   },
+   "stability_rise": {
+    "miss": 0.0,
+    "value": 0.49481611920397484
+   },
+   "stability_spread": {
+    "miss": 0.0,
+    "value": 26
+   },
+   "tieken_liquid_4h": {
+    "miss": 0.6169695168025899,
+    "value": -0.046375732352362586
+   },
+   "tieken_solid_4h": {
+    "miss": 0.48719215450402337,
+    "value": -0.04076353047318948
+   },
+   "tieken_solid_below_liquid": {
+    "miss": 0.04146112897225404,
+    "value": -0.024462066093629886
+   },
+   "vdk": {
+    "miss": null,
+    "value": -0.2717998935931266
+   }
+  },
+  "params": {
+   "FULL_WEIGHT": 0.5,
+   "LIQUID_WEIGHT": 0.0151122,
+   "MEAL_HALF_LIFE_H": 0.6,
+   "MEAL_REQ": 4.47214,
+   "MEAL_STEEP": 0.0559017,
+   "PROTEIN_FILL": 8,
+   "W_FAT": 0.894427,
+   "W_PROTEIN": 2.5
+  },
+  "phase": "refine"
+ },
+ "head": "35d503b598a9166f31c9a4f21cc9c089188f5550",
+ "profile": {
+  "FULL_WEIGHT": [
+   {
+    "best_loss": 1.6702421360318633,
+    "value": 0.4
+   },
+   {
+    "best_loss": 1.390584987132001,
+    "value": 0.447214
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 0.5
+   },
+   {
+    "best_loss": 1.601579731528839,
+    "value": 0.559017
+   },
+   {
+    "best_loss": 1.8345533620944805,
+    "value": 0.6
+   },
+   {
+    "best_loss": 2.132450099831069,
+    "value": 0.625
+   }
+  ],
+  "LIQUID_WEIGHT": [
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 0.0151122
+   },
+   {
+    "best_loss": 1.3615805851719625,
+    "value": 0.016896
+   },
+   {
+    "best_loss": 1.3623300680564938,
+    "value": 0.0188903
+   },
+   {
+    "best_loss": 1.363168017205391,
+    "value": 0.02112
+   },
+   {
+    "best_loss": 1.364104880206371,
+    "value": 0.0236129
+   },
+   {
+    "best_loss": 1.3959113317420129,
+    "value": 0.0264
+   },
+   {
+    "best_loss": 1.3961731233966828,
+    "value": 0.033
+   },
+   {
+    "best_loss": 1.3965003629650192,
+    "value": 0.04125
+   },
+   {
+    "best_loss": 1.4298359964259701,
+    "value": 0.15
+   }
+  ],
+  "MEAL_HALF_LIFE_H": [
+   {
+    "best_loss": 1.8688809411093492,
+    "value": 0.4
+   },
+   {
+    "best_loss": 1.9751838317780448,
+    "value": 0.48
+   },
+   {
+    "best_loss": 1.6323031518009417,
+    "value": 0.536656
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 0.6
+   },
+   {
+    "best_loss": 1.468970390152807,
+    "value": 0.67082
+   },
+   {
+    "best_loss": 1.5868963214000569,
+    "value": 0.75
+   },
+   {
+    "best_loss": 1.5853859925620442,
+    "value": 0.9
+   },
+   {
+    "best_loss": 1.8964250961157818,
+    "value": 1.5
+   }
+  ],
+  "MEAL_REQ": [
+   {
+    "best_loss": 1.5160651162532768,
+    "value": 2
+   },
+   {
+    "best_loss": 1.401845717786127,
+    "value": 4.0
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 4.47214
+   },
+   {
+    "best_loss": 1.368204392554793,
+    "value": 5
+   },
+   {
+    "best_loss": 1.3886342221295174,
+    "value": 5.59017
+   },
+   {
+    "best_loss": 1.4424465727212308,
+    "value": 6.25
+   },
+   {
+    "best_loss": 1.5853859925620442,
+    "value": 15
+   },
+   {
+    "best_loss": 1.8964250961157818,
+    "value": 50
+   }
+  ],
+  "MEAL_STEEP": [
+   {
+    "best_loss": 1.7817567993089836,
+    "value": 0.02
+   },
+   {
+    "best_loss": 1.4493378718709107,
+    "value": 0.035
+   },
+   {
+    "best_loss": 1.423489586238189,
+    "value": 0.04
+   },
+   {
+    "best_loss": 1.4335962768845127,
+    "value": 0.0447214
+   },
+   {
+    "best_loss": 1.3653657896336797,
+    "value": 0.05
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 0.0559017
+   },
+   {
+    "best_loss": 1.369474077593048,
+    "value": 0.0625
+   },
+   {
+    "best_loss": 1.506221212677249,
+    "value": 0.08
+   },
+   {
+    "best_loss": 1.8964250961157818,
+    "value": 0.15
+   }
+  ],
+  "PROTEIN_FILL": [
+   {
+    "best_loss": 1.4628058351974267,
+    "value": 6.4
+   },
+   {
+    "best_loss": 1.401400508016243,
+    "value": 7.15542
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 8
+   },
+   {
+    "best_loss": 1.4476570340350368,
+    "value": 8.94427
+   },
+   {
+    "best_loss": 1.579118583219346,
+    "value": 10.0
+   }
+  ],
+  "W_FAT": [
+   {
+    "best_loss": 1.4458473164634973,
+    "value": 0.6
+   },
+   {
+    "best_loss": 1.441488670574414,
+    "value": 0.64
+   },
+   {
+    "best_loss": 1.4105572377799955,
+    "value": 0.715542
+   },
+   {
+    "best_loss": 1.375986840398638,
+    "value": 0.8
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 0.894427
+   },
+   {
+    "best_loss": 1.4023108770732187,
+    "value": 1.0
+   }
+  ],
+  "W_PROTEIN": [
+   {
+    "best_loss": 1.5853859925620442,
+    "value": 1.5
+   },
+   {
+    "best_loss": 1.5307241577863635,
+    "value": 2.0
+   },
+   {
+    "best_loss": 1.4137911930409208,
+    "value": 2.23607
+   },
+   {
+    "best_loss": 1.3609102108203415,
+    "value": 2.5
+   },
+   {
+    "best_loss": 1.3845783699000056,
+    "value": 2.79508
+   },
+   {
+    "best_loss": 1.4108866636777697,
+    "value": 3.125
+   }
+  ]
+ },
+ "source_bytes": 13352874,
+ "source_sha256": "1827da9aa05d698ff779bd9ea7a448dc1bfb0886a58b8a2da8ac4d136c6a4e1f",
+ "spec": {
+  "params": {
+   "FULL_WEIGHT": [
+    0.4,
+    0.5,
+    0.6
+   ],
+   "LIQUID_WEIGHT": [
+    0.033,
+    0.15
+   ],
+   "MEAL_HALF_LIFE_H": [
+    0.4,
+    0.6,
+    0.9,
+    1.5
+   ],
+   "MEAL_REQ": [
+    2,
+    5,
+    15,
+    50
+   ],
+   "MEAL_STEEP": [
+    0.02,
+    0.035,
+    0.05,
+    0.08,
+    0.15
+   ],
+   "PROTEIN_FILL": [
+    8
+   ],
+   "W_FAT": [
+    0.6,
+    0.8,
+    1.0
+   ],
+   "W_PROTEIN": [
+    1.5,
+    2.5
+   ]
+  },
+  "refine": {
+   "factor": 1.25,
+   "rounds": 6
+  }
+ }
+}

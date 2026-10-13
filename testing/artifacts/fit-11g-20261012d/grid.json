@@ -1,0 +1,2 @@
+{"params": {"FULL_WEIGHT": [0.517741], "MEAL_REQ": [3.80654], "MEAL_STEEP": [0.0353777], "MEAL_HALF_LIFE_H": [0.583495], "W_PROTEIN": [2.4913], "W_FAT": [0.881368], "PROTEIN_FILL": [8], "LIQUID_WEIGHT": [0.19]},
+ "refine": {"rounds": 24, "factor": 1.25}}
