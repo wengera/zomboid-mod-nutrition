@@ -9,6 +9,7 @@ import os
 import lupa.lua51 as lua51
 
 from .server_host import Host, REPO
+from .test_store_file_shape import FILES   # the store test's in-memory getFileWriter and getFileReader (H7)
 
 LUA = os.path.join(REPO, "testing", "PZTestKit", "PZTestKit", "42", "media", "lua")
 CLIENT = os.path.join(LUA, "client", "PZTestKit_Client.lua")
@@ -459,3 +460,107 @@ def test_record_set_never_creates_a_parent_a_record_or_a_global():
     r = scmd(h, "record.set", "admin", "monotony.[TKX.Mono450", "5")
     assert r.ok is False and r.error.startswith("bad path")
     assert scmd(h, "record.set", "admin", "dead") == "usage: record.set <user> <path> <value>"
+
+
+# ---- H7 store.probe (server) -----------------------------------------------------------------------------------------
+
+# lupa hands every Lua string to Python as UTF-8, and Lua 5.1's string.char(233, 252) is not UTF-8, so the probe's
+# name is swapped for the same characters' UTF-8 bytes here (on Kahlua each is one UTF-16 code unit);
+# test_store_probe_name_is_non_ascii_on_both_dialects reads the real TK.SP.name() inside Lua.
+PROBE_NAME = "tkprobeéü"
+PROBE_HEX = "".join("%04x" % b for b in PROBE_NAME.encode("utf-8"))
+
+
+def probe_server():
+    h = server(FILES)
+    h.rt.execute(r'TK.SP.name = function() return "tkprobe\195\169\195\188" end')
+    return h
+
+
+def files_of(h):
+    return {k: h.T.files[k] for k in h.T.files.keys()}
+
+
+def test_store_probe_roundtrip_saves_through_the_mods_store_and_loads_after_a_restart():
+    h = probe_server()
+    S = h.NR.server.store
+    F = S.file
+    r = scmd(h, "store.probe", "roundtrip", "save")
+    assert r.ok is True and r.saved is True and r.hex == PROBE_HEX and r.gen == 1 and r.slot in ("a", "b")
+    assert r.path == "NutritionRevamp/srv/p_%s_%s.json" % (PROBE_HEX, r.slot)
+    text = h.T.files[r.path]
+    assert r.user == PROBE_NAME and r.bytes == len(text.encode("utf-8")) and '"done":true' in text and '"satiety":{' in text
+    assert [v.label for v in lst(r["values"])] == ["0.1+0.2", "1/3", "5e-324", "-1e-300", "2^53+2",
+                                                   "99999999999999.5", "1e14", "1.0E-5"]
+    assert lst(r["values"])[0].text == "0.30000000000000004"            # %.17g
+    assert S.records[r.user] is None                                 # never a queued player
+    assert F.index[r.user] is not None                               # the save's own index entry
+    h.tick(5)                                                        # the queued store.index task runs
+    idx = [k for k in files_of(h) if k.startswith("NutritionRevamp/srv/index_")]
+    assert any(r.user in h.T.files[k] for k in idx)
+    # a restart: a fresh host finds the files
+    saved = files_of(h)
+    h2 = probe_server()
+    for k, v in saved.items():
+        h2.T.files[k] = v
+    ld = scmd(h2, "store.probe", "roundtrip", "load")
+    assert ld.ok is True and ld.userEqual is True and ld.gen == 1 and ld.slot == r.slot
+    rows = {v.label: v for v in lst(ld["values"])}
+    assert len(rows) == 8 and all(v.equal == v.rawEqual for v in rows.values())
+    assert all(rows[k].equal is True for k in ("-1e-300", "1e14", "1.0E-5"))
+    # the offline host's tostring is Lua 5.1's %.14g, so these do not survive here; the live Kahlua reading is the point
+    assert all(rows[k].equal is False for k in ("0.1+0.2", "1/3", "2^53+2"))
+    assert rows["0.1+0.2"].got == "0.29999999999999999" and rows["0.1+0.2"].expected == "0.30000000000000004"
+    assert ld.allEqual is False
+    logged = [s for s in h2.printed() if "store.probe roundtrip load" in s]
+    assert len(logged) == 9 and "allEqual=false" in logged[-1]
+
+
+def test_store_probe_bench_times_the_guard_and_the_write_and_puts_the_counters_back():
+    h = probe_server()
+    F = h.NR.server.store.file
+    assert scmd(h, "store.probe", "bench", "10").reason.startswith("no roundtrip save or load")
+    r = scmd(h, "store.probe", "roundtrip", "save")
+    newest = h.T.files[r.path]
+    w0, b0, r0 = F.stats.writes, F.stats.bytes, F.stats.reads
+    b = scmd(h, "store.probe", "bench", "25")
+    assert b.ok is True and b.n == 25 and b.mismatches == 0 and b.failed == 0
+    assert b.reads == 25 and b.writes == 25 and b.bytesWritten == 25 * b.bytes and b.writeFailures == 0
+    assert b.intactPath == r.path and b.writePath != r.path
+    assert h.T.files[r.path] == newest and h.T.files[b.writePath] == newest   # both hold the newest copy
+    assert (F.stats.writes, F.stats.bytes, F.stats.reads) == (w0, b0, r0)
+    assert b.usPerIntact == b.intactMs * 1000 / 25 and b.usPerWrite == b.writeMs * 1000 / 25
+    usage = "usage: store.probe roundtrip save | roundtrip load | bench <n 1-10000> | clear"
+    assert scmd(h, "store.probe", "bench", "0") == usage
+    assert scmd(h, "store.probe", "bench", "10001") == usage
+    assert scmd(h, "store.probe", "roundtrip") == usage
+    assert scmd(h, "store.probe") == usage
+
+
+def test_store_probe_clear_empties_the_slots_and_drops_the_index_entry():
+    h = probe_server()
+    F = h.NR.server.store.file
+    r = scmd(h, "store.probe", "roundtrip", "save")
+    scmd(h, "store.probe", "bench", "1")                              # both slots now hold the record
+    c = scmd(h, "store.probe", "clear")
+    assert c.ok is True and c.emptied is True and c.indexed is True and c.indexWritten is True
+    for s in ("a", "b"):
+        assert h.T.files["NutritionRevamp/srv/p_%s_%s.json" % (PROBE_HEX, s)] == ""
+    assert F.index[r.user] is None and F.gen[r.user] is None and F.last[r.user] is None
+    files = files_of(h)
+    idx = max((k for k in files if k.startswith("NutritionRevamp/srv/index_")),
+              key=lambda k: int(files[k].split('"gen":')[1].split(",")[0].split("}")[0]) if '"gen":' in files[k] else -1)
+    assert r.user not in files[idx]
+    assert scmd(h, "store.probe", "roundtrip", "load").reason == "no slot of the probe name reads"
+
+
+def test_store_probe_name_is_non_ascii_on_both_dialects():
+    h = server()
+    lua = h.rt.eval("""function()
+        local okW = pcall(string.char, 20013)
+        local u = TK.SP.name()
+        return string.len(u), string.byte(u, 8), string.byte(u, 9), okW, string.sub(u, 1, 7)
+    end""")
+    n, b8, b9, wide, head = lua()
+    assert head == "tkprobe" and b8 == 233 and b9 == 252
+    assert wide is False and n == 9                  # Lua 5.1 raises past 255, so the two wide characters are left off

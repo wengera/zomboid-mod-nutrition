@@ -4616,3 +4616,209 @@ TK.register("record.set", function(argv)
     out.after, out.afterType = after, type(after)
     return out
 end)
+
+-- ---- Plan 11b Task 1: the store's JSON number round trip and its read-before-truncate cost (H7) --------------------
+-- store.probe roundtrip save | roundtrip load | bench <n> | clear
+-- TEST-ONLY INSTRUMENT on the mod's own store (NutritionRevamp.server.store, NR_Server_Store.lua), driving its real
+-- functions on a synthetic username that never joins: TK.SP.name(), "tkprobe" followed by U+00E9 U+00FC and, where the
+-- dialect's string.char takes a code unit past 255 (Kahlua's does: StringLib.stringChar appends `(char)` of the
+-- argument, i2c, 42.21 jar e1a69eb743 @36-@40 L790; Lua 5.1 raises), U+4E2D U+6587; the reply carries the name and its
+-- file hex (K.store.hexName), so the slot files are named by the mod's own rule.
+--   roundtrip save  builds a record with K.store.new(name, <value 1>) and writes the eight values the plan names
+--                   (0.1+0.2, 1/3, 5e-324, -1e-300, 2^53+2, 99999999999999.5, 1e14, 1.0E-5) into eight numeric
+--                   K.store.INPUTS leaves (TK.SP.LEAVES: firstSeen, lastSeen, satiety.M/S/L/t/nicH, reconcile.count),
+--                   then saves it through F.save: the mod's encoder (K.json.encode with F.fmt), its inputs-only copy,
+--                   its slot rotation, its read-before-truncate guard and its index entry (a new name queues the
+--                   store.index task, as any first save does). The record is never put in store.records, so the
+--                   players' queue never runs it.
+--   roundtrip load  (after a restart, or in the same uptime) reads the newest slot through F.load and loads it through
+--                   K.store.load with the mod's nutrient order; for each value it replies, and logs on the server one
+--                   line each, the expected and the loaded value's %.17g text (tostring when the format raises) and
+--                   `==` against the expected value, on the raw decoded record (rawEqual) and the loaded one (equal);
+--                   plus whether the username came back equal.
+--   bench <n>       needs a save or load of the name this uptime (F.last and F.at known). It times n F.intact reads of
+--                   the slot holding the newest copy (the guard every save runs before its writer opens the other
+--                   file: one getFileReader, a read and a string compare) and n F.write calls of the same text to the
+--                   OTHER slot of the pair (a getFileWriter, which truncates, one write and a close), each loop in one
+--                   getTimestampMs bracket; the newest copy is never opened for writing, and both files end holding it.
+--                   The store's read, write and byte counters are put back after the loops (the reply carries the
+--                   deltas), so a later reading of store.file.stats counts only the mod's own saves. n is 1 to 10000.
+--   clear           S.prune's route for one name: both slots emptied (written ""), the index entry, gen, slot, last
+--                   text, last write and dirty mark dropped, the in-memory record and sight dropped if present, and the
+--                   index written (F.writeIndex).
+TK.SP = TK.SP or { MAX = 10000 }
+TK.SP.LEAVES = { "firstSeen", "lastSeen", "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH",
+                 "reconcile.count" }
+TK.SP.LABELS = { "0.1+0.2", "1/3", "5e-324", "-1e-300", "2^53+2", "99999999999999.5", "1e14", "1.0E-5" }
+
+function TK.SP.values()
+    return { 0.1 + 0.2, 1 / 3, 5e-324, -1e-300, 2 ^ 53 + 2, 99999999999999.5, 1e14, 1.0E-5 }
+end
+
+function TK.SP.name()
+    local name = "tkprobe" .. string.char(233, 252)
+    local okW, wide = pcall(string.char, 20013, 25991)
+    if okW and type(wide) == "string" then name = name .. wide end
+    return name
+end
+
+function TK.SP.store()
+    local NR = NutritionRevamp
+    if type(NR) ~= "table" or type(NR.server) ~= "table" or type(NR.server.store) ~= "table" then return nil end
+    if type(NR.kernel) ~= "table" or type(NR.kernel.store) ~= "table" then return nil end
+    return NR.server.store
+end
+
+function TK.SP.text(v)
+    local ok, s = pcall(string.format, "%.17g", v)
+    if ok and type(s) == "string" then return s end
+    return tostring(v)
+end
+
+function TK.SP.get(t, path)
+    local node = t
+    for seg in string.gmatch(path, "[^%.]+") do
+        if type(node) ~= "table" then return nil end
+        node = node[seg]
+    end
+    return node
+end
+
+function TK.SP.save(S, out)
+    local K = NutritionRevamp.kernel
+    local F = S.file
+    local u = TK.SP.name()
+    local vals = TK.SP.values()
+    local rec = K.store.new(u, vals[1])
+    rec.lastSeen = vals[2]
+    rec.satiety = { M = vals[3], S = vals[4], L = vals[5], t = vals[6], nicH = vals[7] }
+    rec.reconcile = { count = vals[8] }
+    local ok, saved = pcall(F.save, u, rec)
+    out.saved = ok and saved == true
+    if not ok then out.err = tostring(saved) end
+    out.slot, out.gen = F.at[u], F.gen[u]
+    if F.at[u] ~= nil then out.path = F.slot(u, F.at[u]) end
+    if F.last[u] ~= nil then out.bytes = string.len(F.last[u]) end
+    out.values = {}
+    for i = 1, #TK.SP.LEAVES do
+        out.values[i] = { label = TK.SP.LABELS[i], path = TK.SP.LEAVES[i], text = TK.SP.text(vals[i]) }
+    end
+    out.ok = out.saved
+    TK.log("store.probe roundtrip save: saved=" .. tostring(out.saved) .. " gen=" .. tostring(out.gen)
+        .. " slot=" .. tostring(out.slot) .. " hex=" .. tostring(out.hex))
+    return out
+end
+
+function TK.SP.load(S, out)
+    local NR = NutritionRevamp
+    local K = NR.kernel
+    local F = S.file
+    local u = TK.SP.name()
+    local okR, raw = pcall(F.load, u)
+    if not okR then
+        out.err = tostring(raw)
+        return out
+    end
+    if raw == nil then
+        out.reason = "no slot of the probe name reads"
+        return out
+    end
+    local records = NR.data and NR.data.records
+    local okL, rec = pcall(K.store.load, raw, records and records.ORDER, records)
+    if not okL then
+        out.err = "K.store.load raised: " .. tostring(rec)
+        return out
+    end
+    local vals = TK.SP.values()
+    out.slot, out.gen = F.at[u], F.gen[u]
+    out.userEqual = type(rec) == "table" and rec.username == u
+    out.values = {}
+    local all = out.userEqual
+    for i = 1, #TK.SP.LEAVES do
+        local got = TK.SP.get(rec, TK.SP.LEAVES[i])
+        local gotRaw = TK.SP.get(raw, TK.SP.LEAVES[i])
+        local row = { label = TK.SP.LABELS[i], path = TK.SP.LEAVES[i], expected = TK.SP.text(vals[i]),
+                      equal = got == vals[i], rawEqual = gotRaw == vals[i] }
+        if type(got) == "number" then row.got = TK.SP.text(got) else row.got = tostring(got) end
+        out.values[i] = row
+        all = all and row.equal and row.rawEqual
+        TK.log("store.probe roundtrip load: " .. row.label .. " at " .. row.path .. " expected " .. row.expected
+            .. " got " .. row.got .. " equal=" .. tostring(row.equal) .. " rawEqual=" .. tostring(row.rawEqual))
+    end
+    out.allEqual = all
+    out.ok = true
+    TK.log("store.probe roundtrip load: userEqual=" .. tostring(out.userEqual) .. " allEqual=" .. tostring(all))
+    return out
+end
+
+function TK.SP.bench(S, out, n)
+    local F = S.file
+    local u = TK.SP.name()
+    local at, last = F.at[u], F.last[u]
+    if at == nil or last == nil then
+        out.reason = "no roundtrip save or load of the probe name this uptime"
+        return out
+    end
+    local otherSlot = "a"
+    if at == "a" then otherSlot = "b" end
+    local intactPath, writePath = F.slot(u, at), F.slot(u, otherSlot)
+    local st = F.stats
+    local w0, b0, r0, f0 = st.writes, st.bytes, st.reads, st.writeFailures
+    local mismatches, failed = 0, 0
+    local t0 = getTimestampMs()
+    for i = 1, n do
+        if not F.intact(intactPath, last) then mismatches = mismatches + 1 end
+    end
+    local t1 = getTimestampMs()
+    for i = 1, n do
+        if not F.write(writePath, last) then failed = failed + 1 end
+    end
+    local t2 = getTimestampMs()
+    out.reads, out.writes, out.bytesWritten = st.reads - r0, st.writes - w0, st.bytes - b0
+    out.writeFailures = st.writeFailures - f0
+    st.writes, st.bytes, st.reads = w0, b0, r0
+    out.n, out.bytes, out.mismatches, out.failed = n, string.len(last), mismatches, failed
+    out.intactMs, out.writeMs = t1 - t0, t2 - t1
+    out.usPerIntact = out.intactMs * 1000 / n
+    out.usPerWrite = out.writeMs * 1000 / n
+    out.intactPath, out.writePath = intactPath, writePath
+    out.ok = true
+    return out
+end
+
+function TK.SP.clear(S, out)
+    local F = S.file
+    local u = TK.SP.name()
+    local okA = F.write(F.slot(u, "a"), "")
+    local okB = F.write(F.slot(u, "b"), "")
+    out.indexed = F.index[u] ~= nil
+    F.index[u] = nil
+    F.gen[u] = nil
+    F.at[u] = nil
+    F.last[u] = nil
+    F.lastWrite[u] = nil
+    F.dirty[u] = nil
+    if S.records ~= nil then S.records[u] = nil end
+    if S.loaded ~= nil then S.loaded[u] = nil end
+    out.emptied = okA and okB
+    out.indexWritten = F.writeIndex() == true
+    out.ok = out.emptied and out.indexWritten
+    return out
+end
+
+-- @args roundtrip save | roundtrip load | bench <n> | clear
+-- @reply {ok, side, user, hex, saved, slot, gen, path, bytes, values [, err]} | {ok, side, user, hex, slot, gen, userEqual, allEqual, values [, err | reason]} | {ok, side, user, hex, n, bytes, intactMs, usPerIntact, writeMs, usPerWrite, mismatches, failed, reads, writes, bytesWritten, writeFailures, intactPath, writePath [, reason]} | {ok, side, user, hex, emptied, indexed, indexWritten} | string
+-- @purpose Test-only: saves a synthetic non-ASCII-named record holding eight hard doubles through the mod's own store and, after a restart, loads it and logs each value's == equality; bench times the read-before-truncate guard and a slot write; clear empties the synthetic slots and its index entry.
+TK.register("store.probe", function(argv)
+    local usage = "usage: store.probe roundtrip save | roundtrip load | bench <n 1-10000> | clear"
+    local S = TK.SP.store()
+    if S == nil then return { ok = false, side = TK.side, reason = "no NutritionRevamp.server.store / kernel.store" } end
+    local u = TK.SP.name()
+    local out = { ok = false, side = TK.side, user = u, hex = NutritionRevamp.kernel.store.hexName(u) }
+    if argv[1] == "roundtrip" and argv[2] == "save" then return TK.SP.save(S, out) end
+    if argv[1] == "roundtrip" and argv[2] == "load" then return TK.SP.load(S, out) end
+    if argv[1] == "clear" then return TK.SP.clear(S, out) end
+    local n = tonumber(argv[2])
+    if argv[1] == "bench" and n ~= nil and n >= 1 and n <= TK.SP.MAX then return TK.SP.bench(S, out, math.floor(n)) end
+    return usage
+end)
