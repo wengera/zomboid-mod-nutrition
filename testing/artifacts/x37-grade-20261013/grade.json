@@ -1,0 +1,2504 @@
+{
+ "commit": "5b4953c9",
+ "grade_commit": "c15e2492",
+ "lib_commit": "c15e2492",
+ "mod_commit": "328ffe22",
+ "script": "testing/experiments/x37_grade.py",
+ "sessions": {
+  "x371": {
+   "determinism": {
+    "hunger_max_abs": 0.0,
+    "met_max_abs": 0.0,
+    "rows": 53
+   },
+   "determinism_flag_only": {
+    "hunger_max_abs": 0.0,
+    "met_max_abs": 0.0,
+    "rows": 53
+   },
+   "diff": {
+    "classes": {
+     "between": 8,
+     "gap": 0,
+     "offline": 2,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 1.0942116524526035e-06,
+      "n": 42,
+      "over": 0,
+      "worst_s": 57
+     },
+     "body.energyState": {
+      "max": 5.4099182968947446e-06,
+      "n": 42,
+      "over": 0,
+      "worst_s": 29
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 42,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "diff_grade": {
+    "classes": {
+     "between": 8,
+     "gap": 0,
+     "offline": 2,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 1.0942116524526035e-06,
+      "n": 42,
+      "over": 0,
+      "worst_s": 57
+     },
+     "body.energyState": {
+      "max": 5.4099182968947446e-06,
+      "n": 42,
+      "over": 0,
+      "worst_s": 29
+     },
+     "body.epoc": {
+      "max": 0.0,
+      "n": 40,
+      "over": 0,
+      "worst_s": null
+     },
+     "body.met": {
+      "max": 0.0,
+      "n": 42,
+      "over": 0,
+      "worst_s": null
+     },
+     "body.trail.c.ex": {
+      "max": 0.0,
+      "n": 42,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 42,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "doc": "fitness-1.json",
+   "end_cases": [
+    {
+     "clear_age": 2.652052879333496,
+     "exercise": "squats",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.616541862487793,
+     "how": "timer",
+     "label": "S0_squats",
+     "ran_min": 2.1306610107421875,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": null,
+     "requested_min": 3,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": 2.8383846282958984,
+     "exercise": "pushups",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.8002281188964844,
+     "how": "timer",
+     "label": "S1_pushups",
+     "ran_min": 2.2893905639648438,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": "pushups",
+     "requested_min": 3,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": 3.051394462585449,
+     "exercise": "situp",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.9715375900268555,
+     "how": "timer",
+     "label": "S2_situp",
+     "ran_min": 4.791412353515625,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": "situp",
+     "requested_min": 3,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": 3.2643918991088867,
+     "exercise": "burpees",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 3.1933765411376953,
+     "how": "timer",
+     "label": "S3_burpees",
+     "ran_min": 4.260921478271484,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": "burpees",
+     "requested_min": 3,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    }
+   ],
+   "fitness_at_start": {
+    "age": 2.3860254287719727,
+    "exeType": null,
+    "failures": 0,
+    "fallbacks": 0,
+    "lastError": null,
+    "passthrough": 0,
+    "starts": 0,
+    "stops": 0,
+    "untyped": 0,
+    "wall": 97.98,
+    "wrappedStart": true,
+    "wrappedStop": true
+   },
+   "met_live_vs_flag_only": {
+    "mismatches": 0,
+    "n": 50,
+    "ok": true,
+    "rows": []
+   },
+   "met_live_vs_replay": {
+    "mismatches": 0,
+    "n": 50,
+    "ok": true,
+    "rows": []
+   },
+   "moodle_pairs": {
+    "classes": {
+     "energy": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "hydration": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "overfull": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "sleep": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "stimulant": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     }
+    },
+    "equal": 45,
+    "lag": 0,
+    "max_wall_gap": 0.26200000000000045,
+    "mismatch": 0,
+    "ok": true,
+    "pairs": 9,
+    "rows": [
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_squats_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_squats_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_squats_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_squats_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_squats_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_pushups_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_situp_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S3_burpees_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     }
+    ]
+   },
+   "run": "x371-20261013-052801",
+   "sets": [
+    {
+     "a0": 2.583724021911621,
+     "a1": 2.718719546000163,
+     "asked_met": 3.0,
+     "billed_all": true,
+     "billed_asked_ok": 1,
+     "billed_hist": {
+      "3": 1
+     },
+     "billed_ok": 1,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.583724021911621,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 11,
+       "type": "squats"
+      }
+     ],
+     "end": {
+      "clear_age": 2.652052879333496,
+      "exercise": "squats",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.616541862487793,
+      "how": "timer",
+      "label": "S0_squats",
+      "ran_min": 2.1306610107421875,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": null,
+      "requested_min": 3,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "squats",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 11,
+     "flag_minutes": 0.9848785400390625,
+     "flag_runs": 1,
+     "flagged": 1,
+     "label": "S0_squats",
+     "last_flag_s": 11,
+     "record_ok": false,
+     "rows": 9,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "squats"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 2.7669782638549805,
+     "a1": 2.9050512949625653,
+     "asked_met": 3.8,
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "3.8": 3
+     },
+     "billed_ok": 3,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.7669782638549805,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 22,
+       "type": "pushups"
+      },
+      {
+       "age": 2.783392906188965,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 23,
+       "type": "pushups"
+      },
+      {
+       "age": 2.8002281188964844,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 24,
+       "type": "pushups"
+      }
+     ],
+     "end": {
+      "clear_age": 2.8383846282958984,
+      "exercise": "pushups",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.8002281188964844,
+      "how": "timer",
+      "label": "S1_pushups",
+      "ran_min": 2.2893905639648438,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": "pushups",
+      "requested_min": 3,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "pushups",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 22,
+     "flag_minutes": 3.0063629150390625,
+     "flag_runs": 1,
+     "flagged": 3,
+     "label": "S1_pushups",
+     "last_flag_s": 24,
+     "record_ok": true,
+     "rows": 9,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "pushups"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 2.9449119567871094,
+     "a1": 3.118061129252116,
+     "asked_met": 3.8,
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "3.8": 3
+     },
+     "billed_ok": 3,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.9502391815185547,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 33,
+       "type": "situp"
+      },
+      {
+       "age": 2.9671030044555664,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 34,
+       "type": "situp"
+      },
+      {
+       "age": 2.9835205078125,
+       "asked_met": 3.8,
+       "billed": 3.8,
+       "expected": 3.8,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 35,
+       "type": "situp"
+      }
+     ],
+     "end": {
+      "clear_age": 3.051394462585449,
+      "exercise": "situp",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.9715375900268555,
+      "how": "timer",
+      "label": "S2_situp",
+      "ran_min": 4.791412353515625,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": "situp",
+      "requested_min": 3,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "situp",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 33,
+     "flag_minutes": 3.0081939697265625,
+     "flag_runs": 1,
+     "flagged": 3,
+     "label": "S2_situp",
+     "last_flag_s": 35,
+     "record_ok": true,
+     "rows": 11,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "situp"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 3.1578664779663086,
+     "a1": 3.3310585657755536,
+     "asked_met": 7.5,
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "7.5": 3
+     },
+     "billed_ok": 3,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 3.166748046875,
+       "asked_met": 7.5,
+       "billed": 7.5,
+       "expected": 7.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 46,
+       "type": "burpees"
+      },
+      {
+       "age": 3.1836109161376953,
+       "asked_met": 7.5,
+       "billed": 7.5,
+       "expected": 7.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 47,
+       "type": "burpees"
+      },
+      {
+       "age": 3.2000322341918945,
+       "asked_met": 7.5,
+       "billed": 7.5,
+       "expected": 7.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 48,
+       "type": "burpees"
+      }
+     ],
+     "end": {
+      "clear_age": 3.2643918991088867,
+      "exercise": "burpees",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 3.1933765411376953,
+      "how": "timer",
+      "label": "S3_burpees",
+      "ran_min": 4.260921478271484,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": "burpees",
+      "requested_min": 3,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "burpees",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 46,
+     "flag_minutes": 3.0086517333984375,
+     "flag_runs": 1,
+     "flagged": 3,
+     "label": "S3_burpees",
+     "last_flag_s": 48,
+     "record_ok": true,
+     "rows": 10,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "burpees"
+     ],
+     "untyped_delta": 0
+    }
+   ],
+   "stale_rows_vs_flag_only": {
+    "mismatches": 0,
+    "n": 0,
+    "ok": null,
+    "rows": []
+   },
+   "table": [
+    {
+     "billed_all": true,
+     "billed_asked_ok": 1,
+     "billed_hist": {
+      "3": 1
+     },
+     "exercise": "squats",
+     "fallbacks_delta": 0,
+     "flagged_drains": 1,
+     "how": "timer",
+     "label": "S0_squats",
+     "record_during": null,
+     "record_ok": false,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.0,
+     "types_on_flagged": [
+      "squats"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "3.8": 3
+     },
+     "exercise": "pushups",
+     "fallbacks_delta": 0,
+     "flagged_drains": 3,
+     "how": "timer",
+     "label": "S1_pushups",
+     "record_during": "pushups",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.8,
+     "types_on_flagged": [
+      "pushups"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "3.8": 3
+     },
+     "exercise": "situp",
+     "fallbacks_delta": 0,
+     "flagged_drains": 3,
+     "how": "timer",
+     "label": "S2_situp",
+     "record_during": "situp",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.8,
+     "types_on_flagged": [
+      "situp"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 3,
+     "billed_hist": {
+      "7.5": 3
+     },
+     "exercise": "burpees",
+     "fallbacks_delta": 0,
+     "flagged_drains": 3,
+     "how": "timer",
+     "label": "S3_burpees",
+     "record_during": "burpees",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 7.5,
+     "types_on_flagged": [
+      "burpees"
+     ]
+    }
+   ],
+   "vanilla_pairs": {
+    "endurance_max_abs": 0.011720001697540283,
+    "hunger_max_abs": 0.0012748390436172485,
+    "max_wall_gap": 0.5090000000000146,
+    "moodles": {
+     "endurance": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "foodEaten": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "heavyLoad": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "hungry": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "thirst": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     }
+    },
+    "pairs": 9
+   },
+   "verdicts": {
+    "BILLED": true,
+    "BILLED_EXACT": true,
+    "FALLBACKS": true,
+    "GRADE_DIFF": true,
+    "MET_REPLAY": true,
+    "MOODLES": true,
+    "RECORD": false,
+    "REPLAY": true,
+    "STALE": null
+   }
+  },
+  "x372": {
+   "determinism": {
+    "hunger_max_abs": 0.0,
+    "met_max_abs": 0.0,
+    "rows": 93
+   },
+   "determinism_flag_only": {
+    "hunger_max_abs": 0.0,
+    "met_max_abs": 0.0,
+    "rows": 93
+   },
+   "diff": {
+    "classes": {
+     "between": 7,
+     "gap": 0,
+     "offline": 2,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 9.284534841502712e-07,
+      "n": 83,
+      "over": 0,
+      "worst_s": 46
+     },
+     "body.energyState": {
+      "max": 4.6429085167609685e-06,
+      "n": 83,
+      "over": 0,
+      "worst_s": 27
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 83,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "diff_grade": {
+    "classes": {
+     "between": 7,
+     "gap": 0,
+     "offline": 2,
+     "suspect": 0
+    },
+    "fields": {
+     "HUNGER": {
+      "max": 9.284534841502712e-07,
+      "n": 83,
+      "over": 0,
+      "worst_s": 46
+     },
+     "body.energyState": {
+      "max": 4.6429085167609685e-06,
+      "n": 83,
+      "over": 0,
+      "worst_s": 27
+     },
+     "body.epoc": {
+      "max": 0.0,
+      "n": 81,
+      "over": 0,
+      "worst_s": null
+     },
+     "body.met": {
+      "max": 0.0,
+      "n": 83,
+      "over": 0,
+      "worst_s": null
+     },
+     "body.trail.c.ex": {
+      "max": 0.0,
+      "n": 83,
+      "over": 0,
+      "worst_s": null
+     },
+     "satiety.L": {
+      "max": 0.0,
+      "n": 83,
+      "over": 0,
+      "worst_s": null
+     }
+    },
+    "findings": [],
+    "findings_n": 0,
+    "ok": true
+   },
+   "doc": "fitness-2.json",
+   "end_cases": [
+    {
+     "clear_age": 2.6501588821411133,
+     "exercise": "barbellcurl",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.6164302825927734,
+     "how": "timer",
+     "label": "S0_barbellcurl",
+     "ran_min": 2.0237159729003906,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": null,
+     "requested_min": 4,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": 2.8559818267822266,
+     "exercise": "dumbbellpress",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.785036087036133,
+     "how": "timer",
+     "label": "S1_dumbbellpress",
+     "ran_min": 4.256744384765625,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": "dumbbellpress",
+     "requested_min": 4,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": 3.068906784057617,
+     "exercise": "bicepscurl",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 2.9891357421875,
+     "how": "timer",
+     "label": "S2_bicepscurl",
+     "ran_min": 4.786262512207031,
+     "record_after_rest": null,
+     "record_at_clear": null,
+     "record_during": "bicepscurl",
+     "requested_min": 4,
+     "starts_delta_at_clear": 1,
+     "stop_age": null,
+     "stops_delta_after_rest": 1,
+     "stops_delta_at_clear": 1,
+     "untyped_delta_after_rest": 0
+    },
+    {
+     "clear_age": null,
+     "exercise": "squats",
+     "failures_delta_after_rest": 0,
+     "fallbacks_delta_after_rest": 0,
+     "first_on_age": 3.2170772552490234,
+     "how": "stopped",
+     "label": "M_squats",
+     "ran_min": null,
+     "record_after_rest": "squats",
+     "record_at_clear": "squats",
+     "record_during": "squats",
+     "requested_min": 20,
+     "starts_delta_at_clear": 1,
+     "stop_age": 3.290729522705078,
+     "stops_delta_after_rest": 0,
+     "stops_delta_at_clear": 0,
+     "untyped_delta_after_rest": 0
+    }
+   ],
+   "fitness_at_start": {
+    "age": 2.3946266174316406,
+    "exeType": null,
+    "failures": 0,
+    "fallbacks": 0,
+    "lastError": null,
+    "passthrough": 0,
+    "starts": 0,
+    "stops": 0,
+    "untyped": 0,
+    "wall": 80.173,
+    "wrappedStart": true,
+    "wrappedStop": true
+   },
+   "met_live_vs_flag_only": {
+    "mismatches": 0,
+    "n": 90,
+    "ok": true,
+    "rows": []
+   },
+   "met_live_vs_replay": {
+    "mismatches": 0,
+    "n": 90,
+    "ok": true,
+    "rows": []
+   },
+   "moodle_pairs": {
+    "classes": {
+     "energy": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "hydration": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "overfull": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "sleep": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     },
+     "stimulant": {
+      "changes": [],
+      "equal": 9,
+      "lag": 0,
+      "mismatch": 0
+     }
+    },
+    "equal": 45,
+    "lag": 0,
+    "max_wall_gap": 0.5100000000000193,
+    "mismatch": 0,
+    "ok": true,
+    "pairs": 9,
+    "rows": [
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_barbellcurl_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_mid"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_end"
+     },
+     {
+      "class": "energy",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_barbellcurl_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_mid"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_end"
+     },
+     {
+      "class": "hydration",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_barbellcurl_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_mid"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_end"
+     },
+     {
+      "class": "stimulant",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_barbellcurl_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_mid"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_end"
+     },
+     {
+      "class": "sleep",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_start"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S0_barbellcurl_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S1_dumbbellpress_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "S2_bicepscurl_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_mid"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "M_squats_end"
+     },
+     {
+      "class": "overfull",
+      "client": 0,
+      "kind": "equal",
+      "server": 0,
+      "tag": "P_final"
+     }
+    ]
+   },
+   "run": "x372-20261013-053459",
+   "sets": [
+    {
+     "a0": 2.583590507507324,
+     "a1": 2.71682554880778,
+     "asked_met": 3.5,
+     "billed_all": true,
+     "billed_asked_ok": 1,
+     "billed_hist": {
+      "3.5": 1
+     },
+     "billed_ok": 1,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.583590507507324,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 11,
+       "type": "barbellcurl"
+      }
+     ],
+     "end": {
+      "clear_age": 2.6501588821411133,
+      "exercise": "barbellcurl",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.6164302825927734,
+      "how": "timer",
+      "label": "S0_barbellcurl",
+      "ran_min": 2.0237159729003906,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": null,
+      "requested_min": 4,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "barbellcurl",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 11,
+     "flag_minutes": 0.9853363037109375,
+     "flag_runs": 1,
+     "flagged": 1,
+     "label": "S0_barbellcurl",
+     "last_flag_s": 11,
+     "record_ok": false,
+     "rows": 9,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "barbellcurl"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 2.758416175842285,
+     "a1": 2.9226484934488934,
+     "asked_met": 3.5,
+     "billed_all": true,
+     "billed_asked_ok": 4,
+     "billed_hist": {
+      "3.5": 4
+     },
+     "billed_ok": 4,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.766839027404785,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 22,
+       "type": "dumbbellpress"
+      },
+      {
+       "age": 2.783702850341797,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 23,
+       "type": "dumbbellpress"
+      },
+      {
+       "age": 2.8001022338867188,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 24,
+       "type": "dumbbellpress"
+      },
+      {
+       "age": 2.816969871520996,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 25,
+       "type": "dumbbellpress"
+      }
+     ],
+     "end": {
+      "clear_age": 2.8559818267822266,
+      "exercise": "dumbbellpress",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.785036087036133,
+      "how": "timer",
+      "label": "S1_dumbbellpress",
+      "ran_min": 4.256744384765625,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": "dumbbellpress",
+      "requested_min": 4,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "dumbbellpress",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 22,
+     "flag_minutes": 3.992156982421875,
+     "flag_runs": 1,
+     "flagged": 4,
+     "label": "S1_dumbbellpress",
+     "last_flag_s": 25,
+     "record_ok": true,
+     "rows": 10,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "dumbbellpress"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 2.962505340576172,
+     "a1": 3.135573450724284,
+     "asked_met": 3.5,
+     "billed_all": true,
+     "billed_asked_ok": 4,
+     "billed_hist": {
+      "3.5": 4
+     },
+     "billed_ok": 4,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 2.966947555541992,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 34,
+       "type": "bicepscurl"
+      },
+      {
+       "age": 2.9833717346191406,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 35,
+       "type": "bicepscurl"
+      },
+      {
+       "age": 3.0002336502075195,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 36,
+       "type": "bicepscurl"
+      },
+      {
+       "age": 3.017062187194824,
+       "asked_met": 3.5,
+       "billed": 3.5,
+       "expected": 3.5,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 37,
+       "type": "bicepscurl"
+      }
+     ],
+     "end": {
+      "clear_age": 3.068906784057617,
+      "exercise": "bicepscurl",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 2.9891357421875,
+      "how": "timer",
+      "label": "S2_bicepscurl",
+      "ran_min": 4.786262512207031,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "record_during": "bicepscurl",
+      "requested_min": 4,
+      "starts_delta_at_clear": 1,
+      "stop_age": null,
+      "stops_delta_after_rest": 1,
+      "stops_delta_at_clear": 1,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "bicepscurl",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 34,
+     "flag_minutes": 3.991241455078125,
+     "flag_runs": 1,
+     "flagged": 4,
+     "label": "S2_bicepscurl",
+     "last_flag_s": 37,
+     "record_ok": true,
+     "rows": 11,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 1,
+     "types_on_flagged": [
+      "bicepscurl"
+     ],
+     "untyped_delta": 0
+    },
+    {
+     "a0": 3.1833457946777344,
+     "a1": 3.845499102274577,
+     "asked_met": 3.0,
+     "billed_all": true,
+     "billed_asked_ok": 40,
+     "billed_hist": {
+      "3": 40
+     },
+     "billed_ok": 40,
+     "billed_ok_verdict": true,
+     "bills": [
+      {
+       "age": 3.1833457946777344,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 47,
+       "type": "squats"
+      },
+      {
+       "age": 3.2002077102661133,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 48,
+       "type": "squats"
+      },
+      {
+       "age": 3.2170772552490234,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 49,
+       "type": "squats"
+      },
+      {
+       "age": 3.233487129211426,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 50,
+       "type": "squats"
+      },
+      {
+       "age": 3.2503490447998047,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 51,
+       "type": "squats"
+      },
+      {
+       "age": 3.2667722702026367,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 52,
+       "type": "squats"
+      },
+      {
+       "age": 3.2836294174194336,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 53,
+       "type": "squats"
+      },
+      {
+       "age": 3.300053596496582,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 54,
+       "type": "squats"
+      },
+      {
+       "age": 3.316925048828125,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 55,
+       "type": "squats"
+      },
+      {
+       "age": 3.3333425521850586,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 56,
+       "type": "squats"
+      },
+      {
+       "age": 3.350200653076172,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 57,
+       "type": "squats"
+      },
+      {
+       "age": 3.3670482635498047,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 58,
+       "type": "squats"
+      },
+      {
+       "age": 3.3834638595581055,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 59,
+       "type": "squats"
+      },
+      {
+       "age": 3.400315284729004,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 60,
+       "type": "squats"
+      },
+      {
+       "age": 3.4167423248291016,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 61,
+       "type": "squats"
+      },
+      {
+       "age": 3.4336090087890625,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 62,
+       "type": "squats"
+      },
+      {
+       "age": 3.4500341415405273,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 63,
+       "type": "squats"
+      },
+      {
+       "age": 3.4669036865234375,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 64,
+       "type": "squats"
+      },
+      {
+       "age": 3.4837570190429688,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 65,
+       "type": "squats"
+      },
+      {
+       "age": 3.5001726150512695,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 66,
+       "type": "squats"
+      },
+      {
+       "age": 3.5170297622680664,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 67,
+       "type": "squats"
+      },
+      {
+       "age": 3.5334510803222656,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 68,
+       "type": "squats"
+      },
+      {
+       "age": 3.550297737121582,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 69,
+       "type": "squats"
+      },
+      {
+       "age": 3.5667190551757812,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 70,
+       "type": "squats"
+      },
+      {
+       "age": 3.583587646484375,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 71,
+       "type": "squats"
+      },
+      {
+       "age": 3.6004438400268555,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 72,
+       "type": "squats"
+      },
+      {
+       "age": 3.616872787475586,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 73,
+       "type": "squats"
+      },
+      {
+       "age": 3.6337337493896484,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 74,
+       "type": "squats"
+      },
+      {
+       "age": 3.650153160095215,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 75,
+       "type": "squats"
+      },
+      {
+       "age": 3.667017936706543,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 76,
+       "type": "squats"
+      },
+      {
+       "age": 3.6834354400634766,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 77,
+       "type": "squats"
+      },
+      {
+       "age": 3.700301170349121,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 78,
+       "type": "squats"
+      },
+      {
+       "age": 3.7167177200317383,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 79,
+       "type": "squats"
+      },
+      {
+       "age": 3.733588218688965,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 80,
+       "type": "squats"
+      },
+      {
+       "age": 3.7500104904174805,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 81,
+       "type": "squats"
+      },
+      {
+       "age": 3.7668581008911133,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 82,
+       "type": "squats"
+      },
+      {
+       "age": 3.7837095260620117,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 83,
+       "type": "squats"
+      },
+      {
+       "age": 3.8001174926757812,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 84,
+       "type": "squats"
+      },
+      {
+       "age": 3.816971778869629,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 85,
+       "type": "squats"
+      },
+      {
+       "age": 3.8333892822265625,
+       "asked_met": 3.0,
+       "billed": 3,
+       "expected": 3.0,
+       "known": true,
+       "ok": true,
+       "ok_asked": true,
+       "s": 86,
+       "type": "squats"
+      }
+     ],
+     "end": {
+      "clear_age": null,
+      "exercise": "squats",
+      "failures_delta_after_rest": 0,
+      "fallbacks_delta_after_rest": 0,
+      "first_on_age": 3.2170772552490234,
+      "how": "stopped",
+      "label": "M_squats",
+      "ran_min": null,
+      "record_after_rest": "squats",
+      "record_at_clear": "squats",
+      "record_during": "squats",
+      "requested_min": 20,
+      "starts_delta_at_clear": 1,
+      "stop_age": 3.290729522705078,
+      "stops_delta_after_rest": 0,
+      "stops_delta_at_clear": 0,
+      "untyped_delta_after_rest": 0
+     },
+     "exercise": "squats",
+     "fallbacks_delta": 0,
+     "fallbacks_ok": true,
+     "first_flag_s": 47,
+     "flag_minutes": 39.00260925292969,
+     "flag_runs": 1,
+     "flagged": 40,
+     "label": "M_squats",
+     "last_flag_s": 86,
+     "record_ok": true,
+     "rows": 40,
+     "stale": [],
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "starts_delta": 0,
+     "stops_delta": 0,
+     "types_on_flagged": [
+      "squats"
+     ],
+     "untyped_delta": 0
+    }
+   ],
+   "stale_rows_vs_flag_only": {
+    "mismatches": 0,
+    "n": 0,
+    "ok": null,
+    "rows": []
+   },
+   "table": [
+    {
+     "billed_all": true,
+     "billed_asked_ok": 1,
+     "billed_hist": {
+      "3.5": 1
+     },
+     "exercise": "barbellcurl",
+     "fallbacks_delta": 0,
+     "flagged_drains": 1,
+     "how": "timer",
+     "label": "S0_barbellcurl",
+     "record_during": null,
+     "record_ok": false,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.5,
+     "types_on_flagged": [
+      "barbellcurl"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 4,
+     "billed_hist": {
+      "3.5": 4
+     },
+     "exercise": "dumbbellpress",
+     "fallbacks_delta": 0,
+     "flagged_drains": 4,
+     "how": "timer",
+     "label": "S1_dumbbellpress",
+     "record_during": "dumbbellpress",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.5,
+     "types_on_flagged": [
+      "dumbbellpress"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 4,
+     "billed_hist": {
+      "3.5": 4
+     },
+     "exercise": "bicepscurl",
+     "fallbacks_delta": 0,
+     "flagged_drains": 4,
+     "how": "timer",
+     "label": "S2_bicepscurl",
+     "record_during": "bicepscurl",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.5,
+     "types_on_flagged": [
+      "bicepscurl"
+     ]
+    },
+    {
+     "billed_all": true,
+     "billed_asked_ok": 40,
+     "billed_hist": {
+      "3": 40
+     },
+     "exercise": "squats",
+     "fallbacks_delta": 0,
+     "flagged_drains": 40,
+     "how": "stopped",
+     "label": "M_squats",
+     "record_during": "squats",
+     "record_ok": true,
+     "stale_billed_type_met": 0,
+     "stale_rows": 0,
+     "table_met": 3.0,
+     "types_on_flagged": [
+      "squats"
+     ]
+    }
+   ],
+   "vanilla_pairs": {
+    "endurance_max_abs": 0.013505816459655762,
+    "hunger_max_abs": 0.0,
+    "max_wall_gap": 0.5120000000000005,
+    "moodles": {
+     "endurance": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "foodEaten": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "heavyLoad": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "hungry": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     },
+     "thirst": {
+      "differ": 0,
+      "equal": 9,
+      "rows": []
+     }
+    },
+    "pairs": 9
+   },
+   "verdicts": {
+    "BILLED": true,
+    "BILLED_EXACT": true,
+    "FALLBACKS": true,
+    "GRADE_DIFF": true,
+    "MET_REPLAY": true,
+    "MOODLES": true,
+    "RECORD": false,
+    "REPLAY": true,
+    "STALE": null
+   }
+  }
+ },
+ "tol_default": {
+  "HUNGER": [
+   "abs",
+   0.002
+  ],
+  "body.energyState": [
+   "abs",
+   0.005
+  ],
+  "satiety.L": [
+   "rel",
+   0.005
+  ]
+ },
+ "tol_grade": {
+  "HUNGER": [
+   "abs",
+   0.002
+  ],
+  "body.energyState": [
+   "abs",
+   0.005
+  ],
+  "body.epoc": [
+   "rel",
+   0.005,
+   1.0
+  ],
+  "body.met": [
+   "abs",
+   1e-09
+  ],
+  "body.trail.c.ex": [
+   "rel",
+   0.005,
+   1.0
+  ],
+  "satiety.L": [
+   "rel",
+   0.005,
+   1.0
+  ]
+ },
+ "tool_commit": "e99d92d5"
+}

@@ -1,0 +1,320 @@
+{
+ "commit": "2c8418cb",
+ "regrade_commit": "2c8418cb",
+ "script": "testing/experiments/x37_regrade.py",
+ "sessions": {
+  "x371": {
+   "R1_RECORD": {
+    "sets": [
+     {
+      "exercise": "squats",
+      "flagged_rows": 1,
+      "label": "S0_squats",
+      "poll_ok": null,
+      "poll_records": [],
+      "polls_before_stop": 0,
+      "polls_on": 1,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "squats"
+      ]
+     },
+     {
+      "exercise": "pushups",
+      "flagged_rows": 3,
+      "label": "S1_pushups",
+      "poll_ok": true,
+      "poll_records": [
+       "pushups"
+      ],
+      "polls_before_stop": 1,
+      "polls_on": 1,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "pushups"
+      ]
+     },
+     {
+      "exercise": "situp",
+      "flagged_rows": 3,
+      "label": "S2_situp",
+      "poll_ok": true,
+      "poll_records": [
+       "situp"
+      ],
+      "polls_before_stop": 1,
+      "polls_on": 2,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "situp"
+      ]
+     },
+     {
+      "exercise": "burpees",
+      "flagged_rows": 3,
+      "label": "S3_burpees",
+      "poll_ok": true,
+      "poll_records": [
+       "burpees"
+      ],
+      "polls_before_stop": 1,
+      "polls_on": 2,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "burpees"
+      ]
+     }
+    ],
+    "unmeasured_by_poll": [
+     "S0_squats"
+    ],
+    "verdict": "as_predicted"
+   },
+   "R2_END_MOVE": {
+    "stopped_sets": [],
+    "verdict": "unmeasured",
+    "why": "the harness stop (clearQueue) never stopped the started set: the movement end case was not reached"
+   },
+   "R3_TIMER_END": {
+    "n": 4,
+    "sets": [
+     {
+      "exercise": "squats",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S0_squats",
+      "ran_min": 2.1306610107421875,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     },
+     {
+      "exercise": "pushups",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S1_pushups",
+      "ran_min": 2.2893905639648438,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     },
+     {
+      "exercise": "situp",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S2_situp",
+      "ran_min": 4.791412353515625,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     },
+     {
+      "exercise": "burpees",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S3_burpees",
+      "ran_min": 4.260921478271484,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     }
+    ],
+    "verdict": "as_predicted"
+   },
+   "flagged_rows_per_set": [
+    {
+     "flagged": 1,
+     "label": "S0_squats",
+     "requested_min": 3
+    },
+    {
+     "flagged": 3,
+     "label": "S1_pushups",
+     "requested_min": 3
+    },
+    {
+     "flagged": 3,
+     "label": "S2_situp",
+     "requested_min": 3
+    },
+    {
+     "flagged": 3,
+     "label": "S3_burpees",
+     "requested_min": 3
+    }
+   ],
+   "run": "x371-20261013-052801"
+  },
+  "x372": {
+   "R1_RECORD": {
+    "sets": [
+     {
+      "exercise": "barbellcurl",
+      "flagged_rows": 1,
+      "label": "S0_barbellcurl",
+      "poll_ok": null,
+      "poll_records": [],
+      "polls_before_stop": 0,
+      "polls_on": 1,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "barbellcurl"
+      ]
+     },
+     {
+      "exercise": "dumbbellpress",
+      "flagged_rows": 4,
+      "label": "S1_dumbbellpress",
+      "poll_ok": true,
+      "poll_records": [
+       "dumbbellpress"
+      ],
+      "polls_before_stop": 2,
+      "polls_on": 2,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "dumbbellpress"
+      ]
+     },
+     {
+      "exercise": "bicepscurl",
+      "flagged_rows": 4,
+      "label": "S2_bicepscurl",
+      "poll_ok": true,
+      "poll_records": [
+       "bicepscurl"
+      ],
+      "polls_before_stop": 2,
+      "polls_on": 2,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "bicepscurl"
+      ]
+     },
+     {
+      "exercise": "squats",
+      "flagged_rows": 40,
+      "label": "M_squats",
+      "poll_ok": true,
+      "poll_records": [
+       "squats"
+      ],
+      "polls_before_stop": 22,
+      "polls_on": 22,
+      "ring_ok": true,
+      "types_on_flagged": [
+       "squats"
+      ]
+     }
+    ],
+    "unmeasured_by_poll": [
+     "S0_barbellcurl"
+    ],
+    "verdict": "as_predicted"
+   },
+   "R2_END_MOVE": {
+    "stopped_sets": [
+     {
+      "bills_after_stop_hist": {
+       "3": 45
+      },
+      "cap_stop": {
+       "cleared": true,
+       "clientMoving": false,
+       "wall": 394.505
+      },
+      "clear_age": null,
+      "ended": false,
+      "exercise": "squats",
+      "fallbacks_delta": 0,
+      "first_on_age": 3.2170772552490234,
+      "flag_minutes_after_stop": 44.564151763916016,
+      "flagged_rows_after_stop": 45,
+      "label": "M_squats",
+      "last_flagged_age": 4.033465385437012,
+      "last_online_age": 4.033465385437012,
+      "moving_rows_after_stop": 0,
+      "outlived_own_timer": true,
+      "record_after_rest": "squats",
+      "record_at_clear_read": "squats",
+      "requested_min": 20,
+      "rows_after_stop": 47,
+      "stop_age": 3.290729522705078,
+      "stop_reply": {
+       "cleared": true,
+       "clientMoving": false,
+       "wall": 282.918
+      },
+      "type_met": 3.0,
+      "walk": {
+       "clientMoving": false,
+       "error": null,
+       "queueError": null,
+       "queued": true,
+       "target": {
+        "x": 10917,
+        "y": 10037,
+        "z": 0
+       },
+       "wall": 284.691
+      }
+     }
+    ],
+    "verdict": "unmeasured",
+    "why": "the harness stop (clearQueue) never stopped the started set: the movement end case was not reached"
+   },
+   "R3_TIMER_END": {
+    "n": 3,
+    "sets": [
+     {
+      "exercise": "barbellcurl",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S0_barbellcurl",
+      "ran_min": 2.0237159729003906,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     },
+     {
+      "exercise": "dumbbellpress",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S1_dumbbellpress",
+      "ran_min": 4.256744384765625,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     },
+     {
+      "exercise": "bicepscurl",
+      "fallbacks_delta_after_rest": 0,
+      "label": "S2_bicepscurl",
+      "ran_min": 4.786262512207031,
+      "record_after_rest": null,
+      "record_at_clear": null,
+      "stops_delta_at_clear": 1
+     }
+    ],
+    "verdict": "as_predicted"
+   },
+   "flagged_rows_per_set": [
+    {
+     "flagged": 1,
+     "label": "S0_barbellcurl",
+     "requested_min": 4
+    },
+    {
+     "flagged": 4,
+     "label": "S1_dumbbellpress",
+     "requested_min": 4
+    },
+    {
+     "flagged": 4,
+     "label": "S2_bicepscurl",
+     "requested_min": 4
+    },
+    {
+     "flagged": 40,
+     "label": "M_squats",
+     "requested_min": 20
+    }
+   ],
+   "run": "x372-20261013-053459"
+  }
+ }
+}

@@ -1,0 +1,66 @@
+[
+ {
+  "age": 2.583724021911621,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 11,
+  "value": "squats"
+ },
+ {
+  "age": 2.6001386642456055,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 12,
+  "value": null
+ },
+ {
+  "age": 2.7669782638549805,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 22,
+  "value": "pushups"
+ },
+ {
+  "age": 2.817084312438965,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 25,
+  "value": null
+ },
+ {
+  "age": 2.9502391815185547,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 33,
+  "value": "situp"
+ },
+ {
+  "age": 3.000375747680664,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 36,
+  "value": null
+ },
+ {
+  "age": 3.166748046875,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 46,
+  "value": "burpees"
+ },
+ {
+  "age": 3.2168922424316406,
+  "kind": "setpath",
+  "label": "ring-exetype",
+  "path": "_G.NutritionRevamp.server.fitness.exeType.admin",
+  "s": 49,
+  "value": null
+ }
+]
