@@ -211,11 +211,12 @@ function K.view.push(rows, key, label, text, level, isKey)
 end
 
 -- The row model (ruling 2): m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
--- are listed (nil: none; K.view.gradedOrder gives the graded ones). Every level: the six class rows; Bands and up:
--- the body block (band word, weight, energy word), the hydration word and each graded key's grade word (a key the
+-- are listed (nil: none; K.view.gradedOrder gives the graded ones), fat the client's body-fat state { female, last }
+-- (nil reads a man with no word held; K.view.fatRow). Every level: the six class rows; Bands and up:
+-- the body block (band word, weight, body-fat word, energy word), the hydration word and each graded key's grade word (a key the
 -- engine has not graded yet, g < 1, has no row); Numbers: the fat and lean mass, each listed key's pool percentage
 -- and excess rung, and the caffeine, alcohol and sleep-debt figures. The energy level is the server's (K.view.classes).
-function K.view.rows(m, level, order)
+function K.view.rows(m, level, order, fat)
     local mm = m
     if mm == nil then
         mm = {}
@@ -232,12 +233,9 @@ function K.view.rows(m, level, order)
     if lv < 2 then
         return rows
     end
-    local band = mm.body_band
-    if type(band) ~= "string" or band == "" then
-        band = "none"
-    end
-    K.view.push(rows, "body_band", "UI_NR_Row_body_band", "UI_NR_Band_" .. band, 2, true)
+    K.view.push(rows, "body_band", "UI_NR_Row_body_band", K.view.bandKey("UI_NR_Band_", mm.body_band), 2, true)
     K.view.push(rows, "body_weight", "UI_NR_Row_body_weight", K.view.unitText(mm.body_weight, 1, "kg"), 2, false)
+    K.view.fatRow(rows, mm, fat)
     K.view.push(rows, "body_energyState", "UI_NR_Row_body_energyState", "UI_NR_Class_energy_" .. K.view.fmt(c.energy, 0), 2, true)
     if lv >= 3 then
         K.view.push(rows, "body_fm", "UI_NR_Row_body_fm", K.view.unitText(mm.body_fm, 1, "kg"), 3, false)
@@ -567,4 +565,88 @@ function K.view.signatureEnergy(sig)
         return nil
     end
     return math.floor(sig / 1000) % 10
+end
+
+-- --- the Body fat row (Bands and up): the fat fraction as a sex-specific word, with a hold --------------------------
+-- The fraction is body_fm / body_weight off the mirror, so no new mirror field is sent. The cuts are the 20-39 y column
+-- of the percent-body-fat table at the BMI cut-offs 18.5, 25 and 30 (Gallagher 2000, Table 4), used for every age: a game
+-- choice. Each sex lists the four ascending lower bounds of bands 1-4 (lean, healthy, high, very high); below the first
+-- the band is 0, very lean. Fractions, not percent.
+K.view.FAT_CUTS_MALE = {
+    0.06, -- gc: game choice, the lean band from 6 %, inside the 4-6 % floor of healthy active men in a prolonged deficit (S1910)
+    0.08, -- the healthy band from 8 %, the BMI 18.5 body fat of men aged 20-39 y (S1905)
+    0.20, -- the high band from 20 %, the BMI 25 body fat of men aged 20-39 y (S1905)
+    0.25, -- the very high band from 25 %, the BMI 30 body fat of men aged 20-39 y (S1905)
+}
+K.view.FAT_CUTS_FEMALE = {
+    0.13, -- gc: game choice, the lean band from 13 %, the 12.7 % a competition diet brought healthy women to, rounded (S1911)
+    0.21, -- the healthy band from 21 %, the BMI 18.5 body fat of women aged 20-39 y (S1904)
+    0.33, -- the high band from 33 %, the BMI 25 body fat of women aged 20-39 y (S1904)
+    0.39, -- the very high band from 39 %, the BMI 30 body fat of women aged 20-39 y (S1904)
+}
+K.view.FAT_WORDS = { "lean", "healthy", "high", "veryHigh" }
+K.view.FAT_WORDS[0] = "veryLean"
+K.view.FAT_BAND = 0.005 -- gc: game choice, half a percentage point of body fat: a shown word holds until the fraction leaves its band by more than this, so a fraction on a cut does not flicker; the width informed by the 3-4 % coefficient of variation of a DXA fat reading (S1909)
+
+-- A key from prefix and word: the word when it is a non-empty string, else "none" (the band words' No data).
+function K.view.bandKey(prefix, word)
+    if type(word) ~= "string" or word == "" then
+        return prefix .. "none"
+    end
+    return prefix .. word
+end
+
+-- The band of v on the ascending lower bounds at, held: last (a whole number 0..#at) stays while v lies within band
+-- of last's own range (last's lower bound less band up to its upper bound plus band); otherwise the plain rung of v.
+-- A last that is not a whole number in range reads none.
+function K.view.heldRung(v, at, last, band)
+    local n = K.view.rung(v, at)
+    if type(v) ~= "number" or type(last) ~= "number" or last ~= math.floor(last) or last < 0 or last > #at then
+        return n
+    end
+    local lo = -math.huge
+    if last > 0 then
+        lo = at[last]
+    end
+    local hi = math.huge
+    if last < #at then
+        hi = at[last + 1]
+    end
+    if v >= lo - band and v <= hi + band then
+        return last
+    end
+    return n
+end
+
+-- The body-fat band index (0 very lean .. 4 very high) of a mirror m for a sex (female true), holding last, or nil when
+-- the mirror has no body (a body_weight that is not a positive number, or a body_fm that is not a number).
+function K.view.fatBand(m, female, last)
+    local w = m.body_weight
+    local fm = m.body_fm
+    if type(w) ~= "number" or type(fm) ~= "number" or not (w > 0) then
+        return nil
+    end
+    local cuts = K.view.FAT_CUTS_MALE
+    if female == true then
+        cuts = K.view.FAT_CUTS_FEMALE
+    end
+    return K.view.heldRung(fm / w, cuts, last, K.view.FAT_BAND)
+end
+
+-- The Body fat row, pushed at level 2: its text the band word (UI_NR_FatBand_<word>) or No data, its fatBand the index the
+-- client holds for the next build (nil with no body). fat is { female, last } or nil.
+function K.view.fatRow(rows, m, fat)
+    local female = false
+    local last = nil
+    if fat ~= nil then
+        female = fat.female
+        last = fat.last
+    end
+    local idx = K.view.fatBand(m, female, last)
+    local text = K.view.bandKey("UI_NR_Band_", nil)
+    if idx ~= nil then
+        text = K.view.bandKey("UI_NR_FatBand_", K.view.FAT_WORDS[idx])
+    end
+    local r = K.view.push(rows, "body_fat", "UI_NR_Row_body_fat", text, 2, true)
+    r.fatBand = idx
 end

@@ -537,8 +537,8 @@ OPTIONS_TXT = ("VERSION = 1,\n"
 
 def _mod_with_options(root):
     d = os.path.join(root, "NutritionRevamp")
-    _write(os.path.join(d, "42.20.4", "mod.info"), "name=NR\nid=NutritionRevamp\n")
-    _write(os.path.join(d, "42.20.4", "media", "sandbox-options.txt"), OPTIONS_TXT)
+    _write(os.path.join(d, "42.21", "mod.info"), "name=NR\nid=NutritionRevamp\n")
+    _write(os.path.join(d, "42.21", "media", "sandbox-options.txt"), OPTIONS_TXT)
     return d
 
 

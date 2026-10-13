@@ -1104,7 +1104,7 @@ def test_the_dial_reaches_the_slow_records(nut_host):
 
 def test_the_option_file_and_translations_declare_the_four_dials():
     import json
-    path = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+    path = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
     with open(path, encoding="utf-8") as fh:
         src = fh.read()
     assert "option NR.OnsetSpeed\n{\n    type = double, min = 0.5, max = 30.0, default = 1.0," in src
@@ -1120,7 +1120,7 @@ def test_the_option_file_and_translations_declare_the_four_dials():
 def test_the_option_file_and_translations_declare_severity():
     # Plan 5 ruling 23: NR.Severity, a double 0-3, default 1 (read and clamped: test_effects_shape.py)
     import json
-    path = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+    path = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
     with open(path, encoding="utf-8") as fh:
         src = fh.read()
     assert ("option NR.Severity\n{\n    type = double, min = 0.0, max = 3.0, default = 1.0,\n"

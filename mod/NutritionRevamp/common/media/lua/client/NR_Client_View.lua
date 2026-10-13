@@ -31,6 +31,8 @@ NR.client.view = {
     level = 2,
     optionLevel = 2,
     hasTrait = false,
+    female = false,
+    fatBand = nil,
     rows = nil,
     classes = nil,
     order = nil,
@@ -73,6 +75,15 @@ function V.readTrait(player)
     return false
 end
 
+-- Whether the local player is female, through player:isFemale() (NR.call, index-first, in a pcall): the sex the Body fat
+-- row's cuts read, held in V.female by recompute. Unreadable (a nil player, a failed call) keeps the last answer.
+function V.readFemale(player)
+    if player == nil then return V.female end
+    local ok, present, v = pcall(NR.call, player, "isFemale")
+    if ok and present and type(v) == "boolean" then return v end
+    return V.female
+end
+
 -- The server option SandboxVars.NR.VisibilityMode (1 Symptoms, 2 Bands, 3 Numbers); a missing or non-number value
 -- reads 2, Bands, the option's default (ruling T13-1). K.view.level clamps it.
 function V.readOption()
@@ -111,7 +122,11 @@ local function rebuild(received)
         V.order = K.view.gradedOrder(nr.data.records)
     end
     local m = nr.client.mirror
-    local rows = K.view.rows(m, V.level, V.order)
+    local rows = K.view.rows(m, V.level, V.order, { female = V.female, last = V.fatBand })
+    V.fatBand = nil
+    for i = 1, #rows do
+        if rows[i].key == "body_fat" then V.fatBand = rows[i].fatBand end
+    end
     resolveRows(rows)
     V.rows = rows
     V.classes = K.view.moodleClasses(m)
@@ -150,6 +165,7 @@ end
 -- The level from the stored option and trait; true when it moved.
 function V.recompute(player)
     V.hasTrait = V.readTrait(player)
+    V.female = V.readFemale(player)
     V.optionLevel = V.readOption()
     local before = V.level
     V.level = levelOf(V.optionLevel, V.hasTrait)

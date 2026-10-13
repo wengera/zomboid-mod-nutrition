@@ -442,7 +442,7 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
     p = player(h)
     step(h, p, record(h), 1)
     assert h.NR.server.writer.h["a"].swipe is not None   # the swing handle stays: it marks resistance work (ruling T6-2)
-    txt = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+    txt = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
     js = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "Translate", "EN",
                       "Sandbox.json")
     for path in (txt, js):

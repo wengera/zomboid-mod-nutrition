@@ -17,7 +17,7 @@ import lupa.lua51 as lua51
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 LUA = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 SHARED = os.path.join(LUA, "shared")
-SANDBOX = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+SANDBOX = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
 CLASSES = ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"]
 
 
@@ -169,11 +169,13 @@ def test_rows_at_symptoms_are_the_six_class_rows_only(host):
 def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 2, arr(host, ["vitC", "iron", "zinc"])))
     extra = rows[6:]
-    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_energyState", "fluids_dehydPct",
-                                        "nut_vitC_g", "nut_iron_g"]          # zinc not yet graded: no row
+    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_fat", "body_energyState",
+                                        "fluids_dehydPct", "nut_vitC_g", "nut_iron_g"]          # zinc not yet graded: no row
     by = {r["key"]: r for r in extra}
     assert by["body_band"]["text"] == "UI_NR_Band_normal" and by["body_band"]["isKey"] is True
     assert by["body_weight"]["text"] == "78.0 kg" and by["body_weight"]["isKey"] is False
+    assert by["body_fat"]["text"] == "UI_NR_FatBand_healthy" and by["body_fat"]["isKey"] is True   # 14.26 / 78.04 = 18.3 %, a man
+    assert by["body_fat"]["label"] == "UI_NR_Row_body_fat" and by["body_fat"]["level"] == 2 and by["body_fat"]["fatBand"] == 2
     assert by["body_energyState"]["text"] == "UI_NR_Class_energy_2"
     assert by["fluids_dehydPct"]["text"] == "UI_NR_Class_hydration_2"
     assert by["nut_vitC_g"] == {"key": "nut_vitC_g", "label": "UI_NR_Row_vitC", "text": "UI_NR_Grade_3",
@@ -185,7 +187,7 @@ def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
 def test_rows_at_numbers_add_the_figures(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 3, arr(host, ["vitC", "iron"])))
     keys = [r["key"] for r in rows[6:]]
-    assert keys == ["body_band", "body_weight", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
+    assert keys == ["body_band", "body_weight", "body_fat", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
                     "nut_vitC_g", "nut_vitC_p", "nut_vitC_x", "nut_iron_g", "nut_iron_p", "nut_iron_x",
                     "acute_caf", "acute_bac", "acute_debtH"]
     by = {r["key"]: r for r in rows}
@@ -202,6 +204,7 @@ def test_rows_of_an_absent_body_read_the_band_none(host):
     by = {r["key"]: r for r in rows}
     assert by["body_band"]["text"] == "UI_NR_Band_none"
     assert by["body_weight"]["text"] == ""                 # no number, no unit: fmt of nil is ""
+    assert by["body_fat"]["text"] == "UI_NR_Band_none" and "fatBand" not in by["body_fat"]
     rows = rows_of(host, V(host).rows(None, 2, None))
     assert {r["key"]: r for r in rows}["body_band"]["text"] == "UI_NR_Band_none"
 
@@ -221,6 +224,77 @@ RECORDS = {"ORDER": {1: "vitC", 2: "thiamine", 3: "caffeine", 4: "fibre", 5: "vi
                    "zinc": {"kind": "pool", "unit": "mg", "R": {1: "x"}}}}
 UNITS = {"vitC": "mg", "thiamine": "mg", "caffeine": "mg", "fibre": "g", "vitK": "ug", "zinc": "mg",
          "calories": "kcal", "carbs": "g", "lipids": "g", "proteins": "g", "water": "g"}
+
+
+# --- the Body fat row: cuts, sex, hold ---------------------------------------------------------------
+
+def fat_row(h, fm, weight, female=False, last=None, level=2):
+    m = h.table({"body_band": "normal", "body_weight": weight, "body_fm": fm})
+    fat = h.table({"female": female, "last": last})
+    return next(r for r in rows_of(h, V(h).rows(m, level, None, fat)) if r["key"] == "body_fat")
+
+
+WORDS = ["veryLean", "lean", "healthy", "high", "veryHigh"]
+
+
+@pytest.mark.parametrize("female,cuts", [(False, [6, 8, 20, 25]), (True, [13, 21, 33, 39])])
+def test_each_fat_cut_is_a_band_edge_for_its_sex(host, female, cuts):
+    for i, cut in enumerate(cuts):
+        below = fat_row(host, cut - 0.1, 100, female)         # 0.1 % under the cut: the band below
+        at = fat_row(host, cut, 100, female)                  # exactly on the cut: the band above
+        assert below["text"] == "UI_NR_FatBand_" + WORDS[i] and below["fatBand"] == i, (female, cut)
+        assert at["text"] == "UI_NR_FatBand_" + WORDS[i + 1] and at["fatBand"] == i + 1, (female, cut)
+    assert fat_row(host, 60, 100, female)["text"] == "UI_NR_FatBand_veryHigh"
+
+
+def test_the_same_fraction_reads_by_sex(host):
+    assert fat_row(host, 22, 100, False)["text"] == "UI_NR_FatBand_high"        # a man at 22 %
+    assert fat_row(host, 22, 100, True)["text"] == "UI_NR_FatBand_healthy"       # a woman at 22 %
+    assert fat_row(host, 10, 100, False)["text"] == "UI_NR_FatBand_healthy"
+    assert fat_row(host, 10, 100, True)["text"] == "UI_NR_FatBand_veryLean"
+    assert fat_row(host, 22, 100, None)["text"] == "UI_NR_FatBand_high"           # no sex read: a man
+
+
+def test_the_fat_word_holds_until_the_fraction_leaves_the_band_by_more_than_the_band(host):
+    assert V(host).FAT_BAND == 0.005
+    # a man held in healthy (8 to under 20 %): 20.4 % stays, 20.6 % leaves up; 7.6 % stays, 7.4 % leaves down
+    assert fat_row(host, 20.4, 100, False, 2)["fatBand"] == 2
+    assert fat_row(host, 20.6, 100, False, 2)["fatBand"] == 3
+    assert fat_row(host, 7.6, 100, False, 2)["fatBand"] == 2
+    assert fat_row(host, 7.4, 100, False, 2)["fatBand"] == 1
+    # held in high: 19.6 % stays high (under the cut by less than the band), 19.4 % leaves; 25.4 % stays, 25.6 % leaves
+    assert fat_row(host, 19.6, 100, False, 3)["fatBand"] == 3
+    assert fat_row(host, 19.4, 100, False, 3)["fatBand"] == 2
+    assert fat_row(host, 25.4, 100, False, 3)["fatBand"] == 3
+    assert fat_row(host, 25.6, 100, False, 3)["fatBand"] == 4
+    # the end bands hold on their one side only; a woman's cuts
+    assert fat_row(host, 12.6, 100, True, 0)["fatBand"] == 0 and fat_row(host, 13.6, 100, True, 0)["fatBand"] == 1
+    assert fat_row(host, 38.6, 100, True, 4)["fatBand"] == 4 and fat_row(host, 38.4, 100, True, 4)["fatBand"] == 3
+    # no prior word, or a junk one: the plain band
+    for junk in (None, -1, 5, 1.5, "2"):
+        assert fat_row(host, 20.4, 100, False, junk)["fatBand"] == 3, junk
+
+
+def test_the_fat_row_reads_no_data_without_a_body(host):
+    for fm, w in ((5, 0), (5, -1), (None, 80), (5, None)):
+        row = fat_row(host, fm, w, False, 2)
+        assert row["text"] == "UI_NR_Band_none" and "fatBand" not in row, (fm, w)
+    assert fat_row(host, 0, 80)["text"] == "UI_NR_FatBand_veryLean"            # a body with no fat is a body
+
+
+def test_the_fat_row_sits_at_bands_and_numbers_and_not_at_symptoms(host):
+    for lv, want in ((1, False), (2, True), (3, True)):
+        keys = [r["key"] for r in rows_of(host, V(host).rows(host.table(MIRROR), lv, None))]
+        assert ("body_fat" in keys) is want, lv
+    keys = [r["key"] for r in rows_of(host, V(host).rows(host.table(MIRROR), 2, None))]
+    assert keys.index("body_fat") == keys.index("body_weight") + 1
+
+
+def test_the_band_key_and_the_held_rung_helpers(host):
+    assert V(host).bandKey("P_", "x") == "P_x" and V(host).bandKey("P_", "") == "P_none"
+    assert V(host).bandKey("P_", None) == "P_none" and V(host).bandKey("P_", 3) == "P_none"
+    at = host.table({1: 10, 2: 20})
+    assert V(host).heldRung(15, at, 0, 1) == 1 and V(host).heldRung(10.5, at, 0, 1) == 0 and V(host).heldRung(None, at, 0, 1) == 0
 
 
 def test_graded_order_drops_the_ungraded_kinds(host):

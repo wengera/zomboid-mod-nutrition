@@ -4,7 +4,7 @@
 -- for a wrapped vanilla function may live here (lua-platform rule #0943).
 NutritionRevamp = {
     version = "1.0.0",
-    build = "42.20.4",
+    build = "42.21",
     kernel = {},   -- pure functions, tables in and tables out, no Java (NR_Kernel*.lua)
     server = {},   -- server adapters (server/NR_Server_*.lua), gated by NutritionRevamp.isServer()
     client = {},   -- the read-only mirror (client/NR_Client_*.lua)

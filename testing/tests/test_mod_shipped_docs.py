@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MOD = ROOT / "mod" / "NutritionRevamp"
-MOD_INFO = MOD / "42.20.4" / "mod.info"
+MOD_INFO = MOD / "42.21" / "mod.info"
 CORE = MOD / "common" / "media" / "lua" / "shared" / "NR_Core.lua"
 PASS = MOD / "common" / "media" / "scripts" / "NR_ItemPass_Food.txt"
 
