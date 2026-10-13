@@ -1,0 +1,44 @@
+# testing/profiles/x40-store.toml - Plan 11b Task 4 session S4b1 (run x402a), the first of two boots on one world:
+# the JSON number round trip's save (store.probe roundtrip save, H7), the reconnect decay (admin eats TKX.Mixed650,
+# quits, the server runs on, a fresh client restore rejoins; satiety.M and S decay by the gap clamped at
+# K.satiety.MAX_GAP_M = 60) and the store's stop window (admin eats TKX.Mixed400 and the server is stopped with
+# admin online as soon as the landing reads; ruling T20-1). Session S4b2 (x40-store-b.toml, x402b_store.py) boots
+# this session's server folder again.
+# PZTestKit at HEAD (016dce05 and 07c27dc4 or later; store.probe and minute.ring) + the STAGED copy of the release
+# (release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp, staged by the controller after Task 3c with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40`; release/ is gitignored; mod/ is
+# never booted; the driver checks the staged MANIFEST against release_pack's manifest of mod/NutritionRevamp at HEAD
+# before the boot and refuses on a mismatch) + TKX_StudyFoods by its path. Build 42.21.0 (4a0e9546ec).
+# Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1). DayLength 1 (a game minute is
+# 0.625 s of wall at speed 1). No [server] sleep keys: the fixture's false/false keeps the sleep factor inert.
+# The driver is testing/experiments/x402a_store.py.
+# The verify rows are load gates only: the version on the server and both clients, and the study food's script.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp release copy (release/plan11-x40) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, build 42.21.0 - x402a, Plan 11b Task 4 S4b1: the round trip's save, the reconnect decay, the stop window."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, x222)
