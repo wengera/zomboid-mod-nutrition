@@ -22,7 +22,7 @@ class Timeline:
         self.t0 = time.time()
         self.items = []
 
-    def mark(self, phase, took=None, **kw):
+    def mark(self, phase, /, took=None, **kw):
         """One timeline entry. `t` is ALWAYS seconds since the timeline started -- it is the
         thing that makes a list of marks readable as a run.
 

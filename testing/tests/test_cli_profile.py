@@ -617,3 +617,11 @@ def test_scenario_run_without_a_profile_still_writes_the_new_keys(monkeypatch, t
     rep, art = report_of(tmp_path), artifact_of(tmp_path)
     assert art["profile"] is None and art["verify"] == []
     assert "profile" not in rep and "verify" not in rep
+
+def test_timeline_mark_takes_a_phase_keyword_as_a_field():
+    """`mark("error", phase="X")`, as the frozen x391a-x391h drivers write it, lands `phase` in the detail
+    instead of raising a duplicate-argument TypeError; the keyword is the entry's `phase` field, as the kw merge writes it."""
+    tl = session.Timeline()
+    tl.mark("error", phase="X", detail="d")
+    assert tl.items[-1]["phase"] == "X" and tl.items[-1]["detail"] == "d"
+
