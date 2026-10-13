@@ -1,0 +1,40 @@
+# testing/profiles/x39-shootout-a.toml - Plan 11b Task 2 (run x391a), session S2a: the mod's own budgeted queue against the harness's fixed 15 ms budget at N = 60, DayLength 1 (about 6.27 ticks a game minute, #3346).
+# PZTestKit (513778e8: tick.ring, perf.local, ghost.load/modq/stats/stop, sched.arm, stats.bench, bench.global, the gclog
+# key) + the STAGED copy of the tree at 513778e8 (release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged with `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x39`, MANIFEST sha256
+# 83c79a04...52c0; release/ is gitignored; mod/ is never booted) + TKX_StudyFoods by its path (the monotony seed).
+# Build 42.21.0 (4a0e9546ec). Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# The driver is testing/experiments/x391a_shootout.py.
+# The verify rows are load gates only: the version on the server and both clients, the harness's ring cap and the seed food's script.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan11-x39, 513778e8) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, gclog on - x391a, Plan 11b Task 2 session S2a."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mono450", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, #3346)

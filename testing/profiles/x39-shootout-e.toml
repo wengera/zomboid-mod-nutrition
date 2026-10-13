@@ -1,0 +1,35 @@
+# testing/profiles/x39-shootout-e.toml - Plan 11b Task 2 (run x391e), session S2e: the owed reads - the empty-check bench with the ticks restore, own-action latency on admin under idle, burst and mod (plus the non-Food smoke), the BOREDOM pair and the writer benched on the real players, the fast clock (settimespeed 30) and the induced one-hour stall at N = 60, DayLength 1.
+# PZTestKit (513778e8: tick.ring, perf.local, ghost.load/modq/stats/stop, sched.arm, stats.bench, bench.global, the gclog
+# key) + the STAGED copy of the tree at 513778e8 (release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged with `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x39`, MANIFEST sha256
+# 83c79a04...52c0; release/ is gitignored; mod/ is never booted). Build 42.21.0 (4a0e9546ec).
+# Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# The driver is testing/experiments/x391e_owed.py.
+# The verify rows are load gates only: the version on the server and both clients and the harness's ring cap.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan11-x39, 513778e8), fixture two, admin and bob, Nutrition off, DayLength 1, gclog on - x391e, Plan 11b Task 2 session S2e."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, #3346)
