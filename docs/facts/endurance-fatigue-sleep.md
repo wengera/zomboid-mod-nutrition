@@ -261,7 +261,7 @@ Fatigue sets a bed sleep's length once, at its start, in the client's bed handle
 A fatigue write during sleep therefore neither wakes the player earlier nor keeps them asleep longer.
 
 On a server that allows and needs sleep, the harness's per-tick asleep hold read asleep at 1014 of 1200 server ticks over 120 s, and while the only player was held asleep the world clock ran about 20 times its waking rate, 61.764 game hours in 115.998 s of server wall time against 1.5095 game hours in 56.703 s awake [#2956/M/n=1].
-What the takeover handler did with that sleep is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
+What the pre-release build's takeover handler did with that sleep is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
 
 <a id="moodles"></a>
 ### What the moodles do with the two stats

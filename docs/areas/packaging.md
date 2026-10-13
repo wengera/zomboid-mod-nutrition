@@ -61,11 +61,13 @@ As shipped, the mod's folder holds `42.21/`, which carries `mod.info` and `media
 The version dir is named for the build its files were verified on, `42.21` (it was `42.20.4` before the 42.21 re-baseline), because the resolver scores a name as the major times 1000 plus the minor and ignores the third component, so that dir is read on this build and on every later one until a newer-named dir ships [#0826/C/C-only].
 That shape, a version dir shipping a file that collides with nothing, booted clean on both sides in the acceptance session [#2746/M/n=1].
 A mod option declared only in the version dir's `media/sandbox-options.txt`, a file colliding with nothing in `common/`, loaded: `NR.Severity` 1.5 set in the server's sandbox file read 1.5 as the mod's server option and as `SandboxVars.NR.Severity` on the server and both clients, against 1 on a control boot with no override. [#3361/M/n=1]
-The staged 1.0.0 build, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
+The staged pre-release build of 1a8e207, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
 Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1].
 Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
 Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/` (measured as `42.20.4/`, the same layout), everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
 The manifest declares `versionMin=42.21` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
+The mod's first public release is version 1.0.0: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [T1136.22].
+A row of the takeover era that names its build's version names the pre-release build its bound gives, never this release.
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 
 The version dir's name is read as a build number, and the resolver's rules decide which dir a later build takes, which the [shelf-life reading](#shelf-life) below follows through ([#3505/C/C-only], [#0826/C/C-only]).
@@ -113,6 +115,7 @@ A mismatch surfaces as a disconnect, with the two sides' separate arms acting at
 A player who cannot stay connected after an update is therefore this section's failure mode before it is anyone else's.
 How the script files reach every side as one set of bytes is settled as staging from one command: the staged tree is the only copy a server or a client is given, and the harness deployed it to the server and both clients with all 65 files equal ([#3315/M/n=1], [#3314/M/n=1]).
 A release tool can hash every script file with the gate's own tolerance, every CR byte dropped, and name the files whose hash moved between two releases, so an update that will fail the join checksum is known before it ships [#3325/C/inference].
+In the worked example, the release tool hashes every script file under `media/scripts/` and every Lua file under `media/lua/` with every CR byte dropped, and against the previous release's manifest prints `SERVER EVENT` with the count of script or Lua files whose hash moved. [T1136.19]
 
 The bypass role is an operator's lever, and the plan never leans on it.
 A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
@@ -124,7 +127,7 @@ The animation arm is unread, so the plan treats it as if it gated, and a nutriti
 
 The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
-The staged 1.0.0 build met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect, and `bob` sat in the server's player list when it was read [#3314/M/n=1].
+The staged pre-release build of 1a8e207 met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect, and `bob` sat in the server's player list when it was read [#3314/M/n=1].
 
 <a id="resident-stack"></a>
 ### The mods beside it on a live server

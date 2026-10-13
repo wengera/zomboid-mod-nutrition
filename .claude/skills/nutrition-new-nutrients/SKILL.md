@@ -8,7 +8,7 @@ description: Adding a mod nutrient the vanilla macros lack (fibre, vitamins, a p
 - docs/facts/wire-packets.md
 
 ## Rules quoted
-- Keep every durable mod value in character, item or global modData: live Java fields are unsynced cache, and only modData saves and syncs on engine paths [#1064/C/snapshot].
+- Keep every durable mod value in character, item or global modData, or in a server-local file the server's own Lua writes: live Java fields are unsynced cache, and only modData saves and syncs on engine paths, while such a file is saved by the mod's own writes and synced by none [#1064/C/snapshot].
 - Keep a mod nutrient out of the vanilla macro stores: every setter clamps its store silently and the hard-coded drain moves it every tick, so a value parked there is cut and moved by vanilla rather than held [#0023/M/n=2, #1193/C/C-only, #2056/C/inference].
 - Reach a new nutrient on an item through an unrecognised key inside the vanilla `item` block, and on a drink's fluid through a Lua table keyed by the fluid's type string: the parser's default arm rawsets the key into the item's default modData and every instance receives a deep copy, while a `fluid` block has no default arm and stores no unrecognised key [#1089, #1187/C/C-only, #2676/C/C-only, #2682/C/C-only, #2684/C/C-only].
 - Own every key on an item whose modData carries a mod nutrient: the item-field sync wipes the receiver's whole table before it copies the sender's keys, so a key the syncing side lacks is gone — a wipe measured in the client-to-server direction only [#1126/M/one-side, #2057/C/inference].

@@ -148,7 +148,7 @@ A drain queues the players at the minute event and runs a number of them on each
 At two players the burst cost 145 ms over 59 events, at most 6 ms in one, and a round-robin of one player an event 105 ms over 61 events, at most 4 ms [#3391/M/n=1].
 
 A drain that rebuilds its queue at every minute event starves players once there are more of them than the minute has frames [#3444/C/inference].
-In the worked example, this mod's shipped drain, read off its code, replaces its queue each minute and serves one player a frame, so at sixty players about 6 run a game minute at `DayLength` 1 and about 37 at `DayLength` 4 (arithmetic), the same ones every minute [#3439/C/inference].
+In the worked example, the drain this mod shipped before its budgeted queue, read off its code at 77c6866, replaced its queue each minute and served one player a frame, so at sixty players about 6 ran a game minute at `DayLength` 1 and about 37 at `DayLength` 4 (arithmetic), the same ones every minute [#3439/C/inference].
 The starvation was measured under a fast clock, where the queue served one of two players a minute, and at a normal clock with fifty-eight ghost records, where a mirror of the drain ran 4.26 records a minute event and 53 of the 58 never ran [#3352/M/n=1] [#3482/M/n=1].
 At sixty on one host a drain with a 15 ms per-tick budget added 12 to 13 ms to the end-to-end period's 99th percentile where the burst added 46 to 56 and a round-robin of two 32, and it starved no record; the shoot-out is under [Measured costs](#costs) [#3489/M/n=1] [#3475/M/n=1].
 
@@ -177,11 +177,12 @@ Two more keep a mod from adding a frame by accident.
 A mod that asks for a collection asks for it inside its own frame [#3446/C/inference].
 A mod whose command handlers run long spends the packet pass that the vehicle-physics guard counts [#3447/C/inference].
 A per-frame site is not free either: a queue drained on `OnTick` runs its early-out on every frame of the session, so its own empty check is part of its cost [#3428/C/C-only] [#2401/C/C-only].
-Whether that check costs more than the spreading saves at a given player count is a measurement and not a reading [#3442/C/inference]; the one A/B taken did not resolve it above one host's drift between arms, under [How to measure](#measure) [#3483/M/n=1].
+Whether that check costs more than the spreading saves at a given player count is a measurement and not a reading [#3442/C/inference]: an A/B of arms did not resolve it above one host's drift [#3483/M/n=1], and benched directly the mod's empty check cost 0.48, 0.41 and 0.39 µs a call, under [How to measure](#measure) [#3749/M/n=1].
 
 Moving a per-tick write to the minute has a cost of its own when vanilla moves the stat every tick.
 A stat vanilla decays each tick falls between two minute writes, so the value a player carries is a sawtooth whose floor is the target less the fall per tick times the ticks in the gap [#3402/M/n=1].
 Under Overlay, PANIC fell about 1.12 a game minute at either clock, linearly whatever its value, and a target of 6.5 written once a minute dropped under 6, the first PANIC moodle threshold, in every gap [#3392/M/n=1] [#3400/M/n=1] [#3401/M/n=1].
+Read on the client's moodle, a PANIC target of 10 written once a game minute held the moodle at level 1 with no transition over 3601 samples, while a target of 6.6 changed its level 45 times [#3770/M/n=1] [#3771/M/n=1].
 The updaters that move a stat each tick are [character-stats.md](../facts/character-stats.md#updaters)'s.
 
 <a id="clocks"></a>
@@ -198,7 +199,7 @@ Its `max-update-period` and `min-update-period` are the window's extremes and ar
 The table is refreshed every `MultiplayerStatisticsPeriod` seconds, a server option from 0 to 10 that defaults to 1, and 0 stops the refresh [#3433/C/C-only].
 Over about a second's window the engine's longest frame and the longest gap a Lua ring recorded agreed within 2 ms at the 99th percentile, idle and under a burst [#3403/M/n=1].
 The engine's figure is the hitch reading; a Lua ring is for attributing a frame's time to the work in it [#3443/C/inference].
-A tick-rate count is blind to work that fits under the frame: two players under the takeover handler and without it ticked 10.073 and 10.070 a second [#3355/M/n=1].
+A tick-rate count is blind to work that fits under the frame: two players under the pre-release build's takeover handler and without it ticked 10.073 and 10.070 a second [#3355/M/n=1].
 On 42.21 a game minute at `DayLength` 1 was 6.261 frames on average, 864 over 138 minutes, beside 6.270 on 42.20.4 [#3512/M/n=1] [#3346/M/n=1].
 
 `GameTime.getMultiplier`, the effective multiplier, is not the time speed: on a dedicated server it read 4.747 to 4.798 at a true multiplier of 1 and 0.7924 to 0.8031 at 0.1674, 4.73 to 4.80 times the true one (arithmetic), because the server sets its frame multiplier to 60 over its smoothed frame rate, about 6 at 10 Hz, inside a product that carries 0.8, so about 4.7 is the normal clock (inference) [#3762/M/n=1] [#2796/C/C-only].
@@ -269,11 +270,11 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | the same at an unchanged world age | 430, 389 and 333 µs a run; 390, 395 and 345 in an earlier session | [#3390/M/n=1, #3354/M/n=1] |
 | engine calls a run | 79 `NR.call` calls | [#3388/M/n=1] |
 | a burst and a round-robin at two players | 145 ms over 118 runs, at most 6 ms an event; 105 ms over 61, at most 4 | [#3391/M/n=1] |
-| the takeover stat handler | 19, 21 and 18 µs a call, each player each frame | [#3353/M/n=1] |
+| the pre-release build's takeover stat handler | 19, 21 and 18 µs a call, each player each frame | [#3353/M/n=1] |
 | the pure fast step | 4.36 µs a call | [#3356/M/n=1] |
 | three stat writes | 0.8, 0.9 and 0.6 µs a call | [#3373/M/n=1] |
 | one player's vanilla `update()` without a stat hook against with an empty one, at `DayLength` 4 | 22.8 against 14.8 µs, and two more pairs | [#3386/M/n=1] |
-| the tick rate with and without the takeover | 10.073 and 10.070 a second | [#3355/M/n=1] |
+| the tick rate with and without that takeover | 10.073 and 10.070 a second | [#3355/M/n=1] |
 | an idle frame, two players | busy 1 ms median, 9 ms p99, 13 ms max | [#3404/M/n=1] |
 | a minute frame carrying eighteen ghost runs | busy 18 ms median, 34 ms p99, 39 ms max | [#3405/M/n=1] |
 | one ghost run | 2991 ms over 3474 runs | [#3405/M/n=1] |
@@ -350,7 +351,7 @@ The drafted spread of ceil(ghosts / ticks a minute) a tick read busy 10, 19 and 
 Over a game minute the frames' total busy at sixty and `DayLength` 1 rose over idle by 46.9 ms under the burst, 47.3 under the 10 ms budget (1.01 times the burst's, with 56.75 of 58 served), 41.8 under the 15 ms budget, 51.1 under the drafted spread and 27.2 under the round-robin of two, and at 37 ticks a game minute by 24.5 under the burst, 29.9 under the 10 ms budget (1.22 times) and 43.2 under the drafted spread [#3479/M/n=1].
 The 1.22 is the idle drift between arms and not the budget: the ghosts' own batch-timed milliseconds a minute event put the 10 ms budget at 1.046 times the burst's there (inference) [#3479/M/n=1].
 Under `settimespeed 30`, with a minute event on every frame, the burst ran 58 ghosts every frame at busy 48, 67 and 76 ms over 609 frames, yet the period stayed at 123 ms at p99 and the longest window at 134 ms against the fast idle arm's 145, because a load on every frame moves each frame's end alike (inference), while a 10 ms budget there served about 10.3 ghosts a frame against 58 due, starved 29715 ghost-minutes over 623 minute events and left ghosts up to 42.8 game minutes stale [#3480/M/n=1].
-The 1.0.0 drain mirrored at sixty, its queue rebuilt each minute and one record a tick behind the mod's own drain of the two real players, ran 4.26 ghost minutes a minute event over 116 minute events at `DayLength` 1, dropped 6180 queued ghost-minutes and left 53 of the 58 ghosts never run, the longest 115.7 game minutes stale [#3482/M/n=1].
+The pre-release drain of 9578eb9 mirrored at sixty, its queue rebuilt each minute and one record a tick behind the mod's own drain of the two real players, ran 4.26 ghost minutes a minute event over 116 minute events at `DayLength` 1, dropped 6180 queued ghost-minutes and left 53 of the 58 ghosts never run, the longest 115.7 game minutes stale [#3482/M/n=1].
 
 Repeated draws settle the budget against the burst.
 At `DayLength` 1 and sixty, six draws of the burst over two sessions added 46 to 56 ms to the end-to-end period's p99 and 48 to 61 ms to the longest window (164 to 176 ms), while six draws of a 15 ms budget added 12 to 13 ms and 11 to 25 ms (127 to 139 ms) and starved no ghost [#3489/M/n=1].
@@ -391,6 +392,7 @@ The harness reads a frame's length and a load's cost on a live server; its comma
 `tick.ring` stamps each frame at `OnTickEvenPaused` and `OnTick` and reports the busy time and the period, for attributing a frame's time [#3403/M/n=1] [#3410/M/n=1].
 `perf.local` samples the engine's per-window longest and shortest frame once a window, the hitch reading [#3403/M/n=1] [#3409/C/C-only].
 `ghost.load` runs a number of ghost records through the real pipeline under a named scheduler, for cost at a player count two clients cannot reach [#3405/M/n=1] [#3407/M/n=1].
+A harness can run ghost records through a mod's real pipeline without writing a player's stats or a file, and in the worked example, the writer's dry seam and the store's skip seam are nil in production and set only by the harness around its ghost runs: a dry minute computes and sets nothing, no stat write, engine read or record mutation, and a skipped name's store step does nothing at all, so every ghost run in every scheduler arm leaves out the writer's step and the slot save alike. [T1136.8]
 `bench.global` brackets many calls of one function with the 1 ms clock and reports the cost a call [#3432/C/C-only].
 `world.posring <n>` is the client's per-frame series: on a client it records the last n `OnTick` frames, each with the wall time, the other player's position and `getLastRemoteUpdate()` stamp and the nearest zombie's position, the series a client-side effect is read off [#3485/C/C-only] [#3488/M/n=1].
 A profile's `gclog` key writes the server's GC log beside the run, for lining a pause or a stall up with a frame [#3408/M/n=1].

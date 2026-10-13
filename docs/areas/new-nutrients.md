@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: where a mod nutrie
 ## Rules
 <a id="rules"></a>
 
-- Keep every durable mod value in character, item or global modData: live Java fields are unsynced cache, and only modData saves and syncs on engine paths [#1064/C/snapshot].
+- Keep every durable mod value in character, item or global modData, or in a server-local file the server's own Lua writes: live Java fields are unsynced cache, and only modData saves and syncs on engine paths, while such a file is saved by the mod's own writes and synced by none [#1064/C/snapshot].
 - Store inputs in modData and derive the values on read: a derived-on-read model needs no migration when a formula changes [#1068/C/snapshot].
 - Keep a mod nutrient out of the vanilla macro stores: every setter clamps its store silently and the hard-coded drain moves it every tick, so a value parked there is cut and moved by vanilla rather than held [#0023/M/n=2, #1193/C/C-only, #2056/C/inference].
 - Initialise world-scoped shared tables in `OnInitGlobalModData`: it is the sanctioned init point and it runs before players exist [#1066/C/snapshot].
@@ -133,7 +133,7 @@ Item modData across a save, and every scope across a rejoin, remain a code readi
 A save keeps modData and nothing else a mod writes.
 Character, item and global modData are the only durable mod state the engine saves [#1122/C/C-only].
 A live Java field a mod sets is unsynced cache, so a durable value belongs in modData and anything live has to be derivable from it [#1064/C/snapshot].
-A parallel Lua store is therefore gone at every boot unless the mod rebuilds it from a modData copy, which makes it a cache in front of a durable store rather than a store of its own.
+A parallel Lua store is therefore gone at every boot unless the mod rebuilds it from a modData copy or from a server-local file of its own, which makes it a cache in front of a durable store rather than a store of its own.
 A script key survives by being re-read rather than saved: the default table is rebuilt from the script at every load, while an instance's copy was made when the instance was created and rides that instance's item modData [#1089].
 What a saved instance holds after the mod changes a script value — its saved copy or the new default — is read nowhere in this library.
 The corpus's parallel-stat blueprint banks its value in character modData and derives everything else from it on read, which is the shape that needs no migration when a formula changes ([#1526/C/C-only], [#1068/C/snapshot]).
@@ -213,7 +213,7 @@ What the mod's acute states measured on themselves is a reading of the mod, [tes
 <a id="store-options"></a>
 ### Where a mod nutrient can live
 
-Five stores can hold a mod nutrient, each priced by the route it forces and the events it survives, which the two readings above give in full.
+Six stores can hold a mod nutrient, each priced by the route it forces and the events it survives, which the two readings above give in full.
 The table orders them by the wall map rows their tags cite.
 
 | option | what it costs | which wall it hits | tags |
@@ -223,6 +223,7 @@ The table orders them by the wall map rows their tags cite.
 | a script key | free on both sides: scripts load per side and never sync, and an unrecognised key lands in default modData on every instance; one value per type, fixed at load | every script file must match byte for byte or a joining client is disconnected; the value cannot vary per instance; a second mod's partial block against an already-populated table is a code reading | [#1124/M/n=1, #1125/C/C-only, #1182/C/C-only] |
 | item modData | per instance and saved with the item on the code's reading; moves with the item-field sync, which wipes the receiver and copies the sender's keys | the sync is measured client to server only; a key the syncing side lacks is gone; a type change builds a new instance from its own script | [#1126/M/one-side, #1145/M/n=1, #0266] |
 | a parallel Lua store | a server-side table the mod owns outright, out of reach of every transmit and every item sync, mirrored to the client over the bus | not durable: only modData is saved, so the table is rebuilt from a modData copy at every boot, and the bus's module names share one namespace with every other mod | [#1151/M/n=2, #1153/C/C-only, #1064/C/snapshot] |
+| a server-local file | a file under the server's Lua cache folder that the server's own Lua writes and reads, out of reach of every transmit, item sync and client request, saved by the mod's own writes rather than the engine's and mirrored to the client over the bus | the mod owns its durability: the writer empties a file when it is obtained, Lua can neither delete nor rename the file, a world wiped under the same server name finds the old files, and a hard kill rolls the world back and not the files | [#3558/C/C-only, #3559/C/C-only, #3560/C/C-only, #3647/C/snapshot, #3783/M/n=1] [T1136.5] [T1136.6] [T1136.7] |
 
 Which store holds each mod nutrient's authoritative value, and which store, if any, carries its copy to the client?
 
