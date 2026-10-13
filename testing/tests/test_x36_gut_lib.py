@@ -300,3 +300,13 @@ def test_the_grade_reads_the_drivers_documents():
     assert set(G.DOCS) == {"x361", "x362", "x363", "x364"} and set(G.GRADERS) == set(G.DOCS)
     assert G.MEAL650_MIN == (240.0, 300.0) and G.BREAKFAST_HOLD_MIN == 180.0 and G.LEVEL1 == 1.10
     assert float(K().view.ENERGY_AT[1]) == G.LEVEL1
+
+
+def test_the_regrade_reads_the_written_row_after_each_meal():
+    import x36_regrade as RG
+    ring = [{"s": s, "age": 20.0 + s / 60.0} for s in range(1, 400)]
+    eats = [{"stop": m, "ring_s": s} for m, ss in (("S1_07", (100, 102)), ("S1_12", (200,)), ("S1_18", (300, 301)))
+            for s in ss]
+    ages, ev_rows, notes = RG.karl_points_r1(ring, eats)
+    assert not notes and len(ages) == 8 and [x["last_landing_s"] for x in ev_rows] == [102, 200, 301]
+    assert ages[:2] == [20.0 + 99 / 60.0, 20.0 + 103 / 60.0]           # the row after the last landing, not the landing
