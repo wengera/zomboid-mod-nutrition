@@ -39,6 +39,12 @@ scheduler calls. A broken seam shows as store writes: SEAM grades each loaded ar
 end) against the two real players' own saves (at most one a real minute each, S.SAVE_GAP_MS 60000) plus the index
 (at most one each 5 real minutes, S.INDEX_GAP_MS), allowance = REALS * (floor(span / 60) + 1) + floor(span / 300) + 1;
 a rise above it voids the arm (its readings are reported but graded void).
+REVISED BEFORE THIS RUN, after x391b: x391b's real players saved about once a game minute each through its ghost
+loads (writes 39-50 an arm against 2 in its idle arm; only admin's and bob's slot files and index entries exist), so
+the once-a-real-minute premise does not hold for them; the arm is now void when the store's index gains a key, a
+ghost record is in the store, or the writes exceed REALS x (minute events + 1) plus the index (a ghost leak is 58
+saves a minute event), and the once-a-real-minute allowance is reported beside it with the counters that attribute
+the real players' writes (intake landings and sips, the writer's sip folds, the reconcile's landings).
 
 THE BATCHING DIFFERS: budget15 times its ghost runs in one batch a tick (H0.budgetBody inside one H0.batch); the mod
 and spread arms run ghosts one at a time from the mod's own P.runOne, interleaved with the real players, and Plan 11a
@@ -206,7 +212,14 @@ GHOST_KEYS = ("scheduler", "ghosts", "runs", "failures", "lastError", "ms", "usP
 QPATHS = tuple(f"{NR}.server.players.{k}" for k in ("served", "meanMs", "budgetMs", "runCap", "ticks", "ticksLast",
                                                     "ticksPrev", "minutes", "drained")) + \
     (f"{NR}.server.store.file.stats.writes", f"{NR}.server.store.file.stats.bytes",
-     f"{NR}.server.minute.stats.runs", f"{NR}.server.minute.stats.failures")
+     f"{NR}.server.minute.stats.runs", f"{NR}.server.minute.stats.failures",
+     # the write attribution (added after x391b's seam reading, before this driver's run): the real players' intake
+     # landings and sips, the writer's sip folds, the reconcile's landings, the store's deferrals and failures, and
+     # each real player's last write stamp
+     f"{NR}.server.intake.stats.landed", f"{NR}.server.intake.stats.sips", f"{NR}.server.intake.stats.worldSips",
+     f"{NR}.server.writer.stats.sips", f"{NR}.server.reconcile.stats.landed", f"{NR}.server.store.file.stats.deferred",
+     f"{NR}.server.store.file.stats.writeFailures", f"{NR}.server.store.file.lastWrite.admin",
+     f"{NR}.server.store.file.lastWrite.bob")
 INTAKE_LANDED = f"{NR}.server.intake.stats.landed"
 
 PRED = {
@@ -215,7 +228,8 @@ PRED = {
     "SEED": {f"monotony.t.[{SEED_FOOD}].n on both records": ">= 1"},
     "SMOKE": {"mod/spread arms": "load ok, modq on ok with 58 ghosts, ghost runs > 0",
               "spread arms": "sched.arm armed, capped > 0, errors 0"},
-    "SEAM": {"store writes delta a loaded arm": "<= REALS*(floor(span/60)+1) + floor(span/300) + 1"},
+    "SEAM": {"store writes delta a loaded arm": "<= REALS*(minute events+1) + floor(span/300) + 1 (revised after x391b)",
+             "store index keys": "unchanged", "storeGhostKeys": 0},
     "P99": {"every subject draw endPeriod p99 add": f"<= {RULE_P99}"},
     "MAX": {"every subject draw perf max add": f"<= {RULE_MAX}"},
     "STARVE": {"every subject draw starvedEvents": 0},
@@ -396,6 +410,8 @@ def qread(tag):
     row = {k.split(".")[-1] if ".players." in k else k.replace(f"{NR}.server.", ""): num(v.get(k)) for k in QPATHS}
     row.update({"wall": a.get("wall"), "wall_after": a.get("wall_after"), "epoch_ms_before": a.get("epoch_ms_before"),
                 "missing": a.get("missing"), "ok": a.get("ok")})
+    ix = gread(SRV, f"{NR}.server.store.file.index", f"{tag}_ix")
+    row["index_keys"] = ix.get("keyCount")
     return row
 
 
@@ -840,8 +856,24 @@ def arm_summary(A, idle=None):
     span_s, allow = seam_allowance(A)
     S["seam"] = {"writes_delta": delta(A, "store.file.stats.writes"), "bytes_delta": delta(A, "store.file.stats.bytes"),
                  "span_s": span_s, "allowance": allow}
-    S["seam"]["void"] = (S["seam"]["writes_delta"] is not None and allow is not None
-                         and S["seam"]["writes_delta"] > allow)
+    # the seam (revised after x391b, before this driver's run): x391b's real players saved about once a game minute
+    # each during its ghost loads, past the once-a-real-minute premise, with no ghost slot file and no ghost record;
+    # a ghost leak is 58 saves a minute event and an index entry each. The arm is void when the store's index gains
+    # a key, when a ghost record is in the store, or when the writes exceed every real player saving at every minute
+    # event (REALS x (minutes + 1)) plus the index; the once-a-real-minute allowance is still reported.
+    wd, md = S["seam"]["writes_delta"], delta(A, "minutes")
+    S["seam"]["real_minute_rule_exceeded"] = (wd is not None and allow is not None and wd > allow)
+    S["seam"]["allowance_minute_events"] = (REALS * (md + 1) + int(span_s // INDEX_GAP_S) + 1)         if (md is not None and span_s is not None) else None
+    S["seam"]["index_keys"] = [g(A, "q_start", "index_keys"), g(A, "q_end", "index_keys")]
+    S["seam"]["attribution"] = {k: delta(A, k) for k in ("intake.stats.landed", "intake.stats.sips",
+                                                         "intake.stats.worldSips", "writer.stats.sips",
+                                                         "reconcile.stats.landed", "store.file.stats.deferred",
+                                                         "store.file.stats.writeFailures")}
+    ik = S["seam"]["index_keys"]
+    S["seam"]["void"] = bool(
+        (wd is not None and S["seam"]["allowance_minute_events"] is not None and wd > S["seam"]["allowance_minute_events"])
+        or (ik[0] is not None and ik[1] is not None and ik[1] > ik[0])
+        or (num(g(A, "stats", "storeGhostKeys")) or 0) > 0)
     if A.get("sched_read"):
         S["spread"] = {k: g(A, "sched_read", k) for k in ("k", "armed", "minutes", "capped", "errors", "lastSpread",
                                                            "lastShipped", "lastQueued", "lastTpm", "lastLowered",
