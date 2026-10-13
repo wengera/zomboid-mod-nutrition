@@ -920,7 +920,7 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "band minutes") in lim
     assert "the engine's inventory weight is read as kilograms" in lim
     assert ("an exhausted idle character's metabolic rate sits at the tired floor (up to the DefaultExercise "
-            "class), so exhaustion bills as activity until Plan 5 owns endurance") in lim
+            "class), so exhaustion bills as activity") in lim
     assert ("rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured "
             "0.904 for a predicted 0.848 (#2899)") in lim
     assert ("a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last "
