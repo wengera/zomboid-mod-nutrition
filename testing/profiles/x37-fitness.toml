@@ -1,0 +1,42 @@
+# testing/profiles/x37-fitness.toml - Plan 11h Task 4 (runs x371, x372): one set of each of the seven vanilla Fitness
+# exercises live on the final build of Plan 11h (C-2: each exercise billed at its own Compendium MET from the type
+# NR_Server_Fitness records at the set's start; a set minute with no known type bills the flat 6.0 and counts
+# exeFallbacks), plus the two end cases (timer, movement stop); one driver a session, each on a fresh fixture restore.
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x37-fitness/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x37-fitness`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). Sleep stays off (the fixture's false/false), so the
+# record's sleep state is frozen and the sleep factor inert (#2961); the replay takes sleep_allowed false.
+# DayLength 4 is the fixture's own day length (docs/platform/harness.md: fixture 4, the other profiles' 1), set here
+# by name: a game day 1 h 30 min of wall clock, a game minute 3.75 s at speed 1, so a set's reps per game minute are
+# those of the shipping day length (vanilla times the reps in wall milliseconds, ISFitnessAction.serverStart).
+# The drivers are testing/experiments/x371_fitness.py and x372_fitness.py on testing/experiments/x37_fitness_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x37-fitness) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 4, build 42.21.0 - the Plan 11h Task 4 live run: one set of each Fitness exercise, its recorded type and graded bill, two end cases."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x37-fitness/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 4                 # the fixture's own day length: a game day 1 h 30 min, a game minute 3.75 s at speed 1
