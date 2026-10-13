@@ -50,12 +50,12 @@ local function nonFinite(stomach)
     return false
 end
 
--- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at MAX_GAP_M, in one-minute substeps
+-- A gap's drain (Plan 11c Task 6 amendment 5): dtM game minutes, capped at K.satiety.MAX_GAP_M, in one-minute substeps
 -- (K.satiety.drain, the kernel's since Plan 11g Task 6, so the replays' stand-ins split a step as the server does).
 -- Returns the emptied vector. pool is nil or KIN.meal's state, whose M each substep clears (K.satiety.mealClear).
-local MAX_GAP_M = 60 -- game minutes: the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), no row needed
+-- The cap is the kernel's since the Plan 11g close, so replay_live's stand-in reads the same constant.
 function KIN.drain(stomach, dtM, pool)
-    return K.satiety.drain(stomach, K.min(dtM, MAX_GAP_M), pool)
+    return K.satiety.drain(stomach, K.min(dtM, K.satiety.MAX_GAP_M), pool)
 end
 
 local function step(username, player, record, ctx)

@@ -291,8 +291,8 @@ def test_a_three_minute_step_equals_three_one_minute_steps():
 
 
 def test_a_ninety_minute_step_equals_a_sixty_minute_capped_step():
-    # the Task 6 review's finding 6: the stand-in caps a step's drain at NR_O.MAX_GAP_M, as KIN.drain caps the gap at
-    # MAX_GAP_M (60 game minutes), so a 90-minute step drains and clears what a 60-minute step does, and a step past the
+    # the Task 6 review's finding 6: the stand-in caps a step's drain at K.satiety.MAX_GAP_M, as KIN.drain caps the gap at
+    # it (60 game minutes), so a 90-minute step drains and clears what a 60-minute step does, and a step past the
     # cap reads the same however far past it is
     m90, h90 = oracle_m([90])
     m60, h60 = oracle_m([60])
@@ -311,3 +311,9 @@ def test_the_stand_in_clears_m_at_the_appetite_traits_factor():
     le, _ = oracle_m([1] * 60, "LIGHT_EATER")
     assert ha3 == pytest.approx(ha1, rel=1e-9)
     assert ha1 < m < le
+
+
+def test_the_stand_in_reads_the_kernels_gap_cap():
+    # Plan 11g close: the stand-in caps a step at the kernel's K.satiety.MAX_GAP_M, as KIN.drain does, with no copy
+    assert "NR_O.MAX_GAP_M" not in RL.ORACLE_LUA
+    assert "K.satiety.drain(o.st, K.min(dtM, K.satiety.MAX_GAP_M), o)" in RL.ORACLE_LUA

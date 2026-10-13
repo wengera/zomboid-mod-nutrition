@@ -717,3 +717,19 @@ def test_the_traits_handle_is_cached_per_player_object_and_dropped_at_departure(
     assert KN.h["u"] is None
     KN.traits(None, b); KN.traits(None, b)                    # no name: read afresh, nothing cached
     assert C.n == 4
+
+
+def test_the_gap_cap_is_the_kernels_max_gap_m(kin_host):
+    # Plan 11g close: the gap cap lives in the kernel, K.satiety.MAX_GAP_M, which KIN.drain and replay_live's stand-in
+    # both read (the stand-in's copy NR_O.MAX_GAP_M is gone); patched to 30, three game hours drain 30 substeps
+    h = kin_host
+    S = h.G.NutritionRevamp.kernel.satiety
+    assert S.MAX_GAP_M == 60
+    S.MAX_GAP_M = 30
+    try:
+        record = rec(h, 100)
+        run(h, record, 100.0)
+        run(h, record, 103.0)
+        assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 30.0)) < 1e-9
+    finally:
+        S.MAX_GAP_M = 60

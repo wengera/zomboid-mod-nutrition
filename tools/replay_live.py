@@ -116,7 +116,7 @@ DEFAULT_FEED = ALLOWED_FEED
 GAP_DTM = 2.05                        # a ring row whose dtM exceeds this is a long minute: marked gap (ruling S0-1:
                                       # tick quantization puts normal rows at 0.8-1.6, so 1.05 marked them)
 OFFLINE_CAP_M = 60                    # the mod's reconnect clamp (NR_Server_Metabolism.lua:375, NR_Server_Nutrients.lua:367,
-                                      # NR_Server_Kinetics MAX_GAP_M): offline time is not integrated past 60 game minutes
+                                      # K.satiety.MAX_GAP_M): offline time is not integrated past 60 game minutes
 DEFAULT_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005), "satiety.L": ("rel", 0.005)}
 MIXED = {"p": 0.15, "c": 0.50, "f": 0.35}
 MAX_TICKS = 64
@@ -417,7 +417,6 @@ end
 
 ORACLE_LUA = r"""
 NR_O = {}
-NR_O.MAX_GAP_M = 60     -- NR_Server_Kinetics' MAX_GAP_M: a step's drain is capped as the server caps it
 function NR_O.new(M0, energy, satiety, holdEs, holdHour)
     local K = NutritionRevamp.kernel
     local o = { M = M0, es = 1, L = 0, eb24 = 0, hunger = nil, energy = energy, satiety = satiety, holdEs = holdEs,
@@ -484,7 +483,7 @@ function NR_O.minute(o, ageH, dtM)
         o.es = K.deficit.activityState(o.eb24, ex24, o.L, 0, ee24)
     end
     if o.satiety then
-        K.satiety.drain(o.st, K.min(dtM, NR_O.MAX_GAP_M), o)   -- KIN.drain's: one-minute substeps, each clearing o.M
+        K.satiety.drain(o.st, K.min(dtM, K.satiety.MAX_GAP_M), o)   -- KIN.drain's: the kernel's gap cap, one-minute substeps, each clearing o.M
         local F = K.satiety.fullness(o.st)
         local x = o.es
         if o.holdEs then x = 1 end
