@@ -51,14 +51,21 @@ function K.hybrid.write(inp, out, c)
     out.sip = 0
     out.fatigue = nil
     if inp.mode == 1 then
-        out.hunger = K.clamp(inp.hungerTarget, 0, c.hungerCap)
+        -- K.clamp passes a NaN through, so each target is tested first: a NaN target writes nothing (t == t)
+        local h = inp.hungerTarget
+        if h == h then
+            out.hunger = K.clamp(h, 0, c.hungerCap)
+        end
         out.sip = K.hybrid.sip(inp.thirst, inp.lastThirst, inp.sipOK)
         local t = inp.thirstTarget
         if t ~= nil and t == t then
             out.thirst = K.clamp(t - out.sip, 0, c.thirstCap)
         end
         if inp.fOwned and not inp.fFrozen then
-            out.fatigue = K.clamp(inp.fS + inp.fCirc + inp.fOff, 0, 1)
+            local f = inp.fS + inp.fCirc + inp.fOff
+            if f == f then
+                out.fatigue = K.clamp(f, 0, 1)
+            end
         end
     end
     out.stress = nil

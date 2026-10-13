@@ -39,6 +39,15 @@ def test_a_non_finite_thirst_target_writes_no_thirst(host):
     assert run(host, mode=1, thirst=0.2, thirstTarget=NAN).thirst is None
 
 
+def test_a_non_finite_hunger_or_fatigue_target_writes_neither(host):
+    # Plan 12 A5 (K2 B4): K.clamp passes a NaN through, so a NaN target is caught before it reaches HUNGER or FATIGUE,
+    # as THIRST's already is; the other stat of the pair is still written
+    out = run(host, mode=1, hungerTarget=NAN, fOwned=True, fS=0.3)
+    assert out.hunger is None and out.fatigue == pytest.approx(0.3)
+    out = run(host, mode=1, hungerTarget=0.4, fOwned=True, fS=0.3, fOff=NAN)
+    assert out.fatigue is None and out.hunger == pytest.approx(0.4)
+
+
 def test_the_sip_is_folded_into_the_thirst_write(host):
     out = run(host, mode=1, thirst=0.1, lastThirst=0.3, sipOK=True, thirstTarget=0.3)
     assert out.sip == pytest.approx(0.2) and out.thirst == pytest.approx(0.1)
