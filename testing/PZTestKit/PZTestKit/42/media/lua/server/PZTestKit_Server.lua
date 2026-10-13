@@ -4345,3 +4345,113 @@ TK.register("moodle.level", function(argv)
     local _, lv = TK.call(moodles, "getMoodleLevel", MoodleType[name])
     return { ok = true, side = TK.side, user = user, moodle = name, level = lv }
 end)
+
+-- ---- Plan 11b Task 1: the spread-cap arm of ruling T9-3 on the mod's own queue, with no mod edit (H4) ----------------
+-- sched.arm spread <k> | off | read
+-- TEST-ONLY INSTRUMENT. The seam: NutritionRevamp.server.players.minute (NR_Server_Players.lua P.minute), which the
+-- mod's EveryOneMinute listener reaches through the table at every event (`function() ... P.minute() end`), so a
+-- wrapper put on the table field runs at the next minute event with no mod edit (mod/ quiescent, the golden trace
+-- untouched). P.minute merges the queue and sets P.budgetMs = K.sched.budgetMs(meanMs, #queue, tpm) and P.runCap =
+-- K.sched.runCap(budgetMs, meanMs); the wrapper runs it, then, when the minute event did run (P.minutes moved), lowers
+-- the cap to the spread cap:
+--   runCap = min(shipped runCap, max(1, ceil(queued / tpm * k)))
+-- queued = #P.queue - P.queueHead + 1 and tpm = K.sched.ticksPerMinute(P.ticksLast, P.ticksPrev), the values the
+-- shipped budget divides by, so the queue spreads over the minute's ticks k times over; P.budgetMs is left as the
+-- mod set it and stays only the drain's wall-time ceiling (P.drain's `spent >= P.budgetMs` break).
+-- `spread <k>` installs the wrapper once (a second arm only changes k); `off` restores the field the wrapper replaced
+-- and, when the current minute's cap was lowered, the shipped cap with it (so the drain is the mod's own at once);
+-- `read` replies k, the minutes the wrapper saw and lowered, the last spread and shipped caps, and the queue's
+-- scheduler fields now. A raise in the cap arithmetic is caught (counted as errors) and leaves the shipped cap.
+TK.SA = TK.SA or { k = nil, base = nil, wrapper = nil, minutes = 0, capped = 0, errors = 0 }
+
+function TK.SA.players()
+    local NR = NutritionRevamp
+    if type(NR) ~= "table" or type(NR.server) ~= "table" or type(NR.server.players) ~= "table" then return nil end
+    if type(NR.kernel) ~= "table" or type(NR.kernel.sched) ~= "table" then return nil end
+    return NR.server.players
+end
+
+function TK.SA.apply(P)
+    local K = NutritionRevamp.kernel
+    local queued = #P.queue - P.queueHead + 1
+    if queued < 0 then queued = 0 end
+    local tpm = K.sched.ticksPerMinute(P.ticksLast, P.ticksPrev)
+    local spread = math.ceil(queued / tpm * TK.SA.k)
+    if spread < 1 then spread = 1 end
+    local shipped = P.runCap
+    TK.SA.minutes = TK.SA.minutes + 1
+    TK.SA.lastMinute = P.minutes
+    TK.SA.lastQueued = queued
+    TK.SA.lastTpm = tpm
+    TK.SA.lastSpread = spread
+    TK.SA.lastShipped = shipped
+    TK.SA.lastLowered = false
+    if spread < shipped then
+        P.runCap = spread
+        TK.SA.capped = TK.SA.capped + 1
+        TK.SA.lastLowered = true
+    end
+end
+
+function TK.SA.state(P, out)
+    out.k = TK.SA.k
+    out.armed = TK.SA.wrapper ~= nil and P.minute == TK.SA.wrapper
+    out.minutes, out.capped, out.errors, out.lastError = TK.SA.minutes, TK.SA.capped, TK.SA.errors, TK.SA.lastError
+    out.lastSpread, out.lastShipped, out.lastQueued, out.lastTpm = TK.SA.lastSpread, TK.SA.lastShipped,
+        TK.SA.lastQueued, TK.SA.lastTpm
+    out.lastLowered = TK.SA.lastLowered
+    out.runCap, out.budgetMs, out.meanMs = P.runCap, P.budgetMs, P.meanMs
+    out.ticksLast, out.ticksPrev, out.queued = P.ticksLast, P.ticksPrev, #P.queue - P.queueHead + 1
+    return out
+end
+
+-- @args spread <k> | off | read
+-- @reply {ok, side, k, armed, minutes, capped, errors, lastSpread, lastShipped, lastQueued, lastTpm, lastLowered, runCap, budgetMs, meanMs, ticksLast, ticksPrev, queued [, restoredCap] [, lastError] [, reason]} | string
+-- @purpose Test-only: wraps the mod's minute step (NutritionRevamp.server.players.minute) so each minute's run cap is lowered to ceil(queued / tpm * k), the spread-cap arm, without a mod edit; off restores the mod's own step.
+TK.register("sched.arm", function(argv)
+    local usage = "usage: sched.arm spread <k> | off | read"
+    local P = TK.SA.players()
+    if P == nil then return { ok = false, side = TK.side, reason = "no NutritionRevamp.server.players / kernel.sched" } end
+    local verb = argv[1]
+    if verb == "read" then return TK.SA.state(P, { ok = true, side = TK.side }) end
+    if verb == "off" then
+        local out = { ok = true, side = TK.side }
+        if TK.SA.wrapper == nil then
+            out.reason = "not armed"
+            return TK.SA.state(P, out)
+        end
+        if P.minute ~= TK.SA.wrapper then
+            out.ok = false
+            out.reason = "players.minute was replaced after the arm; left as is"
+            return TK.SA.state(P, out)
+        end
+        P.minute = TK.SA.base
+        if TK.SA.lastLowered and TK.SA.lastMinute == P.minutes and TK.SA.lastShipped ~= nil then
+            P.runCap = TK.SA.lastShipped
+            out.restoredCap = TK.SA.lastShipped
+        end
+        TK.SA.wrapper, TK.SA.base, TK.SA.k = nil, nil, nil
+        return TK.SA.state(P, out)
+    end
+    local k = tonumber(argv[2])
+    if verb ~= "spread" or k == nil or k <= 0 then return usage end
+    TK.SA.k = k
+    if TK.SA.wrapper == nil or P.minute ~= TK.SA.wrapper then
+        TK.SA.base = P.minute
+        TK.SA.minutes, TK.SA.capped, TK.SA.errors, TK.SA.lastError = 0, 0, 0, nil
+        TK.SA.wrapper = function(...)
+            local before = P.minutes
+            local r = TK.SA.base(...)
+            if P.minutes ~= before and TK.SA.k ~= nil then
+                local ok, err = pcall(TK.SA.apply, P)
+                if not ok then
+                    TK.SA.errors = TK.SA.errors + 1
+                    TK.SA.lastError = tostring(err)
+                end
+            end
+            return r
+        end
+        P.minute = TK.SA.wrapper
+    end
+    return TK.SA.state(P, { ok = true, side = TK.side })
+end)

@@ -283,3 +283,84 @@ def test_action_cancel_refuses_without_the_vanilla_queue():
     rt, g = client()
     r = ccmd(rt, g, "action.cancel")
     assert r.ok is False and r.reason == "no ISTimedActionQueue.clear"
+
+
+# ---- H4 sched.arm (server) -------------------------------------------------------------------------------------------
+
+def many(h, n):
+    """n online players (admin first), each with moodles, every record laid."""
+    ps = [h.p] + [h.player("p%d" % i) for i in range(1, n)]
+    for p in ps[1:]:
+        h.rt.eval(MOODLES)(p, 0)
+    h.online(*ps)
+    h.minute()
+    h.tick(40)
+    return ps
+
+
+def test_sched_arm_spread_lowers_each_minutes_cap_to_the_spread_and_off_restores_the_mods_step():
+    h = server()
+    P = h.NR.server.players
+    many(h, 12)
+    base = P.minute
+    r = scmd(h, "sched.arm", "spread", "1")
+    assert r.ok is True and r.armed is True and r.k == 1 and r.minutes == 0
+    assert not h.rt.eval("rawequal")(P.minute, base)
+    h.minute()                                       # the mod's listener reaches the wrapper through the table
+    queued = len(P.queue) - P.queueHead + 1
+    tpm = h.K.sched.ticksPerMinute(P.ticksLast, P.ticksPrev)
+    shipped = h.K.sched.runCap(P.budgetMs, P.meanMs)
+    spread = max(1, -(-queued * 1 // tpm))
+    assert queued == 12 and spread < shipped
+    assert P.runCap == spread
+    r = scmd(h, "sched.arm", "read")
+    assert r.minutes == 1 and r.capped == 1 and r.lastLowered is True
+    assert r.lastSpread == spread and r.lastShipped == shipped and r.lastQueued == 12 and r.lastTpm == tpm
+    assert r.budgetMs == P.budgetMs                  # the budget is the mod's, untouched
+    h.tick(1)
+    assert len(P.queue) - P.queueHead + 1 == 12 - spread   # the drain ran at the spread cap
+    off = scmd(h, "sched.arm", "off")
+    assert off.ok is True and off.armed is False and off.restoredCap == shipped and P.runCap == shipped
+    assert h.rt.eval("rawequal")(P.minute, base)
+    h.minute()
+    assert scmd(h, "sched.arm", "read").minutes == 1  # the mod's own step again: the wrapper never ran
+
+
+def test_sched_arm_leaves_a_cap_already_under_the_spread_and_rearms_with_a_new_k():
+    h = server()
+    P = h.NR.server.players
+    many(h, 3)
+    scmd(h, "sched.arm", "spread", "100")
+    h.minute()
+    r = scmd(h, "sched.arm", "read")
+    assert r.capped == 0 and r.lastLowered is False and P.runCap == r.lastShipped
+    w = P.minute
+    scmd(h, "sched.arm", "spread", "0.5")            # a second arm changes k only
+    assert h.rt.eval("rawequal")(P.minute, w) and scmd(h, "sched.arm", "read").k == 0.5
+    h.minute()
+    r = scmd(h, "sched.arm", "read")
+    assert r.minutes == 2 and P.runCap == min(r.lastShipped, r.lastSpread)
+
+
+def test_sched_arm_counts_nothing_when_the_minute_did_not_run_and_refuses_bad_arguments():
+    h = server()
+    P = h.NR.server.players
+    scmd(h, "sched.arm", "spread", "1")
+    h.G.getOnlinePlayers = None                      # P.minute returns before it counts a minute
+    h.minute()
+    assert scmd(h, "sched.arm", "read").minutes == 0
+    usage = "usage: sched.arm spread <k> | off | read"
+    assert scmd(h, "sched.arm", "spread", "0") == usage
+    assert scmd(h, "sched.arm", "spread") == usage
+    assert scmd(h, "sched.arm", "sideways") == usage
+    scmd(h, "sched.arm", "off")
+    assert scmd(h, "sched.arm", "off").reason == "not armed"
+
+
+def test_sched_arm_off_leaves_a_later_wrap_in_place():
+    h = server()
+    P = h.NR.server.players
+    scmd(h, "sched.arm", "spread", "1")
+    later = h.rt.eval("function(P) local w = P.minute; P.minute = function() return w() end; return P.minute end")(P)
+    r = scmd(h, "sched.arm", "off")
+    assert r.ok is False and "replaced" in r.reason and h.rt.eval("rawequal")(P.minute, later)
