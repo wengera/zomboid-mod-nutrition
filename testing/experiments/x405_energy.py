@@ -52,7 +52,8 @@ PHASES (each checked against the wall budget before it starts; the server bus's 
         for the client's.
   HOLD  speed 1; the snack eaten (foodtimer 0, eat.action TKX.Mixed400 1; a `spawned` other than "found" stops the
         eats); pairs for HOLD_S of wall, or until the state reads at most ENERGY_AT[1] - ENERGY_BAND + FLOOR_GAP.
-  FALL  speed 1; the meal eaten (eat.action TKX.Mixed650 1); pairs at speed 1 until the state reads at most
+  FALL  skipped whole when an eat stopped (HOLD's snack's `spawned` not "found": out["stop_reason"]); else speed 1;
+        the meal eaten (eat.action TKX.Mixed650 1); pairs at speed 1 until the state reads at most
         ENERGY_AT[1] - ENERGY_BAND + FLOOR_GAP (FALL_ONE_CAP_S), then the slow spacing and pairs until the server's
         held level reads 0 and the client shows 0 plus FALL_TAIL pairs; caps: FALL_WAIT_CAP_S for the server's
         change, then LAG_CAP_S for the client's.
@@ -63,26 +64,55 @@ PREDICTIONS (graded in `verdicts`; a dead-bus phase is void, never falsified):
   FOOD        the server answers an id for TKX.Mixed400 and TKX.Mixed650 after the spawn and none before.
   LEVEL_RISE  the server's held level steps 0 -> 1 at the bound: its first level-1 pair reads es >= ENERGY_AT[1] -
               ES_TOL and its last level-0 pair es < ENERGY_AT[1] + ES_TOL (the sig is the last flush's, the es the
-              tick's: ES_TOL covers a game minute's move). Falsifier: either off. Unmeasured: no change in RISE.
+              tick's: ES_TOL covers a game minute's move). Falsifier: either off. Unmeasured: no change in RISE, or
+              the change's bracket unbounded (BRACKET: the server's first new-level pair more than BRACKET_MAX_S of wall
+              after its last old-level pair, or the two pairs from different phases; an overshot fast leaves the
+              last level-0 pair in S0).
   LAG_RISE    the client's first pair showing 1 comes at most PUSH_GAP_S + LAG_SLACK_S (65 s) of wall after the
               server's first pair holding 1 (lag_est, with its bracket from the last pairs before each change), and the
               client never shows a level the server has not held before it. Expected about 16 game minutes at the
               slow spacing (C-28). Falsifier: lag_est over 65 s, or the client changing first or to another level.
-              Unmeasured: no server change, or the client's cap ended before 65 s.
-  HOLD        every same-second pair (wall gap <= PAIR_GAP_MAX_S) in HOLD and FALL whose es lies in [ENERGY_AT[1] -
+              Unmeasured: no server change, the server's bracket unbounded (as LEVEL_RISE), the client's bracket
+              unbounded (its first new-level read more than BRACKET_MAX_S after its last old-level read, or from
+              another phase), or the client's cap ended before 65 s.
+  HOLD        every same-second pair (wall gap <= PAIR_GAP_MAX_S) in HOLD and FALL, after the first pair (in RISE,
+              HOLD or FALL) that reads level 1 on both sides (the hold established), whose es lies in [ENERGY_AT[1] -
               ENERGY_BAND + ES_TOL, ENERGY_AT[1] - ES_TOL] reads the server's held level 1 and the client's 1 (the
               window is not cut at the fall's change: a level dropped inside the band is the falsifier itself); at
               least HOLD_MIN_PAIRS such pairs. Falsifier: a level other than 1 on either side in the band. Unmeasured:
-              fewer such pairs and none bad (the state never entered the band).
+              no pair established the hold, or fewer such pairs and none bad (the state never entered the band).
+              Void: an eat stopped (stop_reason).
   LEVEL_FALL  the server's held level steps 1 -> 0 at the band's floor: its first level-0 pair after the hold reads
               es < ENERGY_AT[1] - ENERGY_BAND + ES_TOL and its last level-1 pair es >= ENERGY_AT[1] - ENERGY_BAND -
-              ES_TOL. Falsifier: either off. Unmeasured: no change in FALL.
-  LAG_FALL    as LAG_RISE for the change 1 -> 0.
+              ES_TOL. Falsifier: either off. Unmeasured: no change in FALL, or its bracket unbounded (as LEVEL_RISE).
+              Void: an eat stopped (stop_reason; FALL then skips its meal).
+  LAG_FALL    as LAG_RISE for the change 1 -> 0; void as LEVEL_FALL.
   SLOW        every time.snapshot read at the slow spacing (RISE and FALL's slow part) reads trueMult 0.1674 within
               1e-4. Falsifier: a measured read off; a null read is unmeasured.
   RING        every page read with errors 0. The ring's per-minute held level (its signature's energy digit) is a
               reading beside the pairs.
   Z           no mod error line, admin not parked, and the server alive at the end.
+
+THE BUDGET: FALL is the last phase and the longest (PHASE_EST_S 150 s, up to FALL_ONE_CAP_S + FALL_WAIT_CAP_S +
+LAG_CAP_S of pairs); if the session runs long (slow boot, a long fast, two full push lags), FALL may be cut by the
+wall budget, before it starts (its estimate past BUDGET_S) or inside its pairs (check() raises Budget). A cut FALL
+leaves LEVEL_FALL and LAG_FALL unmeasured (no change in its pairs) or graded on the pairs it took, and HOLD on the
+in-band pairs HOLD alone took; out["budget_stop"] or out["abort"] names the cut.
+
+DEVIATIONS from the run sheet and the amendments, stated before the run:
+  1. The snack is TKX.Mixed400, not a "small" snack (the arithmetic above).
+  2. HOLD is 90 s of pairs, not the sheet's 3 min, for the budget; FALL's slow part adds in-band pairs to HOLD.
+  3. The profile adds TKX_StudyFoods, which the sheet's row did not name, for the snack and the meal.
+  PRE-RUN EDITS after the Opus review of f099c44a (made before any boot):
+  4. FALL skips its meal (and its pairs) when an eat stopped; HOLD, LEVEL_FALL and LAG_FALL carry stop_reason and
+     grade void when it is set.
+  5. LEVEL_* and LAG_* read unmeasured unless the change's bracket is bounded: the first new-level pair at most
+     BRACKET_MAX_S (5 s) of wall after the last old-level pair and both from the same phase, on the server side for
+     both grades and on the client side for LAG_*; FAST_STOP_GAP is 0.006 (was 0.004), so the fast stops further
+     short of the bound and the crossing falls inside RISE's pairs.
+  6. HOLD counts only the pairs after the first pair reading level 1 on both sides, and reads unmeasured when no
+     pair did.
+  7. The guide names FALL's possible cut by the budget (THE BUDGET above).
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time; free memory read
@@ -172,7 +202,9 @@ SNACK, MEAL = "TKX.Mixed400", "TKX.Mixed650"
 SPEED_FAST = 5
 SLOW_MULT = 0.1674                   # at speed 1 on DayLength 1: a game minute about 3.73 s of wall (the DayLength 4 spacing)
 MULT_TOL = 1e-4
-FAST_STOP_GAP = 0.004                # the fast stops at es >= ENERGY_AT[1] - this (about 20 game minutes short of it)
+FAST_STOP_GAP = 0.006                # the fast stops at es >= ENERGY_AT[1] - this (about 30 game minutes short of it;
+                                     # pre-run edit, was 0.004)
+BRACKET_MAX_S = 5.0                  # a change's bracket: its first new-level pair at most this after the last old one
 FAST_CAP_H = 20.0                    # game hours of fast at most
 FLOOR_GAP = 0.003                    # HOLD ends, and FALL goes slow, at es <= ENERGY_AT[1] - ENERGY_BAND + this
 ES_TOL = 0.0005                      # a game minute's move of es at the fast's rate (0.0002) with room
@@ -222,23 +254,43 @@ META_NOTES = {
     "frame_note": "no frame window is graded in this session (no tick.ring), so no drop_windows apply"}
 SUMMARY_KEYS = ("fast", "rise", "hold", "fall", "pairs")
 
+DEVIATIONS = (
+    "The snack is TKX.Mixed400, not a 'small' snack (the docstring's arithmetic).",
+    "HOLD is 90 s of pairs, not the sheet's 3 min, for the budget; FALL's slow part adds in-band pairs to HOLD.",
+    'The profile adds TKX_StudyFoods for the snack and the meal.',
+    'Pre-run edit after the Opus review of f099c44a: FALL skips its meal when an eat stopped; HOLD, LEVEL_FALL and '
+    'LAG_FALL carry stop_reason and grade void when it is set.',
+    "Pre-run edit: LEVEL_* and LAG_* read unmeasured unless the change's bracket is bounded (at most BRACKET_MAX_S "
+    'of wall, the same phase; the server side for both, the client side for LAG_*); FAST_STOP_GAP 0.006 (was '
+    '0.004).',
+    'Pre-run edit: HOLD counts only the pairs after the first pair reading level 1 on both sides; unmeasured when '
+    'none did.',
+    "Pre-run edit: the guide names FALL's possible cut by the wall budget.",
+)
+
 
 PRED = {
     "FOOD": {"item.get after the spawn": f"an id for {SNACK} and {MEAL}, none before",
              "falsifier": "an id missing on a live bus"},
     "LEVEL_RISE": {"server": "first level-1 pair es >= ENERGY_AT[1] - ES_TOL; last level-0 pair es < ENERGY_AT[1] + ES_TOL",
-                   "falsifier": "either off", "unmeasured": "no change in RISE"},
+                   "falsifier": "either off",
+                   "unmeasured": f"no change in RISE, or its bracket over {BRACKET_MAX_S} s or across phases"},
     "LAG_RISE": {"client": f"its first level-1 read at most {PUSH_GAP_S + LAG_SLACK_S} s of wall after the server's",
                  "expected": "about 16 game minutes at the slow spacing (C-28)",
                  "falsifier": "lag_est over the bound, the client changing first, or to a level the server never held",
-                 "unmeasured": "no server change, or the client's cap ended before the bound"},
+                 "unmeasured": f"no server change, a bracket (server or client) over {BRACKET_MAX_S} s or across "
+                               "phases, or the client's cap ended before the bound"},
     "HOLD": {"same-second pairs in HOLD and FALL with es in [AT1 - BAND + ES_TOL, AT1 - ES_TOL]":
              "server level 1 and client level 1", "minimum pairs": HOLD_MIN_PAIRS,
-             "falsifier": "a level other than 1 on either side in the band", "unmeasured": "fewer such pairs"},
+             "established": "only the pairs after the first pair reading 1 on both sides",
+             "falsifier": "a level other than 1 on either side in the band",
+             "unmeasured": "no pair established the hold, or fewer such pairs", "void": "an eat stopped"},
     "LEVEL_FALL": {"server": "first level-0 pair es < AT1 - BAND + ES_TOL; last level-1 pair es >= AT1 - BAND - ES_TOL",
-                   "falsifier": "either off", "unmeasured": "no change in FALL"},
+                   "falsifier": "either off",
+                   "unmeasured": f"no change in FALL, or its bracket over {BRACKET_MAX_S} s or across phases",
+                   "void": "an eat stopped"},
     "LAG_FALL": {"client": f"its first level-0 read at most {PUSH_GAP_S + LAG_SLACK_S} s of wall after the server's",
-                 "falsifier": "as LAG_RISE", "unmeasured": "as LAG_RISE"},
+                 "falsifier": "as LAG_RISE", "unmeasured": "as LAG_RISE", "void": "an eat stopped"},
     "SLOW": {"time.snapshot at the slow spacing": f"trueMult {SLOW_MULT} within {MULT_TOL}",
              "falsifier": "a measured read off (a null read is unmeasured)"},
     "RING": {"pages": "all read, errors 0"},
@@ -808,6 +860,11 @@ def phase_FALL():
     P = out["phases"]["FALL"] = {}
     at1, band = k_const("at1", 1.10), k_const("band", 0.01)
     floor = at1 - band + FLOOR_GAP
+    if out.get("stop_reason"):
+        # pre-run edit after the review of f099c44a: an eat stopped (ruling T2-11), so no meal and no pairs (void)
+        P["skipped"] = out["stop_reason"]
+        note(f"FALL: an eat stopped ({out['stop_reason']}); no meal (void)")
+        return
     P["one"] = speed("one", "FALL_one")
     if g(out, "phases", "FOOD", "meal", "confirmed") is not True:
         note("FALL: the meal was not confirmed; no eat (void)")
@@ -929,6 +986,18 @@ def load_ring(rdir):
     return uniq
 
 
+def bracket(old, new, wkey):
+    """A change's bracket (pre-run edit after the review of f099c44a): bounded when the last old-level read and the
+    first new-level read are from the same phase and at most BRACKET_MAX_S of wall apart."""
+    if old is None:
+        return {"bounded": False, "why": "no old-level read before the change"}
+    ow, nw = num(old.get(wkey)), num(new.get(wkey))
+    gap = (nw - ow) if (ow is not None and nw is not None) else None
+    same = old.get("phase") == new.get("phase")
+    ok = gap is not None and gap <= BRACKET_MAX_S and same
+    return {"bounded": ok, "gap_s": gap, "same_phase": same, "phases": [old.get("phase"), new.get("phase")]}
+
+
 def change_of(pairs, frm, to):
     """The server's and the client's change frm -> to across `pairs` (in order): each side's first new-level read after
     an old-level read on that side and the last old-level read before it; lag_est from the server's first to the
@@ -943,8 +1012,10 @@ def change_of(pairs, frm, to):
     C["server_changed"] = True
     s_last_old = next((pairs[j] for j in range(si - 1, -1, -1) if pairs[j].get("server_level") == frm), None)
     sf = pairs[si]
-    C["server_first"] = {k: sf.get(k) for k in ("tag", "age", "server_wall", "server_es", "server_sig")}
-    C["server_last_old"] = {k: s_last_old.get(k) for k in ("tag", "age", "server_wall", "server_es")} if s_last_old else None
+    C["server_first"] = {k: sf.get(k) for k in ("tag", "phase", "age", "server_wall", "server_es", "server_sig")}
+    C["server_last_old"] = ({k: s_last_old.get(k) for k in ("tag", "phase", "age", "server_wall", "server_es")}
+                            if s_last_old else None)
+    C["server_bracket"] = bracket(s_last_old, sf, "server_wall")
     ci = next((i for i, p in enumerate(pairs) if p.get("client_level") == to
                and any(q.get("client_level") == frm for q in pairs[:i])), None)
     C["client_changed"] = ci is not None
@@ -955,9 +1026,10 @@ def change_of(pairs, frm, to):
         return C
     cf = pairs[ci]
     c_last_old = next((pairs[j] for j in range(ci - 1, -1, -1) if pairs[j].get("client_level") == frm), None)
-    C["client_first"] = {k: cf.get(k) for k in ("tag", "age", "client_wall", "client_mirror_level", "client_view",
-                                                "client_received")}
-    C["client_last_old"] = {k: c_last_old.get(k) for k in ("tag", "age", "client_wall")} if c_last_old else None
+    C["client_first"] = {k: cf.get(k) for k in ("tag", "phase", "age", "client_wall", "client_mirror_level",
+                                                "client_view", "client_received")}
+    C["client_last_old"] = {k: c_last_old.get(k) for k in ("tag", "phase", "age", "client_wall")} if c_last_old else None
+    C["client_bracket"] = bracket(c_last_old, cf, "client_wall")
     sw, cw = num(sf.get("server_wall")), num(cf.get("client_wall"))
     C["lag_est_s"] = (cw - sw) if (cw is not None and sw is not None) else None
     if s_last_old is not None and cw is not None and num(s_last_old.get("server_wall")) is not None:
@@ -971,13 +1043,23 @@ def change_of(pairs, frm, to):
     return C
 
 
-def grade_change(name_level, name_lag, pairs, frm, to, es_lo_ok, es_hi_ok, dead_phase):
+def grade_change(name_level, name_lag, pairs, frm, to, es_lo_ok, es_hi_ok, dead_phase, stop_reason=None):
     C = change_of(pairs, frm, to)
     out["summaries"].setdefault("changes", {})[name_level] = C
+    if stop_reason:
+        grade(name_level, "void", C, PRED[name_level]["void"], {"stop_reason": stop_reason})
+        grade(name_lag, "void", C, PRED[name_lag]["void"], {"stop_reason": stop_reason})
+        return C
     if not C.get("server_changed"):
         v = "void" if dead_phase else "unmeasured"
         grade(name_level, v, C, PRED[name_level]["unmeasured"])
         grade(name_lag, v, C, PRED[name_lag]["unmeasured"])
+        return C
+    if not g(C, "server_bracket", "bounded"):
+        # pre-run edit after the review of f099c44a: an unbounded bracket (an overshot fast) grades nothing
+        why = {"bracket": C.get("server_bracket")}
+        grade(name_level, "unmeasured", C, PRED[name_level]["unmeasured"], why)
+        grade(name_lag, "unmeasured", C, PRED[name_lag]["unmeasured"], why)
         return C
     es_first = num(g(C, "server_first", "server_es"))
     es_old = num(g(C, "server_last_old", "server_es"))
@@ -988,6 +1070,8 @@ def grade_change(name_level, name_lag, pairs, frm, to, es_lo_ok, es_hi_ok, dead_
     lag = num(C.get("lag_est_s"))
     if C.get("client_before_server") or C.get("client_other_levels"):
         grade(name_lag, "falsified", C, PRED[name_lag]["falsifier"])
+    elif lag is not None and not g(C, "client_bracket", "bounded"):
+        grade(name_lag, "unmeasured", C, PRED[name_lag]["unmeasured"], {"bracket": C.get("client_bracket")})
     elif lag is None:
         waited = None
         lastp = pairs[-1] if pairs else None
@@ -1024,22 +1108,38 @@ def grade_all():
         for k in ("LEVEL_RISE", "LAG_RISE", "HOLD", "LEVEL_FALL", "LAG_FALL"):
             grade(k, "void" if dead else "unmeasured", None, "the kernel's ENERGY_AT[1] or ENERGY_BAND not read")
     else:
+        stop = out.get("stop_reason")
         rise = [p for p in pairs if p.get("phase") in ("S0", "FAST", "RISE")]
         S["rise"] = grade_change("LEVEL_RISE", "LAG_RISE", rise, 0, 1, lambda e: e >= at1 - ES_TOL,
                                  lambda e: e < at1 + ES_TOL, phase_dead("RISE") or bool(dead))
         fall = [p for p in pairs if p.get("phase") in ("HOLD", "FALL")]
+        # pre-run edit after the review of f099c44a: the hold counts only the pairs after the first pair (RISE, HOLD
+        # or FALL) that reads level 1 on both sides
+        est_i = next((i for i, p in enumerate(pairs) if p.get("phase") in ("RISE", "HOLD", "FALL")
+                      and p.get("server_level") == 1 and p.get("client_level") == 1), None)
+        est_tag = pairs[est_i].get("tag") if est_i is not None else None
+        after_est = ([p for i, p in enumerate(pairs) if i > est_i and p.get("phase") in ("HOLD", "FALL")]
+                     if est_i is not None else [])
         # every same-second pair after the rise whose es lies inside the band under the bound, whatever its phase: a
         # level dropped inside the band is the falsifier itself, so the window is not cut at the fall's change
         lo, hi = at1 - band + ES_TOL, at1 - ES_TOL
-        held = [p for p in fall if num(p.get("server_es")) is not None and lo <= p["server_es"] <= hi
+        held = [p for p in after_est if num(p.get("server_es")) is not None and lo <= p["server_es"] <= hi
                 and num(p.get("wall_gap")) is not None and abs(p["wall_gap"]) <= PAIR_GAP_MAX_S]
         bad = [{k: p.get(k) for k in ("tag", "age", "server_es", "server_level", "client_level", "wall_gap")}
                for p in held if p.get("server_level") != 1 or p.get("client_level") != 1]
         S["hold"] = {"band": [lo, hi], "pairs_in_band": len(held), "bad": bad[:20], "bad_n": len(bad),
                      "es_min": min((p["server_es"] for p in fall if num(p.get("server_es")) is not None), default=None),
                      "snack_landed": g(ph, "HOLD", "eat", "landed"), "floor_reached": g(ph, "HOLD", "floor_reached"),
-                     "rise_reached": bool(g(S, "rise", "server_changed"))}
-        if bad:
+                     "rise_reached": bool(g(S, "rise", "server_changed")),
+                     "established": {"index": est_i, "tag": est_tag, "age": pairs[est_i].get("age")
+                                     if est_i is not None else None},
+                     "stop_reason": stop}
+        if stop:
+            grade("HOLD", "void", S["hold"], PRED["HOLD"]["void"], {"stop_reason": stop})
+        elif est_i is None:
+            grade("HOLD", "void" if (dead or phase_dead("HOLD") or phase_dead("FALL")) else "unmeasured", S["hold"],
+                  "no pair read level 1 on both sides (the hold never established)")
+        elif bad:
             grade("HOLD", "falsified", S["hold"], PRED["HOLD"]["falsifier"])
         elif len(held) < HOLD_MIN_PAIRS:
             grade("HOLD", "void" if (dead or phase_dead("HOLD") or phase_dead("FALL")) else "unmeasured", S["hold"],
@@ -1047,7 +1147,7 @@ def grade_all():
         else:
             grade("HOLD", "as_predicted", S["hold"], PRED["HOLD"]["falsifier"])
         S["fall"] = grade_change("LEVEL_FALL", "LAG_FALL", fall, 1, 0, lambda e: e < at1 - band + ES_TOL,
-                                 lambda e: e >= at1 - band - ES_TOL, phase_dead("FALL") or bool(dead))
+                                 lambda e: e >= at1 - band - ES_TOL, phase_dead("FALL") or bool(dead), stop)
         S["fall"]["meal_landed"] = g(ph, "FALL", "eat", "landed")
     # SLOW
     slow_pairs = [p for p in pairs if p.get("phase") == "RISE" or (p.get("phase") == "FALL" and p.get("tag") == "FALL")]
@@ -1178,8 +1278,9 @@ def main():
         "constants": {k: (v.pattern if isinstance(v, re.Pattern) else v) for k, v in globals().items()
                       if re.match(r"^[A-Z][A-Z0-9_]+$", k) and isinstance(v, (int, float, str, bool, tuple, dict,
                                                                              re.Pattern))
-                      and k not in ("REPO", "PRED")},
+                      and k not in ("REPO", "PRED", "DEVIATIONS")},
         "predictions": PRED,
+        "deviations": list(DEVIATIONS),
         "meta": {"staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40 "
                             "(the controller, after Task 3c); the driver never re-stages", **META_NOTES},
         "steps": [], "notes": [], "phases": {}, "phase_errors": {}, "phase_walls": {}, "verdicts": {},

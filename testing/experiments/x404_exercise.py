@@ -42,11 +42,13 @@ PHASES (each checked against the wall budget before it starts; the server bus's 
        server's inventory weight and capacity weight (witness.chain) and maxWeight (stats.get).
   B    THE BURPEE SET: rested (the server's endurance moodle at most 1, else speed 5 to it), at speed 1, `exercise.do
        burpees 60` (60 game minutes, 37.5 s of wall), followed at the server (the exercise flag, the wrapper's record
-       and counters, the endurance) until the flag clears, it never shows within SET_START_CAP_M (refused), or the
+       and counters, the endurance) until the flag clears, it never shows within SET_START_CAP_M (refused: rested and
+       asked once more, as x37 did; a second refusal ends the phase), or the
        world passes the ask plus OVERRUN_M (then `action.cancel`, named). The way it ended is a reading: its timer
        (at or past the ask) or before its ask (the endurance branch: the moodle read at the clear).
-  C26  THE EAT ON THE FALLING RATE (only on a confirmed load and food): at once after the clear, the server's load
-       (witness.chain) and `foodtimer.set admin 0`, `eat.action TKX.Unit50 1` (stopping the session's eats if its
+  C26  THE EAT ON THE FALLING RATE (only on a confirmed load and food): the server's load (witness.chain) and the
+       intake's counters are read in B while the set runs (before the clear, so the eat lands earlier in the window);
+       at once after the clear `foodtimer.set admin 0`, `eat.action TKX.Unit50 1` (stopping the session's eats if its
        `spawned` is not "found"), intake.stats.landed polled until it rises (EAT_CAP_S), then speed 1 until
        C26_WINDOW_M game minutes past the clear.
   SIX  speed 5 until 6 game hours past the clear (the sweat EMA's fall), then speed 1.
@@ -72,13 +74,29 @@ a dead-bus phase is void, never falsified):
   LOAD       the server answers an id for Base.BarBell and for TKX.Unit50 after the spawn (none before), and its
              capacity weight reads at least LOAD_MIN_KG. Falsifier: an id missing on a live bus, or the load under
              LOAD_MIN_KG.
-  SET_B      the burpee set starts (the flag shows within SET_START_CAP_M) and the wrapper records "burpees" while
-             it runs. Falsifier: no flag on a live bus, or another record. Its length and end are a reading.
-  SWEAT_ON   on a ring row from the set's first flagged row to 6 game hours after its clear, fluids.sweatActive reads
-             true. Falsifier: every such row reads false. Unmeasured: no such row read.
+  SET_B      the burpee set starts (the flag shows within SET_START_CAP_M, on the first ask or the one retry) and the
+             wrapper records "burpees" while it runs. Falsifier: another record. Unmeasured: both asks refused (a
+             refused set is never falsified on a live bus). Its length and end are a reading.
+  SWEAT_ON   a READING unless the set ran long enough for the 6 h EMAs to pass the share (SWEAT_ON_MARGIN x the
+             threshold below): then predicted, on a ring row from the set's first flagged row to 6 game hours after
+             its clear, fluids.sweatActive reads true. Falsifier (predicted only): every such row reads false.
+             Unmeasured: no such row read. THE THRESHOLD (K.fluids.losses, NR_Kernel_Fluids.lua): each step moves
+             sweat6h and loss6h toward the step's per-minute sweat S and loss S + B (B the basal AI[sex] / 1440 g a
+             minute; cold and alcohol 0) by alpha = dtM / EMA_MIN; from rest (sweat6h 0 under MET SWEAT_MET_LO,
+             loss6h at B, the slowest start: a loss6h under B passes sooner), after m minutes of the set the share
+             is S(1 - e) / (S(1 - e) + B) with e = (1 - alpha)^(m / dtM) <= exp(-m / EMA_MIN), so it passes p =
+             SWEAT_ACTIVE_SHARE once m > -EMA_MIN x ln(1 - p B / ((1 - p) S)) (the exp form, the slower). S =
+             SWEAT_LH x clamp((met - SWEAT_MET_LO) / (SWEAT_MET_HI - SWEAT_MET_LO), 0, SWEAT_CAP) x thermoFluids x
+             sweatK x 1000 / 60, with met the smallest body.met the ring bills on the set's flagged rows (else
+             EXERCISE_MET.burpees), sweatK the record's, thermoFluids the smaller of the two thermoregulator reads
+             (in B once the flag shows, in C26 after the clear), the constants read live; a value unread leaves
+             SWEAT_ON a reading. At burpees 7.5, sweatK 1, thermoFluids 1 and a
+             male's B the threshold is about 67 game minutes, past the 60 minute ask, so the share is likely a
+             reading; sweatK 1.5 brings it to about 44.
   SWEAT_RULE on every ring row that carries sweatActive, sweat6h and loss6h, sweatActive equals (loss6h > 0 and
              sweat6h / loss6h > SWEAT_ACTIVE_SHARE), the share read live. Falsifier: any row that differs.
-  SWEAT_OFF  a READING: the first row after the clear that reads false again, its hours after the clear and the ratio.
+  SWEAT_OFF  a READING (verdict "reading"): the first row after the clear that reads false again, its hours after the
+             clear and the ratio.
   C26        on each of the eat's two candidate drains (the drain before and the drain after the ring row where
              intake.stats.landed first shows the eat), when the ring reads the raw rate falling against the row
              before (more than FALL_EPS, or the flag's clear), not moving and not flagged, the drain bills
@@ -90,7 +108,8 @@ a dead-bus phase is void, never falsified):
              the conditions. The C26 window's other still falling drains are a reading, and so is old_gate_falling
              on each candidate: whether the pre-C-26 gate (the stripped rate, divided by the lighter load after the
              eat against the heavier one before) would also have read a fall there (with a 0.1 kg food on a 12 kg
-             load it likely would: the reading names how sharp the trap was; it does not grade the gate).
+             load it likely would: the reading names how sharp the trap was). Trivial too when every candidate that
+             meets the conditions has old_gate_falling true: the old gate would have billed it the same.
   CANCEL     action.cancel replies ok with started true, stopped true and cleared true; the server's flag clears
              within CANCEL_CAP_S; the wrapper's stops counter is exactly one higher at the clear than before the
              cancel; the record reads nil at the clear and REST_M later. Falsifier: any of these off on a live bus.
@@ -110,6 +129,18 @@ a dead-bus phase is void, never falsified):
   RING       every page read with errors 0.
   Z          no mod error line, admin not parked, and the server alive at the end (players answers a list).
 
+DEVIATIONS from the run sheet and the amendments, stated before the run:
+  1. The load is 2 x Base.BarBell (12 kg); the C-26 food is TKX.Unit50 (0.1 kg), the lightest TKX food.
+  PRE-RUN EDITS after the Opus review of f099c44a (made before any boot):
+  2. C26 grades trivial when every met candidate has old_gate_falling true (the trap did not separate the gates).
+  3. SET_START_CAP_M is 6 game minutes (was 3), and a refused set is rested and asked once more, as x37 did; a set
+     refused twice grades unmeasured (SET_B, CANCEL, TWIN), never falsified on a live bus.
+  4. SWEAT_RULE is the graded sweatActive claim; SWEAT_ON is a reading unless the set ran SWEAT_ON_MARGIN x the
+     threshold (the derivation is in SWEAT_ON above); the thermoregulator's fluids multiplier is read in B and C26
+     for it, and the record's fluids.sweatK at S0.
+  5. SWEAT_OFF's verdict is "reading".
+  6. The C26 load and intake reads move into B, before the clear, so the eat lands earlier in C26_WINDOW_M.
+
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time; free memory read
 before the boot, refused under 12 GB. 4. A session killed by the host is reported, and its measured phases are never
@@ -119,6 +150,7 @@ import ctypes
 import glob
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -179,6 +211,9 @@ HARNESS_MARKERS = {
         "if cur.isStarted ~= nil then out.started = cur:isStarted() == true end"),                       # 513778e8
 }
 KPATHS = {"share": f"{NR}.kernel.fluids.SWEAT_ACTIVE_SHARE", "fallEps": f"{NR}.kernel.energy.FALL_EPS",
+          "sweatLh": f"{NR}.kernel.fluids.SWEAT_LH", "sweatMetLo": f"{NR}.kernel.fluids.SWEAT_MET_LO",
+          "sweatMetHi": f"{NR}.kernel.fluids.SWEAT_MET_HI", "sweatCap": f"{NR}.kernel.fluids.SWEAT_CAP",
+          "ai1": f"{NR}.kernel.fluids.AI.1", "ai2": f"{NR}.kernel.fluids.AI.2", "emaMin": f"{NR}.kernel.fluids.EMA_MIN",
           "idleMet": f"{NR}.kernel.energy.COMPENDIUM.Default", "classDefault": f"{NR}.kernel.energy.CLASS_MET.Default",
           "classLight": f"{NR}.kernel.energy.CLASS_MET.LightDomestic",
           "burpees": f"{NR}.kernel.energy.EXERCISE_MET.burpees", "squats": f"{NR}.kernel.energy.EXERCISE_MET.squats"}
@@ -199,6 +234,7 @@ LANDED_RING = f"_G.{NR}.server.intake.stats.landed"
 EXE_CHAIN = "getFitness.getCurrentExe"      # the server's current Fitness exercise (nil when none)
 INVW_CHAIN = "getInventoryWeight"
 CAPW_CHAIN = "getInventory.getCapacityWeight"
+THERMO_CHAIN = "getBodyDamage.getThermoregulator.getFluidsMultiplier"   # the losses' thermoFluids (pre-run edit)
 # the load and the foods
 LOAD_ITEM, LOAD_N, LOAD_MIN_KG = "Base.BarBell", 2, 10.0      # 6.0 kg each (weapon.txt item BarBell, Weight = 6.0)
 C26_FOOD = "TKX.Unit50"                                        # 50 kcal; maxTime 232 (hungerConsumed 2: one loop)
@@ -206,13 +242,14 @@ X33_ARMS = (("done", "TKX.SnackP"), ("cancel", "TKX.SnackC"), ("guard", "TKX.Sna
 GUARD_HC = -0.005                                              # |hungChange x 100| = 0.5 <= 1 (serverStop :146-149)
 # the clock and the sets
 SPEED_FAST = 5
-SET_START_CAP_M = 3.0
+SET_START_CAP_M = 6.0                # pre-run edit (was 3.0); a refused set is rested and asked once more
 OVERRUN_M = 15.0
 REST_M = 4.0
 ENDURANCE_MAX = 2                    # ISFitnessUI.enduranceLevelThreshold
 ENDURANCE_REST_CAP_M = 60.0
 B_ASK_M = 60
-C26_WINDOW_M = 20.0                  # game minutes past the clear at speed 1 (the eat lands about 7 of them in)
+C26_WINDOW_M = 20.0                  # game minutes past the clear at speed 1 (the eat lands a few of them in)
+SWEAT_ON_MARGIN = 1.1                # SWEAT_ON is predicted only when the set ran this x the EMA threshold
 SIX_H = 6.0
 CANCEL_ASK_M = 60
 CANCEL_AFTER_M = 2.0
@@ -262,35 +299,53 @@ META_NOTES = {
                  "driven as the movement end's twin (#3736)"}
 SUMMARY_KEYS = ("set_b", "sweat", "sweat_off", "c26", "cancel", "twin", "twin_client")
 
+DEVIATIONS = (
+    'The load is 2 x Base.BarBell (12 kg); the C-26 food is TKX.Unit50 (0.1 kg), the lightest TKX food.',
+    'Pre-run edit after the Opus review of f099c44a: C26 grades trivial when every met candidate has '
+    'old_gate_falling true.',
+    'Pre-run edit: SET_START_CAP_M 6 game minutes (was 3) and one retry after a rest, as x37 did; a set refused '
+    'twice grades unmeasured, never falsified on a live bus.',
+    'Pre-run edit: SWEAT_RULE is the graded claim; SWEAT_ON is a reading unless the set ran SWEAT_ON_MARGIN x the 6'
+    " h EMA threshold derived from K.fluids.losses (the docstring); the thermoregulator's fluids multiplier and the"
+    " record's fluids.sweatK are read for it.",
+    "Pre-run edit: SWEAT_OFF's verdict is 'reading'.",
+    "Pre-run edit: C26's load and intake reads run in B while the set runs, so the eat follows the clear at once.",
+)
+
 
 PRED = {
     "LOAD": {"item.get after the spawn": f"an id for {LOAD_ITEM} and {C26_FOOD}, none before",
              "capacity weight": f">= {LOAD_MIN_KG} kg",
              "falsifier": "an id missing on a live bus, or the load under LOAD_MIN_KG"},
-    "SET_B": {"burpees 60": "the flag shows within SET_START_CAP_M and the record reads burpees while it runs",
+    "SET_B": {"burpees 60": "the flag shows within SET_START_CAP_M (one retry after a rest) and the record reads "
+                            "burpees while it runs",
               "reading": "its length and how it ended (timer, or before the ask by the endurance branch)",
-              "falsifier": "no flag on a live bus, or another record"},
+              "falsifier": "another record", "unmeasured": "both asks refused (never falsified on a live bus)"},
     "SWEAT_ON": {"fluids.sweatActive": "true on a ring row between the set's first flagged row and 6 h after its clear",
-                 "falsifier": "every such row false", "unmeasured": "no such row read"},
+                 "predicted only": f"when the set ran at least {SWEAT_ON_MARGIN} x the EMA threshold "
+                                   "-EMA_MIN ln(1 - p B / ((1 - p) S)) (the docstring's derivation); else a reading",
+                 "falsifier": "every such row false (predicted only)", "unmeasured": "no such row read"},
     "SWEAT_RULE": {"every row": "sweatActive == (loss6h > 0 and sweat6h / loss6h > K.fluids.SWEAT_ACTIVE_SHARE)",
                    "falsifier": "any row that differs"},
-    "SWEAT_OFF": {"reading": "the first row after the clear that reads false, its hours after the clear and ratio"},
+    "SWEAT_OFF": {"reading": "the first row after the clear that reads false, its hours after the clear and ratio",
+                  "verdict": "reading"},
     "C26": {"the eat's candidate drains": "falling raw (> FALL_EPS against the row before, or the flag's clear), not "
                                           "moving, not flagged -> billed body.met == COMPENDIUM.Default within 1e-9",
-            "trivial": f"the stripped rate at the eat under {TRIVIAL_STRIPPED}",
+            "trivial": f"the stripped rate at the eat under {TRIVIAL_STRIPPED}, or every met candidate's "
+                       "old_gate_falling true (the old gate would have billed it the same)",
             "void": "the load or the food unconfirmed, the eat not landed, or the bus dead",
             "unmeasured": "no candidate drain meets the conditions",
             "falsifier": "a candidate drain meeting the conditions that bills otherwise"},
     "CANCEL": {"action.cancel": "ok, started true, stopped true, cleared true",
                "server flag": f"clears within {CANCEL_CAP_S} s", "stops": "+1 at the clear",
                "record": "nil at the clear and REST_M later",
-               "falsifier": "any of these off on a live bus", "unmeasured": "the set never showed"},
+               "falsifier": "any of these off on a live bus", "unmeasured": "the set never showed (refused twice)"},
     "TWIN": {"server stats.set ENDURANCE": f"{TWIN_ENDURANCE}: the flag clears within {TWIN_CAP_S} s on the server "
                                          "route, before the set's own timer",
              "stops": "+1 at the clear", "record": "nil at the clear and REST_M later",
              "falsifier": "the server route does not clear the flag, or the stops or record off",
              "TWIN_CLIENT": "a reading: the client's own stats.set when the server's did not clear it",
-             "unmeasured": "the set never showed"},
+             "unmeasured": "the set never showed (refused twice)"},
     "X33": {"guard arm": "cancels +1; landed unchanged; the item on the server with its hungChange unchanged; the "
                          "server's calories unchanged within 1e-6",
             "readings": "the completed arm (eats +1, landed +1, item gone) and the normal cancelled arm",
@@ -731,6 +786,28 @@ def start_set(name, minutes, label):
     return st
 
 
+def start_set_retry(name, minutes, label):
+    """start_set, and once more after a rest when the server never showed the flag (refused), as x37 did (pre-run edit
+    after the review of f099c44a). A set refused twice reads unmeasured, never falsified."""
+    st = start_set(name, minutes, label)
+    st["attempts"] = 1
+    if st["started"]:
+        return st
+    note(f"set {label}: refused; rested and asked once more (x37's retry)")
+    ensure_rested(label + "_rest2")
+    st2 = start_set(name, minutes, label + "b")
+    st2["attempts"] = 2
+    st2["first_attempt"] = {"queued": st.get("queued"), "age_queued": st.get("age_queued"), "polls": len(st["polls"])}
+    st2["refused_twice"] = not st2["started"]
+    return st2
+
+
+def thermo(tag):
+    """The thermoregulator's fluids multiplier (the losses' thermoFluids, NR_Server_Nutrients.lua), one witness.chain."""
+    a = keep(step(tag, SRV, "witness.chain", f"{USER} {THERMO_CHAIN}"))
+    return {"value": num(a.get("value")), "error": a.get("error"), "wall": a.get("wall")}
+
+
 def follow_until(st, until_age, label, cap_s=None):
     """Polls the flag until it clears, the world age passes until_age, or cap_s of wall. Returns True on a clear."""
     end = time.time() + cap_s if cap_s is not None else None
@@ -777,7 +854,8 @@ def phase_S0():
     P["kernel"] = lread(SRV, "_G", list(KPATHS.values()), "S0_kernel")
     P["k"] = {k: num(vals(P["kernel"]).get(p)) for k, p in KPATHS.items()}
     P["record"] = lread(SRV, f"record:{USER}", ["firstSeen", "resets", "body.sex", "body.fm", "body.lm",
-                                                "fluids.sweat6h", "fluids.loss6h", "fluids.sweatActive"], "S0_record")
+                                                "fluids.sweat6h", "fluids.loss6h", "fluids.sweatActive",
+                                                "fluids.sweatK"], "S0_record")
     P["fit"] = fit_read("S0_fit", log=True)
     P["intake"] = intake("S0_intake", log=True)
     P["stats"] = endurance("S0_stats")
@@ -811,11 +889,16 @@ def load_read(tag):
 def phase_B():
     P = out["phases"]["B"] = {}
     P["rest"] = ensure_rested("B_rest")
-    st = P["set"] = start_set("burpees", B_ASK_M, "B")
+    st = P["set"] = start_set_retry("burpees", B_ASK_M, "B")
     if not st["started"]:
         return
     if st.get("record_first") is not None:
         st["record_during"] = st["record_first"]
+    # pre-run edits after the review of f099c44a: the thermoregulator for SWEAT_ON's threshold, and C26's load and
+    # intake read while the set runs, so the eat follows the clear at once
+    P["thermo_start"] = thermo("B_th0")
+    P["c26_weights"] = load_read("B_c26w")
+    P["c26_intake"] = intake("B_c26in", log=True)
     cleared = follow_until(st, st["first_on_age"] + (B_ASK_M + OVERRUN_M) / 60.0, "B_p")
     if not cleared:
         note(f"B: still running {OVERRUN_M} game minutes past its ask; action.cancel (named)")
@@ -839,11 +922,15 @@ def phase_C26():
     clear_age = num(st.get("clear_age"))
     if not all(P["preconditions"].values()):
         note(f"C26: preconditions not met {P['preconditions']}; no eat (void)")
+        P["thermo"] = thermo("C26_th1")
         if clear_age is not None:
             wait_age(clear_age + C26_WINDOW_M / 60.0, "C26_wait")
         return
-    P["weights_before"] = load_read("C26_w0")
-    P["intake_before"] = intake("C26_in0", log=True)
+    B = g(out, "phases", "B") or {}
+    P["weights_before"] = B.get("c26_weights") or load_read("C26_w0")
+    P["intake_before"] = B.get("c26_intake") or {}
+    if num(P["intake_before"].get("landed")) is None:
+        P["intake_before"] = intake("C26_in0", log=True)
     P["queued"] = eat_queue(C26_FOOD, "C26")
     P["queue_age"] = age("C26_aq")
     P["landed"] = False
@@ -862,6 +949,7 @@ def phase_C26():
     if not P["landed"]:
         note(f"C26: landed did not rise within {EAT_CAP_S} s")
     P["weights_after"] = load_read("C26_w1")
+    P["thermo"] = thermo("C26_th1")
     if clear_age is not None:
         wait_age(clear_age + C26_WINDOW_M / 60.0, "C26_wait")
 
@@ -880,7 +968,7 @@ def phase_SIX():
 def phase_CAN():
     P = out["phases"]["CAN"] = {}
     P["rest"] = ensure_rested("CAN_rest")
-    st = P["set"] = start_set("squats", CANCEL_ASK_M, "CAN")
+    st = P["set"] = start_set_retry("squats", CANCEL_ASK_M, "CAN")
     if not st["started"]:
         return
     follow_until(st, st["first_on_age"] + CANCEL_AFTER_M / 60.0, "CAN_p")
@@ -900,7 +988,7 @@ def phase_CAN():
 def phase_TWIN():
     P = out["phases"]["TWIN"] = {}
     P["rest"] = ensure_rested("TWIN_rest")
-    st = P["set"] = start_set("squats", TWIN_ASK_M, "TWIN")
+    st = P["set"] = start_set_retry("squats", TWIN_ASK_M, "TWIN")
     if not st["started"]:
         return
     follow_until(st, st["first_on_age"] + TWIN_AFTER_M / 60.0, "TWIN_p")
@@ -1089,6 +1177,27 @@ def sweat_rule(r, share):
     return bool(l6 > 0 and s6 / l6 > share)
 
 
+def sweat_threshold(k_c, met, sweat_k, sex, tf):
+    """SWEAT_ON's threshold in game minutes of the set (the docstring's derivation off K.fluids.losses): from rest
+    (sweat6h 0, loss6h at the basal B), the share passes p once m > -EMA_MIN ln(1 - p B / ((1 - p) S)); None when an
+    input is unread, inf when S can never carry it."""
+    ks = [k_c.get(x) for x in ("sweatLh", "sweatMetLo", "sweatMetHi", "sweatCap", "emaMin", "share")]
+    a1, a2 = k_c.get("ai1"), k_c.get("ai2")
+    ai = a1 if sex == 1 else a2 if sex == 2 else (max(a1, a2) if None not in (a1, a2) else None)
+    info = {"met": met, "sweatK": sweat_k, "sex": sex, "thermoFluids": tf, "ai": ai}
+    if None in ks or None in (met, sweat_k, tf, ai) or ks[2] == ks[1]:
+        return None, info
+    lh, lo, hi, cap, ema, p = ks
+    x = min(max((met - lo) / (hi - lo), 0.0), cap)
+    s_gmin = lh * x * tf * sweat_k * 1000.0 / 60.0
+    b_gmin = ai / 1440.0
+    info.update({"S_g_min": s_gmin, "B_g_min": b_gmin})
+    if s_gmin <= 0 or p >= 1:
+        return math.inf, info
+    q = p * b_gmin / ((1.0 - p) * s_gmin)
+    return (math.inf if q >= 1 else -ema * math.log(1.0 - q)), info
+
+
 def drains(rows, k_c):
     """Per drain k (between ring rows k and k+1): the ring's falling test against row k-1 (raw rate drop > FALL_EPS, or
     the flag's clear), moving, the flag, and the billed MET (row k+1's body.met). Rows are consecutive by `s`."""
@@ -1147,14 +1256,17 @@ def grade_all():
         grade("SET_B", "void" if (dead or phase_dead("B")) else "unmeasured", None, "phase not run")
     else:
         rec = st.get("record_during")
-        reading = {"started": st.get("started"), "record_during": rec, "ran_m": st.get("ran_m"), "ended": st.get("ended"),
+        reading = {"started": st.get("started"), "attempts": st.get("attempts"), "record_during": rec,
+                   "ran_m": st.get("ran_m"), "ended": st.get("ended"),
                    "first_on_age": st.get("first_on_age"), "clear_age": st.get("clear_age"),
                    "endurance_at_clear": st.get("endurance_at_clear"), "stops_at_clear": g(st, "at_clear", "stops")}
         S["set_b"] = reading
         if phase_dead("B") and not st.get("started"):
             grade("SET_B", "void", reading, "bus dead")
+        elif not st.get("started"):
+            grade("SET_B", "unmeasured", reading, PRED["SET_B"]["unmeasured"])
         else:
-            ok = st.get("started") is True and rec == "burpees"
+            ok = rec == "burpees"
             grade("SET_B", "as_predicted" if ok else "falsified", reading, PRED["SET_B"]["falsifier"])
     # SWEAT
     share = k_c.get("share")
@@ -1170,8 +1282,25 @@ def grade_all():
                                     for r in win if num(r.get("fluids.loss6h"))), default=None),
                   "sweat6h_max": max((num(r.get("fluids.sweat6h")) for r in win
                                       if num(r.get("fluids.sweat6h")) is not None), default=None)}
+    # pre-run edit after the review of f099c44a: SWEAT_ON is predicted only past SWEAT_ON_MARGIN x the EMA threshold
+    by_s_ = {r["s"]: r for r in rows}
+    fo_b = num(st.get("first_on_age"))
+    mets = [num(r.get("body.met")) for r in rows if r.get("exe") is True and (by_s_.get(r["s"] - 1) or {}).get("exe")
+            is True and num(r.get("body.met")) is not None and fo_b is not None and clear_age is not None
+            and num(r.get("age")) is not None and fo_b <= r["age"] <= clear_age]      # the burpee set's rows only
+    met = min(mets) if mets else k_c.get("burpees")
+    sex = num(g(ph, "S0", "record", "values", "body.sex"))
+    sweat_k = num(g(ph, "S0", "record", "values", "fluids.sweatK"))
+    tfs = [v for v in (num(g(ph, "B", "thermo_start", "value")), num(g(ph, "C26", "thermo", "value"))) if v is not None]
+    thr, thr_info = sweat_threshold(k_c, met, sweat_k, sex, min(tfs) if tfs else None)
+    ran_m = num(st.get("ran_m"))
+    predicted = thr is not None and ran_m is not None and ran_m >= SWEAT_ON_MARGIN * thr
+    S["sweat"]["threshold"] = {"minutes": thr, "margin": SWEAT_ON_MARGIN, "ran_m": ran_m, "predicted": predicted,
+                               "met_source": "ring" if mets else "EXERCISE_MET.burpees", **thr_info}
     if not win:
         grade("SWEAT_ON", "void" if dead else "unmeasured", S["sweat"], PRED["SWEAT_ON"]["falsifier"])
+    elif not predicted:
+        grade("SWEAT_ON", "reading", S["sweat"], "a reading: the set ran under the margin x the EMA threshold")
     else:
         grade("SWEAT_ON", "as_predicted" if on_rows else "falsified", S["sweat"], PRED["SWEAT_ON"]["falsifier"])
     checked, off = 0, []
@@ -1195,7 +1324,7 @@ def grade_all():
                                                                          and num(off_row.get("age")) is not None) else None,
                        "sweat6h": off_row.get("fluids.sweat6h"), "loss6h": off_row.get("fluids.loss6h")}
                       if off_row else None)
-    grade("SWEAT_OFF", "as_predicted" if off_row else "unmeasured", S["sweat_off"], "a reading (no threshold)")
+    grade("SWEAT_OFF", "reading", S["sweat_off"], "a reading (no threshold)")
     # C26
     C = ph.get("C26") or {}
     dr = drains(rows, k_c)
@@ -1235,7 +1364,10 @@ def grade_all():
     elif any(not d["bills_idle"] for d in met):
         grade("C26", "falsified", S["c26"], PRED["C26"]["falsifier"])
     elif all(d["stripped"] is not None and d["stripped"] < TRIVIAL_STRIPPED for d in met):
-        grade("C26", "trivial", S["c26"], PRED["C26"]["trivial"])
+        grade("C26", "trivial", S["c26"], PRED["C26"]["trivial"], {"trivial_by": "stripped rate"})
+    elif all(d.get("old_gate_falling") is True for d in met):
+        # pre-run edit after the review of f099c44a: the old gate would have billed every met candidate the same
+        grade("C26", "trivial", S["c26"], PRED["C26"]["trivial"], {"trivial_by": "old_gate_falling"})
     else:
         grade("C26", "as_predicted", S["c26"], PRED["C26"]["falsifier"])
     # CANCEL
@@ -1419,8 +1551,9 @@ def main():
         "constants": {k: (v.pattern if isinstance(v, re.Pattern) else v) for k, v in globals().items()
                       if re.match(r"^[A-Z][A-Z0-9_]+$", k) and isinstance(v, (int, float, str, bool, tuple, dict,
                                                                              re.Pattern))
-                      and k not in ("REPO", "PRED")},
+                      and k not in ("REPO", "PRED", "DEVIATIONS")},
         "predictions": PRED,
+        "deviations": list(DEVIATIONS),
         "meta": {"staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40 "
                             "(the controller, after Task 3c); the driver never re-stages", **META_NOTES},
         "steps": [], "notes": [], "phases": {}, "phase_errors": {}, "phase_walls": {}, "verdicts": {},

@@ -28,7 +28,8 @@ is SLOPE 4.3 x max(0, count - 1), at most CAP 30; the BOREDOM target is the larg
 The driver sets TKX.Mono450's n to COUNT_A_EDGE / factor (count 3.0 at the edge: level 8.6, falling about 0.12 a game
 hour, continuous across the edge) and TKX.Mixed400's to COUNT_B_EDGE / factor (count 0.8 at the edge: level 0 on
 both sides of it), and both types' `last` to the world age minus (WINDOW_H - EDGE_LEAD_H), so the edge comes
-EDGE_LEAD_H (0.1 game hours, 6 game minutes, 3.75 s of wall) after the sets, as the run sheet says (167.9 h).
+EDGE_LEAD_H (0.2 game hours, 12 game minutes, 7.5 s of wall) after the sets (167.8 h; the run sheet's 167.9 h, see
+DEVIATIONS). The sets run on a nearly stopped clock (`time.multiplier SET_MULT`), so the writes land at one world age.
 
 PHASES (each checked against the wall budget before it starts; the server bus's liveness after every server step):
   S0    ready, ping, players, speed 1, the kernel constants (K.monotony.WINDOW_H, HALF_LIFE_H, SLOPE, CAP, BORED_MAX,
@@ -41,9 +42,11 @@ PHASES (each checked against the wall budget before it starts; the server bus's 
   EATS  at speed 1, N_A eats of TKX.Mono450 then N_B of TKX.Mixed400, each: foodtimer 0, eat.action <type> 1 (a
         `spawned` other than "found" stops the eats, ruling T2-11), intake.stats.landed polled until it rises
         (EAT_CAP_S); then both entries read.
-  SET   the world age T (time.snapshot), then `record.set admin monotony.t.[<type>].last <T - WINDOW_H + EDGE_LEAD_H>`
-        for both types, then `record.set ... .n` to COUNT_A_EDGE / factor and COUNT_B_EDGE / factor; each reply
-        read; both entries read back; the server's stats.all.
+  SET   the clock read (its trueMult), then `time.multiplier SET_MULT` (a game minute about 625 s of wall); the world
+        age T (time.snapshot), then `record.set admin monotony.t.[<type>].last <T - WINDOW_H + EDGE_LEAD_H>` for
+        both types, then `record.set ... .n` to COUNT_A_EDGE / factor and COUNT_B_EDGE / factor; each reply read; both
+        entries read back; the server's stats.all; the world age after them (age_after); then, in a `finally`, the
+        clock restored (`time.multiplier` to the trueMult read first, else 1).
   EDGE  speed 1 until the world age passes the edge by POST_EDGE_M game minutes; the server's stats.all at the edge
         and at the end.
   PRUNE both entries read; one TKX.Unit50 eaten (the prune runs at an eat); both entries and Unit50's read again;
@@ -59,20 +62,37 @@ PREDICTIONS (graded in `verdicts`; a dead-bus phase is void, never falsified):
               back equal. Falsifier: a reply not ok or a value off.
   PANIC       the writer's PANIC input reads at most 5 on every ring row from the sets to the end of EDGE (#3691).
               Falsifier: a row over 5 (then EDGE_STATS's BOREDOM half is void).
-  EDGE_TARGET on every ring row from EDGE_PRE_ROWS rows before the edge to the end of EDGE, the writer's BOREDOM target
+  EDGE_TARGET on every CLEAN ring row from EDGE_PRE_ROWS rows before the edge to the end of EDGE (a clean row reads a
+              world age at least one game minute past SET's age_after and its previous row's past age_after, so the
+              drain it reads ran after every write), the writer's BOREDOM target
               (the previous drain's input) equals the kernel's target at the previous row's world age from the row's
               entries (K.monotony.target off K.monotony.level and count, computed here) within TGT_TOL; and the
               target's change at the edge rows is no larger than the largest change on the window's other rows plus
-              TGT_TOL. Falsifier: either off. Unmeasured: the ring does not cover the edge, or monotony.t holds a type
-              besides the two after the eats or the sets (the prediction's premise, read as lua.global's key count).
+              TGT_TOL. Falsifier: either off. Unmeasured: fewer than EDGE_PRE_ROWS clean rows precede the edge, the
+              ring does not cover the edge, monotony.t holds a type besides the two after the eats or the sets, or
+              neither key count was read (the prediction's premise, read as lua.global's key count).
   EDGE_STATS  the written UNHAPPINESS and BOREDOM change at the edge rows by no more than the largest change on the
-              STAT_NEIGHBOURS rows either side plus STAT_STEP_TOL (0.1; the step a dropped type would make is 8.6).
-              Falsifier: a larger change. The BOREDOM half is void when PANIC exceeded 5.
+              STAT_NEIGHBOURS clean rows either side plus STAT_STEP_TOL (0.1; the step a dropped type would make is
+              8.6). Falsifier: a larger change. Unmeasured: as EDGE_TARGET's clean-row gate. The BOREDOM half is void
+              when PANIC exceeded 5.
   PRUNE       before the Unit50 eat both entries exist (past the window, the under-one type is not yet dropped: the
               prune runs at an eat); after it TKX.Mono450's entry exists with its n and last unchanged and
               TKX.Mixed400's is gone. Falsifier: either off. Void: the Unit50 eat did not land.
   RING        every page read with errors 0.
   Z           no mod error line, admin not parked, and the server alive at the end.
+
+DEVIATIONS from the run sheet and the amendments, stated before the run:
+  PRE-RUN EDITS after the Opus review of f099c44a (made before any boot):
+  1. The sets run on a nearly stopped clock (`time.multiplier SET_MULT` 0.001, the clock read first and restored in
+     a `finally`, as x402b's C2 does), and EDGE_LEAD_H is 0.2 game hours, so `last` is T - 167.8 h, not the run
+     sheet's 167.9 h: the four sets and their read-backs take 3-8 game minutes at speed 1, which against a 0.1 h
+     lead put the writes inside the graded window's neighbour rows; the longer lead leaves about ten clean rows
+     before the edge.
+  2. The graded window (EDGE_TARGET and EDGE_STATS, the neighbour rows included) starts at the first ring row whose
+     world age is at least one game minute past SET's age_after (its previous row past age_after too), and both
+     grades read unmeasured unless at least EDGE_PRE_ROWS such clean rows precede the edge.
+  3. EDGE_TARGET reads unmeasured when neither monotony.t key count (after the eats, after the sets) was read.
+  4. PROBE_RX excludes time.multiplier, the driver's new command.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time; free memory read
@@ -151,10 +171,11 @@ TYPE_A, TYPE_B, TYPE_P = "TKX.Mono450", "TKX.Mixed400", "TKX.Unit50"
 N_A, N_B = 6, 3
 COUNT_A_EDGE = 3.0                   # TYPE_A's decayed count at the edge: level 4.3 x 2 = 8.6, kept by the prune
 COUNT_B_EDGE = 0.8                   # TYPE_B's: level 0 on both sides, dropped by the prune
-EDGE_LEAD_H = 0.1                    # `last` = T - (WINDOW_H - EDGE_LEAD_H): 167.9 h, the run sheet's
+EDGE_LEAD_H = 0.2                    # `last` = T - (WINDOW_H - EDGE_LEAD_H): 167.8 h (pre-run edit; the sheet's 167.9 h)
+SET_MULT = 0.001                     # time.multiplier during the sets: the writes land at one world age (pre-run edit)
 POST_EDGE_M = 30.0
 AFTER_PRUNE_M = 4.0
-EDGE_PRE_ROWS = 4                    # the window's rows before the edge (6 game minutes from the sets)
+EDGE_PRE_ROWS = 4                    # the clean rows the grades need before the edge (about ten after a 0.2 h lead)
 STAT_NEIGHBOURS = 5
 TGT_TOL = 0.01
 STAT_STEP_TOL = 0.1
@@ -182,13 +203,13 @@ SPAWN_WAIT_S = 2.5
 # liveness and the wall budget
 PING_TIMEOUT_S = 5
 BUDGET_S = 840.0                     # from t0 (before the boot); RING, Z and the teardown fit 900 s
-PHASE_EST_S = {"S0": 8.0, "H": 4.0, "FOOD": 12.0, "EATS": 80.0, "SET": 5.0, "EDGE": 30.0, "PRUNE": 20.0}
+PHASE_EST_S = {"S0": 8.0, "H": 4.0, "FOOD": 12.0, "EATS": 80.0, "SET": 10.0, "EDGE": 35.0, "PRUNE": 20.0}
 MIN_FREE_GB = 12.0
 RESULT_WAIT_S = 30.0
 POLL_S = 0.25
 LOG_LIMIT = 400
 ECHO_RX = re.compile(r"PZTK: ")
-PROBE_RX = re.compile(r"\b(?:minute\.ring|lua\.(?:read|global)|time\.snapshot|record\.set|item\.get|eat\.action|"
+PROBE_RX = re.compile(r"\b(?:minute\.ring|lua\.(?:read|global)|time\.(?:snapshot|multiplier)|record\.set|item\.get|eat\.action|"
                       r"foodtimer\.set|additem|settimespeed|stats\.all)")
                                      # this driver's own probe and command names, excluded from every log grep
 MOD_LIFE_RX = re.compile(r"minute: \w+ failed|players: hook failed|players: task|intake: |writer: |non-finite")
@@ -206,6 +227,16 @@ META_NOTES = {
     "frame_note": "no frame window is graded in this session (no tick.ring), so no drop_windows apply"}
 SUMMARY_KEYS = ("set", "edge", "edge_stats", "panic", "prune")
 
+DEVIATIONS = (
+    'Pre-run edit after the Opus review of f099c44a: the sets run on a nearly stopped clock (time.multiplier '
+    "SET_MULT, restored in a finally) and EDGE_LEAD_H is 0.2 h, so last is T - 167.8 h, not the run sheet's 167.9 "
+    'h.',
+    "Pre-run edit: the graded edge window starts a game minute past SET's age_after (clean rows), and EDGE_TARGET "
+    'and EDGE_STATS read unmeasured unless EDGE_PRE_ROWS clean rows precede the edge.',
+    'Pre-run edit: EDGE_TARGET reads unmeasured when neither monotony.t key count was read.',
+    'Pre-run edit: PROBE_RX excludes time.multiplier.',
+)
+
 
 PRED = {
     "FOOD": {"item.get after the spawn": f"an id for {TYPE_A}, {TYPE_B} and {TYPE_P}, none before",
@@ -217,7 +248,9 @@ PRED = {
               "falsifier": "a row over it (EDGE_STATS's BOREDOM half then void)"},
     "EDGE_TARGET": {"writer boredTarget": "the kernel's target at the previous row's age within TGT_TOL; its change "
                                           "at the edge rows no larger than the window's largest other change + TGT_TOL",
-                    "falsifier": "either off", "unmeasured": "the ring does not cover the edge"},
+                    "falsifier": "either off",
+                    "unmeasured": "fewer than EDGE_PRE_ROWS clean rows (a game minute past the sets' age_after) before "
+                                  "the edge, the ring not covering it, or the key-count premise unread or off"},
     "EDGE_STATS": {"UNHAPPINESS and BOREDOM": "the change at the edge rows <= the largest change on the neighbour "
                                               f"rows + {STAT_STEP_TOL}",
                    "falsifier": "a larger change", "void": "BOREDOM's half when PANIC exceeded 5"},
@@ -728,22 +761,37 @@ def phase_SET():
         note("SET: the kernel's WINDOW_H or HALF_LIFE_H not read; no set")
         return
     factor = 2.0 ** (-window / half)
-    T = num(snap("SET_T").get("worldAge"))
-    if T is None:
-        note("SET: no world age; no set")
-        return
-    last = T - window + EDGE_LEAD_H
-    P.update({"T": T, "last": last, "edge_age": last + window, "factor": factor,
-              "n_a": COUNT_A_EDGE / factor, "n_b": COUNT_B_EDGE / factor})
-    for t, key in ((TYPE_A, "last"), (TYPE_B, "last"), (TYPE_A, "n"), (TYPE_B, "n")):
-        val = last if key == "last" else (P["n_a"] if t == TYPE_A else P["n_b"])
-        r = keep(step(f"SET_{key}_{t}", SRV, "record.set", f"{USER} monotony.t.[{t}].{key} {val!r}"))
-        P["sets"].append({"type": t, "key": key, "sent": val,
-                          **{x: r.get(x) for x in ("ok", "key", "keyType", "before", "after", "afterType", "error")}})
-    P["entries"] = entries("SET_entries")
-    P["t_keys"] = tkeys("SET_keys")
-    P["mood"] = mood("SET_mood")
-    P["age_after"] = age("SET_a1")
+    P["clock0"] = snap("SET_clock0")
+    P["slowed"] = False
+    try:
+        # pre-run edit after the review of f099c44a: the writes land on a nearly stopped clock (x402b's C2 form)
+        P["slow"] = keep(step("SET_slow", SRV, "time.multiplier", str(SET_MULT)))
+        P["slowed"] = True
+        T = num(snap("SET_T").get("worldAge"))
+        if T is None:
+            note("SET: no world age; no set")
+            return
+        last = T - window + EDGE_LEAD_H
+        P.update({"T": T, "last": last, "edge_age": last + window, "factor": factor,
+                  "n_a": COUNT_A_EDGE / factor, "n_b": COUNT_B_EDGE / factor})
+        for t, key in ((TYPE_A, "last"), (TYPE_B, "last"), (TYPE_A, "n"), (TYPE_B, "n")):
+            val = last if key == "last" else (P["n_a"] if t == TYPE_A else P["n_b"])
+            r = keep(step(f"SET_{key}_{t}", SRV, "record.set", f"{USER} monotony.t.[{t}].{key} {val!r}"))
+            P["sets"].append({"type": t, "key": key, "sent": val,
+                              **{x: r.get(x) for x in ("ok", "key", "keyType", "before", "after", "afterType",
+                                                       "error")}})
+        P["entries"] = entries("SET_entries")
+        P["t_keys"] = tkeys("SET_keys")
+        P["mood"] = mood("SET_mood")
+        P["age_after"] = age("SET_a1")
+    finally:
+        if P["slowed"] and not bus["dead"]:
+            tm = num(P["clock0"].get("trueMult"))
+            P["restore_to"] = tm if tm is not None and tm > 0 else 1
+            P["restore"] = keep(step("SET_restore", SRV, "time.multiplier", f"{P['restore_to']:g}"))
+            P["slowed"] = False
+            if tl is not None:
+                tl.mark("clock_restored")
 
 
 def phase_EDGE():
@@ -965,10 +1013,15 @@ def grade_all():
     # EDGE_TARGET
     need = ("window", "half", "slope", "cap", "boredMax", "staple")
     by_s = {r["s"]: r for r in rows}
+    # pre-run edit after the review of f099c44a: a clean row reads an age at least a game minute past SET's age_after
+    # and its previous row (the drain it reads) one past age_after, so no write lands inside the graded window
+    age_after = num(St.get("age_after"))
     trows = []
     for r in win:
         prev = by_s.get(r["s"] - 1)
         if prev is None or num(prev.get("age")) is None:
+            continue
+        if age_after is None or r["age"] < age_after + 1.0 / 60.0 or prev["age"] <= age_after:
             continue
         pred = target_at(row_ents(r), prev["age"], k) if all(k.get(x) is not None for x in need) else None
         got = num(r.get(WIN + "boredTarget"))
@@ -977,13 +1030,16 @@ def grade_all():
                       "UNHAPPINESS": num(r.get("UNHAPPINESS")), "BOREDOM": num(r.get("BOREDOM")),
                       "unhappyTarget": num(r.get(WIN + "unhappyTarget"))})
     edge_i = next((i for i, t in enumerate(trows) if t["past_edge"]), None)
-    S["edge"] = {"edge_age": edge, "rows": len(trows), "edge_index": edge_i,
-                 "rows_list": trows[max(0, (edge_i or 0) - 8):(edge_i or 0) + 12]}
+    S["edge"] = {"edge_age": edge, "age_after": age_after, "rows": len(trows), "edge_index": edge_i,
+                 "clean_rows_before_edge": edge_i, "rows_list": trows[max(0, (edge_i or 0) - 8):(edge_i or 0) + 12]}
     keys = [num(St.get("t_keys")), num(g(ph, "EATS", "t_keys"))]
     S["edge"]["t_keys"] = keys
-    if edge_i is None or edge_i < 1:
+    covered = edge_i is not None and edge_i >= EDGE_PRE_ROWS
+    if not covered:
         grade("EDGE_TARGET", "void" if (dead or phase_dead("EDGE") or out.get("stop_reason")) else "unmeasured",
               S["edge"], PRED["EDGE_TARGET"]["unmeasured"], {"stop_reason": out.get("stop_reason")})
+    elif all(x is None for x in keys):
+        grade("EDGE_TARGET", "unmeasured", S["edge"], "neither monotony.t key count read (the premise)")
     elif any(x is not None and x != 2 for x in keys):
         grade("EDGE_TARGET", "unmeasured", S["edge"], "monotony.t holds a type besides the two (the premise)")
     else:
@@ -1001,10 +1057,11 @@ def grade_all():
         grade("EDGE_TARGET", "as_predicted" if (not off and step_ok) else "falsified", S["edge"],
               PRED["EDGE_TARGET"]["falsifier"])
     # EDGE_STATS
-    if edge_i is None or edge_i < 1:
+    if not covered:
         S["edge_stats"] = None
         grade("EDGE_STATS", "void" if (dead or phase_dead("EDGE") or out.get("stop_reason")) else "unmeasured", None,
-              "the ring does not cover the edge", {"stop_reason": out.get("stop_reason")})
+              "fewer than EDGE_PRE_ROWS clean rows before the edge, or the ring does not cover it",
+              {"stop_reason": out.get("stop_reason")})
     else:
         res = {}
         for stat in ("UNHAPPINESS", "BOREDOM"):
@@ -1133,8 +1190,9 @@ def main():
         "constants": {k: (v.pattern if isinstance(v, re.Pattern) else v) for k, v in globals().items()
                       if re.match(r"^[A-Z][A-Z0-9_]+$", k) and isinstance(v, (int, float, str, bool, tuple, dict,
                                                                              re.Pattern))
-                      and k not in ("REPO", "PRED")},
+                      and k not in ("REPO", "PRED", "DEVIATIONS")},
         "predictions": PRED,
+        "deviations": list(DEVIATIONS),
         "meta": {"staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40 "
                             "(the controller, after Task 3c); the driver never re-stages", **META_NOTES},
         "steps": [], "notes": [], "phases": {}, "phase_errors": {}, "phase_walls": {}, "verdicts": {},
