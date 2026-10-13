@@ -154,6 +154,16 @@ K.energy.LOAD_FLOOR = {
     { 22.7, 6.5 }, -- S0035: carrying 50-150 lb, moderate pace
 }
 
+-- The billing constants (Plan 11f C-17): the falling gate's threshold (K.energy.rateFalling) and the after-burn pool's
+-- fraction, release constant and floor (K.energy.epoc).
+K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the raw engine rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
+K.energy.EPOC_F = 0.10 -- game choice (Plan 11f C-17): the fraction f of the minute's net exercise kcal the pool takes. It lies inside S1775's 6-15 %, below S1777's 15.2 %, above S1779's trained mean of 4.8 % and below S1783's vigorous 37 %. The rows' denominators differ (S1779's net total O2 cost includes the EPOC, S1777's total exercise O2 is not called net or gross, and S1783's is net exercise kcal), so the comparison is approximate
+K.energy.EPOC_TAU_H = 0.5 -- game choice (Plan 11f C-17): the release time constant, game hours, with no fitted constant behind it (S1798 stays open); it releases about 86 % of a pool within 1 h and about 98 % within 2 h. The rows bound it only loosely: expenditure is at or below baseline by 31-60 min after calisthenics (S1796), and oxygen uptake stays raised for 30-60 min after HIFT (S1797); after resistance work it returns to control in the last 30 min of 2 h (S1790) and is still above control at 105-120 min after heavy sets (S1791); after long or vigorous aerobic work it stays raised for 12-14 h (S1777, S1783). The constant therefore fits the bodyweight rows and front-loads the release after resistance and hard aerobic work
+K.energy.EPOC_FLOOR_KCAL = 1e-6 -- game choice (Plan 11f close fix): a pool under this is released whole and removed from the record
+
+-- The end of the activity data.
+-- ---------------------------------------------------------------------------------------------------------------------
+
 -- The band MET for a timed action's caloriesModifier, or nil for 1 and any unknown modifier.
 function K.energy.bandMet(modifier)
     return K.energy.BAND_MET[modifier]
@@ -294,8 +304,6 @@ end
 -- exercise type NR_Server_Fitness.lua recorded at the set's start (EXERCISE_MET), and the flat Fitness class (6.0) when
 -- no known type is recorded; the writer's acute hunger term reads every set minute as resistance-vigorous from the flag,
 -- whatever its MET (W.vigorous).
-K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the raw engine rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
-
 -- Whether the raw engine rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
 function K.energy.rateFalling(prev, rate)
     if prev == nil or rate == nil then
@@ -354,10 +362,6 @@ end
 -- S1318's deficit is DLW total expenditure, which includes any after-burn, so the rows do not separate it from the
 -- exercise (inference); the pool therefore enters the energy state at once, as resting expenditure does. Only the flag's
 -- minutes feed it: the other activities keep the engine's lagged rate, whose own fall bills their tail.
-K.energy.EPOC_F = 0.10 -- game choice (Plan 11f C-17): the fraction f of the minute's net exercise kcal the pool takes. It lies inside S1775's 6-15 %, below S1777's 15.2 %, above S1779's trained mean of 4.8 % and below S1783's vigorous 37 %. The rows' denominators differ (S1779's net total O2 cost includes the EPOC, S1777's total exercise O2 is not called net or gross, and S1783's is net exercise kcal), so the comparison is approximate
-K.energy.EPOC_TAU_H = 0.5 -- game choice (Plan 11f C-17): the release time constant, game hours, with no fitted constant behind it (S1798 stays open); it releases about 86 % of a pool within 1 h and about 98 % within 2 h. The rows bound it only loosely: expenditure is at or below baseline by 31-60 min after calisthenics (S1796), and oxygen uptake stays raised for 30-60 min after HIFT (S1797); after resistance work it returns to control in the last 30 min of 2 h (S1790) and is still above control at 105-120 min after heavy sets (S1791); after long or vigorous aerobic work it stays raised for 12-14 h (S1777, S1783). The constant therefore fits the bodyweight rows and front-loads the release after resistance and hard aerobic work
-K.energy.EPOC_FLOOR_KCAL = 1e-6 -- game choice (Plan 11f close fix): a pool under this is released whole and removed from the record
-
 -- One pool step of dtM game minutes: the minute's exercise kcal exKcal (a negative or non-finite one reads none) feeds
 -- the pool when exercising; an existing pool then releases (1 - exp(-dtM / (60 EPOC_TAU_H))) of itself into the body's
 -- expenditure. A pool that is not a number, non-finite or negative is stamped 0 first. Returns the kcal released and whether the pool
