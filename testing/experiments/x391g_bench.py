@@ -53,14 +53,18 @@ ghost names, set inside H0.work; since 016dce05 H0.work also restores the carrie
 arm is VOID when the store's index gains a key, a ghost record is in the store, or the writes exceed REALS x (minute
 events + 1) + floor(span / 300) + 1 (x391d's rule). THE SEAM CHECK (CARRIER, as x391f): in the arms with no eat
 in the window (I and Gmod), the store's writes delta from the window's start to its end is at most REALS x
-(floor(span / 60) + 1) + floor(span / 300) + 1. The L arms' eats are real intake landings that save (x391e's L arms
+(floor(span / 60) + 1) + floor(span / 300) + 1, plus one save per intake landing in that arm (a late seed eat landing
+inside an arm marks the slot dirty and may add one save per player; the plain allowance comparison is reported beside
+the grade). The L arms' eats are real intake landings that save (x391e's L arms
 wrote 3 in about 20 s), so their writes and attribution are reported, not graded.
 
 PREDICTIONS (graded in `verdicts` as as_predicted / falsified / trivial / unmeasured):
-  PROBE   a READING with no threshold: the roundtrip save ok; BENCH_DRAWS draws each ok with usPerWrite and
+  PROBE   (usPerWrite, and write+intact, is a lower bound on a real slot save: no encode, synthetic record, ruling
+          T2-5) a READING with no threshold: the roundtrip save ok; BENCH_DRAWS draws each ok with usPerWrite and
           usPerIntact, mismatches 0, failed 0; the clear ok. Reported against 14 ms (the inferred per-save cost) and
           against the 60-player rate (about one save a second): the write's ms a real second at 60 players, and the
-          probe's bytes beside the real players' mean bytes a save (store.file.stats.bytes / writes).
+          probe's bytes beside the real players' mean bytes a store write (store.file.stats.bytes / writes, the slot saves and
+          the index writes together).
   MULT    every time.snapshot's trueMult is 1 within MULT_TOL (the normal clock); eff recorded, not graded.
   I       idle: ring busy p99 <= 10 ms and period p50 within 99..101 ms.
   F       I (and Gmod when run) keep >= MIN_FRAMES ring frames and >= MIN_MINUTE_FRAMES minute frames.
@@ -93,6 +97,12 @@ DEVIATIONS from x391e_owed.py (stated before the run):
      must be empty; MULT and CARRIER added.
   6. The server-log greps and the mod-error filter also exclude PROBE_RX (this driver's own probe and command names,
      the probe record's name `tkprobe` included), beside the bus's echo prefix (CLAUDE.md s5).
+  (2, added) x391e's load_arm and unload_arm are inlined in make_lat, with identical behaviour.
+
+Pre-run edits made after the review of 74e25743 (nothing has run): CARRIER allows for intake landings; the seed
+skips a player whose RCON additem ack is not ok and stops on an eat.action `spawned` other than "found"; ruling
+T2-5 is stated in PROBE and the probe note, and the bytes key is relabelled; the deployed harness markers are
+asserted before body().
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
@@ -237,6 +247,8 @@ INTAKE_LANDED = f"{NR}.server.intake.stats.landed"
 PRED = {
     "PROBE": {"reading": "no threshold", "roundtrip save": "ok",
               f"{BENCH_DRAWS} draws": "ok with usPerWrite and usPerIntact, mismatches 0, failed 0", "clear": "ok",
+              "lower bound": "usPerWrite (and write+intact) is a lower bound on a real slot save: no encode, "
+                             "synthetic record (ruling T2-5)",
               "reported against": f"{SAVE_COST_MS} ms a save and {SAVES_PER_S_AT_60} save a real second at 60 players"},
     "MULT": {"every time.snapshot trueMult": f"{NORMAL_MULT} within {MULT_TOL}", "eff": "recorded, not graded"},
     "I": {"busy p99": f"<= {IDLE_BUSY_P99_MAX}", "period p50": list(IDLE_PERIOD_BAND)},
@@ -251,7 +263,10 @@ PRED = {
     "SEAM": {"store writes delta a loaded arm": "<= REALS*(minute events+1) + floor(span/300) + 1 (x391d's void rule)",
              "store index keys": "unchanged", "storeGhostKeys": 0},
     "CARRIER": {"I and Gmod (the arms with no eat in the window), store writes delta (window start to end)":
-                "<= REALS*(floor(span/60)+1) + floor(span/300) + 1: at most one save per real player a real minute",
+                "<= REALS*(floor(span/60)+1) + floor(span/300) + 1 + the arm's intake.stats.landed delta: at most one "
+                "save per real player a real minute plus one per intake landing (a late seed eat landing inside an "
+                "arm marks the slot dirty and may add one save per player); the plain allowance comparison is "
+                "reported beside it (over_plain_allowance)",
                 "reconcile.stats.landed and intake deltas": "reported per arm, not graded",
                 "L arms": "writes and attribution reported, not graded (each eat is a real intake save)"},
     "G": {"gc.log": "exists"},
@@ -702,6 +717,11 @@ def phase_SEED():
     P["additem"] = {u: rcon(f'additem "{u}" "{SEED_FOOD}" {SEED_EATS}', f"SEED_additem_{u}") for u in USERS}
     out["world_changes"]["left_in_place"].append(f"SEED: RCON additem {SEED_FOOD} x{SEED_EATS} to each player")
     time.sleep(SEED_SPAWN_WAIT_S)
+    # no client-side spawn fallback (review of 74e25743): a player whose RCON additem ack is not ok is skipped in every
+    # round, and the seed stops for all players as soon as an eat.action reply's spawned is anything but "found"
+    P["additem_ok"] = {u: P["additem"][u].get("ok") is True for u in USERS}
+    seed_users = [u for u in USERS if P["additem_ok"][u]]
+    P["skipped_players"] = [u for u in USERS if u not in seed_users]
     t_end = time.time() + SEED_CAP_S
     for k in range(SEED_EATS):
         if time.time() >= t_end or parked():
@@ -713,9 +733,15 @@ def phase_SEED():
         R["landed_before"] = base
         R["queued"] = {}
         for s in CLIENT_SIDES:
+            if who(s) not in seed_users:
+                R["queued"][who(s)] = {"skipped": "RCON additem ack not ok"}
+                continue
             q = keep(step(f"SEED{k}_eat_{who(s)}", s, "eat.action", f"{SEED_FOOD} 1"))
             R["queued"][who(s)] = {kk: q.get(kk) for kk in ("queued", "fraction", "spawned", "itemId", "validStart",
                                                              "maxTime", "raw")}
+            if q.get("spawned") != "found" and "stop_reason" not in P:
+                P["stop_reason"] = f"round {k}: {who(s)} eat.action spawned={q.get('spawned')!r}, not 'found'"
+                note("SEED: " + P["stop_reason"])
         want = sum(1 for u in USERS if R["queued"][u].get("queued"))
         end = min(time.time() + SEED_EAT_CAP_S, t_end)
         R["landed_after"] = base
@@ -729,6 +755,8 @@ def phase_SEED():
             time.sleep(POLL_S)
         R["wall"] = wall()
         P["rounds"].append(R)
+        if "stop_reason" in P:
+            break
     P["mono_after"] = mono("SEED_mono1")
     P["q"] = qread("SEED_q")
 
@@ -1059,7 +1087,9 @@ def grade_all():
           "writeMs": [d.get("writeMs") for d in draws], "intactMs": [d.get("intactMs") for d in draws],
           "bytes": [d.get("bytes") for d in draws], "mismatches": [d.get("mismatches") for d in draws],
           "failed": [d.get("failed") for d in draws], "save_ok": g(P, "save", "ok"), "clear_ok": g(P, "clear", "ok"),
-          "real_mean_bytes_per_save_at_P": (real_b / real_w) if (real_w and real_b is not None) else None,
+          # stats.bytes / stats.writes counts every store write, the slot saves and the index writes together: a mean
+          # bytes a store write, the index writes mixed in, not a mean bytes a slot save
+          "real_mean_bytes_per_store_write_at_P": (real_b / real_w) if (real_w and real_b is not None) else None,
           "real_writes_at_P": real_w,
           "store_writes_across_P": [q0.get("store.file.stats.writes"), q1.get("store.file.stats.writes")],
           "index_keys_across_P": [q0.get("index_keys"), q1.get("index_keys")]}
@@ -1193,18 +1223,28 @@ def grade_all():
             grade(k, PRED[k], None, "unmeasured", "no loaded arm")
     every = [t for t in ("I", "Lidle", "Lburst", "Lmod", "Gmod") if t in S]
     car_arms = [t for t in ("I", "Gmod") if t in S]      # the L arms' eats are real intake saves: reported only
+    # the grade allows for intake landings (review of 74e25743): a late seed eat landing inside an arm marks the slot
+    # dirty and may add one save per player, so the grade is writes_delta <= allowance + the arm's intake.stats.landed
+    # delta; the plain allowance comparison stays beside it as a reported reading (over_plain_allowance)
     car = {t: {"writes_delta": g(S, t, "seam", "writes_delta"), "allowance": g(S, t, "seam", "allowance"),
                "span_s": g(S, t, "seam", "span_s"), "attribution": g(S, t, "seam", "attribution"),
                "minutes_delta": delta(ph.get(t) or {}, "minutes")} for t in car_arms}
+    for r in car.values():
+        r["intake_landed_delta"] = (r["attribution"] or {}).get("intake.stats.landed")
+        r["allowance_with_intake"] = (r["allowance"] + (r["intake_landed_delta"] or 0)) \
+            if r["allowance"] is not None else None
+        r["over_plain_allowance"] = (r["writes_delta"] > r["allowance"]) \
+            if r["writes_delta"] is not None and r["allowance"] is not None else None
     S["writes_L"] = {t: {"writes_delta": g(S, t, "seam", "writes_delta"), "allowance": g(S, t, "seam", "allowance"),
                          "attribution": g(S, t, "seam", "attribution")} for t in every if t not in car_arms}
-    over = [t for t, r in car.items() if r["writes_delta"] is not None and r["allowance"] is not None
-            and r["writes_delta"] > r["allowance"]]
+    over = [t for t, r in car.items() if r["writes_delta"] is not None and r["allowance_with_intake"] is not None
+            and r["writes_delta"] > r["allowance_with_intake"]]
     unr = [t for t, r in car.items() if r["writes_delta"] is None or r["allowance"] is None]
     S["carrier"] = car
     grade("CARRIER", PRED["CARRIER"], car, "unmeasured" if not car or len(unr) == len(car) else
           ("as_predicted" if not over and not unr else "falsified"),
-          "an arm's writes above one save per real player a real minute plus the index", {"over": over, "unread": unr})
+          "an arm's writes above one save per real player a real minute plus the index plus its intake landings",
+          {"over": over, "unread": unr})
     S["rule6_table"] = {t: {"sched": g(S, t, "sched"), **(g(S, t, "rule6") or {}),
                             "adds_p99_endPeriod": g(S, t, "adds", "endPeriod", "p99"),
                             "adds_max_perf": g(S, t, "adds", "perf_max", "max")} for t in every}
@@ -1260,7 +1300,8 @@ def main():
                  "carrier_note": "Since 016dce05 H0.work restores the carrier's four vanilla macro stores after each "
                                  "ghost run and seeds the ghost record's reconcile baseline from them.",
                  "probe_note": "store.probe bench prices F.intact and F.write on a synthetic eight-double record's "
-                               "text (its bytes in the reply), not the encode F.save runs before them.",
+                               "text (its bytes in the reply), not the encode F.save runs before them: usPerWrite (and write+intact) is "
+                               "a lower bound on a real slot save, no encode, synthetic record (ruling T2-5).",
                  "cost_note": "Every server reading is cost, not behaviour: the ghosts run copies of the real records "
                               "against the two real IsoPlayers. The two real players stay on the mod's own drain.",
                  "timer_note": "getTimestampMs is 1 ms resolution: a frame's busy is a 1 ms reading; every per-run cost "
@@ -1274,7 +1315,8 @@ def main():
             "PROFILE x39-shootout-g, PREFIX x391g, ARTIFACT bench.json; the fixture's DayLength and no time.multiplier "
             "call.",
             "Phases B, W, FC and ST dropped (x391e read them); P (the slot-save price), I (x391d's idle arm) and part 3 "
-            "(x391b's seed and x391d's mod arm, if wall <= PART3_LATEST_S) added.",
+            "(x391b's seed and x391d's mod arm, if wall <= PART3_LATEST_S) added; x391e's load_arm and unload_arm are "
+            "inlined in make_lat, with identical behaviour.",
             "SETTLE_S 5.0 (x391e's 3.0 was five minute events at DayLength 1).",
             "Every arm's adds against I, not Lidle (Lidle carries an eat).",
             "HARNESS_COMMIT 016dce05 recorded and HARNESS_MARKERS asserted before the boot; git log 513778e8..HEAD -- "
@@ -1369,11 +1411,17 @@ def main():
         out["meta"]["deployed_harness_markers"] = dm
         mem("ready")
         persist()
-        try:
-            body()
-        except Exception as e:                     # noqa: BLE001 - keep the rows already collected
-            out["body_error"], out["body_traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
-            tl.mark("error", detail=str(e)[:200])
+        # the deployed copy must hold the carrier-restore wrapper (review of 74e25743): abort before body() otherwise
+        if not dm or not all(v is True for v in dm.values()):
+            out["abort"] = f"the deployed PZTestKit_Server.lua lacks the carrier-restore markers of {HARNESS_COMMIT}: {dm!r}"
+            tl.mark("error", detail=out["abort"][:200])
+            print(out["abort"])
+        else:
+            try:
+                body()
+            except Exception as e:                 # noqa: BLE001 - keep the rows already collected
+                out["body_error"], out["body_traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
+                tl.mark("error", detail=str(e)[:200])
         persist()
     except Exception as e:                         # noqa: BLE001
         out["error"], out["traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]

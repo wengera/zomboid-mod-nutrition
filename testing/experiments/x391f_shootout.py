@@ -59,8 +59,10 @@ carriers' moving macros and the real players saved their slot at every minute ev
 On the clean carrier the real players' slot saves come back to the store's own gate: in EVERY arm (idle included),
 the store's writes delta from the window's start to its end is at most REALS x (floor(span / 60) + 1) +
 floor(span / 300) + 1 (one save per real player a real minute, S.SAVE_GAP_MS 60000, plus the index, S.INDEX_GAP_MS
-300000). A rise above it in any arm falsifies CARRIER. reconcile.stats.landed and the intake counters' deltas are
-reported beside it per arm (the attribution), not graded.
+300000), plus one save per intake landing in that arm (a late seed eat landing inside an arm marks the slot dirty and
+may add one save per player; the grade is writes_delta <= allowance + the arm's intake.stats.landed delta, the plain
+allowance comparison reported beside it). A rise above it in any arm falsifies CARRIER. reconcile.stats.landed and the
+intake counters' deltas are reported beside it per arm (the attribution), not graded.
 
 THE BATCHING DIFFERS (as x391d): the mod and spread arms run ghosts one at a time from the mod's own P.runOne,
 interleaved with the real players, and keep one batch open across a drain's contiguous ghost runs (H0.modRun,
@@ -103,7 +105,8 @@ DEVIATIONS from x391d_shootout.py (stated before the run):
      rotation (mod2, spr1b, spr15b) is DROPPED: x391d's seven arms ran 948.6 s of wall unseeded, and x391b's seed
      phase took 59 s, so the brief's seven arms plus the seed would run about 1010 s, past the 15-minute bound
      (CLAUDE.md s5); one rotation runs about 680 s. ARMS_FULL keeps the brief's order; ROTATIONS = 1 cuts it.
-     The pairs are single draws.
+     The pairs are single draws. If a spread-vs-mod pair comes back split or within 10 % of a threshold, a second
+     rotation runs as its own session x391h (ruling T2-4).
   3. The spread arms take their k from ARM_K per tag (x391d had one SPREAD_K); SMOKE checks sched.arm's echoed k.
   4. ALT, SUBJECTS, REFS and PAIRS: subjects mod1, spr1a, spr15a; reference mod1; pairs spr1a/mod1, spr15a/mod1.
   5. The multiplier reads (MULT): the M reply parsed into mult and eff; time.snapshot at S0 and before each arm's
@@ -113,6 +116,10 @@ DEVIATIONS from x391d_shootout.py (stated before the run):
      looked for in the deployed copy, recorded); `git log 513778e8..HEAD -- mod/` must be empty before the boot.
   8. The server-log greps and the mod-error filter also exclude PROBE_RX (this driver's own probe and command names),
      beside the bus's echo prefix (CLAUDE.md s5).
+
+Pre-run edits made after the review of 74e25743 (nothing has run): CARRIER allows for intake landings; the seed
+skips a player whose RCON additem ack is not ok and stops on an eat.action `spawned` other than "found"; ruling
+T2-4's second-rotation trigger is stated; the deployed harness markers are asserted before body().
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
@@ -263,8 +270,10 @@ PRED = {
     "SEAM": {"store writes delta a loaded arm": "<= REALS*(minute events+1) + floor(span/300) + 1 (x391d's void rule)",
              "store index keys": "unchanged", "storeGhostKeys": 0},
     "CARRIER": {"every arm, idle included, store writes delta (window start to end)":
-                "<= REALS*(floor(span/60)+1) + floor(span/300) + 1: at most one save per real player a real minute "
-                "on the clean carrier; a rise above it falsifies the harness fix",
+                "<= REALS*(floor(span/60)+1) + floor(span/300) + 1 + the arm's intake.stats.landed delta: at most "
+                "one save per real player a real minute on the clean carrier, plus one per intake landing (a late "
+                "seed eat landing inside an arm marks the slot dirty and may add one save per player); a rise above "
+                "it falsifies the harness fix. The plain allowance comparison is reported beside it (over_plain_allowance)",
                 "reconcile.stats.landed and intake deltas": "reported per arm, not graded"},
     "P99": {"every subject draw endPeriod p99 add": f"<= {RULE_P99}"},
     "MAX": {"every subject draw perf max add": f"<= {RULE_MAX}"},
@@ -648,6 +657,11 @@ def phase_SEED():
     P["additem"] = {u: rcon(f'additem "{u}" "{SEED_FOOD}" {SEED_EATS}', f"SEED_additem_{u}") for u in USERS}
     out["world_changes"]["left_in_place"].append(f"SEED: RCON additem {SEED_FOOD} x{SEED_EATS} to each player")
     time.sleep(SEED_SPAWN_WAIT_S)
+    # no client-side spawn fallback (review of 74e25743): a player whose RCON additem ack is not ok is skipped in every
+    # round, and the seed stops for all players as soon as an eat.action reply's spawned is anything but "found"
+    P["additem_ok"] = {u: P["additem"][u].get("ok") is True for u in USERS}
+    seed_users = [u for u in USERS if P["additem_ok"][u]]
+    P["skipped_players"] = [u for u in USERS if u not in seed_users]
     t_end = time.time() + SEED_CAP_S
     for k in range(SEED_EATS):
         if time.time() >= t_end or parked():
@@ -659,9 +673,15 @@ def phase_SEED():
         R["landed_before"] = base
         R["queued"] = {}
         for s in CLIENT_SIDES:
+            if who(s) not in seed_users:
+                R["queued"][who(s)] = {"skipped": "RCON additem ack not ok"}
+                continue
             q = keep(step(f"SEED{k}_eat_{who(s)}", s, "eat.action", f"{SEED_FOOD} 1"))
             R["queued"][who(s)] = {kk: q.get(kk) for kk in ("queued", "fraction", "spawned", "itemId", "validStart",
                                                              "maxTime", "raw")}
+            if q.get("spawned") != "found" and "stop_reason" not in P:
+                P["stop_reason"] = f"round {k}: {who(s)} eat.action spawned={q.get('spawned')!r}, not 'found'"
+                note("SEED: " + P["stop_reason"])
         want = sum(1 for u in USERS if R["queued"][u].get("queued"))
         end = min(time.time() + SEED_EAT_CAP_S, t_end)
         R["landed_after"] = base
@@ -675,6 +695,8 @@ def phase_SEED():
             time.sleep(POLL_S)
         R["wall"] = wall()
         P["rounds"].append(R)
+        if "stop_reason" in P:
+            break
     P["mono_after"] = mono("SEED_mono1")
     P["q"] = qread("SEED_q")
 
@@ -1048,16 +1070,23 @@ def grade_all():
           {"void_arms": voids, "unread_arms": unread})
     # the seam check on the fixed carrier (CARRIER): every arm, idle included, at most one save per real player a real
     # minute plus the index, with the write attribution reported beside it
+    # the grade allows for intake landings (review of 74e25743): a late seed eat landing inside an arm marks the slot
+    # dirty and may add one save per player, so the grade is writes_delta <= allowance + the arm's intake.stats.landed
+    # delta; the plain allowance comparison stays beside it as a reported reading (over_plain)
     car = {t: {"writes_delta": g(S, t, "seam", "writes_delta"), "allowance": g(S, t, "seam", "allowance"),
                "span_s": g(S, t, "seam", "span_s"), "attribution": g(S, t, "seam", "attribution"),
                "minutes_delta": delta(ph.get(t) or {}, "minutes")} for t in every}
-    over = [t for t, r in car.items() if r["writes_delta"] is not None and r["allowance"] is not None
-            and r["writes_delta"] > r["allowance"]]
+    for r in car.values():
+        r["intake_landed_delta"] = (r["attribution"] or {}).get("intake.stats.landed")
+        r["allowance_with_intake"] = (r["allowance"] + (r["intake_landed_delta"] or 0))             if r["allowance"] is not None else None
+        r["over_plain_allowance"] = (r["writes_delta"] > r["allowance"])             if r["writes_delta"] is not None and r["allowance"] is not None else None
+    over = [t for t, r in car.items() if r["writes_delta"] is not None and r["allowance_with_intake"] is not None
+            and r["writes_delta"] > r["allowance_with_intake"]]
     unr = [t for t, r in car.items() if r["writes_delta"] is None or r["allowance"] is None]
     S["carrier"] = car
     grade("CARRIER", PRED["CARRIER"], car, "unmeasured" if not car or len(unr) == len(car) else
           ("as_predicted" if not over and not unr and len(car) == len(ARMS) else "falsified"),
-          "an arm's writes above one save per real player a real minute plus the index",
+          "an arm's writes above one save per real player a real minute plus the index plus its intake landings",
           {"over": over, "unread": unr})
     # the multiplier reads (MULT): mult graded, eff recorded only
     mp = g(ph, "M", "mult_parsed") or {}
@@ -1193,7 +1222,8 @@ def main():
             "eat.action).",
             "Arms idle, mod1, spr1a (k 1), spr15a (k 1.5), each 85 s as x391d; the second rotation (mod2, spr1b, spr15b) "
             "dropped for the 15-minute bound (x391d's seven arms ran 948.6 s unseeded, x391b's seed took 59 s): the "
-            "pairs are single draws.",
+            "pairs are single draws; if a spread-vs-mod pair comes back split or within 10 % of a threshold, a second rotation "
+            "runs as its own session x391h (ruling T2-4).",
             "The spread arms take k from ARM_K per tag; SMOKE checks sched.arm's echoed k.",
             "Subjects mod1, spr1a, spr15a; reference mod1; pairs spr1a/mod1, spr15a/mod1.",
             "MULT: the M reply parsed into mult and eff; time.snapshot at S0 and before each arm's load recorded as mult "
@@ -1292,11 +1322,17 @@ def main():
         out["meta"]["deployed_harness_markers"] = dm
         mem("ready")
         persist()
-        try:
-            body()
-        except Exception as e:                     # noqa: BLE001 - keep the rows already collected
-            out["body_error"], out["body_traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
-            tl.mark("error", detail=str(e)[:200])
+        # the deployed copy must hold the carrier-restore wrapper (review of 74e25743): abort before body() otherwise
+        if not dm or not all(v is True for v in dm.values()):
+            out["abort"] = f"the deployed PZTestKit_Server.lua lacks the carrier-restore markers of {HARNESS_COMMIT}: {dm!r}"
+            tl.mark("error", detail=out["abort"][:200])
+            print(out["abort"])
+        else:
+            try:
+                body()
+            except Exception as e:                 # noqa: BLE001 - keep the rows already collected
+                out["body_error"], out["body_traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
+                tl.mark("error", detail=str(e)[:200])
         persist()
     except Exception as e:                         # noqa: BLE001
         out["error"], out["traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
