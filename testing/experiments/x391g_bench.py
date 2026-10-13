@@ -742,7 +742,8 @@ def phase_SEED():
             if q.get("spawned") != "found" and "stop_reason" not in P:
                 P["stop_reason"] = f"round {k}: {who(s)} eat.action spawned={q.get('spawned')!r}, not 'found'"
                 note("SEED: " + P["stop_reason"])
-        want = sum(1 for u in USERS if R["queued"][u].get("queued"))
+                break   # the stop is immediate: no further eat.action this round (re-review of 612f1acf)
+        want = sum(1 for u in USERS if R["queued"].get(u, {}).get("queued"))
         end = min(time.time() + SEED_EAT_CAP_S, t_end)
         R["landed_after"] = base
         while time.time() < end and want > 0 and base is not None:
@@ -1169,7 +1170,8 @@ def grade_all():
     if ma:
         ns = {u: g(ma, u, "n") for u in USERS}
         ok = all(n is not None and n >= 1 for n in ns.values())
-        grade("SEED", PRED["SEED"], {"n": ns, "rounds": len(sd.get("rounds") or [])},
+        grade("SEED", PRED["SEED"], {"n": ns, "rounds": len(sd.get("rounds") or []), "stop_reason": sd.get("stop_reason"),
+                                   "skipped_players": sd.get("skipped_players"), "additem_ok": sd.get("additem_ok")},
               "as_predicted" if ok else "falsified", "a record without the seed food's monotony entry")
     else:
         grade("SEED", PRED["SEED"], {"part3": out.get("part3")}, "unmeasured", "part 3 not run or no seed read")
