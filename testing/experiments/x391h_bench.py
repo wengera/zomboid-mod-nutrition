@@ -132,7 +132,11 @@ the run:
       both must be ancestors of HEAD.
   11. D11: part 3 (SEED and Gmod, x391f measured the seeded mod arm at the normal clock) dropped, with its constants
       and the SEED and GMOD verdicts; F and CARRIER read I only; S and SEAM read Lburst and Lmod.
-  12. S0 adds a ping; Z's mult read and every arm's are as x391g's.
+  12. S0 adds a ping; Z's mult read and every arm's are as x391g's. PROBE_RX also excludes `item.get`.
+  13. Pre-run edits made after the review of a77e3f3b: an L arm is void with a leftover apple before its spawn; the L
+      arms' landed poll and apple2 read moved after ring_read and perf_read (so no server bus command falls inside
+      the frame window; drop_windows unchanged); PROBE is falsified on a failed save with a live bus; a standalone
+      ping with no pong sets the bus dead; Z takes its local readings before its server steps.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
@@ -418,7 +422,16 @@ def ping(tag):
     if bus["dead"]:
         return False
     r = step(tag, SRV, "ping", timeout=PING_TIMEOUT_S, liveness=False)
-    return r.get("ack") == "pong"
+    if r.get("ack") == "pong":
+        return True
+    if not bus["dead"]:
+        # pre-run edit 4: a standalone ping with no pong sets the bus dead, as the stall path does
+        bus["dead"] = tag
+        out["abort"] = f"server bus dead after {tag}"
+        note(out["abort"])
+        if tl is not None:
+            tl.mark("error", detail=out["abort"][:200])
+    return False
 
 
 def step(name, side, cmd, args="", timeout=30, liveness=True):
@@ -556,6 +569,7 @@ def grade(phase, predicted, observed, verdict, falsifier, extra=None):
 def run_phase(name, fn):
     cur_phase["name"] = name
     out["phase_walls"][name] = {"start": wall()}
+    bus_was_dead = bus["dead"]
     try:
         fn()
     except BusDead as e:
@@ -565,6 +579,8 @@ def run_phase(name, fn):
         out["phase_errors"][name] = {"error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-3000:]}
         tl.mark("error", phase=name, detail=str(e)[:200])
         note(f"phase {name} raised: {type(e).__name__}: {e}")
+    if bus["dead"] and not bus_was_dead and not out["phase_walls"][name].get("bus_dead"):
+        out["phase_walls"][name]["bus_dead"] = f"server bus dead after {bus['dead']}"     # pre-run edit 4
     out["phase_walls"][name]["end"] = wall()
     persist()
 
@@ -802,10 +818,12 @@ def make_lat(tag, sched):
             A["additem"] = rcon(f'additem "admin" "{LAT_FOOD}" {LAT_N}', f"{tag}_additem")
             time.sleep(SPAWN_WAIT_S)
             A["apple_after_spawn"] = apple(f"{tag}_apple1")
-            A["apples_confirmed"] = A["apple_after_spawn"].get("id") is not None
             A["apple_leftover_before"] = A["apple_before"].get("id") is not None
+            A["apples_confirmed"] = A["apple_after_spawn"].get("id") is not None and not A["apple_leftover_before"]
             if not A["apples_confirmed"]:
-                note(f"{tag}: the server holds no {LAT_FOOD} after the spawn; the arm is not armed (void)")
+                A["void_reason"] = ("a leftover " + LAT_FOOD + " before the spawn (the spawn is unproven)"
+                                    if A["apple_leftover_before"] else "no " + LAT_FOOD + " after the spawn")
+                note(f"{tag}: {A['void_reason']}; the arm is not armed (void)")
                 return
             A["foodtimer"] = keep(step(f"{tag}_foodtimer", SRV, "foodtimer.set", "admin 0"))
             A["q_start"] = qread(f"{tag}_q_start")
@@ -818,6 +836,9 @@ def make_lat(tag, sched):
             A["lat"] = lat_read(tag, LAT_CAP_S)
             A["window_end_wall"] = wall()
             after = time.time() - 1.0
+            A["perf_read"] = keep(step(f"{tag}_perf_read", SRV, "perf.local", f"read {tag}"))
+            A["ring_read"] = keep(step(f"{tag}_ring_read", SRV, "tick.ring", f"read {tag}"))
+            # pre-run edit 2: the landed poll and apple2 read run after the frame window's reads
             # D9: the eats' landings on the server, polled until +LAT_N or LAND_WAIT_S
             base, cur, polls = A["landed_before"], None, 0
             end = time.time() + LAND_WAIT_S
@@ -830,8 +851,6 @@ def make_lat(tag, sched):
             A["landed_after"], A["landed_polls"] = cur, polls
             A["landed_delta"] = (cur - base) if (cur is not None and base is not None) else None
             A["apple_after_eats"] = apple(f"{tag}_apple2")
-            A["perf_read"] = keep(step(f"{tag}_perf_read", SRV, "perf.local", f"read {tag}"))
-            A["ring_read"] = keep(step(f"{tag}_ring_read", SRV, "tick.ring", f"read {tag}"))
             if sched is not None:
                 A["stats"] = keep(step(f"{tag}_stats", SRV, "ghost.stats"))
             A["q_end"] = qread(f"{tag}_q_end")
@@ -861,17 +880,18 @@ def phase_NF():
 def phase_Z():
     P = out["phases"]["Z"] = {}
     P["bus_dead"] = bus["dead"]
+    # pre-run edit 5: the local readings come first, so a BusDead inside Z keeps them
+    errs = [str(e) for e in (server.errors if server is not None else [])]
+    P["server_mod_error_lines"] = [e[:400] for e in errs if MOD_ERR_RX.search(e) and not ECHO_RX.search(e)
+                                   and not PROBE_RX.search(e)][:20]
+    P["admin_parked"] = parked()
+    P["mem"] = mem("Z")
     P["stop_left"] = keep(step("Z_stop", SRV, "ghost.stop"))
     P["modq_off"] = keep(step("Z_modq_off", SRV, "ghost.modq", "off"))
     P["players"] = keep(step("Z_players", SRV, "players"))
     P["time"] = snap("Z_time")
     P["mult"] = mread("Z_mult")
     P["q"] = qread("Z_q")
-    errs = [str(e) for e in (server.errors if server is not None else [])]
-    P["server_mod_error_lines"] = [e[:400] for e in errs if MOD_ERR_RX.search(e) and not ECHO_RX.search(e)
-                                   and not PROBE_RX.search(e)][:20]
-    P["admin_parked"] = parked()
-    P["mem"] = mem("Z")
 
 
 def body():
@@ -1206,6 +1226,8 @@ def grade_all():
     S["probe"] = pr
     if phase_dead("P"):
         grade("PROBE", PRED["PROBE"], pr, "void", "the server bus died inside P")
+    elif pr["save_ok"] is False:
+        grade("PROBE", PRED["PROBE"], pr, "falsified", "the roundtrip save failed on a live bus")
     elif not draws:
         grade("PROBE", PRED["PROBE"], pr, "unmeasured", "no bench draw")
     else:
@@ -1464,6 +1486,10 @@ def main():
             "D11: part 3 (SEED and Gmod) dropped with its constants and verdicts; F and CARRIER read I only; S and "
             "SEAM read Lburst and Lmod.",
             "S0 adds a ping; PROBE_RX also excludes item.get.",
+            "Pre-run edits after the review of a77e3f3b: an L arm is void with a leftover apple before its spawn; the "
+            "landed poll and apple2 read moved after ring_read and perf_read (drop_windows unchanged); PROBE "
+            "falsified on a failed save with a live bus; a standalone ping with no pong sets the bus dead; Z takes "
+            "its local readings before its server steps.",
         ],
         "world_changes": {"restored": "fixture two restored into the run dir (server and both client caches)",
                           "left_in_place": []},
