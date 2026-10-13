@@ -1,0 +1,39 @@
+# testing/profiles/x36-gut.toml - Plan 11g Task 8 (runs x361..x364): the live checks of the final satiety and deficit
+# model (the meal pool M fed at the eat, F to the hard capacity, the physical and food fills, the deficit drive at
+# BALANCE_SPAN 3970.55, the energy class held within ENERGY_BAND and carried by the mirror as body_energyLevel), one
+# driver a session, each on a fresh fixture restore.
+# PZTestKit + the STAGED copy of the tree at HEAD (release/x36-gut/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged fresh before each session with `python tools/release_pack.py stage mod/NutritionRevamp --out release/x36-gut`;
+# release/ is gitignored; mod/ is never booted; each run records the MANIFEST sha) + TKX_StudyFoods by its path.
+# Build 42.21.0 (4a0e9546ec); fixture default (admin, -debug). Sleep stays off (the fixture's false/false), so the
+# record's sleep state is frozen and the sleep factor inert (#2961); the replay takes sleep_allowed false.
+# The drivers are testing/experiments/x361_*.py .. x364_*.py on testing/experiments/x36_gut_lib.py.
+# The verify rows are load gates only: the mod's version on both sides and the study food's script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x36-gut) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - the Plan 11g Task 8 live checks: two meal time courses, a surplus day, a drink against a meal, the energy class across a fast."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x36-gut/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1 (6.27 ticks, x222)
