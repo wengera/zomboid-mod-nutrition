@@ -5,7 +5,7 @@
 The first release, for game build 42.21 and newer (`versionMin=42.21`, no maximum). Every script and Lua file is new, so this release is a server event: install it on the server first, then on clients. Every later code release changes a Lua file and is a server event too. The operator guide is `README.md`; the neighbour table is `COMPATIBILITY.md`.
 
 - **Managed and Overlay:** in Managed mode (the default) vanilla's hunger, thirst and fatigue rates are set to zero at server start and the mod writes those stats once a game minute; in Overlay vanilla's stats stand and the mod writes only its effects. The mode is read at start.
-- **Nutrients beyond the macros:** 27 tracked nutrients and substances, each with its requirement and its deficiency and excess steps, absorbed through a stomach that empties over time.
+- **Nutrients beyond the macros:** 27 tracked nutrients and substances, most with a daily requirement and steps of deficiency and excess, absorbed through a stomach that empties over time.
 - **Re-based foods:** 522 vanilla foods' calories and macros re-based on published food-composition data, with a per-food nutrient table, an estimate for unmapped foods and a declared-nutrient key for other mods' foods.
 - **Satiety from physiology:** hunger from the stomach's fullness, a pool of recently eaten energy and the energy-deficit drive, shaped by the time of day, hard exercise, sleep debt and nicotine withdrawal; an Overfull moodle past a comfortable stomach.
 - **Thirst:** a body water pool with sodium and potassium, sweat and basic losses.

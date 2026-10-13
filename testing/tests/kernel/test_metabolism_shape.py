@@ -913,7 +913,7 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "dial) read the previous minute" + chr(39) + "s record sub-tables (a one-minute lag; the pipeline" + chr(39) + "s "
             "ORDER runs the nutrients step after this one)") in lim
     assert not any("held neutral" in x for x in lim)
-    assert "the drain coefficient is stamped and unapplied until Plan 5" in lim
+    assert "the drain coefficient is stamped and mirrored and drives no stat write" in lim
     assert ("a climb is credited when the minute sample lands inside the climb state; short climbs are "
             "missed") in lim
     assert ("the MET-minute bank is mirrored for the panel and feeds no coefficient; the aerobic dose is the "

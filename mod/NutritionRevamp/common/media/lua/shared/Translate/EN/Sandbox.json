@@ -14,7 +14,7 @@
     "Sandbox_NR_OnsetSpeed": "Deficiency onset speed",
     "Sandbox_NR_OnsetSpeed_tooltip": "Multiplies how fast the slow deficiencies develop and recover: the nutrients that take more than 90 days to reach a clinical deficiency at zero intake, such as folate, vitamins B12, A and D, iodine and magnesium. 1.0 is real time; 30 makes a slow deficiency thirty times faster. Vitamin C, the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never scaled.",
     "Sandbox_NR_DeficienciesCanKill": "Deficiencies can kill",
-    "Sandbox_NR_DeficienciesCanKill_tooltip": "On: the most severe states drain health until they are treated or the character dies: starvation with the fat reserves gone, long clinical scurvy, beriberi or pellagra, severe dehydration or low blood sodium, and an iron overdose. Off: they never drain health. Hunger and thirst never reach vanilla's lethal top level either way.",
+    "Sandbox_NR_DeficienciesCanKill_tooltip": "On: the most severe states drain health until they are treated or the character dies: starvation with the fat reserves gone, long clinical scurvy, beriberi or pellagra, severe dehydration or low blood sodium, and an iron overdose. Off: they never drain health. In Managed mode, hunger and thirst never reach vanilla's lethal top level either way.",
     "Sandbox_NR_ExcessEffectsOn": "Excess effects",
     "Sandbox_NR_ExcessEffectsOn_tooltip": "On: an intake above a nutrient's upper limit raises that nutrient's excess level. Off: every excess level reads zero, while the intake is still tracked.",
     "Sandbox_NR_BalanceBonus": "Balanced-diet bonus",

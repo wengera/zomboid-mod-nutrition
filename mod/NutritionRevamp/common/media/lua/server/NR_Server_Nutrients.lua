@@ -50,7 +50,7 @@ NR.server.nutrients = {
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
-        "Plan 4 writes no stat, moodle or health; INTOXICATION and FATIGUE are vanilla's until Plan 5",
+        "this step writes no stat, moodle or health; the writer owns the stat writes (INTOXICATION and FATIGUE included) and the effects layer the health writes",
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (ruling T17-2; S1102 open): a drink with a meal peaks as early as one on an empty stomach",
         "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying (ruling T17-1): two meals in the buffer act as one meal, and the inhibition eases as the buffer empties",
         "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",

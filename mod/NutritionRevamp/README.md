@@ -33,7 +33,7 @@ Every option sits on the sandbox page `Nutrition Revamp` under the prefix `NR`.
 | `NR.OnsetSpeed` | 1.0 (0.5 to 30) | Multiplies how fast the slow deficiencies develop and recover (the nutrients that take more than 90 days to reach a clinical deficiency). 1.0 is real time. Vitamin C, the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never scaled. |
 | `NR.DeficienciesCanKill` | true | On: the most severe states drain health until treated: starvation with the fat reserves gone, long clinical scurvy, beriberi or pellagra, severe dehydration or low blood sodium, and an iron overdose. Off: they never drain health. |
 | `NR.ExcessEffectsOn` | true | On: an intake above a nutrient's upper limit raises that nutrient's excess level. Off: every excess level reads zero; intake is still tracked. |
-| `NR.BalanceBonus` | true | On: while every tracked nutrient is replete, endurance regeneration and fatigue recovery run 5 percent faster. A game choice. |
+| `NR.BalanceBonus` | true | On: while every tracked nutrient is replete, endurance regeneration during sleep and fatigue recovery run 5 percent faster. A game choice. |
 | `NR.Severity` | 1.0 (0 to 3) | Scales every penalty a deficiency or an excess brings. 0 removes them all except the health drains, which `NR.DeficienciesCanKill` controls. Short Sighted needs 1.0 or more. |
 | `NR.VisibilityMode` | 2 (Bands) | How much each player's interface shows: 1 Symptoms, 2 Bands, 3 Numbers. A character with the Nutritionist trait sees Numbers whatever the option. |
 | `NR.RecordKeepDays` | 30 (0 to 3650) | A player's nutrition record is dropped after this many real days without the player online; a returning player then starts a fresh record, and the vanilla character is untouched. 0 keeps every record. Counted in real time, because game days pass at each server's own speed. |
@@ -103,7 +103,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Heavy work the model does not class as vigorous raises hunger more than heavy labour does in studies.
 - A resting fast's hunger drive levels off after about a day and a half; it climbs further only as fat is burned.
 - Heat does not lower appetite (cold reaches hunger through the extra energy it costs), and an injury costs no extra energy.
-- Short sleep raises hunger by a capped factor. The rise steps in once a day, at the close of the sleep window, not on waking, so a short night that crosses that close raises hunger in two steps a day apart. After a short night, nights of exactly the needed length repay nothing, so the rise holds until a longer night.
+- Short sleep raises hunger by a capped factor. The rise steps in once a day, when the mod's 24-hour sleep tally closes, not on waking, so a short night that crosses that close raises hunger in two steps a day apart. After a short night, nights of exactly the needed length repay nothing, so the rise holds until a longer night.
 - Right at the end of hard exercise, hunger reads lower than studies show.
 - On a generous diet, hunger dips less after meals than in the overfeeding study the model was checked against.
 - Every Fitness set counts as hard resistance work for the brief hunger dip, whatever the exercise.
@@ -151,7 +151,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Omega-3 drives no mood effect. Liver glycogen is not modelled. Potassium does not count toward refeeding risk.
 - Movement speed and aiming effects are computed but not applied, because the game resets them.
 - Toxicity shows as food sickness, never as poison.
-- Hunger and thirst never show the top-level Hungry and Thirsty moodles.
+- In Managed mode, hunger and thirst never reach the top-level Hungry and Thirsty moodles.
 - A trait the mod gives or takes reaches the player at once, but other players see the change only after a reconnect.
 - The body-temperature effects are not calibrated against the body's own regulation, and at rest a small cooling effect does not act.
 - A Night Vision or Short Sighted trait the character already had is never removed.
