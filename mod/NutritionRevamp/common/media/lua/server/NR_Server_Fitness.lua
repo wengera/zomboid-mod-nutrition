@@ -38,7 +38,7 @@ NR.server.fitness = {
     absentNoted = false,
     limitations = {
         "the exercise type is the one the client sent for the set (vanilla trusts the same string for the reps and XP); a set the wrapper did not see start (a reconnect mid-set, a boot mid-set, another mod that replaces ISFitnessAction.serverStart without calling the original) or a modded exercise with no EXERCISE_MET entry bills the flat Fitness class (6.0), counted in the metabolism stats' exeFallbacks",
-        "a set the client abandons without a stop (another mod, a modified client) keeps the server's exercise flag set, as vanilla's server keeps the set running, and bills its type until the client disconnects; no set is capped at its asked length (ruling T4-1)",
+        "a set the client abandons without a stop (another mod, a modified client) keeps the server's exercise flag set, as vanilla's server keeps the set running, and bills its type until the client disconnects; no set is capped at its asked length",
     },
 }
 local FIT = NR.server.fitness

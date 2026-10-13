@@ -790,7 +790,7 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
         assert needle in joined, needle
     # ruling T16-1: the sleep-onset latency terms ship unapplied
     assert ("the sleep-onset latency terms (solAddH, solMul) are stamped and unapplied: under the hybrid vanilla sets "
-            "the sleep delay (Plan 11)") in lims
+            "the sleep delay") in lims
     assert any("the cold fold" in s and "X105" in s and "0.1 gate" in s for s in lims)
     assert any("melee swings would drain scaled by dmod" in s and "shipped, they are unscaled" in s for s in lims)
     assert any("X81" in s and "0.45 °C under the set point (x161b)" in s for s in lims)

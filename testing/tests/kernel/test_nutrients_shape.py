@@ -951,9 +951,9 @@ def test_cold_retinol_and_the_sleep_term_are_fed(nut_host):
 
 def test_limitations_name_the_fix_wave(nut_host):
     lims = list(NUT(nut_host).limitations.values())
-    assert "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (ruling T17-2; S1102 open): a drink with a meal peaks as early as one on an empty stomach" in lims
-    assert "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying (ruling T17-1): two meals in the buffer act as one meal, and the inhibition eases as the buffer empties" in lims
-    assert "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake" in lims
+    assert "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (S1102 open): a drink with a meal peaks as early as one on an empty stomach" in lims
+    assert "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying: two meals in the buffer act as one meal, and the inhibition eases as the buffer empties" in lims
+    assert "a sleep bout tolerates awake gaps under 10 game minutes (S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake" in lims
 
 
 def test_limitations_name_the_close_fix_wave(nut_host):
@@ -964,7 +964,7 @@ def test_limitations_name_the_close_fix_wave(nut_host):
     assert "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)" in lims
     assert "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed" in lims
     assert "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water" in lims
-    assert "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %" in lims
+    assert "the fat factor reads the stomach buffer's lipids before each minute's emptying: it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %" in lims
     assert not any("the ingested vector is empty" in x for x in lims)   # the stale Task 12 string is gone
 
 
@@ -1235,7 +1235,7 @@ def test_the_file_loads_with_no_engine_and_names_no_stat_write():
 def test_limitations_name_the_sweat_sodium_adaptation(nut_host):
     # Plan 11f Task 5b fix 3 (candidate C-14): the sweat side adapts to a deficit only
     lims = list(NUT(nut_host).limitations.values())
-    assert "sweat sodium adapts to a sodium deficit, not to heat exposure alone (Plan 11f Task 5b fix 3): the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration here although S1755, S1739 and S1743 fall without a known deficit, no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)" in lims
+    assert "sweat sodium adapts to a sodium deficit, not to heat exposure alone: the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration here although S1755, S1739 and S1743 fall without a known deficit, no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)" in lims
 
 
 # --- the alcohol-fasting glucose clock's fed gate reads the food fill (Plan 11g Task 6c fix 1, ruling T6c-1) ---

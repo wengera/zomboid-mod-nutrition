@@ -766,7 +766,7 @@ end
 -- The cap: readWorldBefore lands min(step, source, waterUnit - action.nrLanded); nrLanded is a field on the
 -- vanilla action object for its lifetime, never on the record.
 -- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (stated
--- here; the takeover's respawn limitation named only stomachFill); if the slow clock never clears autoDrop for a
+-- here); if the slow clock never clears autoDrop for a
 -- player (a repeated raise), auto-drink stays skipped for that player -- the heal is Plan 8's.
 
 -- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no
