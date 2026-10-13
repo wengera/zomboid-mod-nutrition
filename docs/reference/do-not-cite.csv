@@ -21695,3 +21695,235 @@ x391g-20261013-115700,summaries.carrier,graded or summarised on the frozen bus,"
 x391g-20261013-115700,summaries.rule6_table,graded or summarised on the frozen bus,"Taken after bus command 15, with the server's main loop frozen in the store probe's %.17g format (the guide): a timeout, a null or a value graded on them, not a reading of the game.",the guide
 x391g-20261013-115700,part3,the driver's part-3 decision,The driver's decision on its own wall clock (part 3 skipped at 2716.514 s past 660.0 s); not a reading.,
 x391g-20261013-115700,notes,the driver's notes,"The driver's own notes, timeouts on the frozen bus; the save's note drops the timeout's error and prints None (the diagnosis's D4).",`phases.P.save.error`
+x401-20261013-152929,session,the driver's text,Written before the run; not a reading.,
+x401-20261013-152929,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x401-20261013-152929,constants,the driver's constants,The driver's settings; not a reading.,
+x401-20261013-152929,deviations,the driver's deviation list,Written before the run; not a reading.,
+x401-20261013-152929,memory,host free memory rows,"Host state, not a game reading.",
+x401-20261013-152929,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`verdicts`
+x401-20261013-152929,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`verdicts`
+x401-20261013-152929,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`verdicts`
+x401-20261013-152929,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x401-20261013-152929,boot_info,boot facts of the run,"Boot and wall-clock stamps of the run, not a reading.",
+x401-20261013-152929,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x401-20261013-152929,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x401-20261013-152929,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x401-20261013-152929,budget,the wall budget's checks,"Driver wall seconds, not game state.",
+x401-20261013-152929,phases.S0.time.server.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.S0.time.admin.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.S0.time.bob.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[0].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[1].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[2].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[3].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[4].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[5].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[6].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[7].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[8].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[9].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[10].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[11].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[12].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[13].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[14].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[15].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[16].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[17].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[18].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.reads[19].mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.mult_before.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.mult_slow.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B1.mult_after.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B2.est.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B2.end.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B3.est.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B3.end.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B4.est.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.B4.end.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.PP.landed_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.PP.end_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.OF.intakes[0].eat.landed_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.OF.intakes[1].eat.landed_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.OF.mult_before.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.OF.mult_slow.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.OF.mult_after.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,phases.Z.time.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,session,the driver's text,Written before the run; not a reading.,
+x402a-20261013-153936,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x402a-20261013-153936,constants,the driver's constants,The driver's settings; not a reading.,
+x402a-20261013-153936,deviations,the driver's deviation list,Written before the run; not a reading.,
+x402a-20261013-153936,memory,host free memory rows,"Host state, not a game reading.",
+x402a-20261013-153936,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`verdicts`
+x402a-20261013-153936,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`verdicts`
+x402a-20261013-153936,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`verdicts`
+x402a-20261013-153936,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x402a-20261013-153936,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x402a-20261013-153936,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x402a-20261013-153936,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x402a-20261013-153936,budget,the wall budget's checks,"Driver wall seconds, not game state.",
+x402a-20261013-153936,phases.S0.time.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,phases.RC.q_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,phases.RC.away_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,phases.RC.launch_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,phases.RC.join_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402a-20261013-153936,phases.W.t0.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402b-20261013-154508,session,the driver's text,Written before the run; not a reading.,
+x402b-20261013-154508,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x402b-20261013-154508,constants,the driver's constants,The driver's settings; not a reading.,
+x402b-20261013-154508,deviations,the driver's deviation list,Written before the run; not a reading.,
+x402b-20261013-154508,memory,host free memory rows,"Host state, not a game reading.",
+x402b-20261013-154508,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`verdicts`
+x402b-20261013-154508,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`verdicts`
+x402b-20261013-154508,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`verdicts`
+x402b-20261013-154508,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x402b-20261013-154508,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x402b-20261013-154508,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x402b-20261013-154508,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x402b-20261013-154508,budget,the wall budget's checks,"Driver wall seconds, not game state.",
+x402b-20261013-154508,phases.A.boot_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402b-20261013-154508,phases.G.t_q.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402b-20261013-154508,phases.C2.launch_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x402b-20261013-154508,phases.Z.time.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,session,the driver's text,Written before the run; not a reading.,
+x403-20261013-161720,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x403-20261013-161720,constants,the driver's constants,The driver's settings; not a reading.,
+x403-20261013-161720,deviations,the driver's deviation list,Written before the run; not a reading.,
+x403-20261013-161720,memory,host free memory rows,"Host state, not a game reading.",
+x403-20261013-161720,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`verdicts`
+x403-20261013-161720,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`verdicts`
+x403-20261013-161720,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`verdicts`
+x403-20261013-161720,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x403-20261013-161720,boot_info,boot facts of the run,"Boot and wall-clock stamps of the run, not a reading.",
+x403-20261013-161720,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x403-20261013-161720,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x403-20261013-161720,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x403-20261013-161720,budget,the wall budget's checks,"Driver wall seconds, not game state.",
+x403-20261013-161720,phases.S0.time.server.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.S0.time.admin.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.S0.time.bob.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.MF.intakes[0].eat.landed_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.MF.intakes[1].eat.landed_snap.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.MF.mult_before.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.MF.mult_slow.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.MF.mult_after.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x403-20261013-161720,phases.Z.time.mult,the effective multiplier,"time.snapshot's `mult` is getMultiplier, about 4.7 times the true multiplier the driver set (#3762); not the clock's setting.",`trueMult` beside it
+x401-20261013-152929,verdicts.A.verdict,falsified,"Falsified by the driver's prediction that each saved rate is non-zero: vanilla's HungerIncreaseWhenWellFed is 0, saved 0 and live 0. A prediction error, not the mod.",`verdicts.A.observed`
+x401-20261013-152929,verdicts.A.bad,the one failed term,"The prediction's term, not a fault: HungerIncreaseWhenWellFed is 0 in vanilla.",`verdicts.A.observed.saved`
+x401-20261013-152929,verdicts.LEAK.verdict,falsified,"Falsified by the driver's prediction of no firing: the engine answers a request for an absent name with a (name, false) packet, so the one firing is that reply (the jar row). A prediction error, not a leak.",`verdicts.LEAK.observed`
+x401-20261013-152929,summaries.PP.contrast_mean_C_minus_P,0.0249,A mean over two different bodies that started 0.0589 apart in HUNGER; not a protein contrast (ruling T4-2).,`summaries.PP.course.<user>`
+x401-20261013-152929,verdicts.PP.observed.contrast_mean_C_minus_P,0.0249,A mean over two different bodies that started 0.0589 apart in HUNGER; not a protein contrast (ruling T4-2).,`verdicts.PP.observed.course.<user>`
+x401-20261013-152929,verdicts.PP.observed.replay,not run,The replay arm was not run by this driver (its deviation 5).,
+x403-20261013-161720,verdicts.N.verdict,falsified,"Falsified by the driver's prediction that each live rate is non-zero: vanilla's HungerIncreaseWhenWellFed is 0. A prediction error, not the mod.",`verdicts.N.observed`
+x403-20261013-161720,verdicts.N.bad,the one failed term,"The prediction's term, not a fault: HungerIncreaseWhenWellFed is 0 in vanilla.",`verdicts.N.observed.live`
+x402a-20261013-153936,readings.W_ARMED.stop_server_ms_est,an estimate,"The stop's server time estimated from the driver's wall and the clock offset; an epoch-ms leaf, not a reading.",`readings.W_ARMED.stop_after_last_write_ms`
+x402a-20261013-153936,readings.W_ARMED.remaining_ms,a driver margin,"The driver's margin to the next regular write at its arming, from its own clock arithmetic; not a reading.",`readings.W_ARMED.stop_after_last_write_ms`
+x402b-20261013-154508,verdicts.C2_ACUTE.observed,unmeasured by design,"Unmeasured by design, written before the run: no food crosses an acute rung only under the 1.5 multiplier.",
+x404-20261013-155237,session,the driver's text,Written before the run; not a reading.,
+x404-20261013-155237,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x404-20261013-155237,constants,the driver's constants,The driver's settings; not a reading.,
+x404-20261013-155237,memory,host free memory rows,"Host state, not a game reading.",
+x404-20261013-155237,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`summaries`
+x404-20261013-155237,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`summaries`
+x404-20261013-155237,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`summaries`
+x404-20261013-155237,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x404-20261013-155237,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x404-20261013-155237,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x404-20261013-155237,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x404-20261013-155237,budget,the driver's wall budget and its checks,"Driver wall seconds, not game state.",
+x404-20261013-155237,phases.S0.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.H.snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.LOAD.load.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.LOAD.load.after`
+x404-20261013-155237,phases.LOAD.food.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.LOAD.food.after`
+x404-20261013-155237,phases.B.clear_snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.C26.landed_snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.SIX.fast.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.SIX.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,phases.X33.arms.done.spawn.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.X33.arms.done.spawn.after`
+x404-20261013-155237,phases.X33.arms.cancel.spawn.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.X33.arms.cancel.spawn.after`
+x404-20261013-155237,phases.X33.arms.guard.spawn.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.X33.arms.guard.spawn.after`
+x404-20261013-155237,phases.Z.time.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,speeds[0].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,speeds[1].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,speeds[2].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,session,the driver's text,Written before the run; not a reading.,
+x405-20261013-155742,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x405-20261013-155742,constants,the driver's constants,The driver's settings; not a reading.,
+x405-20261013-155742,memory,host free memory rows,"Host state, not a game reading.",
+x405-20261013-155742,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`summaries`
+x405-20261013-155742,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`summaries`
+x405-20261013-155742,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`summaries`
+x405-20261013-155742,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x405-20261013-155742,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x405-20261013-155742,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x405-20261013-155742,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x405-20261013-155742,budget,the driver's wall budget and its checks,"Driver wall seconds, not game state.",
+x405-20261013-155742,phases.S0.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.H.snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.FOOD.snack.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.FOOD.snack.after`
+x405-20261013-155742,phases.FOOD.meal.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.FOOD.meal.after`
+x405-20261013-155742,phases.FAST.fast.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.FAST.slow.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.HOLD.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.HOLD.eat.landed_snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.FALL.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.FALL.eat.landed_snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.FALL.slow.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,phases.Z.time.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[0].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[1].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[2].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[3].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[4].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,verdicts.SLOW.observed.speeds[5].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[0].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[1].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[2].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[3].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[4].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,summaries.slow.speeds[5].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[0].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[1].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[2].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[3].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[4].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x405-20261013-155742,speeds[5].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,session,the driver's text,Written before the run; not a reading.,
+x406-20261013-160700,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x406-20261013-160700,constants,the driver's constants,The driver's settings; not a reading.,
+x406-20261013-160700,memory,host free memory rows,"Host state, not a game reading.",
+x406-20261013-160700,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`summaries`
+x406-20261013-160700,timeline,the driver's event timeline,Driver wall-clock event list; not a reading.,`summaries`
+x406-20261013-160700,client_seen,the clients' log lines seen,Client-side log echo; not a reading.,`summaries`
+x406-20261013-160700,phase_walls,phase wall seconds,"Driver wall seconds, not game state.",
+x406-20261013-160700,server_launch_wall,wall seconds,"Driver wall seconds, not game state.",
+x406-20261013-160700,server_started_wall,wall seconds,"Driver wall seconds, not game state.",
+x406-20261013-160700,session_ready_wall,wall seconds,"Driver wall seconds, not game state.",
+x406-20261013-160700,budget,the driver's wall budget and its checks,"Driver wall seconds, not game state.",
+x406-20261013-160700,phases.S0.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,phases.H.snap.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,phases.FOOD.a.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.FOOD.a.after`
+x406-20261013-160700,phases.FOOD.b.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.FOOD.b.after`
+x406-20261013-160700,phases.FOOD.p.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.FOOD.p.after`
+x406-20261013-160700,phases.SET.clock0.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,phases.EDGE.one.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,phases.Z.time.mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,speeds[0].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x406-20261013-160700,speeds[1].mult,getMultiplier,"time.snapshot's `mult` is GameTime.getMultiplier, the effective multiplier (about 4.7 times the true multiplier on this 10 Hz server, #3762), copied raw beside `trueMult`.",`trueMult` beside it
+x404-20261013-155237,verdicts.X33.observed.done.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.done.landed` and `.item_after`
+x404-20261013-155237,summaries.x33.done.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.done.landed` and `.item_after`
+x404-20261013-155237,verdicts.X33.observed.cancel.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.cancel.landed` and `.item_after`
+x404-20261013-155237,summaries.x33.cancel.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.cancel.landed` and `.item_after`
+x404-20261013-155237,verdicts.X33.observed.guard.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.guard.landed` and `.item_after`
+x404-20261013-155237,summaries.x33.guard.calories_delta,the calorie store's delta,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.observed.guard.landed` and `.item_after`
+x404-20261013-155237,verdicts.X33.verdict,falsified,"Falsified by the prediction's calories clause alone, which read the legacy mirror's minute rewrite (the guide); the guard arm landed 0 with the item unchanged.",`verdicts.X33.observed.guard.landed` and `.item_after`
+x404-20261013-155237,verdicts.X33.calories_same,false,"The player's vanilla calorie store across the arm's brackets: the mod's legacy mirror (NR.LegacyMirror, on by default) rewrites it each slow minute from the trailing balance (inference from NR_Server_Weight.lua:170-172), so the delta measures the mirror, not the eat or the cancel (the completed arm's read fell across a 239-calorie eat).",`verdicts.X33.item_same`
+x404-20261013-155237,verdicts.SWEAT_ON.observed.threshold.minutes,51.37446585046853,"The driver's steady-state derivation of the six-hour EMA threshold, which assumes a six-hour loss at its baseline; this session's record started with a small six-hour loss, so `sweatActive` turned on about three game minutes into the set and the threshold bounds nothing.",`summaries.sweat.first_on`
+x404-20261013-155237,verdicts.SWEAT_ON.observed.threshold.predicted,false,"The driver's steady-state derivation of the six-hour EMA threshold, which assumes a six-hour loss at its baseline; this session's record started with a small six-hour loss, so `sweatActive` turned on about three game minutes into the set and the threshold bounds nothing.",`summaries.sweat.first_on`
+x404-20261013-155237,summaries.sweat.threshold.minutes,51.37446585046853,"The driver's steady-state derivation of the six-hour EMA threshold, which assumes a six-hour loss at its baseline; this session's record started with a small six-hour loss, so `sweatActive` turned on about three game minutes into the set and the threshold bounds nothing.",`summaries.sweat.first_on`
+x404-20261013-155237,summaries.sweat.threshold.predicted,false,"The driver's steady-state derivation of the six-hour EMA threshold, which assumes a six-hour loss at its baseline; this session's record started with a small six-hour loss, so `sweatActive` turned on about three game minutes into the set and the threshold bounds nothing.",`summaries.sweat.first_on`
+x404-20261013-155237,verdicts.SET_B.observed.ended,before_ask,"The driver's label for a set that ended before its 60-minute ask; the prediction tied that label to the endurance branch, but the endurance moodle read 0 at the clear, and why the burpee set ended about nine game minutes short of its ask is unread.",`summaries.set_b.ran_m` and `.endurance_at_clear`
+x404-20261013-155237,summaries.set_b.ended,before_ask,"The driver's label for a set that ended before its 60-minute ask; the prediction tied that label to the endurance branch, but the endurance moodle read 0 at the clear, and why the burpee set ended about nine game minutes short of its ask is unread.",`summaries.set_b.ran_m` and `.endurance_at_clear`
+x404-20261013-155237,phases.B.set.ended,before_ask,"The driver's label for a set that ended before its 60-minute ask; the prediction tied that label to the endurance branch, but the endurance moodle read 0 at the clear, and why the burpee set ended about nine game minutes short of its ask is unread.",`summaries.set_b.ran_m` and `.endurance_at_clear`
+x406-20261013-160700,verdicts.EDGE_STATS.observed.UNHAPPINESS.ok,true,"Trivial: UNHAPPINESS read 8.623472213745117 on every row of the window (a held fall under the floor's epsilon), so it could show no step at the edge.",`verdicts.EDGE_STATS.observed.BOREDOM`
+x406-20261013-160700,phases.SET.slowed,false,"The driver's in-progress flag, set while the clock was slowed and reset to false by the restore; the slowed clock's reply is `phases.SET.slow.raw`.",`phases.SET.slow.raw`

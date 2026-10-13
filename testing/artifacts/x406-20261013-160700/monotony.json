@@ -1,0 +1,5554 @@
+{
+ "run_id": "x406-20261013-160700",
+ "session": "Plan 11b Task 4 session S4f (x406): two monotony types back-dated by record.set to 167.9 game hours, one above and one under a portion at the 168 h edge, the minute ring through the edge and the prune at the next eat, on the staged 1.0.0 copy; one boot of x40-monotony",
+ "driver": "x406_monotony.py",
+ "users": [
+  "admin"
+ ],
+ "profile": {
+  "name": "x40-monotony",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x40-monotony.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp 1.0.0 copy (release/plan11-x40) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - Plan 11b Task 4 session S4f (x406).",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_StudyFoods"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan11-x40\\NutritionRevamp\\Contents\\mods\\NutritionRevamp",
+   "TKX_StudyFoods": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_StudyFoods"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "9bb3a7e2",
+ "harness_py_commit": "9a567d6b",
+ "study_foods_commit": "77fcca7b",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "constants": {
+  "PROFILE": "x40-monotony",
+  "PREFIX": "x406",
+  "SESSION": "Plan 11b Task 4 session S4f (x406): two monotony types back-dated by record.set to 167.9 game hours, one above and one under a portion at the 168 h edge, the minute ring through the edge and the prune at the next eat, on the staged 1.0.0 copy; one boot of x40-monotony",
+  "ARTIFACT": "monotony.json",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "USER": "admin",
+  "ADMIN": "client:admin",
+  "SRV": "server",
+  "NR": "NutritionRevamp",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_ROOT": "release/plan11-x40/NutritionRevamp",
+  "STAGE_MOD": "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua"
+  },
+  "HARNESS_COMMITS": {
+   "016dce05": "a ghost run restores its carrier's macros; time.snapshot reports the true multiplier",
+   "07c27dc4": "the store probe formats tiny magnitudes with tostring (Kahlua %g hangs below 1e-292)",
+   "2ffdbc81": "action.cancel stops a started action through ISTimedActionQueue.clear (H3)",
+   "513778e8": "action.cancel reads isStarted index-first (Task 1 fix 1)",
+   "ccb71a1b": "record.set (H6)"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "-- ---- Plan 11b Task 2 fix: a ghost run restores the carrier's macros ----",
+    "g.rec.reconcile.baseline = NR.kernel.reconcile.baselineAfter(pre)",
+    "TK.call(nut, \"setCalories\", pre.calories)",
+    "if type(v) == \"number\" and v ~= 0 and math.abs(v) < 1e-280 then return tostring(v) end -- Kahlua %g hangs below ~1e-292",
+    "TK.register(\"record.set\", function(argv)"
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"action.cancel\", function()",
+    "if cur.isStarted ~= nil then out.started = cur:isStarted() == true end"
+   ]
+  },
+  "KPATHS": {
+   "window": "NutritionRevamp.kernel.monotony.WINDOW_H",
+   "half": "NutritionRevamp.kernel.monotony.HALF_LIFE_H",
+   "slope": "NutritionRevamp.kernel.monotony.SLOPE",
+   "cap": "NutritionRevamp.kernel.monotony.CAP",
+   "boredMax": "NutritionRevamp.kernel.monotony.BORED_MAX",
+   "staple": "NutritionRevamp.kernel.monotony.STAPLE",
+   "mealKcal": "NutritionRevamp.kernel.monotony.MEAL_KCAL"
+  },
+  "TYPE_A": "TKX.Mono450",
+  "TYPE_B": "TKX.Mixed400",
+  "TYPE_P": "TKX.Unit50",
+  "N_A": 6,
+  "N_B": 3,
+  "COUNT_A_EDGE": 3.0,
+  "COUNT_B_EDGE": 0.8,
+  "EDGE_LEAD_H": 0.2,
+  "SET_MULT": 0.001,
+  "POST_EDGE_M": 30.0,
+  "AFTER_PRUNE_M": 4.0,
+  "EDGE_PRE_ROWS": 4,
+  "STAT_NEIGHBOURS": 5,
+  "TGT_TOL": 0.01,
+  "STAT_STEP_TOL": 0.1,
+  "SET_TOL": 1e-09,
+  "PANIC_MAX": 5.0,
+  "WIN": "_G.NutritionRevamp.server.writer.input.",
+  "RING_RECORD": [
+   "monotony.t.[TKX.Mono450].n",
+   "monotony.t.[TKX.Mono450].last",
+   "monotony.t.[TKX.Mono450].s",
+   "monotony.t.[TKX.Mixed400].n",
+   "monotony.t.[TKX.Mixed400].last",
+   "monotony.t.[TKX.Mixed400].s",
+   "monotony.t.[TKX.Unit50].n",
+   "moodLast.u",
+   "moodLast.b"
+  ],
+  "RING_GLOBALS": [
+   "_G.NutritionRevamp.server.writer.input.panic",
+   "_G.NutritionRevamp.server.writer.input.unhappyTarget",
+   "_G.NutritionRevamp.server.writer.input.boredTarget",
+   "_G.NutritionRevamp.server.writer.input.bored",
+   "_G.NutritionRevamp.server.writer.stats.writes",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "INTAKE_PATHS": [
+   "NutritionRevamp.server.intake.stats.eats",
+   "NutritionRevamp.server.intake.stats.cancels",
+   "NutritionRevamp.server.intake.stats.landed",
+   "NutritionRevamp.server.intake.stats.failures",
+   "NutritionRevamp.server.intake.stats.monotony",
+   "NutritionRevamp.server.intake.stats.monotonyHealed",
+   "NutritionRevamp.server.intake.stats.monotonyFailures"
+  ],
+  "SPEED_FAST": 5,
+  "EAT_CAP_S": 25.0,
+  "SPAWN_WAIT_S": 2.5,
+  "PING_TIMEOUT_S": 5,
+  "BUDGET_S": 840.0,
+  "PHASE_EST_S": {
+   "S0": 8.0,
+   "H": 4.0,
+   "FOOD": 12.0,
+   "EATS": 80.0,
+   "SET": 10.0,
+   "EDGE": 35.0,
+   "PRUNE": 20.0
+  },
+  "MIN_FREE_GB": 12.0,
+  "RESULT_WAIT_S": 30.0,
+  "POLL_S": 0.25,
+  "LOG_LIMIT": 400,
+  "ECHO_RX": "PZTK: ",
+  "PROBE_RX": "\\b(?:minute\\.ring|lua\\.(?:read|global)|time\\.(?:snapshot|multiplier)|record\\.set|item\\.get|eat\\.action|foodtimer\\.set|additem|settimespeed|stats\\.all)",
+  "MOD_LIFE_RX": "minute: \\w+ failed|players: hook failed|players: task|intake: |writer: |non-finite",
+  "LOG_RX": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|NR_Client|NR_Kernel|NR_Server|failed:",
+  "META_NOTES": {
+   "ring_note": "a ring row is sampled inside EveryOneMinute before the mod's queue drains that minute: row k reads the state drain k-1 left, so its writer inputs are drain k-1's, taken at about row k-1's world age",
+   "set_note": "record.set writes into the in-memory record only (H6); the entries reach the slot file at the next store step",
+   "spawn_note": "the foods are spawned by RCON additem and confirmed by the server's item.get id (ruling T2-11)",
+   "eat_note": "a networked eat ends in real time, 232 x 20 ms, whatever the clock (#3766)",
+   "frame_note": "no frame window is graded in this session (no tick.ring), so no drop_windows apply"
+  },
+  "SUMMARY_KEYS": [
+   "set",
+   "edge",
+   "edge_stats",
+   "panic",
+   "prune"
+  ],
+  "STALL_RX": "^(?:TimeoutError|RuntimeError)\\b",
+  "ORDER": [
+   [
+    "S0",
+    "<function phase_S0 at 0x00000208AFBAD8A0>"
+   ],
+   [
+    "H",
+    "<function phase_H at 0x00000208AFBAD940>"
+   ],
+   [
+    "FOOD",
+    "<function phase_FOOD at 0x00000208AFBAD9E0>"
+   ],
+   [
+    "EATS",
+    "<function phase_EATS at 0x00000208AFBADA80>"
+   ],
+   [
+    "SET",
+    "<function phase_SET at 0x00000208AFBADB20>"
+   ],
+   [
+    "EDGE",
+    "<function phase_EDGE at 0x00000208AFBADBC0>"
+   ],
+   [
+    "PRUNE",
+    "<function phase_PRUNE at 0x00000208AFBADC60>"
+   ]
+  ],
+  "EAT_PHASES": [
+   "EATS",
+   "SET",
+   "EDGE",
+   "PRUNE"
+  ]
+ },
+ "predictions": {
+  "FOOD": {
+   "item.get after the spawn": "an id for TKX.Mono450, TKX.Mixed400 and TKX.Unit50, none before",
+   "falsifier": "an id missing on a live bus"
+  },
+  "EATS": {
+   "every eat": "spawned found and landed; both entries exist after",
+   "falsifier": "an eat not landed"
+  },
+  "SET": {
+   "record.set": "ok, after equal to the value sent within 1e-9; the entries read back equal",
+   "falsifier": "a reply not ok or a value off"
+  },
+  "PANIC": {
+   "the writer's PANIC input": "<= 5.0 on every row from the sets to the end of EDGE (#3691)",
+   "falsifier": "a row over it (EDGE_STATS's BOREDOM half then void)"
+  },
+  "EDGE_TARGET": {
+   "writer boredTarget": "the kernel's target at the previous row's age within TGT_TOL; its change at the edge rows no larger than the window's largest other change + TGT_TOL",
+   "falsifier": "either off",
+   "unmeasured": "fewer than EDGE_PRE_ROWS clean rows (a game minute past the sets' age_after) before the edge, the ring not covering it, or the key-count premise unread or off"
+  },
+  "EDGE_STATS": {
+   "UNHAPPINESS and BOREDOM": "the change at the edge rows <= the largest change on the neighbour rows + 0.1",
+   "falsifier": "a larger change",
+   "void": "BOREDOM's half when PANIC exceeded 5"
+  },
+  "PRUNE": {
+   "before the Unit50 eat": "both entries exist",
+   "after": "TKX.Mono450 kept with n and last unchanged, TKX.Mixed400 gone",
+   "falsifier": "either off",
+   "void": "the Unit50 eat did not land"
+  },
+  "RING": {
+   "pages": "all read, errors 0"
+  },
+  "Z": {
+   "mod_error": "none",
+   "admin_lua_error": false,
+   "players": "answers a list (the server alive at the end)"
+  }
+ },
+ "deviations": [
+  "Pre-run edit after the Opus review of f099c44a: the sets run on a nearly stopped clock (time.multiplier SET_MULT, restored in a finally) and EDGE_LEAD_H is 0.2 h, so last is T - 167.8 h, not the run sheet's 167.9 h.",
+  "Pre-run edit: the graded edge window starts a game minute past SET's age_after (clean rows), and EDGE_TARGET and EDGE_STATS read unmeasured unless EDGE_PRE_ROWS clean rows precede the edge.",
+  "Pre-run edit: EDGE_TARGET reads unmeasured when neither monotony.t key count was read.",
+  "Pre-run edit: PROBE_RX excludes time.multiplier."
+ ],
+ "meta": {
+  "staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40 (the controller, after Task 3c); the driver never re-stages",
+  "ring_note": "a ring row is sampled inside EveryOneMinute before the mod's queue drains that minute: row k reads the state drain k-1 left, so its writer inputs are drain k-1's, taken at about row k-1's world age",
+  "set_note": "record.set writes into the in-memory record only (H6); the entries reach the slot file at the next store step",
+  "spawn_note": "the foods are spawned by RCON additem and confirmed by the server's item.get id (ruling T2-11)",
+  "eat_note": "a networked eat ends in real time, 232 x 20 ms, whatever the clock (#3766)",
+  "frame_note": "no frame window is graded in this session (no tick.ring), so no drop_windows apply",
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true
+  }
+ },
+ "steps": [
+  {
+   "step": "S0_ping",
+   "side": "server",
+   "cmd": "ping",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 55.272,
+   "wall_after": 56.029,
+   "epoch_ms_before": 1791922075611,
+   "epoch_ms_after": 1791922076369,
+   "took": 0.757,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "S0_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 56.029,
+   "wall_after": 56.786,
+   "epoch_ms_before": 1791922076369,
+   "epoch_ms_after": 1791922077126,
+   "took": 0.757,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S0_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "S0",
+   "wall_before": 56.786,
+   "wall_after": 56.808,
+   "epoch_ms_before": 1791922077126,
+   "epoch_ms_after": 1791922077147,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "S0_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 56.808,
+   "wall_after": 57.316,
+   "epoch_ms_before": 1791922077147,
+   "epoch_ms_after": 1791922077655,
+   "took": 0.508,
+   "ack": {
+    "worldAge": 3.1619644165039062,
+    "hour": 10,
+    "minutes": 9,
+    "mult": 4.556463241577148,
+    "trueMult": 1,
+    "wall": 1791922077411
+   }
+  },
+  {
+   "step": "S0_kernel",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.kernel.monotony.WINDOW_H NutritionRevamp.kernel.monotony.HALF_LIFE_H NutritionRevamp.kernel.monotony.SLOPE NutritionRevamp.kernel.monotony.CAP NutritionRevamp.kernel.monotony.BORED_MAX NutritionRevamp.kernel.monotony.STAPLE NutritionRevamp.kernel.monotony.MEAL_KCAL",
+   "phase": "S0",
+   "wall_before": 57.316,
+   "wall_after": 58.074,
+   "epoch_ms_before": 1791922077655,
+   "epoch_ms_after": 1791922078413,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.kernel.monotony.WINDOW_H": 168,
+     "NutritionRevamp.kernel.monotony.HALF_LIFE_H": 72,
+     "NutritionRevamp.kernel.monotony.SLOPE": 4.3,
+     "NutritionRevamp.kernel.monotony.CAP": 30,
+     "NutritionRevamp.kernel.monotony.BORED_MAX": 49,
+     "NutritionRevamp.kernel.monotony.STAPLE": 0.25,
+     "NutritionRevamp.kernel.monotony.MEAL_KCAL": 400
+    }
+   }
+  },
+  {
+   "step": "S0_record",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin firstSeen resets body.sex",
+   "phase": "S0",
+   "wall_before": 58.074,
+   "wall_after": 58.832,
+   "epoch_ms_before": 1791922078413,
+   "epoch_ms_after": 1791922079171,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "firstSeen": 3.051494598388672,
+     "resets": 0,
+     "body.sex": 1
+    }
+   }
+  },
+  {
+   "step": "S0_entries",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "S0",
+   "wall_before": 58.832,
+   "wall_after": 59.089,
+   "epoch_ms_before": 1791922079171,
+   "epoch_ms_after": 1791922079428,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].n": "nil at monotony",
+     "monotony.t.[TKX.Mono450].last": "nil at monotony",
+     "monotony.t.[TKX.Mono450].s": "nil at monotony",
+     "monotony.t.[TKX.Mixed400].n": "nil at monotony",
+     "monotony.t.[TKX.Mixed400].last": "nil at monotony",
+     "monotony.t.[TKX.Mixed400].s": "nil at monotony",
+     "monotony.t.[TKX.Unit50].n": "nil at monotony"
+    },
+    "types": {},
+    "tables": {},
+    "values": {}
+   }
+  },
+  {
+   "step": "S0_mood",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S0",
+   "wall_before": 59.089,
+   "wall_after": 59.344,
+   "epoch_ms_before": 1791922079428,
+   "epoch_ms_after": 1791922079684,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.014877826906740665,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.20016983151435852,
+     "Idleness": 0.1001267060637474,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.947689056396484,
+     "Thirst": 0.007317373063415289,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922079614,
+    "user": "admin",
+    "worldAge": 3.2187623977661133,
+    "mult": 4.70447301864624
+   }
+  },
+  {
+   "step": "S0_intake",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.cancels NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.failures NutritionRevamp.server.intake.stats.monotony NutritionRevamp.server.intake.stats.monotonyHealed NutritionRevamp.server.intake.stats.monotonyFailures",
+   "phase": "S0",
+   "wall_before": 59.344,
+   "wall_after": 60.1,
+   "epoch_ms_before": 1791922079684,
+   "epoch_ms_after": 1791922080440,
+   "took": 0.756,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.cancels": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.intake.stats.failures": 0,
+     "NutritionRevamp.server.intake.stats.monotony": 0,
+     "NutritionRevamp.server.intake.stats.monotonyHealed": 0,
+     "NutritionRevamp.server.intake.stats.monotonyFailures": 0
+    }
+   }
+  },
+  {
+   "step": "H_ring_start",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n moodLast.u moodLast.b _G.NutritionRevamp.server.writer.input.panic _G.NutritionRevamp.server.writer.input.unhappyTarget _G.NutritionRevamp.server.writer.input.boredTarget _G.NutritionRevamp.server.writer.input.bored _G.NutritionRevamp.server.writer.stats.writes _G.NutritionRevamp.server.intake.stats.eats _G.NutritionRevamp.server.intake.stats.landed",
+   "phase": "H",
+   "wall_before": 60.103,
+   "wall_after": 60.615,
+   "epoch_ms_before": 1791922080442,
+   "epoch_ms_after": 1791922080955,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "monotony.t.[TKX.Mono450].n",
+     "monotony.t.[TKX.Mono450].last",
+     "monotony.t.[TKX.Mono450].s",
+     "monotony.t.[TKX.Mixed400].n",
+     "monotony.t.[TKX.Mixed400].last",
+     "monotony.t.[TKX.Mixed400].s",
+     "monotony.t.[TKX.Unit50].n",
+     "moodLast.u",
+     "moodLast.b",
+     "_G.NutritionRevamp.server.writer.input.panic",
+     "_G.NutritionRevamp.server.writer.input.unhappyTarget",
+     "_G.NutritionRevamp.server.writer.input.boredTarget",
+     "_G.NutritionRevamp.server.writer.input.bored",
+     "_G.NutritionRevamp.server.writer.stats.writes",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 16,
+     "missing": {
+      "monotony.t.[TKX.Mono450].n": "nil at monotony",
+      "monotony.t.[TKX.Mono450].last": "nil at monotony",
+      "monotony.t.[TKX.Mono450].s": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].n": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].last": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].s": "nil at monotony",
+      "monotony.t.[TKX.Unit50].n": "nil at monotony"
+     },
+     "types": {},
+     "tables": {},
+     "values": {
+      "moodLast.u": 0,
+      "moodLast.b": 0,
+      "_G.NutritionRevamp.server.writer.input.panic": 0,
+      "_G.NutritionRevamp.server.writer.input.unhappyTarget": 0,
+      "_G.NutritionRevamp.server.writer.input.boredTarget": 0,
+      "_G.NutritionRevamp.server.writer.input.bored": 0.017821818590164185,
+      "_G.NutritionRevamp.server.writer.stats.writes": 12,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0
+     }
+    }
+   }
+  },
+  {
+   "step": "H_snap",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "H",
+   "wall_before": 60.615,
+   "wall_after": 61.125,
+   "epoch_ms_before": 1791922080955,
+   "epoch_ms_after": 1791922081464,
+   "took": 0.51,
+   "ack": {
+    "worldAge": 3.266061782836914,
+    "hour": 10,
+    "minutes": 15,
+    "mult": 4.744845390319824,
+    "trueMult": 1,
+    "wall": 1791922081422
+   }
+  },
+  {
+   "step": "FOOD_a_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Mono450",
+   "phase": "FOOD",
+   "wall_before": 61.127,
+   "wall_after": 61.383,
+   "epoch_ms_before": 1791922081467,
+   "epoch_ms_after": 1791922081722,
+   "took": 0.256,
+   "ack": "no item TKX.Mono450 in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "FOOD_a_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"TKX.Mono450\" 6",
+   "phase": "FOOD",
+   "wall_before": 61.383,
+   "wall_after": 61.5,
+   "epoch_ms_before": 1791922081722,
+   "epoch_ms_after": 1791922081839,
+   "ack": {
+    "ok": true,
+    "reply": "Item TKX.Mono450 Added in admin's inventory."
+   }
+  },
+  {
+   "step": "FOOD_a_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Mono450",
+   "phase": "FOOD",
+   "wall_before": 64.0,
+   "wall_after": 64.508,
+   "epoch_ms_before": 1791922084339,
+   "epoch_ms_after": 1791922084848,
+   "took": 0.508,
+   "ack": {
+    "fullType": "TKX.Mono450",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.2199999988079071,
+    "baseHunger": -0.2199999988079071,
+    "calories": 450,
+    "carbs": 56.25,
+    "lipids": 17.5,
+    "proteins": 16.875,
+    "id": 1607166453,
+    "uses": 0.2199999988079071,
+    "fresh": true,
+    "offAge": 365,
+    "offAgeMax": 730,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.2199999988079071,
+    "isCookable": false,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 3.3508119583129883
+   }
+  },
+  {
+   "step": "FOOD_b_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Mixed400",
+   "phase": "FOOD",
+   "wall_before": 64.508,
+   "wall_after": 65.015,
+   "epoch_ms_before": 1791922084848,
+   "epoch_ms_after": 1791922085355,
+   "took": 0.507,
+   "ack": "no item TKX.Mixed400 in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "FOOD_b_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"TKX.Mixed400\" 3",
+   "phase": "FOOD",
+   "wall_before": 65.015,
+   "wall_after": 65.025,
+   "epoch_ms_before": 1791922085355,
+   "epoch_ms_after": 1791922085365,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "FOOD_b_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Mixed400",
+   "phase": "FOOD",
+   "wall_before": 67.526,
+   "wall_after": 68.285,
+   "epoch_ms_before": 1791922087866,
+   "epoch_ms_after": 1791922088625,
+   "took": 0.759,
+   "ack": {
+    "fullType": "TKX.Mixed400",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.20000000298023224,
+    "baseHunger": -0.20000000298023224,
+    "calories": 400,
+    "carbs": 50,
+    "lipids": 15.555556297302246,
+    "proteins": 15,
+    "id": 544691717,
+    "uses": 0.20000000298023224,
+    "fresh": true,
+    "offAge": 365,
+    "offAgeMax": 730,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.20000000298023224,
+    "isCookable": false,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 3.4518184661865234
+   }
+  },
+  {
+   "step": "FOOD_p_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Unit50",
+   "phase": "FOOD",
+   "wall_before": 68.285,
+   "wall_after": 68.796,
+   "epoch_ms_before": 1791922088625,
+   "epoch_ms_after": 1791922089135,
+   "took": 0.511,
+   "ack": "no item TKX.Unit50 in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "FOOD_p_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"TKX.Unit50\" 1",
+   "phase": "FOOD",
+   "wall_before": 68.796,
+   "wall_after": 68.87,
+   "epoch_ms_before": 1791922089135,
+   "epoch_ms_after": 1791922089210,
+   "ack": {
+    "ok": true,
+    "reply": "Item TKX.Unit50 Added in admin's inventory."
+   }
+  },
+  {
+   "step": "FOOD_p_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin TKX.Unit50",
+   "phase": "FOOD",
+   "wall_before": 71.371,
+   "wall_after": 71.884,
+   "epoch_ms_before": 1791922091710,
+   "epoch_ms_after": 1791922092224,
+   "took": 0.513,
+   "ack": {
+    "fullType": "TKX.Unit50",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.019999999552965164,
+    "baseHunger": -0.019999999552965164,
+    "calories": 50,
+    "carbs": 6.25,
+    "lipids": 1.944443941116333,
+    "proteins": 1.875,
+    "id": 2027094413,
+    "uses": 0.019999999552965164,
+    "fresh": true,
+    "offAge": 365,
+    "offAgeMax": 730,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.019999999552965164,
+    "isCookable": false,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 3.550236701965332
+   }
+  },
+  {
+   "step": "EATS_a0_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 72.645,
+   "wall_after": 73.154,
+   "epoch_ms_before": 1791922092985,
+   "epoch_ms_after": 1791922093493,
+   "took": 0.509,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a0_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 73.154,
+   "wall_after": 73.915,
+   "epoch_ms_before": 1791922093493,
+   "epoch_ms_after": 1791922094255,
+   "took": 0.761,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1607166453,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 1607166453,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.0016040802002,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": -50.71055221557617,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.20483475923538208,
+     "thirst": 0.026089321821928024,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_a1_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 79.485,
+   "wall_after": 79.991,
+   "epoch_ms_before": 1791922099824,
+   "epoch_ms_after": 1791922100331,
+   "took": 0.506,
+   "ack": {
+    "requested": 0,
+    "before": 2783.53173828125,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a1_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 79.991,
+   "wall_after": 80.248,
+   "epoch_ms_before": 1791922100331,
+   "epoch_ms_after": 1791922100588,
+   "took": 0.257,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 821187413,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 821187413,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.00409317016602,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": -62.61265563964844,
+     "carbs": -299.71624755859375,
+     "lipids": -69.91172790527344,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.14032335579395294,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_a2_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 85.834,
+   "wall_after": 86.34,
+   "epoch_ms_before": 1791922106173,
+   "epoch_ms_after": 1791922106679,
+   "took": 0.506,
+   "ack": {
+    "requested": 0,
+    "before": 2793.042236328125,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a2_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 86.34,
+   "wall_after": 86.847,
+   "epoch_ms_before": 1791922106679,
+   "epoch_ms_after": 1791922107187,
+   "took": 0.507,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 46413388,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 46413388,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.00774383544922,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": -50.157310485839844,
+     "carbs": -295.7563171386719,
+     "lipids": -68.67974853515625,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.08165700733661652,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_a3_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 93.183,
+   "wall_after": 93.943,
+   "epoch_ms_before": 1791922113523,
+   "epoch_ms_after": 1791922114283,
+   "took": 0.76,
+   "ack": {
+    "requested": 0,
+    "before": 2745.68212890625,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a3_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 93.943,
+   "wall_after": 94.203,
+   "epoch_ms_before": 1791922114283,
+   "epoch_ms_after": 1791922114543,
+   "took": 0.26,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1832940271,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 1832940271,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.01344108581543,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": -27.214189529418945,
+     "carbs": -290.7110900878906,
+     "lipids": -67.11011505126953,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.044153984636068344,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_a4_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 100.31,
+   "wall_after": 100.82,
+   "epoch_ms_before": 1791922120649,
+   "epoch_ms_after": 1791922121159,
+   "took": 0.51,
+   "ack": {
+    "requested": 0,
+    "before": 2774.012939453125,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a4_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 100.82,
+   "wall_after": 101.329,
+   "epoch_ms_before": 1791922121159,
+   "epoch_ms_after": 1791922121669,
+   "took": 0.509,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1262570653,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 1262570653,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.01753425598145,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": 5.774941444396973,
+     "carbs": -284.40826416015625,
+     "lipids": -65.14924621582031,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.04396587610244751,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_a5_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 107.654,
+   "wall_after": 108.413,
+   "epoch_ms_before": 1791922127993,
+   "epoch_ms_after": 1791922128752,
+   "took": 0.759,
+   "ack": {
+    "requested": 0,
+    "before": 2750.236328125,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_a5_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mono450 1",
+   "phase": "EATS",
+   "wall_before": 108.413,
+   "wall_after": 108.669,
+   "epoch_ms_before": 1791922128752,
+   "epoch_ms_after": 1791922129008,
+   "took": 0.256,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1801203560,
+    "itemBefore": {
+     "fullType": "TKX.Mono450",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "carbs": 56.25,
+     "lipids": 17.5,
+     "proteins": 16.875,
+     "id": 1801203560,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.02234649658203,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 58.80192947387695,
+     "carbs": -275.21929931640625,
+     "lipids": -62.29045104980469,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.04378692805767059,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_b0_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 115.251,
+   "wall_after": 116.008,
+   "epoch_ms_before": 1791922135590,
+   "epoch_ms_after": 1791922136347,
+   "took": 0.757,
+   "ack": {
+    "requested": 0,
+    "before": 2745.447509765625,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_b0_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mixed400 1",
+   "phase": "EATS",
+   "wall_before": 116.008,
+   "wall_after": 116.265,
+   "epoch_ms_before": 1791922136347,
+   "epoch_ms_after": 1791922136605,
+   "took": 0.257,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 544691717,
+    "itemBefore": {
+     "fullType": "TKX.Mixed400",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.20000000298023224,
+     "baseHunger": -0.20000000298023224,
+     "calories": 400,
+     "carbs": 50,
+     "lipids": 15.555556297302246,
+     "proteins": 15,
+     "id": 544691717,
+     "uses": 0.20000000298023224,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.20000000298023224,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.026273727417,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": 113.73807525634766,
+     "carbs": -266.1705627441406,
+     "lipids": -59.47528839111328,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.04354950413107872,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_b1_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 122.859,
+   "wall_after": 123.118,
+   "epoch_ms_before": 1791922143199,
+   "epoch_ms_after": 1791922143458,
+   "took": 0.259,
+   "ack": {
+    "requested": 0,
+    "before": 2495.168701171875,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_b1_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mixed400 1",
+   "phase": "EATS",
+   "wall_before": 123.119,
+   "wall_after": 123.374,
+   "epoch_ms_before": 1791922143458,
+   "epoch_ms_after": 1791922143713,
+   "took": 0.255,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2003833703,
+    "itemBefore": {
+     "fullType": "TKX.Mixed400",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.20000000298023224,
+     "baseHunger": -0.20000000298023224,
+     "calories": 400,
+     "carbs": 50,
+     "lipids": 15.555556297302246,
+     "proteins": 15,
+     "id": 2003833703,
+     "uses": 0.20000000298023224,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.20000000298023224,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 290.0357460975647,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": 178.5680694580078,
+     "carbs": -255.85594177246094,
+     "lipids": -56.266292572021484,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.0433148629963398,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_b2_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "EATS",
+   "wall_before": 130.98,
+   "wall_after": 131.236,
+   "epoch_ms_before": 1791922151320,
+   "epoch_ms_after": 1791922151575,
+   "took": 0.256,
+   "ack": {
+    "requested": 0,
+    "before": 2499.701416015625,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "EATS_b2_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Mixed400 1",
+   "phase": "EATS",
+   "wall_before": 131.236,
+   "wall_after": 131.749,
+   "epoch_ms_before": 1791922151575,
+   "epoch_ms_after": 1791922152089,
+   "took": 0.513,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1569741144,
+    "itemBefore": {
+     "fullType": "TKX.Mixed400",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.20000000298023224,
+     "baseHunger": -0.20000000298023224,
+     "calories": 400,
+     "carbs": 50,
+     "lipids": 15.555556297302246,
+     "proteins": 15,
+     "id": 1569741144,
+     "uses": 0.20000000298023224,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.20000000298023224,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 290.0394105911255,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 271.0508117675781,
+     "carbs": -241.51608276367188,
+     "lipids": -51.80500411987305,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.04303629323840141,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "EATS_entries",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "EATS",
+   "wall_before": 138.604,
+   "wall_after": 139.112,
+   "epoch_ms_before": 1791922158944,
+   "epoch_ms_after": 1791922159451,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].s": "nil",
+     "monotony.t.[TKX.Mixed400].s": "nil",
+     "monotony.t.[TKX.Unit50].n": "nil at TKX.Unit50"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[TKX.Mono450].n": 5.972616674701505,
+     "monotony.t.[TKX.Mono450].last": 4.655014991760254,
+     "monotony.t.[TKX.Mixed400].n": 2.9935985633349773,
+     "monotony.t.[TKX.Mixed400].last": 5.294435501098633
+    }
+   }
+  },
+  {
+   "step": "EATS_keys",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.monotony.t",
+   "phase": "EATS",
+   "wall_before": 139.112,
+   "wall_after": 139.619,
+   "epoch_ms_before": 1791922159451,
+   "epoch_ms_after": 1791922159958,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.monotony.t",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 2
+   }
+  },
+  {
+   "step": "EATS_mood",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "EATS",
+   "wall_before": 139.619,
+   "wall_after": 140.38,
+   "epoch_ms_before": 1791922159958,
+   "epoch_ms_after": 1791922160720,
+   "took": 0.761,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 22.17536163330078,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.042696546763181686,
+     "Idleness": 1,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.76768112182617,
+     "Thirst": 0,
+     "Unhappiness": 21.218782424926758,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922160611,
+    "user": "admin",
+    "worldAge": 5.368640899658203,
+    "mult": 4.774090766906738
+   }
+  },
+  {
+   "step": "SET_clock0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "SET",
+   "wall_before": 140.383,
+   "wall_after": 140.891,
+   "epoch_ms_before": 1791922160723,
+   "epoch_ms_after": 1791922161230,
+   "took": 0.508,
+   "ack": {
+    "worldAge": 5.384578704833984,
+    "hour": 12,
+    "minutes": 23,
+    "mult": 4.787617206573486,
+    "trueMult": 1,
+    "wall": 1791922161214
+   }
+  },
+  {
+   "step": "SET_slow",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "0.001",
+   "phase": "SET",
+   "wall_before": 140.891,
+   "wall_after": 141.15,
+   "epoch_ms_before": 1791922161230,
+   "epoch_ms_after": 1791922161490,
+   "took": 0.259,
+   "ack": "mult=0.0010000000474974513 eff=0.004771159030497074",
+   "ack_shape": "str"
+  },
+  {
+   "step": "SET_T",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "SET",
+   "wall_before": 141.15,
+   "wall_after": 143.163,
+   "epoch_ms_before": 1791922161490,
+   "epoch_ms_after": 1791922163502,
+   "took": 2.013,
+   "ack": {
+    "worldAge": 5.389954566955566,
+    "hour": 12,
+    "minutes": 23,
+    "mult": 0.004782089963555336,
+    "trueMult": 0.0010000000474974513,
+    "wall": 1791922163410
+   }
+  },
+  {
+   "step": "SET_last_TKX.Mono450",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin monotony.t.[TKX.Mono450].last -162.41004543304444",
+   "phase": "SET",
+   "wall_before": 143.163,
+   "wall_after": 145.174,
+   "epoch_ms_before": 1791922163502,
+   "epoch_ms_after": 1791922165514,
+   "took": 2.011,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "monotony.t.[TKX.Mono450].last",
+    "key": "last",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 4.655014991760254,
+    "afterType": "number",
+    "after": -162.41004543304444
+   }
+  },
+  {
+   "step": "SET_last_TKX.Mixed400",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin monotony.t.[TKX.Mixed400].last -162.41004543304444",
+   "phase": "SET",
+   "wall_before": 145.174,
+   "wall_after": 147.184,
+   "epoch_ms_before": 1791922165514,
+   "epoch_ms_after": 1791922167524,
+   "took": 2.01,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "monotony.t.[TKX.Mixed400].last",
+    "key": "last",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 5.294435501098633,
+    "afterType": "number",
+    "after": -162.41004543304444
+   }
+  },
+  {
+   "step": "SET_n_TKX.Mono450",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin monotony.t.[TKX.Mono450].n 15.11905259873848",
+   "phase": "SET",
+   "wall_before": 147.184,
+   "wall_after": 149.202,
+   "epoch_ms_before": 1791922167524,
+   "epoch_ms_after": 1791922169542,
+   "took": 2.018,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "monotony.t.[TKX.Mono450].n",
+    "key": "n",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 5.972616674701505,
+    "afterType": "number",
+    "after": 15.11905259873848
+   }
+  },
+  {
+   "step": "SET_n_TKX.Mixed400",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin monotony.t.[TKX.Mixed400].n 4.031747359663594",
+   "phase": "SET",
+   "wall_before": 149.202,
+   "wall_after": 151.22,
+   "epoch_ms_before": 1791922169542,
+   "epoch_ms_after": 1791922171560,
+   "took": 2.018,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "monotony.t.[TKX.Mixed400].n",
+    "key": "n",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 2.9935985633349773,
+    "afterType": "number",
+    "after": 4.031747359663594
+   }
+  },
+  {
+   "step": "SET_entries",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "SET",
+   "wall_before": 151.22,
+   "wall_after": 153.232,
+   "epoch_ms_before": 1791922171560,
+   "epoch_ms_after": 1791922173571,
+   "took": 2.012,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].s": "nil",
+     "monotony.t.[TKX.Mixed400].s": "nil",
+     "monotony.t.[TKX.Unit50].n": "nil at TKX.Unit50"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[TKX.Mono450].n": 15.11905259873848,
+     "monotony.t.[TKX.Mono450].last": -162.41004543304444,
+     "monotony.t.[TKX.Mixed400].n": 4.031747359663594,
+     "monotony.t.[TKX.Mixed400].last": -162.41004543304444
+    }
+   }
+  },
+  {
+   "step": "SET_keys",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.monotony.t",
+   "phase": "SET",
+   "wall_before": 153.232,
+   "wall_after": 155.242,
+   "epoch_ms_before": 1791922173571,
+   "epoch_ms_after": 1791922175582,
+   "took": 2.01,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.monotony.t",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 2
+   }
+  },
+  {
+   "step": "SET_mood",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "SET",
+   "wall_before": 155.242,
+   "wall_after": 157.26,
+   "epoch_ms_before": 1791922175582,
+   "epoch_ms_after": 1791922177600,
+   "took": 2.018,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 22.214540481567383,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.04268476366996765,
+     "Idleness": 1,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.76749801635742,
+     "Thirst": 0,
+     "Unhappiness": 21.218782424926758,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922177418,
+    "user": "admin",
+    "worldAge": 5.390355110168457,
+    "mult": 0.004793383181095123
+   }
+  },
+  {
+   "step": "SET_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1",
+   "phase": "SET",
+   "wall_before": 159.272,
+   "wall_after": 161.282,
+   "epoch_ms_before": 1791922179611,
+   "epoch_ms_after": 1791922181621,
+   "took": 2.01,
+   "ack": "mult=1 eff=4.797463893890381",
+   "ack_shape": "str"
+  },
+  {
+   "step": "EDGE_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "EDGE",
+   "wall_before": 161.288,
+   "wall_after": 161.309,
+   "epoch_ms_before": 1791922181627,
+   "epoch_ms_after": 1791922181648,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "EDGE_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "EDGE",
+   "wall_before": 161.309,
+   "wall_after": 161.564,
+   "epoch_ms_before": 1791922181648,
+   "epoch_ms_after": 1791922181904,
+   "took": 0.255,
+   "ack": {
+    "worldAge": 5.401127815246582,
+    "hour": 12,
+    "minutes": 24,
+    "mult": 4.796394348144531,
+    "trueMult": 1,
+    "wall": 1791922181811
+   }
+  },
+  {
+   "step": "EDGE_mood0",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "EDGE",
+   "wall_before": 169.173,
+   "wall_after": 169.68,
+   "epoch_ms_before": 1791922189513,
+   "epoch_ms_after": 1791922190020,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 10.02670955657959,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.04262110963463783,
+     "Idleness": 1,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.76601028442383,
+     "Thirst": 0,
+     "Unhappiness": 8.623472213745117,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922189916,
+    "user": "admin",
+    "worldAge": 5.6167144775390625,
+    "mult": 4.78275728225708
+   }
+  },
+  {
+   "step": "EDGE_mood1",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "EDGE",
+   "wall_before": 187.942,
+   "wall_after": 188.453,
+   "epoch_ms_before": 1791922208282,
+   "epoch_ms_after": 1791922208793,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 10.874868392944336,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.04253752902150154,
+     "Idleness": 1,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.76409149169922,
+     "Thirst": 0,
+     "Unhappiness": 8.571605682373047,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922208715,
+    "user": "admin",
+    "worldAge": 6.116726875305176,
+    "mult": 4.786495685577393
+   }
+  },
+  {
+   "step": "PRUNE_e0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "PRUNE",
+   "wall_before": 188.46,
+   "wall_after": 189.219,
+   "epoch_ms_before": 1791922208799,
+   "epoch_ms_after": 1791922209559,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].s": "nil",
+     "monotony.t.[TKX.Mixed400].s": "nil",
+     "monotony.t.[TKX.Unit50].n": "nil at TKX.Unit50"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[TKX.Mono450].n": 15.11905259873848,
+     "monotony.t.[TKX.Mono450].last": -162.41004543304444,
+     "monotony.t.[TKX.Mixed400].n": 4.031747359663594,
+     "monotony.t.[TKX.Mixed400].last": -162.41004543304444
+    }
+   }
+  },
+  {
+   "step": "PRUNE_eat_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "PRUNE",
+   "wall_before": 189.726,
+   "wall_after": 190.482,
+   "epoch_ms_before": 1791922210065,
+   "epoch_ms_after": 1791922210822,
+   "took": 0.756,
+   "ack": {
+    "requested": 0,
+    "before": 1028.9647216796875,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "PRUNE_eat_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "TKX.Unit50 1",
+   "phase": "PRUNE",
+   "wall_before": 190.482,
+   "wall_after": 190.738,
+   "epoch_ms_before": 1791922210822,
+   "epoch_ms_after": 1791922211078,
+   "took": 0.256,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2027094413,
+    "itemBefore": {
+     "fullType": "TKX.Unit50",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.019999999552965164,
+     "baseHunger": -0.019999999552965164,
+     "calories": 50,
+     "carbs": 6.25,
+     "lipids": 1.944443941116333,
+     "proteins": 1.875,
+     "id": 2027094413,
+     "uses": 0.019999999552965164,
+     "fresh": true,
+     "offAge": 365,
+     "offAgeMax": 730,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.019999999552965164,
+     "isCookable": false,
+     "actualWeight": 0.10000000149011612,
+     "weight": 0.10000000149011612,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.03628540039062,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 734.6858520507812,
+     "carbs": -171.07879638671875,
+     "lipids": -29.89118003845215,
+     "proteins": -400,
+     "weight": 80,
+     "hunger": 0.04253273084759712,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "PRUNE_e1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "PRUNE",
+   "wall_before": 196.821,
+   "wall_after": 197.326,
+   "epoch_ms_before": 1791922217160,
+   "epoch_ms_after": 1791922217666,
+   "took": 0.505,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].s": "nil",
+     "monotony.t.[TKX.Mixed400].n": "nil at TKX.Mixed400",
+     "monotony.t.[TKX.Mixed400].last": "nil at TKX.Mixed400",
+     "monotony.t.[TKX.Mixed400].s": "nil at TKX.Mixed400"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[TKX.Mono450].n": 15.11905259873848,
+     "monotony.t.[TKX.Mono450].last": -162.41004543304444,
+     "monotony.t.[TKX.Unit50].n": 0.125
+    }
+   }
+  },
+  {
+   "step": "PRUNE_e2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[TKX.Mono450].n monotony.t.[TKX.Mono450].last monotony.t.[TKX.Mono450].s monotony.t.[TKX.Mixed400].n monotony.t.[TKX.Mixed400].last monotony.t.[TKX.Mixed400].s monotony.t.[TKX.Unit50].n",
+   "phase": "PRUNE",
+   "wall_before": 199.874,
+   "wall_after": 200.38,
+   "epoch_ms_before": 1791922220214,
+   "epoch_ms_after": 1791922220720,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 7,
+    "missing": {
+     "monotony.t.[TKX.Mono450].s": "nil",
+     "monotony.t.[TKX.Mixed400].n": "nil at TKX.Mixed400",
+     "monotony.t.[TKX.Mixed400].last": "nil at TKX.Mixed400",
+     "monotony.t.[TKX.Mixed400].s": "nil at TKX.Mixed400"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[TKX.Mono450].n": 15.11905259873848,
+     "monotony.t.[TKX.Mono450].last": -162.41004543304444,
+     "monotony.t.[TKX.Unit50].n": 0.125
+    }
+   }
+  },
+  {
+   "step": "PRUNE_mood",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "PRUNE",
+   "wall_before": 200.38,
+   "wall_after": 201.14,
+   "epoch_ms_before": 1791922220720,
+   "epoch_ms_after": 1791922221479,
+   "took": 0.76,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 11.425661087036133,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.04241584241390228,
+     "Idleness": 1,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.763484954833984,
+     "Thirst": 0,
+     "Unhappiness": 8.520322799682617,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791922221312,
+    "user": "admin",
+    "worldAge": 6.451210021972656,
+    "mult": 4.7925028800964355
+   }
+  },
+  {
+   "step": "RING_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "RING",
+   "wall_before": 201.147,
+   "wall_after": 201.653,
+   "epoch_ms_before": 1791922221487,
+   "epoch_ms_after": 1791922221992,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 193,
+    "skipped": 0,
+    "next": 194,
+    "more": false,
+    "oldest": 1,
+    "newest": 193,
+    "recorded": 193,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 193,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "RING_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "RING",
+   "wall_before": 201.66,
+   "wall_after": 202.418,
+   "epoch_ms_before": 1791922222000,
+   "epoch_ms_after": 1791922222758,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 194,
+    "overwritten": 0,
+    "errors": 0
+   }
+  },
+  {
+   "step": "Z_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "Z",
+   "wall_before": 202.424,
+   "wall_after": 202.933,
+   "epoch_ms_before": 1791922222764,
+   "epoch_ms_after": 1791922223273,
+   "took": 0.509,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "Z_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "Z",
+   "wall_before": 202.933,
+   "wall_after": 203.192,
+   "epoch_ms_before": 1791922223273,
+   "epoch_ms_after": 1791922223531,
+   "took": 0.259,
+   "ack": {
+    "worldAge": 6.50676155090332,
+    "hour": 13,
+    "minutes": 30,
+    "mult": 4.739247798919678,
+    "trueMult": 1,
+    "wall": 1791922223410
+   }
+  },
+  {
+   "step": "Z_intake",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.cancels NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.intake.stats.failures NutritionRevamp.server.intake.stats.monotony NutritionRevamp.server.intake.stats.monotonyHealed NutritionRevamp.server.intake.stats.monotonyFailures",
+   "phase": "Z",
+   "wall_before": 203.192,
+   "wall_after": 203.7,
+   "epoch_ms_before": 1791922223531,
+   "epoch_ms_after": 1791922224040,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 10,
+     "NutritionRevamp.server.intake.stats.cancels": 0,
+     "NutritionRevamp.server.intake.stats.landed": 10,
+     "NutritionRevamp.server.intake.stats.failures": 0,
+     "NutritionRevamp.server.intake.stats.monotony": 10,
+     "NutritionRevamp.server.intake.stats.monotonyHealed": 0,
+     "NutritionRevamp.server.intake.stats.monotonyFailures": 0
+    }
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "S0": {
+   "ready": [
+    {
+     "t": 17.8,
+     "phase": "client_launch",
+     "user": "admin",
+     "restored": true
+    },
+    {
+     "t": 53.5,
+     "phase": "client_ready",
+     "took": 35.3,
+     "user": "admin"
+    }
+   ],
+   "ping": true,
+   "players": {
+    "wall": 56.029,
+    "wall_after": 56.786,
+    "side": "server",
+    "raw": [
+     "admin"
+    ]
+   },
+   "one": {
+    "worldAge": 3.1619644165039062,
+    "hour": 10,
+    "minutes": 9,
+    "mult": 4.556463241577148,
+    "trueMult": 1,
+    "wall": 56.808,
+    "wall_after": 57.316
+   },
+   "kernel": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.kernel.monotony.WINDOW_H": 168,
+     "NutritionRevamp.kernel.monotony.HALF_LIFE_H": 72,
+     "NutritionRevamp.kernel.monotony.SLOPE": 4.3,
+     "NutritionRevamp.kernel.monotony.CAP": 30,
+     "NutritionRevamp.kernel.monotony.BORED_MAX": 49,
+     "NutritionRevamp.kernel.monotony.STAPLE": 0.25,
+     "NutritionRevamp.kernel.monotony.MEAL_KCAL": 400
+    },
+    "wall": 57.316,
+    "wall_after": 58.074
+   },
+   "k": {
+    "window": 168,
+    "half": 72,
+    "slope": 4.3,
+    "cap": 30,
+    "boredMax": 49,
+    "staple": 0.25,
+    "mealKcal": 400
+   },
+   "record": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "firstSeen": 3.051494598388672,
+     "resets": 0,
+     "body.sex": 1
+    },
+    "wall": 58.074,
+    "wall_after": 58.832
+   },
+   "entries": {
+    "TKX.Mono450": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at monotony"
+    },
+    "TKX.Mixed400": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at monotony"
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 58.832
+   },
+   "mood": {
+    "PANIC": 0,
+    "UNHAPPINESS": 0,
+    "BOREDOM": 0.014877826906740665,
+    "STRESS": 0,
+    "worldAge": 3.2187623977661133,
+    "wall": 59.089
+   },
+   "intake": {
+    "eats": 0,
+    "cancels": 0,
+    "landed": 0,
+    "failures": 0,
+    "monotony": 0,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 59.344
+   }
+  },
+  "H": {
+   "paths": [
+    "monotony.t.[TKX.Mono450].n",
+    "monotony.t.[TKX.Mono450].last",
+    "monotony.t.[TKX.Mono450].s",
+    "monotony.t.[TKX.Mixed400].n",
+    "monotony.t.[TKX.Mixed400].last",
+    "monotony.t.[TKX.Mixed400].s",
+    "monotony.t.[TKX.Unit50].n",
+    "moodLast.u",
+    "moodLast.b",
+    "_G.NutritionRevamp.server.writer.input.panic",
+    "_G.NutritionRevamp.server.writer.input.unhappyTarget",
+    "_G.NutritionRevamp.server.writer.input.boredTarget",
+    "_G.NutritionRevamp.server.writer.input.bored",
+    "_G.NutritionRevamp.server.writer.stats.writes",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed"
+   ],
+   "start": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "monotony.t.[TKX.Mono450].n",
+     "monotony.t.[TKX.Mono450].last",
+     "monotony.t.[TKX.Mono450].s",
+     "monotony.t.[TKX.Mixed400].n",
+     "monotony.t.[TKX.Mixed400].last",
+     "monotony.t.[TKX.Mixed400].s",
+     "monotony.t.[TKX.Unit50].n",
+     "moodLast.u",
+     "moodLast.b",
+     "_G.NutritionRevamp.server.writer.input.panic",
+     "_G.NutritionRevamp.server.writer.input.unhappyTarget",
+     "_G.NutritionRevamp.server.writer.input.boredTarget",
+     "_G.NutritionRevamp.server.writer.input.bored",
+     "_G.NutritionRevamp.server.writer.stats.writes",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 16,
+     "missing": {
+      "monotony.t.[TKX.Mono450].n": "nil at monotony",
+      "monotony.t.[TKX.Mono450].last": "nil at monotony",
+      "monotony.t.[TKX.Mono450].s": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].n": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].last": "nil at monotony",
+      "monotony.t.[TKX.Mixed400].s": "nil at monotony",
+      "monotony.t.[TKX.Unit50].n": "nil at monotony"
+     },
+     "types": {},
+     "tables": {},
+     "values": {
+      "moodLast.u": 0,
+      "moodLast.b": 0,
+      "_G.NutritionRevamp.server.writer.input.panic": 0,
+      "_G.NutritionRevamp.server.writer.input.unhappyTarget": 0,
+      "_G.NutritionRevamp.server.writer.input.boredTarget": 0,
+      "_G.NutritionRevamp.server.writer.input.bored": 0.017821818590164185,
+      "_G.NutritionRevamp.server.writer.stats.writes": 12,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0
+     }
+    },
+    "wall": 60.103,
+    "wall_after": 60.615
+   },
+   "snap": {
+    "worldAge": 3.266061782836914,
+    "hour": 10,
+    "minutes": 15,
+    "mult": 4.744845390319824,
+    "trueMult": 1,
+    "wall": 60.615,
+    "wall_after": 61.125
+   }
+  },
+  "FOOD": {
+   "a": {
+    "type": "TKX.Mono450",
+    "n": 6,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item TKX.Mono450 in admin's inventory",
+     "wall": 61.127
+    },
+    "additem": {
+     "ok": true,
+     "reply": "Item TKX.Mono450 Added in admin's inventory."
+    },
+    "after": {
+     "id": 1607166453,
+     "fullType": "TKX.Mono450",
+     "hungChange": -0.2199999988079071,
+     "hungerChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 450,
+     "uses": 0.2199999988079071,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 64.0
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   "b": {
+    "type": "TKX.Mixed400",
+    "n": 3,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item TKX.Mixed400 in admin's inventory",
+     "wall": 64.508
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 544691717,
+     "fullType": "TKX.Mixed400",
+     "hungChange": -0.20000000298023224,
+     "hungerChange": -0.20000000298023224,
+     "baseHunger": -0.20000000298023224,
+     "calories": 400,
+     "uses": 0.20000000298023224,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 67.526
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   "p": {
+    "type": "TKX.Unit50",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item TKX.Unit50 in admin's inventory",
+     "wall": 68.285
+    },
+    "additem": {
+     "ok": true,
+     "reply": "Item TKX.Unit50 Added in admin's inventory."
+    },
+    "after": {
+     "id": 2027094413,
+     "fullType": "TKX.Unit50",
+     "hungChange": -0.019999999552965164,
+     "hungerChange": -0.019999999552965164,
+     "baseHunger": -0.019999999552965164,
+     "calories": 50,
+     "uses": 0.019999999552965164,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 71.371
+    },
+    "leftover_before": false,
+    "confirmed": true
+   }
+  },
+  "EATS": {
+   "eats": [
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a0",
+     "before": {
+      "eats": 0,
+      "cancels": 0,
+      "landed": 0,
+      "failures": 0,
+      "monotony": 0,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 71.887
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1607166453,
+      "validStart": true,
+      "maxTime": 232.0016040802002,
+      "error": null,
+      "raw": null,
+      "wall": 73.154,
+      "tag": "EATS_a0"
+     },
+     "landed": true,
+     "after": {
+      "eats": 1,
+      "cancels": 0,
+      "landed": 1,
+      "failures": 0,
+      "monotony": 1,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 78.465
+     },
+     "landed_age": 3.744391441345215
+    },
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a1",
+     "before": {
+      "eats": 1,
+      "cancels": 0,
+      "landed": 1,
+      "failures": 0,
+      "monotony": 1,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 79.227
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 821187413,
+      "validStart": true,
+      "maxTime": 232.00409317016602,
+      "error": null,
+      "raw": null,
+      "wall": 79.991,
+      "tag": "EATS_a1"
+     },
+     "landed": true,
+     "after": {
+      "eats": 2,
+      "cancels": 0,
+      "landed": 2,
+      "failures": 0,
+      "monotony": 2,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 84.805
+     },
+     "landed_age": 3.9038925170898438
+    },
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a2",
+     "before": {
+      "eats": 2,
+      "cancels": 0,
+      "landed": 2,
+      "failures": 0,
+      "monotony": 2,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 85.325
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 46413388,
+      "validStart": true,
+      "maxTime": 232.00774383544922,
+      "error": null,
+      "raw": null,
+      "wall": 86.34,
+      "tag": "EATS_a2"
+     },
+     "landed": true,
+     "after": {
+      "eats": 3,
+      "cancels": 0,
+      "landed": 3,
+      "failures": 0,
+      "monotony": 3,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 91.659
+     },
+     "landed_age": 4.100185394287109
+    },
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a3",
+     "before": {
+      "eats": 3,
+      "cancels": 0,
+      "landed": 3,
+      "failures": 0,
+      "monotony": 3,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 92.675
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1832940271,
+      "validStart": true,
+      "maxTime": 232.01344108581543,
+      "error": null,
+      "raw": null,
+      "wall": 93.943,
+      "tag": "EATS_a3"
+     },
+     "landed": true,
+     "after": {
+      "eats": 4,
+      "cancels": 0,
+      "landed": 4,
+      "failures": 0,
+      "monotony": 4,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 99.032
+     },
+     "landed_age": 4.285860061645508
+    },
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a4",
+     "before": {
+      "eats": 4,
+      "cancels": 0,
+      "landed": 4,
+      "failures": 0,
+      "monotony": 4,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 99.549
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1262570653,
+      "validStart": true,
+      "maxTime": 232.01753425598145,
+      "error": null,
+      "raw": null,
+      "wall": 100.82,
+      "tag": "EATS_a4"
+     },
+     "landed": true,
+     "after": {
+      "eats": 5,
+      "cancels": 0,
+      "landed": 5,
+      "failures": 0,
+      "monotony": 5,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 106.132
+     },
+     "landed_age": 4.485052108764648
+    },
+    {
+     "food": "TKX.Mono450",
+     "label": "EATS_a5",
+     "before": {
+      "eats": 5,
+      "cancels": 0,
+      "landed": 5,
+      "failures": 0,
+      "monotony": 5,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 107.147
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1801203560,
+      "validStart": true,
+      "maxTime": 232.02234649658203,
+      "error": null,
+      "raw": null,
+      "wall": 108.413,
+      "tag": "EATS_a5"
+     },
+     "landed": true,
+     "after": {
+      "eats": 6,
+      "cancels": 0,
+      "landed": 6,
+      "failures": 0,
+      "monotony": 6,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 113.478
+     },
+     "landed_age": 4.684195518493652
+    },
+    {
+     "food": "TKX.Mixed400",
+     "label": "EATS_b0",
+     "before": {
+      "eats": 6,
+      "cancels": 0,
+      "landed": 6,
+      "failures": 0,
+      "monotony": 6,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 114.493
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 544691717,
+      "validStart": true,
+      "maxTime": 232.026273727417,
+      "error": null,
+      "raw": null,
+      "wall": 116.008,
+      "tag": "EATS_b0"
+     },
+     "landed": true,
+     "after": {
+      "eats": 7,
+      "cancels": 0,
+      "landed": 7,
+      "failures": 0,
+      "monotony": 7,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 121.084
+     },
+     "landed_age": 4.885756492614746
+    },
+    {
+     "food": "TKX.Mixed400",
+     "label": "EATS_b1",
+     "before": {
+      "eats": 7,
+      "cancels": 0,
+      "landed": 7,
+      "failures": 0,
+      "monotony": 7,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 122.103
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 2003833703,
+      "validStart": true,
+      "maxTime": 290.0357460975647,
+      "error": null,
+      "raw": null,
+      "wall": 123.119,
+      "tag": "EATS_b1"
+     },
+     "landed": true,
+     "after": {
+      "eats": 8,
+      "cancels": 0,
+      "landed": 8,
+      "failures": 0,
+      "monotony": 8,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 129.453
+     },
+     "landed_age": 5.100602149963379
+    },
+    {
+     "food": "TKX.Mixed400",
+     "label": "EATS_b2",
+     "before": {
+      "eats": 8,
+      "cancels": 0,
+      "landed": 8,
+      "failures": 0,
+      "monotony": 8,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 130.22
+     },
+     "queued": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1569741144,
+      "validStart": true,
+      "maxTime": 290.0394105911255,
+      "error": null,
+      "raw": null,
+      "wall": 131.236,
+      "tag": "EATS_b2"
+     },
+     "landed": true,
+     "after": {
+      "eats": 9,
+      "cancels": 0,
+      "landed": 9,
+      "failures": 0,
+      "monotony": 9,
+      "monotonyHealed": 0,
+      "monotonyFailures": 0,
+      "wall": 137.585
+     },
+     "landed_age": 5.318296432495117
+    }
+   ],
+   "entries": {
+    "TKX.Mono450": {
+     "n": 5.972616674701505,
+     "last": 4.655014991760254,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": 2.9935985633349773,
+     "last": 5.294435501098633,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 138.604
+   },
+   "t_keys": 2,
+   "mood": {
+    "PANIC": 0,
+    "UNHAPPINESS": 21.218782424926758,
+    "BOREDOM": 22.17536163330078,
+    "STRESS": 0,
+    "worldAge": 5.368640899658203,
+    "wall": 139.619
+   }
+  },
+  "SET": {
+   "sets": [
+    {
+     "type": "TKX.Mono450",
+     "key": "last",
+     "sent": -162.41004543304444,
+     "ok": true,
+     "keyType": "string",
+     "before": 4.655014991760254,
+     "after": -162.41004543304444,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mixed400",
+     "key": "last",
+     "sent": -162.41004543304444,
+     "ok": true,
+     "keyType": "string",
+     "before": 5.294435501098633,
+     "after": -162.41004543304444,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mono450",
+     "key": "n",
+     "sent": 15.11905259873848,
+     "ok": true,
+     "keyType": "string",
+     "before": 5.972616674701505,
+     "after": 15.11905259873848,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mixed400",
+     "key": "n",
+     "sent": 4.031747359663594,
+     "ok": true,
+     "keyType": "string",
+     "before": 2.9935985633349773,
+     "after": 4.031747359663594,
+     "afterType": "number",
+     "error": null
+    }
+   ],
+   "clock0": {
+    "worldAge": 5.384578704833984,
+    "hour": 12,
+    "minutes": 23,
+    "mult": 4.787617206573486,
+    "trueMult": 1,
+    "wall": 140.383,
+    "wall_after": 140.891
+   },
+   "slowed": false,
+   "slow": {
+    "wall": 140.891,
+    "wall_after": 141.15,
+    "side": "server",
+    "raw": "mult=0.0010000000474974513 eff=0.004771159030497074"
+   },
+   "T": 5.389954566955566,
+   "last": -162.41004543304444,
+   "edge_age": 5.589954566955555,
+   "factor": 0.19842513149602492,
+   "n_a": 15.11905259873848,
+   "n_b": 4.031747359663594,
+   "entries": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": 4.031747359663594,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 151.22
+   },
+   "t_keys": 2,
+   "mood": {
+    "PANIC": 0,
+    "UNHAPPINESS": 21.218782424926758,
+    "BOREDOM": 22.214540481567383,
+    "STRESS": 0,
+    "worldAge": 5.390355110168457,
+    "wall": 155.242
+   },
+   "age_after": 5.390412330627441,
+   "restore_to": 1,
+   "restore": {
+    "wall": 159.272,
+    "wall_after": 161.282,
+    "side": "server",
+    "raw": "mult=1 eff=4.797463893890381"
+   }
+  },
+  "EDGE": {
+   "one": {
+    "worldAge": 5.401127815246582,
+    "hour": 12,
+    "minutes": 24,
+    "mult": 4.796394348144531,
+    "trueMult": 1,
+    "wall": 161.309,
+    "wall_after": 161.564
+   },
+   "at_edge": 5.60074520111084,
+   "mood_edge": {
+    "PANIC": 0,
+    "UNHAPPINESS": 8.623472213745117,
+    "BOREDOM": 10.02670955657959,
+    "STRESS": 0,
+    "worldAge": 5.6167144775390625,
+    "wall": 169.173
+   },
+   "end_age": 6.100752830505371,
+   "mood_end": {
+    "PANIC": 0,
+    "UNHAPPINESS": 8.571605682373047,
+    "BOREDOM": 10.874868392944336,
+    "STRESS": 0,
+    "worldAge": 6.116726875305176,
+    "wall": 187.942
+   }
+  },
+  "PRUNE": {
+   "before": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": 4.031747359663594,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 188.46
+   },
+   "eat": {
+    "food": "TKX.Unit50",
+    "label": "PRUNE_eat",
+    "before": {
+     "eats": 9,
+     "cancels": 0,
+     "landed": 9,
+     "failures": 0,
+     "monotony": 9,
+     "monotonyHealed": 0,
+     "monotonyFailures": 0,
+     "wall": 189.22
+    },
+    "queued": {
+     "queued": true,
+     "fraction": 1,
+     "spawned": "found",
+     "itemId": 2027094413,
+     "validStart": true,
+     "maxTime": 232.03628540039062,
+     "error": null,
+     "raw": null,
+     "wall": 190.482,
+     "tag": "PRUNE_eat"
+    },
+    "landed": true,
+    "after": {
+     "eats": 10,
+     "cancels": 0,
+     "landed": 10,
+     "failures": 0,
+     "monotony": 10,
+     "monotonyHealed": 0,
+     "monotonyFailures": 0,
+     "wall": 195.557
+    },
+    "landed_age": 6.334376335144043
+   },
+   "after": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at TKX.Mixed400"
+    },
+    "TKX.Unit50": {
+     "n": 0.125,
+     "present": true
+    },
+    "wall": 196.821
+   },
+   "after_wait": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at TKX.Mixed400"
+    },
+    "TKX.Unit50": {
+     "n": 0.125,
+     "present": true
+    },
+    "wall": 199.874
+   },
+   "mood": {
+    "PANIC": 0,
+    "UNHAPPINESS": 8.520322799682617,
+    "BOREDOM": 11.425661087036133,
+    "STRESS": 0,
+    "worldAge": 6.451210021972656,
+    "wall": 200.38
+   }
+  },
+  "RING": {
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "from": 1,
+      "rows": 193,
+      "skipped": 0,
+      "next": 194,
+      "more": false,
+      "recorded": 193,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "gErrors": 0,
+      "result": "minute-ring-admin-1",
+      "error": null
+     },
+     "file": "minute-ring-admin-1.json",
+     "doc_rows": 193
+    }
+   ],
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 194,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 201.66,
+    "wall_after": 202.418
+   }
+  },
+  "Z": {
+   "bus_dead": null,
+   "server_mod_error_lines": [],
+   "admin_parked": false,
+   "mem": {
+    "tag": "Z",
+    "wall": 202.424,
+    "free_gb": 3.86
+   },
+   "players": {
+    "wall": 202.424,
+    "wall_after": 202.933,
+    "side": "server",
+    "raw": [
+     "admin"
+    ]
+   },
+   "time": {
+    "worldAge": 6.50676155090332,
+    "hour": 13,
+    "minutes": 30,
+    "mult": 4.739247798919678,
+    "trueMult": 1,
+    "wall": 202.933,
+    "wall_after": 203.192
+   },
+   "intake": {
+    "eats": 10,
+    "cancels": 0,
+    "landed": 10,
+    "failures": 0,
+    "monotony": 10,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 203.192
+   }
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "S0": {
+   "start": 55.272,
+   "end": 60.1
+  },
+  "H": {
+   "start": 60.103,
+   "end": 61.125
+  },
+  "FOOD": {
+   "start": 61.127,
+   "end": 71.884
+  },
+  "EATS": {
+   "start": 71.886,
+   "end": 140.38
+  },
+  "SET": {
+   "start": 140.383,
+   "end": 161.282
+  },
+  "EDGE": {
+   "start": 161.288,
+   "end": 188.453
+  },
+  "PRUNE": {
+   "start": 188.46,
+   "end": 201.14
+  },
+  "RING": {
+   "start": 201.147,
+   "end": 202.418
+  },
+  "Z": {
+   "start": 202.424,
+   "end": 203.7
+  }
+ },
+ "verdicts": {
+  "RING": {
+   "phase": "RING",
+   "predicted": {
+    "pages": "all read, errors 0"
+   },
+   "falsifier": "a page unread or errors",
+   "observed": {
+    "pages": 1,
+    "files": [
+     "minute-ring-admin-1.json"
+    ],
+    "errors": [
+     0
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "FOOD": {
+   "phase": "FOOD",
+   "predicted": {
+    "item.get after the spawn": "an id for TKX.Mono450, TKX.Mixed400 and TKX.Unit50, none before",
+    "falsifier": "an id missing on a live bus"
+   },
+   "falsifier": "an id missing on a live bus",
+   "observed": {
+    "a": true,
+    "b": true,
+    "p": true
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "EATS": {
+   "phase": "EATS",
+   "predicted": {
+    "every eat": "spawned found and landed; both entries exist after",
+    "falsifier": "an eat not landed"
+   },
+   "falsifier": "an eat not landed",
+   "observed": {
+    "n": 9,
+    "landed": [
+     true,
+     true,
+     true,
+     true,
+     true,
+     true,
+     true,
+     true,
+     true
+    ],
+    "spawned": [
+     "found",
+     "found",
+     "found",
+     "found",
+     "found",
+     "found",
+     "found",
+     "found",
+     "found"
+    ],
+    "entries": {
+     "TKX.Mono450": {
+      "n": 5.972616674701505,
+      "last": 4.655014991760254,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Mixed400": {
+      "n": 2.9935985633349773,
+      "last": 5.294435501098633,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Unit50": {
+      "n": null,
+      "present": false
+     },
+     "wall": 138.604
+    },
+    "stop_reason": null
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "SET": {
+   "phase": "SET",
+   "predicted": {
+    "record.set": "ok, after equal to the value sent within 1e-9; the entries read back equal",
+    "falsifier": "a reply not ok or a value off"
+   },
+   "falsifier": "a reply not ok or a value off",
+   "observed": {
+    "T": 5.389954566955566,
+    "last": -162.41004543304444,
+    "edge_age": 5.589954566955555,
+    "factor": 0.19842513149602492,
+    "n_a": 15.11905259873848,
+    "n_b": 4.031747359663594,
+    "sets": [
+     {
+      "type": "TKX.Mono450",
+      "key": "last",
+      "sent": -162.41004543304444,
+      "ok": true,
+      "keyType": "string",
+      "before": 4.655014991760254,
+      "after": -162.41004543304444,
+      "afterType": "number",
+      "error": null
+     },
+     {
+      "type": "TKX.Mixed400",
+      "key": "last",
+      "sent": -162.41004543304444,
+      "ok": true,
+      "keyType": "string",
+      "before": 5.294435501098633,
+      "after": -162.41004543304444,
+      "afterType": "number",
+      "error": null
+     },
+     {
+      "type": "TKX.Mono450",
+      "key": "n",
+      "sent": 15.11905259873848,
+      "ok": true,
+      "keyType": "string",
+      "before": 5.972616674701505,
+      "after": 15.11905259873848,
+      "afterType": "number",
+      "error": null
+     },
+     {
+      "type": "TKX.Mixed400",
+      "key": "n",
+      "sent": 4.031747359663594,
+      "ok": true,
+      "keyType": "string",
+      "before": 2.9935985633349773,
+      "after": 4.031747359663594,
+      "afterType": "number",
+      "error": null
+     }
+    ],
+    "bad": [],
+    "read_back_bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "PANIC": {
+   "phase": "PANIC",
+   "predicted": {
+    "the writer's PANIC input": "<= 5.0 on every row from the sets to the end of EDGE (#3691)",
+    "falsifier": "a row over it (EDGE_STATS's BOREDOM half then void)"
+   },
+   "falsifier": "a row over it (EDGE_STATS's BOREDOM half then void)",
+   "observed": {
+    "rows": 44,
+    "read": 44,
+    "max": 0,
+    "over": 0
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "EDGE_TARGET": {
+   "phase": "EDGE_TARGET",
+   "predicted": {
+    "writer boredTarget": "the kernel's target at the previous row's age within TGT_TOL; its change at the edge rows no larger than the window's largest other change + TGT_TOL",
+    "falsifier": "either off",
+    "unmeasured": "fewer than EDGE_PRE_ROWS clean rows (a game minute past the sets' age_after) before the edge, the ring not covering it, or the key-count premise unread or off"
+   },
+   "falsifier": "either off",
+   "observed": {
+    "edge_age": 5.589954566955555,
+    "age_after": 5.390412330627441,
+    "rows": 43,
+    "edge_index": 12,
+    "clean_rows_before_edge": 12,
+    "rows_list": [
+     {
+      "s": 135,
+      "age": 5.483646392822266,
+      "drain_age": 5.467670440673828,
+      "pred": 8.615195269888046,
+      "got": 8.615195269888046,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.787182807922363,
+      "unhappyTarget": 8.615195269888046
+     },
+     {
+      "s": 136,
+      "age": 5.502292633056641,
+      "drain_age": 5.483646392822266,
+      "pred": 8.61320905014065,
+      "got": 8.61320905014065,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.820746421813965,
+      "unhappyTarget": 8.61320905014065
+     },
+     {
+      "s": 137,
+      "age": 5.5182695388793945,
+      "drain_age": 5.502292633056641,
+      "pred": 8.610891231546377,
+      "got": 8.610891231546377,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.849506378173828,
+      "unhappyTarget": 8.610891231546377
+     },
+     {
+      "s": 138,
+      "age": 5.534235954284668,
+      "drain_age": 5.5182695388793945,
+      "pred": 8.608905555196833,
+      "got": 8.608905555196833,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.87824821472168,
+      "unhappyTarget": 8.608905555196833
+     },
+     {
+      "s": 139,
+      "age": 5.550189018249512,
+      "drain_age": 5.534235954284668,
+      "pred": 8.606921487733466,
+      "got": 8.606921487733466,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.906964302062988,
+      "unhappyTarget": 8.606921487733466
+     },
+     {
+      "s": 140,
+      "age": 5.56879997253418,
+      "drain_age": 5.550189018249512,
+      "pred": 8.604939383951535,
+      "got": 8.604939383951535,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.940464973449707,
+      "unhappyTarget": 8.604939383951535
+     },
+     {
+      "s": 141,
+      "age": 5.584771156311035,
+      "drain_age": 5.56879997253418,
+      "pred": 8.602627432710754,
+      "got": 8.602627432710754,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.969212532043457,
+      "unhappyTarget": 8.602627432710754
+     },
+     {
+      "s": 142,
+      "age": 5.60074520111084,
+      "drain_age": 5.584771156311035,
+      "pred": 8.600643737971343,
+      "got": 8.600643737971343,
+      "past_edge": false,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 9.997963905334473,
+      "unhappyTarget": 8.600643737971343
+     },
+     {
+      "s": 143,
+      "age": 5.6167144775390625,
+      "drain_age": 5.60074520111084,
+      "pred": 8.59865999294174,
+      "got": 8.59865999294174,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.02670955657959,
+      "unhappyTarget": 8.59865999294174
+     },
+     {
+      "s": 144,
+      "age": 5.635327339172363,
+      "drain_age": 5.6167144775390625,
+      "pred": 8.596677144980745,
+      "got": 8.596677144980745,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.060215950012207,
+      "unhappyTarget": 8.596677144980745
+     },
+     {
+      "s": 145,
+      "age": 5.651289939880371,
+      "drain_age": 5.635327339172363,
+      "pred": 8.594366437172122,
+      "got": 8.594366437172122,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.088946342468262,
+      "unhappyTarget": 8.594366437172122
+     },
+     {
+      "s": 146,
+      "age": 5.667253494262695,
+      "drain_age": 5.651289939880371,
+      "pred": 8.5923850777992,
+      "got": 8.5923850777992,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.117679595947266,
+      "unhappyTarget": 8.5923850777992
+     },
+     {
+      "s": 147,
+      "age": 5.6858720779418945,
+      "drain_age": 5.667253494262695,
+      "pred": 8.590403904536025,
+      "got": 8.590403904536025,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.151193618774414,
+      "unhappyTarget": 8.590403904536025
+     },
+     {
+      "s": 148,
+      "age": 5.7018280029296875,
+      "drain_age": 5.6858720779418945,
+      "pred": 8.58809361075028,
+      "got": 8.58809361075028,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.179915428161621,
+      "unhappyTarget": 8.58809361075028
+     },
+     {
+      "s": 149,
+      "age": 5.717776298522949,
+      "drain_age": 5.7018280029296875,
+      "pred": 8.586114043422944,
+      "got": 8.586114043422944,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.208621978759766,
+      "unhappyTarget": 8.586114043422944
+     },
+     {
+      "s": 150,
+      "age": 5.733737945556641,
+      "drain_age": 5.717776298522949,
+      "pred": 8.584135726471048,
+      "got": 8.584135726471048,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.237354278564453,
+      "unhappyTarget": 8.584135726471048
+     },
+     {
+      "s": 151,
+      "age": 5.752353668212891,
+      "drain_age": 5.733737945556641,
+      "pred": 8.582156057429795,
+      "got": 8.582156057429795,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.270861625671387,
+      "unhappyTarget": 8.582156057429795
+     },
+     {
+      "s": 152,
+      "age": 5.768324851989746,
+      "drain_age": 5.752353668212891,
+      "pred": 8.579847596623722,
+      "got": 8.579847596623722,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.299610137939453,
+      "unhappyTarget": 8.579847596623722
+     },
+     {
+      "s": 153,
+      "age": 5.78428840637207,
+      "drain_age": 5.768324851989746,
+      "pred": 8.577867404135398,
+      "got": 8.577867404135398,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.328344345092773,
+      "unhappyTarget": 8.577867404135398
+     },
+     {
+      "s": 154,
+      "age": 5.800239562988281,
+      "drain_age": 5.78428840637207,
+      "pred": 8.575888461803643,
+      "got": 8.575888461803643,
+      "past_edge": true,
+      "UNHAPPINESS": 8.623472213745117,
+      "BOREDOM": 10.357054710388184,
+      "unhappyTarget": 8.575888461803643
+     }
+    ],
+    "t_keys": [
+     2,
+     2
+    ],
+    "off": [],
+    "off_n": 0,
+    "d_edge": [
+     0.0019837450296016357,
+     0.0019828479609955707
+    ],
+    "d_other_max": 0.002311951240780985,
+    "step_ok": true
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "EDGE_STATS": {
+   "phase": "EDGE_STATS",
+   "predicted": {
+    "UNHAPPINESS and BOREDOM": "the change at the edge rows <= the largest change on the neighbour rows + 0.1",
+    "falsifier": "a larger change",
+    "void": "BOREDOM's half when PANIC exceeded 5"
+   },
+   "falsifier": "a larger change",
+   "observed": {
+    "UNHAPPINESS": {
+     "d_edge": [
+      0.0,
+      0.0
+     ],
+     "d_neighbours_max": 0.0,
+     "ok": true
+    },
+    "BOREDOM": {
+     "d_edge": [
+      0.028745651245117188,
+      0.03350639343261719
+     ],
+     "d_neighbours_max": 0.03351402282714844,
+     "ok": true
+    },
+    "boredom_void": false
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "PRUNE": {
+   "phase": "PRUNE",
+   "predicted": {
+    "before the Unit50 eat": "both entries exist",
+    "after": "TKX.Mono450 kept with n and last unchanged, TKX.Mixed400 gone",
+    "falsifier": "either off",
+    "void": "the Unit50 eat did not land"
+   },
+   "falsifier": "either off",
+   "observed": {
+    "before": {
+     "TKX.Mono450": {
+      "n": 15.11905259873848,
+      "last": -162.41004543304444,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Mixed400": {
+      "n": 4.031747359663594,
+      "last": -162.41004543304444,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Unit50": {
+      "n": null,
+      "present": false
+     },
+     "wall": 188.46
+    },
+    "after": {
+     "TKX.Mono450": {
+      "n": 15.11905259873848,
+      "last": -162.41004543304444,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Mixed400": {
+      "n": null,
+      "last": null,
+      "s": null,
+      "present": false,
+      "missing": "nil at TKX.Mixed400"
+     },
+     "TKX.Unit50": {
+      "n": 0.125,
+      "present": true
+     },
+     "wall": 196.821
+    },
+    "after_wait": {
+     "TKX.Mono450": {
+      "n": 15.11905259873848,
+      "last": -162.41004543304444,
+      "s": null,
+      "present": true,
+      "missing": null
+     },
+     "TKX.Mixed400": {
+      "n": null,
+      "last": null,
+      "s": null,
+      "present": false,
+      "missing": "nil at TKX.Mixed400"
+     },
+     "TKX.Unit50": {
+      "n": 0.125,
+      "present": true
+     },
+     "wall": 199.874
+    },
+    "landed": true
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": {
+    "mod_error": "none",
+    "admin_lua_error": false,
+    "players": "answers a list (the server alive at the end)"
+   },
+   "falsifier": "a mod error line, admin parked, or no players answer",
+   "observed": {
+    "server_mod_error_lines": [],
+    "admin_lua_error": false,
+    "players": [
+     "admin"
+    ],
+    "server_alive": true,
+    "bus_dead": null
+   },
+   "verdict": "as_predicted",
+   "wall": 213.771
+  }
+ },
+ "summaries": {
+  "kernel": {
+   "window": 168,
+   "half": 72,
+   "slope": 4.3,
+   "cap": 30,
+   "boredMax": 49,
+   "staple": 0.25,
+   "mealKcal": 400
+  },
+  "ring_rows": 193,
+  "eats": {
+   "n": 9,
+   "landed": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "spawned": [
+    "found",
+    "found",
+    "found",
+    "found",
+    "found",
+    "found",
+    "found",
+    "found",
+    "found"
+   ],
+   "entries": {
+    "TKX.Mono450": {
+     "n": 5.972616674701505,
+     "last": 4.655014991760254,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": 2.9935985633349773,
+     "last": 5.294435501098633,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 138.604
+   },
+   "stop_reason": null
+  },
+  "set": {
+   "T": 5.389954566955566,
+   "last": -162.41004543304444,
+   "edge_age": 5.589954566955555,
+   "factor": 0.19842513149602492,
+   "n_a": 15.11905259873848,
+   "n_b": 4.031747359663594,
+   "sets": [
+    {
+     "type": "TKX.Mono450",
+     "key": "last",
+     "sent": -162.41004543304444,
+     "ok": true,
+     "keyType": "string",
+     "before": 4.655014991760254,
+     "after": -162.41004543304444,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mixed400",
+     "key": "last",
+     "sent": -162.41004543304444,
+     "ok": true,
+     "keyType": "string",
+     "before": 5.294435501098633,
+     "after": -162.41004543304444,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mono450",
+     "key": "n",
+     "sent": 15.11905259873848,
+     "ok": true,
+     "keyType": "string",
+     "before": 5.972616674701505,
+     "after": 15.11905259873848,
+     "afterType": "number",
+     "error": null
+    },
+    {
+     "type": "TKX.Mixed400",
+     "key": "n",
+     "sent": 4.031747359663594,
+     "ok": true,
+     "keyType": "string",
+     "before": 2.9935985633349773,
+     "after": 4.031747359663594,
+     "afterType": "number",
+     "error": null
+    }
+   ],
+   "bad": [],
+   "read_back_bad": []
+  },
+  "panic": {
+   "rows": 44,
+   "read": 44,
+   "max": 0,
+   "over": 0
+  },
+  "edge": {
+   "edge_age": 5.589954566955555,
+   "age_after": 5.390412330627441,
+   "rows": 43,
+   "edge_index": 12,
+   "clean_rows_before_edge": 12,
+   "rows_list": [
+    {
+     "s": 135,
+     "age": 5.483646392822266,
+     "drain_age": 5.467670440673828,
+     "pred": 8.615195269888046,
+     "got": 8.615195269888046,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.787182807922363,
+     "unhappyTarget": 8.615195269888046
+    },
+    {
+     "s": 136,
+     "age": 5.502292633056641,
+     "drain_age": 5.483646392822266,
+     "pred": 8.61320905014065,
+     "got": 8.61320905014065,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.820746421813965,
+     "unhappyTarget": 8.61320905014065
+    },
+    {
+     "s": 137,
+     "age": 5.5182695388793945,
+     "drain_age": 5.502292633056641,
+     "pred": 8.610891231546377,
+     "got": 8.610891231546377,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.849506378173828,
+     "unhappyTarget": 8.610891231546377
+    },
+    {
+     "s": 138,
+     "age": 5.534235954284668,
+     "drain_age": 5.5182695388793945,
+     "pred": 8.608905555196833,
+     "got": 8.608905555196833,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.87824821472168,
+     "unhappyTarget": 8.608905555196833
+    },
+    {
+     "s": 139,
+     "age": 5.550189018249512,
+     "drain_age": 5.534235954284668,
+     "pred": 8.606921487733466,
+     "got": 8.606921487733466,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.906964302062988,
+     "unhappyTarget": 8.606921487733466
+    },
+    {
+     "s": 140,
+     "age": 5.56879997253418,
+     "drain_age": 5.550189018249512,
+     "pred": 8.604939383951535,
+     "got": 8.604939383951535,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.940464973449707,
+     "unhappyTarget": 8.604939383951535
+    },
+    {
+     "s": 141,
+     "age": 5.584771156311035,
+     "drain_age": 5.56879997253418,
+     "pred": 8.602627432710754,
+     "got": 8.602627432710754,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.969212532043457,
+     "unhappyTarget": 8.602627432710754
+    },
+    {
+     "s": 142,
+     "age": 5.60074520111084,
+     "drain_age": 5.584771156311035,
+     "pred": 8.600643737971343,
+     "got": 8.600643737971343,
+     "past_edge": false,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 9.997963905334473,
+     "unhappyTarget": 8.600643737971343
+    },
+    {
+     "s": 143,
+     "age": 5.6167144775390625,
+     "drain_age": 5.60074520111084,
+     "pred": 8.59865999294174,
+     "got": 8.59865999294174,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.02670955657959,
+     "unhappyTarget": 8.59865999294174
+    },
+    {
+     "s": 144,
+     "age": 5.635327339172363,
+     "drain_age": 5.6167144775390625,
+     "pred": 8.596677144980745,
+     "got": 8.596677144980745,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.060215950012207,
+     "unhappyTarget": 8.596677144980745
+    },
+    {
+     "s": 145,
+     "age": 5.651289939880371,
+     "drain_age": 5.635327339172363,
+     "pred": 8.594366437172122,
+     "got": 8.594366437172122,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.088946342468262,
+     "unhappyTarget": 8.594366437172122
+    },
+    {
+     "s": 146,
+     "age": 5.667253494262695,
+     "drain_age": 5.651289939880371,
+     "pred": 8.5923850777992,
+     "got": 8.5923850777992,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.117679595947266,
+     "unhappyTarget": 8.5923850777992
+    },
+    {
+     "s": 147,
+     "age": 5.6858720779418945,
+     "drain_age": 5.667253494262695,
+     "pred": 8.590403904536025,
+     "got": 8.590403904536025,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.151193618774414,
+     "unhappyTarget": 8.590403904536025
+    },
+    {
+     "s": 148,
+     "age": 5.7018280029296875,
+     "drain_age": 5.6858720779418945,
+     "pred": 8.58809361075028,
+     "got": 8.58809361075028,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.179915428161621,
+     "unhappyTarget": 8.58809361075028
+    },
+    {
+     "s": 149,
+     "age": 5.717776298522949,
+     "drain_age": 5.7018280029296875,
+     "pred": 8.586114043422944,
+     "got": 8.586114043422944,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.208621978759766,
+     "unhappyTarget": 8.586114043422944
+    },
+    {
+     "s": 150,
+     "age": 5.733737945556641,
+     "drain_age": 5.717776298522949,
+     "pred": 8.584135726471048,
+     "got": 8.584135726471048,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.237354278564453,
+     "unhappyTarget": 8.584135726471048
+    },
+    {
+     "s": 151,
+     "age": 5.752353668212891,
+     "drain_age": 5.733737945556641,
+     "pred": 8.582156057429795,
+     "got": 8.582156057429795,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.270861625671387,
+     "unhappyTarget": 8.582156057429795
+    },
+    {
+     "s": 152,
+     "age": 5.768324851989746,
+     "drain_age": 5.752353668212891,
+     "pred": 8.579847596623722,
+     "got": 8.579847596623722,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.299610137939453,
+     "unhappyTarget": 8.579847596623722
+    },
+    {
+     "s": 153,
+     "age": 5.78428840637207,
+     "drain_age": 5.768324851989746,
+     "pred": 8.577867404135398,
+     "got": 8.577867404135398,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.328344345092773,
+     "unhappyTarget": 8.577867404135398
+    },
+    {
+     "s": 154,
+     "age": 5.800239562988281,
+     "drain_age": 5.78428840637207,
+     "pred": 8.575888461803643,
+     "got": 8.575888461803643,
+     "past_edge": true,
+     "UNHAPPINESS": 8.623472213745117,
+     "BOREDOM": 10.357054710388184,
+     "unhappyTarget": 8.575888461803643
+    }
+   ],
+   "t_keys": [
+    2,
+    2
+   ],
+   "off": [],
+   "off_n": 0,
+   "d_edge": [
+    0.0019837450296016357,
+    0.0019828479609955707
+   ],
+   "d_other_max": 0.002311951240780985,
+   "step_ok": true
+  },
+  "edge_stats": {
+   "UNHAPPINESS": {
+    "d_edge": [
+     0.0,
+     0.0
+    ],
+    "d_neighbours_max": 0.0,
+    "ok": true
+   },
+   "BOREDOM": {
+    "d_edge": [
+     0.028745651245117188,
+     0.03350639343261719
+    ],
+    "d_neighbours_max": 0.03351402282714844,
+    "ok": true
+   },
+   "boredom_void": false
+  },
+  "prune": {
+   "before": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": 4.031747359663594,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Unit50": {
+     "n": null,
+     "present": false
+    },
+    "wall": 188.46
+   },
+   "after": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at TKX.Mixed400"
+    },
+    "TKX.Unit50": {
+     "n": 0.125,
+     "present": true
+    },
+    "wall": 196.821
+   },
+   "after_wait": {
+    "TKX.Mono450": {
+     "n": 15.11905259873848,
+     "last": -162.41004543304444,
+     "s": null,
+     "present": true,
+     "missing": null
+    },
+    "TKX.Mixed400": {
+     "n": null,
+     "last": null,
+     "s": null,
+     "present": false,
+     "missing": "nil at TKX.Mixed400"
+    },
+    "TKX.Unit50": {
+     "n": 0.125,
+     "present": true
+    },
+    "wall": 199.874
+   },
+   "landed": true
+  }
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.167,
+   "free_gb": 18.1
+  },
+  {
+   "tag": "ready",
+   "wall": 55.271,
+   "free_gb": 4.27
+  },
+  {
+   "tag": "Z",
+   "wall": 202.424,
+   "free_gb": 3.86
+  }
+ ],
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "RCON additem TKX.Mono450 x6",
+   "RCON additem TKX.Mixed400 x3",
+   "RCON additem TKX.Unit50 x1"
+  ]
+ },
+ "manifest_gate": {
+  "head": "9bb3a7e2d27518653e43078c8bcfcf7d0bb21de7",
+  "head_short": "9bb3a7e2",
+  "mod_commit": "fdd7767f",
+  "mod_dirty": false,
+  "staged_manifest": "release/plan11-x40/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest_sha256": "e96325f59e5f76d3ea74b8d807021d723dce841a4dbe98a88730ac479d9e3621",
+  "files": 74,
+  "staged_equals_head": true,
+  "staged_tree_equals_head": true,
+  "ok": true
+ },
+ "harness_gate": {
+  "commits": {
+   "016dce05": "a ghost run restores its carrier's macros; time.snapshot reports the true multiplier",
+   "07c27dc4": "the store probe formats tiny magnitudes with tostring (Kahlua %g hangs below 1e-292)",
+   "2ffdbc81": "action.cancel stops a started action through ISTimedActionQueue.clear (H3)",
+   "513778e8": "action.cancel reads isStarted index-first (Task 1 fix 1)",
+   "ccb71a1b": "record.set (H6)"
+  },
+  "ancestors": {
+   "016dce05": true,
+   "07c27dc4": true,
+   "2ffdbc81": true,
+   "513778e8": true,
+   "ccb71a1b": true
+  },
+  "lua_commit": "07c27dc4",
+  "lua_dirty": false,
+  "repo_markers": {
+   "PZTestKit_Server.lua": {
+    "-- ---- Plan 11b Task 2 fix: a ghost run restores the carrier's macros ----": true,
+    "g.rec.reconcile.baseline = NR.kernel.reconcile.baselineAfter(pre)": true,
+    "TK.call(nut, \"setCalories\", pre.calories)": true,
+    "if type(v) == \"number\" and v ~= 0 and math.abs(v) < 1e-280 then return tostring(v) end -- Kahlua %g hangs below ~1e-292": true,
+    "TK.register(\"record.set\", function(argv)": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"action.cancel\", function()": true,
+    "if cur.isStarted ~= nil then out.started = cur:isStarted() == true end": true
+   }
+  },
+  "repo_sha256": {
+   "PZTestKit_Server.lua": "d8645c4ed5b9def0ab4ca36a5402d41f1b65984efd9db6d8a9d1d5dd4d099f9f",
+   "PZTestKit_Client.lua": "ccfe7f867abb19483a6dd8c0b13b595ddb1daeb00c89c1a03168e519c200f737"
+  },
+  "ok": true
+ },
+ "lint_errors": [],
+ "server_launch_wall": 1.731,
+ "server_started_wall": 17.736,
+ "session_ready_wall": 53.478,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "TKX.Mixed650",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.Mixed650",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -32,
+    "ThirstChange": 0,
+    "DaysFresh": 365,
+    "DaysTotallyRotten": 730,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "item.script",
+   "args": "TKX.Mixed650",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.Mixed650",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -32,
+    "ThirstChange": 0,
+    "DaysFresh": 365,
+    "DaysTotallyRotten": 730,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "admin": []
+ },
+ "timeline": [
+  {
+   "t": 17.7,
+   "phase": "server_started"
+  },
+  {
+   "t": 17.8,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 53.5,
+   "phase": "client_ready",
+   "took": 35.3,
+   "user": "admin"
+  },
+  {
+   "t": 53.5,
+   "phase": "session_ready"
+  },
+  {
+   "t": 54.0,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 54.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 54.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.Mixed650\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 55.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.Mixed650\", \"via\": \"getItem\", \"side\": \"client\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 56.8,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 61.5,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"TKX.Mono450\" 6",
+   "ok": true
+  },
+  {
+   "t": 65.0,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"TKX.Mixed400\" 3",
+   "ok": true
+  },
+  {
+   "t": 68.9,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"TKX.Unit50\" 1",
+   "ok": true
+  },
+  {
+   "t": 161.3,
+   "phase": "clock_restored"
+  },
+  {
+   "t": 161.3,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 206.0,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 213.7,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "RING",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "FOOD",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "EATS",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "SET",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "PANIC",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "EDGE_TARGET",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "EDGE_STATS",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "PRUNE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 213.8,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "budget": {
+  "BUDGET_S": 840.0,
+  "checks": [
+   {
+    "phase": "S0",
+    "wall": 55.272,
+    "estimate": 8.0
+   },
+   {
+    "phase": "H",
+    "wall": 60.103,
+    "estimate": 4.0
+   },
+   {
+    "phase": "FOOD",
+    "wall": 61.127,
+    "estimate": 12.0
+   },
+   {
+    "phase": "EATS",
+    "wall": 71.886,
+    "estimate": 80.0
+   },
+   {
+    "phase": "SET",
+    "wall": 140.383,
+    "estimate": 10.0
+   },
+   {
+    "phase": "EDGE",
+    "wall": 161.288,
+    "estimate": 35.0
+   },
+   {
+    "phase": "PRUNE",
+    "wall": 188.46,
+    "estimate": 20.0
+   }
+  ],
+  "estimate_total_s": 169.0
+ },
+ "speeds": [
+  {
+   "mode": "one",
+   "age": 3.1619644165039062,
+   "mult": 4.556463241577148,
+   "trueMult": 1,
+   "wall": 56.808
+  },
+  {
+   "mode": "one",
+   "age": 5.401127815246582,
+   "mult": 4.796394348144531,
+   "trueMult": 1,
+   "wall": 161.309
+  }
+ ],
+ "eats": [
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1607166453,
+   "validStart": true,
+   "maxTime": 232.0016040802002,
+   "error": null,
+   "raw": null,
+   "wall": 73.154,
+   "tag": "EATS_a0"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 821187413,
+   "validStart": true,
+   "maxTime": 232.00409317016602,
+   "error": null,
+   "raw": null,
+   "wall": 79.991,
+   "tag": "EATS_a1"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 46413388,
+   "validStart": true,
+   "maxTime": 232.00774383544922,
+   "error": null,
+   "raw": null,
+   "wall": 86.34,
+   "tag": "EATS_a2"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1832940271,
+   "validStart": true,
+   "maxTime": 232.01344108581543,
+   "error": null,
+   "raw": null,
+   "wall": 93.943,
+   "tag": "EATS_a3"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1262570653,
+   "validStart": true,
+   "maxTime": 232.01753425598145,
+   "error": null,
+   "raw": null,
+   "wall": 100.82,
+   "tag": "EATS_a4"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1801203560,
+   "validStart": true,
+   "maxTime": 232.02234649658203,
+   "error": null,
+   "raw": null,
+   "wall": 108.413,
+   "tag": "EATS_a5"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 544691717,
+   "validStart": true,
+   "maxTime": 232.026273727417,
+   "error": null,
+   "raw": null,
+   "wall": 116.008,
+   "tag": "EATS_b0"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 2003833703,
+   "validStart": true,
+   "maxTime": 290.0357460975647,
+   "error": null,
+   "raw": null,
+   "wall": 123.119,
+   "tag": "EATS_b1"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1569741144,
+   "validStart": true,
+   "maxTime": 290.0394105911255,
+   "error": null,
+   "raw": null,
+   "wall": 131.236,
+   "tag": "EATS_b2"
+  },
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 2027094413,
+   "validStart": true,
+   "maxTime": 232.03628540039062,
+   "error": null,
+   "raw": null,
+   "wall": 190.482,
+   "tag": "PRUNE_eat"
+  }
+ ],
+ "eat_rows": [
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a0",
+   "before": {
+    "eats": 0,
+    "cancels": 0,
+    "landed": 0,
+    "failures": 0,
+    "monotony": 0,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 71.887
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1607166453,
+    "validStart": true,
+    "maxTime": 232.0016040802002,
+    "error": null,
+    "raw": null,
+    "wall": 73.154,
+    "tag": "EATS_a0"
+   },
+   "landed": true,
+   "after": {
+    "eats": 1,
+    "cancels": 0,
+    "landed": 1,
+    "failures": 0,
+    "monotony": 1,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 78.465
+   },
+   "landed_age": 3.744391441345215
+  },
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a1",
+   "before": {
+    "eats": 1,
+    "cancels": 0,
+    "landed": 1,
+    "failures": 0,
+    "monotony": 1,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 79.227
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 821187413,
+    "validStart": true,
+    "maxTime": 232.00409317016602,
+    "error": null,
+    "raw": null,
+    "wall": 79.991,
+    "tag": "EATS_a1"
+   },
+   "landed": true,
+   "after": {
+    "eats": 2,
+    "cancels": 0,
+    "landed": 2,
+    "failures": 0,
+    "monotony": 2,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 84.805
+   },
+   "landed_age": 3.9038925170898438
+  },
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a2",
+   "before": {
+    "eats": 2,
+    "cancels": 0,
+    "landed": 2,
+    "failures": 0,
+    "monotony": 2,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 85.325
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 46413388,
+    "validStart": true,
+    "maxTime": 232.00774383544922,
+    "error": null,
+    "raw": null,
+    "wall": 86.34,
+    "tag": "EATS_a2"
+   },
+   "landed": true,
+   "after": {
+    "eats": 3,
+    "cancels": 0,
+    "landed": 3,
+    "failures": 0,
+    "monotony": 3,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 91.659
+   },
+   "landed_age": 4.100185394287109
+  },
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a3",
+   "before": {
+    "eats": 3,
+    "cancels": 0,
+    "landed": 3,
+    "failures": 0,
+    "monotony": 3,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 92.675
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1832940271,
+    "validStart": true,
+    "maxTime": 232.01344108581543,
+    "error": null,
+    "raw": null,
+    "wall": 93.943,
+    "tag": "EATS_a3"
+   },
+   "landed": true,
+   "after": {
+    "eats": 4,
+    "cancels": 0,
+    "landed": 4,
+    "failures": 0,
+    "monotony": 4,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 99.032
+   },
+   "landed_age": 4.285860061645508
+  },
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a4",
+   "before": {
+    "eats": 4,
+    "cancels": 0,
+    "landed": 4,
+    "failures": 0,
+    "monotony": 4,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 99.549
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1262570653,
+    "validStart": true,
+    "maxTime": 232.01753425598145,
+    "error": null,
+    "raw": null,
+    "wall": 100.82,
+    "tag": "EATS_a4"
+   },
+   "landed": true,
+   "after": {
+    "eats": 5,
+    "cancels": 0,
+    "landed": 5,
+    "failures": 0,
+    "monotony": 5,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 106.132
+   },
+   "landed_age": 4.485052108764648
+  },
+  {
+   "food": "TKX.Mono450",
+   "label": "EATS_a5",
+   "before": {
+    "eats": 5,
+    "cancels": 0,
+    "landed": 5,
+    "failures": 0,
+    "monotony": 5,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 107.147
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1801203560,
+    "validStart": true,
+    "maxTime": 232.02234649658203,
+    "error": null,
+    "raw": null,
+    "wall": 108.413,
+    "tag": "EATS_a5"
+   },
+   "landed": true,
+   "after": {
+    "eats": 6,
+    "cancels": 0,
+    "landed": 6,
+    "failures": 0,
+    "monotony": 6,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 113.478
+   },
+   "landed_age": 4.684195518493652
+  },
+  {
+   "food": "TKX.Mixed400",
+   "label": "EATS_b0",
+   "before": {
+    "eats": 6,
+    "cancels": 0,
+    "landed": 6,
+    "failures": 0,
+    "monotony": 6,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 114.493
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 544691717,
+    "validStart": true,
+    "maxTime": 232.026273727417,
+    "error": null,
+    "raw": null,
+    "wall": 116.008,
+    "tag": "EATS_b0"
+   },
+   "landed": true,
+   "after": {
+    "eats": 7,
+    "cancels": 0,
+    "landed": 7,
+    "failures": 0,
+    "monotony": 7,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 121.084
+   },
+   "landed_age": 4.885756492614746
+  },
+  {
+   "food": "TKX.Mixed400",
+   "label": "EATS_b1",
+   "before": {
+    "eats": 7,
+    "cancels": 0,
+    "landed": 7,
+    "failures": 0,
+    "monotony": 7,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 122.103
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2003833703,
+    "validStart": true,
+    "maxTime": 290.0357460975647,
+    "error": null,
+    "raw": null,
+    "wall": 123.119,
+    "tag": "EATS_b1"
+   },
+   "landed": true,
+   "after": {
+    "eats": 8,
+    "cancels": 0,
+    "landed": 8,
+    "failures": 0,
+    "monotony": 8,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 129.453
+   },
+   "landed_age": 5.100602149963379
+  },
+  {
+   "food": "TKX.Mixed400",
+   "label": "EATS_b2",
+   "before": {
+    "eats": 8,
+    "cancels": 0,
+    "landed": 8,
+    "failures": 0,
+    "monotony": 8,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 130.22
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1569741144,
+    "validStart": true,
+    "maxTime": 290.0394105911255,
+    "error": null,
+    "raw": null,
+    "wall": 131.236,
+    "tag": "EATS_b2"
+   },
+   "landed": true,
+   "after": {
+    "eats": 9,
+    "cancels": 0,
+    "landed": 9,
+    "failures": 0,
+    "monotony": 9,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 137.585
+   },
+   "landed_age": 5.318296432495117
+  },
+  {
+   "food": "TKX.Unit50",
+   "label": "PRUNE_eat",
+   "before": {
+    "eats": 9,
+    "cancels": 0,
+    "landed": 9,
+    "failures": 0,
+    "monotony": 9,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 189.22
+   },
+   "queued": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 2027094413,
+    "validStart": true,
+    "maxTime": 232.03628540039062,
+    "error": null,
+    "raw": null,
+    "wall": 190.482,
+    "tag": "PRUNE_eat"
+   },
+   "landed": true,
+   "after": {
+    "eats": 10,
+    "cancels": 0,
+    "landed": 10,
+    "failures": 0,
+    "monotony": 10,
+    "monotonyHealed": 0,
+    "monotonyFailures": 0,
+    "wall": 195.557
+   },
+   "landed_age": 6.334376335144043
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 33.3,
+   "ready": 35.3
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "life": "minute: \\w+ failed|players: hook failed|players: task|intake: |writer: |non-finite",
+   "log": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+   "echo_excluded": "PZTK: ",
+   "probe_excluded": "\\b(?:minute\\.ring|lua\\.(?:read|global)|time\\.(?:snapshot|multiplier)|record\\.set|item\\.get|eat\\.action|foodtimer\\.set|additem|settimespeed|stats\\.all)"
+  },
+  "limits": {
+   "log": 400
+  },
+  "clients": {
+   "admin": [
+    {
+     "console": "clients\\admin\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\clients\\admin\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     ],
+     "echo_lines_excluded": 0
+    }
+   ]
+  },
+  "server": {
+   "life_lines": [
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,345> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+    "LOG  : Lua          f:0 st:2,264,781,308> [NutritionRevamp] intake: wrappers true drink true world true"
+   ],
+   "life_echo_excluded": 0,
+   "lines": [
+    "LOG  : Mod          f:0 st:2,264,767,850> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:2,264,767,854> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:2,264,767,854> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:2,264,767,855> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:2,264,767,855> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "ERROR: General      f:0 st:2,264,776,823> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,824> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,825> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,825> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,827> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,827> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,828> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,828> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,829> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,829> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\TKX_StudyFoods\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,829> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,264,776,829> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x406-20261013-160700\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "LOG  : Lua          f:0 st:2,264,778,218> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,218> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,228> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:2,264,778,345> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+    "ERROR: WorldGen     f:0 st:2,264,778,662> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderW",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,264,778,663> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderS at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderS",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,264,778,663> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderE at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderE",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,264,778,663> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderN at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderN",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,264,778,665> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: WindowShape at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: WindowShape",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:2,264,781,308> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:2,264,781,308> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+    "LOG  : Lua          f:0 st:2,264,781,309> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=13 nutritionOn=false log=2",
+    "LOG  : Lua          f:333 st:2,264,815,999> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:1857 st:2,264,968,340> [NutritionRevamp] players: admin left"
+   ],
+   "echo_lines_excluded": 106
+  }
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json",
+  "minute-ring-admin-1.json"
+ ],
+ "wall_seconds": 213.8
+}

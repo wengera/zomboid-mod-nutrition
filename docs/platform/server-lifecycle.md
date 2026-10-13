@@ -121,6 +121,7 @@ A table keyed by username and transmitted from the server is therefore every pla
 The per-player push a mod controls is the command bus's server send, which [mp-model.md](mp-model.md#command-bus) owns.
 `OnReceiveGlobalModData` fires on the receiving side with `(name, table)`, the table freshly allocated and loaded from the packet, or with `(name, false)` when the packet carries no table, and the parse installs nothing itself [#2399/C/C-only].
 A handler that does nothing with the table leaves the receiver's copy exactly as it was [#2399/C/C-only].
+The server answers a global modData request for a name it does not hold: `GlobalModData.receiveRequest` finds no table, logs that it received a request for a non-existing table, and still sends the requesting connection a `GlobalModData` packet carrying the name and a false presence flag with no table after it, which the client's parse turns into one `OnReceiveGlobalModData` firing with `(name, false)`. [#3774/C/C-only]
 `GetModDataPacket.processServer` is exactly `triggerEvent("SendCustomModData")`, a server-side Lua event with no arguments [#2406/C/C-only].
 That event names no player, so a handler cannot tell which client's request fired it [#2406/C/C-only].
 
