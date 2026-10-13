@@ -154,7 +154,7 @@ def test_meal_clear_reads_the_named_half_life(host):
     assert host.call("satiety.mealClear", 80, old, 1) == pytest.approx(40)
 
 
-def test_meal_read_is_the_request_level_at_g_req_on_an_empty_stomach(host):
+def test_meal_read_is_the_request_level_at_meal_req_on_an_empty_stomach(host):
     greq = host.K.satiety.MEAL_REQ
     assert abs(host.call("satiety.mealRead", greq) - 0.75) < 1e-9
     assert host.call("satiety.mealRead", 0) == 0

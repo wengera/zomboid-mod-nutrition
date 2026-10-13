@@ -634,7 +634,7 @@ def test_a_new_record_with_acute_suppression_writes_back_the_hunger_it_read():
         assert rec.satiety.S == 0.5 and rec.satiety.M is not None
 
 
-def test_a_stepped_g_survives_a_restart():
+def test_a_stepped_m_survives_a_restart():
     h = boot()
     p = player(h)
     rec = record(h)
@@ -651,7 +651,7 @@ def test_a_stepped_g_survives_a_restart():
     assert h.NR.server.writer.stats.seeded == 0 and p2.st.sets.HUNGER == pytest.approx(H1)
 
 
-def test_a_non_finite_or_absent_g_is_seeded_again():
+def test_a_non_finite_or_absent_m_is_seeded_again():
     h = boot()
     p = player(h)
     p.st.v.HUNGER = 0.31
@@ -674,7 +674,7 @@ def test_a_non_finite_or_absent_g_is_seeded_again():
 # traits, the sandbox multiplier, sleep, the 60-minute cap and a restart); the writer seeds M at first sight and reads
 # it, so a seeded M passes every writer step unchanged.
 
-def test_the_writer_leaves_g_to_kinetics_over_game_time():
+def test_the_writer_leaves_m_to_kinetics_over_game_time():
     h = boot()
     p = player(h)
     rec = record(h)
@@ -686,7 +686,7 @@ def test_the_writer_leaves_g_to_kinetics_over_game_time():
 
 
 @pytest.mark.parametrize("trait,sd,asleep", [(None, 1, True), ("HA", 1, False), ("LE", 1, False), (None, 2, False)])
-def test_no_trait_sandbox_or_sleep_read_moves_g_in_the_writer(trait, sd, asleep):
+def test_no_trait_sandbox_or_sleep_read_moves_m_in_the_writer(trait, sd, asleep):
     h = boot()
     if sd != 1:
         h.G.getSandboxOptions = h.rt.eval("function() return { getStatsDecreaseMultiplier = function(s) return %r end } end"
@@ -701,7 +701,7 @@ def test_no_trait_sandbox_or_sleep_read_moves_g_in_the_writer(trait, sd, asleep)
     assert rec.satiety.M == 6
 
 
-def test_a_gap_over_sixty_minutes_leaves_g_to_kinetics():
+def test_a_gap_over_sixty_minutes_leaves_m_to_kinetics():
     h = boot()
     p = player(h)
     rec = record(h)
@@ -710,7 +710,7 @@ def test_a_gap_over_sixty_minutes_leaves_g_to_kinetics():
     assert rec.satiety.M == 6
 
 
-def test_overlay_writes_no_hunger_and_leaves_g():
+def test_overlay_writes_no_hunger_and_leaves_m():
     h = boot(mode=2)
     p = player(h)
     rec = record(h)
@@ -719,7 +719,7 @@ def test_overlay_writes_no_hunger_and_leaves_g():
     assert p.st.sets.HUNGER is None and rec.satiety.M == 6
 
 
-def test_the_writer_never_steps_g():
+def test_the_writer_never_steps_m():
     # the writer calls neither the clearance nor the feed: a NaN from either would surface in M or in guarded
     h = boot()
     p = player(h)
