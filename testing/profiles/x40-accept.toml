@@ -1,0 +1,44 @@
+# testing/profiles/x40-accept.toml - Plan 11b Task 4, session S4a (run x401): the live acceptance of the 1.0.0 release in
+# Managed mode (Mode 1, the default; no [sandbox.NR] block): the self-reports and the zeroed rates, the Body fat row, the
+# stats hold, the PANIC holds and their moodle watches, the TEMPERATURE hold, the closed leak, the mirror limit, the
+# protein pair, world water and the overfull moodle's own column.
+# PZTestKit at HEAD (016dce05, 07c27dc4 and b932cbb2's moodle.watch and moodle.level) + the STAGED copy the controller
+# makes after Task 3c (release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40`; release/ is gitignored; mod/ is never
+# booted; the driver checks the staged MANIFEST against release_pack's manifest of mod/ at HEAD before the boot)
+# + TKX_StudyFoods by its path (TKX.SnackP, TKX.SnackC, TKX.Mixed650). No MoodleFramework: the own column.
+# Build 42.21.0 (4a0e9546ec). Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# DayLength 1: a game minute is 0.625 s of wall at true multiplier 1. No [server] sleep keys: the fixture's false/false
+# keeps the sleep factor inert (run sheet (f)).
+# The driver is testing/experiments/x401_accept.py.
+# The verify rows are load gates only: the version on the server and both clients, and the study food's script on both
+# sides.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan11-x40) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, Managed - x401, Plan 11b Task 4 session S4a."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.SnackP", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.SnackP", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game minute is 0.625 s of wall at true multiplier 1

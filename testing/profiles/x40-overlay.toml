@@ -1,0 +1,58 @@
+# testing/profiles/x40-overlay.toml - Plan 11b Task 4, session S4c (run x403): Overlay (Mode 2) beside a stand-in for
+# Nutrition Makes Sense: the one warning line, the rates left vanilla, admin's HUNGER rising across 60 game minutes while
+# the writer still runs, and the overfull moodle's bad side on the MoodleFramework route.
+# PZTestKit at HEAD (016dce05, 07c27dc4, b932cbb2) + MoodleFramework (workshop 3396446795) + the STAGED copy the
+# controller makes after Task 3c (release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp; the driver checks the
+# staged MANIFEST against release_pack's manifest of mod/ at HEAD before the boot) + TKX_NmsStub after NutritionRevamp
+# (testing/experiments/TKX_NmsStub: a 42/mod.info with only name=, id=NutritionMakesSense and versionMin, never Nutrition
+# Makes Sense's code; an experiment mod installed only through this profile, CLAUDE.md s5) + TKX_StudyFoods by its path
+# (TKX.Mixed650 for the overfull drive).
+# MoodleFramework is listed before NutritionRevamp, but the order is not the load order (files replay by path sort,
+# #1055): the mod detects the framework at OnGameBoot, after every file has loaded.
+# Build 42.21.0 (4a0e9546ec). Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# DayLength 1. [sandbox.NR] Mode = 2 (Overlay). No [server] sleep keys (the fixture's false/false).
+# The driver is testing/experiments/x403_overlay.py.
+# The verify rows are load gates only: the version on the server and both clients, the server's NR.Mode, the framework's
+# createMoodle on admin's client and the study food's script on both sides.
+fixture = "two"
+description = "PZTestKit + MoodleFramework + the staged NutritionRevamp copy (release/plan11-x40) + TKX_NmsStub + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, Overlay - x403, Plan 11b Task 4 session S4c."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "SandboxVars.NR.Mode", expect = '"value": 2' },
+  { side = "client", cmd = "lua.global", args = "MF.createMoodle", expect = '"type": "function"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "MoodleFramework"
+workshop_id = "3396446795"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "NutritionMakesSense"
+path = "testing/experiments/TKX_NmsStub"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game minute is 0.625 s of wall at true multiplier 1
+
+[sandbox.NR]
+Mode = 2                      # Overlay: vanilla owns HUNGER, THIRST and FATIGUE
