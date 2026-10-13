@@ -102,7 +102,8 @@ PREDICTIONS (graded in `verdicts` as as_predicted / falsified / trivial / unmeas
   LEAK    ModData.exists("NutritionRevamp.players") false on the server; bob's OnReceiveGlobalModData fires 0 times in
           LEAK_WAIT_S after ModData.request("NutritionRevamp.players"). Falsifier: true, or a firing.
   MIRROR  the two requests: answered +1 and denied +1 on the server. Falsifier: any other pair of deltas.
-  PP      a READING: each ring holds at least PP_MIN_ROWS rows across the 3 h after the landings; both eats landed
+  PP      a READING: each ring covers the 3 h after the landings (its first window row within PP_EDGE_H of a0, its last within PP_EDGE_H
+          of a0 + 3, no gap in the rows' ev); the row count is a reported reading; both eats landed
           (intake.stats.landed +2) with both spawns confirmed. Void: a spawn not confirmed. Unmeasured: short rings.
   WW      with a source: worldSips rises and the stomach's liquid lane rises; satiety.M and THIRST at the next write
           are readings. No source, or no sip in WW_CAP_S: unmeasured, with the reply.
@@ -128,6 +129,22 @@ DEVIATIONS from the run sheet's x252a text and amendments, stated before the run
      regrade on the copied ring pages or dropped by the controller (run sheet (c), "the controller's call").
   6. The Body fat read uses lua.read on the client root NutritionRevamp.client (the view module's own state), not
      lua.call: the rows are a table, which lua.call answers only by its key count.
+PRE-RUN EDITS after the Opus review of 4d5e1c3e (the driver had not run):
+  7. The OF drive runs at true multiplier SLOW_MULT (0.1), read before and restored in a finally as B1 does, so the
+     stomach does not empty between intakes: a networked eat ends in real time (#3766).
+  8. Every eat.action and drink.action reply is tested as spawned != "found" ("found" or "client", a string,
+     PZTestKit_Client.lua:287-292). The first other reply sets P["void"] = "<label>: spawned=<value>" and stops the
+     phase (PP stops its rings first), and the PP and OF grades are void.
+  9. A hold is graded only from its establishment (hold_summary: k >= est_i, the first graded read-back), so a read
+     answered before any write at the target is never graded; B2, B3 and B4 share the rule. TEMP's skip stays.
+  10. STATS grades trivial when no stat changed between any two reads; PANIC10 and PANIC66 are measured only with a
+      watch of samples > 0 and a non-nil min and max.
+  11. PP is graded on coverage: the window's first row within PP_EDGE_H (0.1 h) of the landing age, its last within
+      0.1 h of +3 h, and no gap in the rows' ev; the row count is a reported reading (PP_MIN_ROWS is gone).
+  12. PROBE_RX is applied to the self-report, zeroing, Overlay and NMS greps only (grep_noecho probe=True); Z's
+      mod-error filter drops the bus echo (ECHO_RX) and a line that opens with a command's name (CMD_ECHO_RX) and keeps
+      a real mod error that mentions requestMirror or ModData.
+  13. B3's summary records the first armed poll (first_armed: its PANIC, level and the arm reply's level).
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
@@ -238,7 +255,7 @@ SNACK_P, SNACK_C = "TKX.SnackP", "TKX.SnackC"
 RING_PATHS = ("satiety.M", "satiety.S", "satiety.t", "stomach.liquid", "body.energyState", "fluids.thirstTarget")
 PP_HOURS = 3.0
 PP_CAP_S = 90.0
-PP_MIN_ROWS = 150
+PP_EDGE_H = 0.1            # the window's first row within this of a0, its last within this of a0 + PP_HOURS
 SPEED_FAST = 5
 LAND_CAP_S = 30.0
 # WW
@@ -269,10 +286,15 @@ MIN_FREE_GB = 12.0
 RESULT_WAIT_S = 30.0
 LOG_LIMIT = 400
 ECHO_RX = re.compile(r"PZTK: ")            # the bus's own echo of every command and reply (CLAUDE.md s5)
-PROBE_RX = re.compile(r"\b(?:lua\.(?:read|global|call|setpath)|stats\.all|time\.(?:snapshot|multiplier)|moodle\.(?:watch|level)|"
-                      r"event\.watch|minute\.ring|item\.get|witness\.fields|foodtimer\.set|eat\.action|drink\.action|"
-                      r"fluid\.fill|water\.take|action\.cancel|additem|settimespeed|requestMirror|ModData)")
-                                            # this driver's own probe and command names, excluded from every log grep
+PROBE_NAMES = (r"(?:lua\.(?:read|global|call|setpath)|stats\.all|time\.(?:snapshot|multiplier)|moodle\.(?:watch|level)|"
+               r"event\.watch|minute\.ring|item\.get|witness\.fields|foodtimer\.set|eat\.action|drink\.action|"
+               r"fluid\.fill|water\.take|action\.cancel|additem|settimespeed|requestMirror|ModData)")
+PROBE_RX = re.compile(r"\b" + PROBE_NAMES)
+                                            # this driver's own probe and command names, excluded from the self-report,
+                                            # zeroing, Overlay and NMS greps only (grep_noecho probe=True); never from Z's
+                                            # mod-error filter, which drops the bus echo and the exact command echo form
+CMD_ECHO_RX = re.compile(r"^\s*" + PROBE_NAMES + r"(?:\s|$)")
+                                            # a line that is a bare echo of one command: it opens with the command's name
 SELF_SRV_RX = re.compile(r"NutritionRevamp v(\S+) build (\S+) side=server (.*)")
 SELF_CLI_RX = re.compile(r"NutritionRevamp v(\S+) build (\S+) side=client (.*)")
 PAIR_RX = re.compile(r"(\w+)=(\S+)")
@@ -324,7 +346,7 @@ PRED = {
              "falsifier": "true, or a firing"},
     "MIRROR": {"answered delta": 1, "denied delta": 1, "falsifier": "any other pair"},
     "PP": {"reading": "each player's HUNGER over 3 game hours off its own ring (two bodies; the replay arm is not run "
-                      "here)", "rings": f">= {PP_MIN_ROWS} rows each across the 3 h", "landed": "+2",
+                      "here)", "rings": f"each ring covers the 3 h: first row within {PP_EDGE_H} h of the landing, last within {PP_EDGE_H} h of +3 h, no ev gap", "landed": "+2",
            "void": "a spawn not confirmed", "unmeasured": "short rings or a landing missing"},
     "WW": {"with a source": "worldSips rises and stomach.liquid rises; satiety.M and THIRST at the next write read",
            "unmeasured": "no source within 10 tiles, or no sip", "falsifier": "a sip with no liquid rise"},
@@ -382,14 +404,14 @@ def mem(tag):
     return row
 
 
-def grep_noecho(log, rx, limit):
+def grep_noecho(log, rx, limit, probe=True):
     hits_, skipped = [], 0
     try:
         with open(log, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 if not rx.search(line):
                     continue
-                if ECHO_RX.search(line) or PROBE_RX.search(line):
+                if ECHO_RX.search(line) or (probe and PROBE_RX.search(line)):
                     skipped += 1
                     continue
                 hits_.append(line.strip()[:2000])
@@ -870,9 +892,10 @@ def eat(user, ftype, tag):
     q = keep(step(f"{tag}_eat", f"client:{user}", "eat.action", f"{ftype} 1"))
     row["queued"] = {k: q.get(k) for k in ("queued", "fraction", "spawned", "itemId", "validStart", "maxTime",
                                            "moodleFoodEaten", "wall")}
-    if q.get("spawned"):
-        note(f"{tag}: eat.action spawned {ftype} client-side; the landing is void")
-        row["client_spawned"] = True
+    if q.get("spawned") != "found":
+        # eat.action answers spawned = "found" (the item sat in the inventory) or "client" (a client-side spawn)
+        note(f"{tag}: eat.action spawned={q.get('spawned')!r} for {ftype}, not 'found'; the landing is void")
+        row["client_spawned"] = f"spawned={q.get('spawned')}"
     if not q.get("queued"):
         row["queue_reply"] = {k: q.get(k) for k in ("raw", "error", "reason")}
         note(f"{tag}: not queued: {str(q)[:300]}")
@@ -902,9 +925,9 @@ def drink(user, container, fluid, litres, tag):
     row["before"] = b
     q = keep(step(f"{tag}_drink", f"client:{user}", "drink.action", f"{container} 1"))
     row["queued"] = {k: q.get(k) for k in ("queued", "percentage", "spawned", "itemId", "filledRatioBefore", "wall")}
-    if q.get("spawned"):
-        note(f"{tag}: drink.action spawned {container} client-side; the drink is void")
-        row["client_spawned"] = True
+    if q.get("spawned") != "found":
+        note(f"{tag}: drink.action spawned={q.get('spawned')!r} for {container}, not 'found'; the drink is void")
+        row["client_spawned"] = f"spawned={q.get('spawned')}"
     if not q.get("queued"):
         row["queue_reply"] = {k: q.get(k) for k in ("raw", "error", "reason")}
         note(f"{tag}: not queued: {str(q)[:300]}")
@@ -1053,7 +1076,9 @@ def hold(tag, field, target, watch=False, level=False, temp=False, hold_s=None):
             row["panic"] = num(ss.get("Panic"))
             row["temp"] = num(ss.get("Temperature"))
             row["stats_wall"] = st.get("wall")
-            if watch and est_i is not None and "watch_arm" not in H and wall() - polls[est_i]["wall"] >= ARM_SETTLE_S                     and row["panic"] is not None and row["panic"] >= target - PANIC_DECAY_MAX - PANIC_SLACK:
+            if (watch and est_i is not None and "watch_arm" not in H
+                    and wall() - polls[est_i]["wall"] >= ARM_SETTLE_S
+                    and row["panic"] is not None and row["panic"] >= target - PANIC_DECAY_MAX - PANIC_SLACK):
                 # armed only after the establishment and ARM_SETTLE_S (the client's 1 Hz stats packet has carried the
                 # held level), on a server read at or over the floor
                 H["watch_arm"] = keep(step(f"{tag}_watch_arm", ADMIN, "moodle.watch", f"PANIC {WATCH_S}"))
@@ -1195,6 +1220,14 @@ def phase_PP():
     for u, f in pair:
         q = keep(step(f"PP_eat_{u}", f"client:{u}", "eat.action", f"{f} 1"))
         P["eats"][u] = {k: q.get(k) for k in ("queued", "fraction", "spawned", "itemId", "maxTime", "wall")}
+        if q.get("spawned") != "found":
+            P["void"] = f"PP_eat_{u}: spawned={q.get('spawned')}"
+            note(f"PP: {P['void']}, not 'found'; the phase stops")
+            break
+    if P.get("void"):
+        for u in USERS:
+            P[f"ring_stop_{u}"] = keep(step(f"PP_ring_stop_{u}", SRV, "minute.ring", f"{u} stop"))
+        return
     end = time.time() + LAND_CAP_S
     P["landed"] = False
     while time.time() < end and not over_budget():
@@ -1309,7 +1342,21 @@ def overfull_read(tag, last_received):
 
 
 def phase_OF():
+    """The overfull drive at true multiplier SLOW_MULT (DEVIATION 7), read before and restored in a finally as B1 does."""
     P = out["phases"]["OF"] = {"steps": [], "intakes": []}
+    P["mult_before"] = snap("OF_mult0")
+    m0 = num(P["mult_before"].get("trueMult"))
+    P["restore_to"] = m0 if m0 is not None else 1.0
+    try:
+        P["slow"] = keep(step("OF_slow", SRV, "time.multiplier", fmtnum(SLOW_MULT)))
+        P["mult_slow"] = snap("OF_mult_slow")
+        of_drive(P)
+    finally:
+        P["restore"] = keep(step("OF_restore", SRV, "time.multiplier", fmtnum(P["restore_to"])))
+        P["mult_after"] = snap("OF_mult1")
+
+
+def of_drive(P):
     rc0 = num(gread(ADMIN, f"{NR}.client.received", "OF_rc0").get("value"))
     last_req = None
     plan = (("eat1", "eat", MIX650), ("eat2", "eat", MIX650), ("drink", "drink", WATER_ITEM))
@@ -1329,6 +1376,12 @@ def phase_OF():
         else:
             it["drink"] = drink("admin", ftype, WATER_FLUID, WATER_L, f"OF_{label}")
             ok = it["drink"].get("drank") and not it["drink"].get("client_spawned")
+        cs = (it.get("eat") or it.get("drink") or {}).get("client_spawned")
+        if cs:
+            P["void"] = f"{label}: {cs}"
+            P["void_spawn"] = True
+            note(f"OF: {P['void']}, not 'found'; the drive stops")
+            break
         if not ok:
             note(f"OF: {label} did not land")
         if last_req is not None and time.time() - last_req < REQUEST_GAP_S:
@@ -1345,7 +1398,7 @@ def phase_Z():
     P["bus_dead"] = bus["dead"]
     errs = [str(e) for e in (server.errors if server is not None else [])]
     P["server_mod_error_lines"] = [e[:400] for e in errs if MOD_ERR_RX.search(e) and not ECHO_RX.search(e)
-                                   and not PROBE_RX.search(e)][:20]
+                                   and not CMD_ECHO_RX.search(e)][:20]
     P["admin_parked"] = parked()
     P["mem"] = mem("Z")
     P["players"] = keep(step("Z_players", SRV, "players"))
@@ -1385,14 +1438,14 @@ def read_logs(every):
                        "clients": {}}
     if server is not None:
         lp = server.log_path
-        L["server"] = {k: grep_noecho(lp, rx, LOG_LIMIT)[0] for k, rx in
+        L["server"] = {k: grep_noecho(lp, rx, LOG_LIMIT, probe=k != "lines")[0] for k, rx in
                        (("self", SELF_SRV_RX), ("zero", ZERO_RX), ("overlay", OVERLAY_RX), ("nms", NMS_RX),
                         ("lines", LOG_RX))}
     for c in every:
         u = getattr(c, "username", "?")
         L["clients"].setdefault(u, []).append({"console": os.path.relpath(c.console, run_dir),
                                                "self": grep_noecho(c.console, SELF_CLI_RX, 20)[0],
-                                               "lines": grep_noecho(c.console, LOG_RX, 60)[0]})
+                                               "lines": grep_noecho(c.console, LOG_RX, 60, probe=False)[0]})
 
 
 def parse_self(line, rx):
@@ -1554,6 +1607,8 @@ def grade_STATS():
         grade("STATS", PRED["STATS"], obs, "falsified", PRED["STATS"]["falsifier"])
     elif len(rd) < MIN_STATS_READS or crossings == 0:
         grade("STATS", PRED["STATS"], obs, "unmeasured", PRED["STATS"]["unmeasured"])
+    elif sum(changes.values()) == 0:
+        grade("STATS", PRED["STATS"], obs, "trivial", "no stat changed between any two reads: nothing was held against")
     else:
         grade("STATS", PRED["STATS"], obs, "as_predicted", PRED["STATS"]["falsifier"])
 
@@ -1563,8 +1618,11 @@ def hold_summary(tag):
     polls = H.get("polls") or []
     target = H.get("target")
     graded = []
+    est_i = H.get("est_i")
     for k in range(len(polls) - 1):
-        if is_target(polls[k].get("after"), target) and is_target(polls[k + 1].get("before"), target):
+        # graded only from the establishment (the first graded read-back): a read answered before any write at the
+        # target is never graded
+        if est_i is not None and k >= est_i and is_target(polls[k].get("after"), target)                 and is_target(polls[k + 1].get("before"), target):
             graded.append(k)
     span = 0.0
     for k in graded:
@@ -1583,6 +1641,10 @@ def hold_summary(tag):
          "watch": {k: w.get(k) for k in ("samples", "min", "max", "transitions", "level", "err")},
          "transitions_inside": len(inside), "changes_inside": inside, "changes_outside_dropped": outside,
          "orig": H.get("orig"), "restored": g(H, "restore", "after")}
+    ai = H.get("armed_i")
+    if ai is not None and 0 <= ai < len(polls):
+        S["first_armed"] = {"i": ai, "panic": polls[ai].get("panic"), "level": polls[ai].get("level"),
+                            "age": polls[ai].get("age"), "arm_reply_level": g(H, "watch_arm", "level")}
     return H, polls, graded, S
 
 
@@ -1605,7 +1667,9 @@ def grade_PANIC(tag, phase_name, target, is_reading):
     if phase_dead(tag):
         grade(phase_name, PRED[phase_name], S, "void", "the server bus died inside the hold")
         return
-    measured = S["graded_game_min"] >= MIN_GRADED_MIN and S["armed"] and S["done"]
+    wt = S["watch"]
+    measured = (S["graded_game_min"] >= MIN_GRADED_MIN and S["armed"] and S["done"] and (num(wt.get("samples")) or 0) > 0
+                and num(wt.get("min")) is not None and num(wt.get("max")) is not None)
     if not measured:
         grade(phase_name, PRED[phase_name], S, "unmeasured", PRED[phase_name]["unmeasured"])
     elif is_reading:
@@ -1702,7 +1766,15 @@ def ring_course(pages, a0):
         return {"rows": len(rr)}
     win = [r for r in rr if a0 <= r["age"] <= a0 + PP_HOURS]
     hs = [num(r.get("HUNGER")) for r in win if num(r.get("HUNGER")) is not None]
-    return {"rows": len(rr), "window_rows": len(win), "hunger_first": hs[0] if hs else None,
+    evs = [r.get("ev") for r in win]
+    gaps = [{"after_age": win[i]["age"], "ev": [evs[i], evs[i + 1]]} for i in range(len(win) - 1)
+            if isinstance(evs[i], (int, float)) and isinstance(evs[i + 1], (int, float)) and evs[i + 1] - evs[i] > 1]
+    first_d = (win[0]["age"] - a0) if win else None
+    last_d = (a0 + PP_HOURS - win[-1]["age"]) if win else None
+    return {"rows": len(rr), "window_rows": len(win), "first_gap_h": first_d, "last_gap_h": last_d,
+            "ev_gaps": gaps,
+            "covered": bool(win) and first_d <= PP_EDGE_H and last_d <= PP_EDGE_H and not gaps,
+            "hunger_first": hs[0] if hs else None,
             "hunger_last": hs[-1] if hs else None, "hunger_mean": (sum(hs) / len(hs)) if hs else None,
             "hunger_min": min(hs) if hs else None, "hunger_max": max(hs) if hs else None,
             "hourly": [{"h": h, "HUNGER": next((num(r.get("HUNGER")) for r in rr if r["age"] >= a0 + h), None)}
@@ -1720,14 +1792,14 @@ def grade_PP():
            if None not in (course["bob"].get("hunger_mean"), course["admin"].get("hunger_mean")) else None,
            "replay": "not run by this driver (DEVIATION 5)"}
     out["summaries"]["PP"] = obs
-    spawned = any(g(P, "eats", u, "spawned") for u in USERS)
+    spawned = any(g(P, "eats", u, "spawned") not in (None, "found") for u in USERS)
     if not P:
         grade("PP", PRED["PP"], None, "void" if phase_dead("PP") or bus["dead"] else "unmeasured", "phase PP not run")
     elif phase_dead("PP"):
         grade("PP", PRED["PP"], obs, "void", "the server bus died inside PP")
     elif P.get("void") or spawned:
-        grade("PP", PRED["PP"], obs, "void", PRED["PP"]["void"] + (" (a client spawn)" if spawned else ""))
-    elif not P.get("landed") or any((course[u].get("window_rows") or 0) < PP_MIN_ROWS for u in USERS):
+        grade("PP", PRED["PP"], obs, "void", PRED["PP"]["void"] + (f" ({P.get('void') or 'a client spawn'})" if spawned or P.get("void") else ""))
+    elif not P.get("landed") or not all(course[u].get("covered") for u in USERS):
         grade("PP", PRED["PP"], obs, "unmeasured", PRED["PP"]["unmeasured"])
     else:
         grade("PP", PRED["PP"], obs, "as_predicted", "a reading (no threshold)")
@@ -1787,7 +1859,7 @@ def grade_OF(route="own", phase_name="OF", phase_tag="OF"):
         grade(phase_name, PRED[phase_name], obs, "void", "the server bus died inside the drive")
     elif bad:
         grade(phase_name, PRED[phase_name], obs, "falsified", PRED[phase_name]["falsifier"], {"bad": bad})
-    elif P.get("void") and not arrived:
+    elif P.get("void_spawn") or (P.get("void") and not arrived):
         grade(phase_name, PRED[phase_name], obs, "void", P.get("void"))
     elif not arrived or not all(passed.values()):
         grade(phase_name, PRED[phase_name], obs, "unmeasured", PRED[phase_name]["unmeasured"],

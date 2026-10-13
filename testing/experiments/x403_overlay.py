@@ -60,6 +60,15 @@ DEVIATIONS from the run sheet's x252b text and amendments, stated before the run
   2. The HUNGER phase reads stats.all at every clock poll as well as at its ends, and grades the series as never
      falling (a writer HUNGER set in Overlay would show as a step down; vanilla's rise only climbs).
   3. The MoodleFramework drive is graded on the harness's reads; the drawing is not (DRAW is unmeasured).
+PRE-RUN EDITS after the Opus review of 4d5e1c3e (the driver had not run):
+  4. The MF drive runs at true multiplier SLOW_MULT (0.1), read before and restored in a finally as x401's B1 does, so
+     the stomach does not empty between intakes: a networked eat ends in real time (#3766).
+  5. Every eat.action and drink.action reply is tested as spawned != "found" ("found" or "client", a string,
+     PZTestKit_Client.lua:287-292); the first other reply sets P["void"] = "<label>: spawned=<value>", stops the drive,
+     and the MF grade is void.
+  6. PROBE_RX is applied to the self-report, zeroing, Overlay and NMS greps only (grep_noecho probe=True); Z's mod-error
+     filter drops the bus echo (ECHO_RX) and a line that opens with a command's name (CMD_ECHO_RX) and keeps a real mod
+     error that mentions requestMirror or ModData.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
@@ -156,16 +165,22 @@ SEEN_CAP_S = 10.0
 PING_TIMEOUT_S = 5
 BUDGET_S = 840.0
 PHASE_EST_S = {"S0": 20.0, "N": 95.0, "MF": 90.0}
+SLOW_MULT = 0.1                    # the MF drive's true multiplier (DEVIATION 4), as x401's B1 and OF
 S0_WAIT_S = 90.0
 MIN_RUNS = 4
 MIN_FREE_GB = 12.0
 RESULT_WAIT_S = 30.0
 LOG_LIMIT = 400
 ECHO_RX = re.compile(r"PZTK: ")            # the bus's own echo of every command and reply (CLAUDE.md s5)
-PROBE_RX = re.compile(r"\b(?:lua\.(?:read|global|call|setpath)|stats\.all|time\.(?:snapshot|multiplier)|moodle\.(?:watch|level)|"
-                      r"event\.watch|minute\.ring|item\.get|witness\.fields|foodtimer\.set|eat\.action|drink\.action|"
-                      r"fluid\.fill|water\.take|action\.cancel|additem|settimespeed|requestMirror|ModData)")
-                                            # this driver's own probe and command names, excluded from every log grep
+PROBE_NAMES = (r"(?:lua\.(?:read|global|call|setpath)|stats\.all|time\.(?:snapshot|multiplier)|moodle\.(?:watch|level)|"
+               r"event\.watch|minute\.ring|item\.get|witness\.fields|foodtimer\.set|eat\.action|drink\.action|"
+               r"fluid\.fill|water\.take|action\.cancel|additem|settimespeed|requestMirror|ModData)")
+PROBE_RX = re.compile(r"\b" + PROBE_NAMES)
+                                            # this driver's own probe and command names, excluded from the self-report,
+                                            # zeroing, Overlay and NMS greps only (grep_noecho probe=True); never from Z's
+                                            # mod-error filter, which drops the bus echo and the exact command echo form
+CMD_ECHO_RX = re.compile(r"^\s*" + PROBE_NAMES + r"(?:\s|$)")
+                                            # a line that is a bare echo of one command: it opens with the command's name
 SELF_SRV_RX = re.compile(r"NutritionRevamp v(\S+) build (\S+) side=server (.*)")
 SELF_CLI_RX = re.compile(r"NutritionRevamp v(\S+) build (\S+) side=client (.*)")
 PAIR_RX = re.compile(r"(\w+)=(\S+)")
@@ -257,14 +272,14 @@ def mem(tag):
     return row
 
 
-def grep_noecho(log, rx, limit):
+def grep_noecho(log, rx, limit, probe=True):
     hits_, skipped = [], 0
     try:
         with open(log, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 if not rx.search(line):
                     continue
-                if ECHO_RX.search(line) or PROBE_RX.search(line):
+                if ECHO_RX.search(line) or (probe and PROBE_RX.search(line)):
                     skipped += 1
                     continue
                 hits_.append(line.strip()[:2000])
@@ -734,9 +749,10 @@ def eat(user, ftype, tag):
     q = keep(step(f"{tag}_eat", f"client:{user}", "eat.action", f"{ftype} 1"))
     row["queued"] = {k: q.get(k) for k in ("queued", "fraction", "spawned", "itemId", "validStart", "maxTime",
                                            "moodleFoodEaten", "wall")}
-    if q.get("spawned"):
-        note(f"{tag}: eat.action spawned {ftype} client-side; the landing is void")
-        row["client_spawned"] = True
+    if q.get("spawned") != "found":
+        # eat.action answers spawned = "found" (the item sat in the inventory) or "client" (a client-side spawn)
+        note(f"{tag}: eat.action spawned={q.get('spawned')!r} for {ftype}, not 'found'; the landing is void")
+        row["client_spawned"] = f"spawned={q.get('spawned')}"
     if not q.get("queued"):
         row["queue_reply"] = {k: q.get(k) for k in ("raw", "error", "reason")}
         note(f"{tag}: not queued: {str(q)[:300]}")
@@ -766,9 +782,9 @@ def drink(user, container, fluid, litres, tag):
     row["before"] = b
     q = keep(step(f"{tag}_drink", f"client:{user}", "drink.action", f"{container} 1"))
     row["queued"] = {k: q.get(k) for k in ("queued", "percentage", "spawned", "itemId", "filledRatioBefore", "wall")}
-    if q.get("spawned"):
-        note(f"{tag}: drink.action spawned {container} client-side; the drink is void")
-        row["client_spawned"] = True
+    if q.get("spawned") != "found":
+        note(f"{tag}: drink.action spawned={q.get('spawned')!r} for {container}, not 'found'; the drink is void")
+        row["client_spawned"] = f"spawned={q.get('spawned')}"
     if not q.get("queued"):
         row["queue_reply"] = {k: q.get(k) for k in ("raw", "error", "reason")}
         note(f"{tag}: not queued: {str(q)[:300]}")
@@ -854,7 +870,22 @@ def phase_N():
 
 
 def phase_MF():
+    """The overfull drive on the framework route at true multiplier SLOW_MULT (DEVIATION 4), read before and restored
+    in a finally."""
     P = out["phases"]["MF"] = {"steps": [], "intakes": []}
+    P["mult_before"] = snap("MF_mult0")
+    m0 = num(P["mult_before"].get("trueMult"))
+    P["restore_to"] = m0 if m0 is not None else 1.0
+    try:
+        P["slow"] = keep(step("MF_slow", SRV, "time.multiplier", fmtnum(SLOW_MULT)))
+        P["mult_slow"] = snap("MF_mult_slow")
+        mf_drive(P)
+    finally:
+        P["restore"] = keep(step("MF_restore", SRV, "time.multiplier", fmtnum(P["restore_to"])))
+        P["mult_after"] = snap("MF_mult1")
+
+
+def mf_drive(P):
     rc0 = num(gread(ADMIN, f"{NR}.client.received", "MF_rc0").get("value"))
     last_req = None
     plan = (("eat1", "eat", MIX650), ("eat2", "eat", MIX650), ("drink", "drink", WATER_ITEM))
@@ -874,6 +905,12 @@ def phase_MF():
         else:
             it["drink"] = drink("admin", ftype, WATER_FLUID, WATER_L, f"MF_{label}")
             ok = it["drink"].get("drank") and not it["drink"].get("client_spawned")
+        cs = (it.get("eat") or it.get("drink") or {}).get("client_spawned")
+        if cs:
+            P["void"] = f"{label}: {cs}"
+            P["void_spawn"] = True
+            note(f"MF: {P['void']}, not 'found'; the drive stops")
+            break
         if not ok:
             note(f"MF: {label} did not land")
         if last_req is not None and time.time() - last_req < REQUEST_GAP_S:
@@ -919,7 +956,7 @@ def phase_Z():
     P["bus_dead"] = bus["dead"]
     errs = [str(e) for e in (server.errors if server is not None else [])]
     P["server_mod_error_lines"] = [e[:400] for e in errs if MOD_ERR_RX.search(e) and not ECHO_RX.search(e)
-                                   and not PROBE_RX.search(e)][:20]
+                                   and not CMD_ECHO_RX.search(e)][:20]
     P["admin_parked"] = parked()
     P["mem"] = mem("Z")
     P["players"] = keep(step("Z_players", SRV, "players"))
@@ -958,14 +995,14 @@ def read_logs(every):
                        "clients": {}}
     if server is not None:
         lp = server.log_path
-        L["server"] = {k: grep_noecho(lp, rx, LOG_LIMIT)[0] for k, rx in
+        L["server"] = {k: grep_noecho(lp, rx, LOG_LIMIT, probe=k != "lines")[0] for k, rx in
                        (("self", SELF_SRV_RX), ("zero", ZERO_RX), ("overlay", OVERLAY_RX), ("nms", NMS_RX),
                         ("lines", LOG_RX))}
     for c in every:
         u = getattr(c, "username", "?")
         L["clients"].setdefault(u, []).append({"console": os.path.relpath(c.console, run_dir),
                                                "self": grep_noecho(c.console, SELF_CLI_RX, 20)[0],
-                                               "lines": grep_noecho(c.console, LOG_RX, 60)[0]})
+                                               "lines": grep_noecho(c.console, LOG_RX, 60, probe=False)[0]})
 
 
 def parse_self(line, rx):
@@ -1025,7 +1062,7 @@ def grade_OF(route="own", phase_name="OF", phase_tag="OF"):
         grade(phase_name, PRED[phase_name], obs, "void", "the server bus died inside the drive")
     elif bad:
         grade(phase_name, PRED[phase_name], obs, "falsified", PRED[phase_name]["falsifier"], {"bad": bad})
-    elif P.get("void") and not arrived:
+    elif P.get("void_spawn") or (P.get("void") and not arrived):
         grade(phase_name, PRED[phase_name], obs, "void", P.get("void"))
     elif not arrived or not all(passed.values()):
         grade(phase_name, PRED[phase_name], obs, "unmeasured", PRED[phase_name]["unmeasured"],
