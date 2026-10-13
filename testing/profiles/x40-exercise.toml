@@ -1,0 +1,43 @@
+# testing/profiles/x40-exercise.toml - Plan 11b Task 4, session S4d: the live acceptance of the 1.0.0 release.
+# The driver is testing/experiments/x404_exercise.py (S4d): the burpee set's sweatActive through the 6 h after it, the
+# C-26 eat on a falling raw rate on a carried load (2 x Base.BarBell, RCON), the Fitness cancel through action.cancel,
+# the movement branch's endurance twin and the optional X33 cancelled eats.
+# PZTestKit at HEAD (the driver checks the markers of 016dce05, 07c27dc4, 2ffdbc81, 513778e8 and ccb71a1b) + the STAGED
+# copy of the tree the controller made after Task 3c (release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged with `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x40`; release/ is gitignored;
+# mod/ is never booted; the driver compares the staged MANIFEST.json with release_pack's manifest of mod/ at HEAD and
+# refuses to boot on a mismatch) + TKX_StudyFoods by its path (the study foods, eaten only after an RCON spawn the
+# server confirms by item.get).
+# Build 42.21.0 (4a0e9546ec). Fixture default: admin (-debug), a fresh restore per run. Nutrition false (ruling T18-1).
+# DayLength 1: a game day is 15 real minutes, a game minute 0.625 s at speed 1. Sleep stays off (the fixture's
+# SleepAllowed and SleepNeeded false), so the sleep factor is inert.
+# The verify rows are load gates only: the decided version (1.0.0) on the server and the client, and the study food's
+# script on both sides.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp 1.0.0 copy (release/plan11-x40) + TKX_StudyFoods, fixture default, admin, Nutrition off, DayLength 1, build 42.21.0 - Plan 11b Task 4 session S4d (x404)."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x40/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1
