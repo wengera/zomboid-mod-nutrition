@@ -20,7 +20,8 @@ session budget allows; it does here (named: 4).
 THE DESIGN, NAMED BEFORE THE RUN:
   The fresh fixture's admin, awake, eats and drinks nothing (the sessions last under two game hours). From the
   scenario's start the world runs at speed 1. A moodle pair (x37_fitness_lib.moodle_pair) at the start; then for each
-  exercise in SETS, in order (the heavy one last): the server's endurance moodle is read and, above 1, the world runs
+  exercise in SETS, in order (ASK_M 4 game minutes here: x371 asked 3, and its squats set showed one flagged ring
+  row and no poll read its record before its stop, so this session asks 4, changed before this boot): the server's endurance moodle is read and, above 1, the world runs
   at speed 5 until it is at most 1 (ensure_rested); the set is asked for ASK_M game minutes (exercise.do) and followed
   by fit_poll until the server's flag clears (x35's sets ran 1.2-2.5 times their ask: followed OVERRUN_M past it); a
   moodle pair once the flag and the record show, the wrapper's state at the clear, a moodle pair, REST_M game minutes
@@ -69,7 +70,7 @@ ARTIFACT = "fitness-2.json"
 STAGE_ROOT = "release/x37-fitness/NutritionRevamp"
 STAGED_AT = "328ffe22"         # the mod tree's last commit; the copy is staged fresh from HEAD before the boot
 BUDGET_S = 660.0
-ASK_M = 3
+ASK_M = 4                      # x371 asked 3 and its squats set showed one flagged ring row: 4 here, named before this boot
 SETS = ("barbellcurl", "dumbbellpress", "bicepscurl")
 STOP = ("squats", 20, 3.0)     # the movement case: (type, asked game minutes, game minutes of flag before the stop)
 SESSION = ("Plan 11h Task 4 session 2: one timer-ended set each of barbellcurl, dumbbellpress and bicepscurl, then a "
