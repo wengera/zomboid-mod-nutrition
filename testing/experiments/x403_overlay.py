@@ -475,7 +475,7 @@ def run_phase(name, fn):
     except Exception as e:                     # noqa: BLE001 - one phase's fault keeps the others
         out["phase_errors"][name] = {"error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-3000:]}
         if tl is not None:
-            tl.mark("error", phase=name, detail=str(e)[:200])
+            tl.mark("error", in_phase=name, detail=str(e)[:200])  # pre-run: phase= collided with Timeline.mark(phase, ...) (x402 fix, 05dd5c4b)
         note(f"phase {name} raised: {type(e).__name__}: {e}")
     if bus["dead"] and not bus_was_dead and not out["phase_walls"][name].get("bus_dead"):
         out["phase_walls"][name]["bus_dead"] = f"server bus dead after {bus['dead']}"
