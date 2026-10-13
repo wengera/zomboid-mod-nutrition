@@ -12,7 +12,7 @@ import release_pack as rp  # noqa: E402
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 16  # header only; the CR inside is binary, not text
 MOD_INFO = ("name=Nutrition Revamp\nid=NutritionRevamp\ndescription=A test mod. Second sentence.\n"
-            "modversion=1.0.0\nversionMin=42.20.4\n")
+            "modversion=1.0.0\nversionMin=42.21\n")
 CORE = 'NR = {}\nNR.version = "1.0.0"\n'
 
 
@@ -24,8 +24,8 @@ def put(path, data):
 @pytest.fixture
 def mod(tmp_path):
     m = tmp_path / "NutritionRevamp"
-    put(m / "42.20.4" / "mod.info", MOD_INFO)
-    put(m / "42.20.4" / "media" / "sandbox-options.txt", "option NR.Nutrition { type = boolean }\n")
+    put(m / "42.21" / "mod.info", MOD_INFO)
+    put(m / "42.21" / "media" / "sandbox-options.txt", "option NR.Nutrition { type = boolean }\n")
     put(m / "common" / "media" / "lua" / "shared" / "NR_Core.lua", CORE)
     put(m / "common" / "media" / "scripts" / "NR_Pass.txt", "module Base {\n}\n")
     put(m / "common" / "media" / "ui" / "NutritionRevamp" / "a.png", PNG)
@@ -46,25 +46,25 @@ def test_one_mod_info(mod):
 
 
 def test_version_min_only(mod):
-    info = mod / "42.20.4" / "mod.info"
+    info = mod / "42.21" / "mod.info"
     put(info, MOD_INFO + "versionMax=42.99\n")
     assert "version-min-only" in rules(rp.check(mod))
-    put(info, MOD_INFO.replace("versionMin=42.20.4\n", ""))
+    put(info, MOD_INFO.replace("versionMin=42.21\n", ""))
     assert "version-min-only" in rules(rp.check(mod))
 
 
 def test_no_require(mod):
-    put(mod / "42.20.4" / "mod.info", MOD_INFO + "require=Other\n")
+    put(mod / "42.21" / "mod.info", MOD_INFO + "require=Other\n")
     assert "no-require" in rules(rp.check(mod))
 
 
 def test_version_dir_contents(mod):
-    put(mod / "42.20.4" / "media" / "lua" / "shared" / "X.lua", "x=1\n")
+    put(mod / "42.21" / "media" / "lua" / "shared" / "X.lua", "x=1\n")
     assert "version-dir-contents" in rules(rp.check(mod))
 
 
 def test_no_shadow(mod):
-    put(mod / "42.20.4" / "media" / "lua" / "shared" / "NR_Core.lua", CORE)
+    put(mod / "42.21" / "media" / "lua" / "shared" / "NR_Core.lua", CORE)
     assert "no-shadow" in rules(rp.check(mod))
 
 
@@ -138,7 +138,33 @@ def test_manifest_gate_hash(mod):
     assert crlf["sha256"] != lf["sha256"]
     assert lf["sha256"] == hashlib.sha256(b"module Base {\n}\n").hexdigest()
     assert lf["bytes"] == 16
-    assert "gate_sha256" not in rp.manifest(mod)["common/media/lua/shared/NR_Core.lua"]
+    assert "gate_sha256" not in rp.manifest(mod)["common/media/ui/NutritionRevamp/a.png"]
+
+
+def test_manifest_gate_hash_covers_lua(mod):
+    lua = mod / "common" / "media" / "lua" / "shared" / "NR_Core.lua"
+    put(lua, CORE.replace("\n", "\r\n"))
+    crlf = rp.manifest(mod)["common/media/lua/shared/NR_Core.lua"]
+    put(lua, CORE)
+    lf = rp.manifest(mod)["common/media/lua/shared/NR_Core.lua"]
+    assert crlf["gate_sha256"] == lf["gate_sha256"]          # a CRLF-only change gates nothing (Appendix F)
+    assert crlf["sha256"] != lf["sha256"]
+
+
+def test_a_one_byte_lua_comment_change_is_a_server_event(mod):
+    old = rp.manifest(mod)
+    put(mod / "common" / "media" / "lua" / "shared" / "NR_Core.lua", CORE + "-- x\n")
+    assert rp.diff(old, rp.manifest(mod))["script_changed"] == ["common/media/lua/shared/NR_Core.lua"]
+
+
+def test_the_cli_names_a_lua_change_a_server_event(mod, tmp_path, capsys):
+    old_dir, new_dir = tmp_path / "old", tmp_path / "new"
+    assert rp.main(["stage", str(mod), "--out", str(old_dir)]) == 0
+    put(mod / "common" / "media" / "lua" / "shared" / "NR_Core.lua", CORE + "-- x\n")
+    capsys.readouterr()
+    assert rp.main(["stage", str(mod), "--out", str(new_dir), "--previous",
+                    str(old_dir / "NutritionRevamp" / "MANIFEST.json")]) == 0
+    assert "SERVER EVENT: 1 script or Lua file(s) changed" in capsys.readouterr().out
 
 
 def test_stage_layout(mod, tmp_path):
@@ -151,7 +177,7 @@ def test_stage_layout(mod, tmp_path):
     assert any(line.startswith("description=A test mod.") for line in ws)
     assert "id=" in ws
     staged = item / "Contents" / "mods" / "NutritionRevamp"
-    assert (staged / "42.20.4" / "mod.info").is_file()
+    assert (staged / "42.21" / "mod.info").is_file()
     disk = json.loads((item / "MANIFEST.json").read_text(encoding="utf-8"))
     assert disk == man
     assert not (item / "preview.png").exists()
@@ -196,11 +222,11 @@ def test_cli_check_and_stage(mod, tmp_path, capsys):
     put(mod / "common" / "media" / "scripts" / "NR_Pass.txt", "module Base {\n item X\n}\n")
     capsys.readouterr()
     assert rp.main(["stage", str(mod), "--out", str(tmp_path / "r2"), "--previous", str(prev)]) == 0
-    assert "SERVER EVENT: 1 script file(s) changed" in capsys.readouterr().out
+    assert "SERVER EVENT: 1 script or Lua file(s) changed" in capsys.readouterr().out
 
 
 def test_cli_check_fails_on_error(mod, capsys):
-    put(mod / "42.20.4" / "mod.info", MOD_INFO + "require=X\n")
+    put(mod / "42.21" / "mod.info", MOD_INFO + "require=X\n")
     assert rp.main(["check", str(mod)]) == 1
     assert "release: ERROR: no-require" in capsys.readouterr().out
 

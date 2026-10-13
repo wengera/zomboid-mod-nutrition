@@ -11,9 +11,9 @@ on any ERROR. `stage` refuses with the same output, else copies the mod to
 `<out>/<item>/Contents/mods/<item>/`, writes `<out>/<item>/workshop.txt` (and copies a
 `preview.png` that sits beside the mod folder) and `<out>/<item>/MANIFEST.json` (beside
 `Contents/`, so the manifest is kept locally and never uploaded), and with `--previous` prints
-the diff against the previous release manifest, flagging a changed script file as a SERVER
-EVENT. The manifest `gate_sha256` is the sha256 over the file bytes with every CR byte dropped
-(the join checksum's one tolerance, #1182).
+the diff against the previous release manifest, flagging a changed script or Lua file as a
+SERVER EVENT. The manifest `gate_sha256` is the sha256 over the file bytes with every CR byte dropped
+(the join checksum's one tolerance, #1182), carried by a script file and a Lua file alike (Appendix F).
 
 | rule | check |
 |---|---|
@@ -155,7 +155,7 @@ def check(mod_dir):
 def _hash_file(rel, path):
     data = Path(path).read_bytes()
     entry = {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
-    if rel.endswith(".txt") and "media/scripts/" in rel:
+    if (rel.endswith(".txt") and "media/scripts/" in rel) or (rel.endswith(".lua") and "media/lua/" in rel):
         entry["gate_sha256"] = hashlib.sha256(data.replace(b"\r", b"")).hexdigest()
     return entry
 
@@ -246,7 +246,7 @@ def main(argv):
         for k in ("added", "removed", "changed", "script_changed"):
             print("%s: %s" % (k, ", ".join(d[k]) if d[k] else "none"))
         if d["script_changed"]:
-            print("SERVER EVENT: %d script file(s) changed" % len(d["script_changed"]))
+            print("SERVER EVENT: %d script or Lua file(s) changed" % len(d["script_changed"]))
     return 0
 
 
