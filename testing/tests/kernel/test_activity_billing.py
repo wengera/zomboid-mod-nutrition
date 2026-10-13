@@ -6,7 +6,8 @@ DayLength 1 as tau_rise 0.558-0.562 h and tau_fall 1.346-1.380 h (section 2a). T
 Fitness set under-billed its rise and billed about 450 kcal of tail as exercise (x29-lag; 445-469 kcal on the clean
 bouts). Now (K.energy.billClass, K.energy.epoc, NR_Server_Metabolism MET.readBilled and MET.spend):
 
-- while the server's exercise flag is set (getCurrentExe, #2901) the minute bills the Fitness class (6.0);
+- while the server's exercise flag is set (getCurrentExe, #2901) the minute bills the Fitness class (6.0 with no
+  recorded exercise type, as here; the recorded type's own MET since Plan 11h, test_exercise_grading.py);
 - while the load-stripped rate falls with no exercise and no movement, the idle class (Default, 1.3);
 - otherwise the rate's own class (every other activity keeps the engine's lag);
 - each flagged minute adds EPOC_F of its exercise kcal to body.epoc, laid lazily, released with EPOC_TAU_H as
@@ -84,7 +85,11 @@ def test_rate_falling(host, prev, rate, falls):
     ("Unknown", False, False, True, "Unknown"),           # an unknown class bills 1.3 already
 ])
 def test_bill_class(host, cls, exe, moving, falling, bill):
-    assert host.K.energy.billClass(cls, exe, moving, falling) == bill
+    got = host.K.energy.billClass(cls, exe, moving, falling)
+    if exe and bill == "Fitness":
+        assert got == ("Fitness", 6.0, False)             # no recorded type: the flat Fitness class (Plan 11h, C-2)
+    else:
+        assert got == bill
 
 
 def _body(host):
@@ -264,7 +269,8 @@ def test_a_steady_walker_never_carries_a_pool(met_host):
 
 def test_the_limitations_name_the_flag_the_gate_and_the_pool(met_host):
     lim = list(MET(met_host).limitations.values())
-    assert any(x.startswith("every Fitness exercise bills the Fitness class (6.0)") for x in lim)
+    assert any(x.startswith("every Fitness exercise bills its type's Compendium MET") and "bills the flat Fitness class "
+               "(6.0), counted in stats.exeFallbacks" in x for x in lim)
     assert any("falling with no exercise and no movement bills the idle class" in x for x in lim)
     assert any(x.startswith("the after-burn follows the exercise flag") for x in lim)
 

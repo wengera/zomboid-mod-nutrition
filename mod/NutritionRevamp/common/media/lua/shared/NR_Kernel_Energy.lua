@@ -1,7 +1,7 @@
 -- NR_Kernel_Energy.lua -- the body model's expenditure and energy state (Plan 3): resting energy
 -- expenditure off lean mass, adaptive thermogenesis, the two MET tables (the engine's Metabolics values,
 -- read to classify the thermoregulator's target, and the Compendium METs expenditure bills), the
--- timed-action band METs, the Compendium load-walking floors, the engine load factor divided out, the
+-- timed-action band METs, the Compendium METs per Fitness exercise, the Compendium load-walking floors, the engine load factor divided out, the
 -- per-minute expenditure and intake accumulators on record.body and the trailing-24 h balance the deficit drive
 -- reads (NR_Kernel_Deficit.lua: the energy state, the exercise lag and the hunger target, since Plan 11g Task 7).
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
@@ -26,6 +26,12 @@ K.energy.COLD_MAX = 4.9 -- S0048
 
 -- The resting MET expenditure counts activity above.
 K.energy.MET_REST = 1.0 -- S0018/S0019
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The activity data, one section (Plan 11h, spec § 6): the engine's class values and their bucketing order, the
+-- Compendium bill per class, the timed-action band METs, the Compendium bill per Fitness exercise type and the
+-- load-walking floors. Two MET tables, never mixed: CLASS_MET classifies the engine's rate and feeds the training
+-- sample; COMPENDIUM, BAND_MET, EXERCISE_MET and LOAD_FLOOR are what expenditure bills.
 
 -- The engine's Metabolics values by class name (Metabolics.<clinit>).
 K.energy.CLASS_MET = {}
@@ -106,7 +112,7 @@ K.energy.COMPENDIUM.MediumWork = 4.0 -- S0040 (construction outside, remodeling)
 K.energy.COMPENDIUM.HeavyWork = 6.0 -- S0040 (home repair vigorous)
 K.energy.COMPENDIUM.JumpFence = 4.0 -- engine value #2632, no Compendium row
 K.energy.COMPENDIUM.DiggingSpade = 5.0 -- S0041 (digging general)
-K.energy.COMPENDIUM.Fitness = 6.0 -- engine value #2632, no Compendium row (no resistance-exercise row)
+K.energy.COMPENDIUM.Fitness = 6.0 -- engine value #2632, no Compendium row for the class; a set minute bills its exercise's EXERCISE_MET, and this flat value only when the type is unrecorded or unknown (K.energy.exerciseMet)
 K.energy.COMPENDIUM.FitnessHeavy = 9.0 -- engine value #2632, no Compendium row (no resistance-exercise row)
 K.energy.COMPENDIUM.Running10kmh = 9.3 -- S0029
 K.energy.COMPENDIUM.ClimbRope = 8.0 -- S0043 (rock climbing)
@@ -123,6 +129,20 @@ K.energy.BAND_MET[3] = 6.0 -- engine Fitness class value #2632
 K.energy.BAND_MET[4] = 4.3 -- S0040 (carpentry moderate)
 K.energy.BAND_MET[5] = 5.5 -- S0041 (shovelling dirt or mud)
 K.energy.BAND_MET[8] = 7.0 -- S0040 (carpentry heavy)
+
+-- The Compendium bill per vanilla Fitness exercise (Plan 11h, C-2; spec § 3), keyed by ISFitnessAction's exeDataType
+-- (the install's media/lua/shared/Definitions/FitnessExercises.lua), which NR_Server_Fitness.lua records server-side at
+-- the set's start. Each type takes the general or moderate code of its pair, a game choice (Angus 2026-10-13), but burpees
+-- the one code naming them; each line names the code not chosen. A set minute with no recorded or no known type bills COMPENDIUM.Fitness
+-- (K.energy.exerciseMet), and NR_Server_Metabolism counts it.
+K.energy.EXERCISE_MET = {}
+K.energy.EXERCISE_MET.squats = 3.0 -- S1898 (02056, body weight resistance exercises, general); game choice: general over the high-intensity 02057 (6.5, S1899)
+K.energy.EXERCISE_MET.pushups = 3.8 -- S1896 (02022, calisthenics, moderate effort); game choice: moderate over the vigorous 02020 (7.5, S1895)
+K.energy.EXERCISE_MET.situp = 3.8 -- S1896 (02022, calisthenics, moderate effort); game choice: moderate over the vigorous 02020 (7.5, S1895)
+K.energy.EXERCISE_MET.burpees = 7.5 -- S1895 (02020, calisthenics, vigorous effort: the one code that names burpees); game choice: the paced set's code over the interval-protocol HIIT 02214 (11.0, S1903)
+K.energy.EXERCISE_MET.barbellcurl = 3.5 -- S1902 (02054, resistance training, multiple exercises, 8-15 reps at varied resistance), an approximate match (no curl code); game choice: over the vigorous body building 02050 (6.0, S1900)
+K.energy.EXERCISE_MET.dumbbellpress = 3.5 -- S1902 (02054, resistance training, multiple exercises, 8-15 reps at varied resistance), an approximate match (no press code); game choice: over the vigorous body building 02050 (6.0, S1900)
+K.energy.EXERCISE_MET.bicepscurl = 3.5 -- S1902 (02054, resistance training, multiple exercises, 8-15 reps at varied resistance), an approximate match (no curl code); game choice: over the vigorous body building 02050 (6.0, S1900)
 
 -- The Compendium load-walking floors: {load threshold kg, MET}, ascending.
 -- 5 lb = 2.3 kg, 15 lb = 6.8 kg, 50 lb = 22.7 kg.
@@ -178,9 +198,13 @@ end
 
 -- The MET expenditure bills: the class's Compendium value (unknown reads 1.3, standing quietly);
 -- not moving, raised to the timed-action band (#0462: vanilla bills the modifier only when not
--- moving); walking, raised to the load-walking floor (ruling 6).
-function K.energy.activityMet(className, moving, modifier, loadKg)
-    local met = K.energy.COMPENDIUM[className] or 1.3 -- S0020
+-- moving); walking, raised to the load-walking floor (ruling 6). exMet (optional) is billClass's exercise MET for a set
+-- minute, billed in place of the class's value.
+function K.energy.activityMet(className, moving, modifier, loadKg, exMet)
+    local met = exMet
+    if met == nil then
+        met = K.energy.COMPENDIUM[className] or 1.3 -- S0020
+    end
     local band = K.energy.bandMet(modifier)
     if not moving and band then
         met = K.max(met, band)
@@ -265,9 +289,10 @@ end
 -- exercise minute; while the raw engine rate falls (rateFalling, raw against raw, Plan 11f C-26) with no exercise and no movement, the idle class
 -- (Default, COMPENDIUM 1.3) for any class billing above it; otherwise the rate's own class. Every other activity keeps the
 -- engine's lag: a walk, a chop or a fight still under-bills its rise, and a moving fall bills at most Walking5kmh.
--- The cost of the flag: getCurrentExe cannot say which exercise, so every Fitness set bills 6.0 (candidate C-2 stays open
--- for graded intensity), and 6.0 is COMPENDIUM.HeavyWork, so every set minute is vigorous for the writer's acute hunger
--- term (W.vigorous, resistance kind). Appended so no line above moves.
+-- getCurrentExe cannot say which exercise (#2180, #2901), so since Plan 11h (C-2) the set minute bills the MET of the
+-- exercise type NR_Server_Fitness.lua recorded at the set's start (EXERCISE_MET), and the flat Fitness class (6.0) when
+-- no known type is recorded; the writer's acute hunger term reads every set minute as resistance-vigorous from the flag,
+-- whatever its MET (W.vigorous).
 K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the raw engine rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
 
 -- Whether the raw engine rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
@@ -281,14 +306,30 @@ function K.energy.rateFalling(prev, rate)
     return rate < prev - K.energy.FALL_EPS
 end
 
+-- The MET a set minute bills for the recorded exercise type exeType, and whether the type was known: EXERCISE_MET's
+-- value for a vanilla type, else (no record, a modded exercise, a non-string) the flat COMPENDIUM.Fitness and false.
+function K.energy.exerciseMet(exeType)
+    local met = nil
+    if type(exeType) == "string" then
+        met = K.energy.EXERCISE_MET[exeType]
+    end
+    if met == nil then
+        return K.energy.COMPENDIUM.Fitness, false
+    end
+    return met, true
+end
+
 -- The class a minute bills: rateClass is the rate's classOf (or Sleeping, which wins); exercising the server's
--- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute.
-function K.energy.billClass(rateClass, exercising, moving, falling)
+-- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute; exeType the exercise
+-- type recorded for the set (nil when none). A set minute returns "Fitness" and exerciseMet's two values, the MET to
+-- bill (activityMet's exMet) and whether the type was known; every other minute returns its class alone.
+function K.energy.billClass(rateClass, exercising, moving, falling, exeType)
     if rateClass == "Sleeping" then
         return rateClass
     end
     if exercising then
-        return "Fitness"
+        local met, known = K.energy.exerciseMet(exeType)
+        return "Fitness", met, known
     end
     local bill = K.energy.COMPENDIUM[rateClass] or K.energy.COMPENDIUM.Default
     if falling and not moving then

@@ -27,7 +27,7 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.metabolism = {
     stats = { minutes = 0, days = 0, failures = 0, splits = 0, badReads = 0, skippedDays = 0,
-              firstSightMirrors = 0, preconditionWarnings = 0 },
+              firstSightMirrors = 0, preconditionWarnings = 0, exeFallbacks = 0 },
     lastError = nil,
     wired = false,
     limitations = {
@@ -381,8 +381,8 @@ local function step(username, player, record, ctx)
         K.energy.intake(body, handoff, dtM)
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, rateClass = MET.readBilled(username, player, ageH)
-    local met = K.energy.activityMet(className, moving, modifier, loadKg)
+        hourOfDay, maxW, heatLevel, climbClass, rateClass, exMet = MET.readBilled(username, player, ageH)
+    local met = K.energy.activityMet(className, moving, modifier, loadKg, exMet)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
     if finite(met) then body.met = met else body.met = 1 end
@@ -502,7 +502,7 @@ end
 -- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise billed by the activity. Appended so no line
 -- above moves. readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
 -- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the raw engine
--- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along last, for the
+-- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along, for the
 -- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
 -- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
 -- no fall. The fall is decided raw against raw (Plan 11f ruling C26-1, F-T6r-3): the engine's rate lags toward base x
@@ -520,9 +520,20 @@ function MET.readBilled(username, player, ageH)
     if MET.prevExe[username] == true and not exercising then falling = true end
     MET.prevRate[username] = rate
     MET.prevExe[username] = exercising
-    local billClass = K.energy.billClass(className, exercising, moving, falling)
+    local billClass, exMet, known = K.energy.billClass(className, exercising, moving, falling, MET.exeTypeOf(username, exercising))
+    if exMet ~= nil and not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
     return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, className
+        hourOfDay, maxW, heatLevel, climbClass, className, exMet
+end
+
+-- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start, read only on a set minute; a
+-- Lua table lookup, no Java (Rule 6). nil when the flag is clear, the module is absent or nothing is recorded: the
+-- set minute then bills the flat Fitness class and counts in stats.exeFallbacks.
+function MET.exeTypeOf(username, exercising)
+    if not exercising then return nil end
+    local F = NR.server.fitness
+    if F == nil or F.typeOf == nil then return nil end
+    return F.typeOf(username)
 end
 
 -- The minute's expenditure (K.energy.minute) and the after-burn pool (K.energy.epoc), fed by the minute's exercise
@@ -538,8 +549,8 @@ function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
     end
 end
 
-MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills the Fitness class (6.0) while the server's exercise flag is set, whatever the exercise; walking, chopping and fighting keep the metabolic rate's rise lag"
-MET.limitations[#MET.limitations + 1] = "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads 6.0 on every set minute and 1.3 on every standing fall"
+MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills its type's Compendium MET (K.energy.EXERCISE_MET, the general or moderate code, a game choice) while the server's exercise flag is set, from the type NR_Server_Fitness recorded at the set's start; a set with no recorded or no known type bills the flat Fitness class (6.0), counted in stats.exeFallbacks; walking, chopping and fighting keep the metabolic rate's rise lag"
+MET.limitations[#MET.limitations + 1] = "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads the set's billed MET on every set minute and 1.3 on every standing fall"
 MET.limitations[#MET.limitations + 1] = "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length"
 
 -- Plan 11f C-17 fix 1 (ruling C17-4): the held rate and flag are per user and leave with the player. Appended so no

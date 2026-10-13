@@ -16,9 +16,10 @@
 -- rep whose Strength event the level-10 cap dropped, and is counted there instead. A Strength event
 -- whose Fitness partner was dropped leaves the pair open; the next rep's Strength event counts as usual.
 -- The rep's class is the exercise's first stiffness group (EXERCISE_CLASS, read from the install):
--- legs/abs bank S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. getCurrentExe answers a
--- Fitness$FitnessExercise whose type is a field with no getter and is unreadable from Lua (run
--- x141c-20261005-132133: indexing it raised on every rep), so the key is read only when the exercise is
+-- legs/abs bank S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. The key is the exercise type
+-- NR_Server_Fitness.lua recorded at the set's start (Plan 11h, C-2) when it is a known vanilla type.
+-- Otherwise: getCurrentExe answers a Fitness$FitnessExercise whose type is a field with no getter and is unreadable
+-- from Lua (run x141c-20261005-132133: indexing it raised on every rep), so the key is read only when the exercise is
 -- itself a string; any other value is never indexed and is inferred from the Strength grant: above 0 is
 -- arms/chest, 0 is legs/abs. An event of either perk with no current exercise is a knockback, tree or load grant,
 -- ignored here (the hit and tree hooks and the minute's load sample own them) and closes any open
@@ -38,7 +39,7 @@ NR.server.training = {
     limitations = {
         "a climb or vault has no Lua event and is sampled per minute from the character's state",
         "a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total fires no Strength event, and its reps are counted on the Fitness event instead; a Fitness-only rep after a stale open pair is read as the partner",
-        "the exercise type is a Java field with no getter, so an unreadable exercise is classed from its Strength grant (above 0 arms/chest, 0 legs/abs; legs on the Fitness-only path)",
+        "the exercise type is a Java field with no getter, so a set whose type NR_Server_Fitness did not record (or recorded as an unknown, modded type) is classed from its Strength grant (above 0 arms/chest, 0 legs/abs; legs on the Fitness-only path)",
     },
 }
 local TRN = NR.server.training
@@ -86,9 +87,15 @@ local function currentExe(player)
     return nil
 end
 
--- The exercise's key: the value itself when a string; nil for anything else (a userdata is never
--- indexed: its type field is unreadable, and the index attempt logged a stack trace per rep).
-local function exeKey(exe)
+-- The exercise's key: the type NR_Server_Fitness recorded for the set when it is a known vanilla type; else the
+-- value itself when a string; nil for anything else (a userdata is never indexed: its type field is unreadable, and
+-- the index attempt logged a stack trace per rep).
+local function exeKey(name, exe)
+    local F = NR.server.fitness
+    if F ~= nil and F.typeOf ~= nil then
+        local t = F.typeOf(name)
+        if t ~= nil and TRN.EXERCISE_CLASS[t] ~= nil then return t end
+    end
     if type(exe) == "string" then return exe end
     return nil
 end
@@ -123,7 +130,7 @@ local function xpStep(player, perk, amount)
         return
     end
     local group = nil
-    local key = exeKey(exe)
+    local key = exeKey(name, exe)
     if key ~= nil then
         group = TRN.EXERCISE_CLASS[key] or "legs"
     elseif isStr and amount > 0 then

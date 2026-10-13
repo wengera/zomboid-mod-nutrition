@@ -1,5 +1,5 @@
 {
- "printed_count": 17,
+ "printed_count": 18,
  "snapshots": [
   {
    "age": 119,
@@ -6251,6 +6251,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 0,
+     "exeFallbacks": 0,
      "failures": 0,
      "firstSightMirrors": 6,
      "minutes": 180,
@@ -12586,6 +12587,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 0,
+     "exeFallbacks": 0,
      "failures": 0,
      "firstSightMirrors": 6,
      "minutes": 360,
@@ -18938,6 +18940,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 0,
      "firstSightMirrors": 6,
      "minutes": 540,
@@ -25266,6 +25269,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 1,
      "firstSightMirrors": 7,
      "minutes": 719,
@@ -31601,6 +31605,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 1,
      "firstSightMirrors": 7,
      "minutes": 898,
@@ -37929,6 +37934,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 1,
      "firstSightMirrors": 8,
      "minutes": 1049,
@@ -44257,6 +44263,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 1,
      "firstSightMirrors": 8,
      "minutes": 1229,
@@ -50585,6 +50592,7 @@
     "metabolism": {
      "badReads": 0,
      "days": 6,
+     "exeFallbacks": 0,
      "failures": 1,
      "firstSightMirrors": 8,
      "minutes": 1409,

@@ -490,8 +490,8 @@ LIMITATION_FOUR = (
     "character first seen in withdrawal reads none until a smoke; the deficit drive is fitted on the deficit "
     "studies alone, Karl 2021's well-fed arm held inside its band by the meal pool and the stomach's fill past 730 g "
     "rather than by the gut hormones the paper credits, so its post-meal troughs stay shallower than the study's; "
-    "every Fitness set bills 6.0 from the server's exercise flag, so every set minute is "
-    "vigorous resistance work for the acute term whatever the exercise (a light stretch and burpees alike)")
+    "every Fitness set minute is vigorous resistance work for the acute term from the server's exercise flag, "
+    "whatever the exercise and its billed MET (a light stretch and burpees alike)")
 
 
 def test_limitation_four_names_the_overwrite_and_the_meal_pool():
