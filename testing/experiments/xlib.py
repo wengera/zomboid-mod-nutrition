@@ -303,7 +303,8 @@ class Xs:
 
     # ---- phases and grades
     def grade(self, name, verdict, observed, falsifier, extra=None, samples=None):
-        """Record a verdict. With `samples` given, zero samples turn as_predicted into unmeasured."""
+        """Record a verdict. With `samples` given, zero samples turn as_predicted into unmeasured; the guard is
+        opt-in, so a grade that counts samples must pass them (CLAUDE.md 5: every grade has a failing case)."""
         if samples is not None:
             verdict = grade_verdict(verdict, samples)
         row = {"phase": name, "predicted": self.pred.get(name), "falsifier": falsifier, "observed": observed,

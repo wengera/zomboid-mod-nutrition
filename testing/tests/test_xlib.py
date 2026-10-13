@@ -251,6 +251,13 @@ def test_deployed_marker_check_missing_marker(tmp_path):
     assert ok is False and list(dm.values()) == [False]
 
 
+def test_deployed_marker_check_needs_every_marker(tmp_path):
+    _deploy(tmp_path, "PZTestKit_Server.lua", "-- marker A\n")
+    dm, ok = X.deployed_marker_check(str(tmp_path), ["PZTestKit_Server.lua"],
+                                     {"PZTestKit_Server.lua": ["marker A", "marker B"]})
+    assert ok is False and list(dm.values()) == [False]
+
+
 def test_deployed_marker_check_missing_copy(tmp_path):
     dm, ok = X.deployed_marker_check(str(tmp_path), ["PZTestKit_Server.lua"], {"PZTestKit_Server.lua": ["m"]})
     assert dm == {} and ok is False
