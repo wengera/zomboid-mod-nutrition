@@ -4701,7 +4701,8 @@ function TK.SP.save(S, out)
     if F.last[u] ~= nil then out.bytes = string.len(F.last[u]) end
     out.values = {}
     for i = 1, #TK.SP.LEAVES do
-        out.values[i] = { label = TK.SP.LABELS[i], path = TK.SP.LEAVES[i], text = TK.SP.text(vals[i]) }
+        out.values[i] = { label = TK.SP.LABELS[i], path = TK.SP.LEAVES[i], text = TK.SP.text(vals[i]),
+                          str = tostring(vals[i]) }
     end
     out.ok = out.saved
     TK.log("store.probe roundtrip save: saved=" .. tostring(out.saved) .. " gen=" .. tostring(out.gen)
@@ -4738,8 +4739,9 @@ function TK.SP.load(S, out)
         local got = TK.SP.get(rec, TK.SP.LEAVES[i])
         local gotRaw = TK.SP.get(raw, TK.SP.LEAVES[i])
         local row = { label = TK.SP.LABELS[i], path = TK.SP.LEAVES[i], expected = TK.SP.text(vals[i]),
-                      equal = got == vals[i], rawEqual = gotRaw == vals[i] }
+                      expectedStr = tostring(vals[i]), equal = got == vals[i], rawEqual = gotRaw == vals[i] }
         if type(got) == "number" then row.got = TK.SP.text(got) else row.got = tostring(got) end
+        row.gotStr = tostring(got)
         out.values[i] = row
         all = all and row.equal and row.rawEqual
         TK.log("store.probe roundtrip load: " .. row.label .. " at " .. row.path .. " expected " .. row.expected

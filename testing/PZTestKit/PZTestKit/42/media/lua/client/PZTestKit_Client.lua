@@ -1145,8 +1145,9 @@ end)
 -- maximum, the transitions and the level now. A name MoodleType does not carry replies a reason.
 -- MoodleType.PANIC is a static field on 42.21 (`./pz.sh dump zombie.scripting.objects.MoodleType '<clinit>'`, jar
 -- e1a69eb743: `putstatic MoodleType.PANIC` at @29), and Moodles.getMoodleLevel(MoodleType) answers an int.
--- The tick listener runs the sample under pcall (the debug client parks on an unguarded raise,
--- docs/platform/lua-platform.md#debug-break): a raise ends the window and read replies it as err.
+-- The tick listener runs the sample under pcall: a release client survives a raise and the window keeps it as err.
+-- On the -debug client the pcall does not save the client from parking on a raise (#0957,
+-- docs/platform/lua-platform.md#debug-break); only the index-first TK.call reads keep the sample from raising there.
 C.mw = nil
 
 function C.mwTick()
@@ -1177,7 +1178,11 @@ function C.mwGuarded()
     end
 end
 
-if Events ~= nil and Events.OnTick ~= nil then Events.OnTick.Add(function() C.mwGuarded() end) end
+if Events ~= nil and Events.OnTick ~= nil then Events.OnTick.Add(function()
+    local W = C.mw
+    if W == nil or W.done then return end
+    C.mwGuarded()
+end) end
 
 -- @args <MoodleType> <seconds> | read
 -- @reply {ok, armed, moodle, seconds} | {ok, moodle, done, samples, min, max, transitions, changes, level [, err]} | string
@@ -1205,7 +1210,7 @@ end)
 -- queue and leaves a started action running. The reply, read on this tick around the call:
 --   before, after        the Lua queue's length (#queue.queue, a Lua table);
 --   current, started     the queue's first action's Type (its Lua class name) and whether it had started
---                        (ISBaseTimedAction:isStarted, under pcall); current absent and started false on an empty queue;
+--                        (ISBaseTimedAction:isStarted, index-first); current absent and started false on an empty queue;
 --   adding               isCurrentActionAddingOtherActions: true means clear skipped StopAllActionQueue (stopped false)
 --                        and clearQueue cancelled only the added actions;
 --   stopped              whether StopAllActionQueue was reached (not adding);
@@ -1237,8 +1242,7 @@ TK.register("action.cancel", function()
     local cur = q.queue[1]
     if cur ~= nil then
         out.current = tostring(cur.Type)
-        local okS, st = pcall(function() return cur:isStarted() end)
-        out.started = okS and st == true
+        if cur.isStarted ~= nil then out.started = cur:isStarted() == true end
     end
     local okD, adding = pcall(function() return q:isCurrentActionAddingOtherActions() end)
     out.adding = okD and adding == true

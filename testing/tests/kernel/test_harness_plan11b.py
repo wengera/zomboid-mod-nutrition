@@ -541,6 +541,11 @@ def test_store_probe_clear_empties_the_slots_and_drops_the_index_entry():
     h = probe_server()
     F = h.NR.server.store.file
     r = scmd(h, "store.probe", "roundtrip", "save")
+    h.tick(5)                                                        # the queued store.index task runs
+    files = files_of(h)
+    idx0 = max((k for k in files if k.startswith("NutritionRevamp/srv/index_")),
+               key=lambda k: int(files[k].split('"gen":')[1].split(",")[0].split("}")[0]) if '"gen":' in files[k] else -1)
+    assert r.user in files[idx0]
     scmd(h, "store.probe", "bench", "1")                              # both slots now hold the record
     c = scmd(h, "store.probe", "clear")
     assert c.ok is True and c.emptied is True and c.indexed is True and c.indexWritten is True
