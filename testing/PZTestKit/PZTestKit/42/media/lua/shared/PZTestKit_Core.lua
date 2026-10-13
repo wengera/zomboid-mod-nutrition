@@ -570,12 +570,12 @@ TK.register("lua.reload", function(argv)
     return "reloadLuaFile(" .. tostring(argv[1]) .. ") -> " .. tostring(r)
 end)
 -- @args (none)
--- @reply {worldAge, hour, minutes, mult, wall}
+-- @reply {worldAge, hour, minutes, mult, trueMult, wall}
 -- @purpose One read of the game clock -- world age, hour, minute, multiplier and wall time -- on the side answering.
 TK.register("time.snapshot", function()
     local gt = getGameTime()
     return { worldAge = gt:getWorldAgeHours(), hour = gt:getHour(), minutes = gt:getMinutes(),
-             mult = gt:getMultiplier(), wall = TK.now() }
+             mult = gt:getMultiplier(), trueMult = gt:getTrueMultiplier(), wall = TK.now() }
 end)
 -- S3 probe: KeenPerception (workshop mod) removes the Keen Hearing <-> Deaf exclusivity.
 -- @args (none)

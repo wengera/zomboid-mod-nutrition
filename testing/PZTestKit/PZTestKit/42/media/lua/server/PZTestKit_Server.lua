@@ -7,7 +7,7 @@ if not isServer() then return end
 TK.register("time.multiplier", function(argv)
     -- server-only fallback; the admin command (settimespeed) also broadcasts to clients
     getGameTime():setMultiplier(tonumber(argv[1]) or 1)
-    return "mult=" .. tostring(getGameTime():getMultiplier())
+    return "mult=" .. tostring(getGameTime():getTrueMultiplier()) .. " eff=" .. tostring(getGameTime():getMultiplier())
 end)
 
 -- @args (none)
@@ -4824,3 +4824,38 @@ TK.register("store.probe", function(argv)
     if argv[1] == "bench" and n ~= nil and n >= 1 and n <= TK.SP.MAX then return TK.SP.bench(S, out, math.floor(n)) end
     return usage
 end)
+
+-- ---- Plan 11b Task 2 fix: a ghost run restores the carrier's macros ----
+-- A ghost shares its carrier (the real player's character) with the real player, and each ghost weight step writes
+-- the ghost's own macros onto it. The real player's reconcile then lands every rise and marks its slot dirty every
+-- minute (Task 2 review, finding 2). The wrapper below reads the carrier's macros through the mod's reconcile read
+-- before the run, seeds the ghost record's reconcile baseline from them, and sets the four stores back after it.
+-- The block is guarded on TK.H0 so a test that loads only the file's tail sees no wrapper. Bias: 4 gets and 4 sets per ghost run, inside the batch timer, the same in every arm.
+local H0s = TK.H0
+local workSeamed = H0s ~= nil and H0s.work or nil
+
+if workSeamed ~= nil then
+function H0s.work(g)
+    local NR = NutritionRevamp
+    local RC = NR ~= nil and NR.server ~= nil and NR.server.reconcile or nil
+    local pre = nil
+    if RC ~= nil and RC.read ~= nil then
+        local okR, s = pcall(RC.read, g.carrier)
+        if okR then pre = s end
+    end
+    if pre ~= nil and type(g.rec.reconcile) == "table" then
+        g.rec.reconcile.baseline = NR.kernel.reconcile.baselineAfter(pre)
+    end
+    local ok, err = pcall(workSeamed, g)
+    if pre ~= nil then
+        local okN, nut = TK.call(g.carrier, "getNutrition")
+        if okN and nut ~= nil then
+            TK.call(nut, "setCalories", pre.calories)
+            TK.call(nut, "setCarbohydrates", pre.carbs)
+            TK.call(nut, "setLipids", pre.lipids)
+            TK.call(nut, "setProteins", pre.proteins)
+        end
+    end
+    if not ok then error(err, 0) end
+end
+end
