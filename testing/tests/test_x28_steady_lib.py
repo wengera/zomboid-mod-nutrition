@@ -64,15 +64,15 @@ def test_a_phase_error_reaches_the_read_back_and_the_flush(tmp_path):
 
 
 def test_the_frozen_x27_lib_no_longer_shows_the_defect_this_file_fixes(tmp_path):
-    """Timeline.mark takes its phase positionally only, so the frozen x27 lib's mark(..., phase=...) lands the
-    keyword as a field: run_phase records the budget stop instead of raising a duplicate-argument TypeError."""
+    """Timeline.mark takes its phase positionally only, so the frozen x27 lib's mark(..., phase=...) files the
+    keyword as in_phase: run_phase records the budget stop instead of raising a duplicate-argument TypeError."""
     import x27_energy_lib as L27
     S = bare(L27, tmp_path)
 
     def over():
         raise L27.Budget("wall past the budget")
     S.run_phase("X", over)
-    assert S.out["budget_stop"]["phase"] == "X" and S.tl.items[-1]["phase"] == "X"
+    assert S.out["budget_stop"]["phase"] == "X" and S.tl.items[-1]["in_phase"] == "X"
 
 
 def test_the_drink_events_are_the_rings_autodrop_rows():

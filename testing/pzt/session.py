@@ -33,6 +33,8 @@ class Timeline:
         wave has to be read that way (`testing/artifacts/README.md`).
         """
         t = round(time.time() - self.t0, 1)
+        if "phase" in kw:   # a frozen driver's mark("error", phase=name): keep the entry's own phase, file the name as in_phase
+            kw["in_phase"] = kw.pop("phase")
         detail = {**({} if took is None else {"took": took}), **kw}
         self.items.append({"t": t, "phase": phase, **detail})
         say(f"[{t:7.1f}s] {phase} " + " ".join(f"{k}={v}" for k, v in detail.items()))
