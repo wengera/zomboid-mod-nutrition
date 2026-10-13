@@ -100,7 +100,8 @@ class Client:
         with open(os.path.join(self.bus.lua_dir, "pzt-join.txt"), "w") as fh:
             fh.write(f"username={self.username}\npassword={self.password}\n"
                      f"ip={self.ip}\nport={self.port}\nserverPassword={self.server_password}\n")
-        self._upsert_serverlist(); upsert_options(os.path.join(self.cache, "options.ini"), HELPER_OPTIONS)   # helper dialogs off (end of file)
+        self._upsert_serverlist()
+        upsert_options(os.path.join(self.cache, "options.ini"), HELPER_OPTIONS)   # helper dialogs off (end of file)
         if self.debug:
             # GameWindow.initShared skips TISLogoState only for -debug clients with this set.
             with open(os.path.join(self.cache, "debug-options.ini"), "w") as fh:
