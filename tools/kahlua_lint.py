@@ -24,7 +24,8 @@ Finding = collections.namedtuple("Finding", "path line rule detail")
 
 LONG_OPEN = re.compile(r"(--)?\[(=*)\[")
 GOTO_RX = re.compile(r"(?<![\w.])goto\s+\w+|::\s*\w+\s*::")
-FORMAT_RX = re.compile(r"string\.format\s*[(,]")
+FORMAT_RX = re.compile(r"(string\.format\s*[(,]|:format\s*\()")
+LITERAL_RX = re.compile(r"""(?:"(?:[^"\\]|\.)*")|(?:'(?:[^'\\]|\.)*')""")
 FORMAT_G_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[gG]")
 ALLOW_G = "kahlua-lint: allow-g"
 FORMAT_D_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[dixXoc]")
@@ -70,11 +71,13 @@ def lint_text(path, text):
         if GOTO_RX.search(line):
             found.append(Finding(path, n, "goto", "Kahlua has no goto and no labels"))
         if FORMAT_RX.search(line):
-            # the stripped line's literals are blanked, so look at the raw line's format string
-            raw = raw_lines[n - 1]
+            # the stripped line's literals are blanked, so look at the raw line's string literals
+            # only, with %% removed. An alias (local f = string.format) or a format string split
+            # across lines stays unflagged.
+            raw = " ".join(m.group(0).replace("%%", "") for m in LITERAL_RX.finditer(raw_lines[n - 1][:len(line)]))
             if FORMAT_D_RX.search(raw):
                 found.append(Finding(path, n, "format-d", "integer conversion of a Lua number raises; use %.0f"))
-            if FORMAT_G_RX.search(raw) and ALLOW_G not in raw:
+            if FORMAT_G_RX.search(raw) and ALLOW_G not in raw_lines[n - 1]:
                 found.append(Finding(path, n, "format-g", "%g/%G hangs the Kahlua server for a tiny magnitude (roundToSignificantNumbers loops forever below ~1e-292); use tostring, or guard the magnitude and mark the line `-- kahlua-lint: allow-g`"))
         if LENGTH_CALL_RX.search(line):
             found.append(Finding(path, n, "java-length", "# on a call result: a Java list has no length; walk size()/get(i)"))

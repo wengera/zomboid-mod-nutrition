@@ -106,3 +106,20 @@ def test_percent_g_in_a_comment_or_without_format_is_not_a_finding(tmp_path):
         local s = "%g"
     """)
     assert out == []
+
+
+def test_format_g_and_d_ignore_modulo_percent_and_double_percent(tmp_path):
+    out = lint_text(tmp_path, """
+        local a = string.format("%.1f", x % gap)
+        local b = string.format("100%%gain %s", x)
+        local c = string.format("100%%dogs %s", x)
+    """)
+    assert out == []
+
+
+def test_format_g_and_d_catch_the_method_form(tmp_path):
+    out = lint_text(tmp_path, """
+        local a = ("%g"):format(v)
+        local b = ("%d"):format(v)
+    """)
+    assert out == [(2, "format-g"), (3, "format-d")]
