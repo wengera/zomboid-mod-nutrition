@@ -364,3 +364,53 @@ def test_sched_arm_off_leaves_a_later_wrap_in_place():
     later = h.rt.eval("function(P) local w = P.minute; P.minute = function() return w() end; return P.minute end")(P)
     r = scmd(h, "sched.arm", "off")
     assert r.ok is False and "replaced" in r.reason and h.rt.eval("rawequal")(P.minute, later)
+
+
+# ---- H5 stats.bench (server) -----------------------------------------------------------------------------------------
+
+STATS = r"""
+function(p)
+    local st = { vals = { E_BOREDOM = 12.5 }, gets = 0, sets = 0, setVals = {} }
+    st.get = function(s, e) s.gets = s.gets + 1; return s.vals[e] end
+    st.set = function(s, e, v) s.sets = s.sets + 1; s.setVals[v] = true; s.vals[e] = v end
+    p.st = st
+    p.getStats = function(s) return st end
+end
+"""
+
+BENCH_ENV = r"""
+CharacterStat = { BOREDOM = "E_BOREDOM", PANIC = "E_PANIC" }
+"""
+
+
+def bench_server():
+    h = server(BENCH_ENV)
+    h.rt.eval(STATS)(h.p)
+    return h
+
+
+def test_stats_bench_times_n_unchanged_get_and_set_pairs_bare_and_wrapped():
+    h = bench_server()
+    st = h.p.st
+    g0, s0 = st.gets, st.sets
+    r = scmd(h, "stats.bench", "admin", "BOREDOM", "1000")
+    assert r.ok is True and r.side == "server" and r.wrapped is False and r.n == 1000
+    assert st.gets - g0 == 1000 + 2 and st.sets - s0 == 1000      # the pairs, plus the before and after reads
+    assert r.before == 12.5 and r.after == 12.5 and list(st.setVals.keys()) == [12.5]   # set back unchanged
+    assert r.ms >= 0 and r.usPerPair == r.ms * 1000 / 1000 and r.loopMs >= 0 and r.err is None
+    g1, s1 = st.gets, st.sets
+    w = scmd(h, "stats.bench", "admin", "BOREDOM", "500", "wrapped")
+    assert w.ok is True and w.wrapped is True and st.gets - g1 == 500 + 2 and st.sets - s1 == 500
+    assert w.after == 12.5
+
+
+def test_stats_bench_refuses_what_it_cannot_price():
+    h = bench_server()
+    usage = "usage: stats.bench <user> <STAT> <n 1-100000> [wrapped]"
+    assert scmd(h, "stats.bench", "admin", "BOREDOM") == usage
+    assert scmd(h, "stats.bench", "admin", "BOREDOM", "0") == usage
+    assert scmd(h, "stats.bench", "admin", "BOREDOM", "100001") == usage
+    assert scmd(h, "stats.bench", "nobody", "BOREDOM", "10").reason == "no online player"
+    assert scmd(h, "stats.bench", "admin", "NOSUCH", "10").reason == "no CharacterStat.NOSUCH"
+    r = scmd(h, "stats.bench", "admin", "PANIC", "10")              # a stat the stub reads as nil
+    assert r.ok is False and "read no number" in r.reason and h.p.st.sets == 0

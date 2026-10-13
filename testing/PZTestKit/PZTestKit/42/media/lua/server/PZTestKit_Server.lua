@@ -4455,3 +4455,84 @@ TK.register("sched.arm", function(argv)
     end
     return TK.SA.state(P, { ok = true, side = TK.side })
 end)
+
+-- ---- Plan 11b Task 1: the price of a stat get-and-set pair on the live build (H5) ----------------------------------
+-- stats.bench <user> <STAT> <n> [wrapped]
+-- TEST-ONLY INSTRUMENT. On a named online player's stats object, hoisted once (getStats(), as the mod's writer hoists
+-- it, NR_Server_Writer W.hoist), it times n pairs of Stats:get(CharacterStat[<STAT>]) and Stats:set of the value just
+-- read inside one getTimestampMs bracket, the whole loop under ONE pcall; the value is never changed, so no reading
+-- moves. Without `wrapped` the calls are bare method calls; with `wrapped` each goes the writer's own route:
+-- NutritionRevamp.num(stats, "get", nil, enum) and, for a number read, pcall(NutritionRevamp.call, stats, "set", enum, v), so the reply
+-- prices the writer's BOREDOM lane (one get and one set a rising minute) on this build. An empty loop of n turns is
+-- timed in its own bracket first and replied as loopMs (the loop's own cost; it is not subtracted). The clock is the
+-- 1 ms getTimestampMs, so n should make the bracket tens of ms at least. n is at most 100000 (bench.global's bound).
+TK.SB = TK.SB or { MAX = 100000 }
+
+-- @args <user> <STAT> <n> [wrapped]
+-- @reply {ok, side, user, stat, n, wrapped, loopMs, ms, usPerPair, before, after [, err]} | {ok, side, user, reason} | string
+-- @purpose Test-only: times n Stats get-and-set pairs of one CharacterStat (the value read, set back unchanged) on a named online player's hoisted stats, bare or through the mod writer's own call route, and replies the microseconds a pair.
+TK.register("stats.bench", function(argv)
+    local user, stat, n = argv[1], argv[2], tonumber(argv[3])
+    if user == nil or stat == nil or n == nil or n < 1 or n > TK.SB.MAX then
+        return "usage: stats.bench <user> <STAT> <n 1-100000> [wrapped]"
+    end
+    n = math.floor(n)
+    local wrapped = argv[4] == "wrapped"
+    local out = { ok = false, side = TK.side, user = user, stat = stat, n = n, wrapped = wrapped }
+    local p = findPlayer(user)
+    if p == nil then
+        out.reason = "no online player"
+        return out
+    end
+    local enum = CharacterStat ~= nil and CharacterStat[stat] or nil
+    if enum == nil then
+        out.reason = "no CharacterStat." .. tostring(stat)
+        return out
+    end
+    local NR = NutritionRevamp
+    if wrapped and (type(NR) ~= "table" or NR.num == nil or NR.call == nil) then
+        out.reason = "no NutritionRevamp.num/call for the wrapped route"
+        return out
+    end
+    local okS, stats = TK.call(p, "getStats")
+    if not okS or stats == nil then
+        out.reason = "no getStats"
+        return out
+    end
+    local okB, before = pcall(function() return stats:get(enum) end)
+    if not okB or type(before) ~= "number" then
+        out.reason = "Stats:get raised or read no number: " .. tostring(before)
+        return out
+    end
+    out.before = before
+    local l0 = getTimestampMs()
+    local sink = 0
+    for i = 1, n do sink = sink + 1 end
+    out.loopMs = getTimestampMs() - l0
+    local loop
+    if wrapped then
+        loop = function()
+            for i = 1, n do
+                local v = NR.num(stats, "get", nil, enum)
+                if v ~= nil then pcall(NR.call, stats, "set", enum, v) end
+            end
+        end
+    else
+        loop = function()
+            for i = 1, n do
+                local v = stats:get(enum)
+                stats:set(enum, v)
+            end
+        end
+    end
+    local t0 = getTimestampMs()
+    local ran, err = pcall(loop)
+    local t1 = getTimestampMs()
+    if not ran then out.err = tostring(err) end
+    local okA, after = pcall(function() return stats:get(enum) end)
+    if okA then out.after = after end
+    out.ms = t1 - t0
+    out.usPerPair = out.ms * 1000 / n
+    out.ok = ran
+    return out
+end)
