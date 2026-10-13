@@ -100,7 +100,7 @@ class Client:
         with open(os.path.join(self.bus.lua_dir, "pzt-join.txt"), "w") as fh:
             fh.write(f"username={self.username}\npassword={self.password}\n"
                      f"ip={self.ip}\nport={self.port}\nserverPassword={self.server_password}\n")
-        self._upsert_serverlist()
+        self._upsert_serverlist(); upsert_options(os.path.join(self.cache, "options.ini"), HELPER_OPTIONS)   # helper dialogs off (end of file)
         if self.debug:
             # GameWindow.initShared skips TISLogoState only for -debug clients with this set.
             with open(os.path.join(self.cache, "debug-options.ini"), "w") as fh:
@@ -254,3 +254,30 @@ class Client:
         if self.alive:
             subprocess.run(["taskkill", "/PID", str(self.proc.pid), "/T", "/F"], capture_output=True)
         self._stop.set()
+
+
+HELPER_OPTIONS = {"showSurvivalGuide": "false", "showFirstTimeSearchTutorial": "false",
+                  "showFirstAnimalZoneInfo": "false"}   # the game's helper dialogs, off on every client
+
+
+def upsert_options(path, values):
+    """Set Key=Value lines of an ini in place, keeping every other line byte for byte and the
+    file's line endings; a missing key is appended with the file's ending (LF if it has none)."""
+    text = open(path, encoding="utf-8", newline="").read() if os.path.exists(path) else ""
+    eol = "\r\n" if "\r\n" in text else "\n"
+    pending = dict(values)
+    out = []
+    for line in text.splitlines(keepends=True):
+        body = line.rstrip("\r\n")
+        key = body.split("=", 1)[0].strip() if "=" in body else None
+        if key in pending:
+            out.append(f"{key}={pending.pop(key)}" + line[len(body):])
+        else:
+            out.append(line)
+    if pending and out and not out[-1].endswith("\n"):
+        out[-1] += eol
+    out += [f"{k}={v}{eol}" for k, v in pending.items()]
+    new = "".join(out)
+    if new != text:
+        with open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.write(new)
