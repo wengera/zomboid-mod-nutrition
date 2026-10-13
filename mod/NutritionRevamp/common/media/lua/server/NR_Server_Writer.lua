@@ -109,7 +109,7 @@ function W.hoist(username, p)
 end
 
 -- The engine reads Effects' accrual and recovery need (the takeover's input table fields it read, B3 and B4).
-function W.readEngine(username, h, p)
+function W.readEngine(username, h, p, ctx)
     local i = W.inp[username]
     if i == nil then
         i = {}
@@ -121,7 +121,12 @@ function W.readEngine(username, h, p)
     i.sitting = NR.flag(p, "isSitOnGround") or NR.flag(p, "isSittingOnFurniture")
     i.resting = NR.flag(p, "isResting")
     i.thermoFatigue = NR.num(h.thermo, "getFatigueMultiplier", 1)
-    i.sd = NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
+    local sd = ctx ~= nil and ctx.sd or nil                -- Kinetics' read this player-minute (ruling T10-1)
+    if sd == nil then
+        sd = NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
+        if ctx ~= nil then ctx.sd = sd end
+    end
+    i.sd = sd
     i.needsLess = T ~= nil and trait(h, T.NEEDS_LESS_SLEEP)
     i.needsMore = T ~= nil and trait(h, T.NEEDS_MORE_SLEEP)
     i.insomniac = T ~= nil and trait(h, T.INSOMNIAC)
@@ -235,7 +240,7 @@ function W.step(username, player, record, ctx)
         return
     end
     local CS = CharacterStat
-    local eng = W.readEngine(username, h, player)
+    local eng = W.readEngine(username, h, player, ctx)
     local inp, out = W.input, W.output
     inp.dtS = 0
     if h.ageH ~= nil then inp.dtS = (ageH - h.ageH) * 3600 end

@@ -212,3 +212,53 @@ def test_nutrients_stamps_the_effects_inputs_last():
     assert stamped, "no minute stamped the effects inputs"
     for e in stamped:
         assert e.body is True and abs(e.dtM - 1.0) < 1e-9
+
+
+
+# --- Rule 6: the Java calls of a player-minute (Plan 11g close, the whole-pass review's finding 10) -----------------
+# The meal pool's clearance (KIN.mealTrait) read the traits handle and the stats-decrease multiplier afresh every
+# player-minute, two Java calls the P-model writer did not make (it read its hoisted h.traits and eng.sd); the lupa
+# bench stubs Java and could not see them. Counted on golden_trace's decorated player over ten steady minutes, the
+# P-model build (0f14044f) made 4 getCharacterTraits, 15 trait gets and 1 getStatsDecreaseMultiplier a player-minute;
+# Kinetics now caches the traits handle per player object and hands its one multiplier read to the writer on ctx.
+P_MODEL_CALLS = {"getCharacterTraits": 4, "traitGet": 15, "sd": 1}
+
+COUNT = r"""
+function(p, C)
+    local orig = p.getCharacterTraits
+    p.getCharacterTraits = function(s)
+        C.getCharacterTraits = C.getCharacterTraits + 1
+        local coll = orig(s)
+        if C.wrapped[coll] == nil then
+            local g = coll.get
+            coll.get = function(c, t) C.traitGet = C.traitGet + 1; return g(c, t) end
+            C.wrapped[coll] = true
+        end
+        return coll
+    end
+    getSandboxOptions = function()
+        return { getStatsDecreaseMultiplier = function(s) C.sd = C.sd + 1; return 1 end }
+    end
+    NutritionRevamp.so = nil
+end
+"""
+
+
+def test_a_player_minute_makes_no_more_trait_or_sandbox_calls_than_the_p_model_writer():
+    h = golden_trace.new_host()
+    C = h.rt.eval("{ getCharacterTraits = 0, traitGet = 0, sd = 0, wrapped = {} }")
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    h.rt.eval(COUNT)(g1, C)
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):                               # the first sight: the hoists and the seed
+        _minute(h, start + m / 60.0)
+    assert h.record("g1").satiety.M > 0                 # the clearance runs: M is seeded and finite
+    base = {k: C[k] for k in P_MODEL_CALLS}
+    n = 10
+    for m in range(4, 4 + n):
+        _minute(h, start + m / 60.0)
+    per = {k: (C[k] - base[k]) / n for k in P_MODEL_CALLS}
+    for k, v in P_MODEL_CALLS.items():
+        assert per[k] <= v, (k, per)
+    assert per["sd"] == 1                               # one read a player-minute, shared by Kinetics and the writer

@@ -697,3 +697,23 @@ def test_a_stamp_rounded_to_fourteen_digits_adds_no_substep(kin_host):
     run(h, b, 1001.1833333333333 + 2 / 60)
     assert abs(a.stomach.buffer.calories - b.stomach.buffer.calories) < 1e-7   # the same two substeps
     assert abs(a.satiety.M - b.satiety.M) < 1e-8                    # the 2e-9 min longer gap clears about 1.5e-9 more
+
+
+
+def test_the_traits_handle_is_cached_per_player_object_and_dropped_at_departure(kin_host):
+    # Rule 6 (Plan 11g close, ruling T10-1): KIN.traits reads getCharacterTraits once per player object, as W.hoist
+    # does; a new object under the same name (a reconnect or a respawn, #3360) reads it again, and KIN.forget drops it
+    h = kin_host
+    make = h.rt.eval("function(C) return { getCharacterTraits = function(s) C.n = C.n + 1; return { get = "
+                     "function(c, t) return false end } end } end")
+    C = h.rt.eval("{ n = 0 }")
+    KN = KIN(h)
+    a, b = make(C), make(C)
+    KN.traits("u", a); KN.traits("u", a)
+    assert C.n == 1
+    KN.traits("u", b)
+    assert C.n == 2
+    KN.forget("u")
+    assert KN.h["u"] is None
+    KN.traits(None, b); KN.traits(None, b)                    # no name: read afresh, nothing cached
+    assert C.n == 4

@@ -82,7 +82,7 @@ local function step(username, player, record, ctx)
     record.kineticsAge = age
     if dtH > 0 then
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
-        local pool = KIN.meal(record, player)                      -- nil for an M the writer has yet to seed
+        local pool = KIN.meal(record, player, username, ctx)       -- nil for an M the writer has yet to seed
         local emptied = KIN.drain(record.stomach, dtH * 60, pool)
         KIN.landMeal(record, pool, username)
         local absorbed = K.stomach.absorb(emptied, meal)
@@ -144,6 +144,8 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         KIN.wired = true
         local MIN = NR.server.minute
         MIN.register("kinetics", KIN.minute)
+        local P = NR.server.players
+        if P ~= nil and P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = KIN.forget end
     end)
 end
 
@@ -210,30 +212,34 @@ end
 -- (#0485) times the sandbox's stats-decrease multiplier (ruling 11c-11). Returns nil for a record whose satiety is not
 -- a table, or whose M is absent or non-finite: that M is left for the writer's seed.
 KIN.mealState = { M = 0, trait = 1 }
-function KIN.meal(record, player)
+function KIN.meal(record, player, username, ctx)
     local s = record.satiety
     if type(s) ~= "table" or not NR.finite(s.M) then
         return nil
     end
     local pool = KIN.mealState
     pool.M = s.M
-    pool.trait = KIN.mealTrait(player)
+    pool.trait = KIN.mealTrait(player, username, ctx)
     return pool
 end
 
 -- The clearance factor: K.satiety.trait of the player's HEARTY_APPETITE and LIGHT_EATER, times the sandbox's
 -- getStatsDecreaseMultiplier (1 when the sandbox or a trait is unreadable; a nil player reads no trait), read off the
--- sandbox object NR.sandbox() caches for every adapter.
-function KIN.mealTrait(player)
+-- sandbox object NR.sandbox() caches for every adapter. Rule 6 (Plan 11g close, ruling T10-1): the traits handle is
+-- KIN.traits', once per player object, and the multiplier is read once a player-minute and handed to the writer on
+-- ctx.sd (W.readEngine), so the clearance adds no Java call to the P-model writer's minute.
+function KIN.mealTrait(player, username, ctx)
     local T = CharacterTrait
     local hearty = false
     local light = false
     if T ~= nil then
-        local traits = NR.obj(player, "getCharacterTraits")
+        local traits = KIN.traits(username, player)
         hearty = T.HEARTY_APPETITE ~= nil and NR.flag(traits, "get", T.HEARTY_APPETITE)
         light = T.LIGHT_EATER ~= nil and NR.flag(traits, "get", T.LIGHT_EATER)
     end
-    return K.satiety.trait(hearty, light) * NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
+    local sd = NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
+    if ctx ~= nil then ctx.sd = sd end
+    return K.satiety.trait(hearty, light) * sd
 end
 
 -- Lands the cleared M on the record. An M the clearance made non-finite (a clearance that overflows) keeps the previous
@@ -249,4 +255,23 @@ function KIN.landMeal(record, pool, username)
     KIN.stats.failures = KIN.stats.failures + 1
     KIN.lastError = "kinetics: non-finite meal pool clearance for " .. tostring(username) .. "; M kept"
     NR.log.say(2, KIN.lastError)
+end
+
+-- Rule 6 (Plan 11g close, ruling T10-1): the traits handle KIN.mealTrait reads, once per player object (as W.hoist: a
+-- respawn or a reconnect is a new object, #3360), dropped at departure (KIN.forget). A nil username reads it afresh.
+KIN.h = {}
+function KIN.traits(username, player)
+    if username == nil then
+        return NR.obj(player, "getCharacterTraits")
+    end
+    local c = KIN.h[username]
+    if c == nil or c.p ~= player then
+        c = { p = player, traits = NR.obj(player, "getCharacterTraits") }
+        KIN.h[username] = c
+    end
+    return c.traits
+end
+
+function KIN.forget(username)
+    KIN.h[username] = nil
 end

@@ -1155,7 +1155,8 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
     assert rt.eval("rawequal")(fs[1], G.NutritionRevamp.server.metabolism.onFirstSight)
     assert rt.eval("rawequal")(fs[2], G.NutritionRevamp.server.metabolism.forget)
     ds = G.NutritionRevamp.server.players.onDeparture
-    assert len(ds) == 1 and rt.eval("rawequal")(ds[1], G.NutritionRevamp.server.metabolism.forget)
+    assert len(ds) == 2 and rt.eval("rawequal")(ds[1], G.NutritionRevamp.server.kinetics.forget)   # the traits cache's drop (ruling T10-1), Kinetics loading first
+    assert rt.eval("rawequal")(ds[2], G.NutritionRevamp.server.metabolism.forget)
 
 
 def test_self_report_reads_nutrition_off_by_default():
