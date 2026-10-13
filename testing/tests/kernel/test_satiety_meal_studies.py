@@ -264,7 +264,7 @@ def rolls_1998(host):
 
 
 def breakfast400(host):
-    """The brief's anchor: (first minute below the request, minutes held) of a fasted 400 kcal breakfast (G = 0), with the
+    """The brief's anchor: (first minute below the request, minutes held) of a fasted 400 kcal breakfast (M = 0), with the
     circadian factor at 1 and at 08:00."""
     out = []
     for h0 in (None, 8.0):
@@ -291,7 +291,7 @@ def marmonier_differences(host):
 
 
 def melanson(host):
-    """S1228: 1 MJ isovolumetric drinks at the first request after an overnight fast (G = 0), 70 % of energy from the
+    """S1228: 1 MJ isovolumetric drinks at the first request after an overnight fast (M = 0), 70 % of energy from the
     main macronutrient (an assumed share), carbohydrate and fat."""
     out = []
     for main in ("carbs", "lipids"):
@@ -518,7 +518,7 @@ def test_moores_1692_g_meal_stays_a_named_non_reproduction(host):
 # Since Plan 11d Task 6 the factor is in the writer, so the replay reads the HUNGER the real writer writes: a live acute
 # record (K.acute.sleepMinute) is driven on a writer host (server_host.Host, booted as test_writer_shape.py boots it)
 # and handed to W.step as record.acute, so each meal's hunger is the writer's own composition, min(0.69,
-# hungerTarget(sated(F, mealRead(G)), es) x circadian(h) x acuteFactor(S) x sleepFactor(record.acute.debtH)). Each meal is
+# hungerTarget(sated(F, mealRead(M)), es) x circadian(h) x acuteFactor(S) x sleepFactor(record.acute.debtH)). Each meal is
 # eaten at the request: a fresh player and record (an empty stomach, es 1, S 0, no stamp, so the minute steps no clearance)
 # whose meal pool M = seedMeal(H_REQ / circadian(h), 0, 1) makes a rested writer write H_REQ at that minute. The writer host's
 # clock runs 8 h ahead of the acute record's world age, so age 0 is 08:00 on both.
@@ -844,11 +844,11 @@ def fast_reading(host):
 
 def meal_frequency_ratio(host):
     """S1608 (Ohkawara 2013): 2,000 kcal a day (ASSUMED) eaten as six isoenergetic meals against three, the 24 h mean
-    displayed hunger (the AUC over the same 24 h) six over three, through the satiety replay above (the stomach, G
+    displayed hunger (the AUC over the same 24 h) six over three, through the satiety replay above (the stomach, M
     and the circadian factor from 08:00; the energy state held at 1, which moves the ratio about 0.03). The times are
     ASSUMED (the row gives none): three at 08:00, 13:00, 18:00; six every 150 min from 08:00 to 20:30. Each meal is
     mixed() with water and fibre scaled to its energy, so the two days carry the same mass. From an overnight fast,
-    G = 0."""
+    M = 0."""
     def day(n, gap):
         k = 2000.0 / n
         return {i * gap: [("food", mixed(k, water=900.0 / n, fibre=6.0 * k / 650))] for i in range(n)}
@@ -1009,9 +1009,9 @@ PIN_MEAN48 = 1.1135              # the 48-day mean, fitted to S1576's 1.1135 (ru
 # --- six meals against three with the energy state live (Plan 11e Task 4, ruling 11e-4) ---------------------------
 # The satiety replay above holds the energy state at 1. This replay runs the same day with the energy path of
 # ENERGY_REPLAY beside it: a 70 kg body eats SIX_WARM_DAYS three-meal days of the same 2,000 kcal (ASSUMED, energy only,
-# no stomach or G) before the protocol day, and from 08:00 of that day each meal also lands in the stomach (feeding G as it empties), so
+# no stomach or M) before the protocol day, and from 08:00 of that day each meal also lands in the stomach (feeding M at the eat), so
 # hungerTarget reads the live trailing-24 h energy state. With the state held at 1 it reproduces meal_frequency_ratio
-# exactly (1.020 under the fitted G, Plan 11g Task 6; 0.969 on the P model); live it reads 1.035 under the fitted G (1.019 under its provisional constants),
+# exactly (0.974 under Plan 11g Task 6c fix 1's and fix 2's refits; 1.020 under the fitted G, Task 6; 0.969 on the P model); live it reads 0.984 under Plan 11g Task 7's deficit refit (1.035 under the fitted G),
 # in S1608's direction (1.14). On the P model it read 0.983 since the deficit drive's refit (Plan 11f Task 2c fix 1; 0.981
 # in Task 2c, 0.994 before, 0.998 on the same-span schedule, every 2 h from 08:00 to 18:00), the opposite direction to
 # S1608's 1.14. The warm-up count did not move it (1, 3 and 6 days read the same at Plan 11e)

@@ -238,7 +238,7 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_with_no_lag():
     # Plan 11g Task 4: the artifact's ring was taken on the P model, so satiety.P and HUNGER are no longer replayed
     # (the P model's replay held satiety.P within 1e-3 and HUNGER within DEFAULT_TOL: this test at 0f14044f). The first
     # sight's drain is read off the model-independent state, the energy state, the exercise lag and the stomach fill;
-    # HUNGER's distance under G is pinned as a reading until a live run on G (Plan 11g Task 8)
+    # HUNGER's fidelity under M is tested on x361's ring (testing/tests/test_x36_gut_lib.py::test_the_x361_ring_replays_within_the_default_tolerances, Plan 11g Task 8)
     rows, paths, start, stats, player = _x260b()
     first = next(r for r in rows if r.get("on") is not False)
     assert first.get("norec") and not RL.offline_row(first)

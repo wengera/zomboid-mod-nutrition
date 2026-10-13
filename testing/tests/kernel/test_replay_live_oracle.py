@@ -4,7 +4,7 @@ pins exactly.
 Where the oracle steps the satiety kernels (test_satiety_meal_studies.py's REPLAY: the stomach, the meal pool M and
 the hunger function, one game minute a step), the replay runs the mod's own server adapters (ServerReplay) on the
 pipeline steps that compose the same thing, kinetics then the writer, every other step left out so the energy state
-reads the fresh body's 1 as the oracle holds it: the stomach drains and feeds G in NR_Server_Kinetics, G clears and HUNGER is written by
+reads the fresh body's 1 as the oracle holds it: the intake feeds M at the eat, the stomach drains and M clears in NR_Server_Kinetics, and HUNGER is written by
 NR_Server_Writer at the clock's circadian factor, held at 1 at 13:50 (NEUTRAL_HOUR) where the oracle holds it, and the
 eats land through IN.land. The start record carries the oracle's M0 and the stamps (satiety.t, kineticsAge) so the first
 minute steps as the oracle's does. Each reading equals the oracle function's own (and its pin).

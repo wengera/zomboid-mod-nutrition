@@ -26,8 +26,8 @@ Compendium bill), never injected. The stand-in idles at the engine's Default cla
 The replays, and where each departs from the study or the deleted oracle (each departure a choice named here):
 - The 36 h fast, the steady eater, six meals against three (live) and the low-carbohydrate day: the oracles' own event
   lists on the 70 kg man (male, responder 1), asleep 23:00-07:00, as test_replay_live_oracle.py runs them. Six against
-  three's warm-up eats fill the stomach and, as it empties, G too (the server has no energy-only eat). Six against three held is
-  the satiety replay at the energy state 1 (kinetics and the writer alone, no body), from G 0 at 08:00.
+  three's warm-up eats fill the stomach and M at the eat (the server has no energy-only eat). Six against three held is
+  the satiety replay at the energy state 1 (kinetics and the writer alone, no body), from M 0 at 08:00.
 - Karl 2021 (S1325), twin K (Plan 11f Task 2c, ruling 2b-3): Karl as the paper ran it, from its own numbers
   (docs/superpowers/research/2026-10-10-live-study-replays/03-karl-2021-facts.md). It replaces Task 2b's twins E, Env,
   V and C, whose bodies and expenditures no row gave. Each choice the paper leaves open is named:

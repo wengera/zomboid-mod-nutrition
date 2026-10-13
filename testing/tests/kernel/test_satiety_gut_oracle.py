@@ -35,7 +35,7 @@ K.satiety.HALF_LIFE_H at x2 (1.4) and at x0.5 (0.35) fails every test but S1272'
 pinned leaves beyond PIN_TOL. The leaves it leaves are structural under P, not continuous readings: the four nadir
 minutes (always the first minute, P fed in full at the eat) and the four monotone flags, Melanson's fat minus
 carbohydrate at x2 (both arms move together, 0 against 0), and S1272's half-emptying, a stomach reading P does not
-enter (named in its test). Plan 11g Task 4's mutation pass (MEAL_HALF_LIFE_H at x2 and x0.5, the feed removed, seedMeal
+enter (named in its test). Plan 11g Task 4's mutation pass (G_HALF_LIFE_H at x2 and x0.5, the feed removed, seedG
 uncapped) is in its report. Plan 11g Task 6's (each fitted constant at x2 and x0.5 on a scratch copy fails 22 to 27 of
 the 50 tests of this file, test_satiety_meal_studies.py and test_replay_live_oracle.py; LIQUID_WEIGHT 9) is in its report,
 and Plan 11g Task 6c's and its fix 1's and fix 2's in theirs.

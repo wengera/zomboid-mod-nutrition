@@ -94,10 +94,10 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
              and r.get(f) is not None and live.get(r["s"], {}).get(f) is not None]
         return max(d)
     # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer loaded,
-    # so the replay seeds G from HUNGER), and HUNGER no longer replays within DEFAULT_TOL: on the P model the drink
+    # so the replay seeds M from HUNGER), and HUNGER no longer replays within DEFAULT_TOL: on the P model the drink
     # event ran ahead (0.00495, over the tolerance) and the autodrop event held it (0.00055 measured with a setpath
     # stand-in; this test at 0f14044f). The order is read off the liquid lane, which the satiety model does not enter;
-    # HUNGER's distance under G is pinned as a reading until a live run on G (Plan 11g Task 8)
+    # HUNGER's fidelity under M is tested on x361's ring (testing/tests/test_x36_gut_lib.py::test_the_x361_ring_replays_within_the_default_tolerances, Plan 11g Task 8)
     assert worst(old, "stomach.liquid") > 50.0                     # the drink event runs a minute ahead: 73 g
     assert worst(new, "stomach.liquid") < 1e-9                     # the autodrop lands where the mod lands it
     # stomachFill reads both lanes whole since Plan 11g Task 6c fix 1 (ruling T6c-1; it weighed the liquid lane at

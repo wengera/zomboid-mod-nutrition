@@ -369,9 +369,10 @@ def test_e_mechanic_at_24_weeks(host):
 
 
 def test_the_bout_replay_pins_its_readings(host):
-    # Plan 11d close (A1): the readings the satiety kernel's ACUTE_DECAY_HALF_LIFE_H comment and #3639 quote, after
-    # Task 5's refit (STEEP 0.05, FULL_WEIGHT 0.55, PROTEIN_FILL 8): 0.674 of control over the bout, -3.7 mm at 90 (Plan
-    # 11f Task 2c's refit of the deficit drive; -3.8 from Plan 11d Task 9d, -3.9 before)
+    # Plan 11d close (A1): the readings the satiety kernel's ACUTE_DECAY_HALF_LIFE_H comment and #3639 quote, pinned on
+    # the lines below at Plan 11g Task 7's deficit refit: 0.674 of control over the bout, -3.6 mm at 90 (-3.7 after Task
+    # 5's refit, STEEP 0.05, FULL_WEIGHT 0.55, PROTEIN_FILL 8, and Plan 11f Task 2c's refit of the deficit drive; -3.8
+    # from Plan 11d Task 9d, -3.9 before)
     r = replay_bout(host, minutes=60, kind="aerobic")
     assert round(r.mean_ratio(0, 60), 3) == 0.674, r
     assert round(r.mm_difference(90), 1) == -3.6, r                 # Plan 11g Task 7's deficit refit (-3.7 under Task 6c fix 2's and fix 1's satiety refits, -3.8 under Task 6c's fit, -3.5 under the gut stage's fit, Task 6; -3.7 before)

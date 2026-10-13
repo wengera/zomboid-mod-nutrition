@@ -131,7 +131,8 @@ class Oracle:
         banded = lo is not None or hi is not None
         if scale is None and (kind != "reading" or banded):
             self.scale = abs(target)
-        assert (self.kind == "reading" and not banded) or self.scale > 0,             "oracle %s: scale %r is not positive" % (name, self.scale)
+        assert (self.kind == "reading" and not banded) or self.scale > 0, \
+            "oracle %s: scale %r is not positive" % (name, self.scale)
 
     def miss(self, value):
         """The relative miss beyond the tolerance: 0 inside the band; None for a reading-kind entry."""
@@ -359,7 +360,6 @@ NAMED = {
     # S1833 (reading-kind, ruling T6c-2): the stomach empties both 540 kcal arms' kcal at the same rate (K.stomach.drain
     # is energy-limited, Hunt 1985, S0131) and M is fed alike at the eat, so the model cannot tell the liquid from the
     # solid: the liquid -4.3 % at 4 h against +14 % (+4 to +24), the solid -3.7 % against -45 % (-64 to -26), and the
-    # liquid below the solid at its worst time point (    # the liquid -4.3 % at 4 h against +14 % (+4 to +24), the solid -3.7 % against -45 % (-64 to -26), and the
     # liquid below the solid at its worst time point (its 553 g fill more, drunk liquid counting at 0.279); a stomach
     # mechanism (liquid emptying faster than solid), not the meal pool, is what would separate them, and the products
     # differ in composition too (S1833); spec § 7 accepts it as out of reach

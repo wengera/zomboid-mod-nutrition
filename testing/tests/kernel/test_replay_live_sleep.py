@@ -79,11 +79,11 @@ def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it(
     rows_on, be_on = RL.replay_live(rr, rd["events"], rd["start"], detect_autodrink=True, **kw)
     assert [x["s"] for x in be_on.injected] == [179]
     # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer
-    # loaded, so the replay seeds G from HUNGER), and HUNGER no longer replays within DEFAULT_TOL (the P model's replay
+    # loaded, so the replay seeds M from HUNGER), and HUNGER no longer replays within DEFAULT_TOL (the P model's replay
     # held it under 0.002 with the drink injected: this test at 0f14044f). The injected drink is read off the liquid
     # lane, which no satiety constant enters (since Plan 11g Task 6c fix 1 the stomach fill reads the lane whole, where the
-    # ring's was taken at 0.2, so the fill no longer replays to 0.002); HUNGER's distance under the meal pool M is pinned as a
-    # reading until a live run on M (Plan 11g Task 8)
+    # ring's was taken at 0.2, so the fill no longer replays to 0.002); HUNGER's fidelity under the
+    # meal pool M is tested on x361's ring (testing/tests/test_x36_gut_lib.py::test_the_x361_ring_replays_within_the_default_tolerances, Plan 11g Task 8)
     tol = {"body.energyState": RL.DEFAULT_TOL["body.energyState"], "satiety.L": RL.DEFAULT_TOL["satiety.L"],
            "stomach.liquid": ("abs", 1.0)}
     d_off = RL.diff(rows_off, rr, tol)
