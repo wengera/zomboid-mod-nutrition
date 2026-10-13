@@ -520,3 +520,5 @@ function W.moodWrote(h, record, out)
     set(h, CharacterStat.BOREDOM, out.bored)
     record.moodLast.b = out.boredTarget
 end
+
+W.limitations[#W.limitations + 1] = "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)"

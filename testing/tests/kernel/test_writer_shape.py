@@ -492,7 +492,7 @@ LIMITATION_FOUR = (
 
 def test_limitation_four_names_the_overwrite_and_the_meal_pool():
     lim = list(Host().NR.server.writer.limitations.values())
-    assert len(lim) == 12                                  # the self-report prints the count: kept at 12
+    assert len(lim) == 13                                  # the self-report prints the count: 13 since Plan 11g Task 8 (MC-29, ruling T8-1)
     assert lim[3] == LIMITATION_FOUR
 
 

@@ -314,3 +314,26 @@ def test_the_balance_span_is_the_refit_game_choice(host):
     finally:
         E.BALANCE_SPAN_KCAL = 3970.55
     assert _close(E.state(-750, 0), 1 + 0.5 * 750 / 3970.55)
+
+
+def test_a_fresh_records_empty_window_reads_like_an_even_eater_under_24_h(host):
+    # Plan 11g Task 8 (ruling T8-1, MC-29): a fresh record's 24 h window holds no meals, and under 24 h of its life that
+    # reads the same eb24h as a window seeded at balance and spread evenly over the 24 h before (intake = expenditure
+    # every minute), at a constant expenditure rate: the old half of the seed leaves with equal kcal and ee, so only
+    # the new expenditure shows, about -rate x minutes. The limitation line on the Metabolism and the Writer says so.
+    B = host.K.body
+    rate = 1950.0 / 1440                                # kcal a minute, constant
+    empty = _body(host)
+    seeded = _body(host)
+    for m in range(1, 24 * 60 + 1):                     # the seed: 24 h at balance, before the record's first sight
+        B.trailTo(seeded.trail, 0.5 + m / 60)
+        B.trailAdd(seeded.trail, "kcal", rate)
+        B.trailAdd(seeded.trail, "ee", rate)
+    B.trailTo(empty.trail, seeded.trail.at)             # the fresh record is first seen when the seed ends
+    for m in range(1, 24 * 60):                         # t < 24 h after first sight
+        for b in (empty, seeded):
+            B.trailTo(b.trail, b.trail.at + 1 / 60)
+            B.trailAdd(b.trail, "ee", rate)
+        if m % 37 == 0 or m == 24 * 60 - 1:
+            e0, e1 = host.K.energy.eb24h(empty), host.K.energy.eb24h(seeded)
+            assert abs(e0 - e1) < 1e-9 and abs(e0 + rate * m) < 60 * rate, (m, e0, e1)   # and near the spent rate, within the hour slot's attribution

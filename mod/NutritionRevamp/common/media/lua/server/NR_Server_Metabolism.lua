@@ -560,3 +560,5 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         if P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = MET.forget end
     end)
 end
+
+MET.limitations[#MET.limitations + 1] = "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)"

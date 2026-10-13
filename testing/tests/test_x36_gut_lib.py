@@ -317,16 +317,36 @@ def test_the_regrade_reads_the_written_row_after_each_meal():
 X361 = os.path.join(REPO, "testing", "artifacts", "x361-20261012-200722")
 
 
+def test_the_gut_11g_snapshot_equals_the_shipped_constants_today():
+    # GUT_11G is the constants x361 was recorded at (7093079b); it equals the shipped kernel today. A later plan that refits
+    # any of them fails this test by design, and must leave GUT_11G as it is: x361 replays at it, not at the refit.
+    k = K()
+    assert len(RL.GUT_11G) == 14
+    for name, value in RL.GUT_11G.items():
+        mod, key = name.split(".")
+        assert k[mod][key] == value, name
+
+
+class RecordedSess(G.Sess):
+    """x361's session replayed at its recording build's constants (RL.GUT_11G), not at the shipped kernel's."""
+
+    def replay(self, events):
+        rows, _ = RL.replay_live(self.ring, events, self.start, paths=self.rpaths, user=L.USER, player=self.player,
+                                 start_stats=self.stats, sleep_allowed=False, constants=RL.GUT_11G)
+        return rows
+
+
 def test_the_x361_ring_replays_within_the_default_tolerances():
     # x361 (Plan 11g Task 8) was recorded on the final build (7093079b): the meal pool M, F to the hard capacity, the
-    # two fills. Its replay at HEAD reads HUNGER within 0.002, es within 0.005 and L within 0.5 % on every graded row
-    # (660 rows: 0.000101, 0.000389, 0), M, the fills and the buffer within TOL_GRADE, and both courses' request
-    # minutes equal live (C650 247.09, C400 215.13). The 11f rings were recorded on P and replay only at their own
-    # constants. Skipped until the artifact is committed (staged at Task 8, committed with its rows at Task 9).
+    # two fills. It replays at GUT_11G, the recording build's satiety and deficit constants (a snapshot later refits do
+    # not touch, ruling T4-1's way: the 11f rings replay at DEFICIT_11F), so a later refit never turns this red. Its
+    # replay reads HUNGER within 0.002, es within 0.005 and L within 0.5 % on every graded row (660 rows: 0.000101,
+    # 0.000389, 0), M, the fills and the buffer within TOL_GRADE, and both courses' request minutes equal live (C650
+    # 247.09, C400 215.13). Skipped until the artifact is committed (staged at Task 8, committed with its rows at Task 9).
     import pytest
     if not os.path.isdir(X361):
         pytest.skip("x361's artifact folder is not in this checkout")
-    S = G.Sess("x361", run_dir=X361)
+    S = RecordedSess("x361", run_dir=X361)
     assert S.diff["ok"] and S.diff["fields"]["HUNGER"]["n"] == 660 and S.diff["fields"]["HUNGER"]["max"] < 0.002
     assert S.grade["ok"]
     c = G.grade_x361(S)["courses"]

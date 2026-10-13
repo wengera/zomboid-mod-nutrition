@@ -550,6 +550,16 @@ class _Backend:
 DEFICIT_11F = {"deficit.BALANCE_SPAN_KCAL": 3100.0, "replay.DEFICIT_FLOOR": 0.02, "deficit.EX_BYPASS_LO": 0.282,
                "deficit.EX_BYPASS_HI": 0.575}
 
+# The satiety and deficit constants the Plan 11g Task 8 live rings (x361 to x364) were recorded under (build 7093079b,
+# the final model: Task 6c fix 2's meal-pool fit and Task 7's deficit refit). A ring replays at its recording build's
+# constants, so a later refit never turns its fidelity test red; the snapshot is the recording build's and a later plan
+# leaves it as it is (testing/tests/test_x36_gut_lib.py pins it equal to the shipped constants until a refit, by design).
+GUT_11G = {"satiety.W_PROTEIN": 2.49782, "satiety.W_CARB": 1.0, "satiety.W_FAT": 0.878683, "satiety.W_NEUTRAL": 1.0,
+           "satiety.MEAL_HALF_LIFE_H": 0.583749, "satiety.MEAL_REQ": 3.80654, "satiety.MEAL_STEEP": 0.0356875,
+           "satiety.MEAL_SEED_MAX": 1180.0, "satiety.FULL_WEIGHT": 0.517741, "satiety.LIQUID_WEIGHT": 0.278815,
+           "satiety.PROTEIN_FILL": 7.91676, "deficit.BALANCE_SPAN_KCAL": 3970.55, "deficit.EX_BYPASS_LO": 0.282,
+           "deficit.EX_BYPASS_HI": 0.405}
+
 # The recording build's hunger target and its inverse with the deficit floor F (NR_Kernel_Deficit.lua at 5af809b5,
 # lines 96-104, the coefficient made a literal): set on a replay host only, never shipped.
 _FLOOR_LUA = ("local K = NutritionRevamp.kernel\n"
