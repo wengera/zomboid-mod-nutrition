@@ -1133,3 +1133,66 @@ TK.register("action.latency", function(argv)
     C.lat = { fullType = argv[1], n = n, samples = {}, done = false, id = nil }
     return { ok = true, armed = true, fullType = argv[1], n = n }
 end)
+
+-- ==== Plan 11b Task 1 additions (client: H1 moodle.watch, H3 action.cancel) ====================================
+-- Appended after the file's last line on purpose: the claims register holds `repo:` pointers into this file by line
+-- number, so new sites go at the end and no existing line moves. Everything hangs off C (the file's own table), so
+-- the section loads on its own in the offline test (testing/tests/kernel/test_harness_plan11b.py) with a stub C.
+
+-- ---- Plan 11b Task 1: a moodle's level on the local player, every tick (ruling 1) --------------------------------
+-- moodle.watch <MoodleType> <seconds> samples getMoodles():getMoodleLevel(MoodleType[<name>]) on every OnTick for
+-- the window and records each change of level with the wall ms; read replies the samples count, the minimum, the
+-- maximum, the transitions and the level now. A name MoodleType does not carry replies a reason.
+-- MoodleType.PANIC is a static field on 42.21 (`./pz.sh dump zombie.scripting.objects.MoodleType '<clinit>'`, jar
+-- e1a69eb743: `putstatic MoodleType.PANIC` at @29), and Moodles.getMoodleLevel(MoodleType) answers an int.
+-- The tick listener runs the sample under pcall (the debug client parks on an unguarded raise,
+-- docs/platform/lua-platform.md#debug-break): a raise ends the window and read replies it as err.
+C.mw = nil
+
+function C.mwTick()
+    local W = C.mw
+    if W == nil or W.done then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local _, moodles = TK.call(p, "getMoodles")
+    local _, lv = TK.call(moodles, "getMoodleLevel", W.type)
+    local now = getTimestampMs()
+    if type(lv) == "number" then
+        W.samples = W.samples + 1
+        if W.min == nil or lv < W.min then W.min = lv end
+        if W.max == nil or lv > W.max then W.max = lv end
+        if W.last ~= nil and lv ~= W.last then
+            W.changes[#W.changes + 1] = { at = now, from = W.last, to = lv }
+        end
+        W.last = lv
+    end
+    if now - W.t0 >= W.ms then W.done = true end
+end
+
+function C.mwGuarded()
+    local ok, err = pcall(C.mwTick)
+    if not ok and C.mw ~= nil then
+        C.mw.done = true
+        C.mw.err = tostring(err)
+    end
+end
+
+if Events ~= nil and Events.OnTick ~= nil then Events.OnTick.Add(function() C.mwGuarded() end) end
+
+-- @args <MoodleType> <seconds> | read
+-- @reply {ok, armed, moodle, seconds} | {ok, moodle, done, samples, min, max, transitions, changes, level [, err]} | string
+-- @purpose Test-only: samples one moodle's level on the local player every tick for a wall window and records each level change; read replies the range and the transitions.
+TK.register("moodle.watch", function(argv)
+    if argv[1] == "read" then
+        local W = C.mw
+        if W == nil then return { ok = false, reason = "not armed" } end
+        return { ok = true, moodle = W.name, done = W.done, samples = W.samples, min = W.min, max = W.max,
+                 transitions = #W.changes, changes = W.changes, level = W.last, err = W.err }
+    end
+    local name, secs = argv[1], tonumber(argv[2])
+    if name == nil or secs == nil or secs <= 0 then return "usage: moodle.watch <MoodleType> <seconds> | read" end
+    if MoodleType == nil or MoodleType[name] == nil then return { ok = false, reason = "no MoodleType." .. tostring(name) } end
+    C.mw = { name = name, type = MoodleType[name], ms = secs * 1000, t0 = getTimestampMs(), samples = 0,
+             changes = {}, done = false }
+    return { ok = true, armed = true, moodle = name, seconds = secs }
+end)

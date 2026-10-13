@@ -4322,3 +4322,26 @@ if TK.MR.sampleBaseMoving == nil then
         return row
     end
 end
+
+-- ==== Plan 11b Task 1 additions (server: H2 moodle.level, then H4-H7) ===========================================
+-- Appended after the file's last line on purpose: the claims register holds `repo:` pointers into this file by line
+-- number, so new sites go at the end and no existing line moves. The section's state hangs off TK (no new file-scope
+-- local); findPlayer is the file's own (:25), a global stub in the offline test
+-- (testing/tests/kernel/test_harness_plan11b.py), which loads the section from this marker line to the end.
+
+-- ---- Plan 11b Task 1: a moodle's level on a named player, read on the server ------------------------------------
+-- @args <user> <MoodleType>
+-- @reply {ok, side, user, moodle, level [, reason]} | string
+-- @purpose Test-only: reads one moodle's level on a named online player server-side (getMoodles():getMoodleLevel), the server half beside the client's moodle.watch.
+TK.register("moodle.level", function(argv)
+    local user, name = argv[1], argv[2]
+    if user == nil or name == nil then return "usage: moodle.level <user> <MoodleType>" end
+    local p = findPlayer(user)
+    if p == nil then return { ok = false, side = TK.side, user = user, reason = "no online player" } end
+    if MoodleType == nil or MoodleType[name] == nil then
+        return { ok = false, side = TK.side, user = user, reason = "no MoodleType." .. tostring(name) }
+    end
+    local _, moodles = TK.call(p, "getMoodles")
+    local _, lv = TK.call(moodles, "getMoodleLevel", MoodleType[name])
+    return { ok = true, side = TK.side, user = user, moodle = name, level = lv }
+end)
