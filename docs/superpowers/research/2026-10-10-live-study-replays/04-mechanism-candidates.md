@@ -168,3 +168,9 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 - **Status: not a defect; named a limitation** (ruling T8-1, `a24436a9`: a writer limitation with an equivalence test). An empty window reads exactly as one seeded at balance and spread evenly over its first 24 h, since eb24h(t) = -ee_rate x t in both, and a spawn's 8.4 h unfed sits inside a skipped-meal range (about 5-18 h). No oracle covers a fresh record's first day, because every oracle warms up first.
 - **The inconsistency left:** M seeds from vanilla HUNGER (a recently fed body), while the window reads an even eater.
 - **Candidate (Angus's choice at the close):** a lumped seed, placing the M seed's equivalent kcal in the window's current hour. Downsides: fictitious kcal reach the legacy calorie mirror, the energy state reads below 1 for the first hours, and a step comes at 24 h.
+
+## Decisions (Angus, 2026-10-13)
+- **C-27:** left as is. The hunger nadir stays at minute 1 after an eat, a named miss against the studies' 15 minutes.
+- **C-29:** left as is. A fresh record's empty energy window stays a named limitation, with its equivalence test.
+- **C-25:** accepted. Vanilla's idle BOREDOM rise on top of the monotony floor is how the game already treats idleness.
+- **C-2:** to be built. Each Fitness exercise is billed at its own intensity from the activity tables, so light work costs less and suppresses hunger less.
