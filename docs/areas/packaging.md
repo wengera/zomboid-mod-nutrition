@@ -66,7 +66,7 @@ Booted, that build printed one self-report line on the server, reading `itemPass
 Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
 Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/` (measured as `42.20.4/`, the same layout), everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
 The manifest declares `versionMin=42.21` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
-The mod's first public release is version 1.0.0: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [#3817/C/snapshot].
+The mod's release version is 1.0.0, staged for its first public release: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [#3817/C/snapshot].
 A row of the takeover era that names its build's version names the pre-release build its bound gives, never this release.
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 
