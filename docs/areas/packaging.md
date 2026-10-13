@@ -66,7 +66,7 @@ Booted, that build printed one self-report line on the server, reading `itemPass
 Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
 Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/` (measured as `42.20.4/`, the same layout), everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
 The manifest declares `versionMin=42.21` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
-The mod's first public release is version 1.0.0: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [T1136.22].
+The mod's first public release is version 1.0.0: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [#3817/C/snapshot].
 A row of the takeover era that names its build's version names the pre-release build its bound gives, never this release.
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 
@@ -115,7 +115,7 @@ A mismatch surfaces as a disconnect, with the two sides' separate arms acting at
 A player who cannot stay connected after an update is therefore this section's failure mode before it is anyone else's.
 How the script files reach every side as one set of bytes is settled as staging from one command: the staged tree is the only copy a server or a client is given, and the harness deployed it to the server and both clients with all 65 files equal ([#3315/M/n=1], [#3314/M/n=1]).
 A release tool can hash every script file with the gate's own tolerance, every CR byte dropped, and name the files whose hash moved between two releases, so an update that will fail the join checksum is known before it ships [#3325/C/inference].
-In the worked example, the release tool hashes every script file under `media/scripts/` and every Lua file under `media/lua/` with every CR byte dropped, and against the previous release's manifest prints `SERVER EVENT` with the count of script or Lua files whose hash moved. [T1136.19]
+In the worked example, the release tool hashes every script file under `media/scripts/` and every Lua file under `media/lua/` with every CR byte dropped, and against the previous release's manifest prints `SERVER EVENT` with the count of script or Lua files added, removed or whose hash moved. [#3814/C/C-only]
 
 The bypass role is an operator's lever, and the plan never leans on it.
 A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
