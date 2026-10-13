@@ -265,6 +265,8 @@ A bare recipe name and its module-qualified spelling both answer, craft and evol
 The craft-recipe read carries a third lookup route, tried only after both spellings miss: a walk over every loaded craft recipe matching on the last dotted segment of the cached full type and falling back to the plain name, so a bare non-base name answers and the resolution rule stays measured rather than papered over; a caller who wants the rule exercised asks module-qualified [#1735].
 The global-walk command walks the Lua global table segment by segment and never calls what it finds: a function reports the string function, because reading its result would mean calling an unknown global at unknown arity — catchable, and still not worth making, since an unguarded one aborts the rest of the handler body and on a debug client parks the process [#1758].
 
+The `store.probe` text helper formats a nonzero number of tiny magnitude with `tostring`, because Kahlua's `%g` has no exit for such a magnitude and a `pcall` cannot catch the freeze; `tools/kahlua_lint.py` flags a `%g` format unless its line carries the allow pragma.
+
 <a id="witness"></a>
 ### The witness contract
 

@@ -14,6 +14,7 @@ never fires on a word inside either.
 | `java-length` | `#` applied to a call result (`#x:getItems()`, `#getOnlinePlayers()`): a Java list has no length (#0940) |
 | `java-pairs`  | `pairs(` or `ipairs(` whose argument is a call result: iterating a Java object raises (#0941) |
 | `loadstring`  | `loadstring(` -- removed in 42.20.x (#0960)                              |
+| `format-g`    | `%g` or `%G` inside a `string.format` call (also `pcall(string.format, ...)`): on Kahlua `format` sends them through `StringLib.roundToSignificantNumbers` (L425, and `appendSignificantNumber` L621), whose `while (m*x >= hi) m /= 10` never ends for a nonzero abs(x) below about 1e-292, a server freeze `pcall` cannot catch (x391g). `%e`, `%E` and `%f` use `appendPrecisionNumber` and terminate. A guarded line carries `-- kahlua-lint: allow-g` |
 
 Stdlib only; read-only.
 """
@@ -23,7 +24,9 @@ Finding = collections.namedtuple("Finding", "path line rule detail")
 
 LONG_OPEN = re.compile(r"(--)?\[(=*)\[")
 GOTO_RX = re.compile(r"(?<![\w.])goto\s+\w+|::\s*\w+\s*::")
-FORMAT_RX = re.compile(r"string\.format\s*\(")
+FORMAT_RX = re.compile(r"string\.format\s*[(,]")
+FORMAT_G_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[gG]")
+ALLOW_G = "kahlua-lint: allow-g"
 FORMAT_D_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[dixXoc]")
 LENGTH_CALL_RX = re.compile(r"#\s*[\w.]+(?::\w+)?\s*\(")
 PAIRS_CALL_RX = re.compile(r"\bi?pairs\s*\(\s*[\w.]+(?::\w+)?\s*\(")
@@ -71,6 +74,8 @@ def lint_text(path, text):
             raw = raw_lines[n - 1]
             if FORMAT_D_RX.search(raw):
                 found.append(Finding(path, n, "format-d", "integer conversion of a Lua number raises; use %.0f"))
+            if FORMAT_G_RX.search(raw) and ALLOW_G not in raw:
+                found.append(Finding(path, n, "format-g", "%g/%G hangs the Kahlua server for a tiny magnitude (roundToSignificantNumbers loops forever below ~1e-292); use tostring, or guard the magnitude and mark the line `-- kahlua-lint: allow-g`"))
         if LENGTH_CALL_RX.search(line):
             found.append(Finding(path, n, "java-length", "# on a call result: a Java list has no length; walk size()/get(i)"))
         if PAIRS_CALL_RX.search(line):

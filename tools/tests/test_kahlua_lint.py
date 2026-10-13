@@ -74,3 +74,35 @@ def test_cli_exit_code_and_count_line(tmp_path, capsys):
     assert capsys.readouterr().out.strip().splitlines()[-1] == "1 findings"
     p.write_text("local x = 1\n", encoding="utf-8")
     assert kl.main([str(p)]) == 0
+
+
+def test_percent_g_in_format_is_a_finding(tmp_path):
+    out = lint_text(tmp_path, """
+        local s = string.format("%.17g", v)
+        local t = pcall(string.format, "%G", v)
+        local u = string.format("%-8.3g|", v)
+    """)
+    assert out == [(2, "format-g"), (3, "format-g"), (4, "format-g")]
+
+
+def test_percent_g_with_the_allow_pragma_is_not_a_finding(tmp_path):
+    out = lint_text(tmp_path, """
+        local ok, s = pcall(string.format, "%.17g", v) -- kahlua-lint: allow-g
+    """)
+    assert out == []
+
+
+def test_percent_d_s_e_f_are_not_format_g(tmp_path):
+    out = lint_text(tmp_path, """
+        local a = string.format("%s %.3f %e %5.2E", n, v, v, v)
+        local b = string.format("%.0f", v)
+    """)
+    assert out == []
+
+
+def test_percent_g_in_a_comment_or_without_format_is_not_a_finding(tmp_path):
+    out = lint_text(tmp_path, """
+        -- string.format("%g", v) hangs on Kahlua
+        local s = "%g"
+    """)
+    assert out == []

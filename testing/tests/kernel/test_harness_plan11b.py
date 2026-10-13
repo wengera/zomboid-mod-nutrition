@@ -569,3 +569,29 @@ def test_store_probe_name_is_non_ascii_on_both_dialects():
     n, b8, b9, wide, head = lua()
     assert head == "tkprobe" and b8 == 233 and b9 == 252
     assert wide is False and n == 9                  # Lua 5.1 raises past 255, so the two wide characters are left off
+
+# ---- the Kahlua %g hang (x391g) --------------------------------------------------------------------------------------
+
+def test_probe_text_never_formats_a_tiny_magnitude_with_percent_g():
+    """Kahlua's %g loops forever in roundToSignificantNumbers for a nonzero |x| below about 1e-292, and lupa cannot show
+    it, so string.format is stubbed to raise on a %g-family format of such a value and TK.SP.text must not reach it."""
+    h = probe_server()
+    h.rt.execute(r"""
+        TK.T_calls = {}
+        local real = string.format
+        string.format = function(fmt, v, ...)
+            TK.T_calls[#TK.T_calls + 1] = tostring(v)
+            if type(fmt) == "string" and fmt:find("%%[%-+ #0]*%d*%.?%d*[gG]") and type(v) == "number" and v ~= 0 and math.abs(v) < 1e-280 then
+                error("the Kahlua %g hang")
+            end
+            return real(fmt, v, ...)
+        end
+    """)
+    text = h.rt.eval("function(v) return TK.SP.text(v) end")
+    h.rt.execute("TK.T_calls = {}")
+    for v in (5e-324, 1e-300, -2.5e-310):
+        assert text(v) == h.rt.eval("tostring")(v)
+    assert h.rt.eval("#TK.T_calls") == 0                               # string.format never reached
+    assert text(0) == "0" and text(1.5) == "1.5"
+    assert h.rt.eval("#TK.T_calls") == 2                               # the ordinary values still format
+    h.rt.execute("string.format = nil")

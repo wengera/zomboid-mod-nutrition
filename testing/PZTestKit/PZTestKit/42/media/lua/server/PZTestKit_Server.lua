@@ -4670,9 +4670,9 @@ function TK.SP.store()
 end
 
 function TK.SP.text(v)
-    local ok, s = pcall(string.format, "%.17g", v)
-    if ok and type(s) == "string" then return s end
-    return tostring(v)
+    if type(v) == "number" and v ~= 0 and math.abs(v) < 1e-280 then return tostring(v) end -- Kahlua %g hangs below ~1e-292
+    local ok, s = pcall(string.format, "%.17g", v) -- kahlua-lint: allow-g
+    return (ok and type(s) == "string") and s or tostring(v)
 end
 
 function TK.SP.get(t, path)
