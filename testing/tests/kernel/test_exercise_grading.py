@@ -498,12 +498,17 @@ def test_no_record_until_server_start():
 
 
 def test_a_non_string_type_records_nothing():
+    # an open set first: an untyped start clears the earlier record, never keeps it
     h = FitHost()
+    a = h.action("admin", "burpees")
+    a.serverStart(a)
+    assert h.FIT.exeType["admin"] == "burpees"
     for bad in (None, 7, h.rt.table()):
+        h.FIT.exeType["admin"] = "burpees"
         a = h.action("admin", bad)
         a.serverStart(a)
         assert h.FIT.exeType["admin"] is None
-    assert h.FIT.stats.untyped == 3 and h.G.NR_FT.calls.start == 3
+    assert h.FIT.stats.untyped == 3 and h.G.NR_FT.calls.start == 4
 
 
 def test_a_raising_original_raises_and_records_nothing():
@@ -513,6 +518,16 @@ def test_a_raising_original_raises_and_records_nothing():
     with pytest.raises(lua51.LuaError):
         a.serverStart(a)
     assert h.G.NR_FT.calls.start == 1 and h.FIT.exeType["admin"] is None
+
+
+def test_a_raising_record_never_blocks_the_original():
+    h = FitHost()
+    h.rt.execute("NutritionRevamp.server.fitness.mark = function() error('boom') end")
+    a = h.action("admin", "squats")
+    a.serverStart(a)
+    assert h.G.NR_FT.calls.start == 1 and h.G.NR_FT.current == "squats"
+    assert h.FIT.stats.failures == 1
+    assert "boom" in h.FIT.lastError
 
 
 def test_a_broken_action_never_blocks_the_original():
