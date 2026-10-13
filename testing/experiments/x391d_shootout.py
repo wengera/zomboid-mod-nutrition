@@ -48,8 +48,9 @@ mod (at most one extra swap and two clock reads per real player a tick). Per arm
 runs, minuteEventsSince, framesWithRuns (the batches' lower bound), and the queue's served and minutes deltas, so a
 reader can size it.
 
-THE MONOTONY SEED (phase SEED, before the idle arm): admin and bob each eat TKX.Mono450 (TKX_StudyFoods, 450 kcal)
-SEED_EATS times through eat.action (foodtimer.set 0 first, both clients at once each round), so every ghost copy
+THE MONOTONY SEED (phase SEED, before the idle arm): SEED_EATS TKX.Mono450 are spawned server-side to each player
+(RCON additem; x391a's client-side spawns raised in ISEatFoodAction.new on the server and no eat landed), then admin
+and bob each eat TKX.Mono450 (TKX_StudyFoods, 450 kcal) SEED_EATS times through eat.action (foodtimer.set 0 first, both clients at once each round), so every ghost copy
 carries a monotony table and the Effects compose runs the floor's target arithmetic in every ghost minute; the
 writer's floor lane itself is dry in ghost runs. The records' monotony.t.[TKX.Mono450].n is read after.
 
@@ -170,6 +171,7 @@ SEED_FOOD = "TKX.Mono450"
 SEED_EATS = 5
 SEED_EAT_CAP_S = 40.0
 SEED_CAP_S = 80.0
+SEED_SPAWN_WAIT_S = 2.5              # RCON additem -> the item in the client's inventory
 S0_WAIT_S = 90.0
 MIN_RUNS = 4
 MIN_FREE_GB = 12.0
@@ -567,6 +569,12 @@ def mono(tag):
 def phase_SEED():
     P = out["phases"]["SEED"] = {"rounds": []}
     P["mono_before"] = mono("SEED_mono0")
+    # x391a's seed spawned its food client-side (eat.action's findOrSpawn), an item the server never heard of, and
+    # every eat raised in ISEatFoodAction.new on the server (ISEatFoodAction.lua:298): the items are spawned
+    # server-side first (RCON additem, as x34_monotony_lib.py does), so eat.action finds them
+    P["additem"] = {u: rcon(f'additem "{u}" "{SEED_FOOD}" {SEED_EATS}', f"SEED_additem_{u}") for u in USERS}
+    out["world_changes"]["left_in_place"].append(f"SEED: RCON additem {SEED_FOOD} x{SEED_EATS} to each player")
+    time.sleep(SEED_SPAWN_WAIT_S)
     t_end = time.time() + SEED_CAP_S
     for k in range(SEED_EATS):
         if time.time() >= t_end or parked():
