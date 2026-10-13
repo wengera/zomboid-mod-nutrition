@@ -85,11 +85,7 @@ def test_rate_falling(host, prev, rate, falls):
     ("Unknown", False, False, True, "Unknown"),           # an unknown class bills 1.3 already
 ])
 def test_bill_class(host, cls, exe, moving, falling, bill):
-    got = host.K.energy.billClass(cls, exe, moving, falling)
-    if exe and bill == "Fitness":
-        assert got == ("Fitness", 6.0, False)             # no recorded type: the flat Fitness class (Plan 11h, C-2)
-    else:
-        assert got == bill
+    assert host.K.energy.billClass(cls, exe, moving, falling) == bill
 
 
 def _body(host):

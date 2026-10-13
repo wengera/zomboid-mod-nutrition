@@ -164,7 +164,7 @@ end
 W.RESISTANCE_CLASSES = { Fitness = true, FitnessHeavy = true, ClimbRope = true, ForestryAxe = true, DiggingSpade = true, UsingTools = true }
 function W.vigorous(h, player, record, ctx)
     if h.swipe ~= nil and NR.flag(player, "isCurrentState", h.swipe) then return true, "resistance" end
-    if ctx ~= nil and ctx.exercising == true then return true, "resistance" end
+    if ctx ~= nil and ctx.exercising == true and ctx.activityClass ~= "Sleeping" then return true, "resistance" end
     local met = record.body and record.body.met
     if NR.finite(met) and met >= K.energy.COMPENDIUM.HeavyWork then
         if ctx ~= nil and W.RESISTANCE_CLASSES[ctx.activityClass] == true then return true, "resistance" end

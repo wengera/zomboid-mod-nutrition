@@ -520,8 +520,13 @@ function MET.readBilled(username, player, ageH)
     if MET.prevExe[username] == true and not exercising then falling = true end
     MET.prevRate[username] = rate
     MET.prevExe[username] = exercising
-    local billClass, exMet, known = K.energy.billClass(className, exercising, moving, falling, MET.exeTypeOf(username, exercising))
-    if exMet ~= nil and not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
+    local billClass = K.energy.billClass(className, exercising, moving, falling)
+    local exMet = nil
+    local known = true
+    if billClass == "Fitness" and exercising then
+        exMet, known = K.energy.exerciseMet(MET.exeTypeOf(username, exercising))
+    end
+    if not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
     return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
         hourOfDay, maxW, heatLevel, climbClass, className, exMet
 end

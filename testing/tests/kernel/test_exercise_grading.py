@@ -3,7 +3,7 @@ billed at its own MET.
 
 - NR_Server_Fitness.lua wraps ISFitnessAction.serverStart and serverStop once (never `new`): the wrapper calls the
   original, then records the action's exeDataType per username at the start and clears it at the stop.
-- K.energy.EXERCISE_MET holds the 2024 Compendium MET per vanilla exercise type (S1895-S1903); K.energy.billClass bills it
+- K.energy.EXERCISE_MET holds the 2024 Compendium MET per vanilla exercise type (S1895-S1903); the adapter bills it (K.energy.exerciseMet)
   while the exercise flag is set, and the flat Fitness class (6.0) with no recorded or no known type, which
   NR_Server_Metabolism counts (MET.stats.exeFallbacks).
 - W.vigorous reads a set minute as resistance-vigorous from the flag, before any MET test (S1508, S1509, S1301).
@@ -33,7 +33,7 @@ CORE = os.path.join(SHARED, "NR_Core.lua")
 TABLE = {
     "squats": (3.0, "S1898", ("S1899",)),
     "pushups": (3.8, "S1896", ("S1895",)),
-    "situp": (3.8, "S1896", ("S1895",)),
+    "situp": (3.8, "S1896", ("S1895", "S1897")),
     "burpees": (7.5, "S1895", ("S1903",)),
     "barbellcurl": (3.5, "S1902", ("S1900",)),
     "dumbbellpress": (3.5, "S1902", ("S1900",)),
@@ -89,19 +89,24 @@ def test_the_fallback_is_the_compendium_fitness_class(host):
     assert E.exerciseMet(None)[0] == E.COMPENDIUM.Fitness
 
 
-@pytest.mark.parametrize("exe,met,known", [("squats", 3.0, True), ("burpees", 7.5, True), (None, 6.0, False),
-                                           ("yoga", 6.0, False)])
-def test_bill_class_bills_the_exercise_met_on_a_flagged_minute(host, exe, met, known):
+def test_bill_class_names_the_class_only_on_a_flagged_minute(host):
     E = host.K.energy
     for cls, moving, falling in (("Default", False, True), ("HeavyWork", True, False), ("Walking5kmh", False, False)):
-        assert E.billClass(cls, True, moving, falling, exe) == ("Fitness", met, known)
+        assert E.billClass(cls, True, moving, falling) == "Fitness"
+    assert E.billClass("UsingTools", False, False, False) == "UsingTools"
+    assert E.billClass("UsingTools", False, False, True) == "Default"
+    assert E.billClass("Sleeping", True, False, False) == "Sleeping"                 # asleep wins
 
 
-def test_bill_class_never_bills_a_type_without_the_flag(host):
-    E = host.K.energy
-    assert E.billClass("UsingTools", False, False, False, "burpees") == "UsingTools"
-    assert E.billClass("UsingTools", False, False, True, "burpees") == "Default"
-    assert E.billClass("Sleeping", True, False, False, "burpees") == "Sleeping"     # asleep wins
+def test_read_billed_returns_the_exercise_met_last_and_only_on_a_set_minute(mh):
+    h = mh
+    _fit(h, "burpees")
+    p = player(h, rate=1.6, exe="flag", moving=False)
+    got = list(MET(h).readBilled("admin", p, 100.0))
+    assert got[0] == "Fitness" and got[-1] == 7.5
+    p = player(h, rate=3.1, exe=None, moving=False)
+    got = list(MET(h).readBilled("admin", p, 100.0))
+    assert got[0] != "Fitness" and got[-1] is None
 
 
 def test_activity_met_takes_the_exercise_met_over_the_class(host):
@@ -110,6 +115,12 @@ def test_activity_met_takes_the_exercise_met_over_the_class(host):
     assert E.activityMet("Fitness", True, 1, 30.0, 7.5) == 7.5        # no load floor on a set
     assert E.activityMet("Fitness", False, 1, 0.0, None) == 6.0       # the class's own bill
     assert E.activityMet("Fitness", False, 1, 0.0) == 6.0
+
+
+def test_activity_met_returns_the_exercise_met_before_the_band_and_load_floors(host):
+    E = host.K.energy
+    assert E.BAND_MET[3] == 6.0
+    assert E.activityMet("Fitness", False, 3, 0.0, 3.0) == 3.0         # the band for modifier 3 (6.0) never lifts a graded set
 
 
 # --- the adapter: Metabolism bills the recorded type -------------------------------------------------------------
@@ -297,6 +308,17 @@ def test_every_set_minute_is_resistance_vigorous_whatever_its_met(met):
     WS.kind_step(h, p, rec, 1, "Fitness", True)
     WS.kind_step(h, p, rec, 31, "Fitness", True)
     assert rec.satiety.S == pytest.approx(0.25)
+
+
+def test_an_asleep_minute_with_the_flag_is_not_vigorous():
+    h = WS.boot()
+    W = h.NR.server.writer
+    rec = WS.record(h)
+    rec.body.met = 0.8
+    ctx = h.rt.table()
+    ctx.exercising = True
+    ctx.activityClass = "Sleeping"
+    assert W.vigorous(W.h, WS.player(h), rec, ctx) == (False, None)
 
 
 def test_the_flag_answers_before_the_met_test():
@@ -561,6 +583,20 @@ def test_departure_forgets_the_type():
     h.start()
     assert len(list(h.G.NutritionRevamp.server.players.onDeparture.values())) == 1   # wired once
     h.FIT.forget("admin")
+    assert h.FIT.exeType["admin"] is None
+
+
+def test_forget_reads_the_module_at_call_time_and_is_safe_without_it():
+    h = FitHost()
+    a = h.action("admin", "burpees")
+    a.serverStart(a)
+    forget = h.FIT.forget
+    saved = h.G.NutritionRevamp.server.fitness
+    h.G.NutritionRevamp.server.fitness = None
+    forget("admin")                                          # no module: nothing raised
+    h.G.NutritionRevamp.server.fitness = saved
+    assert h.FIT.exeType["admin"] == "burpees"
+    forget("admin")
     assert h.FIT.exeType["admin"] is None
 
 

@@ -82,7 +82,9 @@ end
 
 -- The record leaves with the player (P.onDeparture).
 function FIT.forget(name)
-    FIT.exeType[name] = nil
+    local nr = NutritionRevamp
+    if nr == nil or nr.server == nil or nr.server.fitness == nil then return end
+    nr.server.fitness.exeType[name] = nil
 end
 
 -- The wrapper closure, made once per sentinel and kept in it; it names nothing from this file's load.

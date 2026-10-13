@@ -1,9 +1,10 @@
 -- NR_Kernel_Energy.lua -- the body model's expenditure and energy state (Plan 3): resting energy
 -- expenditure off lean mass, adaptive thermogenesis, the two MET tables (the engine's Metabolics values,
 -- read to classify the thermoregulator's target, and the Compendium METs expenditure bills), the
--- timed-action band METs, the Compendium METs per Fitness exercise, the Compendium load-walking floors, the engine load factor divided out, the
--- per-minute expenditure and intake accumulators on record.body and the trailing-24 h balance the deficit drive
--- reads (NR_Kernel_Deficit.lua: the energy state, the exercise lag and the hunger target, since Plan 11g Task 7).
+-- timed-action band METs, the Compendium METs per Fitness exercise, the Compendium load-walking floors, the engine
+-- load factor divided out, the per-minute expenditure and intake accumulators on record.body and the trailing-24 h
+-- balance the deficit drive reads (NR_Kernel_Deficit.lua: the energy state, the exercise lag and the hunger target,
+-- since Plan 11g Task 7).
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.exp, math.abs and the bounded numeric `for` over the kernel's own tables are
 -- allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.max reference is at call time.
@@ -138,7 +139,7 @@ K.energy.BAND_MET[8] = 7.0 -- S0040 (carpentry heavy)
 K.energy.EXERCISE_MET = {}
 K.energy.EXERCISE_MET.squats = 3.0 -- S1898 (02056, body weight resistance exercises, general); game choice: general over the high-intensity 02057 (6.5, S1899)
 K.energy.EXERCISE_MET.pushups = 3.8 -- S1896 (02022, calisthenics, moderate effort); game choice: moderate over the vigorous 02020 (7.5, S1895)
-K.energy.EXERCISE_MET.situp = 3.8 -- S1896 (02022, calisthenics, moderate effort); game choice: moderate over the vigorous 02020 (7.5, S1895)
+K.energy.EXERCISE_MET.situp = 3.8 -- S1896 (02022, calisthenics, moderate effort); game choice: moderate over the vigorous 02020 (7.5, S1895) and the light 02024 (S1897)
 K.energy.EXERCISE_MET.burpees = 7.5 -- S1895 (02020, calisthenics, vigorous effort: the one code that names burpees); game choice: the paced set's code over the interval-protocol HIIT 02214 (11.0, S1903)
 K.energy.EXERCISE_MET.barbellcurl = 3.5 -- S1902 (02054, resistance training, multiple exercises, 8-15 reps at varied resistance), an approximate match (no curl code); game choice: over the vigorous body building 02050 (6.0, S1900)
 K.energy.EXERCISE_MET.dumbbellpress = 3.5 -- S1902 (02054, resistance training, multiple exercises, 8-15 reps at varied resistance), an approximate match (no press code); game choice: over the vigorous body building 02050 (6.0, S1900)
@@ -198,13 +199,13 @@ end
 
 -- The MET expenditure bills: the class's Compendium value (unknown reads 1.3, standing quietly);
 -- not moving, raised to the timed-action band (#0462: vanilla bills the modifier only when not
--- moving); walking, raised to the load-walking floor (ruling 6). exMet (optional) is billClass's exercise MET for a set
--- minute, billed in place of the class's value.
+-- moving); walking, raised to the load-walking floor (ruling 6). exMet (optional) is a set minute's exercise MET
+-- (K.energy.exerciseMet), billed as it stands: no band or load floor lifts it.
 function K.energy.activityMet(className, moving, modifier, loadKg, exMet)
-    local met = exMet
-    if met == nil then
-        met = K.energy.COMPENDIUM[className] or 1.3 -- S0020
+    if exMet ~= nil then
+        return exMet
     end
+    local met = K.energy.COMPENDIUM[className] or 1.3 -- S0020
     local band = K.energy.bandMet(modifier)
     if not moving and band then
         met = K.max(met, band)
@@ -320,16 +321,14 @@ function K.energy.exerciseMet(exeType)
 end
 
 -- The class a minute bills: rateClass is the rate's classOf (or Sleeping, which wins); exercising the server's
--- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute; exeType the exercise
--- type recorded for the set (nil when none). A set minute returns "Fitness" and exerciseMet's two values, the MET to
--- bill (activityMet's exMet) and whether the type was known; every other minute returns its class alone.
-function K.energy.billClass(rateClass, exercising, moving, falling, exeType)
+-- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute. It names the class
+-- only: a set minute reads "Fitness", and the adapter picks the MET (K.energy.exerciseMet) for it.
+function K.energy.billClass(rateClass, exercising, moving, falling)
     if rateClass == "Sleeping" then
         return rateClass
     end
     if exercising then
-        local met, known = K.energy.exerciseMet(exeType)
-        return "Fitness", met, known
+        return "Fitness"
     end
     local bill = K.energy.COMPENDIUM[rateClass] or K.energy.COMPENDIUM.Default
     if falling and not moving then
