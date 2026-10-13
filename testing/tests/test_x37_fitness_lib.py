@@ -383,3 +383,40 @@ def test_the_drivers_grade_their_sets_on_a_synthetic_ring():
     S.sets[-1]["at_clear"]["exeType"] = "squats"                         # the cancel left the record: falsified
     D2.grade(S, ring, rep, fo)
     assert S.out["verdicts"]["END_MOVE"]["verdict"] == "falsified"
+
+
+# --- the regrade (R1 the poll before the stop, R2 the stop that never stopped, R3 the timer ends) -----------------------
+
+import x37_regrade as RG   # noqa: E402
+
+
+def test_the_regrade_counts_a_poll_record_only_before_the_sets_stop_and_reads_the_ring():
+    ring, _ = synth_set_ring()
+    n, a, b = SETS[0]
+    st = {"label": n, "exercise": n, "age_queued": ring[a - 3]["age"], "clear_age": ring[b]["age"],
+          "before": {"stops": 0},
+          "polls": [{"on": True, "exeType": None, "stops": 1}, {"on": False, "exeType": None, "stops": 1}]}
+    r = RG.r1([st], ring)
+    assert r["sets"][0]["poll_ok"] is None and r["sets"][0]["ring_ok"] and r["verdict"] == "as_predicted"
+    assert r["unmeasured_by_poll"] == [n]
+    st["polls"].insert(0, {"on": True, "exeType": "burpees", "stops": 0})              # a wrong record before the stop
+    assert RG.r1([st], ring)["verdict"] == "falsified"
+    st["polls"][0]["exeType"] = n
+    assert RG.r1([st], ring)["sets"][0]["poll_ok"] is True
+
+
+def test_the_regrade_reads_a_stop_that_never_stopped_and_the_timer_ends():
+    spec = [("squats", 20, 85)]                                          # flagged from 20 to the ring's end
+    ring, _ = synth_set_ring(sets=spec, stale_to={85: 85})
+    st = {"label": "M", "exercise": "squats", "requested_min": 20, "stopped": True, "ended": False, "started": True,
+          "first_on_age": ring[19]["age"], "stop_age": ring[22]["age"], "at_clear": {"exeType": "squats"},
+          "after_rest": {"exeType": "squats", "fallbacks": 0}, "before": {"fallbacks": 0, "stops": 0}}
+    r = RG.r2([st], ring)
+    x = r["stopped_sets"][0]
+    assert r["verdict"] == "unmeasured" and x["flagged_rows_after_stop"] > 50 and x["outlived_own_timer"] is True
+    assert set(x["bills_after_stop_hist"]) == {"3"} and x["moving_rows_after_stop"] == 0
+    t = {"label": "T", "exercise": "pushups", "started": True, "ended": True, "stopped": False,
+         "before": {"stops": 0}, "at_clear": {"stops": 1, "exeType": None}, "after_rest": {"stops": 1, "exeType": None}}
+    assert RG.r3([t, st])["verdict"] == "as_predicted" and RG.r3([t])["n"] == 1
+    t["after_rest"]["exeType"] = "pushups"
+    assert RG.r3([t])["verdict"] == "falsified"
