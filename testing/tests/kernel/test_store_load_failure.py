@@ -1,9 +1,11 @@
 """A failed load lays a fresh record (Plan 11d Task 9b fix round 1, ruling C9-10).
 
-A slot file whose record K.store.load cannot build (a body without fm, lm or lastAgeH, a string where a mass sits,
-a malformed nutrients table) used to leave the raw stored table in place for the whole sight: Nutrients raised every
-minute, THIRST and FATIGUE froze. S.load (and S.recover) now lay a fresh record in place on any failed load, count it
-in store.stats.failures and log the username, so the character runs the tested fresh-character path.
+A slot file whose record K.store.load cannot build (a string where a mass sits, a malformed nutrients table) used to
+leave the raw stored table in place for the whole sight: Nutrients raised every minute, THIRST and FATIGUE froze.
+S.load (and S.recover) now lay a fresh record in place on any failed load, count it in store.stats.failures and log
+the username, so the character runs the tested fresh-character path. A body whose fm, lm or lastAgeH is absent or
+non-finite, or whose sex is a number other than 1 or 2, is not a failed load (Plan 12 A4): K.store.bodyBase heals the
+field and the record is kept.
 
 The host is the store's file stand-in (test_store_file_shape.FILES) with the writer's engine stand-ins
 (test_writer_shape.ENV) and its stats player, so the writer runs; a corrupt slot is in place before OnServerStarted.
@@ -21,11 +23,18 @@ STEPS = ("kinetics", "metabolism", "nutrients", "effects", "strength", "weight",
 GOOD_BODY = {"fm": 16.0, "lm": 64.0, "sex": 1, "lastAgeH": 99.0}
 
 CASES = {
-    "body without fm": {"body": {"lm": 64.0, "sex": 1, "lastAgeH": 99.0}},
-    "body without lm": {"body": {"fm": 16.0, "sex": 1, "lastAgeH": 99.0}},
-    "body without lastAgeH": {"body": {"fm": 16.0, "lm": 64.0, "sex": 1}},
     "body with a string fm": {"body": dict(GOOD_BODY, fm="x")},
     "malformed nutrients": {"body": dict(GOOD_BODY), "nutrients": {"iron": {"p": "x", "g": "x"}, "epoch": "x"}},
+}
+
+# Plan 12 A4: a saved body as K.body.new lays its identity fields, then one of the four the load heals made unreadable
+FULL_BODY = dict(GOOD_BODY, l0=5, r=1.0, traitCarry=0.0)
+
+HEALED = {
+    "body without fm": {k: v for k, v in FULL_BODY.items() if k != "fm"},
+    "body without lm": {k: v for k, v in FULL_BODY.items() if k != "lm"},
+    "body without lastAgeH": {k: v for k, v in FULL_BODY.items() if k != "lastAgeH"},
+    "body with sex 3": dict(FULL_BODY, sex=3),
 }
 
 
@@ -86,7 +95,30 @@ def test_a_corrupt_slot_loads_as_a_fresh_character_and_runs_clean(case):
     assert all(not isinstance(v, str) for v in saved["nutrients"]["iron"].values()), case
 
 
-@pytest.mark.parametrize("case", ["body without fm", "malformed nutrients"])
+@pytest.mark.parametrize("case", sorted(HEALED))
+def test_an_unreadable_body_field_heals_and_the_record_is_kept(case):
+    # the slot's record survives (its resets, first sight and nutrients), no load fails, and every step runs clean
+    h = boot({"body": HEALED[case], "nutrients": {"epoch": 7}})
+    p = h.rt.eval("NR_T.statsPlayer")(h.player("admin"), h.rt.eval(STATS))
+    h.online(p)
+    f0 = failures(h)
+    thirst0 = p.st.v.THIRST
+    for m in range(1, 31):
+        h.T.age = 100.0 + m / 60
+        h.T.now = h.T.now + 61000
+        h.minute()
+        h.tick(25)
+    assert failures(h) == f0, (case, failures(h), [s for s in h.printed() if "fail" in s or "non-finite" in s])
+    assert h.NR.server.store.stats.failures == 0, case
+    assert not any("load failed" in s for s in h.printed()), case
+    rec = h.record("admin")
+    assert rec.resets == 2 and rec.firstSeen == 50.0 and rec.nutrients.epoch >= 7, case
+    b = rec.body
+    assert b.sex in (1, 2) and all(isinstance(b[k], (int, float)) for k in ("fm", "lm", "lastAgeH")), case
+    assert p.st.v.THIRST != thirst0, case
+
+
+@pytest.mark.parametrize("case", sorted(CASES))
 def test_a_corrupt_slot_found_by_the_recovery_lays_a_fresh_record_in_place(case):
     # the first read at first sight finds the slots locked, so S.get makes a fresh record; the save's preload then
     # reads the corrupt file and S.recover's load raises: the fresh record is laid again in the same table

@@ -337,16 +337,43 @@ def test_load_with_no_order_lays_the_stored_keys(host):
     assert set(k for k, v in n.items() if isinstance(v, dict)) == {"zinc"}
 
 
-def test_a_body_builds_at_its_sex_and_keeps_an_odd_one(host):
+def test_a_body_builds_at_its_sex_and_heals_an_odd_one(host):
     r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 2, "lastAgeH": 50.0}}), None, recs(host)))
     assert r["body"]["sex"] == 2 and r["body"]["fm"] == 20.0 and r["body"]["dayIndex"] == 2
-    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 3, "lastAgeH": 1.0}}), None, recs(host)))
-    assert r["body"]["sex"] == 3 and r["body"]["dmod"] == 1
+    # Plan 12 A4 (K2 B5): a stored sex other than 1 or 2 would stop every nutrient minute (a nil R[sex]); it heals to 1
+    for odd in (3, 0, 1.5, float("nan")):
+        r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": odd, "lastAgeH": 1.0}}), None, recs(host)))
+        assert r["body"]["sex"] == 1 and r["body"]["dmod"] == 1, odd
+
+
+def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
+    # Plan 12 A4 (K2 B3): a non-finite fm, lm or lastAgeH is saved as JSON null and reads back absent; the load heals it
+    # as K.heal.body does (fm and lm from the 80 kg split at the stored sex, lastAgeH the record's last sight) and keeps
+    # the rest of the record, where it raised before and the server laid a fresh one
+    nan = float("nan")
+    fmS, lmS, _ = host.K.body.split(80, 2, host.table({}))
+    for body, want in (({"fm": nan, "lm": 50.0}, (fmS, 50.0, 30.0)),
+                       ({"fm": 20.0, "lm": nan}, (20.0, lmS, 30.0)),
+                       ({"fm": 20.0, "lm": 50.0, "lastAgeH": nan}, (20.0, 50.0, 30.0)),
+                       ({"lm": 50.0, "lastAgeH": 12.0}, (fmS, 50.0, 12.0))):
+        b = {"sex": 2, "lastAgeH": 30.0}
+        b.update(body)
+        raw = host.table({"username": "u", "firstSeen": 1.0, "lastSeen": 30.0, "body": b,
+                          "nutrients": {"epoch": 3, "zinc": {"p": 0.3, "g": 2}}})
+        text = host.K.json.encode(S(host).inputsOnly(raw), host.rt.eval("function(x) return string.format('%.17g', x) end"))
+        decoded, err = host.K.json.decode(text)
+        assert err is None
+        r = host.py(S(host).load(decoded, None, recs(host)))
+        got = (r["body"]["fm"], r["body"]["lm"], r["body"]["lastAgeH"])
+        assert got == pytest.approx(want), body
+        assert r["body"]["sex"] == 2 and r["nutrients"]["zinc"]["p"] == 0.3, body
 
 
 @pytest.mark.parametrize("raw", [
     {"nutrients": {"epoch": "x"}},                                  # a string where the constructor lays a number
     {"body": {"fm": 20.0, "lm": 60.0, "sex": 1, "lastAgeH": 1.0, "eb7": {7: "x"}}},   # a string in a ring slot
+    {"body": {"fm": "x", "lm": 60.0, "sex": 1, "lastAgeH": 1.0}},   # a string mass: not healed (Plan 12 A4), rejected
+    {"body": {"fm": 20.0, "lm": 60.0, "sex": "f", "lastAgeH": 1.0}},   # a string sex: likewise
     {"nutrients": {"iron": {"S": "x"}}},                            # a lazily laid field: no default, not a string
 ])
 def test_a_stored_input_of_the_wrong_type_raises(host, raw):

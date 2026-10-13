@@ -172,15 +172,39 @@ function K.store.ageOf(raw)
     return 0 -- the world's start, a stamp the copy overwrites; no row needed
 end
 
--- The default body the inputs are copied over: K.body.new at the stored masses, sex, Strength level, carry
--- factor, responder and clock (a saved body always holds them: K.body.new lays them all). A sex other than 2
--- builds as 1; the copy then restores the stored value.
-function K.store.bodyBase(rb)
+-- The default body the inputs are copied over, and the load's body contract. The stored body rb is healed in place
+-- first, so the copy restores only values the steps can read, as K.heal.body heals them in memory: an absent sex, or
+-- a number other than 1 or 2, reads 1 (any other index finds no requirement and stops every minute); an absent or
+-- non-finite fm or lm the 80 kg split's at that sex; an absent or non-finite lastAgeH ageH, the record's last sight.
+-- A non-finite number is saved as JSON null and reads back absent, so without the heal one bad field cost the whole
+-- record. A value of another type is left for K.store.checkLeaf to reject (ruling C9-10). Then K.body.new at the
+-- stored masses, sex, Strength level, carry factor, responder and clock.
+function K.store.bodyBase(rb, ageH)
+    if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
+        rb.sex = 1
+    end
     local sex = 1 -- K.body's sex index: 1 male, 2 female
     if rb.sex == 2 then
         sex = 2 -- K.body's female index
     end
-    return K.body.new(rb.fm + rb.lm, sex, {}, rb.l0, rb.traitCarry, rb.r, rb.lastAgeH)
+    local fmS, lmS = K.body.split(80, sex, {})
+    local fm = K.store.healLeaf(rb, "fm", fmS)
+    local lm = K.store.healLeaf(rb, "lm", lmS)
+    local lastAgeH = K.store.healLeaf(rb, "lastAgeH", ageH)
+    return K.body.new(fm + lm, sex, {}, rb.l0, rb.traitCarry, rb.r, lastAgeH)
+end
+
+-- Heal t[k] to v in place when it is absent or a non-finite number; a value of another type is left for
+-- K.store.checkLeaf to reject. Returns the value a constructor builds with: t[k] when finite, else v.
+function K.store.healLeaf(t, k, v)
+    local x = t[k]
+    if x == nil or (type(x) == "number" and not K.vector.finite(x)) then
+        t[k] = v
+    end
+    if K.vector.finite(t[k]) then
+        return t[k]
+    end
+    return v
 end
 
 -- The nutrient keys a load lays: the order when given, else every table-valued key of the stored state.
@@ -214,7 +238,7 @@ function K.store.defaults(rec, raw, order)
         rec.nutrients = K.nutrients.newState({ ORDER = K.store.nutrientKeys(order, raw.nutrients) })
     end
     if type(raw.body) == "table" then
-        rec.body = K.store.bodyBase(raw.body)
+        rec.body = K.store.bodyBase(raw.body, K.store.ageOf(raw))
     end
     if type(raw.acute) == "table" then
         rec.acute = K.acute.new(K.store.ageOf(raw))
