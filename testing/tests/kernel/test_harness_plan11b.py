@@ -189,3 +189,97 @@ def test_moodle_level_reads_a_named_players_level_and_refuses_the_rest():
     r = scmd(h, "moodle.level", "admin", "NOSUCH")
     assert r.ok is False and r.reason == "no MoodleType.NOSUCH"
     assert scmd(h, "moodle.level", "admin") == "usage: moodle.level <user> <MoodleType>"
+
+
+# ---- H3 action.cancel (client) ---------------------------------------------------------------------------------------
+
+# vanilla's clear (ISTimedActionQueue.lua:236-243) and clearQueue (:46-58), with a character whose StopAllActionQueue
+# stops the started Java action, whose stop() resets the Lua queue (ISBaseTimedAction:stop, :63-66)
+QUEUE = r"""
+T.java = {}
+T.stops = 0
+T.player.getCharacterActions = function(s) return { size = function(l) return #T.java end } end
+T.player.StopAllActionQueue = function(s)
+    T.stops = T.stops + 1
+    T.java = {}
+    local q = ISTimedActionQueue.getTimedActionQueue(s)
+    for i = #q.queue, 1, -1 do q.queue[i] = nil end
+end
+local Q = { queue = {} }
+function Q:isCurrentActionAddingOtherActions()
+    local current = self.queue[1]
+    return (current ~= nil) and current._isAddingActions and (tonumber(current._numAddedActions) ~= nil)
+end
+function Q:clearQueue()
+    if self:isCurrentActionAddingOtherActions() then
+        local current = self.queue[1]
+        for i = 1, current._numAddedActions do table.remove(self.queue, 2) end
+        current._numAddedActions = 0
+        return
+    end
+    for i = #self.queue, 1, -1 do self.queue[i] = nil end
+end
+ISTimedActionQueue = { q = Q }
+ISTimedActionQueue.getTimedActionQueue = function(character) return Q end
+ISTimedActionQueue.clear = function(character)
+    local queue = ISTimedActionQueue.getTimedActionQueue(character)
+    if not queue:isCurrentActionAddingOtherActions() then
+        character:StopAllActionQueue()
+    end
+    queue:clearQueue()
+    return queue
+end
+function T.action(type, started)
+    local a = { Type = type, started = started }
+    function a:isStarted() return self.started end
+    return a
+end
+"""
+
+
+def client_with_queue():
+    rt, g = client()
+    rt.execute(QUEUE)
+    return rt, g
+
+
+def test_action_cancel_stops_a_started_action_and_empties_the_queue():
+    rt, g = client_with_queue()
+    T = g.T
+    q = g.ISTimedActionQueue.q.queue
+    q[1] = T.action("ISEatFoodAction", True)
+    q[2] = T.action("ISWalkToTimedAction", False)
+    T.java[1] = "the started Java action"
+    r = ccmd(rt, g, "action.cancel")
+    assert r.ok is True and r.cleared is True and r.clearError is None
+    assert r.before == 2 and r.after == 0
+    assert r.current == "ISEatFoodAction" and r.started is True
+    assert r.adding is False and r.stopped is True and T.stops == 1
+    assert r.javaBefore == 1 and r.javaAfter == 0
+
+
+def test_action_cancel_on_an_empty_queue_still_calls_the_stop():
+    rt, g = client_with_queue()
+    r = ccmd(rt, g, "action.cancel")
+    assert r.ok is True and r.before == 0 and r.after == 0 and r.current is None and r.started is False
+    assert r.stopped is True and g.T.stops == 1
+
+
+def test_action_cancel_says_when_the_current_action_is_adding_others():
+    rt, g = client_with_queue()
+    T = g.T
+    q = g.ISTimedActionQueue.q.queue
+    cur = T.action("ISInventoryTransferAction", True)
+    cur._isAddingActions = True
+    cur._numAddedActions = 1
+    q[1] = cur
+    q[2] = T.action("ISEatFoodAction", False)
+    r = ccmd(rt, g, "action.cancel")
+    assert r.adding is True and r.stopped is False and T.stops == 0   # clear skipped StopAllActionQueue
+    assert r.before == 2 and r.after == 1                                  # only the added action went
+
+
+def test_action_cancel_refuses_without_the_vanilla_queue():
+    rt, g = client()
+    r = ccmd(rt, g, "action.cancel")
+    assert r.ok is False and r.reason == "no ISTimedActionQueue.clear"

@@ -1196,3 +1196,59 @@ TK.register("moodle.watch", function(argv)
              changes = {}, done = false }
     return { ok = true, armed = true, moodle = name, seconds = secs }
 end)
+
+-- ---- Plan 11b Task 1: stop a started action through vanilla's own stop (H3) ----------------------------------------
+-- action.cancel calls ISTimedActionQueue.clear(getPlayer()) (media/lua/client/TimedActions/ISTimedActionQueue.lua:236-243):
+-- unless the queue's current action is adding others (isCurrentActionAddingOtherActions), it calls the character's
+-- StopAllActionQueue, which stops the started Java action (and so the Lua action's stop()), then clearQueue. It is the
+-- driver's stop for a started action (CLAUDE.md s5; lessons #3739): player.stop's clearQueue alone wipes the Lua
+-- queue and leaves a started action running. The reply, read on this tick around the call:
+--   before, after        the Lua queue's length (#queue.queue, a Lua table);
+--   current, started     the queue's first action's Type (its Lua class name) and whether it had started
+--                        (ISBaseTimedAction:isStarted, under pcall); current absent and started false on an empty queue;
+--   adding               isCurrentActionAddingOtherActions: true means clear skipped StopAllActionQueue (stopped false)
+--                        and clearQueue cancelled only the added actions;
+--   stopped              whether StopAllActionQueue was reached (not adding);
+--   javaBefore, javaAfter  the character's Java action list size (getCharacterActions():size()), absent when unread;
+--   cleared [, clearError] whether the clear ran without a raise (it runs under pcall).
+-- The stop reaches the server through the engine's own action sync; a driver confirms it on the server's state.
+function C.javaActions(p)
+    local okA, acts = pcall(function()
+        local _, list = TK.call(p, "getCharacterActions")
+        local _, n = TK.call(list, "size")
+        return n
+    end)
+    if okA and type(acts) == "number" then return acts end
+    return nil
+end
+
+-- @args (none)
+-- @reply {ok, before, after, current, started, adding, stopped, javaBefore, javaAfter, cleared [, clearError]} | {ok, reason}
+-- @purpose Test-only: stops the local player's started timed action and clears the queue through vanilla's ISTimedActionQueue.clear (StopAllActionQueue, then clearQueue), replying the queue and the Java action list either side.
+TK.register("action.cancel", function()
+    local p = getPlayer()
+    if p == nil then return { ok = false, reason = "no local player" } end
+    if ISTimedActionQueue == nil or ISTimedActionQueue.clear == nil or ISTimedActionQueue.getTimedActionQueue == nil then
+        return { ok = false, reason = "no ISTimedActionQueue.clear" }
+    end
+    local q = ISTimedActionQueue.getTimedActionQueue(p)
+    local out = { ok = true, started = false }
+    out.before = #q.queue
+    local cur = q.queue[1]
+    if cur ~= nil then
+        out.current = tostring(cur.Type)
+        local okS, st = pcall(function() return cur:isStarted() end)
+        out.started = okS and st == true
+    end
+    local okD, adding = pcall(function() return q:isCurrentActionAddingOtherActions() end)
+    out.adding = okD and adding == true
+    out.stopped = not out.adding
+    out.javaBefore = C.javaActions(p)
+    local ran, err = pcall(ISTimedActionQueue.clear, p)
+    out.cleared = ran
+    if not ran then out.clearError = tostring(err) end
+    local qAfter = ISTimedActionQueue.getTimedActionQueue(p)
+    out.after = #qAfter.queue
+    out.javaAfter = C.javaActions(p)
+    return out
+end)
