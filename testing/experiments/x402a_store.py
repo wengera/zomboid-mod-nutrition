@@ -46,7 +46,7 @@ PHASES (S0, RT, RC, R, W, then Z; the session's end is W's server stop):
       at least one more bus round trip, about two game minutes, so the dirty mark's next store step is due; it shows
       whether that save is visible before the stop); then at once the server is stopped (`quit` on its stdin,
       Server.stop) with admin still online, so no departure flush runs. The eat reaches the file only through the
-      dirty mark (IN.land -> S.mark), whose save runs at admin's next store step past the save gap. The clients are
+      dirty mark (IN.land -> S.mark), whose save runs at admin's next store step (S.step saves a dirty slot whatever the save gap says). The clients are
       then killed: the server is gone, so a client quit has nothing to disconnect from.
       DEVIATION from the run sheet's "stop the server within one game minute": a game minute is 0.625 s at DayLength
       1 and a server bus round trip about 1.3 s (x391h), so the stop follows the read after the one that sees the
@@ -101,6 +101,13 @@ DEVIATIONS from the run sheet and the amendments, stated before the run:
      timer.
   3. The reconnect's away wait (AWAY_MIN_H) is a driver choice so the offline gap passes the cap.
   4. The eats use TKX_StudyFoods' Mixed650 (RC) and Mixed400 (W), so each phase's monotony entry is its own.
+  PRE-RUN EDITS after the Opus review of 0e50f67e (made before any boot):
+  5. W_MIN_REMAIN_S is 30 s (was 15 s), the margin of the save gap left before the eat, so a regular save cannot
+     fall between the landing and the stop.
+  6. The W docstring no longer says the dirty save runs "past the save gap": S.step saves a dirty slot whatever the
+     save gap says.
+  7. run_phase's error mark passed `phase=` to Timeline.mark, whose first parameter is named phase (a TypeError that
+     would escape any phase failure); it passes in_phase= instead.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. Free host
@@ -192,7 +199,7 @@ PAIR_MAX_M = 2.5                 # a lambda pair's kineticsAge step, game minute
 RC_TOL = 1e-6                    # relative; the ring carries exact doubles (TK.json's tostring branch)
 CLAMP_SEP = 1e-3                 # relative separation of the no-cap value that RC_CLAMP requires
 SAVE_GAP_MS = 60000              # S.SAVE_GAP_MS: a player's slot is written at most once a real minute
-W_MIN_REMAIN_S = 15.0
+W_MIN_REMAIN_S = 30.0
 W_FRESH_CAP_S = 70.0
 STOP_TIMEOUT_S = 120
 ADMIN_REC = "record:admin"
@@ -509,7 +516,7 @@ def run_phase(name, fn):
     except Exception as e:                     # noqa: BLE001 - one phase's fault keeps the others
         out["phase_errors"][name] = {"error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-3000:]}
         if tl is not None:
-            tl.mark("error", phase=name, detail=str(e)[:200])
+            tl.mark("error", in_phase=name, detail=str(e)[:200])
         note(f"phase {name} raised: {type(e).__name__}: {e}")
     if bus["dead"] and not bus_was_dead and not out["phase_walls"][name].get("bus_dead"):
         out["phase_walls"][name]["bus_dead"] = f"server bus dead after {bus['dead']}"

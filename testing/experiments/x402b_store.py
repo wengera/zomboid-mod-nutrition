@@ -87,6 +87,8 @@ PREDICTIONS (graded in `verdicts` as as_predicted / falsified / trivial / unmeas
             T_q. Unmeasured (not falsified): the cap passed, with the reads; the prune is then not run.
   G_PRUNE   the prune answers 1 (bob alone: admin is online, the probe cleared) and store.records.bob,
             store.file.index.bob and store.file.lastWrite.bob read nil. Falsifier: any other count or a non-nil read.
+            (Pre-run edit: the expected count is 1 + 1 when the clear left the probe's index entry, which the prune
+            drops too; unmeasured when CLEAR is not as predicted and the index reads cannot say.)
   G_HOLD    after one more minute event (served risen) the three read nil again: no queued write refilled the slot.
             Falsifier: a non-nil read. Unmeasured: served did not rise inside the cap.
   REJOIN    bob's rejoined record reads resets 0, firstSeen between the relaunch's world age and the landing read's,
@@ -115,6 +117,20 @@ DEVIATIONS from the run sheet and the amendments, stated before the run:
   2. C2 slows the game clock (time.multiplier SLOW_MULT) for bob's rejoin and eat: at DayLength 1 a game minute is
      0.625 s and an eat lasts 4.64 s of real time, so a first-minute eat is otherwise impossible.
   3. The acute multiplier half of C-2 is unmeasured by design (C2_ACUTE).
+  PRE-RUN EDITS after the Opus review of 0e50f67e (made before any boot):
+  4. PRE refuses to boot unless S4b1 is a finished x402a run: run_id starts x402a-, profile x40-store, wall_seconds
+     set (its finally ran), no error or body_error, every verify row ok, and the server stopped cleanly (W: stop_rc 0
+     and no stop_error; or no W stop with server_stop_wall set and no teardown_error). Each check is in
+     phases.PRE.s1_gate. A W-void x402a with a clean teardown may chain; STOPWIN is then unmeasured.
+  5. C2_M is graded only when the landing's record read is ok and present (firstSeen); otherwise unmeasured (void
+     on a dead bus).
+  6. STOPWIN also records the slot gen against S4b1's confirm and prestop gens, stop_rc and stop_error, and is
+     unmeasured when the pre-eat gen was not read.
+  7. C2's clock is restored to A's boot_snap trueMult (1 when unread), not the literal 1.
+  8. G_PRUNE is graded against 1 + (the probe still indexed), unmeasured when CLEAR is not as predicted and the index
+     keyCounts cannot say.
+  9. run_phase's error mark passed `phase=` to Timeline.mark, whose first parameter is named phase (a TypeError that
+     would escape any phase failure, the PRE refusal included); it passes in_phase= instead.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. Free host
@@ -558,7 +574,7 @@ def run_phase(name, fn):
     except Exception as e:                     # noqa: BLE001 - one phase's fault keeps the others
         out["phase_errors"][name] = {"error": f"{type(e).__name__}: {e}", "tb": traceback.format_exc()[-3000:]}
         if tl is not None:
-            tl.mark("error", phase=name, detail=str(e)[:200])
+            tl.mark("error", in_phase=name, detail=str(e)[:200])
         note(f"phase {name} raised: {type(e).__name__}: {e}")
     if bus["dead"] and not bus_was_dead and not out["phase_walls"][name].get("bus_dead"):
         out["phase_walls"][name]["bus_dead"] = f"server bus dead after {bus['dead']}"
@@ -770,6 +786,36 @@ def s1_last_age(s1):
     return max(ages) if ages else None
 
 
+def s1_gate(s1):
+    """Refuse to chain onto anything but a finished x402a run (pre-run edit after the Opus review of 0e50f67e):
+    every check is recorded in the returned dict with its value, `failed` names the ones that did not hold."""
+    W = g(s1, "readings", "W_ARMED") or {}
+    verify_rows = s1.get("verify") if isinstance(s1.get("verify"), list) else []
+    by = s1.get("server_stopped_by")
+    if by == "W":
+        stop_clean = W.get("stop_rc") == 0 and not W.get("stop_error")
+    elif by is None:
+        stop_clean = s1.get("server_stop_wall") is not None and not s1.get("teardown_error")
+    else:
+        stop_clean = False
+    checks = {
+        "run_id_is_x402a": {"value": s1.get("run_id"), "ok": str(s1.get("run_id") or "").startswith("x402a-")},
+        "profile_is_x40_store": {"value": g(s1, "profile", "name"), "ok": g(s1, "profile", "name") == "x40-store"},
+        "finally_ran_wall_seconds": {"value": s1.get("wall_seconds"), "ok": s1.get("wall_seconds") is not None},
+        "no_error": {"value": s1.get("error"), "ok": not s1.get("error")},
+        "no_body_error": {"value": s1.get("body_error"), "ok": not s1.get("body_error")},
+        "verify_rows_all_ok": {"value": [v.get("ok") for v in verify_rows if isinstance(v, dict)],
+                               "ok": bool(verify_rows) and all(isinstance(v, dict) and v.get("ok") is True
+                                                               for v in verify_rows)},
+        "server_stopped_cleanly": {"value": {"server_stopped_by": by, "stop_rc": W.get("stop_rc"),
+                                             "stop_error": W.get("stop_error"),
+                                             "server_stop_wall": s1.get("server_stop_wall"),
+                                             "teardown_error": s1.get("teardown_error")}, "ok": stop_clean},
+    }
+    return {"checks": checks, "ok": all(c["ok"] for c in checks.values()),
+            "failed": [k for k, c in checks.items() if not c["ok"]]}
+
+
 def phase_PRE():
     P = out["phases"]["PRE"] = {}
     with open(os.path.join(S1_DIR, S1_ARTIFACT), encoding="utf-8") as fh:
@@ -783,6 +829,10 @@ def phase_PRE():
     P["s1_rt_save"] = {k: g(s1, "phases", "RT", "save", k) for k in ("ok", "saved", "gen", "slot", "hex", "user")}
     P["s1_last_snapshot_age"] = s1_last_age(s1)
     P["s1_server_stopped_by"] = s1.get("server_stopped_by")
+    gate = s1_gate(s1)
+    P["s1_gate"] = gate
+    if not gate["ok"]:
+        raise RuntimeError("S4b1 is not a clean x402a world to chain onto: " + "; ".join(gate["failed"]))
     src = os.path.join(S1_DIR, "server")
     if not os.path.isdir(os.path.join(src, "Server")):
         raise RuntimeError(f"S4b1 has no server cache at {src}")
@@ -960,7 +1010,9 @@ def phase_C2():
         P["land_snap"] = snap("C2_land_t")
     finally:
         if P["slowed"] and not srv_gone():
-            P["restore"] = keep(step("C2_restore", SRV, "time.multiplier", "1"))
+            tm = num(g(out, "phases", "A", "boot_snap", "trueMult"))
+            P["restore_to"] = tm if tm is not None and tm > 0 else 1   # A's boot_snap trueMult, else 1
+            P["restore"] = keep(step("C2_restore", SRV, "time.multiplier", f"{P['restore_to']:g}"))
             P["slowed"] = False
             tl.mark("clock_restored")
     if not g(P, "land", "done"):
@@ -1204,9 +1256,14 @@ def grade_all():
            "s1_stop_after_last_write_ms": s1W.get("stop_after_last_write_ms"), "gen_pre_eat": gen0,
            "slot_gen": slot.get("gen"), "n_pre_eat": n_pre, "n_slot": n_slot,
            "buffer_pre_eat": pre_rec.get("stomach.buffer.calories"), "buffer_slot": slot.get("buffer_calories"),
-           "admin_online_at_confirm": g(s1W, "confirm", "admin_online")}
+           "admin_online_at_confirm": g(s1W, "confirm", "admin_online"),
+           "gen_at_confirm": num(g(s1W, "confirm", "values", f"{NR}.server.store.file.gen.admin")),
+           "gen_at_prestop": num(g(s1W, "prestop", "values", f"{NR}.server.store.file.gen.admin")),
+           "s1_stop_rc": s1W.get("stop_rc"), "s1_stop_error": s1W.get("stop_error")}
     if s1W.get("state") != "stopped" or not slot:
         grade("STOPWIN", PRED["STOPWIN"], obs, "unmeasured", "S4b1's W did not stop the server after a landing")
+    elif gen0 is None:
+        grade("STOPWIN", PRED["STOPWIN"], obs, "unmeasured", "S4b1's pre-eat gen was not read")
     else:
         present_ = (num(slot.get("gen")) is not None and gen0 is not None and num(slot.get("gen")) > gen0
                     and n_slot is not None and n_slot >= n_pre + 1)
@@ -1309,10 +1366,25 @@ def grade_all():
         else:
             r1 = num(g(G, "prune", "r1"))
             na = G.get("nil_a") or {}
-            ok = r1 == 1 and na.get("ok") is True and not any((na.get("present") or {}).values())
-            grade("G_PRUNE", PRED["G_PRUNE"], {"r1": r1, "prune": G.get("prune"), "nil_a": na,
-                                               "pruned_stat": vals(G.get("pruned_stat") or {})},
-                  "as_predicted" if ok else "falsified", "any other count or a non-nil read")
+            # the count is bob, plus the probe when the clear left its index entry (the prune drops it as well)
+            kb, ka = num(g(RTL, "index_before", "keyCount")), num(g(RTL, "index_after", "keyCount"))
+            clear_ok = (out["verdicts"].get("CLEAR") or {}).get("verdict") == "as_predicted"
+            if clear_ok:
+                probe_indexed = False
+            elif kb is not None and ka is not None and kb >= 1:
+                probe_indexed = ka >= kb          # the clear dropped nothing from the index
+            else:
+                probe_indexed = None
+            want = None if probe_indexed is None else 1 + (1 if probe_indexed else 0)
+            pobs = {"r1": r1, "expected": want, "probe_still_indexed": probe_indexed, "clear_as_predicted": clear_ok,
+                    "index_keys_before": kb, "index_keys_after": ka, "prune": G.get("prune"), "nil_a": na,
+                    "pruned_stat": vals(G.get("pruned_stat") or {})}
+            ok = r1 == want and na.get("ok") is True and not any((na.get("present") or {}).values())
+            if want is None:
+                grade("G_PRUNE", PRED["G_PRUNE"], pobs, "unmeasured", "CLEAR is not as predicted and the index is unread")
+            else:
+                grade("G_PRUNE", PRED["G_PRUNE"], pobs, "as_predicted" if ok else "falsified",
+                      "any other count (1 + the probe if still indexed) or a non-nil read")
             nb = G.get("nil_b") or {}
             if not g(G, "minute", "done"):
                 grade("G_HOLD", PRED["G_HOLD"], {"minute": G.get("minute"), "nil_b": nb}, "unmeasured",
@@ -1367,10 +1439,17 @@ def grade_all():
             grade("C2_SEED", PRED["C2_SEED"], None, "unmeasured", "the seed preceded the landing")
         else:
             finite = M_land is not None and M_land == M_land and abs(M_land) != float("inf")
-            grade("C2_M", PRED["C2_M"], {"M_landing": M_land, "M_present": present(lr, "satiety.M"),
-                                         "missing": (lr.get("missing") or {}).get("satiety.M"),
-                                         "monotony_n": lv.get(f"monotony.t.[{C2_FOOD}].n")},
-                  "falsified" if finite else "as_predicted", "a finite M with seeded unchanged")
+            m_obs = {"M_landing": M_land, "M_present": present(lr, "satiety.M"),
+                     "missing": (lr.get("missing") or {}).get("satiety.M"), "land_rec_ok": lr.get("ok"),
+                     "firstSeen_present": present(lr, "firstSeen"),
+                     "monotony_n": lv.get(f"monotony.t.[{C2_FOOD}].n")}
+            if lr.get("ok") is not True or not present(lr, "firstSeen"):
+                # the record read failed or found no record: nothing was measured (void when the bus is dead)
+                grade("C2_M", PRED["C2_M"], m_obs, "void" if bus["dead"] else "unmeasured",
+                      "the landing's record read failed or found no record")
+            else:
+                grade("C2_M", PRED["C2_M"], m_obs, "falsified" if finite else "as_predicted",
+                      "a finite M with seeded unchanged")
             sd = C2.get("seed") or {}
             M_after = num(vals(C2.get("after_rec") or {}).get("satiety.M"))
             s_after = num(vals(sd.get("last") or {}).get(SEEDED))
