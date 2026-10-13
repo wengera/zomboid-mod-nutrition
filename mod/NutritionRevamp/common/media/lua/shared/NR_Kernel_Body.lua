@@ -274,6 +274,32 @@ function K.body.trailTo(t, ageH)
     return t
 end
 
+-- Carry window t forward to world age toH with its contents, for hours the adapter skips rather than integrates (an
+-- offline gap): every slot keeps its age behind the window's hour, so the hours before the gap stay inside the 24 h and
+-- none of the gap's is booked; the closed sums rebuild at the next read. An age not past the window's (behind it,
+-- equal or not a number) leaves it. Allocates one copy per ring: it runs once per return, never per minute.
+function K.body.trailShift(t, toH)
+    if not (toH > t.at) then
+        return t
+    end
+    local n = K.body.TRAIL_N
+    local d = math.floor(toH) - math.floor(t.at)
+    local keys = K.body.TRAIL_KEYS
+    for k = 1, #keys do
+        local ring = t[keys[k]]
+        local old = {}
+        for i = 1, n do
+            old[i] = ring[i]
+        end
+        for i = 1, n do
+            ring[(i - 1 + d) % n + 1] = old[i]
+        end
+    end
+    t.at = toH
+    t.ch = -1
+    return t
+end
+
 -- Add x to ring key's current hour.
 function K.body.trailAdd(t, key, x)
     local ring = t[key]

@@ -480,6 +480,18 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     return a
 end
 
+-- Skip gapH game hours the adapter does not integrate (an offline gap past the step's cap): every world-age anchor
+-- moves forward by the gap -- the sleep window's start, the 90-day mass stamp, the last fed minute (the adapter's
+-- lastFedAgeH) and the last band-2 minute -- so no window closes, and no fasting, vigorous or mass clock runs, over
+-- time the model never saw. Offline time is not simulated (README).
+function K.acute.skip(a, gapH)
+    a.winStartH = a.winStartH + gapH
+    a.mass90ageH = a.mass90ageH + gapH
+    a.lastFedAgeH = a.lastFedAgeH + gapH
+    a.lastVigAgeH = a.lastVigAgeH + gapH
+    return a
+end
+
 -- The sleep term of the impairment unit: 0 at 16 h awake, 1 at 24 h (S0892), plus debt / 10.5, cap 1.5.
 function K.acute.iuSleep(a)
     local A = K.acute

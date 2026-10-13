@@ -672,8 +672,9 @@ def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(me
 
 
 def test_the_window_moves_with_the_world_age(met_host):
-    # Plan 11d Task 9c: each minute moves the window to its age; a jump zeroes the hours it passes (offline time is
-    # not integrated), and no close stamp is kept
+    # Plan 11d Task 9c: each minute moves the window to its age, and no close stamp is kept; a jump past the hour the
+    # step integrates skips the rest (Plan 12 A1: offline time is not simulated), so the window carries its contents
+    # to the start of the integrated hour and zeroes only the hours that hour passes
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
@@ -681,9 +682,11 @@ def test_the_window_moves_with_the_world_age(met_host):
     assert t["at"] == 100.0 and "lastCloseAgeH" not in h.py(record["body"])
     minute(h, p, record, 100.5)
     assert t["at"] == 100.5 and t.ee[h.K.body.trailSlot(100)] > 0
+    ee100 = t.ee[h.K.body.trailSlot(100)]
     minute(h, p, record, 124.25)
     assert t["at"] == 124.25
     assert t.ee[h.K.body.trailSlot(110)] == 0 and t.ee[h.K.body.trailSlot(124)] > 0
+    assert t.ee[h.K.body.trailSlot(123)] == ee100              # hour 100's slot carried to the integrated hour's start
 
 
 def test_a_non_finite_stamp_heals_and_counts(met_host):
@@ -1473,13 +1476,16 @@ def test_the_bypass_ramp_fires_through_the_adapter_only_with_the_24h_expenditure
 
 def test_the_window_keeps_the_exercise_a_day_close_zeroes(met_host):
     # Plan 11d Task 9c: the partition close zeroes exKcalDay; the window, not a closed-day bank (Plan 11c's exKcalPrev,
-    # retired), carries the bout: at 124.25 the bout's hour (100) is the oldest, three quarters inside; idle adds none
+    # retired), carries the bout: at 124.25 the bout's hour (100) is the oldest, three quarters inside; idle adds none.
+    # The day is stepped in integrated hours: a single 24 h jump is an offline gap the window skips (Plan 12 A1)
     h = met_host
     p = player(h, moving=False, rate=1.5)
     record = fresh(h, p, 100.0)
     body = record["body"]
     body.exKcalDay = 300.0
     seed(h, body, hour=100, ex=300.0)
+    for hour in range(101, 125):
+        minute(h, p, record, float(hour))
     minute(h, p, record, 124.25)
     assert body["exKcalDay"] == 0 and "exKcalPrev" not in h.py(body)
     assert abs(h.K.body.trail24(body["trail"], "ex") - 0.75 * 300.0) < 1e-9

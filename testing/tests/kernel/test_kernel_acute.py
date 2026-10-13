@@ -533,6 +533,30 @@ def test_sleep_long_step_closes_every_window(host):
     assert _close(a.winStartH, 48.0)
 
 
+def test_skip_moves_every_age_anchor_by_the_gap(host):
+    # time the adapter does not integrate (an offline gap) moves the world-age anchors forward by it, so no window,
+    # fasting clock, vigorous latch or 90-day mass window counts the gap (lastFedAgeH is the adapter's stamp)
+    A = host.K.acute
+    a = _new(host, 10.0)
+    a.lastFedAgeH = 12.0
+    a.lastVigAgeH = 11.0
+    A.skip(a, 72.0)
+    assert a.winStartH == 82.0 and a.mass90ageH == 82.0 and a.lastFedAgeH == 84.0 and a.lastVigAgeH == 83.0
+
+
+def test_a_night_slept_then_a_skipped_gap_books_no_debt(host):
+    # 16 h awake and 8 h asleep close a window with no debt; 72 h skipped, then one integrated hour, books none
+    A = host.K.acute
+    a = _new(host, 0.0)
+    t = _awake(host, a, 16.0, 0.0)
+    t = _sleep(host, a, 8.0, t)
+    assert a.debtH == 0 and _close(a.winStartH, 24.0, 1e-6)
+    a.lastFedAgeH = t
+    A.skip(a, 72.0)
+    A.sleepMinute(a, False, 9.0, 1.0, t + 73.0, 1.0, False)
+    assert a.debtH == 0 and _close(a.winStartH, 96.0, 1e-6)
+
+
 def test_sleep_window_long_sleep_repays(host):
     a = _new(host, 0.0)
     a.debtH = 2.5

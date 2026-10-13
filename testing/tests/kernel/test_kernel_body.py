@@ -325,6 +325,35 @@ def test_trail_to_a_gap_longer_than_the_ring_empties_it(host):
         assert _ring(t, k) == [0] * 25, k
 
 
+def test_trail_shift_carries_the_window_forward_with_its_contents(host):
+    # Plan 12 A1: an offline gap is skipped, so the window moves to the start of the integrated step with every slot
+    # keeping its age behind the window's hour, and the closed sums rebuild at the next read
+    b = host.K.body
+    t = b.newTrail(76.0)
+    b.trailAdd(t, "ex", 240.0)
+    for h in range(77, 101):
+        b.trailTo(t, float(h))
+        b.trailAdd(t, "ex", float(h))
+    t.at = 100.5
+    before = b.trail24(t, "ex")
+    b.trailShift(t, 100.5 + 71.75)                       # 71.75 h skipped: the hour moves from 100 to 172
+    assert t.at == 172.25 and t.ch == -1
+    for back in range(25):
+        assert t.ex[b.trailSlot(172 - back)] == ([240.0] + [float(h) for h in range(77, 101)])[24 - back], back
+    b.trailTo(t, 172.5)
+    assert _close(b.trail24(t, "ex"), before)
+
+
+def test_trail_shift_backwards_or_in_place_moves_nothing(host):
+    b = host.K.body
+    t = b.newTrail(10.5)
+    b.trailAdd(t, "p", 30.0)
+    b.trailShift(t, 10.5)
+    b.trailShift(t, 9.0)
+    b.trailShift(t, float("nan"))
+    assert t.at == 10.5 and t.p[b.trailSlot(10)] == 30.0 and _ring(t, "p").count(0) == 24
+
+
 def test_trail24_weights_the_oldest_hour_by_its_share_still_inside(host):
     # slots: hour 100 (current) 5, hour 76 (the oldest, H - 24) 240, the 23 hours between 10 each; at 100.25 the
     # window is the current 5, the 23 x 10 and three quarters of the oldest

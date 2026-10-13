@@ -48,7 +48,7 @@ NR.server.nutrients = {
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
-        "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
+        "a step longer than 60 minutes (offline time) is integrated as 60 minutes and the rest skipped, so no sleep window, fed, vigorous or 90-day mass clock counts it; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "this step writes no stat, moodle or health; the writer owns the stat writes (INTOXICATION and FATIGUE included) and the effects layer the health writes",
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (S1102 open): a drink with a meal peaks as early as one on an empty stomach",
@@ -366,10 +366,12 @@ local function step(username, player, record, ctx)
         a.gutCaf = a.gutCaf + (intake.pendingCaf[username] or 0)
         intake.pendingCaf[username] = nil
     end
-    local dtM = K.clamp((ageH - n.lastAgeH) * 60, 0, 60)    -- offline time is not integrated
+    local stepM = (ageH - n.lastAgeH) * 60
+    local dtM = K.clamp(stepM, 0, 60)                       -- offline time is not integrated
     n.lastAgeH = ageH
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
     local dtH = dtM / 60
+    if stepM > 60 then K.acute.skip(a, (stepM - 60) / 60) end   -- nor counted by any acute clock (before closeDay's refeedDay)
     local w = body.fm + body.lm
     local O = NR.server.options or EMPTY
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex

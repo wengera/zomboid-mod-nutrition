@@ -1259,3 +1259,47 @@ def test_the_fed_gate_reads_the_food_fill_not_drunk_water(nut_host):
     record["stomachFill"] = 0.0                                   # a stale stamp is not the gate's input
     alone(h, p, record, 100.0 + 2 / 60)
     assert a["lastFedAgeH"] == 100.0 + 2 / 60
+
+
+# --- an offline gap is skipped, not simulated (Plan 12 A1) ---------------------------------------------------
+
+def test_an_offline_gap_books_no_sleep_debt_and_moves_every_acute_anchor(nut_host):
+    # a full night slept closes the window with no debt; the player is then away 72 h and the first minute back
+    # integrates one hour: the 71 h it does not integrate move the window, the 90-day mass stamp, the fed stamp and
+    # the vigorous stamp forward, so no missed window is booked as unslept (README: offline time is not simulated)
+    h = nut_host
+    NUT(h).sleepDisabled = False
+    p = player(h)
+    record = fresh(h, p)
+    for i in range(1, 17):
+        alone(h, p, record, 100.0 + i)                      # 16 h awake
+    p["cfg"]["asleep"] = True
+    for i in range(17, 25):
+        alone(h, p, record, 100.0 + i)                      # 8 h asleep: the window closes at 124 with no debt
+    p["cfg"]["asleep"] = False
+    a = record["acute"]
+    assert a["debtH"] == 0 and a["winStartH"] == 124.0
+    a["lastFedAgeH"] = 120.0
+    a["lastVigAgeH"] = 110.0
+    a["mass90max"] = 500.0
+    m90 = a["mass90ageH"]
+    alone(h, p, record, 124.0 + 72.0)
+    assert a["debtH"] == 0
+    assert a["winStartH"] == 124.0 + 71.0
+    assert a["mass90ageH"] == m90 + 71.0
+    assert a["lastFedAgeH"] == 120.0 + 71.0
+    assert a["lastVigAgeH"] == 110.0 + 71.0
+    assert abs(a["awakeH"] - 1.0) < TOL                     # the one integrated hour
+    assert nonfinite(h, record) == ""
+
+
+def test_an_integrated_hour_moves_no_anchor(nut_host):
+    # a step the cap does not shorten skips nothing
+    h = nut_host
+    NUT(h).sleepDisabled = False
+    p = player(h)
+    record = fresh(h, p)
+    a = record["acute"]
+    a["lastFedAgeH"] = 90.0
+    alone(h, p, record, 101.0)
+    assert a["lastFedAgeH"] == 90.0 and a["winStartH"] == 100.0

@@ -370,9 +370,11 @@ local function step(username, player, record, ctx)
     local body = MET.ensureBody(username, player, record, ageH)
     heal(username, body, ageH, player)
     local sat = MET.healActivity(username, record, body)
+    local stepM = (ageH - body.lastAgeH) * 60
+    local dtM = K.clamp(stepM, 0, 60)                     -- offline time is not integrated
+    if stepM > 60 then K.body.trailShift(body.trail, ageH - dtM / 60) end   -- nor kept in the window: it skips the gap
     K.body.trailTo(body.trail, ageH)                      -- the window to this minute, before its intake and expenditure land
     snapAll(body, sat)
-    local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff (Plan 4 ruling 17),
     -- and the pipeline's context lives one player's minute, so this read sees each vector once
