@@ -126,6 +126,12 @@ The end is the start time plus the duration the player typed into the panel, in 
 Neither the fitness panel nor the action file contains a `sendClientCommand`, so the exercise reaches the server as the timed action's own net action plus the state packet, with no bus command a mod could intercept [#2189/C/C-only].
 A mod that wants to see reps on the server therefore reads them off the Java side — the regularity map, the soreness timers or the server-side experience grant — and not off a client command [#2189/C/C-only] [#2173/C/C-only].
 
+The exercise's type still reaches the server, inside the action itself.
+`NetTimedAction.set` sends a client's timed action by the parameter names of its class's `new`: it reads the `new` closure off the action's metatable, walks the closure prototype's local names 1 to numParams - 1, and copies the action's field of each name, or a net null, into the action's argument table, so `ISFitnessAction:new(character, exercise, timeToExe, exeData, exeDataType)` sends the exercise type `exeDataType` with the action. [T5.1]
+`NetTimedAction.start` fetches the action table's `serverStart` with `rawget` and, when it is not nil, calls it through the protected caller with the action as its one argument, logging a warning when the call fails. [T5.2]
+`KahluaTableImpl.rawget` falls through to its metatable's `rawget` when its own map lacks the key, so a `rawget` of a method name on a timed action built by its class's `new`, whose metatable is the class table, returns whatever function the class table holds under that name at the call. [T5.3]
+So the server's copy of `ISFitnessAction` holds `exeDataType`, which its `new` set, and a function installed as the class table's `serverStart` runs at each set's start, while the Java exercise object's type stays unreadable [#2180/C/C-only] [#2901/M/n=1].
+
 **One rep on a dedicated server, in order.**
 The server's copy of the action runs `serverStart`, which initialises the exercise map and sets the current exercise [#2186/C/C-only] [#2179/C/C-only].
 The server's copy then emulates the looped animation event at the exercise's period [#2186/C/C-only].
