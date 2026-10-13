@@ -1153,11 +1153,14 @@ C.mw = nil
 function C.mwTick()
     local W = C.mw
     if W == nil or W.done then return end
+    local now = getTimestampMs()
     local p = getPlayer()
-    if p == nil then return end
+    if p == nil then
+        if now - W.t0 >= W.ms then W.done = true end -- the window ends on the clock even with no player
+        return
+    end
     local _, moodles = TK.call(p, "getMoodles")
     local _, lv = TK.call(moodles, "getMoodleLevel", W.type)
-    local now = getTimestampMs()
     if type(lv) == "number" then
         W.samples = W.samples + 1
         if W.min == nil or lv < W.min then W.min = lv end

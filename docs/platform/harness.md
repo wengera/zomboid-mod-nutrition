@@ -265,7 +265,7 @@ A bare recipe name and its module-qualified spelling both answer, craft and evol
 The craft-recipe read carries a third lookup route, tried only after both spellings miss: a walk over every loaded craft recipe matching on the last dotted segment of the cached full type and falling back to the plain name, so a bare non-base name answers and the resolution rule stays measured rather than papered over; a caller who wants the rule exercised asks module-qualified [#1735].
 The global-walk command walks the Lua global table segment by segment and never calls what it finds: a function reports the string function, because reading its result would mean calling an unknown global at unknown arity — catchable, and still not worth making, since an unguarded one aborts the rest of the handler body and on a debug client parks the process [#1758].
 
-The `store.probe` text helper formats a nonzero number of tiny magnitude with `tostring`, because Kahlua's `%g` has no exit for such a magnitude and a `pcall` cannot catch the freeze; `tools/kahlua_lint.py` flags a `%g` format unless its line carries the allow pragma.
+The `store.probe` text helper formats a nonzero number of tiny magnitude with `tostring`, because Kahlua's `%g` has no exit for such a magnitude and a `pcall` cannot catch the freeze; `tools/kahlua_lint.py` flags a `%g` format unless its line carries the allow pragma. [#3764/C/C-only] [#3763/M/n=1]
 
 <a id="witness"></a>
 ### The witness contract
@@ -434,7 +434,8 @@ The frame ring and the engine's own frame counter agree within 2 ms at the 99th 
 The idle baseline a frame reading is taken against is short and regular: with two players and the mod's own drain the frame's busy time read p50 1, p99 9 and max 13 ms over 1207 frames, and the start-to-start period p50 100 and max 104 ms [#3404/M/n=1].
 The ghost load ran 3474 runs of eighteen ghost records in 193 minute events with 0 failures and no ghost key in the mod's store, and `ghost.stop` cleared the 45 per-username entries the ghosts had left; its starvation count of 0 is trivial under a burst [#3407/M/n=1].
 A ghost's minute costs 0.778 of a real player's unfed and 0.978 fed: over forty interleaved pairs at `ghost.load 20` the ghost half took 35 ms against the real half's 45 unfed, and 45 against 46 with each ghost's fast-tier input pointed at its carrier's (`feed`), each record run at most once a minute event and never at a zero time step, so a load that stands in for players is fed, and forty pairs at the 1 ms clock resolve the ratio only coarsely [#3455/C/inference] [#3466/M/n=1].
-A ghost restores its carrier's vanilla macro stores after each run, because it shares the carrier with the real player and its weight step would otherwise land every rise on the real player's reconcile.
+A ghost restores its carrier's vanilla macro stores after each run, because it shares the carrier with the real player and its weight step would otherwise land every rise on the real player's reconcile. [#3754/M/n=1] [#3748/M/n=1]
+The `time.multiplier` reply changed in the commit `016dce05`: `mult=` is now the true multiplier and `eff=` the effective one, where `mult=` carried the effective value before, so a driver reading the older runs' `mult=` reads the effective multiplier there.
 The `gclog` key's log of one session held 128 ZGC pause lines, the largest 0.12 ms, and 18 allocation stalls, all at boot [#3408/M/n=1].
 The engine's `avg-update-period` is no mean of the frame period, being set each frame to about a 21st of it, while `max-update-period` and `min-update-period` are each window's extremes, so a driver reads the extremes and never the average [#3409/C/C-only] [#3443/C/inference].
 

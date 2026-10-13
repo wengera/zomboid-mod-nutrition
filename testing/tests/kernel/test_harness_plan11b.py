@@ -101,6 +101,16 @@ def test_moodle_watch_records_every_level_change_inside_the_window_and_ends_it()
     assert w.err is None
 
 
+def test_moodle_watch_window_ends_on_the_clock_with_no_player():
+    rt, g = client()
+    T = g.T
+    assert ccmd(rt, g, "moodle.watch", "PANIC", "1").armed is True
+    T.player = None                                  # between characters: getPlayer() is nil
+    T.tick(12, 100)                                  # 1200 ms, past the 1000 ms window
+    w = ccmd(rt, g, "moodle.watch", "read")
+    assert w.done is True and w.samples == 0 and w.err is None
+
+
 def test_moodle_watch_refuses_an_unknown_moodle_and_a_bad_window():
     rt, g = client()
     r = ccmd(rt, g, "moodle.watch", "NOSUCH", "5")
@@ -535,6 +545,22 @@ def test_store_probe_bench_times_the_guard_and_the_write_and_puts_the_counters_b
     assert scmd(h, "store.probe", "bench", "10001") == usage
     assert scmd(h, "store.probe", "roundtrip") == usage
     assert scmd(h, "store.probe") == usage
+
+
+def test_store_probe_save_and_clear_leave_every_store_counter_as_found():
+    h = probe_server()
+    F = h.NR.server.store.file
+
+    def counters():
+        return {k: F.stats[k] for k in F.stats.keys()}
+
+    before = counters()
+    scmd(h, "store.probe", "roundtrip", "save")
+    assert counters() == before
+    scmd(h, "store.probe", "bench", "3")
+    assert counters() == before
+    scmd(h, "store.probe", "clear")
+    assert counters() == before
 
 
 def test_store_probe_clear_empties_the_slots_and_drops_the_index_entry():

@@ -6,6 +6,8 @@ if not isServer() then return end
 -- @purpose Sets the server's game-time multiplier and reports the value read back; the server-only fallback for settimespeed.
 TK.register("time.multiplier", function(argv)
     -- server-only fallback; the admin command (settimespeed) also broadcasts to clients
+    -- Reply change (016dce05): mult= is the true multiplier (getTrueMultiplier) and eff= the effective one
+    -- (getMultiplier); before it mult= carried the effective value.
     getGameTime():setMultiplier(tonumber(argv[1]) or 1)
     return "mult=" .. tostring(getGameTime():getTrueMultiplier()) .. " eff=" .. tostring(getGameTime():getMultiplier())
 end)
@@ -4462,8 +4464,8 @@ end)
 -- it, NR_Server_Writer W.hoist), it times n pairs of Stats:get(CharacterStat[<STAT>]) and Stats:set of the value just
 -- read inside one getTimestampMs bracket, the whole loop under ONE pcall; the value is never changed, so no reading
 -- moves. Without `wrapped` the calls are bare method calls; with `wrapped` each goes the writer's own route:
--- NutritionRevamp.num(stats, "get", nil, enum) and, for a number read, pcall(NutritionRevamp.call, stats, "set", enum, v), so the reply
--- prices the writer's BOREDOM lane (one get and one set a rising minute) on this build. An empty loop of n turns is
+-- NutritionRevamp.num(stats, "get", nil, enum) and, for a number read, pcall(NutritionRevamp.call, stats, "set",
+-- enum, v), so the reply prices the writer's BOREDOM lane (one get and one set a rising minute) on this build. An empty loop of n turns is
 -- timed in its own bracket first and replied as loopMs (the loop's own cost; it is not subtracted). The clock is the
 -- 1 ms getTimestampMs, so n should make the bracket tens of ms at least. n is at most 100000 (bench.global's bound).
 TK.SB = TK.SB or { MAX = 100000 }
@@ -4675,6 +4677,18 @@ function TK.SP.text(v)
     return (ok and type(s) == "string") and s or tostring(v)
 end
 
+-- Every F.stats field is copied before a save, a clear or a bench and put back after it, so the probe leaves the
+-- mod's counters as found (F.save and F.write count writes, bytes and failures; F.intact and F.load count reads).
+function TK.SP.snap(F)
+    local copy = {}
+    for k, v in pairs(F.stats) do copy[k] = v end
+    return copy
+end
+
+function TK.SP.restore(F, copy)
+    for k, v in pairs(copy) do F.stats[k] = v end
+end
+
 function TK.SP.get(t, path)
     local node = t
     for seg in string.gmatch(path, "[^%.]+") do
@@ -4693,7 +4707,9 @@ function TK.SP.save(S, out)
     rec.lastSeen = vals[2]
     rec.satiety = { M = vals[3], S = vals[4], L = vals[5], t = vals[6], nicH = vals[7] }
     rec.reconcile = { count = vals[8] }
+    local snap = TK.SP.snap(F)
     local ok, saved = pcall(F.save, u, rec)
+    TK.SP.restore(F, snap)
     out.saved = ok and saved == true
     if not ok then out.err = tostring(saved) end
     out.slot, out.gen = F.at[u], F.gen[u]
@@ -4765,6 +4781,7 @@ function TK.SP.bench(S, out, n)
     if at == "a" then otherSlot = "b" end
     local intactPath, writePath = F.slot(u, at), F.slot(u, otherSlot)
     local st = F.stats
+    local snap = TK.SP.snap(F)
     local w0, b0, r0, f0 = st.writes, st.bytes, st.reads, st.writeFailures
     local mismatches, failed = 0, 0
     local t0 = getTimestampMs()
@@ -4778,7 +4795,7 @@ function TK.SP.bench(S, out, n)
     local t2 = getTimestampMs()
     out.reads, out.writes, out.bytesWritten = st.reads - r0, st.writes - w0, st.bytes - b0
     out.writeFailures = st.writeFailures - f0
-    st.writes, st.bytes, st.reads = w0, b0, r0
+    TK.SP.restore(F, snap)
     out.n, out.bytes, out.mismatches, out.failed = n, string.len(last), mismatches, failed
     out.intactMs, out.writeMs = t1 - t0, t2 - t1
     out.usPerIntact = out.intactMs * 1000 / n
@@ -4791,6 +4808,7 @@ end
 function TK.SP.clear(S, out)
     local F = S.file
     local u = TK.SP.name()
+    local snap = TK.SP.snap(F)
     local okA = F.write(F.slot(u, "a"), "")
     local okB = F.write(F.slot(u, "b"), "")
     out.indexed = F.index[u] ~= nil
@@ -4804,6 +4822,7 @@ function TK.SP.clear(S, out)
     if S.loaded ~= nil then S.loaded[u] = nil end
     out.emptied = okA and okB
     out.indexWritten = F.writeIndex() == true
+    TK.SP.restore(F, snap)
     out.ok = out.emptied and out.indexWritten
     return out
 end
@@ -4830,7 +4849,8 @@ end)
 -- the ghost's own macros onto it. The real player's reconcile then lands every rise and marks its slot dirty every
 -- minute (Task 2 review, finding 2). The wrapper below reads the carrier's macros through the mod's reconcile read
 -- before the run, seeds the ghost record's reconcile baseline from them, and sets the four stores back after it.
--- The block is guarded on TK.H0 so a test that loads only the file's tail sees no wrapper. Bias: 4 gets and 4 sets per ghost run, inside the batch timer, the same in every arm.
+-- The block is guarded on TK.H0 so a test that loads only the file's tail sees no wrapper.
+-- Bias: 4 gets and 4 sets per ghost run, inside the batch timer, the same in every arm.
 local H0s = TK.H0
 local workSeamed = H0s ~= nil and H0s.work or nil
 
