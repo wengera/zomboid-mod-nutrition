@@ -20359,3 +20359,270 @@ x37-regrade-20261013,sessions.x372.R2_END_MOVE.stopped_sets[0].walk.target.y,100
 x37-regrade-20261013,sessions.x372.R2_END_MOVE.stopped_sets[0].walk.target.z,0,"The harness's own reply to `player.stop` or `player.walk` (finding 6 of the Task 4 review): `cleared` true reports the client queue cleared, not the set stopped (F-2), and the queued walk never moved the character.","`x37-regrade-20261013` `sessions.x372.R2_END_MOVE.stopped_sets[0].moving_rows_after_stop`, `.flagged_rows_after_stop`"
 x37-regrade-20261013,sessions.x372.R2_END_MOVE.stopped_sets[0].walk.wall,284.691,"The harness's own reply to `player.stop` or `player.walk` (finding 6 of the Task 4 review): `cleared` true reports the client queue cleared, not the set stopped (F-2), and the queued walk never moved the character.","`x37-regrade-20261013` `sessions.x372.R2_END_MOVE.stopped_sets[0].moving_rows_after_stop`, `.flagged_rows_after_stop`"
 x37-regrade-20261013,sessions.x372.R2_END_MOVE.why,the harness stop (clearQueue) never stopped the started set: the movement end ca...,The regrade's own sentence for the unmeasured verdict; its mechanism (clearQueue alone) is restated by finding 1 of the Task 4 review: the orphaning is the queued walk's `StartAction` clearing the stack without `stop()` (L5439).,the x372 guide in `docs/reference/artifacts.md`
+x381-20261013-074847,doctor_clean,true,"Pre-run checks, not a reading.",
+x381-20261013-074847,doctor[0],ok   PZ java processes: none,"Pre-run checks, not a reading.",
+x381-20261013-074847,doctor[1],ok   ports 27261/27262/27015: free,"Pre-run checks, not a reading.",
+x381-20261013-074847,doctor[2],"ok   fixture 'default' present (build 42.21.0, 9.9 MB)","Pre-run checks, not a reading.",
+x381-20261013-074847,doctor[3],ok   workshop index: 239 mods,"Pre-run checks, not a reading.",
+x381-20261013-074847,doctor[4],ok   pytest available,"Pre-run checks, not a reading.",
+x381-20261013-074847,host.free_gb_before_boot,12.7895011901855,"Host state at the boot, not a game reading.",
+x381-20261013-074847,host.free_gb_after,19.8033752441406,"Host state at the boot, not a game reading.",
+x381-20261013-074847,steps[0].wall_before,136.957,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[0].wall_after,137.464,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[1].wall_before,137.464,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[1].wall_after,137.97,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[2].wall_before,137.97,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[2].wall_after,138.478,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[3].wall_before,138.478,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[3].wall_after,138.985,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[4].wall_before,138.985,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[4].wall_after,139.492,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[5].wall_before,139.492,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[5].wall_after,140.0,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[6].wall_before,140.0,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[6].wall_after,140.507,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[7].wall_before,140.507,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[7].wall_after,141.015,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[8].wall_before,141.015,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[8].wall_after,141.523,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[9].wall_before,141.523,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[9].wall_after,142.033,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[10].wall_before,142.033,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[10].wall_after,142.54,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[11].wall_before,142.54,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[11].wall_after,143.047,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[12].wall_before,143.055,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[12].wall_after,143.308,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[13].wall_before,143.308,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[13].wall_after,143.811,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[14].wall_before,143.811,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[14].wall_after,144.314,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[15].wall_before,144.314,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[15].wall_after,144.816,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[16].wall_before,144.816,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[16].wall_after,145.324,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[17].wall_before,145.324,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[17].wall_after,145.826,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[18].wall_before,145.826,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[18].wall_after,146.333,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[19].wall_before,146.333,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[19].wall_after,146.838,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[20].wall_before,146.838,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[20].wall_after,147.345,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[21].wall_before,147.345,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[21].wall_after,147.851,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[22].wall_before,147.851,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[22].wall_after,148.354,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[23].wall_before,148.354,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[23].wall_after,148.857,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[24].wall_before,148.862,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[24].wall_after,149.117,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[25].wall_before,149.117,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[25].wall_after,149.372,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[26].wall_before,149.372,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[26].wall_after,149.624,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[27].wall_before,169.42,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[27].wall_after,169.927,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[28].wall_before,169.927,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[28].wall_after,170.182,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[29].wall_before,170.182,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[29].wall_after,170.434,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[30].wall_before,190.485,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[30].wall_after,190.742,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[31].wall_before,190.742,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[31].wall_after,191.249,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[32].wall_before,191.249,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[32].wall_after,191.501,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[33].wall_before,211.555,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[33].wall_after,211.81,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[34].wall_before,211.81,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[34].wall_after,212.316,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[35].wall_before,212.316,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[35].wall_after,212.823,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[36].wall_before,213.823,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[36].wall_after,214.329,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[37].wall_before,216.329,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[37].wall_after,216.837,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[38].wall_before,217.837,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[38].wall_after,218.343,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[39].wall_before,218.343,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[39].wall_after,218.85,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[40].wall_before,218.85,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[40].wall_after,219.356,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[40].ack.values.stats.renders,9019,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,steps[41].wall_before,224.356,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[41].wall_after,224.863,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[41].ack.values.stats.renders,9349,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,steps[42].wall_before,224.863,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[42].wall_after,225.369,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[43].wall_before,225.369,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[43].wall_after,225.621,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[44].wall_before,225.621,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[44].wall_after,226.124,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[45].wall_before,226.124,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[45].wall_after,226.627,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[46].wall_before,227.628,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[46].wall_after,227.88,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[47].wall_before,229.88,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[47].wall_after,230.383,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[48].wall_before,231.383,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[48].wall_after,231.886,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[49].wall_before,231.886,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[49].wall_after,232.388,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[50].wall_before,232.388,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[50].wall_after,232.895,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[50].ack.values.stats.renders,5868,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,steps[51].wall_before,237.896,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[51].wall_after,238.402,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[51].ack.values.stats.renders,6198,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,steps[52].wall_before,238.402,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[52].wall_after,238.906,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[53].wall_before,298.929,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[53].wall_after,299.435,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[54].wall_before,299.435,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[54].wall_after,299.943,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[55].wall_before,299.943,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[55].wall_after,300.449,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[56].wall_before,300.449,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[56].wall_after,300.955,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[57].wall_before,300.955,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[57].wall_after,301.461,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[58].wall_before,301.461,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[58].wall_after,301.967,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[59].wall_before,301.967,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[59].wall_after,302.473,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[60].wall_before,302.473,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[60].wall_after,302.979,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[61].wall_before,302.979,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[61].wall_after,303.487,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[62].wall_before,303.487,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[62].wall_after,303.74,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[63].wall_before,303.74,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[63].wall_after,304.242,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[64].wall_before,304.242,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[64].wall_after,304.746,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[65].wall_before,304.746,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[65].wall_after,305.249,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[66].wall_before,305.249,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[66].wall_after,305.752,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[67].wall_before,305.752,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[67].wall_after,306.258,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[68].wall_before,306.258,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[68].wall_after,306.764,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[69].wall_before,306.764,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[69].wall_after,307.267,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[70].wall_before,307.267,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,steps[70].wall_after,307.769,"Driver wall seconds (bus timing), not game state.",
+x381-20261013-074847,phases.A.bob.options_at_ready.mtime,1791892198.8604977,"Wall-clock stamp (epoch seconds), not game state; read only as written_after_launch.",
+x381-20261013-074847,phases.A.admin.options_at_ready.mtime,1791892158.6158497,"Wall-clock stamp (epoch seconds), not game state; read only as written_after_launch.",
+x381-20261013-074847,phases.B.windows[0].arms.server.side,server,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.server.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.server.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.server.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.server.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.admin.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.admin.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.admin.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.admin.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.admin.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.bob.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.bob.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.bob.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.bob.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[0].arms.bob.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.server.side,server,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.server.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.server.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.server.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.server.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.admin.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.admin.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.admin.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.admin.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.admin.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.bob.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.bob.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.bob.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.bob.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[1].arms.bob.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.server.side,server,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.server.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.server.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.server.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.server.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.admin.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.admin.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.admin.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.admin.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.admin.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.bob.side,client,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.bob.armed,true,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.bob.seconds,20,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.bob.result,tick-rate,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.B.windows[2].arms.bob.file,pzt-results/tick-rate.json,"The harness ack that the tick-rate window was armed, not a reading.","`x381-20261013-074847` `phases.B.windows[i].result_server`, `.result_admin`, `.result_bob`"
+x381-20261013-074847,phases.C.admin.moodles0.values.stats.renders,9019,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,phases.C.admin.moodles1.values.stats.renders,9349,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,phases.C.bob.moodles0.values.stats.renders,5868,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,phases.C.bob.moodles1.values.stats.renders,6198,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,phases.Z.options.admin.mtime,1791892158.6158497,"Wall-clock stamp (epoch seconds), not game state; read only as written_after_launch.",
+x381-20261013-074847,phases.Z.options.bob.mtime,1791892198.8604977,"Wall-clock stamp (epoch seconds), not game state; read only as written_after_launch.",
+x381-20261013-074847,verdicts.MOODLES.observed.admin.renders0,9019,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,verdicts.MOODLES.observed.admin.renders1,9349,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,verdicts.MOODLES.observed.bob.renders0,5868,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,verdicts.MOODLES.observed.bob.renders1,6198,Frame-count dependent raw render count; only the rise over 5 s is cited.,`x381-20261013-074847` `verdicts.MOODLES.observed`
+x381-20261013-074847,server_started_wall,29.408,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,session_ready_wall,136.181,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[0].t,29.4,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[0].phase,server_started,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[1].t,29.5,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[1].phase,client_launch,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[1].user,admin,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[1].restored,true,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[2].t,69.8,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[2].phase,client_ready,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[2].took,39.8,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[2].user,admin,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[3].t,69.9,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[3].phase,client_launch,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[3].user,bob,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[3].restored,true,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[4].t,136.2,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[4].phase,client_ready,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[4].took,65.9,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[4].user,bob,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[5].t,136.2,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[5].phase,session_ready,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].t,136.4,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].phase,verify,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].side,server,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].cmd,lua.global,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].ok,true,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[6].got,"{""side"": ""server"", ""name"": ""NutritionRevamp.version"", ""type"": ""string"", ""resolved"": true, ""value"": ""","Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].t,136.7,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].phase,verify,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].side,client,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].cmd,lua.global,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].ok,true,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[7].got,"{""side"": ""client"", ""name"": ""NutritionRevamp.version"", ""type"": ""string"", ""resolved"": true, ""value"": ""","Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].t,137.0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].phase,verify,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].side,client:bob,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].cmd,lua.global,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].ok,true,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[8].got,"{""side"": ""client"", ""name"": ""NutritionRevamp.version"", ""type"": ""string"", ""resolved"": true, ""value"": ""","Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[9].t,238.9,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[9].phase,watch,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[9].seconds,60.0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[10].t,310.5,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[10].phase,client_quit,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[10].user,admin,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[10].rc,0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[11].t,313.0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[11].phase,client_quit,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[11].user,bob,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[11].rc,0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[12].t,321.0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[12].phase,server_stopped,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[12].rc,0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,timeline[12].errors,0,"Wall-clock marks of the driver, not game state.",
+x381-20261013-074847,wall_seconds,322.0,"Wall-clock marks of the driver, not game state.",
