@@ -25,17 +25,16 @@ The fixed oracles (Whybrow 2008, E-MECHANIC) read the exercise lag L, which none
 they are read once at the start point and once at the chosen point (both written), not per candidate.
 
 The search: every point of the grid (the product of the spec's value lists, in the spec's order) whose bypass ramp
-rises (EX_BYPASS_HI above EX_BYPASS_LO), then a coordinate refinement from the best point as in fit_gut_satiety: each
-refined constant times and over the factor, a move kept when it lowers the loss, a round with no move taking the
-square root of the factor. Values are rounded to six significant digits and clamped to their bounds; a point already
-scored is not re-run.
+rises (EX_BYPASS_HI above EX_BYPASS_LO), then a coordinate refinement from the best point (tools/fitlib.py's, as in
+fit_gut_satiety): each refined constant times and over the factor, a move kept when it lowers the loss, a round with
+no move taking the square root of the factor. Values are rounded to six significant digits and clamped to their
+bounds; a point already scored is not re-run.
 
 The spec (JSON): {"params": {"deficit.BALANCE_SPAN_KCAL": [3100, 3800], ...}, "refine": {"rounds": 3, "factor": 1.1}}
 Without --grid the spec is PARAMS at their shipped values, refined. fit.json is deterministic apart from `date`.
 """
 import argparse
 import datetime
-import itertools
 import json
 import math
 import os
@@ -46,6 +45,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import fit_gut_satiety as FG  # noqa: E402  (puts testing/tests and tools on sys.path)
+import fitlib  # noqa: E402
 from kernel import deficit_oracles as DO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 
@@ -150,40 +150,6 @@ def _worker(args):
     return evaluate(*args)
 
 
-def round_sig(x):
-    return FG.round_sig(x)
-
-
-class _Search:
-    def __init__(self, jobs, fixed):
-        self.fixed = fixed
-        self.seen = {}
-        self.order = []
-        self.pool = None
-        if jobs > 1:
-            import multiprocessing
-            self.pool = multiprocessing.get_context("spawn").Pool(jobs)
-
-    def close(self):
-        if self.pool is not None:
-            self.pool.close()
-            self.pool.join()
-
-    def score(self, patches, phase):
-        keys = [tuple(sorted(p.items())) for p in patches]
-        todo = []
-        for k, p in zip(keys, patches):
-            if k not in self.seen and k not in [t[0] for t in todo]:
-                todo.append((k, p))
-        args = [(p, self.fixed) for _, p in todo]
-        results = self.pool.map(_worker, args, chunksize=1) if self.pool is not None else [_worker(a) for a in args]
-        for (k, _), r in zip(todo, results):
-            r = dict(r, phase=phase)
-            self.seen[k] = r
-            self.order.append(r)
-        return [self.seen[k] for k in keys]
-
-
 def distance(params, start):
     """The distance from the start point: each constant's relative change (over 0.1 for one under 0.1), squared, summed."""
     d = 0.0
@@ -200,40 +166,24 @@ def choose(cands, start):
     return min(near, key=lambda c: distance(c["params"], start))
 
 
+def _admit(name, v, point):
+    """A refined value clamped to its bounds, kept only inside them and with the ramp rising (_valid)."""
+    lo, hi, _ = _bounds(name)
+    v = min(max(v, lo), hi)
+    if not _inside(name, v) or not _valid(dict(point, **{name: v})):
+        return None
+    return v
+
+
 def search(spec, jobs=1, fixed=None, start=None):
-    params = spec["params"]
-    names = list(params)
+    names = list(spec["params"])
     if start is None:
         start = FG.current(names)
     if fixed is None:
         fixed = read_groups({}, DO.FIXED_GROUPS)
-    s = _Search(jobs, fixed)
+    s = fitlib.Search(_worker, jobs, job=lambda p: (p, fixed))
     try:
-        grid = [dict(zip(names, vals)) for vals in itertools.product(*(params[n] for n in names))]
-        s.score([p for p in grid if _valid(p)], "grid")
-        refine = dict(DEFAULT_REFINE)
-        refine.update(spec.get("refine", {}))
-        rnames = refine.get("params", names)
-        factor = float(refine["factor"])
-        point = dict(min(s.order, key=lambda r: r["loss"])["params"])
-        for _ in range(int(refine["rounds"])):
-            moved = False
-            for n in rnames:
-                here = s.score([point], "refine")[0]
-                vals = []
-                for v in (round_sig(point[n] * factor), round_sig(point[n] / factor)):
-                    lo, hi, _ = _bounds(n)
-                    v = min(max(v, lo), hi)
-                    if v != point[n] and v not in vals and _inside(n, v) and _valid(dict(point, **{n: v})):
-                        vals.append(v)
-                for r in (s.score([dict(point, **{n: v}) for v in vals], "refine") if vals else []):
-                    if r["loss"] < here["loss"]:
-                        here = r
-                if here["params"] != point:
-                    point = dict(here["params"])
-                    moved = True
-            if not moved:
-                factor = math.sqrt(factor)
+        fitlib.grid_then_refine(spec, s, DEFAULT_REFINE, _admit, valid=_valid)
         return s.order, choose(s.order, start), fixed, start
     finally:
         s.close()

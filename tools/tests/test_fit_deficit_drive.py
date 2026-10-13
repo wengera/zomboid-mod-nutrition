@@ -172,3 +172,44 @@ def test_a_two_point_grid_writes_the_full_and_the_compact_fit():
     assert doc["fixed"]["start"]["whybrow"] == doc["fixed"]["chosen"]["whybrow"]   # no fitted constant moves L
     assert comp["candidates"] == 2 and comp["chosen"] == doc["chosen"] and len(comp["source_sha256"]) == 64
     assert [p["value"] for p in comp["profile"][SPAN]] == [3100, 4000]
+
+
+
+def test_the_same_grid_gives_byte_identical_output_but_the_date():
+    # the whole-pass review's finding 11, mirroring test_fit_gut_satiety's: two runs of one spec, the refinement
+    # included, write the same fit.json and fit-compact.json apart from the date. The candidates are scored through
+    # F.score on synthetic readings and the fixed groups are canned, because a real candidate costs about 32 s on the
+    # server path and the fixed reads 16 s (Plan 11g close); the search, the tie rule, the fixed hand-off and the
+    # serialisation are the tool's own
+    saved = F._worker, F.read_groups
+
+    def fake(args):
+        patch, fixed = args
+        r = F.score(readings(dfc=20.0 + patch[SPAN] / 1000.0, rise=0.05 + patch[LO] / 10.0))
+        r["params"] = dict(patch)
+        return r
+
+    def canned(patch, names):
+        return {n: readings()[n] for n in names}
+    F._worker, F.read_groups = fake, canned
+    texts, compacts = [], []
+    try:
+        for _ in range(2):
+            with tempfile.TemporaryDirectory() as out:
+                F.fit(F.load_spec({"params": {SPAN: [3100, 4000], LO: [0.282, 0.3], HI: [0.575]},
+                                   "refine": {"rounds": 1, "factor": 1.1, "params": [SPAN, LO]}}), out)
+                with open(os.path.join(out, "fit.json"), encoding="utf-8") as fh:
+                    texts.append(fh.read())
+                with open(os.path.join(out, "fit-compact.json"), encoding="utf-8") as fh:
+                    compacts.append(json.load(fh))
+    finally:
+        F._worker, F.read_groups = saved
+    a, b = (json.loads(t) for t in texts)
+    a.pop("date"), b.pop("date")
+    assert a == b
+    strip = [t.replace(json.loads(t)["date"], "") for t in texts]
+    assert strip[0] == strip[1]
+    assert any(c["phase"] == "refine" for c in a["candidates"])
+    for c in compacts:                                       # the compact file hashes its source, date included
+        c.pop("source_sha256")
+    assert compacts[0] == compacts[1]

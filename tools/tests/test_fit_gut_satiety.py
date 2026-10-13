@@ -89,14 +89,6 @@ def test_the_same_grid_gives_byte_identical_output_but_the_date():
     assert any(c["phase"] == "refine" for c in a["candidates"])
 
 
-def test_stage_a_exits_with_a_clear_message_until_its_constants_exist():
-    with tempfile.TemporaryDirectory() as out:
-        p = subprocess.run([sys.executable, os.path.join(HERE, "..", "fit_gut_satiety.py"), "--out", out,
-                            "--stage", "A"], capture_output=True, text=True)
-    assert p.returncode == 2, p
-    assert "stage A" in p.stderr and "A_HALF_LIFE_H" in p.stderr, p.stderr
-
-
 def test_an_unknown_constant_is_refused():
     try:
         F.load_spec({"params": {"NO_SUCH_CONSTANT": [1.0]}})
@@ -304,3 +296,11 @@ def test_a_fit_run_writes_the_compact_file_beside_fit_json():
         assert F.main(["--compact", os.path.join(tmp, "o", "fit.json"), "--out", os.path.join(tmp, "p")]) == 0
         assert open(os.path.join(tmp, "p", "fit-compact.json"), "rb").read() == \
             open(os.path.join(tmp, "o", "fit-compact.json"), "rb").read()
+
+
+
+def test_the_refinement_applies_both_bounds():
+    # Plan 11g close (tools/fitlib.py): a refined value is clamped to the inclusive high bound, and one at or under the
+    # exclusive low bound is skipped, never scored
+    assert F._admit("FULL_WEIGHT", 1.3, {}) == 1 and F._admit("LIQUID_WEIGHT", 0.4, {}) == 0.4
+    assert F._admit("FULL_WEIGHT", 0.0, {}) is None and F._admit("MEAL_REQ", -1.0, {}) is None

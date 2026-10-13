@@ -1,6 +1,6 @@
 """The gut-satiety joint fit (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 4).
 
-    python tools/fit_gut_satiety.py --out <dir> [--grid <spec.json>] [--jobs N] [--stage A]
+    python tools/fit_gut_satiety.py --out <dir> [--grid <spec.json>] [--jobs N]
     python tools/fit_gut_satiety.py --compact <fit.json> --out <dir>
 
 Scores candidate constants against every oracle of testing/tests/kernel/gut_oracles.py (ORACLES: the 11c/11d meal-study
@@ -10,7 +10,9 @@ Task 6c) and writes <dir>/fit.json.
 The search: every point of the grid (the product of the spec's value lists, in the spec's order), then a coordinate
 refinement from the best point: for each refined constant in turn, the value times and over the step factor; a move is
 kept when it lowers the loss; a round with no move takes the square root of the factor. Values are rounded to six
-significant digits, and a point already scored is not re-run.
+significant digits and clamped to their bounds (BOUNDS: the high bound inclusive, a value at or under the exclusive
+low bound skipped), and a point already scored is not re-run. The search is tools/fitlib.py's, shared with
+fit_deficit_drive.
 
 The loss: the sum over every hard and one-sided oracle of its relative miss beyond its tolerance (gut_oracles.Oracle.miss,
 each at weight 1); a reading-kind oracle is reported beside it, never in it. Ties keep the earlier candidate.
@@ -34,14 +36,10 @@ A fit run also writes <dir>/fit-compact.json, the projection that is committed (
 the gitignored testing/runs/). --compact rebuilds it from a full fit.json: a pure function of the file's bytes, holding
 source_sha256 and source_bytes, head, spec (the grid), candidates (the count), chosen (as fit.json records it) and
 profile (for each parameter, every distinct value tried with the best loss seen at it, sorted by value).
-
---stage A adds the absorbed stage's constants (STAGE_A_PARAMS) to the search; no kernel builds A (Task 6 ruled a single
-stage), so it exits 2, naming the constants it did not find.
 """
 import argparse
 import datetime
 import hashlib
-import itertools
 import json
 import math
 import os
@@ -58,12 +56,12 @@ for _p in (TESTS, TOOLS):
 from kernel import gut_oracles as GO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 import replay_live as RL  # noqa: E402
+import fitlib  # noqa: E402
 
 DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL",
                   "LIQUID_WEIGHT")
-STAGE_A_PARAMS = ("A_REQ", "A_STEEP", "A_HALF_LIFE_H")
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.25}
-SIG = 6                         # significant digits a refined value keeps
+SIG = fitlib.SIG                # significant digits a refined value keeps
 # (exclusive low, inclusive high); any other: (0, inf). LIQUID_WEIGHT is a weight on drunk liquid's mass, at most the
 # solid lane's 1 (ruling T6c-5): the bound is the quantity's own range, and two scored rows set the value inside it,
 # S1231's null for water drunk alongside (rolls_cw_minus_cas, and the soup's drop rolls_drop) from above and S1233's
@@ -188,9 +186,7 @@ def _eval_worker(patch):
 
 
 def round_sig(x, sig=SIG):
-    if x == 0:
-        return 0.0
-    return float(round(x, sig - 1 - int(math.floor(math.log10(abs(x))))))
+    return fitlib.round_sig(x, sig)
 
 
 def load_spec(spec):
@@ -222,72 +218,21 @@ def default_spec():
     return {"params": {k: [v] for k, v in current(DEFAULT_PARAMS).items()}, "refine": dict(DEFAULT_REFINE)}
 
 
-class _Search:
-    def __init__(self, jobs):
-        self.jobs = jobs
-        self.seen = {}
-        self.order = []
-        self.pool = None
-        if jobs > 1:
-            import multiprocessing
-            self.pool = multiprocessing.get_context("spawn").Pool(jobs)
+def _record(r, phase):
+    return {"phase": phase, "params": r["params"], "loss": r["loss"], "oracles": r["oracles"]}
 
-    def close(self):
-        if self.pool is not None:
-            self.pool.close()
-            self.pool.join()
 
-    def score(self, patches, phase):
-        """Score each new patch (in order); returns the results for all of them."""
-        keys = [tuple(sorted(p.items())) for p in patches]
-        todo = []
-        for k, p in zip(keys, patches):
-            if k not in self.seen and k not in [t[0] for t in todo]:
-                todo.append((k, p))
-        if self.pool is not None:
-            results = self.pool.map(_eval_worker, [p for _, p in todo])
-        else:
-            results = [_eval_worker(p) for _, p in todo]
-        for (k, _), r in zip(todo, results):
-            r = {"phase": phase, "params": r["params"], "loss": r["loss"], "oracles": r["oracles"]}
-            self.seen[k] = r
-            self.order.append(r)
-        return [self.seen[k] for k in keys]
-
-    def best(self):
-        return min(self.order, key=lambda r: r["loss"])      # min keeps the first of equal losses
+def _admit(name, v, point):
+    """A refined value inside BOUNDS: clamped to the inclusive high bound; at or under the exclusive low, skipped."""
+    lo, hi = _bounds(name)
+    v = min(v, hi)
+    return v if v > lo else None
 
 
 def search(spec, jobs=1):
-    params = spec["params"]
-    names = list(params)
-    s = _Search(jobs)
+    s = fitlib.Search(_eval_worker, jobs, record=_record)
     try:
-        grid = [dict(zip(names, vals)) for vals in itertools.product(*(params[n] for n in names))]
-        s.score(grid, "grid")
-        refine = dict(DEFAULT_REFINE)
-        refine.update(spec.get("refine", {}))
-        rnames = refine.get("params", names)
-        factor = float(refine["factor"])
-        point = dict(s.best()["params"])
-        for _ in range(int(refine["rounds"])):
-            moved = False
-            for n in rnames:
-                here = s.score([point], "refine")[0]
-                hi = _bounds(n)[1]
-                vals = []
-                for v in (round_sig(point[n] * factor), round_sig(point[n] / factor)):
-                    v = min(v, hi)
-                    if v != point[n] and v not in vals:
-                        vals.append(v)
-                for r in (s.score([dict(point, **{n: v}) for v in vals], "refine") if vals else []):
-                    if r["loss"] < here["loss"]:
-                        here = r
-                if here["params"] != point:
-                    point = dict(here["params"])
-                    moved = True
-            if not moved:
-                factor = math.sqrt(factor)
+        fitlib.grid_then_refine(spec, s, DEFAULT_REFINE, _admit)
         return s.order, s.best()
     finally:
         s.close()
@@ -343,23 +288,11 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="the directory fit.json and fit-compact.json are written to")
     ap.add_argument("--compact", metavar="FIT_JSON", help="write <out>/fit-compact.json from this full fit.json; no fit runs")
     ap.add_argument("--jobs", type=int, default=1, help="candidates scored in parallel (one host per process)")
-    ap.add_argument("--stage", choices=("A",), help="A: add the absorbed stage's constants to the search")
     args = ap.parse_args(argv)
     if args.compact:
         print("wrote " + write_compact(args.compact, args.out))
         return 0
     spec = load_spec(args.grid) if args.grid else default_spec()
-    if args.stage == "A":
-        h = LuaHost()
-        missing = [n for n in STAGE_A_PARAMS if h.K.satiety[n] is None]
-        if missing:
-            sys.stderr.write("fit_gut_satiety: stage A is not in the kernel: K.satiety has no %s. Build A first "
-                             "(Plan 11g Task 6, the stage rule), then rerun with --stage A.\n" % ", ".join(missing))
-            return 2
-        for name, value in current(STAGE_A_PARAMS).items():
-            spec["params"].setdefault(name, [value])
-            if "params" in spec.get("refine", {}) and name not in spec["refine"]["params"]:
-                spec["refine"]["params"].append(name)
     chosen = fit(spec, args.out, args.jobs)
     write_compact(os.path.join(args.out, "fit.json"), args.out)
     print("chosen: loss %.6g at %s" % (chosen["loss"], json.dumps(chosen["params"], sort_keys=True)))
