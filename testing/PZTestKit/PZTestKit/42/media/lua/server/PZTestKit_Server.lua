@@ -4536,3 +4536,83 @@ TK.register("stats.bench", function(argv)
     out.ok = ran
     return out
 end)
+
+-- ---- Plan 11b Task 1: a scalar into the mod's in-memory record by lua.read's grammar (H6; ruling 11b-3) -------------
+-- record.set <user> <path> <value>
+-- TEST-ONLY INSTRUMENT, the record's setter beside lua.setpath (which walks a plain dotted path from the globals, so
+-- no key it names may hold a dot, and every full type does: `monotony.t.Base.Bread` cannot be reached through it).
+-- The root is lua.read's `record:<user>` (TK.readRoot, PZTestKit_Core.lua's Plan 11f block): the store's in-memory
+-- table NutritionRevamp.server.store.records[<user>], indexed directly, never through S.get, so a user the store does
+-- not hold this uptime answers `error = "no record"` and nothing is created. The path is lua.read's grammar
+-- (TK.parsePath): `.`-joined segments, a plain segment a string key that falls back to the number key when the string
+-- key is nil and the segment reads as a number, `[a.b]` one literal string key, dots included; so
+-- `monotony.t.[TKX.Mono450].last` reaches the `last` of the TKX.Mono450 entry. A leading `_G` is refused: this
+-- command writes into the record only. Every segment but the last must reach a table (TK.walkPath), and no parent is
+-- ever created. The last segment: the string key when it holds a value, else the number key when the segment reads
+-- as a number and that key holds a value, else (an absent leaf, created on its existing parent) the number key for a
+-- numeric plain segment and the string key otherwise. A leaf holding a table is refused (scalars only). The value is
+-- parsed as lua.setpath parses it: `true`, `false`, `nil`, a number, else the string as given.
+-- The write is to memory only: the record reaches its slot file at its next store step, as any record change does.
+-- The reply carries the value before and after (each absent when nil) with their types and which key form was set.
+-- @args <user> <path> <value>  (path: lua.read's grammar from record:<user>; [a.b] is one literal key; no _G; no parent created)
+-- @reply {ok, side, user, path, key, keyType, before, beforeType, after, afterType} | {ok, side, user, path, error} | string
+-- @purpose Test-only: assigns a true, false, nil, number or string scalar into the mod's in-memory record of a user by lua.read's path grammar (bracketed keys hold dots), never creating a parent, and replies the value before and after.
+TK.register("record.set", function(argv)
+    local user, path, raw = argv[1], argv[2], argv[3]
+    if user == nil or path == nil or raw == nil then return "usage: record.set <user> <path> <value>" end
+    local out = { ok = false, side = TK.side, user = user, path = path }
+    if TK.readRoot == nil or TK.parsePath == nil or TK.walkPath == nil then
+        out.error = "no lua.read grammar (TK.readRoot/parsePath/walkPath)"
+        return out
+    end
+    local value = raw
+    if raw == "true" then value = true
+    elseif raw == "false" then value = false
+    elseif raw == "nil" then value = nil
+    elseif tonumber(raw) ~= nil then value = tonumber(raw) end
+    local node, err = TK.readRoot("record:" .. user)
+    if node == nil then
+        out.error = err
+        return out
+    end
+    local segs, global = TK.parsePath(path)
+    if segs == nil then
+        out.error = "bad path: " .. tostring(global)
+        return out
+    end
+    if global or #segs == 0 then
+        out.error = "a _G path is not a record path"
+        return out
+    end
+    local parentSegs = {}
+    for i = 1, #segs - 1 do parentSegs[i] = segs[i] end
+    local parent = node
+    if #parentSegs > 0 then
+        local ok, v = TK.walkPath(node, parentSegs)
+        if not ok then
+            out.error = "parent " .. tostring(v)
+            return out
+        end
+        parent = v
+    end
+    if type(parent) ~= "table" then
+        out.error = "parent is a " .. type(parent) .. ", not a table"
+        return out
+    end
+    local last = segs[#segs]
+    local key = last.k
+    if parent[last.k] == nil and last.n ~= nil then key = last.n end
+    local before = parent[key]
+    if type(before) == "table" then
+        out.error = "a table at " .. path .. "; record.set assigns scalars only"
+        return out
+    end
+    parent[key] = value
+    local after = parent[key]
+    out.ok = true
+    out.key = tostring(key)
+    out.keyType = type(key)
+    out.before, out.beforeType = before, type(before)
+    out.after, out.afterType = after, type(after)
+    return out
+end)

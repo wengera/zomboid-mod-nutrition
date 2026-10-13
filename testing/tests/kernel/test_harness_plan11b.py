@@ -414,3 +414,48 @@ def test_stats_bench_refuses_what_it_cannot_price():
     assert scmd(h, "stats.bench", "admin", "NOSUCH", "10").reason == "no CharacterStat.NOSUCH"
     r = scmd(h, "stats.bench", "admin", "PANIC", "10")              # a stat the stub reads as nil
     assert r.ok is False and "read no number" in r.reason and h.p.st.sets == 0
+
+
+# ---- H6 record.set (server) ------------------------------------------------------------------------------------------
+
+def test_record_set_reaches_a_bracketed_full_type_key_and_replies_before_and_after():
+    h = server()
+    rec = h.record("admin")
+    rec.monotony = h.rt.table_from({"t": h.rt.table_from({"TKX.Mono450": h.rt.table_from({"n": 5, "last": 100.25})})})
+    r = scmd(h, "record.set", "admin", "monotony.t.[TKX.Mono450].last", "-68")
+    assert r.ok is True and r.side == "server" and r.key == "last" and r.keyType == "string"
+    assert r.before == 100.25 and r.beforeType == "number" and r.after == -68 and r.afterType == "number"
+    assert rec.monotony.t["TKX.Mono450"].last == -68
+    r = scmd(h, "record.set", "admin", "dead", "true")
+    assert r.ok is True and r.before is False and r.after is True and rec.dead is True
+    r = scmd(h, "record.set", "admin", "monotony.t.[TKX.Mono450].note", "hello")   # an absent leaf, on its parent
+    assert r.ok is True and r.before is None and r.beforeType == "nil" and rec.monotony.t["TKX.Mono450"].note == "hello"
+    r = scmd(h, "record.set", "admin", "monotony.t.[TKX.Mono450].note", "nil")
+    assert r.ok is True and r.after is None and r.afterType == "nil"
+
+
+def test_record_set_takes_the_number_key_of_a_ring_slot():
+    h = server()
+    rec = h.record("admin")
+    rec.ring = h.rt.table(10, 20, 30)
+    r = scmd(h, "record.set", "admin", "ring.2", "25")
+    assert r.ok is True and r.keyType == "number" and r.before == 20 and rec.ring[2] == 25 and rec.ring["2"] is None
+    r = scmd(h, "record.set", "admin", "ring.4", "40")                # an absent numeric leaf: the number key
+    assert r.ok is True and r.keyType == "number" and rec.ring[4] == 40
+
+
+def test_record_set_never_creates_a_parent_a_record_or_a_global():
+    h = server()
+    rec = h.record("admin")
+    r = scmd(h, "record.set", "admin", "monotony.t.[TKX.Mono450].last", "1")
+    assert r.ok is False and r.error.startswith("parent nil") and rec.monotony is None
+    r = scmd(h, "record.set", "nobody", "dead", "true")
+    assert r.ok is False and r.error == "no record" and h.record("nobody") is None
+    r = scmd(h, "record.set", "admin", "_G.TKX_flag", "1")
+    assert r.ok is False and "_G" in r.error and h.G.TKX_flag is None
+    rec.satiety = h.rt.table_from({"M": 300})
+    r = scmd(h, "record.set", "admin", "satiety", "5")
+    assert r.ok is False and "scalars only" in r.error and rec.satiety.M == 300
+    r = scmd(h, "record.set", "admin", "monotony.[TKX.Mono450", "5")
+    assert r.ok is False and r.error.startswith("bad path")
+    assert scmd(h, "record.set", "admin", "dead") == "usage: record.set <user> <path> <value>"
