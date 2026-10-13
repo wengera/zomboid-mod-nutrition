@@ -239,6 +239,12 @@ The staged item is `release/NutritionRevamp/` holding `workshop.txt` with an emp
 The manifest records each file's `sha256` and byte count and, for a `.txt` file under `media/scripts/` and a `.lua` file under `media/lua/`, a `gate_sha256` over its bytes with every CR dropped, so a CRLF file and its LF twin hash alike; `--previous` prints the added, removed, changed and script-changed lists and prints `SERVER EVENT: <n> script or Lua file(s) changed` when such a file was added or removed or its gate hash moved, the join checksum gating the Lua as it gates the scripts [#3814/C/C-only].
 `data/vanilla-relative-paths.txt` is the sorted list of every file under the install's `media/scripts` and `media/lua`, relative to `media/`, read from the install and written once, on build 42.20.4 on 2026-10-06; a new build's list is re-read from its install before a release is checked against it.
 
+<a id="xlib"></a>
+## `xlib.py` — the drivers' shared session helpers
+
+`testing/experiments/xlib.py` holds the plumbing every live driver from x391h to x406 copied: the `Xs` session class (the output dict, the bus-dead flag, the timeline, the server and the clients are its explicit state, with no module globals) with `step` (a timeout pings, and no pong marks the bus dead and raises `BusDead`), `run_phase` (a fault is recorded as `failed_phase`, never `phase=`), `check` (the wall budget and the debugger park), `spawn` (an RCON `additem` confirmed by `item.get`, a leftover before the spawn voiding it), `eat_queue` and `spawned_stop` (the eats stop at any `spawned` that is not the string `"found"`), `grade` (zero samples turn `as_predicted` into `unmeasured`), and the `refuse`, `finish` and `copy_artifacts` skeleton; and the module functions `deployed_marker_check` (each file read once), `manifest_gate` (the staged copy against `release_pack.manifest` of `mod/NutritionRevamp` at HEAD), `grep_noecho` (with a probe exclusion), `memory_ok` and `free_gb`.
+A new driver imports it; a driver that has run is frozen and never does. Its offline tests are `testing/tests/test_xlib.py`, on a fake bus that answers the harness's `@reply` shapes.
+
 <a id="fit-tools"></a>
 ## The fit tools
 
