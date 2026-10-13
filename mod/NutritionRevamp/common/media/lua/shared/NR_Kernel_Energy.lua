@@ -291,19 +291,6 @@ function K.energy.eb24h(body)
     return K.body.trail24(body.trail, "kcal") - K.body.trail24(body.trail, "ee")
 end
 
--- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise is billed by the activity, not by the engine's
--- lagged metabolic rate. The engine moves its rate toward the activity's target as an asymmetric first-order lag (0.001
--- of the gap per update rising, 0.0004 falling, times GameTime's multiplier: Thermoregulator.updateMetabolicRate), so a
--- rate read alone under-bills a bout's rise and bills its slow fall as exercise: about 450 kcal after a 1 h Fitness set at
--- DayLength 1, where the after-burn is tens of kcal (S1775, S1777, S1779). billClass names the class a minute bills:
--- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
--- exercise minute; while the raw engine rate falls (rateFalling, raw against raw, Plan 11f C-26) with no exercise and no movement, the idle class
--- (Default, COMPENDIUM 1.3) for any class billing above it; otherwise the rate's own class. Every other activity keeps the
--- engine's lag: a walk, a chop or a fight still under-bills its rise, and a moving fall bills at most Walking5kmh.
--- getCurrentExe cannot say which exercise (#2180, #2901), so since Plan 11h (C-2) the set minute bills the MET of the
--- exercise type NR_Server_Fitness.lua recorded at the set's start (EXERCISE_MET), and the flat Fitness class (6.0) when
--- no known type is recorded; the writer's acute hunger term reads every set minute as resistance-vigorous from the flag,
--- whatever its MET (W.vigorous).
 -- Whether the raw engine rate fell from prev to rate by more than FALL_EPS; a nil or non-finite reading is no fall.
 function K.energy.rateFalling(prev, rate)
     if prev == nil or rate == nil then
@@ -328,9 +315,21 @@ function K.energy.exerciseMet(exeType)
     return met, true
 end
 
--- The class a minute bills: rateClass is the rate's classOf (or Sleeping, which wins); exercising the server's
--- exercise flag; moving the player's moving flag; falling rateFalling's answer for the minute. It names the class
--- only: a set minute reads "Fitness", and the adapter picks the MET (K.energy.exerciseMet) for it.
+-- The class a minute bills (Plan 11f C-17, ruling C17-1; Plan 11h C-2). Exercise is billed by the activity, not by the
+-- engine's lagged metabolic rate: the engine moves its rate toward the activity's target as an asymmetric first-order
+-- lag (0.001 of the gap per update rising, 0.0004 falling, times GameTime's multiplier:
+-- Thermoregulator.updateMetabolicRate), so a rate read alone under-bills a bout's rise and bills its slow fall as
+-- exercise: about 450 kcal after a 1 h Fitness set at DayLength 1, where the after-burn is tens of kcal (S1775, S1777,
+-- S1779). rateClass is the rate's classOf, exercising the server's exercise flag, moving the player's moving flag and
+-- falling rateFalling's answer (raw against raw, Plan 11f C-26). Sleeping wins; otherwise the minute bills,
+-- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
+-- exercise minute; while the rate falls with no exercise and no movement, the idle class (Default, COMPENDIUM 1.3) for
+-- any class billing above it; while it falls on the move, at most Walking5kmh; otherwise the rate's own class. Every
+-- other activity keeps the engine's lag, so a walk, a chop or a fight still under-bills its rise. The function names
+-- the class only: getCurrentExe cannot say which exercise (#2180, #2901), so the adapter bills a set minute at the MET
+-- of the type NR_Server_Fitness.lua recorded at the set's start (K.energy.exerciseMet over EXERCISE_MET), or the flat
+-- Fitness class (6.0) when no known type is recorded; the writer reads every set minute as resistance-vigorous from
+-- the flag, whatever its MET (W.vigorous).
 function K.energy.billClass(rateClass, exercising, moving, falling)
     if rateClass == "Sleeping" then
         return rateClass
