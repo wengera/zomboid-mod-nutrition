@@ -24,8 +24,32 @@ def test_ticks_per_minute_takes_the_smaller_of_the_last_two(host):
     assert host.call("sched.ticksPerMinute", 1, 1) == 1            # a fast clock: one tick a minute event (#3348)
     assert host.call("sched.ticksPerMinute", None, None) == 6      # before two minutes are counted
     assert host.call("sched.ticksPerMinute", 0, None) == 6         # the boot's first minute event: no count yet
-    assert host.call("sched.ticksPerMinute", 1, 0) == 1
+    assert host.call("sched.ticksPerMinute", 1, 0) == 6            # a lone 1-tick count is not trusted (Plan 12 A3)
     assert host.call("sched.ticksPerMinute", 37, None) == 37
+
+
+def _tpm_seq(host, counts):
+    # the adapter's shift: at each minute event prev takes last and last the minute just counted
+    out = []
+    last = prev = None
+    for c in counts:
+        prev, last = last, c
+        out.append(host.call("sched.ticksPerMinute", last, prev))
+    return out
+
+
+def test_a_stall_minute_does_not_size_the_budget_to_the_whole_queue(host):
+    # Plan 12 A3 (K2 B2): a game minute that passes inside one tick (a world save, a GC pause, the last minute of a
+    # fast-forward) is a lone 1-tick count: neither the minute event it closes nor the next one reads it, so neither
+    # runs the whole queue in one frame; the normal count carries both
+    assert _tpm_seq(host, [6, 7, 6, 1, 6, 7]) == [6, 6, 6, 6, 6, 6]
+    assert _tpm_seq(host, [37, 37, 1, 37]) == [37, 37, 37, 37]
+
+
+def test_a_sustained_fast_clock_still_reads_one_tick(host):
+    # two 1-tick minutes in a row are a fast clock (every frame a minute frame, #3349): the budget is the whole queue
+    assert _tpm_seq(host, [6, 1, 1, 1]) == [6, 6, 1, 1]
+    assert _tpm_seq(host, [1, 1, 6, 6]) == [6, 1, 6, 6]
 
 
 def test_the_budget_has_a_15_ms_floor_and_grows_with_the_queue(host):

@@ -9,6 +9,7 @@ K.sched.SEED_MS = 1.6 -- #3387: one player-run in play cost 1583 us; the mean be
 K.sched.MIN_MEAN_MS = 0.1 -- game choice: a run timed at 0 ms on the 1 ms clock never drives the cap to infinity
 K.sched.EMA_W = 0.2 -- game choice: the weight the harness's budget arm used (ghost.load budget<ms>)
 K.sched.TPM_DEFAULT = 6 -- #3346: 6.27 ticks a game minute at DayLength 1, the shortest day measured
+K.sched.MIN_TICKS = 2 -- game choice: a count under 2 ticks is a stall or a fast clock, trusted only twice in a row
 
 -- The pending queue from position head, kept in order for every name still in the roster and never doubled, then
 -- every roster name not already queued, in roster order. Returns a new list.
@@ -36,18 +37,31 @@ function K.sched.merge(pending, head, roster)
     return out
 end
 
--- The ticks a minute the budget divides by: the smaller of the last two minutes' counts (a 6-tick minute after a
--- 7-tick one starved the drafted spread, #3478); TPM_DEFAULT before a count exists. A count of 0 is no count: every
--- minute event is followed by at least one tick (#3348-#3350), so 0 is only the boot's first minute.
+-- The ticks a minute the budget divides by: the smaller of the last two minutes' counts of at least MIN_TICKS (a 6-tick
+-- minute after a 7-tick one starved the drafted spread, #3478), or the one such count. A count under MIN_TICKS is a
+-- minute that passed inside one tick: two in a row are a fast clock (every frame a minute frame, #3349), read as 1 so
+-- the budget is the whole queue; a lone one is a stall (a world save, a GC pause, the last minute of a fast-forward)
+-- and is not read, so the frames after a hitch do not each run the whole queue. TPM_DEFAULT before a count exists. A
+-- count of 0 is no count: every minute event is followed by at least one tick (#3348-#3350), so 0 is only the boot's
+-- first minute.
 function K.sched.ticksPerMinute(last, prev)
-    local t = last
-    if t == nil or t < 1 then
-        t = K.sched.TPM_DEFAULT
+    local S = K.sched
+    local t = nil
+    if last ~= nil and last >= S.MIN_TICKS then
+        t = last
     end
-    if prev ~= nil and prev >= 1 and prev < t then
-        t = prev
+    if prev ~= nil and prev >= S.MIN_TICKS then
+        if t == nil or prev < t then
+            t = prev
+        end
     end
-    return t
+    if t ~= nil then
+        return t
+    end
+    if last ~= nil and prev ~= nil and last >= 1 and prev >= 1 then
+        return 1
+    end
+    return S.TPM_DEFAULT
 end
 
 -- The per-tick budget in ms: the minute's work spread over its ticks with headroom, never under the floor. Under a
