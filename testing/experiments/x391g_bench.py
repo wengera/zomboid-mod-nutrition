@@ -1407,7 +1407,8 @@ def main():
             if rel.endswith("PZTestKit_Server.lua"):
                 try:
                     with open(os.path.join(run_dir, rel), encoding="utf-8", errors="replace") as fh:
-                        dm[rel] = all(m in fh.read() for m in HARNESS_MARKERS)
+                        text = fh.read()   # read once: a second fh.read() is empty (x391f-20261013-113457, ruling B3-2)
+                        dm[rel] = all(m in text for m in HARNESS_MARKERS)
                 except OSError as e:
                     dm[rel] = f"{type(e).__name__}: {e}"
         out["meta"]["deployed_harness_markers"] = dm
