@@ -586,7 +586,8 @@ K.view.FAT_CUTS_FEMALE = {
 }
 K.view.FAT_WORDS = { "lean", "healthy", "high", "veryHigh" }
 K.view.FAT_WORDS[0] = "veryLean"
-K.view.FAT_BAND = 0.005 -- gc: game choice, half a percentage point of body fat: a shown word holds until the fraction leaves its band by more than this, so a fraction on a cut does not flicker; the width informed by the 3-4 % coefficient of variation of a DXA fat reading (S1909)
+K.view.FAT_BAND = 0.005 -- gc: game choice, half a percentage point of body fat: a shown word holds until the fraction leaves its band by more than this, so a fraction on a cut does not flicker; the width informed by the 3-4 % relative coefficient of variation of a DXA fat reading (about 0.6-0.8 percentage points at 20 % fat) (S1909)
+K.view.NO_DATA = "UI_NR_Band_none" -- the band words' No data key, the row text when a mirror has no body
 
 -- A key from prefix and word: the word when it is a non-empty string, else "none" (the band words' No data).
 function K.view.bandKey(prefix, word)
@@ -643,7 +644,7 @@ function K.view.fatRow(rows, m, fat)
         last = fat.last
     end
     local idx = K.view.fatBand(m, female, last)
-    local text = K.view.bandKey("UI_NR_Band_", nil)
+    local text = K.view.NO_DATA
     if idx ~= nil then
         text = K.view.bandKey("UI_NR_FatBand_", K.view.FAT_WORDS[idx])
     end

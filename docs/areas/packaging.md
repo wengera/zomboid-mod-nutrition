@@ -64,7 +64,7 @@ A mod option declared only in the version dir's `media/sandbox-options.txt`, a f
 The staged 1.0.0 build, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
 Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1].
 Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
-Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/`, everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
+Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/` (measured as `42.20.4/`, the same layout), everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
 The manifest declares `versionMin=42.21` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 

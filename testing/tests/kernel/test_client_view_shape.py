@@ -307,6 +307,46 @@ def test_the_trait_grants_level_3_on_the_next_mirror():
     assert "nut_vitC_p" in keys and "acute_caf" in keys
 
 
+def _fat_word(v):
+    row = next(v.rows[i] for i in range(1, len(v.rows) + 1) if v.rows[i].key == "body_fat")
+    return row.text
+
+
+def test_the_body_fat_word_holds_across_rebuilds_and_resets_at_level_1():
+    # Plan 11b Task 3a fix 1: a man at 20.3 % fat, first seen at 19.9 % (healthy, band 2), holds healthy through the
+    # client's V.fatBand carry-over; the plain rung of 20.3 % is high (band 3). Level 1 has no row, so V.fatBand resets.
+    rt = rt_env()
+    rt.execute("SandboxVars.NR.VisibilityMode = 2")
+    v = V(rt)
+    receive(rt, "{ body_weight = 100, body_fm = 19.9 }")
+    assert v.level == 2 and v.fatBand == 2 and _fat_word(v) == "UI_NR_FatBand_healthy"
+    receive(rt, "{ body_weight = 100, body_fm = 20.3 }")
+    assert v.fatBand == 2 and _fat_word(v) == "UI_NR_FatBand_healthy"
+    receive(rt, "{ body_weight = 100, body_fm = 20.3 }")
+    assert v.fatBand == 2 and _fat_word(v) == "UI_NR_FatBand_healthy"
+    rt.execute("SandboxVars.NR.VisibilityMode = 1")
+    receive(rt, "{ body_weight = 100, body_fm = 20.3 }")
+    assert v.level == 1 and v.fatBand is None
+    rt.execute("SandboxVars.NR.VisibilityMode = 2")
+    receive(rt, "{ body_weight = 100, body_fm = 20.3 }")
+    assert v.fatBand == 3 and _fat_word(v) == "UI_NR_FatBand_high"
+
+
+def test_readFemale_answers_the_player_and_keeps_the_last_answer_on_a_failed_call():
+    rt = rt_env()
+    v = V(rt)
+    rt.execute("NR_T.player.isFemale = function(self) return true end")
+    assert v.readFemale(G(rt).NR_T.player) is True
+    rt.execute("NR_T.player.isFemale = function(self) return false end")
+    assert v.readFemale(G(rt).NR_T.player) is False
+    v.female = True
+    rt.execute("NR_T.player.isFemale = function(self) error('boom') end")
+    assert v.readFemale(G(rt).NR_T.player) is True      # pcall false: the last answer
+    rt.execute("NR_T.player.isFemale = function(self) return 'x' end")
+    assert v.readFemale(G(rt).NR_T.player) is True      # a non-boolean: the last answer
+    assert v.readFemale(None) is True                   # no player: the last answer
+
+
 # ------------------------------------------------------------------------------------------- the cache
 
 def test_refresh_rebuilds_only_when_received_or_level_moved():
