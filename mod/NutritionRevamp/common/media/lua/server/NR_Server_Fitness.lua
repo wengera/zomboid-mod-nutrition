@@ -37,7 +37,8 @@ NR.server.fitness = {
     wired = false,
     absentNoted = false,
     limitations = {
-        "the exercise type is the one the client sent for the set (vanilla trusts the same string for the reps and XP); a set the wrapper did not see start (a reconnect mid-set, a boot mid-set, another mod that replaces ISFitnessAction.serverStart without calling the original) or a modded exercise with no EXERCISE_MET entry bills the flat Fitness class (6.0), counted in the metabolism stats' exeFallbacks", "a set the client abandons without a stop (another mod, a modified client) keeps the server's exercise flag set, as vanilla's server keeps the set running, and bills its type until the client disconnects; no set is capped at its asked length (ruling T4-1)",
+        "the exercise type is the one the client sent for the set (vanilla trusts the same string for the reps and XP); a set the wrapper did not see start (a reconnect mid-set, a boot mid-set, another mod that replaces ISFitnessAction.serverStart without calling the original) or a modded exercise with no EXERCISE_MET entry bills the flat Fitness class (6.0), counted in the metabolism stats' exeFallbacks",
+        "a set the client abandons without a stop (another mod, a modified client) keeps the server's exercise flag set, as vanilla's server keeps the set running, and bills its type until the client disconnects; no set is capped at its asked length (ruling T4-1)",
     },
 }
 local FIT = NR.server.fitness
@@ -110,8 +111,8 @@ end
 local function installOne(S, cls, method, kind)
     local cur = cls[method]
     if cur == nil then return false end
-    if cur == S.wrapper then return true end               -- already the outermost: idempotent
-    if S.wrapper ~= nil and S.class == cls then return true end -- still in the chain below a later wrap
+    -- Idempotent: ours is the outermost, or still in the chain below a later wrap; never saved as its own original.
+    if cur == S.wrapper or (S.wrapper ~= nil and S.class == cls) then return true end
     S.orig = cur
     S.wrapper = S.wrapper or makeWrapper(S, kind)
     S.class = cls

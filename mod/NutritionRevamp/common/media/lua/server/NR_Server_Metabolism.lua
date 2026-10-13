@@ -531,9 +531,9 @@ function MET.readBilled(username, player, ageH)
         hourOfDay, maxW, heatLevel, climbClass, className, exMet
 end
 
--- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start, read only on a set minute; a
--- Lua table lookup, no Java (Rule 6). nil when the flag is clear, the module is absent or nothing is recorded: the
--- set minute then bills the flat Fitness class and counts in stats.exeFallbacks.
+-- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start; a Lua table lookup, no Java
+-- (Rule 6). The flag test is a guard: readBilled calls it only on a set minute, and a clear flag never reads a stale
+-- type. nil when the module is absent or nothing is recorded: the minute then bills the flat Fitness class (exeFallbacks).
 function MET.exeTypeOf(username, exercising)
     if not exercising then return nil end
     local F = NR.server.fitness
