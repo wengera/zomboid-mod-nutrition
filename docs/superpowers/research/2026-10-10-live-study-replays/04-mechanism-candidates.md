@@ -2,7 +2,7 @@
 
 Angus, 2026-10-10: "As we try to see if the actual observable effects and timings match what we find in studies, keep an eye out for if simulating something else would potentially even simplify getting to an accurate output or otherwise just make it noteably more accurate with it, something to note and think on as you proceed and report".
 
-This is a running list, kept by the controller through Plan 11f. Each entry records:
+This is a running list, kept by the controller through Plan 11f and Plan 11g. Each entry records:
 - **Seen:** what was observed;
 - **Candidate:** what simulating it would replace or improve;
 - **Evidence:** the evidence it would rest on;
@@ -21,6 +21,11 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
   - The deficit drive could then be fitted to the deficit studies alone, which is simpler and less entangled.
   - Large meals and surplus days would read more accurately.
 - **Evidence to harvest:** time courses of GLP-1, PYY and CCK after meals of known size and composition, and gastric-emptying rates by meal size.
+- **Status: built in Plan 11g, in another form** (spec `docs/superpowers/specs/2026-10-12-gut-satiety-design.md`, § 7; Angus, 2026-10-12):
+  - **What was built:** the meal pool M, fed in full at the eat and cleared first-order by the kinetics step (P's feed, renamed and refit; `fit-11g-20261012d`, loss 0.5782), with the stomach's fullness F counted past the 730 g comfortable maximum up to the 1100 g hard capacity (S1250, S1253). A well-fed stomach past 730 g now sates more than one at it, which carries Karl 2021's well-fed arm: BAL reads -54.5 % under the satiety fit (S1892's band -64 to -46 %).
+  - **What was withdrawn, and why:** the harvest (S1799-S1894) pointed at a gut signal fed by what the stomach empties, and Task 4 built it as the gut stage G. Its fit went flat (`fit-11g-20261012`: G_STEEP 0.019723, a near-constant offset; the Task 6 review: the fasting rise about 4 times slower than P's, an evening request swinging about 10 h on a 2 % hunger factor, Karl's troughs not deepening). The stomach's energy-limited emptying already carries the meal's size and duration into F, so a feed at emptying counted them a second time and the fit flattened it. A spike over six model forms drove the eat-feed share to 1 in every fit (`.superpowers/sdd/2026-10-12-plan-11g-gut-satiety/task-6b-spike-report.md`). The hormone mechanism the evidence describes is real; the oracles at hand do not need a delayed feed.
+  - **What followed:** the deficit drive was refit on the deficit studies alone, Karl's BAL arm held as a constraint (`fit-11g-deficit-20261012`: BALANCE_SPAN_KCAL 3100 to 3970.55; BAL -49.2 %), as this entry's gain proposed.
+  - **Not reached:** Karl's post-meal troughs (0.536 / 0.432 / 0.457 of REST against the study's 0.215 / 0.209 / 0.106), the hunger nadir at minute 1 against about 15 (C-27), and Tieken's liquid against solid, a stomach mechanism (liquid emptying faster than solid) and not a satiety signal.
 
 ## C-2: graded exercise intensity in place of the 6.0 MET vigorous bar
 - **Seen:**
@@ -146,3 +151,20 @@ An entry is a candidate for a later design plan, not a decision. Rows in the sci
 ## C-26: decide a falling metabolic rate on the raw engine rate
 - **Seen (x351–x353, F-T6r-3):** 13 still post-set minutes at eats and sips billed 1.6–2.0 where idle was due. The engine's rate lags toward base × load factor, so dividing the lagged rate by the instantaneous, lower load factor hid the fall.
 - **Status:** built (2a411e4e, ruling C26-1). Unmeasured live; owed to Plan 11b.
+
+## C-27: an ingestion-paced feed of the meal pool
+- **Seen (x361, x363; Plan 11g Task 8):** the hunger nadir lands at minute 1 after every eat, live and on the replay (C650 1.12 min, C400 1.01 min; x363's solid 1.63 min and the milk's graded nadir 2.0 min), where the studies put it at about 15 min (S1833, the one stated in text; harvest 11 reads 15-30 min, inference). It is the eat feed's accepted downside (spec § 7).
+- **Candidate:** feed M over the meal's eating or gastric-accommodation minutes rather than at once, or add an oral and gastric-distension phase that peaks at about 15-30 min.
+- **Evidence:** harvest 11's nadir rows (S1799-S1838) and C-1.
+- **Gain:** more accurate early time courses, at one constant.
+
+## C-28: a class change pushes past the 60 s gap
+- **Seen (x364, F-3; Plan 11g Task 8):** the client's energy level lags a server level change by up to the bus's 60 s wall-clock push gap. Level 1 reached the client about 36 s of wall after the server's change (the client still at 0 at 186.79 s and at 1 by 188.84 s; the server changed between 149.67 and 152.22 s), about 5 game hours at speed 5. At speed 1 the gap is up to about 1.6 game hours at DayLength 1, the test's 15-minute day.
+- **Candidate:** send a change of a moodle class level (rare: a few a day per player) at the next slow minute regardless of the push gap; ordinary effects pushes keep the gap, and the per-player push offset stays.
+- **Gain:** the moodle tracks the server within a minute. The cost is a handful of extra sends a day per player (Rule 6: event-driven, not per tick).
+
+## C-29: a new record's trailing window
+- **Seen (x364, F-4; Plan 11g Task 8):** a fresh record's trailing 24 h intake window starts empty, so its energy state climbs from first sight. The 80 kg admin reached energy level 1 8.37 h after first sight and level 2 20.86 h after it (arithmetic on the ring's change ages and `start.json`'s `rec.firstSeen`).
+- **Status: not a defect; named a limitation** (ruling T8-1, `a24436a9`: a writer limitation with an equivalence test). An empty window reads exactly as one seeded at balance and spread evenly over its first 24 h, since eb24h(t) = -ee_rate x t in both, and a spawn's 8.4 h unfed sits inside a skipped-meal range (about 5-18 h). No oracle covers a fresh record's first day, because every oracle warms up first.
+- **The inconsistency left:** M seeds from vanilla HUNGER (a recently fed body), while the window reads an even eater.
+- **Candidate (Angus's choice at the close):** a lumped seed, placing the M seed's equivalent kcal in the window's current hour. Downsides: fictitious kcal reach the legacy calorie mirror, the energy state reads below 1 for the first hours, and a step comes at 24 h.
