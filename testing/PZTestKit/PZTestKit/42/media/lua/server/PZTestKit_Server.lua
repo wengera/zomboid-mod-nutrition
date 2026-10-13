@@ -4678,7 +4678,7 @@ function TK.SP.text(v)
 end
 
 -- Every F.stats field is copied before a save, a clear or a bench and put back after it, so the probe leaves the
--- mod's counters as found (F.save and F.write count writes, bytes and failures; F.intact and F.load count reads).
+-- mod's counters as found (F.save and F.write count writes, bytes and failures; F.intact counts reads); roundtrip load is not wrapped and counts its read.
 function TK.SP.snap(F)
     local copy = {}
     for k, v in pairs(F.stats) do copy[k] = v end

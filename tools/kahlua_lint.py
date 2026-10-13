@@ -25,7 +25,7 @@ Finding = collections.namedtuple("Finding", "path line rule detail")
 LONG_OPEN = re.compile(r"(--)?\[(=*)\[")
 GOTO_RX = re.compile(r"(?<![\w.])goto\s+\w+|::\s*\w+\s*::")
 FORMAT_RX = re.compile(r"(string\.format\s*[(,]|:format\s*\()")
-LITERAL_RX = re.compile(r"""(?:"(?:[^"\\]|\.)*")|(?:'(?:[^'\\]|\.)*')""")
+LITERAL_RX = re.compile(r"""(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*')""")
 FORMAT_G_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[gG]")
 ALLOW_G = "kahlua-lint: allow-g"
 FORMAT_D_RX = re.compile(r"%[-+ #0]*\d*(?:\.\d+)?[dixXoc]")

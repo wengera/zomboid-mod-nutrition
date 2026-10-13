@@ -123,3 +123,13 @@ def test_format_g_and_d_catch_the_method_form(tmp_path):
         local b = ("%d"):format(v)
     """)
     assert out == [(2, "format-g"), (3, "format-d")]
+
+
+def test_format_g_and_d_see_through_escapes_in_the_literal(tmp_path):
+    out = lint_text(tmp_path, r"""
+        local a = string.format("%.17g\n", x)
+        local b = string.format("\t%d", n)
+        local c = string.format("%d\n", x)
+        local d = string.format("say \"%g\"", x)
+    """)
+    assert out == [(2, "format-g"), (3, "format-d"), (4, "format-d"), (5, "format-g")]

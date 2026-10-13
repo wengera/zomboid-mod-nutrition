@@ -1,4 +1,4 @@
-# testing/profiles/nr-takeover.toml - the mod in Mode 1 (Managed) (NR.Mode = 1), DayLength = 1.
+# testing/profiles/nr-takeover.toml - the mod in Mode 1, Managed (NR.Mode = 1), DayLength = 1.
 # The control row is the harness itself (the walk control); the mod rows pass only if the mod loaded.
 fixture = "default"
 description = "PZTestKit + NutritionRevamp, Mode 1 (Managed), DayLength 1."
