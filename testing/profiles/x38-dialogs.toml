@@ -1,0 +1,35 @@
+# testing/profiles/x38-dialogs.toml - the smoke run of the harness change bdaf000c (cleanup 9a567d6b): pzt's prepare()
+# writes showSurvivalGuide, showFirstTimeSearchTutorial and showFirstAnimalZoneInfo false into each client's options.ini,
+# and the server seed blanks ServerWelcomeMessage. Run x381 (testing/experiments/x38_dialogs.py): one session on fixture
+# `two`, both clients attached in order (`admin` -debug, then `bob` release), PZTestKit + the STAGED copy of the tree at
+# HEAD (release/x38-dialogs/NutritionRevamp/Contents/mods/NutritionRevamp, staged with `python tools/release_pack.py
+# stage mod/NutritionRevamp --out release/x38-dialogs`; release/ is gitignored; mod/ is never booted), Nutrition false,
+# DayLength 1 (x183b's and x191's day length, so their tick.rate windows compare), sleep off (the fixture's false/false).
+# The verify rows are load gates only: the mod's version on the server and on both clients.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp copy (release/x38-dialogs), fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, build 42.21.0 - the smoke run of the helper-dialog harness change."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/x38-dialogs/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (x183b's and x191's)
