@@ -131,6 +131,7 @@ NR.data.records = {
                 0.25, -- clinical: the generic rung, design-phase-v1 game choice (open S1068)
             },
             ul = 35, -- mg/d, nicotinic acid only (flushing), S0269
+            ulBasis = "supplement", -- the UL is on nicotinic acid, never food niacin: no food intake meets it
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
             trpShare = 0.011, -- tryptophan as 1.1 % of dietary protein, design-phase-v1 game choice (open S1069)
             trpPerNE = 60, -- mg tryptophan per mg NE, S0270
@@ -177,6 +178,7 @@ NR.data.records = {
                 0.046415888336127774, -- clinical = p(120 d) = exp(-k x 120): anaemia after months of red-cell turnover, S0335
             },
             ul = 1000, -- ug/d folic acid only, S0330
+            ulBasis = "supplement", -- the UL is on folic acid, not food folate (S0330): no food intake meets it
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
         -- Vitamin B12: two compartments at real scale (ruling 5's dial exponent 1, computed: 2303 d > 90): store p
@@ -297,6 +299,7 @@ NR.data.records = {
                 15, -- female RDA mg/d alpha-tocopherol, S0171
             },
             ul = 300, -- mg/d supplemental (EFSA), S0173
+            ulBasis = "supplement", -- the UL is on vitamin E as a supplement (S0173): no food intake meets it
         },
         -- Vitamin K: EFSA 1 ug/kg (ruling 6: the only requirement that closes both restriction trials); no clinical
         -- effect is defensible (S0963/S0964), so Plan 5 maps nothing on its grade. No UL (S0186).
@@ -421,6 +424,7 @@ NR.data.records = {
                 0.25, -- clinical (tetany): the generic rung, design-phase-v1 game choice (open S1085; timing open S0563)
             },
             ul = 350, -- mg/d from supplements only, S0421
+            ulBasis = "supplement", -- no UL on food magnesium (S0421): no food intake meets it
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
             store = 10000, -- mg exchangeable soft tissue = 40 % of ~25 g, S0422/S0423
         },

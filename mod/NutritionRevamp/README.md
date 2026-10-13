@@ -150,7 +150,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Vitamin D has no sunlight term, so every character trends toward the level their diet holds; its effects ship turned off.
 - Omega-3 drives no mood effect. Liver glycogen is not modelled. Potassium does not count toward refeeding risk.
 - Movement speed and aiming effects are computed but not applied, because the game resets them.
-- Toxicity shows as food sickness, never as poison.
+- Toxicity shows as food sickness, never as poison. The magnesium, niacin, folate and vitamin E upper limits apply to supplements only, so food never reaches them.
 - In Managed mode, hunger and thirst never reach the top-level Hungry and Thirsty moodles.
 - A trait the mod gives or takes reaches the player at once, but other players see the change only after a reconnect.
 - The body-temperature effects are not calibrated against the body's own regulation, and at rest a small cooling effect does not act.

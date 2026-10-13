@@ -284,6 +284,18 @@ def test_excess_e24_and_ul(host):
     assert s.e24 == pytest.approx(300 * math.exp(-1 / 1440) + 150, abs=TOL)
 
 
+def test_excess_skips_a_supplement_only_ul(host):
+    # Plan 12 A2: a UL whose basis is supplemental (ulBasis "supplement") is never tested against the food e24, so
+    # the same intake that raises rung 1 on a total-intake UL raises none; e24 still accrues
+    N = host.K.nutrients
+    rec = _rec(host, '{ kind = "pool", ul = 350, ulBasis = "supplement" }')
+    s = _s(host)
+    assert N.excess(s, rec, 500, 1 / 1440, 80) == 0
+    assert s.e24 == 500
+    total = _rec(host, '{ kind = "pool", ul = 350 }')
+    assert N.excess(_s(host), total, 500, 1 / 1440, 80) == 1
+
+
 def test_excess_chronic_hold(host):
     N = host.K.nutrients
     rec = _rec(host, '{ kind = "pool", chronic = { perDay = 7500 } }')

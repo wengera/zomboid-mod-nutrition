@@ -249,6 +249,32 @@ def test_the_two_compartment_fields(rh):
     assert clin == {"iron", "vitA", "vitB12"}
 
 
+def test_only_the_supplement_based_uls_are_marked(rh):
+    # Plan 12 A2: the ULs whose basis is supplemental or added forms (magnesium S0421, niacin S0269, folate S0330,
+    # vitamin E S0173) carry ulBasis "supplement"; every other UL is a total-intake one and carries none
+    marked = {key for key in ORDER if _rec(rh, key).get("ulBasis") is not None}
+    assert marked == {"magnesium", "niacin", "folate", "vitE"}
+    for key in marked:
+        assert _rec(rh, key)["ulBasis"] == "supplement" and _rec(rh, key)["ul"] is not None, key
+
+
+def test_food_magnesium_at_the_rda_reaches_no_excess_rung(rh):
+    # Plan 12 A2 (K2 B1): 400 mg/d of food magnesium, eaten as three meals a day for a week, holds e24 above the
+    # 350 mg supplement-only UL (S0421) and raises no excess rung
+    N = rh.K.nutrients
+    mg = _records(rh).REC.magnesium
+    s = N.newKey()
+    rungs = set()
+    peak = 0.0
+    for day in range(7):
+        for minute in range(1440):
+            meal = 400 / 3 if minute in (420, 720, 1140) else 0
+            rungs.add(N.excess(s, mg, meal, 1 / 1440, 80))
+            peak = max(peak, s.e24)
+    assert peak > mg.ul
+    assert rungs == {0}
+
+
 def test_the_counter_derived_and_excess_fields(rh):
     cu = _rec(rh, "copper")
     assert cu["derived"] == {"from": "zinc", "kcu": 0.02, "ulZn": 40}

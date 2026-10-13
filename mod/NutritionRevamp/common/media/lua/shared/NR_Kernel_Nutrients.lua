@@ -203,14 +203,15 @@ function K.nutrients.gradeTwo(p, p2, ladder, gPrev, thrP2)
     return g
 end
 
--- The excess ladder (A7): e24, the 1-day exponential sum of the INGESTED amount; rung 1 at e24 >= ul;
+-- The excess ladder (A7): e24, the 1-day exponential sum of the INGESTED amount; rung 1 at e24 >= ul, unless the
+-- record's ulBasis is "supplement" (a UL set on supplemental or added forms only, which food intake never meets);
 -- rung 2 when e24 has exceeded chronic.perDay for EXCESS_HOLD_D days (ext counts them, 0 when not) or p
 -- has reached chronic.store; the acute flag ax (hours left) decays and holds its stamped rung axr. Returns
 -- the rung 0..3. w is the body mass, kept for a per-kg UL (none ships in Plan 4).
 function K.nutrients.excess(s, rec, aIngested, dtD, w)
     s.e24 = s.e24 * math.exp(-dtD) + aIngested
     local rung = 0
-    if rec.ul ~= nil then
+    if rec.ul ~= nil and rec.ulBasis ~= "supplement" then
         if s.e24 >= rec.ul then
             rung = 1
         end
