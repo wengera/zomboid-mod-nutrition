@@ -158,7 +158,7 @@ One line per decision the area pages' `## Open` sections leave to the design, ea
 - Whether a warmth effect writes the temperature stat every update or accepts the single lerp step of one write — forced by one write moving the thermal core only one lerp step toward it [#2373/C/C-only] ([body-effects.md#open](body-effects.md#open)).
 - Which distance input a sight effect goes through, the Short Sighted boolean or the detection range — forced by both reaching the native lighting, whose use of either is outside the bytecode [#2303/C/C-only] ([body-effects.md#open](body-effects.md#open)).
 - Whether an activity-scaled quantity reads the metabolic-rate classes or classifies the player itself — forced by the classes being floors raised by endurance and load, none of it measured on a server [#2633/C/C-only, #2649/C/C-only] ([body-effects.md#open](body-effects.md#open)).
-- Whether a Fitness set's bill is capped at its asked length — ruled for now: not built (ruling T4-1); forced by a set the client abandons without a stop billing its type until the client disconnects, as vanilla's server keeps the set running too [T5.17] [T5.14] ([body-effects.md#open](body-effects.md#open)).
+- Whether a Fitness set's bill is capped at its asked length — ruled for now: not built (ruling T4-1); forced by a set the client abandons without a stop billing its type until the client disconnects, as vanilla's server keeps the set running too [#3737/C/inference] [#3734/M/n=1] ([body-effects.md#open](body-effects.md#open)).
 
 ## Experiments
 
@@ -273,7 +273,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X33 — Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all?
 - Whether a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really applies nothing at all is open [#1299/C/open].
 - Both boots of session S-D left it unmeasured: the harness's stop clears only actions not yet started, so the started eats of the second boot ran to completion, the first boot's eats reached `complete` and raised in a wrap cycle, and no cancel reached the server-stop step in either [#2834/M/n=2].
-- Run `x372-20261013-053459` met the same wall with a started Fitness set, which the stop left running past its own ask [T5.14]; a Fitness set's movement end waits on the same command, recorded meanwhile as inference on the timer end [T5.16].
+- Run `x372-20261013-053459` met the same wall with a started Fitness set, which the stop left running past its own ask [#3734/M/n=1]; a Fitness set's movement end waits on the same command, recorded meanwhile as inference on the timer end [#3736/C/inference].
 - Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open), [item-pass.md](item-pass.md#open).
 - Settled by: a client command that stops a started action (`IsoGameCharacter.StopAllActionQueue`), then a completed eat, a cancelled eat of a normal item and a cancelled eat of an item driven under the guard, each read on the server — [experiments.md § Named experiments](../reference/experiments.md), row `X33`.
 
