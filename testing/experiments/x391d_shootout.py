@@ -94,6 +94,14 @@ DEVIATIONS (stated before the run): each arm's window is ARM_WALL_S = 85 s (abou
 (CLAUDE.md s5; x244c's seven 101.5 s arms ran 917.7 s). A SETTLE_S wait between the load and the reset lets the
 mod's EMA mean and the minute's queue reach the loaded state before the counters start, in every loaded arm alike.
 
+THE SEED IS DROPPED IN THIS SESSION (decided before its run, after x391b and x391c): with the seeded records, every
+ghost minute reconciled a missed intake off its carrier's moving vanilla macro stores (x391c mod1: reconcile.stats.landed
++8040 over 140 minute events, about one a ghost a minute event) and the two real players' slots were saved at every
+minute event (store writes 231-274 an arm against 2 in the idle arm), raising the queue's mean and budget (budgetMs up
+to 25.6) and the mod arm's p99 add to 27 ms; at DayLength 1 the effect had ended by the fifth loaded arm (x391c mod3
+and spread3: 0 reconciles, 4 and 2 writes), but at 37 ticks a game minute it ran through all six arms of x391b. So this
+session runs as x391a did, with unseeded records, and its SEED grade reads unmeasured.
+
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. A session killed
 by the host is reported, and its measured arms are never re-run to replace their figures (ruling H2-1).
@@ -175,6 +183,7 @@ PERF_N = 400
 MIN_FRAMES = 800
 SEED_FOOD = "TKX.Mono450"
 SEED_EATS = 5
+SEED_ON = False                  # dropped before this run, after x391b and x391c: see DEVIATIONS
 SEED_EAT_CAP_S = 40.0
 SEED_CAP_S = 80.0
 SEED_SPAWN_WAIT_S = 2.5              # RCON additem -> the item in the client's inventory
@@ -646,7 +655,8 @@ def body():
     order = [("S0", phase_S0)]
     if SLOW_MULT is not None:
         order.append(("M", phase_M))
-    order.append(("SEED", phase_SEED))
+    if SEED_ON:
+        order.append(("SEED", phase_SEED))
     order += [(tag, make_arm(tag, sched)) for tag, sched in ARMS] + [("Z", phase_Z)]
     for name, fn in order:
         run_phase(name, fn)
