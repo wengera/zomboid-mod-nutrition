@@ -37,6 +37,8 @@ Formatting a Lua number with an integer conversion raises, so the harness format
 The length operator does not work on a Java list, so a Java list is walked by its size and per-index getter from zero [#0940/C/C-only].
 Iterating a Java-backed object with the pairs iterator raises, so the global-walk command takes a hop only when the node is a Lua table and gates its key count on the same test [#0941/C/C-only].
 Kahlua's string formatter is its own reimplementation whose significant-figure conversion cannot be established from the bytecode, so it is not Java's, and the bus renders numbers with the `tostring` path instead, which round-trips a non-integral double exactly [#0942/C/C-only].
+Kahlua's `%g` and `%G` never return for a tiny number: `string.format` sends them through `roundToSignificantNumbers`, whose scale factor overflows to infinity in its first loop for a nonzero magnitude under about 10^(p-1-308), and whose second loop then divides infinity by 10 forever, so at `%.17g` every nonzero magnitude under about 1e-292 hangs the call, while `%e`, `%E` and `%f` take another branch [#3764/C/C-only].
+On a dedicated server the hang is a freeze: a harness bus command that formatted 5e-324 with `%.17g` stopped the main loop, the server logging nothing more until its console `quit` about 2787.6 s later, with no error and no stack trace [#3763/M/n=1].
 Kahlua has no JSON library, so the harness ships a forty-line encoder and Java objects fall back to their string form [#1867].
 
 <a id="pcall"></a>
