@@ -1,0 +1,41 @@
+# testing/profiles/x39-shootout-g.toml - Plan 11b Task 2 (run x391g), the confirmatory session (ruling T2-1): the slot-save price (store.probe bench), own-action latency on admin under idle, burst and mod at the normal clock (plus the non-Food smoke) and, if time allows, one seeded-record mod arm at the normal clock, N = 60.
+# PZTestKit (016dce05: a ghost run restores its carrier's macros; time.snapshot reports the true multiplier; plus
+# store.probe, action.latency, tick.ring, perf.local, ghost.load/modq/stats/stop, the gclog key) + the STAGED copy of
+# the tree at 513778e8 (release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x39`, MANIFEST sha256 83c79a04...52c0;
+# release/ is gitignored; mod/ is never booted) + TKX_StudyFoods by its path (the seed food).
+# Build 42.21.0 (4a0e9546ec). Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# DayLength is NOT set: the fixture's own (4, a game minute 3.75 s of wall) is the normal clock, and the driver sends no time.multiplier.
+# The driver is testing/experiments/x391g_bench.py.
+# The verify rows are load gates only: the version on the server and both clients, the harness's ring cap and the seed food's script.
+fixture = "two"
+description = "PZTestKit (016dce05) + the staged NutritionRevamp copy (release/plan11-x39, 513778e8) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, the fixture's DayLength, gclog on - x391g, Plan 11b Task 2 confirmatory session."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mono450", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off

@@ -1,0 +1,41 @@
+# testing/profiles/x39-shootout-f.toml - Plan 11b Task 2 (run x391f), the confirmatory session (ruling T2-1): the mod's own budgeted queue against the spread cap at k = 1 and k = 1.5, N = 60, 37 ticks a game minute (DayLength 1 here, time.multiplier 0.1674 from the driver, #3394), on seeded records and the fixed harness.
+# PZTestKit (016dce05: a ghost run restores its carrier's macros; time.multiplier and time.snapshot report the true
+# multiplier; plus tick.ring, perf.local, ghost.load/modq/stats/stop, sched.arm, the gclog key) + the STAGED copy of the
+# tree at 513778e8 (release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp, staged with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan11-x39`, MANIFEST sha256 83c79a04...52c0;
+# release/ is gitignored; mod/ is never booted) + TKX_StudyFoods by its path (the seed food).
+# Build 42.21.0 (4a0e9546ec). Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1).
+# The driver is testing/experiments/x391f_shootout.py.
+# The verify rows are load gates only: the version on the server and both clients, the harness's ring cap and the seed food's script.
+fixture = "two"
+description = "PZTestKit (016dce05) + the staged NutritionRevamp copy (release/plan11-x39, 513778e8) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, gclog on - x391f, Plan 11b Task 2 confirmatory session."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mono450", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan11-x39/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; the driver's time.multiplier 0.1674 gives about 37 ticks a game minute (#3394)
