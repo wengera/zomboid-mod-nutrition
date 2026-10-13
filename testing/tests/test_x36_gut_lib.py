@@ -310,3 +310,25 @@ def test_the_regrade_reads_the_written_row_after_each_meal():
     ages, ev_rows, notes = RG.karl_points_r1(ring, eats)
     assert not notes and len(ages) == 8 and [x["last_landing_s"] for x in ev_rows] == [102, 200, 301]
     assert ages[:2] == [20.0 + 99 / 60.0, 20.0 + 103 / 60.0]           # the row after the last landing, not the landing
+
+
+# --- HUNGER fidelity on a ring recorded on this build (the Task 4 and 6c review notes) --------------------------------
+
+X361 = os.path.join(REPO, "testing", "artifacts", "x361-20261012-200722")
+
+
+def test_the_x361_ring_replays_within_the_default_tolerances():
+    # x361 (Plan 11g Task 8) was recorded on the final build (7093079b): the meal pool M, F to the hard capacity, the
+    # two fills. Its replay at HEAD reads HUNGER within 0.002, es within 0.005 and L within 0.5 % on every graded row
+    # (660 rows: 0.000101, 0.000389, 0), M, the fills and the buffer within TOL_GRADE, and both courses' request
+    # minutes equal live (C650 247.09, C400 215.13). The 11f rings were recorded on P and replay only at their own
+    # constants. Skipped until the artifact is committed (staged at Task 8, committed with its rows at Task 9).
+    import pytest
+    if not os.path.isdir(X361):
+        pytest.skip("x361's artifact folder is not in this checkout")
+    S = G.Sess("x361", run_dir=X361)
+    assert S.diff["ok"] and S.diff["fields"]["HUNGER"]["n"] == 660 and S.diff["fields"]["HUNGER"]["max"] < 0.002
+    assert S.grade["ok"]
+    c = G.grade_x361(S)["courses"]
+    assert round(c["C650"]["request"]["live_min"], 2) == round(c["C650"]["request"]["replay_min"], 2) == 247.09
+    assert round(c["C400"]["request"]["live_min"], 2) == round(c["C400"]["request"]["replay_min"], 2) == 215.13
