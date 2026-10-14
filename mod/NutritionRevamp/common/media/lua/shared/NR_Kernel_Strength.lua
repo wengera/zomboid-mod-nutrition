@@ -204,6 +204,86 @@ function K.strength.growth(body, S, p, E, tdee, alcGkg, P)
     return K.max(0, grow)
 end
 
+-- The maintenance threshold S_m(s) in sets a week: the share m of the growth threshold (spec section 6).
+function K.strength.maintainSets(s, P)
+    return P.m * K.strength.threshold(s, P)
+end
+
+-- Detraining, in kg of lean lost today (spec section 6; ruling 13-2's exact form). Advances the grace
+-- counter (a day below S_m adds one, any other day resets it); past grace_d / ts such days, and only while
+-- lm is above the set point F0, lm - F0 falls by exp(-lam * ts * (1 - S / S_m) / 7), integrated exactly
+-- over the day so no clock overshoots F0, lam's half-life lengthened by the status term. At ts > grace_d a
+-- day below S_m detrains at grace 1, as the oracle does.
+function K.strength.detrain(body, S, s, P, ts)
+    local Sm = K.strength.maintainSets(s, P)
+    if S < Sm then
+        body.grace = body.grace + 1
+    else
+        body.grace = 0
+    end
+    if body.grace <= P.grace_d / ts or body.lm <= body.F0 then
+        return 0
+    end
+    local lam = math.log(2) / (P.detrain_hl_wk * (1 + P.detrain_status * s))
+    return (body.lm - body.F0) * (1 - math.exp(-lam * ts * (1 - S / Sm) / 7))
+end
+
+-- The remembered peak (spec section 6): Pk holds the highest lm, then decays toward lm with a half-life of
+-- peak_hl_yr years, the biology clock scaling the day.
+function K.strength.peakStep(body, P, ts)
+    local Pk = K.max(body.Pk, body.lm)
+    body.Pk = body.lm + (Pk - body.lm) * math.exp(-math.log(2) / (P.peak_hl_yr * 365) * ts)
+end
+
+-- The neural factor T (spec sections 4 and 6; ruling 13-45). Tgrace counts the days below m * Wsat and any
+-- other day resets it; past Tgrace_d / ts such days T decays toward 1 on tauDownWk, else it rises toward
+-- Tmax on tauUpWk at the signal's share of Wsat (capped at 1), both integrated exactly over the day.
+function K.strength.neural(body, S, P, ts)
+    if S < P.m * P.Wsat then
+        body.Tgrace = body.Tgrace + 1
+    else
+        body.Tgrace = 0
+    end
+    if body.Tgrace > P.Tgrace_d / ts then
+        body.T = 1 + (body.T - 1) * math.exp(-ts / (7 * P.tauDownWk))
+    else
+        body.T = P.Tmax - (P.Tmax - body.T) * math.exp(-K.min(1, S / P.Wsat) * ts / (7 * P.tauUpWk))
+    end
+end
+
+-- One closed day of the body (spec sections 5, 5.1 and 6), the oracle's exact Body.day: growth (regain
+-- inside it) scaled by the biology clock ts, detraining at the day's opening status, the partition arm by
+-- the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors (lm >= fMinShare * F0,
+-- lx >= 0, fm >= fmMin), then the peak and the neural factor (which reads S only). A tdee at or below 0, or
+-- NaN, reads the energy gate at balance: the gate's surplus share divides by it. Writes lm, lx, fm, Pk,
+-- grace, T and Tgrace; returns the day's dF, dX, dM before the floors.
+function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
+    local s = K.strength.status(body)
+    local Egate = E
+    local tdeeGate = tdee
+    if not (tdee > 0) then
+        Egate = K.min(E, 0)
+        tdeeGate = 1
+    end
+    local grow = K.strength.growth(body, S, p, Egate, tdeeGate, alcGkg, P) * ts
+    local dF = grow - K.strength.detrain(body, S, s, P, ts)
+    local dX = 0
+    local dM = 0
+    if E >= 0 then
+        dX, dM = K.partition.surplusLean(body, grow, S, p, E, P, ts)
+    else
+        local dFp = 0
+        dFp, dX, dM = K.partition.deficitLean(body, grow, S, p, E, P, ts)
+        dF = dF + dFp
+    end
+    body.lm = K.max(body.lm + dF, P.fMinShare * body.F0)
+    body.lx = K.max(body.lx + dX, 0)
+    body.fm = K.max(body.fm + dM, P.fmMin)
+    K.strength.peakStep(body, P, ts)
+    K.strength.neural(body, S, P, ts)
+    return dF, dX, dM
+end
+
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 -- ============================================================ the Plan 3 model (removed in Plan 13 Task 12)
