@@ -24,12 +24,12 @@
 -- The default key is the semicolon (code 39): `;` is unbound in shared/keyBinding.lua and read by no media/lua/client
 -- handler outside debug files; K is vanilla's Display FPS at keyBinding.lua:198 (NR_Client_ModOptions.lua's header).
 -- The height follows the rows (ruling T5-2): at each rebuild the panel is titleBarHeight + 4 + rows * line + 4 tall,
--- capped at the screen below its top; past the cap the mouse wheel scrolls (a non-resizable window's width and
+-- capped at the screen below its top, refit at the end of a drag and on a resolution change; past the cap the mouse wheel scrolls (a non-resizable window's width and
 -- height are not restored from layout.ini, ISCollapsableWindow.RestoreLayout :337-340, so the height is the mod's).
 --
 -- Shape (the client-file discipline): the class is derived only when ISCollapsableWindow exists (else
 -- NR.client.panel.cls stays nil and toggle answers false); the sentinel NR_ClientPanel_Installed is a global of its
--- own holding the two listener closures (OnCreatePlayer, OnKeyPressed) and the instances, so a reload of this file or
+-- own holding the three listener closures (OnCreatePlayer, OnKeyPressed, OnResolutionChange) and the instances, so a reload of this file or
 -- of NR_Core adds no second listener and loses no window; the closures look NutritionRevamp.client.panel up per call;
 -- every toolkit member is reached index-first inside a pcall; every handler body runs under one pcall; the file
 -- loads with no engine (testing/tests/kernel/test_client_panel_shape.py).
@@ -110,6 +110,15 @@ if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function"
             return took
         end
 
+        -- The button's release ends a title-bar drag (the base clears moving): the height is refit at the new top.
+        function cls:onMouseUp(x, y)
+            return NutritionRevamp.client.panel.release(self, ISCollapsableWindow.onMouseUp, x, y)
+        end
+
+        function cls:onMouseUpOutside(x, y)
+            return NutritionRevamp.client.panel.release(self, ISCollapsableWindow.onMouseUpOutside, x, y)
+        end
+
         -- The title bar's X: the toggle's hide path, so the panel leaves the UI manager (#2469) and counts a close.
         function cls:close()
             local ok, err = pcall(NutritionRevamp.client.panel.hide, self)
@@ -143,7 +152,8 @@ local function screenHeight(pn)
     return SCREEN_DEFAULT
 end
 
--- Sizes the panel to the view's rows once per rebuild (stamped on the view's rebuild count): the height is
+-- Sizes the panel to the view's rows once per rebuild (stamped on the view's rebuild count) and again after a drag
+-- or a resolution change (which drop the stamp): the height is
 -- titleBarHeight + TITLE_GAP + rows * line + TITLE_GAP, capped at the screen height below the panel's top; the rows
 -- that do not fit count once in view.stats.overflowRows, and the scroll offset is re-clamped.
 function PANEL.fit(self)
@@ -174,6 +184,28 @@ function PANEL.fit(self)
     if self.scrollY > self.overflowPx then self.scrollY = self.overflowPx end
     nr.client.panel.stats.fits = nr.client.panel.stats.fits + 1
     return true
+end
+
+-- A mouse release: the base handler (ISCollapsableWindow.onMouseUp or onMouseUpOutside, which clear the drag's moving
+-- flag), and when a drag was running, the fit stamp dropped so the next prerender refits the height under the cap at
+-- the panel's new top. Answers the base's answer.
+function PANEL.release(self, base, x, y)
+    local moved = self.moving == true
+    local answer = nil
+    if base ~= nil then
+        local ok, v = pcall(base, self, x, y)
+        if ok then answer = v else fail(v) end
+    end
+    if moved then self.fitStamp = nil end
+    return answer
+end
+
+-- OnResolutionChange: every panel refits at its next prerender, under the new screen's cap.
+function PANEL.onResolutionChange()
+    local P = NutritionRevamp.client.panel
+    for _, p in pairs(P.instances) do
+        p.fitStamp = nil
+    end
 end
 
 -- The wheel: scrollY moves by WHEEL_LINES * line * del, clamped to [0, overflowPx]; true (the event taken) only when
@@ -311,6 +343,15 @@ if S.create == nil and Events ~= nil and Events.OnCreatePlayer ~= nil then
         if not ok then fail(err) end
     end
     Events.OnCreatePlayer.Add(S.create)
+end
+if S.resolution == nil and Events ~= nil and Events.OnResolutionChange ~= nil then
+    S.resolution = function()
+        local nr = NutritionRevamp
+        if nr == nil or nr.client == nil or nr.client.panel == nil then return end
+        local ok, err = pcall(nr.client.panel.onResolutionChange)
+        if not ok then fail(err) end
+    end
+    Events.OnResolutionChange.Add(S.resolution)
 end
 if S.key == nil and Events ~= nil and Events.OnKeyPressed ~= nil then
     S.key = function(key)

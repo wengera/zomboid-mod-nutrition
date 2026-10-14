@@ -39,6 +39,7 @@ Events = {
     OnGameStart = event("OnGameStart"),
     OnCreatePlayer = event("OnCreatePlayer"),
     OnKeyPressed = event("OnKeyPressed"),
+    OnResolutionChange = event("OnResolutionChange"),
 }
 isClient = function() return NR_T.client ~= false end
 isServer = function() return false end
@@ -106,6 +107,8 @@ function ISCollapsableWindow:getWidth() return self.width end
 function ISCollapsableWindow:getHeight() return self.height end
 function ISCollapsableWindow:getY() return self.y end
 function ISCollapsableWindow:setHeight(h) self.height = h end
+function ISCollapsableWindow:onMouseUp(x, y) self.moving = false end          -- ISCollapsableWindow.lua:249-260
+function ISCollapsableWindow:onMouseUpOutside(x, y) self.moving = false end   -- :262-268
 function ISCollapsableWindow:drawText(s, x, y, r, g, b, a, f) NR_T.ui.draws = NR_T.ui.draws + 1 end
 function ISCollapsableWindow:drawTextRight(s, x, y, r, g, b, a, f) NR_T.ui.rights = NR_T.ui.rights + 1 end
 ISLayoutManager = {
@@ -412,6 +415,49 @@ def test_the_height_follows_the_rows_and_is_capped_at_the_screen():
     assert v.stats.overflowRows == len(v.rows) - fit
     frame(rt, p)
     assert v.stats.overflowRows == len(v.rows) - fit              # once per rebuild, not per frame
+
+
+def _capped(rt):
+    rt_p = inst(rt)
+    big_mirror(rt)
+    rt.execute("getPlayerScreenHeight = function(n) return 300 end")
+    frame(rt, rt_p)
+    assert rt_p.height == 300 - 200
+    return rt_p
+
+
+def test_a_drag_refits_the_height_at_the_move_end():
+    for up in ("onMouseUp", "onMouseUpOutside"):
+        rt = rt_env()
+        create(rt)
+        p = _capped(rt)
+        fits = P(rt).stats.fits
+        p.moving = True                                            # the title-bar drag (ISCollapsableWindow.lua:270-279)
+        p.y = 120
+        frame(rt, p)
+        assert p.height == 100 and P(rt).stats.fits == fits       # no refit while the drag runs
+        p[up](p, 5, 5)
+        assert p.moving is False                                   # the base handler ran
+        frame(rt, p)
+        assert p.height == 300 - 120 and P(rt).stats.fits == fits + 1
+        n = len(G(rt).NutritionRevamp.client.view.rows)
+        assert p.overflowPx == n * 15 - (180 - 16 - 8)
+        p[up](p, 5, 5)                                             # a release with no drag: nothing to refit
+        frame(rt, p)
+        assert P(rt).stats.fits == fits + 1
+
+
+def test_a_resolution_change_refits_the_height():
+    rt = rt_env()
+    create(rt)
+    p = _capped(rt)
+    rt.execute("getPlayerScreenHeight = function(n) return 1000 end")
+    fire(rt, "OnResolutionChange", "1280, 300, 1280, 1000")
+    frame(rt, p)
+    n = len(G(rt).NutritionRevamp.client.view.rows)
+    assert p.height == min(16 + 4 + n * 15 + 4, 1000 - 200)
+    _load(rt, PANEL)                                               # a reload adds no second handler
+    assert len(G(rt).NR_T.adds.OnResolutionChange) == 1
 
 
 def test_the_wheel_scrolls_within_bounds_and_the_render_draws_from_the_offset():
