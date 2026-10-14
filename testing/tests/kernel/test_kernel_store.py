@@ -346,6 +346,20 @@ def test_a_body_builds_at_its_sex_and_heals_an_odd_one(host):
         assert r["body"]["sex"] == 1 and r["body"]["rmod"] == 1, odd
 
 
+def test_a_stored_female_body_defaults_to_the_male_masses_unless_sex_specific_is_on(host):
+    # Plan 13 Task 3 fix 1: bodyBase builds and heals at the effective sex; the stored sex stays 2
+    fmM, lmM, _ = host.K.body.split(80, 1, host.table({}))
+    fmF, lmF, _ = host.K.body.split(80, 2, host.table({}))
+    assert fmM != fmF
+    for specific, want in ((None, (fmM, lmM)), (False, (fmM, lmM)), (True, (fmF, lmF))):
+        raw = host.table({"body": {"sex": 2, "lastAgeH": 5.0}})
+        r = S(host).load(raw, None, recs(host), specific)
+        assert (r["body"]["fm"], r["body"]["lm"]) == pytest.approx(want), specific
+        assert r["body"]["sex"] == 2
+    base = S(host).bodyBase(host.table({"sex": 2, "lastAgeH": 5.0}), 5.0, True)
+    assert base["fm"] == pytest.approx(fmF) and base["sex"] == 2
+
+
 def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
     # Plan 12 A4 (K2 B3): a non-finite fm, lm or lastAgeH is saved as JSON null and reads back absent; the load heals it
     # as K.heal.body does (fm and lm from the 80 kg split at the stored sex, lastAgeH the record's last sight) and keeps
@@ -363,7 +377,7 @@ def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
         text = host.K.json.encode(S(host).inputsOnly(raw), host.rt.eval("function(x) return string.format('%.17g', x) end"))
         decoded, err = host.K.json.decode(text)
         assert err is None
-        r = host.py(S(host).load(decoded, None, recs(host)))
+        r = host.py(S(host).load(decoded, None, recs(host), True))     # NR.SexSpecific on: the female 80 kg split
         got = (r["body"]["fm"], r["body"]["lm"], r["body"]["lastAgeH"])
         assert got == pytest.approx(want), body
         assert r["body"]["sex"] == 2 and r["nutrients"]["zinc"]["p"] == 0.3, body

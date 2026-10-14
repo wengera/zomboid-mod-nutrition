@@ -643,7 +643,7 @@ def long_fast_levels(player, fast_days=6):
     ev = sleep_events(days) + [{"minute": m, "kind": "meal", "size": k} for m, k in sorted(plan.items())]
     ev.sort(key=lambda e: e["minute"])
     rows, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", paths=("body.energyState", FAST_SIG),
-                             player=player, rng="half")
+                             player=player, rng="half", sex_specific=True)
     at = [be.K.view.ENERGY_AT[i] for i in range(1, 5)]
     bus = [int(r[FAST_SIG] // 1000) % 10 for r in rows[last:]]
     es = [r["body.energyState"] for r in rows[last:]]

@@ -24,6 +24,7 @@ MIRROR = os.path.join(CLIENT, "NR_Client_Mirror.lua")
 MODOPTIONS = os.path.join(CLIENT, "NR_Client_ModOptions.lua")
 OPTIONS = os.path.join(CLIENT, "NR_Client_Options.lua")
 VIEW = os.path.join(CLIENT, "NR_Client_View.lua")
+TOOLTIP = os.path.join(CLIENT, "NR_Client_Tooltip.lua")
 
 ENV = r"""
 NR_T = { adds = {}, sends = 0, creates = 0, texts = {}, held = nil, hasTraitRaises = false, printed = 0 }
@@ -342,7 +343,7 @@ def test_readFemale_answers_the_player_and_keeps_the_last_answer_on_a_failed_cal
     assert v.readFemale(G(rt).NR_T.player) is True
     rt.execute("NR_T.player.isFemale = function(self) return false end")
     assert v.readFemale(G(rt).NR_T.player) is False
-    v.female = True
+    v.isFemale = True
     rt.execute("NR_T.player.isFemale = function(self) error('boom') end")
     assert v.readFemale(G(rt).NR_T.player) is True      # pcall false: the last answer
     rt.execute("NR_T.player.isFemale = function(self) return 'x' end")
@@ -351,25 +352,27 @@ def test_readFemale_answers_the_player_and_keeps_the_last_answer_on_a_failed_cal
 
 
 def test_the_view_reads_male_unless_the_sex_option_is_on():
-    # Plan 13 Task 3: V.female = isFemale and SandboxVars.NR.SexSpecific == true
+    # Plan 13 Task 3: V.female = isFemale and SandboxVars.NR.SexSpecific == true; the tooltip's T.sex() follows it
     rt = rt_env()
+    _load(rt, TOOLTIP)
     v = V(rt)
+    T = NRC(rt).tooltip
     rt.execute("NR_T.player.isFemale = function(self) return true end")
     v.recompute(G(rt).NR_T.player)
-    assert v.female is False                                       # option absent
+    assert v.female is False and T.sex() == 1                      # option absent
     rt.execute("SandboxVars.NR.SexSpecific = false")
     v.recompute(G(rt).NR_T.player)
-    assert v.female is False
+    assert v.female is False and T.sex() == 1
     rt.execute("SandboxVars.NR.SexSpecific = true")
     v.recompute(G(rt).NR_T.player)
-    assert v.female is True
+    assert v.female is True and T.sex() == 2 and v.isFemale is True
     rt.execute("NR_T.player.isFemale = function(self) return false end")
     v.recompute(G(rt).NR_T.player)
-    assert v.female is False
+    assert v.female is False and T.sex() == 1
     rt.execute("SandboxVars = nil")                                # unreadable reads false
     rt.execute("NR_T.player.isFemale = function(self) return true end")
     v.recompute(G(rt).NR_T.player)
-    assert v.female is False
+    assert v.female is False and T.sex() == 1 and v.isFemale is True   # the raw sex is kept
 
 
 # ------------------------------------------------------------------------------------------- the cache

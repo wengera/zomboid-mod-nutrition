@@ -160,9 +160,10 @@ end
 -- table. p7 holds each closed day's protein grams (slot 7 is yesterday; NR_Server_Effects' protein
 -- week). The rings and the band read the clamped weight split reads (fm + lm), not the raw w. trail is
 -- the trailing-24 h window (K.body.newTrail), empty at birth; pPrevKg is the closed day's protein per
--- kg, neutral at birth.
-function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
-    local fm, lm = K.body.split(w, sex, build)
+-- kg, neutral at birth. specific is the mod-wide NR.SexSpecific: the mass split reads K.body.effSex(sex, specific)
+-- (male unless it is on), while body.sex keeps the engine's value.
+function K.body.new(w, sex, build, l0, traitCarry, r, ageH, specific)
+    local fm, lm = K.body.split(w, K.body.effSex(sex, specific), build)
     local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
     local day = math.floor(ageH / 24)
     local body = {}

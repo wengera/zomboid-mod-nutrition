@@ -33,6 +33,29 @@ def new_body(h, age=100.0, sex=1, l0=3):
     return body
 
 
+def test_the_heal_rebuilds_masses_at_the_effective_sex(host):
+    # Plan 13 Task 3 fix 1: a lost fm0/lm0 heals from the 80 kg split at K.body.effSex(body.sex, specific)
+    fmM, lmM, _ = host.K.body.split(80, 1, host.rt.table())
+    fmF, lmF, _ = host.K.body.split(80, 2, host.rt.table())
+    assert fmM != fmF
+    for specific, want in ((None, (fmM, lmM)), (False, (fmM, lmM)), (True, (fmF, lmF))):
+        body = new_body(host, sex=2)
+        body["fm0"] = None
+        body["lm0"] = None
+        body["fm"] = float("nan")
+        body["lm"] = float("nan")
+        host.K.heal.body(body, 100.0, None, specific)
+        assert (body["fm0"], body["lm0"]) == want, specific
+        assert body["sex"] == 2
+    male = new_body(host, sex=1)
+    male["fm0"] = None
+    male["lm0"] = None
+    male["fm"] = float("nan")
+    male["lm"] = float("nan")
+    host.K.heal.body(male, 100.0, None, True)
+    assert (male["fm0"], male["lm0"]) == (fmM, lmM)
+
+
 def names(bad):
     return [] if bad is None else bad.split(",")
 
@@ -118,7 +141,7 @@ def test_creation_masses_fall_back_to_the_split_by_sex(host):
         body.fm0 = NAN
         body.lm = NAN
         body.lm0 = NAN
-        bad = heal(h, body, 100.0)
+        bad = h.K.heal.body(body, 100.0, None, True)             # NR.SexSpecific on: the split is at the body's own sex
         fm, lm, _ = h.K.body.split(80, sex, h.rt.table())
         assert abs(body["fm0"] - fm) < TOL and abs(body["lm0"] - lm) < TOL
         assert abs(body["fm"] - fm) < TOL and abs(body["lm"] - lm) < TOL

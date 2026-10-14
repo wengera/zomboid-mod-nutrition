@@ -248,7 +248,7 @@ def test_new_rings_and_band_read_the_clamped_weight(host):
 
 
 def test_new_rings_are_distinct_tables(host):
-    body = host.K.body["new"](62, 2, _build(host, fit=True), 3, 0.9, 1.3, 47.5)
+    body = host.K.body["new"](62, 2, _build(host, fit=True), 3, 0.9, 1.3, 47.5, True)
     week = body.bandWeek
     assert not host.rt.eval("rawequal")(week[1], week[2])
     py = host.py(body)

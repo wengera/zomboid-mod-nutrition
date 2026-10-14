@@ -179,7 +179,7 @@ end
 -- A non-finite number is saved as JSON null and reads back absent, so without the heal one bad field cost the whole
 -- record. A value of another type is left for K.store.checkLeaf to reject. Then K.body.new at the
 -- stored masses, sex, Strength level, carry factor, responder and clock.
-function K.store.bodyBase(rb, ageH)
+function K.store.bodyBase(rb, ageH, specific)
     if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
         rb.sex = 1
     end
@@ -187,11 +187,11 @@ function K.store.bodyBase(rb, ageH)
     if rb.sex == 2 then
         sex = 2 -- K.body's female index
     end
-    local fmS, lmS = K.body.split(80, sex, {})
+    local fmS, lmS = K.body.split(80, K.body.effSex(sex, specific), {}) -- specific: NR.SexSpecific
     local fm = K.store.healLeaf(rb, "fm", fmS)
     local lm = K.store.healLeaf(rb, "lm", lmS)
     local lastAgeH = K.store.healLeaf(rb, "lastAgeH", ageH)
-    return K.body.new(fm + lm, sex, {}, rb.l0, rb.traitCarry, rb.r, lastAgeH)
+    return K.body.new(fm + lm, sex, {}, rb.l0, rb.traitCarry, rb.r, lastAgeH, specific)
 end
 
 -- Heal t[k] to v in place when it is absent or a non-finite number; a value of another type is left for
@@ -227,7 +227,7 @@ function K.store.addKey(out, k, v)
 end
 
 -- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
-function K.store.defaults(rec, raw, order)
+function K.store.defaults(rec, raw, order, specific)
     if type(raw.stomach) == "table" then
         rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it
     end
@@ -238,7 +238,7 @@ function K.store.defaults(rec, raw, order)
         rec.nutrients = K.nutrients.newState({ ORDER = K.store.nutrientKeys(order, raw.nutrients) })
     end
     if type(raw.body) == "table" then
-        rec.body = K.store.bodyBase(raw.body, K.store.ageOf(raw))
+        rec.body = K.store.bodyBase(raw.body, K.store.ageOf(raw), specific)
     end
     if type(raw.acute) == "table" then
         rec.acute = K.acute.new(K.store.ageOf(raw))
@@ -342,12 +342,12 @@ end
 -- copied over them, the stomach fill and the four read-before-refresh fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
 -- keys. A non-table raw reads nil. records is the nutrient data (NR.data.records),
 -- passed by the caller and never read from a global.
-function K.store.load(raw, order, records)
+function K.store.load(raw, order, records, specific)
     if type(raw) ~= "table" then
         return nil
     end
     local rec = K.store.new(raw.username, raw.firstSeen)
-    K.store.defaults(rec, raw, order)
+    K.store.defaults(rec, raw, order, specific)
     if type(raw.satiety) == "table" then
         rec.satiety = {} -- the stored M, S, L, t and nicH overwrite it
     end
@@ -366,8 +366,8 @@ end
 -- Load raw and lay the result into target in place: every key target holds is cleared and the
 -- loaded record's keys are set on it, so a handle held on target reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
-function K.store.fillInPlace(target, raw, order, records)
-    local rec = K.store.load(raw, order, records)
+function K.store.fillInPlace(target, raw, order, records, specific)
+    local rec = K.store.load(raw, order, records, specific)
     if rec == nil then
         return nil
     end

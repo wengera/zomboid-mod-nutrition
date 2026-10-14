@@ -597,7 +597,7 @@ class ServerReplay(_Backend):
     ({"table.NAME": value}) sets kernel constants after the host loads (set_constants), as the recording build had them."""
 
     def __init__(self, start=None, user="admin", player=None, steps=None, hold_hour=None, hour_offset=0.0,
-                 rng=None, stats=None, sleep_allowed=None, constants=None):
+                 rng=None, stats=None, sleep_allowed=None, constants=None, sex_specific=False):
         super().__init__()
         self.injected = []
         lua51, server_host, golden_trace = _lua()
@@ -621,6 +621,9 @@ class ServerReplay(_Backend):
             # getServerOptions, so the mod reads an unset option as sleep allowed): the field that single reader sets
             self.rt.execute("NutritionRevamp.server.nutrients.sleepDisabled = %s"
                             % ("false" if sleep_allowed else "true"))
+        if sex_specific:                                    # NR.SexSpecific on: a female stand-in reads the female values
+            self.rt.execute("SandboxVars = { NR = { SexSpecific = true } }")   # the options poll reads it every minute
+            self.NR.server.options.sexSpecific = True
         self.users = {}
         self.user = None
         self.maint_kcal = None
@@ -1334,7 +1337,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
-               M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None):
+               M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
     start_age at dtM). Returns (rows, backend)."""
     synthetic = False
@@ -1349,7 +1352,7 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
         sa = start_age
     else:
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
-                          hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed)
+                          hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed, sex_specific=sex_specific)
         sa = be.start_age()
         if sa is None:
             sa = start_age

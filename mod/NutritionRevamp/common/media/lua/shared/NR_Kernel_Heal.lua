@@ -33,14 +33,10 @@ end
 
 -- Heal body in place at world age ageH; l0 is the Strength level read now (nil or non-finite reads 0), used only
 -- when body.l0 is not finite. Returns the comma-joined names of the healed fields, or nil when none was.
-function K.heal.body(body, ageH, l0)
+function K.heal.body(body, ageH, l0, specific)
     local bad = nil
     if not K.finite(body.fm0) or not K.finite(body.lm0) then
-        local sex = 1
-        if body.sex == 2 then
-            sex = 2
-        end
-        local fmS, lmS = K.body.split(80, sex, {})
+        local fmS, lmS = K.body.split(80, K.body.effSex(body.sex, specific), {}) -- the effective sex; body.sex stays raw
         if not K.finite(body.fm0) then
             if K.finite(body.fm) then
                 body.fm0 = body.fm

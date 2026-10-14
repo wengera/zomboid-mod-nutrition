@@ -162,7 +162,8 @@ function MET.ensureBody(username, player, record, ageH)
     if perk ~= nil then l0 = num(player, "getPerkLevel", 0, perk) end
     local traitCarry = num(player, "getMaxWeightDelta", 1.0)
     local r = responder()
-    record.body = K.body.new(w, sex, build, l0, traitCarry, r, ageH)
+    local opts = NR.server.options
+    record.body = K.body.new(w, sex, build, l0, traitCarry, r, ageH, opts ~= nil and opts.sexSpecific == true)
     MET.stats.splits = MET.stats.splits + 1
     NR.log.say(3, "metabolism: first sight of " .. tostring(username) .. " w=" .. tostring(w) .. " sex=" .. sex
         .. " l0=" .. tostring(l0) .. " traitCarry=" .. tostring(traitCarry) .. " r=" .. tostring(r))
@@ -336,7 +337,7 @@ local function heal(username, body, ageH, player)
         local perk = Perks ~= nil and Perks.Strength or nil
         if perk ~= nil then l0 = num(player, "getPerkLevel", 0, perk) end
     end
-    local bad = K.heal.body(body, ageH, l0)
+    local bad = K.heal.body(body, ageH, l0, NR.server.options ~= nil and NR.server.options.sexSpecific == true)
     if bad ~= nil then
         MET.stats.failures = MET.stats.failures + 1
         MET.lastError = "metabolism: non-finite " .. bad .. " for " .. tostring(username) .. "; stamped neutral"

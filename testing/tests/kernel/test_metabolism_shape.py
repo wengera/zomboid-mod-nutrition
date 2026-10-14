@@ -252,7 +252,7 @@ def test_first_sight_reads_sex_build_and_the_responder_clamp(met_host):
     assert abs(body["r"] - 1.8) < TOL
     assert body["l0"] == 3
     assert abs(body["traitCarry"] - 0.9) < TOL
-    fm, lm, _ = h.K.body.split(62.0, 2, h.table({"athletic": True}))
+    fm, lm, _ = h.K.body.split(62.0, 1, h.table({"athletic": True}))    # NR.SexSpecific off: the male split
     assert abs(body["fm"] - fm) < TOL and abs(body["lm"] - lm) < TOL
     h.G.NR_TEST_RAND = 0.0                     # z = -6: exp(-1.8) clamps to 0.5
     try:
@@ -260,6 +260,33 @@ def test_first_sight_reads_sex_build_and_the_responder_clamp(met_host):
     finally:
         h.G.NR_TEST_RAND = 0.5
     assert abs(body["r"] - 0.5) < TOL
+
+
+def test_a_female_first_sight_builds_the_male_body_unless_sex_specific_is_on(met_host):
+    # Plan 13 Task 3 fix 1: the creation split reads the effective sex; body.sex keeps the engine's value
+    h = met_host
+    traits = {"ATHLETIC": True}
+    nr = h.G.NutritionRevamp.server
+    made = nr.options is None
+    if made:
+        nr.options = h.rt.table()
+    opts = nr.options
+    saved = opts.sexSpecific
+    try:
+        opts.sexSpecific = False
+        off = fresh(h, player(h, female=True, traits=traits, weight=62.0))["body"]
+        male = fresh(h, player(h, traits=traits, weight=62.0))["body"]
+        assert off["sex"] == 2 and male["sex"] == 1
+        assert off["fm"] == male["fm"] and off["lm"] == male["lm"]
+        opts.sexSpecific = True
+        on = fresh(h, player(h, female=True, traits=traits, weight=62.0))["body"]
+    finally:
+        opts.sexSpecific = saved
+        if made:
+            nr.options = None
+    fm, lm, _ = h.K.body.split(62.0, 2, h.table({"athletic": True}))
+    assert on["sex"] == 2 and abs(on["fm"] - fm) < TOL and abs(on["lm"] - lm) < TOL
+    assert on["fm"] != off["fm"]
 
 
 def test_first_sight_defaults_when_every_getter_is_absent(met_host):
