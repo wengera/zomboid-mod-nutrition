@@ -37,6 +37,7 @@ Events = {
     OnGameStart = event("OnGameStart"),
     OnCreatePlayer = event("OnCreatePlayer"),
     OnKeyPressed = event("OnKeyPressed"),
+    OnPlayerDeath = event("OnPlayerDeath"),
 }
 isClient = function() return NR_T.client ~= false end
 isServer = function() return false end
@@ -416,6 +417,54 @@ def test_an_ungraded_nutrients_excess_is_named_by_a_row_at_bands():
     rows = [v.rows[i] for i in range(1, len(v.rows) + 1)]
     sel = [r for r in rows if r.key == "nut_selenium_x"]
     assert len(sel) == 1 and sel[0].text == "UI_NR_Class_excess_1" and sel[0].labelText is not None
+
+
+def _row(v, key):
+    return next((v.rows[i] for i in range(1, len(v.rows) + 1) if v.rows[i].key == key), None)
+
+
+def test_a_death_clears_the_view_so_a_respawn_shows_nothing_of_the_dead_character_until_its_first_push():
+    rt = rt_env()
+    rt.execute("SandboxVars.NR.VisibilityMode = 2")
+    rt.execute("""
+        NR_T.heard = {}
+        local L = NutritionRevamp.client.view.listeners
+        L[#L + 1] = function(classes) NR_T.heard[#NR_T.heard + 1] = classes.hydration end
+    """)
+    receive(rt, "{ fluids_dehydPct = 7, body_weight = 61.5, body_fm = 9, body_band = 'under' }")
+    v = V(rt)
+    assert v.classes.hydration == 4 and _row(v, "body_weight").text == "61.5 kg" and v.fatBand is not None
+    received = NRC(rt).received
+    fire(rt, "OnPlayerDeath", "NR_T.player")
+    assert NRC(rt).mirror is None and NRC(rt).received == received + 1
+    assert v.classes.hydration == 0 and _row(v, "body_weight").text == "" and v.fatBand is None
+    assert list(G(rt).NR_T.heard.values()) == [4, 0]           # the listeners (the moodles) heard the clear
+    fire(rt, "OnCreatePlayer", "0, NR_T.player")               # the respawn: still nothing of the dead body
+    v.refresh(False)
+    assert v.classes.hydration == 0 and NRC(rt).mirror is None
+    receive(rt, "{ fluids_dehydPct = 1 }")                     # the new character's first push
+    assert v.classes.hydration == 1 and v.stats.errors == 0
+
+
+def test_a_split_screen_players_death_keeps_player_zeros_view():
+    rt = rt_env()
+    receive(rt, "{ fluids_dehydPct = 7 }")
+    rt.execute("NR_T.other = { getPlayerNum = function(self) return 1 end }")
+    fire(rt, "OnPlayerDeath", "NR_T.other")
+    assert NRC(rt).mirror is not None and V(rt).classes.hydration == 4
+
+
+def test_a_reload_adds_no_second_mirror_or_death_handler():
+    rt = rt_env()
+    adds = G(rt).NR_T.adds
+    before = {e: len(adds[e]) for e in ("OnServerCommand", "OnGameStart", "OnPlayerDeath", "OnCreatePlayer")}
+    _load(rt, MIRROR)
+    _load(rt, VIEW)
+    assert {e: len(adds[e]) for e in before} == before
+    assert before["OnServerCommand"] == 1 and before["OnPlayerDeath"] == 1
+    received = NRC(rt).received
+    receive(rt, "{ fluids_dehydPct = 7 }")
+    assert NRC(rt).received == received + 1
 
 
 def test_the_listeners_are_called_after_each_rebuild_and_a_raising_one_is_caught():

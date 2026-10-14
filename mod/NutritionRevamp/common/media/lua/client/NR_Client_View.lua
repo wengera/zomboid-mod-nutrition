@@ -23,7 +23,7 @@
 -- create NR.client.view = { listeners = {} } itself: this file carries an existing listeners array over.
 --
 -- Shape (the client-file discipline): the sentinel NR_ClientView_Installed is a global of its own holding
--- the one OnCreatePlayer closure, which looks NutritionRevamp.client.view up per call; the side test is per call;
+-- the OnCreatePlayer and OnPlayerDeath closures, which look NutritionRevamp.client.view up per call; the side test is per call;
 -- every Java global (getPlayer, CharacterTrait, SandboxVars, getTextManager, UIFont) is named only inside a function
 -- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_client_view_shape.py); every
 -- handler body runs under one pcall. No @fastpath region: refresh's per-frame cost is one compare.
@@ -200,6 +200,19 @@ function V.onCreatePlayer(playerNum, player)
     end
 end
 
+-- OnPlayerDeath (the local player's; split-screen player 1's death keeps player 0's view): the mirror is
+-- dropped and the view rebuilt empty, so the listeners (the moodles) clear and a respawn shows none of the dead
+-- character's classes or rows until the server's first push for the new one (its first-sight mirror).
+function V.onPlayerDeath(player)
+    local nr = NutritionRevamp
+    if not nr.isClient() then return end
+    local ok, present, pn = pcall(NR.call, player, "getPlayerNum")
+    if ok and present and type(pn) == "number" and pn ~= 0 then return end
+    nr.client.clearMirror()
+    V.fatBand = nil
+    V.refresh(true)
+end
+
 -- The line height of font through getTextManager():getFontHeight(font), guarded; DEFAULT_LINE on any failure.
 function V.lineHeight(font)
     if getTextManager == nil or font == nil then return DEFAULT_LINE end
@@ -267,4 +280,16 @@ if NR_ClientView_Installed.create == nil and Events ~= nil and Events.OnCreatePl
         pcall(nr.client.view.onCreatePlayer, playerNum, player)
     end
     Events.OnCreatePlayer.Add(NR_ClientView_Installed.create)
+end
+if NR_ClientView_Installed.death == nil and Events ~= nil and Events.OnPlayerDeath ~= nil then
+    NR_ClientView_Installed.death = function(player)
+        local nr = NutritionRevamp
+        if nr == nil or nr.client == nil or nr.client.view == nil then return end
+        local ok, err = pcall(nr.client.view.onPlayerDeath, player)
+        if not ok then
+            nr.client.view.stats.errors = nr.client.view.stats.errors + 1
+            nr.client.view.lastError = err
+        end
+    end
+    Events.OnPlayerDeath.Add(NR_ClientView_Installed.death)
 end
