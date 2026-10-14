@@ -432,8 +432,8 @@ end
 -- keeps the anchor s.nicH (record.satiety.nicH; stored, K.store.INPUTS): the world age in game hours at the last minute
 -- the stat read 0 or fell below the previous minute's read (h.nicLast, per hoist: a fall across a reconnect or a
 -- restart is not seen, and the anchor holds), so the days since the last smoke are (ageH - nicH) / 24, exact in game
--- time whatever the time speed (ruling T2-A, where the vanilla timer is not, #3636). A record with no anchor lays it at
--- the minute; a stored anchor that is not a finite number, or that lies ahead of the minute, is dropped (counted in
+-- time whatever the time speed (ruling T2-A, where the vanilla timer is not, #3636), an offline gap skipped (Nutrients'
+-- K.acute.skipRecord moves the anchor past it). A record with no anchor lays it at the minute; a stored anchor that is not a finite number, or that lies ahead of the minute, is dropped (counted in
 -- guarded) and laid again. A first or healed anchor laid while the stat reads above 0 starts fully faded, at
 -- ageH - NIC_FADE_DAYS x 24, so the factor reads 1 (ruling T2-F: no fall seen is no evidence of a recent quit,
 -- measured-or-neutral); one laid at a 0 stat or a fall sits at the minute, and from a smoke on the rise between smokes

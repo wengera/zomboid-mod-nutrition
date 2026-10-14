@@ -213,3 +213,24 @@ function K.monotony.faded(e, dt)
     end
     return n
 end
+
+-- Skip gapH game hours the adapter does not integrate (K.acute.skipRecord, an offline gap after fromH): every entry
+-- stamped by fromH moves forward by the gap, so its count decays over no offline time; one stamped after fromH (an eat
+-- at the return) stays. A monotony that is not a table, and an entry that is not one or whose stamp is not a finite
+-- number, are left for the heal. Returns m.
+function K.monotony.skip(m, gapH, fromH)
+    if type(m) ~= "table" or type(m.t) ~= "table" then
+        return m
+    end
+    for _, e in pairs(m.t) do
+        K.monotony.skipOne(e, gapH, fromH)
+    end
+    return m
+end
+
+-- One entry of the skip (the pairs body, kept out of the loop so the line-granular coverage gate sees both outcomes).
+function K.monotony.skipOne(e, gapH, fromH)
+    if type(e) == "table" and K.vector.finite(e.last) and e.last <= fromH then
+        e.last = e.last + gapH
+    end
+end

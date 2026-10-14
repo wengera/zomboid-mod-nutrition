@@ -1324,3 +1324,20 @@ def test_a_skipped_minute_keeps_the_ingested_sum(nut_host):
         assert abs(record["body"]["alcDay"] - 14.0) < TOL
     finally:
         IN.lastIngested = None
+
+
+def test_an_offline_gap_moves_the_monotony_and_nicotine_anchors(nut_host):
+    # Plan 12 B8: monotony's per-type stamps and the writer's nicotine anchor skip the gap too, so an absence neither
+    # fades a repeated food nor counts toward a quit (README: offline time is not simulated)
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    alone(h, p, record, 100.5)
+    record["monotony"] = h.table({"t": {"Base.Bread": {"n": 3.0, "last": 100.25}}})
+    record["satiety"] = h.table({"nicH": 90.0})
+    alone(h, p, record, 100.5 + 72.0)                       # 72 h away: one hour integrated, 71 skipped
+    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 71.0
+    assert record["monotony"]["t"]["Base.Bread"]["n"] == 3.0
+    assert record["satiety"]["nicH"] == 90.0 + 71.0
+    alone(h, p, record, 100.5 + 73.0)                       # an integrated hour moves nothing
+    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 71.0

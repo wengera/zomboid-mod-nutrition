@@ -492,6 +492,22 @@ function K.acute.skip(a, gapH)
     return a
 end
 
+-- The record's one offline skip (the adapter's call when its capped step from fromH leaves gapH game hours
+-- unintegrated): the acute anchors (K.acute.skip), and every monotony stamp (K.monotony.skip) and the writer's nicotine
+-- anchor satiety.nicH laid by fromH, move forward by the gap, so no world-age clock the mod reads counts the time
+-- offline: an absence neither fades a repeated food nor counts toward a quit. A stamp laid after fromH was laid at the
+-- return (an eat before the first step back) and stays. A nicH that is absent or not a finite number is left for the
+-- writer's own heal. Returns the record.
+function K.acute.skipRecord(record, gapH, fromH)
+    K.acute.skip(record.acute, gapH)
+    K.monotony.skip(record.monotony, gapH, fromH)
+    local s = record.satiety
+    if type(s) == "table" and K.vector.finite(s.nicH) and s.nicH <= fromH then
+        s.nicH = s.nicH + gapH
+    end
+    return record
+end
+
 -- The sleep term of the impairment unit: 0 at 16 h awake, 1 at 24 h (S0892), plus debt / 10.5, cap 1.5.
 function K.acute.iuSleep(a)
     local A = K.acute
