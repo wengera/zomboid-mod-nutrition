@@ -129,14 +129,7 @@ function STR.remap(player, level)
             end
         end
     end
-    if changed then
-        if sendSyncPlayerFields == nil then
-            STR.stats.pushMissing = STR.stats.pushMissing + 1
-        else
-            sendSyncPlayerFields(player, 2)
-            STR.stats.pushes = STR.stats.pushes + 1
-        end
-    end
+    if changed then NR.pushTraits(player, STR.stats) end
     return changed
 end
 

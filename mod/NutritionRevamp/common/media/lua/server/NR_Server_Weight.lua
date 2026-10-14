@@ -53,17 +53,6 @@ WGT.BAND_TRAIT = {
 WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 local finite = NR.finite
 
--- The trait-block push (#2099): a Java global called with a dot (#2815); absent -> counted.
-local function push(player)
-    local f = sendSyncPlayerFields
-    if f ~= nil then
-        f(player, 2)
-        WGT.stats.pushes = WGT.stats.pushes + 1
-    else
-        WGT.stats.pushMissing = WGT.stats.pushMissing + 1
-    end
-end
-
 -- Whether the band's trait set needs a repair: the band's own trait absent, or for "normal" any of the
 -- five present. False when the registry or the trait collection is unreadable (nothing to compare).
 local function needsRepair(player, band)
@@ -158,13 +147,13 @@ local function step(username, player, record)
         if NR.call(nut, "applyTraitFromWeight") then       -- absent: nothing stamped; next minute retries
             body.band = band
             WGT.stats.bandChanges = WGT.stats.bandChanges + 1
-            push(player)
+            NR.pushTraits(player, WGT.stats)
             markBand(username)
         end
     elseif needsRepair(player, band) then
         if NR.call(nut, "applyTraitFromWeight") then
             WGT.stats.bandRepairs = WGT.stats.bandRepairs + 1
-            push(player)
+            NR.pushTraits(player, WGT.stats)
         end
     end
     local opts = NR.server.options

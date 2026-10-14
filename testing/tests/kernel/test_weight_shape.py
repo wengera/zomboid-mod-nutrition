@@ -621,3 +621,28 @@ def test_legacy_mirror_tooltip_names_the_strength_bonus_only():
         tip = json.load(fh)["Sandbox_NR_LegacyMirror_tooltip"]
     assert "applies to Strength experience only" in tip
     assert "Fitness" not in tip
+
+
+def test_a_raising_push_global_is_counted_and_the_band_still_marked(wgt_host):
+    # Plan 12 (S B6): a raise after body.band was stamped lost the bus mark for good and skipped the mirror.
+    h = wgt_host
+    saved = h.G.sendSyncPlayerFields
+    h.G.sendSyncPlayerFields = h.rt.eval("function(p, n) error('the push raised') end")
+    marked = h.rt.eval("function() local t = {}; NR_TEST_MARKS = t; return t end")()
+    keep_bus = h.G.NutritionRevamp.server.bus
+    h.G.NutritionRevamp.server.bus = h.rt.eval(
+        "function() return { markBand = function(u) NR_TEST_MARKS[#NR_TEST_MARKS + 1] = u end } end")()
+    try:
+        p = player(h)
+        record = record_for(h, fm=20.0, lm=65.0, band="normal")
+        s0 = stats(h)
+        minute(h, p, record)
+    finally:
+        h.G.sendSyncPlayerFields = saved
+        h.G.NutritionRevamp.server.bus = keep_bus
+    s = stats(h)
+    assert record.body.band == "overweight"
+    assert s["pushMissing"] == s0["pushMissing"] + 1
+    assert s["failures"] == s0["failures"]
+    assert len(marked) == 1
+    assert s["mirrorWrites"] == s0["mirrorWrites"] + 1

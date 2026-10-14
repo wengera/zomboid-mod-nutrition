@@ -679,3 +679,26 @@ def test_unreadable_sub_table_values_read_neutral_in_the_carry(str_host):
                      acute=dict(awakeH=float("inf"), caf=float("nan")))
     assert d == 1.0
     assert STR(h).stats.failures == failures
+
+
+def test_a_raising_push_global_is_counted_and_the_carry_still_written(str_host):
+    # Plan 12 (S B6): the push is guarded as Effects' is; a raise skipped carry() for the minute.
+    h = str_host
+    saved = h.G.sendSyncPlayerFields
+    h.G.sendSyncPlayerFields = h.rt.eval("function(p, n) error('the push raised') end")
+    try:
+        p = player(h, level=5, xp=0, traits=[], delta=1.0)
+        record = record_for(h)
+        body = record["body"]
+        body.fm = 33.0
+        body.lm = 67.0
+        body.lm0 = 67.0
+        h.G.NR_TEST_TOD = 14.0
+        miss, cw, fails = STR(h).stats.pushMissing, STR(h).stats.carryWrites, STR(h).stats.failures
+        minute(h, p, record, 100.0)
+    finally:
+        h.G.sendSyncPlayerFields = saved
+    assert traits(p) == ["WEAK"]
+    assert STR(h).stats.pushMissing == miss + 1
+    assert STR(h).stats.carryWrites == cw + 1
+    assert STR(h).stats.failures == fails

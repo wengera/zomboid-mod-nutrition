@@ -114,3 +114,18 @@ function NR.sandbox()
     end
     return NR.so
 end
+
+-- The trait-block push (#2099): sendSyncPlayerFields(player, 2), a Java global called with a dot (#2815), under one
+-- pcall, so a raise never skips the work after it in the caller's minute. Counted in stats.pushes, or in
+-- stats.pushMissing when the global is absent or raises. Returns whether it ran. One copy for Effects, Strength
+-- and Weight.
+function NR.pushTraits(player, stats)
+    local f = sendSyncPlayerFields
+    local ok = f ~= nil and pcall(f, player, 2)
+    if ok then
+        stats.pushes = stats.pushes + 1
+    else
+        stats.pushMissing = stats.pushMissing + 1
+    end
+    return ok
+end

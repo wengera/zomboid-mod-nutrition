@@ -306,14 +306,7 @@ local function traits(player, record, body, E, nut, sev, dtD)
     if coll == nil then return false end
     local changed = toggle(coll, CharacterTrait.NIGHT_VISION, wantNv, E.own, "nv")
     changed = toggle(coll, CharacterTrait.SHORT_SIGHTED, wantSs, E.own, "ss") or changed
-    if changed then
-        if sendSyncPlayerFields == nil then
-            EFF.stats.pushMissing = EFF.stats.pushMissing + 1
-        else
-            local ok = pcall(sendSyncPlayerFields, player, 2)
-            if ok then EFF.stats.pushes = EFF.stats.pushes + 1 else EFF.stats.pushMissing = EFF.stats.pushMissing + 1 end
-        end
-    end
+    if changed then NR.pushTraits(player, EFF.stats) end
     return changed
 end
 
