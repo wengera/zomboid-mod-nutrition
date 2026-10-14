@@ -188,21 +188,24 @@ function K.strength.fe(E, s, p, tdee, P)
     return bal + (1 - bal) * K.min(1, E / full)
 end
 
--- The day's lean gain in kg before the biology clock ts (spec section 5): k a week times the room to the
--- cap Fc, the signal, the two gates and the alcohol gate; while lm sits below the held peak Pk, the regain
--- term (half-life regain_hl_wk, the signal capped at 1, the same three gates: a drinking day blunts the same
--- synthesis, controller ruling) wins if larger. Never negative.
-function K.strength.growth(body, S, p, E, tdee, alcGkg, P)
+-- The day's two lean-gain arms in kg, the biology clock ts applied to each (spec section 5); K.strength.day
+-- composes them as their max. The growth arm: k a week times the room to the cap Fc, the signal, the two
+-- gates and the alcohol gate, an Euler step times ts, never negative. The regain arm, while lm sits below the
+-- held peak Pk (else 0): half-life regain_hl_wk at the signal capped at 1 and the same three gates (a drinking
+-- day blunts the same synthesis, controller ruling), integrated exactly over the day, so the gap Pk - lm
+-- closes by 1 - exp(-lr * min(1, G) * gates * ts / 7) and never past Pk at any clock (Task 11c, Task 11
+-- review I-2: the Euler form's fraction ln2 * ts / (7 * regain_hl_wk) exceeds 1 inside the option ranges).
+function K.strength.growth(body, S, p, E, tdee, alcGkg, P, ts)
     local s = K.strength.status(body)
     local G = K.strength.signal(S, s, P)
     local gates = K.strength.fp(p, P) * K.strength.fe(E, s, p, tdee, P) * K.partition.gAlc(alcGkg)
-    local grow = P.k * (body.Fc - body.lm) * G * gates / 7
+    local grow = K.max(0, P.k * (body.Fc - body.lm) * G * gates / 7) * ts
+    local regain = 0
     if body.lm < body.Pk then
         local lr = math.log(2) / P.regain_hl_wk
-        local regain = lr * (body.Pk - body.lm) * K.min(1, G) * gates / 7
-        grow = K.max(grow, regain)
+        regain = (body.Pk - body.lm) * (1 - math.exp(-lr * K.min(1, G) * gates * ts / 7))
     end
-    return K.max(0, grow)
+    return grow, regain
 end
 
 -- The maintenance threshold S_m(s) in sets a week: the share m of the growth threshold (spec section 6).
@@ -252,9 +255,9 @@ function K.strength.neural(body, S, P, ts)
     end
 end
 
--- One closed day of the body (spec sections 5, 5.1 and 6), the oracle's exact Body.day: growth (regain
--- inside it) scaled by the biology clock ts, detraining at the day's opening status, the partition arm by
--- the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors (lm >= fMinShare * F0,
+-- One closed day of the body (spec sections 5, 5.1 and 6), the oracle's exact Body.day: the larger of
+-- growth's two arms (each with the biology clock ts applied), detraining at the day's opening status, the
+-- partition arm by the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors (lm >= fMinShare * F0,
 -- lx >= 0, fm >= fmMin), then the peak and the neural factor (which reads S only). A tdee at or below 0, or
 -- NaN, reads the energy gate at balance: the gate's surplus share divides by it. Writes lm, lx, fm, Pk,
 -- grace, T and Tgrace; returns the day's dF, dX, dM before the floors.
@@ -266,7 +269,8 @@ function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
         Egate = K.min(E, 0)
         tdeeGate = 1
     end
-    local grow = K.strength.growth(body, S, p, Egate, tdeeGate, alcGkg, P) * ts
+    local grow, regain = K.strength.growth(body, S, p, Egate, tdeeGate, alcGkg, P, ts)
+    grow = K.max(grow, regain)
     local dF = grow - K.strength.detrain(body, S, s, P, ts)
     local dX = 0
     local dM = 0

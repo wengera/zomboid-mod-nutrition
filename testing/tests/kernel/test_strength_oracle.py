@@ -53,6 +53,8 @@ def test_exact_detraining_halves_in_its_half_life():
 
 # The exact-mode re-score (ruling 13-2, ts = 1) of every registry oracle at point T, pinned so a later kernel or
 # oracle change that moves one is named. Against the record only rantila_kept_frac and rantila_block2_over_1 moved.
+# Task 11c (regain integrated exactly, Task 11 review I-2) moved buechel26_contest_ffm only, by 7.5e-7: a weight-0
+# report oracle outside its band under the record and still outside it; the total did not move.
 EXACT_TOTAL = 0.5281803643283429
 EXACT_PINS = {
     'year1_kg_20sets': 7.556450473517981,
@@ -111,7 +113,7 @@ EXACT_PINS = {
     'chk4_s09_contest_minus500': -1.3205987075961332,
     'deg_surplus_2pct_s09': 0.007505486325641186,
     'deg_fbal_status': 0.03359525461830324,
-    'buechel26_contest_ffm': -0.5635465188507567,
+    'buechel26_contest_ffm': -0.563547266810744,  # Task 11c (exact regain): was -0.5635465188507567
     'roth23_minus30pct_lean': -0.26987869282115895,
 }
 
@@ -225,3 +227,59 @@ def test_exact_no_labile_decay_while_surplus_remains():
     b.X = 1.0
     b.day(20.0, 2.0, 1000.0)
     assert b.X == 1.0
+
+
+# ---------------------------------------------------------------- Task 11c: regain integrated exactly (Task 11 review I-2)
+def _regain_day(P, b, S, p, E, tdee=2600.0):
+    """The exact mode's day regain, ts applied: (Pk - F) (1 - exp(-lr min(1, G) gates ts / 7))."""
+    s = b.s()
+    G = sm.Gsig(P, S, s)
+    gates = sm.fp(P, p) * sm.fe(P, E, s, p, tdee)
+    lr = math.log(2) / P["regain_hl_wk"]
+    return (b.Pk - b.F) * (1.0 - math.exp(-lr * min(1.0, G) * gates * P["ts"] / 7.0))
+
+
+def test_exact_regain_never_passes_the_peak():
+    # ts 30 and a 1-week half-life, both inside the option ranges: the Euler form's daily fraction is
+    # ln2 * 30 / 7 = 2.97, which sent F past Pk; the exact form closes at most the whole gap
+    # (a regain day: the regain arm above the growth arm, read before the day; growth may carry F past Pk)
+    P = _P(ts=30.0, regain_hl_wk=1.0)
+    b = sm.Body(P, 6.0, 16.5, 13.0, F0L=5.0, peakL=14.0)
+    regain_days = 0
+    for _ in range(60):
+        Pk = b.Pk
+        s = b.s()
+        grow = P["k"] * (b.Fc - b.F) * sm.Gsig(P, 20.0, s) * sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0) / 7.0 * 30.0
+        rg = _regain_day(P, b, 20.0, 2.0, 260.0) if b.F < b.Pk else 0.0
+        b.day(20.0, 2.0, 260.0)
+        if rg > grow:
+            regain_days += 1
+            assert b.F <= Pk
+    assert regain_days > 0
+
+
+def test_exact_regain_is_the_integrated_form():
+    # a regain day at ts 1, 2 and 30: the day's F gain is max(grow * ts, regain_day) at balance-free gates
+    for ts in (1.0, 2.0, 30.0):
+        for hl in (1.0, 6.0):
+            P = _P(ts=ts, regain_hl_wk=hl)
+            b = sm.Body(P, 6.0, 16.5, 13.0, F0L=5.0, peakL=14.0)
+            s = b.s()
+            G = sm.Gsig(P, 20.0, s)
+            gates = sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0)
+            grow = P["k"] * (b.Fc - b.F) * G * gates / 7.0 * ts
+            want = max(grow, _regain_day(P, b, 20.0, 2.0, 260.0))
+            F = b.F
+            b.day(20.0, 2.0, 260.0)
+            assert abs((b.F - F) - want) < 1e-12, (ts, hl)
+
+
+def test_euler_regain_fails_the_peak_bound():
+    # the mutation: the fit's Euler arm (the non-exact path, ts applied by hand) passes the peak at ts 30, hl 1
+    P = dict(sm.POINT_T, regain_hl_wk=1.0)
+    b = sm.Body(P, 6.0, 16.5, 13.0, F0L=5.0, peakL=14.0)
+    s = b.s()
+    G = sm.Gsig(P, 20.0, s)
+    gates = sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0)
+    euler = math.log(2) / P["regain_hl_wk"] * (b.Pk - b.F) * min(1.0, G) * gates / 7.0 * 30.0
+    assert b.F + euler > b.Pk

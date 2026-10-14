@@ -153,21 +153,24 @@ def test_energy_gate_matches_the_oracle_off_the_point(host):
                     assert abs(got - sm.fe(Q, E, s, p, 2600.0)) < 1e-12, (key, E, s, p)
 
 
-def _oracle_grow(F, F0, Fc, Pk, S, p, E, tdee):
-    """Body.day's grow before ts (POINT_T: regain gated, max of growth and regain)."""
-    P = sm.POINT_T
-    b = sm.Body(P, 5.0, 16.5, 10.0)
+def _oracle_arms(Q, F, F0, Fc, Pk, S, p, E, tdee, ts):
+    """Body.day's two arms in the exact mode (Task 11c), ts applied: the growth arm's Euler step times ts, and the
+    regain integrated exactly over the day, (Pk - F) (1 - exp(-lr min(1, G) gates ts / 7)), 0 at or above Pk."""
+    b = sm.Body(Q, 5.0, 16.5, 10.0)
     b.F, b.F0, b.Fc, b.Pk = F, F0, Fc, Pk
     s = b.s()
-    G = sm.Gsig(P, S, s)
-    gp = sm.fp(P, p)
-    ge = sm.fe(P, E, s, p, tdee)
-    grow = P["k"] * (Fc - F) * G * gp * ge / 7.0
+    G = sm.Gsig(Q, S, s)
+    gates = sm.fp(Q, p) * sm.fe(Q, E, s, p, tdee)
+    grow = max(0.0, Q["k"] * (Fc - F) * G * gates / 7.0) * ts
+    rg = 0.0
     if F < Pk:
-        lr = math.log(2) / P["regain_hl_wk"]
-        rg = lr * (Pk - F) * min(1.0, G) * gp * ge / 7.0
-        grow = max(grow, rg)
-    return max(0.0, grow)
+        lr = math.log(2) / Q["regain_hl_wk"]
+        rg = (Pk - F) * (1.0 - math.exp(-lr * min(1.0, G) * gates * ts / 7.0))
+    return grow, rg
+
+
+def _oracle_grow(F, F0, Fc, Pk, S, p, E, tdee, ts=1.0):
+    return _oracle_arms(sm.POINT_T, F, F0, Fc, Pk, S, p, E, tdee, ts)
 
 
 def _body(host, lm, F0, Fc, Pk):
@@ -186,9 +189,10 @@ def test_growth_matches_the_oracle(host):
         for S in GRID_S:
             for p in GRID_p:
                 for E in GRID_E:
-                    got = host.call("strength.growth", b, S, p, E, 2600.0, 0.0, D)
-                    want = _oracle_grow(lm, F0, Fc, Pk, S, p, E, 2600.0)
-                    assert abs(got - want) < 1e-12, (lm, Pk, S, p, E)
+                    for ts in (1.0, 2.5):
+                        got = host.call("strength.growth", b, S, p, E, 2600.0, 0.0, D, ts)
+                        want = _oracle_grow(lm, F0, Fc, Pk, S, p, E, 2600.0, ts)
+                        assert abs(got[0] - want[0]) < 1e-12 and abs(got[1] - want[1]) < 1e-12, (lm, Pk, S, p, E, ts)
 
 
 def test_alcohol_scales_growth(host):
@@ -196,10 +200,10 @@ def test_alcohol_scales_growth(host):
     F0 = sm.F_of(5.0)
     Fc = sm.F_of(16.5)
     b = _body(host, F0 + 2.0, F0, Fc, F0 + 2.0)
-    sober = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, 0.0, D)
-    at = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, host.K.partition.ALC_THRESH, D)
-    drunk = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, 1.2, D)
-    assert sober > 0 and at == sober
+    sober, rs = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, 0.0, D, 1.0)
+    at, _ = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, host.K.partition.ALC_THRESH, D, 1.0)
+    drunk, _ = host.call("strength.growth", b, 15.0, 1.8, 300.0, 2600.0, 1.2, D, 1.0)
+    assert sober > 0 and at == sober and rs == 0
     assert abs(drunk - sober * host.K.partition.G_ALC) < 1e-15
 
 
@@ -212,13 +216,16 @@ def test_alcohol_scales_regain(host):
     s = host.call("strength.status", lost)
     G = host.call("strength.signal", 12.0, s, D)
     gates = host.call("strength.fp", 1.8, D) * host.call("strength.fe", 300.0, s, 1.8, 2600.0, D)
-    regain = math.log(2) / D["regain_hl_wk"] * (8.0 - 1.0) * min(1.0, G) * gates / 7.0
+    lr = math.log(2) / D["regain_hl_wk"]
+    regain = (8.0 - 1.0) * (1.0 - math.exp(-lr * min(1.0, G) * gates / 7.0))
     grow = D["k"] * (Fc - (F0 + 1.0)) * G * gates / 7.0
-    assert regain > grow  # the regain arm is the one returned
-    sober = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 0.0, D)
-    drunk = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 1.2, D)
-    assert abs(sober - regain) < 1e-12
-    assert abs(drunk - host.K.partition.G_ALC * sober) < 1e-15
+    assert regain > grow  # the regain arm is the one the day takes
+    g_sober, sober = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 0.0, D, 1.0)
+    g_drunk, drunk = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 1.2, D, 1.0)
+    assert abs(g_sober - grow) < 1e-12 and abs(sober - regain) < 1e-12
+    # the alcohol gate scales the exact regain's rate, so the gap closes by 1 - exp(-G_ALC * rate)
+    want = (8.0 - 1.0) * (1.0 - math.exp(-lr * min(1.0, G) * gates * host.K.partition.G_ALC / 7.0))
+    assert abs(drunk - want) < 1e-12 and drunk < sober
 
 
 def test_regain_returns_lost_lean_faster_than_growth(host):
@@ -227,17 +234,17 @@ def test_regain_returns_lost_lean_faster_than_growth(host):
     Fc = sm.F_of(16.5)
     lost = _body(host, F0 + 1.0, F0, Fc, F0 + 8.0)
     never = _body(host, F0 + 1.0, F0, Fc, F0 + 1.0)
-    g_lost = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 0.0, D)
-    g_never = host.call("strength.growth", never, 12.0, 1.8, 300.0, 2600.0, 0.0, D)
+    g_lost = max(host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 0.0, D, 1.0))
+    g_never = max(host.call("strength.growth", never, 12.0, 1.8, 300.0, 2600.0, 0.0, D, 1.0))
     assert g_lost > g_never > 0
     # regain is gated by the same signal: no sets, no regain
-    assert host.call("strength.growth", lost, 0.0, 1.8, 300.0, 2600.0, 0.0, D) == 0
+    assert host.call("strength.growth", lost, 0.0, 1.8, 300.0, 2600.0, 0.0, D, 1.0) == (0, 0)
 
 
 def test_no_signal_no_growth_whatever_the_protein_and_surplus(host):
     D = host.K.strength.DEFAULTS
     b = host.table({"lm": 52.02, "F0": 52.02, "Fc": 85.3, "Pk": 52.02})
-    assert host.call("strength.growth", b, 0.0, 2.4, 400.0, 2600.0, 0.0, D) == 0
+    assert host.call("strength.growth", b, 0.0, 2.4, 400.0, 2600.0, 0.0, D, 1.0) == (0, 0)
 
 
 def test_low_volume_stalls_where_the_threshold_meets_the_sets(host):
@@ -264,16 +271,9 @@ def test_growth_reads_its_own_keys(host):
         for lm, Pk in ((F0 + 1.0, F0 + 8.0), (F0 + 9.0, F0 + 9.0)):
             b = _body(host, lm, F0, Fc, Pk)
             for S in GRID_S:
-                ob = sm.Body(Q, 5.0, 16.5, 10.0)
-                ob.F, ob.F0, ob.Fc, ob.Pk = lm, F0, Fc, Pk
-                s = ob.s()
-                G = sm.Gsig(Q, S, s)
-                g = sm.fp(Q, 1.8) * sm.fe(Q, 300.0, s, 1.8, 2600.0)
-                grow = Q["k"] * (Fc - lm) * G * g / 7.0
-                if lm < Pk:
-                    grow = max(grow, math.log(2) / Q["regain_hl_wk"] * (Pk - lm) * min(1.0, G) * g / 7.0)
-                got = host.call("strength.growth", b, S, 1.8, 300.0, 2600.0, 0.0, P)
-                assert abs(got - max(0.0, grow)) < 1e-12, (key, lm, S)
+                want = _oracle_arms(Q, lm, F0, Fc, Pk, S, 1.8, 300.0, 2600.0, 2.0)
+                got = host.call("strength.growth", b, S, 1.8, 300.0, 2600.0, 0.0, P, 2.0)
+                assert abs(got[0] - want[0]) < 1e-12 and abs(got[1] - want[1]) < 1e-12, (key, lm, S)
 
 
 # ---------------------------------------------------------------- the lean partition (Plan 13 Task 7)
@@ -331,21 +331,14 @@ def _clone(Q, ob):
 
 
 def _oracle_grow_q(Q, ob, S, p, E, tdee):
-    """Body.day's grow before ts, under Q (regain gated, max of growth and regain)."""
-    s = ob.s()
-    G = sm.Gsig(Q, S, s)
-    gp = sm.fp(Q, p)
-    ge = sm.fe(Q, E, s, p, tdee)
-    grow = Q["k"] * (ob.Fc - ob.F) * G * gp * ge / 7.0
-    if ob.F < ob.Pk:
-        grow = max(grow, math.log(2) / Q["regain_hl_wk"] * (ob.Pk - ob.F) * min(1.0, G) * gp * ge / 7.0)
-    return max(0.0, grow)
+    """Body.day's scaled grow under Q in the exact mode: the max of its two arms, ts applied (Task 11c)."""
+    return max(_oracle_arms(Q, ob.F, ob.F0, ob.Fc, ob.Pk, S, p, E, tdee, Q.get("ts", 1.0)))
 
 
 def _oracle_step(Q, ob, S, p, E, tdee):
     """One exact oracle day from a clone of ob (grace 0: no detraining): the scaled growth and the F, X, M changes."""
     c = _clone(Q, ob)
-    grow = _oracle_grow_q(Q, c, S, p, E, tdee) * Q.get("ts", 1.0)
+    grow = _oracle_grow_q(Q, c, S, p, E, tdee)
     F, X, M = c.F, c.X, c.M
     c.day(S, p, E, tdee)
     assert c.F > 0.35 * c.F0 and c.M > 0.5  # the floors never bind on a compared day

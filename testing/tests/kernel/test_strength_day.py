@@ -134,7 +134,7 @@ def test_growth_and_detraining_on_one_day_match_the_oracle(host, ts):
     S = 0.5 * (Sm + host.call("strength.threshold", 0.5, P))
     _days(host, ob, lb, [(int(60 / ts), S, 2.0, 260.0, 2600.0)], ts, P)
     b = _lua_body_from(host, ob)
-    assert host.call("strength.growth", b, S, 2.0, 260.0, 2600.0, 0.0, P) > 0
+    assert host.call("strength.growth", b, S, 2.0, 260.0, 2600.0, 0.0, P, ts)[0] > 0
     assert host.call("strength.detrain", b, S, host.call("strength.status", b), P, ts) > 0
     assert lb["lm"] != lm0
 
@@ -480,7 +480,7 @@ def test_a_zero_tdee_partitions_the_real_balance(host, tdee):
     ob.X = 0.3
     for E in (200.0, 0.0, -200.0):
         b0 = _lua_body_from(host, ob)
-        grow = host.call("strength.growth", b0, 15.0, 2.0, min(E, 0.0), 2600.0, 0.0, D)
+        grow = max(host.call("strength.growth", b0, 15.0, 2.0, min(E, 0.0), 2600.0, 0.0, D, 1.0))
         if E >= 0:
             dX, dM = host.call("partition.surplusLean", b0, grow, 15.0, 2.0, E, D, 1.0)
         else:
@@ -498,3 +498,75 @@ def test_neural_threshold_is_strictly_below_m_wsat(host):
     assert b["Tgrace"] == 0 and b["T"] > 1.05
     T, tg = sl.neural_day(1.05, 30, at, 1.0)
     assert b["T"] == T and b["Tgrace"] == tg
+
+
+# ---------------------------------------------------------------- Task 11c: regain integrated exactly (Task 11 review I-2)
+REGAIN_GRID = [(ts, hl) for ts in (1.0, 2.0, 30.0) for hl in (1.0, 6.0)]
+
+
+def _far_below_the_peak(Q):
+    """A body far below a held peak: lean at bio 6, the peak at bio 14, the set point at bio 5."""
+    return sm.Body(Q, 6.0, 16.5, 13.0, F0L=5.0, peakL=14.0)
+
+
+@pytest.mark.parametrize("ts, hl", REGAIN_GRID)
+def test_regain_far_below_the_peak_matches_the_oracle(host, ts, hl):
+    # the regain arm wins every early day here; at ts 30 and a 1-week half-life the Euler form's daily fraction
+    # was 2.97, and the exact oracle's day must still be matched to 1e-12 on every state field
+    P = _copy(host, regain_hl_wk=hl)
+    ob = _far_below_the_peak(_q(ts, regain_hl_wk=hl))
+    lb = _lua_body_from(host, ob)
+    _days(host, ob, lb, [(max(1, int(60 / ts)), 20.0, 2.0, 260.0, 2600.0),
+                         (max(1, int(30 / ts)), 12.0, 1.6, -300.0, 2600.0)], ts, P)
+
+
+def _regain_days_stay_under_the_peak(host, P, ts):
+    """Train the body far below its peak for 40 days and return, over the regain days (the regain arm above the
+    growth arm, read before the day), the worst excess of lm over the day's opening Pk, and their count."""
+    ob = _far_below_the_peak(_q(ts))
+    lb = _lua_body_from(host, ob)
+    worst = -math.inf
+    regain_days = 0
+    for _ in range(40):
+        Pk = lb["Pk"]
+        grow, regain = host.call("strength.growth", lb, 20.0, 2.0, 260.0, 2600.0, 0.0, P, ts)
+        host.call("strength.day", lb, 20.0, 2.0, 260.0, 2600.0, 0.0, P, ts)
+        if regain > grow:
+            regain_days += 1
+            worst = max(worst, lb["lm"] - Pk)
+    return worst, regain_days
+
+
+@pytest.mark.parametrize("ts, hl", REGAIN_GRID)
+def test_lm_never_passes_the_peak_on_a_regain_day(host, ts, hl):
+    worst, regain_days = _regain_days_stay_under_the_peak(host, _copy(host, regain_hl_wk=hl), ts)
+    assert regain_days > 0 and worst <= 0.0, (ts, hl, worst)
+
+
+EULER_GROWTH = """
+local K = ...
+return function(body, S, p, E, tdee, alcGkg, P, ts)
+    local s = K.strength.status(body)
+    local G = K.strength.signal(S, s, P)
+    local gates = K.strength.fp(p, P) * K.strength.fe(E, s, p, tdee, P) * K.partition.gAlc(alcGkg)
+    local grow = K.max(0, P.k * (body.Fc - body.lm) * G * gates / 7) * ts
+    local regain = 0
+    if body.lm < body.Pk then
+        regain = math.log(2) / P.regain_hl_wk * (body.Pk - body.lm) * K.min(1, G) * gates / 7 * ts
+    end
+    return grow, regain
+end
+"""
+
+
+def test_the_euler_regain_fails_the_peak_bound(host):
+    # the mutation: the pre-Task 11c Euler regain arm (ts applied after the step) fails the bound at ts 30 and a
+    # 1-week half-life, the exact arm's own test above
+    euler = host.rt.execute(EULER_GROWTH, host.K)
+    exact = host.K.strength["growth"]
+    host.K.strength["growth"] = euler
+    try:
+        worst, _ = _regain_days_stay_under_the_peak(host, _copy(host, regain_hl_wk=1.0), 30.0)
+    finally:
+        host.K.strength["growth"] = exact
+    assert worst > 1.0

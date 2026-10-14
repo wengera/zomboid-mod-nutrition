@@ -7,7 +7,7 @@ POINT_T (DEFAULT updated with compact_T.json's "chosen") is appended, and Body.d
 on, the four forms the spec states and the fit did not run apply: detraining integrated exactly over the day; the
 labile lean decaying on every day with no surplus left after growth; growth's energy charged at grow / ts (ruling
 13-3); and the biology clock P['ts'] (default 1.0) scaling growth, regain, detraining and the peak decay and dividing
-the grace days.
+the grace days. Task 11c (Task 11 review I-2) adds a fifth: the regain integrated exactly over the day.
 """
 # Proposed lean-mass Strength model with the two partitions (review of the 2026-10-14 spec).
 # Daily step. Muscle lean F (the level), labile lean X (water, glycogen, organ: weight, not level), fat M.
@@ -131,18 +131,26 @@ class Body:
         gp = fp(P, p)
         ge = fe(P, E, s, p, tdee)
         grow = P['k'] * (self.Fc - self.F) * G * gp * ge / 7.0
-        if self.F < self.Pk:
-            lr = math.log(2) / P['regain_hl_wk']
-            gate = gp * ge if P['regain_gated'] else 1.0
-            rg = lr * (self.Pk - self.F) * min(1.0, G) * gate / 7.0
-            grow = grow + rg if P['regain_sum'] else max(grow, rg)
-        grow = max(0.0, grow)
         exact = bool(P.get('exact'))
         ts = 1.0
         if exact:
-            # ruling 13-2: the biology clock P['ts'] scales growth and regain
+            # ruling 13-2: the biology clock P['ts'] scales growth and regain. Task 11c (Task 11 review I-2): the
+            # growth arm keeps its Euler step, times ts; the regain is the day's whole regain integrated exactly,
+            # (Pk - F) (1 - exp(-lr min(1, G) gate ts / 7)), so no clock or half-life carries F past Pk
             ts = P.get('ts', 1.0)
-            grow = grow * ts
+            grow = max(0.0, grow) * ts
+            if self.F < self.Pk:
+                lr = math.log(2) / P['regain_hl_wk']
+                gate = gp * ge if P['regain_gated'] else 1.0
+                rg = (self.Pk - self.F) * (1.0 - math.exp(-lr * min(1.0, G) * gate * ts / 7.0))
+                grow = grow + rg if P['regain_sum'] else max(grow, rg)
+        else:
+            if self.F < self.Pk:
+                lr = math.log(2) / P['regain_hl_wk']
+                gate = gp * ge if P['regain_gated'] else 1.0
+                rg = lr * (self.Pk - self.F) * min(1.0, G) * gate / 7.0
+                grow = grow + rg if P['regain_sum'] else max(grow, rg)
+            grow = max(0.0, grow)
         # maintenance and detraining
         Sm = P['m'] * P['Sg0'] * math.exp(P['beta'] * s)
         detr = 0.0
