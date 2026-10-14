@@ -193,7 +193,8 @@ function MET.readActivity(player, ageH, ctx)
     local exercising = obj(obj(player, "getFitness"), "getCurrentExe") ~= nil
     local swiping = false
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
-        swiping = flag(player, "isCurrentState", SwipeStatePlayer.instance())
+        local okI, inst = pcall(SwipeStatePlayer.instance)  -- under the guard the writer's hoist and the climbs use
+        if okI and inst ~= nil then swiping = flag(player, "isCurrentState", inst) end
     end
     local climbClass = nil
     if ClimbOverFenceState ~= nil and ClimbOverFenceState.instance ~= nil then

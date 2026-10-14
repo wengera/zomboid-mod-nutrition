@@ -127,13 +127,8 @@ local obj = NR.obj
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
 local flag = NR.flag
 
--- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
-local function roll(dflt)
-    if ZombRandFloat == nil then return dflt end
-    local ok, v = pcall(ZombRandFloat, 0, 1)
-    if ok and finite(v) then return v end
-    return dflt
-end
+-- A uniform roll in [0, 1) (NR.roll).
+local roll = NR.roll
 
 -- The fields this adapter adds beside K.effects.new's own, with their fresh values (a load drops tempAdj, a
 -- derived field, so it is laid again after every load).
@@ -144,31 +139,20 @@ local function addFields(E, body)
     if E.dirty == nil then E.dirty = false end
 end
 
--- The heal: every numeric field of record.effects (and of its key) finite, else its fresh value; a key field
--- healed to its fresh value forces a rebuild. Laying an absent adapter field (addFields) is uncounted.
-local healBad = nil
-local function healTable(t, ref, prefix)
-    for k, v in pairs(t) do
-        if type(v) == "number" and not finite(v) then
-            local nv = ref[k]
-            if type(nv) ~= "number" then nv = 0 end
-            t[k] = nv
-            if healBad == nil then healBad = prefix .. tostring(k) else healBad = healBad .. "," .. prefix .. tostring(k) end
-        end
-    end
-end
-
+-- The heal (NR.healTable): every numeric field of record.effects (and of its key) finite, else its fresh value, or 0
+-- for a field with none; a key field healed to its fresh value forces a rebuild. Laying an absent adapter field
+-- (addFields) is uncounted.
 local function heal(username, E, body)
-    healBad = nil
+    local healBad = nil
     if EFF.ref == nil then
         EFF.ref = K.effects.new()
         EFF.ref.exSeen = 0
         EFF.ref.tempAdj = 0
     end
     EFF.ref.lastDay = body.dayIndex
-    healTable(E, EFF.ref, "effects.")
-    healTable(E.key, EFF.ref.key, "effects.key.")
-    healTable(E.key.b, EFF.ref.key.b, "effects.key.b.")
+    healBad = NR.healTable(E, EFF.ref, healBad, "effects.", nil, nil, nil, true)
+    healBad = NR.healTable(E.key, EFF.ref.key, healBad, "effects.key.", nil, nil, nil, true)
+    healBad = NR.healTable(E.key.b, EFF.ref.key.b, healBad, "effects.key.b.", nil, nil, nil, true)
     if healBad ~= nil then
         EFF.stats.healed = EFF.stats.healed + 1
         EFF.lastHealed = healBad

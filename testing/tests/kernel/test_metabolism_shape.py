@@ -160,8 +160,8 @@ def _load(host, path, name):
 
 @pytest.fixture(scope="module")
 def met_host(host):
-    # Kinetics' self-heal reads NR.server.intake.isFinite (Intake loads before it in the game), and the
-    # handoff table lives on NR.server.kinetics: both load here when this module runs alone.
+    # the intake loads before Kinetics in the game, and the handoff table lives on NR.server.kinetics: both load
+    # here when this module runs alone.
     if host.G.NutritionRevamp.server.intake is None:
         _load(host, INTAKE, "@NR_Server_Intake.lua")
     if host.G.NutritionRevamp.server.kinetics is None:

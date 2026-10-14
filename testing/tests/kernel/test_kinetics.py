@@ -84,8 +84,8 @@ def _load(host, path, name):
 
 @pytest.fixture(scope="module")
 def kin_host(host):
-    # the self-heal reads NR.server.intake.isFinite (Intake loads before Kinetics in the game); a run
-    # of this module alone loads it here, as test_intake_shape.py does
+    # the intake loads before Kinetics in the game (server/ files load alphabetically); a run of this module alone
+    # loads it here, as test_intake_shape.py does
     if host.G.NutritionRevamp.server.intake is None:
         _load(host, INTAKE, "@NR_Server_Intake.lua")
     _load(host, KINETICS, "@NR_Server_Kinetics.lua")

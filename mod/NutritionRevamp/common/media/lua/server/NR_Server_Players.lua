@@ -21,12 +21,7 @@ local function fire(list, username, player, record)
     end
 end
 
-local function nowMs()
-    if getTimestampMs == nil then return nil end
-    local ok, v = pcall(getTimestampMs)
-    if ok and type(v) == "number" then return v end
-    return nil
-end
+local nowMs = NR.nowMs
 
 -- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
 -- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).

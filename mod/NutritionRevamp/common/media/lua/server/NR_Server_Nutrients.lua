@@ -112,13 +112,8 @@ local finite = NR.finite
 -- sleep-window loop needs a finite age).
 local num = NR.num
 
--- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
-local function roll(dflt)
-    if ZombRandFloat == nil then return dflt end
-    local ok, v = pcall(ZombRandFloat, 0, 1)
-    if ok and finite(v) then return v end
-    return dflt
-end
+-- A uniform roll in [0, 1) (NR.roll).
+local roll = NR.roll
 
 -- The server's sleep options, read once at OnServerStarted (the Task 5 verdict, x151s #2947/#2948): the
 -- engine resets an out-of-handler FATIGUE write unless SleepAllowed and SleepNeeded are both true, so the
@@ -156,29 +151,15 @@ local function needFactor(player, ctx)
     return 1
 end
 
--- The heal: every numeric field of the three sub-tables finite, else its fresh value. A field with no fresh
--- value takes its named default; one with neither (iron S and H, calcium bone, laid lazily by K.interact.two)
--- is cleared so the kernel re-initialises it. healBad collects the healed names of one pass. The prefix is built
--- lazily (Appendix J): key names a nutrient sub-table (prefix .. key .. "."), joined only when a bad field is found.
-local healBad = nil
-local function healTable(t, ref, prefix, ageH, ageFields, key)
-    for k, v in pairs(t) do
-        if type(v) == "number" and not finite(v) then
-            local nv = ref[k]
-            if ageFields ~= nil and ageFields[k] then nv = ageH end
-            t[k] = nv
-            local p = prefix
-            if key ~= nil then p = prefix .. key .. "." end
-            if healBad == nil then healBad = p .. tostring(k) else healBad = healBad .. "," .. p .. tostring(k) end
-        end
-    end
-end
-
+-- The heal (NR.healTable): every numeric field of the three sub-tables finite, else its fresh value. A field with no
+-- fresh value takes its named default; one with neither (iron S and H, calcium bone, laid lazily by K.interact.two)
+-- is cleared so the kernel re-initialises it. healBad collects the healed names of one pass; a nutrient sub-table's
+-- names carry its key (nutrients.<key>.<field>).
 NUT.AGE_NUT = { lastAgeH = true }
 NUT.AGE_ACUTE = { winStartH = true, mass90ageH = true, lastFedAgeH = true }
 
 local function heal(username, record, body, ageH)
-    healBad = nil
+    local healBad = nil
     if NUT.refKey == nil then
         NUT.refKey = K.nutrients.newKey()
         NUT.refFluids = K.fluids.new(nil, nil, nil)
@@ -192,15 +173,15 @@ local function heal(username, record, body, ageH)
     end
     local n = record.nutrients
     NUT.refNut.lastDayIndex = body.dayIndex
-    healTable(n, NUT.refNut, "nutrients.", ageH, NUT.AGE_NUT)
+    healBad = NR.healTable(n, NUT.refNut, healBad, "nutrients.", nil, ageH, NUT.AGE_NUT)
     local order = NR.data.records.ORDER
     -- ORDER is a Lua table the record file built, so # is a Lua length, never a Java list (#0940).
     for i = 1, #order do
         local s = n[order[i]]
-        if type(s) == "table" then healTable(s, NUT.refKey, "nutrients.", ageH, nil, order[i]) end
+        if type(s) == "table" then healBad = NR.healTable(s, NUT.refKey, healBad, "nutrients.", order[i]) end
     end
-    healTable(record.fluids, NUT.refFluids, "fluids.", ageH, nil)
-    healTable(record.acute, NUT.refAcute, "acute.", ageH, NUT.AGE_ACUTE)
+    healBad = NR.healTable(record.fluids, NUT.refFluids, healBad, "fluids.")
+    healBad = NR.healTable(record.acute, NUT.refAcute, healBad, "acute.", nil, ageH, NUT.AGE_ACUTE)
     if healBad ~= nil then
         NUT.stats.healed = NUT.stats.healed + 1
         NUT.lastHealed = healBad

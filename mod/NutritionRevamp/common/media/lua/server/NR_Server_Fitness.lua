@@ -108,26 +108,16 @@ local function makeWrapper(S, kind)
     end
 end
 
-local function installOne(S, cls, method, kind)
-    local cur = cls[method]
-    if cur == nil then return false end
-    -- Idempotent: ours is the outermost, or still in the chain below a later wrap; never saved as its own original.
-    if cur == S.wrapper or (S.wrapper ~= nil and S.class == cls) then return true end
-    S.orig = cur
-    S.wrapper = S.wrapper or makeWrapper(S, kind)
-    S.class = cls
-    cls[method] = S.wrapper
-    NR.log.say(2, "fitness: ISFitnessAction." .. method .. " wrapped")
-    return true
-end
 
 -- Installs both wraps when ISFitnessAction exists (vanilla's shared/TimedActions file, which loads before every
 -- server/ file); returns whether both are in place. Never touches ISFitnessAction.new.
 function FIT.install()
     local cls = ISFitnessAction
     if cls ~= nil then
-        installOne(NR_FitnessServerStart_Installed, cls, "serverStart", "start")
-        installOne(NR_FitnessServerStop_Installed, cls, "serverStop", "stop")
+        NR.installWrap(NR_FitnessServerStart_Installed, cls, "serverStart", makeWrapper, "start",
+            "fitness: ISFitnessAction.serverStart")
+        NR.installWrap(NR_FitnessServerStop_Installed, cls, "serverStop", makeWrapper, "stop",
+            "fitness: ISFitnessAction.serverStop")
     end
     local A, B = NR_FitnessServerStart_Installed, NR_FitnessServerStop_Installed
     FIT.wrappedStart = cls ~= nil and A.wrapper ~= nil and A.class == cls

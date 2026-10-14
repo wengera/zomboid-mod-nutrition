@@ -84,12 +84,7 @@ S.PRUNE_GAP_MS = 3600000   -- game choice (ruling 8): the prune walks the index 
 S.INDEX_GAP_MS = 300000    -- game choice (Task 11 fix 1): a dirty index is written at most once every 5 real minutes
 S.DEFER_MAX_MS = 600000    -- game choice (ruling T11-1a): ten real minutes, so a briefly locked file is never overwritten
 
-local function nowMs()
-    if getTimestampMs == nil then return nil end
-    local ok, v = pcall(getTimestampMs)
-    if ok and type(v) == "number" then return v end
-    return nil
-end
+local nowMs = NR.nowMs
 
 local function other(which)
     if which == "a" then return "b" end

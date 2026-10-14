@@ -592,18 +592,9 @@ local function makeWrapper(S, kind)
     end
 end
 
+-- The install (NR.installWrap: idempotent, never its own original).
 local function installOne(S, cls, clsName, method, kind)
-    if cls == nil then return false end
-    local cur = cls[method]
-    if cur == nil then return false end
-    if cur == S.wrapper then return true end               -- already the outermost: idempotent
-    if S.wrapper ~= nil and S.class == cls then return true end -- still in the chain below a later wrap
-    S.orig = cur
-    S.wrapper = S.wrapper or makeWrapper(S, kind)
-    S.class = cls
-    cls[method] = S.wrapper
-    NR.log.say(2, "intake: " .. clsName .. "." .. method .. " wrapped")
-    return true
+    return NR.installWrap(S, cls, method, makeWrapper, kind, "intake: " .. clsName .. "." .. method)
 end
 
 local function mirror()

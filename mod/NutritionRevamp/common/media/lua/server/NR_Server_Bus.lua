@@ -39,12 +39,7 @@ function B.meta()
     return { mode = NR.runningMode(), version = NR.version, build = NR.build }
 end
 
-local function nowMs()
-    if getTimestampMs == nil then return nil end
-    local ok, v = pcall(getTimestampMs)
-    if ok and type(v) == "number" then return v end
-    return nil
-end
+local nowMs = NR.nowMs
 
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end

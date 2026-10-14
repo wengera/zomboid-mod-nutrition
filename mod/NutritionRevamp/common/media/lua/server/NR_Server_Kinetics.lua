@@ -98,18 +98,16 @@ local function step(username, player, record, ctx)
     -- landing guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is reset
     -- empty and the record heals on this minute instead of writing NaN into the satiety read. The POOL is reset only
     -- when one of its own keys is non-finite: a finite pool is absorbed intake the stomach fault did not touch, so it
-    -- is kept. NR.finite is the fill's and the guard's finiteness test; NR.server.intake.isFinite is the pool's
-    -- (NR_Server_Intake.lua loads before this file, server/ files loading alphabetically, and it is read at call time).
+    -- is kept. NR.finite is the one finiteness test of the fill, the guard and the pool.
     if not NR.finite(fill) or nonFinite(record.stomach) then
         record.stomach = K.stomach.new()
         if ctx ~= nil then
             ctx.absorbed = nil                       -- this minute's absorbed vector came from the bad buffer
             ctx.mealCa = nil
         end
-        local isFinite = NR.server.intake.isFinite
         local keys = K.vector.KEYS
         for i = 1, #keys do
-            if not isFinite(record.pool[keys[i]]) then
+            if not NR.finite(record.pool[keys[i]]) then
                 record.pool = K.vector.new()
                 break
             end

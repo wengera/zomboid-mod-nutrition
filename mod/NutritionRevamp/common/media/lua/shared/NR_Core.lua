@@ -115,6 +115,59 @@ function NR.sandbox()
     return NR.so
 end
 
+-- The real clock in milliseconds (getTimestampMs), or nil when the global is absent, raises or answers a non-number.
+function NR.nowMs()
+    if getTimestampMs == nil then return nil end
+    local ok, v = pcall(getTimestampMs)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
+-- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent, raises or answers a non-finite
+-- number.
+function NR.roll(dflt)
+    if ZombRandFloat == nil then return dflt end
+    local ok, v = pcall(ZombRandFloat, 0, 1)
+    if ok and NR.finite(v) then return v end
+    return dflt
+end
+
+-- A record sub-table's heal (the #2833 pattern): every numeric field of t that is not finite takes ref's value for its
+-- key, the world age ageH for a key in ageFields, or 0 when zero is true and ref holds no number (a nil clears the
+-- field, so its kernel lays it again). Each healed name, prefix .. field, or prefix .. key .. "." .. field for a
+-- nutrient's sub-table (joined only when a bad field is found), is appended to bad, comma-joined. Returns bad.
+function NR.healTable(t, ref, bad, prefix, key, ageH, ageFields, zero)
+    for k, v in pairs(t) do
+        if type(v) == "number" and not NR.finite(v) then
+            local nv = ref[k]
+            if ageFields ~= nil and ageFields[k] then nv = ageH end
+            if zero and type(nv) ~= "number" then nv = 0 end
+            t[k] = nv
+            local p = prefix
+            if key ~= nil then p = prefix .. key .. "." end
+            if bad == nil then bad = p .. tostring(k) else bad = bad .. "," .. p .. tostring(k) end
+        end
+    end
+    return bad
+end
+
+-- The sentinel install of a vanilla method wrap (Intake and Fitness): S is a persistent global table keeping orig,
+-- wrapper and class across reloads. Idempotent: when ours is the outermost, or still in the chain below a later wrap,
+-- nothing changes, so the wrapper is never saved as its own original. make(S, kind) builds the wrapper once, kept in
+-- S; it names nothing from its file's load. label names the method in the log line. Returns whether the wrap is in
+-- place.
+function NR.installWrap(S, cls, method, make, kind, label)
+    if cls == nil then return false end
+    local cur = cls[method]
+    if cur == nil then return false end
+    if cur == S.wrapper or (S.wrapper ~= nil and S.class == cls) then return true end
+    S.orig = cur
+    S.wrapper = S.wrapper or make(S, kind)
+    S.class = cls
+    cls[method] = S.wrapper
+    NR.log.say(2, label .. " wrapped")
+    return true
+end
 -- The player-minute's engine reads (Plan 12 S R1, Rule 6): the steps of one player's minute run in one call, inside
 -- one server tick, so a member several steps read answers the same; each is read once and kept on the pipeline's
 -- context (NR_Server_Minute's ctx, cleared per player), and the steps after the first share that read. A nil ctx (a
