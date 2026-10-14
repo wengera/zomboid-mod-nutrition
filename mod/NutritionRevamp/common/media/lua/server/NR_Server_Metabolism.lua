@@ -142,8 +142,9 @@ local function responder()
 end
 
 -- First sight: record.body from the character's then-current weight, sex, build traits, Strength level
--- and creation carry factor. getMaxWeightDelta is read ONLY here, before the mod ever writes the delta;
--- an existing record.body is never re-read.
+-- and creation carry factor. getMaxWeightDelta is read ONLY here, before the mod writes the delta for this record;
+-- an existing record.body is never re-read. A fresh record laid over a character the mod already changed reads the
+-- mod's own earlier writes as the baseline (a limitation below).
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
     local w = num(obj(player, "getNutrition"), "getWeight", 80)
@@ -580,3 +581,4 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
 end
 
 MET.limitations[#MET.limitations + 1] = "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)"
+MET.limitations[#MET.limitations + 1] = "a fresh record laid over a character the mod has already changed (a return after NR.RecordKeepDays prunes the record, a corrupt file healed fresh, or a deferral that gives up) starts from that character as it stands: the Strength level the mod clamped becomes l0, the carry delta the mod last wrote becomes traitCarry, and a Night Vision or Short Sighted trait the lost record owned stays, since the effects own only the traits they added; a fix needs a durable marker on the character"

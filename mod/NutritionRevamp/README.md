@@ -137,6 +137,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - The after-burn follows the Fitness set only, at a fixed share and pace.
 - An exhausted, idle character burns energy as if lightly active.
 - Time offline is not simulated: a long absence counts as at most an hour of the model, and a jump of several days closes the missed days with no protein counted.
+- When a character's saved record is lost (pruned after the server's keep period, a damaged save file, or a save file that stays unreadable), the mod starts a new record from the character as it stands, so changes the mod made earlier stay: a Strength level it lowered becomes the new starting level, the carry capacity it last set becomes the new base, and a Night Vision or Short Sighted trait it added is never taken away.
 - The model's day closes at 07:00 game time, and the daily figures count from that close. The day's energy figure leaves out the exercise of the minute before the close, and a close that skipped days reads only the new day's training.
 - Aerobic training counts minutes in two intensity bands, not total energy.
 - Alcohol's effect on recovery resets at the day close, not over a rolling 24 hours.

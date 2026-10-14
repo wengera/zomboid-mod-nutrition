@@ -1564,3 +1564,9 @@ def test_an_intake_at_an_hour_turn_lands_in_the_new_hours_slot(met_host):
     assert t.kcal[s1] == 600 and t.p[s1] == 30
     assert t.kcal[s0] == 0 and t.p[s0] == 0
     assert t.ee[s0] > 0 and t.ee[s1] > 0
+
+
+def test_the_fresh_record_over_a_changed_character_is_a_stated_limitation(met_host):
+    # Plan 12 (S B2, ruling P12-4: documented, not fixed until a durable marker is designed)
+    lim = list(MET(met_host).limitations.values())
+    assert any(x.startswith("a fresh record laid over a character the mod has already changed") for x in lim)
