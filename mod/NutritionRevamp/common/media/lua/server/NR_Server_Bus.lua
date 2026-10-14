@@ -36,8 +36,7 @@ NR.server.bus = {
 local B = NR.server.bus
 
 function B.meta()
-    local o = NR.server.options
-    return { mode = o and o.mode or 1, version = NR.version, build = NR.build }
+    return { mode = NR.runningMode(), version = NR.version, build = NR.build }
 end
 
 local function nowMs()

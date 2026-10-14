@@ -129,3 +129,14 @@ function NR.pushTraits(player, stats)
     end
     return ok
 end
+
+-- The mode the server runs: the writer's (NR_Server_Writer), fixed at OnGameBoot, not the option NR_Server_Options
+-- polls every minute (an NR.Mode changed mid-run is read but not run); the option, then 1, before the writer has
+-- decided. Read by the mirror's meta and the self-report.
+function NR.runningMode()
+    local W = NR.server.writer
+    if W ~= nil and W.mode ~= nil then return W.mode end
+    local O = NR.server.options
+    if O ~= nil and O.mode ~= nil then return O.mode end
+    return 1
+end

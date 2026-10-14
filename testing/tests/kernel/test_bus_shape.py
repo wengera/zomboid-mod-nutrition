@@ -179,3 +179,15 @@ def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
     mass = h.K.mirror.stomachMass(r)
     assert h.K.view.fullnessLevel(mass) == 4
     assert B.lastSig["a"] // 10000 == 4
+
+
+def test_the_mirror_reports_the_running_mode_not_the_polled_option():
+    # Plan 12 (S B7): the writer's mode is fixed at OnGameBoot; an NR.Mode changed mid-run is polled every minute
+    # but not run, so the mirror (as the self-report already does) names the mode the server runs.
+    h = Host(extra_env=SEND)
+    online(h)
+    W, O = h.NR.server.writer, h.NR.server.options
+    running = W.mode
+    O.mode = 2 if running == 1 else 1                    # the operator changed the option mid-run
+    assert h.NR.server.bus.meta()["mode"] == running
+    assert "mode=" + h.NR.modeName(running) in h.NR.selfReport("server")
