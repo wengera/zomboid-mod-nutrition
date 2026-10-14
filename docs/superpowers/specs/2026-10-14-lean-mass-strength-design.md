@@ -23,7 +23,7 @@ Lost lean mass comes back fast. The weight and strength traits describe body com
 ## 2. The scale
 
 ```
-FFMI  = F / H²                         H = 1.70 m, fixed, sex-neutral for now
+FFMI  = F / H²                         H = 1.70 m, fixed, sex-neutral
 level = 5 + (FFMI − 18.0) / 0.5        one level ≈ 1.445 kg of fat-free mass F
 ```
 
@@ -67,7 +67,7 @@ A server `OnNewGame(player)` handler, guarded by `isServer()`, runs after vanill
 
    - **Cap rule (Angus):** a muscle trait moves the start by its full vanilla Strength offset and the natural cap by half of it.
    - **Thin traits are depletion.** The lean they remove is below the remembered peak, which starts at the set point, so it comes back on the fast regain path (§ 6) and leaves the cap alone.
-   - **Fat bands** are the mod's sex-specific Body fat words (`K.view.FAT_CUTS_*`, Gallagher 2000).
+   - **Fat bands** are one sex-neutral table (§ 8.1).
    - **Weight** = F + fat mass. This replaces `K.body.split`'s band-anchored split of vanilla's starting weight.
 3. **Writes the weight, the Strength level (§ 7) and the body traits (§ 8).** Vanilla's creation band swap on `LevelPerk` can leave a trait the player never picked, for example Out of Shape after Weight Gain (trait-levers § 3). The handler's trait write is final.
 
@@ -130,9 +130,21 @@ Three axes are read at day close, from the record:
 
 | Axis | Measure | Trait switches (vanilla traits, for the engine-only penalties) |
 |---|---|---|
-| Fat load | body-fat % in the mod's sex-specific Body fat words | Overweight at High, Obese at Very high |
+| Fat load | body-fat % in the sex-neutral bands of § 8.1 | Overweight at High, Obese at Very high |
 | Muscle | the lean level | Weak, Feeble, Stout, Strong through vanilla's own band swap (§ 7) |
 | Thinness | BMI at H, from F + fat | Underweight below 18.5, Very Underweight below 17, Emaciated below 16 (the WHO thinness grades) |
+
+### 8.1 The sex-neutral fat bands
+
+| Band | Body fat from | Basis |
+|---|---|---|
+| Very lean | below 9.5 % | game choice: the mean of the mod's male 6 % (S1910) and female 13 % (S1911) lean cuts |
+| Lean | 9.5 % | as above |
+| Healthy | 14.5 % | the mean of Gallagher 2000's 20-39 y body fat at BMI 18.5, men 8 % and women 21 % (S1905, S1904) |
+| High | 26.5 % | the same at BMI 25, men 20 % and women 33 % |
+| Very high | 32 % | the same at BMI 30, men 25 % and women 39 % |
+
+Each cut is a game choice built on the cited values. This table is the default for both the traits and the panel's Body fat word. With `NR.SexSpecificBody` on (default off), both read the existing sex-specific `K.view.FAT_CUTS_MALE` and `FAT_CUTS_FEMALE` instead. The lean scale stays sex-neutral either way.
 
 - **Precedence:** a thinness trait excludes the fat traits.
 - **Damping:** a switch needs a margin of 0.5 BMI or 1 percentage point of body fat past its cut, and switches are checked once a day.
@@ -190,10 +202,11 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 | `NR.StrengthPeakHalfLifeYears` | 2 |
 | `NR.StrengthProteinFull` (g/kg) | 1.6 |
 | `NR.StrengthDeficitZero` (kcal) | −500 |
+| `NR.SexSpecificBody` | off |
 
 ## 11. Rulings made in the brainstorm
 
-- **Scale.** Ruling: the level is FFMI at a fixed 1.70 m, sex-neutral — Angus's choice ("assume average height always and make it gender-indifferent for now") — cost if wrong: a sex term is added to F₀ and F_c later.
+- **Scale.** Ruling: the level is FFMI at a fixed 1.70 m, sex-neutral — Angus's choice ("assume average height always and make it gender-indifferent for now") — cost if wrong: none planned; a sex term is excluded by the ruling below.
 - **Stimulus.** Ruling: vanilla Strength XP is the training signal and replaces the mod's own resistance set-equivalents — Angus chose "Vanilla Strength XP", and the calibration ties it to one hard set — cost if wrong: incidental carrying may count as more sets than real training does, and a per-source discount is added.
 - **Time.** Ruling: one game day is one biological day by default, with a sandbox multiplier — Angus's choice — cost if wrong: most characters never reach high levels on default servers; operators compress it.
 - **Threshold.** Ruling: the growth threshold rises with status, β = 2.5, sandbox-tunable — Angus's premise, with mixed evidence — cost if wrong: advanced characters stall early; β = 0 restores headroom-only.
@@ -201,7 +214,7 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 - **Traits.** Ruling: the vanilla strength-trait order is kept (Weak is the stronger penalty) — Angus — cost if wrong: none at the engine level.
 - **Creation.** Ruling: 8 traits offered, Emaciated excluded, and the picks are re-validated on the server — Angus — cost if wrong: validation code that a live check must prove sees the whole pick list.
 - **Peak memory.** Ruling: P decays with a 2-year half-life, not permanently — Rahmati 2022 and Serrano 2025 overturn the first harvest's "might be permanent" (S1.21) — cost if wrong: regain after a multi-year break is slower than players expect.
-- **Fat bands.** Ruling: the fat axis uses the mod's existing sex-specific Body fat words, while the lean scale is sex-neutral — they are already cited and shipped — cost if wrong: an inconsistency between the two axes that a later sex term removes.
+- **No sex-specific rules by default.** Ruling: every rule in this design is sex-neutral by default, the fat bands included, and `NR.SexSpecificBody` (default off) switches the fat bands to the sex-specific tables; the panel's Body fat word reads the same table as the traits, so the two never disagree — Angus (2026-10-14): "I dont want gender specific rules, base game treats them equally", then "we can flag this as an option however, just default it to off" — cost if wrong: a neutral cut sits between the sexes' study values, so the High band starts later than the male studies and earlier than the female ones.
 
 ## 12. Testing and evidence
 
@@ -238,7 +251,7 @@ The golden trace is re-recorded under named causes.
 
 ## 13. Out of scope
 
-- A sex or height term on the lean scale.
+- A height term on the lean scale. A sex term is excluded by ruling, not deferred.
 - Tuning the mod's continuous fat-load effects.
 - Fitness (aerobic) levels.
 - Any change to vanilla's carry formula beyond the Strength level it reads.
