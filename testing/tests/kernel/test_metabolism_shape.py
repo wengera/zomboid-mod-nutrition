@@ -528,6 +528,32 @@ def _ring(t):
     return out
 
 
+def test_a_step_just_over_an_hour_across_midnight_is_a_gap(met_host):
+    # the threshold pinned from above: 61 game minutes is a return after a gap, so it closes nothing (ruling 13-5)
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    days = MET(h).stats.days
+    record["body"].lastAgeH = 120.0 + 1 / 60 - 61 / 60
+    minute(h, p, record, 120.0 + 1 / 60)
+    body = record["body"]
+    assert body["dayIndex"] == 4 and body["wday"] == 5
+    assert MET(h).stats.days == days
+
+
+def test_a_step_of_exactly_an_hour_across_midnight_closes_once(met_host):
+    # and from below: 60 game minutes is online, so the world-day boundary closes the record day
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    days = MET(h).stats.days
+    record["body"].lastAgeH = 119.5
+    minute(h, p, record, 120.5)
+    body = record["body"]
+    assert body["dayIndex"] == 5 and body["wday"] == 5
+    assert MET(h).stats.days == days + 1
+
+
 def test_a_return_after_three_days_changes_nothing_and_resumes_the_calendar(met_host):
     # ruling 13-5: the record calendar advances on online days only; a return re-stamps wday and closes nothing
     h = met_host

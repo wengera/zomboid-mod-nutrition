@@ -127,12 +127,23 @@ def test_day_index_ages_and_creation_masses(host):
     body.lastAgeH = INF
     body.fm0 = NAN
     body.lm0 = NAN
+    body.tPeakD = 3                                         # the held peak's record day
     bad = heal(h, body, 168.0)
-    assert body["dayIndex"] == 7
+    assert body["dayIndex"] == 3                            # tPeakD's record day, never the world's 7 (ruling 13-5)
     assert body["wday"] == 7                                # the world day of the heal's age (ruling 13-5)
     assert body["lastAgeH"] == 168.0
     assert body["fm0"] == body["fm"] and body["lm0"] == body["lm"]
     assert names(bad) == ["fm0", "lm0", "dayIndex", "wday", "lastAgeH"]
+
+
+def test_day_index_falls_back_to_the_world_day_without_a_peak_day(host):
+    h = host
+    body = new_body(h)
+    body.dayIndex = NAN
+    body.tPeakD = NAN
+    bad = heal(h, body, 168.0)
+    assert body["dayIndex"] == 7 and body["tPeakD"] == 7
+    assert names(bad) == ["dayIndex", "tPeakD"]
 
 
 def test_creation_masses_fall_back_to_the_split_by_sex(host):
