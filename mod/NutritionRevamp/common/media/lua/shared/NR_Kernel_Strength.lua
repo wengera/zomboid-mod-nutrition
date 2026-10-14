@@ -10,6 +10,163 @@
 local K = NutritionRevamp.kernel
 K.strength = {}
 
+-- ============================================================ the lean-mass strength model (Plan 13)
+-- The constants table (ruling 13-1): every constant of the growth law, the energy gate and the lean
+-- partition (point T, compact_T.json "chosen", under the oracle's key names), the game constants beside
+-- them, and the strength-model block (ruling 13-45). K.strength.params merges a server's options over a
+-- copy; every function below takes that table as P. M5 and R are derived at file load, after the
+-- functions they read.
+K.strength.DEFAULTS = {
+    -- point T (the growth law, the energy gate, the lean partition)
+    k = 0.009906127265972144, -- per week; fit point T, the anchor
+    beta = 3.0, -- fit point T; S1976, S1977, S1967, S1974 (against S1955, S1975)
+    Sg0 = 0.5, -- sets/wk; fit point T (bound reported); S1951, S1958
+    Sref = 12.0, -- sets/wk; S1951
+    Smax = 30.0, -- sets/wk; S1951 (data thin above 25-30)
+    Smax1 = 12.0, -- sets/wk; fit point T (bound reported); S1953, S1955, S1956
+    fp_knots = { { 0.4, 0 }, { 0.8, 0.5 }, { 1.3, 0.92 }, { 1.6, 1.0 } }, -- g/kg/d; S0591, S0592, S1990, S0509
+    E0 = -650.0, -- kcal/d at s = 0; fit point T; S1942, S0064, S2029, S2018
+    E0_drop = 0.5, -- Angus's gate; flat in the fit; S2018
+    fbal0 = 1.0, -- fit point T, at its physical bound; S1943, S2033
+    fbal_drop = 0.5, -- Angus's gate; fit point T; S2018, S2019, S1925, S0606
+    surplus_full = 0.10, -- of TDEE; Angus's gate; flat in the fit; S1943, S2033, S1944, S2037, S1946
+    full_drop = 0.5, -- fit point T, flat; S2069, S2068, S1946, S2062, S2064
+    a_nov = 6.0, -- fit point T; S0064
+    trained_need = 0.0, -- evidence default (1 = Angus's premise)
+    forbes_c = 10.4, -- kg; S0054, S0055 (S1056 open)
+    wT = 0.35, -- fit point T; S0072, S1997, S0609
+    S_def = 10.0, -- sets/wk; fit point T (H.47)
+    wP = 0.6, -- fit point T; S0599
+    pdef_lo = 0.8, -- g/kg/d; fit point T (the protection ramp's start)
+    pdef_hi = 1.6, -- g/kg/d; fit point T, at its grid bound; S0599, S0064
+    prot_floor = 0.1, -- fit point T
+    x_max_frac = 0.05, -- of F; S0605 (game choice, S2016)
+    x_tau_d = 28.0, -- days; S0605 (game choice, S2016)
+    m = 0.3333333333333333, -- S1963, S0616 (unidentified; S2014 open)
+    grace_d = 14, -- days; S1932, S1940, S1966
+    detrain_hl_wk = 6.0, -- weeks; S2001
+    detrain_status = 2.0, -- S1938 (game choice; S2014, S2017)
+    regain_hl_wk = 6.0, -- weeks; S2002, S2003 (unidentified)
+    peak_hl_yr = 2.0, -- years; S2004, S2010, S0620, S2007
+    -- the game constants
+    ffmi5 = 18.0, -- kg/m2, bio level 5's FFMI; game choice (spec section 2.4)
+    ffmiPerLevel = 0.5, -- kg/m2 per bio level; game choice (spec section 2.4)
+    capLevel = 16.5, -- the untrained natural cap in bio levels; ruling; S1915
+    ts = 1.0, -- the biology clock; ruling 13-2
+    xpPerSet = 346, -- provisional until Task 1's calibration run (plan constants block)
+    incidental = 0.35, -- S1951 fractional, S1961, S1962; game choice
+    fMinShare = 0.35, -- F's floor as a share of F0; game choice (the oracle's 0.35 * F0)
+    fmMin = 0.5, -- kg, the fat floor; game choice (K.partition.FM_MIN)
+    nov_p0 = 1.6, -- g/kg/d; the oracle's literal (the novice deficit deepening's ramp)
+    nov_pspan = 0.8, -- g/kg/d; the oracle's literal
+    xs_p0 = 0.8, -- g/kg/d; the oracle's literal (the surplus share's protein ramp)
+    xs_pspan = 0.8, -- g/kg/d; the oracle's literal
+    -- the strength-model block (ruling 13-45)
+    b = 0.8, -- S2121 (derived 0.79), S0085
+    Fnm = 27.0, -- kg; S2133; game choice
+    N0 = { STRONG = 1.14, STOUT = 1.07, none = 1.0, FEEBLE = 0.915, WEAK = 0.82 }, -- S2142, S2143, S2145, S2162, S2166; game choice (S2170 open)
+    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- the vanilla start levels (Weak's 1 the floor)
+    traitShare = 0.5, -- Angus
+    ffmiNatural = 25.0, -- kg/m2 normalised to 1.80 m; S1915 (ruling 13-47)
+    Tmax = 1.10, -- S2120, S2121, S2122; game choice
+    tauUpWk = 3.0, -- weeks; S2112, S2113, S0086, S2118; game choice
+    tauDownWk = 12.0, -- weeks; S1937, S2138, S2139; game choice (S2140 open)
+    Tgrace_d = 21, -- days; S1939, S1931, S2138; game choice
+    Wsat = 5.0, -- sets/wk; S1952, S2096; game choice
+    yearsTo10 = 4.0, -- Angus; S2120, S2121 (S2141 open)
+    perfectS = 20.0, -- sets/wk; perfect training (spec section 2.4); game choice
+    perfectP = 2.0, -- g/kg/d; perfect training (spec section 2.4); game choice
+    perfectE = 0.10, -- of TDEE; perfect training (spec section 2.4); game choice
+}
+
+-- The growth law's coordinate: the lean F at bio level L (FFMI ffmi5 at 5, ffmiPerLevel a level, at K.HEIGHT_M).
+function K.strength.fOfBio(L, P)
+    return (P.ffmi5 + (L - 5) * P.ffmiPerLevel) * (K.HEIGHT_M * K.HEIGHT_M)
+end
+
+-- The bio level of a lean F, the inverse of fOfBio.
+function K.strength.bioLevel(F, P)
+    return 5 + (F / (K.HEIGHT_M * K.HEIGHT_M) - P.ffmi5) / P.ffmiPerLevel
+end
+
+-- General strength S = ((F - Fnm) / M5)^b * N0 * T (spec section 2.1); 0 at or below Fnm.
+function K.strength.strengthOf(F, N0, T, P)
+    if F <= P.Fnm then
+        return 0
+    end
+    return ((F - P.Fnm) / P.M5) ^ P.b * N0 * T
+end
+
+-- The shown level, linear in S: 5 at the untrained average (S = 1), 10 at S = R (ruling 13-45).
+function K.strength.level(F, N0, T, P)
+    return 5 + 5 * (K.strength.strengthOf(F, N0, T, P) - 1) / (P.R - 1)
+end
+
+-- The lean F at which level(F, N0, T, P) is L; Fnm where that level needs S <= 0 (below 5 - 5 / (R - 1)).
+function K.strength.fOfLevel(L, N0, T, P)
+    local S = 1 + (L - 5) * (P.R - 1) / 5
+    if S <= 0 then
+        return P.Fnm
+    end
+    return P.Fnm + P.M5 * (S / (N0 * T)) ^ (1 / P.b)
+end
+
+-- The growth threshold in sets a week at status s (spec section 5).
+function K.strength.threshold(s, P)
+    return P.Sg0 * math.exp(P.beta * s)
+end
+
+-- The effective set cap at status s (spec section 5).
+function K.strength.setCap(s, P)
+    return P.Smax + (P.Smax1 - P.Smax) * s
+end
+
+-- The training signal G of S weekly hard sets at status s, 1 at Sref for a novice (spec section 5).
+function K.strength.signal(S, s, P)
+    local root = math.sqrt(K.min(S, K.strength.setCap(s, P))) - math.sqrt(K.strength.threshold(s, P))
+    return K.max(0, root) / (math.sqrt(P.Sref) - math.sqrt(P.Sg0))
+end
+
+-- R: the S of the untrained average after `years` of perfect training at Tmax, the growth law's
+-- full-gate daily step from the average's creation body (spec section 2.4). It reads DEFAULTS only, never
+-- a server's options; about 365 steps a year, run at file load and at a yearsTo10 change only (Rule 6).
+function K.strength.R(years)
+    local D = K.strength.DEFAULTS
+    local F = K.strength.fOfBio(5, D)
+    local F0 = F
+    local Fc = K.strength.fOfBio(D.capLevel, D)
+    local days = math.floor(years * 365 + 0.5)
+    for _ = 1, days do
+        local s = K.clamp((F - F0) / (Fc - F0), 0, 1)
+        F = F + D.k * (Fc - F) * K.strength.signal(D.perfectS, s, D) / 7
+    end
+    return K.strength.strengthOf(F, 1, D.Tmax, D)
+end
+
+-- The shown perk level n and the progress bar's fraction of the next level: n floors L + 1e-9 (a start
+-- built exactly on its level never floors one low) into [0, L_MAX]; frac is 0 below 0 and at the cap.
+function K.strength.shown(L)
+    local n = K.clamp(math.floor(L + 1e-9), 0, K.strength.L_MAX)
+    local frac = 0
+    if L >= 0 and n < K.strength.L_MAX then
+        frac = K.max(0, L - n)
+    end
+    return n, frac
+end
+
+-- The growth status s in [0, 1]: lean above the set point as a share of the cap's room (bio units by
+-- construction); 0 when the cap sits at or below the set point.
+function K.strength.status(body)
+    if body.Fc <= body.F0 then
+        return 0
+    end
+    return K.clamp((body.lm - body.F0) / (body.Fc - body.F0), 0, 1)
+end
+
+K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
+K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
+-- ============================================================ the Plan 3 model (removed in Plan 13 Task 12)
+
 -- The neural term's target per unit strength dose.
 K.strength.N_TARGET_K = 0.18 -- S0585
 

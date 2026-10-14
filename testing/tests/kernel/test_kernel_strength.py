@@ -326,3 +326,61 @@ def test_e_acute_upper_clamp(host):
 def test_carry_delta(host):
     assert _close(host.K.strength.carryDelta(1.5, -0.1), 1.35)
     assert _close(host.K.strength.carryDelta(0.75, 0.0), 0.75)
+
+
+# --- the lean-mass strength model (Plan 13 Task 5; rulings 13-1 and 13-45) ---
+
+# The game constants of DEFAULTS (the plan's first constants block, below point T); xpPerSet 346 is provisional
+# until Task 1's calibration run.
+GAME = dict(ffmi5=18.0, ffmiPerLevel=0.5, capLevel=16.5, ts=1.0, xpPerSet=346, incidental=0.35, fMinShare=0.35,
+            fmMin=0.5, nov_p0=1.6, nov_pspan=0.8, xs_p0=0.8, xs_pspan=0.8)
+
+
+def test_defaults_game_constants_and_no_stray_key(host):
+    from . import strength_model as sm
+    from . import strength_level as sl
+    D = host.py(host.K.strength.DEFAULTS)
+    for k, v in GAME.items():
+        assert D[k] == v, k
+    want = set(sm.POINT_T) - {"infeasible", "regain_gated", "regain_sum"}
+    want |= set(sl.LEVEL_MODEL) | set(GAME) | {"M5", "R"}
+    assert set(D) == want
+
+
+def test_R_ignores_a_server_table(host):
+    # R reads DEFAULTS only (ruling 13-45): a server's doubled k passed beside the years changes nothing
+    from . import strength_level as sl
+    P = host.py(host.K.strength.DEFAULTS)
+    P["k"] = 2 * P["k"]
+    del P["fp_knots"], P["N0"], P["startLevel"]
+    assert _close(host.call("strength.R", 4.0, host.table(P)), sl.R_of(4.0))
+    assert _close(host.K.strength.DEFAULTS.R, 1.5651015746939971, 1e-12)
+
+
+def test_level_five_is_the_untrained_average(host):
+    D = host.K.strength.DEFAULTS
+    F5 = host.call("strength.fOfBio", 5.0, D)
+    assert _close(host.call("strength.level", F5, 1.0, 1.0, D), 5.0, 1e-12)
+    assert _close(host.call("strength.strengthOf", F5, 1.0, 1.0, D), 1.0, 1e-12)
+
+
+def test_f_of_level_below_the_domain_reads_fnm(host):
+    from . import strength_level as sl
+    D = host.K.strength.DEFAULTS
+    for L in (-5.0, -20.0):
+        assert host.call("strength.fOfLevel", L, 1.0, 1.0, D) == sl.F_of_level(L, 1.0, 1.0) == 27.0
+
+
+@pytest.mark.parametrize("L,n,frac", [(10.0, 10, 0), (9.5, 9, 0.5), (0.0, 0, 0), (0.3, 0, 0.3), (9.9999999999, 10, 0)])
+def test_shown_edges(host, L, n, frac):
+    got_n, got_frac = host.call("strength.shown", L)
+    assert got_n == n and _close(got_frac, frac, 1e-12)
+
+
+def test_status_clamps(host):
+    hi = host.table({"lm": 80.0, "F0": 52.0, "Fc": 68.0})
+    lo = host.table({"lm": 40.0, "F0": 52.0, "Fc": 68.0})
+    inverted = host.table({"lm": 60.0, "F0": 68.0, "Fc": 52.0})
+    assert host.call("strength.status", hi) == 1
+    assert host.call("strength.status", lo) == 0
+    assert host.call("strength.status", inverted) == 0
