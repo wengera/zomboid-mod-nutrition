@@ -6,7 +6,7 @@
 -- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to M's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
 -- withdrawal. Plan 11g Task 4 replaced the meal pool P with the gut stage G, fed at emptying, and grouped the file by
--- section, every constant first (spec § 7) went back to the eat feed as M, because G fed at emptying counted
+-- section, every constant first; Plan 11g Task 6c (spec § 7) went back to the eat feed as M, because G fed at emptying counted
 -- the meal's size a second time (the stomach's energy-limited emptying already carries it in F), and let F count past
 -- the comfortable maximum. Pure; one statement a line for the coverage gate.
 local K = NutritionRevamp.kernel

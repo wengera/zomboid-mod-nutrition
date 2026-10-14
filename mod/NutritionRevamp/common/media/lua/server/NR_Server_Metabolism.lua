@@ -546,11 +546,11 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         if not NR.isServer() then return end
         if MET.wired then return end
         MET.wired = true
-        MET.checkPrecondition()
         local P = NR.server.players
-        NR.server.minute.register("metabolism", MET.minute)
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.onFirstSight end
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.forget end
         if P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = MET.forget end
+        MET.checkPrecondition()
+        NR.server.minute.register("metabolism", MET.minute)
     end)
 end

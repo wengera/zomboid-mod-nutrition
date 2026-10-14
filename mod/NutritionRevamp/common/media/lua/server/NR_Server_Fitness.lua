@@ -108,7 +108,6 @@ local function makeWrapper(S, kind)
     end
 end
 
-
 -- Installs both wraps when ISFitnessAction exists (vanilla's shared/TimedActions file, which loads before every
 -- server/ file); returns whether both are in place. Never touches ISFitnessAction.new.
 function FIT.install()

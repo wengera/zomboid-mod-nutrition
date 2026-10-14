@@ -958,6 +958,30 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
     assert S.metabolism.wired is True
 
 
+def test_the_start_handler_registers_forget_though_the_minute_wiring_raises():
+    # The handler's player hooks come first: a raise in the precondition or the minute registration (here
+    # no NR.server.minute exists) leaves forget registered on both lists.
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    with open(CORE, encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Core.lua")()
+    rt.execute(r"""
+        NR_STARTED = {}
+        Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
+        isServer = function() return true end
+        NutritionRevamp.server.players = { onFirstSight = {}, onDeparture = {} }
+        NutritionRevamp.server.minute = nil
+    """)
+    with open(os.path.join(SERVER, "NR_Server_Metabolism.lua"), encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Server_Metabolism.lua")()
+    ok = rt.eval("function() return pcall(NR_STARTED[1]) end")()
+    assert ok is False or ok[0] is False
+    same = rt.eval("rawequal")
+    S = rt.globals().NutritionRevamp.server
+    assert same(S.players.onDeparture[1], S.metabolism.forget)
+    assert same(S.players.onFirstSight[2], S.metabolism.forget)
+
+
 # --- first sight's mirror and the precondition (ruling T18-1) ----------------------------------------
 
 FIRSTSIGHT = r"""

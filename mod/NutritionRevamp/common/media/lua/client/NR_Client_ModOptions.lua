@@ -1,7 +1,7 @@
 -- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page: the panel keybind
 -- (togglePanel), the tooltip-lines tick and the moodles tick; the loader the mod calls once itself; the three
--- accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through
---.
+-- accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through.
+--
 --
 -- The page exists at FILE SCOPE (#2520: a row added after the main screen is built is not a known key until the
 -- next one) and is loaded by the mod ONCE, after the page exists, inside a protected call (#2519: vanilla loads

@@ -5,7 +5,7 @@
 -- key in the same proportion, never faster than water; the liquid lane first-order at a half-time that grows with the
 -- solid lane's energy. Absorption applies per-nutrient bioavailability and the phytate/vitamin-C iron interaction
 -- (absorb); the absorbed vector accumulates into the pool (toPool). The unabsorbed remainder is discarded.
--- X151r #2981: the factor reads the meal in the stomach, not the share emptied this
+-- Run x151r (#2981): the factor reads the meal in the stomach, not the share emptied this
 -- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
 -- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
 -- 400 mg. absorb(emptied) with no ctx keeps the Plan 2 reading off the emptied vector itself. Ruling T19-1 extends the
@@ -121,7 +121,7 @@ end
 -- the stomach) when ctx is given, else the emptied vector's own. Vitamin D takes its
 -- bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor; retinol, carotene, vitE
 -- and vitK take their bioavailability times the fat factor, both read off the meal's lipids in the
--- stomach (ctx, extended by T19-1) or the emptied vector's when no context is given; any
+-- stomach (ctx; its lipids since ruling T19-1) or the emptied vector's when no context is given; any
 -- other key takes its bioavailability (1.0 when unlisted).
 function K.stomach.absorb(emptied, ctx)
     local out = K.vector.new()

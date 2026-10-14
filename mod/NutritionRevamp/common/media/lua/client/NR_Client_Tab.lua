@@ -45,7 +45,6 @@ local T = NR.client.tab
 local TAB_ID = "NutritionRevamp"
 local PAD = 8 -- px, the rows' inset from the tab's edges
 
-
 if ISPanelJoypad ~= nil then
     NR_Client_TabPanel = ISPanelJoypad:derive("NR_Client_TabPanel")
     T.cls = NR_Client_TabPanel

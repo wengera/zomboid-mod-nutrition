@@ -8,7 +8,7 @@
 -- the heal creates none. The creation scalars heal too: r and
 -- traitCarry to 1, l0 to the Strength level the adapter read (its one engine read, made only when body.l0 is not
 -- finite, and passed in), tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to dayIndex; every
--- nHist and bandWeek slot to 0. Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code:
+-- nHist and bandWeek slot to 0, and the Strength stamps (strAgeH and lastFallAge to the world age, riseHeldH to 0, shownL to l0). Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code:
 -- no fast region. Every K.body / K.aerobic / K.strength reference is at call time.
 local K = NutritionRevamp.kernel
 K.heal = {}

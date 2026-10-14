@@ -132,7 +132,6 @@ function STR.remap(player, level, ctx)
     return changed
 end
 
-
 -- The carry delta's acute inputs off the record's Plan 4 sub-tables. The pipeline's ORDER runs the
 -- nutrients step before this one, so these are the CURRENT minute's stamps. An
 -- absent sub-table (one the nutrients step has not laid) or an absent or non-finite field reads the neutral the

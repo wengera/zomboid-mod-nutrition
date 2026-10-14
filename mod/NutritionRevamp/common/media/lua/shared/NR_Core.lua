@@ -169,9 +169,10 @@ function NR.installWrap(S, cls, method, make, kind, label)
     NR.log.say(2, label .. " wrapped")
     return true
 end
+
 -- The client surfaces' helper set (the panel, the moodles, the view and the tooltip): one guard, one failure count and
 -- one translation lookup. try: a method of o, index-first inside a pcall; (true, result) when the member is present
--- and answered, else (false, nil), or (false, the error) when it raised.
+-- and answered, else (false, nil), a raise included.
 function NR.try(o, name, ...)
     local ok, present, v = pcall(NR.call, o, name, ...)
     return ok and present, v

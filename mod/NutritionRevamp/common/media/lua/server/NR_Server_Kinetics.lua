@@ -12,7 +12,7 @@
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
--- X151r #2981: the factor reads the meal in the stomach, not the share emptied this
+-- Run x151r (#2981): the factor reads the meal in the stomach, not the share emptied this
 -- minute -- the buffer's phytate, vitC and calcium (and its lipids: the fat factor) are
 -- read into KIN.ctx BEFORE the emptying and absorb takes them; the calcium goes on to
 -- NR_Server_Nutrients' calcium x iron factor through the pipeline context's mealCa.
