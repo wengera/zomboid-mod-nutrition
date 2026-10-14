@@ -51,7 +51,7 @@
 -- inset, NEVER anchored to the vanilla stack (ruling 10; MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
--- the mirror per frame (#2692). The column sits on the UI manager only while a level is above 0 and takes no mouse
+-- the mirror per frame (#2692). An OnResolutionChange handler moves it to the inset of the new viewport. The column sits on the UI manager only while a level is above 0 and takes no mouse
 -- event (its right-button and wheel handlers answer false, wantMouseEvents false), so it never eats a click meant for
 -- the world.
 --
@@ -64,7 +64,7 @@
 -- is above 0).
 --
 -- Shape (the client-file discipline): the sentinel NR_ClientMoodles_Installed is a global of its own holding
--- the boot, create and listener closures, each looking NutritionRevamp.client.moodles up per call; the side test is
+-- the boot, create, death, resolution and listener closures, each looking NutritionRevamp.client.moodles up per call; the side test is
 -- per call; every engine, toolkit and framework member is named only inside a function behind a nil check and
 -- reached index-first inside a pcall, so the file loads with no engine (testing/tests/kernel/
 -- test_client_moodles_shape.py); every handler body runs under one pcall. probe(cls) is TEST-ONLY for the driver.
@@ -257,6 +257,24 @@ local function showColumn(col, on)
     end
 end
 
+-- The column's top-left for playerNum: the fixed inset of that player's viewport (ruling T8-2).
+local function inset(playerNum)
+    local left = screen(getPlayerScreenLeft, playerNum, 0)
+    local top = screen(getPlayerScreenTop, playerNum, 0)
+    local width = screen(getPlayerScreenWidth, playerNum, SCREEN_W)
+    return left + width - INSET_RIGHT, top + INSET_TOP
+end
+
+-- OnResolutionChange: the column moves to the inset of the new viewport (vanilla moves its own per-player UI on the
+-- same event, ISUI/PlayerData/ISPlayerData.lua:185-206); no column, nothing to move.
+function MOODLES.onResolutionChange()
+    local col = NutritionRevamp.client.moodles.column
+    if col == nil then return end
+    local x, y = inset(col.playerNum)
+    call(col, "setX", x)
+    call(col, "setY", y)
+end
+
 -- The own route's column for playerNum: the old one (a respawn) leaves the UI manager first; the new one sits at
 -- the fixed inset, loads the seven icons once, and joins the UI manager when the option is on.
 function MOODLES.buildColumn(playerNum)
@@ -268,10 +286,8 @@ function MOODLES.buildColumn(playerNum)
         showColumn(old, false)
         M.column = nil
     end
-    local left = screen(getPlayerScreenLeft, playerNum, 0)
-    local top = screen(getPlayerScreenTop, playerNum, 0)
-    local width = screen(getPlayerScreenWidth, playerNum, SCREEN_W)
-    local col = cls:new(left + width - INSET_RIGHT, top + INSET_TOP, COL_WIDTH, #M.classes * SLOT, playerNum)
+    local x, y = inset(playerNum)
+    local col = cls:new(x, y, COL_WIDTH, #M.classes * SLOT, playerNum)
     for i = 1, #M.classes do
         local c = M.classes[i]
         col.textures[c] = texture(ICON_DIR .. c .. ".png")
@@ -467,6 +483,16 @@ for i = 1, #listeners do
     if listeners[i] == S.listener then present = true end
 end
 if not present then listeners[#listeners + 1] = S.listener end
+
+if S.resolution == nil and Events ~= nil and Events.OnResolutionChange ~= nil then
+    S.resolution = function()
+        local nr = NutritionRevamp
+        if nr == nil or nr.client == nil or nr.client.moodles == nil then return end
+        local ok, err = pcall(nr.client.moodles.onResolutionChange)
+        if not ok then fail(err) end
+    end
+    Events.OnResolutionChange.Add(S.resolution)
+end
 
 if S.boot == nil and Events ~= nil and Events.OnGameBoot ~= nil then
     S.boot = function()

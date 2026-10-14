@@ -42,6 +42,7 @@ Events = {
     OnServerCommand = event("OnServerCommand"),
     OnKeyPressed = event("OnKeyPressed"),
     OnPlayerDeath = event("OnPlayerDeath"),
+    OnResolutionChange = event("OnResolutionChange"),
 }
 isClient = function() return NR_T.client ~= false end
 isServer = function() return false end
@@ -55,9 +56,10 @@ getTexture = function(path)
     if NR_T.textures then return { path = path } end
     return nil
 end
-getPlayerScreenLeft = function(n) return 0 end
-getPlayerScreenTop = function(n) return 0 end
-getPlayerScreenWidth = function(n) return 1280 end
+NR_T.screen = { left = 0, top = 0, width = 1280 }
+getPlayerScreenLeft = function(n) return NR_T.screen.left end
+getPlayerScreenTop = function(n) return NR_T.screen.top end
+getPlayerScreenWidth = function(n) return NR_T.screen.width end
 
 ISUIElement = {}
 function ISUIElement:derive(name)
@@ -77,6 +79,8 @@ function ISUIElement:initialise() NR_T.ui.inits = NR_T.ui.inits + 1 end
 function ISUIElement:instantiate() NR_T.ui.insts = NR_T.ui.insts + 1 end
 function ISUIElement:addToUIManager() NR_T.ui.adds = NR_T.ui.adds + 1; self.managed = true end
 function ISUIElement:removeFromUIManager() NR_T.ui.removes = NR_T.ui.removes + 1; self.managed = false end
+function ISUIElement:setX(x) self.x = x end
+function ISUIElement:setY(y) self.y = y end
 function ISUIElement:drawRect(x, y, w, h, a, r, g, b) NR_T.ui.rects = NR_T.ui.rects + 1 end
 function ISUIElement:drawTextureScaled(t, x, y, w, h, a) NR_T.ui.texs = NR_T.ui.texs + 1 end
 """
@@ -325,6 +329,27 @@ def test_the_column_suspends_on_death_until_the_next_apply():
     assert m.column.onUI is True
     m.column.render(m.column)
     assert m.lastDrawn == 1
+
+
+def test_a_resolution_change_moves_the_column_to_the_inset_of_the_new_viewport():
+    rt = rt_env()
+    boot(rt)
+    create(rt)
+    col = M(rt).column
+    assert len(G(rt).NR_T.adds.OnResolutionChange) == 1
+    rt.execute("NR_T.screen.width = 1920; NR_T.screen.top = 10")
+    fire(rt, "OnResolutionChange", "1280, 720, 1920, 1080")
+    assert (col.x, col.y) == (1920 - 96, 10 + 240)
+    assert rt.eval("rawequal")(M(rt).column, col) and M(rt).stats.errors == 0
+    _load(rt, MOODLES)                                      # a reload adds no second handler
+    assert len(G(rt).NR_T.adds.OnResolutionChange) == 1
+
+
+def test_a_resolution_change_with_no_column_does_nothing():
+    rt = rt_env()
+    boot(rt)
+    fire(rt, "OnResolutionChange", "1280, 720, 1920, 1080")
+    assert M(rt).column is None and M(rt).stats.errors == 0
 
 
 def test_player_one_builds_no_column():
