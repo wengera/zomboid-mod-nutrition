@@ -60,7 +60,7 @@ def S_of(F, N0, T):
 def R_of(years):
     """The S of the untrained average after `years` of perfect training, at Tmax (spec section 2.4)."""
     body = strength_model.creation(dict(strength_model.POINT_T))
-    for _ in range(round(years * 365)):
+    for _ in range(math.floor(years * 365 + 0.5)):
         body.fast_grow(LEVEL_MODEL["perfectS"])
     return S_of(body.F, 1.0, LEVEL_MODEL["Tmax"])
 

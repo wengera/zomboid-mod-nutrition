@@ -6,7 +6,8 @@
 -- Pure: numbers and Lua tables in, numbers, booleans, strings and Lua tables out, no Java. Slow-clock
 -- code with no fast region, so math.exp, math.log, math.floor and the bounded numeric `for` over the
 -- kernel's own tables are allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.min /
--- K.max reference is at call time.
+-- K.max reference is at call time; DEFAULTS.R is computed at this file's load, so those helpers and
+-- K.HEIGHT_M must be defined in NR_Kernel.lua.
 local K = NutritionRevamp.kernel
 K.strength = {}
 
@@ -57,10 +58,10 @@ K.strength.DEFAULTS = {
     incidental = 0.35, -- S1951 fractional, S1961, S1962; game choice
     fMinShare = 0.35, -- F's floor as a share of F0; game choice (the oracle's 0.35 * F0)
     fmMin = 0.5, -- kg, the fat floor; game choice (K.partition.FM_MIN)
-    nov_p0 = 1.6, -- g/kg/d; the oracle's literal (the novice deficit deepening's ramp)
-    nov_pspan = 0.8, -- g/kg/d; the oracle's literal
-    xs_p0 = 0.8, -- g/kg/d; the oracle's literal (the surplus share's protein ramp)
-    xs_pspan = 0.8, -- g/kg/d; the oracle's literal
+    nov_p0 = 1.6, -- g/kg/d; the oracle's literal (the novice deficit deepening's ramp); game choice
+    nov_pspan = 0.8, -- g/kg/d; the oracle's literal; game choice
+    xs_p0 = 0.8, -- g/kg/d; the oracle's literal (the surplus share's protein ramp); game choice
+    xs_pspan = 0.8, -- g/kg/d; the oracle's literal; game choice
     -- the strength-model block (ruling 13-45)
     b = 0.8, -- S2121 (derived 0.79), S0085
     Fnm = 27.0, -- kg; S2133; game choice

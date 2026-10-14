@@ -4,7 +4,6 @@
 (`strength_level.LEVEL_MODEL`) key by key, the bindings of ruling 13-1 for the two blocks; the bio scale, the
 shown level, its inverse and R equal the references' to the stated tolerances.
 """
-import json, os
 from . import strength_model as sm
 from . import strength_level as sl
 
@@ -33,7 +32,7 @@ def test_level_block_equals_the_reference(host):
         else:
             assert D[k] == v, k
     assert abs(D["M5"] - sl.M5) < 1e-12
-    assert abs(D["R"] - sl.R_of(D["yearsTo10"])) < 1e-9
+    assert abs(D["R"] - sl.R_of(D["yearsTo10"])) < 1e-12
 
 
 def test_bio_scale_matches_the_oracle(host):
@@ -45,18 +44,18 @@ def test_bio_scale_matches_the_oracle(host):
 
 def test_level_matches_the_reference_and_inverts(host):
     D = _d(host)
-    for F in (20.0, 27.0, 42.115, 52.02, 60.857, 73.056):
+    for F in (20.0, 26.5, 27.0, 42.115, 52.02, 60.857, 73.056):
         for N0 in (0.82, 1.0, 1.14):
             for T in (1.0, 1.05, 1.10):
-                assert abs(host.call("strength.level", F, N0, T, D) - sl.level(F, N0, T)) < 1e-9
+                assert abs(host.call("strength.level", F, N0, T, D) - sl.level(F, N0, T)) < 1e-12
     for L in (1.0, 3.0, 5.0, 7.0, 9.0, 12.3):
         F = host.call("strength.fOfLevel", L, 1.07, 1.0, D)
-        assert abs(host.call("strength.level", F, 1.07, 1.0, D) - L) < 1e-9
+        assert abs(host.call("strength.level", F, 1.07, 1.0, D) - L) < 1e-12
 
 
 def test_R_reads_the_years_only(host):
-    for y in (1.0, 2.0, 4.0, 10.0):
-        assert abs(host.call("strength.R", y) - sl.R_of(y)) < 1e-9
+    for y in (1.0, 1.3, 2.0, 2.5, 4.0, 4.5, 10.0):
+        assert abs(host.call("strength.R", y) - sl.R_of(y)) < 1e-12
 
 
 def test_shown_level_and_bar(host):

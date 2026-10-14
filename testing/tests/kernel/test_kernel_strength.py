@@ -371,7 +371,8 @@ def test_f_of_level_below_the_domain_reads_fnm(host):
         assert host.call("strength.fOfLevel", L, 1.0, 1.0, D) == sl.F_of_level(L, 1.0, 1.0) == 27.0
 
 
-@pytest.mark.parametrize("L,n,frac", [(10.0, 10, 0), (9.5, 9, 0.5), (0.0, 0, 0), (0.3, 0, 0.3), (9.9999999999, 10, 0)])
+@pytest.mark.parametrize("L,n,frac", [(10.0, 10, 0), (9.5, 9, 0.5), (0.0, 0, 0), (0.3, 0, 0.3), (9.9999999999, 10, 0),
+                                             (7 - 1e-8, 6, 1 - 1e-8)])
 def test_shown_edges(host, L, n, frac):
     got_n, got_frac = host.call("strength.shown", L)
     assert got_n == n and _close(got_frac, frac, 1e-12)
