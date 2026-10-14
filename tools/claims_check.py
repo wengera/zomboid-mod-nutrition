@@ -261,10 +261,9 @@ def _git_show(root, commit, path):
 def _pointer_line_finding(r, text, n, root, register_rel):
     """Rule 3b: a `repo:<path>:<line>[-<line>] "<text>"` pointer's quoted text must occur on that line
     (or inside that range) of the working-tree file. A path under testing/artifacts/ and a line-less
-    pointer are exempt, and so is a superseded row (it keeps the old evidence as the source wrote it);
-    a missing file is rule 3's finding, not this one's."""
-    if r.get("status") == "superseded":
-        return None
+    pointer are exempt; a superseded row is checked like any other (its stale quote is pinned to the last
+    commit holding it), and so is every pointer of a multi-pointer cell; a missing file is rule 3's
+    finding, not this one's."""
     m = REPO_LINE_RX.match(text.strip())
     if not m or m.group(1).startswith("testing/artifacts/"):
         return None

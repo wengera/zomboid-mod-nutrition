@@ -504,11 +504,21 @@ def test_pointer_line_accepts_a_range_and_exempts_artifacts_and_lineless():
     assert _line_findings('repo:testing/artifacts/r/a.json:9 "nowhere"') == []
 
 
-def test_pointer_line_exempts_a_superseded_row():
+def test_pointer_line_checks_a_superseded_row():
     with tempfile.TemporaryDirectory() as d:
         _write(d, "mod/x.lua", "a = 1\n")
         _tree(d, [_row(1, pointer='repo:mod/x.lua:1 "gone"', status="superseded", successor="#0002"), _row(2)])
-        assert [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"] == []
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"]
+        assert len(f) == 1 and f[0].detail.endswith("not on that line (not found)")
+
+
+def test_pointer_line_checks_every_pointer_of_a_multi_pointer_cell():
+    ptr = 'repo:mod/x.lua:1 "a = 1"; repo:mod/x.lua:2 "local function f()"; repo:mod/x.lua:3 "nowhere"; run:r1 f.json k'
+    f = _line_findings(ptr)
+    assert [x.detail for x in f] == ['#0001 repo:mod/x.lua:3 — "nowhere" not on that line (not found)']
+    f = _line_findings('repo:mod/x.lua:1 "gone"; repo:mod/x.lua:2 "local function f()"')
+    assert len(f) == 1 and '"gone"' in f[0].detail
+
 
 # --- Rule 3 / 3b, pinned form: repo:<path>@<commit>:<line> resolves through `git show` in the root.
 
