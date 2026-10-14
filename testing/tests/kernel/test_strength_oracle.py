@@ -1,6 +1,6 @@
 """The strength fit's tracked oracle (Plan 13 Task 2): point T reproduces compact_T.json, and the exact mode of
 ruling 13-2 keeps every weighted pass and is pinned oracle by oracle."""
-import json, os
+import json, math, os
 import pytest
 from . import strength_model as sm
 from . import strength_oracles as so
@@ -44,9 +44,11 @@ def test_exact_detraining_halves_in_its_half_life():
     hl_days = 7 * P["detrain_hl_wk"]
     # S = 0, energy balance, no protein: growth and regain are 0, the detraining runs alone
     b.Pk = b.F
-    for _ in range(int(round(hl_days))):
+    assert hl_days == int(hl_days)
+    for _ in range(int(hl_days)):
         b.day(0.0, 0.0, 0.0)
-    assert abs((b.F - F0) / gap0 - 0.5) < 0.01
+    # exact integration: 42 one-day factors exp(-lam/7) compose to 1/2 (the Euler form gives 0.4976)
+    assert abs((b.F - F0) / gap0 - 0.5) < 1e-9
 
 
 # The exact-mode re-score (ruling 13-2, ts = 1) of every registry oracle at point T, pinned so a later kernel or
@@ -120,3 +122,106 @@ def test_exact_mode_pins():
     assert [r[0] for r in rows] == list(EXACT_PINS)
     for name, value, *_ in rows:
         assert abs(value - EXACT_PINS[name]) < 1e-9, name
+
+
+# ---------------------------------------------------------------- ruling 13-2's forms, one day each (fix round 1)
+def _P(**kw):
+    return dict(sm.POINT_T, exact=True, **kw)
+
+
+def test_exact_ts_scales_growth_not_its_energy():
+    # (a) at balance: the lean gained doubles at ts = 2, the fat that funds it does not
+    out = {}
+    for ts in (1.0, 2.0):
+        b = sm.Body(_P(ts=ts), 5.0, 16.5, 13.0)
+        F, M = b.F, b.M
+        b.day(20.0, 2.0, 0.0)
+        out[ts] = (b.F - F, b.M - M)
+    assert out[1.0][0] > 0
+    assert abs(out[2.0][0] - 2 * out[1.0][0]) < 1e-12
+    assert abs(out[2.0][1] - out[1.0][1]) < 1e-12
+
+
+def test_exact_ts_surplus_charge():
+    # (b) a surplus day: growth's energy is charged at grow / ts, so the fat change does not depend on ts
+    out = {}
+    for ts in (1.0, 2.0):
+        b = sm.Body(_P(ts=ts), 5.0, 16.5, 13.0)
+        M = b.M
+        b.day(20.0, 0.5, 5.0)
+        out[ts] = b.M - M
+    assert abs(out[2.0] - out[1.0]) < 1e-12
+
+
+def test_exact_ts_deficit_charge():
+    # (c) a deficit day: the recomposition's fat draw is charged at grow / ts
+    out = {}
+    for ts in (1.0, 2.0):
+        b = sm.Body(_P(ts=ts), 5.0, 16.5, 13.0)
+        M = b.M
+        b.day(20.0, 2.0, -100.0)
+        out[ts] = b.M - M
+    assert abs(out[2.0] - out[1.0]) < 1e-12
+
+
+def test_exact_grace_divided_by_ts():
+    # (d) grace_d = 14 at ts = 2 is 7 days: F holds through day 7 and falls on day 8
+    b = sm.Body(_P(ts=2.0, grace_d=14), 10.0, 16.5, 13.0, F0L=5.0)
+    b.Pk = b.F
+    F = [b.F]
+    for _ in range(8):
+        b.day(0.0, 0.0, 0.0)
+        F.append(b.F)
+    assert F[7] == F[0]
+    assert F[8] < F[7]
+
+
+def test_exact_one_day_detraining():
+    # (e) with the status term on: F - F0 falls by exp(-lam(s) * ts / 7) in one day
+    for ts in (1.0, 3.0):
+        P = _P(ts=ts, grace_d=0)
+        b = sm.Body(P, 10.0, 16.5, 13.0, F0L=5.0)
+        s = b.s()
+        gap = b.F - b.F0
+        lam = math.log(2) / (P["detrain_hl_wk"] * (1.0 + P["detrain_status"] * s))
+        b.day(0.0, 0.0, 0.0)
+        assert abs((b.F - b.F0) - gap * math.exp(-lam * ts / 7.0)) < 1e-12, ts
+
+
+def test_exact_peak_decay_ts():
+    # (f) the peak's gap above F decays by exp(-dec * ts) a day
+    for ts in (1.0, 3.0):
+        P = _P(ts=ts)
+        b = sm.Body(P, 10.0, 16.5, 13.0, F0L=10.0, peakL=12.0)
+        gap = b.Pk - b.F
+        b.day(0.0, 0.0, 0.0)
+        dec = math.log(2) / (P["peak_hl_yr"] * 365.0)
+        assert abs((b.Pk - b.F) - gap * math.exp(-dec * ts)) < 1e-12, ts
+
+
+def test_exact_labile_decay_unscaled_by_ts():
+    # (g) the labile lean decays by 1/x_tau_d on a day growth eats the surplus and on a deficit day (after the
+    # deficit's own draw), at the same factor at ts = 1 and 2: the decay runs on the food clock (ruling 13-3)
+    for ts in (1.0, 2.0):
+        P = _P(ts=ts)
+        b = sm.Body(P, 5.0, 16.5, 13.0)
+        b.X = 1.0
+        b.day(20.0, 2.0, 1.0)
+        assert abs(b.X - (1.0 - 1.0 / P["x_tau_d"])) < 1e-12, ts
+        b = sm.Body(P, 5.0, 16.5, 13.0)
+        b.X = 1.0
+        b.day(0.0, 2.0, -200.0)
+        # the same day without the decay: S = 0 grows nothing, so the fit's own step differs only by it
+        c = sm.Body(dict(P, exact=False), 5.0, 16.5, 13.0)
+        c.X = 1.0
+        c.day(0.0, 2.0, -200.0)
+        assert 0.0 < c.X < 1.0
+        assert abs(b.X - c.X * (1.0 - 1.0 / P["x_tau_d"])) < 1e-12, ts
+
+
+def test_exact_no_labile_decay_while_surplus_remains():
+    # (h) a surplus day with rest > 0 and xs = 0 (S >= S_def) leaves X unchanged
+    b = sm.Body(_P(ts=1.0), 5.0, 16.5, 13.0)
+    b.X = 1.0
+    b.day(20.0, 2.0, 1000.0)
+    assert b.X == 1.0

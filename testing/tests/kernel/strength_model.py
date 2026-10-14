@@ -138,9 +138,10 @@ class Body:
             grow = grow + rg if P['regain_sum'] else max(grow, rg)
         grow = max(0.0, grow)
         exact = bool(P.get('exact'))
-        ts = P.get('ts', 1.0) if exact else 1.0
+        ts = 1.0
         if exact:
-            # ruling 13-2: the biology clock scales growth and regain
+            # ruling 13-2: the biology clock P['ts'] scales growth and regain
+            ts = P.get('ts', 1.0)
             grow = grow * ts
         # maintenance and detraining
         Sm = P['m'] * P['Sg0'] * math.exp(P['beta'] * s)
