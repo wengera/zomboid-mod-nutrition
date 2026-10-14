@@ -343,7 +343,7 @@ def test_defaults_game_constants_and_no_stray_key(host):
     for k, v in GAME.items():
         assert D[k] == v, k
     want = set(sm.POINT_T) - {"infeasible", "regain_gated", "regain_sum"}
-    want |= set(sl.LEVEL_MODEL) | set(GAME) | {"M5", "R"}
+    want |= set(sl.LEVEL_MODEL) | set(GAME) | {"M5", "R", "kouriCoef", "ffmiNaturalRaw"}
     assert set(D) == want
 
 

@@ -394,3 +394,120 @@ function K.body.calendar(body, ageH, gapped)
     end
     return 0
 end
+
+-- ============================================================ the creation body (Plan 13 Task 9; spec section 3.2)
+-- What each muscle and weight pick sets in the starting body. The muscle pick (nil reads "none") sets the start lean
+-- through its innate factor N0 and its start level; the weight pick sets the fat and, for a thin pick, lowers the lean.
+-- Underweight and Very Underweight exclude Weak and Feeble: at their starts the thin pick would give points at no cost
+-- (ruling 13-46). create builds an excluded pair by the same rules; the creation handler strips one pick first.
+K.body.EXCLUDES = { UNDERWEIGHT = { WEAK = true, FEEBLE = true }, VERY_UNDERWEIGHT = { WEAK = true, FEEBLE = true } } -- ruling 13-46
+
+-- The creation fat as a fat mass index (kg/m2) by weight pick: male, the middle of Kelly 2009's bands; female, the
+-- middle of the female bands, read only for effective sex 2 (NR.SexSpecific on and the character female).
+K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 12.5 } -- S2056; game choice (the middle of each band)
+K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 } -- S2057; game choice (the middle of each band; ruling 13-31)
+
+-- A thin pick's target BMI (WHO grades) and fat mass index; the lean is lowered to reach the BMI, never raised.
+K.body.THIN = { UNDERWEIGHT = { bmi = 18.0, fmi = 1.5 }, VERY_UNDERWEIGHT = { bmi = 16.5, fmi = 1.0 } } -- S1905 (fat at BMI 18); ruling 13-14
+
+-- The rungs of a weight pick (ruling 13-30), and Emaciated read as Very Underweight (rung 2).
+K.body.FAT_RUNG = { OVERWEIGHT = 1, OBESE = 2 } -- ruling 13-30
+K.body.THIN_RUNG = { UNDERWEIGHT = 1, VERY_UNDERWEIGHT = 2 } -- ruling 13-30
+K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- ruling 13-30
+
+-- The creation spec of a muscle pick, a weight pick (either nil for none), the strength table P and the effective sex
+-- sexIdx (2 female, else male): the start lean F solves level(F, N0, 1) = the pick's start level; the set point F0 and
+-- the natural cap Fc move by traitShare of F - F5, Fc clamped at the natural FFMI limit (ruling 13-47); the peak is
+-- max(F, F0); the fat is the pick's FMI times H2, and a thin pick lowers lm to min(F, BMI * H2 - fat) (ruling 13-14).
+-- Returns { lm, F0, Fc, Pk, N0, fm, fatT, thinT, sexIdx }.
+function K.body.create(muscle, weight, P, sexIdx)
+    local key = muscle or "none"
+    local pick = K.body.WEIGHT_ALIAS[weight] or weight
+    local H2 = K.HEIGHT_M * K.HEIGHT_M
+    local N0 = P.N0[key]
+    local F = K.strength.fOfLevel(P.startLevel[key], N0, 1, P)
+    local F5 = K.strength.fOfBio(5, P)
+    local d = P.traitShare * (F - F5)
+    local spec = {}
+    spec.N0 = N0
+    spec.F0 = F5 + d
+    spec.Fc = K.min(K.strength.fOfBio(P.capLevel, P) + d, P.ffmiNaturalRaw * H2)
+    spec.Pk = K.max(F, spec.F0)
+    spec.lm = F
+    spec.sexIdx = sexIdx or 1
+    local thin = K.body.THIN[pick]
+    if thin then
+        spec.fm = thin.fmi * H2
+        spec.lm = K.min(F, thin.bmi * H2 - spec.fm)
+    else
+        local fmi = K.body.FAT_FMI
+        if spec.sexIdx == 2 then
+            fmi = K.body.FAT_FMI_F
+        end
+        spec.fm = fmi[pick or "none"] * H2
+    end
+    spec.fatT = K.body.FAT_RUNG[pick] or 0
+    spec.thinT = K.body.THIN_RUNG[pick] or 0
+    return spec
+end
+
+-- A fresh record.body from a creation spec (K.body.create), the engine's sex (1 male, 2 female) and the world age in
+-- hours: the spec's lean, set point, cap, peak, N0, fat and rungs; the labile lean, the grace counters and the signal
+-- ring at 0; T at 1; fmRef and lm0dis at the start; the calendar, the day accumulators, the rings (mass7 at
+-- lm + lx + fm) and the trailing-24 h window as K.body.new lays them. Numbers and tables of numbers only (#1495).
+-- Task 10 lays body.band from K.traits.axes; Task 12 renames this to K.body.new and removes the old constructor.
+function K.body.newLean(spec, sex, ageH)
+    local day = math.floor(ageH / 24)
+    local body = {}
+    body.lm = spec.lm
+    body.F0 = spec.F0
+    body.Fc = spec.Fc
+    body.Pk = spec.Pk
+    body.N0 = spec.N0
+    body.fm = spec.fm
+    body.fatT = spec.fatT
+    body.thinT = spec.thinT
+    body.lx = 0
+    body.grace = 0
+    body.sigDay = 0
+    body.T = 1
+    body.Tgrace = 0
+    body.fmRef = spec.fm
+    body.lm0dis = spec.lm
+    body.sex = sex
+    body.bornAge = ageH
+    body.lastAgeH = ageH
+    body.at = 0
+    body.dayIndex = day
+    body.wday = day
+    body.inDay = 0
+    body.eeDay = 0
+    body.ebDay = 0
+    body.actKcalDay = 0
+    body.exKcalDay = 0
+    body.pDay = 0
+    body.carbDay = 0
+    body.lipDay = 0
+    body.alcDay = 0
+    body.sig7 = {}
+    body.eb7 = {}
+    body.mass7 = {}
+    body.bandWeek = {}
+    body.p7 = {}
+    for i = 1, K.body.WEEK_N do
+        body.sig7[i] = 0
+        body.eb7[i] = 0
+        body.mass7[i] = body.lm + body.lx + body.fm
+        body.bandWeek[i] = { 0, 0 }
+        body.p7[i] = 0
+    end
+    body.trail = K.body.newTrail(ageH)
+    body.metMinDay = 0
+    body.band1Day = 0
+    body.band2Day = 0
+    body.tac = 1.0
+    body.rmod = 1
+    body.pPrevKg = 0.8 -- = K.aerobic.P_LOW; neutral
+    body.energyState = 1
+    return body
+end

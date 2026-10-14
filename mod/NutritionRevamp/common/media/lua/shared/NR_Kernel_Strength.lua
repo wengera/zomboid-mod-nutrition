@@ -15,7 +15,7 @@ K.strength = {}
 -- The constants table (ruling 13-1): every constant of the growth law, the energy gate and the lean
 -- partition (point T, compact_T.json "chosen", under the oracle's key names), the game constants beside
 -- them, and the strength-model block (ruling 13-45). K.strength.params merges a server's options over a
--- copy; every function below takes that table as P. M5 and R are derived at file load, after the
+-- copy; every function below takes that table as P. M5, R and ffmiNaturalRaw are derived at file load, after the
 -- functions they read.
 K.strength.DEFAULTS = {
     -- point T (the growth law, the energy gate, the lean partition)
@@ -69,6 +69,7 @@ K.strength.DEFAULTS = {
     startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- the vanilla start levels (Weak's 1 the floor)
     traitShare = 0.5, -- Angus
     ffmiNatural = 25.0, -- kg/m2 normalised to 1.80 m; S1915 (ruling 13-47)
+    kouriCoef = 6.3, -- kg/m2 per m below 1.80 m; S1915 (Kouri 1995's height normalisation, its range cell; ruling 13-47)
     Tmax = 1.10, -- S2120, S2121, S2122; game choice
     tauUpWk = 3.0, -- weeks; S2112, S2113, S0086, S2118; game choice
     tauDownWk = 12.0, -- weeks; S1937, S2138, S2139; game choice (S2140 open)
@@ -286,6 +287,7 @@ end
 
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
+K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47)
 -- ============================================================ the Plan 3 model (removed in Plan 13 Task 12)
 
 -- The neural term's target per unit strength dose.

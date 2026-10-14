@@ -1,0 +1,309 @@
+"""The creation body table (Plan 13 Task 9; spec section 3.2; rulings 13-14, 13-30, 13-31, 13-46 and 13-47).
+
+`K.body.create(muscle, weight, P, sexIdx)` against the strength-level reference (`strength_level.trait_start`,
+`perfect_run`) and spec section 3.2's kg columns at 1.70 m (2.89 m2), unrounded: the muscle starts through N0 and lean,
+the set point and the natural cap moved by the trait share, the cap clamped at the natural FFMI limit, the peak, the
+fat and thin weight picks by sex, the rungs, the anti-stacking exclusions over every legal pick set of the 8 body traits
+for both sexes, and `K.body.newLean` (the constructor Task 12 renames to `new`) under ten years of perfect training.
+"""
+import pytest
+
+from . import strength_level as sl
+
+H2 = 1.70 * 1.70
+MUSCLE = (None, "WEAK", "FEEBLE", "STOUT", "STRONG")
+WEIGHT = (None, "OVERWEIGHT", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT")
+THIN = ("UNDERWEIGHT", "VERY_UNDERWEIGHT")
+EXCLUDED = {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT"),
+            ("FEEBLE", "VERY_UNDERWEIGHT")}
+
+
+def _legal(m, w):
+    return not (w in THIN and m in ("WEAK", "FEEBLE"))
+
+
+def _d(host):
+    return host.K.strength.DEFAULTS
+
+
+def _copy(host, **over):
+    """A Lua copy of DEFAULTS with the overrides set (the session host is shared, so DEFAULTS is never written)."""
+    P = host.rt.table()
+    for k, v in _d(host).items():
+        P[k] = v
+    for k, v in over.items():
+        P[k] = v
+    return P
+
+
+SPEC_KEYS = ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT", "sexIdx")
+
+
+def _spec(host, m, w, P=None, sexIdx=None):
+    P = _d(host) if P is None else P
+    s = host.call("body.create", m, w, P, sexIdx)
+    return {k: s[k] for k in SPEC_KEYS}
+
+
+# --- the derived limit (amendment 1) ---
+
+def test_the_natural_limit_is_derived_once_from_kouri(host):
+    D = _d(host)
+    assert D.kouriCoef == sl.KOURI_COEF == 6.3
+    assert D.ffmiNaturalRaw == D.ffmiNatural - D.kouriCoef * (1.8 - host.K.HEIGHT_M)
+    assert abs(D.ffmiNaturalRaw - sl.FFMI_NATURAL_RAW) < 1e-12
+    assert abs(D.ffmiNaturalRaw * H2 - sl.FC_LIMIT) < 1e-12
+
+
+# --- the brief's tests ---
+
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_muscle_starts_match_the_reference(host, muscle):
+    D = _d(host)
+    key = muscle or "none"
+    s = host.call("body.create", muscle, None, D)
+    F, F0, Fc, Pk = sl.trait_start(key)
+    for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+        assert abs(s[k] - v) < 1e-12, k
+    assert s["N0"] == D["N0"][key] == sl.LEVEL_MODEL["N0"][key]
+    L = host.call("strength.level", s["lm"], s["N0"], 1.0, D)
+    assert host.call("strength.shown", L)[0] == D["startLevel"][key]
+    assert abs(s["fm"] - 4.5 * H2) < 1e-9
+    assert s["fatT"] == 0 and s["thinT"] == 0
+
+
+@pytest.mark.parametrize("weight, fat_kg, lean", [
+    ("OVERWEIGHT", 21.675, None), ("OBESE", 36.125, None),
+    ("UNDERWEIGHT", 4.335, 47.685), ("VERY_UNDERWEIGHT", 2.89, 44.795),
+])
+def test_weight_picks(host, weight, fat_kg, lean):
+    D = _d(host)
+    s = host.call("body.create", None, weight, D)
+    assert abs(s["fm"] - fat_kg) < 1e-9
+    assert abs(s["lm"] - (lean if lean is not None else sl.F5)) < 1e-9
+    # a weight pick leaves the set point, the cap and the peak where the muscle pick put them
+    F, F0, Fc, Pk = sl.trait_start("none")
+    for k, v in (("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+        assert abs(s[k] - v) < 1e-12, k
+
+
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_set_point_and_cap_move_by_the_share(host, muscle):
+    D = _d(host)
+    s = host.call("body.create", muscle, None, D)
+    d = D["traitShare"] * (s["lm"] - sl.F5)
+    assert abs(s["F0"] - (sl.F5 + d)) < 1e-9
+    lim = (D["ffmiNatural"] - 6.3 * (1.8 - 1.70)) * 1.70 ** 2
+    assert abs(s["Fc"] - min(host.call("strength.fOfBio", D["capLevel"], D) + d, lim)) < 1e-9
+    assert s["Fc"] <= lim + 1e-9                      # every trait is at most the natural limit
+    assert (s["Fc"] == lim) == (muscle in ("STRONG", "STOUT"))   # only Strong's and Stout's are clamped
+
+
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_the_peak_starts_at_the_larger_of_start_and_set_point(host, muscle):
+    s = _spec(host, muscle, None)
+    assert s["Pk"] == max(s["lm"], s["F0"])
+    # Feeble's and Weak's deconditioned half sits below the peak, on the regain path; the others start at the peak
+    assert (s["Pk"] > s["lm"]) == (muscle in ("WEAK", "FEEBLE"))
+
+
+def test_thin_is_depletion_below_the_peak(host):
+    D = _d(host)
+    s = host.call("body.create", "STRONG", "VERY_UNDERWEIGHT", D)
+    assert s["lm"] < s["F0"] < s["Pk"]
+    assert abs(s["Pk"] - sl.trait_start("STRONG")[0]) < 1e-9
+
+
+@pytest.mark.parametrize("muscle", MUSCLE)
+@pytest.mark.parametrize("weight", THIN)
+def test_thin_never_raises_lean(host, muscle, weight):
+    # ruling 13-14: F = min(F_start, BMI_target * H2 - fat_target), built for excluded pairs too
+    s = _spec(host, muscle, weight)
+    F = sl.trait_start(muscle or "none")[0]
+    t = {"UNDERWEIGHT": (18.0, 1.5), "VERY_UNDERWEIGHT": (16.5, 1.0)}[weight]
+    assert abs(s["lm"] - min(F, t[0] * H2 - t[1] * H2)) < 1e-12
+    assert s["lm"] <= F
+
+
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_perfect_training_from_each_start_matches_the_reference(host, muscle):
+    D = _d(host)
+    key = muscle or "none"
+    lm = sl.LEVEL_MODEL
+    b = host.call("body.newLean", host.call("body.create", muscle, None, D), 1, 0)
+    ref = sl.perfect_run(key, 3650)
+    marks = (1, 28, 70, 182, 365, 730, 1460, 2190, 3650)
+    for day in range(1, 3651):
+        host.call("strength.day", b, lm["perfectS"], lm["perfectP"], lm["perfectE"] * sl.TDEE, sl.TDEE, 0.0, D, 1.0)
+        got = host.call("strength.level", b["lm"], b["N0"], b["T"], D)
+        if day in marks:
+            assert abs(got - ref[day - 1]) < 1e-9, (key, day)
+        if muscle in ("FEEBLE", "WEAK"):
+            assert got < 10.0, (key, day)
+
+
+@pytest.mark.parametrize("weight, fmi", [(None, 7.0), ("OVERWEIGHT", 11.0), ("OBESE", 15.0)])
+def test_female_fat_picks_sit_in_the_female_bands(host, weight, fmi):
+    D = _d(host)
+    s = host.call("body.create", None, weight, D, 2)
+    assert abs(s["fm"] - fmi * 1.70 * 1.70) < 1e-9
+    assert s["sexIdx"] == 2
+
+
+@pytest.mark.parametrize("weight, fmi", [(None, 4.5), ("OVERWEIGHT", 7.5), ("OBESE", 12.5)])
+@pytest.mark.parametrize("sexIdx", [None, 1])
+def test_male_fat_picks_are_the_default(host, weight, fmi, sexIdx):
+    s = _spec(host, None, weight, sexIdx=sexIdx)
+    assert abs(s["fm"] - fmi * H2) < 1e-9
+    assert s["sexIdx"] == 1
+
+
+@pytest.mark.parametrize("weight", THIN)
+def test_thin_fat_is_the_same_for_both_sexes(host, weight):
+    assert _spec(host, None, weight, sexIdx=1)["fm"] == _spec(host, None, weight, sexIdx=2)["fm"]
+    assert _spec(host, None, weight, sexIdx=1)["lm"] == _spec(host, None, weight, sexIdx=2)["lm"]
+
+
+@pytest.mark.parametrize("weight, fatT, thinT", [(None, 0, 0), ("OVERWEIGHT", 1, 0), ("OBESE", 2, 0),
+                                                  ("UNDERWEIGHT", 0, 1), ("VERY_UNDERWEIGHT", 0, 2)])
+@pytest.mark.parametrize("sexIdx", [1, 2])
+def test_the_rungs_of_the_weight_pick(host, weight, fatT, thinT, sexIdx):
+    s = _spec(host, "STOUT", weight, sexIdx=sexIdx)
+    assert (s["fatT"], s["thinT"]) == (fatT, thinT)
+
+
+def test_emaciated_is_read_as_very_underweight(host):
+    # ruling 13-30: Emaciated is read as rung 2; its body is Very Underweight's, the deepest thin row
+    for m in MUSCLE:
+        assert _spec(host, m, "EMACIATED") == _spec(host, m, "VERY_UNDERWEIGHT")
+
+
+@pytest.mark.parametrize("sexIdx", [1, 2])
+def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx):
+    D = _d(host)
+
+    def body(m, w):
+        s = host.call("body.create", m, w, D, sexIdx)
+        return host.call("strength.level", s["lm"], s["N0"], 1.0, D), s["fm"], s["fatT"]
+
+    drops = []
+    for m in MUSCLE:
+        for w in WEIGHT:
+            if not _legal(m, w):
+                continue
+            L, fm, fatT = body(m, w)
+            if m in ("WEAK", "FEEBLE"):
+                assert L <= body(None, w)[0] - 0.5, (m, w)
+                drops.append(body(None, w)[0] - L)
+            if w in THIN:
+                assert L <= body(m, None)[0] - 0.5, (m, w)
+                drops.append(body(m, None)[0] - L)
+            if w in ("OVERWEIGHT", "OBESE"):
+                _, fm0, fatT0 = body(m, None)
+                assert fatT > fatT0 and fm > fm0, (m, w)
+    # amendment 4: the smallest level cost of a point-giving pick over the legal sets
+    assert abs(min(drops) - 1.249) < 0.0005, min(drops)
+    # the pairs the rule excludes because they cost nothing
+    for m, w in (("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")):
+        assert body(m, w)[0] > body(m, None)[0] - 0.5, (m, w)
+    for w in THIN:
+        for m in ("WEAK", "FEEBLE"):
+            assert host.K.body.EXCLUDES[w][m] is True
+    # the zero-cost pairs over every set, legal or not, all sit among the excluded ones
+    free = set()
+    for m in MUSCLE:
+        for w in WEIGHT:
+            L = body(m, w)[0]
+            if m in ("WEAK", "FEEBLE") and L > body(None, w)[0] - 0.5:
+                free.add((m, w))
+            if w in THIN and L > body(m, None)[0] - 0.5:
+                free.add((m, w))
+    assert free == {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")}
+    assert free <= EXCLUDED
+    # Feeble with Very Underweight would cost 0.68 levels; it is excluded by the same rule (spec section 3.2)
+    assert abs((body("FEEBLE", None)[0] - body("FEEBLE", "VERY_UNDERWEIGHT")[0]) - 0.68) < 0.005
+
+
+def test_the_exclusions_are_exactly_the_four_pairs(host):
+    got = {(m, w) for w, row in host.py(host.K.body.EXCLUDES).items() for m, on in row.items() if on is True}
+    assert got == EXCLUDED
+    assert {(m, w) for m in MUSCLE for w in WEIGHT if not _legal(m, w)} == EXCLUDED
+
+
+# --- the keys create reads, against decoys (amendment 5) ---
+
+def test_create_ignores_decoy_keys(host):
+    # keys whose default equals a key create reads (traitShare 0.5 = ffmiPerLevel's, E0_drop's, fbal_drop's,
+    # full_drop's, fmMin's, Sg0's), the inputs ffmiNaturalRaw is derived from, and R's own inputs, moved apart
+    decoy = _copy(host, E0_drop=0.9, fbal_drop=0.8, full_drop=0.2, fmMin=3.0, Sg0=1.5, ffmiNatural=30.0,
+                  kouriCoef=1.0, Tmax=1.5, yearsTo10=2.0, perfectS=9.0, ts=3.0, m=0.9)
+    for m in MUSCLE:
+        for w in WEIGHT:
+            for sx in (1, 2):
+                assert _spec(host, m, w, decoy, sx) == _spec(host, m, w, sexIdx=sx), (m, w, sx)
+
+
+def _expect(host, P, m, w, sexIdx=1):
+    """The create formula in Python over the strength kernel's own functions, under the table P."""
+    key = m or "none"
+    N0 = P.N0[key]
+    F = host.call("strength.fOfLevel", P.startLevel[key], N0, 1.0, P)
+    F5 = host.call("strength.fOfBio", 5.0, P)
+    d = P.traitShare * (F - F5)
+    F0 = F5 + d
+    Fc = min(host.call("strength.fOfBio", P.capLevel, P) + d, P.ffmiNaturalRaw * H2)
+    return F, F0, Fc, max(F, F0), N0
+
+
+@pytest.mark.parametrize("over", [
+    dict(traitShare=0.3), dict(capLevel=14.0), dict(ffmiNaturalRaw=26.0), dict(ffmiNaturalRaw=20.0),
+    dict(R=1.9), dict(M5=22.0), dict(Fnm=25.0), dict(b=0.7), dict(ffmi5=17.0), dict(ffmiPerLevel=0.6),
+    "N0", "startLevel",
+])
+def test_create_reads_its_own_keys(host, over):
+    if over == "N0":
+        t = host.table({"STRONG": 1.2, "STOUT": 1.1, "none": 0.95, "FEEBLE": 0.9, "WEAK": 0.8})
+        P = _copy(host, N0=t)
+    elif over == "startLevel":
+        t = host.table({"STRONG": 8, "STOUT": 6, "none": 4, "FEEBLE": 2, "WEAK": 1.5})
+        P = _copy(host, startLevel=t)
+    else:
+        P = _copy(host, **over)
+    moved = False
+    for m in MUSCLE:
+        s = _spec(host, m, None, P)
+        F, F0, Fc, Pk, N0 = _expect(host, P, m, None)
+        for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk), ("N0", N0)):
+            assert abs(s[k] - v) < 1e-12, (over, m, k)
+        moved = moved or any(abs(s[k] - d) > 1e-9 for k, d in _spec(host, m, None).items())
+    assert moved, over
+
+
+# --- the constructor ---
+
+def test_new_lean_lays_the_spec_and_the_surviving_fields(host):
+    spec = host.call("body.create", "STRONG", "OBESE", _d(host), 2)
+    b = host.call("body.newLean", spec, 2, 50.0)
+    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
+        assert b[k] == spec[k], k
+    assert b.fatT == 2 and b.thinT == 0
+    assert (b.lx, b.grace, b.sigDay, b.T, b.Tgrace) == (0, 0, 0, 1, 0)
+    assert [b.sig7[i] for i in range(1, 8)] == [0] * 7
+    assert b.fmRef == b.fm and b.lm0dis == b.lm
+    assert b.sex == 2 and b.bornAge == 50.0 and b.lastAgeH == 50.0 and b.wday == 2 and b.dayIndex == 2
+    for i in range(1, 8):
+        assert b.mass7[i] == b.lm + b.lx + b.fm
+        assert b.eb7[i] == 0 and b.p7[i] == 0
+        assert b.bandWeek[i][1] == 0 and b.bandWeek[i][2] == 0
+    assert b.trail.at == 50.0 and b.trail.ch == -1
+    for k in ("at", "inDay", "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
+              "metMinDay", "band1Day", "band2Day"):
+        assert b[k] == 0, k
+    assert (b.tac, b.rmod, b.pPrevKg, b.energyState) == (1.0, 1, 0.8, 1)
+    # Task 12's removals are not laid
+    for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "vStr", "vHyp", "vStrHigh", "n", "nPeak", "tPeakD",
+              "nHist", "cumDef", "shownL", "riseHeldH", "lastFallAge", "delta"):
+        assert b[k] is None, k
+    # the body owns its fields: no table is shared with the spec
+    b.lm = 1.0
+    assert spec.lm != 1.0
