@@ -563,7 +563,7 @@ function EFF.minute(username, player, record, body, dtM, ageH, ctx)
 end
 
 -- The pipeline's effects step: it runs only when the nutrients step reached the end of its minute and
--- stamped ctx.body, ctx.dtM and ctx.ageH (where 1.0.0's hand call sat), and keeps that call's guard, its
+-- stamped ctx.body, ctx.dtM and ctx.ageH (where the nutrients step once called it by hand), and keeps that call's guard, its
 -- counter (NR.server.nutrients.stats.effectsErrors) and its log line.
 function EFF.step(username, player, record, ctx)
     if ctx == nil or ctx.body == nil then return end

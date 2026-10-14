@@ -48,8 +48,8 @@
 --     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
 --     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
 -- 5. K.stomach.ingest, or K.stomach.ingestLiquid for a drink (its water in the liquid lane);
--- 6. the meal pool M fed with the delivered vector's weighted kcal (IN.feed
--- Task 6c, spec § 7).
+-- 6. the meal pool M fed with the delivered vector's weighted kcal (IN.feed, Task 6c,
+--     spec § 7).
 --
 -- The vector's source (IN.assemble): a dish's ingredient list, else a craft map,
 -- else the eaten item's own chain IN.chainOne -- declared (the item's NR_Nutrients default-modData
@@ -638,7 +638,7 @@ end
 -- limitations:
 --  * A drink straight from a world water source goes through ISTakeWaterAction, which moves the litres
 --    into a temporary container and calls DrinkFluid on it itself (#2690): this wrapper never sees it;
--- the world-water wrapper below (transferFluid) does.
+--    the world-water wrapper below (transferFluid) does.
 --  * ISDrinkFromBottle is dead code on this build (no caller chain; it calls no DrinkFluid) (#0670).
 --
 -- limitations (intake-wide: the eat, cancel and craft paths):
@@ -666,7 +666,7 @@ end
 --    @range L1825-L1828 adds the item once (its duplicate check is a Java assert, off in production);
 --    what makes it one entry per item is that CraftRecipeManager.consumeInputItemInternal @range
 --    L948-L949 calls it once per InventoryItem and the uses arm, consumeInputItemUsesInternal, never does).
--- * No craft hook ships: the vanilla consumed-type map is the source, and X31's
+--  * No craft hook ships: the vanilla consumed-type map is the source, and X31's
 --    craft probe runs only if a live reading shows that map unreachable.
 
 -- The litres one updateEat call removed: before - after, floored at 0; a nil on either side -> 0.

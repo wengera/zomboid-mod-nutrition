@@ -19,7 +19,7 @@
 -- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
 -- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's
 -- isAsleep misses, #2840, never let a run reach the nap threshold, #2986).
--- SleepMinute takes the accrual and recovery multipliers
+-- sleepMinute takes the accrual and recovery multipliers
 -- mAcc and rRec (nil reads 1, the Plan 4 behaviour) on chi_w and chi_s; three exponential memories join the
 -- state -- exEma (exercise minutes, exerciseMinute), coldH (cold hours, coldMinute), retEma (ingested
 -- retinol ug/day, retinolMinute) -- with lastVigAgeH (the last band-2 minute) and boutVig (latched at a
@@ -397,7 +397,7 @@ end
 -- rings read (x30_sleep_lib); the reset reads the bout. The 24 h window closes when ageH has run WINDOW_H past
 -- its start: the shortfall against need (7.5 h x needFactor, the trait multiplier) adds to the debt, the
 -- excess repays REPAY of itself, clamped [0, DEBT_MAX].
--- MAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
+-- mAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
 -- multiplier), each 1 when nil; their clamps are the caller's. At a bout's first asleep minute (boutH 0
 -- before this step) boutVig latches whether a band-2 minute ended within VIG_WINDOW_H before ageH; it holds
 -- until the next bout starts.

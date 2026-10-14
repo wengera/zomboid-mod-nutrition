@@ -4,7 +4,7 @@
 -- NR_Server_Intake.lua's IN.chainOne), laid out by K.view.tooltip at the client's visibility level. The band
 -- shows the per-item vector the intake's own chain resolves for a whole item at script scale; for an evolved
 -- dish or a craft output the intake uses its dish and craft sources instead (NR_Server_Intake.lua), which the
--- band does not run (a scope gap stated, Plan 8+).
+-- band does not run (a scope gap stated).
 --
 -- Why a band below the box (docs/platform/client-ui.md#tooltip):
 --  * The tooltip body is built in Java inside the one render method, which sizes the panel from its measure
@@ -18,7 +18,7 @@
 --    survives CleanUI, which still constructs the vanilla panel (#2499); under CleanUI a stack's tooltip
 --    describes one representative item (#2500). The crafting-slot route (ISItemSlot.drawTooltip, #2495) is
 --    not this plan.
--- * Tooltiplib is not installed on this machine (workshop 3694097672 absent on 2026-10-06; Plan 9 reads it):
+--  * Tooltiplib is not installed on this machine (workshop 3694097672 absent on 2026-10-06):
 --    the wrap is composable -- a sentinel, the original called exactly once per render, nothing replaced.
 --  * The band sits beside the vanilla nutrition block, which shows under the debug tooltip option, on a
 --    readable packaged label or for either Nutritionist trait (#2645); a harness client (-debug) may show both.

@@ -292,20 +292,20 @@ function V.draw(el, rows, x, y, w, font, maxY, minY)
             r = nil
         end
         if r ~= nil then
-        local label = r.labelText
-        if label == nil then label = text(r.label, nil) end
-        local value = r.valueText
-        if value == nil then
-            value = r.text or ""
-            if r.isKey then value = text(r.text, r.text) end
-        end
-        local cr, cg, cb = 1, 1, 1
-        if r.cls ~= nil and type(r.n) == "number" and r.n > 0 then
-            cr, cg, cb = 1, 0.75, 0.35 -- an amber class word above level 0
-        end
-        drawLeft(el, label, x, yy, 1, 1, 1, 1, f)
-        drawRight(el, value, x + w, yy, cr, cg, cb, 1, f)
-        yy = yy + lh
+            local label = r.labelText
+            if label == nil then label = text(r.label, nil) end
+            local value = r.valueText
+            if value == nil then
+                value = r.text or ""
+                if r.isKey then value = text(r.text, r.text) end
+            end
+            local cr, cg, cb = 1, 1, 1
+            if r.cls ~= nil and type(r.n) == "number" and r.n > 0 then
+                cr, cg, cb = 1, 0.75, 0.35 -- an amber class word above level 0
+            end
+            drawLeft(el, label, x, yy, 1, 1, 1, 1, f)
+            drawRight(el, value, x + w, yy, cr, cg, cb, 1, f)
+            yy = yy + lh
         end
     end
     return yy
