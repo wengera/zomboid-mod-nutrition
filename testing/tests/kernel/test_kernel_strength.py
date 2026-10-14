@@ -715,3 +715,56 @@ def test_capture_reads_the_incidental_weight_off_P(host):
     P = host.table({"incidental": 0.5})
     assert abs(host.call("strength.capture", 6.0, 60, 1.0, 1.0, False, P) - 2.0) < 1e-12
     assert abs(host.call("strength.capture", 6.0, 60, 1.0, 1.0, True, P) - 4.0) < 1e-12
+
+
+# --- the level write (Plan 13 Task 14; spec section 7, rulings 13-9, 13-42) ---
+
+LADDER_T = {0: 0, 1: 1500, 2: 4500, 3: 10500, 4: 19500, 5: 37500, 6: 67500, 7: 127500, 8: 217500, 9: 337500,
+            10: 487500}
+
+
+def test_pin_xp_is_the_level_total_plus_the_fraction(host):
+    t = host.table(LADDER_T)
+    assert host.call("strength.pinXp", 7, 0.25, t) == 127500 + 0.25 * 90000
+    assert host.call("strength.pinXp", 0, 0.5, t) == 750
+    assert host.call("strength.pinXp", 9, 0.5, t) == 337500 + 0.5 * 150000
+    assert host.call("strength.pinXp", 5, 0, t) == 37500
+
+
+def test_pin_xp_at_10_parks_at_the_level_9_total(host):
+    t = host.table(LADDER_T)
+    assert host.call("strength.pinXp", 10, 0, t) == 337500
+    assert host.call("strength.pinXp", 10, 0.7, t) == 337500
+
+
+def test_raw_xp_divides_the_chain_capture_reads(host):
+    s = host.K.strength
+    assert abs(s.rawXp(9.0, 60, 2.0, 1.0) - 3.0) < 1e-12
+    assert abs(s.rawXp(7.0, -400, 1.0, 1.0) - 10.0) < 1e-12
+    assert abs(s.rawXp(6.0, 0, 1.0, 3.0) - 2.0) < 1e-12
+    assert abs(s.rawXp(6.0, 0, 1.0, 0.5) - 6.0) < 1e-12                 # a book at or below 1: not applied
+    assert abs(s.rawXp(6.0, 0, float("nan"), float("nan")) - 6.0) < 1e-12
+    assert abs(s.rawXp(6.0, 0, 0.0, None) - 6.0) < 1e-12
+
+
+# BeyondTen's cumulative mastery cost from level 10 (Shared.lua:222 shape): 0 at 10, per-level 1000, 1100, ...
+MASTERY = r"""
+function(perk, target)
+    local c = { [10] = 0, [11] = 1000, [12] = 2100, [13] = 3300, [14] = 4600, [15] = 6000 }
+    if target <= 10 then return 0 end
+    if target > 15 then target = 15 end
+    return c[target]
+end
+"""
+
+
+def _cost(host):
+    f = host.rt.eval(MASTERY)
+    return host.rt.eval("function(f) return function(L) return f('Strength', L) end end")(f)
+
+
+@pytest.mark.parametrize("L, want", [(12.0, 2100), (10.4, 400), (16.2, 6000), (15.0, 6000), (12.5, 2700),
+                                     (10.0, 0), (11.9999999999, 2100), (9.5, 0)])
+def test_mastery_xp_reads_the_cost_at_the_floor_plus_the_fraction(host, L, want):
+    # ruling 13-42: cost(min(floor(L), 15)) + frac (cost(next) - cost(floor(L))); 0 + frac cost(11) on [10, 11)
+    assert abs(host.call("strength.masteryXp", L, _cost(host)) - want) < 1e-6

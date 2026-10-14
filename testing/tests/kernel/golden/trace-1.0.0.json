@@ -39,6 +39,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -122,7 +124,9 @@
       "perk": 5,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -159,6 +163,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -244,7 +250,9 @@
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -281,6 +289,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -366,7 +376,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -401,8 +413,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 1.5,
+      "deltaWrites": 1,
+      "levelDowns": 0,
+      "levelUps": 4,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -483,12 +497,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 9,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 6750,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -525,6 +541,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -610,7 +628,9 @@
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -647,6 +667,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -732,7 +754,9 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 119,
      "written": {
@@ -861,7 +885,7 @@
       "grace": 0,
       "inDay": 25.122166087191946,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.2561083043595977,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -1078,7 +1102,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -1753,7 +1778,7 @@
       "grace": 0,
       "inDay": 39.177590071254834,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.49045629675668651,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -1970,7 +1995,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -2644,7 +2670,7 @@
       "grace": 0,
       "inDay": 40.916543155357665,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 2.4549925893214586,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -2861,7 +2887,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -3516,7 +3543,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 4,
-      "delta": 1,
+      "delta": 1.5,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -3536,7 +3563,7 @@
       "grace": 0,
       "inDay": 17.76420790804158,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.75497883609176719,
       "lm": 60.85672078038634,
       "lm0dis": 60.85672078038634,
@@ -3753,7 +3780,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 9
      },
      "dead": false,
      "effects": {
@@ -4426,7 +4454,7 @@
       "grace": 0,
       "inDay": 34.779061682054049,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.82117228971516532,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -4643,7 +4671,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -5317,7 +5346,7 @@
       "grace": 0,
       "inDay": 1.3472441511450839,
       "lastAgeH": 119,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -5534,7 +5563,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -6183,12 +6213,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 0,
+     "carryWrites": 1,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 4,
+     "levelWrites": 6,
+     "masteryWrites": 0,
      "minutes": 180,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 1,
+     "stepFailures": 0,
+     "xpGrants": 6,
+     "xpPins": 6
     },
     "training": null,
     "weight": {
@@ -6217,7 +6255,9 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g4:2": 1
+    }
    }
   },
   {
@@ -6258,6 +6298,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6341,7 +6383,9 @@
       "perk": 5,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -6378,6 +6422,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6463,7 +6509,9 @@
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -6500,6 +6548,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6585,7 +6635,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -6620,8 +6672,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 1.5,
+      "deltaWrites": 1,
+      "levelDowns": 0,
+      "levelUps": 4,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6702,12 +6756,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 9,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 6750,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -6744,6 +6800,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6829,7 +6887,9 @@
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -6866,6 +6926,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6951,7 +7013,9 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 239,
      "written": {
@@ -7080,7 +7144,7 @@
       "grace": 0,
       "inDay": 53.48614181271661,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.7558743845380063,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -7297,7 +7361,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -7972,7 +8037,7 @@
       "grace": 0,
       "inDay": 91.695243470984465,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.1479141381893916,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -8189,7 +8254,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -8863,7 +8929,7 @@
       "grace": 0,
       "inDay": 95.765267332621491,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 5.7459160399572884,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -9080,7 +9146,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -9735,7 +9802,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 4,
-      "delta": 1,
+      "delta": 1.5,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -9755,7 +9822,7 @@
       "grace": 0,
       "inDay": 24.655714491466227,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.0478678658873144,
       "lm": 60.85672078038634,
       "lm0dis": 60.85672078038634,
@@ -9972,7 +10039,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 9
      },
      "dead": false,
      "effects": {
@@ -10645,7 +10713,7 @@
       "grace": 0,
       "inDay": 81.468290526344305,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.9151590626191106,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -10862,7 +10930,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -11536,7 +11605,7 @@
       "grace": 0,
       "inDay": 33.0711500922704,
       "lastAgeH": 119.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.0449415957201988,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -11753,7 +11822,8 @@
        }
       },
       "traitsDay": 4,
-      "wday": 4
+      "wday": 4,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -12399,12 +12469,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 0,
+     "carryWrites": 1,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 4,
+     "levelWrites": 6,
+     "masteryWrites": 0,
      "minutes": 360,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 1,
+     "stepFailures": 0,
+     "xpGrants": 6,
+     "xpPins": 6
     },
     "training": null,
     "weight": {
@@ -12433,7 +12511,9 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g4:2": 1
+    }
    }
   },
   {
@@ -12474,8 +12554,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -12556,10 +12638,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 359,
      "written": {
@@ -12594,8 +12678,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -12676,12 +12762,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 361,
      "written": {
@@ -12720,6 +12808,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -12805,7 +12895,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 2
      },
      "statSets": 359,
      "written": {
@@ -12840,8 +12932,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 1.25,
+      "deltaWrites": 2,
+      "levelDowns": 1,
+      "levelUps": 4,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -12922,12 +13016,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 7302.6221296828671,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 359,
      "written": {
@@ -12962,8 +13058,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -13044,12 +13142,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 359,
      "written": {
@@ -13084,8 +13184,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -13166,12 +13268,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 359,
      "written": {
@@ -13280,7 +13384,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -13301,7 +13405,7 @@
       "inDay": 0,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -13518,7 +13622,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -14173,7 +14278,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -14194,7 +14299,7 @@
       "inDay": 0,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -14411,7 +14516,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -15086,7 +15192,7 @@
       "inDay": 0,
       "inDayClosed": 157.39140649979029,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -15303,7 +15409,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -15962,7 +16069,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 1.25,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -15983,7 +16090,7 @@
       "inDay": 0,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -16200,7 +16307,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -16853,7 +16961,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -16874,7 +16982,7 @@
       "inDay": 0,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -17091,7 +17199,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -17745,7 +17854,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -17766,7 +17875,7 @@
       "inDay": 0,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 120,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -17983,7 +18092,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -18632,12 +18742,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 0,
+     "carryWrites": 6,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 9,
+     "levelWrites": 12,
+     "masteryWrites": 0,
      "minutes": 540,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 6,
+     "stepFailures": 0,
+     "xpGrants": 11,
+     "xpPins": 12
     },
     "training": null,
     "weight": {
@@ -18666,7 +18784,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 2,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   },
   {
@@ -18707,8 +18831,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -18789,10 +18915,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 479,
      "written": {
@@ -18827,8 +18955,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -18909,12 +19039,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 481,
      "written": {
@@ -18953,6 +19085,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -19038,7 +19172,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 79,
      "written": {
@@ -19073,8 +19209,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 1.25,
+      "deltaWrites": 2,
+      "levelDowns": 1,
+      "levelUps": 4,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -19155,12 +19293,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 7302.6221296828671,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 479,
      "written": {
@@ -19195,8 +19335,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -19277,12 +19419,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 479,
      "written": {
@@ -19317,8 +19461,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -19399,12 +19545,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 479,
      "written": {
@@ -19513,7 +19661,7 @@
       "carbDay": 2.91197177674497,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -19534,7 +19682,7 @@
       "inDay": 48.155565850987671,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.52905654692627679,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -19751,7 +19899,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -20406,7 +20555,7 @@
       "carbDay": 11.805482769451544,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -20427,7 +20576,7 @@
       "inDay": 12.310158339408105,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.79418702267219576,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -20644,7 +20793,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -21318,7 +21468,7 @@
       "grace": 0,
       "inDay": 0,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -21535,7 +21685,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -22171,7 +22322,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 1.25,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -22192,7 +22343,7 @@
       "inDay": 7.2002576887549399,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.30601095177208504,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -22409,7 +22560,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -23062,7 +23214,7 @@
       "carbDay": 5.6475688623155627,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -23083,7 +23235,7 @@
       "inDay": 47.695044876665861,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.1154246834214498,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -23300,7 +23452,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -23954,7 +24107,7 @@
       "carbDay": 6.9446960560986026,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -23975,7 +24128,7 @@
       "inDay": 51.682659343515461,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 120.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.707419651365792,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -24192,7 +24345,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -24841,12 +24995,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 0,
+     "carryWrites": 6,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 9,
+     "levelWrites": 13,
+     "masteryWrites": 0,
      "minutes": 719,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 6,
+     "stepFailures": 0,
+     "xpGrants": 12,
+     "xpPins": 13
     },
     "training": null,
     "weight": {
@@ -24875,7 +25037,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 2,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   },
   {
@@ -24917,8 +25085,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -24999,10 +25169,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 599,
      "written": {
@@ -25037,8 +25209,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25119,12 +25293,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 605,
      "written": {
@@ -25163,6 +25339,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25248,7 +25426,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 199,
      "written": {
@@ -25283,8 +25463,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 1.25,
+      "deltaWrites": 2,
+      "levelDowns": 1,
+      "levelUps": 4,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25365,12 +25547,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 7302.6221296828671,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 616,
      "written": {
@@ -25406,8 +25590,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25488,12 +25674,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 612,
      "written": {
@@ -25530,8 +25718,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25612,12 +25802,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 600,
      "written": {
@@ -25727,7 +25919,7 @@
       "carbDay": 9.3832179880707596,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -25748,7 +25940,7 @@
       "inDay": 97.690417899405858,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 121,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0.94170963715530942,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -25965,7 +26157,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -26622,7 +26815,7 @@
       "carbDay": 24.445749916932662,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -26643,7 +26836,7 @@
       "inDay": 80.235634323852111,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 121,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.6445322671391069,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -26860,7 +27053,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -27534,7 +27728,7 @@
       "grace": 0,
       "inDay": 0,
       "lastAgeH": 121,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -27751,7 +27945,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -28387,7 +28582,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 1.25,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -28408,7 +28603,7 @@
       "inDay": 45.210578766102977,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 120.98333333333333,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.9214495975593775,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -28625,7 +28820,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -29278,7 +29474,7 @@
       "carbDay": 12.988044409183948,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -29299,7 +29495,7 @@
       "inDay": 108.82188614272549,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 121,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 2.5208681944089686,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -29516,7 +29712,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -30172,7 +30369,7 @@
       "carbDay": 13.484381737314527,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -30193,7 +30390,7 @@
       "inDay": 99.784346942431611,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 121,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 3.2747728566552547,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -30410,7 +30607,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -31059,12 +31257,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 0,
+     "carryWrites": 6,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 9,
+     "levelWrites": 13,
+     "masteryWrites": 0,
      "minutes": 898,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 6,
+     "stepFailures": 0,
+     "xpGrants": 12,
+     "xpPins": 13
     },
     "training": null,
     "weight": {
@@ -31093,7 +31299,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 2,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   },
   {
@@ -31135,8 +31347,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31217,10 +31431,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 719,
      "written": {
@@ -31255,8 +31471,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31337,12 +31555,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 725,
      "written": {
@@ -31381,6 +31601,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31466,7 +31688,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 319,
      "written": {
@@ -31501,8 +31725,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "deltaWrites": 1,
+      "levelDowns": 0,
+      "levelUps": 3,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31583,12 +31809,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 6287.8903271853378,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 5,
      "written": {
@@ -31624,8 +31852,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31706,12 +31936,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 734,
      "written": {
@@ -31748,8 +31980,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31830,12 +32064,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 720,
      "written": {
@@ -31945,7 +32181,7 @@
       "carbDay": 16.942844907627904,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -31966,7 +32202,7 @@
       "inDay": 145.65158353266321,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 121.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.2922781472400269,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -32183,7 +32419,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -32840,7 +33077,7 @@
       "carbDay": 36.869332974460278,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -32861,7 +33098,7 @@
       "inDay": 146.99670691581875,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 121.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 2.4803005819182391,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -33078,7 +33315,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -33752,7 +33990,7 @@
       "grace": 0,
       "inDay": 0,
       "lastAgeH": 121.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -33969,7 +34207,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -34605,7 +34844,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -34626,6 +34865,7 @@
       "inDay": 99.485693590432916,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 121.5,
+      "levelDue": false,
       "lipDay": 4.2281419775933999,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -34842,7 +35082,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -35486,7 +35727,7 @@
       "carbDay": 20.665321133120212,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -35507,7 +35748,7 @@
       "inDay": 172.49849042714385,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 121.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 3.9777341181121177,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -35724,7 +35965,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -36380,7 +36622,7 @@
       "carbDay": 19.591483115082617,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -36401,7 +36643,7 @@
       "inDay": 144.47370679791925,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 121.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 4.7219838812563468,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -36618,7 +36860,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -37267,12 +37510,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 7,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 12,
+     "levelWrites": 14,
+     "masteryWrites": 0,
      "minutes": 1049,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 7,
+     "stepFailures": 0,
+     "xpGrants": 13,
+     "xpPins": 14
     },
     "training": null,
     "weight": {
@@ -37301,7 +37552,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 3,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   },
   {
@@ -37343,8 +37600,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37425,10 +37684,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 839,
      "written": {
@@ -37463,8 +37724,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37545,12 +37808,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 845,
      "written": {
@@ -37589,6 +37854,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37674,7 +37941,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 439,
      "written": {
@@ -37709,8 +37978,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "deltaWrites": 1,
+      "levelDowns": 0,
+      "levelUps": 3,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37791,12 +38062,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 6287.8903271853378,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 147,
      "written": {
@@ -37833,8 +38106,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37915,12 +38190,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 854,
      "written": {
@@ -37957,8 +38234,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -38039,12 +38318,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 840,
      "written": {
@@ -38154,7 +38435,7 @@
       "carbDay": 23.956239541321086,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -38175,7 +38456,7 @@
       "inDay": 190.147242545643,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 122,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.6175157989830322,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -38392,7 +38673,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -39049,7 +39331,7 @@
       "carbDay": 48.395231232943352,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -39070,7 +39352,7 @@
       "inDay": 208.93385715332374,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 122,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 3.2556791920343735,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -39287,7 +39569,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -39961,7 +40244,7 @@
       "grace": 0,
       "inDay": 0,
       "lastAgeH": 122,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -40178,7 +40461,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -40814,7 +41098,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -40835,6 +41119,7 @@
       "inDay": 148.15312878888315,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 122,
+      "levelDue": false,
       "lipDay": 6.2965079735275324,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -41051,7 +41336,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -41695,7 +41981,7 @@
       "carbDay": 27.787864606493969,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -41716,7 +42002,7 @@
       "inDay": 231.57404528353436,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 122,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 5.3293319892817594,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -41933,7 +42219,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -42589,7 +42876,7 @@
       "carbDay": 25.25730663865507,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -42610,7 +42897,7 @@
       "inDay": 185.9339693120404,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 122,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 6.0646244826728761,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -42827,7 +43114,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -43476,12 +43764,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 7,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 12,
+     "levelWrites": 14,
+     "masteryWrites": 0,
      "minutes": 1229,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 7,
+     "stepFailures": 0,
+     "xpGrants": 13,
+     "xpPins": 14
     },
     "training": null,
     "weight": {
@@ -43510,7 +43806,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 3,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   },
   {
@@ -43552,8 +43854,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -43634,10 +43938,12 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 260
+      "xp": 2571.1322201323246,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 959,
      "written": {
@@ -43672,8 +43978,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -43754,12 +44062,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:FIT": true
       },
-      "xp": 260
+      "xp": 2566.6707719223823,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 986,
      "written": {
@@ -43800,6 +44110,8 @@
       },
       "delta": 1,
       "deltaWrites": 0,
+      "levelDowns": 0,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -43885,7 +44197,9 @@
       "traits": {
        "trait:OUT_OF_SHAPE": true
       },
-      "xp": 260
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 559,
      "written": {
@@ -43920,8 +44234,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "deltaWrites": 1,
+      "levelDowns": 0,
+      "levelUps": 3,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -44002,12 +44318,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 8,
       "perkWrites": 0,
       "traits": {
        "trait:STRONG": true
       },
-      "xp": 260
+      "xp": 6287.8903271853378,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 268,
      "written": {
@@ -44044,8 +44362,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -44126,12 +44446,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_MORE_SLEEP": true
       },
-      "xp": 260
+      "xp": 2451.3805448776789,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 976,
      "written": {
@@ -44168,8 +44490,10 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.90000000000000002,
+      "deltaWrites": 1,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -44250,12 +44574,14 @@
         "writes": 0
        }
       },
-      "perk": 5,
+      "perk": 4,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 260
+      "xp": 2571.4256764567472,
+      "xpGrants": 2,
+      "xpSets": 2
      },
      "statSets": 960,
      "written": {
@@ -44365,7 +44691,7 @@
       "carbDay": 30.462870729781553,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -44386,7 +44712,7 @@
       "inDay": 231.42780036483128,
       "inDayClosed": 104.48206165379949,
       "lastAgeH": 122.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 1.9192529118963999,
       "lm": 52.019022322226022,
       "lm0dis": 52.019999999999996,
@@ -44603,7 +44929,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -45260,7 +45587,7 @@
       "carbDay": 59.088308266336647,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -45281,7 +45608,7 @@
       "inDay": 266.39564484792203,
       "inDayClosed": 154.02290492900076,
       "lastAgeH": 122.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 3.9750316470081062,
       "lm": 52.004304704549384,
       "lm0dis": 52.019999999999996,
@@ -45498,7 +45825,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -46172,7 +46500,7 @@
       "grace": 0,
       "inDay": 0,
       "lastAgeH": 122.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 0,
       "lm": 52.019999999999996,
       "lm0dis": 52.019999999999996,
@@ -46389,7 +46717,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -47025,7 +47354,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 0.95499999999999996,
+      "delta": 1.1937499999999999,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -47046,6 +47375,7 @@
       "inDay": 193.30402479056229,
       "inDayClosed": 43.777309873262396,
       "lastAgeH": 122.5,
+      "levelDue": false,
       "lipDay": 8.215421053598897,
       "lm": 60.812405497474991,
       "lm0dis": 60.85672078038634,
@@ -47262,7 +47592,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 8
      },
      "dead": false,
      "effects": {
@@ -47906,7 +48237,7 @@
       "carbDay": 34.395757920008414,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -47927,7 +48258,7 @@
       "inDay": 286.3810065027958,
       "inDayClosed": 130.42047978487344,
       "lastAgeH": 122.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 6.5832681103949291,
       "lm": 51.624582902192152,
       "lm0dis": 52.019999999999996,
@@ -48144,7 +48475,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -48800,7 +49132,7 @@
       "carbDay": 28.748074385182999,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.90000000000000002,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -48821,7 +49153,7 @@
       "inDay": 211.47803127315507,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 122.5,
-      "levelDue": true,
+      "levelDue": false,
       "lipDay": 6.8918381237445114,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -49038,7 +49370,8 @@
        }
       },
       "traitsDay": 5,
-      "wday": 5
+      "wday": 5,
+      "wroteL": 4
      },
      "dead": false,
      "effects": {
@@ -49687,12 +50020,20 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 7,
      "failures": 0,
+     "guarded": 0,
      "ladderFallbacks": 0,
+     "levelSteps": 12,
+     "levelWrites": 14,
+     "masteryWrites": 0,
      "minutes": 1409,
+     "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 0
+     "pushes": 7,
+     "stepFailures": 0,
+     "xpGrants": 13,
+     "xpPins": 14
     },
     "training": null,
     "weight": {
@@ -49721,7 +50062,13 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:2": 1,
+     "g2:2": 1,
+     "g4:2": 3,
+     "g5:2": 1,
+     "g6:2": 1
+    }
    }
   }
  ]

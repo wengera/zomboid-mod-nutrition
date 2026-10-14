@@ -10,9 +10,10 @@ object whose thermoregulator answers a per-player metabolic rate (the class's en
 factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
 catch-a-cold value and the regeneration and health setters, all counting; isAsleep (g6, minutes 40-90),
 isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
-getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug, and getStats
+getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug, LevelPerk,
+LoseLevel, the XP's setXPToLevel and getMultiplier (Plan 13 Task 14, ruling 13-36), and getStats
 (Plan 11e Task 1, ruling 11e-3: a stats object starting at STAT_START, so the writer's W.step runs every minute).
-The globals beside it: CharacterStat, CharacterTrait (17 sentinels), Perks.Strength with the 75 L (L + 1) ladder,
+The globals beside it: CharacterStat, CharacterTrait (17 sentinels), Perks.Strength with the 75 L (L + 1) ladder, addXp,
 MoodleType, BodyPartType, sendSyncPlayerFields and syncBodyPart counting, and getSandboxOptions (StatsDecrease 1). A
 small engine step (NR_T.engine) runs before each minute: wound timers fall, an infection and a catch-a-cold rise.
 
@@ -159,6 +160,10 @@ for _, n in ipairs({ "ATHLETIC", "FIT", "OUT_OF_SHAPE", "UNFIT", "STRONG", "STOU
 end
 Perks = { Strength = { name = "Strength" } }
 Perks.Strength.getTotalXpForLevel = function(s, L) return 75 * L * (L + 1) end
+-- The engine's Lua addXp (Plan 13 Task 14, ruling 13-36): a Strength grant adds to the stand-in's XP and counts.
+addXp = function(p, perk, amount)
+    if perk == Perks.Strength then p.st.xp = p.st.xp + amount; p.st.xpGrants = p.st.xpGrants + 1 end
+end
 MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHERMIA" }
 BodyPartType = {}
 NR_T.PARTS = { "Hand_L", "Hand_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
@@ -185,7 +190,8 @@ end
 -- The decorator: cfg = { cls, rate, inv, maxW, female, traits = {names}, heavy, asleep = {from, to},
 -- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue, nicotine }.
 NR_T.decorate = function(p, cfg)
-    local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0 }
+    local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0, levelUps = 0,
+                 levelDowns = 0, xpSets = 0, xpGrants = 0 }
     for _, n in ipairs(cfg.traits or {}) do st.traits[CharacterTrait[n]] = true end
     p.st = st
     local thermo = {}
@@ -248,9 +254,21 @@ NR_T.decorate = function(p, cfg)
     p.getCharacterTraits = function(s) return coll end
     p.getPerkLevel = function(s, perk) if perk == Perks.Strength then return s.st.perk end return 0 end
     local xp = { getXP = function(x, perk) if perk == Perks.Strength then return st.xp end return 0 end }
+    -- Plan 13 Task 14 (ruling 13-36): setXPToLevel writes the level's starting total, getMultiplier answers 1
+    xp.setXPToLevel = function(x, perk, level)
+        if perk == Perks.Strength then st.xp = perk:getTotalXpForLevel(level); st.xpSets = st.xpSets + 1 end
+    end
+    xp.getMultiplier = function(x, perk) return 1.0 end
     p.getXp = function(s) return xp end
     p.setPerkLevelDebug = function(s, perk, level)
         if perk == Perks.Strength then s.st.perk = level; s.st.perkWrites = s.st.perkWrites + 1 end
+    end
+    -- LevelPerk and LoseLevel move the level one step, capped [0, 10], and count (ruling 13-36)
+    p.LevelPerk = function(s, perk)
+        if perk == Perks.Strength then s.st.perk = math.min(10, s.st.perk + 1); s.st.levelUps = s.st.levelUps + 1 end
+    end
+    p.LoseLevel = function(s, perk)
+        if perk == Perks.Strength then s.st.perk = math.max(0, s.st.perk - 1); s.st.levelDowns = s.st.levelDowns + 1 end
     end
     -- the stats object (Plan 11e Task 1, ruling 11e-3): get answers the current value, set records it as written
     local sv = { HUNGER = cfg.hunger, THIRST = cfg.thirst, FATIGUE = cfg.fatigue, ENDURANCE = 1.0, STRESS = 0,

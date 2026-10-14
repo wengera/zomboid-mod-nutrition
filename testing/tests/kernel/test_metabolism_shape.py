@@ -514,6 +514,18 @@ def test_an_online_world_day_boundary_closes_one_day(met_host):
     assert nonfinite(h, record) == ""
 
 
+def test_a_day_close_stamps_the_level_write(met_host):
+    # Plan 13 Task 14: every close asks the Strength minute to write the day's level (spec section 7)
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    record["body"].levelDue = False
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert record["body"]["levelDue"] is False             # no close: no stamp
+    online(h, p, record, 124.0)
+    assert record["body"]["levelDue"] is True
+
+
 def test_an_online_minute_closes_at_most_one_day(met_host):
     h = met_host
     p = player(h)

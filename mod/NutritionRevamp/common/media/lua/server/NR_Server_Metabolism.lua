@@ -233,7 +233,7 @@ end
 -- sets S; the body's day -- K.strength.day (growth, regain, detraining, the partition, the floors, the peak and the
 -- neural factor) or, immobilised, K.strength.disuseDay (the disuse arm under the same floors, detraining's grace
 -- counter alone and the neural factor, ruling 13-13); fmRef re-based upward (adaptive thermogenesis reads
--- depletion from the highest fat reached); the trait axes and band word; then the training ring, TAC, the
+-- depletion from the highest fat reached); the trait axes, band word and level stamp; then the training ring, TAC, the
 -- partition ring (pushes today's balance into eb7, zeroes the day accumulators, advances dayIndex) and adaptive
 -- thermogenesis. Each reader runs after the writer of what it reads (the x141c one-close lag): the training ring
 -- shifts the closing day in BEFORE TAC reads the week (run x141c-20261005-132133); TAC's energy gate reads the
@@ -326,6 +326,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
         body.traitsDirty = true
     end
     body.S = S
+    body.levelDue = true                                 -- the Strength minute writes the day's level (spec section 7)
     K.training.closeDay(body)
     local m1, hard = K.training.weekMinutes(body)
     K.aerobic.tacDay(body, m1, hard, K.aerobic.G_IRON[ironGrade], K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), K.aerobic.gSleep(debtH), 1, immobilised)

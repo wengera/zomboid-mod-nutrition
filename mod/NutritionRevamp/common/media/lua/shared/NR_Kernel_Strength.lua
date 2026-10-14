@@ -564,6 +564,18 @@ function K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)
     if not K.finite(amount) or not (amount > 0) then
         return 0
     end
+    local xp = K.strength.rawXp(amount, store, sandboxMult, bookMult)
+    if fitness then
+        return xp
+    end
+    return xp * P.incidental
+end
+
+-- The Strength XP before vanilla's multiplier chain that lands as xp after it: xp divided by the protein factor of
+-- store, the sandbox multiplier (one that is not a positive finite number reads 1) and the book multiplier when above
+-- 1 (a non-finite one reads 1). The capture's division (a landed grant back to its raw size) and the pin's (the raw
+-- grant that lands as the bar's fraction, ruling 13-9).
+function K.strength.rawXp(xp, store, sandboxMult, bookMult)
     local sm = sandboxMult
     if not K.finite(sm) or not (sm > 0) then
         sm = 1
@@ -572,9 +584,32 @@ function K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)
     if not K.finite(bm) then
         bm = 1
     end
-    local xp = amount / K.strength.proteinFactor(store) / sm / K.max(1, bm)
-    if fitness then
-        return xp
+    return xp / K.strength.proteinFactor(store) / sm / K.max(1, bm)
+end
+
+-- ============================================================ the level write (spec section 7, Plan 13 Task 14)
+-- The native XP pinned for shown level n and bar fraction frac over the cumulative ladder totals (totals[0] = 0):
+-- level n's starting total plus frac of the way to the next (ruling 13-9); at L_MAX the level-9 total, the park, so
+-- the engine's AddXP keeps firing its event (it returns before the event at the level-10 total, #2109).
+function K.strength.pinXp(n, frac, totals)
+    if n >= K.strength.L_MAX then
+        return totals[K.strength.L_MAX - 1]
     end
-    return xp * P.incidental
+    return totals[n] + frac * (totals[n + 1] - totals[n])
+end
+
+-- BeyondTen's mastery levels end at 15 (its BT.MAX_LEVEL, Shared.lua:10-12).
+K.strength.MASTERY_MAX = 15
+
+-- BeyondTen's stored mastery XP for shown level L (ruling 13-42): cost(f) + (L - f) (cost(f + 1) - cost(f)) with f the
+-- floor of L + 1e-9 (shown's epsilon), clamped to [L_MAX, MASTERY_MAX]; cost(MASTERY_MAX) at or above it. cost(level)
+-- is BeyondTen's cumulative mastery cost from level 10 (GetTotalMasteryCost for the Strength perk), 0 at 10.
+function K.strength.masteryXp(L, cost)
+    local f = K.clamp(math.floor(L + 1e-9), K.strength.L_MAX, K.strength.MASTERY_MAX)
+    local base = cost(f)
+    if f >= K.strength.MASTERY_MAX then
+        return base
+    end
+    local frac = K.clamp(L - f, 0, 1)
+    return base + frac * (cost(f + 1) - base)
 end
