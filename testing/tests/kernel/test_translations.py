@@ -133,6 +133,14 @@ def literals():
     return found
 
 
+def script_keys():
+    """Plan 13 Task 16: the UIDescription keys the restated trait blocks of NR_Traits_Body.txt name."""
+    src = read(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "scripts", "NR_Traits_Body.txt"))
+    keys = set(re.findall(r"UIDescription = (UI_NR_\w+)", src))
+    assert len(keys) == 10
+    return keys
+
+
 def target(key):
     return {"UI_": "UI.json", "IGUI_": "IG_UI.json", "Moodles_": "Moodles.json"}[key.split("NR_")[0]]
 
@@ -150,7 +158,7 @@ def test_literal_client_keys_exist():
 
 def test_every_ui_key_is_read():
     # no shipped key that nothing reads: every UI.json key is a constructed key or a literal a client file names
-    lits = {key for _, key, pre in literals() if not pre}
+    lits = {key for _, key, pre in literals() if not pre} | script_keys()
     assert sorted(set(load("UI.json")) - constructed() - lits) == []
 
 

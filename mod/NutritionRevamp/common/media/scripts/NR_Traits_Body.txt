@@ -1,0 +1,117 @@
+/* The 10 body trait blocks of the nutrition mod (Plan 13 Task 16, spec section 3.1, rulings 13-25 and 13-46): each a
+   same-name restatement of vanilla's character_trait_definition, replacing it. The creation costs are Angus's choice
+   (spec section 11): Overweight -6, Obese -10, Underweight -6, Very Underweight -10; Weak, Feeble, Stout, Strong,
+   Weight Gain and Weight Loss keep vanilla's. No block carries XPBoosts or GrantedTraits, no block is a profession
+   trait, Weak and Feeble exclude Underweight and Very Underweight, and the description keys are the mod's own. */
+module Base
+{
+    character_trait_definition base:weak
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:weak,
+        Cost = -10,
+        UIName = UI_trait_weak,
+        UIDescription = UI_NR_trait_weakdesc,
+        MutuallyExclusiveTraits = base:feeble;base:stout;base:strong;base:underweight;base:very underweight,
+    }
+
+    character_trait_definition base:feeble
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:feeble,
+        Cost = -6,
+        UIName = UI_trait_feeble,
+        UIDescription = UI_NR_trait_feebledesc,
+        MutuallyExclusiveTraits = base:stout;base:strong;base:weak;base:underweight;base:very underweight,
+    }
+
+    character_trait_definition base:stout
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:stout,
+        Cost = 6,
+        UIName = UI_trait_stout,
+        UIDescription = UI_NR_trait_stoutdesc,
+        MutuallyExclusiveTraits = base:feeble;base:strong;base:weak,
+    }
+
+    character_trait_definition base:strong
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:strong,
+        Cost = 10,
+        UIName = UI_trait_strong,
+        UIDescription = UI_NR_trait_strongdesc,
+        MutuallyExclusiveTraits = base:feeble;base:stout;base:weak,
+    }
+
+    character_trait_definition base:obese
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:obese,
+        Cost = -10,
+        UIName = UI_trait_obese,
+        UIDescription = UI_NR_trait_obesedesc,
+        MutuallyExclusiveTraits = base:athletic;base:emaciated;base:fit;base:lighteater;base:very underweight;base:underweight;base:overweight,
+    }
+
+    character_trait_definition base:overweight
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:overweight,
+        Cost = -6,
+        UIName = UI_trait_overweight,
+        UIDescription = UI_NR_trait_overweightdesc,
+        MutuallyExclusiveTraits = base:athletic;base:fit;base:emaciated;base:very underweight;base:underweight;base:obese,
+    }
+
+    character_trait_definition base:underweight
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:underweight,
+        Cost = -6,
+        UIName = UI_trait_underweight,
+        UIDescription = UI_NR_trait_underweightdesc,
+        MutuallyExclusiveTraits = base:obese;base:very underweight;base:overweight;base:weak;base:feeble,
+    }
+
+    character_trait_definition base:very underweight
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:very underweight,
+        Cost = -10,
+        UIName = UI_trait_veryunderweight,
+        UIDescription = UI_NR_trait_veryunderweightdesc,
+        MutuallyExclusiveTraits = base:athletic;base:obese;base:overweight;base:heartyappetite;base:underweight;base:weak;base:feeble,
+    }
+
+    character_trait_definition base:weightgain
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:weightgain,
+        Cost = -2,
+        UIName = UI_trait_weightgain,
+        UIDescription = UI_NR_trait_weightgaindesc,
+        MutuallyExclusiveTraits = base:weightloss,
+    }
+
+    character_trait_definition base:weightloss
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:weightloss,
+        Cost = -2,
+        UIName = UI_trait_weightloss,
+        UIDescription = UI_NR_trait_weightlossdesc,
+        MutuallyExclusiveTraits = base:weightgain,
+    }
+}
