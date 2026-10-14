@@ -307,3 +307,45 @@ def test_new_lean_lays_the_spec_and_the_surviving_fields(host):
     # the body owns its fields: no table is shared with the spec
     b.lm = 1.0
     assert spec.lm != 1.0
+
+
+@pytest.mark.parametrize("m, w, sx", [("STRONG", "OBESE", 2), ("WEAK", None, 1), ("STRONG", "VERY_UNDERWEIGHT", 1)])
+def test_new_lean_anchors_and_the_disuse_count(host, m, w, sx):
+    # the disuse arm survives Task 12 (its count tDisuse and its anchor lm0dis, spec section 9.2)
+    spec = host.call("body.create", m, w, _d(host), sx)
+    b = host.call("body.newLean", spec, sx, 0.0)
+    assert b.tDisuse == 0
+    assert b.lm0dis == spec.lm and b.fmRef == spec.fm and b.Pk == spec.Pk
+
+
+def test_the_pick_tables_are_the_enumerated_ones(host):
+    # a trait added to a table without the pick-set test enumerating it fails here
+    D = host.py(_d(host))
+    assert set(D["N0"]) == set(D["startLevel"]) == {m or "none" for m in MUSCLE}
+    fat = set(host.py(host.K.body.FAT_FMI)) | set(host.py(host.K.body.THIN))
+    assert fat == {w or "none" for w in WEIGHT}
+    assert set(host.py(host.K.body.FAT_FMI_F)) == set(host.py(host.K.body.FAT_FMI))
+
+
+@pytest.mark.parametrize("years", [1.0, 10.0])
+@pytest.mark.parametrize("sexIdx", [1, 2])
+def test_no_legal_pick_is_free_at_the_option_bounds(host, years, sexIdx):
+    # NR.StrengthYearsToLevel10 is the one option that moves the start lean and the level scale (R)
+    P = _copy(host, yearsTo10=years, R=host.call("strength.R", years))
+
+    def body(m, w):
+        s = host.call("body.create", m, w, P, sexIdx)
+        return host.call("strength.level", s["lm"], s["N0"], 1.0, P), s["fm"], s["fatT"]
+
+    for m in MUSCLE:
+        for w in WEIGHT:
+            if not _legal(m, w):
+                continue
+            L, fm, fatT = body(m, w)
+            if m in ("WEAK", "FEEBLE"):
+                assert L <= body(None, w)[0] - 0.5, (m, w)
+            if w in THIN:
+                assert L <= body(m, None)[0] - 0.5, (m, w)
+            if w in ("OVERWEIGHT", "OBESE"):
+                _, fm0, fatT0 = body(m, None)
+                assert fatT > fatT0 and fm > fm0, (m, w)

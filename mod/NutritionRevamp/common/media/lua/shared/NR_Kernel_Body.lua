@@ -413,7 +413,7 @@ K.body.THIN = { UNDERWEIGHT = { bmi = 18.0, fmi = 1.5 }, VERY_UNDERWEIGHT = { bm
 -- The rungs of a weight pick (ruling 13-30), and Emaciated read as Very Underweight (rung 2).
 K.body.FAT_RUNG = { OVERWEIGHT = 1, OBESE = 2 } -- ruling 13-30
 K.body.THIN_RUNG = { UNDERWEIGHT = 1, VERY_UNDERWEIGHT = 2 } -- ruling 13-30
-K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- ruling 13-30
+K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- rulings 13-6, 13-30
 
 -- The creation spec of a muscle pick, a weight pick (either nil for none), the strength table P and the effective sex
 -- sexIdx (2 female, else male): the start lean F solves level(F, N0, 1) = the pick's start level; the set point F0 and
@@ -472,6 +472,7 @@ function K.body.newLean(spec, sex, ageH)
     body.sigDay = 0
     body.T = 1
     body.Tgrace = 0
+    body.tDisuse = 0
     body.fmRef = spec.fm
     body.lm0dis = spec.lm
     body.sex = sex
