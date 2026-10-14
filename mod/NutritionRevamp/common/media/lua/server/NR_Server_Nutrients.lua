@@ -363,6 +363,7 @@ local function step(username, player, record, ctx)
     end
     local stepM = (ageH - n.lastAgeH) * 60
     local dtM = K.clamp(stepM, 0, 60)                       -- offline time is not integrated
+    local fromH = n.lastAgeH                                -- the skip starts at the previous step's own age, not a recomputed one
     n.lastAgeH = ageH
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
     -- the minute's ingested sum, taken only by a minute that integrates: a minute skipped above leaves it for the
@@ -373,7 +374,7 @@ local function step(username, player, record, ctx)
         intake.lastIngested[username] = nil
     end
     local dtH = dtM / 60
-    if stepM > 60 then K.acute.skipRecord(record, (stepM - 60) / 60, ageH - stepM / 60) end   -- nor counted by any world-age clock (before closeDay's refeedDay)
+    if stepM > 60 then K.acute.skipRecord(record, (stepM - 60) / 60, fromH) end   -- nor counted by any world-age clock (before closeDay's refeedDay)
     local w = body.fm + body.lm
     local O = NR.server.options or EMPTY
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex

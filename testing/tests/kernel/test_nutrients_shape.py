@@ -1341,3 +1341,17 @@ def test_an_offline_gap_moves_the_monotony_and_nicotine_anchors(nut_host):
     assert record["satiety"]["nicH"] == 90.0 + 71.0
     alone(h, p, record, 100.5 + 73.0)                       # an integrated hour moves nothing
     assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 71.0
+
+
+def test_a_stamp_laid_at_the_departure_minute_moves_by_the_gap(nut_host):
+    # Plan 12 B2 F1: the skip's start point is the previous step's age itself; recomputing it as ageH - stepM / 60
+    # came out one ulp low in about 0.3 % of gaps, and a stamp laid at the last online minute stayed put
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    last, back = 159.21666666666667, 232.6
+    alone(h, p, record, last)
+    record["satiety"] = h.table({"nicH": last})
+    alone(h, p, record, back)
+    assert abs(record["satiety"]["nicH"] - (back - 1.0)) < 1e-9
+    assert record["satiety"]["nicH"] > last + 70.0
