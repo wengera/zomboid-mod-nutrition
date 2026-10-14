@@ -455,7 +455,8 @@ end
 -- hours: the spec's lean, set point, cap, peak, N0, fat and rungs; the labile lean, the grace counters and the signal
 -- ring at 0; T at 1; fmRef and lm0dis at the start; the calendar, the day accumulators, the rings (mass7 at
 -- lm + lx + fm) and the trailing-24 h window as K.body.new lays them. Numbers and tables of numbers only (#1495).
--- Task 10 lays body.band from K.traits.axes; Task 12 renames this to K.body.new and removes the old constructor.
+-- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30).
+-- Task 12 renames this to K.body.new and removes the old constructor.
 function K.body.newLean(spec, sex, ageH)
     local day = math.floor(ageH / 24)
     local body = {}
@@ -467,6 +468,7 @@ function K.body.newLean(spec, sex, ageH)
     body.fm = spec.fm
     body.fatT = spec.fatT
     body.thinT = spec.thinT
+    body.band = K.traits.axes(body, spec.sexIdx)
     body.lx = 0
     body.grace = 0
     body.sigDay = 0
