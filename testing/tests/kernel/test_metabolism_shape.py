@@ -478,40 +478,81 @@ def test_loaded_minute_banks_a_resistance_event_only_with_a_max_weight(met_host)
 
 # --- the day close -------------------------------------------------------------------------------------
 
-def test_a_24h_jump_closes_one_day(met_host):
+def online(h, p, record, age):
+    """The minute at world age `age` after an hour online: body.lastAgeH set one hour back, so the step is 60 game
+    minutes, at the gap threshold and not over it (ruling 13-5: a step over 60 minutes is a return after a gap)."""
+    record["body"].lastAgeH = age - 1.0
+    return minute(h, p, record, age)
+
+
+def test_an_online_world_day_boundary_closes_one_day(met_host):
     h = met_host
     p = player(h)
-    record = fresh(h, p, 100.0)                # dayIndex 4
+    record = fresh(h, p, 100.0)                # dayIndex 4, wday 4
     days = MET(h).stats.days
-    minute(h, p, record, 124.0)
+    online(h, p, record, 124.0)
     body = record["body"]
-    assert body["dayIndex"] == 5
+    assert body["dayIndex"] == 5 and body["wday"] == 5
     assert MET(h).stats.days == days + 1
     assert body["eeDay"] == 0 and body["inDay"] == 0  # the day accumulators closed
     assert body["eb7"][7] < 0                  # the closed day's balance: an hour of expenditure
     assert nonfinite(h, record) == ""
 
 
-def test_a_72h_jump_closes_three_days(met_host):
+def test_an_online_minute_closes_at_most_one_day(met_host):
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
     days = MET(h).stats.days
-    minute(h, p, record, 172.0)
-    assert record["body"]["dayIndex"] == 7
-    assert MET(h).stats.days == days + 3
+    online(h, p, record, 172.0)                # three world days on, inside an hour's step
+    assert record["body"]["dayIndex"] == 5 and record["body"]["wday"] == 7
+    assert MET(h).stats.days == days + 1
+    minute(h, p, record, 172.0 + 1 / 60)
+    assert record["body"]["dayIndex"] == 5 and MET(h).stats.days == days + 1
 
 
-def test_catch_up_is_capped_at_seven_days(met_host):
+def test_the_catch_up_guard_and_its_counter_are_gone(met_host):
+    h = met_host
+    assert MET(h).MAX_CLOSES is None
+    assert MET(h).stats.skippedDays is None
+    with open(METABOLISM, encoding="utf-8") as fh:
+        src = fh.read()
+    assert "MAX_CLOSES" not in src and "skippedDays" not in src
+
+
+def _ring(t):
+    out = []
+    for i in range(1, 8):
+        v = t[i]
+        out.append((v[1], v[2]) if not isinstance(v, (int, float)) else v)
+    return out
+
+
+def test_a_return_after_three_days_changes_nothing_and_resumes_the_calendar(met_host):
+    # ruling 13-5: the record calendar advances on online days only; a return re-stamps wday and closes nothing
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
+    body = record["body"]
+    online(h, p, record, 124.0)                # one online close, so the rings hold a closed day
+    minute(h, p, record, 124.0 + 1 / 60)
     days = MET(h).stats.days
-    skipped = MET(h).stats.skippedDays
-    minute(h, p, record, 100.0 + 240.0)        # ten days: seven closed, three skipped
-    assert MET(h).stats.days == days + 7
-    assert MET(h).stats.skippedDays == skipped + 3
-    assert record["body"]["dayIndex"] == math.floor(340.0 / 24)
+    keep = {"dayIndex": body["dayIndex"], "fm": body["fm"], "lm": body["lm"]}
+    rings = {k: _ring(body[k]) for k in ("eb7", "p7", "mass7", "bandWeek")}
+    minute(h, p, record, 124.0 + 1 / 60 + 72.0)   # away three game days: the return minute
+    for k, v in keep.items():
+        assert body[k] == v, k
+    for k, v in rings.items():
+        assert _ring(body[k]) == v, k
+    assert MET(h).stats.days == days
+    assert body["wday"] == 8                   # floor(196.0167 / 24): re-stamped to today's world day
+    minute(h, p, record, 196.5)                # online through the rest of world day 8: nothing closes
+    online(h, p, record, 199.0)
+    assert body["dayIndex"] == keep["dayIndex"] and MET(h).stats.days == days
+    online(h, p, record, 216.0 + 1 / 60)       # the next world-day boundary closes exactly one day
+    assert body["dayIndex"] == keep["dayIndex"] + 1 and body["wday"] == 9
+    assert MET(h).stats.days == days + 1
+    assert nonfinite(h, record) == ""
 
 
 def test_day_close_runs_the_partition_strength_and_tac(met_host):
@@ -525,7 +566,7 @@ def test_day_close_runs_the_partition_strength_and_tac(met_host):
     body.n = 0.0
     for i in range(1, 8):
         body.bandWeek[i][1] = 60               # a full week of band-1 minutes: TAC rises
-    minute(h, p, record, 124.0)
+    online(h, p, record, 124.0)
     assert body["fm"] < fm0                    # an hour's deficit paid by fat
     assert body["n"] > 0 and body["nHist"][14] == body["n"]
     assert body["cumDef"] > 0
@@ -541,7 +582,7 @@ def test_training_reaches_tac_at_the_same_close(met_host):
     record = fresh(h, p, 100.0)
     body = record["body"]
     body.band1Day = 300.0                      # the closing day's band-1 minutes; the ring is empty
-    minute(h, p, record, 124.0)
+    online(h, p, record, 124.0)
     assert body["bandWeek"][7][1] == 300.0
     assert body["band1Day"] == 0
     assert body["tac"] > 1.0                   # the same close saw the training
@@ -580,6 +621,7 @@ function(player, record, age)
         seen.immobilised = select(9, ...)
         return origT(...)
     end
+    record.body.lastAgeH = age - 1                 -- an hour online: the step closes the day (ruling 13-5)
     NR_TEST_AGE = age
     local ok, err = pcall(NutritionRevamp.server.metabolism.minute, "admin", player, record)
     K.partition.deficitWeek, K.aerobic.gEnergy, K.aerobic.tacDay = origD, origG, origT
@@ -627,17 +669,17 @@ def test_immobilised_days_run_disuse(met_host):
     body = record["body"]
     lm = body["lm"]
     body.lm0dis = 1.0                          # proves the 0 -> 1 stamp overwrites it
-    minute(h, p, record, 124.0)
+    online(h, p, record, 124.0)
     assert body["tDisuse"] == 1
     assert abs(body["lm0dis"] - lm) < TOL
     assert body["lm"] < lm
     lm1 = body["lm"]
-    minute(h, p, record, 148.0)
+    online(h, p, record, 148.0)
     assert body["tDisuse"] == 2
     assert abs(body["lm0dis"] - lm) < TOL      # stamped once
     assert body["lm"] < lm1
     p.cfg.fracture = h.table({})
-    minute(h, p, record, 172.0)
+    online(h, p, record, 172.0)
     assert body["tDisuse"] == 0
 
 
@@ -739,18 +781,18 @@ def test_heal_covers_day_index_ages_and_creation_masses(met_host):
     body.lm0 = NAN
     failures = MET(h).stats.failures
     days = MET(h).stats.days
-    minute(h, p, record, 130.0)
-    assert body["dayIndex"] == 5               # floor(130 / 24); a NaN never stops the closes
+    minute(h, p, record, 110.0)
+    assert body["dayIndex"] == 4               # floor(110 / 24); a NaN never stops the closes
     assert MET(h).stats.days == days           # healed to today: no spurious close
-    assert body["lastAgeH"] == 130.0
-    assert body["trail"]["at"] == 130.0
+    assert body["lastAgeH"] == 110.0
+    assert body["trail"]["at"] == 110.0
     assert abs(body["fm0"] - body["fm"]) < 1e-6 and abs(body["lm0"] - body["lm"]) < 1e-6
     assert MET(h).stats.failures == failures + 1
     for k in ("dayIndex", "lastAgeH", "trail.at", "fm0", "lm0"):
         assert k in MET(h).lastError
     assert nonfinite(h, record) == ""
-    minute(h, p, record, 154.0)
-    assert body["dayIndex"] == 6               # the closes run again
+    online(h, p, record, 120.0)
+    assert body["dayIndex"] == 5               # the closes run again
 
 
 def test_heal_creation_masses_fall_back_to_the_split(met_host):
@@ -820,7 +862,7 @@ def test_heal_covers_the_creation_scalars_and_the_strength_and_band_rings(met_ho
               "bandWeek"):
         assert k in named, k
     assert nonfinite(h, record) == ""
-    minute(h, p, record, 124.0)                # the closes run on the healed record
+    online(h, p, record, 124.0)                # the closes run on the healed record
     assert body["dayIndex"] == 5
     assert nonfinite(h, record) == ""
 
@@ -925,10 +967,10 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "bill at the class rate") in lim
     assert ("an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as "
             "HeavyWork, and Fitness only from the exercise flag") in lim
-    assert ("offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until "
-            "the next normal close) and reuses today's immobilised reading; the catch-up stamps every close "
-            "with the catch-up minute's age, so the first blend after an offline gap counts yesterday in "
-            "full") in lim
+    assert ("offline time is not integrated and the record calendar does not advance offline: a "
+            "return after a step over 60 game minutes closes no day and continues the day open at departure as "
+            "today's record day, so record days count online days only; a server stall over 60 game minutes "
+            "with the player online reads as a gap and folds those world days into one record day") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
     assert ("rmod" + chr(39) + "s alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: "
             "the arm resets at the day close, not on a rolling 24 h") in lim
@@ -1371,6 +1413,7 @@ function(player, record, age)
         seen.gSleep = select(7, ...)
         return origT(...)
     end
+    record.body.lastAgeH = age - 1                 -- an hour online: the step closes the day (ruling 13-5)
     NR_TEST_AGE = age
     local ok, err = pcall(NutritionRevamp.server.metabolism.minute, "admin", player, record)
     K.aerobic.tacDay = origT
@@ -1596,3 +1639,66 @@ def test_the_fresh_record_over_a_changed_character_is_a_stated_limitation(met_ho
     # Plan 12 (S B2, ruling P12-4: documented, not fixed until a durable marker is designed)
     lim = list(MET(met_host).limitations.values())
     assert any(x.startswith("a fresh record laid over a character the mod has already changed") for x in lim)
+
+
+# --- Rule 6: the Java calls of a Metabolism minute (Plan 13 Task 4, the Plan 11g close rule) ------------------------
+# The record calendar (K.body.calendar, ruling 13-5) replaced the catch-up loop with a pure-Lua read of body.wday: it
+# adds no engine call. Every method of the player stand-in and of every table one of them returns, and the clock's
+# getGameTime and its methods, are counted over a steady minute, an online day-close minute and a return after a gap.
+# The counts were read at the build before the change (9b92ee9b) and pinned: a minute here makes no more.
+JAVA_COUNT = r"""
+function(p, C)
+    local seen = {}
+    local function wrap(t)
+        if type(t) ~= "table" or seen[t] then return t end
+        seen[t] = true
+        local names = {}
+        for k, v in pairs(t) do
+            if type(v) == "function" then names[#names + 1] = k end
+        end
+        for i = 1, #names do
+            local k = names[i]
+            local f = t[k]
+            t[k] = function(...)
+                C.n = C.n + 1
+                return wrap(f(...))
+            end
+        end
+        return t
+    end
+    wrap(p)
+    local gt = getGameTime
+    C.restore = gt
+    getGameTime = function()
+        C.n = C.n + 1
+        return wrap(gt())
+    end
+end
+"""
+
+HEAD_JAVA_CALLS = {"steady": 31, "close": 31, "return": 31}   # read at 9b92ee9b
+
+
+def test_a_metabolism_minute_makes_no_more_java_calls_than_before_the_calendar(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    minute(h, p, record, 100.0 + 1 / 60)
+    C = h.rt.eval("{ n = 0 }")
+    h.rt.eval(JAVA_COUNT)(p, C)
+    try:
+        got = {}
+        n0 = C.n
+        minute(h, p, record, 100.0 + 2 / 60)
+        got["steady"] = C.n - n0
+        n0 = C.n
+        online(h, p, record, 120.0)
+        assert record["body"]["dayIndex"] == 5     # the minute closed a day
+        got["close"] = C.n - n0
+        n0 = C.n
+        minute(h, p, record, 120.0 + 72.0)
+        got["return"] = C.n - n0
+    finally:
+        h.G.getGameTime = C.restore
+    for k, v in HEAD_JAVA_CALLS.items():
+        assert got[k] <= v, (k, got)

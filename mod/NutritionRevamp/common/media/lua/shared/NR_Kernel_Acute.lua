@@ -147,7 +147,6 @@ K.acute.IU_MAX = 2.5 -- game choice: additive sum capped (super-additive gamma r
 
 -- Refeeding.
 K.acute.LOW_KCAL_KG = 5 -- kcal/kg/day: design-phase-v1 game choice (open row S1116: the little-or-no-intake day)
-K.acute.HEIGHT_M = 1.75 -- design-phase-v1 game choice (open row S1117: the reference stature)
 K.acute.MASS_WINDOW_H = 2160 -- 90 days in hours, S0115 (weight loss within 3-6 months)
 K.acute.RISK_BMI_HIGH = 16 -- S0115
 K.acute.RISK_LOSS_HIGH = 0.15 -- S0115
@@ -594,7 +593,7 @@ function K.acute.refeedDay(a, kcalPerKg, w, ageH, kDepleted, mgDepleted, alcohol
         a.mass90ageH = ageH
     end
     local loss90 = (a.mass90max - w) / a.mass90max
-    a.bmi = w / (A.HEIGHT_M * A.HEIGHT_M)
+    a.bmi = w / (K.HEIGHT_M * K.HEIGHT_M)
     if a.refeedDayN >= 0 then
         return a
     end

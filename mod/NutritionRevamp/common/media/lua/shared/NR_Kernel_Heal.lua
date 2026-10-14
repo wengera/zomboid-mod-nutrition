@@ -2,7 +2,7 @@
 -- NR_Server_Metabolism.lua's local heal). The adapter runs it once, before the minute's arithmetic (Plan 11
 -- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
 -- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
--- P_LOW; dayIndex to the day of the world age (a NaN would stop every day close); lastAgeH to the world age; a
+-- P_LOW; dayIndex and wday to the day of the world age (a NaN would stop every day close); lastAgeH to the world age; a
 -- ring slot to 0 (mass7's to the current mass); the trailing-24 h window's age to the world age with every ring emptied,
 -- and a window slot to 0, its ring named once a slot (K.heal.trail). Every field and ring is laid by K.body.new, so
 -- the heal creates none. The creation scalars heal too: r and
@@ -73,6 +73,10 @@ function K.heal.body(body, ageH, l0, specific)
     if not K.finite(body.dayIndex) then
         body.dayIndex = math.floor(ageH / 24)
         bad = K.heal.mark(bad, "dayIndex")
+    end
+    if not K.finite(body.wday) then
+        body.wday = math.floor(ageH / 24)
+        bad = K.heal.mark(bad, "wday")
     end
     if not K.finite(body.lastAgeH) then
         body.lastAgeH = ageH

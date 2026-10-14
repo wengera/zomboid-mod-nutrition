@@ -182,6 +182,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH, specific)
     body.strAgeH = ageH
     body.at = 0
     body.dayIndex = day
+    body.wday = day
     body.inDay = 0
     body.eeDay = 0
     body.ebDay = 0
@@ -372,4 +373,24 @@ function K.body.trailIntake(t, absorbed)
     K.body.trailAdd(t, "p", absorbed.proteins)
     K.body.trailAdd(t, "carb", absorbed.carbs)
     K.body.trailAdd(t, "lip", absorbed.lipids)
+end
+
+-- The record calendar (Plan 13 ruling 13-5): body.dayIndex counts the record's closed online days and body.wday is
+-- the world day the open record day belongs to. At world age ageH a minute closes the day when the world day
+-- floor(ageH / 24) has passed body.wday, and then stamps that world day: at most one close a minute, whatever the
+-- world days between. A gapped minute (a return whose step exceeds 60 game minutes) re-stamps body.wday to today's
+-- world day and closes nothing, so the day open at departure continues as today's record day and nothing advances
+-- while the player is offline. Returns the closes the caller runs, 0 or 1; dayIndex is never touched here: the
+-- caller's K.partition.closeDay advances it by one.
+function K.body.calendar(body, ageH, gapped)
+    local today = math.floor(ageH / 24)
+    if gapped then
+        body.wday = today
+        return 0
+    end
+    if today > body.wday then
+        body.wday = today
+        return 1
+    end
+    return 0
 end

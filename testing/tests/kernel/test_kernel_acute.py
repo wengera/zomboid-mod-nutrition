@@ -60,7 +60,7 @@ def test_constants(host):
     assert (A.CREDIT_BASE, A.CREDIT_GAIN, A.CREDIT_MG, A.IU_MAX) == (0.50, 0.60, 200, 2.5)
     assert A.CREDIT_BASE_MG == 100
     assert (A.VIG_WINDOW_H, A.EX_TAU_H, A.COLD_ON, A.COLD_TAU_H, A.RET_TAU_D) == (1, 6, 1.05, 6, 14)  # Plan 5 Task 5
-    assert (A.LOW_KCAL_KG, A.HEIGHT_M, A.MASS_WINDOW_H) == (5, 1.75, 2160)
+    assert (A.LOW_KCAL_KG, A.MASS_WINDOW_H) == (5, 2160)
     assert (A.RISK_BMI_HIGH, A.RISK_LOSS_HIGH, A.RISK_DAYS_HIGH, A.RISK_BMI_MOD, A.RISK_LOSS_MOD, A.RISK_DAYS_MOD) == (16, 0.15, 10, 18.5, 0.10, 5)
     assert (A.REFEED_DAYS, A.RESTART_KCAL_KG, A.RESTART_LOW_KCAL_KG, A.RESTART_LOW_BMI, A.REFEED_P) == (7, 10, 5, 14, 0.23)
 
@@ -810,7 +810,7 @@ def test_refeed_window_runs_seven_days_then_recomputes(host):
     assert a.refeedRisk == 2  # held through the close that ends the window
     assert A.refeedEvent(a, 30, 0.0) is False and a.refeedDayN == -1
     A.refeedDay(a, 30, 70, 20 * 24.0, False, False, False)
-    assert a.refeedRisk == 0  # recomputed: BMI 22.86, no loss, no starvation
+    assert a.refeedRisk == 0  # recomputed: BMI 24.22, no loss, no starvation
 
 
 def test_refeed_low_bmi_restart_limit(host):
@@ -818,8 +818,8 @@ def test_refeed_low_bmi_restart_limit(host):
     a = _new(host)
     a.refeedRisk = 2
     a.lowDay = True
-    A.refeedDay(a, 7, 42, 24.0, False, False, False)  # BMI 42 / 3.0625 = 13.71 <= 14
-    assert a.refeedDayN == 0 and _close(a.bmi, 42 / 1.75 ** 2)
+    A.refeedDay(a, 7, 40, 24.0, False, False, False)  # BMI 40 / 2.89 = 13.84 <= 14 (K.HEIGHT_M 1.70)
+    assert a.refeedDayN == 0 and _close(a.bmi, 40 / 1.70 ** 2)
     assert A.refeedEvent(a, 7, 0.0) is True  # 7 > 5
 
 
@@ -827,7 +827,7 @@ def test_refeed_no_window_without_a_low_day(host):
     A = host.K.acute
     a = _new(host)
     a.refeedRisk = 2
-    A.refeedDay(a, 30, 45, 24.0, False, False, False)  # BMI 14.7 < 16: high, but fed
+    A.refeedDay(a, 30, 45, 24.0, False, False, False)  # BMI 15.57 < 16: high, but fed
     assert a.refeedDayN == -1 and a.refeedRisk == 2
     assert A.refeedEvent(a, 30, 0.0) is False
 
@@ -845,8 +845,8 @@ def test_refeed_high_criteria(host):
     A.refeedDay(c, 30, 67, 48.0, False, False, False)
     assert _close((80 - 67) / 80, 0.1625) and c.refeedRisk == 2  # loss 16.25 % > 15 %
     d = _new(host)
-    A.refeedDay(d, 30, 48, 24.0, False, False, False)
-    assert d.refeedRisk == 2  # BMI 15.67 < 16
+    A.refeedDay(d, 30, 46, 24.0, False, False, False)
+    assert d.refeedRisk == 2  # BMI 15.92 < 16
 
 
 def test_refeed_moderate_criteria(host):
@@ -855,8 +855,8 @@ def test_refeed_moderate_criteria(host):
     A.refeedDay(a, 30, 70, 24.0, False, False, True)
     assert a.refeedRisk == 1  # alcohol history alone
     b = _new(host)
-    A.refeedDay(b, 30, 55, 24.0, False, False, True)
-    assert b.refeedRisk == 2  # BMI 17.96 < 18.5 and alcohol history
+    A.refeedDay(b, 30, 53, 24.0, False, False, True)
+    assert b.refeedRisk == 2  # BMI 18.34 < 18.5 and alcohol history
     c = _new(host)
     A.refeedDay(c, 30, 80, 24.0, False, False, False)
     A.refeedDay(c, 30, 70, 48.0, False, False, False)
@@ -1049,3 +1049,10 @@ def test_skip_record_leaves_absent_or_unreadable_monotony_and_nicotine(host):
     rec.acute.lastFedAgeH = 10.0
     host.K.acute.skipRecord(rec, 5.0, 20.0)
     assert rec.satiety.nicH is None
+
+
+# --- the shared height (Plan 13 Task 4, ruling 13-4) ---
+
+def test_bmi_reads_the_shared_height(host):
+    assert host.K.HEIGHT_M == 1.70
+    assert host.K.acute.HEIGHT_M is None

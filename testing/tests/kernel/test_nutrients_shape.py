@@ -441,7 +441,7 @@ def test_the_day_close_reads_the_closed_day_and_the_alcohol_mean(nut_host):
     assert abs(record["body"]["alcDay"] - 28.0) < TOL
     record["body"]["inDay"] = 800.0                         # the day's absorbed kcal as Metabolism banks it
     days = NUT(h).stats.days
-    chain(h, p, record, 120.5)
+    chain(h, p, record, 120.0)                              # an hour after Metabolism's 119.0: online, not a gap
     body, a, n = record["body"], record["acute"], record["nutrients"]
     assert body["dayIndex"] == 5 and n["lastDayIndex"] == 5
     assert NUT(h).stats.days == days + 1
@@ -455,14 +455,27 @@ def test_the_day_close_reads_the_closed_day_and_the_alcohol_mean(nut_host):
     assert a["refeedRisk"] in (0, 1, 2)
 
 
-def test_a_multi_day_jump_closes_one_refeeding_day(nut_host):
+def test_a_return_after_a_gap_closes_no_refeeding_day(nut_host):
+    # ruling 13-5: a return after three game days closes no record day, so the nutrients close does not run
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    skipped = NUT(h).stats.skippedDays
+    skipped, days = NUT(h).stats.skippedDays, NUT(h).stats.days
     chain(h, p, record, 100.0 + 72.0)
-    assert record["nutrients"]["lastDayIndex"] == record["body"]["dayIndex"]
-    assert NUT(h).stats.skippedDays == skipped + 2
+    assert record["nutrients"]["lastDayIndex"] == record["body"]["dayIndex"] == 4
+    assert NUT(h).stats.skippedDays == skipped and NUT(h).stats.days == days
+
+
+def test_a_day_index_jump_closes_one_refeeding_day(nut_host):
+    # a heal that re-stamps dayIndex to the world day is the one way it moves by more than one a minute
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    skipped, days = NUT(h).stats.skippedDays, NUT(h).stats.days
+    record["body"].dayIndex = record["body"]["dayIndex"] + 3
+    chain(h, p, record, 100.0 + 1 / 60)
+    assert record["nutrients"]["lastDayIndex"] == record["body"]["dayIndex"] == 7
+    assert NUT(h).stats.skippedDays == skipped + 2 and NUT(h).stats.days == days + 1
 
 
 # --- the fluids ---------------------------------------------------------------------------------------

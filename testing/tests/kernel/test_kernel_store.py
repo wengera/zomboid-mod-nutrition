@@ -174,6 +174,12 @@ def test_inputs_are_dotted_strings(host):
     assert lst(S(host).split("username")) == ["username"]
 
 
+def test_the_record_calendar_is_an_input(host):
+    # Plan 13 Task 4 (ruling 13-5): the world day of the open record day is saved beside the record's day count
+    paths = lst(S(host).INPUTS)
+    assert "body.wday" in paths and "body.dayIndex" in paths
+
+
 def test_identity_fields_are_inputs(host):
     for p in ("username", "firstSeen", "lastSeen", "resets", "dead"):
         assert S(host).isInput(p), p

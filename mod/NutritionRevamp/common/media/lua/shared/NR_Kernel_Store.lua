@@ -55,8 +55,8 @@ K.store.INPUTS = {
     "body.fm0", "body.lm0", "body.lm0dis", "body.fmRef", "body.l0", "body.sex", "body.r", "body.traitCarry",
     "body.bornAge",
     -- body, the masses and clocks (K.partition, K.energy, NR_Server_Metabolism, NR_Server_Strength): fat and
-    -- lean mass, the day index, the metabolism and strength clock stamps
-    "body.fm", "body.lm", "body.dayIndex", "body.lastAgeH", "body.strAgeH",
+    -- lean mass, the record's day count and the world day of its open day (K.body.calendar), the clock stamps
+    "body.fm", "body.lm", "body.dayIndex", "body.wday", "body.lastAgeH", "body.strAgeH",
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
     -- day's stamps held until the next close (inDayClosed, pPrevKg)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",

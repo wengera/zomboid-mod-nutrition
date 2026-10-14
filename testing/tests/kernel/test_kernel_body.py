@@ -209,7 +209,7 @@ def test_new_record_body(host):
     body = host.py(host.K.body["new"](80, 1, _build(host), 5, 1.0, 1.0, 100))
     scalars = {
         "fm0": body["fm"], "lm0": body["lm"], "lm0dis": body["lm"], "fmRef": body["fm"], "l0": 5, "sex": 1, "r": 1.0,
-        "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "pPrevKg": 0.8, "strAgeH": 100, "at": 0, "dayIndex": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
+        "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "pPrevKg": 0.8, "strAgeH": 100, "at": 0, "dayIndex": 4, "wday": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
         "actKcalDay": 0, "exKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "vStr": 0,
         "vHyp": 0, "vStrHigh": 0, "metMinDay": 0, "band1Day": 0, "band2Day": 0, "n": 0, "nPeak": 0,
         "tPeakD": 4, "cumDef": 0, "tDisuse": 0, "shownL": 5, "riseHeldH": 0, "lastFallAge": 100,
@@ -254,6 +254,7 @@ def test_new_rings_are_distinct_tables(host):
     py = host.py(body)
     assert py["band"] == "veryUnderweight"
     assert py["dayIndex"] == 1
+    assert py["wday"] == 1
     assert py["tPeakD"] == 1
     assert py["delta"] == 0.9
     assert _close(py["fm"] / 62, 0.19 * 0.8 + 0.23 * 0.2 - 0.02)
@@ -446,3 +447,34 @@ def test_trail_ring_sum_sums_all_but_the_current_slot_and_counts_what_it_zeroed(
     s, z = b.trailRingSum(t.lip, 2)
     assert z == 1 and t.lip[4] == 0
     assert s == sum(range(1, 26)) - 2 - 4
+
+
+# --- the record calendar (Plan 13 Task 4, ruling 13-5) ---
+
+def test_calendar_closes_once_on_a_new_world_day(host):
+    b = host.table({"wday": 5, "dayIndex": 5})
+    assert host.call("body.calendar", b, 5 * 24 + 23.9, False) == 0
+    assert host.call("body.calendar", b, 6 * 24 + 0.1, False) == 1
+    assert b["wday"] == 6 and b["dayIndex"] == 5
+    assert host.call("body.calendar", b, 6 * 24 + 0.2, False) == 0   # the new world day closes once
+
+
+def test_calendar_closes_nothing_after_a_gap(host):
+    b = host.table({"wday": 5, "dayIndex": 5})
+    assert host.call("body.calendar", b, 9 * 24 + 3.0, True) == 0
+    assert b["wday"] == 9 and b["dayIndex"] == 5
+    assert host.call("body.calendar", b, 9 * 24 + 23.0, False) == 0  # the day open at departure continues
+    assert host.call("body.calendar", b, 10 * 24 + 0.05, False) == 1
+
+
+def test_calendar_closes_at_most_one_day_a_minute(host):
+    b = host.table({"wday": 5, "dayIndex": 5})
+    assert host.call("body.calendar", b, 8 * 24 + 0.5, False) == 1
+    assert b["wday"] == 8 and b["dayIndex"] == 5
+    assert host.call("body.calendar", b, 8 * 24 + 0.6, False) == 0
+
+
+def test_calendar_after_a_gap_restamps_a_behind_world_day(host):
+    b = host.table({"wday": 9, "dayIndex": 5})
+    assert host.call("body.calendar", b, 9 * 24 + 1.0, True) == 0
+    assert b["wday"] == 9

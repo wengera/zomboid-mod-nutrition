@@ -1,8 +1,8 @@
 -- NR_Server_Metabolism.lua -- the body model's slow-clock adapter (spec § 4.3): once per player
 -- per game minute, on the players' OnTick stagger and after the stomach step, it creates record.body at
 -- first sight, bills the minute's expenditure off the server's metabolic rate, banks the absorbed intake
--- Kinetics handed off, samples the training signal, steps the neural term, closes each elapsed game day
--- (the partition, the strength bookkeeping, adaptive thermogenesis, TAC, the rings), and stamps the
+-- Kinetics handed off, samples the training signal, steps the neural term, closes the record day at an online
+-- world-day boundary (the partition, the strength bookkeeping, adaptive thermogenesis, TAC, the rings), and stamps the
 -- drain and regeneration coefficients and the energy state the writer reads. Since Plan 11c Task 6 (spec § 5c,
 -- rulings 11c-29 and 11c-32 amended) the energy state is K.deficit.activityState: the exercise share of the deficit
 -- enters through the lag L (record.satiety.L, stepped here on the minute's exercise kcal), bypassed on a ramp when the
@@ -26,14 +26,14 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.metabolism = {
-    stats = { minutes = 0, days = 0, failures = 0, splits = 0, badReads = 0, skippedDays = 0,
+    stats = { minutes = 0, days = 0, failures = 0, splits = 0, badReads = 0,
               firstSightMirrors = 0, preconditionWarnings = 0, exeFallbacks = 0 },
     lastError = nil,
     wired = false,
     limitations = {
         "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity (a first-order lag fixed in real seconds, so its game-time length scales with the day length), and only a Fitness exercise bills its class from the first minute, from the server's exercise flag; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, and Fitness only from the exercise flag",
-        "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading; the catch-up stamps every close with the catch-up minute's age, so the first blend after an offline gap counts yesterday in full",
+        "offline time is not integrated and the record calendar does not advance offline: a return after a step over 60 game minutes closes no day and continues the day open at departure as today's record day, so record days count online days only; a server stall over 60 game minutes with the player online reads as a gap and folds those world days into one record day",
         "the disuse arm needs a leg fracture or splint",
         "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; the pipeline's ORDER runs the nutrients step after this one)",
         "the drain coefficient is stamped and mirrored and drives no stat write",
@@ -55,8 +55,6 @@ NR.server.metabolism = {
 }
 local MET = NR.server.metabolism
 
--- The catch-up guard: at most this many day closes per minute; the rest are skipped and counted.
-MET.MAX_CLOSES = 7
 -- The leg parts whose fracture or splint immobilises.
 MET.LEG_PARTS = { "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
 -- The build flags read at first sight: the CharacterTrait registry field and the K.body build key.
@@ -458,15 +456,8 @@ local function step(username, player, record, ctx)
     local dStr, _, maintained = K.training.doses(body)
     K.strength.neuralStep(body, dStr, maintained, immobilised, dtM / 1440)
     local ironGrade, allReplete, dehydPct, g, debtH = nutrientInputs(record)
-    local today = math.floor(ageH / 24)
-    local closes = 0
-    while today > body.dayIndex and closes < MET.MAX_CLOSES do
+    if K.body.calendar(body, ageH, stepM > 60) == 1 then   -- a return after a gap closes nothing (ruling 13-5)
         closeDay(body, w, immobilised, ageH, ironGrade, debtH)
-        closes = closes + 1
-    end
-    if today > body.dayIndex then
-        MET.stats.skippedDays = MET.stats.skippedDays + (today - body.dayIndex)
-        body.dayIndex = today
     end
     w = body.fm + body.lm
     local fatDep = 0

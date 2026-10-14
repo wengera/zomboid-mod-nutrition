@@ -210,7 +210,7 @@ local function ensure(record, body, ageH)
     -- the fields this file adds beside the kernels' own (no constructor lays them), laid on any table that lacks them
     local n, f, a = record.nutrients, record.fluids, record.acute
     if n.lastAgeH == nil then n.lastAgeH = ageH end
-    if n.lastDayIndex == nil then n.lastDayIndex = body.dayIndex end
+    if n.lastDayIndex == nil then n.lastDayIndex = body.dayIndex end   -- the record's day count (online days, ruling 13-5)
     if f.viewPct == nil then f.viewPct = 0 end
     if a.lastFedAgeH == nil then a.lastFedAgeH = ageH end
     if a.alc7 == nil then a.alc7 = 0 end
@@ -255,7 +255,7 @@ local function closeDay(record, body, w, ageH)
     local n = record.nutrients
     local a = record.acute
     local days = body.dayIndex - n.lastDayIndex
-    if days > 1 then NUT.stats.skippedDays = NUT.stats.skippedDays + (days - 1) end
+    if days > 1 then NUT.stats.skippedDays = NUT.stats.skippedDays + (days - 1) end   -- 0 or 1 since ruling 13-5 (one close a minute, none on a return); over 1 only after a heal re-stamps dayIndex
     local kcal = body.inDayClosed
     if not finite(kcal) then kcal = 0 end
     local kcalPerKg = kcal / w
@@ -353,7 +353,7 @@ local function step(username, player, record, ctx)
     if stepM > 60 then K.acute.skipRecord(record, (stepM - 60) / 60, fromH) end   -- nor counted by any world-age clock (before closeDay's refeedDay)
     local w = body.fm + body.lm
     local O = NR.server.options or EMPTY
-    local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex
+    local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex; 0 or 1 (ruling 13-5)
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
     -- the gut lane's release this minute: IN.land diverts every eaten ethanol and caffeine there

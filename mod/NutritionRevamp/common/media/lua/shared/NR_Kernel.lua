@@ -81,3 +81,7 @@ function K.hexDigits(n, width)
     end
     return out
 end
+
+-- The one shared height (m): fixed and sex-neutral, read by every BMI and FFMI in the mod (K.acute's refeeding BMI
+-- among them). It lives here, outside any sub-table, because this file loads before every other kernel file.
+K.HEIGHT_M = 1.70 -- game choice (Plan 13 ruling 13-4; open row S1117: the reference stature)
