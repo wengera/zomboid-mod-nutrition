@@ -1,0 +1,89 @@
+S score 0.5267  without garthe11_slow 0.2514  k 0.00991
+ORACLE year1_kg_20sets                 7.4903 [  6.800,  8.500] miss 0.000 w1  S1.15 McDonald x0.75 (first-harvest calibration)
+ORACLE yr2_over_yr1                    0.4388 [  0.400,  0.600] miss 0.000 w1  S1.15 halving; H.49/H.50 year-1 dominance
+ORACLE yr3_over_yr2                    0.4995 [  0.400,  0.650] miss 0.000 w1  S1.15 halving
+ORACLE benito_10wk_kg                  1.4507 [  1.120,  1.960] miss 0.000 w1  S1.9 Benito 2020 untrained FFM +1.54 (CI 1.12-1.96)
+ORACLE pelland_30_over_12              1.6195 [  1.550,  2.000] miss 0.000 w1  H.1 Pelland sqrt fit, derived 1.77
+ORACLE h8_3_over_9                     0.4616 [  0.500,  0.900] miss 0.096 w1  H.8 1 vs 3 sets: +3.7 vs +5.2 % (0.71)
+ORACLE aube_24_over_12                 1.4455 [  0.700,  1.400] miss 0.065 w1  H.5 Aube 2022 advanced: 12=18=24 sets
+ORACLE longland_hp_lean                0.5229 [  0.600,  1.800] miss 0.064 w1  S0064 Longland 2.4 g/kg -40 %: +1.2 +/- 1.0 kg
+ORACLE longland_lp_lean               -0.4213 [ -0.400,  0.600] miss 0.021 w1  S0064 Longland 1.2 g/kg: +0.1 +/- 1.0 kg
+ORACLE longland_hp_fat                -3.6595 [ -5.000, -3.000] miss 0.000 w0  S0064 fat -4.8 +/- 1.6 kg (energy side; report)
+ORACLE garthe11_slow_lean              0.2753 [  0.800,  1.800] miss 0.525 w1  Garthe 2011 (PMID 21558571) -19 %: LBM +2.1 %
+ORACLE garthe11_fast_lean             -0.1564 [ -0.600,  0.400] miss 0.000 w1  Garthe 2011 -30 %: LBM -0.2 %
+ORACLE mk_minus500_lean               -0.2075 [ -0.300,  0.300] miss 0.000 w1  S1.28 Murphy & Koehler: -500 kcal/d -> no lean gain
+ORACLE trained_maint_8wk               0.4071 [  0.100,  1.500] miss 0.000 w1  Helms 2023 MAIN; Antonio 2015 (PMID 26500462) FFM +1.5
+ORACLE trained_maint_premise           0.4071 [ -0.100,  0.100] miss 1.535 w0  Angus premise: trained ~0 at maintenance
+ORACLE helms23_15pct_over_maint        1.3279 [  0.800,  1.600] miss 0.000 w1  S1.29 Helms 2023: no MT difference by surplus
+ORACLE garthe13_lean_ratio             1.0838 [  0.800,  1.350] miss 0.000 w1  S1.30 Garthe 2013: LBM gain not different
+ORACLE garthe13_fat_diff               3.3212 [  0.800,  2.500] miss 0.483 w1  S1.30 Garthe 2013: FM +15 % vs +3 %
+ORACLE mettler_lp_share                0.5692 [  0.350,  0.700] miss 0.000 w1  Mettler 2010 (PMID 19927027) 1.0 g/kg: 1.6 of 3.0 kg lean
+ORACLE mettler_hp_share                0.1823 [  0.050,  0.350] miss 0.000 w1  Mettler 2010 2.3 g/kg: 0.3 of 1.5 kg lean
+ORACLE quarter_rule_share              0.2246 [  0.150,  0.350] miss 0.000 w1  Heymsfield 2014 (PMID 24447775); S0072 Weinheimer
+ORACLE pasiakos_0.8_minus_1.6          0.1624 [  0.100,  0.500] miss 0.000 w1  Pasiakos 2013 (PMID 23739654) direction (abstract)
+ORACLE bray_15pct_lean                 2.4068 [  1.500,  3.500] miss 0.000 w1  S0605 Bray 2012: lean +2.87 kg at 15 % protein
+ORACLE bray_5pct_lean                  0.0000 [ -0.700,  0.500] miss 0.000 w1  S0605 Bray 2012: no lean gain at 5 %
+ORACLE bray_muscle_no_signal           0.0000 [ -0.050,  0.050] miss 0.000 w1  H.41/H.42/S0606: no muscle without the signal
+ORACLE rantila_kept_frac               0.4302 [  0.240,  0.470] miss 0.000 w1  H.51 Räntilä 2025: 24-47 % kept after 10 wk off
+ORACLE rantila_block2_over_1           0.9385 [  0.800,  1.250] miss 0.000 w1  H.51 Räntilä: block 2 = block 1
+ORACLE bickel_third_kept               1.6475 [  0.850,  1.800] miss 0.000 w1  H.13 Bickel 2011: 1/3 dose kept size 32 wk
+ORACLE bickel_ninth_kept               1.2636 [  0.850,  1.400] miss 0.000 w1  H.13 Bickel 2011: 1/9 dose kept size 32 wk
+ORACLE detrain_halflife_wk             6.7143 [  4.900,  9.200] miss 0.000 w1  H.51 Räntilä derived 4.9-9.2 wk
+ORACLE deg_protein_2pct                0.0285 [  0.000, 99.000] miss 0.000 w1  degenerate check: +2 % protein moves lean
+ORACLE deg_surplus_2pct                0.0047 [  0.000, 99.000] miss 0.000 w1  degenerate check: +2 % surplus moves lean
+ORACLE deg_sets_5pct                   0.0373 [  0.000, 99.000] miss 0.000 w1  degenerate check: +5 % sets moves lean
+ORACLE moro16_maint_8wk                0.0175 [ -0.300,  0.800] miss 0.000 w1  S3.1 Moro 2016: FFM +0.64/+0.48 kg n.s. (+0.86/+0.64 %)
+ORACLE moro16_tre_minus250            -0.0726 [ -0.500,  0.800] miss 0.000 w1  S3.1 Moro 2016 TRE: fat 10.90->9.28; -250 kcal/d inferred; FFM held
+ORACLE isola25_controls_46wk           0.1383 [ -1.000,  1.000] miss 0.000 w1  S3.2 Isola 2025: controls no systematic change
+ORACLE helms23_5pct_over_maint         1.1643 [  0.800,  1.600] miss 0.000 w1  S1.29/S3.16 Helms 2023: +5 % = maintenance
+ORACLE helms23_15pct_minus_maint       0.1335 [ -0.300,  0.500] miss 0.000 w1  S3.16 report check 3: within one noise band, 8 wk
+ORACLE chk1_s09_bal_dF_pct             0.0382 [  0.000,  0.500] miss 0.000 w1  report sec. 9 check 1: dF < 0.5 % at balance, 8 wk
+ORACLE chk1_s09_bal_fat_kg            -0.0049 [ -0.500,  0.500] miss 0.000 w1  report sec. 9 check 1: fat steady
+ORACLE chk2_s09_surplus_over_bal       1.8009 [  1.000,  2.000] miss 0.000 w1  report sec. 9 check 2: <= 2x balance
+ORACLE chk2_s09_surplus_dF_pct         0.0688 [  0.000,  1.000] miss 0.000 w1  report sec. 9 check 2: < 1 %
+ORACLE chk2_s09_surplus_fat_share      0.9738 [  0.500,  1.000] miss 0.000 w1  report sec. 9 check 2: fat carries most of the weight
+ORACLE chk4_s09_contest_minus500      -1.3206 [ -5.000,  0.000] miss 0.000 w1  report sec. 9 check 4: dF <= 0 at contest fat
+ORACLE deg_surplus_2pct_s09            0.0041 [  0.000, 99.000] miss 0.000 w1  degenerate check: +2 % surplus moves lean at s = 0.9
+ORACLE deg_fbal_status                 0.0336 [  0.000, 99.000] miss 0.000 w0  degenerate check: balance growth per headroom falls with s
+ORACLE buechel26_contest_ffm          -0.5635 [ -2.600, -0.900] miss 0.198 w0  S3.4 Buechel 2026 contest prep (mixed sex; report)
+ORACLE roth23_minus30pct_lean         -0.2699 [ -1.200, -0.300] miss 0.033 w0  S3.11 Roth 2023 trained men -30 % (report)
+profile beta           (value, score, without Garthe slow) [(1.5, 0.855, 0.4539), (2.0, 0.7102, 0.3336), (2.5, 0.6038, 0.2649), (3.0, 0.5267, 0.2514), (3.5, 0.7153, 0.5698)]
+profile Sg0            (value, score, without Garthe slow) [(0.5, 0.5267, 0.2514), (0.7, 0.6141, 0.417), (0.85, 1.5019, 1.3904), (1.0, 9.8308, 9.8297)]
+profile Smax1          (value, score, without Garthe slow) [(12.0, 0.5267, 0.2514), (15.0, 0.7096, 0.3864), (20.0, 1.2701, 0.9193), (30.0, 1.5783, 1.2275)]
+profile E0             (value, score, without Garthe slow) [(-400.0, 1.0567, 0.4228), (-500.0, 0.8328, 0.4042), (-575.0, 0.5986, 0.2609), (-650.0, 0.5267, 0.2514), (-800.0, 0.445, 0.2481), (-1000.0, 0.3869, 0.2473)]
+profile E0_drop        (value, score, without Garthe slow) [(0.0, 0.4809, 0.2512), (0.25, 0.5021, 0.2513), (0.4, 0.5164, 0.2513), (0.5, 0.5267, 0.2514), (0.6, 0.5376, 0.2514), (0.75, 0.5554, 0.2515)]
+profile fbal0          (value, score, without Garthe slow) [(0.85, 0.621, 0.2743), (0.925, 0.5646, 0.2548), (1.0, 0.5267, 0.2514)]
+profile fbal_drop      (value, score, without Garthe slow) [(0.0, 2.4862, 2.2604), (0.25, 0.5058, 0.2558), (0.5, 0.5267, 0.2514), (0.7, 0.9888, 0.6924)]
+profile a_nov          (value, score, without Garthe slow) [(0.0, 1.4972, 0.6001), (1.4, 1.0445, 0.4275), (2.8, 0.755, 0.2968), (4.2, 0.6222, 0.264), (6.0, 0.5267, 0.2514), (8.0, 0.4637, 0.2477)]
+profile surplus_full   (value, score, without Garthe slow) [(0.05, 0.5361, 0.2609), (0.075, 0.5298, 0.2545), (0.1, 0.5267, 0.2514), (0.15, 0.5236, 0.2483)]
+profile wT             (value, score, without Garthe slow) [(0.2, 0.8961, 0.4031), (0.35, 0.5267, 0.2514), (0.5, 0.5262, 0.2509), (0.65, 0.5293, 0.254)]
+profile wP             (value, score, without Garthe slow) [(0.3, 1.6503, 0.6582), (0.45, 0.7834, 0.2903), (0.6, 0.5267, 0.2514), (0.75, 0.5262, 0.2509)]
+profile prot_floor     (value, score, without Garthe slow) [(0.05, 0.4419, 0.2476), (0.1, 0.5267, 0.2514), (0.15, 0.6337, 0.2596), (0.3, 1.1756, 0.3762)]
+profile pdef_hi        (value, score, without Garthe slow) [(1.6, 0.5267, 0.2514), (2.0, 0.6679, 0.2937), (2.4, 1.1046, 0.3911), (2.8, 1.5168, 0.5247)]
+profile detrain_hl_wk  (value, score, without Garthe slow) [(4.9, 0.5267, 0.2514), (6.0, 0.5267, 0.2514), (7.0, 0.5324, 0.2571), (8.0, 0.6063, 0.331), (9.2, 0.8269, 0.5516)]
+profile regain_hl_wk   (value, score, without Garthe slow) [(3.0, 0.5267, 0.2514), (4.0, 0.5267, 0.2514), (6.0, 0.5267, 0.2514), (8.0, 0.5267, 0.2514)]
+profile m              (value, score, without Garthe slow) [(0.2, 0.5267, 0.2514), (0.333, 0.5267, 0.2514), (0.5, 0.5267, 0.2514)]
+profile grace_d        (value, score, without Garthe slow) [(7, 0.5267, 0.2514), (14, 0.5267, 0.2514), (21, 0.5284, 0.2531)]
+profile detrain_status (value, score, without Garthe slow) [(0.0, 0.5267, 0.2514), (1.0, 0.5267, 0.2514), (2.0, 0.5267, 0.2514), (3.0, 0.5267, 0.2514)]
+stab k              base 0.5267  x0.95 -> 0.5542 (39 move)  x1.05 -> 0.5014 (39 move)
+stab beta           base 0.5267  x0.95 -> 0.5197 (38 move)  x1.05 -> 0.5438 (38 move)
+stab Sg0            base 0.5267  x0.95 -> 0.5205 (38 move)  x1.05 -> 0.5347 (38 move)
+stab Smax1          base 0.5267  x0.95 -> 0.5224 (17 move)  x1.05 -> 0.5379 (17 move)
+stab E0             base 0.5267  x0.95 -> 0.5524 (9 move)  x1.05 -> 0.5044 (9 move)
+stab E0_drop        base 0.5267  x0.95 -> 0.5240 (8 move)  x1.05 -> 0.5293 (8 move)
+stab fbal0          base 0.5267  x0.95 -> 0.5514 (37 move)  x1.05 -> 1.5042 (37 move)
+stab fbal_drop      base 0.5267  x0.95 -> 0.5245 (36 move)  x1.05 -> 0.5288 (36 move)
+stab a_nov          base 0.5267  x0.95 -> 0.5392 (8 move)  x1.05 -> 0.5151 (8 move)
+stab surplus_full   base 0.5267  x0.95 -> 0.5271 (11 move)  x1.05 -> 0.5262 (14 move)
+stab wT             base 0.5267  x0.95 -> 0.5282 (3 move)  x1.05 -> 0.5262 (3 move)
+stab wP             base 0.5267  x0.95 -> 0.5279 (5 move)  x1.05 -> 0.5262 (5 move)
+stab prot_floor     base 0.5267  x0.95 -> 0.5172 (9 move)  x1.05 -> 0.5363 (9 move)
+stab pdef_hi        base 0.5267  x0.95 -> 0.5262 (4 move)  x1.05 -> 0.5295 (5 move)
+stab detrain_hl_wk  base 0.5267  x0.95 -> 0.5267 (3 move)  x1.05 -> 0.5267 (3 move)
+stab regain_hl_wk   base 0.5267  x0.95 -> 0.5267 (1 move)  x1.05 -> 0.5267 (1 move)
+stab m              base 0.5267  x0.95 -> 0.5267 (0 move)  x1.05 -> 0.5267 (0 move)  FLAT
+stab grace_d        base 0.5267  x0.95 -> 0.5267 (2 move)  x1.05 -> 0.5267 (0 move)
+stab forbes_c       base 0.5267  x0.95 -> 0.5209 (15 move)  x1.05 -> 0.5327 (15 move)
+stab x_max_frac     base 0.5267  x0.95 -> 0.5267 (0 move)  x1.05 -> 0.5267 (0 move)  FLAT
+stab detrain_status base 0.5267  x0.95 -> 0.5267 (2 move)  x1.05 -> 0.5267 (2 move)
+AT GRID BOUND: [('Sg0', 0.5), ('Smax1', 12.0), ('fbal0', 1.0), ('pdef_hi', 1.6)]
