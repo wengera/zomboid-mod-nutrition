@@ -7,6 +7,7 @@ Research behind it (copied to `docs/superpowers/research/2026-10-14-strength-red
 - `science-report.md` and `lean-science-part.tsv`: the first harvest (FFMI scale, multi-year gains, regain, gates).
 - `hypertrophy-science-report.md` and `hypertrophy-science-part.tsv`: the 2015-2026 hypertrophy harvest (68 rows, 62 resolved). Its ids `H.n` and the first harvest's `S1.n` are provisional and become `S` ids at the mint.
 - `trait-levers.md`: the engine's creation-trait levers, read on the 42.21 jar `4a0e9546ec`.
+- `advanced-recomp-report.md` and `advanced-recomp-part.tsv` (ids `S3.n`): recomposition and the surplus in advanced natural lifters, the basis of the status-dependent energy gate (§ 5); `review-science-part.tsv` (ids `S4.n`): the review's harvest, Kelly 2009's FMI bands included. Both id sets are provisional like the others.
 
 ## 1. Goal
 
@@ -35,14 +36,14 @@ level = 5 + (FFMI − 18.0) / 0.5        one level ≈ 1.445 kg of fat-free mass
 ## 3. Creation
 
 ### 3.1 What is offered
-The creation screen offers 8 body traits: Weak, Feeble, Stout and Strong (muscle) at their vanilla costs, and Overweight and Obese (fat) and Underweight and Very Underweight (thin) at costs the mod sets, because vanilla gives those four `Cost = 0` and the creation lists show only a positive or a negative cost (trait-levers § 1.3). Proposed: Overweight −6 and Obese −10, Underweight −6 and Very Underweight −10 (a game choice mirroring Feeble and Weak; Angus to confirm). Emaciated is reached only in play.
+The creation screen offers 8 body traits: Weak, Feeble, Stout and Strong (muscle) at their vanilla costs, and Overweight and Obese (fat) and Underweight and Very Underweight (thin) at costs the mod sets, because vanilla gives those four `Cost = 0` and the creation lists show only a positive or a negative cost (trait-levers § 1.3). Overweight and Underweight carry `Cost = -6` and Obese and Very Underweight `Cost = -10`, so they give 6 and 10 points (Angus, 2026-10-14; § 11). The sign is vanilla's: a negative cost gives points, as Feeble's `Cost = -6` and Weak's `Cost = -10` do (trait-levers § 1.3), so the four mirror Feeble and Weak. Emaciated is reached only in play.
 
 On 42.21, the five weight-band traits are hidden profession traits (`IsProfessionTrait = true`) that the creation lists filter out (trait-levers § 1).
 
 The mod restates the full definition block of each offered trait in a shared script, named `base:<id>` in `module Base`, because a same-name block replaces the whole definition and resets every omitted key (trait-levers § 2). Each restated block:
 - sets `IsProfessionTrait = false`;
 - drops the vanilla Strength and Fitness `XPBoosts`, since the body now sets those levels;
-- keeps vanilla's cost and exclusions, and adds the missing pairs: Obese and Overweight both ways, and every pair inside a family (the four muscle traits, the four fat and thin traits).
+- keeps vanilla's cost (the four weight traits take the costs above) and exclusions, and adds the missing pairs: Obese and Overweight both ways, and every pair inside a family (the four muscle traits, the four fat and thin traits).
 
 Weight Gain and Weight Loss are restated without their `GrantedTraits`. They keep their place as intake-rate traits in the body model.
 
@@ -66,7 +67,7 @@ A server `OnNewGame(player)` handler, guarded by `isServer()`, runs after vanill
 | Very Underweight | lowered to reach BMI 16.5 at FMI 1.0 (2.9 kg, 6 % fat), above the 4 % starvation floor | unchanged | the muscle pick's level | FMI 1.0 |
 
    - **Cap rule (Angus):** a muscle trait moves the start by its full vanilla Strength offset and the natural cap by half of it.
-   - **Consequence of the cap rule (m5):** Weak gains the most absolute lean in year 1 (+9.5 kg against the average's +7.8 under point R), because the half-offset cap gives it the most headroom; relative gains are similar across people (S0589).
+   - **Consequence of the cap rule (m5):** Weak gains the most absolute lean in year 1 (+9.5 kg against the average's +7.8 under points R and S, which share the growth constants), because the half-offset cap gives it the most headroom; relative gains are similar across people (S0589).
    - **Thin traits are depletion.** The lean they remove is below the remembered peak, which starts at the set point, so it comes back on the fast regain path (§ 6) and leaves the cap alone.
    - **Fat bands** are read through the character's effective sex (§ 8.1, § 13): the male cuts unless `NR.SexSpecific` is on.
    - **Weight** = F + fat mass. This replaces `K.body.split`'s band-anchored split of vanilla's starting weight.
@@ -97,9 +98,9 @@ dF/dt  = k · (F_c − F) · G · f_p · f_e · f_alc              per week, app
 | β | 3.0 | fitted (point R); a game choice in basis: the threshold rises from 0.5 set to 2.2 at s = 0.5 and 10 at s = 1. Indirect support from H.26, H.27, H.17 and H.24; contradicted by H.5 and H.25 (Aube 2022, Damas 2019); `NR.StrengthThresholdRise` = 0 disables the rise |
 | S_max(s) | 30 sets untrained (S_max0) falling to 12 at s = 1 (S_max1, `NR.StrengthTrainedSetCap`) | the square-root fit's upper range (Pelland 2024/2026); the trained plateau bridges Pelland (H.1) and the advanced trials (H.3, H.5, H.6); fitted, point R |
 | √ shape | — | Pelland's best fit of weekly sets against hypertrophy |
-| k | the five-year shape | fitted (with β in place) so that an untrained average character on 20 sets a week with full gates reaches level 15 at 5 years (Angus: "Five year shape, tunable in settings"). The level-10 time and the per-trait times are then read off the fitted curve. Fitted: k = 0.00991 per week (point R; 0.00874 under the draft's β 2.5, S_g0 1, flat set cap). The average character then reaches level 10 in 0.89 years and gains 7.8, 3.5, 1.7, 0.9 and 0.6 kg in years 1-5, against McDonald scaled ×0.75 (S1.15) of 6.8–8.5, 3.4–4.1, 1.7–2.0 and 0.7–1.0 |
+| k | the five-year shape | fitted (with β in place) so that an untrained average character on 20 sets a week with full gates reaches level 15 at 5 years (Angus: "Five year shape, tunable in settings"). The level-10 time and the per-trait times are then read off the fitted curve. Fitted: k = 0.00991 per week (point R, kept by point S since the anchor runs at full gates; 0.00874 under the draft's β 2.5, S_g0 1, flat set cap). The average character then reaches level 10 in 0.89 years and gains 7.8, 3.5, 1.7, 0.9 and 0.6 kg in years 1-5, against McDonald scaled ×0.75 (S1.15) of 6.8–8.5, 3.4–4.1, 1.7–2.0 and 0.7–1.0 |
 | f_p | 0 at 0.4 g/kg/day, 0.5 at 0.8, 0.92 at 1.3, 1.0 at 1.6 and up; linear between | Morton 2018 (S0591), Tagawa 2020's 1.3 g/kg knee, the RDA (S0509). No per-meal cap: Trommelen 2023 (100 g against 25 g) |
-| f_e | 0 at E₀(s, p) or deeper, linear to 0.85 at balance, 1.0 at a +5 % surplus; E₀(s, p) = −800 · (1 + 1.4 · (1 − s)² · clip((p − 1.6)/0.8, 0, 1)) kcal/day | Murphy & Koehler 2022 (S1.28: −500 stops net lean gain in mostly sedentary novices, met here as growth minus the § 5.1 loss); Longland 2016 (S0064) for the protein deepening; Garthe 2011 (PMID 21558571) for trained recomposition in a moderate deficit; Helms 2023 (S1.29) and Garthe 2013 (S1.30): a larger surplus adds fat only. Fitted, point R of the 2026-10-14 review |
+| f_e | 0 at E₀(s, p) or deeper; linear to f_bal(s) at balance; linear from there to 1.0 at a surplus of surplus_full = 10 % of TDEE, at every status. f_bal(s) = 1 − 0.5 · s: 1.0 untrained, 0.75 at s = 0.5, 0.5 at the cap. E₀(s, p) = −650 · (1 − 0.5 · s) · (1 + 6.0 · (1 − s)² · clip((p − 1.6)/0.8, 0, 1)) kcal/day: −650 untrained and −325 at the cap before the protein term | The status-dependent gate of the advanced-recomposition harvest (§ 9 of its report), adopted by Angus on 2026-10-14 and refitted as point S (§ 5.2). **f_bal:** Helms 2023 (S1.29, S3.16: maintenance, +5 % and +15 % gave no different muscle thickness at an intermediate level); Moro 2016 (S3.1: DXA FFM +0.64 and +0.48 kg, both n.s., over 8 weeks at 100 % of needs near FFMI 23); Isola 2025 (S3.2: physique controls without systematic change over about 46 weeks); Ahtiainen 2003 (S1.11). f_bal(1) is weakly identified, since anything from 0.3 to 1 fits; 0.5 follows Hatamoto's energy-accretion hint (S0606). **surplus_full:** Helms 2023, Garthe 2013 (S1.30), Gavanda 2026 (S3.20) and Iraki 2019 (S1.32): beyond about +10 %, a surplus adds fat only, at every status. **E₀:** Murphy & Koehler 2022 (S1.28: −500 stops net lean gain in mostly sedentary novices, met here as growth minus the § 5.1 loss); Garthe 2011 (S3.12: a −19 % deficit allowed a DXA lean gain, −30 % did not); Moro 2016's time-restricted arm (S3.1: fat 10.90 to 9.28 kg with FFM held; the deficit of about −250 kcal/day is an inference from that loss); Roth 2023 (S3.11); Longland 2016 (S0064) for the protein deepening |
 
 - **Signal, protein and energy multiply.** Without the signal, protein and a surplus build no muscle. Overfeeding's lean share goes to a new labile-lean field `lx` (§ 5.1), which counts in weight but not in the level or REE (Bray 2012, S0605; whether it is muscle is open, H.67).
 - **Protein** is the closed day's grams per kg from the existing `p7` ring.
@@ -111,9 +112,40 @@ dF/dt  = k · (F_c − F) · G · f_p · f_e · f_alc              per week, app
 The growth law above replaces `K.partition.leanGain`, `K.partition.headroom`, `G0`, `LM_CAP_RATIO`, `gEnergy` and the `DEFICIT_HALF*` constants. The partition keeps its role as the only writer of `fm`, `lm` and the new `lx`, once per closed day:
 
 - **Surplus (E ≥ 0).** The day's growth g is paid first at RHO_LEAN. The remainder R splits with the lean weight share x = forbes(M) · clip((p − 0.8)/0.8, 0, 1) · (1 − T) into `lx` (capped at 0.05 · F) and fat. forbes(M) = 10.4/(10.4 + M) (Forbes, S0054, S0055; coefficient open, S1056), and T = min(1, S/10) (H.47). If g exceeds the surplus, fat pays the difference. At balance, `lx` decays toward 0 on a 28-day time constant.
-- **Deficit (E < 0).** The lean weight share is forbes(M) · prot, with prot = clip(1 − 0.35 · T − 0.6 · clip((p − 0.8)/1.2, 0, 1), 0.10, 1) (Mettler 2010, PMID 19927027; Pasiakos 2013, PMID 23739654; Weinheimer 2010, S0072; Heymsfield 2014, PMID 24447775; Helms 2014, S0599; Cava 2017, S0609). Fat pays the rest up to Alpert's ceiling (S0056); the overflow is split by prot as the kernel does today. `lx` pays any lean loss first. The growth g still runs (recomposition) and is funded from fat.
-- **Trained characters and the surplus.** By default a trained character grows at maintenance as the evidence shows (Helms 2023, S1.29; Garthe 2013, S1.30; Antonio 2015, PMID 26500462; Barakat 2020, doi:10.1519/SSC.0000000000000584). `NR.StrengthTrainedNeedsSurplus` (0 by default) scales the gate at balance by (1 − value · s): at 1, a trained character gains little at maintenance and nets lean only through surplus and cut cycles, Angus's premise. No trial compares bulk-cut cycles with maintenance over a year; the bulk-cut recommendation is practitioner consensus (Iraki 2019, S1.32).
+- **Deficit (E < 0).** The lean weight share is forbes(M) · prot, with prot = clip(1 − 0.35 · T − 0.6 · clip((p − 0.8)/0.8, 0, 1), 0.10, 1) (Mettler 2010, PMID 19927027; Pasiakos 2013, PMID 23739654; Weinheimer 2010, S0072; Heymsfield 2014, PMID 24447775; Helms 2014, S0599; Cava 2017, S0609). Fat pays the rest up to Alpert's ceiling (S0056); the overflow is split by prot as the kernel does today. `lx` pays any lean loss first. The growth g still runs (recomposition) and is funded from fat. There is no separate training-age term: the larger lean loss of male physique athletes in contest preparation (S3.3, S3.4, S3.5) reads as a leanness effect, which the Forbes share and Alpert's ceiling already carry.
+- **Trained characters and the surplus.** By default the gate at balance falls with status, f_bal(s) = 1 − 0.5 · s, and a +10 % surplus opens it fully at every status (§ 5). Most of the slowing near the cap comes from the headroom term k · (F_c − F), not from energy: at s = 0.9, a year at maintenance on 20 sets gains +0.15 kg (point S). No trial in natural lifters near their ceiling compares a surplus with maintenance by a direct muscle measure (S3.29, open). In intermediates (Helms 2023, S1.29, S3.16) and elite non-lifters (Garthe 2013, S1.30), the surplus added fat, not detectably more muscle. Antonio 2015's +1.5 kg (H.43, S3.21) and Garthe 2011's +2.1 % (S3.12) sit inside DXA's glycogen and water band (Bone 2017, S3.22). `NR.StrengthTrainedNeedsSurplus` (0 by default) further scales the gate at balance by (1 − value · s): at 1, a trained character gains little at maintenance and nets lean only through surplus and cut cycles, Angus's stricter premise. No trial compares bulk-cut cycles with maintenance over a year; the bulk-cut recommendation is practitioner consensus (Iraki 2019, S1.32).
 - **Not modelled.** Protein's extra energy cost (Antonio 2014, PMID 24834017: no fat gain on +800 kcal of protein) belongs to the energy model, not to the partition.
+
+### 5.2 The fit (point S)
+
+Point S refits point R's model with the status-dependent gate. The method is a grouped coordinate search over growth, energy, deficit and memory grids, with Angus's anchor as a hard constraint: k is re-solved for every growth candidate so that the average character reaches level 15 in 5 years on 20 sets at full gates. The registry is R's 33 oracles plus 15 new ones:
+- Moro 2016 (S3.1) at maintenance and in its time-restricted arm;
+- Isola 2025's controls (S3.2);
+- Helms 2023's +5 % and +15 % arms against maintenance (S1.29, S3.16);
+- the report's four § 9 checks at s = 0.9, F near F_c;
+- a degenerate check at s = 0.9;
+- Buechel 2026 (S3.4) and Roth 2023 (S3.11), report only.
+
+Every new weighted oracle passes. At s = 0.9 over 8 weeks:
+- balance gives ΔF = 0.04 % with fat steady;
+- +10 % gives 1.8 × the balance gain, 0.07 % of F, with 97 % of the weight gain as fat;
+- −500 kcal/day at 3.5 kg of fat gives ΔF = −1.3 kg.
+
+The growth constants come back unchanged from R (β 3.0, S_g0 0.5, S_max1 12, k 0.00991). The trajectories, the regain and the detraining runs therefore match R's.
+
+**Fitted gate.**
+- E₀ = −650 and a_nov = 6.0. The free fits run both to their grid bounds (−1000, 8.0), pulled by Garthe 2011's slow arm alone (S3.12: +2.1 % DXA lean, inside the glycogen and water band, S3.22). Without that oracle, moving past (−650, 6.0) gains under 0.004 of score.
+- E0_drop 0.5, f_bal(0) 1.0, f_bal drop 0.5 and surplus_full 0.10 are Angus's values. The fit is flat on E0_drop and surplus_full, f_bal drop 0.5 is the best value without Garthe's slow arm, and f_bal(0) sits at its physical bound of 1.
+- The deficit side refits to p_hi 1.6 g/kg, at its grid bound; wT 0.35, wP 0.6 and the floor 0.10 are unchanged.
+
+**Named conflicts.**
+- Garthe 2011's slow arm (0.28 kg against 0.8–1.8) cannot be met at a status-dependent gate together with Murphy & Koehler (S1.28). Meeting it needs E₀ near −1000 with no status drop, which is the free fit, outside the report's bounds.
+- Garthe 2013's fat difference (3.3 kg against 0.8–2.5) belongs to the energy side.
+- Longland's high-protein arm (+0.52 kg against 0.6–1.8) misses narrowly.
+- Buechel's contest-prep FFM loss (−0.56 kg against −0.9 to −2.6; mixed sex, report only) is under-read: the leanness penalty is mild.
+- The growth misses H.8 and Aube 2022 are R's.
+
+The record is in `refit-report.md`.
 
 ## 6. Maintenance, detraining and regain
 
@@ -122,7 +154,7 @@ The growth law above replaces `K.partition.leanGain`, `K.partition.headroom`, `G
 - **Detraining:** `dF/dt = −λ(s) · (F − F₀) · (1 − S/S_m)`, with λ(s) = ln 2 / (6 weeks · (1 + 2s)): 6 weeks for a novice (Räntilä 2025, H.51: 4.9–9.2 weeks), 18 weeks at the cap. The status term is a game choice resting on S1.24 (loss follows the build's time course); no study measures advanced detraining (H.64, H.68). It acts only while F > F₀, and is integrated exactly per closed day (F − F₀ multiplied by exp(−λ·Δt)), so no time scale overshoots F₀.
 - **Starvation** takes F through the existing partition deficit arm, independent of training.
 - **Remembered peak P:** P = max(P, F) at each day close. P decays toward F with a 2-year half-life (Rahmati 2022 meta and Serrano 2025: human myonuclei are not permanent; the memory is epigenetic, Seaborne 2018).
-- **Regain:** while F < P, dF/dt = max(the § 5 growth, λ_r · (P − F) · min(1, G) · f_p · f_e), with λ_r = ln 2 / 6 weeks. The max form reproduces Räntilä's equal second block (0.96 of the first under point R; the sum form overshoots and is not used). Retraining is at least as fast as naive training (Räntilä 2025 equal blocks; Seaborne 2018 1.6×, n = 7). Its use for advanced lifters is a game choice (H.68).
+- **Regain:** while F < P, dF/dt = max(the § 5 growth, λ_r · (P − F) · min(1, G) · f_p · f_e), with λ_r = ln 2 / 6 weeks. The max form reproduces Räntilä's equal second block (0.94 of the first under point S; the sum form overshoots and is not used). Retraining is at least as fast as naive training (Räntilä 2025 equal blocks; Seaborne 2018 1.6×, n = 7). Its use for advanced lifters is a game choice (H.68).
 
 - **Unidentified constants (m7):** the maintenance share m = 1/3 (Bickel H.13; H.64 open), λ_r = 6 weeks (H.52, H.53 between) and the labile-lean cap 0.05·F (Bray's 2.9 kg, about 5 % of FFM) rest on no oracle, and the stability probe reads flat on them. They are game choices.
 
@@ -145,7 +177,7 @@ Three axes are read at day close, from the record:
 
 | Axis | Measure | Trait switches (vanilla traits, for the engine-only penalties) |
 |---|---|---|
-| Fat load | fat-mass index (fat kg / H²), Kelly 2009 (PMID 19753111) cuts through the effective sex (§ 13): male overweight > 6, obese ≥ 9 | Overweight above 6, Obese at 9 or more |
+| Fat load | fat-mass index (fat kg / H²), Kelly 2009 (PMID 19753111) cuts through the effective sex (§ 13): male (White subjects' table) overweight above 6, obese above 9 kg/m² (S4.9) | Overweight above 6, Obese above 9 |
 | Muscle | the lean level | Weak, Feeble, Stout, Strong through vanilla's own band swap (§ 7) |
 | Thinness | BMI at H, from F + fat | Underweight below 18.5, Very Underweight below 17, Emaciated below 16 (the WHO thinness grades) |
 
@@ -214,7 +246,7 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 | `NR.StrengthIncidentalWeight` (new) | double | 0 | 1 | 0.35 | H.1 fractional, H.11, H.12; game choice; C6 |
 | `NR.StrengthCapLevel` | double | 12 | 20 | 16.5 | ruling; S1.1, m3 |
 | `NR.StrengthTraitCapShare` | double | 0 | 1 | 0.5 | Angus |
-| `NR.StrengthRate` (a multiplier on the fitted k = 0.00991/wk) | double | 0.25 | 4 | 1.0 | fit R; anchor |
+| `NR.StrengthRate` (a multiplier on the fitted k = 0.00991/wk) | double | 0.25 | 4 | 1.0 | fit R, kept by S; anchor |
 | `NR.StrengthThreshold` (S_g0, sets/wk) | double | 0.25 | 1.0 | 0.5 | fit (bound reported); H.1, H.8; guarded, M6 |
 | `NR.StrengthThresholdRise` (β) | double | 0 | 4 | 3.0 | fit; H.26, H.27, H.17, H.24 (against H.5, H.25); guarded |
 | S_ref | fixed | — | — | 12 | H.1 |
@@ -222,16 +254,18 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 | `NR.StrengthTrainedSetCap` (S_max1, new) | double | 8 | 30 | 12 | fit (bound reported); H.3, H.5, H.6 |
 | f_p knots | fixed | — | — | 0 @ 0.4, 0.5 @ 0.8, 0.92 @ 1.3, 1.0 @ 1.6 g/kg | S0591, S0592, H.40, S0509 |
 | `NR.StrengthProteinFull` (scales the knots) | double | 1.0 | 3.0 | 1.6 | S0591, S0592 |
-| `NR.StrengthDeficitZero` (E₀) | double | −2000 | −200 | −800 | fit R (C −1000 at bound); S1.28, S0064, Garthe 2011 |
-| `NR.StrengthNoviceDeficitDepth` (a_nov, new) | double | 0 | 3 | 1.4 | fit R (C 2.8 at bound); S0064 |
-| `NR.StrengthBalanceGate` (f_bal, new) | double | 0.5 | 1.0 | 0.85 | fit; S1.29, S1.30 |
-| surplus_full | fixed | — | — | +5 % of TDEE | S1.29 (5 % = 15 % for muscle); flat in the fit |
+| `NR.StrengthDeficitZero` (E₀ at s = 0, kcal/day) | double | −2000 | −200 | −650 | fit S (the free fits run to −1000, pulled by Garthe 2011's slow arm alone); S1.28, S0064, S3.12, S3.1 |
+| `NR.StrengthDeficitZeroStatusDrop` (new; E₀(s) = E₀ · (1 − value · s)) | double | 0 | 0.9 | 0.5 | Angus's gate (−325 at the cap); flat in the fit; S3.1 |
+| `NR.StrengthNoviceDeficitDepth` (a_nov, new) | double | 0 | 10 | 6.0 | fit S (the fits run to the grid bound 8, pulled by Garthe 2011's slow arm; without it, 8 gains under 0.004 of score); S0064 |
+| `NR.StrengthBalanceGate` (f_bal at s = 0, new) | double | 0.5 | 1.0 | 1.0 | fit S, at its physical bound (the gate never exceeds 1); S1.29, S3.16 |
+| `NR.StrengthBalanceGateStatusDrop` (new; f_bal(s) = f_bal · (1 − value · s)) | double | 0 | 0.7 | 0.5 | Angus's gate; fit S (the best value without Garthe 2011's slow arm); S3.1, S3.2, S1.11, S0606 |
+| `NR.StrengthSurplusFull` (new; the surplus, as a share of TDEE, that opens the gate fully) | double | 0.02 | 0.30 | 0.10 | Angus's gate; flat in the fit (0.05–0.15 within 0.02 of score); S1.29, S3.16, S1.30, S3.20, S1.32 |
 | `NR.StrengthTrainedNeedsSurplus` (new) | double | 0 | 1 | 0 | evidence default; 1 = Angus's premise (item 10) |
 | forbes c | fixed | — | — | 10.4 kg | S0054, S0055 (S1056 open) |
 | `NR.LeanLossTrainingProtect` (wT, new) | double | 0 | 0.9 | 0.35 | fit; S0072, H.47, S0609 |
-| `NR.LeanLossProteinProtect` (wP, new) | double | 0 | 0.9 | 0.6 | fit R (C 0.75 at bound); Mettler 2010, Pasiakos 2013, S0599 |
-| prot floor | fixed | — | — | 0.10 | fit R (C 0.05 at bound) |
-| protein full protection p_hi | fixed | — | — | 2.0 g/kg | fit R; S0599 (2.3–3.1 g/kg FFM), S0064 |
+| `NR.LeanLossProteinProtect` (wP, new) | double | 0 | 0.9 | 0.6 | fit S (0.75 scores the same); Mettler 2010, Pasiakos 2013, S0599 |
+| `NR.LeanLossProtectFloor` (the prot floor, new) | double | 0 | 0.5 | 0.10 | fit S (0.05 scores 0.085 lower, all but 0.004 of it through Garthe 2011's slow arm) |
+| `NR.LeanLossProteinFull` (p_hi, g/kg/day of full protein protection, new) | double | 1.2 | 3.0 | 1.6 | fit S, at its grid bound (1.6–2.8; 2.0 costs 0.14 of score); S0599 (2.3–3.1 g/kg FFM), S0064 |
 | labile-lean cap / decay | fixed | — | — | 0.05·F / 28 d | S0605 (game choice, H.67) |
 | `NR.StrengthMaintainShare` | double | 0.1 | 1.0 | 0.333 | H.13, S0616 (unidentified; H.64 open) |
 | `NR.StrengthGraceDays` | integer | 0 | 60 | 14 | S1.18, S1.26, H.16 |
@@ -260,6 +294,8 @@ Pointless or dangerous options, kept out:
 - **Creation.** Ruling: 8 traits offered, Emaciated excluded, and the picks are re-validated on the server — Angus — cost if wrong: validation code that a live check must prove sees the whole pick list.
 - **Peak memory.** Ruling: P decays with a 2-year half-life, not permanently — Rahmati 2022 and Serrano 2025 overturn the first harvest's "might be permanent" (S1.21) — cost if wrong: regain after a multi-year break is slower than players expect.
 - **No sex-specific rules by default.** Ruling: one mod-wide option, `NR.SexSpecific` (default off); when it is off every character uses the male values everywhere the mod indexes by sex (§ 13) — Angus (2026-10-14): "I dont want gender specific rules, base game treats them equally", then "we can flag this as an option however, just default it to off", then "Lets just use male values for females if its disabled" — cost if wrong: by default a female character's requirements and body bands are the male studies' values (for example the iron requirement and the fat bands).
+- **Energy gate.** Ruling: the growth gate's energy factor depends on training status, with f_bal(s) = 1 − 0.5 · s at balance, full at +10 % of TDEE at every status, and zero at E₀(s) = −650 · (1 − 0.5 · s) times the protein term (point S). The deficit side keeps the Forbes share and Alpert's ceiling with no training-age term, and the stricter premise stays as `NR.StrengthTrainedNeedsSurplus`, default 0 — Angus (2026-10-14): "Adopt the training-status-dependent energy gate … as the default, and refit the constants", the values being "starting values, not fixed", fitted within the report's bounds — cost if wrong: f_bal at the cap is weakly identified (0.3 to 1 all fit), and no trial compares a surplus with maintenance in near-ceiling naturals (S3.29), so an advanced character's gain at maintenance may be off by up to a factor of two either way; the headroom term keeps either inside DXA noise.
+- **Creation costs.** Ruling: Overweight and Underweight take `Cost = -6`, and Obese and Very Underweight `Cost = -10`, in vanilla's sign, where a negative cost gives points as Weak's `-10` does — Angus (2026-10-14): "Overweight and Underweight give 6 points; Obese and Very Underweight give 10" — cost if wrong: a fat or thin start becomes a cheap point source if its play penalties are mild; the costs are script values that a later plan can retune.
 
 ## 12. Testing and evidence
 
@@ -268,6 +304,7 @@ Each check has a mutation pass that shows it fails:
 - the curve: on 20 sets with full gates, an average character reaches level 15 at 5 years; Weak never reaches 15; Feeble is below the average at every year; Stout and Strong reach 15 sooner;
 - a low weekly volume stalls where S_g(s) = S;
 - protein or a surplus without the signal gives ΔF = 0;
+- the status-dependent gate at s = 0.9 with F near F_c, over 8 weeks: balance gives ΔF < 0.5 %; +10 % gives no more than twice the balance gain, under 1 %, mostly as fat; −500 kcal/day at contest fat gives ΔF ≤ 0;
 - detraining has a half-life of 6 weeks after a 14-day grace;
 - retraining a novice takes no longer than the first block (Räntilä);
 - the creation table in § 3.2, cell by cell;
