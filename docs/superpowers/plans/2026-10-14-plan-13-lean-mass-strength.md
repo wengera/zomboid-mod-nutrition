@@ -106,6 +106,7 @@ The second block of `K.strength.DEFAULTS`, under the same one-place rule (ruling
 | `N0` | `{ STRONG = 1.14, STOUT = 1.07, none = 1.0, FEEBLE = 0.915, WEAK = 0.82 }` | N0 | fixed |
 | `startLevel` | `{ STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }` | the vanilla start levels (Weak's 1 the floor) | fixed |
 | `traitShare` | 0.5 | the share of a muscle trait's start lean difference applied to the set point and the cap | `NR.StrengthTraitShare` |
+| `ffmiNatural` | 25.0 kg/m² normalised to 1.80 m | the natural FFMI limit (Kouri 1995, S1915; ruling 13-47); each Fc is clamped at `ffmiNaturalRaw · H²` with `ffmiNaturalRaw = ffmiNatural − 6.1 · (1.8 − K.HEIGHT_M)` = 24.39 and 70.49 kg; the coefficient 6.1 is a game choice, Kouri 1995's normalisation (not yet a settled row) | fixed |
 | `Tmax` | 1.10 | T_max | `NR.StrengthNeuralMax` |
 | `tauUpWk` | 3.0 weeks | τ_up | `NR.StrengthNeuralRiseWeeks` |
 | `tauDownWk` | 12.0 weeks | τ_down | `NR.StrengthNeuralDecayWeeks` |
@@ -159,11 +160,12 @@ The second block of `K.strength.DEFAULTS`, under the same one-place rule (ruling
 - **13-39 (F19, the order).** Ruling: the order is 0 → 1 → (2, 2b, 3, 4) → 5; Tasks 0 and 1 may overlap mod-lane edits because their profiles load no `mod/` file (a reading of § 5's reason: the boot loads the whole tree); Task 5 waits for Tasks 1, 2 and 2b; a close-wave change to a code path a live run measured is re-smoked or named as a skew note — cost if wrong: Task 5 waits on two sessions.
 - **13-40 (F20, Task 2's lane).** Ruling: Task 2 runs in a worktree and reaches `main` by the controller's cherry-pick (§ 6's allowed form) — a pure-Python oracle is a pure-kernel task — cost if wrong: none.
 - **13-41 (F21, the fit's code).** Ruling: Task 2 consumes `model.py` and `oracles.py` from `docs/superpowers/research/2026-10-14-strength-redesign/refit/` (tracked at 5987ac7a), never from a scratchpad — the fit's record holds its code — cost if wrong: none.
-- **13-42 (F22, BeyondTen at levels 10 to 15).** Ruling: with BeyondTen loaded and native 10, every write sets the stored XP to `GetTotalMasteryCost(min(floor(L), 15)) + frac · (cost(next) − cost(floor(L)))`, which reads 0 + frac · cost(11) for L in [10, 11) and writes cost(15) for L >= 15; the body is the only source of the level — BeyondTen banks every grant above the parked level-9 total as mastery (#2850) and clamps at 15, while Strong's cap reads shown level 14.23 at the defaults (spec § 7), so the clamp at 15 binds only on a tuned server — cost if wrong: none.
+- **13-42 (F22, BeyondTen at levels 10 to 15).** Ruling: with BeyondTen loaded and native 10, every write sets the stored XP to `GetTotalMasteryCost(min(floor(L), 15)) + frac · (cost(next) − cost(floor(L)))`, which reads 0 + frac · cost(11) for L in [10, 11) and writes cost(15) for L >= 15; the body is the only source of the level — BeyondTen banks every grant above the parked level-9 total as mastery (#2850) and clamps at 15, while Strong's cap reads shown level 13.42 at the defaults (spec § 7; 14.23 before ruling 13-47's clamp), so the clamp at 15 binds only on a tuned server — cost if wrong: none.
 - **13-43 (F23, the guard's order).** Ruling: Task 19 grades behaviour (a forced ten-minute rust pass on a parked level-10 Strength leaves level 10) and records which wrapper is outermost as a reading; ruling 13-10's "chained after BeyondTen's own wrapper" holds only if the mods load in that order (BeyondTen installs at `OnServerStarted`, as the mod does) — the behaviour is the requirement — cost if wrong: none.
 - **13-44 (F32, the creation profile).** Ruling: `x43-creation.toml` sets `[sandbox] Nutrition = false` and `DayLength = 1`, like Tasks 19, 20 and 22 (§ 5, ruling T18-1) — cost if wrong: none.
 - **13-45 (the strength-linear level).** Ruling: the shown level is `K.strength.level(F, N0, T, P)` = 5 + 5 · (S − 1)/(R − 1), with S = ((F − Fnm)/M5)^b · N0 · T; the growth law keeps its linear FFMI coordinate as `K.strength.bioLevel` and `fOfBio` (the fit, the anchor, `capLevel` and every `s`); `M5 = fOfBio(5) − Fnm`, so the untrained average is level 5 exactly; R is `K.strength.R(yearsTo10)`, run on `DEFAULTS`' growth constants and `Tmax`, never a server's other options, and recomputed by `params` only when `NR.StrengthYearsToLevel10` changes; T is a body field advanced at the day close by `K.strength.neural` inside `K.strength.day`, with its own grace counter `Tgrace` counting days below `m · Wsat`; the perk floors `L + 1e-9`; the per-trait values and the verified table are Task 2b's `strength_level`, pinned — Angus (2026-10-14): the level is linear in general strength all the way, level 10 is the general strength of 4 years of perfect training (an option, default 4), strength combines muscle, a trained neural factor and an innate factor, and every Strength-XP source counts as one general full-body workout; the neural and innate harvests (S2090–S2141, S2142–S2172) size the factors — cost if wrong: R taken from the defaults means a server that changes `NR.StrengthRate` reaches level 10 in other than Y years (by design, so the rate option keeps its meaning); a literal M5 of 25 would move R by 0.001.
 - **13-46 (the trait starts and creation anti-stacking).** Ruling: `K.body.create` builds a muscle pick at its vanilla start level (Weak 1, Feeble 3, none 5, Stout 7, Strong 9) through N0 and lean, F solving `level(F, N0, 1) = startLevel`; F0 and Fc move by `traitShare` of `F − fOfBio(5)`; the peak starts at `max(F, F0)`, so Feeble's and Weak's deconditioned half comes back on the regain path; Underweight and Very Underweight exclude Weak and Feeble (`K.body.EXCLUDES`, Task 16's blocks, Task 17's validation); Task 9's pick-set test enumerates every legal set of the 8 body traits for both sexes and asserts that each point-giving body trait makes the created body measurably worse than the same set without it — Angus (2026-10-14): the traits keep their vanilla start levels, half the start's lean difference is the permanent base and the cap moves by the same half, Weak's floor is level 1, and "a floor is acceptable but we need to make sure that at player creation they cant take advantage of the floor by stacking things that give points but dont add downsides, or remove some of the traits" — cost if wrong: two fewer legal combinations; an idle Strong character detrains to level 7.64, Stout's band.
+- **13-47 (the natural cap clamp).** Ruling: every trait's natural cap Fc is clamped at the natural FFMI limit, `Fc = min(Fc5 + traitShare · (F − F5), ffmiNaturalRaw · H²)` with `ffmiNaturalRaw = ffmiNatural − 6.1 · (1.8 − K.HEIGHT_M)` = 24.39, F = 70.49 kg, `ffmiNatural` = 25.0 normalised to 1.80 m (Kouri's limit, S1915) fixed and not an option, in `trait_start` (Task 2b), `K.body.create` (Task 9) and the tests; Strong's cap becomes 13.42 and Stout's 12.36 (from 14.23 and 12.50) and their trajectories in the TABLE are recomputed (24 and 346 days to level 10); none (10.78), Feeble (8.93) and Weak (6.99) are unchanged; the coefficient 6.1 is a game choice, Kouri 1995's normalisation (not yet a settled science row) — the controller (2026-10-14): no natural trait sits above the natural limit — cost if wrong: a server wanting an enhanced Strong character has no option for it.
 
 ## File structure
 | File | Change |
@@ -353,11 +355,11 @@ Spec §§ 2, 3.2, 4, 6. The tracked Python reference of the strength model, the 
 - Create `testing/tests/kernel/strength_level.py` and `testing/tests/kernel/test_strength_level.py`.
 
 **Interfaces** (pure Python, no packages; imports `strength_model` only):
-- `LEVEL_MODEL`: the strength-model block under its key names (`b`, `Fnm`, `N0`, `startLevel`, `traitShare`, `Tmax`, `tauUpWk`, `tauDownWk`, `Tgrace_d`, `Wsat`, `yearsTo10`, `perfectS`, `perfectP`, `perfectE`), with `N0` and `startLevel` dicts keyed `STRONG`, `STOUT`, `none`, `FEEBLE`, `WEAK`.
+- `LEVEL_MODEL`: the strength-model block under its key names (`b`, `Fnm`, `N0`, `startLevel`, `traitShare`, `ffmiNatural`, `Tmax`, `tauUpWk`, `tauDownWk`, `Tgrace_d`, `Wsat`, `yearsTo10`, `perfectS`, `perfectP`, `perfectE`), with `N0` and `startLevel` dicts keyed `STRONG`, `STOUT`, `none`, `FEEBLE`, `WEAK`.
 - `F5 = strength_model.F_of(5.0)`, `FC5 = strength_model.F_of(16.5)`, `M5 = F5 - LEVEL_MODEL["Fnm"]`.
 - `S_of(F, N0, T)` (0 at or below `Fnm`), `level(F, N0, T, R=None)` and `F_of_level(L, N0, T, R=None)`, where `R=None` reads `R_of(yearsTo10)`, computed once and cached.
 - `R_of(years)`: `strength_model.creation(dict(strength_model.POINT_T))`, then `round(years * 365)` days of `fast_grow(perfectS)`, then `S_of(F, 1.0, Tmax)`.
-- `trait_start(trait, R=None)` → `F, F0, Fc, Pk`: `F = F_of_level(startLevel, N0, 1)`, `F0 = F5 + traitShare · (F − F5)`, `Fc = FC5 + traitShare · (F − F5)`, `Pk = max(F, F0)` (spec § 3.2, ruling 13-46).
+- `trait_start(trait, R=None)` → `F, F0, Fc, Pk`: `F = F_of_level(startLevel, N0, 1)`, `F0 = F5 + traitShare · (F − F5)`, `Fc = min(FC5 + traitShare · (F − F5), FFMI_NATURAL_RAW · H²)` with `FFMI_NATURAL_RAW = ffmiNatural − 6.1 · (1.8 − 1.70)` = 24.39 and the limit 70.4871 kg, `Pk = max(F, F0)` (spec § 3.2, rulings 13-46 and 13-47).
 - `neural_day(T, tgrace, S, ts=1.0)` → `T, tgrace` (spec §§ 4, 6): `tgrace + 1` when `S < POINT_T["m"] · Wsat`, else 0; when `tgrace > Tgrace_d / ts`, `T = 1 + (T − 1) · exp(−ts / (7 · tauDownWk))`; else `T = Tmax − (Tmax − T) · exp(−min(1, S / Wsat) · ts / (7 · tauUpWk))`.
 - `perfect_run(trait, days)` → the shown level after each day of perfect training from creation: a `strength_model.Body` under `dict(POINT_T, exact=True, ts=1.0)` set to `trait_start`'s `F, F0, Fc, Pk` with 13.005 kg of fat, one `day(perfectS, perfectP, perfectE · 2600, 2600)` and one `neural_day` a day from `T = 1`.
 
@@ -370,8 +372,8 @@ Spec §§ 2, 3.2, 4, 6. The tracked Python reference of the strength model, the 
   MARKS = (28, 70, 182, 365, 730, 1460, 3650)
   TABLE = {  # shown level at MARKS under perfect training, and the cap (Fc at Tmax)
       "none":   ((5.91, 6.49, 7.33, 8.25, 9.26, 10.00, 10.51), 10.78),
-      "STOUT":  ((8.02, 8.59, 9.33, 10.14, 11.03, 11.72, 12.23), 12.50),
-      "STRONG": ((10.14, 10.70, 11.34, 12.04, 12.82, 13.45, 13.95), 14.23),
+      "STOUT":  ((8.02, 8.57, 9.28, 10.07, 10.93, 11.60, 12.09), 12.36),
+      "STRONG": ((10.09, 10.59, 11.10, 11.65, 12.26, 12.77, 13.18), 13.42),
       "FEEBLE": ((3.79, 4.37, 5.29, 6.30, 7.39, 8.17, 8.67), 8.93),
       "WEAK":   ((1.85, 2.42, 3.37, 4.41, 5.51, 6.28, 6.76), 6.99),
   }
@@ -386,8 +388,8 @@ Spec §§ 2, 3.2, 4, 6. The tracked Python reference of the strength model, the 
 
   @pytest.mark.parametrize("trait, F, F0, Fc", [
       ("none", 52.020, 52.020, 68.6375),
-      ("STOUT", 56.661, 54.341, 70.958),
-      ("STRONG", 60.857, 56.438, 73.056),
+      ("STOUT", 56.661, 54.341, 70.487),   # clamped (70.958 before ruling 13-47)
+      ("STRONG", 60.857, 56.438, 70.487),  # clamped (73.056 before ruling 13-47)
       ("FEEBLE", 47.296, 49.658, 66.275),
       ("WEAK", 42.115, 47.068, 63.685),
   ])
@@ -692,7 +694,7 @@ Spec § 3.2; ruling 13-46.
 - `K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 12.5 }` (S2056; the default the middle of the male normal 3–6).
 - `K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 }` (the middle of S2057's female bands, labelled game choices; read when `sexIdx == 2`, i.e. `NR.SexSpecific` is on and the character is female; ruling 13-31).
 - `K.body.THIN = { UNDERWEIGHT = { bmi = 18.0, fmi = 1.5 }, VERY_UNDERWEIGHT = { bmi = 16.5, fmi = 1.0 } }` (WHO grades; S1905 for the fat at BMI 18).
-- `K.body.create(muscle, weight, P, sexIdx)` → `spec = { lm, F0, Fc, Pk, N0, fm, fatT, thinT, sexIdx }` (rulings 13-30, 13-31, 13-46): `N0 = P.N0[key]`; `F = K.strength.fOfLevel(P.startLevel[key], N0, 1, P)`; `F5 = fOfBio(5, P)`; `F0 = F5 + P.traitShare * (F - F5)`; `Fc = fOfBio(P.capLevel, P) + P.traitShare * (F - F5)`; `Pk = K.max(F, F0)`; `fm = FAT_FMI[weight or "none"] * H²` for a fat or no weight pick (`FAT_FMI_F` when `sexIdx == 2`); for a thin pick `fm = THIN.fmi * H²` and `lm = K.min(F, THIN.bmi * H² - fm)` (ruling 13-14); else `lm = F`. `fatT` and `thinT` are the rungs of the weight pick: OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2, else 0 (Emaciated is read as 2); `sexIdx` is carried for `new`. `create` builds an excluded pair by the same rules (the creation handler strips one first, Task 17), so the pick-set test can show why it is excluded.
+- `K.body.create(muscle, weight, P, sexIdx)` → `spec = { lm, F0, Fc, Pk, N0, fm, fatT, thinT, sexIdx }` (rulings 13-30, 13-31, 13-46): `N0 = P.N0[key]`; `F = K.strength.fOfLevel(P.startLevel[key], N0, 1, P)`; `F5 = fOfBio(5, P)`; `F0 = F5 + P.traitShare * (F - F5)`; `Fc = K.min(fOfBio(P.capLevel, P) + P.traitShare * (F - F5), P.ffmiNaturalRaw * H²)` with `P.ffmiNaturalRaw = P.ffmiNatural − 6.1 · (1.8 − K.HEIGHT_M)` (ruling 13-47); `Pk = K.max(F, F0)`; `fm = FAT_FMI[weight or "none"] * H²` for a fat or no weight pick (`FAT_FMI_F` when `sexIdx == 2`); for a thin pick `fm = THIN.fmi * H²` and `lm = K.min(F, THIN.bmi * H² - fm)` (ruling 13-14); else `lm = F`. `fatT` and `thinT` are the rungs of the weight pick: OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2, else 0 (Emaciated is read as 2); `sexIdx` is carried for `new`. `create` builds an excluded pair by the same rules (the creation handler strips one first, Task 17), so the pick-set test can show why it is excluded.
 - `K.body.new(spec, sex, ageH)` replaces today's `new(w, sex, build, l0, traitCarry, r, ageH)`: lays `lm, F0, Fc, Pk, N0, fm, lx = 0, grace = 0, sigDay = 0, sig7 = {0 x7}, T = 1, Tgrace = 0, fatT, thinT` copied from `spec` (`create` returns them), `band` from `K.traits.axes(body, spec.sexIdx)` once Task 10 lands (ruling 13-30), `fmRef = fm`, `lm0dis = lm`, `sex`, `bornAge`, `wday`, the rings (`mass7` at `lm + lx + fm`), the window, and every field today's `new` lays that survives Task 12's removals. Task 12 switches the callers; until then `new` keeps its old name and this one is written as `K.body.newLean` so both coexist, renamed in Task 12.
 
 - [ ] **Step 1: The failing tests,** against spec § 3.2's table through Task 2b's reference:
@@ -735,7 +737,10 @@ Spec § 3.2; ruling 13-46.
       s = host.call("body.create", muscle, None, D)
       d = D["traitShare"] * (s["lm"] - sl.F5)
       assert abs(s["F0"] - (sl.F5 + d)) < 1e-9
-      assert abs(s["Fc"] - (host.call("strength.fOfBio", D["capLevel"], D) + d)) < 1e-9
+      lim = (D["ffmiNatural"] - 6.1 * (1.8 - 1.70)) * 1.70 ** 2
+      assert abs(s["Fc"] - min(host.call("strength.fOfBio", D["capLevel"], D) + d, lim)) < 1e-9
+      assert s["Fc"] <= lim + 1e-9                      # every trait is at most the natural limit
+      assert (s["Fc"] == lim) == (muscle in ("STRONG", "STOUT"))   # only Strong's and Stout's are clamped
 
   def test_thin_is_depletion_below_the_peak(host):
       D = host.K.strength.DEFAULTS

@@ -72,20 +72,20 @@ bioLevel = 5 + (FFMI − 18.0) / 0.5      one bio level ≈ 1.445 kg of fat-free
 
   - The natural cap (`NR.StrengthCapLevel`, 16.5), the fit's anchor (bio level 15 at 5 years), the levels in §§ 5–6 and § 5.2's record are bio levels. A player never sees one.
   - The kernel names the two scales apart: `K.strength.bioLevel` and `fOfBio` for the growth law, `K.strength.level` and `fOfLevel` for the shown level.
-  - At creation the untrained average is at bio level 5 (FFMI 18.0, F = 52.02 kg). The untrained natural cap is bio level 16.5 (FFMI 23.75), under Kouri's natural limit of 25.0 normalised to 1.80 m, which is 24.37 raw at 1.70 m (S1915).
-  - Strong's cap sits 4.42 kg higher (§ 3.2), at FFMI 25.28 raw: above Kouri's limit, inside the soft limit (S1918: 26.4 % of collegiate football players exceed 25 normalised, and the 97.5th percentile is 28.1).
+  - At creation the untrained average is at bio level 5 (FFMI 18.0, F = 52.02 kg). The untrained natural cap is bio level 16.5 (FFMI 23.75), under Kouri's natural limit of 25.0 normalised to 1.80 m, which is 24.39 raw at 1.70 m (S1915), by Kouri's normalisation FFMI_norm = FFMI + 6.1 · (1.8 − h) (the coefficient 6.1 is a game choice, Kouri 1995's normalisation, not yet a settled science row).
+  - Every trait's natural cap is clamped at that limit: F = 24.39 · 1.70² = 70.49 kg (`ffmiNatural` 25.0 normalised, fixed; ruling 13-47). Stout's and Strong's caps, which would sit 2.32 and 4.42 kg above the untrained cap (70.96 kg and 73.06 kg, FFMI 24.55 and 25.28 raw), are clamped to it; the other three are under it. S1918 (26.4 % of collegiate football players exceed 25 normalised) is why the limit is a clamp and not a wall, but the mod keeps a character inside Kouri's natural limit.
 - **What the scale gives.** Shown levels under perfect training from creation, with T rising from 1 (the growth law's exact daily step, point T; the cap is the level of F_c at T_max):
 
 | Trait | N0 | Start F, kg | Start | 4 wk | 10 wk | 6 mo | 1 yr | 2 yr | 4 yr | 10 yr | Cap |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | none | 1.0 | 52.02 | 5.00 | 5.91 | 6.49 | 7.33 | 8.25 | 9.26 | 10.00 | 10.51 | 10.78 |
-| Stout | 1.07 | 56.66 | 7.00 | 8.02 | 8.59 | 9.33 | 10.14 | 11.03 | 11.72 | 12.23 | 12.50 |
-| Strong | 1.14 | 60.86 | 9.00 | 10.14 | 10.70 | 11.34 | 12.04 | 12.82 | 13.45 | 13.95 | 14.23 |
+| Stout | 1.07 | 56.66 | 7.00 | 8.02 | 8.57 | 9.28 | 10.07 | 10.93 | 11.60 | 12.09 | 12.36 |
+| Strong | 1.14 | 60.86 | 9.00 | 10.09 | 10.59 | 11.10 | 11.65 | 12.26 | 12.77 | 13.18 | 13.42 |
 | Feeble | 0.915 | 47.30 | 3.00 | 3.79 | 4.37 | 5.29 | 6.30 | 7.39 | 8.17 | 8.67 | 8.93 |
 | Weak | 0.82 | 42.12 | 1.00 | 1.85 | 2.42 | 3.37 | 4.41 | 5.51 | 6.28 | 6.76 | 6.99 |
 
   - The early levels are mostly neural: of the average's +0.91 at 4 weeks, T carries about 70 % in log terms (T = 1.0736 of S = 1.103).
-  - Strong passes 10 after 23 days, through T, and Stout after 329 days. The average needs the full 4 years (day 1461).
+  - Strong passes 10 after 24 days, through T, and Stout after 346 days (23 and 329 before ruling 13-47's clamp). The average needs the full 4 years (day 1461).
   - Feeble and Weak never reach 10.
 
 ## 3. Creation
@@ -114,15 +114,15 @@ A server `OnNewGame(player)` handler, guarded by `isServer()`, runs after vanill
 | none | 1.0 | 52.02 kg (level 5; FFMI 18.0) | the start | 68.64 kg (bio 16.5) | the start | FMI 4.5 kg/m² (13.0 kg at 1.70 m; the middle of Kelly 2009's male normal 3–6): 65.0 kg, BMI 22.5, 20 % fat |
 | Feeble | 0.915 | 47.30 kg, −4.72 (level 3; FFMI 16.37) | 49.66 kg (−2.36) | 66.28 kg | F0 | as picked |
 | Weak | 0.82 | 42.12 kg, −9.90 (level 1, the floor; FFMI 14.57) | 47.07 kg (−4.95) | 63.69 kg | F0 | as picked |
-| Stout | 1.07 | 56.66 kg, +4.64 (level 7; FFMI 19.61) | 54.34 kg (+2.32) | 70.96 kg | the start | as picked |
-| Strong | 1.14 | 60.86 kg, +8.84 (level 9; FFMI 21.06) | 56.44 kg (+4.42) | 73.06 kg | the start | as picked |
+| Stout | 1.07 | 56.66 kg, +4.64 (level 7; FFMI 19.61) | 54.34 kg (+2.32) | 70.49 kg (clamped; 70.96 unclamped) | the start | as picked |
+| Strong | 1.14 | 60.86 kg, +8.84 (level 9; FFMI 21.06) | 56.44 kg (+4.42) | 70.49 kg (clamped; 73.06 unclamped) | the start | as picked |
 | Overweight | — | unchanged | unchanged | unchanged | — | FMI 7.5 (21.7 kg): 73.7 kg, BMI 25.5 |
 | Obese | — | unchanged | unchanged | unchanged | — | FMI 12.5 (36.1 kg): 88.2 kg, BMI 30.5 |
 | Underweight | — | lowered to reach BMI 18.0 at FMI 1.5 (47.69 kg of F; 4.3 kg of fat, 8 % fat; Gallagher's male fat at BMI 18 is about 7 %, S1905 equation), never raised | unchanged | unchanged | unchanged | FMI 1.5 |
 | Very Underweight | — | lowered to reach BMI 16.5 at FMI 1.0 (44.80 kg of F; 2.9 kg of fat, 6 % fat), above the 4 % starvation floor, never raised | unchanged | unchanged | unchanged | FMI 1.0 |
 
    - **The start (Angus).** Each muscle trait keeps its vanilla start level: Weak 1, Feeble 3, none 5, Stout 7, Strong 9. The start F solves L(F, N0, T = 1) = the start level (§ 2.1). It is reached through the trait's N0 and its lean: for Strong, N0 carries about a third of the log strength gap, and the lean +8.84 kg rather than the +14.9 kg a lean-only start would need. A changed Y moves R and with it the starts.
-   - **The set point and the cap (Angus).** Half of the start's lean difference from the average is permanent, and the cap moves by the same half: F0 = F5 + 0.5 · (F − F5) and Fc = Fc5 + 0.5 · (F − F5), where F5 is the average's F, Fc5 the untrained cap (bio 16.5) and 0.5 is `NR.StrengthTraitShare`.
+   - **The set point and the cap (Angus).** Half of the start's lean difference from the average is permanent, and the cap moves by the same half: F0 = F5 + 0.5 · (F − F5) and Fc = Fc5 + 0.5 · (F − F5), where F5 is the average's F, Fc5 the untrained cap (bio 16.5) and 0.5 is `NR.StrengthTraitShare`. Then every Fc is clamped at the natural FFMI limit: Fc = min(Fc5 + 0.5 · (F − F5), ffmiNaturalRaw · H²) with ffmiNaturalRaw = ffmiNatural − 6.1 · (1.8 − H) = 24.39 and `ffmiNatural` = 25.0 normalised (Kouri's limit, S1915; fixed, not an option). The limit is 70.49 kg, so Strong's and Stout's caps are clamped (shown cap levels 13.42 and 12.36, down from 14.23 and 12.50) and none, Feeble and Weak (10.78, 8.93, 6.99) are unchanged.
    - **The other half.** Stout's and Strong's other half is trained muscle above F0, which detrains toward F0 without training (§ 6): an idle Strong character settles at level 7.64, in Stout's band, and an idle Stout at 6.32. Feeble's and Weak's other half is deconditioning below F0 and below P, so it comes back on the regain path (§ 6). Weak's permanent base, its F0, reads level 2.23, in Feeble's band.
    - **The peak** starts at max(F, F0).
    - **Year 1.** Weak gains the most absolute lean in year 1 (+10.99 kg against the average's +7.82 and Strong's +5.34 on perfect training), because its headroom to the cap is the largest. Relative gains are similar across people (S0589).
@@ -235,7 +235,7 @@ At day close, and once at creation, the server computes the shown level L = leve
   - the server writes BeyondTen's stored XP for L through `BT.SetStoredXP(player, Perks.Strength, value)`, server-authoritative, with the value from BeyondTen's own `GetTotalMasteryCost`;
   - native XP is never written while the native level is 10, because BeyondTen parks its reservoir there.
 - **floor(L) > 10 without BeyondTen:** the perk shows 10; the extra F still counts in weight and in the panel.
-- **How far above 10.** Under perfect training, the untrained average passes 10 only after Y years and approaches 10.78, its cap with T_max. Stout's cap is 12.50. Strong's is 14.23, which it nears only past 10 years (13.95 at 10 years). BeyondTen therefore holds at most about 4.2 levels, only for Stout and Strong, and only after years of training; ruling 13-42's clamp at 15 is not reached at the defaults.
+- **How far above 10.** Under perfect training, the untrained average passes 10 only after Y years and approaches 10.78, its cap with T_max. Stout's cap is 12.36 and Strong's 13.42 (ruling 13-47 clamps both at the natural FFMI limit; they were 12.50 and 14.23 before it), which Strong approaches only past 10 years (13.18 at 10 years). BeyondTen therefore holds at most about 3.4 levels, only for Stout and Strong, and only after years of training; ruling 13-42's clamp at 15 is not reached at the defaults.
 
 ## 8. Body traits in play
 
@@ -381,6 +381,7 @@ Pointless or dangerous options, kept out:
 - **Neural factor.** Ruling: strength combines muscle, a trained neural factor T and an innate factor N0; T is one general factor from 1 to 1.10, rising with τ_up = 3 weeks and decaying with τ_down = 12 weeks after a 21-day grace, and every Strength-XP source counts as one general full-body workout — Angus (2026-10-14): "a neural skill factor is appropriate but lets make sure that matches studies on what that actually gives us, as the strength as far as a stat needs to be generalizable strength and not specific to a movement which the neural signalling is strongest for", and every Strength-XP source is one general full-body workout with no exercise specificity — cost if wrong: the neural decay of a long-term trainee is unmeasured (S2140), and T_max is an upper bound that includes some intrinsic tension (S2124).
 - **Innate factor.** Ruling: each strength trait carries an innate force per unit muscle N0 (Strong 1.14, Stout 1.07, Feeble 0.915, Weak 0.82), fixed at creation and fully persistent — Angus (2026-10-14): "something like strong can also assume better neural activation depending on how the research supports it"; the innate harvest supports a heritable size-independent factor, mostly intrinsic rather than neural (S2143, S2162) — cost if wrong: the whole-body SD (S2170) and the individual persistence (S2172) are open; across the harvest's range of the regression share Strong's N0 runs from 1.086 to 1.204.
 - **Trait starts.** Ruling: the strength traits keep their vanilla start levels (Weak 1, Feeble 3, none 5, Stout 7, Strong 9), reached through N0 plus lean; half of the start's lean difference is the permanent set point F0, and the natural cap moves by the same half — Angus (2026-10-14): "strong requires 10kg extra ... their base lean mass ... permanently +5kg" — cost if wrong: an idle Strong character detrains to level 7.64, out of the Strong band.
+- **Natural cap.** Ruling: every trait's Fc is clamped at the natural FFMI limit, Kouri's 25.0 normalised to 1.80 m (S1915), which at the fixed 1.70 m is raw FFMI 24.39 (by Kouri's normalisation FFMI_norm = FFMI + 6.1 · (1.8 − h); the coefficient 6.1 is a game choice, not yet a settled row) and F = 70.49 kg; Strong's cap becomes 13.42 and Stout's 12.36 (from 14.23 and 12.50), and none, Feeble and Weak are unchanged; the constant `ffmiNatural` = 25.0 is fixed, not an option — the controller (2026-10-14), as no natural trait should sit above the natural limit — cost if wrong: a server that wants an enhanced Strong character has no option for it, and Strong's and Stout's trajectories flatten near the cap; the cap is no longer the trait-shifted untrained cap for those two.
 - **Weak floor and anti-stacking.** Ruling: Weak's start is level 1, at −9.90 kg of lean (FFMI 14.57) with N0 0.82; Underweight and Very Underweight exclude Weak and Feeble; a creation test enumerates every legal pick set and asserts that each point-giving body trait makes the created body measurably worse — Angus (2026-10-14): "a floor is acceptable but we need to make sure that at player creation they cant take advantage of the floor by stacking things that give points but dont add downsides, or remove some of the traits" — cost if wrong: two fewer legal combinations.
 
 ## 12. Testing and evidence
@@ -399,6 +400,7 @@ Each check has a mutation pass that shows it fails:
 - detraining has a half-life of 6 weeks after a 14-day grace;
 - retraining a novice takes no longer than the first block (Räntilä);
 - the creation table in § 3.2, cell by cell;
+- the natural cap: every trait's Fc is at most ffmiNaturalRaw · H² (70.49 kg), Strong's and Stout's are clamped to it (shown cap levels 13.42 and 12.36) and none, Feeble and Weak are not (10.78, 8.93, 6.99); a mutation without the clamp fails;
 - the trait switches, with their damping;
 - no state changes across an offline gap.
 
