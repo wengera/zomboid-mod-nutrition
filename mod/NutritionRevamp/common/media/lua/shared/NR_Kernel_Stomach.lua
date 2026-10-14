@@ -284,7 +284,7 @@ end
 -- whose liquid lane is not a number (malformed, ruling C9-9), reads 0.
 function K.stomach.recordFill(record)
     local f = record.stomachFill
-    if type(f) == "number" and f - f == 0 then
+    if K.finite(f) then
         return f
     end
     local s = record.stomach
@@ -292,7 +292,7 @@ function K.stomach.recordFill(record)
         return 0
     end
     f = K.stomach.fill(s)
-    if f - f ~= 0 then
+    if not K.finite(f) then
         return 0
     end
     return f
@@ -323,7 +323,7 @@ function K.stomach.recordFoodFill(record)
         return 0
     end
     local f = K.stomach.foodFill(s)
-    if f - f ~= 0 then
+    if not K.finite(f) then
         return 0
     end
     return f

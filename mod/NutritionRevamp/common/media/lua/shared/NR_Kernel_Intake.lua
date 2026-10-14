@@ -133,7 +133,7 @@ end
 -- already: it takes frac and no instance scale.
 function K.intake.assemble(b, rawAfter, lookup, thirstAfter, templates, inputs, trace)
     local frac, share = K.intake.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter, b.scriptThirst)
-    if not K.vector.finite(share) or share <= 0 or not K.vector.finite(frac) or frac <= 0 then
+    if not K.finite(share) or share <= 0 or not K.finite(frac) or frac <= 0 then
         return nil, nil, {}, share, frac, trace
     end
     local extra = b.extraTypes or {}

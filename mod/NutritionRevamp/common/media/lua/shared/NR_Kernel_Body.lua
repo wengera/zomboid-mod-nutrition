@@ -27,6 +27,9 @@ K.body.BUILD_OFFSET.unfit = 0.04 -- S1051 design-phase-v1: the band-anchored spl
 K.body.BUILD_OFFSET.strong = -0.02 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
 K.body.BUILD_OFFSET.stout = -0.01 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
 
+-- The length of the seven-day rings (eb7, mass7, p7, bandWeek; slot 1 the oldest, the last yesterday).
+K.body.WEEK_N = 7
+
 -- The build flag names, walked in order by split (a numeric `for` over the kernel's own list).
 K.body.BUILD_KEYS = { "athletic", "fit", "outOfShape", "unfit", "strong", "stout" }
 
@@ -34,22 +37,21 @@ K.body.BUILD_KEYS = { "athletic", "fit", "outOfShape", "unfit", "strong", "stout
 K.body.W_MIN = 35 -- design-phase-v1 game choice: a sanity clamp on the read weight, no row
 K.body.W_MAX = 200 -- design-phase-v1 game choice: a sanity clamp on the read weight, no row
 
--- The piecewise-linear fat fraction at weight w for sex (1 male, 2 female), flat beyond the end
--- anchors. Each segment whose lower anchor w exceeds overwrites the result with its own reading at
--- min(w, upper anchor), so the last such segment wins and w past the top anchor reads the top value.
+-- The same table as K.interp's knots, by sex (index 1 male, 2 female), built once at load.
+K.body.KNOTS = { {}, {} }
+for i = 1, #K.body.ANCHORS_W do
+    K.body.KNOTS[1][i] = { K.body.ANCHORS_W[i], K.body.BF_MALE[i] }
+    K.body.KNOTS[2][i] = { K.body.ANCHORS_W[i], K.body.BF_FEMALE[i] }
+end
+
+-- The piecewise-linear fat fraction at weight w for sex (2 female, any other male), flat beyond the end
+-- anchors (K.interp).
 function K.body.interp(w, sex)
-    local xs = K.body.ANCHORS_W
-    local ys = K.body.BF_MALE
+    local kn = K.body.KNOTS[1]
     if sex == 2 then
-        ys = K.body.BF_FEMALE
+        kn = K.body.KNOTS[2]
     end
-    local bf = ys[1]
-    for i = 2, #xs do
-        if w > xs[i - 1] then
-            bf = ys[i - 1] + (ys[i] - ys[i - 1]) * (K.min(w, xs[i]) - xs[i - 1]) / (xs[i] - xs[i - 1])
-        end
-    end
-    return bf
+    return K.interp(kn, w)
 end
 
 -- Split weight w into fat mass, lean mass and the fat fraction: w clamped to [W_MIN, W_MAX]; the
@@ -183,7 +185,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.mass7 = {}
     body.bandWeek = {}
     body.p7 = {}
-    for i = 1, 7 do
+    for i = 1, K.body.WEEK_N do
         body.eb7[i] = 0
         body.mass7[i] = wc
         body.bandWeek[i] = { 0, 0 }
@@ -200,7 +202,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.nPeak = 0
     body.tPeakD = day
     body.nHist = {}
-    for i = 1, 14 do
+    for i = 1, K.strength.MEM_HOLD_DAYS do
         body.nHist[i] = 0
     end
     body.cumDef = 0
@@ -312,7 +314,7 @@ function K.body.trailRingSum(ring, cur)
     local z = 0
     for i = 1, K.body.TRAIL_N do
         local x = ring[i]
-        if x - x ~= 0 then
+        if not K.finite(x) then
             x = 0
             ring[i] = 0
             z = z + 1

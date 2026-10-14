@@ -241,7 +241,7 @@ function K.vector.declared(str)
             if key == "" then
                 return nil, "a pair without a key: " .. pair
             end
-            if value == nil or value ~= value or value < 0 or value == math.huge then
+            if not K.finite(value) or value < 0 then
                 return nil, "not a finite number >= 0: " .. pair
             end
             pairsRead = pairsRead + 1
@@ -260,11 +260,6 @@ function K.vector.declared(str)
         return nil, "no known key (the declaration falls through to the table)"
     end
     return vec, unknown
-end
-
--- A finite number: a number, not NaN (the one value unequal to itself) and not an infinity.
-function K.vector.finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
 -- One food type through the source chain declared -> table -> inferred -> missing (Plan 6 rulings 13-14), shared
@@ -303,7 +298,7 @@ function K.vector.resolve(declared, macros, foodType, fullType, data)
     if seed ~= nil then
         return seed, "table", note
     end
-    if data.infer ~= nil and macros ~= nil and K.vector.finite(macros.calories) and macros.calories > 0 then
+    if data.infer ~= nil and macros ~= nil and K.finite(macros.calories) and macros.calories > 0 then
         return K.vector.infer(macros, foodType, data.infer), "inferred", note
     end
     return nil, "missing", note

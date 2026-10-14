@@ -218,18 +218,7 @@ end
 
 -- The volume thirst: piecewise-linear over THIRST_KNOTS, flat outside the first and last knot.
 function K.fluids.tVol(dehydPct)
-    local kn = K.fluids.THIRST_KNOTS
-    local n = #kn -- THIRST_KNOTS is a Lua table this file built, so # is defined on it (as the vector kernel's KEYS)
-    local d = K.clamp(dehydPct, kn[1][1], kn[n][1])
-    local seg = n
-    for i = n, 2, -1 do
-        if d <= kn[i][1] then
-            seg = i
-        end
-    end
-    local x0 = kn[seg - 1][1]
-    local y0 = kn[seg - 1][2]
-    return y0 + (kn[seg][2] - y0) * (d - x0) / (kn[seg][1] - x0)
+    return K.interp(K.fluids.THIRST_KNOTS, dehydPct)
 end
 
 -- The THIRST target: the volume and osmotic drives combined, then the hypotonic and the kill caps. defence (nil

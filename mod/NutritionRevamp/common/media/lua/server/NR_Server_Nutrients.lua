@@ -253,7 +253,7 @@ local function minuteBand(a, body, days)
     if days > 0 then
         g1 = b1
         g2 = b2
-        local slot = type(body.bandWeek) == "table" and body.bandWeek[7] or nil
+        local slot = type(body.bandWeek) == "table" and body.bandWeek[K.body.WEEK_N] or nil
         if days == 1 and type(slot) == "table" then
             g1 = g1 + K.max(0, (slot[1] or 0) - a.lastB1)
             g2 = g2 + K.max(0, (slot[2] or 0) - a.lastB2)

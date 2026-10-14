@@ -296,7 +296,7 @@ function K.energy.rateFalling(prev, rate)
     if prev == nil or rate == nil then
         return false
     end
-    if prev - prev ~= 0 or rate - rate ~= 0 then
+    if not K.finite(prev) or not K.finite(rate) then
         return false
     end
     return rate < prev - K.energy.FALL_EPS
@@ -368,11 +368,11 @@ end
 function K.energy.epoc(body, exercising, exKcal, dtM)
     local pool = body.epoc
     local healed = false
-    if pool ~= nil and (type(pool) ~= "number" or pool - pool ~= 0 or pool < 0) then
+    if pool ~= nil and (not K.finite(pool) or pool < 0) then
         pool = 0
         healed = true
     end
-    if exKcal - exKcal ~= 0 or exKcal < 0 then
+    if not K.finite(exKcal) or exKcal < 0 then
         exKcal = 0
     end
     if exercising and exKcal > 0 then

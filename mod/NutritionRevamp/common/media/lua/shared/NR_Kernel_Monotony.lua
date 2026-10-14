@@ -85,7 +85,7 @@ end
 -- An eat's portion weight (ruling T3-3): its landed kcal over MEAL_KCAL, at most 1; no energy, or energy that is not
 -- a finite number, weighs 0.
 function K.monotony.weightOf(kcal)
-    if not K.vector.finite(kcal) or kcal <= 0 then
+    if not K.finite(kcal) or kcal <= 0 then
         return 0
     end
     return K.min(1, kcal / K.monotony.MEAL_KCAL)
@@ -166,7 +166,7 @@ function K.monotony.badEntry(bad, k, e, ageH)
     if type(k) ~= "string" or type(e) ~= "table" then
         return true
     end
-    if not K.vector.finite(e.n) or not K.vector.finite(e.last) then
+    if not K.finite(e.n) or not K.finite(e.last) then
         return true
     end
     if e.s ~= nil and type(e.s) ~= "boolean" then
@@ -230,7 +230,7 @@ end
 
 -- One entry of the skip (the pairs body, kept out of the loop so the line-granular coverage gate sees both outcomes).
 function K.monotony.skipOne(e, gapH, fromH)
-    if type(e) == "table" and K.vector.finite(e.last) and e.last <= fromH then
+    if type(e) == "table" and K.finite(e.last) and e.last <= fromH then
         e.last = e.last + gapH
     end
 end

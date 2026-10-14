@@ -132,22 +132,6 @@ function STR.remap(player, level, ctx)
     return changed
 end
 
--- The self-heal (the #2833 pattern): a non-finite policy stamp reads its neutral and counts a failure.
-local function heal(username, body, ageH)
-    local bad = nil
-    local function mark(name)
-        if bad == nil then bad = name else bad = bad .. "," .. name end
-    end
-    if not finite(body.strAgeH) then body.strAgeH = ageH; mark("strAgeH") end
-    if not finite(body.riseHeldH) then body.riseHeldH = 0; mark("riseHeldH") end
-    if not finite(body.lastFallAge) then body.lastFallAge = ageH; mark("lastFallAge") end
-    if not finite(body.shownL) then body.shownL = body.l0; mark("shownL") end
-    if bad ~= nil then
-        STR.stats.failures = STR.stats.failures + 1
-        STR.lastError = "strength: non-finite " .. bad .. " for " .. tostring(username) .. "; stamped neutral"
-        NR.log.say(2, STR.lastError)
-    end
-end
 
 -- The carry delta's acute inputs off the record's Plan 4 sub-tables. The pipeline's ORDER runs the
 -- nutrients step before this one, so these are the CURRENT minute's stamps. An
@@ -198,7 +182,6 @@ local function step(username, player, record, ctx)
         STR.stats.badReads = STR.stats.badReads + 1
         return
     end
-    heal(username, body, ageH)
     local dtH = K.clamp(ageH - body.strAgeH, 0, STR.MAX_DT_H)
     body.strAgeH = ageH
     local perk = Perks ~= nil and Perks.Strength or nil

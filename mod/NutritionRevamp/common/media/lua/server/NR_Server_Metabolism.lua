@@ -257,7 +257,7 @@ end
 -- The adapter keeps its one engine read -- the Strength level, read only when body.l0 is not finite, and passed
 -- in -- and the count and the log: a pass that healed anything counts one failure and names every field. This
 -- file owns the rings: the Weight mirror and the partition ring read them and rebuild nothing. The neutrals,
--- their order and the zero-healed rings are the kernel's tables (K.heal.NEUTRAL, K.heal.NEUTRAL_KEYS,
+-- their order and the zero-healed rings are the kernel's tables (K.heal.NEUTRAL and
 -- K.heal.ZERO_RINGS), read at call time: nothing here names the kernel at file scope, so the file loads in a
 -- runtime that holds NR_Core alone (the wiring tests).
 
@@ -315,7 +315,7 @@ local function snapAll(body, sat)
     for i = 1, #rings do
         K.heal.snap(body[rings[i]], MET.SLOT7, MET.snapRings[rings[i]])
     end
-    K.heal.snap(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
+    K.heal.snap(body.bandWeek[K.body.WEEK_N], MET.BAND_SLOT, MET.snapBand)
     local t = body.trail
     MET.TRAIL_SLOT[1] = K.body.trailSlot(math.floor(t.at))
     K.heal.snap(t, MET.GUARD_TRAIL, MET.snapTrail)
@@ -343,7 +343,7 @@ local function guardAll(body, sat)
     for i = 1, #keys do
         g = g + K.heal.guard(t[keys[i]], MET.TRAIL_SLOT, MET.snapTrailRings[keys[i]])
     end
-    return g + K.heal.guard(body.bandWeek[7], MET.BAND_SLOT, MET.snapBand)
+    return g + K.heal.guard(body.bandWeek[K.body.WEEK_N], MET.BAND_SLOT, MET.snapBand)
 end
 
 local function step(username, player, record, ctx)

@@ -165,9 +165,9 @@ end
 -- The seed (spec § 4; Plan 11g spec § 3.3): the M for which target(F, M, energyState) equals hunger, the inverse of
 -- mealRead, MEAL_REQ (mn / (3 (1 - mn)))^(1 / MEAL_STEEP), capped at MEAL_SEED_MAX; 0 where no M reaches it (a
 -- fullness at or past 1 / FULL_WEIGHT sates fully alone; F reaches it only for a FULL_WEIGHT above 730 / 1100), and 0 for a
--- non-finite input (x - x is NaN for NaN and for an infinity), so a bad read never loops NaN through M.
+-- non-finite input (K.finite), so a bad read never loops NaN through M.
 function K.satiety.seedMeal(hunger, F, energyState)
-    if hunger - hunger ~= 0 or F - F ~= 0 or energyState - energyState ~= 0 then
+    if not K.finite(hunger) or not K.finite(F) or not K.finite(energyState) then
         return 0
     end
     if energyState <= 0 then
@@ -212,7 +212,7 @@ end
 -- One step of dtH game hours: toward the kind's weight while vigorous (an unknown kind weighs 0), toward 0 otherwise;
 -- nothing for no time (the state returned clamped to [0, 1]); a non-finite state reads 0.
 function K.satiety.exerciseSuppression(S, dtH, vigorous, kind)
-    if S - S ~= 0 then
+    if not K.finite(S) then
         S = 0
     end
     if not (dtH > 0) then
@@ -228,7 +228,7 @@ end
 
 -- The factor on hunger: 1 - ACUTE_MAX x S, S read as 0 when non-finite and clamped to [0, 1].
 function K.satiety.acuteFactor(S)
-    if S - S ~= 0 then
+    if not K.finite(S) then
         S = 0
     end
     return 1 - K.satiety.ACUTE_MAX * K.clamp(S, 0, 1)
@@ -252,10 +252,10 @@ end
 -- rises graded with the loss is not settled (S1568: total and partial loss gave comparable late-night intake; S1282:
 -- hunger 3.9 after total deprivation against 2.2 after 4.5 h and 1.7 after 7 h: only total deprivation differed significantly; 4.5 h against 7 h is not tested in the row), so the
 -- ramp to a full debt and its cap are game choices.
--- The factor on hunger for a sleep debt of debtH game hours: 1 for no debt, a negative one or a non-finite one (x - x
--- is NaN for NaN and for an infinity), rising linearly to 1 + SLEEP_MAX at SLEEP_DEBT_FULL_H and held there.
+-- The factor on hunger for a sleep debt of debtH game hours: 1 for no debt, a negative one or a non-finite one
+-- (K.finite), rising linearly to 1 + SLEEP_MAX at SLEEP_DEBT_FULL_H and held there.
 function K.satiety.sleepFactor(debtH)
-    if debtH - debtH ~= 0 then
+    if not K.finite(debtH) then
         return 1
     end
     return 1 + K.satiety.SLEEP_MAX * K.clamp(debtH / K.satiety.SLEEP_DEBT_FULL_H, 0, 1)
@@ -270,10 +270,10 @@ end
 -- A character who keeps smoking keeps resetting the anchor, so between smokes the factor stays at its withdrawal-scaled
 -- level and never fades while the habit continues; only a quit runs the fade.
 -- The factor on hunger for a withdrawal w (the stat's value) d game days after the anchor: 1 for a non-finite input
--- (x - x is NaN for NaN and for an infinity), for no withdrawal (w <= 0) and for a negative d; otherwise
+-- (K.finite), for no withdrawal (w <= 0) and for a negative d; otherwise
 -- 1 + NIC_MAX x clamp(w / NIC_WITHDRAWAL_MAX, 0, 1) x clamp(1 - d / NIC_FADE_DAYS, 0, 1).
 function K.satiety.nicotineFactor(w, d)
-    if w - w ~= 0 or d - d ~= 0 then
+    if not K.finite(w) or not K.finite(d) then
         return 1
     end
     if w <= 0 or d < 0 then

@@ -198,10 +198,10 @@ end
 -- K.store.checkLeaf to reject. Returns the value a constructor builds with: t[k] when finite, else v.
 function K.store.healLeaf(t, k, v)
     local x = t[k]
-    if x == nil or (type(x) == "number" and not K.vector.finite(x)) then
+    if x == nil or (type(x) == "number" and not K.finite(x)) then
         t[k] = v
     end
-    if K.vector.finite(t[k]) then
+    if K.finite(t[k]) then
         return t[k]
     end
     return v
@@ -446,18 +446,9 @@ function K.store.safeName(s)
     return table.concat(out)
 end
 
-K.store.HEX = "0123456789abcdef" -- the digit lookup: %x on a float raises on Kahlua (K.json.ctl's rule)
-
--- One code unit (0-65535) as four lower-case hex digits, built from the lookup string.
+-- One code unit (0-65535) as four lower-case hex digits (K.hexDigits).
 function K.store.hex4(b)
-    local out = {}
-    local d = 4096 -- 16^3, the first digit's place value
-    for i = 1, 4 do
-        local q = math.floor(b / d) % 16 + 1
-        out[i] = string.sub(K.store.HEX, q, q)
-        d = d / 16
-    end
-    return table.concat(out)
+    return K.hexDigits(b, 4)
 end
 
 -- A username as lower-case hex, four digits a code unit: string.byte answers UTF-16 code units on Kahlua
@@ -538,11 +529,7 @@ end
 -- K.view.pushOffset's push phase, so the saves of players first seen together after a boot spread over the gap
 -- instead of falling into one drain.
 function K.store.savePhase(username, gapMs)
-    local h = 0
-    for i = 1, string.len(username) do
-        h = (h * 31 + string.byte(username, i)) % 1000003 -- the push offset's hash: a prime modulus, no row needed
-    end
-    return (h + math.floor(gapMs / 2)) % gapMs
+    return (K.nameHash(username) + math.floor(gapMs / 2)) % gapMs
 end
 
 -- The lastWrite a player's first save is timed from: one gap before now plus its phase, so the first save falls

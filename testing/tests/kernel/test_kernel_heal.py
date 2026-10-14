@@ -17,7 +17,8 @@ INF = float("inf")
 SCALARS = ["fm0", "lm0", "fm", "lm", "fmRef", "pPrevKg", "dayIndex", "lastAgeH",
            "energyState", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay", "eeDay", "ebDay",
            "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day",
-           "cumDef", "r", "traitCarry", "tDisuse", "nPeak", "l0", "lm0dis", "tPeakD"]
+           "cumDef", "r", "traitCarry", "tDisuse", "nPeak", "riseHeldH", "l0", "lm0dis", "tPeakD", "strAgeH",
+           "lastFallAge", "shownL"]
 RINGS7 = ["mass7", "eb7", "p7"]
 TRAIL_KEYS = ["kcal", "ee", "ex", "p", "carb", "lip"]
 
@@ -64,6 +65,22 @@ def test_a_healthy_body_heals_nothing(host):
 def test_mark_joins_names_in_order(host):
     assert host.K.heal.mark(None, "fm") == "fm"
     assert host.K.heal.mark("fm", "tac") == "fm,tac"
+
+
+def test_the_strength_policy_stamps_heal_in_the_kernel(host):
+    # strAgeH and lastFallAge to the world age, riseHeldH to 0 and shownL to the (healed) creation level l0: the
+    # four Strength stamps heal with the rest of the body, not in the Strength adapter
+    h = host
+    body = new_body(h, l0=4)
+    body.strAgeH = NAN
+    body.riseHeldH = INF
+    body.lastFallAge = -INF
+    body.shownL = NAN
+    bad = heal(h, body, 120.0)
+    assert names(bad) == ["riseHeldH", "strAgeH", "lastFallAge", "shownL"]
+    assert body["strAgeH"] == 120.0 and body["lastFallAge"] == 120.0
+    assert body["riseHeldH"] == 0 and body["shownL"] == 4
+    all_finite(h, body)
 
 
 def test_a_non_finite_stamp_heals_and_is_named(host):

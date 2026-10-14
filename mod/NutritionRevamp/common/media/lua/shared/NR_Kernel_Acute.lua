@@ -302,21 +302,10 @@ end
 -- The alcohol term of the impairment unit: piecewise-linear over IU_ALC_KNOTS, the last segment extended
 -- above 0.08 % and capped at IU_ALC_CAP.
 function K.acute.iuAlcohol(bac)
-    local kn = K.acute.IU_ALC_KNOTS
-    local n = #kn -- IU_ALC_KNOTS is a Lua table this file built, so # is defined on it
     if bac <= 0 then
         return 0
     end
-    local seg = n
-    for i = n, 2, -1 do
-        if bac <= kn[i][1] then
-            seg = i
-        end
-    end
-    local x0 = kn[seg - 1][1]
-    local y0 = kn[seg - 1][2]
-    local y = y0 + (kn[seg][2] - y0) * (bac - x0) / (kn[seg][1] - x0)
-    return K.min(y, K.acute.IU_ALC_CAP)
+    return K.min(K.interp(K.acute.IU_ALC_KNOTS, bac, true), K.acute.IU_ALC_CAP)
 end
 
 -- The glycogen target for a 24 h carbohydrate intake cho24 g/kg/day (S0680 anchors).
@@ -502,7 +491,7 @@ function K.acute.skipRecord(record, gapH, fromH)
     K.acute.skip(record.acute, gapH, fromH)
     K.monotony.skip(record.monotony, gapH, fromH)
     local s = record.satiety
-    if type(s) == "table" and K.vector.finite(s.nicH) and s.nicH <= fromH then
+    if type(s) == "table" and K.finite(s.nicH) and s.nicH <= fromH then
         s.nicH = s.nicH + gapH
     end
     return record

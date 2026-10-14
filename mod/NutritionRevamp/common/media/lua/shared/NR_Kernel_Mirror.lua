@@ -167,7 +167,7 @@ function K.mirror.stomachMass(record)
         return 0
     end
     local g = K.stomach.mass(s)
-    if g ~= g or g == math.huge or g == -math.huge then
+    if not K.finite(g) then
         return 0
     end
     return math.floor(g + 0.5)

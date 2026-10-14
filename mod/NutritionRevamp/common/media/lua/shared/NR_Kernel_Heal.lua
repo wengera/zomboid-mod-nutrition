@@ -13,14 +13,12 @@
 local K = NutritionRevamp.kernel
 K.heal = {}
 
--- The scalars that heal to a fixed neutral, and their order (the order the names are reported in).
-K.heal.NEUTRAL = { energyState = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
-                   vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, exKcalDay = 0, pDay = 0,
-                   carbDay = 0, lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0,
-                   r = 1, traitCarry = 1, tDisuse = 0, nPeak = 0 }
-K.heal.NEUTRAL_KEYS = { "energyState", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
-                        "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
-                        "metMinDay", "band1Day", "band2Day", "cumDef", "r", "traitCarry", "tDisuse", "nPeak" }
+-- The scalars that heal to a fixed neutral, as { key, neutral } pairs in the order the names are reported in.
+K.heal.NEUTRAL = { { "energyState", 1 }, { "rmod", 1 }, { "tac", 1 }, { "at", 0 }, { "n", 0 }, { "vStr", 0 },
+                   { "vHyp", 0 }, { "vStrHigh", 0 }, { "inDay", 0 }, { "eeDay", 0 }, { "ebDay", 0 },
+                   { "actKcalDay", 0 }, { "exKcalDay", 0 }, { "pDay", 0 }, { "carbDay", 0 }, { "lipDay", 0 },
+                   { "alcDay", 0 }, { "metMinDay", 0 }, { "band1Day", 0 }, { "band2Day", 0 }, { "cumDef", 0 },
+                   { "r", 1 }, { "traitCarry", 1 }, { "tDisuse", 0 }, { "nPeak", 0 }, { "riseHeldH", 0 } }
 -- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
 K.heal.ZERO_RINGS = { "eb7", "p7" }
 
@@ -37,22 +35,22 @@ end
 -- when body.l0 is not finite. Returns the comma-joined names of the healed fields, or nil when none was.
 function K.heal.body(body, ageH, l0)
     local bad = nil
-    if not K.vector.finite(body.fm0) or not K.vector.finite(body.lm0) then
+    if not K.finite(body.fm0) or not K.finite(body.lm0) then
         local sex = 1
         if body.sex == 2 then
             sex = 2
         end
         local fmS, lmS = K.body.split(80, sex, {})
-        if not K.vector.finite(body.fm0) then
-            if K.vector.finite(body.fm) then
+        if not K.finite(body.fm0) then
+            if K.finite(body.fm) then
                 body.fm0 = body.fm
             else
                 body.fm0 = fmS
             end
             bad = K.heal.mark(bad, "fm0")
         end
-        if not K.vector.finite(body.lm0) then
-            if K.vector.finite(body.lm) then
+        if not K.finite(body.lm0) then
+            if K.finite(body.lm) then
                 body.lm0 = body.lm
             else
                 body.lm0 = lmS
@@ -60,73 +58,85 @@ function K.heal.body(body, ageH, l0)
             bad = K.heal.mark(bad, "lm0")
         end
     end
-    if not K.vector.finite(body.fm) then
+    if not K.finite(body.fm) then
         body.fm = body.fm0
         bad = K.heal.mark(bad, "fm")
     end
-    if not K.vector.finite(body.lm) then
+    if not K.finite(body.lm) then
         body.lm = body.lm0
         bad = K.heal.mark(bad, "lm")
     end
-    if not K.vector.finite(body.fmRef) then
+    if not K.finite(body.fmRef) then
         body.fmRef = body.fm
         bad = K.heal.mark(bad, "fmRef")
     end
-    if not K.vector.finite(body.pPrevKg) then
+    if not K.finite(body.pPrevKg) then
         body.pPrevKg = K.aerobic.P_LOW
         bad = K.heal.mark(bad, "pPrevKg")
     end
-    if not K.vector.finite(body.dayIndex) then
+    if not K.finite(body.dayIndex) then
         body.dayIndex = math.floor(ageH / 24)
         bad = K.heal.mark(bad, "dayIndex")
     end
-    if not K.vector.finite(body.lastAgeH) then
+    if not K.finite(body.lastAgeH) then
         body.lastAgeH = ageH
         bad = K.heal.mark(bad, "lastAgeH")
     end
-    local keys = K.heal.NEUTRAL_KEYS
-    for i = 1, #keys do
-        local k = keys[i]
-        if not K.vector.finite(body[k]) then
-            body[k] = K.heal.NEUTRAL[k]
+    local neutral = K.heal.NEUTRAL
+    for i = 1, #neutral do
+        local k = neutral[i][1]
+        if not K.finite(body[k]) then
+            body[k] = neutral[i][2]
             bad = K.heal.mark(bad, k)
         end
     end
-    if not K.vector.finite(body.l0) then
-        if K.vector.finite(l0) then
+    if not K.finite(body.l0) then
+        if K.finite(l0) then
             body.l0 = l0
         else
             body.l0 = 0
         end
         bad = K.heal.mark(bad, "l0")
     end
-    if not K.vector.finite(body.lm0dis) then
+    if not K.finite(body.lm0dis) then
         body.lm0dis = body.lm
         bad = K.heal.mark(bad, "lm0dis")
     end
-    if not K.vector.finite(body.tPeakD) then
+    if not K.finite(body.tPeakD) then
         body.tPeakD = body.dayIndex
         bad = K.heal.mark(bad, "tPeakD")
     end
+    if not K.finite(body.strAgeH) then
+        body.strAgeH = ageH
+        bad = K.heal.mark(bad, "strAgeH")
+    end
+    if not K.finite(body.lastFallAge) then
+        body.lastFallAge = ageH
+        bad = K.heal.mark(bad, "lastFallAge")
+    end
+    if not K.finite(body.shownL) then
+        body.shownL = body.l0
+        bad = K.heal.mark(bad, "shownL")
+    end
     for i = 1, K.strength.MEM_HOLD_DAYS do
-        if not K.vector.finite(body.nHist[i]) then
+        if not K.finite(body.nHist[i]) then
             body.nHist[i] = 0
             bad = K.heal.mark(bad, "nHist")
         end
     end
-    for i = 1, 7 do
+    for i = 1, K.body.WEEK_N do
         local slot = body.bandWeek[i]
-        if not K.vector.finite(slot[1]) then
+        if not K.finite(slot[1]) then
             slot[1] = 0
             bad = K.heal.mark(bad, "bandWeek")
         end
-        if not K.vector.finite(slot[2]) then
+        if not K.finite(slot[2]) then
             slot[2] = 0
             bad = K.heal.mark(bad, "bandWeek")
         end
     end
-    for i = 1, 7 do
-        if not K.vector.finite(body.mass7[i]) then
+    for i = 1, K.body.WEEK_N do
+        if not K.finite(body.mass7[i]) then
             body.mass7[i] = body.fm + body.lm
             bad = K.heal.mark(bad, "mass7")
         end
@@ -134,8 +144,8 @@ function K.heal.body(body, ageH, l0)
     for r = 1, #K.heal.ZERO_RINGS do
         local key = K.heal.ZERO_RINGS[r]
         local ring = body[key]
-        for i = 1, 7 do
-            if not K.vector.finite(ring[i]) then
+        for i = 1, K.body.WEEK_N do
+            if not K.finite(ring[i]) then
                 ring[i] = 0
                 bad = K.heal.mark(bad, key)
             end
@@ -159,9 +169,9 @@ function K.heal.guard(t, keys, snap)
     for i = 1, #keys do
         local k = keys[i]
         local v = t[k]
-        if type(v) == "number" and (v ~= v or v == math.huge or v == -math.huge) then
+        if type(v) == "number" and not K.finite(v) then
             local s = snap[k]
-            if type(s) == "number" and s == s and s ~= math.huge and s ~= -math.huge then
+            if K.finite(s) then
                 t[k] = s
                 n = n + 1
             end
@@ -182,7 +192,7 @@ end
 -- names appended.
 function K.heal.trail(t, ageH, bad)
     local keys = K.body.TRAIL_KEYS
-    if not K.vector.finite(t.at) then
+    if not K.finite(t.at) then
         for k = 1, #keys do
             local ring = t[keys[k]]
             for i = 1, K.body.TRAIL_N do
@@ -201,7 +211,7 @@ function K.heal.trail(t, ageH, bad)
         local key = keys[k]
         local badRead = false
         if not due then
-            badRead = not K.vector.finite(K.body.trail24(t, key))
+            badRead = not K.finite(K.body.trail24(t, key))
         end
         if due or badRead then
             local s, z = K.body.trailRingSum(t[key], cur)

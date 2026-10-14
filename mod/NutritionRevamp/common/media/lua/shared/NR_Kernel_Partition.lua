@@ -185,14 +185,15 @@ function K.partition.closeDay(body)
     local eb = body.eb7
     local mass = body.mass7
     local p7 = body.p7
-    for i = 1, 6 do
+    local n = K.body.WEEK_N
+    for i = 1, n - 1 do
         eb[i] = eb[i + 1]
         mass[i] = mass[i + 1]
         p7[i] = p7[i + 1]
     end
-    eb[7] = body.ebDay
-    mass[7] = body.fm + body.lm
-    p7[7] = body.pDay
+    eb[n] = body.ebDay
+    mass[n] = body.fm + body.lm
+    p7[n] = body.pDay
     body.inDay = 0
     body.eeDay = 0
     body.ebDay = 0
@@ -209,7 +210,7 @@ end
 -- Whether the seven closed days sum to a deficit.
 function K.partition.deficitWeek(body)
     local sum = 0
-    for i = 1, 7 do
+    for i = 1, K.body.WEEK_N do
         sum = sum + body.eb7[i]
     end
     return sum < 0

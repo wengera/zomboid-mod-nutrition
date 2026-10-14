@@ -171,11 +171,7 @@ end
 -- A player's push phase inside the gap (Plan 11 Task 4; rule #3498): a rolling hash of the username modulo the gap,
 -- so players first seen together make their first push in different frames (#3456); it spreads only that first gap.
 function K.view.pushOffset(username, gapMs)
-    local h = 0
-    for i = 1, string.len(username) do
-        h = (h * 31 + string.byte(username, i)) % 1000003
-    end
-    return h % gapMs
+    return K.nameHash(username) % gapMs
 end
 
 -- One mirror entry into the deficiency and excess classes: a numeric nut_<key>_g raises deficiency to g - 1, a

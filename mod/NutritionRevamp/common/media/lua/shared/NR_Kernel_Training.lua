@@ -165,12 +165,13 @@ end
 -- every slot stays its own table. Returns the body.
 function K.training.closeDay(body)
     local ring = body.bandWeek
-    for i = 1, 6 do
+    local n = K.body.WEEK_N
+    for i = 1, n - 1 do
         ring[i][1] = ring[i + 1][1]
         ring[i][2] = ring[i + 1][2]
     end
-    ring[7][1] = body.band1Day
-    ring[7][2] = body.band2Day
+    ring[n][1] = body.band1Day
+    ring[n][2] = body.band2Day
     body.metMinDay = 0
     body.band1Day = 0
     body.band2Day = 0
@@ -183,7 +184,7 @@ function K.training.weekMinutes(body)
     local ring = body.bandWeek
     local m1 = 0
     local hardDays = 0
-    for i = 1, 7 do
+    for i = 1, K.body.WEEK_N do
         m1 = m1 + ring[i][1]
         if ring[i][2] >= K.training.HARD_DAY_MIN then
             hardDays = hardDays + 1

@@ -9,11 +9,9 @@ K.json = {}
 
 K.json.ESC = { ['"'] = '\\"', ['\\'] = '\\\\', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t' }
 
--- A control byte (< 32) as a \u00XX escape; the digits come from a lookup, because %x on a float raises on Kahlua.
+-- A control byte (< 32) as a \u00XX escape (K.hexDigits: %x on a float raises on Kahlua).
 function K.json.ctl(b)
-    local hi = math.floor(b / 16) + 1
-    local lo = b % 16 + 1
-    return "\\u00" .. string.sub("0123456789abcdef", hi, hi) .. string.sub("0123456789abcdef", lo, lo)
+    return "\\u00" .. K.hexDigits(b, 2)
 end
 
 function K.json.str(s)
@@ -56,7 +54,7 @@ end
 function K.json.emit(v, fmt, out)
     local tv = type(v)
     if tv == "number" then
-        if v ~= v or v == math.huge or v == -math.huge then
+        if not K.finite(v) then
             out[#out + 1] = "null"
         else
             out[#out + 1] = fmt(v)

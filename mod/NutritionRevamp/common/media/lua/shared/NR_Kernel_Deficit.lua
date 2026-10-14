@@ -38,13 +38,13 @@ K.deficit.EX_LAG_TAU_D = 16 -- game choice, Plan 11d (ruling 11d-4), refit from 
 -- One lag step of dtH game hours with exKcal exercise kcal spent in it: L relaxes toward the step's rate (exKcal x 24
 -- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a negative or non-finite exKcal reads none.
 function K.deficit.exerciseLag(L, exKcal, dtH)
-    if L - L ~= 0 then
+    if not K.finite(L) then
         L = 0
     end
     if not (dtH > 0) then
         return L
     end
-    if exKcal - exKcal ~= 0 or exKcal < 0 then
+    if not K.finite(exKcal) or exKcal < 0 then
         exKcal = 0
     end
     local k = math.exp(-dtH / (K.deficit.EX_LAG_TAU_D * 24))
@@ -53,7 +53,7 @@ end
 
 -- The exercise deficit, kcal per day, that enters the energy state: EX_LAG_GAIN x L, non-negative and finite.
 function K.deficit.lagged(L)
-    if L - L ~= 0 or L < 0 then
+    if not K.finite(L) or L < 0 then
         return 0
     end
     return K.deficit.EX_LAG_GAIN * L
@@ -78,11 +78,11 @@ K.deficit.EX_BYPASS_LO = 0.282 -- game choice, refit in Plan 11g Task 7 on the d
 K.deficit.EX_BYPASS_HI = 0.405 -- game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012) and set mid-plateau in its fix round 1 (ruling T7-6) on its plateau scan fit-11g-deficit-20261012b's grid, from the fit's 0.44 (its tie rule's nearest to the shipped value) and Plan 11f Task 2c fix 1's 0.575 (0.45 in ruling 11c-32 as amended): the share at which the bypass is whole; fitted with BALANCE_SPAN_KCAL (see its label); on a plateau, every HI scanned from 0.3693 to 0.44 scoring the same smallest margin, 0.49205 (Karl's DEF arm billed ClimbRope, S1325, whose 24-h deficit share of about 0.48 is bypassed whole across it; the grid scores 0.40 and 0.41 alike, and the fit tool scores 0.405 the same), so its middle keeps slack on both sides: held from above by Karl's DEF arm billed as a loaded Walking5kmh walk (+25.8 % at 0.405, +22.8 % at 0.44, +21.9 % at 0.45, toward the 17.3 % floor) and from below by S1312 (King 2011: 1.24 mm from control at 0.405, its margin falling under the DEF arm's below about 0.368); a ramp, not a 25 % step, on King 2011's evidence alone (ruling T7-3: the step leaves King's 3.3 mm bound at 4.60 mm, while on Karl it now passes, +31.8 %)
 function K.deficit.activityState(eb24h, ex24h, L, fatDep, ee24h)
     local ex = 0
-    if ex24h - ex24h == 0 and ex24h > 0 then
+    if K.finite(ex24h) and ex24h > 0 then
         ex = ex24h
     end
     local lag = K.deficit.lagged(L)
-    if ee24h ~= nil and ee24h - ee24h == 0 and ee24h > 0 and eb24h - eb24h == 0 and lag < ex then
+    if K.finite(ee24h) and ee24h > 0 and K.finite(eb24h) and lag < ex then
         local d = -eb24h / ee24h
         local w = K.clamp((d - K.deficit.EX_BYPASS_LO) / (K.deficit.EX_BYPASS_HI - K.deficit.EX_BYPASS_LO), 0, 1)
         lag = lag + w * (ex - lag)
