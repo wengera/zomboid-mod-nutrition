@@ -180,6 +180,9 @@ def test_precedence_clears_a_held_fat_rung(host):
     b = _b(host, 12.0 * H2, 52.0, fatT=0, thinT=1)
     assert host.call("traits.axes", b, 1) == "obese"
     assert (b["fatT"], b["thinT"]) == (2, 0)
+    b = _b(host, 6.5 * H2, (17.9 - 6.5) * H2, fatT=1)   # BMI 17.9, FMI 6.5: Underweight clears Overweight
+    assert host.call("traits.axes", b, 1) == "underweight"
+    assert (b["fatT"], b["thinT"]) == (0, 1)
 
 
 def test_axes_reads_its_tables(host):
