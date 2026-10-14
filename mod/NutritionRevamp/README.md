@@ -32,11 +32,11 @@ Every option sits on the sandbox page `Nutrition Revamp` under the prefix `NR`.
 | `NR.LegacyMirror` | true | On: every minute the server writes the vanilla calorie, protein, carbohydrate and lipid stores from the mod's trailing 24 hours, so vanilla code and other mods that read those stores keep working. Off: the mod leaves those stores alone. |
 | `NR.OnsetSpeed` | 1.0 (0.5 to 30) | Multiplies how fast the slow deficiencies develop and recover (the nutrients that take more than 90 days to reach a clinical deficiency). 1.0 is real time. Vitamin C, the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never scaled. |
 | `NR.DeficienciesCanKill` | true | On: the most severe states drain health until treated: starvation with the fat reserves gone, long clinical scurvy, beriberi or pellagra, severe dehydration or low blood sodium, and an iron overdose. Off: they never drain health. |
-| `NR.ExcessEffectsOn` | true | On: an intake above a nutrient's upper limit raises that nutrient's excess level. Off: every excess level reads zero; intake is still tracked. |
+| `NR.ExcessEffectsOn` | true | On: an intake above a nutrient's upper limit raises that nutrient's excess level (the magnesium, niacin, folate and vitamin E limits apply to supplemental or added forms, so food never reaches them). Off: every excess level reads zero; intake is still tracked. |
 | `NR.BalanceBonus` | true | On: while every tracked nutrient is replete, endurance regeneration during sleep and fatigue recovery run 5 percent faster. A game choice. |
 | `NR.Severity` | 1.0 (0 to 3) | Scales every penalty a deficiency or an excess brings. 0 removes them all except the health drains, which `NR.DeficienciesCanKill` controls. Short Sighted needs 1.0 or more. |
 | `NR.VisibilityMode` | 2 (Bands) | How much each player's interface shows: 1 Symptoms, 2 Bands, 3 Numbers. A character with the Nutritionist trait sees Numbers whatever the option. |
-| `NR.RecordKeepDays` | 30 (0 to 3650) | A player's nutrition record is dropped after this many real days without the player online; a returning player then starts a fresh record, and the vanilla character is untouched. 0 keeps every record. Counted in real time, because game days pass at each server's own speed. Time the server is down counts too. |
+| `NR.RecordKeepDays` | 30 (0 to 3650) | A player's nutrition record is dropped after this many real days without the player online; a returning player then starts a fresh record from the character as it stands (see the lost-record limitation under Body, energy and exercise). 0 keeps every record. Counted in real time, because game days pass at each server's own speed. Time the server is down counts too. |
 
 The server re-reads the options every in-game minute, so a change made while the server runs takes effect without a restart, except `NR.Mode`, which is read at start.
 
@@ -136,7 +136,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - After a standing player stops an activity, the first minutes may be billed as idle, and an eat or a sip can bill one idle minute.
 - The after-burn follows the Fitness set only, at a fixed share and pace.
 - An exhausted, idle character burns energy as if lightly active.
-- Time offline is not simulated: a long absence counts as at most an hour of the model, and a jump of several days closes the missed days with no protein counted.
+- Time offline is not simulated: a long absence counts as at most an hour of the model, and no clock the mod keeps runs while the player is away, so no sleep debt builds, a repeated food does not fade and no day counts toward quitting nicotine; a jump of several days closes the missed days with no protein counted.
 - When a character's saved record is lost (pruned after the server's keep period, a damaged save file, or a save file that stays unreadable), the mod starts a new record from the character as it stands, so changes the mod made earlier stay: a Strength level it lowered becomes the new starting level, the carry capacity it last set becomes the new base, and a Night Vision or Short Sighted trait it added is never taken away.
 - The model's day closes at 07:00 game time, and the daily figures count from that close. The day's energy figure leaves out the exercise of the minute before the close, and a close that skipped days reads only the new day's training.
 - Aerobic training counts minutes in two intensity bands, not total energy.
