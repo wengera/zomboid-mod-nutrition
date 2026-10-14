@@ -2025,3 +2025,42 @@ def test_limitations_name_monotony(intake_host):
     assert "self-releasing floor" in lim
     assert "lowers the stat by the target's fall even when another source also raised it" in lim
     assert "PANIC above 5" in lim and "dehydration" in lim
+
+
+# --- Plan 12 (S B4): a craft map holds only keys that name an item -------------------------------------------------
+
+CRAFT_ITEMS = r"""
+function(md)
+    local IN = NutritionRevamp.server.intake
+    local saved = instanceItem
+    local made = {}
+    instanceItem = function(fullType)
+        made[#made + 1] = fullType
+        if fullType == "Base.Rock" or fullType == "NRTest.Pie" or fullType == "Base.Onion" then
+            return {}                                                             -- items, a mod's and non-food too
+        end
+        return nil                                                                -- not an item
+    end
+    IN.itemTypeCache = {}
+    local out = IN.craftMap(md)
+    local again = IN.craftMap(md)
+    instanceItem = saved
+    IN.itemTypeCache = {}
+    return out, again, #made
+end
+"""
+
+
+def test_a_mod_key_holding_a_dot_is_not_a_craft_input(intake_host):
+    h = intake_host
+    md = tbl(h, {"SomeMod.uses": 3, "Base.Onion": 1, "NRTest.Pie": 2, "Base.Rock": 1, "a.b.c": 1, "Base. Apple": 1})
+    out, again, made = h.rt.eval(CRAFT_ITEMS)(md)
+    assert as_dict(out) == {"Base.Onion": 1, "NRTest.Pie": 2, "Base.Rock": 1}
+    assert as_dict(again) == as_dict(out)
+    assert made == 4                                     # the four well-shaped keys, each instanced once (cached)
+
+
+def test_a_food_whose_only_dotted_keys_are_another_mods_is_not_a_craft(intake_host):
+    h = intake_host
+    out, _again, _made = h.rt.eval(CRAFT_ITEMS)(tbl(h, {"SomeMod.uses": 3}))
+    assert out is None

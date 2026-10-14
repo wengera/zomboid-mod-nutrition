@@ -70,6 +70,7 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                      pendingAlc = {},
                      pendingCaf = {},
                      typeInfoCache = {},
+                     itemTypeCache = {},
                      limitations = {
                          "a food outside the table takes a vector inferred from its FoodType's per-kcal medians over the pass's own mapped records (NR_Data_Infer.lua; a judgement); a declared NR_Nutrients script key (unrecognised by the loader, landing in default modData — #1281) takes precedence and its macros are the item's own",
                          "a landed vector's ethanol and caffeine wait in a transient server table until the next slow minute moves them to record.acute: a server stop in that minute loses them (the ingested day totals keep them)",
@@ -278,14 +279,16 @@ function IN.chainedLookup(lookup, templates, info, trace)
 end
 
 -- The consumed fullType -> count map the hand-craft action writes onto a single output (#2667), or nil.
--- Keeps string keys holding a `.` (a full type) with number values; drops the vanilla keys customName
--- and Tooltip (#1415) and the mod's own NR_ keys. modData is a Lua-shaped table, so pairs is allowed.
+-- Keeps number values under a key shaped as a full type (Module.Name: one `.`, no space) that names an item
+-- (IN.isItemType), so another mod's dotted modData key ("SomeMod.uses") never turns a food into a craft; the
+-- vanilla keys customName and Tooltip (#1415) and the mod's own NR_ keys never match. modData is a Lua-shaped
+-- table, so pairs is allowed.
 function IN.craftMap(md)
     if type(md) ~= "table" then return nil end
     local out, n = {}, 0
     for k, v in pairs(md) do
-        if type(k) == "string" and type(v) == "number" and k ~= "customName" and k ~= "Tooltip"
-                and string.sub(k, 1, 3) ~= "NR_" and string.find(k, ".", 1, true) ~= nil then
+        if type(k) == "string" and type(v) == "number" and string.sub(k, 1, 3) ~= "NR_"
+                and string.find(k, "^[^%.%s]+%.[^%.%s]+$") ~= nil and IN.isItemType(k) then
             out[k] = v
             n = n + 1
         end
@@ -364,6 +367,18 @@ function IN.typeInfo(fullType)
     IN.typeInfoCache[fullType] = info
     if info == false then return nil end
     return info
+end
+
+-- Whether fullType names an item: one the instanceItem global instances (#2680; any item, food or not), cached per
+-- type per boot in IN.itemTypeCache. Without the global (no engine) nothing can be checked: true, uncached.
+function IN.isItemType(fullType)
+    local cached = IN.itemTypeCache[fullType]
+    if cached ~= nil then return cached end
+    if instanceItem == nil then return true end
+    local ok, item = pcall(instanceItem, fullType)
+    local known = ok and item ~= nil
+    IN.itemTypeCache[fullType] = known
+    return known
 end
 
 -- The before-snapshot of the action's item, or nil when there is nothing to capture (no item, no
