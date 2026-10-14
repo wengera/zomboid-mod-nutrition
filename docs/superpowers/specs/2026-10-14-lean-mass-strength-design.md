@@ -134,17 +134,19 @@ Three axes are read at day close, from the record:
 | Muscle | the lean level | Weak, Feeble, Stout, Strong through vanilla's own band swap (§ 7) |
 | Thinness | BMI at H, from F + fat | Underweight below 18.5, Very Underweight below 17, Emaciated below 16 (the WHO thinness grades) |
 
-### 8.1 The sex-neutral fat bands
+### 8.1 The fat bands
 
-| Band | Body fat from | Basis |
-|---|---|---|
-| Very lean | below 9.5 % | game choice: the mean of the mod's male 6 % (S1910) and female 13 % (S1911) lean cuts |
-| Lean | 9.5 % | as above |
-| Healthy | 14.5 % | the mean of Gallagher 2000's 20-39 y body fat at BMI 18.5, men 8 % and women 21 % (S1905, S1904) |
-| High | 26.5 % | the same at BMI 25, men 20 % and women 33 % |
-| Very high | 32 % | the same at BMI 30, men 25 % and women 39 % |
+The traits and the panel's Body fat word read the mod's existing `K.view.FAT_CUTS_*` through the character's effective sex (§ 14), so by default every character reads the male table:
 
-Each cut is a game choice built on the cited values. This table is the default for both the traits and the panel's Body fat word. With `NR.SexSpecificBody` on (default off), both read the existing sex-specific `K.view.FAT_CUTS_MALE` and `FAT_CUTS_FEMALE` instead. The lean scale stays sex-neutral either way.
+| Band | Body fat from (male table) |
+|---|---|
+| Very lean | below 6 % (S1910) |
+| Lean | 6 % |
+| Healthy | 8 % (S1905) |
+| High | 20 % |
+| Very high | 25 % |
+
+The lean scale is sex-neutral and ignores the option.
 
 - **Precedence:** a thinness trait excludes the fat traits.
 - **Damping:** a switch needs a margin of 0.5 BMI or 1 percentage point of body fat past its cut, and switches are checked once a day.
@@ -202,7 +204,7 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 | `NR.StrengthPeakHalfLifeYears` | 2 |
 | `NR.StrengthProteinFull` (g/kg) | 1.6 |
 | `NR.StrengthDeficitZero` (kcal) | −500 |
-| `NR.SexSpecificBody` | off |
+| `NR.SexSpecific` (mod-wide, § 14) | off |
 
 ## 11. Rulings made in the brainstorm
 
@@ -214,7 +216,7 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 - **Traits.** Ruling: the vanilla strength-trait order is kept (Weak is the stronger penalty) — Angus — cost if wrong: none at the engine level.
 - **Creation.** Ruling: 8 traits offered, Emaciated excluded, and the picks are re-validated on the server — Angus — cost if wrong: validation code that a live check must prove sees the whole pick list.
 - **Peak memory.** Ruling: P decays with a 2-year half-life, not permanently — Rahmati 2022 and Serrano 2025 overturn the first harvest's "might be permanent" (S1.21) — cost if wrong: regain after a multi-year break is slower than players expect.
-- **No sex-specific rules by default.** Ruling: every rule in this design is sex-neutral by default, the fat bands included, and `NR.SexSpecificBody` (default off) switches the fat bands to the sex-specific tables; the panel's Body fat word reads the same table as the traits, so the two never disagree — Angus (2026-10-14): "I dont want gender specific rules, base game treats them equally", then "we can flag this as an option however, just default it to off" — cost if wrong: a neutral cut sits between the sexes' study values, so the High band starts later than the male studies and earlier than the female ones.
+- **No sex-specific rules by default.** Ruling: one mod-wide option, `NR.SexSpecific` (default off); when it is off every character uses the male values everywhere the mod indexes by sex (§ 14) — Angus (2026-10-14): "I dont want gender specific rules, base game treats them equally", then "we can flag this as an option however, just default it to off", then "Lets just use male values for females if its disabled" — cost if wrong: by default a female character's requirements and body bands are the male studies' values (for example the iron requirement and the fat bands).
 
 ## 12. Testing and evidence
 
@@ -249,7 +251,16 @@ The golden trace is re-recorded under named causes.
 - The first harvest's S1.21 ("might be permanent") and the per-meal cap reading of S0065 are qualified or superseded by the newer rows.
 - The stale claim rows #0529 and #3344 (the 90-minute default day) and #2115 and #2116 (the 42.21 carry roll) are corrected.
 
-## 13. Out of scope
+## 14. The mod-wide sex option
+
+`NR.SexSpecific` (boolean, default off) decides each character's effective sex index: the engine's `isFemale` when the option is on, and 1 (male) for everyone when it is off.
+
+- **Stored raw, resolved at use.** `record.body.sex` keeps the engine's value, and one helper resolves the effective index wherever the mod reads it. Changing the option mid-save then takes effect at once and needs no record rewrite.
+- **Server readers:** the nutrient requirements and the choline factor (`NR_Server_Nutrients`), fluids, the Widmark r, iron and calcium (`NR_Kernel_Interact`), the heal reference (`NR_Kernel_Heal`) and the effects (`NR_Server_Effects`).
+- **Client readers:** the Body fat word (`NR_Client_View`) and the tooltip's sex (`NR_Client_Tooltip`) read the option from SandboxVars.
+- **Tests:** with the option off, a female character's every sex-indexed output equals a male's. With it on, today's values are unchanged, so the golden trace does not move for a male character.
+
+## 15. Out of scope
 
 - A height term on the lean scale. A sex term is excluded by ruling, not deferred.
 - Tuning the mod's continuous fat-load effects.
