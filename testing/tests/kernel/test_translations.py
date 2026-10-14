@@ -76,9 +76,16 @@ def vector_keys():
 
 
 def bands():
-    src = read(os.path.join(LUA, "shared", "NR_Kernel_Body.lua"))
-    b = set(re.findall(r'return "([A-Za-z]+)"\s*-- #0531', src))
-    assert len(b) >= 5
+    # Plan 13 Task 15: the band word is K.traits.axes's (the vanilla K.body.band is retired): its two word tables and
+    # its "normal"
+    src = read(os.path.join(LUA, "shared", "NR_Kernel_Traits.lua"))
+    b = set()
+    for name in ("FAT_WORDS", "THIN_WORDS"):
+        m = re.search(r'K\.traits\.' + name + r' = \{([^}]*)\}', src)
+        b.update(re.findall(r'"([A-Za-z]+)"', m.group(1)))
+    assert 'return "normal"' in src
+    b.add("normal")
+    assert len(b) == 6
     return sorted(b)
 
 

@@ -371,19 +371,31 @@ def test_legacy_mirror_off_keeps_the_observed_baseline(h):
 
 
 def test_a_band_change_marks_the_bus(h):
+    # Plan 13 Task 15: the day close stamps body.band and body.traitsDirty from the section 8 axes; the weight minute's
+    # trait write that lands marks the bus once
     p, rec = seeded(h)
-    body = _body(h, rec, fm=40.0, lm=70.0)       # 110 kg: not the 80 kg band the body was built at
-    old = body["band"]
-    B = h.NR.server.bus
-    B.effects.dirty["admin"] = None
-    marks = B.effects.stats.marks
-    h.NR.server.weight.minute("admin", p, rec)
-    assert body["band"] != old
-    assert B.effects.dirty["admin"] is True
-    assert B.effects.stats.marks == marks + 1 and B.effects.stats.bandMarks >= 1
-    B.effects.dirty["admin"] = None
-    h.NR.server.weight.minute("admin", p, rec)           # the band unchanged: no mark
-    assert B.effects.dirty["admin"] is None
+    body = _body(h, rec, fm=40.0, lm=70.0)
+    body["fatT"], body["band"], body["traitsDirty"] = 2, "obese", True
+    held = h.rt.eval(
+        "function(p) local t = {}; p.getCharacterTraits = function(s) return {"
+        " get = function(c, x) return t[x] == true end, add = function(c, x) t[x] = true end,"
+        " remove = function(c, x) t[x] = nil end } end; return t end")(p)
+    saved = h.G.CharacterTrait
+    h.G.CharacterTrait = h.table({n: "T#" + n for n in ("OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT",
+                                                        "EMACIATED")})
+    try:
+        B = h.NR.server.bus
+        B.effects.dirty["admin"] = None
+        marks = B.effects.stats.marks
+        h.NR.server.weight.minute("admin", p, rec)
+        assert held["T#OBESE"] is True and not body["traitsDirty"]
+        assert B.effects.dirty["admin"] is True
+        assert B.effects.stats.marks == marks + 1 and B.effects.stats.bandMarks >= 1
+        B.effects.dirty["admin"] = None
+        h.NR.server.weight.minute("admin", p, rec)       # the band unchanged: no mark
+        assert B.effects.dirty["admin"] is None
+    finally:
+        h.G.CharacterTrait = saved
 
 
 def test_mark_band_is_the_effects_mark(h):

@@ -19,6 +19,9 @@ WEIGHT = os.path.join(SERVER, "NR_Server_Weight.lua")
 CORE = os.path.join(SHARED, "NR_Core.lua")
 TOL = 1e-9
 BAND_TRAITS = ("OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED")
+# Plan 13 Task 15: the registry stand-ins are opaque sentinels, never the trait's name nor a registry id, so a write
+# that built an id from a name would miss every trait.
+SENTINEL = "T#"
 MACRO_SETTERS = ("setCalories", "setProteins", "setCarbohydrates", "setLipids")
 
 # The Java globals the adapter names, stubbed; the previous values are returned so the teardown puts
@@ -40,9 +43,9 @@ function(age)
             end,
         }
     end
-    CharacterTrait = { OBESE = "OBESE", OVERWEIGHT = "OVERWEIGHT", UNDERWEIGHT = "UNDERWEIGHT",
-                       VERY_UNDERWEIGHT = "VERY_UNDERWEIGHT", EMACIATED = "EMACIATED",
-                       STRONG = "STRONG" }
+    CharacterTrait = { OBESE = "T#OBESE", OVERWEIGHT = "T#OVERWEIGHT", UNDERWEIGHT = "T#UNDERWEIGHT",
+                       VERY_UNDERWEIGHT = "T#VERY_UNDERWEIGHT", EMACIATED = "T#EMACIATED",
+                       STRONG = "T#STRONG" }
     sendSyncPlayerFields = function(p, n)
         if n == 2 then NR_TEST_PUSHES = NR_TEST_PUSHES + 1 end
     end
@@ -58,7 +61,8 @@ end
 """
 
 # A player stand-in: getNutrition answers one Nutrition stand-in whose every setter records
-# { name, value } into cfg.calls; the trait collection reads cfg.traits.
+# { name, value } into cfg.calls; the trait collection reads cfg.traits, and its add and remove record
+# { "add" or "remove", sentinel } and edit cfg.traits. applyTraitFromWeight raises: Plan 13 Task 15 retired it.
 PLAYER = r"""
 function(cfg)
     local p = { cfg = cfg }
@@ -76,10 +80,27 @@ function(cfg)
             rec(name, v)
         end
     end
-    nut.applyTraitFromWeight = function(self) rec("applyTraitFromWeight", true) end
+    nut.applyTraitFromWeight = function(self)
+        rec("applyTraitFromWeight", true)
+        error("stub: applyTraitFromWeight is retired")
+    end
     p.getNutrition = function(self) return nut end
     p.getCharacterTraits = function(self)
-        return { get = function(s, t) return self.cfg.traits[t] == true end }
+        local coll = {
+            get = function(s, t) return self.cfg.traits[t] == true end,
+            add = function(s, t)
+                if cfg.raising == "add" then error("stub: add raised") end
+                rec("add", t)
+                self.cfg.traits[t] = true
+            end,
+            remove = function(s, t)
+                if cfg.raising == "remove" then error("stub: remove raised") end
+                rec("remove", t)
+                self.cfg.traits[t] = nil
+            end,
+        }
+        if cfg.noAdd then coll.add = nil end
+        return coll
     end
     return p
 end
@@ -132,12 +153,18 @@ def stats(h):
 
 def player(h, traits=None):
     cfg = h.rt.table()
-    cfg.traits = h.table({t: True for t in (traits or [])})
+    cfg.traits = h.table({SENTINEL + t: True for t in (traits or [])})
     return h.rt.eval(PLAYER)(cfg)
 
 
-def record_for(h, fm=15.0, lm=65.0, band=None):
-    """A body built from the no-trait creation body, then its masses set to fm + lm exactly (lx 0)."""
+def held(p):
+    """The trait names the stand-in collection holds, sorted."""
+    return sorted(k[len(SENTINEL):] for k, v in p.cfg.traits.items() if v is True)
+
+
+def record_for(h, fm=15.0, lm=65.0, band=None, fatT=0, thinT=0, dirty=False):
+    """A body built from the no-trait creation body, then its masses set to fm + lm exactly (lx 0), its trait rungs
+    (fatT, thinT) and band word set by hand and traitsDirty set when dirty (the day close's stamp)."""
     record = h.rt.table()
     body = h.K.body["new"](h.K.body.create(None, None, h.K.strength.DEFAULTS, 1), 1, 99.0)
     body.fm = fm
@@ -146,6 +173,10 @@ def record_for(h, fm=15.0, lm=65.0, band=None):
         body.mass7[i] = fm + lm
     if band is not None:
         body.band = band
+    body.fatT = fatT
+    body.thinT = thinT
+    if dirty:
+        body.traitsDirty = True
     record.body = body
     return record
 
@@ -159,6 +190,11 @@ def calls(p, name=None):
     if name is None:
         return out
     return [v for n, v in out if n == name]
+
+
+def edits(p, name):
+    """The trait names an add or remove was called with, sorted."""
+    return sorted(v[len(SENTINEL):] for v in calls(p, name))
 
 
 def pushes(h):
@@ -233,89 +269,215 @@ def test_direction_flags_off_the_trend(wgt_host, oldest, inc, lot, dec):
     assert calls(p, "setDecWeight") == [dec]
 
 
-def test_weight_is_written_before_the_band_refresh(wgt_host):
+def test_weight_is_written_before_the_trait_write(wgt_host):
     h = wgt_host
     p = player(h)
-    minute(h, p, record_for(h, fm=20.0, lm=65.0, band="normal"))
+    minute(h, p, record_for(h, fm=20.0, lm=65.0, band="overweight", fatT=1, dirty=True))
     names = [n for n, _ in calls(p)]
-    assert names.index("setWeight") < names.index("applyTraitFromWeight")
+    assert names.index("setWeight") < names.index("add")
 
 
-# --- the band change, the push and the repair (#2722, #0534, #2099, #2740) -------------------------
+# --- the trait writes from the section 8 axes (Plan 13 Task 15; #2099, #2603, #0550) -----------------
 
-def test_crossing_85_refreshes_the_band_once_and_pushes_once(wgt_host):
+@pytest.fixture
+def marks(wgt_host):
+    """A bus stand-in whose markBand records the username; the real bus is put back after."""
     h = wgt_host
-    p = player(h)
-    record = record_for(h, fm=20.0, lm=65.0, band="normal")
+    keep = h.G.NutritionRevamp.server.bus
+    got = h.rt.eval("function() local t = {}; NR_TEST_MARKS = t; return t end")()
+    h.G.NutritionRevamp.server.bus = h.rt.eval(
+        "function() return { markBand = function(u) NR_TEST_MARKS[#NR_TEST_MARKS + 1] = u end } end")()
+    try:
+        yield got
+    finally:
+        h.G.NutritionRevamp.server.bus = keep
+
+
+def test_an_overweight_axis_adds_overweight_and_removes_the_other_four_with_one_push(wgt_host, marks):
+    h = wgt_host
+    p = player(h, traits=["OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED", "STRONG"])
+    record = record_for(h, fm=20.0, lm=65.0, band="overweight", fatT=1, dirty=True)
     s0, n0 = stats(h), pushes(h)
     minute(h, p, record)
-    assert calls(p, "setWeight") == [85.0]
-    assert calls(p, "applyTraitFromWeight") == [True]
+    assert edits(p, "add") == ["OVERWEIGHT"]
+    assert edits(p, "remove") == ["EMACIATED", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT"]
+    assert held(p) == ["OVERWEIGHT", "STRONG"]
     assert pushes(h) == n0 + 1
-    assert record.body.band == "overweight"
     s = stats(h)
-    assert s["bandChanges"] == s0["bandChanges"] + 1
     assert s["pushes"] == s0["pushes"] + 1
+    assert s["bandChanges"] == s0["bandChanges"] + 1
     assert s["bandRepairs"] == s0["bandRepairs"]
+    assert not record.body.traitsDirty
+    assert list(marks.values()) == ["admin"]
+    assert record.body.band == "overweight"           # the day close's word, never rewritten here
 
 
-def test_same_band_with_its_trait_present_makes_no_call(wgt_host):
+def test_an_admin_removal_under_an_obese_axis_is_re_added_the_next_minute(wgt_host, marks):
     h = wgt_host
-    p = player(h)
-    record = record_for(h, fm=20.0, lm=65.0, band="normal")
+    p = player(h, traits=["OBESE"])
+    record = record_for(h, fm=40.0, lm=65.0, band="obese", fatT=2)
     minute(h, p, record)
-    p.cfg.traits.OVERWEIGHT = True                      # what applyTraitFromWeight put on
-    n0, s0 = pushes(h), stats(h)
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert calls(p, "applyTraitFromWeight") == [True]   # the first minute's only
-    assert pushes(h) == n0
-    assert stats(h)["bandRepairs"] == s0["bandRepairs"]
-
-
-def test_same_band_with_its_trait_absent_is_repaired_and_pushed(wgt_host):
-    h = wgt_host
-    p = player(h)
-    record = record_for(h, fm=20.0, lm=65.0, band="overweight")
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    p.cfg.traits[SENTINEL + "OBESE"] = None           # an admin's removal
     s0, n0 = stats(h), pushes(h)
-    minute(h, p, record)
-    assert calls(p, "applyTraitFromWeight") == [True]
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert edits(p, "add") == ["OBESE"]
+    assert held(p) == ["OBESE"]
     assert pushes(h) == n0 + 1
     s = stats(h)
     assert s["bandRepairs"] == s0["bandRepairs"] + 1
     assert s["bandChanges"] == s0["bandChanges"]
-    assert record.body.band == "overweight"
+    assert len(marks) == 0                             # the band did not change
 
 
-@pytest.mark.parametrize("fm, lm, band, trait", [
-    (40.0, 65.0, "obese", "OBESE"),
-    (5.0, 65.0, "underweight", "UNDERWEIGHT"),
-    (5.0, 55.0, "veryUnderweight", "VERY_UNDERWEIGHT"),
-    (5.0, 40.0, "emaciated", "EMACIATED"),
+@pytest.mark.parametrize("fatT, thinT, band, trait", [
+    (1, 0, "overweight", "OVERWEIGHT"),
+    (2, 0, "obese", "OBESE"),
+    (0, 1, "underweight", "UNDERWEIGHT"),
+    (0, 2, "veryUnderweight", "VERY_UNDERWEIGHT"),
+    (0, 3, "emaciated", "EMACIATED"),
 ])
-def test_each_band_reads_its_own_trait(wgt_host, fm, lm, band, trait):
+def test_each_rung_writes_its_own_trait_through_the_registry_object(wgt_host, fatT, thinT, band, trait):
     h = wgt_host
-    p = player(h, traits=[trait])
-    minute(h, p, record_for(h, fm=fm, lm=lm, band=band))
-    assert calls(p, "applyTraitFromWeight") == []
-    p2 = player(h, traits=["OVERWEIGHT"])               # a wrong band trait only
-    minute(h, p2, record_for(h, fm=fm, lm=lm, band=band))
-    assert calls(p2, "applyTraitFromWeight") == [True]
+    p = player(h)
+    minute(h, p, record_for(h, band=band, fatT=fatT, thinT=thinT, dirty=True))
+    assert calls(p, "add") == [h.G.CharacterTrait[trait]]
+    assert held(p) == [trait]
 
 
-def test_normal_band_with_a_band_trait_present_is_repaired(wgt_host):
+def test_a_thin_rung_replaces_a_held_fat_trait(wgt_host):
+    h = wgt_host
+    p = player(h, traits=["OVERWEIGHT"])
+    minute(h, p, record_for(h, fm=5.0, lm=48.0, band="underweight", thinT=1, dirty=True))
+    assert edits(p, "add") == ["UNDERWEIGHT"]
+    assert edits(p, "remove") == ["OVERWEIGHT"]
+
+
+def test_a_dirty_axis_already_held_clears_the_flag_and_marks_without_a_push(wgt_host, marks):
     h = wgt_host
     p = player(h, traits=["OBESE"])
-    n0 = pushes(h)
+    record = record_for(h, fm=40.0, lm=65.0, band="obese", fatT=2, dirty=True)
+    s0, n0 = stats(h), pushes(h)
+    minute(h, p, record)
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    assert pushes(h) == n0
+    assert not record.body.traitsDirty
+    assert stats(h)["bandChanges"] == s0["bandChanges"] + 1
+    assert list(marks.values()) == ["admin"]
+
+
+def test_a_normal_axis_with_stray_band_traits_is_repaired_with_one_push(wgt_host):
+    h = wgt_host
+    p = player(h, traits=["OBESE", "UNDERWEIGHT"])
+    s0, n0 = stats(h), pushes(h)
     minute(h, p, record_for(h))
-    assert calls(p, "applyTraitFromWeight") == [True]
+    assert edits(p, "remove") == ["OBESE", "UNDERWEIGHT"]
+    assert calls(p, "add") == []
+    assert held(p) == []
     assert pushes(h) == n0 + 1
+    assert stats(h)["bandRepairs"] == s0["bandRepairs"] + 1
 
 
-def test_normal_band_ignores_a_non_band_trait(wgt_host):
+def test_a_normal_axis_ignores_a_non_band_trait(wgt_host):
     h = wgt_host
     p = player(h, traits=["STRONG"])
+    n0 = pushes(h)
     minute(h, p, record_for(h))
-    assert calls(p, "applyTraitFromWeight") == []
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    assert pushes(h) == n0
+
+
+def test_a_stray_beside_the_wanted_trait_waits_for_the_next_dirty_write(wgt_host):
+    # the limitation: the minute's held check reads the wanted trait alone (the old repair read's gets, Rule 6)
+    h = wgt_host
+    p = player(h, traits=["OBESE", "OVERWEIGHT"])
+    record = record_for(h, fm=40.0, lm=65.0, band="obese", fatT=2)
+    minute(h, p, record)
+    assert calls(p, "remove") == []
+    record.body.traitsDirty = True
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert edits(p, "remove") == ["OVERWEIGHT"]
+    assert held(p) == ["OBESE"]
+
+
+def test_apply_trait_from_weight_is_never_called(wgt_host):
+    # Plan 13 Task 15 (spec section 8): vanilla's 65/75/85/100 kg band refresh is retired; the stub raises
+    h = wgt_host
+    s0 = stats(h)
+    cases = [
+        dict(fm=5.0, lm=60.0),                                     # 65 kg: vanilla Very Underweight, the axes normal
+        dict(fm=20.0, lm=65.0, band="overweight", fatT=1, dirty=True),
+        dict(fm=40.0, lm=65.0, band="obese", fatT=2),
+        dict(fm=5.0, lm=40.0, band="emaciated", thinT=3, dirty=True),
+        dict(fm=15.0, lm=65.0, band="normal", dirty=True),
+    ]
+    for kw in cases:
+        p = player(h, traits=["UNDERWEIGHT"])
+        minute(h, p, record_for(h, **kw))
+        assert calls(p, "applyTraitFromWeight") == [], kw
+    assert stats(h)["failures"] == s0["failures"]
+    with open(WEIGHT, encoding="utf-8") as fh:
+        src = fh.read()
+    assert '"applyTraitFromWeight"' not in src
+    assert "K.body.band(" not in src
+    assert "BAND_TRAIT " not in src and "BAND_TRAIT=" not in src
+
+
+def test_no_name_built_registry_id():
+    # Task 10's review: the id of VERY_UNDERWEIGHT is "base:very underweight", with a space; the traits are the
+    # CharacterTrait fields (#0550)
+    with open(WEIGHT, encoding="utf-8") as fh:
+        src = fh.read()
+    for bad in ("base:", "ResourceLocation", "CharacterTrait.get(", "string.lower", ":lower("):
+        assert bad not in src, bad
+
+
+# Rule 6: with nothing differing the minute makes no more Java calls than at HEAD 922c4f52 (the old repair read: the
+# collection and five gets for a normal band, one get for a held band). Every method of the player stand-in and of
+# every table one of them returns is counted.
+JAVA_COUNT = r"""
+function(p, C)
+    local seen = {}
+    local function wrap(t)
+        if type(t) ~= "table" or seen[t] then return t end
+        seen[t] = true
+        local names = {}
+        for k, v in pairs(t) do
+            if type(v) == "function" then names[#names + 1] = k end
+        end
+        for i = 1, #names do
+            local k = names[i]
+            local f = t[k]
+            t[k] = function(...)
+                C.n = C.n + 1
+                return wrap(f(...))
+            end
+        end
+        return t
+    end
+    wrap(p)
+end
+"""
+
+
+@pytest.mark.parametrize("fm, lm, band, fatT, thinT, traits, head", [
+    (15.0, 65.0, "normal", 0, 0, [], 15),                  # read at 922c4f52
+    (15.0, 65.0, "normal", 0, 0, ["STRONG"], 15),
+    (40.0, 65.0, "obese", 2, 0, ["OBESE"], 11),
+    (5.0, 40.0, "emaciated", 0, 3, ["EMACIATED"], 11),
+])
+def test_a_minute_with_nothing_differing_makes_no_more_java_calls_than_head(wgt_host, fm, lm, band, fatT, thinT,
+                                                                            traits, head):
+    h = wgt_host
+    p = player(h, traits=traits)
+    record = record_for(h, fm=fm, lm=lm, band=band, fatT=fatT, thinT=thinT)
+    C = h.rt.eval("{ n = 0 }")
+    h.rt.eval(JAVA_COUNT)(p, C)
+    n0 = pushes(h)
+    minute(h, p, record)
+    assert C.n <= head, C.n
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    assert pushes(h) == n0
 
 
 def test_missing_push_global_is_counted(wgt_host):
@@ -325,28 +487,83 @@ def test_missing_push_global_is_counted(wgt_host):
     try:
         p = player(h)
         s0 = stats(h)
-        minute(h, p, record_for(h, fm=20.0, lm=65.0, band="normal"))
+        record = record_for(h, fm=20.0, lm=65.0, band="overweight", fatT=1, dirty=True)
+        minute(h, p, record)
     finally:
         h.G.sendSyncPlayerFields = saved
-    assert calls(p, "applyTraitFromWeight") == [True]
+    assert edits(p, "add") == ["OVERWEIGHT"]
+    assert not record.body.traitsDirty
     s = stats(h)
     assert s["pushMissing"] == s0["pushMissing"] + 1
     assert s["pushes"] == s0["pushes"]
 
 
-def test_no_trait_registry_skips_the_repair(wgt_host):
+def test_no_trait_registry_keeps_the_dirty_flag(wgt_host, marks):
     h = wgt_host
     saved = h.G.CharacterTrait
     h.G.CharacterTrait = None
     try:
         p = player(h, traits=["OBESE"])
         s0 = stats(h)
-        minute(h, p, record_for(h))
+        record = record_for(h, band="overweight", fatT=1, dirty=True)
+        minute(h, p, record)
     finally:
         h.G.CharacterTrait = saved
-    assert calls(p, "applyTraitFromWeight") == []
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    assert calls(p, "setWeight") == [80.0]
+    assert record.body.traitsDirty is True             # the next minute retries
+    assert len(marks) == 0
+    assert stats(h)["failures"] == s0["failures"]
+
+
+def test_an_unreadable_trait_collection_keeps_the_dirty_flag(wgt_host):
+    h = wgt_host
+    p = player(h)
+    p.getCharacterTraits = None
+    record = record_for(h, band="overweight", fatT=1, dirty=True)
+    s0 = stats(h)
+    minute(h, p, record)
+    assert record.body.traitsDirty is True
     assert calls(p, "setWeight") == [80.0]
     assert stats(h)["failures"] == s0["failures"]
+
+
+def test_an_absent_add_keeps_the_dirty_flag_and_the_next_minute_lands_it(wgt_host, marks):
+    h = wgt_host
+    p = player(h, traits=["OBESE"])
+    p.cfg.noAdd = True
+    record = record_for(h, band="overweight", fatT=1, dirty=True)
+    n0 = pushes(h)
+    minute(h, p, record)
+    assert edits(p, "remove") == ["OBESE"]
+    assert pushes(h) == n0 + 1                         # the removal landed: one push for it
+    assert record.body.traitsDirty is True
+    assert len(marks) == 0
+    p.cfg.noAdd = None
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert held(p) == ["OVERWEIGHT"]
+    assert pushes(h) == n0 + 2
+    assert not record.body.traitsDirty
+    assert list(marks.values()) == ["admin"]
+
+
+def test_a_raising_add_is_a_counted_failure_and_the_flag_is_kept(wgt_host, marks):
+    h = wgt_host
+    p = player(h)
+    p.cfg.raising = "add"
+    record = record_for(h, band="overweight", fatT=1, dirty=True)
+    s0, n0 = stats(h), pushes(h)
+    minute(h, p, record)
+    assert stats(h)["failures"] == s0["failures"] + 1
+    assert "add raised" in WGT(h).lastError
+    assert calls(p, "setWeight") == [80.0]
+    assert pushes(h) == n0
+    assert record.body.traitsDirty is True
+    assert len(marks) == 0
+    p.cfg.raising = None
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert held(p) == ["OVERWEIGHT"]
+    assert not record.body.traitsDirty
 
 
 # --- the legacy macro mirror (ruling 13) -----------------------------------------------------------
@@ -500,31 +717,6 @@ def test_mirror_reads_the_oldest_hour_by_its_share_inside_the_window(wgt_host):
     assert calls(p, "setCarbohydrates")[1] == -100.0    # 400 x 0.25 + 100 - 300
 
 
-def test_absent_apply_trait_stamps_no_band_and_pushes_nothing(wgt_host):
-    h = wgt_host
-    p = player(h)
-    record = record_for(h, fm=25.0, lm=65.0)            # 90 kg: overweight, the body says normal
-    band0 = record.body.band
-    p.getNutrition(p).applyTraitFromWeight = None
-    s0 = stats(h)
-    n0 = pushes(h)
-    minute(h, p, record)
-    assert record.body.band == band0                    # not stamped: the next minute retries
-    assert stats(h)["bandChanges"] == s0["bandChanges"]
-    assert pushes(h) == n0
-
-
-def test_absent_apply_trait_counts_no_repair(wgt_host):
-    h = wgt_host
-    p = player(h, traits=["OBESE"])                     # 80 kg normal with a band trait present
-    p.getNutrition(p).applyTraitFromWeight = None
-    s0 = stats(h)
-    n0 = pushes(h)
-    minute(h, p, record_for(h))
-    assert stats(h)["bandRepairs"] == s0["bandRepairs"]
-    assert pushes(h) == n0
-
-
 def test_flag_writes_count_only_on_success(wgt_host):
     h = wgt_host
     p = player(h)
@@ -539,13 +731,14 @@ def test_limitations(wgt_host):
     lim = list(WGT(wgt_host).limitations.values())
     assert "the mirror is a plain overwrite; its four written values are the reconciliation's baseline (NR_Server_Reconcile)" in lim
     assert "the weight-direction thresholds are a game choice" in lim
+    assert any(x.startswith("a stray band trait beside the wanted one") for x in lim)
 
 
-def test_never_writes_the_strength_or_trait_set_directly():
+def test_never_writes_the_strength_level_or_carry():
+    # Plan 13 Task 15: the five weight-band traits are this file's to add and remove; the level and the carry are not
     with open(WEIGHT, encoding="utf-8") as fh:
         src = fh.read()
-    for name in ("setPerkLevelDebug", "LevelPerk", "LoseLevel", "addXp", "AddXP", "setMaxWeightDelta",
-                 '"add"', '"remove"'):
+    for name in ("setPerkLevelDebug", "LevelPerk", "LoseLevel", "addXp", "AddXP", "setMaxWeightDelta"):
         assert name not in src, name
 
 
@@ -633,26 +826,22 @@ def test_legacy_mirror_tooltip_names_the_strength_bonus_only():
     assert "Fitness" not in tip
 
 
-def test_a_raising_push_global_is_counted_and_the_band_still_marked(wgt_host):
-    # Plan 12 (S B6): a raise after body.band was stamped lost the bus mark for good and skipped the mirror.
+def test_a_raising_push_global_is_counted_and_the_band_still_marked(wgt_host, marks):
+    # Plan 12 (S B6): a raise in the push lost the bus mark for good and skipped the mirror.
     h = wgt_host
     saved = h.G.sendSyncPlayerFields
     h.G.sendSyncPlayerFields = h.rt.eval("function(p, n) error('the push raised') end")
-    marked = h.rt.eval("function() local t = {}; NR_TEST_MARKS = t; return t end")()
-    keep_bus = h.G.NutritionRevamp.server.bus
-    h.G.NutritionRevamp.server.bus = h.rt.eval(
-        "function() return { markBand = function(u) NR_TEST_MARKS[#NR_TEST_MARKS + 1] = u end } end")()
     try:
         p = player(h)
-        record = record_for(h, fm=20.0, lm=65.0, band="normal")
+        record = record_for(h, fm=20.0, lm=65.0, band="overweight", fatT=1, dirty=True)
         s0 = stats(h)
         minute(h, p, record)
     finally:
         h.G.sendSyncPlayerFields = saved
-        h.G.NutritionRevamp.server.bus = keep_bus
     s = stats(h)
-    assert record.body.band == "overweight"
+    assert held(p) == ["OVERWEIGHT"]
+    assert not record.body.traitsDirty
     assert s["pushMissing"] == s0["pushMissing"] + 1
     assert s["failures"] == s0["failures"]
-    assert len(marked) == 1
+    assert len(marks) == 1
     assert s["mirrorWrites"] == s0["mirrorWrites"] + 1

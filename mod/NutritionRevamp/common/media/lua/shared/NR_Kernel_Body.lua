@@ -1,5 +1,5 @@
 -- NR_Kernel_Body.lua -- the body model's pure pieces: the record.body table the adapter creates (the creation
--- body of a muscle and a weight pick, K.body.create, laid by K.body.new), the vanilla weight band, the three direction
+-- body of a muscle and a weight pick, K.body.create, laid by K.body.new), the three direction
 -- flags off the 7-day trend, the legacy macro-mirror maps that turn the mod's trailing-24 h figures into the vanilla
 -- Nutrition stores other mods read, the trailing-24 h window and the record calendar.
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
@@ -18,27 +18,6 @@ function K.body.effSex(sex, specific)
         return 2
     end
     return 1
-end
-
--- The vanilla weight band of weight w (kg): its trait thresholds (#0531, #0155). Normal is the open
--- interval 75 < w < 85.
-function K.body.band(w)
-    if w >= 100 then
-        return "obese" -- #0531, #0155
-    end
-    if w >= 85 then
-        return "overweight" -- #0531, #0155
-    end
-    if w > 75 then
-        return "normal" -- #0531, #0155
-    end
-    if w > 65 then
-        return "underweight" -- #0531, #0155
-    end
-    if w > 50 then
-        return "veryUnderweight" -- #0531, #0155
-    end
-    return "emaciated" -- #0531, #0155
 end
 
 -- The three direction flags off the 7-day trend in kg per day: weight increasing, increasing a lot,

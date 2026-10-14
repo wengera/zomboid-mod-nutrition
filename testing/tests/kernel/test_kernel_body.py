@@ -1,12 +1,12 @@
-"""The weight band, the direction flags, the macro-mirror maps, the trailing-24 h window and the record calendar
+"""The direction flags, the macro-mirror maps, the trailing-24 h window and the record calendar
 (NR_Kernel_Body.lua), Plan 3 Task 6. The band-anchored weight split (split, interp and their tables, the build
 offsets) and the old constructor are removed in Plan 13 Task 12: the body is K.body.new over K.body.create
 (test_body_create.py).
 
 NR_Kernel_Body.lua is a kernel file (its name is NR_Kernel*), so the session `host` fixture loads it
 through its glob and already has NutritionRevamp.kernel.body. Every expectation below is hand-computed
-from the file's constants: the band edges (#0531, #0155), the flag thresholds (ruling 17) and the mirror maps
-(#0022, #0023, ruling 13).
+from the file's constants: the flag thresholds (ruling 17) and the mirror maps (#0022, #0023, ruling 13). The vanilla
+weight band (K.body.band) is removed in Plan 13 Task 15: the band traits are K.traits' (test_kernel_traits.py).
 """
 import pytest
 
@@ -26,6 +26,8 @@ def test_constants(host):
     for name in ("split", "interp", "ANCHORS_W", "BF_MALE", "BF_FEMALE", "BF_MIN", "BF_MAX", "BUILD_OFFSET",
                  "BUILD_KEYS", "KNOTS", "W_MIN", "W_MAX", "newLean"):
         assert b[name] is None, name
+    # Plan 13 Task 15 (spec section 8): vanilla's weight band is retired; the section 8 axes own the band traits
+    assert b.band is None
 
 
 # --- effSex (Plan 13 Task 3) ---
@@ -36,27 +38,6 @@ def test_eff_sex_is_male_unless_the_option_is_on(host):
     assert host.call("body.effSex", 1, True) == 1
     assert host.call("body.effSex", 1, False) == 1
     assert host.call("body.effSex", 2, None) == 1
-
-
-# --- band ---
-
-@pytest.mark.parametrize("w,band", [
-    (100, "obese"),
-    (130, "obese"),
-    (99.99, "overweight"),
-    (85, "overweight"),
-    (84.99, "normal"),
-    (80, "normal"),
-    (75.01, "normal"),
-    (75, "underweight"),
-    (65.01, "underweight"),
-    (65, "veryUnderweight"),
-    (50.01, "veryUnderweight"),
-    (50, "emaciated"),
-    (30, "emaciated"),
-])
-def test_band(host, w, band):
-    assert host.call("body.band", w) == band
 
 
 # --- flags / trend ---

@@ -20,7 +20,7 @@
       "lip": -68.7438916956404,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -140,7 +140,7 @@
       "lip": -69.50954370324331,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -262,7 +262,7 @@
       "lip": -67.545007410678537,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -384,7 +384,7 @@
       "lip": -69.245021163908234,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 73.861720780386335
      },
      "st": {
@@ -506,7 +506,7 @@
       "lip": -69.178827710284835,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -628,7 +628,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 120,
-      "traitApplies": 30,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -804,7 +804,7 @@
       "actKcalDay": 9.428625000000018,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -1695,7 +1695,7 @@
       "actKcalDay": 90.384750000000182,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -2585,7 +2585,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -3476,7 +3476,7 @@
       "actKcalDay": 178.49915855260065,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 29.000000000000057,
       "band2Day": 0,
       "bandWeek": {
@@ -4365,7 +4365,7 @@
       "actKcalDay": 9.428625000000018,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -5255,7 +5255,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -6088,15 +6088,15 @@
     }
    },
    "sent": {
-    "mirror": 21
+    "mirror": 15
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 6,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 15,
-     "pushes": 15
+     "marks": 9,
+     "pushes": 9
     },
     "effects": {
      "bruises": 0,
@@ -6187,14 +6187,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 6,
-     "bandRepairs": 174,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 180,
      "minutes": 180,
      "mirrorWrites": 180,
      "pushMissing": 0,
-     "pushes": 180,
+     "pushes": 0,
      "rebases": 180,
      "weightWrites": 180
     },
@@ -6211,14 +6211,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 30,
-     "g2:2": 30,
-     "g3:2": 30,
-     "g4:2": 30,
-     "g5:2": 30,
-     "g6:2": 30
-    }
+    "players": {}
    }
   },
   {
@@ -6240,7 +6233,7 @@
       "lip": -68.244125615461996,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -6360,7 +6353,7 @@
       "lip": -68.852085861810608,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -6482,7 +6475,7 @@
       "lip": -64.25408396004272,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -6604,7 +6597,7 @@
       "lip": -68.952132134112688,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 73.861720780386335
      },
      "st": {
@@ -6726,7 +6719,7 @@
       "lip": -68.084840937380889,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -6848,7 +6841,7 @@
       "lip": -68.955058404279796,
       "pro": -400,
       "sets": 240,
-      "traitApplies": 60,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -7024,7 +7017,7 @@
       "actKcalDay": 19.182375000000036,
       "alcDay": 23.670000000000002,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -7915,7 +7908,7 @@
       "actKcalDay": 187.92225000000039,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -8805,7 +8798,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -9696,7 +9689,7 @@
       "actKcalDay": 363.15346050356624,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 59.000000000000057,
       "band2Day": 0,
       "bandWeek": {
@@ -10585,7 +10578,7 @@
       "actKcalDay": 19.182375000000036,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -11475,7 +11468,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -12305,15 +12298,15 @@
     }
    },
    "sent": {
-    "mirror": 23
+    "mirror": 17
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 6,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 17,
-     "pushes": 17
+     "marks": 11,
+     "pushes": 11
     },
     "effects": {
      "bruises": 0,
@@ -12404,14 +12397,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 6,
-     "bandRepairs": 354,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 360,
      "minutes": 360,
      "mirrorWrites": 360,
      "pushMissing": 0,
-     "pushes": 360,
+     "pushes": 0,
      "rebases": 360,
      "weightWrites": 360
     },
@@ -12428,14 +12421,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 60,
-     "g2:2": 60,
-     "g3:2": 60,
-     "g4:2": 60,
-     "g5:2": 60,
-     "g6:2": 60
-    }
+    "players": {}
    }
   },
   {
@@ -12459,7 +12445,7 @@
       "lip": -67.828719385411745,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -12579,7 +12565,7 @@
       "lip": -68.071818521001603,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -12703,7 +12689,7 @@
       "lip": -61.202238939830153,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 65.032258526592017
      },
      "st": {
@@ -12825,7 +12811,7 @@
       "lip": -68.139464330386346,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -12947,7 +12933,7 @@
       "lip": -66.943714858009727,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -13069,7 +13055,7 @@
       "lip": -67.111672572941501,
       "pro": -400,
       "sets": 360,
-      "traitApplies": 90,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -13245,7 +13231,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -13519,7 +13505,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -14138,7 +14123,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 4.0180590277450011e-05,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -14412,7 +14397,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -15030,7 +15014,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -15304,7 +15288,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -15927,7 +15910,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -16201,7 +16184,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -16818,7 +16800,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -17092,7 +17074,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -17710,7 +17691,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -17984,7 +17965,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -18545,15 +18525,15 @@
     }
    },
    "sent": {
-    "mirror": 26
+    "mirror": 20
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 12,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 32,
-     "pushes": 20
+     "marks": 20,
+     "pushes": 14
     },
     "effects": {
      "bruises": 0,
@@ -18644,14 +18624,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 12,
-     "bandRepairs": 528,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 540,
      "minutes": 540,
      "mirrorWrites": 540,
      "pushMissing": 0,
-     "pushes": 540,
+     "pushes": 0,
      "rebases": 540,
      "weightWrites": 540
     },
@@ -18668,14 +18648,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 90,
-     "g2:2": 90,
-     "g3:2": 90,
-     "g4:2": 90,
-     "g5:2": 90,
-     "g6:2": 90
-    }
+    "players": {}
    }
   },
   {
@@ -18699,7 +18672,7 @@
       "lip": -67.299662838485474,
       "pro": -400,
       "sets": 480,
-      "traitApplies": 120,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -18819,7 +18792,7 @@
       "lip": -67.277631498329413,
       "pro": -400,
       "sets": 480,
-      "traitApplies": 120,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -18943,7 +18916,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 80,
-      "traitApplies": 20,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -19065,7 +19038,7 @@
       "lip": -67.833453378614266,
       "pro": -400,
       "sets": 480,
-      "traitApplies": 120,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -19187,7 +19160,7 @@
       "lip": -65.82829017458829,
       "pro": -400,
       "sets": 480,
-      "traitApplies": 120,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -19309,7 +19282,7 @@
       "lip": -65.404252921575704,
       "pro": -400,
       "sets": 480,
-      "traitApplies": 120,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -19485,7 +19458,7 @@
       "actKcalDay": 9.7534199632456708,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -19759,7 +19732,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -20378,7 +20350,7 @@
       "actKcalDay": 90.985549255189355,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -20652,7 +20624,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -21270,7 +21241,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -22142,7 +22113,7 @@
       "actKcalDay": 184.40497522102837,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 30,
       "band2Day": 0,
       "bandWeek": {
@@ -22416,7 +22387,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -23033,7 +23003,7 @@
       "actKcalDay": 9.6946379548369386,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -23307,7 +23277,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -23925,7 +23894,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -24199,7 +24168,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -24760,15 +24728,15 @@
     }
    },
    "sent": {
-    "mirror": 38
+    "mirror": 31
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 13,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 36,
-     "pushes": 31
+     "marks": 23,
+     "pushes": 24
     },
     "effects": {
      "bruises": 0,
@@ -24859,14 +24827,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 13,
-     "bandRepairs": 706,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 719,
      "minutes": 719,
      "mirrorWrites": 719,
      "pushMissing": 0,
-     "pushes": 719,
+     "pushes": 0,
      "rebases": 719,
      "weightWrites": 719
     },
@@ -24883,14 +24851,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 120,
-     "g2:2": 120,
-     "g3:2": 119,
-     "g4:2": 120,
-     "g5:2": 120,
-     "g6:2": 120
-    }
+    "players": {}
    }
   },
   {
@@ -24915,7 +24876,7 @@
       "lip": -66.887009748256446,
       "pro": -400,
       "sets": 600,
-      "traitApplies": 150,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -25035,7 +24996,7 @@
       "lip": -66.427286253862505,
       "pro": -400,
       "sets": 600,
-      "traitApplies": 150,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -25159,7 +25120,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 200,
-      "traitApplies": 50,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -25281,7 +25242,7 @@
       "lip": -66.218014732826973,
       "pro": -400,
       "sets": 596,
-      "traitApplies": 149,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -25404,7 +25365,7 @@
       "lip": -64.422846663600765,
       "pro": -400,
       "sets": 600,
-      "traitApplies": 150,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -25528,7 +25489,7 @@
       "lip": -63.83689971628624,
       "pro": -400,
       "sets": 600,
-      "traitApplies": 150,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -25705,7 +25666,7 @@
       "actKcalDay": 19.506839926491356,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -25979,7 +25940,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -26600,7 +26560,7 @@
       "actKcalDay": 181.97109851037868,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -26874,7 +26834,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -27492,7 +27451,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -28364,7 +28323,7 @@
       "actKcalDay": 362.66311793468947,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 59.000000000000057,
       "band2Day": 0,
       "bandWeek": {
@@ -28638,7 +28597,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -29255,7 +29213,7 @@
       "actKcalDay": 19.389275909673895,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -29529,7 +29487,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -30149,7 +30106,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -30423,7 +30380,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -30984,15 +30940,15 @@
     }
    },
    "sent": {
-    "mirror": 42
+    "mirror": 35
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 13,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 40,
-     "pushes": 35
+     "marks": 27,
+     "pushes": 28
     },
     "effects": {
      "bruises": 0,
@@ -31083,14 +31039,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 13,
-     "bandRepairs": 885,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 898,
      "minutes": 898,
      "mirrorWrites": 898,
      "pushMissing": 0,
-     "pushes": 898,
+     "pushes": 0,
      "rebases": 898,
      "weightWrites": 898
     },
@@ -31107,14 +31063,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 150,
-     "g2:2": 150,
-     "g3:2": 149,
-     "g4:2": 149,
-     "g5:2": 150,
-     "g6:2": 150
-    }
+    "players": {}
    }
   },
   {
@@ -31139,7 +31088,7 @@
       "lip": -66.536441238171719,
       "pro": -400,
       "sets": 720,
-      "traitApplies": 180,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -31259,7 +31208,7 @@
       "lip": -65.591517939083374,
       "pro": -400,
       "sets": 720,
-      "traitApplies": 180,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -31383,7 +31332,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 320,
-      "traitApplies": 80,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -31505,7 +31454,7 @@
       "lip": -63.911322352792951,
       "pro": -400,
       "sets": 4,
-      "traitApplies": 1,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -31628,7 +31577,7 @@
       "lip": -62.965980739897617,
       "pro": -400,
       "sets": 720,
-      "traitApplies": 180,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -31752,7 +31701,7 @@
       "lip": -62.389688691685144,
       "pro": -400,
       "sets": 720,
-      "traitApplies": 180,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -31929,7 +31878,7 @@
       "actKcalDay": 29.260259889737075,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -32203,7 +32152,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -32824,7 +32772,7 @@
       "actKcalDay": 272.95664776556816,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -33098,7 +33046,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -33716,7 +33663,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -34588,7 +34535,7 @@
       "actKcalDay": 553.21492566308507,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 90,
       "band2Day": 0,
       "bandWeek": {
@@ -35468,7 +35415,7 @@
       "actKcalDay": 29.083913864510851,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -35742,7 +35689,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -36362,7 +36308,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -36636,7 +36582,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -37197,15 +37142,15 @@
     }
    },
    "sent": {
-    "mirror": 45
+    "mirror": 38
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 13,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 43,
-     "pushes": 37
+     "marks": 30,
+     "pushes": 30
     },
     "effects": {
      "bruises": 0,
@@ -37296,14 +37241,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 13,
-     "bandRepairs": 1036,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 1049,
      "minutes": 1049,
      "mirrorWrites": 1049,
      "pushMissing": 0,
-     "pushes": 1049,
+     "pushes": 0,
      "rebases": 1049,
      "weightWrites": 1049
     },
@@ -37320,14 +37265,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 180,
-     "g2:2": 180,
-     "g3:2": 179,
-     "g4:2": 150,
-     "g5:2": 180,
-     "g6:2": 180
-    }
+    "players": {}
    }
   },
   {
@@ -37352,7 +37290,7 @@
       "lip": -66.211203586428724,
       "pro": -400,
       "sets": 840,
-      "traitApplies": 210,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -37472,7 +37410,7 @@
       "lip": -64.816139328967239,
       "pro": -400,
       "sets": 840,
-      "traitApplies": 210,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -37596,7 +37534,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 440,
-      "traitApplies": 110,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -37718,7 +37656,7 @@
       "lip": -61.842956356858821,
       "pro": -400,
       "sets": 124,
-      "traitApplies": 31,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -37842,7 +37780,7 @@
       "lip": -61.614382868727972,
       "pro": -400,
       "sets": 840,
-      "traitApplies": 210,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -37966,7 +37904,7 @@
       "lip": -61.047048090268618,
       "pro": -400,
       "sets": 840,
-      "traitApplies": 210,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -38143,7 +38081,7 @@
       "actKcalDay": 39.01367985298279,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -38417,7 +38355,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -39038,7 +38975,7 @@
       "actKcalDay": 363.94219702075827,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -39312,7 +39249,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -39930,7 +39866,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -40802,7 +40738,7 @@
       "actKcalDay": 737.61990088411198,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 120,
       "band2Day": 0,
       "bandWeek": {
@@ -41682,7 +41618,7 @@
       "actKcalDay": 38.778551819347811,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -41956,7 +41892,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -42576,7 +42511,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -42850,7 +42785,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -43411,15 +43345,15 @@
     }
    },
    "sent": {
-    "mirror": 49
+    "mirror": 42
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 13,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 45,
-     "pushes": 40
+     "marks": 32,
+     "pushes": 33
     },
     "effects": {
      "bruises": 0,
@@ -43510,14 +43444,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 13,
-     "bandRepairs": 1216,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 1229,
      "minutes": 1229,
      "mirrorWrites": 1229,
      "pushMissing": 0,
-     "pushes": 1229,
+     "pushes": 0,
      "rebases": 1229,
      "weightWrites": 1229
     },
@@ -43534,14 +43468,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 210,
-     "g2:2": 210,
-     "g3:2": 209,
-     "g4:2": 180,
-     "g5:2": 210,
-     "g6:2": 210
-    }
+    "players": {}
    }
   },
   {
@@ -43566,7 +43493,7 @@
       "lip": -65.909466473515351,
       "pro": -400,
       "sets": 960,
-      "traitApplies": 240,
+      "traitApplies": 0,
       "weight": 65.02279975497116
      },
      "st": {
@@ -43686,7 +43613,7 @@
       "lip": -64.096786873993508,
       "pro": -400,
       "sets": 960,
-      "traitApplies": 240,
+      "traitApplies": 0,
       "weight": 64.989678039420994
      },
      "st": {
@@ -43812,7 +43739,7 @@
       "lip": -70,
       "pro": -400,
       "sets": 560,
-      "traitApplies": 140,
+      "traitApplies": 0,
       "weight": 65.024999999999991
      },
      "st": {
@@ -43934,7 +43861,7 @@
       "lip": -59.924043276787458,
       "pro": -400,
       "sets": 244,
-      "traitApplies": 61,
+      "traitApplies": 0,
       "weight": 73.761990088411338
      },
      "st": {
@@ -44058,7 +43985,7 @@
       "lip": -60.360446747614802,
       "pro": -400,
       "sets": 960,
-      "traitApplies": 240,
+      "traitApplies": 0,
       "weight": 64.630919698912891
      },
      "st": {
@@ -44182,7 +44109,7 @@
       "lip": -60.219834449196981,
       "pro": -400,
       "sets": 960,
-      "traitApplies": 240,
+      "traitApplies": 0,
       "weight": 65.024978506346713
      },
      "st": {
@@ -44359,7 +44286,7 @@
       "actKcalDay": 48.767099816228509,
       "alcDay": 0,
       "at": 2.5028945892069017e-06,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -44633,7 +44560,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -45254,7 +45180,7 @@
       "actKcalDay": 454.92774627594838,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -45528,7 +45454,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -46146,7 +46071,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 0,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -47018,7 +46943,7 @@
       "actKcalDay": 922.0248761051389,
       "alcDay": 0,
       "at": 0.00011344891412159822,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 150,
       "band2Day": 0,
       "bandWeek": {
@@ -47898,7 +47823,7 @@
       "actKcalDay": 48.473189774184775,
       "alcDay": 0,
       "at": 0,
-      "band": "veryUnderweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -48172,7 +48097,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -48792,7 +48716,7 @@
       "actKcalDay": 0,
       "alcDay": 0,
       "at": 2.4450162507049535e-08,
-      "band": "underweight",
+      "band": "normal",
       "band1Day": 0,
       "band2Day": 0,
       "bandWeek": {
@@ -49066,7 +48990,6 @@
         "9": 0
        }
       },
-      "traitsDirty": true,
       "wday": 5
      },
      "dead": false,
@@ -49627,15 +49550,15 @@
     }
    },
    "sent": {
-    "mirror": 52
+    "mirror": 45
    },
    "stats": {
     "bus.effects": {
-     "bandMarks": 13,
+     "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 50,
-     "pushes": 43
+     "marks": 37,
+     "pushes": 36
     },
     "effects": {
      "bruises": 0,
@@ -49726,14 +49649,14 @@
     "training": null,
     "weight": {
      "badReads": 0,
-     "bandChanges": 13,
-     "bandRepairs": 1396,
+     "bandChanges": 0,
+     "bandRepairs": 0,
      "failures": 0,
      "flagWrites": 1409,
      "minutes": 1409,
      "mirrorWrites": 1409,
      "pushMissing": 0,
-     "pushes": 1409,
+     "pushes": 0,
      "rebases": 1409,
      "weightWrites": 1409
     },
@@ -49750,14 +49673,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g1:2": 240,
-     "g2:2": 240,
-     "g3:2": 239,
-     "g4:2": 210,
-     "g5:2": 240,
-     "g6:2": 240
-    }
+    "players": {}
    }
   }
  ]
