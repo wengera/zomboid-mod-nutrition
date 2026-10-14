@@ -412,23 +412,35 @@ function S.get(username, worldAgeHours)
 end
 
 -- A departure flush: the record held now (a pruned one is gone and nothing is written), and the index marked dirty
--- for the debounced store.index task (ten departures in a minute write it once, not ten times).
+-- for the debounced store.index task (ten departures in a minute write it once, not ten times). A save that writes
+-- nothing (a failed write, a deferral) keeps the dirty mark and, while the player is still away, queues the flush
+-- again for the next drain, so the session is not lost to a restart before the player returns; a returned player's
+-- own store step takes the mark instead. A record no longer held (pruned) ends the retries.
+local queueFlush
 local function flush(username)
     local r = S.records and S.records[username]
     F.dirty[username] = nil                                -- the flush is the dirty slot's save
-    if r ~= nil then F.save(username, r) end
     F.indexDirty = true -- the departure's stamp reaches the file at the next store.index task
+    if r == nil or F.save(username, r) then return end
+    F.dirty[username] = true
+    local P = NR.server.players
+    if P ~= nil and P.online ~= nil and P.online[username] == nil then queueFlush(username) end
 end
 
--- A departure: the sight forgotten, so the next first sight loads the record again, and the record's flush queued
--- as a task (it rides the budget); the index follows within S.INDEX_GAP_MS.
-function S.forget(username)
-    if username == nil then return end
-    if S.loaded ~= nil then S.loaded[username] = nil end
+-- The flush as a one-shot task on the players' queue (it rides the budget), when the record is held.
+queueFlush = function(username)
     local P = NR.server.players
     if P ~= nil and P.task ~= nil and S.records ~= nil and S.records[username] ~= nil then
         P.task("store.flush." .. K.store.hexName(username), function() flush(username) end)
     end
+end
+
+-- A departure: the sight forgotten, so the next first sight loads the record again, and the record's flush queued;
+-- the index follows within S.INDEX_GAP_MS.
+function S.forget(username)
+    if username == nil then return end
+    if S.loaded ~= nil then S.loaded[username] = nil end
+    queueFlush(username)
 end
 
 -- A respawn: the character is new, the record starts fresh, the reset count carries over so a later reading can
