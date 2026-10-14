@@ -1,16 +1,16 @@
--- NR_Kernel_Effects.lua -- the effects layer's pure kernel (Plan 5, rulings 2, 5-6, 9-10, 12-13, 17-18, 23; T1-1):
+-- NR_Kernel_Effects.lua -- the effects layer's pure kernel (T1-1):
 -- the twelve-band vector and its change test, the protein-energy grade, the energy-availability band and accrual
 -- factor, the composer that folds the declarative table (NR_Data_Effects.lua, passed in as an argument -- the
 -- kernel never reads NR.data) into record.effects, the fatigue offset, the vanilla accrual and recovery factors,
 -- the night-vision machine, Short Sighted, the health drains, the intoxication target and the vitamin C cold
 -- credit. The model is the formulas briefing's sections A1-A4, B1, B3-B5, D1-D3, F1-F2, H2 and J1.
 -- The coefficient set is a pure function of (the nutrient grades and rungs, the band vector, the closed-day pe and
--- ea, the flags, the dial snapshot) and is rebuilt only when K.effects.changed says the key moved (ruling 2); the
+-- ea, the flags, the dial snapshot) and is rebuilt only when K.effects.changed says the key moved; the
 -- per-minute scalars (fOff, the night-vision machine, the drains, the intoxication target) bypass it.
 -- The band vector b is a Lua array of twelve integers at the indices K.effects.B names (caf, wd, bac, alc, hang,
 -- bg, iuS, debt, iu, dehyd, hypo, ex). The wd band carries round(4 x wd x cafTol): both withdrawal rows scale by
 -- wdQ x cafTol (A4), so banding the product keeps the set a function of the bands.
--- Time: dtD is real game days (the night-vision counter does not take the onset dial, ruling 6); ah is game
+-- Time: dtD is real game days (the night-vision counter does not take the onset dial); ah is game
 -- hours. Sex is indexed 1 male, 2 female (Plan 3's convention). Slow-clock code with no fast region:
 -- math.floor is used; every K.clamp / K.min / K.max / K.fluids / K.training reference is at call time.
 local K = NutritionRevamp.kernel
@@ -84,7 +84,7 @@ K.effects.EA_MID_M = 1.25 -- game choice extrapolation (open S0846)
 K.effects.EA_LOW = 5 -- game choice knot (open S0846)
 K.effects.EA_LOW_M = 1.40 -- game choice extrapolation, held below 5 (open S0846)
 
--- The protein-energy grade (F1, ruling 18).
+-- The protein-energy grade (F1).
 K.effects.PE_BMI_OK = 18.5 -- S0115
 K.effects.PE_BMI_THIN = 17 -- game choice: the WHO thinness class (open S1179)
 K.effects.PE_BMI_LOW = 16 -- S0115
@@ -94,12 +94,12 @@ K.effects.PE_PROT_OK = 0.8 -- g/kg/d, S0509
 K.effects.PE_PROT_2 = 0.6 -- g/kg/d: game choice rung (open S1180)
 K.effects.PE_PROT_3 = 0.4 -- g/kg/d: game choice rung (open S1180)
 
--- The aiming multiplier (D1, ruling 5): clamp(1 + AIM_K x IU, AIM_LO, AIM_HI), IU at the band's lower edge.
+-- The aiming multiplier (D1): clamp(1 + AIM_K x IU, AIM_LO, AIM_HI), IU at the band's lower edge.
 K.effects.AIM_K = 0.25 -- game choice (open S1134)
 K.effects.AIM_LO = 0.90 -- game choice (open S1135); unreachable, the IU never falls below 0
 K.effects.AIM_HI = 1.60 -- game choice (open S1135)
 
--- The fatigue offset (B1, ruling 11): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut.
+-- The fatigue offset (B1): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut.
 K.effects.DEBT_K = 0.005 -- per debt hour: game choice, debt under-felt (S0742 direction; open S1131)
 K.effects.DEBT_F_MAX = 0.10 -- game choice: 20 h of debt (open S1131)
 K.effects.CAF_OFF_MAX = 0.35 -- game choice sized on S0900 vs S0750 (open S1124)
@@ -118,13 +118,13 @@ K.effects.M_HI = 5.0 -- game choice clamp (open S1133)
 K.effects.R_LO = 0.25 -- game choice clamp (open S1133)
 K.effects.R_HI = 2.0 -- game choice clamp (open S1133)
 
--- The night-vision machine (D2, ruling 6).
+-- The night-vision machine (D2).
 K.effects.NV_GRANT = 14 -- days: game choice anchored on S0869's six weeks (open S1140)
 K.effects.NV_SLOW = 0.5 -- the rate under iron or riboflavin depletion, S0871 direction; game choice (open S1141)
 K.effects.NV_REGRANT = 3 -- days after a lapse: game choice hysteresis (open S1142)
 K.effects.NV_ZINC = 3 -- zinc must stay under the depleted grade, S0872 / S0873 direction (open S0942)
 
--- The health drains (H2, ruling 13): health per game minute, indexed by the lethal code.
+-- The health drains (H2): health per game minute, indexed by the lethal code.
 K.effects.DRAIN_RATE = {
     0.023148148148148147, -- 1 starvation: 100 in 72 h; game choice duration (open S1166)
     0.00992063492063492, -- 2 terminal scurvy: 100 in 168 h (S0965 can be fatal); game choice (open S1168)
@@ -144,7 +144,7 @@ K.effects.SCURVY_H = 720 -- 30 days at clinical vitamin C: game choice (open S11
 K.effects.BERIBERI_H = 168 -- 7 days at clinical thiamine: game choice (open S1169)
 K.effects.PELLAGRA_H = 1440 -- 60 days at clinical niacin: game choice (open S1170)
 
--- The intoxication target (ruling 19): clamp(100 x bac / 0.20, 0, 100).
+-- The intoxication target: clamp(100 x bac / 0.20, 0, 100).
 K.effects.INTOX_FULL_BAC = 0.20 -- per cent: game choice map (open S1106)
 K.effects.INTOX_MAX = 100 -- the stat's range #2369
 
@@ -286,7 +286,7 @@ function K.effects.stampKey(key, ep, day, dials, b)
     return key
 end
 
--- The protein-energy grade 1..4 at the day close (F1, ruling 18): the worse of the energy side (BMI, 0 =
+-- The protein-energy grade 1..4 at the day close (F1): the worse of the energy side (BMI, 0 =
 -- unknown; starved days) and the protein side (the 7-day mean g/kg/d; nil or negative = unknown, grade 1).
 function K.effects.peGrade(bmi, starvedDays, p7meanGkg)
     local E = K.effects
@@ -429,7 +429,7 @@ function K.effects.foldRows(E, T, nut, b, pe, ea, flags, bonusOn, vitdOn, bonusP
     return E
 end
 
--- The Severity dial on one folded surface (ruling 23): mul 1 + (v - 1) x sev, add v x sev, a boolean with
+-- The Severity dial on one folded surface: mul 1 + (v - 1) x sev, add v x sev, a boolean with
 -- sevMin false below it; a max surface (identity 0) v x sev, a min surface (identity 1) 1 - (1 - v) x sev; the
 -- machine surfaces untouched (surfaceStep skips them).
 function K.effects.sevScale(op, v, sev, sevMin)
@@ -550,7 +550,7 @@ function K.effects.rEngine(bed, trait)
     return K.clamp(bed * trait, E.R_LO, E.R_HI)
 end
 
--- One night-vision minute (D2, ruling 6): while vitamin A is replete, zinc not depleted and the preformed-retinol
+-- One night-vision minute (D2): while vitamin A is replete, zinc not depleted and the preformed-retinol
 -- EMA meets the requirement, the counter runs (half speed under iron or riboflavin depletion); otherwise it drops
 -- to NV_GRANT - NV_REGRANT at most and runs down. Returns whether the trait is wanted; stamps E.nightVision.
 function K.effects.nvMinute(E, vitAg, zincG, ironG, riboG, retOk, dtD)
@@ -570,7 +570,7 @@ function K.effects.nvMinute(E, vitAg, zincG, ironG, riboG, retOk, dtD)
     return want
 end
 
--- Short Sighted (D3, ruling 7): clinical vitamin A at Severity 1 or more.
+-- Short Sighted (D3): clinical vitamin A at Severity 1 or more.
 function K.effects.ssWant(vitAg, sev)
     return vitAg == 4 and sev >= 1
 end
@@ -584,7 +584,7 @@ function K.effects.pick(d, code, c)
     return d, code
 end
 
--- The health drain per game minute (H2, ruling 13): the max over the active rows, its code on E.lethal (1
+-- The health drain per game minute (H2): the max over the active rows, its code on E.lethal (1
 -- starvation, 2 scurvy, 3 beriberi, 4 pellagra, 5 hyponatraemia, 6 dehydration, 7 the iron rung); 0 and code 0
 -- when canKill is false. Stamps E.drain.
 function K.effects.drain(E, nut, fluids, acute, pe, bodyFatFrac, sex, canKill)
@@ -621,7 +621,7 @@ function K.effects.drain(E, nut, fluids, acute, pe, bodyFatFrac, sex, canKill)
     return d
 end
 
--- The INTOXICATION target (ruling 19): 100 x bac / 0.20, clamped to the stat's range.
+-- The INTOXICATION target: 100 x bac / 0.20, clamped to the stat's range.
 function K.effects.intoxTarget(bac)
     local E = K.effects
     return K.clamp(E.INTOX_MAX * bac / E.INTOX_FULL_BAC, 0, E.INTOX_MAX)

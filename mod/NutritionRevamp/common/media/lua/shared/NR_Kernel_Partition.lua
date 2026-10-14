@@ -1,8 +1,8 @@
--- NR_Kernel_Partition.lua -- the body model's daily partition (Plan 3): once per game day the day's
+-- NR_Kernel_Partition.lua -- the body model's daily partition: once per game day the day's
 -- energy balance moves fat and lean mass. A deficit is paid by fat up to Alpert's ceiling and the
 -- overflow by lean under the training and protein protection, the spared energy paid by fat beyond the
--- ceiling (ruling 7); a surplus follows the lean-gain product and the rest is stored as fat; an
--- immobilised day (a leg fracture or splint, ruling 8) follows the logarithmic disuse curve instead.
+-- ceiling; a surplus follows the lean-gain product and the rest is stored as fat; an
+-- immobilised day (a leg fracture or splint) follows the logarithmic disuse curve instead.
 -- The day close rotates the seven-day rings and zeroes the day accumulators.
 -- Pure: numbers and Lua tables in, numbers, booleans and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.log and the bounded numeric `for` over the kernel's own tables are allowed.
@@ -104,7 +104,7 @@ end
 
 -- The deficit arm, returning dFM, dLM (kg): fat pays up to FAT_CEIL_KCAL * fm, the overflow is paid
 -- by lean at RHO_LEAN times the protection, and the energy the protection spares is paid by fat beyond
--- the ceiling. Ruling 7: fat pays the spared energy beyond the ceiling so mass balance closes.
+-- the ceiling. Fat pays the spared energy beyond the ceiling so mass balance closes.
 function K.partition.deficit(body, dStr, gProt)
     local P = K.partition
     local deficit = -body.ebDay
@@ -121,7 +121,7 @@ end
 
 -- The surplus arm, returning dFM, dLM (kg): lean gains the lean-gain law's amount, never more than the
 -- surplus can pay at RHO_LEAN, and the rest of the surplus is stored as fat.
--- S1056 design-phase-v1: the Forbes/Hall lean share of a surplus (S0054/S0055 give the shape only) is the open coefficient row; until it settles the untrained lean floor is 0 and the wave-2 gain product below is the lean share (ruling 7).
+-- S1056 design-phase-v1: the Forbes/Hall lean share of a surplus (S0054/S0055 give the shape only) is the open coefficient row; until it settles the untrained lean floor is 0 and the wave-2 gain product below is the lean share.
 function K.partition.surplus(body, dHyp, dStr, pPerKg)
     local P = K.partition
     local gain = K.min(P.leanGain(body, dHyp, dStr, pPerKg), body.ebDay / P.RHO_LEAN)
@@ -180,7 +180,7 @@ end
 -- Close the day: shift eb7, mass7 and p7 one slot (slot 1 the oldest), write the day's ebDay, fm + lm
 -- and pDay into slot 7 (the 7-day readers': deficitWeek, K.body.trend, NR_Server_Effects' protein
 -- week), zero the day accumulators and advance dayIndex. The trailing-24 h window is not the day's: it
--- runs on the clock (K.body.trailTo, Plan 11d Task 9c). Returns the body.
+-- runs on the clock (K.body.trailTo). Returns the body.
 function K.partition.closeDay(body)
     local eb = body.eb7
     local mass = body.mass7

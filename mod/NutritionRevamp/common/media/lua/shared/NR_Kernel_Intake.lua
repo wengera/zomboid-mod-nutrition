@@ -76,13 +76,13 @@ function K.intake.sourceOf(hasExtra, hasCraftMap, step)
     return "baseline"
 end
 
--- One type through the chain declared -> table -> inferred -> missing (rulings 13-14). info is
+-- One type through the chain declared -> table -> inferred -> missing. info is
 -- { declared = <NR_Nutrients string or nil>, macros = { calories, carbs, lipids, proteins }, foodType }
 -- or nil; lookup(fullType) -> table seed or nil; templates is NR.data.infer or nil. Returns vec, step,
 -- note: step is "declared", "table", "inferred" or "missing" (vec nil); note is the declared string's
 -- unknown-key list, or its malformed reason (a string) when the chain fell through it, else nil. A
 -- declared vector's four macros are info.macros, the item's own: the script block owns them.
--- Plan 7 (Task 3, ruling 8): the chain itself is K.vector.resolve (shared with the food tooltip); this
+-- The chain itself is K.vector.resolve (shared with the food tooltip); this
 -- hands it the lookup and the templates in NR.data's shape.
 function K.intake.chainOne(fullType, lookup, templates, info)
     local i = info or {}
@@ -127,7 +127,7 @@ end
 -- (the adapter's chained lookup, which writes its steps into trace); trace is the per-eat trace (newTrace).
 -- The eaten item's own chain reads b.declared, b.foodType and its live macros (b.macros, else
 -- b.cal/carb/lip/pro). A table or craft vector is scaled to the calories Eat delivered, b.cal x frac over its
--- own calories (K.vector.instanceScale, Plan 11 Task 6), with the hunger ratio and share when either side has
+-- own calories (K.vector.instanceScale), with the hunger ratio and share when either side has
 -- none; a declared vector keeps the hunger ratio and share (its calories are the live ones). An inferred vector
 -- is read off the live macros, which a prior partial eat already shrank and which carry the instance scale
 -- already: it takes frac and no instance scale.

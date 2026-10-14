@@ -154,7 +154,7 @@ function K.heal.body(body, ageH, l0)
     return K.heal.trail(body.trail, ageH, bad)
 end
 
--- The post-step guard (Plan 11 Task 12; Appendix J): copy the guarded keys of t before the step, and after it
+-- The post-step guard: copy the guarded keys of t before the step, and after it
 -- re-stamp from the copy every key the step left non-finite, so no later step of the same minute reads a NaN the
 -- step's own arithmetic made. A key whose copy is not finite either is left for the next pre-step heal.
 function K.heal.snap(t, keys, out)
@@ -180,7 +180,7 @@ function K.heal.guard(t, keys, snap)
     return n
 end
 
--- The trailing-24 h window's heal (Plan 11d Task 9c; Task 9d, the Task 9c review), from K.heal.body, before the
+-- The trailing-24 h window's heal (the Task 9c review), from K.heal.body, before the
 -- minute moves the window. A non-finite age leaves no slot's hour known: every ring takes K.body.newTrail(ageH)'s
 -- values (every slot and closed sum 0, unbuilt) at the world age ageH, and only the age is named. Otherwise the heal
 -- walks the rings (K.body.trailRingSum, which zeroes every non-finite slot and counts them) when the closed sums are

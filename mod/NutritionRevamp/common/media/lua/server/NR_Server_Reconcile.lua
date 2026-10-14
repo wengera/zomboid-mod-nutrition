@@ -1,4 +1,4 @@
--- NR_Server_Reconcile.lua -- the missed-intake reconciliation (Plan 8 ruling 6; spec § 4.8, § 7 item 38):
+-- NR_Server_Reconcile.lua -- the missed-intake reconciliation (spec § 4.8, § 7 item 38):
 -- once per player per slow minute it reads the four vanilla macro stores, compares them against the
 -- record's baseline (K.reconcile.delta), and a calorie rise above K.reconcile.RECONCILE_EPS is an intake the
 -- wrapped seats never saw (another mod's eat or drink action, an admin write): it lands through the intake's
@@ -19,7 +19,7 @@
 --    absorbed into the baseline.
 --
 -- The minute order (the pipeline's declared ORDER, NR_Server_Minute): the reconcile step runs after the bus's
--- effects flush (the takeover's handle refresh is gone, Plan 11) and before the stomach (Kinetics), so a player's minute
+-- effects flush (the takeover's handle refresh is gone) and before the stomach (Kinetics), so a player's minute
 -- runs: the bus's effects flush, THIS step, the stomach (Kinetics),
 -- Metabolism, Nutrients, Effects, Strength, Weight (the legacy write), the writer, the store. A reconciled intake is then
 -- emptied by the same minute's Kinetics step.

@@ -1,5 +1,5 @@
--- NR_Kernel_Reconcile.lua -- the missed-intake delta (Plan 8, ruling 6; spec § 4.8, § 7 item 38). With the
--- vanilla update off (Nutrition = false, ruling T18-1) the four vanilla macro stores move only through an
+-- NR_Kernel_Reconcile.lua -- the missed-intake delta (spec § 4.8, § 7 item 38). With the
+-- vanilla update off (Nutrition = false) the four vanilla macro stores move only through an
 -- eat or a drink, the mod's own legacy-mirror write, or another mod's action. Once a slow minute, before
 -- the legacy mirror writes, the server adapter compares the stores against a baseline -- the values the
 -- mod last wrote (LegacyMirror on) or last observed (LegacyMirror off) -- and a calorie rise above

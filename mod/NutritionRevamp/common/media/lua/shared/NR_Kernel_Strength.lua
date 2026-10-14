@@ -1,4 +1,4 @@
--- NR_Kernel_Strength.lua -- the body model's Strength (Plan 3): the functional factor (a neural term
+-- NR_Kernel_Strength.lua -- the body model's Strength: the functional factor (a neural term
 -- with a held-peak memory floor, a cumulative-deficit term and a disuse residual), the ceiling it and
 -- the lean ratio set on the Java perk level, the XP-implied level, the write policy that moves the shown
 -- level toward min(XP-implied, ceiling), the band remap, and the acute carry factor.

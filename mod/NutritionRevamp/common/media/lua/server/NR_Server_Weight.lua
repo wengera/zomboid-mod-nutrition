@@ -1,6 +1,6 @@
--- NR_Server_Weight.lua -- the body model's weight adapter (Plan 3, spec § 4.3): once per player per game
--- minute, last in the per-player minute (the pipeline's ORDER, NR_Server_Minute, runs the weight step
--- last, after the metabolism and strength steps, so it reads
+-- NR_Server_Weight.lua -- the body model's weight adapter (spec § 4.3): once per player per game
+-- minute, late in the per-player minute (the pipeline's ORDER, NR_Server_Minute, runs the weight step
+-- after the metabolism and strength steps and before the writer and the store, so it reads
 -- the fm and lm Metabolism stamped this minute), it writes the model's total mass into the vanilla
 -- weight slot, the three direction flags off the 7-day trend, refreshes the weight band trait when the
 -- band changes or its trait has gone missing and pushes the trait block, and, under the NR.LegacyMirror
@@ -13,15 +13,15 @@
 -- #2603). A band trait an admin or another mod removes is re-applied as a repair (#2740). The band
 -- traits are compared as registry objects off CharacterTrait, never by name (#0550).
 --
--- The legacy mirror (ruling 13): calories = the trailing-24 h energy balance; proteins = the piecewise
+-- The legacy mirror: calories = the trailing-24 h energy balance; proteins = the piecewise
 -- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
--- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail, Plan 11d
+-- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail
 -- Task 9c, as K.energy.eb24h reads it), clamped to the stores (#0022, #0023). A plain overwrite every
 -- minute. The window is NR_Server_Metabolism's (K.body.new lays it, Metabolism moves it and its heal keeps it
 -- finite) before this file reads it. When all four setters answer, the four values written become the record's
--- reconciliation baseline (record.reconcile.baseline, Plan 8 ruling 6): NR_Server_Reconcile, earlier in the
+-- reconciliation baseline (record.reconcile.baseline): NR_Server_Reconcile, earlier in the
 -- same minute, compares the stores against the mod's own last write. A band change also marks the bus
--- (B.markBand, ruling 7), so the mirror's body_band goes out with the next effects flush.
+-- (B.markBand), so the mirror's body_band goes out with the next effects flush.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
 -- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_weight_shape.py). The
@@ -98,7 +98,7 @@ local function mirror(nut, body, w)
     return nil
 end
 
--- The reconciliation baseline after the legacy write: the four values written (Plan 8 ruling 6). A record
+-- The reconciliation baseline after the legacy write: the four values written. A record
 -- with no reconcile table yet is left for the reconciliation's own seed.
 local function rebase(record, wrote)
     local rc = record.reconcile
@@ -107,7 +107,7 @@ local function rebase(record, wrote)
     WGT.stats.rebases = WGT.stats.rebases + 1
 end
 
--- The band mark on the bus (ruling 7): the effects mark, one gap and one flush.
+-- The band mark on the bus: the effects mark, one gap and one flush.
 local function markBand(username)
     local B = NR.server.bus
     if B ~= nil and B.markBand ~= nil then B.markBand(username) end
@@ -168,7 +168,7 @@ function WGT.minute(username, player, record, ctx)
     end
 end
 
--- Wiring: registered as the pipeline's weight step at OnServerStarted. ORDER runs it last, after the
+-- Wiring: registered as the pipeline's weight step at OnServerStarted. ORDER runs it after the
 -- metabolism and strength steps, so it reads this minute's masses.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()

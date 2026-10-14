@@ -1,4 +1,4 @@
--- NR_Kernel_Energy.lua -- the body model's expenditure and energy state (Plan 3): resting energy
+-- NR_Kernel_Energy.lua -- the body model's expenditure and energy state: resting energy
 -- expenditure off lean mass, adaptive thermogenesis, the two MET tables (the engine's Metabolics values,
 -- read to classify the thermoregulator's target, and the Compendium METs expenditure bills), the
 -- timed-action band METs, the Compendium METs per Fitness exercise, the Compendium load-walking floors, the engine
@@ -11,7 +11,7 @@
 local K = NutritionRevamp.kernel
 K.energy = {}
 
--- Resting energy expenditure off lean mass: REE (kcal/d) = REE_A * LM + REE_B (ruling 5).
+-- Resting energy expenditure off lean mass: REE (kcal/d) = REE_A * LM + REE_B.
 K.energy.REE_A = 19.7 -- S0004
 K.energy.REE_B = 413 -- S0004
 
@@ -29,7 +29,7 @@ K.energy.COLD_MAX = 4.9 -- S0048
 K.energy.MET_REST = 1.0 -- S0018/S0019
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- The activity data, one section (Plan 11h, spec § 6): the engine's class values and their bucketing order, the
+-- The activity data, one section (spec § 6): the engine's class values and their bucketing order, the
 -- Compendium bill per class, the timed-action band METs, the Compendium bill per Fitness exercise type and the
 -- load-walking floors. Two MET tables, never mixed: CLASS_MET classifies the engine's rate and feeds the training
 -- sample; COMPENDIUM, BAND_MET, EXERCISE_MET and LOAD_FLOOR are what expenditure bills.
@@ -131,7 +131,7 @@ K.energy.BAND_MET[4] = 4.3 -- S0040 (carpentry moderate)
 K.energy.BAND_MET[5] = 5.5 -- S0041 (shovelling dirt or mud)
 K.energy.BAND_MET[8] = 7.0 -- S0040 (carpentry heavy)
 
--- The Compendium bill per vanilla Fitness exercise (Plan 11h, C-2; spec § 3), keyed by ISFitnessAction's exeDataType
+-- The Compendium bill per vanilla Fitness exercise (C-2; spec § 3), keyed by ISFitnessAction's exeDataType
 -- (the install's media/lua/shared/Definitions/FitnessExercises.lua), which NR_Server_Fitness.lua records server-side at
 -- the set's start. Each type takes the general or moderate code of its pair, a game choice (Angus 2026-10-13), but burpees
 -- the one code naming them; each line names the code not chosen. A set minute with no recorded or no known type bills COMPENDIUM.Fitness
@@ -154,7 +154,7 @@ K.energy.LOAD_FLOOR = {
     { 22.7, 6.5 }, -- S0035: carrying 50-150 lb, moderate pace
 }
 
--- The billing constants (Plan 11f C-17): the falling gate's threshold (K.energy.rateFalling) and the after-burn pool's
+-- The billing constants: the falling gate's threshold (K.energy.rateFalling) and the after-burn pool's
 -- fraction, release constant and floor (K.energy.epoc).
 K.energy.FALL_EPS = 1e-4 -- game choice (Plan 11f C-17): the drop in the raw engine rate, MET per sample, that counts as falling; below it the gate leaves the rate's class (a tail within 1e-4 of its asymptote already classes as its target)
 K.energy.EPOC_F = 0.10 -- game choice (Plan 11f C-17): the fraction f of the minute's net exercise kcal the pool takes. It lies inside S1775's 6-15 %, below S1777's 15.2 %, above S1779's trained mean of 4.8 % and below S1783's vigorous 37 %. The rows' denominators differ (S1779's net total O2 cost includes the EPOC, S1777's total exercise O2 is not called net or gross, and S1783's is net exercise kcal), so the comparison is approximate
@@ -183,7 +183,7 @@ function K.energy.loadFloor(loadKg)
 end
 
 -- The engine's load factor 1 + 0.35 * clamp01(carried / maxW)^2 divided out of a metabolic target
--- (#2649), so load is charged once (ruling 6). A non-positive maxW reads unloaded.
+-- (#2649), so load is charged once. A non-positive maxW reads unloaded.
 function K.energy.stripLoad(target, carried, maxW)
     if maxW <= 0 then
         return target
@@ -209,7 +209,7 @@ end
 
 -- The MET expenditure bills: the class's Compendium value (unknown reads 1.3, standing quietly);
 -- not moving, raised to the timed-action band (#0462: vanilla bills the modifier only when not
--- moving); walking, raised to the load-walking floor (ruling 6). exMet (optional) is a set minute's exercise MET
+-- moving); walking, raised to the load-walking floor. exMet (optional) is a set minute's exercise MET
 -- (K.energy.exerciseMet), billed as it stands: no band or load floor lifts it.
 function K.energy.activityMet(className, moving, modifier, loadKg, exMet)
     if exMet ~= nil then
@@ -285,7 +285,7 @@ function K.energy.intake(body, absorbed, dtM)
 end
 
 -- The trailing-24 h balance: the window's absorbed kcal less its expenditure (K.body.trail24 over body.trail, Plan
--- 11d Task 9c, ruling C-8). The caller moves the window to the minute's age (K.body.trailTo) before the minute's
+-- 11d Task 9c). The caller moves the window to the minute's age (K.body.trailTo) before the minute's
 -- intake and expenditure land in it. A game choice (the window; the 24 h span is ruling 14's).
 function K.energy.eb24h(body)
     return K.body.trail24(body.trail, "kcal") - K.body.trail24(body.trail, "ee")
@@ -315,13 +315,13 @@ function K.energy.exerciseMet(exeType)
     return met, true
 end
 
--- The class a minute bills (Plan 11f C-17, ruling C17-1; Plan 11h C-2). Exercise is billed by the activity, not by the
+-- The class a minute bills. Exercise is billed by the activity, not by the
 -- engine's lagged metabolic rate: the engine moves its rate toward the activity's target as an asymmetric first-order
 -- lag (0.001 of the gap per update rising, 0.0004 falling, times GameTime's multiplier:
 -- Thermoregulator.updateMetabolicRate), so a rate read alone under-bills a bout's rise and bills its slow fall as
 -- exercise: about 450 kcal after a 1 h Fitness set at DayLength 1, where the after-burn is tens of kcal (S1775, S1777,
 -- S1779). rateClass is the rate's classOf, exercising the server's exercise flag, moving the player's moving flag and
--- falling rateFalling's answer (raw against raw, Plan 11f C-26). Sleeping wins; otherwise the minute bills,
+-- falling rateFalling's answer (raw against raw). Sleeping wins; otherwise the minute bills,
 -- while the server's exercise flag is set (getFitness():getCurrentExe(), #2901) the Fitness class, from the first
 -- exercise minute; while the rate falls with no exercise and no movement, the idle class (Default, COMPENDIUM 1.3) for
 -- any class billing above it; while it falls on the move, at most Walking5kmh; otherwise the rate's own class. Every

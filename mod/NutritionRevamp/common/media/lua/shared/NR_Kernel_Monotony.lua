@@ -1,6 +1,6 @@
--- NR_Kernel_Monotony.lua -- monotony as a self-releasing floor (Plan 11e Task 3, ruling 11e-1; Plan 11f Task 9b,
+-- NR_Kernel_Monotony.lua -- monotony as a self-releasing floor (Plan 11e Task 3,
 -- rulings T9-1 and T9-3; spec memo C11). Repeated eats of one food type within the last 7 game days hold a floor
--- under BOREDOM and UNHAPPINESS; nothing here reads into hunger (ruling 11d-9): S1596's field rations cut intake as
+-- under BOREDOM and UNHAPPINESS; nothing here reads into hunger: S1596's field rations cut intake as
 -- the sole food but not in a cafeteria setting, so the setting, not the food, drives the intake fall, and the mod puts
 -- monotony into mood alone. The direction rests on S1592 (daily presentation habituated faster than once-weekly: the
 -- decayed count), S1593 (acceptance and intake fell over a monotony week and not over a variety week; a potato product
@@ -9,14 +9,14 @@
 -- butter did not: a second staple anchor) and S1597 (ration bars cut intake and mood, menu fatigue implicated). S1594's
 -- free choice is the mechanic: the player who chooses variety never pays it. The sizes are game choices anchored on
 -- vanilla's own per-item scale (#0042: stale +10, rotten +20 on both getBoredomChange and getUnhappyChange).
--- The unit is a meal-sized portion (ruling T3-3; the studies count presentations of a served portion, S1592-S1595): an
+-- The unit is a meal-sized portion (the studies count presentations of a served portion, S1592-S1595): an
 -- eat weighs w = min(1, kcal / MEAL_KCAL); an eat with no energy weighs 0 and is not booked. The record,
 -- record.monotony = { t = { [fullType] = { n = count, last = ageH, s = staple } } }: n is the type's recent portions
 -- decayed to its latest eat's world age `last` with a HALF_LIFE_H half-life, s true for a staple; a type whose latest
 -- eat is more than WINDOW_H ago counts 0 and is pruned once its count is one portion or less (its level already 0, so no step). The key is the item's full type, so an evolved dish is one type.
 -- A type's level is f x min(CAP, SLOPE x max(0, n - 1)), n its count decayed to the minute and f STAPLE for a staple
 -- (1 otherwise), and the target is the most repeated type's level (K.monotony.target): UNHAPPINESS's, and BOREDOM's
--- held under BORED_MAX. Nothing is added at the eat (ruling T9-1): the writer raises the stats toward the target once a
+-- held under BORED_MAX. Nothing is added at the eat: the writer raises the stats toward the target once a
 -- minute and lowers them by the target's fall (K.hybrid.write, #3119), so variety lets the counts decay and releases it.
 -- Pure: Lua tables in, no Java. K.monotony.record runs once per eat (NR_Server_Intake IN.atEat), K.monotony.target once
 -- per writer minute (NR_Server_Writer W.monotony), never per tick.
@@ -30,11 +30,11 @@ K.monotony.CAP = 30 -- game choice, Plan 11e (ruling 11e-1), a level since Plan 
 K.monotony.STAPLE = 0.25 -- game choice, Plan 11e (ruling 11e-1): a staple's level multiplier, outside the cap (Plan 11f Task 9b); S1593's potato product resisted monotony and S1595's bread and butter showed no fall in pleasantness, neither giving a size
 K.monotony.MEAL_KCAL = 400 -- game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595): the landed energy of one meal-sized portion, the weight-1 eat
 
--- The staple rule (ruling 11e-1; bread, rice, potato, pasta and oats): the script's FoodType, the food data's own
+-- The staple rule (bread, rice, potato, pasta and oats): the script's FoodType, the food data's own
 -- category (data/food-items.json food_type; the item's getFoodType at the eat), is Bread, Rice or Pasta; or the full
 -- type is one of the plain potato, oat, bread and pasta types whose FoodType is absent, Vegetables or NoExplicit,
 -- named here from the 42.21 food scan's FDC descriptions (data/food-nutrients.json: Potatoes, Cereals oats, Bread,
--- Bagels, Tortillas, Cornbread) and its plain-pasta pots (ruling T3-5).
+-- Bagels, Tortillas, Cornbread) and its plain-pasta pots.
 K.monotony.STAPLE_FOOD_TYPES = { Bread = true, Rice = true, Pasta = true }
 K.monotony.STAPLE_TYPES = {
     ["Base.Potato"] = true,
@@ -82,7 +82,7 @@ function K.monotony.count(e, ageH)
     return e.n * math.exp(-0.6931471805599453 * dt / K.monotony.HALF_LIFE_H)
 end
 
--- An eat's portion weight (ruling T3-3): its landed kcal over MEAL_KCAL, at most 1; no energy, or energy that is not
+-- An eat's portion weight: its landed kcal over MEAL_KCAL, at most 1; no energy, or energy that is not
 -- a finite number, weighs 0.
 function K.monotony.weightOf(kcal)
     if not K.finite(kcal) or kcal <= 0 then
@@ -175,7 +175,7 @@ function K.monotony.badEntry(bad, k, e, ageH)
     return e.n < 0 or e.last > ageH
 end
 
--- Plan 11f Task 9b (rulings T9-1, T9-3): the floor. Appended so no line above moves.
+-- The floor.
 K.monotony.BORED_MAX = 49 -- game choice, Plan 11f (ruling T9-3): the BOREDOM target is held one under the BORED level-2 step 50 (#2369; MoodleStat.<clinit> @118-@133 L16 on 42.21), because vanilla adds UNHAPPINESS while the BORED moodle is above level 1 (BodyDamage.UpdateBoredom @510-@575 L2042-L2043 on 42.21), so monotony alone never drives that term; vanilla also resets BOREDOM while PANIC > 5 (UpdateBoredom @482-@509, #3015), the mod's own dehydration PANIC floor included (ruling T9-3), so the BOREDOM floor is wiped while the character panics
 
 -- A type's level at ageH: f x min(CAP, SLOPE x max(0, n - 1)), n the count decayed to ageH (0 past the window) and f
@@ -203,7 +203,7 @@ function K.monotony.target(m, ageH)
     return u, K.min(K.monotony.BORED_MAX, u)
 end
 
--- Plan 11f Task 9b fix 1: the count of an entry past the window, dt hours after its last eat: its decayed count while
+-- The count of an entry past the window, dt hours after its last eat: its decayed count while
 -- above one portion, else 0. Its level, SLOPE x max(0, n - 1), falls to 0 continuously as n reaches one portion, so the
 -- window no longer drops the floor in one minute; the entry is pruned only after (K.monotony.addGone).
 function K.monotony.faded(e, dt)

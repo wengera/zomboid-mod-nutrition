@@ -21,7 +21,7 @@ option NR.LegacyMirror
     page = NutritionRevamp, translation = NR_LegacyMirror,
 }
 
-/* Plan 4 dials (ruling 16). OnsetSpeed multiplies the rate of the slow deficiency records only (ruling 5);
+/* The effects dials. OnsetSpeed multiplies the rate of the slow deficiency records only;
    1.0 is real time. */
 option NR.OnsetSpeed
 {
@@ -47,7 +47,7 @@ option NR.BalanceBonus
     page = NutritionRevamp, translation = NR_BalanceBonus,
 }
 
-/* Plan 5 dial (ruling 23). Severity scales every deficiency and excess penalty of the effects table after the
+/* Severity scales every deficiency and excess penalty of the effects table after the
    fold; 0 leaves only the health drains, which DeficienciesCanKill gates; 1.0 is the default. */
 option NR.Severity
 {
@@ -55,7 +55,7 @@ option NR.Severity
     page = NutritionRevamp, translation = NR_Severity,
 }
 
-/* Plan 7 option (ruling 3; default ruling T13-1). VisibilityMode sets how much of the mod's state every player's
+/* VisibilityMode sets how much of the mod's state every player's
    interface shows: 1 Symptoms (the six symptom words and icons), 2 Bands, the default (and the grades and the body
    band), 3 Numbers (and every figure). A Nutritionist trait shows Numbers to its holder whatever the option. */
 option NR.VisibilityMode
@@ -64,7 +64,7 @@ option NR.VisibilityMode
     page = NutritionRevamp, translation = NR_VisibilityMode, valueTranslation = NR_VisibilityModeValues,
 }
 
-/* Plan 11 option (Decision 3, ruling 8). RecordKeepDays: a player's nutrition record is deleted after this many REAL
+/* RecordKeepDays: a player's nutrition record is deleted after this many REAL
    days without the player online (the vanilla character is untouched); 0 keeps every record. */
 option NR.RecordKeepDays
 {

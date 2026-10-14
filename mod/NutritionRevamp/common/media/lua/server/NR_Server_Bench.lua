@@ -1,4 +1,4 @@
--- NR_Server_Bench.lua -- the cost-budget entry point (spec § 6, Plan 2 entry gate; Plan 11 Task 14: the writer).
+-- NR_Server_Bench.lua -- the cost-budget entry point (spec § 6, Plan 2 entry gate: the writer).
 -- bench.global calls a resolved global N times with no arguments; the writer's arithmetic needs a fully filled
 -- input and output, so this file owns one filled input, one output and the constants, builds them once at file
 -- scope, and runs NutritionRevamp.kernel.hybrid.write once per call. The tables are reused, never re-allocated,

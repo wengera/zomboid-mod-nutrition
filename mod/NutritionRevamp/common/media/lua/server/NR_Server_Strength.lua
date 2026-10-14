@@ -1,4 +1,4 @@
--- NR_Server_Strength.lua -- the body model's Strength adapter (Plan 3, spec § 4.3): once per player per
+-- NR_Server_Strength.lua -- the body model's Strength adapter (spec § 4.3): once per player per
 -- game minute, after the metabolism step (the pipeline's ORDER, NR_Server_Minute, runs the strength
 -- step after metabolism, nutrients and effects), it reads the XP-implied Strength level, sets the ceiling the lean
 -- ratio and the functional factor allow, moves the shown level one step by the write policy, writes it
@@ -154,7 +154,7 @@ local function acuteInputs(record, w)
     return dehydPct, sweatActive, awakeH, caffeineActive, vitDClinical
 end
 
--- The carry delta: traitCarry x (1 + eAcute) (ruling 11), the dehydration, sweat, hours-awake, caffeine
+-- The carry delta: traitCarry x (1 + eAcute), the dehydration, sweat, hours-awake, caffeine
 -- and vitamin D inputs read off the record (acuteInputs); written when it differs from the live delta by
 -- more than CARRY_EPS, so any other writer is re-asserted against (#2143, #2565).
 local function carry(player, record, body, ageH, ctx)

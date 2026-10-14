@@ -1,5 +1,5 @@
 -- NR_Server_Nutrients.lua -- the record engine, the fast pools and the acute states on the slow clock
--- (Plan 4, spec § 4.4): once per player per game minute, on the players' OnTick stagger and after the
+-- (spec § 4.4): once per player per game minute, on the players' OnTick stagger and after the
 -- stomach step (NR_Server_Kinetics) and the body step (NR_Server_Metabolism), it consumes the minute's
 -- absorbed vector, steps the per-nutrient records (K.nutrients over NR.data.records with K.interact.two),
 -- the water and electrolyte pools and the thirst view (K.fluids), and the acute states (K.acute), and
@@ -20,8 +20,8 @@
 -- string or a table of numbers (#1495). Slow-clock code: no @fastpath region in this file.
 --
 -- The x151r fix wave: the calcium x iron factor reads the meal calcium in the stomach before the minute's
--- emptying (NR_Server_Kinetics' mealCa handoff on the context; ruling T17-1, #2981), and caffeine and ethanol reach
--- the acute states through the gut lane (ruling T17-2, #2982/#2983): the intake landing's pending sums are
+-- emptying (NR_Server_Kinetics' mealCa handoff on the context, #2981), and caffeine and ethanol reach
+-- the acute states through the gut lane (#2982/#2983): the intake landing's pending sums are
 -- drained into record.acute.gutAlc / gutCaf, K.acute.absorbGut releases them, and the released doses feed
 -- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach never holds a
 -- dose of either (IN.land diverts both), so the gut lane's release is the whole dose these steps read;
@@ -74,7 +74,7 @@ NUT.refKey = nil
 NUT.refFluids = nil
 NUT.refAcute = nil
 NUT.refNut = nil
--- The post-step guard (Plan 11 Task 12, ruling 10): the fluids, acute and state fields something reads before the
+-- The post-step guard: the fluids, acute and state fields something reads before the
 -- next minute's pre-step heal -- Effects, Strength, the writer (after weight), the bus step (first in ORDER) and
 -- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite
 -- (testing/tests/kernel/test_heal_once.py CROSS names each read). viewPct and c are read inside this step only.
@@ -102,7 +102,7 @@ NUT.NEED_MORE = 1.3 -- #2271 (updateStats_Awake); the reuse a game choice
 NUT.NEED_LESS = 0.7 -- #2271 (updateStats_Awake); the reuse a game choice
 -- The magnesium grade at which the refeeding risk reads magnesium-depleted (S0115's low-magnesium criterion).
 NUT.MG_DEPLETED_GRADE = 3 -- game choice: the depleted rung of the magnesium record
--- The litres one unit of THIRST drop stands for: Water's ThirstChange -50 per litre = 0.5 THIRST per litre (ruling 9).
+-- The litres one unit of THIRST drop stands for: Water's ThirstChange -50 per litre = 0.5 THIRST per litre.
 NUT.LITRES_PER_THIRST = 2 -- ruling 9 (Water ThirstChange -50 per litre, x151w #2932/#2939)
 
 local finite = NR.finite
@@ -191,7 +191,7 @@ end
 
 -- Ensure the three sub-tables. The sweat multiplier and sweat sodium are drawn once per character: the multiplier uniform over
 -- its range, the sodium as 10 + 80 r^2 (mean 36.7; fallback with no ZombRandFloat: the multiplier 1.0 and 37 mmol/L); the
--- slow-metaboliser trait once (fallback roll 0.75: not slow; ruling T9-1).
+-- slow-metaboliser trait once (fallback roll 0.75: not slow).
 local function ensure(record, body, ageH)
     if record.nutrients == nil then
         record.nutrients = K.nutrients.newState(NR.data.records)
@@ -221,7 +221,7 @@ local function ensure(record, body, ageH)
     if a.lastB2 == nil then a.lastB2 = body.band2Day or 0 end
 end
 
--- The minute's training band, 0/1/2 (Plan 5 Task 5): Metabolism's K.training.sample adds the minute to
+-- The minute's training band, 0/1/2: Metabolism's K.training.sample adds the minute to
 -- body.band1Day (band >= 1) and body.band2Day (band 2) and stamps no per-minute band, so the band is read
 -- off their growth since the last minute (record.acute.lastB1/lastB2). On a minute whose day close ran
 -- (closed: Metabolism samples, then closes, zeroing the accumulators) the growth is the closed day's ring
@@ -248,7 +248,7 @@ local function minuteBand(a, body, days)
 end
 
 -- The day close, when Metabolism's dayIndex has advanced since the last one seen here: the 7-day alcohol
--- mean takes the closed day's ingested ethanol, then the refeeding day and event (ruling 15, T9-3) read the
+-- mean takes the closed day's ingested ethanol, then the refeeding day and event read the
 -- closed day's absorbed kcal per kg (Metabolism's body.inDayClosed stamp). body.alcDay is Metabolism's: its
 -- partition close zeroes it, so it is not zeroed again here.
 local function closeDay(record, body, w, ageH)
@@ -270,13 +270,13 @@ local function closeDay(record, body, w, ageH)
 end
 
 -- The interaction factors on the absorbed vector before the engine (Task 10's contract): calcium x iron on
--- the meal calcium caMeal (the stomach buffer's calcium before the minute's emptying, ruling T17-1; nil --
+-- the meal calcium caMeal (the stomach buffer's calcium before the minute's emptying; nil --
 -- a handoff set without Kinetics -- falls back to the minute's absorbed calcium, the Plan 4 proxy), the
 -- caffeine and alcohol urinary losses of this minute's released doses cafDose and alcDose (the gut lane,
 -- ruling T17-2) off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
 -- absorbed[ORDER key] = absorbed.vitA, so the folded amount (preformed retinol plus the carotene the liver
 -- gate passes) is written there; the ingested vitA the excess tests read is the preformed retinol alone.
--- Niacin's tryptophan credit (ruling T19-2, S0270): absorbed niacin gains the absorbed protein's tryptophan
+-- Niacin's tryptophan credit: absorbed niacin gains the absorbed protein's tryptophan
 -- (protein g x 1000 x trpShare mg) over trpPerNE mg per mg NE, read off the niacin record.
 local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
     if absorbed ~= EMPTY then
@@ -329,7 +329,7 @@ local function step(username, player, record, ctx)
     K.heal.snap(f, NUT.GUARD_FLUIDS, NUT.snapF)
     K.heal.snap(a, NUT.GUARD_ACUTE, NUT.snapA)
     K.heal.snap(n, NUT.GUARD_STATE, NUT.snapN)
-    -- the gut lane's pending doses move onto the record (ruling T17-2); drained here, after the record
+    -- the gut lane's pending doses move onto the record; drained here, after the record
     -- exists, so a minute skipped above leaves them pending for the next one
     if intake ~= nil and intake.pendingAlc ~= nil then
         a.gutAlc = a.gutAlc + (intake.pendingAlc[username] or 0)
@@ -356,16 +356,16 @@ local function step(username, player, record, ctx)
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
-    -- the gut lane's release this minute: IN.land diverts every eaten ethanol and caffeine there (ruling T17-2)
+    -- the gut lane's release this minute: IN.land diverts every eaten ethanol and caffeine there
     local alcDose, cafDose = K.acute.absorbGut(a, dtH)
 
     -- the records
     factors(absorbed, ingested, n, body.lm, caMeal, cafDose, alcDose)
-    -- the trailing-24 h expenditure (Plan 11d Task 9c: the window Metabolism moved this minute), floored at a resting day
+    -- the trailing-24 h expenditure (the window Metabolism moved this minute), floored at a resting day
     local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
     local alcGkg = body.alcDay / w
     NUT.kMul.thiamine = K.interact.thiamineAlcoholK(1, alcGkg)
-    -- choline's female rate (ruling T19-3; S0378 the ratio, labelled on the record): x kFemale on a female body
+    -- choline's female rate (S0378 the ratio, labelled on the record): x kFemale on a female body
     local cho = NR.data.records.REC.choline
     NUT.kMul.choline = (body.sex == 2 and cho ~= nil and cho.kFemale) or 1
     local kctx = NUT.ctx
@@ -421,12 +421,12 @@ local function step(username, player, record, ctx)
     f.viewPct = K.fluids.dehydPct(f, w, pendingG)           -- ruling T1-1
     f.c = K.fluids.conc(f, body.lm)
     f.naPlasma = K.fluids.naPlasma(f.c)
-    -- the view's osmotic term counts the swallowed water too (Plan 11f Task 5b fix 1, ruling 5b-2): AVP is back to its
+    -- the view's osmotic term counts the swallowed water too: AVP is back to its
     -- replete level 9 min after a drink (S1698) and thirst falls within 20 min at an unchanged Posm (S1699); the weight
     -- 1.0 on the pending water is a game choice resting on those rows. pendingG holds the solid buffer's water as well
     -- as the liquid lane's (S1704's gastrointestinal receptors; a game choice), and it satiates for as long as it is
     -- pending (the rebound time is open, S1735; a game choice). The hypotonic cap reads the pool's plasma sodium and is
-    -- relaxed by the volume-defence weight past the onset (Plan 11f Task 5b fix 2, K.fluids.defence).
+    -- relaxed by the volume-defence weight past the onset (K.fluids.defence).
     local cView = K.fluids.conc(f, body.lm, pendingG)
     local defence = K.fluids.defence(f, w)
     f.thirstTarget = K.fluids.thirstTarget(f.viewPct, cView, f.naPlasma, O.deficienciesCanKill ~= false, defence)
@@ -444,11 +444,11 @@ local function step(username, player, record, ctx)
     K.acute.glycogen(a, met, coldMult, cho24, dtH)
     if K.stomach.recordFoodFill(record) > NUT.FED_FILL then a.lastFedAgeH = ageH end
     K.acute.glucose(a, met, absorbed.carbs or 0, a.bac, ageH - a.lastFedAgeH, dtH)
-    -- the Plan 5 memories (Task 5): the band before the sleep step, which latches boutVig off lastVigAgeH
+    -- the Plan 5 memories: the band before the sleep step, which latches boutVig off lastVigAgeH
     K.acute.exerciseMinute(a, minuteBand(a, body, K.max(0, closedDays)), ageH, dtH)
     K.acute.coldMinute(a, coldMult, dtH)
     K.acute.retinolMinute(a, ingested.retinol or 0, dtM / 1440)
-    -- Plan 5: the fatigue multipliers record.effects stamped LAST minute (NR_Server_Effects runs after this
+    -- The fatigue multipliers record.effects stamped LAST minute (NR_Server_Effects runs after this
     -- step: a one-minute lag); absent, non-finite or non-positive reads nil (1 in the kernel, no division by 0)
     local mAcc, rRec = nil, nil
     local eff = record.effects
@@ -467,7 +467,7 @@ local function step(username, player, record, ctx)
     end
     NUT.stats.players = NUT.stats.players + 1
 
-    -- Plan 5 ruling 22, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this
+    -- Plan 5, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this
     -- minute's epoch, fluids and acute stamps; its inputs are stamped on the context last, so the step runs
     -- only on a minute that reached here (as the hand call did), and a raise there never skips a stamp here
     if ctx ~= nil then

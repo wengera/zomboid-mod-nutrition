@@ -5,16 +5,16 @@
 local NR = NutritionRevamp
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
--- The Plan 4 dials (ruling 16): onsetSpeed multiplies the rate of every slow deficiency record (ruling 5);
--- the HUNGER and THIRST views are capped under level 4 whatever the dial (Plan 5 ruling 14); deficienciesCanKill gates the mod's own drains; excessEffectsOn off
+-- The Plan 4 dials: onsetSpeed multiplies the rate of every slow deficiency record;
+-- the HUNGER and THIRST views are capped under level 4 whatever the dial; deficienciesCanKill gates the mod's own drains; excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
 -- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope.
--- The Plan 5 dial (ruling 23): severity, a double 0-3 (default 1), scales every penalty row of the effects table
+-- The Plan 5 dial: severity, a double 0-3 (default 1), scales every penalty row of the effects table
 -- after the fold (NR_Server_Effects); the double branch clamps it.
--- The Plan 7 option (ruling 3): visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers (default 2, T13-1), the level of
--- detail every player's interface shows; the client reads its own SandboxVars copy (Task 5) and this server read is
+-- The Plan 7 option: visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers (default 2, T13-1), the level of
+-- detail every player's interface shows; the client reads its own SandboxVars copy and this server read is
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
--- The Plan 11 option (Decision 3, ruling 8): recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
+-- The Plan 11 option: recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
 -- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,

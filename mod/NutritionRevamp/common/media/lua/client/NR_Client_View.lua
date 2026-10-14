@@ -1,7 +1,7 @@
 -- NR_Client_View.lua -- the client's one row cache and the draw helper every surface shares (Plan 7 Task 5,
 -- rulings 3, 5 and 16): the visibility level (max of the server option NR.VisibilityMode and a Nutritionist
 -- trait), the row model K.view.rows builds from the stored mirror, the seven moodle class levels
--- K.view.moodleClasses reads (the six classes and overfull, Plan 11c Task 7), and view.draw, which paints a row list
+-- K.view.moodleClasses reads (the six classes and overfull), and view.draw, which paints a row list
 -- onto any ISUIElement.
 --
 -- The mirror is read at the push cadence, never the frame cadence (#2692): refresh() makes the one per-frame test
@@ -9,9 +9,9 @@
 -- NR.client.received or the level moved; the rebuild resolves every label and text through NR.client.text then, so
 -- draw() walks the cached rows and calls no getText per frame. Nothing here walks the mirror in a render.
 -- The level is recomputed on each mirror arrival (view.onMirror, called by one guarded line in NR_Client_Mirror.lua's
--- OnServerCommand handler after the install) and on OnCreatePlayer, never per frame (ruling 3). Trait tests compare
+-- OnServerCommand handler after the install) and on OnCreatePlayer, never per frame. Trait tests compare
 -- the registry object through hasTrait (#0550, #0551, #1162), behind a nil check on each enum.
--- The panel never shows a band label read from the client's trait list (ruling 16): the band row is the mirror's
+-- The panel never shows a band label read from the client's trait list: the band row is the mirror's
 -- body_band, a server value, and the trait read here is the Nutritionist test alone.
 -- The grade rows list K.view.gradedOrder(NR.data.records), never the raw ORDER (the ungraded kinds would list a
 -- replete grade and pool figures); cached on view.order at the first rebuild that has the records. The ungraded kinds
@@ -83,7 +83,7 @@ function V.readFemale(player)
 end
 
 -- The server option SandboxVars.NR.VisibilityMode (1 Symptoms, 2 Bands, 3 Numbers); a missing or non-number value
--- reads 2, Bands, the option's default (ruling T13-1). K.view.level clamps it.
+-- reads 2, Bands, the option's default. K.view.level clamps it.
 function V.readOption()
     if SandboxVars == nil then return 2 end
     local ok, v = pcall(function() return SandboxVars.NR.VisibilityMode end)

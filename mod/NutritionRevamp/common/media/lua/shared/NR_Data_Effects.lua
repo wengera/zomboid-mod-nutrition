@@ -1,10 +1,10 @@
 -- NR_Data_Effects.lua -- not a kernel file: the declarative effects table the composer
 -- (NR_Kernel_Effects.lua, K.effects.compose) folds into record.effects, as NR.data.effects = { SURF, ROWS, ... }
--- (Plan 5, formulas briefing A3-A4, B5, D3-D4, E3, F2, G, H1; rulings 2-3, 5-10, 12, 17-18, 23; T1-1).
+-- (formulas briefing A3-A4, B5, D3-D4, E3, F2, G, H1; T1-1).
 -- SURF names each surface's fold operator (mul | add | max | min | or), its identity and its clamp. A surface
 -- marked machine = true is written by its own kernel function on the slow clock (nightVision by K.effects.nvMinute,
 -- drain by K.effects.drain) and the composer never resets, scales or clamps it; sevMin on a boolean surface is the
--- Severity below which it reads false (Short Sighted, ruling 7).
+-- Severity below which it reads false (Short Sighted).
 -- ROWS is an array of { src, on, at, list }: on is grade (record.nutrients[src].g), rung (record.nutrients[src].x),
 -- band (the band named src in the twelve-band vector), flag (flags[src]; at nil matches true, a number or
 -- {lo, hi} matches a numeric flag), pe (the protein-energy grade) or ea (K.effects.eaBand of the closed-day energy
@@ -18,11 +18,11 @@
 -- with its arithmetic in the comment; testing/tests/kernel/test_data_effects.py recomputes them and enforces that
 -- every line with a number carries its row (an S id, a #nnnn claims row for a vanilla threshold, or a game choice
 -- naming its open row).
--- Ruled differently from the briefing (the plan's rulings only): hungerMul and thirstMul dropped (ruling 3); POISON
--- ships 0 at every rung, so no row drives poisonTarget (ruling 12); the toxicity, hyponatraemia and refeeding rows
--- target FOOD_SICKNESS 30 / 55 / 85, never the SICKNESS stat (ruling T1-1); omega-3 ships nothing (ruling 8: S0919
+-- Ruled differently from the briefing (the plan's rulings only): hungerMul and thirstMul dropped; POISON
+-- ships 0 at every rung, so no row drives poisonTarget; the toxicity, hyponatraemia and refeeding rows
+-- target FOOD_SICKNESS 30 / 55 / 85, never the SICKNESS stat; omega-3 ships nothing (S0919
 -- is EPA-specific and the vector has no EPA key); iron excess has no infection row (ruling 17; S0989 is a
--- malaria-setting trial); the two vitamin D rows are gated off (ruling 8).
+-- malaria-setting trial); the two vitamin D rows are gated off.
 -- Additions beyond the briefing's SURF list, each named by its own A-section: bruise (F4's per-minute purpura
 -- probability, A3's own example entry), tempHeat (G's dehydration heat side, applied by the adapter only while
 -- exerting, met >= 3, so the set stays a pure function of its trigger), foodSickTarget (T1-1).
@@ -30,7 +30,7 @@ local NR = NutritionRevamp
 NR.data = NR.data or {}
 
 NR.data.effects = {
-    -- Ruling 8: the vitamin D rows ship gated off until an outdoor-daylight seat exists (no cutaneous term, open S1064).
+    -- The vitamin D rows ship gated off until an outdoor-daylight seat exists (no cutaneous term, open S1064).
     VITD_EFFECTS = false,
     -- The bleeding time a spontaneous bruise starts at (F4; the adapter's event write).
     BRUISE_T0 = 0.05, -- game choice: about 1.79 x damageScaler health per bruise (open S1153)
@@ -262,7 +262,7 @@ NR.data.effects = {
             { ch = "stat", s = "panicTarget", v = 20, row = "S0916", gc = true }, -- 14 x 1.5 = 21, capped 20; game choice cap (open S1147)
             { ch = "stat", s = "unhappyTarget", v = 25.0, row = "S0915", gc = true }, -- 25 x 1.5/1.5; game choice (open S1144)
         } },
-        -- E3 the exercise credit (target offsets only, ruling 9): q = ex band / 4; panic -11 q (S0932 anxiety SMD -0.47 x 24
+        -- E3 the exercise credit (target offsets only): q = ex band / 4; panic -11 q (S0932 anxiety SMD -0.47 x 24
         -- = 11.3), unhappiness -13 q (S0932 depression SMD -0.61 x 22 = 13.4).
         { src = "ex", on = "band", at = 1, list = { -- q 0.25, S0932
             -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
@@ -288,7 +288,7 @@ NR.data.effects = {
             -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "unhappyTarget", v = -13.0, row = "S0932", gc = true, bonus = true }, -- -13 x 1; game choice (open S1144)
         } },
-        -- E3/F2 vitamin D (gated off, ruling 8): unhappiness (S0920 SMD -0.32 per 1000 IU x 22 = 7, halved) and colds
+        -- E3/F2 vitamin D (gated off): unhappiness (S0920 SMD -0.32 per 1000 IU x 22 = 7, halved) and colds
         -- (S0974 OR 0.94: at most 6 %). Semi-starvation mood: no row (S0113 symptom list, open S0937); omega-3: no row.
         { src = "vitD", on = "grade", at = 3, gated = "VITD_EFFECTS", list = { -- depleted, S0920/S0974
             { ch = "stat", s = "unhappyTarget", v = 2, row = "S1145", gc = true }, -- half the clinical rung; game choice (open S1145)
@@ -299,7 +299,7 @@ NR.data.effects = {
             { ch = "body", s = "coldMul", v = 1.06, row = "S0974", gc = true }, -- OR 0.94, the spec's 6 % cut; game choice (open S1158)
         } },
         -- B5 the nutritional fatigue offset (fOffNut, capped 0.15): dehydration +0.06 at 2 % linear to +0.10 at 4 %, held
-        -- (S0098/S0099 fatigue at 1.36-1.59 %; magnitudes open S0934); hypoglycaemia +0.10 (ruling L7, open S1132).
+        -- (S0098/S0099 fatigue at 1.36-1.59 %; magnitudes open S0934); hypoglycaemia +0.10 (open S1132).
         { src = "dehyd", on = "band", at = 3, list = { -- [2, 2.5) %, S0098
             { ch = "stat", s = "fOffNut", v = 0.06, row = "S0098", gc = true }, -- 0.06 at 2 %; game choice (open S0934)
         } },
@@ -396,7 +396,7 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S1021
             { ch = "stat", s = "tempHeat", v = 0.3, row = "S1021", gc = true }, -- 0.3 x 1, held; game choice magnitude (open S1160)
         } },
-        -- H1 toxicity: FOOD_SICKNESS 30 at rung 1, 55 at rung 2, 85 at rung 3 (ruling T1-1; SICK 1/2/3, #3130, #2369), POISON 0.
+        -- H1 toxicity: FOOD_SICKNESS 30 at rung 1, 55 at rung 2, 85 at rung 3 (SICK 1/2/3, #3130, #2369), POISON 0.
         -- Rung 1 is the UL rung (every record with an ul); a rung row matches its rung and above, and max keeps the worst.
         { src = "vitC", on = "rung", at = { 1, 3 }, list = { -- UL 2000 mg/d, S1043
             { ch = "stat", s = "foodSickTarget", v = 30, row = "S1043", gc = true }, -- game choice (open S1165)

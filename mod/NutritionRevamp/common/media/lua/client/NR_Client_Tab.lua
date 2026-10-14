@@ -1,7 +1,7 @@
--- NR_Client_Tab.lua -- the character-info tab (Plan 7 Task 7, ruling 9): one more tab on the vanilla
+-- NR_Client_Tab.lua -- the character-info tab: one more tab on the vanilla
 -- ISCharacterInfoWindow, built by wrapping three of its methods, drawing the view cache's rows.
--- UNMEASURED until x183: the shape follows AutoCook's worked tab (docs/superpowers/research/platform-client-ui.md
--- section C, verbatim, never run by this repo); a stand-in test proves the wiring and the guards, never the engine.
+-- The shape follows AutoCook's worked tab (docs/superpowers/research/platform-client-ui.md section C); its on-screen
+-- draw is unmeasured (no click reaches the tab in the harness), and a stand-in test proves the wiring, never the engine.
 --
 -- The three wraps, under ONE sentinel (#0935, #1067, #2844, #2845):
 --  * createChildren: the original first, then the tab is built and added under pcall. The window is built on
@@ -11,7 +11,7 @@
 --  * SaveLayout(name, layout): the original first (it rebuilds layout.tabs and layout.current from its five
 --    views), then the mod appends its name to layout.tabs when its view is a tab of the panel.
 --
--- The restore gap, closed (ruling 9; #2502, #2521): vanilla's RestoreLayout reads
+-- The restore gap, closed (#2502, #2521): vanilla's RestoreLayout reads
 --   if layout.current and not floating[layout.current] then self.panel:activateView(xpSystemText[layout.current])
 -- (install:client/XpSystem/ISUI/ISCharacterInfoWindow.lua:287), and xpSystemText has no entry for a mod tab, so
 -- a saved layout.current of the mod's name would reach activateView(nil). SaveLayout therefore sets

@@ -1,7 +1,7 @@
--- NR_Kernel_Aerobic.lua -- the body model's trained aerobic capacity (Plan 3): TAC, stepped once per game
+-- NR_Kernel_Aerobic.lua -- the body model's trained aerobic capacity: TAC, stepped once per game
 -- day toward a target set by the week's aerobic volume and gated by protein, energy availability, iron
 -- and sleep; and the regeneration coefficient rmod it and the body's state set, computed on the slow clock
--- and handed down as a scalar, which applies to the asleep regeneration arm only (ruling 2): awake endurance
+-- and handed down as a scalar, which applies to the asleep regeneration arm only: awake endurance
 -- stays vanilla's, so no drain coefficient is computed. Iron, glycogen, dehydration, alcohol, sleep debt and the
 -- balance dial are read from the record's Plan 4 sub-tables by the adapter.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
@@ -59,7 +59,7 @@ K.aerobic.ALC_K = 0.15 -- S0718
 K.aerobic.ALC_T = 0.5 -- S0718
 
 -- The protein gate: 1 at or above P_LOW g/kg/d, G_PROT_LOW below. It is also the regeneration
--- coefficient's protFactor (ruling 12).
+-- coefficient's protFactor.
 function K.aerobic.gProt(pPerKg)
     if pPerKg < K.aerobic.P_LOW then
         return K.aerobic.G_PROT_LOW
@@ -84,7 +84,7 @@ function K.aerobic.gSleep(debtH)
     return 1 - (1 - A.G_SLEEP_SEVERE) * K.clamp((debtH - A.SLEEP_DEBT_FROM) / A.SLEEP_DEBT_SPAN, 0, 1)
 end
 
--- One TAC step over dtD days: immobilised (ruling 8), falling toward TAC_MIN on TAU_LOSS days (first,
+-- One TAC step over dtD days: immobilised, falling toward TAC_MIN on TAU_LOSS days (first,
 -- since an immobilised week's target is parity and the gain step would hold it there); else below the
 -- target by more than TAC_DEADBAND, toward 1 + (TAC_MAX - 1) x the week's volume fraction on TAU_GAIN
 -- days, scaled by gIron x gProt x min(gEnergy, gSleep); else a trained capacity above parity not held

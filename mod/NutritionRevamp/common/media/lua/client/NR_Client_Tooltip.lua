@@ -1,4 +1,4 @@
--- NR_Client_Tooltip.lua -- the food-tooltip band (Plan 7 Task 6, ruling 8): one sentinel wrap of
+-- NR_Client_Tooltip.lua -- the food-tooltip band: one sentinel wrap of
 -- ISToolTipInv.render that draws the mod's own framed strip BELOW the engine's box, its lines the food's
 -- nutrient vector through the intake's own per-item source chain (K.vector.resolve, shared with
 -- NR_Server_Intake.lua's IN.chainOne), laid out by K.view.tooltip at the client's visibility level. The band
@@ -18,13 +18,13 @@
 --    survives CleanUI, which still constructs the vanilla panel (#2499); under CleanUI a stack's tooltip
 --    describes one representative item (#2500). The crafting-slot route (ISItemSlot.drawTooltip, #2495) is
 --    not this plan.
---  * Tooltiplib is not installed on this machine (workshop 3694097672 absent on 2026-10-06; Plan 9 reads it):
+-- * Tooltiplib is not installed on this machine (workshop 3694097672 absent on 2026-10-06; Plan 9 reads it):
 --    the wrap is composable -- a sentinel, the original called exactly once per render, nothing replaced.
 --  * The band sits beside the vanilla nutrition block, which shows under the debug tooltip option, on a
 --    readable packaged label or for either Nutritionist trait (#2645); a harness client (-debug) may show both.
 --
 -- Two unknowns of the worked shape (docs/superpowers/research/platform-client-ui.md, Minimal shapes 2),
--- UNMEASURED UNTIL x183 (Task 11 cannot hover, so stats.draws on a live client is stated unmeasured there):
+-- unmeasured on screen (the harness cannot hover, so stats.draws on a live client is unread):
 --  1. whether a draw below a top-level element's rect lands on screen: UIElement.render's early returns read
 --     the parent, so a parentless panel is not culled by them (#2512), but no other scissor was traced;
 --  2. whether the setHeight below fights the next frame's recompute: the original sets the height to the
@@ -403,7 +403,7 @@ function T.after(el, lines)
     end
 end
 
--- TEST-ONLY, for the driver (`lua.call NutritionRevamp.client.tooltip.probe Base.Apple`, Task 11): the local
+-- TEST-ONLY, for the driver (`lua.call NutritionRevamp.client.tooltip.probe Base.Apple`): the local
 -- player's first inventory item of a full type, through ItemContainer.getFirstTypeRecurse(String) (jar 42.20.4
 -- `ItemContainer.getFirstTypeRecurse(Ljava/lang/String;) @0 L1838`, a TypePredicate whose compareType matches a
 -- dotted type against getFullType at `ItemContainer.compareType(String, InventoryItem) @23 L1419`), run through

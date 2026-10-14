@@ -102,7 +102,7 @@ function K.vector.dish(lookup, extraTypes, dishMacroTotal)
     return scratch, note
 end
 
--- The instance scale (Plan 11 Task 6; Appendix E, #3326-#3340): a table or craft vector is scaled to the
+-- The instance scale (#3326-#3340): a table or craft vector is scaled to the
 -- calories the eat delivered, b.cal x frac over the vector's own calories, with factor 1 -- the macros' own scale,
 -- right for a plain, partial, caught, butchered, split or replaced item alike. With no calories on either side
 -- (water, salt, makeCoffee) the hunger ratio instBase/scriptHunger with share, and 1 when the script hunger is 0.
@@ -153,7 +153,7 @@ function K.vector.fluid(fluidVector, litres)
     return vec
 end
 
--- The fallback inference (Plan 6 ruling 13): a food with no table entry and no declared vector takes
+-- The fallback inference: a food with no table entry and no declared vector takes
 -- the four macros as read off the item and every other key as the template's per-kcal density times
 -- the item's calories. templates is NR.data.infer (NR_Data_Infer.lua, generated: per FoodType the
 -- median of key / calories over the item pass's own mapped food records, `_default` over all of them;
@@ -201,7 +201,7 @@ function K.vector.trim(s)
     return string.match(s, "^%s*(.-)%s*$")
 end
 
--- The declared-nutrients contract (Plan 6 ruling 14): a food-content mod writes NR_Nutrients =
+-- The declared-nutrients contract: a food-content mod writes NR_Nutrients =
 -- key:value;key:value in its item script, in the units contract (NR.data.UNITS, per item); the loader
 -- does not know the key, so it lands as a string in the item's default modData (#0212, #1281). Parses
 -- that string: each `;`-separated pair is key:value, whitespace around either ignored, an empty pair
@@ -262,8 +262,8 @@ function K.vector.declared(str)
     return vec, unknown
 end
 
--- One food type through the source chain declared -> table -> inferred -> missing (Plan 6 rulings 13-14), shared
--- by the intake (NR_Server_Intake.lua, IN.chainOne) and the food tooltip (Plan 7 ruling 8), so the band shows what
+-- One food type through the source chain declared -> table -> inferred -> missing, shared
+-- by the intake (NR_Server_Intake.lua, IN.chainOne) and the food tooltip, so the band shows what
 -- the eat would land. declared is the item's NR_Nutrients default-modData string or nil; macros the item's own
 -- { calories, carbs, lipids, proteins } or nil; foodType its FoodType or nil; data is NR.data's shape:
 -- { nutrients = { get = fn(fullType) -> seed or nil }, infer = templates } (either part, or data, may be nil).

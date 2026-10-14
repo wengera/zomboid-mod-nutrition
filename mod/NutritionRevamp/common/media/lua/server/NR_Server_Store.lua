@@ -1,4 +1,4 @@
--- NR_Server_Store.lua -- the durable per-player store (Plan 11 Task 11, Decision 3): an in-memory table of the
+-- NR_Server_Store.lua -- the durable per-player store: an in-memory table of the
 -- records seen this uptime, persisted per player to two alternating JSON slot files under the server's Lua cache
 -- folder through getFileWriter, with a real-time last-seen index pruned at NR.RecordKeepDays; nothing per-player is
 -- kept under a global modData name (#3417: any client could request it). A pruned player's slots are emptied, not
@@ -20,7 +20,7 @@
 -- carrying done = true and its gen is a read failure and the other file of the pair wins. The server name is passed
 -- through K.store.safeName (it is not sanitised, and a name holding .. would make every write nil); a nil writer is
 -- counted every time and logged once.
--- A swallowed write never costs the newest copy (Task 11 fix 1): the text last written (or read) per file pair is
+-- A swallowed write never costs the newest copy: the text last written (or read) per file pair is
 -- kept (F.last[username], F.lastIndex), and before the writer opens the other file of a pair it reads the file it
 -- believes holds the newest copy back and compares it as a string, with no decode. A mismatch means that write was
 -- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
@@ -30,7 +30,7 @@
 -- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
 -- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
 -- store.file.stats.deferred, logged once, the flag kept so the next store step tries again) for S.DEFER_MAX_MS of
--- real time from the player's first deferral (F.deferSince; ruling T11-1a: a deferred save retries at every store
+-- real time from the player's first deferral (F.deferSince: a deferred save retries at every store
 -- step, once a game minute, so a count of steps would be seconds at a short day). The first save past the window
 -- gives up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation;
 -- a clock that does not read never gives up. So the fresh record never overwrites the real one for a transient
@@ -38,18 +38,18 @@
 -- player first seen after the last index write has no such protection: the index does not name them, so two failed
 -- reads save them new.
 --
--- The load (Plan 8 ruling 5, ruling T4-1): the first S.get of a username in a sight -- the players' queue calls it
+-- The load: the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
 -- newest slot when the record is not in memory, then runs K.store.fillInPlace on the record: the inputs are kept,
 -- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
 -- on it reads the loaded record with no re-point. The load is idempotent and runs at every first sight (derived on
 -- read). A departure forgets the sight, so a return loads again, and queues the record's flush as one task. A load
--- that raises lays a fresh record in place, counted and logged (ruling C9-10).
+-- that raises lays a fresh record in place, counted and logged.
 --
--- The writes ride the players' queue (Decision 6 (b)): a player's slot is written at most once a real minute from
+-- The writes ride the players' queue: a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
 -- (K.store.savePhase), so the players seen at a boot do not all save in one drain; a departure's flush, the index
--- write and the hourly prune are one-shot tasks. The index is debounced (Task 11 fix 1): a departure flush writes
+-- write and the hourly prune are one-shot tasks. The index is debounced: a departure flush writes
 -- only the player's slot and marks the index dirty, and the one task "store.index" writes it at most once every
 -- S.INDEX_GAP_MS while dirty; the hourly prune writes it too. A task
 -- name carries a "." ("store.flush.<hex>", "store.index", "store.prune"), which no username can:
@@ -57,9 +57,9 @@
 -- invalid name (@61-@84 L1041-L1044), and a task named like an online user would be merged into that user's queue
 -- entry and never run.
 --
--- The stop window (ruling T20-1): a dedicated server fires no Lua event around a world save or a stop, so nothing
+-- The stop window: a dedicated server fires no Lua event around a world save or a stop, so nothing
 -- flushes the store there; the window a clean stop can lose is narrowed instead. A landed eat or drink (IN.land
--- calls S.mark) and a respawn's reset (S.reset, ruling T20-3) mark the player's slot dirty, and the store step writes
+-- calls S.mark) and a respawn's reset (S.reset) mark the player's slot dirty, and the store step writes
 -- a dirty slot at the player's next queue slot whatever S.SAVE_GAP_MS says, for that one save (the
 -- read-before-truncate and the deferral still apply; a save that writes nothing -- a failed write, a deferral, a
 -- recovery -- keeps the mark, so it is tried again at the next step). A username new to the index is written
@@ -91,7 +91,7 @@ local function other(which)
     return "a"
 end
 
--- The index write run at the next tick (ruling T20-1): the store.index task, its name also appended to the live
+-- The index write run at the next tick: the store.index task, its name also appended to the live
 -- queue (P.task alone would wait for the next minute's merge; K.sched.merge never doubles a name), or inline when
 -- the queue is absent.
 local function indexSoon(fn)
@@ -127,7 +127,7 @@ local function sights(t)
     return S.loaded
 end
 
--- Ruling C9-10: a load that raises (a corrupt or hand-edited file: a body without its masses or clock, a string where
+-- A load that raises (a corrupt or hand-edited file: a body without its masses or clock, a string where
 -- a number sits) lays a fresh record in target's OWN table, so every handle held on it stays valid, and the character
 -- runs the fresh-character path (its sub-tables laid at first sight) instead of a raw table every step fails on. The
 -- record's mod state is lost; the username and its first sight are kept. Counted in S.stats.failures and logged.
@@ -411,7 +411,7 @@ function S.get(username, worldAgeHours)
         if r ~= nil then t[username] = r end
     end
     if r == nil then
-        -- Plan 11 Task 3: a failed clock read never creates a record stamped 0
+        -- A failed clock read never creates a record stamped 0
         if worldAgeHours == nil then return nil end
         r = S.new(username, worldAgeHours)
         t[username] = r
@@ -494,7 +494,7 @@ function S.reset(username, worldAgeHours)
     sights(t)[username] = true
     local IN = NR.server.intake
     if IN ~= nil and IN.forget ~= nil then IN.forget(username) end  -- nothing the dead character ate carries over
-    -- a reset reaches the file at the next store step (ruling T20-3)
+    -- a reset reaches the file at the next store step
     S.mark(username)
     NR.log.say(2, "store: reset record for " .. tostring(username) .. " (reset " .. tostring(r.resets) .. ")")
     return r
@@ -512,7 +512,7 @@ end
 -- once when an eat, a drink or a reset marked it dirty (a dirty save that writes nothing keeps the mark); the first
 -- write after a boot falls at the player's phase over that minute (K.store.firstLast).
 function S.step(username, player, record, ctx)
-    -- The skip seam (Plan 11 Task 19, ruling 15): S.skip is nil in production; only the test harness sets it, to a
+    -- The skip seam: S.skip is nil in production; only the test harness sets it, to a
     -- function of a username answering true for its ghost names, whose store step then does nothing at all (no
     -- phase seed, no preload read, no deferral, no save, no index entry or dirty mark).
     if S.skip ~= nil and S.skip(username) == true then return end

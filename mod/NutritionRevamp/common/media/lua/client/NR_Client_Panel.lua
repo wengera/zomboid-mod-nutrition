@@ -1,4 +1,4 @@
--- NR_Client_Panel.lua -- the collapsible nutrition panel (Plan 7 Task 5, ruling 6): NR_Client_Panel derives
+-- NR_Client_Panel.lua -- the collapsible nutrition panel: NR_Client_Panel derives
 -- ISCollapsableWindow (movable and collapsible for free, #2467-#2471), one instance per player number built on
 -- OnCreatePlayer, hidden and OFF the UI manager until the key opens it (#2469: an element off the manager is
 -- neither updated nor rendered); player 0's is registered with ISLayoutManager.RegisterWindow("NutritionRevamp.panel",
@@ -23,7 +23,7 @@
 --  risk 3: whether PZAPI.ModOptions:load() at OnGameStart finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
 -- The default key is the semicolon (code 39): `;` is unbound in shared/keyBinding.lua and read by no media/lua/client
 -- handler outside debug files; K is vanilla's Display FPS at keyBinding.lua:198 (NR_Client_ModOptions.lua's header).
--- The height follows the rows (ruling T5-2): at each rebuild the panel is titleBarHeight + 4 + rows * line + 4 tall,
+-- The height follows the rows: at each rebuild the panel is titleBarHeight + 4 + rows * line + 4 tall,
 -- capped at the screen below its top, refit at the end of a drag and on a resolution change; past the cap the mouse wheel scrolls (a non-resizable window's width and
 -- height are not restored from layout.ini, ISCollapsableWindow.RestoreLayout :337-340, so the height is the mod's).
 --

@@ -1,4 +1,4 @@
--- NR_Kernel_Json.lua -- a JSON codec for the server-local store (Plan 11 Task 10; Decision 3: the mod writes its own
+-- NR_Kernel_Json.lua -- a JSON codec for the server-local store (the mod writes its own
 -- serialiser). Pure: Lua values in, a string out, and back. A number is written by the caller's fmt (the adapter
 -- passes tostring, which on Kahlua is Double.toString or a long below 1e14: a round trip, J2); a non-finite number
 -- writes null. A table with keys exactly 1..#t (#t > 0) is an array, any other an object; an object's number key is

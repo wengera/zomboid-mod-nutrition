@@ -1,20 +1,20 @@
 -- NR_Kernel_Satiety.lua -- satiety from physiology (Plan 11c; spec docs/superpowers/specs/2026-10-08-satiety-physiology-
--- design.md; the meal pool M, Plan 11g, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 7). Two signals
+-- design.md; the meal pool M, spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 7). Two signals
 -- sate: the stomach's fullness F, counted past the comfortable maximum up to the hard capacity (fill, fullness), and
 -- the meal pool M, the weighted kcal eaten, fed in full at the eat and cleared first-order (weigh, mealFeed, mealClear,
 -- drain, mealRead, seedMeal); sated(F, mealRead(M)), which K.deficit.hungerTarget turns into hunger (target); the soft
 -- cap's discomfort; the appetite traits (HEARTY, LIGHT, trait: vanilla's game numbers, #0485, applied to M's
 -- clearance); and the factors on hunger: circadian, the acute suppression of vigorous work, sleep debt and nicotine
 -- withdrawal. Plan 11g Task 4 replaced the meal pool P with the gut stage G, fed at emptying, and grouped the file by
--- section, every constant first; Task 6c (spec § 7) went back to the eat feed as M, because G fed at emptying counted
+-- section, every constant first (spec § 7) went back to the eat feed as M, because G fed at emptying counted
 -- the meal's size a second time (the stomach's energy-limited emptying already carries it in F), and let F count past
 -- the comfortable maximum. Pure; one statement a line for the coverage gate.
 local K = NutritionRevamp.kernel
 K.satiety = {}
 
--- Constants: one line each, its label its provenance. The joint fit (Plan 11g Task 6c fix 2, fit-11g-20261012d: a coordinate refinement over all eight from fix 1's point, until its last rounds moved nothing; fix 1's fit-11g-20261012c searched a full grid of 11,664 points first) set
+-- Constants: one line each, its label its provenance. The joint fit (fit-11g-20261012d: a coordinate refinement over all eight from fix 1's point, until its last rounds moved nothing; fix 1's fit-11g-20261012c searched a full grid of 11,664 points first) set
 -- FULL_WEIGHT, LIQUID_WEIGHT, PROTEIN_FILL, W_PROTEIN, W_FAT, MEAL_HALF_LIFE_H, MEAL_REQ and MEAL_STEEP together, loss
--- 0.5782 over the 39 scored oracles of testing/tests/kernel/gut_oracles.py (Tieken read-only, ruling T6c-2; S1233's volume slope scored, ruling T6c-3; S1231's null for water drunk alongside scored and LIQUID_WEIGHT's bound lifted to (0, 1], ruling T6c-5;
+-- 0.5782 over the 39 scored oracles of testing/tests/kernel/gut_oracles.py (Tieken read-only; S1233's volume slope scored; S1231's null for water drunk alongside scored and LIQUID_WEIGHT's bound lifted to (0, 1];
 -- fix 1's fit-11g-20261012c, loss 0.6719 with LIQUID_WEIGHT held at a bound of 0.19, Task 6c's fit-11g-20261012b, loss 1.3609 with Tieken scored, and the Task 6 fit of the gut stage G, fit-11g-20261012, degenerate, are superseded).
 K.satiety.HEARTY = 1.5 -- #0485: vanilla's game number, not science (spec sec. 3.4)
 K.satiety.LIGHT = 0.75 -- #0485: vanilla's game number, not science (spec sec. 3.4)
@@ -49,16 +49,16 @@ K.satiety.NIC_FADE_DAYS = 182 -- game choice, Plan 11e (ruling 11e-2): 26 weeks,
 K.satiety.NIC_WITHDRAWAL_MAX = 0.51 -- CharacterStat.NICOTINE_WITHDRAWAL's maximum, the stat's cap a full smoke removes (#3632)
 K.satiety.MAX_GAP_M = 60 -- not science, no row needed (Plan 11g close; Kinetics' local until then): the gap cap, a step's drain integrating at most this many game minutes, the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), read by KIN.drain and replay_live's stand-in
 
--- Fullness: the stomach's F (Plan 11c, spec § 3.1, ruling 11c-30; Plan 11d Task 5, ruling T5-2; Plan 11g spec § 7).
+-- Fullness: the stomach's F (spec § 3.1; Plan 11g spec § 7).
 -- The physical fill: a mass over a capacity, clamped to [0, 1]; K.stomach.fill passes the whole mass, both lanes at
--- density 1 (ruling 11c-8; ruling T6c-1), over K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the
--- tolerated maximum (ruling 11c-19). record.stomachFill stays this physical fill; the satiety F below is not clamped at 1.
+-- density 1, over K.stomach.CAPACITY_MAX_G, fullness being linear in gastric volume up to the
+-- tolerated maximum. record.stomachFill stays this physical fill; the satiety F below is not clamped at 1.
 function K.satiety.fill(mass, capacity)
     return K.clamp(mass / capacity, 0, 1)
 end
 
 -- The F a stomach sates with: its fullness mass (K.stomach.fullnessMass, the satiety mass plus PROTEIN_FILL x the solid
--- lane's protein, rulings 11d-5 and T5-2) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G /
+-- lane's protein) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G /
 -- CAPACITY_MAX_G] (1100 / 730 = 1.507; Plan 11g spec § 7): fullness keeps rising past the tolerated maximum up to
 -- maximal discomfort (S1250, S1253), so a well-fed stomach past 730 g sates more than one at it, where a clamp at 1
 -- read Karl 2021's resting and well-fed post-meal stomachs alike (harvest 13: BAL's emptying 612 min against 182,
@@ -71,11 +71,11 @@ function K.satiety.fullness(stomach)
     return K.clamp(K.stomach.fullnessMass(stomach) / cap, 0, K.stomach.CAPACITY_HARD_G / cap)
 end
 
--- The meal pool M, the weighted kcal eaten, fed at the eat (Plan 11g Task 6c, spec § 7).
+-- The meal pool M, the weighted kcal eaten, fed at the eat (spec § 7).
 -- The intake feeds M in full at the eat with the landed vector's weighted kcal (mealFeed; NR_Server_Intake's IN.feed, on
 -- every route that lands); the kinetics step clears it first-order on every one-minute substep of the stomach's drain
--- (drain), and the writer seeds M and reads it. The meal pool P (Plan 11c rulings 11c-27 and 11c-30) was fed the same
--- way; Plan 11g Task 4's gut stage G, fed with what the stomach emptied, fitted flat (Task 6) and was withdrawn.
+-- (drain), and the writer seeds M and reads it. The meal pool P was fed the same
+-- way; Plan 11g Task 4's gut stage G, fed with what the stomach emptied, fitted flat and was withdrawn.
 -- A vector's weighted kcal: its delivered calories split by the Atwater share of its protein, carbohydrate and fat
 -- grams, each share times its weight; a vector with no macronutrient grams takes the neutral weight.
 function K.satiety.weigh(vector)
@@ -95,7 +95,7 @@ function K.satiety.mealFeed(M, vector)
 end
 
 -- First-order clearance over dtH game hours at MEAL_HALF_LIFE_H, scaled by trait (the appetite trait times the sandbox's
--- stats-decrease multiplier, ruling 11c-11); nothing for no time. No asleep factor: the same clearance asleep and awake (ruling 11c-24).
+-- stats-decrease multiplier); nothing for no time. No asleep factor: the same clearance asleep and awake.
 function K.satiety.mealClear(M, dtH, trait)
     if dtH <= 0 then
         return M
@@ -139,7 +139,7 @@ function K.satiety.trait(hearty, light)
     return 1
 end
 
--- The read and composition (Plan 11c structure D, ruling 11c-30; Plan 11g spec § 7).
+-- The read and composition (Plan 11c structure D; Plan 11g spec § 7).
 -- M's read 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP), in [0, 1): 3 = (1 - 0.25) / 0.25, so an empty stomach reads the
 -- request level 0.25 at M = MEAL_REQ; MEAL_STEEP makes the read near-logarithmic.
 function K.satiety.mealRead(M)
@@ -189,24 +189,24 @@ function K.satiety.seedMeal(hunger, F, energyState)
     return K.min(M, K.satiety.MEAL_SEED_MAX)
 end
 
--- Discomfort: the soft cap's scale (ruling 11c-25: the Overfull moodle's level reads it through K.view.fullnessLevel;
+-- Discomfort: the soft cap's scale (the Overfull moodle's level reads it through K.view.fullnessLevel;
 -- nothing writes DISCOMFORT): 0 up to capMax grams, DISCOMFORT_MAX at capHard, linear between.
 function K.satiety.discomfort(mass, capMax, capHard)
     return K.satiety.DISCOMFORT_MAX * K.clamp((mass - capMax) / (capHard - capMax), 0, 1)
 end
 
 -- The circadian, acute, sleep and nicotine factors on hunger.
--- The circadian factor on hunger at hourOfDay (0-24, the game clock; ruling 11c-24): 1 + CIRCADIAN_A x
--- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices, ruling 11c-24a; Scheer's model is additive). The writer applies
+-- The circadian factor on hunger at hourOfDay (0-24, the game clock): 1 + CIRCADIAN_A x
+-- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices; Scheer's model is additive). The writer applies
 -- min(0.69, hungerTarget(Z, es) x circadian(h) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor(w, d)), awake and asleep.
 function K.satiety.circadian(hourOfDay)
     return 1 + K.satiety.CIRCADIAN_A * math.cos(6.283185307179586 * (hourOfDay - K.satiety.CIRCADIAN_PEAK_H) / 24)
 end
 
--- Plan 11c Task 4b (spec § 5c, ruling 11c-29): the acute suppression of hunger by vigorous work (exercise-induced
+-- Spec § 5c: the acute suppression of hunger by vigorous work (exercise-induced
 -- anorexia: during and just after the bout, gone within about 1.5 h; S1299, S1300, S1303, S1304, S1305, S1306). A
 -- state S in [0, 1] relaxes toward the kind's weight while vigorous and toward 0 otherwise, first-order with
--- ACUTE_HALF_LIFE_H while vigorous and ACUTE_DECAY_HALF_LIFE_H otherwise (ruling 11d-1); the writer multiplies hunger by acuteFactor(S) = 1 - ACUTE_MAX x S (Task 6
+-- ACUTE_HALF_LIFE_H while vigorous and ACUTE_DECAY_HALF_LIFE_H otherwise; the writer multiplies hunger by acuteFactor(S) = 1 - ACUTE_MAX x S (Task 6
 -- wires it: vigorous is the swing state or the metabolism class's heavy-work band, IsRunning never reaching the
 -- server, x141a).
 -- One step of dtH game hours: toward the kind's weight while vigorous (an unknown kind weighs 0), toward 0 otherwise;
@@ -234,7 +234,7 @@ function K.satiety.acuteFactor(S)
     return 1 - K.satiety.ACUTE_MAX * K.clamp(S, 0, 1)
 end
 
--- Plan 11d (ruling 11d-1): the half-life of exerciseSuppression's step, the rise's while vigorous and the shorter
+-- The half-life of exerciseSuppression's step, the rise's while vigorous and the shorter
 -- decay's otherwise.
 function K.satiety.acuteHalfLife(vigorous)
     if vigorous then
@@ -243,8 +243,8 @@ function K.satiety.acuteHalfLife(vigorous)
     return K.satiety.ACUTE_DECAY_HALF_LIFE_H
 end
 
--- Plan 11d (ruling 11d-2, spec § 5d): sleep debt raises hunger. The factor 1 + SLEEP_MAX x clamp(debtH /
--- SLEEP_DEBT_FULL_H, 0, 1) multiplies the written hunger, read off record.acute.debtH in game hours (wired in the writer's W.satietyFactor, Plan 11d Task 6); it is inert while the server disables sleep, K.acute.sleepMinute holding the debt at 0.
+-- Spec § 5d: sleep debt raises hunger. The factor 1 + SLEEP_MAX x clamp(debtH /
+-- SLEEP_DEBT_FULL_H, 0, 1) multiplies the written hunger, read off record.acute.debtH in game hours (wired in the writer's W.satietyFactor); it is inert while the server disables sleep, K.acute.sleepMinute holding the debt at 0.
 -- It follows the acute kernel's accounting (K.acute.sleepMinute): the debt books once per 24 h window at the window's
 -- close, as the shortfall against SLEEP_NEED_H x needFactor, so the factor steps at the window's close rather than at
 -- waking; a longer night repays only REPAY (0.5) of its excess, so recovery takes more than one full night. It
@@ -261,12 +261,12 @@ function K.satiety.sleepFactor(debtH)
     return 1 + K.satiety.SLEEP_MAX * K.clamp(debtH / K.satiety.SLEEP_DEBT_FULL_H, 0, 1)
 end
 
--- Plan 11e (rulings 11e-2 and T2-A, spec memo C12): nicotine withdrawal raises hunger. The factor 1 + NIC_MAX x
+-- Spec memo C12: nicotine withdrawal raises hunger. The factor 1 + NIC_MAX x
 -- clamp(w / NIC_WITHDRAWAL_MAX, 0, 1) x fade(d) multiplies the written hunger, where w is the server's own
 -- NICOTINE_WITHDRAWAL (a Smoker's, rising on the server alone (#3630, #3631), or a former Smoker's, held where it stood; vanilla reads it only
 -- as stress, #3635) and d the game days since the mod's own anchor, the last minute the stat read 0 or fell (a smoke
--- lowers it, #3632; the writer's W.nicotine keeps it as record.satiety.nicH, ruling T2-A, because the vanilla timer's
--- units move with the time speed, #3636). The fade is linear, 1 at d = 0 and 0 at NIC_FADE_DAYS. A first or healed anchor laid in withdrawal starts fully faded (ruling T2-F).
+-- lowers it, #3632; the writer's W.nicotine keeps it as record.satiety.nicH, because the vanilla timer's
+-- units move with the time speed, #3636). The fade is linear, 1 at d = 0 and 0 at NIC_FADE_DAYS. A first or healed anchor laid in withdrawal starts fully faded.
 -- A character who keeps smoking keeps resetting the anchor, so between smokes the factor stays at its withdrawal-scaled
 -- level and never fades while the habit continues; only a quit runs the fade.
 -- The factor on hunger for a withdrawal w (the stat's value) d game days after the anchor: 1 for a non-finite input

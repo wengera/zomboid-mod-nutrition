@@ -1,7 +1,7 @@
--- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page (Plan 7 Task 5, ruling 7): the panel keybind
+-- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page: the panel keybind
 -- (togglePanel), the tooltip-lines tick and the moodles tick; the loader the mod calls once itself; the three
 -- accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through
--- (ruling 12).
+--.
 --
 -- The page exists at FILE SCOPE (#2520: a row added after the main screen is built is not a known key until the
 -- next one) and is loaded by the mod ONCE, after the page exists, inside a protected call (#2519: vanilla loads
@@ -36,7 +36,7 @@
 -- Cadence: the page once per Lua state; the accessors once per key press or per draw that reads them.
 local NR = NutritionRevamp
 
--- The translation lookup (ruling 12). key's string from getText, or on a miss -- getText absent, raising, answering
+-- The translation lookup. key's string from getText, or on a miss -- getText absent, raising, answering
 -- nil, a non-string or the key itself -- the fallback; when the fallback is nil or the key itself, the key's TAIL:
 -- the key with UI_NR_ (or IGUI_NR_ / Moodles_NR_) and a leading Row_ stripped and every _ read as a space, so a
 -- surface is readable before the translation files ship (UI_NR_Class_energy_2 reads "Class energy 2").

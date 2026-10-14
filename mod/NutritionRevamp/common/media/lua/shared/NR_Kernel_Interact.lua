@@ -1,7 +1,7 @@
--- NR_Kernel_Interact.lua -- the nutrient interactions and the non-pool steps (Plan 4, ruling 20; formulas
+-- NR_Kernel_Interact.lua -- the nutrient interactions and the non-pool steps (Plan 4; formulas
 -- briefing A3, A4, A6): two layers in one file.
--- 1. The factor functions, pure multipliers and loss terms the adapter (Task 11) applies to the absorbed
---    vector BEFORE K.nutrients.minute, and the intake wrapper (Task 12) applies per eat: calcium x iron,
+-- 1. The factor functions, pure multipliers and loss terms the adapter applies to the absorbed
+-- vector BEFORE K.nutrients.minute, and the intake wrapper applies per eat: calcium x iron,
 --    phytate x magnesium and zinc, the B12 intrinsic-factor ceiling, the carotene gate on liver status,
 --    riboflavin x iron transfer, alcohol x thiamine rate, the caffeine and alcohol urinary mineral losses and
 --    zinc -> copper.

@@ -1,4 +1,4 @@
--- NR_Kernel_Body.lua -- the body model's pure pieces (Plan 3): the band-anchored split of a starting
+-- NR_Kernel_Body.lua -- the body model's pure pieces: the band-anchored split of a starting
 -- weight into fat and lean mass, the record.body table the adapter creates at first sight, the
 -- vanilla weight band, the three direction flags off the 7-day trend, the legacy macro-mirror maps that turn
 -- the mod's trailing-24 h figures into the vanilla Nutrition stores other mods read, and the trailing-24 h window.
@@ -108,7 +108,7 @@ end
 
 -- The trailing-24 h figures every reader takes (K.energy.eb24h, the exercise lag's ex24h and ee24h, the nutrients'
 -- expenditure and carbohydrate, the legacy mirror's protein, carbohydrate and lipid) are K.body.trail24 over
--- record.body.trail (Plan 11d Task 9c, ruling C-8: the evenly-spread blend of today and the closed day read a
+-- record.body.trail (the evenly-spread blend of today and the closed day read a
 -- phantom deficit before breakfast; it is retired). The closed-day rings eb7, p7 and mass7 remain for the 7-day
 -- readers: K.partition.deficitWeek, NR_Server_Effects' protein week and K.body.trend.
 -- The window's code is at the end of this file.
@@ -121,7 +121,7 @@ end
 -- The legacy protein store from the trailing-24 h protein intake per kg body weight (g/kg/d):
 -- P <= 0.5 reads -400; 0.5 < P < 0.8 runs linearly -300 .. 0; 0.8 <= P <= 1.6 runs linearly 0 .. 150;
 -- P > 1.6 reads 200; clamped to the store's [-500, 1000].
--- ruling 13: the x1.5 arm (50 < p < 300, #2112) opens at P ~ 1.07.
+-- The x1.5 arm (50 < p < 300, #2112) opens at P ~ 1.07.
 function K.body.mapProteins(pPerKgDay)
     local m = 200 -- game choice, ruling 13
     if pPerKgDay <= 0.5 then
@@ -219,7 +219,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     return body
 end
 
--- The trailing-24 h window (Plan 11d Task 9c, ruling C-8): one hourly ring per quantity, TRAIL_N slots, game hour h
+-- The trailing-24 h window: one hourly ring per quantity, TRAIL_N slots, game hour h
 -- (the floor of the world age) in slot h % TRAIL_N + 1, so a ring holds the current hour and the 24 before it. The
 -- current hour accumulates each minute (trailAdd); as the clock passes an hour its slot is zeroed (trailTo). The window
 -- (trail24) is the current hour so far, the 23 closed hours and the oldest hour weighted by the share of it still inside
@@ -308,7 +308,7 @@ function K.body.trailAdd(t, key, x)
 end
 
 -- One ring's closed sum: every slot but slot cur, a non-finite slot zeroed on the way. Returns the sum and the count
--- of slots zeroed (Plan 11d Task 9d: the heal names a ring by it, K.heal.trail).
+-- of slots zeroed (the heal names a ring by it, K.heal.trail).
 function K.body.trailRingSum(ring, cur)
     local s = 0
     local z = 0

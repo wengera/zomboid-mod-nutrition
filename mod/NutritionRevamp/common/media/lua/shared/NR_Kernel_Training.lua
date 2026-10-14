@@ -1,4 +1,4 @@
--- NR_Kernel_Training.lua -- the body model's training signal (Plan 3): the aerobic side banks the
+-- NR_Kernel_Training.lua -- the body model's training signal: the aerobic side banks the
 -- ENGINE's own MET value above its resting floor as MET-minutes (spec § 7 item 35; the second of the
 -- two MET tables, never mixed with expenditure's Compendium METs) and sorts each minute into the two
 -- intensity bands; the resistance side turns events and loaded minutes into set-equivalents feeding

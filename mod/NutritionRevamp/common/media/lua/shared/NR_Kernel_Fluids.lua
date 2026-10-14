@@ -1,16 +1,16 @@
--- NR_Kernel_Fluids.lua -- the fast pools (Plan 4): body water and the sodium and potassium balances, the
+-- NR_Kernel_Fluids.lua -- the fast pools: body water and the sodium and potassium balances, the
 -- per-minute loss terms that charge them, the surplus clearance, the derived scalars (dehydration per cent
--- of body mass, the plasma-sodium index) and the THIRST view the writer writes (rulings 7, 8, T1-1).
+-- of body mass, the plasma-sodium index) and the THIRST view the writer writes.
 -- The model (formulas briefing B1-B6): water, na and k are gram and mmol balances against baseline, and the
--- water is read against weu, the water na + k carries isotonically (Plan 11f Task 5b); TBW is TBW_PER_LM x lm; the
+-- water is read against weu, the water na + k carries isotonically; TBW is TBW_PER_LM x lm; the
 -- plasma-sodium index follows the Edelman form, plasma Na proportional to (exchangeable Na + K) over total
 -- body water (open row S1092), with 1.0 = OSM_REF mmol/L. Metabolic water is omitted (stated). Caffeine
 -- diuresis is 0 for a habitual drinker (S0528/S0529) and respiratory loss is 0 beyond basal (open S1052);
 -- neither has code. The sweat EMAs take each step's per-minute sample, so a step of dtM minutes moves them
 -- as one sample with alpha = dtM/360 (capped at 1); dtM is always > 0. Sex is indexed 1 male, 2 female
--- (Plan 3's K.body convention). Ruling T1-1: vanilla's autoDrink and ISTakeWaterAction size every sip from
+-- (Plan 3's K.body convention). Vanilla's autoDrink and ISTakeWaterAction size every sip from
 -- THIRST, so the thirst VIEW reads the pool plus the stomach's still-unabsorbed water (the extraG of dehydPct
--- and, Plan 11f Task 5b fix 1, of conc, which the adapter passes) and THIRST falls at the drink; f.dehydPct and
+-- and, of conc, which the adapter passes) and THIRST falls at the drink; f.dehydPct and
 -- f.c are the pool-only calls (extraG 0). thirstTarget is a pure function of the scalars it is given.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min / K.max reference is at call time.
@@ -105,7 +105,7 @@ K.fluids.SWEAT_ACTIVE_SHARE = 0.5 -- design-phase-v1 game choice (open row S1100
 -- The obligatory sodium loss without sweating (urine, skin and faeces), mmol/day, whatever the intake.
 K.fluids.BASAL_NA = 8 -- S1665: the IOM's total obligatory loss, up to 8 mmol/d (Table 6-1, 1.7-8.0)
 
--- The sweat sodium draw from a uniform roll r: 10 + 80 r^2 has mean 36.7 and range 10-90 (S0518; ruling T11-4).
+-- The sweat sodium draw from a uniform roll r: 10 + 80 r^2 has mean 36.7 and range 10-90 (S0518).
 function K.fluids.naSweatOf(r)
     local nr = K.fluids.NA_SWEAT_RANGE
     return nr[1] + (nr[2] - nr[1]) * r * r
@@ -196,7 +196,7 @@ function K.fluids.clearance(f, dtM, w)
 end
 
 -- The water deficit against weu in per cent of body mass w kg; extraG (nil = 0) is water counted as if in the
--- pool: the thirst view passes the stomach's pending water grams (ruling T1-1), the performance scalar 0.
+-- pool: the thirst view passes the stomach's pending water grams, the performance scalar 0.
 function K.fluids.dehydPct(f, w, extraG)
     return 100 * K.max(0, (K.fluids.weu(f, w) - f.water - (extraG or 0)) / 1000) / w
 end
@@ -223,7 +223,7 @@ end
 
 -- The THIRST target: the volume and osmotic drives combined, then the hypotonic and the kill caps. defence (nil
 -- reads 0) is the volume-defence weight K.fluids.defence: past the onset a volume-thirst term relaxes the hypotonic cap
--- toward the uncapped thirst by that weight (Plan 11f Task 5b fix 2), so a salt-depleted body keeps replacing its
+-- toward the uncapped thirst by that weight, so a salt-depleted body keeps replacing its
 -- volume and its plasma falls (S1729: volume held at the expense of the osmotic pressure; S1731: the subjects drank
 -- freely; S1724: volume depletion raises thirst); the weight riding the set point's ramp is a game choice, and the
 -- human cut-off of hypotonic thirst is open (S1695, S1736). Below the onset the weight is 0 and the cap holds.
@@ -262,13 +262,13 @@ function K.fluids.sweatActive(f)
     return f.loss6h > 0 and f.sweat6h / f.loss6h > K.fluids.SWEAT_ACTIVE_SHARE
 end
 
--- Water follows sodium (Plan 11f Task 5b, option B): the grams of water one retained mmol carries, the plasma's
+-- Water follows sodium (option B): the grams of water one retained mmol carries, the plasma's
 -- 140 mmol/L. LIMITATION: isotonic retention holds in the low-to-normal band (S1673's low-to-normal step, S1678's
 -- 50-200 mmol/d); at high sustained intakes sodium is also stored without water (S1673's normal-to-high step, S1677),
 -- which is not modelled, so above about 200 mmol/d the set point overstates the water retained.
 K.fluids.WATER_PER_MMOL = 1000 / 140 -- S1683: plasma sodium 140 mmol/L, so 7.14 g per mmol (derived)
 
--- The volume defence (Plan 11f Task 5b fix 1): a sodium deficit contracts the set point isotonically only so far.
+-- The volume defence: a sodium deficit contracts the set point isotonically only so far.
 -- The body's ECF at euhydration, L per kg of body mass.
 K.fluids.ECF_PER_KG = 0.20 -- S1714: 14 L of ECF in the 70 kg man (derived 14 / 70); McCance also took 20 % (S1730)
 -- The contraction, as a share of ECF, at which vasopressin starts to defend volume over osmolality.
@@ -281,7 +281,7 @@ K.fluids.DEFEND_FULL = 0.20 -- S1729: McCance's weight levels at a 2-3 kg loss, 
 -- and water at weu reads c = 1 exactly. A deficit contracts it fully up to DEFEND_ONSET of ECF (a); past that the
 -- weight with which water follows sodium falls linearly with the contraction to 0 at DEFEND_FULL (b), so a requested
 -- contraction x gives b - (b - a) exp(-(x - a) / (b - a)), bounded by b: past the onset a further sodium loss leaves
--- the water in place. The same ramp relaxes the hypotonic thirst cap (K.fluids.defence, Plan 11f Task 5b fix 2), so
+-- the water in place. The same ramp relaxes the hypotonic thirst cap (K.fluids.defence), so
 -- water lost with it is drunk back and dilutes the pool (S1729's second phase, S1730's falling serum sodium); only water
 -- not yet replaced reads as dehydration (dehydPct). A surplus is never bounded.
 function K.fluids.weu(f, w)
@@ -297,7 +297,7 @@ function K.fluids.weu(f, w)
 end
 
 -- The volume-defence weight at body mass w kg, 0 to 1: the set point's own ramp, (x - a) / (b - a) on the contraction
--- reached x = -weu, so 0 up to DEFEND_ONSET of ECF and toward 1 at DEFEND_FULL (Plan 11f Task 5b fix 2). thirstTarget
+-- reached x = -weu, so 0 up to DEFEND_ONSET of ECF and toward 1 at DEFEND_FULL. thirstTarget
 -- relaxes the hypotonic cap by it; riding the set point's ramp is a game choice resting on S1729, S1731 and S1724.
 function K.fluids.defence(f, w)
     local F = K.fluids
@@ -307,7 +307,7 @@ function K.fluids.defence(f, w)
     return K.clamp((-F.weu(f, w) - a) / (b - a), 0, 1)
 end
 
--- Sweat sodium adapts to a sodium deficit (Plan 11f Task 5b fix 3, candidate C-14; 08-sweat-sodium.md section 7). The
+-- Sweat sodium adapts to a sodium deficit (candidate C-14; 08-sweat-sodium.md section 7). The
 -- driver is the deficit max(-na, 0), not the diet or heat exposure: "the presence of a salt deficit is required"
 -- (S1747); McCance 1938's deficiency arm fell 72 -> 33 mM Na while his generous arm rose 62 -> 70 (S1749); Armstrong
 -- 1985's low-sodium arm fell 45 -> 26 while the high arm rose 41 -> 56 (S1750). Allsopp 1998 saw a fall without a

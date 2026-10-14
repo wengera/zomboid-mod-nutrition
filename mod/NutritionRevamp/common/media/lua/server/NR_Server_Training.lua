@@ -4,7 +4,7 @@
 -- per-minute work (load, timed action, decay, the climb-state sample) is NR_Server_Metabolism's; this
 -- file owns the events only and never runs on a clock.
 --
--- A rep (ruling T13-2, replacing T5-1's anchor): the engine grants one exercise rep as a Strength AddXP
+-- A rep (replacing T5-1's anchor): the engine grants one exercise rep as a Strength AddXP
 -- then a Fitness AddXP back to back with no amount test (Fitness.incStats @201 L351, @211 L352:
 -- Strength = 4 per "arms" + 2 per "chest", Fitness = 4 per "legs" + 2 per "abs", times the exercise's
 -- xpMod, truncated). XP.AddXP returns before the Lua event when the perk is Fitness and the character
@@ -17,7 +17,7 @@
 -- whose Fitness partner was dropped leaves the pair open; the next rep's Strength event counts as usual.
 -- The rep's class is the exercise's first stiffness group (EXERCISE_CLASS, read from the install):
 -- legs/abs bank S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. The key is the exercise type
--- NR_Server_Fitness.lua recorded at the set's start (Plan 11h, C-2) when it is a known vanilla type.
+-- NR_Server_Fitness.lua recorded at the set's start (C-2) when it is a known vanilla type.
 -- Otherwise: getCurrentExe answers a Fitness$FitnessExercise whose type is a field with no getter and is unreadable
 -- from Lua (run x141c-20261005-132133: indexing it raised on every rep), so the key is read only when the exercise is
 -- itself a string; any other value is never indexed and is inferred from the Strength grant: above 0 is

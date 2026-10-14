@@ -1,4 +1,4 @@
--- NR_Kernel_View.lua -- the interface's row model (Plan 7 Task 3, rulings 2-5 and 8): the client's stored
+-- NR_Kernel_View.lua -- the interface's row model: the client's stored
 -- mirror (the flat scalar table of NR_Kernel_Mirror.lua) in, at one of three visibility levels, and an array of
 -- rows out; the six symptom classes the moodles show; the tooltip lines of one food's resolved vector
 -- (K.vector.resolve). Pure: no engine global, no getText -- every label is a translation KEY and every text is
@@ -13,13 +13,13 @@
 local K = NutritionRevamp.kernel
 K.view = {}
 
--- The six symptom classes (ruling 5), closed, in display order.
+-- The six symptom classes, closed, in display order.
 K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" }
 
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
--- energy: the K.deficit.state scalar (0.5..2.0, 1 neutral; Plan 3 ruling 14 -- deficit and fat depletion raise it
--- (the glycogen term retired, ruling T4-1), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
--- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.2456 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal; the 3,970.55 kcal span, Plan 11g Task 7). A level once reached is held until es falls ENERGY_BAND under its bound (K.view.energyLevel, Plan 11g Task 7 fix 1, ruling T7-2).
+-- energy: the K.deficit.state scalar (0.5..2.0, 1 neutral; Plan 3 -- deficit and fat depletion raise it
+-- (the glycogen term retired), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
+-- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.2456 + 0.5 x fatDep once a fast plateaus (eb24h about -1,950 kcal; the 3,970.55 kcal span). A level once reached is held until es falls ENERGY_BAND under its bound (K.view.energyLevel).
 K.view.ENERGY_AT = {
     1.10, -- gc: game choice, Plan 11d (ruling 9d-2): level 1, a 794 kcal trailing-24 h deficit alone (0.5 x 794/3970.55 since Plan 11g Task 7; 620 kcal at 3100, 1500 at 7500): on the server path a sedentary fast reaches it about 18 h after the last meal (two missed meals; 17 h at 3100)
     1.25, -- gc: game choice, Plan 11d (ruling 9d-2): level 2; the resting fast's plateau, 1.2456 at the 3,970.55 kcal span (Plan 11g Task 7; 1.315 at 3100), sits 0.0044 under it, so a 70 kg man reaches it from fat depletion about 0.0089 (52 h after the last meal on the server path) and a heavier body from the plateau alone (100 kg: 27 h), held once reached (ruling T7-2)
@@ -110,7 +110,7 @@ function K.view.clampLevel(level)
     return K.clamp(math.floor(level), 1, 3)
 end
 
--- The visibility level (ruling 3): max(the option, 3 with either Nutritionist trait), clamped 1..3.
+-- The visibility level: max(the option, 3 with either Nutritionist trait), clamped 1..3.
 function K.view.level(optionLevel, hasTrait)
     local o = K.view.clampLevel(optionLevel)
     if hasTrait == true then
@@ -156,10 +156,10 @@ function K.view.classes(m)
     return c
 end
 
--- The live class rungs as one integer (Plan 11 Task 4; ruling 8; Plan 11c ruling T7-1): a change in any of energy,
+-- The live class rungs as one integer: a change in any of energy,
 -- hydration, stimulant or sleep moves it, and the Overfull level (massG, the mirror's stomachMass) is its fifth
 -- digit. Deficiency and excess move with the nutrient epoch, which already marks a push. nil reads 0. lastEnergy, the
--- energy digit of the player's last signature (K.view.signatureEnergy), holds the energy level (ruling T7-2).
+-- energy digit of the player's last signature (K.view.signatureEnergy), holds the energy level.
 function K.view.pushSignature(energyState, dehydPct, caf, debtH, massG, lastEnergy)
     local e = K.view.energyLevel(energyState or 0, lastEnergy)
     local hy = K.view.rung(dehydPct or 0, K.view.HYDRATION_AT)
@@ -168,7 +168,7 @@ function K.view.pushSignature(energyState, dehydPct, caf, debtH, massG, lastEner
     return K.view.fullnessLevel(massG) * 10000 + e * 1000 + hy * 100 + s * 10 + sl
 end
 
--- A player's push phase inside the gap (Plan 11 Task 4; rule #3498): a rolling hash of the username modulo the gap,
+-- A player's push phase inside the gap (rule #3498): a rolling hash of the username modulo the gap,
 -- so players first seen together make their first push in different frames (#3456); it spreads only that first gap.
 function K.view.pushOffset(username, gapMs)
     return K.nameHash(username) % gapMs
@@ -206,7 +206,7 @@ function K.view.push(rows, key, label, text, level, isKey)
     return r
 end
 
--- The row model (ruling 2): m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
+-- The row model: m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
 -- are listed (nil: none; K.view.gradedOrder gives the graded ones), fat the client's body-fat state { female, last }
 -- (nil reads a man with no word held; K.view.fatRow), ungraded the keys with no grade whose excess still raises the
 -- Excess class (nil: none; K.view.ungradedOrder). Every level: the six class rows; Bands and up:
@@ -323,12 +323,12 @@ function K.view.kindOrder(records, graded)
     return out
 end
 
--- The vector keys whose record sits under another key (Plan 8 ruling 13, #3240): the vector carries vitamin A as
+-- The vector keys whose record sits under another key (#3240): the vector carries vitamin A as
 -- retinol, the record engine as vitA (NR_Data_Records.lua: REC.vitA.key = "retinol"). The test pins this table to
 -- every record whose own key field differs from its REC key; no other record differs.
 K.view.RECORD_KEY = { retinol = "vitA" }
 
--- The body mass a per-kg requirement is read at for the band (Plan 8 ruling 13). gc: a game choice, the 70 kg
+-- The body mass a per-kg requirement is read at for the band. gc: a game choice, the 70 kg
 -- reference adult of the DRI tables; the band ranks one item against a fixed daily amount, never the
 -- character's own mass (the client holds no body).
 K.view.REF_KG = 70
@@ -433,7 +433,7 @@ function K.view.pickLines(out, vector, R, keys, picked, rich, word)
     end
 end
 
--- The tooltip lines of one food (ruling 8): vector and source from K.vector.resolve, level 1..3, keys the keys
+-- The tooltip lines of one food: vector and source from K.vector.resolve, level 1..3, keys the keys
 -- considered (nil: K.vector.KEYS), data { R = K.view.requirements(...), UNITS = NR.data.UNITS } or nil. Symptoms:
 -- the source line alone; Bands: the four macros as amounts, then up to three rich-in and three low keys; Numbers:
 -- every non-zero key of keys with its amount and unit. A nil vector (the source "missing") is the source line alone.
@@ -478,7 +478,7 @@ function K.view.tooltip(vector, source, level, keys, data)
     return out
 end
 
--- The moodle value map (Plan 7 Task 8, rulings 10 and T8-1): a class level onto MoodleFramework's 0..1 value, which
+-- The moodle value map: a class level onto MoodleFramework's 0..1 value, which
 -- the framework reads against eight thresholds (MF_ISMoodle.lua getLevel :127). A symptom is a BAD moodle, so the
 -- map runs down the framework's bad side: neutral is the framework's own stored default, 0.5 (MF_ISMoodle.lua :75),
 -- where the moodle leaves the UI manager; each class's top level reaches 0.0, so a four-level class steps 0.125 a
@@ -519,11 +519,11 @@ function K.view.moodleThreshold(k, cls)
     return K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * (k - 0.5) / top
 end
 
--- Plan 11c Task 7 (ruling 11c-25): the soft cap shown as the mod's own Overfull moodle, a seventh moodle class beside
+-- The soft cap shown as the mod's own Overfull moodle, a seventh moodle class beside
 -- the six (the panel's class rows stay the six of K.view.CLASSES). Its level reads the stomach's whole mass, both
 -- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
 -- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
--- The moodle is shown and never blocks an eat. Appended so no line above moves.
+-- The moodle is shown and never blocks an eat.
 K.view.OVERFULL_AT = {
     100 / 3, -- gc: level 2 from a third of the way to the full scale (about 853 g); a game choice on ruling 11c-8's inferences, S1250 and S1253
     200 / 3, -- gc: level 3 from two thirds (about 977 g); a game choice on S1250 and S1253
@@ -556,7 +556,7 @@ function K.view.moodleClasses(m)
     return c
 end
 
--- --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2; one holder, fix 2, ruling T7-7) -----------
+-- --- the energy class's hysteresis (one holder, fix 2) -----------
 -- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.1904, 1.2118, 1.2482 and 1.2901
 -- at 48 h for the 50 and 60 kg women and the 70 and 100 kg men on the server path, test_replay_live_energy's
 -- test_a_sedentary_fast_never_steps_an_energy_level_down) and then drifts on a slow daily sawtooth (the largest fall
@@ -579,7 +579,7 @@ function K.view.energyLevel(energyState, last)
     return K.min(last, K.view.rung(energyState + K.view.ENERGY_BAND, K.view.ENERGY_AT))
 end
 
--- The energy class of a mirror m: its body_energyLevel, the level the server holds (ruling T7-7), when that is a whole
+-- The energy class of a mirror m: its body_energyLevel, the level the server holds, when that is a whole
 -- number from 0 to #ENERGY_AT; else (a mirror sent before the player's first flush, or a malformed field) the plain
 -- rung of its body_energyState.
 function K.view.mirrorEnergy(m)

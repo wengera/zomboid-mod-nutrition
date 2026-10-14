@@ -1,4 +1,4 @@
--- NR_Server_Fitness.lua -- the Fitness exercise type, read on the server (Plan 11h, C-2; spec § 2). The engine cannot
+-- NR_Server_Fitness.lua -- the Fitness exercise type, read on the server (C-2; spec § 2). The engine cannot
 -- say which exercise a set is: getFitness():getCurrentExe() answers a Fitness$FitnessExercise whose type has no getter
 -- (#2180, #2901), reflection works only on a -debug server (#2736), and the server's action stack is empty during a set
 -- (#2878). The server's own Lua action holds it, though: the client sends ISFitnessAction's arguments by the parameter

@@ -1,5 +1,5 @@
--- NR_Client_Moodles.lua -- the six symptom-class moodles (Plan 7 Task 8, rulings 5, 10 and 11) and the seventh,
--- overfull, the soft cap shown (Plan 11c Task 7, ruling 11c-25: the stomach's whole mass past 730 g in four levels
+-- NR_Client_Moodles.lua -- the six symptom-class moodles and the seventh,
+-- overfull, the soft cap shown (the stomach's whole mass past 730 g in four levels
 -- to 1100 g, K.view.fullnessLevel over the mirror's stomachMass; shown, never a block, never vanilla's DISCOMFORT):
 -- through MoodleFramework when it is installed, else the mod's own icon column at a FIXED inset of the player's
 -- viewport. Optional, detected and never required (spec § 4.9); no moodle type goes through the vanilla registry (#1140).
@@ -40,26 +40,26 @@
 -- media/ui/NutritionRevamp/<class>.png, through setPicture for bad-side levels 1-4 behind a nil check (ruling 11;
 -- Task 9 ships the PNGs), so no sized copy is needed; a nil texture leaves the framework's own lookup in place.
 -- The tooltip text: setTitle from Moodles_NR_<class>_lvl<n> and setDescription from UI_NR_Class_<class>_<n>,
--- through NR.client.text (ruling 12), because the framework's own keys carry a polarity infix (:223, :242).
--- Ruling T8-3: both routes serve player 0 only, because the mirror and the view are the local player's and a
+-- through NR.client.text, because the framework's own keys carry a polarity infix (:223, :242).
+-- Both routes serve player 0 only, because the mirror and the view are the local player's and a
 -- player-1 widget would show player 0's levels; split-screen gets no NR moodles. Death: the framework suspends its
 -- moodles when the character dies (:549); the own column does the same through an OnPlayerDeath handler (added in
 -- the boot handler) that zeros the kept levels and takes the column off the UI manager until the next apply.
 --
 -- The own route (no framework): one NR_Client_MoodleColumn (an ISUIElement) for player 0 -- the mirror is the local
 -- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 7 * 44: a FIXED
--- inset, NEVER anchored to the vanilla stack (ruling 10; MoodlesUI's exposure is a fact for the page only). Its
+-- inset, NEVER anchored to the vanilla stack (MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
 -- the mirror per frame (#2692). An OnResolutionChange handler moves it to the inset of the new viewport. The column sits on the UI manager only while a level is above 0 and takes no mouse
 -- event (its right-button and wheel handlers answer false, wantMouseEvents false), so it never eats a click meant for
 -- the world.
 --
--- The driver: NR.client.view.listeners (NR_Client_View.lua :18-20, :120) calls fn(classes, rows, level) after every
+-- The driver: NR.client.view.listeners (NR_Client_View.lua's V.listeners) calls fn(classes, rows, level) after every
 -- view rebuild -- on each mirror arrival and when a surface refreshes -- and the hook here calls apply(classes), the
 -- classes being K.view.moodleClasses (the six and overfull). This
 -- file sorts before _View, so it creates NR.client.view = { listeners = {} } when absent and View carries the array
--- over (:43). The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
+-- over. The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
 -- framework value neutral and takes the column off the UI manager; on restores both (the column only when a level
 -- is above 0).
 --
@@ -68,7 +68,7 @@
 -- per call; every engine, toolkit and framework member is named only inside a function behind a nil check and
 -- reached index-first inside a pcall, so the file loads with no engine (testing/tests/kernel/
 -- test_client_moodles_shape.py); every handler body runs under one pcall. probe(cls) is TEST-ONLY for the driver.
--- The inset (ruling T8-2): the column spans x 1184-1224 on a 1280 viewport, clear of the measured vanilla band
+-- The inset: the column spans x 1184-1224 on a 1280 viewport, clear of the measured vanilla band
 -- 1238-1270 at the 32 px moodle size (x181); at 48 px the vanilla stack reaches 1222 and overlaps by 2 px, at 64 px
 -- more, and a repositioner mod that moves the stack left may overlap it (the page states this beside the caveat).
 -- Cadence: apply once per view rebuild (at most one push a minute plus requests); the column's render per frame
@@ -246,7 +246,7 @@ local function showColumn(col, on)
     end
 end
 
--- The column's top-left for playerNum: the fixed inset of that player's viewport (ruling T8-2).
+-- The column's top-left for playerNum: the fixed inset of that player's viewport.
 local function inset(playerNum)
     local left = screen(getPlayerScreenLeft, playerNum, 0)
     local top = screen(getPlayerScreenTop, playerNum, 0)

@@ -1,16 +1,16 @@
 -- NR_Kernel_Mirror.lua -- the flat scalar table the server sends a client (spec § 4.8): every
 -- value a string, number or boolean, copied from the record, never the record itself.
--- Plan 2 (Task 11): the stomach fill. Plan 4 (Task 14, ruling 21): the pool_<key> keys are retired from the wire
+-- The stomach fill. The pool_<key> keys are retired from the wire
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
--- A record whose kinetics has not yet run reads its stomach's own fill, else empty (ruling C-2), and zeros.
--- Plan 5 (Task 11): the 20 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
+-- A record whose kinetics has not yet run reads its stomach's own fill, else empty, and zeros.
+-- The 20 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
 -- effects table, so a reader that acts on one must treat 0 as absent.
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
 -- record: the stored inputs; meta: { mode, version, build }; order: the nutrient keys to carry as nut_<key>_g
 -- (the adapter passes NR.data.records.ORDER; nil carries none); energyLevel: the energy class the bus holds (its last
--- signature's energy digit, K.view.signatureEnergy; Plan 11g Task 7 fix 2, ruling T7-7), carried as body_energyLevel,
+-- signature's energy digit, K.view.signatureEnergy), carried as body_energyLevel,
 -- absent when nil. Returns a new flat table.
 function K.mirror.build(record, meta, order, energyLevel)
     local m = {}
@@ -32,7 +32,7 @@ function K.mirror.build(record, meta, order, energyLevel)
     return m
 end
 
--- Plan 3 (Task 16): the body's scalars as body_<name>; 0 (the band "") when the record has no body yet.
+-- The body's scalars as body_<name>; 0 (the band "") when the record has no body yet.
 function K.mirror.body(m, body)
     m.body_fm = 0
     m.body_lm = 0
@@ -68,8 +68,8 @@ function K.mirror.body(m, body)
     m.body_dHyp = dHyp
 end
 
--- Plan 4 (Task 14): nut_<key>_g for each key of order, and the epoch; 0 when the sub-table or a key is absent.
--- Plan 7 (Task 3, ruling 4): beside it nut_<key>_p (the pool fraction, 1 = replete) and nut_<key>_x (the excess
+-- Nut_<key>_g for each key of order, and the epoch; 0 when the sub-table or a key is absent.
+-- Beside it nut_<key>_p (the pool fraction, 1 = replete) and nut_<key>_x (the excess
 -- rung, 0-3) for the interface's Numbers level and its excess class; 0 when absent, like the grade.
 function K.mirror.nutrients(m, nutrients, order)
     m.nutrients_epoch = 0
@@ -92,7 +92,7 @@ function K.mirror.nutrients(m, nutrients, order)
     end
 end
 
--- Plan 4 (Task 14): the fluids scalars; 0 when the record has no fluids yet.
+-- The fluids scalars; 0 when the record has no fluids yet.
 function K.mirror.fluids(m, fluids)
     m.fluids_dehydPct = 0
     m.fluids_naPlasma = 0
@@ -105,7 +105,7 @@ function K.mirror.fluids(m, fluids)
     m.fluids_thirstTarget = fluids.thirstTarget or 0
 end
 
--- Plan 4 (Task 14): the acute scalars; 0 when the record has no acute state yet.
+-- The acute scalars; 0 when the record has no acute state yet.
 function K.mirror.acute(m, acute)
     m.acute_caf = 0
     m.acute_bac = 0
@@ -128,7 +128,7 @@ function K.mirror.acute(m, acute)
     m.acute_refeedRisk = acute.refeedRisk or 0
 end
 
--- Plan 5 (Task 11): the effects set as effects_<name>; 0 (false for the two trait flags) when record.effects or a
+-- The effects set as effects_<name>; 0 (false for the two trait flags) when record.effects or a
 -- field is absent. Numeric reads only, a copy of what the effects adapter stamped.
 local EFFECT_NUMBERS = { "epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
     "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "fOff", "mAcc", "rRec" }
@@ -150,7 +150,7 @@ function K.mirror.effects(m, eff)
     end
 end
 
--- Plan 11c Task 7 (ruling 11c-25): the stomach pair. stomachFill, the physical fill (K.stomach.recordFill, ruling C-2; the writer's fallback, the writer's F being W.satietyF),
+-- The stomach pair. stomachFill, the physical fill (K.stomach.recordFill; the writer's fallback, the writer's F being W.satietyF),
 -- and stomachMass, the stomach's whole mass in grams, both lanes (K.stomach.mass), rounded to 1 g, the Overfull
 -- moodle's input (K.view.fullnessLevel; the physical fill clamps at 1 at 730 g and cannot place a level above it). 0 when the record
 -- has no stomach or no solid buffer, and when the mass is not finite.
@@ -160,7 +160,7 @@ function K.mirror.stomach(m, record)
 end
 
 -- The rounded whole mass in grams (K.mirror.stomach's field and the bus's push signature read it): 0 for no stomach,
--- no solid buffer, a liquid lane that is not a number (malformed, ruling C9-9) or a non-finite mass.
+-- no solid buffer, a liquid lane that is not a number (malformed) or a non-finite mass.
 function K.mirror.stomachMass(record)
     local s = record.stomach
     if s == nil or s.buffer == nil or type(s.liquid) ~= "number" then

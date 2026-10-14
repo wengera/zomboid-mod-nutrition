@@ -1,4 +1,4 @@
--- NR_Kernel_Hybrid.lua -- the once-a-minute stat writer's arithmetic (Plan 11 Task 13; Decision 1 (c), the hybrid).
+-- NR_Kernel_Hybrid.lua -- the once-a-minute stat writer's arithmetic (the hybrid).
 -- With vanilla's hunger, thirst and fatigue rise rates zeroed at the server's OnGameBoot (#3364-#3368), the writer
 -- sets HUNGER, THIRST and FATIGUE, the STRESS, UNHAPPINESS, BOREDOM and FOOD_SICKNESS floors, PANIC, TEMPERATURE and
 -- INTOXICATION once a player-minute, stepping by elapsed world age (#3371), after the minute's eats (#3383), with
@@ -33,7 +33,7 @@ function K.hybrid.output()
 end
 
 -- The auto-drink sip since the last write: THIRST's fall below the value written, when no intake landed this
--- minute (Plan 11 ruling 7) and a value was written.
+-- minute and a value was written.
 function K.hybrid.sip(thirst, lastThirst, sipOK)
     if not sipOK or lastThirst == nil then
         return 0
@@ -103,7 +103,7 @@ function K.hybrid.write(inp, out, c)
     end
 end
 
--- Plan 11f Task 9b (rulings T9-1, T9-3): the UNHAPPINESS and BOREDOM floors share one rule, moved here from write().
+-- The UNHAPPINESS and BOREDOM floors share one rule, moved here from write().
 -- A floor target that is nil or not a number reads 0.
 function K.hybrid.target(t)
     if t == nil or t ~= t then
@@ -142,7 +142,7 @@ function K.hybrid.floor(v0, ut, last, rise)
     return nil, keep
 end
 
--- Plan 11f Task 9b fix 2 (Rule 6): BOREDOM's rise per this write. Vanilla resets BOREDOM every tick while PANIC > 5
+-- Rule 6: BOREDOM's rise per this write. Vanilla resets BOREDOM every tick while PANIC > 5
 -- (BodyDamage.UpdateBoredom @482-@509, #3015), so a rise written then is wiped and only costs a Stats.set: 0 while
 -- the stat reads PANIC above 5. The target is still remembered (floor's second return), so the floor resumes at the
 -- rate once panic drops; a fall still lands.

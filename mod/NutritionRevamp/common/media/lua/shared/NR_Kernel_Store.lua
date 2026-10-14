@@ -1,4 +1,4 @@
--- NR_Kernel_Store.lua -- the persisted record's contract (Plan 8, ruling 5; spec § 4.8): the closed list of
+-- NR_Kernel_Store.lua -- the persisted record's contract (spec § 4.8): the closed list of
 -- INPUT paths a save holds, and the load that keeps a stored record's inputs and rebuilds everything else.
 -- An input is a field a slow-clock step READS from the previous
 -- minute and writes back (an accumulator, a clock stamp, a hysteresis or latch state, a once-per-character
@@ -29,7 +29,7 @@ K.store.INPUTS = {
     -- identity (NR_Server_Store, NR_Server_Players): the key, the first and last world age seen, the respawn
     -- count, the death flag
     "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- satiety (Plan 11c, Plan 11g; NR_Server_Intake, NR_Server_Kinetics, NR_Server_Writer, NR_Server_Metabolism): the meal pool M (weighted kcal), which the writer
+    -- satiety (NR_Server_Intake, NR_Server_Kinetics, NR_Server_Writer, NR_Server_Metabolism): the meal pool M (weighted kcal), which the writer
     -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
     "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1); nicH: the world age at the last minute the server's NICOTINE_WITHDRAWAL read 0 or fell, the nicotine fade's anchor (Plan 11e, ruling T2-A)
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
@@ -63,7 +63,7 @@ K.store.INPUTS = {
     "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg",
     -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
     "body.eb7.*", "body.mass7.*", "body.p7.*", "body.bandWeek.*",
-    -- body, the trailing-24 h window (K.body.trailTo, trailAdd; Plan 11d Task 9c): its age and the six hourly rings.
+    -- body, the trailing-24 h window (K.body.trailTo, trailAdd): its age and the six hourly rings.
     -- The closed hours' sums c and the hour they were built for, ch, are derived: the constructor's ch -1 rebuilds them
     "body.trail.at", "body.trail.kcal.*", "body.trail.ee.*", "body.trail.ex.*", "body.trail.p.*", "body.trail.carb.*",
     "body.trail.lip.*",
@@ -103,7 +103,7 @@ K.store.INPUTS = {
     -- by the first minute (the default key forces a compose): derived.
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
-    -- reconciliation (NR_Server_Reconcile, Plan 8 Task 4): the landing count. The baseline is re-seeded from
+    -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.
     "reconcile.count", "monotony", "moodLast", -- monotony (NR_Server_Intake IN.atEat, K.monotony; Plan 11e, ruling 11e-1): the recent eats by full type, { t = { [type] = { n, last } } }, copied whole and laid by the first eat; its entries are healed by K.monotony.heal at the eat; moodLast { u, b }: the UNHAPPINESS and BOREDOM floors' remembered targets (NR_Server_Writer W.moodWrote, Plan 11f Task 9b fix 2), on the record so a reconnect's new hoist still lowers the stat by the fall made while away
@@ -177,7 +177,7 @@ end
 -- a number other than 1 or 2, reads 1 (any other index finds no requirement and stops every minute); an absent or
 -- non-finite fm or lm the 80 kg split's at that sex; an absent or non-finite lastAgeH ageH, the record's last sight.
 -- A non-finite number is saved as JSON null and reads back absent, so without the heal one bad field cost the whole
--- record. A value of another type is left for K.store.checkLeaf to reject (ruling C9-10). Then K.body.new at the
+-- record. A value of another type is left for K.store.checkLeaf to reject. Then K.body.new at the
 -- stored masses, sex, Strength level, carry factor, responder and clock.
 function K.store.bodyBase(rb, ageH)
     if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
@@ -290,7 +290,7 @@ function K.store.overlayKey(dst, src, k, segs, i)
     K.store.overlay(dv, sv, segs, i + 1)
 end
 
--- Ruling C9-10: a stored input must have its default's type (a number where the constructor lays a number), and
+-- A stored input must have its default's type (a number where the constructor lays a number), and
 -- one with no default (a lazily laid field: iron's S and H, calcium's bone, the satiety meal pool) must be a number, a
 -- boolean or a table. Anything else is a corrupt file: the load raises, and the server lays a fresh record
 -- (NR_Server_Store's S.load), never a record that every step fails on.
@@ -363,7 +363,7 @@ function K.store.load(raw, order, records)
     return rec
 end
 
--- Load raw and lay the result into target in place (ruling T4-1): every key target holds is cleared and the
+-- Load raw and lay the result into target in place: every key target holds is cleared and the
 -- loaded record's keys are set on it, so a handle held on target reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
 function K.store.fillInPlace(target, raw, order, records)

@@ -1,11 +1,11 @@
 -- NR_Kernel_Stomach.lua -- the stomach's two lanes and absorption into the pool (spec § 4.2, § 4.4; Plan 11c spec
 -- § 5a). A food lands in the solid buffer, its water with it (ingest); a drink's water lands in the liquid lane and
--- its other keys, its energy among them, in the buffer (ingestLiquid, ruling 11c-12). The slow clock empties both
+-- its other keys, its energy among them, in the buffer (ingestLiquid). The slow clock empties both
 -- lanes per step (drain): the solid lane's energy at a zero-order rate rising with the energy it holds, every other
 -- key in the same proportion, never faster than water; the liquid lane first-order at a half-time that grows with the
 -- solid lane's energy. Absorption applies per-nutrient bioavailability and the phytate/vitamin-C iron interaction
 -- (absorb); the absorbed vector accumulates into the pool (toPool). The unabsorbed remainder is discarded.
--- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
+-- X151r #2981: the factor reads the meal in the stomach, not the share emptied this
 -- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
 -- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
 -- 400 mg. absorb(emptied) with no ctx keeps the Plan 2 reading off the emptied vector itself. Ruling T19-1 extends the
@@ -62,7 +62,7 @@ K.stomach.FAT_SOLUBLE.vitK = true
 -- 32 %), so D absorbs at VITD_FAT_FREE + (1 - VITD_FAT_FREE) x fatFactor, 0.772 with no fat at all.
 K.stomach.VITD_FAT_FREE = 0.76 -- S0198 (+32 % with a fat-containing meal; 1/1.32 = 0.76, derived)
 
--- A fresh stomach: an all-zero solid buffer and an empty liquid lane (spec § 4, ruling 11c-15: a record with no
+-- A fresh stomach: an all-zero solid buffer and an empty liquid lane (spec § 4: a record with no
 -- stomach starts empty).
 function K.stomach.new()
     local stomach = {}
@@ -92,14 +92,14 @@ end
 -- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / FAT_EFOLD_G), floored at 0.05
 -- (fat-free: negligible carotenoid absorption) and saturating within about 10 g.
 -- design-phase-v1 game choice: the e-fold and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
--- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach, ruling T19-1) or the
+-- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach) or the
 -- emptied vector's own when no context is given, for the fat-soluble keys.
 K.stomach.FAT_EFOLD_G = 3 -- design-phase-v1 game choice: a few grams of fat per meal give near-full fat-soluble absorption (S0197 carotene negligible without fat, S0198 vitamin D +32 % with fat - direction only; no row for the saturation; Plan 2 shipped 10 g, which left a 30 g-fat meal at 68 % once the factor read the meal in the stomach (Plan 4 close))
 function K.stomach.fatFactor(lipidsG)
     return K.clamp(1 - math.exp(-lipidsG / K.stomach.FAT_EFOLD_G), 0.05, 1.0) -- S0197, S0199
 end
 
--- The meal context the interaction factors read (rulings T17-1, T19-1): the buffer's phytate, vitC,
+-- The meal context the interaction factors read: the buffer's phytate, vitC,
 -- calcium and lipids totals, taken BEFORE the minute's emptying. Written into out (a table the caller
 -- keeps and overwrites, so the slow clock allocates nothing per minute); a nil out gets a fresh table.
 -- Returns out.
@@ -118,10 +118,10 @@ end
 -- Absorb an emptied vector: a fresh vector. A macro passes unchanged; iron takes its bioavailability
 -- times the meal-context factor of phytate and vitC; magnesium and zinc take their bioavailability times
 -- the phytate factor; phytate absorbs to 0. The phytate and vitC the factors read are ctx's (the meal in
--- the stomach, ruling T17-1) when ctx is given, else the emptied vector's own. Vitamin D takes its
+-- the stomach) when ctx is given, else the emptied vector's own. Vitamin D takes its
 -- bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor; retinol, carotene, vitE
 -- and vitK take their bioavailability times the fat factor, both read off the meal's lipids in the
--- stomach (ctx, ruling T17-1, extended by T19-1) or the emptied vector's when no context is given; any
+-- stomach (ctx, extended by T19-1) or the emptied vector's when no context is given; any
 -- other key takes its bioavailability (1.0 when unlisted).
 function K.stomach.absorb(emptied, ctx)
     local out = K.vector.new()
@@ -169,7 +169,7 @@ end
 -- The physical fill (record.stomachFill) the mirror reads, and the writer's fallback (the writer's F is W.satietyF, the
 -- fullness mass with the protein term): the stomach's whole mass, both lanes at density 1 (K.stomach.mass, the scale
 -- CAPACITY_MAX_G was measured on: S1250, 734 mL of water), over its maximal capacity, clamped to [0, 1] (K.satiety.fill;
--- ruling 11c-19; Plan 11g Task 6c fix 1, ruling T6c-1: LIQUID_WEIGHT weighs satiety alone, never this fill).
+-- LIQUID_WEIGHT weighs satiety alone, never this fill).
 function K.stomach.fill(stomach)
     return K.satiety.fill(K.stomach.mass(stomach), K.stomach.CAPACITY_MAX_G)
 end
@@ -196,12 +196,12 @@ function K.stomach.mass(stomach)
     return K.stomach.massOf(stomach.buffer) + stomach.liquid
 end
 
--- The stomach's still-unabsorbed water in both lanes (the thirst view's pending water, ruling T1-1).
+-- The stomach's still-unabsorbed water in both lanes (the thirst view's pending water).
 function K.stomach.water(stomach)
     return stomach.buffer.water + stomach.liquid
 end
 
--- A drink: its water into the liquid lane, every other key (its energy among them, ruling 11c-5) into the solid
+-- A drink: its water into the liquid lane, every other key (its energy among them) into the solid
 -- buffer, whose own water is kept bit for bit. The vector is not changed. Returns the stomach.
 function K.stomach.ingestLiquid(stomach, vector)
     local own = stomach.buffer.water
@@ -224,7 +224,7 @@ function K.stomach.waterFraction(dtM, halfMin)
     return 1 - math.exp(-0.6931471805599453 * dtM / halfMin)
 end
 
--- The liquid lane's half-time with E kcal in the solid lane (ruling 11c-5).
+-- The liquid lane's half-time with E kcal in the solid lane.
 function K.stomach.liquidHalfMin(energy)
     return K.stomach.WATER_HALF_MIN + K.stomach.LIQUID_PER_KCAL * K.max(energy, 0)
 end
@@ -271,17 +271,17 @@ function K.stomach.drain(stomach, dtH)
     return emptied
 end
 
--- The hunger-relevant mass (structure D, ruling 11c-30): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
+-- The hunger-relevant mass (structure D): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
 -- liquid lane, drunk liquid counting at LIQUID_WEIGHT (S1231's null for water drunk alongside; S1233's drink volumes). The
--- satiety reads it alone, inside K.stomach.fullnessMass (the writer's F, W.satietyF, ruling T5-2: it plus the protein term); the physical fill (K.stomach.fill) and the soft cap read K.stomach.mass, both lanes whole (S1250; ruling T6c-1).
+-- satiety reads it alone, inside K.stomach.fullnessMass (the writer's F, W.satietyF: it plus the protein term); the physical fill (K.stomach.fill) and the soft cap read K.stomach.mass, both lanes whole (S1250).
 function K.stomach.satietyMass(stomach)
     return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * stomach.liquid
 end
 
--- Plan 11c close (ruling C-2): the fill a reader takes from a record (the mirror; the gates read recordFoodFill):
+-- The fill a reader takes from a record (the mirror; the gates read recordFoodFill):
 -- record.stomachFill, the kinetics' stamp, when finite; else the stomach's own fill when the record holds a stomach with
 -- a solid buffer and a liquid lane; else 0, since ruling 11c-15 a new stomach is empty. A non-finite stomach, or one
--- whose liquid lane is not a number (malformed, ruling C9-9), reads 0.
+-- whose liquid lane is not a number (malformed), reads 0.
 function K.stomach.recordFill(record)
     local f = record.stomachFill
     if K.finite(f) then
@@ -298,18 +298,18 @@ function K.stomach.recordFill(record)
     return f
 end
 
--- Plan 11d Task 5 (rulings 11d-5, T5-2): the mass the writer's satiety F reads (W.satietyF; never K.stomach.fill, the
+-- The mass the writer's satiety F reads (W.satietyF; never K.stomach.fill, the
 -- physical stomachFill the mirror reads): the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's protein, where a
--- drink's protein lands too (ruling 11c-12). The protein leaves in proportion to the lane's energy (drain), so the term
--- fades as the meal empties. Appended so no line above moves; one statement a line for the coverage gate.
+-- drink's protein lands too. The protein leaves in proportion to the lane's energy (drain), so the term
+-- fades as the meal empties. One statement a line for the coverage gate.
 function K.stomach.fullnessMass(stomach)
     return K.stomach.satietyMass(stomach) + K.satiety.PROTEIN_FILL * stomach.buffer.proteins
 end
 
--- Plan 11g Task 6c fix 1 (ruling T6c-1): the food fill the two "fed" gates read (NUT.FED_FILL, the alcohol-fasting
+-- The food fill the two "fed" gates read (NUT.FED_FILL, the alcohol-fasting
 -- glucose clock; K.nutrients.ACUTE_EMPTY_FILL, the acute dose test): the solid lane's mass over CAPACITY_MAX_G, clamped
 -- to [0, 1]. Food in the stomach slows gastric emptying and absorption; drunk water, in the liquid lane, is not food.
--- Appended so no line above moves; one statement a line for the coverage gate.
+-- One statement a line for the coverage gate.
 function K.stomach.foodFill(stomach)
     return K.satiety.fill(K.stomach.massOf(stomach.buffer), K.stomach.CAPACITY_MAX_G)
 end

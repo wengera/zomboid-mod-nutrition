@@ -43,7 +43,7 @@ function NR.log.say(level, msg)
     if level <= NR.log.level then print("[NutritionRevamp] " .. tostring(msg)) end
 end
 
--- The item-pass sentinel (Plan 9 ruling 5), read by both sides' self-reports: the generated pass file's first item,
+-- The item-pass sentinel, read by both sides' self-reports: the generated pass file's first item,
 -- Base.Acorn, is re-based to 109.71 kcal (vanilla's script says 55.0). zombie.scripting.objects.Item keeps its macro
 -- fields private and declares no calorie getter (#2679), so the read is a fresh instance through the instanceItem
 -- global (LuaManager$GlobalObject.instanceItem(String), #2680) and its zombie.inventory.types.Food.getCalories().
@@ -61,7 +61,7 @@ function NR.itemPassActive()
 end
 
 -- The shared adapter helpers (Plan 10 Task R1): one copy, one failure meaning. worldAge is nil when the
--- clock cannot be read, and no adapter stamps 0 in its place (Plan 11 Task 3): a minute without it is skipped.
+-- clock cannot be read, and no adapter stamps 0 in its place: a minute without it is skipped.
 function NR.worldAge()
     if getGameTime == nil then return nil end
     local ok, gt = pcall(getGameTime)
@@ -75,7 +75,7 @@ function NR.finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
--- The raise log (Plan 11 Task 3, the bug review's should-fix): a member that raises inside NR.num, NR.obj or
+-- The raise log (the bug review's should-fix): a member that raises inside NR.num, NR.obj or
 -- NR.flag is logged once per member name per Lua state, so a broken getter is visible without a line a minute.
 NR.raised = {}
 function NR.noteRaise(name, err)
@@ -105,7 +105,7 @@ function NR.flag(o, name, ...)
 end
 
 -- The sandbox options object (getSandboxOptions), fetched once per Lua state and kept in NR.so; nil while the global
--- is absent or raises, and fetched again on the next call (Plan 11g Task 6: one helper for Kinetics and the writer,
+-- is absent or raises, and fetched again on the next call (one helper for Kinetics and the writer,
 -- which each kept their own copy).
 function NR.sandbox()
     if NR.so == nil and getSandboxOptions ~= nil then
@@ -191,7 +191,7 @@ function NR.text(key, fallback)
     return key
 end
 
--- The player-minute's engine reads (Plan 12 S R1, Rule 6): the steps of one player's minute run in one call, inside
+-- The player-minute's engine reads (Rule 6): the steps of one player's minute run in one call, inside
 -- one server tick, so a member several steps read answers the same; each is read once and kept on the pipeline's
 -- context (NR_Server_Minute's ctx, cleared per player), and the steps after the first share that read. A nil ctx (a
 -- step called outside the pipeline) reads afresh. A read that answers nil is kept as NONE, so it is not read again.

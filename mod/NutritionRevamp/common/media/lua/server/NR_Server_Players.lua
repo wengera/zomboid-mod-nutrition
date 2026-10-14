@@ -1,7 +1,7 @@
 -- NR_Server_Players.lua -- the slow clock (spec § 4.1): the minute event snapshots the online list, marks each new
 -- sight (a first join, a reconnect, a respawn's new object; the server fires no join event, #2412), drops the
 -- departed (no disconnect event either, #2403) and merges the queue (K.sched.merge: unserved names carried forward,
--- never doubled); OnTick drains it under a per-tick budget sized to the minute's work (K.sched; Decision 6 (b), rule
+-- never doubled); OnTick drains it under a per-tick budget sized to the minute's work (K.sched, rule
 -- #3497); first sight, one-shot tasks (the store's flushes) and the harness's extra names ride the same queue; death
 -- is read off the dead flag. OnNewGame fires server-side for every character a client creates, respawns included
 -- (#2411): it resets the record and evicts the username (#3358); a reset that met no readable clock stays pending
@@ -25,9 +25,9 @@ local nowMs = NR.nowMs
 
 -- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
 -- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).
--- A dead record is never stepped (Plan 11f Task 5b): from its death minute until OnNewGame's reset only its store
+-- A dead record is never stepped: from its death minute until OnNewGame's reset only its store
 -- step runs (MIN.runDead), so the record a slot file holds is the record at death. A dead flag under a player that
--- reads alive with no reset pending is a stuck flag (Plan 11f Task 5b fix 1): logged, cleared and counted in
+-- reads alive with no reset pending is a stuck flag: logged, cleared and counted in
 -- deadHealed, so the model never freezes waiting for a respawn that does not come. The heal keeps the record's state
 -- as it stood under the flag; NR.server.store.reset (a fresh record, as OnNewGame's respawn gets) is the alternative.
 function P.work(username, player)

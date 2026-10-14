@@ -1,10 +1,10 @@
--- NR_Server_Effects.lua -- the effects layer's slow adapter (Plan 5, spec § 4.5; rulings 2, 6-8, 12-13, 16-17,
+-- NR_Server_Effects.lua -- the effects layer's slow adapter (Plan 5, spec § 4.5,
 -- 19, 22-23; T1-1, T1-3, T4-1, T6-1, T6-2): once per player per game minute it builds record.effects, the
 -- coefficient set the writer and the mirror read, and applies the slow channels itself -- the trait
 -- toggles (Night Vision, Short Sighted), the four regeneration setters, the per-part wound, bleeding and
 -- infection folds, the catchACold fold, the health drains and the spontaneous bruise.
 --
--- Order (ruling 22, made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
+-- Order (made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
 -- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
 -- the end of its own minute, so the step reads this minute's epoch, fluids and acute stamps with zero lag.
 -- Strength follows and reads the raw
@@ -61,7 +61,7 @@ NR.server.effects = {
 local EFF = NR.server.effects
 
 -- The four regeneration constants' engine defaults (the BodyDamage constructor, #2354), scaled by healMul or
--- written 0 while a drain is active (ruling 13; S1174 open).
+-- written 0 while a drain is active (S1174 open).
 EFF.REGEN_STANDARD = 0.002 -- VANILLA #2354
 EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
 EFF.REGEN_SEVERE = 0.0008 -- VANILLA #2354
@@ -104,7 +104,7 @@ EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = 
               frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false }
 -- The heal reference, made once on first use.
 EFF.ref = nil
--- The post-step guard (Plan 11 Task 12, ruling 10): the per-minute scalars and the mirrored numbers something reads
+-- The post-step guard: the per-minute scalars and the mirrored numbers something reads
 -- before the next minute's pre-step heal -- the writer after weight, Nutrients' sleep step (it runs before
 -- this file's heal) and the bus step (first in ORDER) -- copied after the pre-step heal and re-stamped from the copy
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
@@ -299,7 +299,7 @@ local function regen(bd, m)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
--- A wound timer's fold (F3, ruling 17): a fall since the last minute is scaled by healMul; a timer the engine
+-- A wound timer's fold (F3): a fall since the last minute is scaled by healMul; a timer the engine
 -- ran to 0 is passed through. Returns the value now on the part.
 local function foldWound(part, last, getter, setter, healMul)
     local v = num(part, getter, nil)
@@ -381,7 +381,7 @@ local function partFolds(bd, L, E)
     end
 end
 
--- The cold fold (F3, ruling T1-3): a rise of catchACold since the last minute is scaled by coldMul; a fall and
+-- The cold fold (F3): a rise of catchACold since the last minute is scaled by coldMul; a fall and
 -- the zero reset pass through. At identity no Java call is made and the last value is forgotten.
 local function coldFold(bd, L, E)
     if E.coldMul == 1 then
@@ -540,7 +540,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         if bus ~= nil and bus.markEffects ~= nil then bus.markEffects(username) end
     end
 
-    -- 12. the guard: a guarded number the step left non-finite re-stamped from its pre-step copy (ruling 10)
+    -- 12. the guard: a guarded number the step left non-finite re-stamped from its pre-step copy
     local ng = K.heal.guard(E, EFF.GUARD, EFF.snap)
     if ng > 0 then
         EFF.guarded = EFF.guarded + ng
@@ -548,7 +548,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     end
 end
 
--- One player's minute, called by EFF.step on the inputs Nutrients stamped (ruling 22); ctx (optional) is the
+-- One player's minute, called by EFF.step on the inputs Nutrients stamped; ctx (optional) is the
 -- pipeline's, whose shared engine reads (NR.read) the step takes. One pcall around the body: a failure is kept and
 -- logged on the slow clock, never raised into the pipeline.
 function EFF.minute(username, player, record, body, dtM, ageH, ctx)

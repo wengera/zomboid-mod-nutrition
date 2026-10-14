@@ -1,4 +1,4 @@
--- NR_Kernel_Nutrients.lua -- the generic nutrient record engine (Plan 4): one loop over a declarative record
+-- NR_Kernel_Nutrients.lua -- the generic nutrient record engine: one loop over a declarative record
 -- table, stepping each record's pool once per game minute on the slow clock, grading it on its status
 -- ladder, testing its excess ladder and bumping the epoch Plan 5 rebuilds its coefficients on.
 -- The model (formulas briefing A0, A3, A7, A8; plan rulings 2, 4, 5, 18): each pool is the fraction p of
@@ -106,7 +106,7 @@ function K.nutrients.requirement(rec, ctx)
     return r
 end
 
--- The onset dial's exponent (ruling 5): 1 when the record's replete-to-clinical time at zero intake
+-- The onset dial's exponent: 1 when the record's replete-to-clinical time at zero intake
 -- exceeds DIAL_SLOW_DAYS, else 0; an explicit rec.dialExp wins; a record with no k is never dialled.
 function K.nutrients.dialExp(rec)
     if rec.dialExp ~= nil then
@@ -242,7 +242,7 @@ function K.nutrients.excess(s, rec, aIngested, dtD, w)
     return rung
 end
 
--- The acute test on one eat's ingested dose (ruling 18) -> rung 0, 2 or 3: acute.perKg = {r2, r3} on the
+-- The acute test on one eat's ingested dose -> rung 0, 2 or 3: acute.perKg = {r2, r3} on the
 -- dose per kg (times ACUTE_EMPTY_MULT on an emptyish stomach), acute.abs on the absolute dose. The caller
 -- stamps s.ax = ACUTE_DECAY_H and s.axr = the rung.
 function K.nutrients.acuteTest(rec, doseIngested, w, stomachFill)

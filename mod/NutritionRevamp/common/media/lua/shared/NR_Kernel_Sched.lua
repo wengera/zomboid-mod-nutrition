@@ -1,4 +1,4 @@
--- NR_Kernel_Sched.lua -- the slow minute's budgeted queue (Plan 11 Task 9; Decision 6 (b); rules #3497 and #3444):
+-- NR_Kernel_Sched.lua -- the slow minute's budgeted queue (rules #3497 and #3444):
 -- which names run their minute and how many a tick. Pure: lists and numbers in, lists and numbers out.
 local K = NutritionRevamp.kernel
 K.sched = {}

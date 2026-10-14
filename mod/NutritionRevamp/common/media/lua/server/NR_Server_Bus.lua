@@ -3,7 +3,7 @@
 -- answers "mirror" with the flat table K.mirror.build makes. The server never trusts a payload
 -- it did not send; in this plan the one client command carries none.
 --
--- The effects push (Plan 5 Task 10): the effects adapter calls B.markEffects(username) when the coefficient
+-- The effects push: the effects adapter calls B.markEffects(username) when the coefficient
 -- set is rebuilt or a trait changes (it also sets record.effects.dirty, the flag that survives a save). The
 -- flush rides the slow minute (the pipeline's bus step, NR_Server_Minute): when either flag is up and at
 -- least PUSH_GAP_MS of server wall clock (getTimestampMs) has passed since this player's last effects push,
@@ -139,7 +139,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The band mark (Plan 8 ruling 7): NR_Server_Weight calls B.markBand(username) when the body band changes
+-- The band mark: NR_Server_Weight calls B.markBand(username) when the body band changes
 -- (the mirror's body_band). It IS the effects mark -- one dirty flag, one PUSH_GAP_MS gap, one flush -- and
 -- is counted apart. The first-sight and OnNewGame mirrors (NR_Server_Metabolism's) stay unconditional.
 function B.markBand(username)
@@ -148,5 +148,5 @@ function B.markBand(username)
     B.markEffects(username)
 end
 
--- Plan 11g Task 7 fix 1 (ruling T7-2): the energy class's hysteresis; fix 2 (ruling T7-7): the server is its one holder.
+-- The energy class's hysteresis; fix 2: the server is its one holder.
 B.limitations[#B.limitations + 1] = "the energy class holds a reached level until the energy state falls K.view.ENERGY_BAND (0.01) under its bound, held on the server alone off the player's last signature; every mirror carries that level as body_energyLevel and the client shows it; the level starts unheld at first sight (the bus forgets the signature, so a mirror sent before the player's first flush carries none and the client reads the plain rung of the mirrored state), a state inside the band under a bound then reads the level below until it rises past the bound again, and a mirror answered on request carries the level of the last flush beside the state of the moment"
