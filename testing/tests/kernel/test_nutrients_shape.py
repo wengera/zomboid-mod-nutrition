@@ -1303,3 +1303,24 @@ def test_an_integrated_hour_moves_no_anchor(nut_host):
     a["lastFedAgeH"] = 90.0
     alone(h, p, record, 101.0)
     assert a["lastFedAgeH"] == 90.0 and a["winStartH"] == 100.0
+
+
+def test_a_skipped_minute_keeps_the_ingested_sum(nut_host):
+    # Plan 12 (S B9): the ingested sum, like the pending doses, waits for the next minute the step runs; an
+    # unreadable age, or a minute with no time to integrate, no longer drops that minute's intake.
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    IN = h.G.NutritionRevamp.server.intake
+    ing = h.table({"ethanol": 14.0})
+    IN.lastIngested = h.table({"admin": ing})
+    try:
+        alone(h, p, record, NAN)                            # an unreadable age: skipped, the sum kept
+        assert IN.lastIngested["admin"]["ethanol"] == 14.0
+        alone(h, p, record, 100.0)                          # dtM 0: nothing integrated, the sum kept
+        assert IN.lastIngested["admin"]["ethanol"] == 14.0
+        alone(h, p, record, 100.0 + 1 / 60)                 # the next minute that runs takes it
+        assert IN.lastIngested["admin"] is None
+        assert abs(record["body"]["alcDay"] - 14.0) < TOL
+    finally:
+        IN.lastIngested = None

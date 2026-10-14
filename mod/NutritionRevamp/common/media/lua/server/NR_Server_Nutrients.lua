@@ -337,11 +337,6 @@ local function step(username, player, record, ctx)
         caMeal = ctx.mealCa
     end
     local intake = NR.server.intake
-    local ingested = EMPTY
-    if intake ~= nil and intake.lastIngested ~= nil then
-        ingested = intake.lastIngested[username] or EMPTY
-        intake.lastIngested[username] = nil
-    end
     local ageH = worldAge()
     if ageH == nil then
         NUT.stats.badAge = NUT.stats.badAge + 1
@@ -370,6 +365,13 @@ local function step(username, player, record, ctx)
     local dtM = K.clamp(stepM, 0, 60)                       -- offline time is not integrated
     n.lastAgeH = ageH
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
+    -- the minute's ingested sum, taken only by a minute that integrates: a minute skipped above leaves it for the
+    -- next one, as it leaves the pending doses
+    local ingested = EMPTY
+    if intake ~= nil and intake.lastIngested ~= nil then
+        ingested = intake.lastIngested[username] or EMPTY
+        intake.lastIngested[username] = nil
+    end
     local dtH = dtM / 60
     if stepM > 60 then K.acute.skip(a, (stepM - 60) / 60) end   -- nor counted by any acute clock (before closeDay's refeedDay)
     local w = body.fm + body.lm
