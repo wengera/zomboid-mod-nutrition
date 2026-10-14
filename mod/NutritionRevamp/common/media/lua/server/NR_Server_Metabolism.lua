@@ -46,6 +46,11 @@ NR.server.metabolism = {
         "an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror without the body, which the next readable minute builds",
         "rmod's alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: the arm resets at the day close, not on a rolling 24 h",
         "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal",
+        "every Fitness exercise bills its type's Compendium MET (K.energy.EXERCISE_MET, the general or moderate code, a game choice) while the server's exercise flag is set, from the type NR_Server_Fitness recorded at the set's start; a set with no recorded or no known type bills the flat Fitness class (6.0), counted in stats.exeFallbacks; walking, chopping and fighting keep the metabolic rate's rise lag",
+        "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads the set's billed MET on every set minute and 1.3 on every standing fall",
+        "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length",
+        "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)",
+        "a fresh record laid over a character the mod has already changed (a return after NR.RecordKeepDays prunes the record, a corrupt file healed fresh, or a deferral that gives up) starts from that character as it stands: the Strength level the mod clamped becomes l0, the carry delta the mod last wrote becomes traitCarry, and a Night Vision or Short Sighted trait the lost record owned stays, since the effects own only the traits they added; a fix needs a durable marker on the character",
     },
 }
 local MET = NR.server.metabolism
@@ -231,6 +236,68 @@ end
 -- the AT step reads deficitWeek AFTER the partition ring, so the week it reads includes today.
 -- ironGrade and debtH are the record's iron grade and sleep debt (nutrientInputs): TAC's iron and sleep
 -- gates.
+
+-- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise billed by the activity.
+-- readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
+-- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the raw engine
+-- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along, for the
+-- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
+-- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
+-- no fall. The fall is decided raw against raw (Plan 11f ruling C26-1, F-T6r-3): the engine's rate lags toward base x
+-- load factor, so an eat or a sip drops the inventory load at once while the raw rate still carries the old load, and
+-- dividing it by the new, smaller factor lifts the stripped rate and hides the fall. The class still comes from the
+-- stripped rate. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
+-- tick after the clear can still read the rate's last rise.
+MET.prevRate = {}
+MET.prevExe = {}
+
+function MET.readBilled(username, player, ageH, ctx)
+    local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
+        hourOfDay, maxW, climbClass, rate = MET.readActivity(player, ageH, ctx)
+    local falling = K.energy.rateFalling(MET.prevRate[username], rate)
+    if MET.prevExe[username] == true and not exercising then falling = true end
+    MET.prevRate[username] = rate
+    MET.prevExe[username] = exercising
+    local billClass = K.energy.billClass(className, exercising, moving, falling)
+    local exMet = nil
+    local known = true
+    if billClass == "Fitness" and exercising then
+        exMet, known = K.energy.exerciseMet(MET.exeTypeOf(username, exercising))
+    end
+    if not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
+    return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
+        hourOfDay, maxW, climbClass, className, exMet
+end
+
+-- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start; a Lua table lookup, no Java
+-- (Rule 6). The flag test is a guard: readBilled calls it only on a set minute, and a clear flag never reads a stale
+-- type. nil when the module is absent or nothing is recorded: the minute then bills the flat Fitness class (exeFallbacks).
+function MET.exeTypeOf(username, exercising)
+    if not exercising then return nil end
+    local F = NR.server.fitness
+    if F == nil or F.typeOf == nil then return nil end
+    return F.typeOf(username)
+end
+
+-- The minute's expenditure (K.energy.minute) and the after-burn pool (K.energy.epoc), fed by the minute's exercise
+-- kcal while the flag is set. The pool's release is expenditure, never exercise kcal: the lag L the caller steps on
+-- exKcalDay's rise does not see it. A pool the kernel healed counts in MET.guarded.
+function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
+    local ex0 = body.exKcalDay
+    K.energy.minute(body, met, resting, coldMult, dtM)
+    local _, healed = K.energy.epoc(body, exercising, body.exKcalDay - ex0, dtM)
+    if healed then
+        MET.guarded = MET.guarded + 1
+        NR.log.say(2, "metabolism: non-finite or negative body.epoc for " .. tostring(username) .. "; stamped 0")
+    end
+end
+
+-- Plan 11f C-17 fix 1 (ruling C17-4): the held rate and flag are per user and leave with the player.
+function MET.forget(username)
+    MET.prevRate[username] = nil
+    MET.prevExe[username] = nil
+end
+
 local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     if immobilised then
         if body.tDisuse == 0 then body.lm0dis = body.lm end
@@ -483,86 +550,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         local P = NR.server.players
         NR.server.minute.register("metabolism", MET.minute)
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.onFirstSight end
-    end)
-end
-
--- Plan 11f C-17 (option C, Angus 2026-10-11; ruling C17-1): exercise billed by the activity. Appended so no line
--- above moves. readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
--- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the raw engine
--- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along, for the
--- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
--- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
--- no fall. The fall is decided raw against raw (Plan 11f ruling C26-1, F-T6r-3): the engine's rate lags toward base x
--- load factor, so an eat or a sip drops the inventory load at once while the raw rate still carries the old load, and
--- dividing it by the new, smaller factor lifts the stripped rate and hides the fall. The class still comes from the
--- stripped rate. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
--- tick after the clear can still read the rate's last rise.
-MET.prevRate = {}
-MET.prevExe = {}
-
-function MET.readBilled(username, player, ageH, ctx)
-    local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, climbClass, rate = MET.readActivity(player, ageH, ctx)
-    local falling = K.energy.rateFalling(MET.prevRate[username], rate)
-    if MET.prevExe[username] == true and not exercising then falling = true end
-    MET.prevRate[username] = rate
-    MET.prevExe[username] = exercising
-    local billClass = K.energy.billClass(className, exercising, moving, falling)
-    local exMet = nil
-    local known = true
-    if billClass == "Fitness" and exercising then
-        exMet, known = K.energy.exerciseMet(MET.exeTypeOf(username, exercising))
-    end
-    if not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
-    return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, climbClass, className, exMet
-end
-
--- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start; a Lua table lookup, no Java
--- (Rule 6). The flag test is a guard: readBilled calls it only on a set minute, and a clear flag never reads a stale
--- type. nil when the module is absent or nothing is recorded: the minute then bills the flat Fitness class (exeFallbacks).
-function MET.exeTypeOf(username, exercising)
-    if not exercising then return nil end
-    local F = NR.server.fitness
-    if F == nil or F.typeOf == nil then return nil end
-    return F.typeOf(username)
-end
-
--- The minute's expenditure (K.energy.minute) and the after-burn pool (K.energy.epoc), fed by the minute's exercise
--- kcal while the flag is set. The pool's release is expenditure, never exercise kcal: the lag L the caller steps on
--- exKcalDay's rise does not see it. A pool the kernel healed counts in MET.guarded.
-function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
-    local ex0 = body.exKcalDay
-    K.energy.minute(body, met, resting, coldMult, dtM)
-    local _, healed = K.energy.epoc(body, exercising, body.exKcalDay - ex0, dtM)
-    if healed then
-        MET.guarded = MET.guarded + 1
-        NR.log.say(2, "metabolism: non-finite or negative body.epoc for " .. tostring(username) .. "; stamped 0")
-    end
-end
-
-MET.limitations[#MET.limitations + 1] = "every Fitness exercise bills its type's Compendium MET (K.energy.EXERCISE_MET, the general or moderate code, a game choice) while the server's exercise flag is set, from the type NR_Server_Fitness recorded at the set's start; a set with no recorded or no known type bills the flat Fitness class (6.0), counted in stats.exeFallbacks; walking, chopping and fighting keep the metabolic rate's rise lag"
-MET.limitations[#MET.limitations + 1] = "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads the set's billed MET on every set minute and 1.3 on every standing fall"
-MET.limitations[#MET.limitations + 1] = "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length"
-
--- Plan 11f C-17 fix 1 (ruling C17-4): the held rate and flag are per user and leave with the player. Appended so no
--- line above moves.
-function MET.forget(username)
-    MET.prevRate[username] = nil
-    MET.prevExe[username] = nil
-end
-
-if Events ~= nil and Events.OnServerStarted ~= nil then
-    Events.OnServerStarted.Add(function()
-        if not NR.isServer() then return end
-        if MET.forgetWired then return end
-        local P = NR.server.players
-        if P == nil then return end
-        MET.forgetWired = true
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.forget end
         if P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = MET.forget end
     end)
 end
-
-MET.limitations[#MET.limitations + 1] = "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)"
-MET.limitations[#MET.limitations + 1] = "a fresh record laid over a character the mod has already changed (a return after NR.RecordKeepDays prunes the record, a corrupt file healed fresh, or a deferral that gives up) starts from that character as it stands: the Strength level the mod clamped becomes l0, the carry delta the mod last wrote becomes traitCarry, and a Night Vision or Short Sighted trait the lost record owned stays, since the effects own only the traits they added; a fix needs a durable marker on the character"

@@ -58,102 +58,12 @@ function KIN.drain(stomach, dtM, pool)
     return K.satiety.drain(stomach, K.min(dtM, K.satiety.MAX_GAP_M), pool)
 end
 
-local function step(username, player, record, ctx)
-    local age = NR.read.ageH(ctx)
-    if age == nil then
-        if ctx ~= nil then
-            ctx.absorbed = nil
-            ctx.mealCa = nil
-        end
-        KIN.badAge = (KIN.badAge or 0) + 1        -- a minute with no clock read is skipped, never stamped 0
-        return
-    end
-    if record.stomach == nil or KIN.malformed(record.stomach, username) then
-        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15); a malformed one heals (C-1)
-    end
-    if record.pool == nil or KIN.malformedPool(record.pool, username) then
-        record.pool = K.vector.new()                  -- a fresh pool; a malformed one heals (Task 9b)
-    end
-    local last = record.kineticsAge
-    local dtH = 0
-    if last ~= nil then
-        dtH = K.max(age - last, 0)
-    end
-    record.kineticsAge = age
-    if dtH > 0 then
-        local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
-        local pool = KIN.meal(record, player, username, ctx)       -- nil for an M the writer has yet to seed
-        local emptied = KIN.drain(record.stomach, dtH * 60, pool)
-        KIN.landMeal(record, pool, username)
-        local absorbed = K.stomach.absorb(emptied, meal)
-        K.stomach.toPool(record.pool, absorbed)
-        if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
-        if ctx ~= nil then ctx.mealCa = meal.calcium end
-    elseif ctx ~= nil then
-        ctx.absorbed = nil
-        ctx.mealCa = nil
-    end
-    local fill = K.stomach.fill(record.stomach)
-    -- the self-heal for #2833: a non-finite fill or KIN.GUARD field (a stomach a NaN intake poisoned before the
-    -- landing guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is reset
-    -- empty and the record heals on this minute instead of writing NaN into the satiety read. The POOL is reset only
-    -- when one of its own keys is non-finite: a finite pool is absorbed intake the stomach fault did not touch, so it
-    -- is kept. NR.finite is the one finiteness test of the fill, the guard and the pool.
-    if not NR.finite(fill) or nonFinite(record.stomach) then
-        record.stomach = K.stomach.new()
-        if ctx ~= nil then
-            ctx.absorbed = nil                       -- this minute's absorbed vector came from the bad buffer
-            ctx.mealCa = nil
-        end
-        local keys = K.vector.KEYS
-        for i = 1, #keys do
-            if not NR.finite(record.pool[keys[i]]) then
-                record.pool = K.vector.new()
-                break
-            end
-        end
-        fill = 0
-        KIN.stats.failures = KIN.stats.failures + 1
-        KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset empty"
-        NR.log.say(2, KIN.lastError)
-    end
-    record.stomachFill = fill
-    KIN.stats.players = KIN.stats.players + 1
-end
-
--- One player's minute: the pipeline's kinetics step (NR_Server_Minute.run, from P.work); ctx is its context.
--- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
--- players walk.
-function KIN.minute(username, player, record, ctx)
-    if record == nil then return end
-    KIN.stats.minutes = KIN.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record, ctx)
-    if not ok then
-        KIN.stats.failures = KIN.stats.failures + 1
-        KIN.lastError = err
-        NR.log.say(2, "kinetics: " .. tostring(username) .. " failed: " .. tostring(err))
-    end
-end
-
-if Events ~= nil and Events.OnServerStarted ~= nil then
-    Events.OnServerStarted.Add(function()
-        if not NR.isServer() then return end
-        if KIN.wired then return end
-        KIN.wired = true
-        local MIN = NR.server.minute
-        MIN.register("kinetics", KIN.minute)
-        local P = NR.server.players
-        if P ~= nil and P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = KIN.forget end
-    end)
-end
-
 -- Plan 11d close (ruling C-1): the buffer check the step runs before the meal context and the drain, which raise on a
 -- buffer key that is nil or a string (K.stomach.drain multiplies every key), so the heal below the fill never ran and
 -- the stomach stayed malformed while the writer's F read failed. A stomach that is not a table, a buffer that is not
 -- one, a buffer key (K.vector.KEYS) or a liquid lane that is not a number (an absent lane included, ruling C9-9) counts a
 -- failure, is logged and answers true: the step resets the stomach empty on the minute it is found and keeps the pool.
--- A NaN or infinite number does not raise and stays with the heal below the fill (nonFinite). Appended so no line
--- above moves.
+-- A NaN or infinite number does not raise and stays with the heal below the fill (nonFinite).
 function KIN.malformed(stomach, username)
     local bad = type(stomach) ~= "table" or type(stomach.buffer) ~= "table"
     if not bad then
@@ -272,4 +182,93 @@ end
 
 function KIN.forget(username)
     KIN.h[username] = nil
+end
+
+local function step(username, player, record, ctx)
+    local age = NR.read.ageH(ctx)
+    if age == nil then
+        if ctx ~= nil then
+            ctx.absorbed = nil
+            ctx.mealCa = nil
+        end
+        KIN.badAge = (KIN.badAge or 0) + 1        -- a minute with no clock read is skipped, never stamped 0
+        return
+    end
+    if record.stomach == nil or KIN.malformed(record.stomach, username) then
+        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15); a malformed one heals (C-1)
+    end
+    if record.pool == nil or KIN.malformedPool(record.pool, username) then
+        record.pool = K.vector.new()                  -- a fresh pool; a malformed one heals (Task 9b)
+    end
+    local last = record.kineticsAge
+    local dtH = 0
+    if last ~= nil then
+        dtH = K.max(age - last, 0)
+    end
+    record.kineticsAge = age
+    if dtH > 0 then
+        local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
+        local pool = KIN.meal(record, player, username, ctx)       -- nil for an M the writer has yet to seed
+        local emptied = KIN.drain(record.stomach, dtH * 60, pool)
+        KIN.landMeal(record, pool, username)
+        local absorbed = K.stomach.absorb(emptied, meal)
+        K.stomach.toPool(record.pool, absorbed)
+        if ctx ~= nil then ctx.absorbed = absorbed end            -- the handoff to Metabolism, then Nutrients
+        if ctx ~= nil then ctx.mealCa = meal.calcium end
+    elseif ctx ~= nil then
+        ctx.absorbed = nil
+        ctx.mealCa = nil
+    end
+    local fill = K.stomach.fill(record.stomach)
+    -- the self-heal for #2833: a non-finite fill or KIN.GUARD field (a stomach a NaN intake poisoned before the
+    -- landing guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is reset
+    -- empty and the record heals on this minute instead of writing NaN into the satiety read. The POOL is reset only
+    -- when one of its own keys is non-finite: a finite pool is absorbed intake the stomach fault did not touch, so it
+    -- is kept. NR.finite is the one finiteness test of the fill, the guard and the pool.
+    if not NR.finite(fill) or nonFinite(record.stomach) then
+        record.stomach = K.stomach.new()
+        if ctx ~= nil then
+            ctx.absorbed = nil                       -- this minute's absorbed vector came from the bad buffer
+            ctx.mealCa = nil
+        end
+        local keys = K.vector.KEYS
+        for i = 1, #keys do
+            if not NR.finite(record.pool[keys[i]]) then
+                record.pool = K.vector.new()
+                break
+            end
+        end
+        fill = 0
+        KIN.stats.failures = KIN.stats.failures + 1
+        KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset empty"
+        NR.log.say(2, KIN.lastError)
+    end
+    record.stomachFill = fill
+    KIN.stats.players = KIN.stats.players + 1
+end
+
+-- One player's minute: the pipeline's kinetics step (NR_Server_Minute.run, from P.work); ctx is its context.
+-- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
+-- players walk.
+function KIN.minute(username, player, record, ctx)
+    if record == nil then return end
+    KIN.stats.minutes = KIN.stats.minutes + 1
+    local ok, err = pcall(step, username, player, record, ctx)
+    if not ok then
+        KIN.stats.failures = KIN.stats.failures + 1
+        KIN.lastError = err
+        NR.log.say(2, "kinetics: " .. tostring(username) .. " failed: " .. tostring(err))
+    end
+end
+
+if Events ~= nil and Events.OnServerStarted ~= nil then
+    Events.OnServerStarted.Add(function()
+        if not NR.isServer() then return end
+        if KIN.wired then return end
+        KIN.wired = true
+        local MIN = NR.server.minute
+        MIN.register("kinetics", KIN.minute)
+        local P = NR.server.players
+        if P ~= nil and P.onDeparture ~= nil then P.onDeparture[#P.onDeparture + 1] = KIN.forget end
+    end)
 end

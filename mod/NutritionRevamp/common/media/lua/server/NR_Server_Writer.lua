@@ -28,6 +28,7 @@ NR.server.writer = {
         "the Effects step reads the writer's engine reads of the previous minute",
         "in Overlay (Mode 2) vanilla owns HUNGER, THIRST and FATIGUE; the floors, PANIC, TEMPERATURE and INTOXICATION are still written; auto-drink is not captured",
         "another mod whose OnGameBoot handler runs after ours and sets ZomboidGlobals' hunger, thirst or fatigue rise keys (before ZomboidGlobals.Load, #3364) restores vanilla's drift between the writer's minute writes: HUNGER, THIRST and FATIGUE climb at its rates each tick and the next minute's write takes them back (the meal pool clears at its own half-life, never at those rates)",
+        "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)",
     },
 }
 local W = NR.server.writer
@@ -161,6 +162,118 @@ function W.vigorous(h, player, record, ctx)
     return false, nil
 end
 
+-- Plan 11c close (ruling C-1): the satiety step's length in game hours, S's step (M's clearance is Kinetics'). A minute on the same
+-- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
+-- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
+-- every step (game hours; stored, K.store.INPUTS), so S decays across the gap as Kinetics and Metabolism catch it
+-- up. Both clamp at maxStepS (60 min). A non-finite stamp reads none and is counted in guarded; a record with no stamp
+-- (a fresh record) steps 0 on its first minute. Stamps t = ageH.
+function W.satietyDtH(h, s, inp, ageH)
+    local dtS = inp.dtS
+    if s.t ~= nil and not NR.finite(s.t) then
+        s.t = nil
+        W.stats.guarded = W.stats.guarded + 1
+    end
+    if h.fresh == true then
+        h.fresh = nil
+        if s.t ~= nil then
+            dtS = (ageH - s.t) * 3600
+        end
+    end
+    s.t = ageH
+    return K.clamp(dtS, 0, W.c.maxStepS) / 3600
+end
+
+-- Plan 11d Task 5 fix (ruling T5-2): the satiety fullness F the writer reads. Protein fills only here: F is the
+-- stomach's fullness mass (K.stomach.fullnessMass, the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's
+-- protein, ruling 11d-5) over K.stomach.CAPACITY_MAX_G, clamped to [0, 1100 / 730] (K.satiety.fullness, Plan 11g spec
+-- § 7); record.stomachFill, the kinetics' stamp, stays physical (K.stomach.fill, both lanes whole, ruling T6c-1). A
+-- record with no stomach or no buffer, or a non-finite F, reads the stamp (0 when it is not finite).
+--
+function W.satietyF(record)
+    local st = record.stomach
+    if type(st) == "table" and type(st.buffer) == "table" and W.bufferFinite(st) then
+        local F = K.satiety.fullness(st)
+        if NR.finite(F) then
+            return F
+        end
+    end
+    return finiteOr(record.stomachFill, 0)
+end
+
+-- Plan 11d Task 6 (ruling 11d-2, spec § 5d): the factor W.satiety multiplies the hunger target by and divides the seed
+-- by: the circadian and acute product times K.satiety.sleepFactor(record.acute.debtH), the sleep debt the acute
+-- kernel books at each 24 h window's close (K.acute.sleepMinute; held at 0 while the server disables sleep). A record
+-- with no acute table, or a debt that is not a finite number, reads the sleep factor 1; a product that is non-finite
+-- or not positive reads 1 (the seed's guarded divisor).
+function W.satietyFactor(factor, record)
+    local A = record.acute
+    local debtH = nil
+    if type(A) == "table" then
+        debtH = A.debtH
+    end
+    local f = factor
+    if NR.finite(debtH) then
+        f = factor * K.satiety.sleepFactor(debtH)
+    end
+    if not NR.finite(f) or f <= 0 then
+        return 1
+    end
+    return f
+end
+
+-- Plan 11d close (ruling C-1): whether every key of a stomach's solid buffer (K.vector.KEYS) is a finite number and its
+-- liquid lane is finite (an absent lane is malformed, ruling C9-9). W.satietyF reads the stamp otherwise, so a malformed buffer (a key nil, a string or
+-- NaN) never raises in K.stomach.fullnessMass and the writer still writes; Kinetics heals the buffer on its own minute
+-- (KIN.malformed).
+function W.bufferFinite(st)
+    local b = st.buffer
+    local keys = K.vector.KEYS
+    for i = 1, #keys do
+        if not NR.finite(b[keys[i]]) then
+            return false
+        end
+    end
+    if not NR.finite(st.liquid) then
+        return false
+    end
+    return true
+end
+
+-- Plan 11e Task 2 (rulings 11e-2 and T2-A): the nicotine-withdrawal factor W.satiety multiplies into the circadian and
+-- acute product, so it reaches the hunger target and the seed's divisor through W.satietyFactor. It reads the server's
+-- own NICOTINE_WITHDRAWAL once a writer minute (#3637; a server-side read, the stat rising there alone, #3631) and
+-- keeps the anchor s.nicH (record.satiety.nicH; stored, K.store.INPUTS): the world age in game hours at the last minute
+-- the stat read 0 or fell below the previous minute's read (h.nicLast, per hoist: a fall across a reconnect or a
+-- restart is not seen, and the anchor holds), so the days since the last smoke are (ageH - nicH) / 24, exact in game
+-- time whatever the time speed (ruling T2-A, where the vanilla timer is not, #3636), an offline gap skipped (Nutrients'
+-- K.acute.skipRecord moves the anchor past it).
+-- A record with no anchor lays it at the minute; a stored anchor that is not a finite number, or that lies ahead of
+-- the minute, is dropped (counted in guarded) and laid again.
+-- A first or healed anchor laid while the stat reads above 0 starts fully faded, at ageH - NIC_FADE_DAYS x 24, so
+-- the factor reads 1 (ruling T2-F: no fall seen is no evidence of a recent quit, measured-or-neutral);
+-- one laid at a 0 stat or a fall sits at the minute, and from a smoke on the rise between smokes counts.
+-- A stat that is not a finite number, or an absent enum key, reads 1 and leaves the anchor.
+-- Returns K.satiety.nicotineFactor(w, days), at least 1.
+function W.nicotine(h, s, ageH)
+    local w = get(h, CharacterStat.NICOTINE_WITHDRAWAL)
+    if w == nil then
+        h.nicLast = nil
+        return 1
+    end
+    if s.nicH ~= nil and (not NR.finite(s.nicH) or s.nicH > ageH) then
+        s.nicH = nil
+        W.stats.guarded = W.stats.guarded + 1
+    end
+    if w <= 0 or (h.nicLast ~= nil and w < h.nicLast) then
+        s.nicH = ageH
+    elseif s.nicH == nil then
+        s.nicH = ageH - K.satiety.NIC_FADE_DAYS * 24
+    end
+    h.nicLast = w
+    return K.satiety.nicotineFactor(w, (ageH - s.nicH) / 24)
+end
+
 -- Plan 11c (spec § 3.1, § 5b, § 5c; Task 6 amendments 3 and 4): satiety from physiology. record.satiety is
 -- { M, S, L, t }: the meal pool M (weighted kcal, fed at the eat and cleared by Kinetics, Plan 11g Task 6c), the acute
 -- suppression state S and the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or
@@ -207,6 +320,77 @@ function W.satietyMeal(s, inp, F, es, factor)
         s.M = K.satiety.seedMeal(inp.hunger / factor, F, es)
         W.stats.seeded = W.stats.seeded + 1
     end
+end
+
+-- Plan 11f Task 9b (rulings T9-1, T9-3; Angus's choice of 2026-10-11): monotony as a self-releasing floor. Once a
+-- writer minute, W.step reads record.monotony's target (K.monotony.target at the minute's world age: the most repeated
+-- food type's level, from the counts the intake books at each eat) and composes it:
+--  * UNHAPPINESS: the effects' target, clamped to the effects surface's own range [0, 59] (59 one under the UNHAPPY
+--    level-3 step 60, #2369), plus monotony's, which is added after that clamp: an effects bonus (the exercise credit,
+--    as low as -13) never offsets monotony (ruling T9-7); an effects target that is not a finite number reads 0;
+--  * BOREDOM: monotony's target alone (no other BOREDOM target exists), held under K.monotony.BORED_MAX 49.
+-- K.hybrid.write raises each stat toward its target (UNHAPPINESS 22, BOREDOM 25 a game hour) and, when the target
+-- falls, lowers the stat by the fall once (#3119; a fall under K.hybrid.FLOOR_EPS 0.05 is held and folded into the next write, Plan 11f Task 9b fix 1, Rule 6), so the floor is bounded by the target and releases as a varied diet
+-- lets the counts decay. The release lowers the stat by the target's fall even when another source (vanilla, a food, an
+-- effect) also raised it: the downside Angus accepted. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
+-- @482-@509, #3015), the mod's own dehydration PANIC floor of 7 included (ruling T9-3), so the BOREDOM floor is wiped
+-- while the character panics and rises again after (K.hybrid.boredRise holds the BOREDOM rise, the target still
+-- remembered). The remembered targets live on record.moodLast, so a reconnect's new hoist still releases the fall. A
+-- record.monotony the heal finds corrupt is reset and counted in guarded; the heal runs at the hoist's first sight (the
+-- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood any more (NR_Server_Intake IN.monotony books only).
+W.UNHAPPY_HI = 59 -- the fallback for the effects surface's cap (NR_Data_Effects.lua SURF.unhappyTarget.hi, #2369)
+
+function W.unhappyHi()
+    local D = NR.data and NR.data.effects
+    local surf = D and D.SURF and D.SURF.unhappyTarget
+    if surf ~= nil and NR.finite(surf.hi) then return surf.hi end
+    return W.UNHAPPY_HI
+end
+
+function W.monotony(h, record, inp, E, ageH)
+    local u, b = 0, 0
+    local m = record.monotony
+    if m ~= nil then
+        if not h.monoSeen then
+            local healed
+            m, healed = K.monotony.heal(m, ageH)
+            if healed then
+                record.monotony = m
+                W.stats.guarded = W.stats.guarded + 1
+            end
+        end
+        u, b = K.monotony.target(m, ageH)
+    end
+    h.monoSeen = true
+    local eu = E.unhappyTarget
+    if not NR.finite(eu) then eu = 0 end
+    inp.unhappyTarget = K.min(eu + u, W.unhappyHi())
+    inp.boredTarget = b
+    inp.lastBoredTarget = W.moodTarget(record, "b")
+    inp.bored = get(h, CharacterStat.BOREDOM) or 0
+end
+
+-- A remembered floor target off the record (record.moodLast, laid by W.moodWrote): absent, not a table or not a finite
+-- number reads 0. It sits on the record, not the hoisted handles, so a reconnect (a new player object, a new hoist)
+-- still lowers the stats by the fall the target made while the player was away.
+function W.moodTarget(record, k)
+    local ml = record.moodLast
+    if type(ml) ~= "table" then
+        return 0
+    end
+    if not NR.finite(ml[k]) then
+        return 0
+    end
+    return ml[k]
+end
+
+function W.moodWrote(h, record, out)
+    if type(record.moodLast) ~= "table" then
+        record.moodLast = {}
+    end
+    record.moodLast.u = out.unhappyTarget
+    set(h, CharacterStat.BOREDOM, out.bored)
+    record.moodLast.b = out.boredTarget
 end
 
 function W.step(username, player, record, ctx)
@@ -335,188 +519,3 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         W.checkNeighbours()
     end)
 end
-
--- Plan 11c close (ruling C-1): the satiety step's length in game hours, S's step (M's clearance is Kinetics'). A minute on the same
--- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
--- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
--- every step (game hours; stored, K.store.INPUTS), so S decays across the gap as Kinetics and Metabolism catch it
--- up. Both clamp at maxStepS (60 min). A non-finite stamp reads none and is counted in guarded; a record with no stamp
--- (a fresh record) steps 0 on its first minute. Stamps t = ageH.
-function W.satietyDtH(h, s, inp, ageH)
-    local dtS = inp.dtS
-    if s.t ~= nil and not NR.finite(s.t) then
-        s.t = nil
-        W.stats.guarded = W.stats.guarded + 1
-    end
-    if h.fresh == true then
-        h.fresh = nil
-        if s.t ~= nil then
-            dtS = (ageH - s.t) * 3600
-        end
-    end
-    s.t = ageH
-    return K.clamp(dtS, 0, W.c.maxStepS) / 3600
-end
-
--- Plan 11d Task 5 fix (ruling T5-2): the satiety fullness F the writer reads. Protein fills only here: F is the
--- stomach's fullness mass (K.stomach.fullnessMass, the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's
--- protein, ruling 11d-5) over K.stomach.CAPACITY_MAX_G, clamped to [0, 1100 / 730] (K.satiety.fullness, Plan 11g spec
--- § 7); record.stomachFill, the kinetics' stamp, stays physical (K.stomach.fill, both lanes whole, ruling T6c-1). A
--- record with no stomach or no buffer, or a non-finite F, reads the stamp (0 when it is not finite).
--- Appended so no line above moves.
-function W.satietyF(record)
-    local st = record.stomach
-    if type(st) == "table" and type(st.buffer) == "table" and W.bufferFinite(st) then
-        local F = K.satiety.fullness(st)
-        if NR.finite(F) then
-            return F
-        end
-    end
-    return finiteOr(record.stomachFill, 0)
-end
-
--- Plan 11d Task 6 (ruling 11d-2, spec § 5d): the factor W.satiety multiplies the hunger target by and divides the seed
--- by: the circadian and acute product times K.satiety.sleepFactor(record.acute.debtH), the sleep debt the acute
--- kernel books at each 24 h window's close (K.acute.sleepMinute; held at 0 while the server disables sleep). A record
--- with no acute table, or a debt that is not a finite number, reads the sleep factor 1; a product that is non-finite
--- or not positive reads 1 (the seed's guarded divisor). Appended so no line above moves.
-function W.satietyFactor(factor, record)
-    local A = record.acute
-    local debtH = nil
-    if type(A) == "table" then
-        debtH = A.debtH
-    end
-    local f = factor
-    if NR.finite(debtH) then
-        f = factor * K.satiety.sleepFactor(debtH)
-    end
-    if not NR.finite(f) or f <= 0 then
-        return 1
-    end
-    return f
-end
-
--- Plan 11d close (ruling C-1): whether every key of a stomach's solid buffer (K.vector.KEYS) is a finite number and its
--- liquid lane is finite (an absent lane is malformed, ruling C9-9). W.satietyF reads the stamp otherwise, so a malformed buffer (a key nil, a string or
--- NaN) never raises in K.stomach.fullnessMass and the writer still writes; Kinetics heals the buffer on its own minute
--- (KIN.malformed). Appended so no line above moves.
-function W.bufferFinite(st)
-    local b = st.buffer
-    local keys = K.vector.KEYS
-    for i = 1, #keys do
-        if not NR.finite(b[keys[i]]) then
-            return false
-        end
-    end
-    if not NR.finite(st.liquid) then
-        return false
-    end
-    return true
-end
-
--- Plan 11e Task 2 (rulings 11e-2 and T2-A): the nicotine-withdrawal factor W.satiety multiplies into the circadian and
--- acute product, so it reaches the hunger target and the seed's divisor through W.satietyFactor. It reads the server's
--- own NICOTINE_WITHDRAWAL once a writer minute (#3637; a server-side read, the stat rising there alone, #3631) and
--- keeps the anchor s.nicH (record.satiety.nicH; stored, K.store.INPUTS): the world age in game hours at the last minute
--- the stat read 0 or fell below the previous minute's read (h.nicLast, per hoist: a fall across a reconnect or a
--- restart is not seen, and the anchor holds), so the days since the last smoke are (ageH - nicH) / 24, exact in game
--- time whatever the time speed (ruling T2-A, where the vanilla timer is not, #3636), an offline gap skipped (Nutrients'
--- K.acute.skipRecord moves the anchor past it).
--- A record with no anchor lays it at the minute; a stored anchor that is not a finite number, or that lies ahead of
--- the minute, is dropped (counted in guarded) and laid again.
--- A first or healed anchor laid while the stat reads above 0 starts fully faded, at ageH - NIC_FADE_DAYS x 24, so
--- the factor reads 1 (ruling T2-F: no fall seen is no evidence of a recent quit, measured-or-neutral);
--- one laid at a 0 stat or a fall sits at the minute, and from a smoke on the rise between smokes counts.
--- A stat that is not a finite number, or an absent enum key, reads 1 and leaves the anchor.
--- Returns K.satiety.nicotineFactor(w, days), at least 1. Appended so no line above moves.
-function W.nicotine(h, s, ageH)
-    local w = get(h, CharacterStat.NICOTINE_WITHDRAWAL)
-    if w == nil then
-        h.nicLast = nil
-        return 1
-    end
-    if s.nicH ~= nil and (not NR.finite(s.nicH) or s.nicH > ageH) then
-        s.nicH = nil
-        W.stats.guarded = W.stats.guarded + 1
-    end
-    if w <= 0 or (h.nicLast ~= nil and w < h.nicLast) then
-        s.nicH = ageH
-    elseif s.nicH == nil then
-        s.nicH = ageH - K.satiety.NIC_FADE_DAYS * 24
-    end
-    h.nicLast = w
-    return K.satiety.nicotineFactor(w, (ageH - s.nicH) / 24)
-end
-
--- Plan 11f Task 9b (rulings T9-1, T9-3; Angus's choice of 2026-10-11): monotony as a self-releasing floor. Once a
--- writer minute, W.step reads record.monotony's target (K.monotony.target at the minute's world age: the most repeated
--- food type's level, from the counts the intake books at each eat) and composes it:
---  * UNHAPPINESS: the effects' target, clamped to the effects surface's own range [0, 59] (59 one under the UNHAPPY
---    level-3 step 60, #2369), plus monotony's, which is added after that clamp: an effects bonus (the exercise credit,
---    as low as -13) never offsets monotony (ruling T9-7); an effects target that is not a finite number reads 0;
---  * BOREDOM: monotony's target alone (no other BOREDOM target exists), held under K.monotony.BORED_MAX 49.
--- K.hybrid.write raises each stat toward its target (UNHAPPINESS 22, BOREDOM 25 a game hour) and, when the target
--- falls, lowers the stat by the fall once (#3119; a fall under K.hybrid.FLOOR_EPS 0.05 is held and folded into the next write, Plan 11f Task 9b fix 1, Rule 6), so the floor is bounded by the target and releases as a varied diet
--- lets the counts decay. The release lowers the stat by the target's fall even when another source (vanilla, a food, an
--- effect) also raised it: the downside Angus accepted. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
--- @482-@509, #3015), the mod's own dehydration PANIC floor of 7 included (ruling T9-3), so the BOREDOM floor is wiped
--- while the character panics and rises again after (K.hybrid.boredRise holds the BOREDOM rise, the target still
--- remembered). The remembered targets live on record.moodLast, so a reconnect's new hoist still releases the fall. A
--- record.monotony the heal finds corrupt is reset and counted in guarded; the heal runs at the hoist's first sight (the
--- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood any more (NR_Server_Intake IN.monotony books only). Appended so no line above moves.
-W.UNHAPPY_HI = 59 -- the fallback for the effects surface's cap (NR_Data_Effects.lua SURF.unhappyTarget.hi, #2369)
-
-function W.unhappyHi()
-    local D = NR.data and NR.data.effects
-    local surf = D and D.SURF and D.SURF.unhappyTarget
-    if surf ~= nil and NR.finite(surf.hi) then return surf.hi end
-    return W.UNHAPPY_HI
-end
-
-function W.monotony(h, record, inp, E, ageH)
-    local u, b = 0, 0
-    local m = record.monotony
-    if m ~= nil then
-        if not h.monoSeen then
-            local healed
-            m, healed = K.monotony.heal(m, ageH)
-            if healed then
-                record.monotony = m
-                W.stats.guarded = W.stats.guarded + 1
-            end
-        end
-        u, b = K.monotony.target(m, ageH)
-    end
-    h.monoSeen = true
-    local eu = E.unhappyTarget
-    if not NR.finite(eu) then eu = 0 end
-    inp.unhappyTarget = K.min(eu + u, W.unhappyHi())
-    inp.boredTarget = b
-    inp.lastBoredTarget = W.moodTarget(record, "b")
-    inp.bored = get(h, CharacterStat.BOREDOM) or 0
-end
-
--- A remembered floor target off the record (record.moodLast, laid by W.moodWrote): absent, not a table or not a finite
--- number reads 0. It sits on the record, not the hoisted handles, so a reconnect (a new player object, a new hoist)
--- still lowers the stats by the fall the target made while the player was away.
-function W.moodTarget(record, k)
-    local ml = record.moodLast
-    if type(ml) ~= "table" then
-        return 0
-    end
-    if not NR.finite(ml[k]) then
-        return 0
-    end
-    return ml[k]
-end
-
-function W.moodWrote(h, record, out)
-    if type(record.moodLast) ~= "table" then
-        record.moodLast = {}
-    end
-    record.moodLast.u = out.unhappyTarget
-    set(h, CharacterStat.BOREDOM, out.bored)
-    record.moodLast.b = out.boredTarget
-end
-
-W.limitations[#W.limitations + 1] = "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)"
