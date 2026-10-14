@@ -52,6 +52,21 @@ def order_keys():
     return keys
 
 
+def ungraded_keys():
+    """The ORDER keys whose record kind is in K.nutrients.UNGRADED: no grade or pool row, only an excess row."""
+    kinds = re.search(r"K\.nutrients\.UNGRADED\s*=\s*\{(.*?)\}",
+                      read(os.path.join(LUA, "shared", "NR_Kernel_Nutrients.lua")), re.S).group(1)
+    ungraded = set(re.findall(r"(\w+)\s*=\s*true", kinds))
+    src = read(os.path.join(LUA, "shared", "NR_Data_Records.lua"))
+    out = set()
+    for k in order_keys():
+        kind = re.search(r'\b%s = \{[^{}]*?kind = "(\w+)"' % k, src).group(1)
+        if kind in ungraded:
+            out.add(k)
+    assert len(out) == 7
+    return out
+
+
 def vector_keys():
     src = read(os.path.join(LUA, "shared", "NR_Kernel_Vector.lua"))
     block = re.search(r"K\.vector\.KEYS\s*=\s*\{(.*?)\}", src, re.S).group(1)
@@ -77,9 +92,11 @@ def constructed():
     # Plan 11c Task 7: the Overfull moodle's descriptions, levels 1-4 (no panel row, so no label and no level 0)
     for n in range(1, 5):
         out.add("UI_NR_Class_overfull_%d" % n)
+    ungraded = ungraded_keys()
     for k in order_keys():
         for suffix in ("", "_p", "_x"):
-            out.add("UI_NR_Row_" + k + suffix)
+            if k not in ungraded or suffix == "_x":      # an ungraded key lists its excess row alone
+                out.add("UI_NR_Row_" + k + suffix)
     for k in vector_keys():
         out.add("UI_NR_Row_" + k)
     for k in ("body_band", "body_weight", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
@@ -89,6 +106,9 @@ def constructed():
         out.add("UI_NR_Band_" + b)
     for g in range(1, 5):
         out.add("UI_NR_Grade_%d" % g)
+    out.add("UI_NR_Row_body_fat")
+    for w in ("veryLean", "lean", "healthy", "high", "veryHigh"):
+        out.add("UI_NR_FatBand_" + w)
     out.add("UI_NR_Tip_Rich")
     out.add("UI_NR_Tip_Low")
     for s in ("declared", "table", "inferred", "missing"):
@@ -118,6 +138,12 @@ def test_literal_client_keys_exist():
             continue
         assert key in data[target(key)], "%s names %s, missing from %s" % (fname, key, target(key))
     assert data["IG_UI.json"]["IGUI_NR_Loaded"] == "nr-loaded"
+
+
+def test_every_ui_key_is_read():
+    # no shipped key that nothing reads: every UI.json key is a constructed key or a literal a client file names
+    lits = {key for _, key, pre in literals() if not pre}
+    assert sorted(set(load("UI.json")) - constructed() - lits) == []
 
 
 def test_constructed_keys_exist():
