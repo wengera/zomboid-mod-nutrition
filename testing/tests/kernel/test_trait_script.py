@@ -21,6 +21,8 @@ BODY = IDS[:8]
 COST = {"weak": -10, "feeble": -6, "stout": 6, "strong": 10, "obese": -10, "overweight": -6, "underweight": -6,
         "very underweight": -10, "weightgain": -2, "weightloss": -2}
 CHANGED = {"IsProfessionTrait", "Cost", "XPBoosts", "GrantedTraits", "MutuallyExclusiveTraits", "UIDescription"}
+WEIGHT_GAIN = {"weightloss", "underweight", "very underweight", "emaciated", "athletic", "fit"}
+WEIGHT_LOSS = {"weightgain", "overweight", "obese", "very underweight"}
 KERNEL = {"WEAK": "weak", "FEEBLE": "feeble", "UNDERWEIGHT": "underweight", "VERY_UNDERWEIGHT": "very underweight"}
 
 VANILLA = '''
@@ -217,8 +219,35 @@ def test_the_family_exclusions(mine):
     for a in fat:
         for b in thin:
             assert b in excl(mine[a]) and a in excl(mine[b])
-    assert {"base:weightloss"} == {"base:" + t for t in excl(mine["weightgain"])}
-    assert {"weightgain"} == excl(mine["weightloss"])
+    # the exclusions Weight Gain and Weight Loss inherited through their removed grants (fix round 1, ruling I2)
+    assert excl(mine["weightgain"]) == WEIGHT_GAIN
+    assert excl(mine["weightloss"]) == WEIGHT_LOSS
+
+
+def test_every_restated_pair_is_two_way(mine):
+    for i in IDS:
+        for other in excl(mine[i]) & set(IDS):
+            assert i in excl(mine[other]), "%s excludes %s, not back" % (i, other)
+    # Emaciated, Athletic and Fit are not restated: those pairs sit on Weight Gain alone (server validation is two-way)
+    assert {"emaciated", "athletic", "fit"} <= excl(mine["weightgain"])
+    for t in WEIGHT_GAIN & set(IDS):
+        assert "weightgain" in excl(mine[t])
+    for t in WEIGHT_LOSS & set(IDS):
+        assert "weightloss" in excl(mine[t])
+
+
+def test_description_numbers_are_the_kernels(host):
+    import json
+    with open(UI, encoding="utf-8") as f:
+        ui = json.load(f)
+    start = host.py(host.K.strength.DEFAULTS.startLevel)
+    for i, key in (("weak", "WEAK"), ("feeble", "FEEBLE"), ("stout", "STOUT"), ("strong", "STRONG")):
+        got = re.findall(r"Strength (\d+)", ui["UI_NR_trait_%sdesc" % i])
+        assert got == [str(int(start[key]))], i
+    fmi = host.py(host.K.body.FAT_FMI)
+    kg = round((fmi["OBESE"] - fmi["none"]) * host.K.HEIGHT_M ** 2)
+    assert re.findall(r"about (\d+) kg", ui["UI_NR_trait_obesedesc"]) == [str(kg)]
+    assert "kg" not in ui["UI_NR_trait_overweightdesc"]
 
 
 def test_ruling_13_46_pairs_in_both_directions(mine):

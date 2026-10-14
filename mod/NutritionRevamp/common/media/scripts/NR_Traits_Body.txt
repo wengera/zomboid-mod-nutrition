@@ -2,7 +2,11 @@
    same-name restatement of vanilla's character_trait_definition, replacing it. The creation costs are Angus's choice
    (spec section 11): Overweight -6, Obese -10, Underweight -6, Very Underweight -10; Weak, Feeble, Stout, Strong,
    Weight Gain and Weight Loss keep vanilla's. No block carries XPBoosts or GrantedTraits, no block is a profession
-   trait, Weak and Feeble exclude Underweight and Very Underweight, and the description keys are the mod's own. */
+   trait, Weak and Feeble exclude Underweight and Very Underweight, and the description keys are the mod's own.
+   Weight Gain and Weight Loss keep the exclusions their removed grants implied (Weight Gain: Underweight, Very
+   Underweight, Emaciated, Athletic, Fit; Weight Loss: Overweight, Obese, Very Underweight), written two-way on the
+   restated blocks; Emaciated, Athletic and Fit are not restated, so those three pairs sit on Weight Gain alone (the
+   server validation checks exclusions in both directions). */
 module Base
 {
     character_trait_definition base:weak
@@ -57,7 +61,7 @@ module Base
         Cost = -10,
         UIName = UI_trait_obese,
         UIDescription = UI_NR_trait_obesedesc,
-        MutuallyExclusiveTraits = base:athletic;base:emaciated;base:fit;base:lighteater;base:very underweight;base:underweight;base:overweight,
+        MutuallyExclusiveTraits = base:athletic;base:emaciated;base:fit;base:lighteater;base:very underweight;base:underweight;base:overweight;base:weightloss,
     }
 
     character_trait_definition base:overweight
@@ -68,7 +72,7 @@ module Base
         Cost = -6,
         UIName = UI_trait_overweight,
         UIDescription = UI_NR_trait_overweightdesc,
-        MutuallyExclusiveTraits = base:athletic;base:fit;base:emaciated;base:very underweight;base:underweight;base:obese,
+        MutuallyExclusiveTraits = base:athletic;base:fit;base:emaciated;base:very underweight;base:underweight;base:obese;base:weightloss,
     }
 
     character_trait_definition base:underweight
@@ -79,7 +83,7 @@ module Base
         Cost = -6,
         UIName = UI_trait_underweight,
         UIDescription = UI_NR_trait_underweightdesc,
-        MutuallyExclusiveTraits = base:obese;base:very underweight;base:overweight;base:weak;base:feeble,
+        MutuallyExclusiveTraits = base:obese;base:very underweight;base:overweight;base:weak;base:feeble;base:weightgain,
     }
 
     character_trait_definition base:very underweight
@@ -90,7 +94,7 @@ module Base
         Cost = -10,
         UIName = UI_trait_veryunderweight,
         UIDescription = UI_NR_trait_veryunderweightdesc,
-        MutuallyExclusiveTraits = base:athletic;base:obese;base:overweight;base:heartyappetite;base:underweight;base:weak;base:feeble,
+        MutuallyExclusiveTraits = base:athletic;base:obese;base:overweight;base:heartyappetite;base:underweight;base:weak;base:feeble;base:weightgain;base:weightloss,
     }
 
     character_trait_definition base:weightgain
@@ -101,7 +105,7 @@ module Base
         Cost = -2,
         UIName = UI_trait_weightgain,
         UIDescription = UI_NR_trait_weightgaindesc,
-        MutuallyExclusiveTraits = base:weightloss,
+        MutuallyExclusiveTraits = base:weightloss;base:underweight;base:very underweight;base:emaciated;base:athletic;base:fit,
     }
 
     character_trait_definition base:weightloss
@@ -112,6 +116,6 @@ module Base
         Cost = -2,
         UIName = UI_trait_weightloss,
         UIDescription = UI_NR_trait_weightlossdesc,
-        MutuallyExclusiveTraits = base:weightgain,
+        MutuallyExclusiveTraits = base:weightgain;base:overweight;base:obese;base:very underweight,
     }
 }
