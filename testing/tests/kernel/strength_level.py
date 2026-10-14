@@ -68,10 +68,11 @@ def R_of(years):
 def _R(R):
     if R is not None:
         return R
-    years = LEVEL_MODEL["yearsTo10"]
-    if years not in _R_CACHE:
-        _R_CACHE[years] = R_of(years)
-    return _R_CACHE[years]
+    # keyed on every LEVEL_MODEL input R_of reads, so an edited block never reads a stale R
+    key = (LEVEL_MODEL["yearsTo10"], LEVEL_MODEL["Tmax"], LEVEL_MODEL["perfectS"])
+    if key not in _R_CACHE:
+        _R_CACHE[key] = R_of(key[0])
+    return _R_CACHE[key]
 
 
 def level(F, N0, T, R=None):

@@ -61,6 +61,7 @@ def test_the_neural_rise_grace_and_decay():
     T0 = T
     for _ in range(21):
         T, g = sl.neural_day(T, g, 0.0)
+    # bitwise: Tmax - T is exact by Sterbenz's lemma, so Tmax - (Tmax - T) * exp(0) is exactly the representable T
     assert T == T0
     for _ in range(84):
         T, g = sl.neural_day(T, g, 0.0)
@@ -76,6 +77,7 @@ def test_the_neural_signal_saturates_at_Wsat_and_counts_below_m_Wsat():
     assert g == 0
     assert sl.neural_day(T, 5, 1.6)[1] == 6
     assert sl.neural_day(T, 5, 1.7)[1] == 0
+    assert sl.neural_day(T, 5, sl.strength_model.POINT_T["m"] * sl.LEVEL_MODEL["Wsat"])[1] == 0
     # past the grace, a day below the threshold decays T and never raises it
     T1, g1 = sl.neural_day(1.05, 21, 1.6)
     assert g1 == 22 and abs(T1 - (1 + 0.05 * math.exp(-1 / 84))) < 1e-12
@@ -87,8 +89,9 @@ def test_the_neural_signal_saturates_at_Wsat_and_counts_below_m_Wsat():
 
 
 # The run pinned (Task 2b Step 4): per trait the start (F, F0, Fc, Pk), the shown level at MARKS and the cap, read off
-# strength_level at its commit, so a later kernel or reference change that moves one is named. Strong reaches level 10
-# on day 25, Stout on day 348 and the average on day 1461 (Kouri's 6.3; 24 and 346 at the plan's 6.1).
+# strength_level at its commit, so a later kernel or reference change that moves one is named. The perk (the floor of
+# L + 1e-9) reaches 10 on day 25 for Strong, 348 for Stout and 1460 for the average (Kouri's 6.3; 24 and 346 at the
+# plan's 6.1; the average's level is 9.999999999999972 on day 1460, so the epsilon floors it to 10 there, not 1461).
 PINS = {
     "none": ((52.019999999999996, 52.019999999999996, 68.63749999999999, 52.019999999999996),
              (5.914866664738792, 6.489325095514365, 7.329083967899694, 8.251566815917508, 9.25959681120353,
@@ -125,3 +128,20 @@ def test_the_run_is_pinned(trait):
         assert abs(levels[day - 1] - want) < 1e-9, (trait, day)
     got = sl.level(s[2], sl.LEVEL_MODEL["N0"][trait], sl.LEVEL_MODEL["Tmax"])
     assert abs(got - cap) < 1e-9, (trait, "cap")
+
+
+@pytest.mark.parametrize("trait, day", [("STRONG", 25), ("STOUT", 348), ("none", 1460), ("FEEBLE", None),
+                                        ("WEAK", None)])
+def test_the_day_the_perk_reaches_10(trait, day):
+    levels = sl.perfect_run(trait, MARKS[-1])
+    first = next((i + 1 for i, x in enumerate(levels) if math.floor(x + 1e-9) >= 10), None)
+    assert first == day
+
+
+def test_the_floor_below_Fnm():
+    R = sl.R_of(4.0)
+    assert sl.S_of(sl.LEVEL_MODEL["Fnm"], 1.0, 1.0) == 0.0
+    assert sl.S_of(20.0, 1.14, 1.1) == 0.0
+    assert abs(sl.level(20.0, 1.0, 1.0) - (5.0 - 5.0 / (R - 1.0))) < 1e-12
+    assert abs(sl.level(20.0, 1.0, 1.0) - (-3.85)) < 0.005   # spec 2.1
+    assert sl.F_of_level(-5.0, 1.0, 1.0) == sl.LEVEL_MODEL["Fnm"]
