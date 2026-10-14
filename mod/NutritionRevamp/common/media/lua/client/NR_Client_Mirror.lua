@@ -28,9 +28,9 @@ function NR.client.installMirror(m)
     NR.client.received = NR.client.received + 1
 end
 
--- No copy: the view rebuilds from an empty mirror until the next arrival.
+-- No copy, and no arrival counted: the caller forces the view's rebuild (V.onPlayerDeath) from the empty mirror.
 function NR.client.clearMirror()
-    NR.client.installMirror(nil)
+    NR.client.mirror = nil
 end
 
 local S = NR_ClientMirror_Installed

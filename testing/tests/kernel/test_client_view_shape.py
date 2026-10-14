@@ -438,7 +438,7 @@ def test_a_death_clears_the_view_so_a_respawn_shows_nothing_of_the_dead_characte
     assert v.classes.hydration == 4 and _row(v, "body_weight").text == "61.5 kg" and v.fatBand is not None
     received = NRC(rt).received
     fire(rt, "OnPlayerDeath", "NR_T.player")
-    assert NRC(rt).mirror is None and NRC(rt).received == received + 1
+    assert NRC(rt).mirror is None and NRC(rt).received == received   # no arrival counted: the death forces the rebuild
     assert v.classes.hydration == 0 and _row(v, "body_weight").text == "" and v.fatBand is None
     assert list(G(rt).NR_T.heard.values()) == [4, 0]           # the listeners (the moodles) heard the clear
     fire(rt, "OnCreatePlayer", "0, NR_T.player")               # the respawn: still nothing of the dead body
@@ -606,3 +606,12 @@ def test_the_font_metrics_are_read_once_until_a_rebuild_or_a_resolution_change()
     V(rt).onResolutionChange()
     V(rt).metrics()
     assert G(rt).NR_T.fh == 3                  # so does a resolution change
+
+
+def test_clear_mirror_drops_the_copy_without_counting_an_arrival():
+    # Plan 12 close A4: the arrival counter counts the server's pushes only; V.onPlayerDeath forces its own rebuild
+    rt = rt_env()
+    receive(rt, "{ fluids_dehydPct = 7 }")
+    received = NRC(rt).received
+    rt.execute("NutritionRevamp.client.clearMirror()")
+    assert NRC(rt).mirror is None and NRC(rt).received == received
