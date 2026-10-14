@@ -32,7 +32,7 @@ NR.server.strength = {
     limitations = {
         "the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) read the current minute's fluids, acute and nutrients sub-tables",
         "no level is written yet and the carry's trait factor reads the native level's band; an unreadable level writes no carry that minute",
-        "the training signal is the Strength XP the engine's XP event reports; a grant the engine makes without the event (to a sleeping character, or to one whose Strength XP sits at the level-10 total) trains nothing",
+        "the training signal is the Strength XP the engine's XP event reports; a grant the engine makes without the event (to a sleeping character, or to one whose Strength XP sits at the level-10 total) trains nothing; a Strength grant made without vanilla's multipliers (the admin /addxp without -true, a mod's addXpNoMultiplier) is divided by a sandbox multiplier it never received; a grant that ends a skill book's range counts at the book's factor, because the engine drops the book before the event (AddXP @876-@962 L14323-L14328)",
     },
 }
 local STR = NR.server.strength
@@ -191,8 +191,10 @@ end
 -- The landed amount carries the protein factor (AddXP @107-@190, #2112), the book multiplier (@738-@756, #2113) and
 -- the sandbox multiplier (@757-@823 L14305-L14308: MultiplierConfig.Global when GlobalToggle, else the per-perk
 -- MultiplierConfig.Strength; SandboxOptions$MultiplierConfig.<init> @19 L356, @37 L357, @69 L359), the last two behind
--- AddXP's second boolean (@225 L14258), which the server's Lua addXp route passes true. K.strength.capture divides all
--- three out and weights a grant outside a recorded Fitness set by P.incidental; the signal lands in body.sigDay
+-- AddXP's second boolean (@225 L14258), which the server's Lua addXp route passes true, as does every vanilla Java
+-- Strength route (Fitness.incStats @194-@201 L351, IsoGameCharacter.hitConsequences @116-@131 L6320,
+-- IsoPlayer.hitConsequences @200-@214 L4466, all through GameServer.addXp(p, perk, f) @0-@5 L1903). K.strength.capture
+-- divides all three out and weights a grant outside a recorded Fitness set by P.incidental; the signal lands in body.sigDay
 -- (ruling 13-12). The XP never moves the mod's level: a grant that left the native level off body.wroteL stamps
 -- body.levelDue for the level write (ruling 13-29).
 -- Cadence (Rule 6): event-driven, no clock work. Any other perk returns before a Java read; a Strength grant reads

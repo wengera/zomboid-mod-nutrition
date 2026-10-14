@@ -10,6 +10,7 @@ ceiling and the write policy are removed); the carry's trait factor reads the na
 (ruling 13-28), and STR.ladder and STR.remap stay for the level write.
 """
 import os
+import re
 
 import lupa.lua51 as lua51
 import pytest
@@ -309,7 +310,9 @@ def test_never_calls_a_granting_or_leveling_member():
         code = "\n".join(l.split("--")[0] for l in fh.read().splitlines())
     code = code.replace("Events.AddXP", "")                   # the capture listens to the event (Task 13)
     for name in ("LevelPerk", "LoseLevel", "setXPToLevel", "addXp", "AddXP", "setMaxWeightBase"):
-        assert name not in code
+        # a method or global call, or an NR.call by name; prose in a limitation string is not a call
+        pattern = r"[:.]%s\b|\"%s\"|\b%s\s*\(" % (name, name, name)
+        assert re.search(pattern, code) is None, name
 
 
 # --- the carry delta --------------------------------------------------------------------------------
@@ -542,12 +545,13 @@ end
 XP_SETUP = r"""
 function(records, exe)
     local NR = NutritionRevamp
-    local saved = { store = NR.server.store, fitness = NR.server.fitness, sv = SandboxVars, fit = Perks.Fitness,
+    local saved = { store = NR.server.store, fitness = NR.server.fitness, sv = SandboxVars, fit = Perks.Fitness, wood = Perks.Woodwork,
                     pinning = NR.server.strength.pinning, options = NR.server.options }
     NR.server.store = { records = records }
     NR.server.fitness = { typeOf = function(name) if name == nil then return nil end return exe[name] end }
     SandboxVars = { MultiplierConfig = { Global = 2.0, GlobalToggle = true, Strength = 4.0 } }
     Perks.Fitness = { name = "Fitness" }
+    Perks.Woodwork = { name = "Woodwork" }
     return saved
 end
 """
@@ -559,6 +563,7 @@ function(saved)
     NR.server.fitness = saved.fitness
     SandboxVars = saved.sv
     Perks.Fitness = saved.fit
+    Perks.Woodwork = saved.wood
     NR.server.strength.pinning = saved.pinning
     NR.server.options = saved.options
 end
@@ -608,6 +613,39 @@ def test_a_fitness_grant_adds_nothing_and_reads_no_java(xp):
     assert records.admin.body.sigDay == 0
     assert calls(p) == {}
     assert xp_stats(h) == before
+
+
+def test_another_perk_adds_nothing_and_reads_no_java(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    p = xp_player(h)
+    before = xp_stats(h)
+    grant(h, p, 9.0, "Woodwork")
+    assert records.admin.body.sigDay == 0
+    assert calls(p) == {}
+    assert xp_stats(h) == before
+
+
+def test_a_missing_global_toggle_reads_on(xp):
+    # the Java option's default is true, so a missing toggle applies Global
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "squats"
+    h.G.SandboxVars = h.table({"MultiplierConfig": {"Global": 2.0, "Strength": 4.0}})
+    grant(h, xp_player(h, proteins=0.0), 8.0)
+    assert abs(records.admin.body.sigDay - 4.0) < 1e-12
+
+
+def test_a_zero_grant_is_ignored_and_reads_no_chain(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    p = xp_player(h)
+    ign, caps = STR(h).xpStats.ignored, STR(h).xpStats.captures
+    grant(h, p, 0.0)
+    assert records.admin.body.sigDay == 0
+    assert STR(h).xpStats.ignored == ign + 1 and STR(h).xpStats.captures == caps
+    assert calls(p) == {"getUsername": 1, "getPerkLevel": 1}
 
 
 def test_a_strength_grant_in_a_recorded_set_adds_the_full_share(xp):
