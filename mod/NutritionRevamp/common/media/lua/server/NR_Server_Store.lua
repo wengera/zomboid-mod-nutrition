@@ -437,25 +437,37 @@ end
 
 -- A departure flush: the record held now (a pruned one is gone and nothing is written), and the index marked dirty
 -- for the debounced store.index task (ten departures in a minute write it once, not ten times). A save that writes
--- nothing (a failed write, a deferral) keeps the dirty mark and, while the player is still away, queues the flush
--- again for the next drain, so the session is not lost to a restart before the player returns; a returned player's
--- own store step takes the mark instead. A record no longer held (pruned) ends the retries.
-local queueFlush
-local function flush(username)
+-- nothing (a failed write, a deferral) keeps the dirty mark and stamps the attempt as the slot's last write, so the
+-- minute's retry (S.retryAway) comes once per save gap, not every minute; a returned player's own store step takes
+-- the mark instead. A record no longer held (pruned) ends the retries. A retry does not mark the index again.
+local function flush(username, retry)
     local r = S.records and S.records[username]
     F.dirty[username] = nil                                -- the flush is the dirty slot's save
-    F.indexDirty = true -- the departure's stamp reaches the file at the next store.index task
+    if retry ~= true then F.indexDirty = true end          -- the departure's stamp reaches the file at the next store.index task
     if r == nil or F.save(username, r) then return end
     F.dirty[username] = true
-    local P = NR.server.players
-    if P ~= nil and P.online ~= nil and P.online[username] == nil then queueFlush(username) end
+    F.lastWrite[username] = nowMs() or F.lastWrite[username]
 end
 
 -- The flush as a one-shot task on the players' queue (it rides the budget), when the record is held.
-queueFlush = function(username)
+local function queueFlush(username, retry)
     local P = NR.server.players
     if P ~= nil and P.task ~= nil and S.records ~= nil and S.records[username] ~= nil then
-        P.task("store.flush." .. K.store.hexName(username), function() flush(username) end)
+        P.task("store.flush." .. K.store.hexName(username), function() flush(username, retry) end)
+    end
+end
+
+-- The minute's retry of the departure flushes that wrote nothing: each away player whose slot is dirty and whose
+-- last attempt is a save gap old is queued again; a dirty slot whose record is gone is dropped.
+function S.retryAway(now)
+    local P = NR.server.players
+    if P == nil or P.online == nil then return end
+    for username in pairs(F.dirty) do
+        if S.records == nil or S.records[username] == nil then
+            F.dirty[username] = nil                        -- a pruned record ends the retries
+        elseif P.online[username] == nil and K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then
+            queueFlush(username, true)
+        end
     end
 end
 
@@ -604,6 +616,7 @@ if Events ~= nil and Events.EveryOneMinute ~= nil then
         local now = nowMs()
         if now == nil then return end
         if F.indexDirty and K.store.due(F.lastIndexWrite, now, S.INDEX_GAP_MS) then queue("store.index", indexNow) end
+        S.retryAway(now)
         if not K.store.due(F.lastPrune, now, S.PRUNE_GAP_MS) then return end
         F.lastPrune = now
         local P = NR.server.players

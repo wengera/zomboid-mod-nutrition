@@ -1037,7 +1037,7 @@ def test_a_missing_index_pair_is_written_as_new():
 
 # --- Plan 12 (S B5): a departure flush that writes nothing is retried while the record is held --------------------
 
-def test_a_failed_departure_flush_is_retried_at_the_next_drain():
+def test_a_failed_departure_flush_is_retried_once_per_save_gap():
     h = boot()
     h.online(h.player("admin"))
     until_saved(h, "admin")
@@ -1052,10 +1052,13 @@ def test_a_failed_departure_flush_is_retried_at_the_next_drain():
     assert F.gen["admin"] == g and F.dirty["admin"] is True
     h.T.nilWriter = False
     n = len(h.T.opened)
-    game_minute(h, 13, 1000)                                                    # retried, the player still away
+    game_minute(h, 13, 1000)                                                    # inside the save gap: not retried
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 0 and F.dirty["admin"] is True
+    game_minute(h, 14, 61000)                                                   # a gap on: the retry is queued
+    game_minute(h, 15, 1000)                                                    # and runs at the next drain
     assert len(opened_with(h, ROOT + ADMIN, n)) == 1
     assert F.gen["admin"] == g + 1 and F.dirty["admin"] is None
-    game_minute(h, 14, 1000)
+    game_minute(h, 16, 61000)
     assert len(opened_with(h, ROOT + ADMIN, n)) == 1                            # written once: no retry after
     assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
 
@@ -1070,7 +1073,7 @@ def test_a_failed_flush_of_a_pruned_record_is_not_retried():
     game_minute(h, 12, 1000)                                                    # the flush fails: queued again
     S = h.NR.server.store
     S.records["admin"] = None                                                   # the record is no longer held
-    game_minute(h, 13, 1000)
+    game_minute(h, 13, 61000)
     assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
     assert S.file.dirty["admin"] is None
 
@@ -1108,3 +1111,62 @@ def test_both_index_files_torn_lock_the_index_and_a_later_good_read_lifts_it():
     run_minutes(h, 2, start=3)                                                  # the next hourly prune re-reads
     assert not F.indexLocked
     assert F.index["old"] == 990 and F.indexGen >= 9
+
+
+def test_a_failing_writer_is_retried_once_per_save_gap_and_marks_the_index_once():
+    # Plan 12 B2 N1: the attempt stamps the slot's last write, so a writer that keeps failing is tried once a gap
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    F = h.NR.server.store.file
+    fails = F.stats.writeFailures
+    h.online()                                                                  # departs: the flush is queued
+    h.T.nilWriter = True
+    game_minute(h, 11, 1000)
+    game_minute(h, 12, 1000)                                                    # the flush runs and fails
+    after_first = F.stats.writeFailures
+    assert after_first == fails + 1 and F.dirty["admin"] is True
+    F.indexDirty = False                                                        # a retry must not mark it again
+    for m in range(13, 16):
+        game_minute(h, m, 10000)                                                # three minutes inside the gap
+    assert F.stats.writeFailures == after_first and F.indexDirty is False
+    game_minute(h, 16, 61000)                                                   # the gap passed: the retry is queued
+    game_minute(h, 17, 1000)                                                    # and runs: one more attempt
+    assert F.stats.writeFailures == after_first + 1
+    assert F.indexDirty is False
+
+
+def test_a_returned_players_store_step_takes_the_dirty_mark_of_a_failed_flush():
+    # Plan 12 B2 N2: the retry stops at the player's return; the player's own step saves the marked slot at once
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    F = h.NR.server.store.file
+    g = F.gen["admin"]
+    land(h, "admin")
+    h.online()
+    h.T.nilWriter = True
+    game_minute(h, 11, 1000)
+    game_minute(h, 12, 1000)                                                    # the flush runs and fails
+    assert F.dirty["admin"] is True
+    h.T.nilWriter = False
+    h.online(h.player("admin"))                                                 # returns
+    n = len(h.T.opened)
+    game_minute(h, 13, 1000)
+    game_minute(h, 14, 1000)
+    assert len(opened_with(h, ROOT + ADMIN, n)) == 1 and F.gen["admin"] == g + 1
+    assert F.dirty["admin"] is None
+    assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
+
+
+def test_a_departure_of_a_player_with_no_held_record_queues_no_flush():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    h.NR.server.store.records["admin"] = None
+    h.online()
+    game_minute(h, 11, 1000)
+    assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
+    assert h.NR.server.store.file.indexDirty is False
+
