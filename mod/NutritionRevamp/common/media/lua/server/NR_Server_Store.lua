@@ -350,7 +350,7 @@ function F.writeIndex()
         return false
     end
     local gen = F.indexGen + 1
-    local which = target(F.indexAt, F.indexPath(F.indexAt or "a"), F.lastIndex, "the index")
+    local which = F.indexPin or target(F.indexAt, F.indexPath(F.indexAt or "a"), F.lastIndex, "the index")
     local text = K.json.encode({ gen = gen, players = F.index, done = true }, F.fmt)
     if not F.write(F.indexPath(which), text) then return false end
     F.indexGen = gen
@@ -361,10 +361,14 @@ function F.writeIndex()
     return true
 end
 
--- The index read at boot. When no file of the pair reads and either is present but unreadable (a torn or locked-
--- open copy, not a missing one), the index is locked for this boot: a gen-1 write would land on one file and the
--- next on the other, so the real index, with every stamp, would be written over. The players then go unpruned and
--- their deferral protection is off until a restart reads the pair; logged once, at level 1.
+-- The index read at boot, and again at the hourly prune while it is locked. When no file of the pair reads and
+-- either is present but unreadable (a torn or locked-open copy, not a missing one):
+--   * exactly one is unreadable and the other missing: every index write this boot goes to the missing file
+--     (F.indexPin) and the unreadable one is never opened, so the next boot reads what was written;
+--   * both are unreadable: the index is locked for this boot, since a gen-1 write would land on one file and the
+--     next on the other, so the real index, with every stamp, would be written over. The players then go unpruned
+--     and their deferral protection is off until a re-read at the hourly prune (or a restart) reads the pair.
+-- Logged once each, at level 1.
 function F.readIndex()
     local a, ta, badA = readDoc(F.indexPath("a"), "players")
     local b, tb, badB = readDoc(F.indexPath("b"), "players")
@@ -372,17 +376,37 @@ function F.readIndex()
     local texts = { a = ta, b = tb }
     local which = K.store.newest(docs.a, docs.b)
     if which == nil then
-        if badA or badB then
-            F.indexLocked = true
-            NR.log.say(1, "store: the index files are present but unreadable; the index is not written this boot, "
-                .. "so no record is pruned until a restart reads it")
+        F.indexLocked = badA == true and badB == true
+        F.indexPin = nil
+        if F.indexLocked then
+            if not F.lockWarned then
+                F.lockWarned = true
+                NR.log.say(1, "store: the index files are present but unreadable; the index is not written this boot, "
+                    .. "so no record is pruned until a restart or an hourly re-read reads it")
+            end
+        elseif badA or badB then
+            F.indexPin = badA and "b" or "a"
+            if not F.pinWarned then
+                F.pinWarned = true
+                NR.log.say(1, "store: " .. F.indexPath(badA and "a" or "b") .. " is unreadable and the other index "
+                    .. "file is missing; the index is pinned to " .. F.indexPath(F.indexPin) .. " this boot and the "
+                    .. "unreadable file is never opened")
+            end
         end
         return
     end
-    F.index = docs[which].players
+    local lifted = F.indexLocked == true
+    F.indexLocked = false
+    F.indexPin = nil
+    local players = docs[which].players
+    for u, t in pairs(F.index) do                          -- stamps laid while locked outrank the file's
+        if type(t) == "number" and (type(players[u]) ~= "number" or players[u] < t) then players[u] = t end
+    end
+    F.index = players
     F.lastIndex = texts[which]
     F.indexGen = docs[which].gen
     F.indexAt = which
+    if lifted then F.indexDirty = true end                 -- the stamps laid while locked reach the file
 end
 
 function S.get(username, worldAgeHours)
@@ -534,6 +558,12 @@ local function pruneNow()
     S.prune(nowMs(), keepDays())
 end
 
+-- The hourly task: a locked index is read again first (a file that reads now lifts the lock), then the prune.
+local function hourly()
+    if F.indexLocked then F.readIndex() end
+    pruneNow()
+end
+
 -- The debounced index write: a clean index (the prune wrote it since) is left alone.
 function S.indexNow()
     if F.indexDirty then F.writeIndex() end
@@ -578,9 +608,9 @@ if Events ~= nil and Events.EveryOneMinute ~= nil then
         F.lastPrune = now
         local P = NR.server.players
         if P ~= nil and P.task ~= nil then
-            P.task("store.prune", pruneNow)
+            P.task("store.prune", hourly)
         else
-            pruneNow()
+            hourly()
         end
     end)
 end

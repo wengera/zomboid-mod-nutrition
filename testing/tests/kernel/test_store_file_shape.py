@@ -1014,8 +1014,7 @@ def test_a_reset_clears_the_deferral_window():
 
 def test_an_unreadable_index_pair_is_never_written_over_this_boot():
     torn = index_doc(7, {"old": 990, "admin": 980})[:20]                        # a torn copy of the real index
-    for files in ({ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"},
-                  {ROOT + "index_b.json": torn}):
+    for files in ({ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"},):
         h = boot(files=files)
         h.online(h.player("admin"))                                             # a new name to the index
         run_minutes(h, 3)
@@ -1074,3 +1073,38 @@ def test_a_failed_flush_of_a_pruned_record_is_not_retried():
     game_minute(h, 13, 1000)
     assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
     assert S.file.dirty["admin"] is None
+
+
+# --- Plan 12 B2 F2: one torn index file beside a missing one pins the writes to the missing file ------------------
+
+def test_a_torn_index_file_beside_a_missing_one_writes_only_to_the_missing_file():
+    torn = index_doc(7, {"old": 990, "admin": 980})[:20]
+    h = boot(files={ROOT + "index_a.json": torn})
+    assert not h.NR.server.store.file.indexLocked                               # pinned, not locked
+    h.online(h.player("admin"))                                                 # a new name to the index
+    run_minutes(h, 3)
+    assert h.T.files[ROOT + "index_a.json"] == torn                             # the unreadable file never opened
+    assert ROOT + "index_a.json" not in opened_with(h, ROOT + "index_")
+    assert opened_with(h, ROOT + "index_")                                      # the index is written
+    assert all(p == ROOT + "index_b.json" for p in opened_with(h, ROOT + "index_"))
+    said = [p for p in h.printed() if "index_a.json" in p and "pinned" in p]
+    assert len(said) == 1                                                       # level 1, naming the file
+    h2 = boot(files={k: v for k, v in files_of(h).items() if k.startswith(ROOT + "index_")})
+    assert h2.NR.server.store.file.index["admin"] is not None                   # the next boot reads the written file
+
+
+def test_both_index_files_torn_lock_the_index_and_a_later_good_read_lifts_it():
+    torn = index_doc(7, {"old": 990, "admin": 980})[:20]
+    h = boot(files={ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"})
+    F = h.NR.server.store.file
+    h.online(h.player("admin"))                                                 # the queue runs tasks while a player is on
+    assert F.indexLocked is True
+    h.T.now = h.T.now + 3600001
+    run_minutes(h, 2)                                                           # the hourly prune: still torn
+    assert F.indexLocked is True
+    assert len([p for p in h.printed() if "index files are present but unreadable" in p]) == 1
+    h.T.files[ROOT + "index_b.json"] = index_doc(9, {"old": 990, "admin": 980})
+    h.T.now = h.T.now + 3600001
+    run_minutes(h, 2, start=3)                                                  # the next hourly prune re-reads
+    assert not F.indexLocked
+    assert F.index["old"] == 990 and F.indexGen >= 9
