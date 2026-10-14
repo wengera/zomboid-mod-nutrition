@@ -44,21 +44,24 @@
 -- Ruling T8-3: both routes serve player 0 only, because the mirror and the view are the local player's and a
 -- player-1 widget would show player 0's levels; split-screen gets no NR moodles. Death: the framework suspends its
 -- moodles when the character dies (:549); the own column does the same through an OnPlayerDeath handler (added in
--- the boot handler) that zeros the kept levels, so the column draws nothing until the next apply.
+-- the boot handler) that zeros the kept levels and takes the column off the UI manager until the next apply.
 --
 -- The own route (no framework): one NR_Client_MoodleColumn (an ISUIElement) for player 0 -- the mirror is the local
 -- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 7 * 44: a FIXED
 -- inset, NEVER anchored to the vanilla stack (ruling 10; MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
--- the mirror per frame (#2692).
+-- the mirror per frame (#2692). The column sits on the UI manager only while a level is above 0 and takes no mouse
+-- event (its right-button and wheel handlers answer false, wantMouseEvents false), so it never eats a click meant for
+-- the world.
 --
 -- The driver: NR.client.view.listeners (NR_Client_View.lua :18-20, :120) calls fn(classes, rows, level) after every
 -- view rebuild -- on each mirror arrival and when a surface refreshes -- and the hook here calls apply(classes), the
 -- classes being K.view.moodleClasses (the six and overfull). This
 -- file sorts before _View, so it creates NR.client.view = { listeners = {} } when absent and View carries the array
 -- over (:43). The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
--- framework value neutral and takes the column off the UI manager; on restores both.
+-- framework value neutral and takes the column off the UI manager; on restores both (the column only when a level
+-- is above 0).
 --
 -- Shape (the client-file discipline): the sentinel NR_ClientMoodles_Installed is a global of its own holding
 -- the boot, create and listener closures, each looking NutritionRevamp.client.moodles up per call; the side test is
@@ -168,8 +171,16 @@ if ISUIElement ~= nil and type(ISUIElement.derive) == "function" then
             o.playerNum = playerNum
             o.onUI = false
             o.textures = {}
+            o.wantMouseEvents = false -- onMouseUp and onMouseDown answer consumeMouseEvents when no handler answers
             return o
         end
+
+        -- The column takes no mouse event, so a click or the wheel over it reaches the world (a context menu, a
+        -- zoom): a right-button handler that answers nil consumes the click (UIElement.onRightMouseDown L1588-1589,
+        -- onRightMouseUp L1652, read on 42.21), so these answer false.
+        function cls:onRightMouseDown(x, y) return false end
+        function cls:onRightMouseUp(x, y) return false end
+        function cls:onMouseWheel(del) return false end
 
         -- The cached levels as icons and pips; never the mirror.
         function cls:render()
@@ -224,6 +235,16 @@ function MOODLES.renderColumn(el)
     return nil
 end
 
+-- Whether any kept level is above 0: the column joins the UI manager only then, so an empty column holds no strip of
+-- the screen.
+local function anyLevel(M)
+    for i = 1, #M.classes do
+        local lv = M.levels[M.classes[i]]
+        if type(lv) == "number" and lv > 0 then return true end
+    end
+    return false
+end
+
 -- The column on or off the UI manager (on records onUI, the probe's read).
 local function showColumn(col, on)
     if col == nil then return end
@@ -259,7 +280,7 @@ function MOODLES.buildColumn(playerNum)
     call(col, "instantiate")
     M.column = col
     M.stats.columns = M.stats.columns + 1
-    showColumn(col, M.isEnabled())
+    showColumn(col, M.isEnabled() and anyLevel(M))
     return col
 end
 
@@ -330,6 +351,7 @@ function MOODLES.onPlayerDeath(player)
     for i = 1, #M.classes do
         M.levels[M.classes[i]] = 0
     end
+    if M.route == "own" then showColumn(M.column, false) end
 end
 
 -- OnCreatePlayer (player 0 only; the mirror is the local player's): the framework's seven handles kept and configured,
@@ -407,7 +429,7 @@ function MOODLES.apply(classes)
             M.stats.sets = M.stats.sets + 1
         end
     end
-    if M.route == "own" then showColumn(M.column, on) end
+    if M.route == "own" then showColumn(M.column, on and anyLevel(M)) end
     return true
 end
 

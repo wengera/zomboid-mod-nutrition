@@ -277,15 +277,34 @@ def test_the_route_is_own_when_mf_is_absent_and_the_create_handler_follows_the_b
     assert M(rt).stats.created == 0
 
 
-def test_the_column_sits_at_the_fixed_inset_and_joins_the_ui_manager():
+def test_the_column_sits_at_the_fixed_inset_and_joins_the_ui_manager_only_with_a_level():
     rt = rt_env()
     boot(rt)
     create(rt)
     col = M(rt).column
     assert col is not None and G(rt).NR_Client_MoodleColumn.Type == "NR_Client_MoodleColumn"
     assert (col.x, col.y, col.width, col.height) == (1280 - 96, 240, 40, 7 * 44)
+    assert col.onUI is False and G(rt).NR_T.ui.adds == 0     # every level 0: off the UI manager, no strip
+    assert M(rt).probe("deficiency") == (0, False, "own")
+    M(rt).apply(classes(rt, deficiency=1))
     assert col.onUI is True and col.managed is True
-    assert M(rt).probe("deficiency") == (0, True, "own")
+    assert M(rt).probe("deficiency") == (1, True, "own")
+    M(rt).apply(classes(rt))
+    assert col.onUI is False and col.managed is False
+
+
+def test_the_column_takes_no_mouse_event():
+    # the jar (42.21 UIElement.onRightMouseDown L1588-1589, onRightMouseUp L1652): a Lua handler that answers nil
+    # consumes the right click; onMouseUp and onMouseDown answer the element's consumeMouseEvents, which
+    # ISUIElement.new sets from wantMouseEvents = true
+    rt = rt_env()
+    boot(rt)
+    create(rt)
+    col = M(rt).column
+    assert col.wantMouseEvents is False
+    assert col.onRightMouseDown(col, 4, 4) is False
+    assert col.onRightMouseUp(col, 4, 4) is False
+    assert col.onMouseWheel(col, 1) is False
 
 
 def test_the_column_suspends_on_death_until_the_next_apply():
@@ -298,10 +317,12 @@ def test_the_column_suspends_on_death_until_the_next_apply():
     assert m.lastDrawn == 2
     fire(rt, "OnPlayerDeath", "NR_T.player")
     assert m.levels.energy == 0 and m.levels.deficiency == 0
+    assert m.column.onUI is False                          # nothing to draw: off the UI manager
     m.column.render(m.column)
     assert m.lastDrawn == 0
     assert m.stats.errors == 0
     m.apply(classes(rt, energy=1))
+    assert m.column.onUI is True
     m.column.render(m.column)
     assert m.lastDrawn == 1
 
@@ -318,10 +339,11 @@ def test_a_respawn_replaces_the_column():
     boot(rt)
     create(rt)
     old = M(rt).column
+    M(rt).apply(classes(rt, sleep=1))
     create(rt)
     new = M(rt).column
     assert not rt.eval("rawequal")(old, new)
-    assert old.onUI is False and old.managed is False and new.onUI is True
+    assert old.onUI is False and old.managed is False and new.onUI is True   # the kept level re-applied
 
 
 def test_apply_sets_the_levels_and_the_render_counts_and_draws_rects_with_no_texture():
@@ -383,6 +405,8 @@ def test_the_option_off_removes_the_column_and_on_re_adds_it():
     boot(rt)
     create(rt)
     m = M(rt)
+    m.apply(classes(rt, sleep=2))
+    assert m.column.onUI is True and m.column.managed is True
     option(rt, False)
     m.apply(classes(rt, sleep=2))
     assert m.column.onUI is False and m.column.managed is False
