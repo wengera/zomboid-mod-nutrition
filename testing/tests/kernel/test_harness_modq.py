@@ -204,3 +204,18 @@ def test_modrun_idles_after_ghost_stop_without_modq_off_and_a_burst_load():
         stale(name)                                                # the mod's queue draining a stale name
     assert G.runs == runs0                                         # the burst load's ghosts ran nothing from it
     assert h.H0.modOpen is False
+
+
+def test_a_ghost_minute_reads_the_world_age_once_and_hands_it_to_the_pipeline():
+    h = boot()
+    r = h.rt.eval("""function(H0, NR)
+        local reads, got = 0, nil
+        local baseAge, baseRun = H0.worldAge, NR.server.minute.run
+        H0.worldAge = function() reads = reads + 1; return 77.5 end
+        NR.server.minute.run = function(name, carrier, rec, age) got = { name = name, age = age, rec = rec } end
+        local g = { name = "ghost1", carrier = {}, rec = {} }
+        H0.work(g)
+        H0.worldAge, NR.server.minute.run = baseAge, baseRun
+        return { reads = reads, age = got and got.age, seen = got and got.rec.lastSeen }
+    end""")(h.H0, h.NR)
+    assert r.reads == 1 and r.age == 77.5 and r.seen == 77.5

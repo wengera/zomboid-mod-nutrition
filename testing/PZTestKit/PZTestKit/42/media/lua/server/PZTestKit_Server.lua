@@ -3230,7 +3230,7 @@ function H0.work(g)
     r.lastSeen = age
     local okD, dead = TK.call(g.carrier, "isDead")
     if okD and dead == true and r.dead ~= true then r.dead = true end
-    NR.server.minute.run(g.name, g.carrier, r)
+    NR.server.minute.run(g.name, g.carrier, r, age)
     -- P.onMinute is gone from the mod (Plan 11d Task 9b, ruling C9-7): P.work runs the pipeline alone, so the
     -- ghost's minute is the pipeline alone too. These four comment lines replace the loop that fired it, so no
     -- repo: pointer below this site moves (CLAUDE.md section 5: a harness edit that shifts lines re-anchors every

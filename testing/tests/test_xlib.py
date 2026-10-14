@@ -389,3 +389,16 @@ def test_finish_fences_each_stage_and_records_failures(tmp_path):
     xs.finish(bad_teardown, lambda s, ev: killed.append(1), [], read_logs=bad_logs, grade_all=lambda: graded.append(1))
     assert xs.out["teardown_error"] == "RuntimeError: td" and killed == [1] and graded == [1]
     assert xs.out["logs_error"] == "ValueError: logs" and "wall_seconds" in xs.out
+
+
+def test_finish_fences_a_raising_hard_kill_and_still_grades_and_persists(tmp_path):
+    xs, _, _ = make({}, tl=Timeline())
+    xs.path = str(tmp_path / "o.json")
+    graded = []
+
+    def bad_kill(s, ev):
+        raise OSError("kill")
+
+    xs.finish(lambda tl, s, cs: None, bad_kill, [], grade_all=lambda: graded.append(1))
+    assert xs.out["hard_kill_error"] == "OSError: kill" and graded == [1]
+    assert "wall_seconds" in json.load(open(xs.path))

@@ -471,7 +471,10 @@ class Xs:
             self.out["teardown_error"] = f"{type(e).__name__}: {e}"
         finally:
             if self.server is not None:
-                hard_kill(self.server, every)
+                try:
+                    hard_kill(self.server, every)
+                except Exception as e:         # noqa: BLE001
+                    self.out["hard_kill_error"] = f"{type(e).__name__}: {e}"
             adm = self.clients.get(self.user) if isinstance(self.clients, dict) else None
             self.out["admin_lua_error"] = ("lua_error" in getattr(adm, "seen", ())) if adm is not None else None
             self.out["client_seen"] = [{"user": getattr(c, "username", str(i)), **dict(getattr(c, "seen", {}))}
