@@ -5,7 +5,7 @@
 **Goal:** Make the Strength level a reading of the character's lean mass. Vanilla Strength XP becomes a training signal. Lean mass grows only when the signal, protein and energy act together, under the fitted growth law of point S. The weight and strength traits describe body composition: they are offered at creation for points, set the starting body, and switch in play from three daily axes. Nothing changes while a player is offline.
 
 **Architecture:**
-- **One constants table.** `K.strength.DEFAULTS` in `NR_Kernel_Strength.lua` holds every fitted and game-choice constant of the growth law, the energy gate and the lean partition. Its values are point S's (`compact_S.json` "chosen") under the oracle's own key names. `K.strength.params(sv)` merges the sandbox options over it once per change. Every kernel function takes that table as `P`. Nothing else in the mod restates a point-S number.
+- **One constants table.** `K.strength.DEFAULTS` in `NR_Kernel_Strength.lua` holds every fitted and game-choice constant of the growth law, the energy gate and the lean partition. Its values are point T's (`compact_T.json` "chosen") under the oracle's own key names. `K.strength.params(sv)` merges the sandbox options over it once per change. Every kernel function takes that table as `P`. Nothing else in the mod restates a point-T number.
 - **The kernel** (pure, lupa-tested, one statement a line):
   - `K.strength`: the FFMI scale, the signal, the gates, growth, regain, detraining, the peak, the day orchestration, the XP capture arithmetic and the params guard;
   - `K.partition`: the surplus and deficit lean arms with the labile lean `lx` (the old lean-gain product is removed);
@@ -41,10 +41,10 @@
 - **Models.** Opus for the live tasks, the oracle, the kernels the fit governs (Tasks 2, 5–10), the server adapters (12–15, 17), the register task, and every review of evidence or of a whole task. Sonnet for spelled-out edits (Tasks 3, 11, 16, 18) and scoped re-reviews. Every dispatch names its model and asks for the exact model id back.
 - **Frozen files.** A driver is never edited after its run. A test of a frozen lib that reads a removed field is deleted by name under a ledgered ruling, and the pytest baseline is reset by name at the close.
 
-## The constants block (point S; the one place a refit amends)
-This table is the plan's only copy of the point-S values. Task 2 asserts that `testing/tests/kernel/strength_model.py`'s `POINT_S` equals `compact_S.json`'s `"chosen"`, and Task 5 asserts that `K.strength.DEFAULTS` equals `POINT_S` key by key. Every task below names keys, never numbers. A refit (ruling 13-1) amends `compact_S.json`, this table and the one Lua block, and nothing else.
+## The constants block (point T; the one place a refit amends)
+This table is the plan's only copy of the point-T values (refit 2, which superseded point S; spec § 5.2). Task 2 asserts that `testing/tests/kernel/strength_model.py`'s `POINT_S` (the oracle point's name, kept; it holds point T) equals `compact_T.json`'s `"chosen"`, and Task 5 asserts that `K.strength.DEFAULTS` equals `POINT_S` key by key. Every task below names keys, never numbers. A refit (ruling 13-1) amends the compact JSON the tests name, this table and the one Lua block, and nothing else.
 
-| Key (oracle and kernel) | Point S value | Spec name | Option (§ 10) |
+| Key (oracle and kernel) | Point T value | Spec name | Option (§ 10) |
 |---|---|---|---|
 | `k` | 0.009906127265972144 per week | k | `NR.StrengthRate` multiplies it |
 | `beta` | 3.0 | β | `NR.StrengthThresholdRise` |
@@ -57,7 +57,8 @@ This table is the plan's only copy of the point-S values. Task 2 asserts that `t
 | `E0_drop` | 0.5 | E₀'s status drop | `NR.StrengthDeficitZeroStatusDrop` |
 | `fbal0` | 1.0 | f_bal at s = 0 | `NR.StrengthBalanceGate` |
 | `fbal_drop` | 0.5 | f_bal's status drop | `NR.StrengthBalanceGateStatusDrop` |
-| `surplus_full` | 0.10 of TDEE | surplus_full | `NR.StrengthSurplusFull` |
+| `surplus_full` | 0.10 of TDEE | surplus_full (E_full at s = 0) | `NR.StrengthSurplusFull` |
+| `full_drop` | 0.5 | E_full's status drop: E_full(s) = surplus_full · (1 − full_drop · s) · TDEE | `NR.StrengthSurplusFullStatusDrop` |
 | `a_nov` | 6.0 | a_nov | `NR.StrengthNoviceDeficitDepth` |
 | `trained_need` | 0.0 | — | `NR.StrengthTrainedNeedsSurplus` |
 | `forbes_c` | 10.4 kg | forbes c | fixed |
@@ -93,8 +94,8 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 `K.HEIGHT_M = 1.70` (spec § 2) lives in `NR_Kernel.lua`, outside the table, because `K.acute`, `K.body`, `K.traits` and `K.strength` all read it (ruling 13-4).
 
 ## Rulings this plan carries
-- **13-1 (one constants block).** Ruling: every constant of the growth law, the energy gate and the lean partition is written once, in `K.strength.DEFAULTS`, under the oracle's key names, with a test binding it to `strength_model.POINT_S` and that to `compact_S.json`; task text names keys, never point-S numbers — a harvest on small surpluses in trained lifters is running and a refit may follow, so a refit must amend one block, one JSON and this plan's table — cost if wrong: none; a table indirection costs one Lua index per read at the day close.
-- **13-2 (the oracle's flags).** Ruling: the tracked oracle keeps the fit's daily step verbatim, so it reproduces `compact_S.json`, and gains a flag `exact` (default False) that switches on the four places where the spec states a form the fit did not run. With `exact=True`: detraining is integrated exactly over the day; the labile lean decays on every day with no surplus left after growth (the fit decayed it only at `E == 0` exactly, which a live day never meets); growth's energy cost is charged at `grow / ts`; and the biology clock `ts` scales growth, regain, detraining, the peak decay and divides the grace days. The kernel reproduces the oracle with `exact=True`. Task 2 re-scores the registry under it and pins every value — the spec states exact detraining (§ 6) and a time scale (§ 10), which the fit ran at `ts = 1` with an Euler step — cost if wrong: the detraining half-life oracle moves by a few hundredths of a week; Task 2 asserts every weighted oracle that passed under the record still passes.
+- **13-1 (one constants block).** Ruling: every constant of the growth law, the energy gate and the lean partition is written once, in `K.strength.DEFAULTS`, under the oracle's key names, with a test binding it to `strength_model.POINT_S` and that to `compact_T.json` (point T); task text names keys, never point-T numbers — a harvest on small surpluses in trained lifters is running and a refit may follow, so a refit must amend one block, one JSON and this plan's table — cost if wrong: none; a table indirection costs one Lua index per read at the day close.
+- **13-2 (the oracle's flags).** Ruling: the tracked oracle keeps the fit's daily step verbatim, so it reproduces `compact_T.json`, and gains a flag `exact` (default False) that switches on the four places where the spec states a form the fit did not run. With `exact=True`: detraining is integrated exactly over the day; the labile lean decays on every day with no surplus left after growth (the fit decayed it only at `E == 0` exactly, which a live day never meets); growth's energy cost is charged at `grow / ts`; and the biology clock `ts` scales growth, regain, detraining, the peak decay and divides the grace days. The kernel reproduces the oracle with `exact=True`. Task 2 re-scores the registry under it and pins every value — the spec states exact detraining (§ 6) and a time scale (§ 10), which the fit ran at `ts = 1` with an Euler step — cost if wrong: the detraining half-life oracle moves by a few hundredths of a week; Task 2 asserts every weighted oracle that passed under the record still passes.
 - **13-3 (growth's energy cost under a time scale).** Ruling: at `ts > 1` the lean a day gains is `grow` (scaled) while the energy it costs is `grow / ts · RHO_LEAN` — the time scale compresses muscle biology, not the food clock, and charging the scaled gain would bill a compressed server's trainee up to 30 days of tissue energy a game day — cost if wrong: lean is cheaper than real at `ts > 1`; at the default `ts = 1` nothing differs.
 - **13-4 (height).** Ruling: `K.HEIGHT_M = 1.70` in `NR_Kernel.lua`, and `K.acute.HEIGHT_M` is removed, with `K.acute.refeed`'s BMI reading `K.HEIGHT_M` — `NR_Kernel_Acute.lua` sorts before `NR_Kernel_Body.lua`, so a file-scope read of a body constant would be nil; the core file loads first — cost if wrong: none.
 - **13-5 (the record calendar).** Ruling: `body.dayIndex` becomes the record's own count of closed online days, born at `math.floor(bornAge / 24)`, and a new field `body.wday` holds the world day the open record day belongs to. A minute closes the day when `math.floor(ageH / 24) > body.wday` and then sets `body.wday` to that world day, closing at most one day per minute. A minute whose step from `body.lastAgeH` exceeds 60 game minutes is a reconnect after a gap: it re-stamps `body.wday` to today's world day and closes nothing, so the day open at departure continues as today's record day. `MET.MAX_CLOSES` and `stats.skippedDays` are removed — the spec's "resumes the calendar where it stopped", and the existing rule that a step over 60 minutes is offline time (`dtM` clamp, `trailShift`) — cost if wrong: a server stall over 60 game minutes with the player online reads as a gap and folds those days into one record day.
@@ -217,9 +218,9 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
 - Create `testing/tests/kernel/strength_model.py`, `testing/tests/kernel/strength_oracles.py`, `testing/tests/kernel/test_strength_oracle.py`.
 
 **Interfaces:**
-- **Consumes:** `C:\Users\Angus\AppData\Local\Temp\claude\C--Users-Angus-repos-project-zomboid\e5eaf55d-0ef3-42a5-b6e6-4827b799b827\scratchpad\strev2\model.py` and `oracles.py`; `docs/superpowers/research/2026-10-14-strength-redesign/refit/compact_S.json`.
+- **Consumes:** `C:\Users\Angus\AppData\Local\Temp\claude\C--Users-Angus-repos-project-zomboid\e5eaf55d-0ef3-42a5-b6e6-4827b799b827\scratchpad\strev3\model.py` and `oracles.py` (point T's fit); `docs/superpowers/research/2026-10-14-strength-redesign/refit/compact_T.json`.
 - **Produces:**
-  - `strength_model.POINT_S` (a dict: `DEFAULT` updated with `compact_S.json`'s `"chosen"`, `fp_knots` kept from `DEFAULT`);
+  - `strength_model.POINT_S` (a dict: `DEFAULT` updated with `compact_T.json`'s `"chosen"`, `fp_knots` kept from `DEFAULT`);
   - `strength_model.Body(P, L0, cap, fat_kg, F0L=None, peakL=None)` and `Body.day(S, p, E, tdee=2600.0)` unchanged when `P.get('exact')` is falsy;
   - with `P['exact']` true, `Body.day` applies ruling 13-2's four forms and reads `P['ts']` (default 1.0);
   - `strength_oracles.score(P, verbose=False)` unchanged.
@@ -232,7 +233,7 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
   from . import strength_oracles as so
 
   REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-  COMPACT = os.path.join(REPO, "docs", "superpowers", "research", "2026-10-14-strength-redesign", "refit", "compact_S.json")
+  COMPACT = os.path.join(REPO, "docs", "superpowers", "research", "2026-10-14-strength-redesign", "refit", "compact_T.json")
 
   def _compact():
       with open(COMPACT, encoding="utf-8") as fh:
@@ -286,7 +287,7 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
   - Copy `oracles.py` to `strength_oracles.py` with `from model import` changed to `from .strength_model import` (and the same for any other module import). Change nothing else.
   - Add a module docstring to each naming the source path, the copy date and ruling 13-2.
 - [ ] **Step 4: Run them.** Expect PASS. Record the `exact` re-score's every oracle value in the test file as a pinned table (`EXACT_PINS`), with a test asserting each to 1e-9, so a later kernel or oracle change that moves one is named.
-- [ ] **Step 5: Commit.** `git commit -m "Plan 13 Task 2: the strength fit's model and oracles tracked, point S reproduced, exact mode pinned" -- testing/tests/kernel/strength_model.py testing/tests/kernel/strength_oracles.py testing/tests/kernel/test_strength_oracle.py`
+- [ ] **Step 5: Commit.** `git commit -m "Plan 13 Task 2: the strength fit's model and oracles tracked, point T reproduced, exact mode pinned" -- testing/tests/kernel/strength_model.py testing/tests/kernel/strength_oracles.py testing/tests/kernel/test_strength_oracle.py`
 
 ### Task 3: The mod-wide sex option (Sonnet; `mod/` lane)
 Spec § 13.

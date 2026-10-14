@@ -1,0 +1,1779 @@
+{
+ "point": "T",
+ "predecessor": "S (compact_S.json)",
+ "chosen": {
+  "k": 0.009906127265972144,
+  "beta": 3.0,
+  "Sg0": 0.5,
+  "Sref": 12.0,
+  "Smax": 30.0,
+  "Smax1": 12.0,
+  "E0": -650.0,
+  "E0_drop": 0.5,
+  "fbal0": 1.0,
+  "fbal_drop": 0.5,
+  "surplus_full": 0.1,
+  "full_drop": 0.5,
+  "a_nov": 6.0,
+  "trained_need": 0.0,
+  "forbes_c": 10.4,
+  "wT": 0.35,
+  "S_def": 10.0,
+  "wP": 0.6,
+  "pdef_lo": 0.8,
+  "pdef_hi": 1.6,
+  "prot_floor": 0.1,
+  "x_max_frac": 0.05,
+  "x_tau_d": 28.0,
+  "m": 0.3333333333333333,
+  "grace_d": 14,
+  "detrain_hl_wk": 6.0,
+  "regain_hl_wk": 6.0,
+  "peak_hl_yr": 2.0,
+  "regain_gated": true,
+  "regain_sum": false,
+  "detrain_status": 2.0,
+  "infeasible": false
+ },
+ "score": 0.5281803643283429,
+ "score_without_garthe11_slow": 0.2529095438703855,
+ "score_point_S_new_registry": 1.5266547987001695,
+ "oracles": [
+  {
+   "name": "year1_kg_20sets",
+   "value": 7.556450473517981,
+   "lo": 6.8,
+   "hi": 8.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.15 McDonald x0.75 (first-harvest calibration)"
+  },
+  {
+   "name": "yr2_over_yr1",
+   "value": 0.449515999957318,
+   "lo": 0.4,
+   "hi": 0.6,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.15 halving; H.49/H.50 year-1 dominance"
+  },
+  {
+   "name": "yr3_over_yr2",
+   "value": 0.5006506265905187,
+   "lo": 0.4,
+   "hi": 0.65,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.15 halving"
+  },
+  {
+   "name": "benito_10wk_kg",
+   "value": 1.450737011169302,
+   "lo": 1.12,
+   "hi": 1.96,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.9 Benito 2020 untrained FFM +1.54 (CI 1.12-1.96)"
+  },
+  {
+   "name": "pelland_30_over_12",
+   "value": 1.6204123296614585,
+   "lo": 1.55,
+   "hi": 2.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.1 Pelland sqrt fit, derived 1.77"
+  },
+  {
+   "name": "h8_3_over_9",
+   "value": 0.461450492485093,
+   "lo": 0.5,
+   "hi": 0.9,
+   "miss": 0.09637376878726747,
+   "weight": 1,
+   "source": "H.8 1 vs 3 sets: +3.7 vs +5.2 % (0.71)"
+  },
+  {
+   "name": "aube_24_over_12",
+   "value": 1.4441203885109244,
+   "lo": 0.7,
+   "hi": 1.4,
+   "miss": 0.06302912644417784,
+   "weight": 1,
+   "source": "H.5 Aube 2022 advanced: 12=18=24 sets"
+  },
+  {
+   "name": "longland_hp_lean",
+   "value": 0.5228650003064317,
+   "lo": 0.6,
+   "hi": 1.8,
+   "miss": 0.0642791664113069,
+   "weight": 1,
+   "source": "S0064 Longland 2.4 g/kg -40 %: +1.2 +/- 1.0 kg"
+  },
+  {
+   "name": "longland_lp_lean",
+   "value": -0.4212890038820234,
+   "lo": -0.4,
+   "hi": 0.6,
+   "miss": 0.021289003882023372,
+   "weight": 1,
+   "source": "S0064 Longland 1.2 g/kg: +0.1 +/- 1.0 kg"
+  },
+  {
+   "name": "longland_hp_fat",
+   "value": -3.6595194196119643,
+   "lo": -5.0,
+   "hi": -3.0,
+   "miss": 0.0,
+   "weight": 0,
+   "source": "S0064 fat -4.8 +/- 1.6 kg (energy side; report)"
+  },
+  {
+   "name": "garthe11_slow_lean",
+   "value": 0.2753374222817513,
+   "lo": 0.8,
+   "hi": 1.8,
+   "miss": 0.5246625777182488,
+   "weight": 1,
+   "source": "Garthe 2011 (PMID 21558571) -19 %: LBM +2.1 %"
+  },
+  {
+   "name": "garthe11_fast_lean",
+   "value": -0.15637476335611922,
+   "lo": -0.6,
+   "hi": 0.4,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Garthe 2011 -30 %: LBM -0.2 %"
+  },
+  {
+   "name": "mk_minus500_lean",
+   "value": -0.20754013114804337,
+   "lo": -0.3,
+   "hi": 0.3,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.28 Murphy & Koehler: -500 kcal/d -> no lean gain"
+  },
+  {
+   "name": "trained_maint_8wk",
+   "value": 0.4070969717299633,
+   "lo": 0.1,
+   "hi": 1.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Helms 2023 MAIN; Antonio 2015 (PMID 26500462) FFM +1.5"
+  },
+  {
+   "name": "trained_maint_premise",
+   "value": 0.4070969717299633,
+   "lo": -0.1,
+   "hi": 0.1,
+   "miss": 1.5354848586498164,
+   "weight": 0,
+   "source": "Angus premise: trained ~0 at maintenance"
+  },
+  {
+   "name": "helms23_high719_over_maint",
+   "value": 1.3278647632358014,
+   "lo": 0.8,
+   "hi": 1.6,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2062/S2063 Helms 2023 HIGH (+719 kcal/d reported): no MT difference"
+  },
+  {
+   "name": "garthe13_lean_ratio",
+   "value": 1.0661433036295154,
+   "lo": 0.8,
+   "hi": 1.35,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S1.30 Garthe 2013: LBM gain not different"
+  },
+  {
+   "name": "garthe13_fat_diff",
+   "value": 3.3242176760555857,
+   "lo": 0.8,
+   "hi": 2.5,
+   "miss": 0.484833927091521,
+   "weight": 1,
+   "source": "S1.30 Garthe 2013: FM +15 % vs +3 %"
+  },
+  {
+   "name": "mettler_lp_share",
+   "value": 0.56921909092098,
+   "lo": 0.35,
+   "hi": 0.7,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Mettler 2010 (PMID 19927027) 1.0 g/kg: 1.6 of 3.0 kg lean"
+  },
+  {
+   "name": "mettler_hp_share",
+   "value": 0.18229532621015493,
+   "lo": 0.05,
+   "hi": 0.35,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Mettler 2010 2.3 g/kg: 0.3 of 1.5 kg lean"
+  },
+  {
+   "name": "quarter_rule_share",
+   "value": 0.22456898837071676,
+   "lo": 0.15,
+   "hi": 0.35,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Heymsfield 2014 (PMID 24447775); S0072 Weinheimer"
+  },
+  {
+   "name": "pasiakos_0.8_minus_1.6",
+   "value": 0.16236486696560648,
+   "lo": 0.1,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Pasiakos 2013 (PMID 23739654) direction (abstract)"
+  },
+  {
+   "name": "bray_15pct_lean",
+   "value": 2.406793930650174,
+   "lo": 1.5,
+   "hi": 3.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S0605 Bray 2012: lean +2.87 kg at 15 % protein"
+  },
+  {
+   "name": "bray_5pct_lean",
+   "value": 0.0,
+   "lo": -0.7,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S0605 Bray 2012: no lean gain at 5 %"
+  },
+  {
+   "name": "bray_muscle_no_signal",
+   "value": 0.0,
+   "lo": -0.05,
+   "hi": 0.05,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.41/H.42/S0606: no muscle without the signal"
+  },
+  {
+   "name": "rantila_kept_frac",
+   "value": 0.4301667349747425,
+   "lo": 0.24,
+   "hi": 0.47,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.51 R\u00e4ntil\u00e4 2025: 24-47 % kept after 10 wk off"
+  },
+  {
+   "name": "rantila_block2_over_1",
+   "value": 0.9385104541180719,
+   "lo": 0.8,
+   "hi": 1.25,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.51 R\u00e4ntil\u00e4: block 2 = block 1"
+  },
+  {
+   "name": "bickel_third_kept",
+   "value": 1.6474688711361072,
+   "lo": 0.85,
+   "hi": 1.8,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.13 Bickel 2011: 1/3 dose kept size 32 wk"
+  },
+  {
+   "name": "bickel_ninth_kept",
+   "value": 1.2635505579688542,
+   "lo": 0.85,
+   "hi": 1.4,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.13 Bickel 2011: 1/9 dose kept size 32 wk"
+  },
+  {
+   "name": "detrain_halflife_wk",
+   "value": 6.714285714285714,
+   "lo": 4.9,
+   "hi": 9.2,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "H.51 R\u00e4ntil\u00e4 derived 4.9-9.2 wk"
+  },
+  {
+   "name": "deg_protein_2pct",
+   "value": 0.028544837088148256,
+   "lo": 1e-05,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "degenerate check: +2 % protein moves lean"
+  },
+  {
+   "name": "deg_surplus_2pct",
+   "value": 0.004867698919170493,
+   "lo": 1e-05,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "degenerate check: +2 % surplus moves lean"
+  },
+  {
+   "name": "deg_sets_5pct",
+   "value": 0.03731060019653398,
+   "lo": 1e-05,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "degenerate check: +5 % sets moves lean"
+  },
+  {
+   "name": "moro16_maint_8wk",
+   "value": 0.017457598071018765,
+   "lo": -0.3,
+   "hi": 0.8,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S3.1 Moro 2016: FFM +0.64/+0.48 kg n.s. (+0.86/+0.64 %)"
+  },
+  {
+   "name": "moro16_tre_minus250",
+   "value": -0.07263419796433368,
+   "lo": -0.5,
+   "hi": 0.8,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S3.1 Moro 2016 TRE: fat 10.90->9.28; -250 kcal/d inferred; FFM held"
+  },
+  {
+   "name": "isola25_controls_46wk",
+   "value": 0.13830074298451223,
+   "lo": -1.0,
+   "hi": 1.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S3.2 Isola 2025: controls no systematic change"
+  },
+  {
+   "name": "helms23_mod489_over_maint",
+   "value": 1.3278647632358014,
+   "lo": 0.8,
+   "hi": 1.6,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2062/S2063 Helms 2023 MOD (+489 kcal/d reported) = maintenance"
+  },
+  {
+   "name": "helms23_high719_minus_maint",
+   "value": 0.13347275225025612,
+   "lo": -0.3,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2062 Helms 2023 HIGH (+719): within one noise band, 8 wk"
+  },
+  {
+   "name": "helms23_mod_minus_main169",
+   "value": 0.024831249353262308,
+   "lo": -0.3,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 0,
+   "source": "S2062 MAIN at its reported +169 (report)"
+  },
+  {
+   "name": "helms23_mod_mass_kg",
+   "value": 3.337129980441617,
+   "lo": 2.5,
+   "hi": 4.1,
+   "miss": 0.0,
+   "weight": 0,
+   "source": "S2033 MOD body mass +3.3 +/- 0.8 kg (report)"
+  },
+  {
+   "name": "helms23_high_mass_kg",
+   "value": 4.701392240795386,
+   "lo": 1.8,
+   "hi": 4.8,
+   "miss": 0.0,
+   "weight": 0,
+   "source": "S2033 HIGH body mass +3.3 +/- 1.5 kg (report)"
+  },
+  {
+   "name": "hens26_lean_250",
+   "value": 0.09360316611577701,
+   "lo": -0.19,
+   "hi": 1.69,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2064/S2065 Henselmans 2026 DXA lean CI, +250 (Atwater)"
+  },
+  {
+   "name": "hens26_lean_485",
+   "value": 0.09360316611577701,
+   "lo": -0.19,
+   "hi": 1.69,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2064/S2065 Henselmans 2026 DXA lean CI, +485 (self-report)"
+  },
+  {
+   "name": "hens26_muscle_pct_250",
+   "value": 0.14705397863512606,
+   "lo": -2.25,
+   "hi": 4.75,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2064 elbow-flexor CI as % of 4.0 cm, +250"
+  },
+  {
+   "name": "hens26_muscle_pct_485",
+   "value": 0.14705397863512606,
+   "lo": -2.25,
+   "hi": 4.75,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "S2064 elbow-flexor CI as % of 4.0 cm, +485"
+  },
+  {
+   "name": "angus_surplus5_1yr_s09",
+   "value": 0.10203542219502992,
+   "lo": 1e-06,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Angus ruling: +5 % for a year beats balance at s = 0.9"
+  },
+  {
+   "name": "angus_surplus5_1yr_s06",
+   "value": 0.4465679245379661,
+   "lo": 1e-06,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "Angus ruling: +5 % for a year beats balance at s = 0.6"
+  },
+  {
+   "name": "deg_full_status",
+   "value": 0.2365113444397896,
+   "lo": 0.05,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "degenerate check: E_full shrinks with s (share of +10 % reached at +5 %)"
+  },
+  {
+   "name": "chk1_s09_bal_dF_pct",
+   "value": 0.0382115616234641,
+   "lo": 0.0,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 1: dF < 0.5 % at balance, 8 wk"
+  },
+  {
+   "name": "chk1_s09_bal_fat_kg",
+   "value": -0.004922777634895681,
+   "lo": -0.5,
+   "hi": 0.5,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 1: fat steady"
+  },
+  {
+   "name": "chk2_s09_surplus_over_bal",
+   "value": 1.800885682691589,
+   "lo": 1.0,
+   "hi": 2.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 2: <= 2x balance"
+  },
+  {
+   "name": "chk2_s09_surplus_dF_pct",
+   "value": 0.06881465424098386,
+   "lo": 0.0,
+   "hi": 1.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 2: < 1 %"
+  },
+  {
+   "name": "chk2_s09_surplus_fat_share",
+   "value": 0.9737739607933508,
+   "lo": 0.5,
+   "hi": 1.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 2: fat carries most of the weight"
+  },
+  {
+   "name": "chk4_s09_contest_minus500",
+   "value": -1.3205987075961332,
+   "lo": -5.0,
+   "hi": 0.0,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "report sec. 9 check 4: dF <= 0 at contest fat"
+  },
+  {
+   "name": "deg_surplus_2pct_s09",
+   "value": 0.007505486325641186,
+   "lo": 1e-06,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 1,
+   "source": "degenerate check: +2 % surplus moves lean at s = 0.9"
+  },
+  {
+   "name": "deg_fbal_status",
+   "value": 0.03359525461830324,
+   "lo": 1e-09,
+   "hi": 99,
+   "miss": 0.0,
+   "weight": 0,
+   "source": "degenerate check: balance growth per headroom falls with s"
+  },
+  {
+   "name": "buechel26_contest_ffm",
+   "value": -0.5635465188507567,
+   "lo": -2.6,
+   "hi": -0.9,
+   "miss": 0.19791381244073136,
+   "weight": 0,
+   "source": "S3.4 Buechel 2026 contest prep (mixed sex; report)"
+  },
+  {
+   "name": "roth23_minus30pct_lean",
+   "value": -0.26987869282115895,
+   "lo": -1.2,
+   "hi": -0.3,
+   "miss": 0.03346811908760116,
+   "weight": 0,
+   "source": "S3.11 Roth 2023 trained men -30 % (report)"
+  }
+ ],
+ "grid_full_drop_x_fbal_drop": [
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.0,
+   "score": 5.486196855058356,
+   "score_without_garthe11_slow": 5.260377556033573
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.1,
+   "score": 0.49405789544976286,
+   "score_without_garthe11_slow": 0.2587273465860325
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.2,
+   "score": 0.502120118825545,
+   "score_without_garthe11_slow": 0.257088310314492
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.25,
+   "score": 0.5062265297118813,
+   "score_without_garthe11_slow": 0.2562729869338183
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.3,
+   "score": 0.5103830620106715,
+   "score_without_garthe11_slow": 0.2554604626035293
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.4,
+   "score": 0.5188462536073177,
+   "score_without_garthe11_slow": 0.25384381867141115
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.5,
+   "score": 0.5275092140284832,
+   "score_without_garthe11_slow": 0.25223839357052574
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.6,
+   "score": 0.5586027436950625,
+   "score_without_garthe11_slow": 0.27287549034972164
+  },
+  {
+   "full_drop": 0.3,
+   "fbal_drop": 0.7,
+   "score": 0.9899505081327828,
+   "score_without_garthe11_slow": 0.6935792851161398
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.0,
+   "score": 5.486196855058356,
+   "score_without_garthe11_slow": 5.260377556033573
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.1,
+   "score": 0.49412491256780966,
+   "score_without_garthe11_slow": 0.2587943637040793
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.2,
+   "score": 0.5022530114970746,
+   "score_without_garthe11_slow": 0.2572212029860216
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.25,
+   "score": 0.5063919323456864,
+   "score_without_garthe11_slow": 0.2564383895676233
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.3,
+   "score": 0.5105806895466318,
+   "score_without_garthe11_slow": 0.2556580901394896
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.4,
+   "score": 0.5191074762336347,
+   "score_without_garthe11_slow": 0.25410504129772815
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.5,
+   "score": 0.5278328929239476,
+   "score_without_garthe11_slow": 0.2525620724659902
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.6,
+   "score": 0.5589877410308093,
+   "score_without_garthe11_slow": 0.27326048768546846
+  },
+  {
+   "full_drop": 0.4,
+   "fbal_drop": 0.7,
+   "score": 0.9903956871105615,
+   "score_without_garthe11_slow": 0.6940244640939184
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.0,
+   "score": 5.486196855058356,
+   "score_without_garthe11_slow": 5.260377556033573
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.1,
+   "score": 0.49419674091409826,
+   "score_without_garthe11_slow": 0.2588661920503679
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.2,
+   "score": 0.5023955006698474,
+   "score_without_garthe11_slow": 0.2573636921587944
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.25,
+   "score": 0.506569314257118,
+   "score_without_garthe11_slow": 0.256615771479055
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.3,
+   "score": 0.5107926724962455,
+   "score_without_garthe11_slow": 0.25587007308910326
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.4,
+   "score": 0.5193877864148537,
+   "score_without_garthe11_slow": 0.25438535147894714
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.5,
+   "score": 0.5281803643283429,
+   "score_without_garthe11_slow": 0.2529095438703855
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.6,
+   "score": 0.559401208220337,
+   "score_without_garthe11_slow": 0.2736739548749962
+  },
+  {
+   "full_drop": 0.5,
+   "fbal_drop": 0.7,
+   "score": 0.9908739852498323,
+   "score_without_garthe11_slow": 0.6945027622331892
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.0,
+   "score": 5.486196855058356,
+   "score_without_garthe11_slow": 5.260377556033573
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.1,
+   "score": 0.49427424807903364,
+   "score_without_garthe11_slow": 0.2589436992153033
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.2,
+   "score": 0.5025493306772522,
+   "score_without_garthe11_slow": 0.25751752216619916
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.25,
+   "score": 0.5067608615110162,
+   "score_without_garthe11_slow": 0.25680731873295315
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.3,
+   "score": 0.511021640854569,
+   "score_without_garthe11_slow": 0.2560990414474268
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.4,
+   "score": 0.5196907084901016,
+   "score_without_garthe11_slow": 0.254688273554195
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.5,
+   "score": 0.5285560553738566,
+   "score_without_garthe11_slow": 0.2532852349158992
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.6,
+   "score": 0.5598484834037752,
+   "score_without_garthe11_slow": 0.2741212300584344
+  },
+  {
+   "full_drop": 0.6,
+   "fbal_drop": 0.7,
+   "score": 0.9913916596824486,
+   "score_without_garthe11_slow": 0.6950204366658055
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.0,
+   "score": 5.486196855058356,
+   "score_without_garthe11_slow": 5.260377556033573
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.1,
+   "score": 0.4943158332946157,
+   "score_without_garthe11_slow": 0.25898528443088537
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.2,
+   "score": 0.5026310615750642,
+   "score_without_garthe11_slow": 0.2575992530640112
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.25,
+   "score": 0.5068621251882759,
+   "score_without_garthe11_slow": 0.25690858241021286
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.3,
+   "score": 0.5111420771475212,
+   "score_without_garthe11_slow": 0.256219477740379
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.4,
+   "score": 0.5198484091673233,
+   "score_without_garthe11_slow": 0.25484597423141675
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.5,
+   "score": 0.5287495787290831,
+   "score_without_garthe11_slow": 0.2534787582711257
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.6,
+   "score": 0.5600763870644151,
+   "score_without_garthe11_slow": 0.27434913371907427
+  },
+  {
+   "full_drop": 0.7,
+   "fbal_drop": 0.7,
+   "score": 0.9916525006379548,
+   "score_without_garthe11_slow": 0.6952812776213118
+  }
+ ],
+ "fine_fbal_drop": [
+  [
+   0.4,
+   0.5194,
+   0.2544,
+   1.5506
+  ],
+  [
+   0.45,
+   0.5238,
+   0.2536,
+   1.6663
+  ],
+  [
+   0.5,
+   0.5282,
+   0.2529,
+   1.8009
+  ],
+  [
+   0.525,
+   0.5304,
+   0.2525,
+   1.8768
+  ],
+  [
+   0.55,
+   0.5327,
+   0.2522,
+   1.9595
+  ],
+  [
+   0.56,
+   0.5336,
+   0.252,
+   1.9947
+  ],
+  [
+   0.57,
+   0.5354,
+   0.2529,
+   2.0311
+  ],
+  [
+   0.58,
+   0.5401,
+   0.2565,
+   2.069
+  ],
+  [
+   0.6,
+   0.5594,
+   0.2737,
+   2.1491
+  ]
+ ],
+ "joint_optimum": {
+  "with_garthe11_slow": {
+   "full_drop": 0.4,
+   "fbal_drop": 0.1
+  },
+  "without_garthe11_slow": {
+   "full_drop": 0.3,
+   "fbal_drop": 0.5
+  }
+ },
+ "profile": {
+  "beta": [
+   [
+    1.5,
+    0.8396,
+    0.4385
+   ],
+   [
+    2.0,
+    0.7008,
+    0.3242
+   ],
+   [
+    2.5,
+    0.6053,
+    0.2664
+   ],
+   [
+    3.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    3.5,
+    0.7225,
+    0.577
+   ]
+  ],
+  "Sg0": [
+   [
+    0.5,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.7,
+    0.6018,
+    0.4046
+   ],
+   [
+    0.85,
+    1.5478,
+    1.4363
+   ],
+   [
+    1.0,
+    12.1427,
+    12.1416
+   ]
+  ],
+  "Smax1": [
+   [
+    12.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    15.0,
+    0.7099,
+    0.3867
+   ],
+   [
+    20.0,
+    1.2665,
+    0.9157
+   ],
+   [
+    30.0,
+    1.5756,
+    1.2248
+   ]
+  ],
+  "E0": [
+   [
+    -400.0,
+    1.0582,
+    0.4244
+   ],
+   [
+    -500.0,
+    0.8343,
+    0.4057
+   ],
+   [
+    -575.0,
+    0.6001,
+    0.2624
+   ],
+   [
+    -650.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    -800.0,
+    0.4465,
+    0.2496
+   ],
+   [
+    -1000.0,
+    0.3884,
+    0.2488
+   ]
+  ],
+  "E0_drop": [
+   [
+    0.0,
+    0.4825,
+    0.2527
+   ],
+   [
+    0.25,
+    0.5036,
+    0.2528
+   ],
+   [
+    0.4,
+    0.5179,
+    0.2529
+   ],
+   [
+    0.5,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.6,
+    0.5391,
+    0.2529
+   ],
+   [
+    0.75,
+    0.5569,
+    0.253
+   ]
+  ],
+  "fbal0": [
+   [
+    0.85,
+    0.6239,
+    0.2772
+   ],
+   [
+    0.925,
+    0.5668,
+    0.257
+   ],
+   [
+    1.0,
+    0.5282,
+    0.2529
+   ]
+  ],
+  "fbal_drop": [
+   [
+    0.0,
+    5.4862,
+    5.2604
+   ],
+   [
+    0.1,
+    0.4942,
+    0.2589
+   ],
+   [
+    0.2,
+    0.5024,
+    0.2574
+   ],
+   [
+    0.25,
+    0.5066,
+    0.2566
+   ],
+   [
+    0.3,
+    0.5108,
+    0.2559
+   ],
+   [
+    0.4,
+    0.5194,
+    0.2544
+   ],
+   [
+    0.5,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.6,
+    0.5594,
+    0.2737
+   ],
+   [
+    0.7,
+    0.9909,
+    0.6945
+   ]
+  ],
+  "a_nov": [
+   [
+    0.0,
+    1.4987,
+    0.6016
+   ],
+   [
+    1.4,
+    1.046,
+    0.429
+   ],
+   [
+    2.8,
+    0.7565,
+    0.2983
+   ],
+   [
+    4.2,
+    0.6238,
+    0.2655
+   ],
+   [
+    6.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    8.0,
+    0.4653,
+    0.2493
+   ]
+  ],
+  "surplus_full": [
+   [
+    0.05,
+    1.5361,
+    1.2609
+   ],
+   [
+    0.075,
+    0.5318,
+    0.2565
+   ],
+   [
+    0.1,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.15,
+    0.5246,
+    0.2493
+   ]
+  ],
+  "full_drop": [
+   [
+    0.3,
+    0.5275,
+    0.2522
+   ],
+   [
+    0.4,
+    0.5278,
+    0.2526
+   ],
+   [
+    0.5,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.6,
+    0.5286,
+    0.2533
+   ],
+   [
+    0.7,
+    0.5287,
+    0.2535
+   ]
+  ],
+  "wT": [
+   [
+    0.2,
+    0.8977,
+    0.4046
+   ],
+   [
+    0.35,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.5,
+    0.5277,
+    0.2525
+   ],
+   [
+    0.65,
+    0.5308,
+    0.2555
+   ]
+  ],
+  "wP": [
+   [
+    0.3,
+    1.6518,
+    0.6598
+   ],
+   [
+    0.45,
+    0.7849,
+    0.2919
+   ],
+   [
+    0.6,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.75,
+    0.5277,
+    0.2525
+   ]
+  ],
+  "prot_floor": [
+   [
+    0.05,
+    0.4435,
+    0.2491
+   ],
+   [
+    0.1,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.15,
+    0.6353,
+    0.2611
+   ],
+   [
+    0.3,
+    1.1771,
+    0.3777
+   ]
+  ],
+  "pdef_hi": [
+   [
+    1.6,
+    0.5282,
+    0.2529
+   ],
+   [
+    2.0,
+    0.6694,
+    0.2952
+   ],
+   [
+    2.4,
+    1.1061,
+    0.3926
+   ],
+   [
+    2.8,
+    1.5183,
+    0.5263
+   ]
+  ],
+  "detrain_hl_wk": [
+   [
+    4.9,
+    0.5282,
+    0.2529
+   ],
+   [
+    6.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    7.0,
+    0.5339,
+    0.2587
+   ],
+   [
+    8.0,
+    0.6078,
+    0.3325
+   ],
+   [
+    9.2,
+    0.8284,
+    0.5531
+   ]
+  ],
+  "regain_hl_wk": [
+   [
+    3.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    4.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    6.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    8.0,
+    0.5282,
+    0.2529
+   ]
+  ],
+  "m": [
+   [
+    0.2,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.333,
+    0.5282,
+    0.2529
+   ],
+   [
+    0.5,
+    0.5282,
+    0.2529
+   ]
+  ],
+  "grace_d": [
+   [
+    7,
+    0.5282,
+    0.2529
+   ],
+   [
+    14,
+    0.5282,
+    0.2529
+   ],
+   [
+    21,
+    0.5299,
+    0.2547
+   ]
+  ],
+  "detrain_status": [
+   [
+    0.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    1.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    2.0,
+    0.5282,
+    0.2529
+   ],
+   [
+    3.0,
+    0.5282,
+    0.2529
+   ]
+  ]
+ },
+ "stability": {
+  "k": {
+   "x0.95": [
+    0.5557,
+    49
+   ],
+   "x1.05": [
+    0.503,
+    49
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "beta": {
+   "x0.95": [
+    0.5215,
+    48
+   ],
+   "x1.05": [
+    0.545,
+    48
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "Sg0": {
+   "x0.95": [
+    0.5222,
+    48
+   ],
+   "x1.05": [
+    0.5361,
+    48
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "Smax1": {
+   "x0.95": [
+    0.5242,
+    20
+   ],
+   "x1.05": [
+    0.5392,
+    20
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "E0": {
+   "x0.95": [
+    0.554,
+    9
+   ],
+   "x1.05": [
+    0.5059,
+    9
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "E0_drop": {
+   "x0.95": [
+    0.5255,
+    8
+   ],
+   "x1.05": [
+    0.5309,
+    8
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "fbal0": {
+   "x0.95": [
+    0.5534,
+    45
+   ],
+   "x1.05": [
+    1.5053,
+    45
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "fbal_drop": {
+   "x0.95": [
+    0.526,
+    44
+   ],
+   "x1.05": [
+    0.5304,
+    44
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "a_nov": {
+   "x0.95": [
+    0.5407,
+    8
+   ],
+   "x1.05": [
+    0.5166,
+    8
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "surplus_full": {
+   "x0.95": [
+    0.5288,
+    14
+   ],
+   "x1.05": [
+    0.5277,
+    14
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "wT": {
+   "x0.95": [
+    0.5297,
+    3
+   ],
+   "x1.05": [
+    0.5277,
+    3
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "wP": {
+   "x0.95": [
+    0.5294,
+    5
+   ],
+   "x1.05": [
+    0.5277,
+    5
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "prot_floor": {
+   "x0.95": [
+    0.5187,
+    9
+   ],
+   "x1.05": [
+    0.5378,
+    9
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "pdef_hi": {
+   "x0.95": [
+    0.5277,
+    4
+   ],
+   "x1.05": [
+    0.531,
+    5
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "detrain_hl_wk": {
+   "x0.95": [
+    0.5282,
+    3
+   ],
+   "x1.05": [
+    0.5282,
+    3
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "regain_hl_wk": {
+   "x0.95": [
+    0.5282,
+    1
+   ],
+   "x1.05": [
+    0.5282,
+    1
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "m": {
+   "x0.95": [
+    0.5282,
+    0
+   ],
+   "x1.05": [
+    0.5282,
+    0
+   ],
+   "flat": true,
+   "cliff": false
+  },
+  "grace_d": {
+   "x0.95": [
+    0.5282,
+    2
+   ],
+   "x1.05": [
+    0.5282,
+    0
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "forbes_c": {
+   "x0.95": [
+    0.5225,
+    15
+   ],
+   "x1.05": [
+    0.5342,
+    15
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "x_max_frac": {
+   "x0.95": [
+    0.5282,
+    0
+   ],
+   "x1.05": [
+    0.5282,
+    0
+   ],
+   "flat": true,
+   "cliff": false
+  },
+  "detrain_status": {
+   "x0.95": [
+    0.5282,
+    2
+   ],
+   "x1.05": [
+    0.5282,
+    2
+   ],
+   "flat": false,
+   "cliff": false
+  },
+  "full_drop": {
+   "x0.95": [
+    0.5281,
+    14
+   ],
+   "x1.05": [
+    0.5283,
+    14
+   ],
+   "flat": false,
+   "cliff": false
+  }
+ },
+ "at_bound": [
+  "Sg0",
+  "Smax1",
+  "fbal0",
+  "pdef_hi"
+ ],
+ "grid": {
+  "beta": [
+   1.5,
+   2.0,
+   2.5,
+   3.0,
+   3.5
+  ],
+  "Sg0": [
+   0.5,
+   0.7,
+   0.85,
+   1.0
+  ],
+  "Smax1": [
+   12.0,
+   15.0,
+   20.0,
+   30.0
+  ],
+  "E0": [
+   -400.0,
+   -500.0,
+   -575.0,
+   -650.0,
+   -800.0,
+   -1000.0
+  ],
+  "E0_drop": [
+   0.0,
+   0.25,
+   0.4,
+   0.5,
+   0.6,
+   0.75
+  ],
+  "fbal0": [
+   0.85,
+   0.925,
+   1.0
+  ],
+  "fbal_drop": [
+   0.0,
+   0.1,
+   0.2,
+   0.25,
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7
+  ],
+  "a_nov": [
+   0.0,
+   1.4,
+   2.8,
+   4.2,
+   6.0,
+   8.0
+  ],
+  "surplus_full": [
+   0.05,
+   0.075,
+   0.1,
+   0.15
+  ],
+  "full_drop": [
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7
+  ],
+  "wT": [
+   0.2,
+   0.35,
+   0.5,
+   0.65
+  ],
+  "wP": [
+   0.3,
+   0.45,
+   0.6,
+   0.75
+  ],
+  "prot_floor": [
+   0.05,
+   0.1,
+   0.15,
+   0.3
+  ],
+  "pdef_hi": [
+   1.6,
+   2.0,
+   2.4,
+   2.8
+  ],
+  "detrain_hl_wk": [
+   4.9,
+   6.0,
+   7.0,
+   8.0,
+   9.2
+  ],
+  "regain_hl_wk": [
+   3.0,
+   4.0,
+   6.0,
+   8.0
+  ],
+  "m": [
+   0.2,
+   0.333,
+   0.5
+  ],
+  "grace_d": [
+   7,
+   14,
+   21
+  ],
+  "detrain_status": [
+   0.0,
+   1.0,
+   2.0,
+   3.0
+  ]
+ },
+ "candidates": 54,
+ "fit_sha256": "e535f9a6ad5204cf6ecd77d9cf6228d4b903eba53c7b9877f6bfb2cf037c4203"
+}

@@ -1,0 +1,37 @@
+== T: k = 0.00991
+  Weak    levels yr1-10 [6.59, 9.5, 10.89, 11.68, 12.17, 12.51, 12.76, 12.95, 13.09, 13.21]  yrs to L10 2.29  to L15 None
+  Feeble  levels yr1-10 [8.89, 11.48, 12.72, 13.43, 13.87, 14.17, 14.39, 14.56, 14.69, 14.79]  yrs to L10 1.34  to L15 None
+  none    levels yr1-10 [10.41, 12.81, 13.95, 14.59, 15.0, 15.28, 15.48, 15.63, 15.75, 15.85]  yrs to L10 0.89  to L15 5.0
+  Stout   levels yr1-10 [11.94, 14.13, 15.17, 15.76, 16.13, 16.39, 16.57, 16.71, 16.82, 16.9]  yrs to L10 0.5  to L15 2.79
+  Strong  levels yr1-10 [13.47, 15.45, 16.39, 16.92, 17.26, 17.49, 17.66, 17.78, 17.88, 17.96]  yrs to L10 0.16  to L15 1.69
+  average, kg gained per year at 20 sets: [7.82, 3.47, 1.65, 0.92, 0.59]
+  S= 3 sets/wk: level yr1 6.83 yr5 10.14 yr10 11.30 (y1 kg 2.64)
+  S= 6 sets/wk: level yr1 7.94 yr5 12.30 yr10 13.64 (y1 kg 4.25)
+  S=10 sets/wk: level yr1 8.91 yr5 13.77 yr10 15.08 (y1 kg 5.65)
+  S=15 sets/wk: level yr1 9.77 yr5 14.77 yr10 15.79 (y1 kg 6.89)
+  S=20 sets/wk: level yr1 10.41 yr5 15.00 yr10 15.85 (y1 kg 7.82)
+  S=30 sets/wk: level yr1 10.87 yr5 15.05 yr10 15.86 (y1 kg 8.48)
+  detraining from L 13.95 (yr 3): (week, level, share of gain kept) [(4, 13.15, 0.911), (12, 10.3, 0.593), (24, 7.25, 0.251)]
+  regain novice 1 yr: peak L 10.41, after 26 wk off L 5.75, weeks to recover 90 % of the loss: 26
+  regain advanced 5 yr: peak L 15.00, after 26 wk off L 7.35, weeks to recover 90 % of the loss: 66
+== T: novice cases (average untrained, 1.70 m, 14 % fat = 8.5 kg; and an overweight novice, 20 kg fat)
+  fat0  8.47 kg | recomp -500 kcal, 2.4 g/kg     (week, dMuscle, dLabileLean, dFat) [(1, 0.177, 0.0, -0.405), (2, 0.348, 0.0, -0.808), (4, 0.676, 0.0, -1.613), (8, 1.174, 0.0, -3.192), (12, 1.46, 0.0, -4.73), (16, 1.555, 0.0, -6.231)]
+  fat0  8.47 kg | maintenance, 1.6 g/kg          (week, dMuscle, dLabileLean, dFat) [(1, 0.223, 0.0, -0.043), (2, 0.44, 0.0, -0.085), (4, 0.859, 0.0, -0.165), (8, 1.642, 0.0, -0.316), (12, 2.359, 0.0, -0.454), (16, 3.017, 0.0, -0.58)]
+  fat0  8.47 kg | surplus +10 % (+260), 1.6 g/kg (week, dMuscle, dLabileLean, dFat) [(1, 0.223, 0.0, 0.15), (2, 0.442, 0.0, 0.3), (4, 0.87, 0.0, 0.604), (8, 1.682, 0.0, 1.219), (12, 2.44, 0.0, 1.844), (16, 3.148, 0.0, 2.479)]
+  fat0 20.00 kg | recomp -500 kcal, 2.4 g/kg     (week, dMuscle, dLabileLean, dFat) [(1, 0.185, 0.0, -0.406), (2, 0.365, 0.0, -0.812), (4, 0.713, 0.0, -1.62), (8, 1.357, 0.0, -3.227), (12, 1.941, 0.0, -4.822), (16, 2.471, 0.0, -6.407)]
+  fat0 20.00 kg | maintenance, 1.6 g/kg          (week, dMuscle, dLabileLean, dFat) [(1, 0.223, 0.0, -0.043), (2, 0.44, 0.0, -0.085), (4, 0.859, 0.0, -0.165), (8, 1.642, 0.0, -0.316), (12, 2.359, 0.0, -0.454), (16, 3.017, 0.0, -0.58)]
+  fat0 20.00 kg | surplus +10 % (+260), 1.6 g/kg (week, dMuscle, dLabileLean, dFat) [(1, 0.223, 0.0, 0.15), (2, 0.442, 0.0, 0.3), (4, 0.87, 0.0, 0.604), (8, 1.682, 0.0, 1.219), (12, 2.44, 0.0, 1.844), (16, 3.148, 0.0, 2.479)]
+  Longland conditions p=2.4, -1200 kcal, 4 wk: lean +0.52 (muscle +0.52, labile +0.00), fat -3.66
+  Longland conditions p=1.2, -1200 kcal, 4 wk: lean -0.42 (muscle -0.42, labile +0.00), fat -3.48
+== T: s = 0.6 (level 11.90), one year, 20 sets/wk, TDEE 2800, fat 11.0 kg
+  maintenance,         2.0 g/kg: muscle +1.71 kg, labile +0.00, fat -0.33, level 11.90 -> 13.09
+  +5 % (+140 kcal/d),  2.0 g/kg: muscle +2.16 kg, labile +0.00, fat +4.98, level 11.90 -> 13.39
+  +10 % (+280 kcal/d), 2.0 g/kg: muscle +2.29 kg, labile +0.00, fat +10.35, level 11.90 -> 13.49
+  bulk +10 % (18 wk, 1.8 g/kg) / cut -500 (8 wk, 2.4 g/kg) x2: muscle +1.63 kg, labile +0.00, fat +1.23, level -> 13.03  [('bulk1', 0.99, 3.55), ('cut1', 0.94, 0.59), ('bulk2', 1.71, 4.18), ('cut2', 1.63, 1.23)]
+== T: s = 0.9 (level 15.35), one year, 20 sets/wk, TDEE 2800, fat 11.0 kg
+  maintenance,         2.0 g/kg: muscle +0.15 kg, labile +0.00, fat -0.03, level 15.35 -> 15.46
+  +5 % (+140 kcal/d),  2.0 g/kg: muscle +0.26 kg, labile +0.00, fat +5.35, level 15.35 -> 15.53
+  +10 % (+280 kcal/d), 2.0 g/kg: muscle +0.27 kg, labile +0.00, fat +10.74, level 15.35 -> 15.53
+  bulk +10 % (18 wk, 1.8 g/kg) / cut -500 (8 wk, 2.4 g/kg) x2: muscle -0.06 kg, labile +0.00, fat +1.55, level -> 15.31  [('bulk1', 0.1, 3.72), ('cut1', -0.03, 0.78), ('bulk2', 0.07, 4.49), ('cut2', -0.06, 1.55)]
+  (novice, same year at maintenance: muscle +7.15, fat -1.38)
+
