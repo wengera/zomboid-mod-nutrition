@@ -32,7 +32,8 @@
   - § 4: claims and science rows, minted in the commit that lands their evidence.
   - § 5: every live step, from `pzt doctor` and the 12 GB memory check to the foreground wait and the frozen driver.
   - § 6: process, lanes, models, rulings and pathspec commits.
-- **The `mod/` lane is serial.** Tasks 3 to 18 edit `mod/` one at a time, in order. Tasks 2, 23 and the live tasks' libs run in the docs or tests lane beside them, on disjoint files. No live boot overlaps an offline `mod/` edit (§ 5).
+- **The `mod/` lane is serial.** Tasks 3 to 18 edit `mod/` one at a time, in order. Task 2 is a pure-kernel task and runs in a worktree, reaching `main` by the controller's cherry-pick after its `Task 2: complete` line (§ 6, ruling 13-40); Task 23 and the live tasks' libs run in the docs lane beside the `mod/` lane, on disjoint files. No live boot overlaps an offline `mod/` edit (§ 5), except Tasks 0 and 1, whose profiles load no `mod/` file (§ 5's reason is that the boot loads the whole tree; ruling 13-39).
+- **The order** is 0 → 1 → (2, 3, 4) → 5 → … → 18 → 19 → 22 → 23 → 24. Task 5 waits for Tasks 1 and 2 (it imports Task 2's `strength_model` and labels `xpPerSet` with Task 1's run id). A close-wave change to a code path a live run measured is re-smoked or named as a skew note (ruling 13-39).
 - **Refactor heavily as you go** (Angus, 2026-10-12). Each code task names its refactor scope, and each review judges structure and performance beside correctness.
 - **No backward compatibility.** The mod is unreleased. Removed fields (`l0`, `lm0`, `shownL`, `n`, `nPeak`, `nHist`, `cumDef`, `vStr`, `vHyp`, `vStrHigh`, `riseHeldH`, `lastFallAge`, `r`, `fm0`) are dropped from `K.store.INPUTS`, never migrated, and a corrupt record heals fresh.
 - **Rule 6.** The `AddXP` capture is an event-driven add with no clock work. Growth, the traits and the level write run at the day close, once per player per online game day. Task 12 benches the day close before and after. Every task that changes a per-minute adapter (Tasks 4, 12, 14, 15) adds a Java-call-count stub test against the build before.
@@ -42,7 +43,7 @@
 - **Frozen files.** A driver is never edited after its run. A test of a frozen lib that reads a removed field is deleted by name under a ledgered ruling, and the pytest baseline is reset by name at the close.
 
 ## The constants block (point T; the one place a refit amends)
-This table is the plan's only copy of the point-T values (refit 2, which superseded point S; spec § 5.2). Task 2 asserts that `testing/tests/kernel/strength_model.py`'s `POINT_T` equals `compact_T.json`'s `"chosen"`, and Task 5 asserts that `K.strength.DEFAULTS` equals `POINT_T` key by key. Every task below names keys, never numbers. A refit (ruling 13-1) amends the compact JSON the tests name, this table and the one Lua block, and nothing else.
+This table is the plan's only copy of the point-T values (refit 2, which superseded point S; spec § 5.2). Task 2 asserts that `testing/tests/kernel/strength_model.py`'s `POINT_T` equals `compact_T.json`'s `"chosen"`, and Task 5 asserts that `K.strength.DEFAULTS` equals `POINT_T` key by key. Every task below names keys, never numbers. A refit (ruling 13-1) amends the compact JSON the tests name, this table, the one Lua block, the option file's declared defaults (`sandbox-options.txt`, which Task 11's test binds) and the trait descriptions where they restate a constant, and nothing else.
 
 | Key (oracle and kernel) | Point T value | Spec name | Option (§ 10) |
 |---|---|---|---|
@@ -90,11 +91,15 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 | `incidental` | 0.35 | non-exercise grant weight | `NR.StrengthIncidentalWeight` |
 | `fMinShare` | 0.35 | F's floor as a share of F0 (the model's `0.35 * F0`) | fixed |
 | `fmMin` | 0.5 kg | the fat floor (`K.partition.FM_MIN`) | fixed |
+| `nov_p0` | 1.6 g/kg/d | the novice deficit deepening's ramp start (the oracle's literal, spec § 5) | fixed |
+| `nov_pspan` | 0.8 g/kg/d | that ramp's span | fixed |
+| `xs_p0` | 0.8 g/kg/d | the surplus share's protein ramp start (the oracle's literal `(p - 0.8) / 0.8`, spec § 5.1) | fixed |
+| `xs_pspan` | 0.8 g/kg/d | that ramp's span | fixed |
 
 `K.HEIGHT_M = 1.70` (spec § 2) lives in `NR_Kernel.lua`, outside the table, because `K.acute`, `K.body`, `K.traits` and `K.strength` all read it (ruling 13-4).
 
 ## Rulings this plan carries
-- **13-1 (one constants block).** Ruling: every constant of the growth law, the energy gate and the lean partition is written once, in `K.strength.DEFAULTS`, under the oracle's key names, with a test binding it to `strength_model.POINT_T` and that to `compact_T.json` (point T); task text names keys, never point-T numbers — a harvest on small surpluses in trained lifters is running and a refit may follow, so a refit must amend one block, one JSON and this plan's table — cost if wrong: none; a table indirection costs one Lua index per read at the day close.
+- **13-1 (one constants block).** Ruling: every constant of the growth law, the energy gate and the lean partition is written once, in `K.strength.DEFAULTS`, under the oracle's key names, with a test binding it to `strength_model.POINT_T` and that to `compact_T.json` (point T); task text names keys, never point-T numbers — a harvest on small surpluses in trained lifters is running and a refit may follow, so a refit must amend one block, one JSON, this plan's table, the option file's declared defaults and the trait descriptions — cost if wrong: none; a table indirection costs one Lua index per read at the day close.
 - **13-2 (the oracle's flags).** Ruling: the tracked oracle keeps the fit's daily step verbatim, so it reproduces `compact_T.json`, and gains a flag `exact` (default False) that switches on the four places where the spec states a form the fit did not run. With `exact=True`: detraining is integrated exactly over the day; the labile lean decays on every day with no surplus left after growth (the fit decayed it only at `E == 0` exactly, which a live day never meets); growth's energy cost is charged at `grow / ts`; and the biology clock `ts` scales growth, regain, detraining, the peak decay and divides the grace days. The kernel reproduces the oracle with `exact=True`. Task 2 re-scores the registry under it and pins every value — the spec states exact detraining (§ 6) and a time scale (§ 10), which the fit ran at `ts = 1` with an Euler step — cost if wrong: the detraining half-life oracle moves by a few hundredths of a week; Task 2 asserts every weighted oracle that passed under the record still passes.
 - **13-3 (growth's energy cost under a time scale).** Ruling: at `ts > 1` the lean a day gains is `grow` (scaled) while the energy it costs is `grow / ts · RHO_LEAN` — the time scale compresses muscle biology, not the food clock, and charging the scaled gain would bill a compressed server's trainee up to 30 days of tissue energy a game day — cost if wrong: lean is cheaper than real at `ts > 1`; at the default `ts = 1` nothing differs.
 - **13-4 (height).** Ruling: `K.HEIGHT_M = 1.70` in `NR_Kernel.lua`, and `K.acute.HEIGHT_M` is removed, with `K.acute.refeed`'s BMI reading `K.HEIGHT_M` — `NR_Kernel_Acute.lua` sorts before `NR_Kernel_Body.lua`, so a file-scope read of a body constant would be nil; the core file loads first — cost if wrong: none.
@@ -113,7 +118,31 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 - **13-17 (the female fat cuts).** Ruling: with `NR.SexSpecific` on, a female character reads Kelly 2009's female FMI cuts from the settled row S2057 (excess fat above 9, obese class I above 13 kg/m²), and the male cuts come from S2056 — both rows were minted at b6b73a49 — cost if wrong: none; the option defaults off.
 - **13-18 (the Training adapter).** Ruling: `NR_Server_Training.lua` is deleted and `test_training_shape.py` with it; `K.training` keeps the aerobic side (`metMinutes`, `band`, `sample`, `climbCredit`, `closeDay`, `weekMinutes`), and the resistance side (`event`, `loadMinute`, `actionMinute`, `decay`, `doses`, `W_STR`, the `S_*` and `K_*` constants, `MAINTAIN_HIGH`, `TAU_V_DAYS`) goes. The capture lives in `NR_Server_Strength.lua`, the module that owns Strength — the file's whole content was the resistance side (spec § 9.2) — cost if wrong: none.
 - **13-19 (the panel's Strength row).** Ruling: the mirror carries `body_level`, the true level to two decimals' precision as a number, and `body_sets`, the closed week's S; the view shows "Strength 12.3" on the Bands level and up, under the body block. The old `body_shownL`, `body_dStr` and `body_dHyp` keys go — spec § 2's panel line — cost if wrong: none.
-- **13-20 (`lx` in mass).** Ruling: `lx` counts in the weight slot (`fm + lm + lx`), the `mass7` ring, the trailing weight readers and `K.energy.ree`'s mass input only where that input is total mass; REE's lean term keeps reading `body.lm` (`NR_Kernel_Energy.lua:263`) — spec § 5.1: weight, not level or REE — cost if wrong: none.
+- **13-20 (`lx` in mass).** Ruling: `lx` counts in the weight slot (`fm + lm + lx`), the `mass7` ring, the trailing weight readers and `K.energy.minute`'s total-mass terms (`NR_Kernel_Energy.lua:264` and `:267`, the activity bill and the exercise kcal per kg of total mass); REE's lean term keeps reading `body.lm` (`NR_Kernel_Energy.lua:263`; `ree` takes `lm` only) — spec § 5.1: weight, not level or REE — cost if wrong: none.
+- **13-21 (F1, the curve check's inputs).** Ruling: Task 8's curve check runs at `p = 2.0` and `E = 0.10 · tdee`, where `f_e = 1` at every status (E_full(s) is at most 0.10 · TDEE), so it reproduces the anchor of `fast_grow` (level 15 at 5 years); the parity test at `E = 130` stays and covers the partial-gate path — the spec's "full gates" is exactly that, and `E = 130` is half of E_full(0), which gives 14.879 — cost if wrong: none.
+- **13-22 (F2, the Räntilä bound).** Ruling: Task 8 asserts the oracle's band (`0.80 <= ratio <= 1.25`, `rantila_block2_over_1`) and pins the exact-mode ratio from Task 2's `EXACT_PINS` to 1e-9; the stated 0.94 was a rounding of a value below it (0.9385 Euler, 0.93811 exact) — cost if wrong: none.
+- **13-23 (F3, the detraining test).** Ruling: Task 2's half-life test runs with `detrain_status = 0` and asserts the ratio is 0.5 within 0.01; the status term, which shortens the half-life as F falls (0.4421 at point T), is left to Task 8's one-day-factor test — the plan's old band had the direction backwards and could not pass — cost if wrong: none.
+- **13-24 (F4, BeyondTen's global).** Ruling: BeyondTen is detected as `BeyondTen ~= nil and BeyondTen.API_VERSION == 1` and called as `BeyondTen.SetStoredXP` and `BeyondTen.GetTotalMasteryCost` (its `Shared.lua:1-6` reads `BeyondTen = BeyondTen or {}`; `BT` is a local of its files); Task 14's stub sets the global `BeyondTen`; spec § 7's wording is corrected at the close (Task 24) — the install's file is the ground truth — cost if wrong: none.
+- **13-25 (F5, the trait descriptions).** Ruling: the restated blocks point `UIDescription` at new mod keys `UI_NR_trait_<id>desc`, so no vanilla key is redefined and `test_shape` and `test_no_vanilla_key_redefined` hold; `test_every_ui_key_is_read` gains the script-referenced keys read off `NR_Traits_Body.txt`; Task 0 check 3's marker override stays as a reading — cost if wrong: if Angus wants the vanilla keys overridden, the two tests need a ruled exception list.
+- **13-26 (F6, the harness reads).** Ruling: Task 0's harness commit adds a client `perk.xp` twin (`<PerkName>` → `{perk, side, xp, level}`); a server `bt.stored <user> <Perk>` (a pcall'd BeyondTen read, nil-safe when absent) lands in its own harness commit before Task 19; the level guard is identified by a sentinel global the mod sets — every live read must exist before its run (§ 5) — cost if wrong: one more harness commit and a `#2808` update.
+- **13-27 (F7, the AddXP recorder).** Ruling: `TKX_TraitLevers_Server.lua` gains an `AddXP` recorder (perk, amount, wall ms, protein store, whether an `ISFitnessAction` was running), capped at 200 events and read by `lua.read`; `TKX_XpEvents` stays frozen and leaves the profiles; Task 1 sums the recorder's events; check 7's tree and barricade sources are ruled out of check 7 (no harness command makes them) and keep the `incidental` weight, unmeasured — cost if wrong: unmeasured sources keep the default weight.
+- **13-28 (F8, the carry across Tasks 12 to 14).** Ruling: Task 12 brings `K.strength.TRAIT_CARRY` and `traitCarry(n)` forward, and the carry reads `traitCarry(K.strength.bandOf(native level))` until Task 14 switches it to `body.wroteL` — every commit stays green and the golden records no failure leaf — cost if wrong: none.
+- **13-29 (F9, the repin call).** Ruling: Task 13 stamps `body.levelDue = true` when the native level differs from `body.wroteL`; Task 14 replaces that stamp with the `STR.repin` call — no forward reference in a serial lane — cost if wrong: one minute's delay before a re-pin between Tasks 13 and 14 only.
+- **13-30 (F10, the owner of `fatT`, `thinT` and `band`).** Ruling: `K.body.create` returns `fatT` and `thinT` (rung numbers from the weight pick: OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2; Emaciated read as 2) and `sexIdx`; `K.body.new` copies them and sets `body.band` from `K.traits.axes` once Task 10 lands, and Task 10's Files list `NR_Kernel_Body.lua` for that line — one owner per field — cost if wrong: none.
+- **13-31 (F11, female creation fat).** Ruling: `K.body.create(muscle, weight, P, sexIdx)`; with `NR.SexSpecific` on, a female pick sits at the middle of S2057's bands (normal 7.0, Overweight 11.0, Obese 15.0 kg/m² of fat), labelled game choices on S2057, and Task 10's creation-pick test runs for both sexes; with the option off the male table is used — spec § 3.2 requires it and the axes already read the female cuts — cost if wrong: female starting weights become a game choice; the option defaults off.
+- **13-32 (F12, one clamp rule).** Ruling: `readLeaf` moves to the kernel as `K.readLeaf` (pure, no Java) and `NR_Server_Options` calls it, all in Task 11 — cost if wrong: none.
+- **13-33 (F13, the bench seam).** Ruling: the seam `MET._closeDay = closeDay` under a `NR_BENCH` guard (one line, no behaviour change) lands in its own commit first, with § 3's mod gates and the full `claims_check` (it shifts Metabolism's lines), and the before-figure is read on that commit — "before" must be a real tree — cost if wrong: none.
+- **13-34 (F14, the weight readers).** Ruling: Task 12's Files add `NR_Kernel_Energy.lua`, `NR_Kernel_Mirror.lua` and `NR_Kernel_Heal.lua`; every site (`NR_Kernel_Energy.lua:264`, `:267`; `NR_Kernel_Mirror.lua:56`; `NR_Kernel_Heal.lua:140`; `NR_Kernel_Store.lua:194`; `NR_Server_Weight.lua:119`) reads `fm + lm + lx`; ruling 13-20 is reworded to `K.energy.minute`'s total-mass terms — cost if wrong: none (`lx` is at most 0.05 · F).
+- **13-35 (F15, the immobilised day).** Ruling: the immobilised branch applies `K.partition.disuse`'s `dFM, dLM` under `P.fmMin` and `P.fMinShare · body.F0`, leaves `lx` untouched and lets step 5's `fmRef` re-base apply as for any day; `K.partition.FM_MIN` and `LM_MIN_RATIO` are removed in favour of `DEFAULTS` — cost if wrong: none.
+- **13-36 (F16, Task 14 and 17's files and the golden stand-in).** Ruling: Task 14's Files add `NR_Server_Metabolism.lua` and `testing/tests/kernel/golden_trace.py` (the stand-in player gains `LevelPerk`, `LoseLevel`, `getXp():setXPToLevel` and a global `addXp`, recording calls); Task 17's add the stand-in's descriptor and trait-definition stubs; each re-record names the stand-in change beside its behaviour cause; `ctx` is optional in `writeLevel` and `writeTraits` — the golden is an oracle and a silent stand-in change is a defect — cost if wrong: none.
+- **13-37 (F17, the literals).** Ruling: the non-fitted table gains `nov_p0` 1.6, `nov_pspan` 0.8, `xs_p0` 0.8 and `xs_pspan` 0.8 (fixed, spec §§ 5 and 5.1), and the surplus arm reads `xs_*`, never `pdef_*`, because spec § 5.1 states the surplus share's ramp as a literal and ties `NR.LeanLossProteinFull` to the deficit protection only — cost if wrong: if Angus wants the option to move both ramps, the surplus arm reads `pdef_*` and the oracle gains the same change.
+- **13-38 (F18, artifacts rows).** Ruling: after each live run the controller commits the run's artifact folder in its own commit with its artifacts row, do-not-cite keys and the `artifacts.md` re-anchor (full `claims_check` → 0), per § 4 item 1 and rulings M-1 and D-1; Task 23 Step 1 shrinks to the claims — cost if wrong: none.
+- **13-39 (F19, the order).** Ruling: the order is 0 → 1 → (2, 3, 4) → 5; Tasks 0 and 1 may overlap mod-lane edits because their profiles load no `mod/` file (a reading of § 5's reason: the boot loads the whole tree); Task 5 waits for Tasks 1 and 2; a close-wave change to a code path a live run measured is re-smoked or named as a skew note — cost if wrong: Task 5 waits on two sessions.
+- **13-40 (F20, Task 2's lane).** Ruling: Task 2 runs in a worktree and reaches `main` by the controller's cherry-pick (§ 6's allowed form) — a pure-Python oracle is a pure-kernel task — cost if wrong: none.
+- **13-41 (F21, the fit's code).** Ruling: Task 2 consumes `model.py` and `oracles.py` from `docs/superpowers/research/2026-10-14-strength-redesign/refit/` (tracked at 5987ac7a), never from a scratchpad — the fit's record holds its code — cost if wrong: none.
+- **13-42 (F22, BeyondTen at levels 10 to 15).** Ruling: with BeyondTen loaded and native 10, every write sets the stored XP to `GetTotalMasteryCost(min(floor(L), 15)) + frac · (cost(next) − cost(floor(L)))`, which reads 0 + frac · cost(11) for L in [10, 11) and writes cost(15) for L >= 15; the body is the only source of the level — BeyondTen banks every grant above the parked level-9 total as mastery (#2850) and clamps at 15, while Strong's natural cap is 18.5 — cost if wrong: none.
+- **13-43 (F23, the guard's order).** Ruling: Task 19 grades behaviour (a forced ten-minute rust pass on a parked level-10 Strength leaves level 10) and records which wrapper is outermost as a reading; ruling 13-10's "chained after BeyondTen's own wrapper" holds only if the mods load in that order (BeyondTen installs at `OnServerStarted`, as the mod does) — the behaviour is the requirement — cost if wrong: none.
+- **13-44 (F32, the creation profile).** Ruling: `x43-creation.toml` sets `[sandbox] Nutrition = false` and `DayLength = 1`, like Tasks 19, 20 and 22 (§ 5, ruling T18-1) — cost if wrong: none.
 
 ## File structure
 | File | Change |
@@ -122,7 +151,7 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 | `testing/tests/kernel/strength_oracles.py` (new) | the fit's `oracles.py`, verbatim, imports renamed (Task 2) |
 | `testing/tests/kernel/test_strength_oracle.py` (new) | the record reproduced, the `exact` re-score pinned (Task 2) |
 | `testing/tests/kernel/test_strength_parity.py` (new) | the kernel against the oracle, day by day (Tasks 5–9) |
-| `mod/.../shared/NR_Kernel.lua` | `K.HEIGHT_M` (Task 4) |
+| `mod/.../shared/NR_Kernel.lua` | `K.HEIGHT_M` (Task 4); `K.readLeaf` (Task 11) |
 | `mod/.../shared/NR_Kernel_Strength.lua` | rewritten: `DEFAULTS`, the scale, the law, the capture arithmetic, `params`; the neural term, the memory floor, the cumulative deficit, the disuse term, `fSlow`, `ceiling`, `xpLevel`, `policy` removed (Tasks 5–8, 12) |
 | `mod/.../shared/NR_Kernel_Partition.lua` | the lean arms replaced; `leanGain`, `headroom`, `gEnergy`, `gProt`, `protection`, `surplus`, `deficit`, `day`, `G0`, `LM_CAP_RATIO`, `P_LO`, `P_HI`, `SURPLUS_RAMP`, `DEFICIT_HALF*`, `PROT_*` removed (Tasks 7, 12) |
 | `mod/.../shared/NR_Kernel_Training.lua` | the resistance side removed (Task 12) |
@@ -130,6 +159,7 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 | `mod/.../shared/NR_Kernel_Traits.lua` (new) | the three axes with damping (Task 10) |
 | `mod/.../shared/NR_Kernel_Heal.lua`, `NR_Kernel_Store.lua` | the no-trait body fallback; the new fields healed and saved (Tasks 4, 12) |
 | `mod/.../shared/NR_Kernel_Acute.lua` | `HEIGHT_M` removed, the BMI reads `K.HEIGHT_M` (Task 4) |
+| `mod/.../shared/NR_Kernel_Energy.lua` | the total-mass terms read `fm + lm + lx` (Task 12) |
 | `mod/.../shared/NR_Kernel_Mirror.lua`, `NR_Kernel_View.lua` | `body_level`, `body_sets`, the Strength row (Task 18) |
 | `mod/.../server/NR_Server_Metabolism.lua` | the calendar, the day close, first sight (Tasks 4, 12) |
 | `mod/.../server/NR_Server_Strength.lua` | rewritten: capture, level write, park, BeyondTen, carry (Tasks 13, 14) |
@@ -142,7 +172,8 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 | `mod/.../client/NR_Client_View.lua` | the effective sex (Task 3) |
 | `mod/.../scripts/NR_Traits_Body.txt` (new) | the 10 restated trait blocks (Task 16) |
 | `mod/.../42.21/media/sandbox-options.txt`, `Translate/EN/Sandbox.json`, `Translate/EN/UI.json` | options and translations (Tasks 3, 11, 16, 18) |
-| `testing/PZTestKit/...` | `trait.def`, `creation.picks`, `perk.park` (Task 0) |
+| `testing/PZTestKit/...` | `trait.def`, `creation.picks`, `perk.park` and the client `perk.xp` (Task 0); `bt.stored` (Task 19) |
+| `testing/tests/kernel/golden_trace.py` | the stand-in player's route, descriptor and trait-definition stubs (Tasks 14, 17) |
 | `testing/experiments/TKX_TraitLevers/` (new) | the trait-lever probe mod (Task 0) |
 | `testing/experiments/x42_levers_lib.py`, `x421_levers.py`, `x422_calib.py`, `x43_strength_lib.py`, `x431_beyondten.py`, `x432_offline.py`, `x433_creation.py`, `x434_growth.py` and their profiles (new) | the live runs |
 | `tools/bench_day_close.py` (new) | the Rule 6 bench (Task 12) |
@@ -153,7 +184,7 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 Spec § 12.2's Task 0 checks. A finding that falsifies a spec assumption stops the plan for a ruling before the dependent task (the stop table in Step 6).
 
 **Files:**
-- Modify `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `.../client/PZTestKit_Client.lua` and `.../server/PZTestKit_Server.lua` (new sites appended at the end of each file, § 5).
+- Modify `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `.../client/PZTestKit_Client.lua` and `.../server/PZTestKit_Server.lua` (new sites appended at the end of each file, § 5). The Core and Server files are CRLF (§ 7): edit them with `newline=''` handling and preserve the endings.
 - Regenerate `docs/reference/harness-commands.md` (`python tools/bus_inventory.py`); update `#2808`'s claim text and quote and `#1235`'s quote for the new count (§ 5).
 - Create `testing/experiments/TKX_TraitLevers/42.21/mod.info` and its `media/scripts/TKX_TraitLevers.txt`, `media/lua/shared/TKX_TraitLevers_Shared.lua`, `media/lua/server/TKX_TraitLevers_Server.lua`, `media/lua/shared/Translate/EN/UI.json`.
 - Create `testing/experiments/x42_levers_lib.py`, `testing/experiments/x421_levers.py`, `testing/profiles/x42-levers.toml`, `testing/tests/test_x42_levers_lib.py`.
@@ -162,35 +193,39 @@ Spec § 12.2's Task 0 checks. A finding that falsifies a spec assumption stops t
 - `trait.def` (shared) `<TraitName>` → `{ok, side, trait, cost, free, xpBoosts = {<Perk> = n}, exclusive = {names}, granted = {names}, label, description}`: reads `CharacterTraitDefinition.getCharacterTraitDefinition(CharacterTrait[<TraitName>])` and walks its getters; the Java maps and lists are walked with `size()`/`get(i)` and `keySet():iterator()` (#0940), never `#`.
 - `creation.picks` (client) `<TraitName> [<TraitName> ...]` → `{ok, armed, picks}`: arms a one-shot rewrite of the pick list that runs after vanilla's copy in the coop creation accept path (`CoopCharacterCreation.lua:65–68`; the implementer reads `:60–:80` first) and before `sendCreatePlayer` reads it: `getWorld():getLuaTraits():clear()` then one `getWorld():addLuaTrait(name)` per argument. It sends what it is given, legal or not.
 - `perk.park` (server) `<user> <Perk> <xpLevel>` → `{ok, perk, levelBefore, levelAfter, xpBefore, xpAfter}`: `getXp():setXPToLevel(perk, xpLevel)` only, the level untouched.
+- `perk.xp` (client twin of the server command; ruling 13-26) `<PerkName>` → `{perk, side, xp, level}`: the local player's Strength (or any perk) experience and level, so check 4 and Task 21 grade what the client holds. A harness command exists for every live read before its run (§ 5).
 
 **`TKX_TraitLevers` (installed only through `x42-levers.toml`, never into a fixture):**
 - `TKX_TraitLevers.txt` restates `base:obese` in full in `module Base` with `Cost = -10`, `IsProfessionTrait = false`, no `XPBoosts`, and vanilla's exclusions plus `base:overweight` (the vanilla block's other keys copied from `scripts/generated/characters/character_traits.txt:743`).
 - `TKX_TraitLevers_Shared.lua` at file scope: `getXpBoosts():remove(Perks.Fitness)` on Underweight's definition; `getMutuallyExclusiveTraits():remove(CharacterTrait.ATHLETIC)` on Overweight's; `getMutuallyExclusiveTraits():add(CharacterTrait.OBESE)` on Overweight's; each records its pcall result into a global `TKX_TraitLevers.edits`.
 - `TKX_TraitLevers_Server.lua`: an `OnNewGame(player, square)` handler under `isServer()` that records the known-trait list, the weight, the Strength and Fitness levels and XP; then writes `getNutrition():setWeight(77.7)`, removes STRONG if present, adds OUT_OF_SHAPE, steps Strength once with `LevelPerk` (or `LoseLevel` at 10), and records the after state. A global `TKX_TraitLevers.newGame` table holds both reads.
+- `TKX_TraitLevers_Server.lua` also holds an `AddXP` recorder (ruling 13-27): one record per `Events.AddXP` call with the perk, amount, wall ms, the protein store (`getNutrition():getProteins()`) and whether an `ISFitnessAction` was running, capped at 200 events and read by `lua.read`. `TKX_XpEvents` stays frozen (it records counters only and ships only a `42.20/` folder) and leaves the profiles.
 - `UI.json` overrides `UI_trait_obesedesc` with a marker string (the key name taken from the vanilla block's `UIDescription`).
 
 - [ ] **Step 1: The jar and install reads (Opus, read-only; `pz.sh` per CLAUDE.md § 2).** Write each answer into `task-0-reads.md` with its `Class.method @off L<n>` or `lua:<path>:<line>` cite:
   - an absolute experience setter on `IsoGameCharacter$XP` reachable from Lua (ruling 13-9);
   - whether `GameServer.addXp` calls `updateXpChecker` after `AddXP` returns early (an amount of 0, and XP at the level-10 total);
   - `IsoGameCharacter.LevelPerk` and `LoseLevel` on a server: what they push, and whether the band listener runs (`XpUpdate.lua:196–238`);
-  - `xpUpdate.checkForLosingLevel`'s signature and BeyondTen's wrapper (`3765241705/.../Server.lua:445–460`), and BeyondTen's `BT.API_VERSION`, `BT.SetStoredXP` and `GetTotalMasteryCost` signatures and units (`3765241705/mods/BeyondTen/42/media/lua/shared/BeyondTen/Shared.lua`);
+  - `xpUpdate.checkForLosingLevel`'s signature and BeyondTen's wrapper (`3765241705/.../Server.lua:445–460`), and BeyondTen's global `BeyondTen` with its `API_VERSION`, `SetStoredXP`, `GetStoredXP` and `GetTotalMasteryCost` signatures and units (ruling 13-24) (`3765241705/mods/BeyondTen/42/media/lua/shared/BeyondTen/Shared.lua`);
   - `Nutrition.updateWeight`'s call of `applyTraitFromWeight`, and whether the `Nutrition = false` early return skips it (#2644);
-  - `SandboxVars.MultiplierConfig`'s field names on 42.21 (`Global`, `GlobalToggle`, `Strength`) from `media/lua/shared/Sandbox/Apocalypse.lua:242–246`.
+  - `SandboxVars.MultiplierConfig`'s field names on 42.21 (`Global`, `GlobalToggle`, `Strength`) from `media/lua/shared/Sandbox/Apocalypse.lua:242–246`;
+  - whether `XP.AddXP` fires the `AddXP` event after its level-up (#2125 places the event at @1346, near the end of the method), so an in-listener re-pin is not undone by a later level-up;
+  - whether `AddXP` applies `MultiplierConfig` at all, which spec § 4 assumes.
 - [ ] **Step 2: The creation-screen reads.** From `client/OptionScreens/CharacterCreationProfession.lua`, read the remaining-points formula (the profession cost, the sandbox free points, each trait's cost sign) and write it as a formula into `task-0-reads.md` (ruling 13-16). From `CoopCharacterCreation.lua`, read the respawn path that copies the picks.
-- [ ] **Step 3: The harness change.** Write the three commands with their `@reply` lines and comment blocks. Run `python tools/luabalance.py` on the HEAD copies then the working tree, `python tools/kahlua_lint.py testing/PZTestKit testing/experiments`, `python tools/bus_inventory.py`, and the full `claims_check` → 0 (after the `#2808`/`#1235` update). Commit by pathspec: `"Plan 13 Task 0: harness trait.def, creation.picks and perk.park"`.
+- [ ] **Step 3: The harness change.** Write the four commands (`trait.def`, `creation.picks`, `perk.park` and the client `perk.xp`) with their `@reply` lines and comment blocks. No command is added for a tree hit or a barricade removal (ruling 13-27). Run `python tools/luabalance.py` on the HEAD copies then the working tree, `python tools/kahlua_lint.py testing/PZTestKit testing/experiments`, `python tools/bus_inventory.py`, `python tools/claims_check.py --staged` → 0 (the commit touches `testing/PZTestKit/` and `docs/`), and the full `claims_check` → 0 (after the `#2808`/`#1235` update). Commit by pathspec: `"Plan 13 Task 0: harness trait.def, creation.picks, perk.park and client perk.xp"`.
 - [ ] **Step 4: The lib and driver.** `x42_levers_lib.py` imports `xlib.py` and starts from `x37_fitness_lib.py`'s newest patterns. Its offline tests (`test_x42_levers_lib.py`) run every grade against fake buses whose replies are the three commands' `@reply` shapes and recorded shapes of the others (§ 5), each grade with a case that fails it. Commit the lib, driver, profile and tests before the boot.
-  - The profile `x42-levers.toml`: fixture `two` (an admin and a user-role client), `[[mods]]` PZTestKit, TKX_TraitLevers, TKX_XpEvents; `[sandbox] Nutrition = false`, `DayLength = 1`; no NutritionRevamp.
+  - The profile `x42-levers.toml`: fixture `two` (an admin and a user-role client), `[[mods]]` PZTestKit and TKX_TraitLevers (its `AddXP` recorder replaces `TKX_XpEvents`, ruling 13-27); `[sandbox] Nutrition = false`, `DayLength = 1`; no NutritionRevamp.
 - [ ] **Step 5: The run (one session; § 5's memory check, `pzt doctor`, the foreground polling wait).** The driver `x421_levers.py` grades:
   1. **Restated block replaces vanilla's on both sides:** `trait.def Obese` on server and client reads cost −10, free false, no Fitness boost, Overweight among the exclusions.
   2. **The Lua list edits bind:** `trait.def Underweight` reads no Fitness boost; `trait.def Overweight` lists Obese and not Athletic, on both sides; `TKX_TraitLevers.edits` holds no error.
-  3. **The client sees the server's definitions** after the join: the client's `trait.def` answers equal the server's for the three traits, and the client reads the marker description.
-  4. **`OnNewGame` writes reach the client:** the user client dies (`health.reduce <user> 110`) and respawns through x192's route (`ISPostDeathUI` → `CoopCharacterCreation.instance accept` via `lua.callm`); the server's `TKX_TraitLevers.newGame` after-state is read beside the client's `stats.get` and `perk.xp` in the same wall second (§ 5's same-second pairs): weight 77.7, OUT_OF_SHAPE present and STRONG absent, the stepped Strength level.
+  3. **The client sees the server's definitions** after the join: the client's `trait.def` answers equal the server's for the three traits, and the client reads the marker description (a reading only: Task 16 points its descriptions at mod keys, ruling 13-25).
+  4. **`OnNewGame` writes reach the client:** the user client dies (`health.reduce <user> 110`) and respawns through x192's route (`ISPostDeathUI` → `CoopCharacterCreation.instance accept` via `lua.callm`); the server's `TKX_TraitLevers.newGame` after-state is read beside the client's `stats.get` and client-side `perk.xp` (the twin of Step 3) in the same wall second (§ 5's same-second pairs): weight 77.7, OUT_OF_SHAPE present and STRONG absent, the stepped Strength level.
   5. **An illegal pick list reaches `OnNewGame`:** before the second respawn, `creation.picks Strong Stout Obese Overweight` (over-budget and mutually exclusive); the server's recorded known-trait list holds all four.
   6. **Vanilla's band swap fires on the mod's level write:** in the handler's write (route of ruling 13-8), the band trait after the step is the stepped level's band on both sides; a `perk.level` (debug) write in the same session shows no swap, as #2870 did.
-  7. **`AddXP` sees every Strength source:** with `TKX_XpEvents` recording, the user client runs `exercise.do pushups 1`, a melee hit on a spawned target with a knockback weapon, a tree hit, loaded movement above half the max weight for 60 real seconds and one plank barricade removal; each source's events are counted, with amount and whether an `ISFitnessAction` was running.
+  7. **`AddXP` sees every Strength source:** with `TKX_TraitLevers`' recorder running, the user client runs `exercise.do pushups 1`, a melee hit on a spawned target with a knockback weapon (`attack.melee`) and loaded movement above half the max weight for 60 real seconds (`inventory.add`, `player.walk`); each source's events are read from the recorder with amount and whether an `ISFitnessAction` was running. The tree-hit and barricade-removal sources are ruled out of this check (no harness command makes them, ruling 13-27) and keep the `incidental` weight, unmeasured.
   8. **The level-10 park keeps `AddXP` firing:** `perk.set <user> Strength 10`, `perk.park <user> Strength 9`, `xp.grant <user> Strength 100`: the event's amount is the full grant (after the protein factor of the store read beside it), the level stays 10.
   9. **The pin under the anti-cheat:** on the user-role connection with `AntiCheatXP = 2`, `perk.set` to level 7 then the ruling 13-9 pair (`setXPToLevel` via `perk.park` then `xp.grant` of 30000) draws no kick across two minutes (two check intervals, #2860).
-  Stage the artifacts byte-identical and write the report with the artifacts rows, the do-not-cite leaves and the candidate claims, as Plan 11h Task 4 did.
+  Write the report with the do-not-cite leaves and the candidate claims, as Plan 11h Task 4 did. The controller then commits the artifact folder byte-identical in its own commit with its artifacts row, its do-not-cite keys and the `artifacts.md` re-anchor (full `claims_check` → 0; § 4 item 1, ruling 13-38).
 - [ ] **Step 6: The stop table (controller).** Ledger each check's verdict. A falsified check stops these tasks for a ruling before they start:
 
   | Check | Falsified means | Stops |
@@ -206,19 +241,19 @@ Spec § 12.2's Task 0 checks. A finding that falsifies a spec assumption stops t
 Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
 
 **Files:**
-- Create `testing/experiments/x422_calib.py` (on `x42_levers_lib.py`), `testing/profiles/x42-calib.toml` (fixture `default`; PZTestKit and TKX_XpEvents; `Nutrition = false`; `DayLength = 1`).
+- Create `testing/experiments/x422_calib.py` (on `x42_levers_lib.py`), `testing/profiles/x42-calib.toml` (fixture `default`; PZTestKit and TKX_TraitLevers for its `AddXP` recorder; `Nutrition = false`; `DayLength = 1`).
 
 - [ ] **Step 1: Offline tests** of the grade on fake buses, each with a failing case (zero events, a protein store outside the neutral window).
-- [ ] **Step 2: The run.** `nutrition.set <user> proteins 0` on the server (the factor-1 window between −300 and 50; read back), endurance full (`stats.setany <user> ENDURANCE 1`), then `exercise.do pushups 5`; the driver stops the set through the queue-clear command (§ 5) when the server's endurance reads 0.25 or below or the action ends. Read every Strength `AddXP` event (amount, wall time) and the protein store before and after.
+- [ ] **Step 2: The run.** `nutrition.set <user> proteins 0` on the server (the factor-1 window between −300 and 50; read back), endurance full (`stats.setany <user> ENDURANCE 1`), then `exercise.do pushups 5`; the driver stops the set through `action.cancel` (client; § 5) when the server's endurance reads 0.25 or below or the action ends. Read every Strength `AddXP` event (amount, wall time) from the recorder and the protein store before and after.
 - [ ] **Step 3: The reading.** XP per set = the sum of the set's Strength amounts, each divided by the protein factor read at the store (the store stays in the neutral window, so the factor is 1; any event outside it is reported, never dropped). Report reps, XP, wall seconds and XP per real second beside vanilla-strength-rate § 4's 346 and 1.8–1.95.
-- [ ] **Step 4: The amendment.** The controller ledgers the reading. Task 5 writes it as `DEFAULTS.xpPerSet` with the run's id in its label, and Task 11 as the option's default. The provisional 346 never ships unless the run comes back unmeasured, in which case 346 ships labelled `provisional, vanilla-strength-rate § 4` and a ruling is ledgered.
+- [ ] **Step 4: The amendment.** The controller commits the run's artifact folder in its own commit with its artifacts row, do-not-cite keys and `artifacts.md` re-anchor (ruling 13-38), and ledgers the reading. Task 5 writes it as `DEFAULTS.xpPerSet` with the run's id in its label, and Task 11 as the option's default. The provisional 346 never ships unless the run comes back unmeasured, in which case 346 ships labelled `provisional, vanilla-strength-rate § 4` and a ruling is ledgered.
 
-### Task 2: Track the oracle (Opus; tests lane)
+### Task 2: Track the oracle (Opus; a worktree task, ruling 13-40)
 **Files:**
 - Create `testing/tests/kernel/strength_model.py`, `testing/tests/kernel/strength_oracles.py`, `testing/tests/kernel/test_strength_oracle.py`.
 
 **Interfaces:**
-- **Consumes:** `C:\Users\Angus\AppData\Local\Temp\claude\C--Users-Angus-repos-project-zomboid\e5eaf55d-0ef3-42a5-b6e6-4827b799b827\scratchpad\strev3\model.py` and `oracles.py` (point T's fit); `docs/superpowers/research/2026-10-14-strength-redesign/refit/compact_T.json`.
+- **Consumes:** `docs/superpowers/research/2026-10-14-strength-redesign/refit/model.py` and `oracles.py` (point T's fit, tracked at 5987ac7a; ruling 13-41); `docs/superpowers/research/2026-10-14-strength-redesign/refit/compact_T.json`.
 - **Produces:**
   - `strength_model.POINT_T` (a dict: `DEFAULT` updated with `compact_T.json`'s `"chosen"`, `fp_knots` kept from `DEFAULT`);
   - `strength_model.Body(P, L0, cap, fat_kg, F0L=None, peakL=None)` and `Body.day(S, p, E, tdee=2600.0)` unchanged when `P.get('exact')` is falsy;
@@ -239,7 +274,7 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
       with open(COMPACT, encoding="utf-8") as fh:
           return json.load(fh)
 
-  def test_point_s_is_the_record():
+  def test_point_t_is_the_record():
       chosen = _compact()["chosen"]
       for k, v in chosen.items():
           if k == "infeasible":
@@ -264,18 +299,18 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
               assert lo <= value <= hi, name
 
   def test_exact_detraining_halves_in_its_half_life():
-      P = dict(sm.POINT_T, exact=True, ts=1.0, grace_d=0)
+      P = dict(sm.POINT_T, exact=True, ts=1.0, grace_d=0, detrain_status=0.0)
       b = sm.Body(P, 10.0, 16.5, 13.0, F0L=5.0)
       F0 = b.F0
       gap0 = b.F - F0
-      hl_days = 7 * P["detrain_hl_wk"] * (1 + P["detrain_status"] * b.s())
+      hl_days = 7 * P["detrain_hl_wk"]
       # S = 0, energy balance, no protein: growth and regain are 0, the detraining runs alone
       b.Pk = b.F
       for _ in range(int(round(hl_days))):
           b.day(0.0, 0.0, 0.0)
-      assert 0.45 < (b.F - F0) / gap0 < 0.6
+      assert abs((b.F - F0) / gap0 - 0.5) < 0.01
   ```
-  The last test's band is wide because the status term moves as F falls; Task 8's kernel test pins the exact one-day factor.
+  The last test runs with `detrain_status = 0`: with the status term on, the half-life is fixed at the start status and shortens as F falls, so more than half is lost (0.4421 at point T, ruling 13-23). Task 8's kernel test pins the one-day factor with the status term.
 - [ ] **Step 2: Run them.** `python -m pytest testing/tests/kernel/test_strength_oracle.py -q`. Expect FAIL (no module).
 - [ ] **Step 3: Copy and extend.**
   - Copy `model.py` to `strength_model.py` byte for byte, then append `POINT_T` (built from the JSON at import) and edit `Body.day` only inside `if P.get('exact'):` branches:
@@ -283,11 +318,11 @@ Spec § 4 and § 12.2. The constant `xpPerSet` ships at the reading.
     - the grace test: `self.grace > P['grace_d'] / ts`;
     - growth and regain multiplied by `ts`; the peak decay `exp(−dec · ts)`;
     - the surplus arm's `rest = E − grow / ts · RHO_L`, the deficit arm's recomposition `dM −= grow / ts · RHO_L / RHO_F`;
-    - the labile decay `dX −= X / x_tau_d` on every day whose surplus arm left `rest <= 0` and on every deficit day, after the deficit's own `fromX`.
+    - the labile decay `dX −= X / x_tau_d` on every day whose surplus arm left `rest <= 0` and on every deficit day, on the remaining store (base `X − fromX`, after the deficit's own `fromX` draw).
   - Copy `oracles.py` to `strength_oracles.py` with `from model import` changed to `from .strength_model import` (and the same for any other module import). Change nothing else.
   - Add a module docstring to each naming the source path, the copy date and ruling 13-2.
 - [ ] **Step 4: Run them.** Expect PASS. Record the `exact` re-score's every oracle value in the test file as a pinned table (`EXACT_PINS`), with a test asserting each to 1e-9, so a later kernel or oracle change that moves one is named.
-- [ ] **Step 5: Commit.** `git commit -m "Plan 13 Task 2: the strength fit's model and oracles tracked, point T reproduced, exact mode pinned" -- testing/tests/kernel/strength_model.py testing/tests/kernel/strength_oracles.py testing/tests/kernel/test_strength_oracle.py`
+- [ ] **Step 5: Commit** in the worktree (the controller cherry-picks it to `main` after `Task 2: complete`, ruling 13-40). `git commit -m "Plan 13 Task 2: the strength fit's model and oracles tracked, point T reproduced, exact mode pinned" -- testing/tests/kernel/strength_model.py testing/tests/kernel/strength_oracles.py testing/tests/kernel/test_strength_oracle.py`
 
 ### Task 3: The mod-wide sex option (Sonnet; `mod/` lane)
 Spec § 13.
@@ -317,7 +352,7 @@ Spec § 13.
   - `NR_Kernel_Heal`: the heal's fallback reads `body.sex` raw (it rebuilds masses, not requirements; Task 12 replaces the fallback).
   - `NR_Client_View.recompute`: `V.female = V.readFemale(player) and V.readSexSpecific()`, with `V.readSexSpecific()` reading `SandboxVars.NR.SexSpecific` in a pcall (false when unreadable).
   - Option block: `option NR.SexSpecific { type = boolean, default = false, page = NutritionRevamp, translation = NR_SexSpecific, }`; translations `Sandbox_NR_SexSpecific` = "Sex-specific values" and its tooltip: "Off: every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, alcohol, iron, calcium). On: a female character uses the female values."
-- [ ] **Step 4: Gates and golden.** Full pytest in its own call. Mutation on a scratch copy (`git archive HEAD | tar -x -C <scratch>`): `effSex` returning `sex` always; the client ignoring the option. Each fails a test. Re-record the golden under **"Plan 13 Task 3: NR.SexSpecific off by default; g5 reads the male values"**, attributing every moved leaf to g5. § 3 mod gates, full `claims_check` (pin or re-anchor moved pointers).
+- [ ] **Step 4: Gates and golden.** Full pytest in its own call. Mutation on a scratch copy (`git archive HEAD | tar -x -C <scratch>`): `effSex` returning `sex` always; the client ignoring the option. Each fails a test. Re-record the golden under **"Plan 13 Task 3: NR.SexSpecific off by default; g5 reads the male values"**, attributing every moved leaf to g5. The report states that the effective-sex local adds no Java call to Nutrients or Effects (it reads the record), so no stub test is needed. § 3 mod gates, full `claims_check` (pin or re-anchor moved pointers).
 - [ ] **Step 5: Commit** by pathspec: `"Plan 13 Task 3: NR.SexSpecific, one effective-sex helper, golden re-recorded"`.
 
 ### Task 4: Height and the offline calendar pause (Opus; `mod/` lane)
@@ -357,9 +392,9 @@ Spec § 2 (H) and § 9.3.
   - Nutrients: `days = body.dayIndex - n.lastDayIndex` is 0 or 1 now; keep the code, note it in its comment.
   - **The ring audit** (spec § 9.3): list every daily or weekly ring and counter in the task report with its writer and whether it advances only at an online close: `p7`, `eb7`, `mass7`, `bandWeek` (shifted by `K.partition.closeDay`/`K.training.closeDay` inside `closeDay` only), `acute.alc7` and `starvedDays` (Nutrients' close, keyed on `dayIndex`), `effects.lastDay`, and the trailing-24 h window (shifted, not integrated, `trailShift`). `sig7`, `grace` and P's decay are Task 8's and close inside `closeDay`. Any ring that advances on world time is a finding fixed in this task.
   - Rewrite the Metabolism limitation line 36 ("a multi-day catch-up runs days 2..n …") to the new rule.
-- [ ] **Step 4: Gates, golden, commit.** Mutations: `gapped` ignored; `calendar` closing on `>=`. Golden re-recorded under **"Plan 13 Task 4: the BMI at the shared 1.70 m height (was 1.75)"** (no golden player has a gap over 60 minutes: g4 is away 30, so the calendar moves no leaf; say so). Commit: `"Plan 13 Task 4: one 1.70 m height; the record calendar advances on online days only"`.
+- [ ] **Step 4: Gates, golden, commit.** Mutations: `gapped` ignored; `calendar` closing on `>=`. Golden re-recorded under **"Plan 13 Task 4: the BMI at the shared 1.70 m height (was 1.75); the MET.stats.skippedDays snapshot leaf removed (ruling 13-5)"** (no golden player has a gap over 60 minutes: g4 is away 30, so the calendar moves no value leaf; the removed `skippedDays` leaf is attributed to this cause). Commit: `"Plan 13 Task 4: one 1.70 m height; the record calendar advances on online days only"`.
 
-### Task 5: The constants block, the scale and the level (Opus; `mod/` lane, kernel)
+### Task 5: The constants block, the scale and the level (Opus; `mod/` lane, kernel; waits for Tasks 1 and 2, ruling 13-39)
 Spec §§ 2, 10.
 
 **Files:**
@@ -424,7 +459,7 @@ Spec § 5.
 - `K.strength.setCap(s, P)` → `P.Smax + (P.Smax1 - P.Smax) * s`.
 - `K.strength.signal(S, s, P)` → `K.max(0, math.sqrt(K.min(S, setCap)) - math.sqrt(threshold)) / (math.sqrt(P.Sref) - math.sqrt(P.Sg0))`.
 - `K.strength.fp(p, P)` → `K.interp(P.fp_knots, p)`, the knots already scaled by `params` (Task 11).
-- `K.strength.fe(E, s, p, tdee, P)` → the oracle's `fe`: `E0s = P.E0 * (1 - P.E0_drop * s) * (1 + P.a_nov * (1 - s)^2 * K.clamp((p - 1.6) / 0.8, 0, 1))`; `bal = P.fbal0 * (1 - P.fbal_drop * s) * (1 - P.trained_need * s)`; 0 at `E <= E0s`; `bal * (1 - E / E0s)` for `E < 0`; `bal + (1 - bal) * K.min(1, E / (P.surplus_full * (1 - P.full_drop * s) * tdee))` for `E >= 0`. (The `1.6` and `0.8` here are the oracle's literals for the protein deepening's ramp, not the f_p knots; they go into `DEFAULTS` as `nov_p0 = 1.6` and `nov_pspan = 0.8`, fixed.)
+- `K.strength.fe(E, s, p, tdee, P)` → the oracle's `fe`: `E0s = P.E0 * (1 - P.E0_drop * s) * (1 + P.a_nov * (1 - s)^2 * K.clamp((p - P.nov_p0) / P.nov_pspan, 0, 1))`; `bal = P.fbal0 * (1 - P.fbal_drop * s) * (1 - P.trained_need * s)`; 0 at `E <= E0s`; `bal * (1 - E / E0s)` for `E < 0`; `bal + (1 - bal) * K.min(1, E / (P.surplus_full * (1 - P.full_drop * s) * tdee))` for `E >= 0`. (`nov_p0` and `nov_pspan` are the oracle's literals for the protein deepening's ramp, not the f_p knots; they are fixed keys of `DEFAULTS`, ruling 13-37.)
 - `K.strength.growth(body, S, p, E, tdee, alcGkg, P)` → `grow` kg/day before `ts`: `P.k * (body.Fc - body.lm) * G * fp * fe / 7 * K.partition.gAlc(alcGkg)`; the regain term `lr * (body.Pk - body.lm) * K.min(1, G) * fp * fe / 7` with `lr = ln 2 / P.regain_hl_wk` while `body.lm < body.Pk`; returns `K.max(0, K.max(grow, regain))`.
 
 - [ ] **Step 1: The failing tests** in `test_strength_parity.py`: for a grid of `S in (0, 0.5, 3, 12, 20, 40)`, `s in (0, 0.5, 0.9, 1)`, `p in (0.3, 0.8, 1.3, 2.4)`, `E in (-1200, -500, 0, 130, 400)`, each kernel function equals the oracle's (`sm.Gsig`, `sm.fp`, `sm.fe`) to 1e-12, and:
@@ -445,7 +480,7 @@ Spec § 5.
 - [ ] **Step 4: Gates and commit.** Mutation: the √ removed; `setCap` flat; `fe`'s status drop removed; `gAlc` dropped. Each fails a test. No golden move. Commit: `"Plan 13 Task 6: the growth law's signal, threshold, set cap and gates"`.
 
 ### Task 7: The energy and protein partition (Opus; `mod/` lane, kernel)
-Spec § 5.1. The constants are `DEFAULTS`' (`forbes_c`, `wT`, `S_def`, `wP`, `pdef_lo`, `pdef_hi`, `prot_floor`, `x_max_frac`, `x_tau_d`); the partition names no number of its own besides `RHO_LEAN`, `RHO_FAT` and `FAT_CEIL_KCAL` (Hall, Alpert; unchanged).
+Spec § 5.1. The constants are `DEFAULTS`' (`forbes_c`, `wT`, `S_def`, `wP`, `pdef_lo`, `pdef_hi`, `prot_floor`, `x_max_frac`, `x_tau_d`); the partition names no number of its own besides `RHO_LEAN`, `RHO_FAT` and `FAT_CEIL_KCAL` (Hall, Alpert; unchanged). The surplus arm's protein ramp reads `xs_p0` and `xs_pspan` (`(p − xs_p0) / xs_pspan`, the oracle's literal `(p − 0.8) / 0.8`), never `pdef_lo` or `pdef_hi`, which `NR.LeanLossProteinFull` moves (ruling 13-37).
 
 **Interfaces:**
 - `K.partition.forbes(fm, P)` → `P.forbes_c / (P.forbes_c + fm)`.
@@ -454,7 +489,7 @@ Spec § 5.1. The constants are `DEFAULTS`' (`forbes_c`, `wT`, `S_def`, `wP`, `pd
 - `K.partition.deficitLean(body, grow, S, p, E, P, ts)` → `dF, dX, dM` (the oracle's `E < 0` arm, Alpert's overflow split by `prot`, `lx` paying first, recomposition at `grow / ts`, then the decay).
 - `body.lx` is laid by `K.body.new` at 0 (Task 9) and saved (Task 12).
 
-- [ ] **Step 1: The failing tests** in `test_strength_parity.py`: for the Longland, Mettler, Bray and the four § 9 cases' daily inputs (taken from `strength_oracles.py`'s helpers), the kernel's arm equals the oracle `exact=True` arm's `dX`, `dM` and lean change to 1e-12 for one day, from the same body state; plus mass balance:
+- [ ] **Step 1: The failing tests** in `test_strength_parity.py`: for the Longland, Mettler, Bray and the four § 9 cases' daily inputs (taken from `strength_oracles.py`'s helpers), the kernel's arm equals the oracle `exact=True` arm's `dX`, `dM` and lean change to 1e-12 for one day, from the same body state; plus a case at `pdef_hi = 2.4` showing the surplus arm unmoved while the deficit arm moves, and mass balance. The parity test is given here as prose; the implementer writes it in full and the review checks each assertion against this prose (F40):
   ```python
   def test_surplus_mass_balance_closes(host):
       D = host.K.strength.DEFAULTS
@@ -497,12 +532,12 @@ Spec § 6.
   def test_detraining_one_day_factor(host):
       ...  # grace past, S = 0: lm - F0 falls by exactly exp(-lam * ts / 7) in one day
 
-  def test_retraining_a_novice_is_no_slower_than_the_first_block(host):
-      ...  # Räntilä: 10 wk on, 10 wk off, 10 wk on at 12 sets; block 2's gain >= 0.94 x block 1's (point T's 0.9385, unchanged from point S)
+  def test_retraining_block_two_over_block_one_is_the_pinned_ratio(host):
+      ...  # Räntilä: 10 wk on, 10 wk off, 10 wk on at 12 sets; the ratio of block 2's gain to block 1's lies in the oracle's band (`0.80 <= ratio <= 1.25`, `rantila_block2_over_1`) and equals Task 2's `EXACT_PINS` value (0.93811) to 1e-9; the 0.94 once stated was a rounding of a value below it (ruling 13-22)
   ```
-  `_lua_body_from(host, ob)` copies `F, F0, Fc, Pk, M, X, grace` into a Lua table under the kernel's names (`lm, F0, Fc, Pk, fm, lx, grace`). The two elided bodies are written in full by the implementer from the stated assertions; the Räntilä protocol is `strength_oracles._rantila`'s.
+  `_lua_body_from(host, ob)` copies `F, F0, Fc, Pk, M, X, grace` into a Lua table under the kernel's names (`lm, F0, Fc, Pk, fm, lx, grace`).   The two elided bodies are written in full by the implementer from the stated assertions; the Räntilä protocol is `strength_oracles._rantila`'s. The review checks each assertion against this prose.
   Also the spec § 12.1 checks, each with its mutation:
-  - the curve: an average character on 20 sets with full gates (`p = 2.0`, `E = 0.05 · 2600`) reaches level 15 at 5 years (± 0.02 level); Weak never reaches 15 in 10 years; Feeble below the average at every year; Stout and Strong reach 15 sooner;
+  - the curve: an average character on 20 sets with full gates (`p = 2.0`, `E = 0.10 · tdee`, where `f_e = 1` at every status, so it reproduces `fast_grow`'s anchor; ruling 13-21) reaches level 15 at 5 years (± 0.02 level); the parity test at `E = 130` keeps the partial-gate path; Weak never reaches 15 in 10 years; Feeble below the average at every year; Stout and Strong reach 15 sooner;
   - the s = 0.9 gate over 8 weeks: balance ΔF < 0.5 %; +10 % gives ≤ 2 × the balance gain, < 1 %, ≥ 50 % of the weight gain as fat; −500 kcal/day at 3.5 kg of fat gives ΔF ≤ 0;
   - detraining's half-life is 6 weeks after a 14-day grace (`detrain_status` 0 for the novice reading, S2001's population).
 - [ ] **Step 2–3: Run (FAIL), implement, run (PASS).**
@@ -514,11 +549,12 @@ Spec § 3.2.
 **Interfaces:**
 - `K.body.MUSCLE = { WEAK = -5, FEEBLE = -2, STOUT = 2, STRONG = 4 }` (the vanilla Strength offsets, #2157's order of traits; trait-levers § 1.3).
 - `K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 12.5 }` (S2056; the default the middle of the male normal 3–6).
+- `K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 }` (the middle of S2057's female bands, labelled game choices; read when `sexIdx == 2`, i.e. `NR.SexSpecific` is on and the character is female; ruling 13-31).
 - `K.body.THIN = { UNDERWEIGHT = { bmi = 18.0, fmi = 1.5 }, VERY_UNDERWEIGHT = { bmi = 16.5, fmi = 1.0 } }` (WHO grades; S1905 for the fat at BMI 18).
-- `K.body.create(muscle, weight, P)` → `spec = { lm, F0, Fc, Pk, fm }`: `off = K.body.MUSCLE[muscle] or 0`; `F0 = fOf(5 + off)`, `Fc = fOf(P.capLevel + P.capShare * off)`; `fm = FAT_FMI[weight or "none"] * H²` for a fat or no weight pick; for a thin pick `fm = THIN.fmi * H²` and `lm = K.min(F0, THIN.bmi * H² - fm)` (ruling 13-14); else `lm = F0`; `Pk = F0`.
-- `K.body.new(spec, sex, ageH)` replaces today's `new(w, sex, build, l0, traitCarry, r, ageH)`: lays `lm, F0, Fc, Pk, fm, lx = 0, grace = 0, sigDay = 0, sig7 = {0 x7}, fatT, thinT` (Task 10's held words, from the picks), `fmRef = fm`, `lm0dis = lm`, `sex`, `bornAge`, `wday`, the rings (`mass7` at `lm + lx + fm`), the window, and every field today's `new` lays that survives Task 12's removals. Task 12 switches the callers; until then `new` keeps its old name and this one is written as `K.body.newLean` so both coexist, renamed in Task 12.
+- `K.body.create(muscle, weight, P, sexIdx)` → `spec = { lm, F0, Fc, Pk, fm, fatT, thinT, sexIdx }` (rulings 13-30, 13-31): `off = K.body.MUSCLE[muscle] or 0`; `F0 = fOf(5 + off)`, `Fc = fOf(P.capLevel + P.capShare * off)`; `fm = FAT_FMI[weight or "none"] * H²` for a fat or no weight pick (`FAT_FMI_F` when `sexIdx == 2`); for a thin pick `fm = THIN.fmi * H²` and `lm = K.min(F0, THIN.bmi * H² - fm)` (ruling 13-14); else `lm = F0`; `Pk = F0`. `fatT` and `thinT` are the rungs of the weight pick: OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2, else 0 (Emaciated is read as 2); `sexIdx` is carried for `new`.
+- `K.body.new(spec, sex, ageH)` replaces today's `new(w, sex, build, l0, traitCarry, r, ageH)`: lays `lm, F0, Fc, Pk, fm, lx = 0, grace = 0, sigDay = 0, sig7 = {0 x7}, fatT, thinT` copied from `spec` (`create` returns them), `band` from `K.traits.axes(body, spec.sexIdx)` once Task 10 lands (ruling 13-30), `fmRef = fm`, `lm0dis = lm`, `sex`, `bornAge`, `wday`, the rings (`mass7` at `lm + lx + fm`), the window, and every field today's `new` lays that survives Task 12's removals. Task 12 switches the callers; until then `new` keeps its old name and this one is written as `K.body.newLean` so both coexist, renamed in Task 12.
 
-- [ ] **Step 1: The failing test,** cell by cell against spec § 3.2's table and Appendix 7's proposed block:
+- [ ] **Step 1: The failing test,** cell by cell against spec § 3.2's table and the proposed block in `docs/superpowers/research/2026-10-14-strength-redesign/spec-review.md`'s Appendix 7:
   ```python
   @pytest.mark.parametrize("muscle, weight, L, fat_kg, w", [
       (None, None, 5.0, 13.005, 65.025),
@@ -554,16 +590,23 @@ Spec § 3.2.
       D = host.K.strength.DEFAULTS
       s = host.call("body.create", "WEAK", "UNDERWEIGHT", D)
       assert abs(s["lm"] - host.call("strength.fOf", 0.0, D)) < 1e-12
+
+  @pytest.mark.parametrize("weight, fmi", [(None, 7.0), ("OVERWEIGHT", 11.0), ("OBESE", 15.0)])
+  def test_female_fat_picks_sit_in_the_female_bands(host, weight, fmi):
+      D = host.K.strength.DEFAULTS
+      s = host.call("body.create", None, weight, D, 2)
+      assert abs(s["fm"] - fmi * 1.70 * 1.70) < 1e-9
   ```
   The kg columns are spec § 3.2's at 1.70 m (2.89 m²), unrounded.
 - [ ] **Step 2–3: Run (FAIL), implement, run (PASS).**
-- [ ] **Step 4: Gates and commit.** Mutations: the cap at the full offset; thin raising F; fat at FMI 11 for Obese (Appendix 7's draft). Commit: `"Plan 13 Task 9: the creation body table"`.
+- [ ] **Step 4: Gates and commit.** Mutations: the cap at the full offset; thin raising F; `sexIdx` ignored; fat at FMI 11 for Obese (the draft in `spec-review.md`'s Appendix 7). Commit: `"Plan 13 Task 9: the creation body table"`.
 
-### Task 10: The trait axes with damping (Opus; `mod/` lane, kernel; with a science check)
+### Task 10: The trait axes with damping (Opus; `mod/` lane, kernel)
 Spec § 8.
 
 **Files:**
 - Create `mod/.../shared/NR_Kernel_Traits.lua`; create `testing/tests/kernel/test_kernel_traits.py`.
+- Modify `mod/.../shared/NR_Kernel_Body.lua`: the one line in `K.body.new` that lays `body.band` from `K.traits.axes` (ruling 13-30).
 
 **Interfaces:**
 - `K.traits.FAT_CUTS = { { 6, 9 }, { 9, 13 } }` by sex index (FMI, kg/m²; S2056 male, S2057 female), `K.traits.FAT_WORDS = { "overweight", "obese" }`, `K.traits.FAT_MARGIN = 0.3`.
@@ -571,7 +614,7 @@ Spec § 8.
 - `K.traits.held(rung, x, cuts, margin, up)` → the new rung: from `rung`, step deeper while the next cut is passed by more than `margin`, step back while the current cut is undone by more than `margin`; `up` true for the fat axis (higher is worse), false for thinness.
 - `K.traits.axes(body, sex)` → writes `body.fatT` and `body.thinT` (rung numbers 0..2 and 0..3) from `fmi = body.fm / H²` and `bmi = (body.lm + body.fm) / H²` (ruling 13-15), clears `fatT` to 0 while `thinT > 0` (precedence), and returns the band word: the thin word, else the fat word, else `"normal"`.
 - `K.traits.WANT(fatT, thinT)` → the five weight-band trait names each true or false (`OBESE`, `OVERWEIGHT`, `UNDERWEIGHT`, `VERY_UNDERWEIGHT`, `EMACIATED`).
-- `K.body.create` (Task 9) sets the picked rung directly: OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2.
+- `K.body.create` (Task 9) returns the picked rungs `fatT` and `thinT` (OVERWEIGHT 1, OBESE 2, UNDERWEIGHT 1, VERY_UNDERWEIGHT 2), and `K.body.new` copies them; this task adds the line `body.band = K.traits.axes(body, spec.sexIdx)` to `new` and owns nothing else of it (ruling 13-30).
 
 - [ ] **Step 1: The rows.** The cuts rest on the settled rows S2056 (men) and S2057 (women, Kelly 2009 Table 4); each constant's comment names its row. No science check is needed.
 - [ ] **Step 2: The failing tests.**
@@ -602,20 +645,21 @@ Spec § 8.
       D = host.K.strength.DEFAULTS
       for muscle, weight, word in ((None, "UNDERWEIGHT", "underweight"), (None, "VERY_UNDERWEIGHT", "veryUnderweight"),
                                    (None, "OVERWEIGHT", "overweight"), (None, "OBESE", "obese"), ("WEAK", "UNDERWEIGHT", "underweight")):
-          s = host.call("body.create", muscle, weight, D)
-          assert host.call("traits.axes", s, 1) == word
+          for sexIdx in (1, 2):
+              s = host.call("body.create", muscle, weight, D, sexIdx)
+              assert host.call("traits.axes", s, sexIdx) == word
   ```
 - [ ] **Step 3–4: Run (FAIL), implement, run (PASS).** Mutations: no margin; precedence removed; female cuts used when the option is off (the caller passes `K.body.effSex`).
-- [ ] **Step 5: Commit** the kernel, its test and (controller) the science row: `"Plan 13 Task 10: the fat, muscle and thinness axes with damping"`.
+- [ ] **Step 5: Commit** the kernel, its test and the `NR_Kernel_Body.lua` band line: `"Plan 13 Task 10: the fat, muscle and thinness axes with damping"`.
 
 ### Task 11: The sandbox options and `K.strength.params` (Sonnet; `mod/` lane)
 Spec § 10.
 
 **Files:**
-- Modify `42.21/media/sandbox-options.txt`, `Translate/EN/Sandbox.json`, `NR_Kernel_Strength.lua` (`params`), `NR_Server_Options.lua`; tests `test_kernel_strength.py`, `testing/tests/kernel/test_translations.py` (the key set), and the options test that reads the file.
+- Modify `42.21/media/sandbox-options.txt`, `Translate/EN/Sandbox.json`, `NR_Kernel_Strength.lua` (`params`), `NR_Kernel.lua` (`K.readLeaf`, moved from the local at `NR_Server_Options.lua:31`; ruling 13-32), `NR_Server_Options.lua` (calls `K.readLeaf`); tests `test_kernel_strength.py`, `testing/tests/kernel/test_translations.py` (the key set), and the options test that reads the file.
 
 **Interfaces:**
-- `K.strength.params(sv)` → `P, fellBack`: a new table copied from `DEFAULTS`, each option in the table below read through the `readLeaf` clamp rule (out of range clamps for a double, reads the default for the integer), then `P.k = DEFAULTS.k * StrengthRate`, the knots' x values scaled by `StrengthProteinFull / 1.6`; then the guard: with `s15 = (15 - 5) / (P.capLevel - 5)` when `P.capLevel > 15`, if `threshold(s15, P) >= setCap(s15, P)` then `beta`, `Sg0`, `Smax1` revert to `DEFAULTS` and `fellBack = true`.
+- `K.strength.params(sv)` → `P, fellBack`: a new table copied from `DEFAULTS`, each option in the table below read through `K.readLeaf`, the one clamp rule (out of range clamps for a double, reads the default for the integer), then `P.k = DEFAULTS.k * StrengthRate`, the knots' x values scaled by `StrengthProteinFull / 1.6`; then the guard: with `s15 = (15 - 5) / (P.capLevel - 5)` when `P.capLevel > 15`, if `threshold(s15, P) >= setCap(s15, P)` then `beta`, `Sg0`, `Smax1` revert to `DEFAULTS` and `fellBack = true`.
 - `NR.server.options.strength` = `P`, rebuilt only when a strength leaf changed (one comparison loop at the poll; the table is not rebuilt per minute, Rule 6); a fallback logs once at level 1 with the three values read.
 
 | Option | Type | Min | Max | Default | Key |
@@ -652,15 +696,15 @@ Spec § 10.
 
 The defaults column restates spec § 10 for the option file; the kernel's defaults are `DEFAULTS` (ruling 13-1), and a test asserts every option's declared default equals the `DEFAULTS` value of its key (the multiplier and scale options at 1.0 and 1.6), so a refit that moves `DEFAULTS` fails the test until the option file follows. `NR.StrengthMaintainShare`'s default 0.333 is the option file's three-place value; `params` maps a value within 0.0005 of 0.333 to `DEFAULTS.m` exactly.
 
-- [ ] **Step 1: The failing tests:** every option parses (the existing option-file test pattern); each tooltip key exists in `Sandbox.json`; `params` with no options equals `DEFAULTS` key by key; `StrengthRate = 2` doubles `k`; `StrengthThreshold = 1.0` with `StrengthThresholdRise = 4` falls back with `fellBack == true`; `StrengthCapLevel = 14` skips the guard; out-of-range doubles clamp.
-- [ ] **Step 2–3: Run (FAIL), implement, run (PASS).** Tooltips (in `Sandbox.json`): one plain sentence per option saying what it scales and its unit; `NR.StrengthMaintainShare`'s says "0 never detrains"; `NR.StrengthTimeScale`'s says "the biology clock: 1.0 is one biological day per game day; weekly sets are still counted over 7 game days".
-- [ ] **Step 4: Gates and commit.** `"Plan 13 Task 11: the strength sandbox options and the load-time guard"`.
+- [ ] **Step 1: The failing tests:** every option parses (the existing option-file test pattern); each tooltip key exists in `Sandbox.json`; `params` with no options equals `DEFAULTS` key by key; `StrengthRate = 2` doubles `k`; `StrengthThreshold = 1.0` with `StrengthThresholdRise = 4` falls back with `fellBack == true`; `StrengthCapLevel = 14` skips the guard; out-of-range doubles clamp; `K.readLeaf` clamps exactly as the Options adapter's local did (its existing test moves with it).
+- [ ] **Step 2–3: Run (FAIL), implement, run (PASS).** Tooltips (in `Sandbox.json`): one plain sentence per option saying what it scales and its unit; `NR.StrengthMaintainShare`'s states its range (0.1 to 1.0) and makes no claim about 0; `NR.StrengthTimeScale`'s says "the biology clock: 1.0 is one biological day per game day; weekly sets are still counted over 7 game days".
+- [ ] **Step 4: Gates and commit.** The golden does not move (nothing calls `params` yet; the golden test proves it and the report says so); if the options table gains a snapshot leaf, it is re-recorded under **"Plan 13 Task 11: the strength options table in the options snapshot"**, attributing that leaf. `"Plan 13 Task 11: the strength sandbox options and the load-time guard"`.
 
 ### Task 12: The switch: the day close, first sight, the removals (Opus; `mod/` lane)
 Spec §§ 4 (Replaced), 5, 6, 9.1, 9.2, 9.4.
 
 **Files:**
-- Modify `NR_Server_Metabolism.lua` (`closeDay` at 301–320, `ensureBody` at 148–170, `heal` at 332–345, `MET.GUARD` at 74–76, the step at 452–458, `MET.BUILD_TRAITS`, `responder`), `NR_Kernel_Strength.lua`, `NR_Kernel_Partition.lua`, `NR_Kernel_Training.lua`, `NR_Kernel_Body.lua`, `NR_Kernel_Heal.lua`, `NR_Kernel_Store.lua` (`INPUTS`, `bodyBase`), `NR_Server_Strength.lua` (the minute: the ceiling and policy call removed, carry kept), `NR_Kernel_Mirror.lua` (the `dStr`/`dHyp` read removed; Task 18 adds the new keys).
+- Modify `NR_Server_Metabolism.lua` (`closeDay` at 301–320, `ensureBody` at 148–170, `heal` at 332–345, `MET.GUARD` at 74–76, the step at 452–458, `MET.BUILD_TRAITS`, `responder`), `NR_Kernel_Strength.lua`, `NR_Kernel_Partition.lua`, `NR_Kernel_Training.lua`, `NR_Kernel_Body.lua`, `NR_Kernel_Heal.lua`, `NR_Kernel_Store.lua` (`INPUTS`, `bodyBase`), `NR_Server_Strength.lua` (the minute: the ceiling and policy call removed; the carry reads `K.strength.traitCarry(K.strength.bandOf(native level))` until Task 14 switches it to `body.wroteL`, ruling 13-28), `NR_Kernel_Mirror.lua` (the `dStr`/`dHyp` and `shownL` reads removed, and `body_weight` reads `fm + lm + lx`; Task 18 adds the new keys), `NR_Kernel_Energy.lua` (`:264` and `:267` read `fm + lm + lx`; ruling 13-34).
 - Delete `NR_Server_Training.lua` and `testing/tests/kernel/test_training_shape.py` (ruling 13-18).
 - Create `tools/bench_day_close.py`.
 - Tests: rewrite `test_kernel_strength.py`, `test_kernel_partition.py`, `test_kernel_training.py`, `test_kernel_body.py`, `test_kernel_heal.py`, `test_kernel_store.py`, `test_metabolism_shape.py`, `test_strength_shape.py`, `test_heal_once.py`; the golden.
@@ -670,22 +714,22 @@ Spec §§ 4 (Replaced), 5, 6, 9.1, 9.2, 9.4.
   1. the disuse count, as today;
   2. `local sum = K.strength.signalClose(body)` (shifts `sig7`, lands `sigDay` in slot 7, zeroes `sigDay`, returns the ring's sum); `local S = sum / P.xpPerSet`;
   3. `local p = body.pDay / w`; `local tdee = K.max(body.eeDay, K.energy.ree(body.lm))`;
-  4. immobilised: `K.partition.disuse(body)` applied as today, `body.grace` advanced by `K.strength.detrain`'s counter rule only; else `K.strength.day(body, S, p, body.ebDay, tdee, body.alcDay / w, P, P.ts)`;
+  4. immobilised: `K.partition.disuse(body)`'s `dFM, dLM` applied under `P.fmMin` and `P.fMinShare · body.F0` (ruling 13-35), `lx` untouched, `body.grace` advanced by `K.strength.detrain`'s counter rule only; else `K.strength.day(body, S, p, body.ebDay, tdee, body.alcDay / w, P, P.ts)`;
   5. `body.fmRef = K.max(body.fmRef, body.fm)`;
   6. `body.band = K.traits.axes(body, K.body.effSex(body.sex, opts.sexSpecific))` and `body.traitsDirty = true` when the band word changed;
   7. `body.S = S` (the closed week's sets, for the mirror and `T`);
   8. `K.training.closeDay`, TAC, `pPrevKg`, `inDayClosed`, `K.partition.closeDay`, AT, as today (TAC's `gEnergy` reads `body.lm`, unchanged).
   `P` is `NR.server.options.strength`, falling back to `K.strength.DEFAULTS` when the options table is absent.
-- **`MET.ensureBody`**: when `record.body` is nil, reads the band traits held (ruling 13-6) into `muscle` and `weight`, builds `K.body.new(K.body.create(muscle, weight, P), sex, ageH)`, and stamps `body.levelDue = true` so Task 14's minute writes the level once.
-- **`K.body.new`** (renamed from `newLean`) replaces the old constructor; `split` and its tables, `BUILD_*`, `band(w)`'s callers outside Weight (Weight's goes in Task 15) are removed.
-- **`K.store.bodyBase(rb, ageH)`**: `K.body.new(K.body.create(nil, nil, K.strength.DEFAULTS), sex, lastAgeH)` with the stored `lm`, `fm`, `lx` overlaid by the INPUTS copy.
-- **`K.heal.body(body, ageH)`**: a non-finite `lm`, `fm`, `F0`, `Fc` or `Pk` heals to the no-trait body's value (`K.body.create(nil, nil, K.strength.DEFAULTS)`); `lx`, `grace`, `sigDay` and each `sig7` slot to 0; `wday` as Task 4; `S` to 0. The `l0` argument and the Strength read in Metabolism's `heal` go.
+- **`MET.ensureBody`**: when `record.body` is nil, reads the band traits held (ruling 13-6) into `muscle` and `weight`, builds `K.body.new(K.body.create(muscle, weight, P, K.body.effSex(sex, opts.sexSpecific)), sex, ageH)`, and stamps `body.levelDue = true` so Task 14's minute writes the level once.
+- **`K.body.new`** (renamed from `newLean`) replaces the old constructor; `split` and its tables, `BUILD_*`, `band(w)`'s callers outside Weight (Weight's goes in Task 15) are removed. `body.traitCarry` and `body.delta` (the latter laid from it at `NR_Kernel_Body.lua:213`) are no longer laid, and `ensureBody` reads no `getMaxWeightDelta`.
+- **`K.store.bodyBase(rb, ageH)`**: `K.body.new(K.body.create(nil, nil, P0), sex, lastAgeH)` with `P0` the server's `NR.server.options.strength` where the adapter has it, else `K.strength.DEFAULTS` (so a tuned server's cap holds), with the stored `lm`, `fm`, `lx` overlaid by the INPUTS copy.
+- **`K.heal.body(body, ageH)`**: a non-finite `lm`, `fm`, `F0`, `Fc` or `Pk` heals to the no-trait body's value (`K.body.create(nil, nil, P0)`, `P0` as for `bodyBase`); `lx`, `grace`, `sigDay` and each `sig7` slot to 0; `wday` as Task 4; `S` to 0. The `l0` argument and the Strength read in Metabolism's `heal` go.
 - **`K.store.INPUTS`**: add `body.F0`, `body.Fc`, `body.Pk`, `body.lx`, `body.grace`, `body.sigDay`, `body.sig7.*`, `body.S`, `body.fatT`, `body.thinT`, `body.band`, `body.wroteL`, `body.wday`; remove `body.fm0`, `body.lm0`, `body.l0`, `body.r`, `body.traitCarry`, `body.strAgeH`, `body.vStr`, `body.vHyp`, `body.vStrHigh`, `body.n`, `body.nPeak`, `body.tPeakD`, `body.nHist.*`, `body.cumDef`, `body.shownL`, `body.riseHeldH`, `body.lastFallAge`.
-- **The weight readers**: `fm + lm` becomes `fm + lm + lx` in `NR_Server_Weight` (the slot), `K.partition.closeDay`'s `mass7`, `K.body.new`'s rings and every `w = body.fm + body.lm` in Metabolism, Strength, Nutrients and Effects that means body mass (ruling 13-20; grep `fm + body.lm` and `fm + lm` and list each site in the report).
-- **Removed** (spec § 9.2): `K.strength.neuralStep`, `closeDay`, `floorF`, `fSlow`, `ceiling`, `xpLevel`, `policy` and their constants (`N_TARGET_K` through `RISE_HOLD_H`, `FALL_MIN_H`, `MEM_*`, `CUMDEF_*`, `E_ENERGY_MAX`, `DISUSE_K`, `DISUSE_T`, `F_MIN`, `F_MAX`, `LEVELS_PER_DOUBLING`); the partition's and training's lists in the file table; Metabolism's `responder`, `MET.BUILD_TRAITS`, the step's `neuralStep`, `doses`, `decay`, `loadMinute`, `actionMinute` calls, and `MET.GUARD`'s removed names (`n`, `nPeak`, `tPeakD`, `cumDef`, `vStr`, `vHyp`).
+- **The weight readers**: `fm + lm` becomes `fm + lm + lx` in `NR_Server_Weight` (the slot), `K.partition.closeDay`'s `mass7`, `K.body.new`'s rings and every `w = body.fm + body.lm` in Metabolism, Strength, Nutrients and Effects that means body mass, and the other total-mass readers: `NR_Kernel_Energy.lua:264` and `:267`, `NR_Kernel_Mirror.lua:56`, `NR_Kernel_Heal.lua:140`, `NR_Kernel_Store.lua:194` and `NR_Server_Weight.lua:119` (rulings 13-20, 13-34; grep `fm + body.lm` and `fm + lm` and list each site in the report).
+- **Removed** (spec § 9.2): `K.strength.neuralStep`, `closeDay`, `floorF`, `fSlow`, `ceiling`, `xpLevel`, `policy` and their constants (`N_TARGET_K` through `RISE_HOLD_H`, `FALL_MIN_H`, `MEM_*`, `CUMDEF_*`, `E_ENERGY_MAX`, `DISUSE_K`, `DISUSE_T`, `F_MIN`, `F_MAX`, `LEVELS_PER_DOUBLING`); the partition's and training's lists in the file table; `K.partition.FM_MIN` and `LM_MIN_RATIO` (now `DEFAULTS.fmMin` and `fMinShare`); Metabolism's `responder`, `MET.BUILD_TRAITS`, the step's `neuralStep`, `doses`, `decay`, `loadMinute`, `actionMinute` calls, and `MET.GUARD`'s removed names (`n`, `nPeak`, `tPeakD`, `cumDef`, `vStr`, `vHyp`).
 
-- [ ] **Step 1: Bench before.** `python tools/bench_day_close.py --players 60 --closes 200` on HEAD: it loads `server_host.Host`, builds 60 records with bodies, and times Metabolism's `closeDay` (reached through `NR.server.metabolism`'s test seam, which the tool adds as `MET._closeDay = closeDay` under a `NR_BENCH` global guard), printing µs per player-close. Ledger the figure.
-- [ ] **Step 2: Write the failing tests.** The Metabolism shape tests: one close runs `signalClose`, `day` and `axes` once each and writes `body.S`; an immobilised close runs disuse and no growth (ruling 13-13); a first sight with STRONG and OBESE held builds Strong's F0 and Obese's fat; `ensureBody` no longer reads `getMaxWeightDelta` or `getPerkLevel`; the store round-trips every new INPUTS path and drops the removed ones; the heal rebuilds a NaN `F0` to the no-trait body's. A Java-call-count stub test: the Metabolism minute makes fewer Java calls than at HEAD (the build-trait reads at first sight only; no per-minute call added).
+- [ ] **Step 1: The seam, then the bench before.** First, in its own commit before any other edit (ruling 13-33): the one-line seam `MET._closeDay = closeDay` under a `NR_BENCH` global guard in `NR_Server_Metabolism.lua` (no behaviour change), with § 3's mod gates and the full `claims_check` (the seam shifts Metabolism's lines: re-anchor); commit `"Plan 13 Task 12: the day-close bench seam"`. Then create `tools/bench_day_close.py` (it loads `server_host.Host`, builds 60 records with bodies, times `MET._closeDay` and prints µs per player-close) and run `python tools/bench_day_close.py --players 60 --closes 200` on that commit, a real tree. Ledger the figure.
+- [ ] **Step 2: Write the failing tests.** The Metabolism shape tests: one close runs `signalClose`, `day` and `axes` once each and writes `body.S`; an immobilised close runs disuse and no growth (ruling 13-13); a first sight with STRONG and OBESE held builds Strong's F0 and Obese's fat; `ensureBody` no longer reads `getMaxWeightDelta` or `getPerkLevel`; the store round-trips every new INPUTS path and drops the removed ones; the heal rebuilds a NaN `F0` to the no-trait body's. A Java-call-count stub test: the Metabolism minute makes no more Java calls than at HEAD, and the report states the actual delta (the build-trait reads leave the minute; no per-minute call is added).
 - [ ] **Step 3: Implement the switch and the removals.** Delete each dead test by name: list every deleted test in `task-12-report.md` (the neural, memory floor, cumulative deficit, ceiling, policy, xpLevel, resistance-event, dose, lean-gain, gEnergy, headroom and split tests, and `test_training_shape.py` whole). A frozen-lib test that reads a removed field is deleted by name under a ledgered ruling (Global Constraints).
 - [ ] **Step 4: Run** full pytest in its own call. Mutations on a scratch copy: the close skipping `signalClose`; `S` from the ring without today's slot; `lx` left out of the weight; first sight reading the native level. Each fails a test.
 - [ ] **Step 5: Bench after** with the same command; ledger the delta. A rise above 25 % of the before figure is reported with its cause before the commit (Rule 6).
@@ -700,7 +744,7 @@ Spec § 4.
 **Interfaces:**
 - `K.strength.proteinFactor(store)` → 1.5 when `50 < store < 300`, 0.7 when `store < -300`, else 1 (#2112).
 - `K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)` → the signal XP: 0 for a non-finite or non-positive amount; else `amount / proteinFactor(store) / sandboxMult / K.max(1, bookMult)`, times 1 when `fitness`, else `P.incidental`. A `sandboxMult` that is not a positive finite number reads 1.
-- `STR.onXp(player, perk, amount)`: Strength only; returns at once under `STR.pinning`; resolves the record without creating one (Training's `bodyOf`, moved here); reads the protein store (`getNutrition():getProteins()`), the sandbox multiplier (`SandboxVars.MultiplierConfig`, by Task 0 Step 1's field names), the book multiplier (`getXp():getMultiplier(perk)`), and `fitness = NR.server.fitness.typeOf(username) ~= nil` (no Java); adds `capture(...)` into `body.sigDay`; then, when the native level differs from `body.wroteL`, calls `STR.repin(player, body)` (Task 14). One pcall; counts `stats.captures`, `stats.ignored`, `stats.failures`.
+- `STR.onXp(player, perk, amount)`: Strength only; returns at once under `STR.pinning`; resolves the record without creating one (Training's `bodyOf`, moved here); reads the protein store (`getNutrition():getProteins()`), the sandbox multiplier (`SandboxVars.MultiplierConfig`, by Task 0 Step 1's field names), the book multiplier (`getXp():getMultiplier(perk)`), and `fitness = NR.server.fitness.typeOf(username) ~= nil` (no Java); adds `capture(...)` into `body.sigDay`; then, when the native level differs from `body.wroteL`, stamps `body.levelDue = true` (Task 14 replaces the stamp with the `STR.repin` call; ruling 13-29). One pcall; counts `stats.captures`, `stats.ignored`, `stats.failures`.
 - Wired at `OnServerStarted` on the server: `Events.AddXP.Add(STR.onXp)`.
 
 - [ ] **Step 1: The failing tests.**
@@ -716,7 +760,7 @@ Spec § 4.
       assert host.call("strength.capture", -1.0, 0, 1.0, 1.0, True, D) == 0
       assert abs(host.call("strength.capture", 6.0, 0, 0.0, 1.0, True, D) - 6.0) < 1e-12
   ```
-  Shape tests: an `AddXP` for Fitness adds nothing; a Strength event during a recorded set adds the full share, outside it the incidental share; the pinning flag blocks capture; a player with no record creates none.
+  Shape tests: an `AddXP` for Fitness adds nothing; a Strength event during a recorded set adds the full share, outside it the incidental share; the pinning flag blocks capture; a player with no record creates none; a grant that moves the native level off `wroteL` stamps `body.levelDue`.
 - [ ] **Step 2–3: Run (FAIL), implement, run (PASS).** Mutations: protein factor not divided; the incidental weight applied to Fitness sets; capture during pinning.
 - [ ] **Step 4: Golden and commit.** The golden fires no `AddXP`, so it does not move; the golden test proves it and the report says so. Commit: `"Plan 13 Task 13: the AddXP capture with the multiplier chain divided out"`.
 
@@ -724,30 +768,30 @@ Spec § 4.
 Spec § 7. The route is ruling 13-8's branch as Task 0 measured it; the pin is ruling 13-9's.
 
 **Files:**
-- Modify `NR_Server_Strength.lua`, `NR_Kernel_Strength.lua`; tests `test_strength_shape.py`, `test_kernel_strength.py`; the golden.
+- Modify `NR_Server_Strength.lua`, `NR_Kernel_Strength.lua`; tests `test_strength_shape.py`, `test_kernel_strength.py`; `NR_Server_Metabolism.lua` (the close sets `body.levelDue = true`); `testing/tests/kernel/golden_trace.py` (the stand-in player gains `LevelPerk`, `LoseLevel`, `getXp():setXPToLevel` and a global `addXp`, recording their calls; ruling 13-36); the golden.
 
 **Interfaces:**
-- `K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 }` (#2144) and `K.strength.traitCarry(n)` → `TRAIT_CARRY[bandOf(n)] or 1` (ruling 13-7).
+- `K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 }` (#2144) and `K.strength.traitCarry(n)` → `TRAIT_CARRY[bandOf(n)] or 1` (ruling 13-7). Both are brought forward to Task 12 (ruling 13-28); this task only switches the carry's argument to `body.wroteL`.
 - `K.strength.pinXp(n, frac, totals)` → the target XP: `totals[n] + frac * (totals[n + 1] - totals[n])` for `n <= 9`; `totals[9]` for `n == 10`.
-- `STR.writeLevel(player, body, ctx)`: `L = levelOf(body.lm, P)`; `n, frac = shown(L)`; steps the native level to `n` by the measured route; then:
+- `STR.writeLevel(player, body, ctx)` (`ctx` optional): `L = levelOf(body.lm, P)`; `n, frac = shown(L)`; steps the native level to `n` by the measured route; then:
   - `n <= 9`: pins XP to `pinXp(n, frac, totals)` (ruling 13-9);
   - `n == 10` and BeyondTen absent: parks with `setXPToLevel(perk, 9)`;
-  - `n == 10` and `BT ~= nil and BT.API_VERSION == 1`: never writes native XP; when `L >= 11`, writes `BT.SetStoredXP(player, Perks.Strength, v)` with `v` from BeyondTen's `GetTotalMasteryCost` for `math.floor(L)` plus the fraction toward the next, by the signatures Task 0 Step 1 read;
+  - `n == 10` and `BeyondTen ~= nil and BeyondTen.API_VERSION == 1` (rulings 13-24, 13-42): never writes native XP; on every write sets `BeyondTen.SetStoredXP(player, Perks.Strength, v)` with `v = BeyondTen.GetTotalMasteryCost(min(math.floor(L), 15)) + frac · (cost(next) − cost(floor(L)))`, which reads 0 + frac · cost(11) for L in [10, 11) and `cost(15)` for L >= 15, by the signatures Task 0 Step 1 read;
   - stamps `body.wroteL = n`, re-applies the band only on the fallback route (`STR.remap`), pushes traits when the set changed (`NR.pushTraits`), and sets `body.levelDue = false`.
-- `STR.repin(player, body)`: the `AddXP` listener's call when a grant crossed a level (native ≠ `body.wroteL`): `writeLevel` without reading the clock.
-- The minute (`STR.minute`): when `body.levelDue` or the native level differs from `body.wroteL` (one `getPerkLevel` read, as today), `writeLevel`; then the carry with `traitCarry(body.wroteL)`. Metabolism's close sets `body.levelDue = true`.
-- The guard (ruling 13-10): `STR.installLevelGuard()` at `OnServerStarted` wraps `xpUpdate.checkForLosingLevel(playerObj, perk)` once (a global sentinel, the Fitness wrapper's shape): for Strength with native level 10 and the record's `wroteL == 10`, return; else call the saved original.
+- `STR.repin(player, body)`: the `AddXP` listener's call when a grant crossed a level (native ≠ `body.wroteL`): `writeLevel` without reading the clock. It replaces Task 13's `body.levelDue = true` stamp in `STR.onXp` (ruling 13-29).
+- The minute (`STR.minute`): when `body.levelDue` or the native level differs from `body.wroteL` (one `getPerkLevel` read, as today), `writeLevel`; then the carry with `traitCarry(body.wroteL)` (replacing Task 12's read of the native level's band). Metabolism's close (in the Files) sets `body.levelDue = true`.
+- The guard (ruling 13-10): `STR.installLevelGuard()` at `OnServerStarted` wraps `xpUpdate.checkForLosingLevel(playerObj, perk)` once (a global sentinel `NR_StrengthGuardInstalled`, set by the mod and read by Task 19; the Fitness wrapper's shape): for Strength with native level 10 and the record's `wroteL == 10`, return; else call the saved original.
 
 - [ ] **Step 1: The failing tests.** `pinXp` at (7, 0.25) reads 127500 + 0.25 · 90000; at 10 reads 337500. Shape tests:
   - a level drop from 7 to 5 steps twice through the route stub and pins XP at level 5's total plus the fraction;
   - the minute rewrites after an admin `setPerkLevelDebug` (the #2740 re-assertion);
   - at 10 without BeyondTen: XP parked at 337500, a granted 100 raises the stub's XP and the listener re-parks it;
-  - with a BeyondTen stub (`BT.API_VERSION = 1`): no native XP write at 10, `SetStoredXP` called with the cost of level 12 for L = 12.0;
+  - with a BeyondTen stub (the global `BeyondTen` with `API_VERSION = 1`): no native XP write at 10, `SetStoredXP` called with the cost of level 12 for L = 12.0, with `frac · cost(11)` for L = 10.4 and with the cost of level 15 for L = 16.2;
   - the guard returns for a parked Strength and calls the original for Fitness;
   - the carry uses `TRAIT_CARRY` for the written band;
   - a Java-call-count stub: the minute's calls without a due write equal today's (one level read, the carry reads).
 - [ ] **Step 2–3: Run (FAIL), implement, run (PASS).** Mutations: no park at 10; the pin at the level total without the fraction; BeyondTen's native write not skipped; the guard calling the original for Strength.
-- [ ] **Step 4: Golden, gates, commit.** Re-record under **"Plan 13 Task 14: the Strength level written from lean mass at the day close, with the XP pin"** (the golden's players start at perk 5 with xp 260; the first-sight write moves `perk`, `xp` and the write counters). Commit: `"Plan 13 Task 14: the level write, the level-9 park, BeyondTen and the level-10 guard"`.
+- [ ] **Step 4: Golden, gates, commit.** Re-record under **"Plan 13 Task 14: the Strength level written from lean mass at the day close, with the XP pin"** (the golden's players start at perk 5 with xp 260; the first-sight write moves `perk`, `xp` and the write counters). The commit message names the stand-in change beside this cause (ruling 13-36). Commit: `"Plan 13 Task 14: the level write, the level-9 park, BeyondTen and the level-10 guard"`.
 
 ### Task 15: The trait writes; the weight band refresh retired (Opus; `mod/` lane)
 Spec § 8.
@@ -756,7 +800,7 @@ Spec § 8.
 - Modify `NR_Server_Weight.lua` (`needsRepair`, `WGT.BAND_TRAIT`, lines 137–150), `NR_Kernel_Body.lua` (`band(w)` removed); tests `test_weight_shape.py`, `test_kernel_body.py`; the golden.
 
 **Interfaces:**
-- `WGT.writeTraits(player, body, ctx)`: when `body.traitsDirty` or the held set differs from `K.traits.WANT(body.fatT, body.thinT)` (the existing repair read, now against the axes), add and remove through `getCharacterTraits():add/remove` with the registry objects, `NR.pushTraits(player, WGT.stats)` once, `B.markBand(username)` when `body.band` changed, and clear `traitsDirty`. `applyTraitFromWeight` is never called.
+- `WGT.writeTraits(player, body, ctx)` (`ctx` optional): when `body.traitsDirty` or the held set differs from `K.traits.WANT(body.fatT, body.thinT)` (the existing repair read, now against the axes), add and remove through `getCharacterTraits():add/remove` with the registry objects, `NR.pushTraits(player, WGT.stats)` once, `B.markBand(username)` when `body.band` changed, and clear `traitsDirty`. `applyTraitFromWeight` is never called.
 - The weight slot writes `fm + lm + lx` (Task 12's sum).
 
 - [ ] **Step 1: The failing tests:** an Overweight axis adds OVERWEIGHT and removes the other four with one push; an admin removal of OBESE under an obese axis is re-added the next minute; `applyTraitFromWeight` is never called (a stub that raises); the minute makes no more Java calls than at HEAD when nothing differs (the stub count).
@@ -785,16 +829,16 @@ Spec § 3.1. Runs only if Task 0's checks 1–3 held.
 | Weight Gain | −2 (vanilla) | false | — | vanilla's | removed |
 | Weight Loss | −2 (vanilla) | false | — | vanilla's | removed |
 
-Every block keeps vanilla's `CharacterTrait`, `UIName`, `UIDescription` and `Texture` lines. The file is CRLF-free, and `mod_lint.py`'s script-basename rule passes (the basename is mod-unique).
+Every block keeps every vanilla key the table does not change, read off the blocks (the 42.21 blocks carry no `Texture` key), except `UIDescription`, which points at the mod key `UI_NR_trait_<id>desc` (ruling 13-25). The file is CRLF-free, and `mod_lint.py`'s script-basename rule passes (the basename is mod-unique).
 
-`UI.json` overrides each block's `UIDescription` key (the key names read off the blocks), in plain words:
-- Weak, Feeble, Stout, Strong: "Starts with less (or more) muscle: Strength N at the start, and a natural ceiling M." with N and M from Task 9's table (0/14, 3/15.5, 7/17.5, 9/18.5).
+`UI.json` defines the ten new keys `UI_NR_trait_<id>desc`, in plain words:
+- Weak, Feeble, Stout, Strong: "Starts with less (or more) muscle: about Strength N at the start, and a lower (or higher) natural ceiling." with N from Task 9's table (0, 3, 7, 9); no cap number is named, since a refit moves it (rulings 13-1, 13-25).
 - Overweight, Obese: "Starts carrying more body fat (about X kg). Fat is lost or gained by eating." with X from Task 9's table.
 - Underweight, Very Underweight: "Starts underfed: low body fat and some muscle lost, which comes back quickly with food and training."
 - Weight Gain, Weight Loss: vanilla's sentence without the granted-trait clause (read the vanilla string first).
-And the panel's `UI_NR_Row_body_level` = "Strength" (used by Task 18).
+(`UI_NR_Row_body_level` is Task 18's, not this task's.)
 
-- [ ] **Step 1: The failing test** (`test_trait_script.py`): parses the file; asserts the 10 ids, each block's `Cost` and `IsProfessionTrait` per the table, no `XPBoosts` in the 8 body blocks, no `GrantedTraits` in Weight Gain and Weight Loss, every in-family exclusion present in both directions, and every vanilla key besides those four present (compared against a frozen copy of the 10 vanilla blocks the test carries as a string, read once from the install by the implementer).
+- [ ] **Step 1: The failing test** (`test_trait_script.py`): parses the file; asserts the 10 ids, each block's `Cost` and `IsProfessionTrait` per the table, no `XPBoosts` in the 8 body blocks, no `GrantedTraits` in Weight Gain and Weight Loss, every in-family exclusion present in both directions, and every vanilla key besides those four present (compared against a frozen copy of the 10 vanilla blocks the test carries as a string, read once from the install by the implementer). `test_translations.py` keeps `test_shape` and `test_no_vanilla_key_redefined` unchanged (the new keys start with `UI_NR_` and are not vanilla's) and extends `test_every_ui_key_is_read` with the keys the script file references, read off `NR_Traits_Body.txt`.
 - [ ] **Step 2–3: Run (FAIL), write, run (PASS).** `mod_lint`, `release_pack check`, `kahlua_lint`, `hotpath_lint`, `science_check --scan mod` (the costs are Angus's; the file carries a header comment naming the ruling, § 11).
 - [ ] **Step 4: Commit:** `"Plan 13 Task 16: the 10 body trait blocks restated, with their descriptions"`.
 
@@ -802,30 +846,30 @@ And the panel's `UI_NR_Row_body_level` = "Strength" (used by Task 18).
 Spec § 3.2. Runs only if Task 0's check 4 held; validation only if check 5 held.
 
 **Files:**
-- Create `mod/.../server/NR_Server_Creation.lua`; modify `NR_Server_Players.lua` (the `OnNewGame` handler at 221–237 fires `P.onNewGame` after `store.reset`); tests: new `testing/tests/kernel/test_creation_shape.py`; the golden.
+- Create `mod/.../server/NR_Server_Creation.lua`; modify `NR_Server_Players.lua` (the `OnNewGame` handler at 221–237 fires `P.onNewGame` after `store.reset`); tests: new `testing/tests/kernel/test_creation_shape.py`; `testing/tests/kernel/golden_trace.py` (the stand-in gains the `getDescriptor` and `CharacterTraitDefinition` stubs, ruling 13-36); the golden.
 
 **Interfaces:**
 - `P.onNewGame` (a list, `P.onFirstSight`'s pattern): fired with `(username, player, record)` after a successful `store.reset`; a pending reset fires it from `P.makeReset`.
 - `CRE.validate(player)` → the list of stripped trait names: ruling 13-16's formula over `getCharacterTraits():getKnownTraits()` (walked with `size()`/`get(i)`), the server's definitions (`CharacterTraitDefinition.getCharacterTraitDefinition`), profession cost read off `player:getDescriptor()`; strips and reverts boosts, logs each strip at level 1.
 - `CRE.picks(player)` → `muscle, weight`: the held muscle and weight-band traits after validation.
-- `CRE.onNewGame(username, player, record)`: validate; `record.body = K.body.new(K.body.create(muscle, weight, P), sex, ageH)`; `getNutrition():setWeight(lm + lx + fm)`; `STR.writeLevel(player, record.body)`; `WGT.writeTraits(player, record.body)` (the band traits final, spec § 3.2 step 3, so a Weight Gain → Out of Shape swap is undone only for the five weight-band and four muscle traits; Fitness band traits are vanilla's and stay, § 14); counts `stats.created`, `stats.stripped`.
+- `CRE.onNewGame(username, player, record)`: validate; `record.body = K.body.new(K.body.create(muscle, weight, P, K.body.effSex(sex, opts.sexSpecific)), sex, ageH)`; `getNutrition():setWeight(lm + lx + fm)`; `STR.writeLevel(player, record.body)`; `WGT.writeTraits(player, record.body)` (the band traits final, spec § 3.2 step 3, so a Weight Gain → Out of Shape swap is undone only for the five weight-band and four muscle traits; Fitness band traits are vanilla's and stay, § 14). The restated blocks remove the cause of vanilla's Weight Gain → Out of Shape swap (no Fitness `XPBoosts`, no `GrantedTraits`), so spec § 3.2 step 3's example no longer arises; the close updates it; counts `stats.created`, `stats.stripped`.
 - Guarded by `NR.isServer()`; every Java read through `NR.call`.
 
-- [ ] **Step 1: The failing tests** (server stand-ins, `test_strength_shape.py`'s pattern): Strong + Overweight builds Strong's F and Overweight's fat and writes weight 57.80 + 21.675; the level write lands 9 with STRONG; an over-budget list loses its last non-free entries until legal, each logged; Overweight + Obese (exclusive) loses the later; a stripped trait with a Strength XP boost has its level reverted; a respawn's `OnNewGame` builds a fresh body.
+- [ ] **Step 1: The failing tests** (server stand-ins, `test_strength_shape.py`'s pattern): Strong + Overweight builds Strong's F and Overweight's fat and writes weight 57.80 + 21.675; the level write lands 9 with STRONG; an over-budget list loses its last non-free entries until legal, each logged; Overweight + Obese (exclusive) loses the later; a stripped trait with a Strength XP boost has its level reverted; a respawn's `OnNewGame` builds a fresh body; with `sexSpecific` on, a female Overweight pick builds the female band's fat (11.0 kg/m²).
 - [ ] **Step 2–3: Run (FAIL), implement, run (PASS).** Mutations: validation skipped; the weight write left to vanilla's `applyWeightFromTraits`; the trait write before the level write (the swap then wins).
-- [ ] **Step 4: Golden and commit.** Re-record under **"Plan 13 Task 17: the creation handler builds g3's respawn body from its picks"** (g3's respawn at minute 101). Commit: `"Plan 13 Task 17: the OnNewGame creation handler with pick validation"`.
+- [ ] **Step 4: Golden and commit.** Re-record under **"Plan 13 Task 17: the creation handler builds g3's respawn body from its picks"** (g3's respawn at minute 101; the stand-in's descriptor and trait-definition stubs are named in the commit beside this cause, ruling 13-36). Commit: `"Plan 13 Task 17: the OnNewGame creation handler with pick validation"`.
 
 ### Task 18: The panel's Strength row (Sonnet; `mod/` lane)
 Ruling 13-19.
 
 **Files:**
-- Modify `NR_Kernel_Mirror.lua` (`K.mirror.body`), `NR_Kernel_View.lua` (`K.view.rows` after the body-fat row), `UI.json`; tests `test_kernel_mirror.py`, `test_kernel_view.py`, `test_client_panel_shape.py`.
+- Modify `NR_Kernel_Mirror.lua` (`K.mirror.body`), `NR_Kernel_View.lua` (`K.view.rows` after the body-fat row), `UI.json` (this task owns `UI_NR_Row_body_level` = "Strength"; Task 16 does not add it); tests `test_kernel_mirror.py`, `test_kernel_view.py`, `test_client_panel_shape.py`.
 
 **Interfaces:**
 - `m.body_level = K.strength.levelOf(body.lm, K.strength.DEFAULTS)` (the scale's constants are fixed, so the defaults are exact), `m.body_sets = body.S`; `body_shownL`, `body_dStr`, `body_dHyp` removed (grep the client for readers first).
-- `K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(mm.body_level, 1), 2, false)`.
+- `K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(math.floor(mm.body_level * 10) / 10, 1), 2, false)`.
 
-- [ ] **Step 1–3:** the failing tests (a level 12.34 mirror shows "12.3"; a body-less mirror shows No data), implement, pass. Golden: the mirror's sends are counted, not kept, so the golden does not move unless a counter does; say which.
+- [ ] **Step 1–3:** the failing tests (a level 12.34 mirror shows "12.3", a level 9.96 shows "9.9" (truncated, never rounded up to 10.0 beside a native 9); a body-less mirror shows No data), implement, pass. Golden: the mirror's sends are counted, not kept, so the golden does not move; if a mirror key-count leaf moves, it is re-recorded under **"Plan 13 Task 18: the mirror's body_level and body_sets keys replace body_shownL, body_dStr and body_dHyp"**, attributing each moved leaf.
 - [ ] **Step 4: Commit:** `"Plan 13 Task 18: the panel shows the true Strength level"`.
 
 ### Task 19: Live: the BeyondTen run (Opus; live; one session)
@@ -833,38 +877,39 @@ Spec § 12.2.
 
 **Files:** `testing/experiments/x43_strength_lib.py` (on `xlib.py`, from `x42_levers_lib.py`), `x431_beyondten.py`, `testing/profiles/x43-beyondten.toml` (the staged release copy, § 5; PZTestKit, NutritionRevamp, BeyondTen from workshop `3765241705` by path; `Nutrition = false`; `DayLength = 1`), `testing/tests/test_x43_strength_lib.py`.
 
+- [ ] **Step 0: The harness read (its own commit before the run, § 5, ruling 13-26).** Add server `bt.stored <user> <Perk>` → `{ok, loaded, stored}` at the end of `PZTestKit_Server.lua` (CRLF; edit with `newline=''` and preserve the endings): a pcall'd `BeyondTen.GetStoredXP(player, Perks[<Perk>])`, with `loaded = false` and `stored = nil` when the global `BeyondTen` is absent. `luabalance` (HEAD copy first, then the tree), `kahlua_lint`, `bus_inventory`, `claims_check --staged` and the full `claims_check` → 0 with the `#2808`/`#1235` update. Commit `"Plan 13 Task 19: harness bt.stored"`.
 - [ ] **Step 1: Offline tests**, each grade with a failing case, against the staged copy and a real run layout (§ 5).
-- [ ] **Step 2: The run.** `record.set` the admin's `body.lm` to `fOf(12.3)` and `body.levelDue` true; after the next minute read: native Strength 10, native XP 337500 or BeyondTen's own park, BeyondTen's stored XP for 12.3 (its own read), the panel mirror's `body_level`. Then a 1000-XP `xp.grant`: the capture's `sigDay` rises by the grant's share; the native level stays 10. Then `record.set` `body.lm` to `fOf(9.5)` with `levelDue`: native 9, XP at level 9's total plus half its cost, STRONG held on both sides. Read `xpUpdate.checkForLosingLevel` is the mod's guard over BeyondTen's (`lua.read`).
-- [ ] **Step 3:** Stage the artifacts; the report with the artifacts rows, do-not-cite leaves and candidate claims.
+- [ ] **Step 2: The run.** `record.set` the admin's `body.lm` to `fOf(12.3)` and `body.levelDue` true; after the next minute read: native Strength 10, native XP 337500 or BeyondTen's own park, BeyondTen's stored XP for 12.3 (`bt.stored`), the panel mirror's `body_level`. Then a 1000-XP `xp.grant`: the capture's `sigDay` rises by the grant's share; the native level stays 10. Then `record.set` `body.lm` to `fOf(9.5)` with `levelDue`: native 9, XP at level 9's total plus half its cost, STRONG held on both sides. Read the guard's sentinel `NR_StrengthGuardInstalled` (`lua.read`, a type read) and grade behaviour: a forced ten-minute rust pass on the parked level-10 Strength leaves the level at 10. Which wrapper is outermost is recorded as a reading only (ruling 13-43).
+- [ ] **Step 3:** The report with the do-not-cite leaves and candidate claims; the controller commits the artifact folder in its own commit with its artifacts row and re-anchor (ruling 13-38).
 
 ### Task 20: Live: the offline-gap run (Opus; live; one session)
 **Files:** `x432_offline.py`, `testing/profiles/x43-offline.toml` (staged copy; `Nutrition = false`; `DayLength = 1`).
 
 - [ ] **Step 1: Offline tests.**
 - [ ] **Step 2: The run.** Read the record whole (`lua.read record:<user>`), detach the client, raise the time multiplier (restored from the value read before, § 5) until 3 game days pass on the server, return the multiplier, re-attach the client (never under a near-stopped clock, #3788), read the record whole again at the first minute after first sight and again after the next world-day boundary. Grade: `dayIndex`, `sig7`, `p7`, `eb7`, `mass7`, `bandWeek`, `grace`, `Pk`, `lm`, `fm`, `lx` unchanged across the gap; the vanilla Strength XP unchanged (vanilla rust skips offline players); exactly one close after the next boundary.
-- [ ] **Step 3:** Stage and report.
+- [ ] **Step 3:** Report; the controller commits the artifact folder in its own commit with its artifacts row and re-anchor (ruling 13-38).
 
 ### Task 21: Live: the creation run (Opus; live; one session)
-**Files:** `x433_creation.py`, `testing/profiles/x43-creation.toml` (fixture `two`; staged copy).
+**Files:** `x433_creation.py`, `testing/profiles/x43-creation.toml` (fixture `two`; staged copy; `[sandbox] Nutrition = false`, `DayLength = 1`; ruling 13-44).
 
 - [ ] **Step 1: Offline tests.**
-- [ ] **Step 2: The run.** Four respawns of the user client through x192's route, each with `creation.picks`: (a) none; (b) Strong + Overweight; (c) Weak + Very Underweight; (d) Feeble + Obese + Overweight (illegal: exclusive) with extra over-budget traits. Each: the record's `lm`, `fm`, `F0`, `Fc`, the server and client weight, Strength level, trait list (same-second pairs), and the server log's strip lines. Grade against Task 9's table and ruling 13-16.
-- [ ] **Step 3:** Stage and report.
+- [ ] **Step 2: The run.** Four respawns of the user client through x192's route, each with `creation.picks`: (a) none; (b) Strong + Overweight; (c) Weak + Very Underweight; (d) Feeble + Obese + Overweight (illegal: exclusive) with extra over-budget traits. Each: the record's `lm`, `fm`, `F0`, `Fc`, the server and client weight, Strength level (the client's from client-side `perk.xp`), trait list (same-second pairs), and the server log's strip lines. Grade against Task 9's table and ruling 13-16.
+- [ ] **Step 3:** Report; the controller commits the artifact folder in its own commit with its artifacts row and re-anchor (ruling 13-38). The report also tells Angus that the thin picks lower lean, so vanilla's band swap gives Underweight a Feeble trait (level 2) and Very Underweight a Weak trait (level 0), and Strong with Very Underweight shows Weak: they are point sources (Very Underweight gives 10 points, then carries Weak's engine penalties), and a player may read this as a bug.
 
 ### Task 22: Live: the growth smoke (Opus; live; one session)
 **Files:** `x434_growth.py`, `testing/profiles/x43-growth.toml` (staged copy; `[sandbox.NR] StrengthTimeScale = 30`, `StrengthIncidentalWeight = 1`; `Nutrition = false`; `DayLength = 1`).
 
 - [ ] **Step 1: Offline tests,** including the replay: the driver's grade replays the run's own recorded day-close inputs (S, p, E, tdee) through the kernel (`K.strength.day` via lupa) and compares the live `lm` per close (ruling 8-R: live against its own replay, never against a study).
 - [ ] **Step 2: The run.** For 3 game days: grant `xpPerSet · 20 / 7` Strength XP a game day in 10 server `xp.grant` calls (the anti-cheat bound kept per check), place `body.pDay` and `body.ebDay` before each close with `record.set` (p = 2.0 g/kg, E = +260 kcal), and read the record at each close. Grade: each close's ΔF equals the replay to 1e-6 kg; the native level follows `floor(levelOf(lm))`; the band trait follows the level.
-- [ ] **Step 3:** Stage and report.
+- [ ] **Step 3:** Report; the controller commits the artifact folder in its own commit with its artifacts row and re-anchor (ruling 13-38).
 
 ### Task 23: The registers and the pages (Opus; docs lane; the Plan 11g Task 9 process)
-- [ ] **Step 1: The artifacts rows** for x421, x422, x431–x434, each with its do-not-cite keys, re-anchoring the `artifacts.md` pointers each row shifts in the same commit (§ 6).
+- [ ] **Step 1: The artifacts rows are already in** (each run's artifact commit carried its row, do-not-cite keys and `artifacts.md` re-anchor, ruling 13-38); this task writes the claims only. The full `claims_check` → 0 first.
 - [ ] **Step 2: The delta** (`.superpowers/sdd/<plan>/task-23-delta.tsv`), with ids reserved from the ledger's next id:
   - Task 0's readings as M rows (one per check) and the Step 1 jar reads as C rows; Task 1's XP per set; the live rows of Tasks 19–22;
   - the mod's mechanism rows as `C/inference` with `repo:` pointers (the growth law, the partition, the creation table, the axes, the capture, the level write, the calendar) where a sentence owns them (ruling T12-1);
-  - **the stale rows:** `#0529` and `#3344` corrected (their "60-minute default" to the jar's 90-minute default, `SandboxOptions.<init> @110–@120 L70`, `getDayLengthMinutes @0–@66 L555–L561`, read on 42.21) by a correction pass under § 6's fill rule; `#2115` and `#2116` superseded by successors read on 42.21 (`lua:lua/server/XpSystem/XpUpdate.lua:32-37`, `jar:IsoPlayer.isRandXp @0–@81 L9626–L9633`: one roll a real second, 1 in 20), every page tagging them moved in the same commit (§ 4 item 4);
-  - the rules the new design overturns: `#2902` (the `setPerkLevelDebug` clamp rule on `areas/body-effects.md#rules`) superseded by the level-write rule this plan measured; `#2701` qualified for the level-10 park under ruling 13-10; `#2705` (a mod effect's own trait) rewritten to state that a mod owning the band traits writes them from its own axes; the testing-your-mod clamp readings `#2894`, `#2896`, `#2897`, `#2898` and `#2881` (the band-anchored split) given bounds naming the removed code with pinned pointers;
+  - **the stale rows:** `#0529` corrected (its "60-minute default" to the jar's 90-minute default, `SandboxOptions.<init> @110–@120 L70`, `getDayLengthMinutes @0–@66 L555–L561`, read on 42.21) by a correction pass under § 6's fill rule; `#3344` re-read first and only what is wrong in it corrected (its claim says "a 60-minute day (DayLength 3)", not a default); `#2115` and `#2116` superseded by successors read on 42.21 (`lua:lua/server/XpSystem/XpUpdate.lua:32-37`, `jar:IsoPlayer.isRandXp @0–@81 L9626–L9633`: one roll a real second, 1 in 20), every page tagging them moved in the same commit (§ 4 item 4);
+  - the rules the new design overturns: `#2902` (the `setPerkLevelDebug` clamp rule on `areas/body-effects.md#rules`) superseded by the level-write rule this plan measured; `#2701` qualified for the level-10 park under ruling 13-10; `#2705` (a mod effect's own trait) rewritten to state that a mod owning the band traits writes them from its own axes; the testing-your-mod clamp readings `#2894`, `#2896`, `#2897`, `#2898` and `#2881` (the band-anchored split) given bounds naming the removed code (`#2894` to `#2898` are M rows with `run:` pointers, so nothing is pinned for them; only `repo:` pointers are pinned, to the last commit holding the code);
   - the science rows S1935 and S0065's per-meal reading qualified or superseded by the newer rows, as spec § 12.3 lists.
 - [ ] **Step 3: The pages,** each sentence named in the delta's `owner` column:
   - `docs/areas/body-effects.md`: `#perk-level` (the clamp paragraph, lines 137–155), `#traits` (the weight refresh paragraph), `### Level clamp against experience clamp`, and the rules above;
@@ -876,8 +921,8 @@ Spec § 12.2.
 - [ ] **Step 4: Process.** A trial apply on a `git archive` copy (§ 6), a whole-delta Opus review, the controller's apply with `tools/claims_delta.py` and the fill step, `--fix-tags` once, `claims_check --staged` → 0, the full `claims_check` → 0.
 
 ### Task 24: The close (controller; Opus whole-pass review)
-- [ ] **Step 1:** The whole-pass review (structure, performance and the fit's parity included), one consolidated fix wave, its re-review.
-- [ ] **Step 2:** `mod/NutritionRevamp/README.md` (the Strength and traits sections) and `CHANGELOG.md` folded into the 1.0.0 entry (the mod is unreleased).
+- [ ] **Step 1:** The whole-pass review (structure, performance and the fit's parity included), one consolidated fix wave, its re-review. A fix-wave change to a code path a live run measured is re-smoked or named as a skew note (ruling 13-39).
+- [ ] **Step 2:** The spec's corrections: § 7's `BT` wording to the global `BeyondTen` (ruling 13-24); § 3.2 step 3's "Out of Shape after Weight Gain" example (the restated blocks remove the cause, Task 17); § 10's `NR.StrengthMaintainShare` (range 0.1 to 1.0, no "0 never detrains"). Then `mod/NutritionRevamp/README.md` (the Strength and traits sections) and `CHANGELOG.md` folded into the 1.0.0 entry (the mod is unreleased).
 - [ ] **Step 3:** Every § 3 gate; reset the pytest baseline by name (the deleted tests listed in Task 12's report) in CLAUDE.md § 3; update CLAUDE.md § 2 if a fixture or build changed; the memory file and `MEMORY.md` (§ 8).
 - [ ] **Step 4:** Push; report to Angus: the Task 0 verdicts and branches taken, the XP-per-set reading, the bench before and after, the live readings, every ruling, and the mechanism candidates noticed.
 
@@ -904,14 +949,14 @@ Spec § 12.2.
 | § 9.2 the removals | 12 (and 13-18's ruling on Training) |
 | § 9.3 offline time and the ring audit | 4, 20 |
 | § 9.4 Rule 6 | 12 (bench), 4, 12, 14, 15 (call-count stubs) |
-| § 10 options, the guard, kept-out options | 11 |
+| § 10 options, the guard, kept-out options | 11 (with `K.readLeaf` moved to the kernel) |
 | § 11 rulings | the constants, Tasks 9, 16 |
 | § 12.1 kernel tests with mutations | 5–10 |
-| § 12.2 live: Task 0, calibration, BeyondTen, offline gap; plus creation and growth | 0, 1, 19–22 |
-| § 12.3 registers | 23 |
+| § 12.2 live: Task 0, calibration, BeyondTen, offline gap; plus creation and growth | 0, 1, 19–22 (the harness reads: Task 0's `perk.xp` and recorder, Task 19's `bt.stored`) |
+| § 12.3 registers | 23 (the claims; the artifacts rows land at each run's own commit) |
 | § 13 the sex option | 3, 10 (ruling 13-17) |
 | § 14 out of scope | Task 17 leaves Fitness bands to vanilla; the carry formula untouched (ruling 13-7 keeps vanilla's constructor table) |
 
-**Placeholders.** The XP-per-set default is Task 1's reading by design, with the provisional value and its fallback rule stated. The female FMI cuts are the settled row S2057. BeyondTen's call signatures and the creation-screen formula are Task 0 reads that land in its report before the tasks that use them. Two kernel test bodies in Task 8 are given as stated assertions with their protocol named; every other test is in full.
+**Placeholders.** The XP-per-set default is Task 1's reading by design, with the provisional value and its fallback rule stated. The female FMI cuts are the settled row S2057. BeyondTen's call signatures and the creation-screen formula are Task 0 reads that land in its report before the tasks that use them. Two kernel test bodies in Task 8 and Task 7's parity test are given as stated assertions with their protocol named; the implementer writes each in full and the review checks every assertion against its prose; every other test is in full.
 
-**Name and type consistency.** `K.strength.DEFAULTS`, `params`, `fOf`, `levelOf`, `shown`, `status`, `threshold`, `setCap`, `signal`, `fp`, `fe`, `growth`, `maintainSets`, `detrain`, `peakStep`, `day`, `signalClose`, `proteinFactor`, `capture`, `pinXp`, `traitCarry`, `TRAIT_CARRY`; `K.partition.forbes`, `training`, `surplusLean`, `deficitLean`; `K.body.create`, `new`, `calendar`, `effSex`, `MUSCLE`, `FAT_FMI`, `THIN`; `K.traits.axes`, `held`, `WANT`; the body fields `lm`, `fm`, `lx`, `F0`, `Fc`, `Pk`, `grace`, `sigDay`, `sig7`, `S`, `fatT`, `thinT`, `band`, `wroteL`, `levelDue`, `traitsDirty`, `wday` are used identically in Tasks 4–22. `K.body.newLean` exists only between Tasks 9 and 12. The body keeps the name `lm` for F, as spec § 9.1 states.
+**Name and type consistency.** `K.strength.DEFAULTS`, `params`, `fOf`, `levelOf`, `shown`, `status`, `threshold`, `setCap`, `signal`, `fp`, `fe`, `growth`, `maintainSets`, `detrain`, `peakStep`, `day`, `signalClose`, `proteinFactor`, `capture`, `pinXp`, `traitCarry`, `TRAIT_CARRY`; `K.partition.forbes`, `training`, `surplusLean`, `deficitLean`; `K.body.create`, `new`, `calendar`, `effSex`, `MUSCLE`, `FAT_FMI`, `THIN`; `K.traits.axes`, `held`, `WANT`; the body fields `lm`, `fm`, `lx`, `F0`, `Fc`, `Pk`, `grace`, `sigDay`, `sig7`, `S`, `fatT`, `thinT`, `band`, `wroteL`, `levelDue`, `traitsDirty`, `wday` are used identically in Tasks 4–22. `K.body.newLean` exists only between Tasks 9 and 12. The body keeps the name `lm` for F, as spec § 9.1 states. `K.readLeaf`, `K.body.FAT_FMI_F` and the `sexIdx` argument of `K.body.create` are used identically in Tasks 9–12 and 17.
