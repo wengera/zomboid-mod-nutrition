@@ -1,0 +1,51 @@
+# testing/profiles/x41-smoke.toml - Plan 12 Task 5 (run x411): the post-fix live smoke on the re-staged release copy:
+# the offline skip (A1, B8: admin quits, the server runs two game days at a raised multiplier with no client online,
+# admin rejoins at the restored one, and the sleep window's start and every world-age anchor move by the skipped gap
+# while the debt books no missed day), the supplement-only ULs (A2: one raw Base.Pasta, 480 mg magnesium, 65 mg niacin
+# and 3541 ug folate against their 350, 35 and 1000 supplement ULs, reaches no excess rung; its 572 ug selenium passes
+# the 400 ug food UL), the own moodle column on and off the UI manager with its levels (C1), the ungraded excess row (C3)
+# and the server alive with no mod error line.
+# PZTestKit at HEAD + the STAGED copy of the release (release/plan12-x41/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged by the controller before the boot with `python tools/release_pack.py stage mod/NutritionRevamp --out
+# release/plan12-x41`; release/ is gitignored; mod/ is never booted; the driver checks the staged MANIFEST against
+# release_pack's manifest of mod/NutritionRevamp on a clean tree before the boot and refuses on a mismatch)
+# + TKX_StudyFoods by its path (TKX.Mixed650, the overfull drive's fallback). Build 42.21.0 (4a0e9546ec).
+# Fixture `two`: admin (-debug), then bob (release). Nutrition false (ruling T18-1). DayLength 1 (a game minute is
+# 0.625 s of wall at true multiplier 1). [server] SleepAllowed and SleepNeeded true, so the sleep debt is live (x151s):
+# with either false the mod's sleep factor is off and every window start is laid at the minute.
+# No MoodleFramework: the own column. The driver is testing/experiments/x411_smoke.py.
+# The verify rows are load gates only: the version on the server and both clients, and the two foods' scripts.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp release copy (release/plan12-x41) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, sleep on, build 42.21.0 - x411, Plan 12 Task 5: the post-fix smoke (offline skip, supplement ULs, the own column, the excess row)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "item.script", args = "Base.Pasta", expect = '"via"' },
+  { side = "client", cmd = "item.script", args = "Base.Pasta", expect = '"via"' },
+  { side = "server", cmd = "item.script", args = "TKX.Mixed650", expect = '"via"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan12-x41/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StudyFoods"
+path = "testing/experiments/TKX_StudyFoods"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at true multiplier 1
