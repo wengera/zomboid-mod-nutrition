@@ -82,7 +82,7 @@ way NR_Server_Nutrients.lua does. Without a ring pair the direct reads stand in,
               nutrients.magnesium.x = 0. Falsifier: a rung of 1 or more. Unmeasured: e24 never reached 350.
   MG_NIACIN   the same for niacin (UL 35 mg). MG_FOLATE the same for folate (UL 1000 ug).
   COL_ZERO    every agreeing column read with all seven levels 0, on route "own" with the moodles enabled, reads the
-              probe's onUI false: the empty column is off the UI manager. Falsifier: onUI true. Unmeasured: no such read.
+              probe's onUI false: the empty column is off the UI manager (onUI is the mod's own column.onUI flag, not an engine UIManager read). Falsifier: onUI true. Unmeasured: no such read.
   COL_RAISED  every agreeing read with a level above 0 reads onUI true. Falsifier: false. Unmeasured: no such read.
   XR_MG       at Bands (view.level 2 read back), with the mirror's nut_magnesium_x 0: no row nut_magnesium_x.
               Falsifier: the row present. Unmeasured: no Bands read, or the rung not 0.
@@ -104,6 +104,18 @@ DEVIATIONS from the brief, stated before the run:
      unfed.
   4. OFF_NIC is trivial for a non-smoker: the writer lays nicH at the minute whenever the stat reads 0 (W.nicotine).
   5. The away wait targets the world age, not two days of wall: AWAY_MULT 30 is the measured speed (s02, #1813).
+  Pre-run edits after the Opus pre-boot review (fix 1), named here as deviations:
+  6. N1: OFF_DEBT reads trivial, not as_predicted, when the debt the unfixed code would book at the least (unf_lo = min(
+     DEBT_MAX, debtH_q + max(0, unfixed windows - 1) * SLEEP_NEED_H * 0.75)) lies inside the allowed band (the
+     reading would not separate fixed from unfixed).
+  7. N2: OFF_WIN is void when sleepDisabled reads true.
+  8. N3: a departure that never completes ends OFF before the clock is raised; the later admin phases skip themselves.
+  9. N4: mult_read returns None for an unread trueMult; OFF and COL then skip their raise or slow-down and the restore,
+     XR skips its setpath loop when the level reads nil, and no value is ever restored on an assumption.
+  10. N5: Z's server mod-error lines come also from a server-log grep that does NOT exclude PROBE_RX.
+  11. N6: Z also reads admin's client console lines matching MOD_ERR_RX.
+  12. N7: S.admin_back after the rejoin is bool(launch ready_took).
+  13. Bound note: COL's onUI is the mod's own column.onUI flag (a field the probe returns), not an engine UIManager read.
 
 RULES: 1. A driver is NEVER edited after its run; a post-run edit is a skew note. 2. A reading that comes back
 trivial, unmeasured or falsified is written as such, never re-run. 3. One live session at a time. 4. Free host
@@ -375,7 +387,7 @@ def restore_mult(S, value, tag):
 def mult_read(S, tag):
     s = S.xs.snap(tag)
     m0 = num(s.get("trueMult"))
-    return s, (m0 if m0 is not None and m0 > 0 else 1.0)
+    return s, (m0 if m0 is not None and m0 > 0 else None)
 
 
 def read_pages(S, user, tag):
@@ -488,6 +500,9 @@ def phase_OFF(S):
         lst = r.get("ack")
         return players_gone(lst), {"players": lst, "wall": r.get("wall_before")}
     P["depart"] = poll(S, "OFF_depart", departed, DEPART_CAP_S, 0.5)
+    if not P["depart"]["done"]:
+        xs.note("OFF: the players never left the server inside the cap; the clock is not raised")
+        return
     P["away"] = lread(S, SRV, "record:admin", OFF_PATHS, "OFF_away")
     P["away_snap"] = xs.snap("OFF_away_t")
     lq = num(vals(P["away"]).get(LAST))
@@ -496,21 +511,25 @@ def phase_OFF(S):
     P["Lq"] = lq
     P["mult0_snap"], P["restore_to"] = mult_read(S, "OFF_mult0")
     P["true_mults"] = []
-    try:
-        P["raise"] = set_mult(S, AWAY_MULT, "OFF_raise")
-        P["true_mults"].append({"at": "raise", "trueMult": P["raise"]["trueMult"]})
-        P["away_wait"] = wait_age(S, None if lq is None else lq + AWAY_H, "OFF_away_wait", AWAY_CAP_S, AWAY_POLL_S,
-                                  keep_mults=P["true_mults"])
-    finally:
-        P["restore"] = restore_mult(S, P["restore_to"], "OFF_restore")
-        P["restored_ok"] = P["restore"]["ok"]
+    if P["restore_to"] is None:
+        xs.note("OFF: trueMult unread; the clock is not raised and nothing is restored")
+        P["restored_ok"] = True
+    else:
+        try:
+            P["raise"] = set_mult(S, AWAY_MULT, "OFF_raise")
+            P["true_mults"].append({"at": "raise", "trueMult": P["raise"]["trueMult"]})
+            P["away_wait"] = wait_age(S, None if lq is None else lq + AWAY_H, "OFF_away_wait", AWAY_CAP_S,
+                                      AWAY_POLL_S, keep_mults=P["true_mults"])
+        finally:
+            P["restore"] = restore_mult(S, P["restore_to"], "OFF_restore")
+            P["restored_ok"] = P["restore"]["ok"]
     P["back_snap"] = xs.snap("OFF_back_t")
     if not P["restored_ok"]:
         xs.note("OFF: the multiplier did not read back the value read before; admin does not rejoin under it")
         return
     P["launch_snap"] = xs.snap("OFF_launch_t")
     P["launch"] = S.launch(S, "admin", "c1b")
-    S.admin_back = True
+    S.admin_back = bool(P["launch"].get("ready_took"))
     P["rejoined"] = True
     P["join_snap"] = xs.snap("OFF_join_t")
 
@@ -591,8 +610,12 @@ def phase_COL(S):
         return
     D = P["drive"] = {"eats": []}
     D["mult0_snap"], D["restore_to"] = mult_read(S, "COL_mult0")
+    slowed = D["restore_to"] is not None
+    if not slowed:
+        S.xs.note("COL: trueMult unread; the clock is not slowed and nothing is restored")
     try:
-        D["slow"] = set_mult(S, SLOW_MULT, "COL_slow")
+        if slowed:
+            D["slow"] = set_mult(S, SLOW_MULT, "COL_slow")
         for i in range(DRIVE_EATS):
             e = eat_landed(S, DRIVE_FOOD, f"COL_eat{i + 1}")
             D["eats"].append(e)
@@ -601,7 +624,8 @@ def phase_COL(S):
         D["arrival"] = request_mirror(S, "COL_m2")
         S.out["col_reads"].append(col_read(S, "COL_col2"))
     finally:
-        D["restore"] = restore_mult(S, D["restore_to"], "COL_restore")
+        if slowed:
+            D["restore"] = restore_mult(S, D["restore_to"], "COL_restore")
     S.out["world_changes"]["left_in_place"].append(f"COL: the overfull drive, {DRIVE_EATS} x {DRIVE_FOOD}")
 
 
@@ -634,13 +658,16 @@ def phase_XR(S):
     P["arrival"] = request_mirror(S, "XR_m")
     lv0 = num(vals(lread(S, ADMIN, f"{NR}.client", ["view.level"], "XR_lv0")).get("view.level"))
     P["level_before"] = lv0
+    if lv0 is None:
+        xs.note("XR: view.level unread; the level is not set and nothing is restored")
+        return
     try:
         for lv in (2, 3):
             P[f"set{lv}"] = xs.keep(xs.step(f"XR_set{lv}", ADMIN, "lua.setpath", f"{NR}.client.view.level {lv}"))
             P[f"refresh{lv}"] = xs.keep(xs.step(f"XR_refresh{lv}", ADMIN, "lua.call", f"{NR}.client.view.refresh true"))
             P["reads"][str(lv)] = rows_read(S, f"XR_L{lv}")
     finally:
-        back = lv0 if lv0 is not None else 2
+        back = lv0
         P["restore"] = xs.keep(xs.step("XR_restore", ADMIN, "lua.setpath", f"{NR}.client.view.level {int(back)}"))
         P["restore_refresh"] = xs.keep(xs.step("XR_restore_refresh", ADMIN, "lua.call",
                                                f"{NR}.client.view.refresh true"))
@@ -653,6 +680,17 @@ def phase_Z(S):
     errs = [str(e) for e in (S.server.errors if S.server is not None else [])]
     P["server_mod_error_lines"] = [e[:400] for e in errs if MOD_ERR_RX.search(e) and not ECHO_RX.search(e)
                                    and not CMD_ECHO_RX.search(e)][:20]
+    if S.server is not None and getattr(S.server, "log_path", None):
+        slog, _skip = X.grep_noecho(S.server.log_path, LOG_RX, LOG_LIMIT, ECHO_RX, re.compile(r"(?!x)x"))
+        P["server_mod_error_lines"] += [ln[:400] for ln in slog if MOD_ERR_RX.search(ln)
+                                        and not CMD_ECHO_RX.search(ln) and ln[:400] not in P["server_mod_error_lines"]][:20]
+    P["admin_console_mod_error_lines"] = []
+    for c in S.started:
+        con = getattr(c, "console", None)
+        if getattr(c, "username", None) == ADMIN.split(":", 1)[1] and con:
+            clines, _skip = X.grep_noecho(con, LOG_RX, LOG_LIMIT, ECHO_RX, re.compile(r"(?!x)x"))
+            P["admin_console_mod_error_lines"] += [ln for ln in clines if MOD_ERR_RX.search(ln)
+                                                   and not CMD_ECHO_RX.search(ln)][:20]
     P["admin_parked"] = xs.parked()
     P["mem"] = xs.mem("Z")
     P["bus_dead"] = xs.bus_dead
@@ -759,7 +797,10 @@ def grade_off(xs, P, rows, sleep_disabled):
                 "true_mults": [m.get("trueMult") for m in (P.get("true_mults") or [])][:40]})
     # OFF_WIN
     wq, w1 = num(q.get("acute.winStartH")), num(p1.get("acute.winStartH"))
-    if wq is None or w1 is None:
+    if sleep_disabled is True:
+        xs.grade("OFF_WIN", "void", obs, "sleepDisabled")
+        k_fix = None
+    elif wq is None or w1 is None:
         xs.grade("OFF_WIN", "unmeasured", obs, "winStartH not read")
         k_fix = None
     else:
@@ -792,7 +833,10 @@ def grade_off(xs, P, rows, sleep_disabled):
             lo, hi = max(0.0, dq - REPAY * WINDOW_H), min(DEBT_MAX, dq + k_fix * SLEEP_NEED_H * NEED_MORE)
             ok = lo - tol <= d1 <= hi + tol
             dobs["allowed"] = [lo, hi]
-        xs.grade("OFF_DEBT", "as_predicted" if ok else "falsified", dobs, PRED["OFF_DEBT"]["falsifier"],
+        unf_lo = min(DEBT_MAX, dq + max(0, obs.get("unfixed_windows", 0) - 1) * SLEEP_NEED_H * 0.75)
+        dobs["unfixed_lo"] = unf_lo
+        inside = dobs["allowed"][0] - tol <= unf_lo <= dobs["allowed"][1] + tol
+        xs.grade("OFF_DEBT", ("trivial" if inside else "as_predicted") if ok else "falsified", dobs, PRED["OFF_DEBT"]["falsifier"],
                  samples=[d1])
     if gap < 0.01:
         for k in ("OFF_ANCHORS", "OFF_NIC"):
@@ -935,7 +979,8 @@ def grade_z(xs, out):
     if not Z:
         xs.grade("Z", "unmeasured", None, "phase Z not run")
         return
-    lines = list(Z.get("server_mod_error_lines") or []) + list(g(out, "logs", "server", "mod_errors") or [])
+    lines = (list(Z.get("server_mod_error_lines") or []) + list(Z.get("admin_console_mod_error_lines") or [])
+             + list(g(out, "logs", "server", "mod_errors") or []))
     answered = isinstance(Z.get("players"), list) or Z.get("players") == {}
     ok = not lines and not out.get("admin_lua_error") and not Z.get("admin_parked") and answered
     xs.grade("Z", "as_predicted" if ok else "falsified",
@@ -1175,6 +1220,8 @@ class _FakeClient:
         self.world, self.username, self.seen, self.alive, self.console = world, user, {}, True, None
 
     def quit(self):
+        if self.world.f.get("no_depart"):
+            return 0                           # the player never leaves the server (the N3 case)
         self.world.online[self.username] = False
         self.alive = False
         return 0
@@ -1195,6 +1242,8 @@ class _FakeWorld:
                               "lastFedAgeH": 99.0, "lastVigAgeH": -1e9},
                     "nutrients": {"lastAgeH": 100.0, **{k: {"e24": 0.0, "x": 0} for k in ULS}},
                     "satiety": {"nicH": 99.5}}
+        if flags.get("debt_max"):
+            self.rec["acute"]["debtH"] = DEBT_MAX      # the unfixed debt lands inside the allowed band (N1)
         self.landed, self.runs = 0, 10
         self.inv = set()
         self.pending = []
@@ -1474,6 +1523,9 @@ SELFTEST = (
         "OFF_AWAY": "falsified", "OFF_ANCHORS": "unmeasured", "MG": "unmeasured", "MG_NIACIN": "as_predicted",
         "COL_ZERO": "as_predicted", "COL_RAISED": "falsified", "XR_MG": "falsified", "XR_MG_NUM": "falsified",
         "XR_SE": "as_predicted", "Z": "as_predicted"}),
+    ("debt_max", {"smoker": True, "debt_max": True}, {
+        "OFF_WIN": "as_predicted", "OFF_DEBT": "trivial"}),
+    ("no_depart", {"no_depart": True}, {}),
     ("drive", {"no_raise": True}, {
         "COL_ZERO": "as_predicted", "COL_RAISED": "as_predicted", "XR_SE": "unmeasured", "MG": "as_predicted"}),
 )
@@ -1497,6 +1549,12 @@ def selftest():
                     fails.append(f"{name}: the overfull drive ran with a level already above 0")
             if blk is not None and blk.get("ok") is not True:
                 fails.append(f"{name}: phase {ph}'s multiplier was not restored")
+        if name == "no_depart":
+            off = g(out, "phases", "OFF") or {}
+            if "raise" in off or "restore" in off or "mult0_snap" in off:
+                fails.append("no_depart: the clock was raised or read after a departure that never came")
+            if any(k in (out.get("phases") or {}) for k in ("C0", "MG", "COL", "XR")):
+                fails.append("no_depart: a later admin phase ran")
         if name == "drive" and g(out, "phases", "COL", "drive") is None:
             fails.append("drive: the overfull drive did not run")
         print(f"{name}: " + ", ".join(f"{k}={v}" for k, v in sorted(got.items())))
