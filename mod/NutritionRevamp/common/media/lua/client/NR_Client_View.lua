@@ -14,7 +14,9 @@
 -- The panel never shows a band label read from the client's trait list (ruling 16): the band row is the mirror's
 -- body_band, a server value, and the trait read here is the Nutritionist test alone.
 -- The grade rows list K.view.gradedOrder(NR.data.records), never the raw ORDER (the ungraded kinds would list a
--- replete grade and pool figures); cached on view.order at the first rebuild that has the records.
+-- replete grade and pool figures); cached on view.order at the first rebuild that has the records. The ungraded kinds
+-- (K.view.ungradedOrder, cached on view.ungraded beside it) list only an excess row, while their rung is above 0, so
+-- an Excess class an ungraded nutrient raises (selenium, vitamin E) is named.
 --
 -- view.listeners is an array of functions, each called as fn(classes, rows, level) under its own pcall after every
 -- rebuild (Task 8 appends the moodles' hook). A file that loads before this one (NR_Client_Moodles sorts first) may
@@ -36,6 +38,7 @@ NR.client.view = {
     rows = nil,
     classes = nil,
     order = nil,
+    ungraded = nil,
     lastReceived = -1,
     lastLevel = -1,
     listeners = {},
@@ -120,9 +123,10 @@ local function rebuild(received)
     local K = nr.kernel
     if V.order == nil and nr.data ~= nil and nr.data.records ~= nil then
         V.order = K.view.gradedOrder(nr.data.records)
+        V.ungraded = K.view.ungradedOrder(nr.data.records)
     end
     local m = nr.client.mirror
-    local rows = K.view.rows(m, V.level, V.order, { female = V.female, last = V.fatBand })
+    local rows = K.view.rows(m, V.level, V.order, { female = V.female, last = V.fatBand }, V.ungraded)
     V.fatBand = nil
     for i = 1, #rows do
         if rows[i].key == "body_fat" then V.fatBand = rows[i].fatBand end

@@ -170,7 +170,7 @@ def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 2, arr(host, ["vitC", "iron", "zinc"])))
     extra = rows[6:]
     assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_fat", "body_energyState",
-                                        "fluids_dehydPct", "nut_vitC_g", "nut_iron_g"]          # zinc not yet graded: no row
+                                        "fluids_dehydPct", "nut_vitC_g", "nut_iron_g", "nut_iron_x"]   # zinc not yet graded: no row
     by = {r["key"]: r for r in extra}
     assert by["body_band"]["text"] == "UI_NR_Band_normal" and by["body_band"]["isKey"] is True
     assert by["body_weight"]["text"] == "78.0 kg" and by["body_weight"]["isKey"] is False
@@ -180,6 +180,9 @@ def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
     assert by["fluids_dehydPct"]["text"] == "UI_NR_Class_hydration_2"
     assert by["nut_vitC_g"] == {"key": "nut_vitC_g", "label": "UI_NR_Row_vitC", "text": "UI_NR_Grade_3",
                                 "level": 2, "isKey": True}
+    # an excess rung above 0 is named at Bands by its class word (vitamin C's 0 is not)
+    assert by["nut_iron_x"] == {"key": "nut_iron_x", "label": "UI_NR_Row_iron_x", "text": "UI_NR_Class_excess_2",
+                                "level": 2, "isKey": True, "cls": "excess", "n": 2}
     assert all(r["level"] == 2 for r in extra)
     assert all(r["label"].startswith("UI_NR_") for r in rows)
 
@@ -197,6 +200,43 @@ def test_rows_at_numbers_add_the_figures(host):
     assert by["acute_caf"]["text"] == "160 mg" and by["acute_bac"]["text"] == "0.013 %"
     assert by["acute_debtH"]["text"] == "6.5 h" and by["acute_debtH"]["label"] == "UI_NR_Row_acute_debtH"
     assert by["nut_vitC_p"]["level"] == 3 and by["nut_vitC_p"]["isKey"] is False
+
+
+UNGRADED_MIRROR = {"nut_selenium_g": 1, "nut_selenium_x": 1, "nut_vitE_g": 1, "nut_vitE_x": 0, "nut_sodium_g": 1,
+                   "nut_caffeine_x": 9, "nut_zinc_g": 0, "nut_zinc_x": 3}
+
+
+def excess_rows(h, level, graded, ungraded):
+    rows = rows_of(h, V(h).rows(h.table(UNGRADED_MIRROR), level, arr(h, graded), None, arr(h, ungraded)))
+    return {r["key"]: r for r in rows if r["key"].endswith("_x")}
+
+
+def test_an_ungraded_nutrients_excess_is_named_at_bands_and_numbers_when_above_zero(host):
+    # selenium (excessOnly) and vitamin E (ledger) have no grade row, but their excess raises the Excess class: the
+    # row that names it shows while the rung is above 0, as a class word at Bands and a figure at Numbers
+    graded, ungraded = ["zinc"], ["vitE", "selenium", "sodium", "caffeine"]
+    assert excess_rows(host, 1, graded, ungraded) == {}
+    bands = excess_rows(host, 2, graded, ungraded)
+    assert sorted(bands) == ["nut_caffeine_x", "nut_selenium_x", "nut_zinc_x"]   # vitE at 0 and sodium absent: none
+    assert bands["nut_selenium_x"] == {"key": "nut_selenium_x", "label": "UI_NR_Row_selenium_x",
+                                       "text": "UI_NR_Class_excess_1", "level": 2, "isKey": True, "cls": "excess", "n": 1}
+    assert bands["nut_caffeine_x"]["text"] == "UI_NR_Class_excess_3"           # capped at the top rung
+    assert bands["nut_zinc_x"]["text"] == "UI_NR_Class_excess_3"               # a graded key not yet graded still names it
+    numbers = excess_rows(host, 3, graded, ungraded)
+    assert sorted(numbers) == ["nut_caffeine_x", "nut_selenium_x", "nut_zinc_x"]
+    assert numbers["nut_selenium_x"] == {"key": "nut_selenium_x", "label": "UI_NR_Row_selenium_x", "text": "1",
+                                         "level": 3, "isKey": False}
+    keys = [r["key"] for r in rows_of(host, V(host).rows(host.table(UNGRADED_MIRROR), 3, arr(host, graded), None,
+                                                          arr(host, ungraded)))]
+    assert keys.index("nut_selenium_x") < keys.index("nut_caffeine_x") < keys.index("acute_caf")   # in order, before the acute figures
+
+
+@pytest.mark.parametrize("x", [float("nan"), "x", None, -1])
+def test_an_excess_that_is_not_a_positive_number_names_no_ungraded_row(host, x):
+    m = host.table({"nut_selenium_x": x})
+    for level in (2, 3):
+        rows = rows_of(host, V(host).rows(m, level, None, None, arr(host, ["selenium"])))
+        assert "nut_selenium_x" not in [r["key"] for r in rows]
 
 
 def test_rows_of_an_absent_body_read_the_band_none(host):
@@ -300,6 +340,23 @@ def test_the_band_key_and_the_held_rung_helpers(host):
 def test_graded_order_drops_the_ungraded_kinds(host):
     assert lst(V(host).gradedOrder(host.table(RECORDS))) == ["vitC", "thiamine", "fibre", "vitK", "zinc"]
     assert lst(V(host).gradedOrder(None)) == []
+
+
+def test_ungraded_order_keeps_only_the_ungraded_kinds(host):
+    assert lst(V(host).ungradedOrder(host.table(RECORDS))) == ["caffeine"]
+    assert lst(V(host).ungradedOrder(None)) == []
+
+
+def test_the_two_orders_split_the_shipped_records_and_every_ungraded_excess_row_is_translated(host):
+    data = load_data(host)
+    graded = lst(V(host).gradedOrder(data.records))
+    ungraded = lst(V(host).ungradedOrder(data.records))
+    assert sorted(graded + ungraded) == sorted(lst(data.records.ORDER)) and not set(graded) & set(ungraded)
+    assert {"selenium", "vitE"} <= set(ungraded)
+    with open(os.path.join(LUA, "shared", "Translate", "EN", "UI.json"), encoding="utf-8") as fh:
+        ui = json.load(fh)
+    assert all("UI_NR_Row_%s_x" % k in ui for k in ungraded)
+    assert all("UI_NR_Class_excess_%d" % n in ui for n in (1, 2, 3))
 
 
 def test_requirements_keep_the_unscaled_records_in_the_vectors_unit(host):

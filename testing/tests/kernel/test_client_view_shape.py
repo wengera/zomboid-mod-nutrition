@@ -404,6 +404,20 @@ def test_the_grade_rows_use_the_graded_order_never_the_raw_order():
     assert len(v.order) < len(raw)
 
 
+def test_an_ungraded_nutrients_excess_is_named_by_a_row_at_bands():
+    # selenium raises the Excess class but has no grade row: the view lists the ungraded keys for their excess rows
+    rt = rt_env()
+    rt.execute("SandboxVars.NR.VisibilityMode = 2")
+    receive(rt, "{ nut_selenium_g = 1, nut_selenium_x = 1 }")
+    v = V(rt)
+    K = G(rt).NutritionRevamp.kernel
+    assert list(v.ungraded.values()) == list(K.view.ungradedOrder(G(rt).NutritionRevamp.data.records).values())
+    assert v.classes.excess == 1
+    rows = [v.rows[i] for i in range(1, len(v.rows) + 1)]
+    sel = [r for r in rows if r.key == "nut_selenium_x"]
+    assert len(sel) == 1 and sel[0].text == "UI_NR_Class_excess_1" and sel[0].labelText is not None
+
+
 def test_the_listeners_are_called_after_each_rebuild_and_a_raising_one_is_caught():
     rt = rt_env()
     rt.execute("""

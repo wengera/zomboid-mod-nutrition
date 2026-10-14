@@ -212,11 +212,13 @@ end
 
 -- The row model (ruling 2): m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
 -- are listed (nil: none; K.view.gradedOrder gives the graded ones), fat the client's body-fat state { female, last }
--- (nil reads a man with no word held; K.view.fatRow). Every level: the six class rows; Bands and up:
--- the body block (band word, weight, body-fat word, energy word), the hydration word and each graded key's grade word (a key the
--- engine has not graded yet, g < 1, has no row); Numbers: the fat and lean mass, each listed key's pool percentage
--- and excess rung, and the caffeine, alcohol and sleep-debt figures. The energy level is the server's (K.view.classes).
-function K.view.rows(m, level, order, fat)
+-- (nil reads a man with no word held; K.view.fatRow), ungraded the keys with no grade whose excess still raises the
+-- Excess class (nil: none; K.view.ungradedOrder). Every level: the six class rows; Bands and up:
+-- the body block (band word, weight, body-fat word, energy word), the hydration word, each graded key's grade word (a key the
+-- engine has not graded yet, g < 1, has no grade row) and every listed key's excess word while its rung is above 0;
+-- Numbers: the fat and lean mass, each graded key's pool percentage and excess rung, an ungraded key's rung while above
+-- 0, and the caffeine, alcohol and sleep-debt figures. The energy level is the server's (K.view.classes).
+function K.view.rows(m, level, order, fat, ungraded)
     local mm = m
     if mm == nil then
         mm = {}
@@ -247,6 +249,11 @@ function K.view.rows(m, level, order, fat)
             K.view.nutrientRows(rows, mm, order[i], lv)
         end
     end
+    if ungraded ~= nil then
+        for i = 1, #ungraded do
+            K.view.excessRow(rows, mm, ungraded[i], lv, false)
+        end
+    end
     if lv >= 3 then
         K.view.push(rows, "acute_caf", "UI_NR_Row_acute_caf", K.view.unitText(mm.acute_caf, 0, "mg"), 3, false)
         K.view.push(rows, "acute_bac", "UI_NR_Row_acute_bac", K.view.unitText(mm.acute_bac, 3, "%"), 3, false)
@@ -255,29 +262,57 @@ function K.view.rows(m, level, order, fat)
     return rows
 end
 
--- One nutrient's rows: its grade word at Bands and up, its pool percentage and excess rung at Numbers; none while
--- the key is ungraded in the mirror (g absent or below 1).
+-- One graded nutrient's rows: its grade word at Bands and up, its pool percentage at Numbers, then its excess row
+-- (K.view.excessRow, the rung always at Numbers); while the mirror has not graded the key (g absent or below 1), the
+-- excess row alone, and only while its rung is above 0.
 function K.view.nutrientRows(rows, m, key, lv)
     local g = m["nut_" .. key .. "_g"]
     if type(g) ~= "number" or g < 1 then
+        K.view.excessRow(rows, m, key, lv, false)
         return
     end
     local grade = K.clamp(g, 1, K.view.RUNG_MAX + 1)
     K.view.push(rows, "nut_" .. key .. "_g", "UI_NR_Row_" .. key, "UI_NR_Grade_" .. K.view.fmt(grade, 0), 2, true)
-    if lv < 3 then
-        return
+    if lv >= 3 then
+        local p = m["nut_" .. key .. "_p"]
+        if type(p) == "number" then
+            p = p * 100
+        end
+        K.view.push(rows, "nut_" .. key .. "_p", "UI_NR_Row_" .. key .. "_p", K.view.unitText(p, 1, "%"), 3, false)
     end
-    local p = m["nut_" .. key .. "_p"]
-    if type(p) == "number" then
-        p = p * 100
+    K.view.excessRow(rows, m, key, lv, true)
+end
+
+-- One nutrient's excess row, labelled UI_NR_Row_<key>_x: at Numbers its rung as a figure (always, or only while
+-- above 0); at Bands, while the rung is above 0, the Excess class word of that rung (capped at RUNG_MAX), amber
+-- like a class row. None at Symptoms. A rung that is not a number above 0 (NaN included) is not above 0.
+function K.view.excessRow(rows, m, key, lv, always)
+    local x = m["nut_" .. key .. "_x"]
+    local raised = type(x) == "number" and x > 0
+    if lv >= 3 and (always or raised) then
+        K.view.push(rows, "nut_" .. key .. "_x", "UI_NR_Row_" .. key .. "_x", K.view.fmt(x, 0), 3, false)
+    elseif lv == 2 and raised then
+        local n = K.clamp(x, 1, K.view.RUNG_MAX)
+        local r = K.view.push(rows, "nut_" .. key .. "_x", "UI_NR_Row_" .. key .. "_x", "UI_NR_Class_excess_" .. K.view.fmt(n, 0), 2, true)
+        r.cls = "excess"
+        r.n = n
     end
-    K.view.push(rows, "nut_" .. key .. "_p", "UI_NR_Row_" .. key .. "_p", K.view.unitText(p, 1, "%"), 3, false)
-    K.view.push(rows, "nut_" .. key .. "_x", "UI_NR_Row_" .. key .. "_x", K.view.fmt(m["nut_" .. key .. "_x"], 0), 3, false)
 end
 
 -- The ORDER keys of a records table ({ ORDER, REC }, NR.data.records) whose kind is graded (not in
 -- K.nutrients.UNGRADED): the order a panel lists grade rows for. nil reads none.
 function K.view.gradedOrder(records)
+    return K.view.kindOrder(records, true)
+end
+
+-- The ORDER keys whose kind is ungraded (in K.nutrients.UNGRADED): no grade row, but an excess that raises the Excess
+-- class, so the panel names it (K.view.excessRow). nil reads none.
+function K.view.ungradedOrder(records)
+    return K.view.kindOrder(records, false)
+end
+
+-- The ORDER keys of records whose kind is graded (graded true) or ungraded (false), in order.
+function K.view.kindOrder(records, graded)
     local out = {}
     if records == nil then
         return out
@@ -285,7 +320,7 @@ function K.view.gradedOrder(records)
     for i = 1, #records.ORDER do
         local key = records.ORDER[i]
         local rec = records.REC[key]
-        if rec ~= nil and K.nutrients.UNGRADED[rec.kind] == nil then
+        if rec ~= nil and (K.nutrients.UNGRADED[rec.kind] == nil) == graded then
             out[#out + 1] = key
         end
     end
