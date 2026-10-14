@@ -317,6 +317,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1
 end
+if NR_BENCH then MET._closeDay = closeDay end   -- the day-close bench seam (tools/bench_day_close.py, ruling 13-33)
 
 -- The self-heal (the #2833 pattern), run once, before the minute's arithmetic: the pure
 -- part is the kernel's (NR_Kernel_Heal.lua, K.heal.body, Plan 10 Task R3), which stamps every non-finite scalar
