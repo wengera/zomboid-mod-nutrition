@@ -1243,6 +1243,10 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
     with open(CORE, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Core.lua")()
+    for n in sorted(os.listdir(SHARED)):   # NR_Server_Options reads K.readLeaf and K.strength at file scope
+        if n.startswith("NR_Kernel"):
+            with open(os.path.join(SHARED, n), encoding="utf-8") as fh:
+                load(fh.read(), "@" + n)()
     rt.execute(r"""
         NR_STARTED = {}
         NR_PRINTED = {}
@@ -1279,6 +1283,10 @@ def test_self_report_reads_nutrition_off_by_default():
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
     with open(CORE, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Core.lua")()
+    for n in sorted(os.listdir(SHARED)):   # NR_Server_Options reads K.readLeaf and K.strength at file scope
+        if n.startswith("NR_Kernel"):
+            with open(os.path.join(SHARED, n), encoding="utf-8") as fh:
+                load(fh.read(), "@" + n)()
     with open(os.path.join(SERVER, "NR_Server_Options.lua"), encoding="utf-8") as fh:
         load(fh.read(), "@NR_Server_Options.lua")()
     G = rt.globals()

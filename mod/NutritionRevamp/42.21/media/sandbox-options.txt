@@ -79,3 +79,210 @@ option NR.SexSpecific
     type = boolean, default = false,
     page = NutritionRevamp, translation = NR_SexSpecific,
 }
+
+/* The Plan 13 strength model: each option scales one constant of K.strength.DEFAULTS and its declared default is
+   that constant (a test binds them). Out of range, a double clamps and an integer reads its default. */
+
+option NR.StrengthTimeScale
+{
+    type = double, min = 0.25, max = 30.0, default = 1.0,
+    page = NutritionRevamp, translation = NR_StrengthTimeScale,
+}
+
+option NR.StrengthXPPerSet
+{
+    type = double, min = 50.0, max = 2000.0, default = 346.0,
+    page = NutritionRevamp, translation = NR_StrengthXPPerSet,
+}
+
+option NR.StrengthIncidentalWeight
+{
+    type = double, min = 0.0, max = 1.0, default = 0.35,
+    page = NutritionRevamp, translation = NR_StrengthIncidentalWeight,
+}
+
+option NR.StrengthCapLevel
+{
+    type = double, min = 12.0, max = 20.0, default = 16.5,
+    page = NutritionRevamp, translation = NR_StrengthCapLevel,
+}
+
+option NR.StrengthTraitShare
+{
+    type = double, min = 0.0, max = 1.0, default = 0.5,
+    page = NutritionRevamp, translation = NR_StrengthTraitShare,
+}
+
+option NR.StrengthYearsToLevel10
+{
+    type = double, min = 1.0, max = 10.0, default = 4.0,
+    page = NutritionRevamp, translation = NR_StrengthYearsToLevel10,
+}
+
+option NR.StrengthNeuralMax
+{
+    type = double, min = 1.0, max = 1.15, default = 1.1,
+    page = NutritionRevamp, translation = NR_StrengthNeuralMax,
+}
+
+option NR.StrengthNeuralRiseWeeks
+{
+    type = double, min = 1.0, max = 8.0, default = 3.0,
+    page = NutritionRevamp, translation = NR_StrengthNeuralRiseWeeks,
+}
+
+option NR.StrengthNeuralDecayWeeks
+{
+    type = double, min = 4.0, max = 26.0, default = 12.0,
+    page = NutritionRevamp, translation = NR_StrengthNeuralDecayWeeks,
+}
+
+option NR.StrengthNeuralGraceDays
+{
+    type = integer, min = 0, max = 60, default = 21,
+    page = NutritionRevamp, translation = NR_StrengthNeuralGraceDays,
+}
+
+option NR.StrengthNeuralSaturationSets
+{
+    type = double, min = 1.0, max = 12.0, default = 5.0,
+    page = NutritionRevamp, translation = NR_StrengthNeuralSaturationSets,
+}
+
+option NR.StrengthRate
+{
+    type = double, min = 0.25, max = 4.0, default = 1.0,
+    page = NutritionRevamp, translation = NR_StrengthRate,
+}
+
+option NR.StrengthThreshold
+{
+    type = double, min = 0.25, max = 1.0, default = 0.5,
+    page = NutritionRevamp, translation = NR_StrengthThreshold,
+}
+
+option NR.StrengthThresholdRise
+{
+    type = double, min = 0.0, max = 4.0, default = 3.0,
+    page = NutritionRevamp, translation = NR_StrengthThresholdRise,
+}
+
+option NR.StrengthTrainedSetCap
+{
+    type = double, min = 8.0, max = 30.0, default = 12.0,
+    page = NutritionRevamp, translation = NR_StrengthTrainedSetCap,
+}
+
+option NR.StrengthProteinFull
+{
+    type = double, min = 1.0, max = 3.0, default = 1.6,
+    page = NutritionRevamp, translation = NR_StrengthProteinFull,
+}
+
+option NR.StrengthDeficitZero
+{
+    type = double, min = -2000.0, max = -200.0, default = -650.0,
+    page = NutritionRevamp, translation = NR_StrengthDeficitZero,
+}
+
+option NR.StrengthDeficitZeroStatusDrop
+{
+    type = double, min = 0.0, max = 0.9, default = 0.5,
+    page = NutritionRevamp, translation = NR_StrengthDeficitZeroStatusDrop,
+}
+
+option NR.StrengthNoviceDeficitDepth
+{
+    type = double, min = 0.0, max = 10.0, default = 6.0,
+    page = NutritionRevamp, translation = NR_StrengthNoviceDeficitDepth,
+}
+
+option NR.StrengthBalanceGate
+{
+    type = double, min = 0.5, max = 1.0, default = 1.0,
+    page = NutritionRevamp, translation = NR_StrengthBalanceGate,
+}
+
+option NR.StrengthBalanceGateStatusDrop
+{
+    type = double, min = 0.0, max = 0.7, default = 0.5,
+    page = NutritionRevamp, translation = NR_StrengthBalanceGateStatusDrop,
+}
+
+option NR.StrengthSurplusFull
+{
+    type = double, min = 0.02, max = 0.3, default = 0.1,
+    page = NutritionRevamp, translation = NR_StrengthSurplusFull,
+}
+
+option NR.StrengthSurplusFullStatusDrop
+{
+    type = double, min = 0.0, max = 0.9, default = 0.5,
+    page = NutritionRevamp, translation = NR_StrengthSurplusFullStatusDrop,
+}
+
+option NR.StrengthTrainedNeedsSurplus
+{
+    type = double, min = 0.0, max = 1.0, default = 0.0,
+    page = NutritionRevamp, translation = NR_StrengthTrainedNeedsSurplus,
+}
+
+option NR.LeanLossTrainingProtect
+{
+    type = double, min = 0.0, max = 0.9, default = 0.35,
+    page = NutritionRevamp, translation = NR_LeanLossTrainingProtect,
+}
+
+option NR.LeanLossProteinProtect
+{
+    type = double, min = 0.0, max = 0.9, default = 0.6,
+    page = NutritionRevamp, translation = NR_LeanLossProteinProtect,
+}
+
+option NR.LeanLossProtectFloor
+{
+    type = double, min = 0.0, max = 0.5, default = 0.1,
+    page = NutritionRevamp, translation = NR_LeanLossProtectFloor,
+}
+
+option NR.LeanLossProteinFull
+{
+    type = double, min = 1.2, max = 3.0, default = 1.6,
+    page = NutritionRevamp, translation = NR_LeanLossProteinFull,
+}
+
+option NR.StrengthMaintainShare
+{
+    type = double, min = 0.1, max = 1.0, default = 0.333,
+    page = NutritionRevamp, translation = NR_StrengthMaintainShare,
+}
+
+option NR.StrengthGraceDays
+{
+    type = integer, min = 0, max = 60, default = 14,
+    page = NutritionRevamp, translation = NR_StrengthGraceDays,
+}
+
+option NR.StrengthDetrainHalfLifeWeeks
+{
+    type = double, min = 2.0, max = 26.0, default = 6.0,
+    page = NutritionRevamp, translation = NR_StrengthDetrainHalfLifeWeeks,
+}
+
+option NR.StrengthDetrainStatusSlowing
+{
+    type = double, min = 0.0, max = 4.0, default = 2.0,
+    page = NutritionRevamp, translation = NR_StrengthDetrainStatusSlowing,
+}
+
+option NR.StrengthRegainHalfLifeWeeks
+{
+    type = double, min = 1.0, max = 26.0, default = 6.0,
+    page = NutritionRevamp, translation = NR_StrengthRegainHalfLifeWeeks,
+}
+
+option NR.StrengthPeakHalfLifeYears
+{
+    type = double, min = 0.25, max = 20.0, default = 2.0,
+    page = NutritionRevamp, translation = NR_StrengthPeakHalfLifeYears,
+}

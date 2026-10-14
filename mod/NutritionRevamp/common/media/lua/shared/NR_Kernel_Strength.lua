@@ -288,6 +288,122 @@ end
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47)
+-- The strength sandbox options (Plan 13 Task 11; spec section 10): { option name under NR., key, min, max, integer },
+-- in the option file's order. A double clamps to its range; an integer reads the default out of range
+-- (K.readLeaf). Two rows are not P keys: kMul scales k and pFull scales the protein knots' x values. The option
+-- file's declared min, max and default are tested against this table and DEFAULTS.
+K.strength.OPTIONS = {
+    { "StrengthTimeScale", "ts", 0.25, 30 },
+    { "StrengthXPPerSet", "xpPerSet", 50, 2000 },
+    { "StrengthIncidentalWeight", "incidental", 0, 1 },
+    { "StrengthCapLevel", "capLevel", 12, 20 },
+    { "StrengthTraitShare", "traitShare", 0, 1 },
+    { "StrengthYearsToLevel10", "yearsTo10", 1, 10 },
+    { "StrengthNeuralMax", "Tmax", 1.0, 1.15 },
+    { "StrengthNeuralRiseWeeks", "tauUpWk", 1, 8 },
+    { "StrengthNeuralDecayWeeks", "tauDownWk", 4, 26 },
+    { "StrengthNeuralGraceDays", "Tgrace_d", 0, 60, true },
+    { "StrengthNeuralSaturationSets", "Wsat", 1, 12 },
+    { "StrengthRate", "kMul", 0.25, 4 },
+    { "StrengthThreshold", "Sg0", 0.25, 1.0 },
+    { "StrengthThresholdRise", "beta", 0, 4 },
+    { "StrengthTrainedSetCap", "Smax1", 8, 30 },
+    { "StrengthProteinFull", "pFull", 1.0, 3.0 },
+    { "StrengthDeficitZero", "E0", -2000, -200 },
+    { "StrengthDeficitZeroStatusDrop", "E0_drop", 0, 0.9 },
+    { "StrengthNoviceDeficitDepth", "a_nov", 0, 10 },
+    { "StrengthBalanceGate", "fbal0", 0.5, 1.0 },
+    { "StrengthBalanceGateStatusDrop", "fbal_drop", 0, 0.7 },
+    { "StrengthSurplusFull", "surplus_full", 0.02, 0.30 },
+    { "StrengthSurplusFullStatusDrop", "full_drop", 0, 0.9 },
+    { "StrengthTrainedNeedsSurplus", "trained_need", 0, 1 },
+    { "LeanLossTrainingProtect", "wT", 0, 0.9 },
+    { "LeanLossProteinProtect", "wP", 0, 0.9 },
+    { "LeanLossProtectFloor", "prot_floor", 0, 0.5 },
+    { "LeanLossProteinFull", "pdef_hi", 1.2, 3.0 }, -- the min sits above pdef_lo (0.8): the partition divides by their gap
+    { "StrengthMaintainShare", "m", 0.1, 1.0 },
+    { "StrengthGraceDays", "grace_d", 0, 60, true },
+    { "StrengthDetrainHalfLifeWeeks", "detrain_hl_wk", 2, 26 },
+    { "StrengthDetrainStatusSlowing", "detrain_status", 0, 4 },
+    { "StrengthRegainHalfLifeWeeks", "regain_hl_wk", 1, 26 },
+    { "StrengthPeakHalfLifeYears", "peak_hl_yr", 0.25, 20 },
+}
+
+-- The protein x at which the gate reaches 1 in DEFAULTS' knots; StrengthProteinFull moves it by scaling every knot's x.
+K.strength.PROTEIN_FULL = 1.6
+
+-- The option file's three-place default of m (0.333) stands for DEFAULTS.m, the exact third.
+K.strength.M_OPTION_DEFAULT = 0.333
+K.strength.M_OPTION_TOL = 0.0005
+
+-- R's cache, one entry: the year value it was run for and its result; params re-runs K.strength.R only when the
+-- option's year value differs from the last one (R is 365 steps a year, Rule 6).
+local rYears = K.strength.DEFAULTS.yearsTo10
+local rValue = K.strength.DEFAULTS.R
+
+-- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
+-- option read through K.readLeaf, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
+-- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
+-- cap's room the growth threshold must sit under the set cap, else beta, Sg0 and Smax1 revert to DEFAULTS;
+-- returns P and whether it fell back.
+function K.strength.params(sv)
+    local S = K.strength
+    local D = S.DEFAULTS
+    local P = {}
+    for key, value in pairs(D) do
+        P[key] = value
+    end
+    local rows = S.OPTIONS
+    local kMul = 1.0
+    local pFull = S.PROTEIN_FULL
+    for i = 1, #rows do
+        local row = rows[i]
+        local key = row[2]
+        local default = D[key]
+        if key == "kMul" then
+            default = 1.0
+        end
+        if key == "pFull" then
+            default = S.PROTEIN_FULL
+        end
+        local v = K.readLeaf(sv, row[1], default, row[3], row[4], row[5] ~= true)
+        if key == "kMul" then
+            kMul = v
+        elseif key == "pFull" then
+            pFull = v
+        else
+            P[key] = v
+        end
+    end
+    if math.abs(P.m - S.M_OPTION_DEFAULT) <= S.M_OPTION_TOL then
+        P.m = D.m
+    end
+    P.k = D.k * kMul
+    local scale = pFull / S.PROTEIN_FULL
+    local knots = {}
+    for i = 1, #D.fp_knots do
+        knots[i] = { D.fp_knots[i][1] * scale, D.fp_knots[i][2] }
+    end
+    P.fp_knots = knots
+    if P.yearsTo10 ~= rYears then
+        rValue = S.R(P.yearsTo10)
+        rYears = P.yearsTo10
+    end
+    P.R = rValue
+    P.M5 = D.M5
+    local fellBack = false
+    if P.capLevel > 15 then
+        local s15 = (15 - 5) / (P.capLevel - 5)
+        if S.threshold(s15, P) >= S.setCap(s15, P) then
+            P.beta = D.beta
+            P.Sg0 = D.Sg0
+            P.Smax1 = D.Smax1
+            fellBack = true
+        end
+    end
+    return P, fellBack
+end
+
 -- ============================================================ the Plan 3 model (removed in Plan 13 Task 12)
 
 -- The neural term's target per unit strength dose.

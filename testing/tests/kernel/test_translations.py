@@ -179,3 +179,18 @@ def test_no_vanilla_key_redefined(name):
     with open(p, encoding="utf-8") as f:
         vanilla = json.load(f)
     assert sorted(set(load(name)) & set(vanilla)) == []
+
+
+def test_sandbox_json_names_every_declared_option():
+    """Plan 13 Task 11: Sandbox.json holds exactly the page title and, per option the option file declares, its name and
+    tooltip (enum value keys aside); LF, no BOM, no duplicate key."""
+    sandbox = load("Sandbox.json")
+    src = read(os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt"))
+    options = re.findall(r"^option NR\.(\w+)", src, re.M)
+    assert len(options) == len(set(options)) and "StrengthTimeScale" in options and "SexSpecific" in options
+    want = {"Sandbox_NutritionRevamp"}
+    for name in options:
+        want |= {"Sandbox_NR_" + name, "Sandbox_NR_" + name + "_tooltip"}
+    values = {k for k in sandbox if re.match(r"Sandbox_NR_\w+Values_option\d+$", k)}
+    assert set(sandbox) - values == want
+    assert all(isinstance(v, str) and v.strip() for v in sandbox.values())

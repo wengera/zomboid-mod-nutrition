@@ -55,6 +55,33 @@ function K.interp(kn, x, extend)
     return y0 + (kn[seg][2] - y0) * (x - x0) / (kn[seg][1] - x0)
 end
 
+-- One sandbox leaf from the table tbl at key: a boolean when the default is a boolean, else a number in [lo, hi]. Any
+-- other type reads the default; so does a NaN; so does an out-of-range number, or with clampIt (a double option's
+-- value is continuous, so its nearest bound is the operator's intent) the number is clamped to [lo, hi]. The one
+-- clamp rule of every option read (Plan 13 ruling 13-32; NR_Server_Options calls it).
+function K.readLeaf(tbl, key, default, lo, hi, clampIt)
+    if tbl == nil then
+        return default
+    end
+    local v = tbl[key]
+    if type(default) == "boolean" then
+        if type(v) == "boolean" then
+            return v
+        end
+        return default
+    end
+    if type(v) ~= "number" or v ~= v then
+        return default
+    end
+    if clampIt then
+        return K.max(lo, K.min(hi, v))
+    end
+    if v < lo or v > hi then
+        return default
+    end
+    return v
+end
+
 -- A username's rolling hash over string.byte's code units (31 a step, a prime modulus; no row needed): the one hash
 -- the push phase (K.view.pushOffset) and the save phase (K.store.savePhase) read, so the two stay half a gap apart.
 function K.nameHash(username)

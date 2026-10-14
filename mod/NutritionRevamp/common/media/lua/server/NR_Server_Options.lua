@@ -3,6 +3,7 @@
 -- file scope sees the declared default. No change event exists (#2466), so the options are
 -- re-read every slow tick and a change fires NR.server.options.changed.
 local NR = NutritionRevamp
+local K = NR.kernel
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
 -- The Plan 4 dials: onsetSpeed multiplies the rate of every slow deficiency record;
@@ -16,32 +17,22 @@ local NR = NutritionRevamp
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
 -- The Plan 11 option: recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
 -- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
+-- The Plan 13 strength options: O.strength is K.strength.params of the NR.Strength* and NR.LeanLoss* leaves
+-- (DEFAULTS until one differs from the default), rebuilt only when a leaf changed since the last read, by one
+-- comparison loop over the raw leaves (Rule 6: the table is not rebuilt per minute); a load-guard fallback logs once at
+-- level 1 with the three values read. It fires no changed hook: the steps read O.strength each time.
 -- The Plan 13 option: sexSpecific, a boolean (default false): off, every character reads the male values wherever the mod
 -- indexes by sex (K.body.effSex); the steps read it each minute through the options table, so it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30, sexSpecific = false }
+                      recordKeepDays = 30, sexSpecific = false, strength = K.strength.DEFAULTS }
 local O = NR.server.options
+O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
 local MODE_NAMES = { "managed", "overlay" }
 
--- A number leaf in [lo, hi], or a boolean leaf when the default is a boolean; any other value reads
--- the default. A non-number or NaN reads the default; an out-of-range number reads the default, or with
--- clampIt (the double branch: a double option's value is continuous, so its nearest bound is the
--- operator's intent) is clamped to [lo, hi].
-local function readLeaf(tbl, key, default, lo, hi, clampIt)
-    if tbl == nil then return default end
-    local v = tbl[key]
-    if type(default) == "boolean" then
-        if type(v) == "boolean" then return v end
-        return default
-    end
-    if type(v) ~= "number" or v ~= v then return default end
-    if clampIt then return math.max(lo, math.min(hi, v)) end
-    if v < lo or v > hi then return default end
-    return v
-end
+local readLeaf = K.readLeaf -- the one clamp rule (ruling 13-32)
 
 function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
@@ -59,6 +50,27 @@ function NR.server.readOptions(where)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
     O.sexSpecific = readLeaf(sv, "SexSpecific", false)
+    if sv ~= nil then
+        local rows = K.strength.OPTIONS
+        local raw = O.strengthRaw
+        local moved = false
+        for i = 1, #rows do
+            local v = sv[rows[i][1]]
+            if raw[i] ~= v and not (v ~= v and raw[i] ~= raw[i]) then
+                raw[i] = v
+                moved = true
+            end
+        end
+        if moved then
+            local P, fellBack = K.strength.params(sv)
+            O.strength = P
+            if fellBack then
+                NR.log.say(1, "options: the strength threshold exceeds the set cap at bio level 15 (StrengthThreshold "
+                    .. tostring(sv.StrengthThreshold) .. ", StrengthThresholdRise " .. tostring(sv.StrengthThresholdRise)
+                    .. ", StrengthTrainedSetCap " .. tostring(sv.StrengthTrainedSetCap) .. "): the three revert to their defaults")
+            end
+        end
+    end
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed
