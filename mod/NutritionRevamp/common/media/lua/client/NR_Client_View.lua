@@ -52,13 +52,8 @@ NR_ClientView_Installed = NR_ClientView_Installed or {}
 
 local DEFAULT_LINE = 14 -- px: the line height when the text manager is absent or raises (plan Task 5)
 
--- A translation through NR.client.text when it exists (NR_Client_ModOptions.lua), else the fallback or the key.
-local function text(key, fallback)
-    local nr = NutritionRevamp
-    if nr.client.text ~= nil then return nr.client.text(key, fallback) end
-    if fallback ~= nil then return fallback end
-    return key
-end
+-- A translation through NR.client.text when it exists, else the fallback or the key (NR.text).
+local text = NR.text
 
 -- Whether player holds either Nutritionist trait: CharacterTrait.NUTRITIONIST / NUTRITIONIST2 (each nil-checked)
 -- through player:hasTrait(enum), index-first inside a pcall. false on a nil player, an absent enum or any failure.
@@ -242,6 +237,31 @@ end
 -- OnResolutionChange (the panel's handler calls it): the cached font metrics go, read again at the next draw.
 function V.onResolutionChange()
     V.lh = nil
+end
+
+-- The scroll of a clipped surface (the panel and the tab): WHEEL_LINES rows a wheel notch. overflow is the rows'
+-- overflow in px, n rows of lh px in room px, never below 0; clampScroll holds a scroll offset y in [0, over];
+-- scrollBy moves el.scrollY by WHEEL_LINES lines of the cached line height times del, clamped, and answers true (the
+-- event taken) only when there is overflow to scroll (over > 0) and del is a number.
+V.WHEEL_LINES = 3
+
+function V.overflow(n, lh, room)
+    local over = n * lh - room
+    if over < 0 then over = 0 end
+    return over
+end
+
+function V.clampScroll(y, over)
+    if y > over then y = over end
+    if y < 0 then y = 0 end
+    return y
+end
+
+function V.scrollBy(el, del, over)
+    if type(del) ~= "number" or over <= 0 then return false end
+    local _, lh = V.metrics()
+    el.scrollY = V.clampScroll((el.scrollY or 0) + V.WHEEL_LINES * lh * del, over)
+    return true
 end
 
 -- Draws rows onto el: each row's label left at x and its text right-aligned at x + w, one line apart from y, in

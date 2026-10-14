@@ -95,16 +95,17 @@ NR.client.tooltip = {
 }
 local T = NR.client.tooltip
 
--- A Java member's value through the index-first guard inside a protected call, or nil.
+-- A Java member's value through the index-first guard inside a protected call (NR.try), or nil.
 local function read(obj, name, ...)
     if obj == nil then return nil end
-    local ok, present, v = pcall(NutritionRevamp.call, obj, name, ...)
-    if ok and present then return v end
+    local ok, v = NR.try(obj, name, ...)
+    if ok then return v end
     return nil
 end
 
+-- A finite number, else 0.
 local function num(v)
-    if type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge then return v end
+    if NR.finite(v) then return v end
     return 0
 end
 
@@ -123,13 +124,8 @@ end
 -- A key through Task 5's NR.client.text (looked up per call), else its fallback.
 function T.text(key)
     local fb = T.fallback(key)
-    local nr = NutritionRevamp
-    local f = nil
-    if nr ~= nil and nr.client ~= nil then f = nr.client.text end
-    if type(f) == "function" then
-        local ok, v = pcall(f, key, fb)
-        if ok and type(v) == "string" then return v end
-    end
+    local ok, v = pcall(NR.text, key, fb)
+    if ok and type(v) == "string" then return v end
     return fb
 end
 

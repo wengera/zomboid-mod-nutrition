@@ -51,24 +51,18 @@ local LAYOUT_NAME = "NutritionRevamp.panel" -- the layout.ini window name (rulin
 local WIDTH = 280 -- px, the panel's fixed size (plan Task 5 amendments)
 local HEIGHT = 320 -- px, the first height before any rebuild sizes the panel to its rows
 local SCREEN_DEFAULT = 600 -- px, the screen height when getPlayerScreenHeight is absent or raises
-local WHEEL_LINES = 3 -- rows one wheel notch scrolls
+
 local START_X = 60 -- px, the first-sight position before any layout.ini restore
 local START_Y = 200 -- px
 local PAD = 8 -- px, the row inset from the frame
 local TITLE_GAP = 4 -- px below the title bar (plan Task 5)
 
--- One method of el, index-first inside a pcall: (ok, result).
-local function call(el, name, ...)
-    local ok, present, v = pcall(NR.call, el, name, ...)
-    return ok and present, v
-end
+-- One method of el, index-first inside a pcall: (ok, result) (NR.try).
+local call = NR.try
 
+-- A failure counted on the panel (NR.fail; the panel's table looked up per call).
 local function fail(err)
-    local nr = NutritionRevamp
-    local P = nr.client.panel
-    P.stats.errors = P.stats.errors + 1
-    P.lastError = err
-    nr.log.say(2, "panel: " .. tostring(err))
+    NR.fail(NutritionRevamp.client.panel, "panel", err)
 end
 
 if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function" then
@@ -181,9 +175,8 @@ function PANEL.fit(self)
     if over < 0 then over = 0 end
     V.stats.overflowRows = over
     self.titleH = th -- the render's title bar height, read here once per fit
-    self.overflowPx = n * lh - room
-    if self.overflowPx < 0 then self.overflowPx = 0 end
-    if self.scrollY > self.overflowPx then self.scrollY = self.overflowPx end
+    self.overflowPx = V.overflow(n, lh, room)
+    self.scrollY = V.clampScroll(self.scrollY, self.overflowPx)
     nr.client.panel.stats.fits = nr.client.panel.stats.fits + 1
     return true
 end
@@ -212,17 +205,9 @@ function PANEL.onResolutionChange()
     end
 end
 
--- The wheel: scrollY moves by WHEEL_LINES * line * del, clamped to [0, overflowPx]; true (the event taken) only when
--- there is overflow to scroll.
+-- The wheel (the view's scrollBy over the overflow fit measured); true (the event taken) only when there is overflow.
 function PANEL.wheel(self, del)
-    if type(del) ~= "number" or (self.overflowPx or 0) <= 0 then return false end
-    local V = NutritionRevamp.client.view
-    local _, lh = V.metrics()
-    local y = (self.scrollY or 0) + WHEEL_LINES * lh * del
-    if y < 0 then y = 0 end
-    if y > self.overflowPx then y = self.overflowPx end
-    self.scrollY = y
-    return true
+    return NutritionRevamp.client.view.scrollBy(self, del, self.overflowPx or 0)
 end
 
 -- The render body: the base render, the count, the rows from the scroll offset down to the panel's height.

@@ -168,6 +168,29 @@ function NR.installWrap(S, cls, method, make, kind, label)
     NR.log.say(2, label .. " wrapped")
     return true
 end
+-- The client surfaces' helper set (the panel, the moodles, the view and the tooltip): one guard, one failure count and
+-- one translation lookup. try: a method of o, index-first inside a pcall; (true, result) when the member is present
+-- and answered, else (false, nil), or (false, the error) when it raised.
+function NR.try(o, name, ...)
+    local ok, present, v = pcall(NR.call, o, name, ...)
+    return ok and present, v
+end
+
+-- A surface's failure: counted in surface.stats.errors, kept as surface.lastError and logged under label.
+function NR.fail(surface, label, err)
+    surface.stats.errors = surface.stats.errors + 1
+    surface.lastError = err
+    NR.log.say(2, label .. ": " .. tostring(err))
+end
+
+-- A translation through NR.client.text (NR_Client_ModOptions.lua, looked up per call), else the fallback or the key.
+function NR.text(key, fallback)
+    local f = NutritionRevamp.client.text
+    if f ~= nil then return f(key, fallback) end
+    if fallback ~= nil then return fallback end
+    return key
+end
+
 -- The player-minute's engine reads (Plan 12 S R1, Rule 6): the steps of one player's minute run in one call, inside
 -- one server tick, so a member several steps read answers the same; each is read once and kept on the pipeline's
 -- context (NR_Server_Minute's ctx, cleared per player), and the steps after the first share that read. A nil ctx (a

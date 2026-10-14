@@ -116,18 +116,12 @@ local COLOURS = { -- r, g, b of a class's rect when its icon is nil
     overfull = { 0.80, 0.45, 0.20 },
 }
 
--- One method of el, index-first inside a pcall: (ok, result).
-local function call(el, name, ...)
-    local ok, present, v = pcall(NR.call, el, name, ...)
-    return ok and present, v
-end
+-- One method of el, index-first inside a pcall: (ok, result) (NR.try).
+local call = NR.try
 
+-- A failure counted on the moodles (NR.fail; the moodles' table looked up per call).
 local function fail(err)
-    local nr = NutritionRevamp
-    local M = nr.client.moodles
-    M.stats.errors = M.stats.errors + 1
-    M.lastError = err
-    nr.log.say(2, "moodles: " .. tostring(err))
+    NR.fail(NutritionRevamp.client.moodles, "moodles", err)
 end
 
 -- A screen function of playerNum (getPlayerScreenLeft / Top / Width), or default when absent, raising or not a number.
@@ -146,13 +140,8 @@ local function texture(path)
     return nil
 end
 
--- A translation through NR.client.text when it exists (NR_Client_ModOptions.lua), else the fallback or the key.
-local function text(key, fallback)
-    local nr = NutritionRevamp
-    if nr.client.text ~= nil then return nr.client.text(key, fallback) end
-    if fallback ~= nil then return fallback end
-    return key
-end
+-- A translation through NR.client.text when it exists, else the fallback or the key (NR.text).
+local text = NR.text
 
 local function kview()
     local K = NutritionRevamp.kernel

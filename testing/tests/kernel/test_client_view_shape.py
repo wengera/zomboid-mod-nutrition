@@ -173,8 +173,10 @@ def test_a_reload_creates_no_second_page_and_adds_no_second_listener():
         for _, f in ipairs(NR_T.adds[event]) do if f == fn then n = n + 1 end end
         return n, #NR_T.adds[event]
     end""")
-    # the mirror and options files add their own OnGameStart listeners per load; this file's is one across loads
+    # every client file keeps its listeners on its own sentinel: one OnGameStart listener each across loads
     assert count("OnGameStart", g.NR_ClientModOptions_Installed.fn)[0] == 1
+    assert count("OnGameStart", g.NR_ClientMirror_Installed.start)[0] == 1
+    assert count("OnGameStart", g.NR_ClientOptions_Installed.start)[0] == 1
     assert count("OnCreatePlayer", g.NR_ClientView_Installed.create) == (1, 1)
 
 # ------------------------------------------------------------------------------------------- the options page

@@ -32,8 +32,8 @@
 -- The clip and the scroll (the close's D1): ISTabPanel does not clip its active view (ISTabPanel.lua:106 draws the
 -- frame only), so the rows are drawn the panel's way (NR_Client_Panel.lua's renderBody and wheel): view.draw stops
 -- before a line would pass the tab's height (maxY) and skips a row above the top inset (minY); the wheel moves
--- scrollY by WHEEL_LINES lines, clamped to the overflow (rows x line height - (height - 2 x PAD)). The base render
--- runs inside the render's one pcall.
+-- scrollY by the view's WHEEL_LINES lines (V.scrollBy), clamped to the overflow (rows x line height - (height - 2 x
+-- PAD)). The base render runs inside the render's one pcall.
 local NR = NutritionRevamp
 NR.client.tab = {
     stats = { added = 0, tornOff = 0, saves = 0, renders = 0, errors = 0, noView = 0 },
@@ -44,7 +44,7 @@ local T = NR.client.tab
 
 local TAB_ID = "NutritionRevamp"
 local PAD = 8 -- px, the rows' inset from the tab's edges
-local WHEEL_LINES = 3 -- rows one wheel notch scrolls (NR_Client_Panel.lua's step)
+
 
 if ISPanelJoypad ~= nil then
     NR_Client_TabPanel = ISPanelJoypad:derive("NR_Client_TabPanel")
@@ -82,15 +82,13 @@ if ISPanelJoypad ~= nil then
     end
 end
 
--- The rows' overflow in px: rows x line height - (height - 2 x PAD), never below 0.
+-- The rows' overflow in px: rows x line height - (height - 2 x PAD), never below 0 (the view's overflow).
 function T.overflow(el, view, lh)
     local n = 0
-    if view ~= nil and view.rows ~= nil then n = #view.rows end
+    if view.rows ~= nil then n = #view.rows end
     local h = el.height
     if type(h) ~= "number" then h = 0 end
-    local over = n * lh - (h - 2 * PAD)
-    if over < 0 then over = 0 end
-    return over
+    return view.overflow(n, lh, h - 2 * PAD)
 end
 
 -- The render body: the base render, the count, the scroll offset re-clamped, the rows clipped to the tab.
@@ -104,10 +102,7 @@ function T.renderBody(el)
     end
     view.refresh(false)
     local font, lh = view.metrics()
-    local over = T.overflow(el, view, lh)
-    local sy = el.scrollY or 0
-    if sy > over then sy = over end
-    if sy < 0 then sy = 0 end
+    local sy = view.clampScroll(el.scrollY or 0, T.overflow(el, view, lh))
     el.scrollY = sy
     -- The window keeps whatever height the last vanilla view set from its own render (ISCharacterScreen.lua:245
     -- setHeightAndParentHeight; ISUIElement.lua:321-330 walks the parents), so the tab re-asserts its own height
@@ -117,19 +112,12 @@ function T.renderBody(el)
     view.draw(el, view.rows, PAD, PAD - sy, el.width - 2 * PAD, font, el.height, PAD)
 end
 
--- The wheel: scrollY moves by WHEEL_LINES x line x del, clamped to [0, overflow]; true (the event taken) only when
--- there is overflow to scroll.
+-- The wheel (the view's scrollBy over the tab's overflow); true (the event taken) only when there is overflow.
 function T.wheel(el, del)
     local view = NutritionRevamp.client.view
     if type(del) ~= "number" or view == nil then return false end
     local _, lh = view.metrics()
-    local over = T.overflow(el, view, lh)
-    if over <= 0 then return false end
-    local y = (el.scrollY or 0) + WHEEL_LINES * lh * del
-    if y < 0 then y = 0 end
-    if y > over then y = over end
-    el.scrollY = y
-    return true
+    return view.scrollBy(el, del, T.overflow(el, view, lh))
 end
 
 local function failed(tab, err)
