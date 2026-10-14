@@ -631,8 +631,8 @@ def test_close_order_training_ring_before_tac_and_at_after_the_ring():
     with open(METABOLISM, encoding="utf-8") as fh:
         src = fh.read()
     region = src[src.index("local function closeDay("):src.index("MET.stats.days = MET.stats.days + 1")]
-    order = ["body.tDisuse = body.tDisuse + 1", "K.strength.signalClose(body)", "K.partition.disuse(body)",
-             "K.strength.detrain(", "K.strength.neural(", "K.strength.day(", "body.fmRef = K.max(body.fmRef, body.fm)",
+    order = ["body.tDisuse = body.tDisuse + 1", "K.strength.signalClose(body)", "K.strength.disuseDay(",
+             "K.strength.day(", "body.fmRef = K.max(body.fmRef, body.fm)",
              "K.traits.axes(", "body.S = S", "K.training.closeDay(body)", "K.training.weekMinutes(body)",
              "K.aerobic.tacDay(", "K.partition.closeDay(body)", "K.energy.atStep(",
              "K.partition.deficitWeek(body)"]
@@ -1925,3 +1925,50 @@ def test_a_first_sight_minute_makes_no_more_java_calls_than_the_plan_3_body(met_
         h.G.getGameTime = C.restore
     assert record["body"] is not None
     assert C.n <= HEAD_FIRST_SIGHT_CALLS, C.n
+
+
+def test_the_close_and_first_sight_ride_the_servers_tuned_table(met_host, opts):
+    # review T12: a tuned biology clock reaches every strength step of the close, the immobilised arm's included,
+    # and first sight builds the creation body off the server's table, never DEFAULTS
+    h = met_host
+    P, _ = h.K.strength.params(h.table({"StrengthTimeScale": 3.0, "StrengthCapLevel": 18, "StrengthTraitShare": 0.2}))
+    opts.strength = P
+    p = player(h, traits={"STRONG": True})
+    record = fresh(h, p, 100.0)
+    want = h.py(h.K.body.create("STRONG", None, P, 1))
+    assert want["F0"] != spec(h, "STRONG")["F0"]
+    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm"):
+        assert record["body"][k] == want[k], k
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True and seen.args["day"][8] == 3.0
+    q = player(h, fracture={"LowerLeg_L": 30.0})
+    rec2 = fresh(h, q, 100.0)
+    seen = h.rt.eval(CLOSE_COUNT)(q, rec2, 124.0)
+    assert seen.ok is True and seen.n["day"] == 0
+    assert seen.args["detrain"][5] == 3.0 and seen.args["neural"][4] == 3.0
+
+
+def test_the_close_reads_the_axes_at_the_effective_sex(met_host, opts):
+    # review T12: a female character reads the male cuts at the close unless NR.SexSpecific is on
+    h = met_host
+    p = player(h, female=True)
+    for specific, want in ((False, 1), (True, 2)):
+        opts.sexSpecific = specific
+        record = fresh(h, p, 100.0)
+        seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+        assert seen.ok is True and seen.args["axes"][2] == want, specific
+
+
+def test_the_close_floors_tdee_at_the_resting_expenditure(met_host):
+    # review T12: a short first day's eeDay reads the resting expenditure as tdee; a full day's its own
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.eeDay = 10.0
+    lm = body["lm"]
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True and seen.args["day"][5] == h.K.energy.ree(lm)
+    body.eeDay = 9000.0
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 148.0)
+    assert seen.ok is True and seen.args["day"][5] > 9000.0

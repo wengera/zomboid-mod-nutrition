@@ -140,6 +140,75 @@ def test_signal_close_includes_todays_slot_in_the_sum(host):
     assert b.sig7[7] == 0 and b.sig7[6] == 346.0
 
 
+# --- the immobilised day (rulings 13-13 and 13-35; Task 12 fix round 1) ---
+
+DETRAIN_SPY = r"""
+function(body, S, P, ts)
+    local K = NutritionRevamp.kernel
+    local orig = K.strength.detrain
+    local seen = {}
+    K.strength.detrain = function(b, S2, s, P2, ts2)
+        seen.s = s
+        seen.ts = ts2
+        seen.kg = orig(b, S2, s, P2, ts2)
+        return seen.kg
+    end
+    seen.status = K.strength.status(body)
+    local ok, dFM, dLM = pcall(K.strength.disuseDay, body, S, P, ts)
+    K.strength.detrain = orig
+    seen.ok, seen.dFM, seen.dLM = ok, dFM, dLM
+    return seen
+end
+"""
+
+
+def _immobile(host, muscle="STRONG"):
+    D = host.K.strength.DEFAULTS
+    b = host.K.body["new"](host.K.body.create(muscle, None, D, 1), 1, 0.0)
+    b.tDisuse = 1
+    b.lm0dis = b.lm
+    b.lm = b.F0 + 3.0
+    b.grace = 100
+    b.lx = 0.5
+    b.ebDay = -300.0
+    return b
+
+
+def test_disuse_day_applies_the_disuse_arm_and_discards_detraining(host):
+    h = host
+    D = h.K.strength.DEFAULTS
+    b = _immobile(h)
+    lm, fm, Pk, T = b.lm, b.fm, b.Pk, b.T
+    seen = h.rt.eval(DETRAIN_SPY)(b, 0.0, D, 1.0)
+    assert seen.ok is True
+    want_fm, want_lm = h.K.partition.disuse(_immobile(h))
+    assert (seen.dFM, seen.dLM) == (want_fm, want_lm) and seen.dLM < 0
+    assert b.lm == lm + seen.dLM and b.fm == fm + seen.dFM      # detraining's kg is real and discarded
+    assert seen.kg > 0
+    assert seen.s == seen.status                                  # detraining reads the day's opening status
+    assert b.lx == 0.5 and b.Pk == Pk and b.grace == 101 and b.Tgrace == 1 and b.T == T
+
+
+def test_disuse_day_keeps_the_floors(host):
+    h = host
+    D = h.K.strength.DEFAULTS
+    b = _immobile(h)
+    b.lm = D.fMinShare * b.F0 + 1e-6
+    b.fm = D.fmMin + 1e-6
+    b.ebDay = -5000.0
+    h.K.strength.disuseDay(b, 0.0, D, 1.0)
+    assert b.lm == D.fMinShare * b.F0 and b.fm == D.fmMin
+
+
+def test_disuse_day_steps_the_neural_factor_on_the_clock(host):
+    h = host
+    D = h.K.strength.DEFAULTS
+    a, b = _immobile(h), _immobile(h)
+    seen = h.rt.eval(DETRAIN_SPY)(a, 10.0, D, 3.0)
+    h.K.strength.disuseDay(b, 10.0, D, 1.0)
+    assert seen.ts == 3.0 and a.grace == 0 and a.T > b.T > 1.0
+
+
 # --- the lean-mass strength model (Plan 13 Task 5; rulings 13-1 and 13-45) ---
 
 # The game constants of DEFAULTS (the plan's first constants block, below point T); xpPerSet 346 is provisional

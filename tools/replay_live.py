@@ -416,9 +416,10 @@ end
 """
 
 # The study participant at first sight (Plan 13 Task 12): the mod builds the body from the band traits held, never a
-# weight, so the replay wraps MET.ensureBody to lay the stand-in's configured weight as a participant's body
-# (testing/tests/kernel/participant.py), at the player's sex and the mod's effective-sex option, and stamps levelDue
-# as the mod's own first sight does. A user with no configured weight takes the mod's own first sight.
+# weight, so the replay wraps MET.ensureBody to lay a weight the caller passes explicitly (player={"weight": w}) as a
+# participant's body (testing/tests/kernel/participant.py), at the player's sex and the mod's effective-sex option, and
+# stamps levelDue as the mod's own first sight does. A user with no explicit weight takes the mod's own first sight,
+# so a live replay reproduces the mod (Task 12 fix round 1); the stand-in's vanilla weight stays 80 kg by default.
 PARTICIPANT_SIGHT = r"""
 NR_R.weights = {}
 local MET = NutritionRevamp.server.metabolism
@@ -660,7 +661,8 @@ class ServerReplay(_Backend):
         cfg.update(player or {})
         p = self.h.player(user, *cfg["macros"])
         p.nut.weight = cfg["weight"]
-        self.R.weights[user] = cfg["weight"]             # first sight lays this participant's body (PARTICIPANT_SIGHT)
+        if "weight" in (player or {}):                   # an explicit weight: first sight lays that participant's body
+            self.R.weights[user] = cfg["weight"]
         lcfg = self.rt.table()
         lcfg.rate = 1.0
         lcfg.inv = cfg["inv"]

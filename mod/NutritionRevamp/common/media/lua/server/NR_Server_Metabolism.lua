@@ -140,6 +140,7 @@ local function sexSpecific()
 end
 
 -- The first trait of names the collection holds, or nil (none held, or the registry or the collection unreadable).
+-- Vanilla never lets a character hold two weight-band traits (nor two muscle-band traits), so the list order is moot.
 function MET.heldTrait(traits, names)
     if CharacterTrait == nil or traits == nil then return nil end
     for i = 1, #names do
@@ -230,8 +231,8 @@ end
 -- One day close (Plan 13 Task 12): the disuse day count (before the masses move, so the first immobilised day runs
 -- with t = 1 off the lean mass it began on); the signal ring's close, whose sum over xpPerSet is the closed week's
 -- sets S; the body's day -- K.strength.day (growth, regain, detraining, the partition, the floors, the peak and the
--- neural factor) or, immobilised, the disuse arm under the floors with lx untouched, detraining's grace counter
--- (its kg discarded) and the neural factor (ruling 13-13); fmRef re-based upward (adaptive thermogenesis reads
+-- neural factor) or, immobilised, K.strength.disuseDay (the disuse arm under the same floors, detraining's grace
+-- counter alone and the neural factor, ruling 13-13); fmRef re-based upward (adaptive thermogenesis reads
 -- depletion from the highest fat reached); the trait axes and band word; then the training ring, TAC, the
 -- partition ring (pushes today's balance into eb7, zeroes the day accumulators, advances dayIndex) and adaptive
 -- thermogenesis. Each reader runs after the writer of what it reads (the x141c one-close lag): the training ring
@@ -314,12 +315,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     local pPerKg = body.pDay / w
     local tdee = K.max(body.eeDay, K.energy.ree(body.lm))
     if immobilised then
-        local s = K.strength.status(body)
-        local dFM, dLM = K.partition.disuse(body)
-        body.fm = K.max(body.fm + dFM, P.fmMin)
-        body.lm = K.max(body.lm + dLM, P.fMinShare * body.F0)
-        K.strength.detrain(body, S, s, P, P.ts)          -- the grace counter only: the disuse arm is the day's loss
-        K.strength.neural(body, S, P, P.ts)
+        K.strength.disuseDay(body, S, P, P.ts)           -- the disuse arm in place of growth and detraining
     else
         K.strength.day(body, S, pPerKg, body.ebDay, tdee, body.alcDay / w, P, P.ts)
     end

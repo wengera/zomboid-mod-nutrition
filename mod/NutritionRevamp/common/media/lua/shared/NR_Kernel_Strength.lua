@@ -306,6 +306,21 @@ function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
     return dF, dX, dM
 end
 
+-- An immobilised day of the body (rulings 13-13 and 13-35), in place of K.strength.day: the disuse arm
+-- (K.partition.disuse; the adapter stamps its day count tDisuse and anchor lm0dis) applied under the same floors
+-- (lm >= fMinShare * F0, fm >= fmMin) with lx untouched; detraining runs at the day's opening status for its grace
+-- counter alone, its kg discarded (the disuse curve already carries the immobilised loss); the neural factor steps and
+-- the peak does not. Writes lm, fm, grace, T and Tgrace; returns the disuse arm's dFM, dLM before the floors.
+function K.strength.disuseDay(body, S, P, ts)
+    local s = K.strength.status(body)
+    local dFM, dLM = K.partition.disuse(body)
+    body.fm = K.max(body.fm + dFM, P.fmMin)
+    body.lm = K.max(body.lm + dLM, P.fMinShare * body.F0)
+    K.strength.detrain(body, S, s, P, ts)
+    K.strength.neural(body, S, P, ts)
+    return dFM, dLM
+end
+
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47)
