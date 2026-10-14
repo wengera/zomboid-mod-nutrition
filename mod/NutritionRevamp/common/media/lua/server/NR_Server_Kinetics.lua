@@ -59,7 +59,7 @@ function KIN.drain(stomach, dtM, pool)
 end
 
 local function step(username, player, record, ctx)
-    local age = NR.worldAge()
+    local age = NR.read.ageH(ctx)
     if age == nil then
         if ctx ~= nil then
             ctx.absorbed = nil

@@ -42,7 +42,8 @@ end
 CASE = r"""
 function(record, age)
     NR_TEST_AGE = age
-    NR_TEST_PIPE = NR_TEST_PIPE or {}        -- the pipeline's context (Plan 10 R2), kept across calls here
+    NR_TEST_PIPE = NR_TEST_PIPE or {}        -- the pipeline's context (Plan 10 R2), one table across calls here,
+    for k in pairs(NR_TEST_PIPE) do NR_TEST_PIPE[k] = nil end   -- cleared per minute as NR_Server_Minute.run does
     NutritionRevamp.server.kinetics.minute("admin", nil, record, NR_TEST_PIPE)
     return record
 end
@@ -631,6 +632,7 @@ CASE_PLAYER = r"""
 function(record, age, player)
     NR_TEST_AGE = age
     NR_TEST_PIPE = NR_TEST_PIPE or {}
+    for k in pairs(NR_TEST_PIPE) do NR_TEST_PIPE[k] = nil end   -- cleared per minute as NR_Server_Minute.run does
     NutritionRevamp.server.kinetics.minute("admin", player, record, NR_TEST_PIPE)
     return record
 end

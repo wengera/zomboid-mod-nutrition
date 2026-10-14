@@ -55,7 +55,7 @@ function P.work(username, player)
         NR.server.minute.runDead(username, player, r)
         return
     end
-    NR.server.minute.run(username, player, r)
+    NR.server.minute.run(username, player, r, age)
 end
 
 -- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends

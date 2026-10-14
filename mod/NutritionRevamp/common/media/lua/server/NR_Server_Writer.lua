@@ -140,17 +140,6 @@ local function finiteOr(v, dflt)
     return dflt
 end
 
--- The hour of day the circadian factor reads: the game clock's getTimeOfDay, else the world age's hour (the seam the
--- Metabolism, Nutrients and Strength adapters read).
-function W.hourOfDay(ageH)
-    local hour = ageH - math.floor(ageH / 24) * 24
-    if getGameTime ~= nil then
-        local ok, gt = pcall(getGameTime)
-        hour = NR.num(ok and gt or nil, "getTimeOfDay", hour)
-    end
-    return hour
-end
-
 -- Vigorous work for the acute suppression term (spec § 5c, ruling 11c-29; ruling T6-2): the melee or tool swing state is
 -- resistance-type work; else Metabolism's stamp of the minute's billed MET at the Compendium's HeavyWork band or above
 -- (6.0) is vigorous, and the kind follows the metabolism class Metabolism stamps on the minute's ctx: Fitness,
@@ -202,7 +191,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local dtH = W.satietyDtH(h, s, inp, ageH)
     local vigorous, kind = W.vigorous(h, player, record, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
-    local factor = K.satiety.circadian(W.hourOfDay(ageH)) * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
+    local factor = K.satiety.circadian(NR.read.hour(ctx, ageH)) * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
     factor = W.satietyFactor(factor, record)
     W.satietyMeal(s, inp, F, es, factor)
     inp.hungerTarget = K.satiety.target(F, s.M, es) * factor
@@ -237,7 +226,7 @@ function W.step(username, player, record, ctx)
         W.h[username] = h
     end
     if h == nil then return end
-    local ageH = NR.worldAge()
+    local ageH = NR.read.ageH(ctx)
     if ageH == nil then
         W.stats.skipped = W.stats.skipped + 1
         return
@@ -249,7 +238,7 @@ function W.step(username, player, record, ctx)
     if h.ageH ~= nil then inp.dtS = (ageH - h.ageH) * 3600 end
     h.ageH = ageH
     inp.mode = W.mode
-    inp.asleep = NR.flag(player, "isAsleep")
+    inp.asleep = NR.read.asleep(ctx, player)
     inp.hunger = get(h, CS.HUNGER) or 0
     local body = record.body or {}
     local es = finiteOr(body.energyState, 1)

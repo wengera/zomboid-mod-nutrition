@@ -348,11 +348,12 @@ def test_kinetics_hands_off_the_absorbed_vector(met_host):
     KIN(h).minute("admin", None, record, pipe)       # first step: dtH 0
     assert pipe.absorbed is None
     h.G.NR_TEST_AGE = 101.0
+    pipe.eAge = None                                 # NR_Server_Minute.run clears the context per minute (NR.read's age)
     KIN(h).minute("admin", None, record, pipe)
     handed = pipe.absorbed
     assert handed is not None and handed["calories"] > 0
     assert abs(handed["calories"] - record["pool"]["calories"]) < TOL
-    KIN(h).minute("admin", None, record, pipe)       # same age: dtH 0 clears it
+    KIN(h).minute("admin", None, record, pipe)       # same age (the context unchanged): dtH 0 clears it
     assert pipe.absorbed is None
 
 

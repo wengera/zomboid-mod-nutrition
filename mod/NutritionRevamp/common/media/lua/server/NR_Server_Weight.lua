@@ -54,11 +54,12 @@ WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "E
 local finite = NR.finite
 
 -- Whether the band's trait set needs a repair: the band's own trait absent, or for "normal" any of the
--- five present. False when the registry or the trait collection is unreadable (nothing to compare).
-local function needsRepair(player, band)
+-- five present. False when the registry or the trait collection is unreadable (nothing to compare). ctx is the
+-- pipeline's, whose trait collection read (NR.read) it shares.
+local function needsRepair(player, band, ctx)
     if CharacterTrait == nil then return false end
-    local okC, coll = NR.call(player, "getCharacterTraits")
-    if not okC or coll == nil then return false end
+    local coll = NR.read.traits(ctx, player)
+    if coll == nil then return false end
     local want = WGT.BAND_TRAIT[band]
     if want ~= nil then
         local t = CharacterTrait[want]
@@ -121,7 +122,7 @@ local function markBand(username)
     if B ~= nil and B.markBand ~= nil then B.markBand(username) end
 end
 
-local function step(username, player, record)
+local function step(username, player, record, ctx)
     local body = record.body
     if body == nil then return end
     local w = body.fm + body.lm
@@ -131,8 +132,8 @@ local function step(username, player, record)
         NR.log.say(2, WGT.lastError)
         return
     end
-    local okN, nut = NR.call(player, "getNutrition")
-    if not okN or nut == nil then
+    local nut = NR.read.nutrition(ctx, player)
+    if nut == nil then
         WGT.stats.badReads = WGT.stats.badReads + 1
         return
     end
@@ -150,7 +151,7 @@ local function step(username, player, record)
             NR.pushTraits(player, WGT.stats)
             markBand(username)
         end
-    elseif needsRepair(player, band) then
+    elseif needsRepair(player, band, ctx) then
         if NR.call(nut, "applyTraitFromWeight") then
             WGT.stats.bandRepairs = WGT.stats.bandRepairs + 1
             NR.pushTraits(player, WGT.stats)
@@ -165,10 +166,10 @@ end
 -- One player's minute: the pipeline's weight step (NR_Server_Minute.run, called from P.work).
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function WGT.minute(username, player, record)
+function WGT.minute(username, player, record, ctx)
     if record == nil then return end
     WGT.stats.minutes = WGT.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         WGT.stats.failures = WGT.stats.failures + 1
         WGT.lastError = err

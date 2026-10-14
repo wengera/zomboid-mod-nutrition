@@ -291,7 +291,7 @@ local function toggle(coll, t, want, own, key)
 end
 
 -- The two trait toggles and the one push (rule 3: only on a change, only to the owner).
-local function traits(player, record, body, E, nut, sev, dtD)
+local function traits(player, record, body, E, nut, sev, dtD, ctx)
     local vitA = nut.vitA
     local zinc, iron, ribo = nut.zinc, nut.iron, nut.riboflavin
     local sex = body.sex
@@ -302,7 +302,7 @@ local function traits(player, record, body, E, nut, sev, dtD)
     local wantSs = K.effects.ssWant(vitA.g, sev)
     if record.dead == true then return false end
     if CharacterTrait == nil then return false end
-    local coll = obj(player, "getCharacterTraits")
+    local coll = NR.read.traits(ctx, player)
     if coll == nil then return false end
     local changed = toggle(coll, CharacterTrait.NIGHT_VISION, wantNv, E.own, "nv")
     changed = toggle(coll, CharacterTrait.SHORT_SIGHTED, wantSs, E.own, "ss") or changed
@@ -439,7 +439,7 @@ local function bruise(bd, L, E, dtM)
     EFF.stats.bruises = EFF.stats.bruises + 1
 end
 
-local function step(username, player, record, body, dtM, ageH)
+local function step(username, player, record, body, dtM, ageH, ctx)
     body = body or record.body
     local nut, fluids, a = record.nutrients, record.fluids, record.acute
     if body == nil or nut == nil or fluids == nil or a == nil then return end
@@ -474,8 +474,7 @@ local function step(username, player, record, body, dtM, ageH)
     if finite(body.exKcalDay) then E.exSeen = body.exKcalDay end
 
     -- 2. the bands and the flags (file-scope scratch tables)
-    local okS, asleep = NR.call(player, "isAsleep")
-    asleep = okS and asleep == true
+    local asleep = NR.read.asleep(ctx, player)
     K.effects.bands(EFF.b, a, fluids)
     local F = EFF.flags
     F.anaemia = nut.anaemia == true
@@ -517,8 +516,8 @@ local function step(username, player, record, body, dtM, ageH)
     local adj = E.tempOffset
     if met >= EFF.MET_EXERT then adj = adj + E.tempHeat end
     E.tempAdj = adj
-    local bd = obj(player, "getBodyDamage")
-    local setPoint = num(obj(bd, "getThermoregulator"), "getSetPoint", nil)
+    local bd = NR.read.bodyDamage(ctx, player)
+    local setPoint = num(NR.read.thermo(ctx, player, bd), "getSetPoint", nil)
     if setPoint == nil or adj == 0 then
         E.tempTarget = 0
     else
@@ -526,7 +525,7 @@ local function step(username, player, record, body, dtM, ageH)
     end
 
     -- 5. the traits (on a direct call for a dead record the night-vision machine runs; the writes do not)
-    local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440)
+    local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440, ctx)
 
     -- 6. the drain (kernel order: compose, nvMinute, drain)
     local wasLethal = E.lethal
@@ -569,12 +568,13 @@ local function step(username, player, record, body, dtM, ageH)
     end
 end
 
--- One player's minute, called by EFF.step on the inputs Nutrients stamped (ruling 22). One pcall around
--- the body: a failure is kept and logged on the slow clock, never raised into the pipeline.
-function EFF.minute(username, player, record, body, dtM, ageH)
+-- One player's minute, called by EFF.step on the inputs Nutrients stamped (ruling 22); ctx (optional) is the
+-- pipeline's, whose shared engine reads (NR.read) the step takes. One pcall around the body: a failure is kept and
+-- logged on the slow clock, never raised into the pipeline.
+function EFF.minute(username, player, record, body, dtM, ageH, ctx)
     if record == nil then return end
     EFF.stats.minutes = EFF.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record, body, dtM, ageH)
+    local ok, err = pcall(step, username, player, record, body, dtM, ageH, ctx)
     if not ok then
         EFF.stats.errors = EFF.stats.errors + 1
         EFF.lastError = err
@@ -587,7 +587,7 @@ end
 -- counter (NR.server.nutrients.stats.effectsErrors) and its log line.
 function EFF.step(username, player, record, ctx)
     if ctx == nil or ctx.body == nil then return end
-    local okE, errE = pcall(EFF.minute, username, player, record, ctx.body, ctx.dtM, ctx.ageH)
+    local okE, errE = pcall(EFF.minute, username, player, record, ctx.body, ctx.dtM, ctx.ageH, ctx)
     if not okE then
         local NUT = NR.server.nutrients
         if NUT ~= nil then NUT.stats.effectsErrors = NUT.stats.effectsErrors + 1 end

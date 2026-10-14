@@ -171,12 +171,13 @@ end
 
 -- The minute's activity: className, moving, modifier, loadKg, heavyLevel, coldMult, exercising,
 -- swiping, immobilised, hourOfDay, maxW, heatLevel, climbClass. ageH (optional) is the minute's world
--- age. climbClass is the K.training.CLIMB_MET class of the climb state the character is in at the
--- sample (a fence vault JumpFence, a window climb ClimbRope), or nil: a per-minute state sample, so a
--- climb shorter than the gap between samples is missed (ruling W-4).
-function MET.readActivity(player, ageH)
-    local bd = obj(player, "getBodyDamage")
-    local thermo = obj(bd, "getThermoregulator")
+-- age; ctx (optional) the pipeline's context, whose shared engine reads (NR.read) it takes and keeps. climbClass
+-- is the K.training.CLIMB_MET class of the climb state the character is in at the sample (a fence vault JumpFence,
+-- a window climb ClimbRope), or nil: a per-minute state sample, so a climb shorter than the gap between samples is
+-- missed (ruling W-4).
+function MET.readActivity(player, ageH, ctx)
+    local bd = NR.read.bodyDamage(ctx, player)
+    local thermo = NR.read.thermo(ctx, player, bd)
     local loadKg = num(player, "getInventoryWeight", 0)
     local maxW = num(player, "getMaxWeight", 0)
     local className = "Default"
@@ -186,7 +187,7 @@ function MET.readActivity(player, ageH)
     else
         MET.stats.badReads = MET.stats.badReads + 1
     end
-    if flag(player, "isAsleep") then className = "Sleeping" end
+    if NR.read.asleep(ctx, player) then className = "Sleeping" end
     local moving = flag(player, "isPlayerMoving")
     local moodles = obj(player, "getMoodles")
     local heavyLevel = 0
@@ -225,13 +226,7 @@ function MET.readActivity(player, ageH)
             end
         end
     end
-    local age = ageH or worldAge()
-    local hourOfDay = 0
-    if age ~= nil then hourOfDay = age - math.floor(age / 24) * 24 end
-    if getGameTime ~= nil then
-        local ok, gt = pcall(getGameTime)
-        hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
-    end
+    local hourOfDay = NR.read.hour(ctx, ageH or NR.read.ageH(ctx))
     return className, moving, 1, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised, hourOfDay,
         maxW, heatLevel, climbClass, okR and finite(rate) and rate or nil
 end
@@ -363,7 +358,7 @@ local function guardAll(body, sat)
 end
 
 local function step(username, player, record, ctx)
-    local ageH = worldAge()
+    local ageH = NR.read.ageH(ctx)
     if ageH == nil then
         MET.stats.badReads = MET.stats.badReads + 1   -- skipped: no stamp of a 0 age
         return
@@ -384,7 +379,7 @@ local function step(username, player, record, ctx)
         K.energy.intake(body, handoff, dtM)
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, rateClass, exMet = MET.readBilled(username, player, ageH)
+        hourOfDay, maxW, heatLevel, climbClass, rateClass, exMet = MET.readBilled(username, player, ageH, ctx)
     local met = K.energy.activityMet(className, moving, modifier, loadKg, exMet)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
@@ -516,9 +511,9 @@ end
 MET.prevRate = {}
 MET.prevExe = {}
 
-function MET.readBilled(username, player, ageH)
+function MET.readBilled(username, player, ageH, ctx)
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, rate = MET.readActivity(player, ageH)
+        hourOfDay, maxW, heatLevel, climbClass, rate = MET.readActivity(player, ageH, ctx)
     local falling = K.energy.rateFalling(MET.prevRate[username], rate)
     if MET.prevExe[username] == true and not exercising then falling = true end
     MET.prevRate[username] = rate

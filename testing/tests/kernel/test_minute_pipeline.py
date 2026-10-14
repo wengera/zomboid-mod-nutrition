@@ -262,3 +262,76 @@ def test_a_player_minute_makes_no_more_trait_or_sandbox_calls_than_the_p_model_w
     for k, v in P_MODEL_CALLS.items():
         assert per[k] <= v, (k, per)
     assert per["sd"] == 1                               # one read a player-minute, shared by Kinetics and the writer
+
+
+# --- Rule 6: the player-minute's shared engine reads (Plan 12 S R1) ------------------------------------------------
+# The minute's steps run in one call, so a member several of them read answers the same: NR.read keeps the first read
+# on the pipeline's context. Before, a player-minute read isAsleep 4 times, getCharacterTraits 4, getBodyDamage and
+# getThermoregulator 3, getNutrition 2, the clock's getTimeOfDay 4 and the world age 6 (P.work's and five steps').
+# Counted inside P.work (the player-minute: its age read, then the pipeline) on golden_trace's decorated player over
+# ten steady minutes (the writer's per-object hoists done).
+SHARED_READS = ("isAsleep", "getCharacterTraits", "getBodyDamage", "getThermoregulator", "getNutrition",
+                "getTimeOfDay", "getWorldAgeHours")
+
+COUNT_SHARED = r"""
+function(p, C)
+    local function counted(t, name)
+        local f = t[name]
+        t[name] = function(...)
+            if C.on then C[name] = C[name] + 1 end
+            return f(...)
+        end
+    end
+    local P = NutritionRevamp.server.players
+    local work = P.work
+    P.work = function(...)
+        C.on = true
+        work(...)
+        C.on = false
+    end
+    counted(p, "isAsleep")
+    counted(p, "getCharacterTraits")
+    counted(p, "getNutrition")
+    local bd = p:getBodyDamage()
+    counted(bd, "getThermoregulator")
+    counted(p, "getBodyDamage")
+    local gt = getGameTime
+    getGameTime = function()
+        local t = gt()
+        counted(t, "getTimeOfDay")
+        counted(t, "getWorldAgeHours")
+        return t
+    end
+end
+"""
+
+
+def test_a_player_minute_reads_each_shared_engine_member_once():
+    h = golden_trace.new_host()
+    C = h.rt.eval("{ " + ", ".join("%s = 0" % k for k in SHARED_READS) + " }")
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    h.rt.eval(COUNT_SHARED)(g1, C)
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):                               # the first sight and the writer's hoist
+        _minute(h, start + m / 60.0)
+    base = {k: C[k] for k in SHARED_READS}
+    runs0 = h.NR.server.minute.stats.runs
+    n = 10
+    for m in range(4, 4 + n):
+        _minute(h, start + m / 60.0)
+    assert h.NR.server.minute.stats.runs - runs0 == n
+    per = {k: (C[k] - base[k]) / n for k in SHARED_READS}
+    assert per == {k: 1 for k in SHARED_READS}, per
+
+
+def test_the_shared_reads_keep_a_nil_answer_and_read_afresh_with_no_context():
+    h = Host()
+    C = h.rt.eval("{ n = 0 }")
+    p = h.rt.eval("function(C) return { getNutrition = function(s) C.n = C.n + 1; return nil end } end")(C)
+    R = h.NR.read
+    ctx = h.rt.table()
+    assert R.nutrition(ctx, p) is None and R.nutrition(ctx, p) is None
+    assert C.n == 1                                     # a nil answer is kept, not read again
+    assert R.nutrition(None, p) is None and R.nutrition(None, p) is None
+    assert C.n == 3                                     # no context: every call reads

@@ -115,6 +115,56 @@ function NR.sandbox()
     return NR.so
 end
 
+-- The player-minute's engine reads (Plan 12 S R1, Rule 6): the steps of one player's minute run in one call, inside
+-- one server tick, so a member several steps read answers the same; each is read once and kept on the pipeline's
+-- context (NR_Server_Minute's ctx, cleared per player), and the steps after the first share that read. A nil ctx (a
+-- step called outside the pipeline) reads afresh. A read that answers nil is kept as NONE, so it is not read again.
+-- The world age is the pipeline's own read (P.work's, seeded by NR_Server_Minute.run); the hour of day is the clock's
+-- getTimeOfDay, else the world age's hour (0 with no age). The failure meaning is NR.flag's and NR.obj's: a raise
+-- reads false or nil.
+NR.read = {}
+local RD = NR.read
+local NONE = {}
+
+local function memo(ctx, key, read, a, b, c)
+    if ctx == nil then return read(a, b, c) end
+    local v = ctx[key]
+    if v == nil then
+        v = read(a, b, c)
+        if v == nil then ctx[key] = NONE else ctx[key] = v end
+        return v
+    end
+    if v == NONE then return nil end
+    return v
+end
+
+local function readHour(ageH)
+    local hour = 0
+    if ageH ~= nil then hour = ageH - math.floor(ageH / 24) * 24 end
+    if getGameTime ~= nil then
+        local ok, gt = pcall(getGameTime)
+        hour = NR.num(ok and gt or nil, "getTimeOfDay", hour)
+    end
+    return hour
+end
+local function readAsleep(p) return NR.flag(p, "isAsleep") end
+local function readTraits(p) return NR.obj(p, "getCharacterTraits") end
+local function readBodyDamage(p) return NR.obj(p, "getBodyDamage") end
+local function readThermo(ctx, p, bd)
+    if bd == nil then bd = RD.bodyDamage(ctx, p) end
+    return NR.obj(bd, "getThermoregulator")
+end
+local function readNutrition(p) return NR.obj(p, "getNutrition") end
+
+function RD.ageH(ctx) return memo(ctx, "eAge", NR.worldAge) end
+function RD.hour(ctx, ageH) return memo(ctx, "eHour", readHour, ageH) end
+function RD.asleep(ctx, p) return memo(ctx, "eAsleep", readAsleep, p) end
+function RD.traits(ctx, p) return memo(ctx, "eTraits", readTraits, p) end
+function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end
+-- bd (optional) is the body damage the caller holds, so a call with no ctx reads it once.
+function RD.thermo(ctx, p, bd) return memo(ctx, "eThermo", readThermo, ctx, p, bd) end
+function RD.nutrition(ctx, p) return memo(ctx, "eNut", readNutrition, p) end
+
 -- The trait-block push (#2099): sendSyncPlayerFields(player, 2), a Java global called with a dot (#2815), under one
 -- pcall, so a raise never skips the work after it in the caller's minute. Counted in stats.pushes, or in
 -- stats.pushMissing when the global is absent or raises. Returns whether it ran. One copy for Effects, Strength

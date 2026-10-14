@@ -5,10 +5,12 @@
 --
 -- The context (ctx): one table reused per call and cleared at the start of each player's run, so nothing in it
 -- outlives one player's minute. Its fields: absorbed and mealCa (Kinetics writes them; Metabolism and Nutrients
--- read them), and body, dtM and ageH (Nutrients stamps them where its minute reaches its end; the Effects step
--- runs only when they are stamped). An adapter that wraps its own body in a pcall keeps it, with its own
--- counters and log lines; this guard is the outer net, so a step that raises inside its own pcall never reaches
--- stats.failures here.
+-- read them); sd (Kinetics' sandbox read), activityClass and exercising (Metabolism's), which the writer reads; body,
+-- dtM and ageH (Nutrients stamps them where its minute reaches its end; the Effects step runs only when they are
+-- stamped); and the minute's shared engine reads under NR.read's e-prefixed keys (eAge, the world age P.work read,
+-- seeded here; eHour, eAsleep, eTraits, eBd, eThermo and eNut, each kept at its first read). An adapter that wraps
+-- its own body in a pcall keeps it, with its own counters and log lines; this guard is the outer net, so a step that
+-- raises inside its own pcall never reaches stats.failures here.
 --
 -- Registering a name again REPLACES that step's function. A name not in ORDER is never run. Slow-clock code,
 -- with no fast-path region in this file; nothing runs at file scope but table setup, so the file loads with no
@@ -27,10 +29,12 @@ function MIN.register(name, fn)
     MIN.steps[name] = fn
 end
 
--- One player's minute: clear the context, then every registered step in ORDER, each under its own pcall.
-function MIN.run(username, player, record)
+-- One player's minute: clear the context, seed it with the minute's world age (ageH, P.work's read; nil leaves the
+-- first step to read it), then every registered step in ORDER, each under its own pcall.
+function MIN.run(username, player, record, ageH)
     local ctx = MIN.ctx
     for k in pairs(ctx) do ctx[k] = nil end
+    ctx.eAge = ageH
     MIN.stats.runs = MIN.stats.runs + 1
     for i = 1, #MIN.ORDER do
         local fn = MIN.steps[MIN.ORDER[i]]

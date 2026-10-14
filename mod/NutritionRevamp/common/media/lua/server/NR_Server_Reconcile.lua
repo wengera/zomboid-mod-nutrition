@@ -47,10 +47,11 @@ local RC = NR.server.reconcile
 local GETTERS = { calories = "getCalories", carbs = "getCarbohydrates", lipids = "getLipids", proteins = "getProteins" }
 
 -- The four vanilla macro stores of a character, keyed by the vector's macro names, or nil when the
--- Nutrition object or any store is unreadable or not a finite number.
-function RC.read(character)
-    local okN, nut = NR.call(character, "getNutrition")
-    if not okN or nut == nil then return nil end
+-- Nutrition object or any store is unreadable or not a finite number. ctx (optional) is the pipeline's, whose
+-- Nutrition read (NR.read) it shares.
+function RC.read(character, ctx)
+    local nut = NR.read.nutrition(ctx, character)
+    if nut == nil then return nil end
     local out = {}
     for k, getter in pairs(GETTERS) do
         local ok, v = NR.call(nut, getter)
@@ -72,8 +73,8 @@ local function state(record)
 end
 
 -- One player's step: read, compare, land, reset.
-local function step(username, player, record)
-    local store = RC.read(player)
+local function step(username, player, record, ctx)
+    local store = RC.read(player, ctx)
     if store == nil then
         RC.stats.noStore = RC.stats.noStore + 1
         return
@@ -107,10 +108,10 @@ end
 
 -- One player's minute: the pipeline's reconcile step (NR_Server_Minute.run, called from P.work), under
 -- one pcall: a failure is counted and logged on the slow clock, never raised into the players walk.
-function RC.minute(username, player, record)
+function RC.minute(username, player, record, ctx)
     if record == nil then return end
     RC.stats.minutes = RC.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         RC.stats.errors = RC.stats.errors + 1
         RC.lastError = err

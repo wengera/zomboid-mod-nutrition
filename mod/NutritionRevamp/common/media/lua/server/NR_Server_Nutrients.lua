@@ -107,15 +107,10 @@ NUT.LITRES_PER_THIRST = 2 -- ruling 9 (Water ThirstChange -50 per litre, x151w #
 
 local finite = NR.finite
 
--- The world age, or nil when it cannot be read or is not finite (the minute is then skipped and counted:
--- the acute kernel's sleep-window loop needs a finite age).
-local worldAge = NR.worldAge
-
--- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
+-- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite. The world age and
+-- the minute's other engine reads are NR.read's (an unread age skips the minute, counted: the acute kernel's
+-- sleep-window loop needs a finite age).
 local num = NR.num
-
--- An object read off obj:name(...), or nil.
-local obj = NR.obj
 
 -- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
 local function roll(dflt)
@@ -145,10 +140,10 @@ function NUT.readSleepOptions()
     return NUT.sleepDisabled
 end
 
--- The sleep-need factor off the character's trait set (the CharacterTrait registry objects).
-local function needFactor(player)
+-- The sleep-need factor off the character's trait set (the CharacterTrait registry objects); ctx is the pipeline's.
+local function needFactor(player, ctx)
     if CharacterTrait == nil then return 1 end
-    local traits = obj(player, "getCharacterTraits")
+    local traits = NR.read.traits(ctx, player)
     local tMore, tLess = CharacterTrait.NEEDS_MORE_SLEEP, CharacterTrait.NEEDS_LESS_SLEEP
     if tMore ~= nil then
         local okM, more = NR.call(traits, "get", tMore)
@@ -337,7 +332,7 @@ local function step(username, player, record, ctx)
         caMeal = ctx.mealCa
     end
     local intake = NR.server.intake
-    local ageH = worldAge()
+    local ageH = NR.read.ageH(ctx)
     if ageH == nil then
         NUT.stats.badAge = NUT.stats.badAge + 1
         return
@@ -418,7 +413,7 @@ local function step(username, player, record, ctx)
     local fctx = NUT.fctx
     fctx.sex = body.sex
     fctx.met = met
-    fctx.thermoFluids = num(obj(obj(player, "getBodyDamage"), "getThermoregulator"), "getFluidsMultiplier", 1)
+    fctx.thermoFluids = num(NR.read.thermo(ctx, player), "getFluidsMultiplier", 1)
     fctx.coldMult = coldMult
     fctx.ethanolAbsG = alcDose
     fctx.dehydPct = f.dehydPct
@@ -457,13 +452,8 @@ local function step(username, player, record, ctx)
     f.sweatActive = K.fluids.sweatActive(f)
 
     -- the acute states
-    local okS, asleep = NR.call(player, "isAsleep")
-    asleep = okS and asleep == true
-    local hourOfDay = ageH - math.floor(ageH / 24) * 24
-    if getGameTime ~= nil then
-        local ok, gt = pcall(getGameTime)
-        hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
-    end
+    local asleep = NR.read.asleep(ctx, player)
+    local hourOfDay = NR.read.hour(ctx, ageH)
     K.acute.caffeine(a, cafDose, w, dtH)                   -- the gut lane's dose (CAF_ABSORB applied there)
     K.acute.alcohol(a, alcDose, w, body.sex, dtH)
     local ethIng = ingested.ethanol or 0
@@ -485,7 +475,7 @@ local function step(username, player, record, ctx)
         if finite(eff.mAcc) and eff.mAcc > 0 then mAcc = eff.mAcc end
         if finite(eff.rRec) and eff.rRec > 0 then rRec = eff.rRec end
     end
-    K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player), ageH, dtH, NUT.sleepDisabled, mAcc, rRec)
+    K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player, ctx), ageH, dtH, NUT.sleepDisabled, mAcc, rRec)
     K.acute.iu(a, f.dehydPct, n.ironGrade)
 
     local ng = K.heal.guard(f, NUT.GUARD_FLUIDS, NUT.snapF) + K.heal.guard(a, NUT.GUARD_ACUTE, NUT.snapA)

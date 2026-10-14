@@ -54,8 +54,7 @@ STR.MAX_DT_H = 1
 
 local finite = NR.finite
 
--- The world age, or nil when it cannot be read (the step is then skipped, never stamped 0).
-local worldAge = NR.worldAge
+-- The world age and the minute's other engine reads are NR.read's (an unread age skips the step, never stamped 0).
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
 local num = NR.num
@@ -108,10 +107,10 @@ end
 
 -- Vanilla's band remap for a written level: every band trait but the level's own is removed if present,
 -- the level's own added if absent; one sendSyncPlayerFields(player, 2) (#2099) when the set changed.
--- Returns whether it changed.
-function STR.remap(player, level)
+-- Returns whether it changed. ctx (optional) is the pipeline's, whose trait collection read (NR.read) it shares.
+function STR.remap(player, level, ctx)
     if CharacterTrait == nil then return false end
-    local coll = obj(player, "getCharacterTraits")
+    local coll = NR.read.traits(ctx, player)
     if coll == nil then return false end
     local want = K.strength.bandOf(level)
     local changed = false
@@ -174,12 +173,8 @@ end
 -- The carry delta: traitCarry x (1 + eAcute) (ruling 11), the dehydration, sweat, hours-awake, caffeine
 -- and vitamin D inputs read off the record (acuteInputs); written when it differs from the live delta by
 -- more than CARRY_EPS, so any other writer is re-asserted against (#2143, #2565).
-local function carry(player, record, body, ageH)
-    local hourOfDay = ageH - math.floor(ageH / 24) * 24
-    if getGameTime ~= nil then
-        local ok, gt = pcall(getGameTime)
-        hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
-    end
+local function carry(player, record, body, ageH, ctx)
+    local hourOfDay = NR.read.hour(ctx, ageH)
     local w = body.fm + body.lm
     local bf = 0
     if w > 0 then bf = body.fm / w end
@@ -195,10 +190,10 @@ local function carry(player, record, body, ageH)
     body.delta = delta
 end
 
-local function step(username, player, record)
+local function step(username, player, record, ctx)
     local body = record.body
     if body == nil then return end
-    local ageH = worldAge()
+    local ageH = NR.read.ageH(ctx)
     if ageH == nil then
         STR.stats.badReads = STR.stats.badReads + 1
         return
@@ -217,23 +212,23 @@ local function step(username, player, record)
             if current ~= desired then
                 if NR.call(player, "setPerkLevelDebug", perk, desired) then
                     STR.stats.writes = STR.stats.writes + 1
-                    STR.remap(player, desired)
+                    STR.remap(player, desired, ctx)
                 end
-            elseif STR.remap(player, desired) then
+            elseif STR.remap(player, desired, ctx) then
                 STR.stats.bandRepairs = STR.stats.bandRepairs + 1   -- #2740: the band set re-asserted
             end
         end
     end
-    carry(player, record, body, ageH)
+    carry(player, record, body, ageH, ctx)
 end
 
 -- One player's minute: the pipeline's strength step (NR_Server_Minute.run, called from P.work).
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function STR.minute(username, player, record)
+function STR.minute(username, player, record, ctx)
     if record == nil then return end
     STR.stats.minutes = STR.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, ctx)
     if not ok then
         STR.stats.failures = STR.stats.failures + 1
         STR.lastError = err
