@@ -512,9 +512,9 @@ DECOY = {
     # the clock is their argument); the arm must still match the unmoved oracle
     "surplus": {"pdef_lo": 0.6, "pdef_hi": 2.2, "nov_p0": 1.2, "nov_pspan": 0.5, "wT": 0.2, "wP": 0.3,
                 "prot_floor": 0.25, "incidental": 0.2, "fMinShare": 0.3, "perfectE": 0.2, "surplus_full": 0.2,
-                "ts": 3.0},
+                "ts": 3.0, "b": 0.7},
     "deficit": {"xs_p0": 0.6, "xs_pspan": 0.5, "nov_p0": 1.2, "nov_pspan": 0.5, "incidental": 0.2,
-                "fMinShare": 0.3, "perfectE": 0.2, "surplus_full": 0.2, "x_max_frac": 0.02, "ts": 3.0},
+                "fMinShare": 0.3, "perfectE": 0.2, "surplus_full": 0.2, "x_max_frac": 0.02, "ts": 3.0, "b": 0.7},
 }
 # the keys the arms read (xs_p0 and xs_pspan aside: the oracle writes them as literals), moved in both tables
 OWN_KEYS = {"forbes_c": 8.0, "wT": 0.5, "S_def": 14.0, "wP": 0.45, "pdef_lo": 0.6, "pdef_hi": 2.4,
@@ -569,3 +569,23 @@ def test_surplus_ramp_reads_the_xs_keys(host):
     a = host.call("partition.surplusLean", b, 0.0, 0, 1.2, 954.0, shifted, 1.0)
     c = host.call("partition.surplusLean", b, 0.0, 0, 1.2, 954.0, D, 1.0)
     assert a[0] < c[0]
+
+
+def test_partition_matches_inside_the_ramps_and_overflows_with_lx(host):
+    # the surplus share xs inside both its ramps (0 < T < 1, xs_p0 < p < xs_p0 + xs_pspan), against the oracle;
+    # the parity cases sit only at the ramps' clamps (T in {0, 1}, p <= 0.8 or >= 1.6)
+    D = _d(host)
+    RF = host.K.partition.RHO_FAT
+    for ts in TS_GRID:
+        Q = dict(EXACT, ts=ts)
+        for d in (1, 40):
+            ob = _oracle_body(Q, 5.0, 20.0, d, 0, 1.8, 954.0, 2400.0)
+            for S in (3, 5, 8):
+                for p in (0.9, 1.2, 1.5):
+                    _assert_parity(host, D, Q, ob, S, p, 954.0, 2400.0, ("interior", d, ts, S, p))
+        # Alpert's overflow on a body carrying lx: the ceiling is per kg of fat, never of lx
+        ob = _oracle_body(Q, so.L_at_s(0.9), 3.5, 0, 15, 2.5, -500.0, 2900.0)
+        ob.X = 0.6
+        for S, p, E in ((15, 2.5, -500.0), (5, 1.2, -900.0)):
+            dF, dX, dM = _assert_parity(host, D, Q, ob, S, p, E, 2900.0, ("overflow lx", ts, S, p, E))
+            assert -dM > host.K.partition.FAT_CEIL_KCAL * 3.5 / RF
