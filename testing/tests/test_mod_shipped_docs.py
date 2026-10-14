@@ -100,6 +100,7 @@ def test_the_sentinel_read_answers_true_false_and_unread():
     rt.execute('instanceItem = function(t) error("boom") end')
     assert nr.itemPassActive() == "unread"                       # a raise
 
+
 def test_the_readme_states_the_fresh_record_limitation():
     # Plan 12 (S B2, ruling P12-4): a fresh record over a character the mod already changed keeps those changes
     text = (MOD / "README.md").read_text(encoding="utf-8")
