@@ -31,9 +31,10 @@ LEVEL_MODEL = dict(
     perfectE=0.10,      # surplus as a share of TDEE
 )
 
-# Kouri 1995's height normalisation, FFMI_norm = FFMI + 6.1 (1.8 - h): a game choice, not yet a settled science row
-# (ruling 13-47).
-KOURI_COEF = 6.1
+# Kouri 1995's height normalisation, FFMI_norm = FFMI + 6.3 (1.8 - h): the abstract (PMID 7496846) reads "a slight
+# correction of 6.3 x (1.80 m - height)" (ruling 13-47; the plan's 6.1 was a misreading). At 1.70 m the raw limit is
+# 24.37 and F = 70.4293 kg.
+KOURI_COEF = 6.3
 KOURI_HEIGHT_M = 1.8
 FFMI_NATURAL_RAW = LEVEL_MODEL["ffmiNatural"] - KOURI_COEF * (KOURI_HEIGHT_M - strength_model.H)
 FC_LIMIT = FFMI_NATURAL_RAW * strength_model.H2
