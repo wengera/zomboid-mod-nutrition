@@ -320,10 +320,23 @@ def test_text_goes_through_the_client_text_function():
 
 def test_the_requirement_map_follows_the_players_sex():
     rt = rt_with()
-    rt.execute("NutritionRevamp.client.view = { level = 2, listeners = {} }; NR_T.female = true")
+    rt.execute("NutritionRevamp.client.view = { level = 2, listeners = {}, female = true }")
     T(rt).linesFor(rt.eval("NR_T.food('Base.Apple')"))
     assert T(rt).R[2].vitC == 75
     assert T(rt).R[1] is None
+
+
+def test_the_same_item_again_reads_only_its_hunger_left():
+    rt = rt_with(view=True)
+    rt.execute("NR_T.reads = 0; NR_T.apple = NR_T.food('Base.Apple')")
+    rt.execute("for _, n in ipairs({'IsFood', 'getFullType', 'getModData', 'getCalories', 'getBaseHunger'}) do"
+               " local f = NR_T.apple[n]; NR_T.apple[n] = function(...) NR_T.reads = NR_T.reads + 1; return f(...) end end")
+    T(rt).linesFor(rt.eval("NR_T.apple"))
+    first = rt.eval("NR_T.reads")
+    assert first > 0
+    for _ in range(3):
+        T(rt).linesFor(rt.eval("NR_T.apple"))
+    assert rt.eval("NR_T.reads") == first      # no other Java read on a hit
 
 
 # --------------------------------------------------------------------------------------------------- the cache

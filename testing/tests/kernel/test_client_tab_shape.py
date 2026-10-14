@@ -247,7 +247,7 @@ def test_the_tab_render_calls_the_base_then_the_views_refresh_and_draw():
         "NutritionRevamp.client.view = {"
         " rows = { 'r' },"
         " refresh = function(force) NR_T.refreshes = NR_T.refreshes + 1; NR_T.force = force end,"
-        " lineHeight = function() return 14 end,"
+        " lineHeight = function() return 14 end, metrics = function() return 'small', 14 end,"
         " draw = function(el, rows, x, y, w, font, maxY, minY) NR_T.draws = NR_T.draws + 1;"
         " NR_T.args = { rows[1], x, y, w, font, maxY, minY }; return y end }"
     )
@@ -275,7 +275,7 @@ def test_the_tab_render_with_no_view_draws_nothing_and_counts():
 
 def test_a_raising_draw_is_swallowed():
     rt = rt_with()
-    rt.execute("NutritionRevamp.client.view = { rows = {}, refresh = function() end, lineHeight = function() return 14 end,"
+    rt.execute("NutritionRevamp.client.view = { rows = {}, refresh = function() end, lineHeight = function() return 14 end, metrics = function() return 'small', 14 end,"
                " draw = function() error('x') end }")
     w = rt.eval("NR_T.newWindow()")
     w.createChildren(w)
@@ -355,7 +355,7 @@ def test_the_tab_render_reasserts_its_height_on_the_window_each_frame():
     rt = rt_with()
     rt.execute(
         "NutritionRevamp.client.view = { rows = { 'r' }, refresh = function() end,"
-        " lineHeight = function() return 14 end,"
+        " lineHeight = function() return 14 end, metrics = function() return 'small', 14 end,"
         " draw = function(el, rows, x, y, w, font, maxY, minY) return y end }"
     )
     w = rt.eval("NR_T.newWindow()")

@@ -153,12 +153,13 @@ function T.level()
     return v.level
 end
 
--- The local player's sex in the Plan 3 convention (1 male, 2 female); 1 when unreadable.
+-- The local player's sex in the Plan 3 convention (1 male, 2 female): the view's V.female (read at its recompute),
+-- 1 when there is no view or it holds none.
 function T.sex()
-    if getPlayer == nil then return 1 end
-    local ok, p = pcall(getPlayer)
-    if not ok or p == nil then return 1 end
-    if read(p, "isFemale") == true then return 2 end
+    local nr = NutritionRevamp
+    local v = nil
+    if nr ~= nil and nr.client ~= nil then v = nr.client.view end
+    if v ~= nil and v.female == true then return 2 end
     return 1
 end
 
@@ -269,32 +270,33 @@ function T.keyOf(fullType, declared, level, sex, m)
 end
 
 -- The band entry of one item: { lines, source } (lines.width the widest line in pixels, set beside the array
--- part), or nil for no item or a non-Food.
+-- part), or nil for no item or a non-Food. The same item again answers from T.last after one Java read (its hunger
+-- left, which every eat moves) and the cheap level and sex; the key and the macro tuple are built on a miss only.
 function T.entryFor(item)
     if item == nil then return nil end
     T.hook()
     local level = T.level()
+    local sex = T.sex()
+    local last = T.last
+    if last ~= nil and last.item == item and last.level == level and last.sex == sex
+        and last.hung == read(item, "getHungChange") then
+        T.stats.cacheHits = T.stats.cacheHits + 1
+        return last.entry
+    end
     if read(item, "IsFood") ~= true then return nil end
     local fullType = read(item, "getFullType")
     if type(fullType) ~= "string" then return nil end
     local declared = T.declaredOf(item)
-    local sex = T.sex()
     local macros = T.macrosOf(item)
     local key = T.keyOf(fullType, declared, level, sex, macros)
-    local last = T.last
-    if last ~= nil and last.item == item and last.key == key then
-        T.stats.cacheHits = T.stats.cacheHits + 1
-        return last.entry
-    end
     local entry = T.cache[key]
     if entry ~= nil then
         T.stats.cacheHits = T.stats.cacheHits + 1
-        T.last = { item = item, key = key, entry = entry }
-        return entry
+    else
+        entry = T.build(item, fullType, declared, level, sex, macros)
+        T.cache[key] = entry
     end
-    entry = T.build(item, fullType, declared, level, sex, macros)
-    T.cache[key] = entry
-    T.last = { item = item, key = key, entry = entry }
+    T.last = { item = item, level = level, sex = sex, hung = read(item, "getHungChange"), entry = entry }
     return entry
 end
 

@@ -103,9 +103,8 @@ function T.renderBody(el)
         return
     end
     view.refresh(false)
-    local font = nil
-    if UIFont ~= nil then font = UIFont.Small end
-    local over = T.overflow(el, view, view.lineHeight(font))
+    local font, lh = view.metrics()
+    local over = T.overflow(el, view, lh)
     local sy = el.scrollY or 0
     if sy > over then sy = over end
     if sy < 0 then sy = 0 end
@@ -123,9 +122,7 @@ end
 function T.wheel(el, del)
     local view = NutritionRevamp.client.view
     if type(del) ~= "number" or view == nil then return false end
-    local font = nil
-    if UIFont ~= nil then font = UIFont.Small end
-    local lh = view.lineHeight(font)
+    local _, lh = view.metrics()
     local over = T.overflow(el, view, lh)
     if over <= 0 then return false end
     local y = (el.scrollY or 0) + WHEEL_LINES * lh * del

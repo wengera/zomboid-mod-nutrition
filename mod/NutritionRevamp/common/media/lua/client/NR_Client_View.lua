@@ -133,6 +133,7 @@ local function rebuild(received)
     end
     resolveRows(rows)
     V.rows = rows
+    V.lh = nil -- the font metrics are read again at the next draw, once per rebuild (V.metrics)
     V.classes = K.view.moodleClasses(m)
     V.lastReceived = received
     V.lastLevel = V.level
@@ -228,6 +229,21 @@ function V.smallFont()
     return nil
 end
 
+-- The small font and its line height, read once and kept until the next rebuild or resolution change (the frame's
+-- draws read two fields, no closure and no engine call): font, lineHeight.
+function V.metrics()
+    if V.lh == nil then
+        V.font = V.smallFont()
+        V.lh = V.lineHeight(V.font)
+    end
+    return V.font, V.lh
+end
+
+-- OnResolutionChange (the panel's handler calls it): the cached font metrics go, read again at the next draw.
+function V.onResolutionChange()
+    V.lh = nil
+end
+
 -- Draws rows onto el: each row's label left at x and its text right-aligned at x + w, one line apart from y, in
 -- font (nil: UIFont.Small); stops before a line would pass maxY (nil: no limit; the panel counts the rows left out
 -- once per rebuild, in stats.overflowRows); skips a row whose top sits above minY (nil: no clip), the scrolled
@@ -236,9 +252,12 @@ end
 -- resolved at rebuild, and a row built elsewhere is resolved here.
 function V.draw(el, rows, x, y, w, font, maxY, minY)
     if el == nil or rows == nil then return y end
-    local f = font
-    if f == nil then f = V.smallFont() end
-    local lh = V.lineHeight(f)
+    local f, lh = font, nil
+    if f == nil or f == V.font then
+        f, lh = V.metrics()
+    else
+        lh = V.lineHeight(f)
+    end
     local drawLeft = el.drawText
     local drawRight = el.drawTextRight
     if drawLeft == nil or drawRight == nil then return y end

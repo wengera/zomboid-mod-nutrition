@@ -166,7 +166,7 @@ function PANEL.fit(self)
     if type(th) ~= "number" then th = 16 end -- px, the title bar's floor when unread
     local _, y = call(self, "getY")
     if type(y) ~= "number" then y = 0 end
-    local lh = V.lineHeight(V.smallFont())
+    local _, lh = V.metrics()
     local n = #V.rows
     local want = th + TITLE_GAP + n * lh + TITLE_GAP
     local cap = screenHeight(self.playerNum) - y
@@ -180,6 +180,7 @@ function PANEL.fit(self)
     local over = n - fit
     if over < 0 then over = 0 end
     V.stats.overflowRows = over
+    self.titleH = th -- the render's title bar height, read here once per fit
     self.overflowPx = n * lh - room
     if self.overflowPx < 0 then self.overflowPx = 0 end
     if self.scrollY > self.overflowPx then self.scrollY = self.overflowPx end
@@ -204,6 +205,8 @@ end
 -- OnResolutionChange: every panel refits at its next prerender, under the new screen's cap.
 function PANEL.onResolutionChange()
     local P = NutritionRevamp.client.panel
+    local V = NutritionRevamp.client.view
+    if V ~= nil and V.onResolutionChange ~= nil then V.onResolutionChange() end
     for _, p in pairs(P.instances) do
         p.fitStamp = nil
     end
@@ -214,7 +217,8 @@ end
 function PANEL.wheel(self, del)
     if type(del) ~= "number" or (self.overflowPx or 0) <= 0 then return false end
     local V = NutritionRevamp.client.view
-    local y = (self.scrollY or 0) + WHEEL_LINES * V.lineHeight(V.smallFont()) * del
+    local _, lh = V.metrics()
+    local y = (self.scrollY or 0) + WHEEL_LINES * lh * del
     if y < 0 then y = 0 end
     if y > self.overflowPx then y = self.overflowPx end
     self.scrollY = y
@@ -231,9 +235,7 @@ function PANEL.renderBody(self)
     if self.isCollapsed then return end
     local V = nr.client.view
     if V == nil or V.rows == nil or V.draw == nil then return end
-    local _, th = call(self, "titleBarHeight")
-    local _, w = call(self, "getWidth")
-    local _, h = call(self, "getHeight")
+    local th, w, h = self.titleH, self.width, self.height -- ISUIElement's fields; the title bar's is kept by fit
     if type(th) ~= "number" then th = 16 end -- px, ISCollapsableWindow.TitleBarHeight's floor when unread
     if type(w) ~= "number" then w = WIDTH end
     if type(h) ~= "number" then h = HEIGHT end

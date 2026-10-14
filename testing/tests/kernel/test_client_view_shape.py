@@ -589,3 +589,18 @@ def test_draw_skips_rows_above_min_y():
     drawn = list(G(rt).NR_T.drawn.values())
     assert drawn == [25], drawn              # rows 1-4 sit at -15, -5, 5, 15 (above minY 20); only the row at 25 draws
     assert G(rt).NR_T.endY == 35
+
+
+def test_the_font_metrics_are_read_once_until_a_rebuild_or_a_resolution_change():
+    rt = rt_env()
+    rt.execute("NR_T.fh = 0; getTextManager = function() NR_T.fh = NR_T.fh + 1; return { getFontHeight = function(s, f) return 15 end } end")
+    V(rt).refresh(True)
+    for _ in range(3):
+        assert tuple(V(rt).metrics()) == ("small", 15)
+    assert G(rt).NR_T.fh == 1                  # three frames, one engine read
+    V(rt).refresh(True)
+    V(rt).metrics()
+    assert G(rt).NR_T.fh == 2                  # a rebuild drops the cache
+    V(rt).onResolutionChange()
+    V(rt).metrics()
+    assert G(rt).NR_T.fh == 3                  # so does a resolution change
