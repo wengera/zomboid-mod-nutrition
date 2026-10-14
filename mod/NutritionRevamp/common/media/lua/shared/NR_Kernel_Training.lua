@@ -1,11 +1,11 @@
 -- NR_Kernel_Training.lua -- the body model's training signal: the aerobic side banks the
 -- ENGINE's own MET value above its resting floor as MET-minutes (spec § 7 item 35; the second of the
 -- two MET tables, never mixed with expenditure's Compendium METs) and sorts each minute into the two
--- intensity bands; the resistance side turns events and loaded minutes into set-equivalents feeding
--- the strength and hypertrophy accumulators, which decay on a weekly time constant and saturate into
--- the two doses. The day accumulators close into the seven-day band ring.
+-- intensity bands, with a one-off credit per climb. The day accumulators close into the seven-day band
+-- ring. (The resistance side went in Plan 13 Task 12, ruling 13-18: the Strength signal is the AddXP
+-- capture's, K.strength.signalClose.)
 -- Pure: numbers and Lua tables in, numbers, booleans and Lua tables out, no Java. Slow-clock code with
--- no fast region, so math.exp, math.floor and the bounded numeric `for` over the kernel's own tables
+-- no fast region, so math.floor and the bounded numeric `for` over the kernel's own tables
 -- are allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.max reference is at call time.
 local K = NutritionRevamp.kernel
 K.training = {}
@@ -22,29 +22,6 @@ K.training.MASS_REF = 80 -- #0453 weight/80
 -- The intensity bands' engine-MET thresholds.
 K.training.BAND1_MET = 6.0 -- game choice § 7 item 31
 K.training.BAND2_MET = 9.0 -- game choice § 7 item 31
-
--- The accumulators' decay time constant, in days (the dose rows state weekly units).
-K.training.TAU_V_DAYS = 7 -- S0576/S0577 weekly units
-
--- The doses' half-saturation constants, in set-equivalents.
-K.training.K_STR = 4 -- S0582 (4 sets per muscle per session) read as the half-saturation of a weekly accumulator: a game mapping
-K.training.K_HYP = 10 -- S0576 (≥ 10 sets/wk) as a half-saturation: a game mapping
-
--- The strength weight of a set-equivalent by intensity class (load drives strength, sets hypertrophy).
-K.training.W_STR = { low = 0.5, moderate = 0.8, high = 1.0 } -- S0575 direction (load > 80 % 1RM drives strength); the 0.5/0.8/1.0 weights a game choice
-
--- Set-equivalents per event and per loaded or effortful minute.
-K.training.S_REP_ARMS = 0.10 -- game choices § 7 item 30
-K.training.S_REP_LEGS = 0.05 -- game choices § 7 item 30
-K.training.S_HIT = 0.05 -- game choices § 7 item 30
-K.training.S_TREE = 0.07 -- game choices § 7 item 30
-K.training.S_LOAD_HIGH_PER_MIN = 0.10 -- game choices § 7 item 30
-K.training.S_LOAD_MOD_PER_MIN = 0.05 -- game choices § 7 item 30
-K.training.S_ACTION_MOD_PER_MIN = 0.02 -- game choices § 7 item 30
-K.training.S_ACTION_HIGH_PER_MIN = 0.04 -- game choices § 7 item 30
-
--- The high-class accumulator level that maintains strength.
-K.training.MAINTAIN_HIGH = 1 -- S0616 (1 session/wk, 1 set maintains): the 1 set-equivalent threshold a game mapping
 
 -- The engine MET credited once per climb, by the climb state's Metabolics class.
 K.training.CLIMB_MET = { JumpFence = 4.0, ClimbRope = 8.0 } -- #2632
@@ -99,65 +76,6 @@ function K.training.climbCredit(body, className, w)
     local credit = (met - K.training.MET_FLOOR) * (w / K.training.MASS_REF)
     body.metMinDay = body.metMinDay + credit
     return credit
-end
-
--- A resistance event of s set-equivalents per hit at intensity class `class` ("low", "moderate",
--- "high"), hits floored at 1: vStr gains the class-weighted amount, vHyp the whole amount, vStrHigh the
--- whole amount when the class is high. Returns the body.
-function K.training.event(body, s, class, hits)
-    local n = s * K.max(1, hits or 1)
-    body.vStr = body.vStr + K.training.W_STR[class] * n
-    body.vHyp = body.vHyp + n
-    if class == "high" then
-        body.vStrHigh = body.vStrHigh + n
-    end
-    return body
-end
-
--- A loaded minute: carried / maxW >= 0.8 is a high event, >= 0.5 a moderate one, else nothing.
--- Returns the body.
-function K.training.loadMinute(body, carried, maxW, dtM)
-    local ratio = carried / maxW
-    if ratio >= 0.8 then
-        return K.training.event(body, K.training.S_LOAD_HIGH_PER_MIN * dtM, "high")
-    end
-    if ratio >= 0.5 then
-        return K.training.event(body, K.training.S_LOAD_MOD_PER_MIN * dtM, "moderate")
-    end
-    return body
-end
-
--- An effortful timed-action minute, standing still: caloriesModifier >= 8 is a high event, >= 4 a
--- moderate one; a moving character or a lighter modifier banks nothing. Returns the body.
-function K.training.actionMinute(body, modifier, moving, dtM)
-    if moving then
-        return body
-    end
-    if modifier >= 8 then
-        return K.training.event(body, K.training.S_ACTION_HIGH_PER_MIN * dtM, "high")
-    end
-    if modifier >= 4 then
-        return K.training.event(body, K.training.S_ACTION_MOD_PER_MIN * dtM, "moderate")
-    end
-    return body
-end
-
--- Decay the three accumulators over dtM minutes: x exp(-dtM / (TAU_V_DAYS * 1440)). Returns the body.
-function K.training.decay(body, dtM)
-    local d = math.exp(-dtM / (K.training.TAU_V_DAYS * 1440))
-    body.vStr = body.vStr * d
-    body.vHyp = body.vHyp * d
-    body.vStrHigh = body.vStrHigh * d
-    return body
-end
-
--- The doses: dStr = vStr / (vStr + K_STR), dHyp = vHyp / (vHyp + K_HYP), and whether the high-class
--- accumulator maintains strength (vStrHigh >= MAINTAIN_HIGH).
-function K.training.doses(body)
-    local dStr = body.vStr / (body.vStr + K.training.K_STR)
-    local dHyp = body.vHyp / (body.vHyp + K.training.K_HYP)
-    local maintained = body.vStrHigh >= K.training.MAINTAIN_HIGH
-    return dStr, dHyp, maintained
 end
 
 -- Close the day: shift the seven-day band ring one slot (bandWeek[1] the oldest), write the day's

@@ -415,6 +415,27 @@ function NR_R.drained()
 end
 """
 
+# The study participant at first sight (Plan 13 Task 12): the mod builds the body from the band traits held, never a
+# weight, so the replay wraps MET.ensureBody to lay the stand-in's configured weight as a participant's body
+# (testing/tests/kernel/participant.py), at the player's sex and the mod's effective-sex option, and stamps levelDue
+# as the mod's own first sight does. A user with no configured weight takes the mod's own first sight.
+PARTICIPANT_SIGHT = r"""
+NR_R.weights = {}
+local MET = NutritionRevamp.server.metabolism
+local ensure = MET.ensureBody
+MET.ensureBody = function(username, player, record, ageH)
+    local w = NR_R.weights[username]
+    if record.body ~= nil or w == nil then return ensure(username, player, record, ageH) end
+    local sex = 1
+    if player.isFemale ~= nil and player:isFemale() then sex = 2 end
+    local opts = NutritionRevamp.server.options
+    record.body = NR_participant(w, sex, ageH, opts ~= nil and opts.sexSpecific == true)
+    record.body.levelDue = true
+    MET.stats.creates = MET.stats.creates + 1
+    return record.body
+end
+"""
+
 ORACLE_LUA = r"""
 NR_O = {}
 function NR_O.new(M0, energy, satiety, holdEs, holdHour)
@@ -422,7 +443,7 @@ function NR_O.new(M0, energy, satiety, holdEs, holdHour)
     local o = { M = M0, es = 1, L = 0, eb24 = 0, hunger = nil, energy = energy, satiety = satiety, holdEs = holdEs,
                 holdHour = holdHour, asleep = false, trait = 1 }
     o.st = K.stomach.new()
-    o.body = K.body.new(70, 1, {}, 5, 1, 1, 0)       -- the energy oracles' 70 kg man
+    o.body = NR_participant(70, 1, 0)               -- the energy oracles' 70 kg man (participant.py)
     local w0 = o.body.fm + o.body.lm
     o.maint = K.energy.ree(o.body.lm) + (K.energy.COMPENDIUM.Default - K.energy.MET_REST) * w0 / 60 * 960
     o.rec = { satiety = {}, body = o.body, stomach = o.st }
@@ -609,6 +630,8 @@ class ServerReplay(_Backend):
         self.NR = self.h.NR
         self.K = self.h.K
         set_constants(self.K, constants, self.rt)
+        import participant
+        self.rt.execute(participant.PARTICIPANT + PARTICIPANT_SIGHT)
         self.R = self.G.NR_R
         self.R.offset = float(hour_offset or 0.0)
         if hold_hour is not None:
@@ -637,6 +660,7 @@ class ServerReplay(_Backend):
         cfg.update(player or {})
         p = self.h.player(user, *cfg["macros"])
         p.nut.weight = cfg["weight"]
+        self.R.weights[user] = cfg["weight"]             # first sight lays this participant's body (PARTICIPANT_SIGHT)
         lcfg = self.rt.table()
         lcfg.rate = 1.0
         lcfg.inv = cfg["inv"]
@@ -898,6 +922,8 @@ class OracleReplay(_Backend):
         self.rt.execute(server_host.ENV)
         for p in server_host._shared_files():
             server_host._load(self.rt, p)
+        import participant
+        self.rt.execute(participant.PARTICIPANT)
         self.rt.execute(ORACLE_LUA)
         self.G = self.rt.globals()
         self.O = self.G.NR_O

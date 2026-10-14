@@ -7,7 +7,6 @@ billed at its own MET.
   while the exercise flag is set, and the flat Fitness class (6.0) with no recorded or no known type, which
   NR_Server_Metabolism counts (MET.stats.exeFallbacks).
 - W.vigorous reads a set minute as resistance-vigorous from the flag, before any MET test (S1508, S1509, S1301).
-- NR_Server_Training reads the recorded type first and keeps the Strength-grant inference as its fallback.
 - Rule 6: the per-minute path adds no Java call (a stub counts every call the minute makes).
 """
 import os
@@ -17,7 +16,6 @@ import lupa.lua51 as lua51
 import pytest
 
 from .test_metabolism_shape import MET, PLAYER, cfg, fresh, met_host, minute, player  # noqa: F401  (met_host is a fixture)
-from . import test_training_shape as TS
 from . import test_writer_shape as WS
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -26,7 +24,6 @@ SHARED = os.path.join(LUA, "shared")
 SERVER = os.path.join(LUA, "server")
 ENERGY = os.path.join(SHARED, "NR_Kernel_Energy.lua")
 FITNESS = os.path.join(SERVER, "NR_Server_Fitness.lua")
-TRAINING = os.path.join(SERVER, "NR_Server_Training.lua")
 CORE = os.path.join(SHARED, "NR_Core.lua")
 
 # The table and its rows (the Task 2 amendments' minted rows, Task 1, cbca565c): type -> (MET, row, the rows not chosen).
@@ -64,13 +61,6 @@ def test_the_table_holds_the_seven_vanilla_types_at_their_rows(host):
         assert "game choice" in label, key
     for key in ("barbellcurl", "dumbbellpress", "bicepscurl"):
         assert "approximate" in next(x for x in lines if x.startswith("K.energy.EXERCISE_MET.%s = " % key))
-
-
-def test_the_table_keys_are_the_trainings_exercise_keys():
-    # one vanilla list (media/lua/shared/Definitions/FitnessExercises.lua), read once into Training's EXERCISE_CLASS
-    m = re.search(r"TRN\.EXERCISE_CLASS = \{(.*?)\}", _src(TRAINING), re.S)
-    keys = set(re.findall(r"(\w+) = \"", m.group(1)))
-    assert keys == set(TABLE)
 
 
 @pytest.mark.parametrize("exe,met,known", [(k, v[0], True) for k, v in TABLE.items()] + [
@@ -345,52 +335,6 @@ def test_without_the_flag_the_bar_stays(cls, met, want):
     ctx.exercising = False
     ctx.activityClass = cls
     assert W.vigorous(W.h, WS.player(h), rec, ctx) == want
-
-
-# --- Training reads the real type first ------------------------------------------------------------------------------
-
-def _trn(recorded):
-    h = TS.Host()
-    h.rt.execute("NutritionRevamp.server.fitness = { exeType = {}, typeOf = function(u) "
-                 "return NutritionRevamp.server.fitness.exeType[u] end }")
-    if recorded is not None:
-        h.G.NutritionRevamp.server.fitness.exeType["admin"] = recorded
-    return h
-
-
-def test_training_prefers_the_recorded_type():
-    # the Fitness-only path (Strength at its level-10 total) infers legs; the recorded push-ups are arms
-    h = _trn("pushups")
-    h.xp(h.player(exe=h.rt.table()), "Fitness", 4)
-    assert TS.close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
-    h = _trn(None)
-    h.xp(h.player(exe=h.rt.table()), "Fitness", 4)
-    assert TS.close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
-
-
-def test_training_prefers_the_recorded_type_over_a_zero_strength_grant():
-    # an arms exercise whose Strength grant truncated to 0 infers legs; the recorded type names it
-    h = _trn("bicepscurl")
-    p = h.player(exe=h.rt.table())
-    h.xp(p, "Strength", 0)
-    h.xp(p, "Fitness", 0)
-    assert TS.close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
-
-
-def test_training_falls_back_on_an_unknown_recorded_type():
-    h = _trn("yoga")
-    p = h.player(exe=h.rt.table())
-    h.xp(p, "Strength", 7)                                  # inferred: Strength above 0 is arms
-    assert TS.close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
-    h = _trn("yoga")
-    h.xp(h.player(exe=h.rt.table()), "Fitness", 4)          # inferred: the Fitness-only path is legs
-    assert TS.close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
-
-
-def test_training_with_no_current_exercise_ignores_a_recorded_type():
-    h = _trn("pushups")
-    h.xp(h.player(exe=None), "Strength", 4)                 # a load or knockback grant: never a rep
-    assert TS.close(h.banked(), (0.0, 0.0, 0.0)) and h.stats()["ignored"] == 1
 
 
 # --- the wrapper: NR_Server_Fitness.lua --------------------------------------------------------------------------------

@@ -7,8 +7,8 @@ def rec(host, **kw):
     return host.table(r)
 
 
-BODY_ABSENT = {"body_" + k: 0 for k in ("fm", "lm", "weight", "energyState", "tac", "rmod", "shownL",
-                                          "delta", "ebDay", "eeDay", "inDay", "dStr", "dHyp")}
+BODY_ABSENT = {"body_" + k: 0 for k in ("fm", "lm", "weight", "energyState", "tac", "rmod", "delta", "ebDay",
+                                          "eeDay", "inDay")}
 BODY_ABSENT["body_band"] = ""
 
 
@@ -149,15 +149,19 @@ def test_mirror_empty_plan4_sub_tables_read_zero(host):
 
 
 def test_mirror_body_scalars_from_a_present_body(host):
-    body = host.table({"fm": 20.0, "lm": 60.0, "band": "normal", "energyState": 1.25, "tac": 0.9,
-                       "rmod": 0.8, "shownL": 5, "delta": 2, "ebDay": -300.0, "eeDay": 2400.0, "inDay": 2100.0,
-                       "vStr": 4.0, "vHyp": 10.0, "vStrHigh": 0.0, "nHist": host.table({})})
+    body = host.table({"fm": 20.0, "lm": 59.0, "lx": 1.0, "band": "normal", "energyState": 1.25, "tac": 0.9,
+                       "rmod": 0.8, "delta": 2, "ebDay": -300.0, "eeDay": 2400.0, "inDay": 2100.0})
     m = host.py(host.call("mirror.build", rec(host, body=body), host.table({"mode": 1, "version": "v", "build": "b"})))
-    assert m["body_fm"] == 20.0 and m["body_lm"] == 60.0 and m["body_weight"] == 80.0
+    assert m["body_fm"] == 20.0 and m["body_lm"] == 59.0 and m["body_weight"] == 80.0   # fm + lm + lx (ruling 13-20)
     assert m["body_band"] == "normal" and m["body_energyState"] == 1.25 and m["body_tac"] == 0.9
-    assert "body_dmod" not in m and m["body_rmod"] == 0.8 and m["body_shownL"] == 5 and m["body_delta"] == 2
+    assert "body_dmod" not in m and m["body_rmod"] == 0.8 and m["body_delta"] == 2
     assert m["body_ebDay"] == -300.0 and m["body_eeDay"] == 2400.0 and m["body_inDay"] == 2100.0
-    assert m["body_dStr"] == 0.5 and m["body_dHyp"] == 0.5
+    # ruling 13-19: the old Strength keys go (Task 18 adds body_level and body_sets)
+    assert "body_shownL" not in m and "body_dStr" not in m and "body_dHyp" not in m
+    # a body the Strength minute has not reached yet carries no delta: the key reads 0, never absent
+    body.delta = None
+    m = host.py(host.call("mirror.build", rec(host, body=body), host.table({"mode": 1, "version": "v", "build": "b"})))
+    assert m["body_delta"] == 0
     assert "body" not in m
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 

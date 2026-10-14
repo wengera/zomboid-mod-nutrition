@@ -63,6 +63,7 @@ under the refit M and its fix 1 and fix 2 under their refits (each fitted consta
 on a patched host; no test uses `parametrize`.
 """
 import math
+from .participant import PARTICIPANT
 
 H_REQ = 0.25                    # the meal request: vanilla's HUNGRY level 2 (ruling 11c-17, a game choice)
 TOL = 1.1                       # the hard replays' tolerance (ruling 11c-30)
@@ -692,7 +693,7 @@ def test_a_short_night_across_two_windows_splits_its_debt(host):
 # energy state (K.deficit.activityState on K.energy.eb24h, the window's exercise kcal, the lag, fatDep and the 24 h
 # expenditure MET.ee24 reads), then the glycogen step (K.acute.glycogen on the window's carbohydrate g/kg), logged
 # beside the state, which does not read it (ruling T4-1). Its simplifications, stated:
-# - one 70 kg man from K.body.new (sex 1, no build flags, Strength 5, carry and responder 1), awake 07:00-23:00 at
+# - one 70 kg man (participant.py's NR_participant: the Plan 3 70 kg male split), awake 07:00-23:00 at
 #   MET 1.3 (the idle class, COMPENDIUM.Default) and asleep at 1.0 (Sleeping), resting, coldMult 1: no exercise, so
 #   the lag and the trailing exercise kcal stay 0 (the ee24, ex24 and L build is inert: the bypass path is untested);
 # - the day's partition (K.partition.day: the fat and lean change), the adaptive thermogenesis step and the training
@@ -722,7 +723,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
     local K = NutritionRevamp.kernel
     local hook, mask = debug.gethook()
     debug.sethook()
-    local body = K.body.new(70, 1, {}, 5, 1, 1, 0)
+    local body = NR_participant(70, 1, 0)          -- the 70 kg man (participant.py, Plan 13 Task 12)
     local a = K.acute.new(0)
     local L = 0
     local w0 = body.fm + body.lm
@@ -799,6 +800,7 @@ def energy_replay(host, plan, days, log_minutes=()):
     logs = host.rt.table()
     for m in log_minutes:
         logs[m] = True
+    host.rt.execute(PARTICIPANT)
     intake, out, maint = host.rt.eval(ENERGY_REPLAY)(t, days, logs, H_REQ, FAST_KCAL_PER_HUNGER, FAST_LOWCARB_G)
     return ([intake[d] for d in range(1, days + 1)],
             {m: {k: out[m][k] for k in ("g", "es", "eb24")} for m in log_minutes}, maint)
@@ -1023,7 +1025,7 @@ function(plan, days, start)
     local K = NutritionRevamp.kernel
     local hook, mask = debug.gethook()
     debug.sethook()
-    local body = K.body.new(70, 1, {}, 5, 1, 1, 0)
+    local body = NR_participant(70, 1, 0)          -- the 70 kg man (participant.py, Plan 13 Task 12)
     local L = 0
     local st = K.stomach.new()
     local pool = { M = 0, trait = 1 }
@@ -1077,6 +1079,7 @@ end
 
 def meal_frequency_ratio_live(host):
     """meal_frequency_ratio's day after SIX_WARM_DAYS three-meal days, the energy state live."""
+    host.rt.execute(PARTICIPANT)
     f = host.rt.eval(SIX_LIVE_REPLAY)
     start = SIX_WARM_DAYS * 1440 + 480
 

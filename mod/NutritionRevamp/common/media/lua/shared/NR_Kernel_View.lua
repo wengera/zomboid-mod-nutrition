@@ -557,16 +557,16 @@ function K.view.moodleClasses(m)
 end
 
 -- --- the energy class's hysteresis (one holder, fix 2) -----------
--- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.1904, 1.2118, 1.2482 and 1.2901
+-- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.1904, 1.2117, 1.2481 and 1.2897
 -- at 48 h for the 50 and 60 kg women and the 70 and 100 kg men on the server path, test_replay_live_energy's
 -- test_a_sedentary_fast_never_steps_an_energy_level_down) and then drifts on a slow daily sawtooth (the largest fall
 -- under its running peak from 24 h on 0.00234, the 70 kg man, in the same test), so a plain rung flickers for the body
--- whose plateau sits at a bound: the 70 kg man's 1.2456, 0.0044 under level 2, crossed 1.25 at 52, 67.6 and 76 h.
+-- whose plateau sits at a bound: the 70 kg man's 1.2456, 0.0044 under level 2, crossed 1.25 at 52, 66.3 and 76 h.
 -- A threshold move only moves the flicker to another body; a level once reached is held instead, until the state
 -- falls ENERGY_BAND under that level's bound. The server alone holds it: it keys its push on the held level (the last
 -- signature's energy digit), every mirror carries that digit as body_energyLevel and the client shows it
 -- (K.view.mirrorEnergy), so no new state is stored and a change of the held level marks a push like any class change.
-K.view.ENERGY_BAND = 0.01 -- gc: game choice, Plan 11g Task 7 fix 1 (ruling T7-2): the fall under a reached level's bound that steps the energy class down, about 79 kcal of trailing deficit at the 3,970.55 kcal span; about four times a resting fast's largest fall on the server path (0.00234, the 70 kg man in test_a_sedentary_fast_never_steps_an_energy_level_down; its deepest fall under a reached bound 0.00092), and far under a meal's fall (a 600 kcal meal lowers es by about 0.075 as it empties into the trailing window), so a meal still steps the level down as it is absorbed
+K.view.ENERGY_BAND = 0.01 -- gc: game choice, Plan 11g Task 7 fix 1 (ruling T7-2): the fall under a reached level's bound that steps the energy class down, about 79 kcal of trailing deficit at the 3,970.55 kcal span; about four times a resting fast's largest fall on the server path (0.00234, the 70 kg man in test_a_sedentary_fast_never_steps_an_energy_level_down; its deepest fall under a reached bound 0.00105), and far under a meal's fall (a 600 kcal meal lowers es by about 0.075 as it empties into the trailing window), so a meal still steps the level down as it is absorbed
 
 -- The energy class of a state: its rung on ENERGY_AT, or last (the level held before) while the state stays within
 -- ENERGY_BAND under last's bound; never above the rung of the state plus the band. A non-number state reads its rung

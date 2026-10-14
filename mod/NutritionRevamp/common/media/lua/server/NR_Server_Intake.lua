@@ -35,7 +35,7 @@
 --     INGESTED, before the B12 ceiling), which NR_Server_Nutrients reads and clears once a slow minute
 --     (the excess ladder, the alcohol day total);
 -- 2. the acute dose test, IN.acuteAtEat: K.nutrients.acuteTest per record with an `acute`
---     field on the landed vector, against the body mass fm + lm and the pre-eat food fill (recordFoodFill),
+--     field on the landed vector, against the body mass fm + lm + lx and the pre-eat food fill (recordFoodFill),
 --     stamping record.nutrients[key].ax = ACUTE_DECAY_H and .axr = the rung (a live flag's higher rung is
 --     kept); NR_Server_Nutrients exposes no acuteAtEat, so it is here, under its own pcall;
 -- 3. the B12 per-eat ceiling (ruling 20, S0357/S0358): vector.vitB12 = K.interact.b12Ceiling(vitB12).
@@ -160,7 +160,7 @@ function IN.forget(username)
 end
 
 -- The acute dose test at the eat: every record with an `acute` field and a vector key is
--- tested on the landed vector against the body mass (fm + lm) and the stomach's food fill before this eat
+-- tested on the landed vector against the body mass (fm + lm + lx) and the stomach's food fill before this eat
 -- (K.stomach.recordFoodFill, the solid lane alone: drunk water is not food; no stomach reads empty).
 -- A rung > 0 stamps the key's state ax = ACUTE_DECAY_H and axr = the rung, keeping a still-live flag's higher rung. records defaults
 -- to NR.data.records; no records or no body tests nothing. A missing record.nutrients is made the way
@@ -170,7 +170,7 @@ function IN.acuteAtEat(record, vec, records)
     if records == nil or record == nil then return 0 end
     local body = record.body
     if body == nil then return 0 end
-    local w = (body.fm or 0) + (body.lm or 0)
+    local w = (body.fm or 0) + (body.lm or 0) + (body.lx or 0)
     if not IN.isFinite(w) or w <= 0 then return 0 end
     local fill = K.stomach.recordFoodFill(record)
     -- The solid lane alone, live, before the ingest below; no stomach is empty

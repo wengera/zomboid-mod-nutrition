@@ -137,9 +137,9 @@ def player(h, traits=None):
 
 
 def record_for(h, fm=15.0, lm=65.0, band=None):
-    """A body built at 80 kg, then its masses set to fm + lm exactly."""
+    """A body built from the no-trait creation body, then its masses set to fm + lm exactly (lx 0)."""
     record = h.rt.table()
-    body = h.K.body["new"](80, 1, h.table({}), 5, 1.0, 1.0, 99.0)
+    body = h.K.body["new"](h.K.body.create(None, None, h.K.strength.DEFAULTS, 1), 1, 99.0)
     body.fm = fm
     body.lm = lm
     for i in range(1, 8):
@@ -182,6 +182,18 @@ def test_a_body_at_80_writes_the_weight_and_three_false_flags(wgt_host):
     assert s["weightWrites"] == s0["weightWrites"] + 1
     assert s["flagWrites"] == s0["flagWrites"] + 1
     assert s["minutes"] == s0["minutes"] + 1
+
+
+def test_the_weight_slot_counts_the_labile_lean(wgt_host):
+    # ruling 13-20: the weight slot is the body mass fm + lm + lx, and the trend reads it against the same ring
+    h = wgt_host
+    p = player(h)
+    record = record_for(h, fm=15.0, lm=65.0)        # the ring at 80 kg
+    record["body"].lm = 63.5
+    record["body"].lx = 1.5
+    minute(h, p, record)
+    assert calls(p, "setWeight") == [80.0]
+    assert calls(p, "setIncWeight") == [False] and calls(p, "setDecWeight") == [False]
 
 
 def test_weight_and_flags_are_written_every_minute(wgt_host):
@@ -590,10 +602,10 @@ def test_weight_runs_last_in_the_players_list():
         isServer = function() return true end
         NutritionRevamp.server.players = {}
     """)
-    names = sorted(["NR_Server_Weight.lua", "NR_Server_Training.lua", "NR_Server_Strength.lua",
+    names = sorted(["NR_Server_Weight.lua", "NR_Server_Strength.lua",
                     "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"])
     assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua",
-                     "NR_Server_Strength.lua", "NR_Server_Training.lua", "NR_Server_Weight.lua"]
+                     "NR_Server_Strength.lua", "NR_Server_Weight.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()

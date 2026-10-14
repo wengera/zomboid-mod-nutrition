@@ -58,17 +58,17 @@ BUFFER_KEYS = ("calories", "carbs", "lipids", "proteins", "fibre", "water", "vit
 # Step 1's table: (producer, sub-table, field, consumer).
 CROSS = (
     _rows("metabolism", "body", [
-        ("nutrients", ("dayIndex", "inDayClosed", "fm", "lm", "eeDay", "pPrevKg", "alcDay", "met",
+        ("nutrients", ("dayIndex", "inDayClosed", "fm", "lm", "lx", "eeDay", "pPrevKg", "alcDay", "met",
                        "coldMult", "carbDay", "band1Day", "band2Day")),
-        ("effects", ("fm", "lm", "dayIndex", "exKcalDay", "band1Day", "band2Day", "met", "inDayClosed")),
-        ("strength", ("fm", "lm", "dayIndex", "n", "nPeak", "tPeakD", "cumDef", "tDisuse")),
-        ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay")),
+        ("effects", ("fm", "lm", "lx", "dayIndex", "exKcalDay", "band1Day", "band2Day", "met", "inDayClosed")),
+        ("strength", ("fm", "lm", "lx")),         # the carry's body mass (Plan 13 Task 12: no level arm reads the body)
+        ("weight", ("fm", "lm", "lx", "pDay", "carbDay", "lipDay", "ebDay")),
         ("kinetics", ("energyState",)),
         ("writer", ("energyState", "rmod", "met")),   # met: the heavy-work band of the acute term (Plan 11c Task 6)
-        ("bus", ("energyState", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
-        ("store", ("fm", "lm", "lastAgeH", "dayIndex", "inDay", "eeDay", "ebDay", "exKcalDay",
-                   "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
-                   "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp",
+        ("bus", ("energyState", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "lx", "tac")),
+        ("store", ("fm", "lm", "lx", "lastAgeH", "dayIndex", "inDay", "eeDay", "ebDay", "exKcalDay",
+                   "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day",
+                   "tDisuse", "tac", "Pk", "T",    # Pk and T: the day close's exponential steps (Plan 13 Task 12)
                    "epoc")),       # epoc: the after-burn pool (Plan 11f C-17), saved; Metabolism's own next minute heals it too
     ])
     + _rows("metabolism", "body.eb7", [("store", (7,))])
@@ -295,7 +295,7 @@ def test_a_bad_buffer_key_between_minutes_is_healed_and_reaches_nothing(key, bad
 def test_the_next_pre_step_heal_clears_an_unguarded_field():
     h = settle()
     rec = h.record("a")
-    rec.body.vStr = float("nan")                        # an input NaN between minutes: the pre-step heal's class
+    rec.body.Tgrace = float("nan")                      # an input NaN between minutes: the pre-step heal's class
     next_minute(h, 4)
     assert nonfinite(rec) == []
 
@@ -322,27 +322,6 @@ def test_a_nutrient_nan_reaches_one_mirror_then_the_heal_takes_it():
     next_minute(h, 5)
     m = build_mirror(h, rec)
     assert math.isfinite(m["nut_vitA_p"])
-
-
-def test_a_step_made_vstr_nan_never_reaches_the_mirror_doses():
-    h = settle()
-    rec = h.record("a")
-    h.rt.eval(WRAP)("deficit.state", rec, "body", "vStr")
-    next_minute(h, 4)
-    m = build_mirror(h, rec)
-    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
-    next_minute(h, 5)
-    m = build_mirror(h, rec)
-    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
-
-
-def test_a_step_made_vhyp_nan_never_reaches_the_mirror_doses():
-    h = settle()
-    rec = h.record("a")
-    h.rt.eval(WRAP)("deficit.state", rec, "body", "vHyp")
-    next_minute(h, 4)
-    m = build_mirror(h, rec)
-    assert math.isfinite(m["body_dStr"]) and math.isfinite(m["body_dHyp"])
 
 
 # --- the writer's rows (Plan 11 Task 14): every CROSS consumer is a step that runs; the writer's rows are its reads --

@@ -13,7 +13,7 @@
 -- sub-table raw carries, its own kernel constructor) and copies every INPUT path present in raw over it, so a
 -- missing input keeps the constructor's default and an unknown or derived field never survives. The copy is
 -- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
--- constructor's neutral values (the mirror's rmod, energyState, band, dehydPct, iu, ... and the
+-- constructor's neutral values (the mirror's rmod, energyState, dehydPct, iu, ... and the
 -- effects set), except stomachFill, which load recomputes from the stomach's inputs (the physical fill and the writer's
 -- fallback; the writer's F is W.satietyF), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
 -- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
@@ -49,14 +49,13 @@ K.store.INPUTS = {
     -- the adapter's clock stamp and the day index its close reads. allReplete, ironGrade, anaemia and
     -- vitDClinical are recomputed at the end of every minute: derived.
     "nutrients.epoch", "nutrients.lastAgeH", "nutrients.lastDayIndex",
-    -- body, the creation constants (K.body.new, NR_Server_Metabolism.ensureBody): the masses at birth, the
-    -- disuse and fat references, the Strength level at birth, sex, the responder constant, the creation
-    -- carry factor and the birth world age
-    "body.fm0", "body.lm0", "body.lm0dis", "body.fmRef", "body.l0", "body.sex", "body.r", "body.traitCarry",
-    "body.bornAge",
-    -- body, the masses and clocks (K.partition, K.energy, NR_Server_Metabolism, NR_Server_Strength): fat and
-    -- lean mass, the record's day count and the world day of its open day (K.body.calendar), the clock stamps
-    "body.fm", "body.lm", "body.dayIndex", "body.wday", "body.lastAgeH", "body.strAgeH",
+    -- body, the creation constants (K.body.create and new, NR_Server_Metabolism.ensureBody): the disuse and fat
+    -- references, sex, the birth world age, the set point F0, the natural cap Fc and the innate factor N0
+    "body.lm0dis", "body.fmRef", "body.sex", "body.bornAge", "body.F0", "body.Fc", "body.N0",
+    -- body, the masses and clocks (K.strength.day, K.partition, K.energy, NR_Server_Metabolism): fat, lean F and the
+    -- labile lean, the remembered peak, the record's day count and the world day of its open day (K.body.calendar),
+    -- the clock stamp
+    "body.fm", "body.lm", "body.lx", "body.Pk", "body.dayIndex", "body.wday", "body.lastAgeH",
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
     -- day's stamps held until the next close (inDayClosed, pPrevKg)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
@@ -70,14 +69,14 @@ K.store.INPUTS = {
     -- body, adaptation (K.aerobic.tacDay steps tac from its last value at each close; K.energy.atStep steps
     -- at): both are multi-day accumulators, never recomputed from the masses
     "body.tac", "body.at", "body.epoc", -- epoc: the after-burn pool (K.energy.epoc, Plan 11f C-17), laid by the first exercise minute
-    -- body, training (K.training.sample, event, decay and closeDay): the decaying volumes and the day's
-    -- MET-minutes and band minutes
-    "body.vStr", "body.vHyp", "body.vStrHigh", "body.metMinDay", "body.band1Day", "body.band2Day",
-    -- body, strength (K.strength.neuralStep, closeDay and policy): the neural factor, the held peak and its
-    -- day, the 14-day history, the cumulative deficit, the disuse day count; the shown level and its rise
-    -- hold and last fall, which the policy reads back as its previous state
-    "body.n", "body.nPeak", "body.tPeakD", "body.nHist.*", "body.cumDef", "body.tDisuse", "body.shownL",
-    "body.riseHeldH", "body.lastFallAge",
+    -- body, training (K.training.sample and closeDay): the day's MET-minutes and band minutes
+    "body.metMinDay", "body.band1Day", "body.band2Day",
+    -- body, strength (K.strength.signalClose, day, detrain and neural; NR_Server_Metabolism's day close): the day's
+    -- signal and the closed days' ring, the closed week's sets, the grace counter, the neural factor and its grace
+    -- counter, the disuse day count; the trait rungs and the band word K.traits.axes reads back as its previous
+    -- state; the level last written (NR_Server_Strength, Plan 13 Task 14)
+    "body.sigDay", "body.sig7.*", "body.S", "body.grace", "body.T", "body.Tgrace", "body.tDisuse", "body.fatT",
+    "body.thinT", "body.band", "body.wroteL",
     -- acute (K.acute.*, NR_Server_Nutrients.ensure and closeDay): the gut lane; caffeine's load, rate mean,
     -- tolerance and low-hours, the slow-metaboliser draw; alcohol's load, peak and hangover; glycogen and
     -- blood glucose (each relaxes from its last value); the sleep state, its bout, gap and window; the
@@ -175,11 +174,13 @@ end
 -- The default body the inputs are copied over, and the load's body contract. The stored body rb is healed in place
 -- first, so the copy restores only values the steps can read, as K.heal.body heals them in memory: an absent sex, or
 -- a number other than 1 or 2, reads 1 (any other index finds no requirement and stops every minute); an absent or
--- non-finite fm or lm the 80 kg split's at that sex; an absent or non-finite lastAgeH ageH, the record's last sight.
--- A non-finite number is saved as JSON null and reads back absent, so without the heal one bad field cost the whole
--- record. A value of another type is left for K.store.checkLeaf to reject. Then K.body.new at the
--- stored masses, sex, Strength level, carry factor, responder and clock.
-function K.store.bodyBase(rb, ageH, specific)
+-- non-finite fm or lm the no-trait body's at the effective sex (specific: NR.SexSpecific); an absent or non-finite
+-- lastAgeH ageH, the record's last sight. A non-finite number is saved as JSON null and reads back absent, so without
+-- the heal one bad field cost the whole record. A value of another type is left for K.store.checkLeaf to reject. Then
+-- K.body.new over the no-trait body (K.body.create(nil, nil, P), P the server's strength table, nil reading
+-- K.strength.DEFAULTS, so a tuned server's cap holds) at the stored sex and clock; the copy then lays the stored
+-- masses, set point, cap, peak, factors, rungs and rings over it.
+function K.store.bodyBase(rb, ageH, specific, P)
     if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
         rb.sex = 1
     end
@@ -187,11 +188,11 @@ function K.store.bodyBase(rb, ageH, specific)
     if rb.sex == 2 then
         sex = 2 -- K.body's female index
     end
-    local fmS, lmS = K.body.split(80, K.body.effSex(sex, specific), {}) -- specific: NR.SexSpecific
-    local fm = K.store.healLeaf(rb, "fm", fmS)
-    local lm = K.store.healLeaf(rb, "lm", lmS)
+    local spec = K.body.create(nil, nil, P or K.strength.DEFAULTS, K.body.effSex(sex, specific))
+    K.store.healLeaf(rb, "fm", spec.fm)
+    K.store.healLeaf(rb, "lm", spec.lm)
     local lastAgeH = K.store.healLeaf(rb, "lastAgeH", ageH)
-    return K.body.new(fm + lm, sex, {}, rb.l0, rb.traitCarry, rb.r, lastAgeH, specific)
+    return K.body.new(spec, sex, lastAgeH)
 end
 
 -- Heal t[k] to v in place when it is absent or a non-finite number; a value of another type is left for
@@ -227,7 +228,7 @@ function K.store.addKey(out, k, v)
 end
 
 -- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
-function K.store.defaults(rec, raw, order, specific)
+function K.store.defaults(rec, raw, order, specific, P)
     if type(raw.stomach) == "table" then
         rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it
     end
@@ -238,7 +239,7 @@ function K.store.defaults(rec, raw, order, specific)
         rec.nutrients = K.nutrients.newState({ ORDER = K.store.nutrientKeys(order, raw.nutrients) })
     end
     if type(raw.body) == "table" then
-        rec.body = K.store.bodyBase(raw.body, K.store.ageOf(raw), specific)
+        rec.body = K.store.bodyBase(raw.body, K.store.ageOf(raw), specific, P)
     end
     if type(raw.acute) == "table" then
         rec.acute = K.acute.new(K.store.ageOf(raw))
@@ -318,7 +319,7 @@ function K.store.recompute(rec, records)
         rec.acute.g = K.acute.glycG(rec.acute)
     end
     if rec.fluids ~= nil and rec.body ~= nil then
-        rec.fluids.dehydPct = K.fluids.dehydPct(rec.fluids, rec.body.fm + rec.body.lm, 0)
+        rec.fluids.dehydPct = K.fluids.dehydPct(rec.fluids, rec.body.fm + rec.body.lm + rec.body.lx, 0)
     end
 end
 
@@ -341,13 +342,14 @@ end
 -- Load a stored record into a fresh record: the constructors' defaults, every INPUTS path present in raw
 -- copied over them, the stomach fill and the four read-before-refresh fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
 -- keys. A non-table raw reads nil. records is the nutrient data (NR.data.records),
--- passed by the caller and never read from a global.
-function K.store.load(raw, order, records, specific)
+-- passed by the caller and never read from a global; specific is NR.SexSpecific and P the server's strength table
+-- (nil reads K.strength.DEFAULTS), both for the default body (K.store.bodyBase).
+function K.store.load(raw, order, records, specific, P)
     if type(raw) ~= "table" then
         return nil
     end
     local rec = K.store.new(raw.username, raw.firstSeen)
-    K.store.defaults(rec, raw, order, specific)
+    K.store.defaults(rec, raw, order, specific, P)
     if type(raw.satiety) == "table" then
         rec.satiety = {} -- the stored M, S, L, t and nicH overwrite it
     end
@@ -366,8 +368,8 @@ end
 -- Load raw and lay the result into target in place: every key target holds is cleared and the
 -- loaded record's keys are set on it, so a handle held on target reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
-function K.store.fillInPlace(target, raw, order, records, specific)
-    local rec = K.store.load(raw, order, records, specific)
+function K.store.fillInPlace(target, raw, order, records, specific, P)
+    local rec = K.store.load(raw, order, records, specific, P)
     if rec == nil then
         return nil
     end

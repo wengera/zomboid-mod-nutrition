@@ -351,7 +351,7 @@ local function step(username, player, record, ctx)
     end
     local dtH = dtM / 60
     if stepM > 60 then K.acute.skipRecord(record, (stepM - 60) / 60, fromH) end   -- nor counted by any world-age clock (before closeDay's refeedDay)
-    local w = body.fm + body.lm
+    local w = body.fm + body.lm + body.lx
     local O = NR.server.options or EMPTY
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex; 0 or 1 (ruling 13-5)
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end

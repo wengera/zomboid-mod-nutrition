@@ -140,12 +140,19 @@ function(cfg, record)
 end
 """
 
-# A fresh record from the real constructors: an 80 kg male body born at world age 100 (day 4), replete.
+# A fresh record from the real constructors: an 80 kg male body born at world age 100 (day 4), replete. Since Plan 13
+# Task 12 the body is the no-trait creation body with the Plan 3 80 kg male split laid over it (fat 0.18 of 80 kg), so
+# every effect below reads the masses it was written against.
 RECORD = r"""
 function(ageH)
     local K = NutritionRevamp.kernel
     local r = {}
-    r.body = K.body.new(80, 1, {}, 5, 1, 1, ageH)
+    r.body = K.body.new(K.body.create(nil, nil, K.strength.DEFAULTS, 1), 1, ageH)
+    r.body.fm = 80 * 0.18
+    r.body.lm = 80 - r.body.fm
+    r.body.fmRef = r.body.fm
+    r.body.lm0dis = r.body.lm
+    for i = 1, 7 do r.body.mass7[i] = 80 end
     r.nutrients = K.nutrients.newState(NutritionRevamp.data.records)
     r.nutrients.lastAgeH = ageH
     r.fluids = K.fluids.new(r.body.lm, 1, 37)
@@ -721,6 +728,42 @@ def _female_starved(h):
     rec["effects"]["exSeen"] = 0
     rec["acute"]["retEma"] = 800.0                               # below the male R 900, above the female R 700
     return rec, p
+
+
+def test_the_drain_reads_the_fat_fraction_of_the_body_mass_with_the_labile_lean(eff_host):
+    # ruling 13-20: fm / (fm + lm + lx); 3.3 kg of fat over 78.3 kg sits above the male floor 0.04, over 83.3 below it
+    h = eff_host
+    rec, p = _female_starved(h)
+    body = rec["body"]
+    body["sex"] = 1
+    body["fm"] = 3.3
+    body["lm"] = 75.0
+    body["lx"] = 0.0
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert rec["effects"]["lethal"] == 0
+    body["lx"] = 5.0
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert rec["effects"]["lethal"] == 1
+
+
+def test_the_protein_grade_reads_the_mean_per_kg_of_the_body_mass(eff_host):
+    # ruling 13-20: the seven closed days' protein per kg of fm + lm + lx at the close
+    h = eff_host
+    seen = []
+    for lx in (0.0, 20.0):
+        rec = record(h)
+        p, _ = player(h, rec)
+        minute(h, p, rec)
+        body = rec["body"]
+        body["lx"] = lx
+        for i in range(1, 8):
+            body["p7"][i] = 64.0                                 # 0.8 g/kg/d at 80 kg, 0.64 at 100 kg
+        body["dayIndex"] = 11
+        body["inDayClosed"] = 2000.0
+        rec["effects"]["exSeen"] = 0
+        minute(h, p, rec, ageH=100.0 + 1 / 60)
+        seen.append(rec["effects"]["pe"])
+    assert seen[0] != seen[1], seen
 
 
 def test_the_drain_floor_and_the_retinol_requirement_read_the_effective_sex(eff_host):

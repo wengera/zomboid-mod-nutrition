@@ -339,7 +339,7 @@ def test_a_missed_intake_beside_a_wrapped_eat_is_still_reconciled(h):
 # --- the Weight adapter: the legacy write resets the baseline; the band mark ---------------------------
 
 def _body(h, rec, fm=15.0, lm=65.0):
-    body = h.K.body.new(80.0, 1, h.table({}), 5, 1.0, 1.0, h.T.age)
+    body = h.K.body.new(h.K.body.create(None, None, h.K.strength.DEFAULTS, 1), 1, h.T.age)
     body["fm"], body["lm"] = fm, lm
     rec["body"] = body
     return body

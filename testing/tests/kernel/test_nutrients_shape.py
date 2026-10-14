@@ -495,6 +495,21 @@ def test_one_litre_of_water_lands_then_clears(nut_host):
     assert f["dehydPct"] == 0 and f["viewPct"] == 0
 
 
+def test_the_nutrients_minute_reads_the_body_mass_with_the_labile_lean(nut_host):
+    # ruling 13-20: the dehydration per cent is of fm + lm + lx
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    body = record["body"]
+    body.lx = 4.0
+    for i in range(1, 11):
+        chain(h, p, record, 100.0 + i)
+    f = record["fluids"]
+    w = body["fm"] + body["lm"] + body["lx"]
+    assert body["lx"] == 4.0
+    assert abs(f["dehydPct"] - 100 * (3700 * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
+
+
 def test_ten_hours_at_rest(nut_host):
     h = nut_host
     p = player(h)
@@ -502,11 +517,12 @@ def test_ten_hours_at_rest(nut_host):
     for i in range(1, 11):
         chain(h, p, record, 100.0 + i)
     f, body = record["fluids"], record["body"]
-    w = body["fm"] + body["lm"]
-    assert abs(w - 80.0) < 1e-6
+    w = body["fm"] + body["lm"] + body["lx"]
+    base = h.K.body.create(None, None, h.K.strength.DEFAULTS, 1)   # first sight: the no-trait body (Plan 13 Task 12)
+    assert abs(w - (base.fm + base.lm)) < 1e-6
     assert abs(f["water"] + 3700 * 600 / 1440) < 1e-6
-    # the deficit against the set point weu = 1000/140 x na: 100 x (1541.67 - 23.81) / 1000 / 80
-    assert abs(f["dehydPct"] - 1.8973214285714284) < 1e-6
+    # the deficit against the set point weu = 1000/140 x na: 100 x (1541.67 - 23.81) / 1000 / w (1.8973 at 80 kg)
+    assert abs(f["dehydPct"] - 100 * (3700 * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
     # the basal sodium: S1665's obligatory 8 mmol/d over 10 h = -3.33 mmol (Plan 11f Task 5b; T11-3's 0.65 share gone)
     assert abs(f["na"] + 8 * 600 / 1440) < 1e-6
     want, c = expected_thirst(f["dehydPct"], body["lm"], f["water"], f["na"])
@@ -528,8 +544,9 @@ def test_the_thirst_view_reads_the_stomach_pending_water(nut_host):
     record["stomach"]["buffer"]["water"] = 1000.0
     alone(h, p, record, 110.0 + 1 / 60)
     f = record["fluids"]
+    w = record["body"]["fm"] + record["body"]["lm"] + record["body"]["lx"]
     assert f["viewPct"] < f["dehydPct"]                     # ruling T1-1: the view counts the pending litre
-    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / 80.0) < 1e-6
+    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / w) < 1e-6
     assert f["thirstTarget"] < before
 
 
@@ -543,7 +560,8 @@ def test_the_thirst_view_reads_the_liquid_lanes_water_too(nut_host):
     record["stomach"]["liquid"] = 1000.0
     alone(h, p, record, 110.0 + 1 / 60)
     f = record["fluids"]
-    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / 80.0) < 1e-6   # ruling T1-1, both lanes' water
+    w = record["body"]["fm"] + record["body"]["lm"] + record["body"]["lx"]
+    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / w) < 1e-6   # ruling T1-1, both lanes' water
     assert f["thirstTarget"] < before
 
 
@@ -789,7 +807,8 @@ def test_the_gut_lane_drains_and_releases(nut_host):
     assert abs(a["gutAlc"] - 11.85 * (1 - f)) < 1e-12
     assert abs(a["gutCaf"] - 107.0 * (1 - f)) < 1e-12
     assert abs(a["caf"] - 107.0 * f) < 1e-12
-    assert abs(a["alc"] - (11.85 * f - 0.015 * 0.68 * 80 * 10 / 60)) < 1e-12   # male 80 kg
+    w = record["body"]["fm"] + record["body"]["lm"] + record["body"]["lx"]
+    assert abs(a["alc"] - (11.85 * f - 0.015 * 0.68 * w * 10 / 60)) < 1e-12   # male, the body mass
     w0 = a["gutAlc"]
     for i in range(2, 32):
         alone(h, p, record, 100.0 + i / 60)
@@ -1260,12 +1279,11 @@ def test_nutrients_runs_after_metabolism_and_before_strength():
         isServer = function() return true end
         NutritionRevamp.server.players = {}
     """)
-    names = sorted(["NR_Server_Weight.lua", "NR_Server_Training.lua", "NR_Server_Strength.lua",
+    names = sorted(["NR_Server_Weight.lua", "NR_Server_Strength.lua",
                     "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Nutrients.lua",
                     "NR_Server_Minute.lua"])
     assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua",
-                     "NR_Server_Nutrients.lua", "NR_Server_Strength.lua", "NR_Server_Training.lua",
-                     "NR_Server_Weight.lua"]
+                     "NR_Server_Nutrients.lua", "NR_Server_Strength.lua", "NR_Server_Weight.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()

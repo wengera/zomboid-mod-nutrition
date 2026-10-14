@@ -1014,6 +1014,17 @@ def test_acute_flags_a_1600_mg_iron_eat_at_80_kg(rec_host):
     assert st["ax"] == 48 and st["axr"] == 2
 
 
+def test_acute_dose_is_per_kg_of_the_body_mass_with_the_labile_lean(rec_host):
+    # ruling 13-20: 1500 mg over 80 kg (fm 16 + lm 64) flags nothing; over 75 kg (lm 59 + lx 0) it would, and the
+    # labile lean keeps the mass at 80
+    h = rec_host
+    record = _record(h, lm=59.0)
+    record["body"]["lx"] = 5.0
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 0
+    record = _record(h, lm=59.0)
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 1
+
+
 def test_acute_below_the_threshold_flags_nothing(rec_host):
     h = rec_host
     record = _record(h)

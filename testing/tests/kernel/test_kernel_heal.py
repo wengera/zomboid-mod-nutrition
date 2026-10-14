@@ -1,11 +1,13 @@
-"""The body record's self-heal in the kernel (NR_Kernel_Heal.lua, K.heal), Plan 10 Task R3.
+"""The body record's self-heal in the kernel (NR_Kernel_Heal.lua, K.heal), Plan 10 Task R3; the lean-mass body's
+fields since Plan 13 Task 12.
 
 NR_Kernel_Heal.lua is a kernel file, so the session `host` fixture loads it through its glob and the coverage
 gate sees every line. The behaviour assertions are test_metabolism_shape.py's heal tests, ported to call
-K.heal.body(body, ageH, l0) directly; the adapter keeps the counting and the log, and its engine read (the
-Strength level, made only when body.l0 is not finite) is the l0 argument. The property test runs 500 seeded
-cases: every healed field made non-finite comes back finite, and the names returned are exactly the fields that
-were not finite.
+K.heal.body(body, ageH, specific, P, dayFloor) directly; the adapter keeps the counting and the log and passes the
+effective-sex option, the strength table and the record-day lower bound (it reads no engine value). The creation
+fields (lm, fm, F0, Fc, Pk) heal to the no-trait body's (K.body.create(nil, nil, P) at the effective sex). The
+property test runs 500 seeded cases: every healed field made non-finite comes back finite, and the names returned are
+exactly the fields that were not finite.
 """
 import math
 import random
@@ -14,46 +16,45 @@ TOL = 1e-9
 NAN = float("nan")
 INF = float("inf")
 
-SCALARS = ["fm0", "lm0", "fm", "lm", "fmRef", "pPrevKg", "dayIndex", "wday", "lastAgeH",
-           "energyState", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay", "eeDay", "ebDay",
-           "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day",
-           "cumDef", "r", "traitCarry", "tDisuse", "nPeak", "riseHeldH", "l0", "lm0dis", "tPeakD", "strAgeH",
-           "lastFallAge", "shownL"]
-RINGS7 = ["mass7", "eb7", "p7"]
+SCALARS = ["lm", "fm", "F0", "Fc", "Pk", "fmRef", "pPrevKg", "dayIndex", "wday", "lastAgeH",
+           "energyState", "rmod", "tac", "at", "inDay", "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay",
+           "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day", "tDisuse", "lx", "grace", "Tgrace",
+           "sigDay", "S", "N0", "T", "fatT", "thinT", "lm0dis"]
+RINGS7 = ["mass7", "eb7", "p7", "sig7"]
 TRAIL_KEYS = ["kcal", "ee", "ex", "p", "carb", "lip"]
+MUSCLES = [None, "WEAK", "FEEBLE", "STOUT", "STRONG"]
 
 
-def heal(h, body, age, l0=None):
-    return h.K.heal.body(body, age, l0)
+def heal(h, body, age, specific=None, P=None, day_floor=None):
+    return h.K.heal.body(body, age, specific, P, day_floor)
 
 
-def new_body(h, age=100.0, sex=1, l0=3):
-    body = h.K.body.new(80.0, sex, h.rt.table(), l0, 1.0, 1.0, age)
-    heal(h, body, age)                                      # the first pass heals mass7's empty slots
+def new_body(h, age=100.0, sex=1, muscle="STOUT", weight=None):
+    D = h.K.strength.DEFAULTS
+    body = h.K.body.new(h.K.body.create(muscle, weight, D, h.K.body.effSex(sex, False)), sex, age)
+    heal(h, body, age)
     return body
 
 
+def no_trait(h, sex_idx=1, P=None):
+    return h.py(h.K.body.create(None, None, P or h.K.strength.DEFAULTS, sex_idx))
+
+
 def test_the_heal_rebuilds_masses_at_the_effective_sex(host):
-    # Plan 13 Task 3 fix 1: a lost fm0/lm0 heals from the 80 kg split at K.body.effSex(body.sex, specific)
-    fmM, lmM, _ = host.K.body.split(80, 1, host.rt.table())
-    fmF, lmF, _ = host.K.body.split(80, 2, host.rt.table())
-    assert fmM != fmF
-    for specific, want in ((None, (fmM, lmM)), (False, (fmM, lmM)), (True, (fmF, lmF))):
+    # Plan 13 Task 3 fix 1, Task 12: a lost fm or lm heals to the no-trait body's at K.body.effSex(body.sex, specific)
+    male, female = no_trait(host, 1), no_trait(host, 2)
+    assert male["fm"] != female["fm"]
+    for specific, want in ((None, male), (False, male), (True, female)):
         body = new_body(host, sex=2)
-        body["fm0"] = None
-        body["lm0"] = None
-        body["fm"] = float("nan")
-        body["lm"] = float("nan")
-        host.K.heal.body(body, 100.0, None, specific)
-        assert (body["fm0"], body["lm0"]) == want, specific
+        body["fm"] = NAN
+        body["lm"] = NAN
+        host.K.heal.body(body, 100.0, specific)
+        assert (body["fm"], body["lm"]) == (want["fm"], want["lm"]), specific
         assert body["sex"] == 2
-    male = new_body(host, sex=1)
-    male["fm0"] = None
-    male["lm0"] = None
-    male["fm"] = float("nan")
-    male["lm"] = float("nan")
-    host.K.heal.body(male, 100.0, None, True)
-    assert (male["fm0"], male["lm0"]) == (fmM, lmM)
+    body = new_body(host, sex=1)
+    body["fm"] = NAN
+    host.K.heal.body(body, 100.0, True)
+    assert body["fm"] == male["fm"]
 
 
 def names(bad):
@@ -70,8 +71,6 @@ def all_finite(h, body):
     for k in RINGS7:
         for i in range(1, 8):
             assert finite(body[k][i]), (k, i)
-    for i in range(1, h.K.strength.MEM_HOLD_DAYS + 1):
-        assert finite(body["nHist"][i]), ("nHist", i)
     for i in range(1, 8):
         assert finite(body["bandWeek"][i][1]) and finite(body["bandWeek"][i][2]), ("bandWeek", i)
     assert finite(body["trail"]["at"])
@@ -81,29 +80,15 @@ def all_finite(h, body):
 
 
 def test_a_healthy_body_heals_nothing(host):
-    body = new_body(host)
-    assert heal(host, body, 100.5) is None
+    for m in MUSCLES:
+        for w in (None, "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT"):
+            body = new_body(host, muscle=m, weight=w)
+            assert heal(host, body, 100.5) is None, (m, w)
 
 
 def test_mark_joins_names_in_order(host):
     assert host.K.heal.mark(None, "fm") == "fm"
     assert host.K.heal.mark("fm", "tac") == "fm,tac"
-
-
-def test_the_strength_policy_stamps_heal_in_the_kernel(host):
-    # strAgeH and lastFallAge to the world age, riseHeldH to 0 and shownL to the (healed) creation level l0: the
-    # four Strength stamps heal with the rest of the body, not in the Strength adapter
-    h = host
-    body = new_body(h, l0=4)
-    body.strAgeH = NAN
-    body.riseHeldH = INF
-    body.lastFallAge = -INF
-    body.shownL = NAN
-    bad = heal(h, body, 120.0)
-    assert names(bad) == ["riseHeldH", "strAgeH", "lastFallAge", "shownL"]
-    assert body["strAgeH"] == 120.0 and body["lastFallAge"] == 120.0
-    assert body["riseHeldH"] == 0 and body["shownL"] == 4
-    all_finite(h, body)
 
 
 def test_a_non_finite_stamp_heals_and_is_named(host):
@@ -114,64 +99,102 @@ def test_a_non_finite_stamp_heals_and_is_named(host):
     body.eb7[3] = NAN
     bad = heal(h, body, 100.0)
     assert names(bad) == ["fm", "tac", "eb7"]
-    assert abs(body["fm"] - body["fm0"]) < TOL
+    assert body["fm"] == no_trait(h)["fm"]
     assert body["tac"] == 1.0 and body["eb7"][3] == 0
     all_finite(h, body)
 
 
-def test_day_index_ages_and_creation_masses(host):
+def test_a_nan_f0_rebuilds_to_the_no_trait_body(host):
+    # the brief: a non-finite F0 heals to the no-trait body's set point; the held lean and the other fields stand
+    h = host
+    body = new_body(h, muscle="STRONG")
+    lm = body.lm
+    body.F0 = NAN
+    assert names(heal(h, body, 100.0)) == ["F0"]
+    assert body["F0"] == no_trait(h)["F0"] and body["lm"] == lm
+
+
+def test_the_creation_fields_heal_to_the_no_trait_body_of_the_servers_table(host):
+    # bodyBase's P: a tuned server's cap holds through the heal (P passed in, nil reading DEFAULTS)
+    h = host
+    P, _ = h.K.strength.params(h.table({"StrengthCapLevel": 14}))
+    want = no_trait(h, 1, P)
+    assert want["Fc"] != no_trait(h)["Fc"]
+    body = new_body(h)
+    for k in ("lm", "fm", "F0", "Fc", "Pk"):
+        body[k] = NAN
+    assert names(heal(h, body, 100.0, False, P)) == ["lm", "fm", "F0", "Fc", "Pk"]
+    for k in ("lm", "fm", "F0", "Fc", "Pk"):
+        assert body[k] == want[k], k
+
+
+def test_n0_and_t_heal_to_the_no_trait_one(host):
+    h = host
+    body = new_body(h, muscle="STRONG")
+    body.N0 = NAN
+    body.T = -INF
+    body.Tgrace = NAN
+    body.grace = INF
+    body.lx = NAN
+    body.sigDay = NAN
+    body.S = NAN
+    bad = heal(h, body, 100.0)
+    assert names(bad) == ["lx", "grace", "Tgrace", "sigDay", "S", "N0", "T"]
+    assert (body.N0, body.T, body.Tgrace, body.grace, body.lx, body.sigDay, body.S) == (1, 1, 0, 0, 0, 0, 0)
+
+
+def test_day_index_ages_and_the_record_day_floor(host):
+    # Task 12 amendment 5: tPeakD is removed, so a lost dayIndex heals to the record-day lower bound the adapter passes
     h = host
     body = new_body(h)
     body.dayIndex = NAN
     body.wday = NAN
     body.lastAgeH = INF
-    body.fm0 = NAN
-    body.lm0 = NAN
-    body.tPeakD = 3                                         # the held peak's record day
-    bad = heal(h, body, 168.0)
-    assert body["dayIndex"] == 3                            # tPeakD's record day, never the world's 7 (ruling 13-5)
+    bad = heal(h, body, 168.0, None, None, 3)
+    assert body["dayIndex"] == 3                            # the record's day, never the world's 7 (ruling 13-5)
     assert body["wday"] == 7                                # the world day of the heal's age (ruling 13-5)
     assert body["lastAgeH"] == 168.0
-    assert body["fm0"] == body["fm"] and body["lm0"] == body["lm"]
-    assert names(bad) == ["fm0", "lm0", "dayIndex", "wday", "lastAgeH"]
+    assert names(bad) == ["dayIndex", "wday", "lastAgeH"]
 
 
-def test_day_index_falls_back_to_the_world_day_without_a_peak_day(host):
+def test_day_index_falls_back_to_the_world_day_without_a_record_day(host):
+    # the limitation: with no surviving record day the world day counts the offline days the calendar skips
     h = host
+    for floor in (None, NAN):
+        body = new_body(h)
+        body.dayIndex = NAN
+        assert names(heal(h, body, 168.0, None, None, floor)) == ["dayIndex"]
+        assert body["dayIndex"] == 7
+
+
+def test_the_rungs_heal_when_not_a_whole_number_in_range(host):
+    # Task 12 amendment 4: fatT a whole number in 0..2, thinT in 0..3, else 0
+    h = host
+    for fat, thin, bad_names in ((2, 3, []), (0, 0, []), (3, 0, ["fatT"]), (-1, 4, ["fatT", "thinT"]),
+                                 (1.5, 2.5, ["fatT", "thinT"]), (NAN, INF, ["fatT", "thinT"]), (1, -INF, ["thinT"])):
+        body = new_body(h)
+        body.fatT = fat
+        body.thinT = thin
+        assert names(heal(h, body, 100.0)) == bad_names, (fat, thin)
+        assert body.fatT == (fat if "fatT" not in bad_names else 0)
+        assert body.thinT == (thin if "thinT" not in bad_names else 0)
     body = new_body(h)
-    body.dayIndex = NAN
-    body.tPeakD = NAN
-    bad = heal(h, body, 168.0)
-    assert body["dayIndex"] == 7 and body["tPeakD"] == 7
-    assert names(bad) == ["dayIndex", "tPeakD"]
-
-
-def test_creation_masses_fall_back_to_the_split_by_sex(host):
-    h = host
-    for sex in (1, 2):
-        body = new_body(h, sex=sex)
-        body.fm = NAN
-        body.fm0 = NAN
-        body.lm = NAN
-        body.lm0 = NAN
-        bad = h.K.heal.body(body, 100.0, None, True)             # NR.SexSpecific on: the split is at the body's own sex
-        fm, lm, _ = h.K.body.split(80, sex, h.rt.table())
-        assert abs(body["fm0"] - fm) < TOL and abs(body["lm0"] - lm) < TOL
-        assert abs(body["fm"] - fm) < TOL and abs(body["lm"] - lm) < TOL
-        assert names(bad)[:4] == ["fm0", "lm0", "fm", "lm"]
-        all_finite(h, body)
+    body.fatT = "obese"                                     # a value of another type is not a rung either
+    assert names(heal(h, body, 100.0)) == ["fatT"] and body.fatT == 0
 
 
 def test_non_finite_ring_slots(host):
     h = host
     body = new_body(h)
+    body.lx = 1.5
     body.p7[2] = NAN
     body.eb7[7] = INF
     body.mass7[1] = NAN
+    body.sig7[4] = NAN
     bad = heal(h, body, 100.0)
-    assert body["p7"][2] == 0 and body["eb7"][7] == 0
-    assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < 1e-6
-    assert names(bad) == ["mass7", "eb7", "p7"]
+    assert body["p7"][2] == 0 and body["eb7"][7] == 0 and body["sig7"][4] == 0
+    assert body["mass7"][1] == body["fm"] + body["lm"] + 1.5     # the body mass, lx in it (ruling 13-20)
+    assert names(bad) == ["mass7", "eb7", "p7", "sig7"]
 
 
 def test_a_ring_its_read_sees_non_finite_heals_and_is_named_once_a_slot(host):
@@ -252,38 +275,22 @@ def test_a_closed_hour_turned_non_finite_is_zeroed_and_named_by_the_heal_at_the_
 def test_creation_scalars_and_the_strength_and_band_rings(host):
     h = host
     body = new_body(h)
-    body.r = NAN
-    body.traitCarry = INF
-    body.l0 = NAN
     body.tDisuse = NAN
     body.lm0dis = NAN
-    body.nPeak = NAN
-    body.tPeakD = NAN
     body.exKcalDay = NAN
-    body.nHist[3] = NAN
+    body.Pk = INF
+    body.sig7[3] = NAN
     body.bandWeek[2][1] = NAN
     body.bandWeek[5][2] = -INF
-    bad = heal(h, body, 100.0, 7)
-    assert body["r"] == 1 and body["traitCarry"] == 1
-    assert body["l0"] == 7
-    assert body["tDisuse"] == 0 and body["nPeak"] == 0
+    bad = heal(h, body, 100.0)
+    assert body["tDisuse"] == 0
     assert body["lm0dis"] == body["lm"]
-    assert body["tPeakD"] == body["dayIndex"]
+    assert body["Pk"] == no_trait(h)["Pk"]
     assert body["exKcalDay"] == 0
-    assert body["nHist"][3] == 0
+    assert body["sig7"][3] == 0
     assert body["bandWeek"][2][1] == 0 and body["bandWeek"][5][2] == 0
-    assert names(bad) == ["exKcalDay", "r", "traitCarry", "tDisuse", "nPeak", "l0", "lm0dis", "tPeakD", "nHist",
-                          "bandWeek", "bandWeek"]
+    assert names(bad) == ["Pk", "exKcalDay", "tDisuse", "lm0dis", "bandWeek", "bandWeek", "sig7"]
     all_finite(h, body)
-
-
-def test_l0_without_a_finite_reading_heals_to_zero(host):
-    h = host
-    for reading in (None, NAN):
-        body = new_body(h)
-        body.l0 = NAN
-        assert names(heal(h, body, 100.0, reading)) == ["l0"]
-        assert body["l0"] == 0
 
 
 def test_every_field_nan_comes_back_finite_and_named(host):
@@ -294,8 +301,6 @@ def test_every_field_nan_comes_back_finite_and_named(host):
     for k in RINGS7:
         for i in range(1, 8):
             body[k][i] = NAN
-    for i in range(1, h.K.strength.MEM_HOLD_DAYS + 1):
-        body["nHist"][i] = NAN
     for i in range(1, 8):
         body["bandWeek"][i][1] = NAN
         body["bandWeek"][i][2] = NAN
@@ -303,19 +308,18 @@ def test_every_field_nan_comes_back_finite_and_named(host):
     for k in TRAIL_KEYS:
         for i in range(1, 26):
             body.trail[k][i] = NAN
-    bad = heal(h, body, 130.0, 4)
+    bad = heal(h, body, 130.0)
     all_finite(h, body)
     # the window: its age is named and every ring emptied (Plan 11d Task 9d), so no ring is named
-    assert set(names(bad)) == set(SCALARS) | set(RINGS7) | {"nHist", "bandWeek", "trail.at"}
+    assert set(names(bad)) == set(SCALARS) | set(RINGS7) | {"bandWeek", "trail.at"}
 
 
 def test_heal_property_seeded(host):
     h = host
     rng = random.Random(3310)
-    hold = h.K.strength.MEM_HOLD_DAYS
     for case in range(500):
         age = rng.uniform(0, 5000)
-        body = new_body(h, age=age, sex=rng.choice([1, 2]), l0=rng.randint(0, 10))
+        body = new_body(h, age=age, sex=rng.choice([1, 2]), muscle=rng.choice(MUSCLES))
         p = 1.0 if case % 10 == 0 else rng.random()
         bad_vals = (NAN, INF, -INF)
         expect = set()
@@ -328,17 +332,13 @@ def test_heal_property_seeded(host):
                 if rng.random() < p:
                     body[k][i] = rng.choice(bad_vals)
                     expect.add(k)
-        for i in range(1, hold + 1):
-            if rng.random() < p:
-                body["nHist"][i] = rng.choice(bad_vals)
-                expect.add("nHist")
         for i in range(1, 8):
             for j in (1, 2):
                 if rng.random() < p:
                     body["bandWeek"][i][j] = rng.choice(bad_vals)
                     expect.add("bandWeek")
-        l0 = rng.choice([None, NAN, rng.randint(0, 10)])
-        bad = heal(h, body, age + rng.uniform(0, 48), l0)
+        floor = rng.choice([None, NAN, rng.randint(0, 200)])
+        bad = heal(h, body, age + rng.uniform(0, 48), rng.choice([None, False, True]), None, floor)
         all_finite(h, body)
         assert set(names(bad)) == expect, case
         assert heal(h, body, age) is None                    # a healed body heals nothing more

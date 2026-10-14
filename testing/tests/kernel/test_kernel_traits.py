@@ -246,17 +246,17 @@ def test_every_legal_creation_pick_keeps_its_rung(host, muscle, weight, sexIdx):
     (None, None, 1), ("STRONG", "OBESE", 2), (None, "OVERWEIGHT", 1), ("STOUT", "UNDERWEIGHT", 2),
     (None, "EMACIATED", 1),
 ])
-def test_new_lean_lays_the_band(host, muscle, weight, sexIdx):
+def test_new_lays_the_band(host, muscle, weight, sexIdx):
     spec = host.call("body.create", muscle, weight, host.K.strength.DEFAULTS, sexIdx)
-    b = host.call("body.newLean", spec, sexIdx, 0.0)
+    b = host.call("body.new", spec, sexIdx, 0.0)
     assert b.band == WORD[weight]
     assert (b.fatT, b.thinT) == (spec.fatT, spec.thinT)
 
 
-def test_new_lean_reads_the_spec_sex(host):
+def test_new_reads_the_spec_sex(host):
     # FMI 9.4 is Obese on the male table, Overweight on the female: the band follows spec.sexIdx, not the engine sex
     spec = host.call("body.create", None, "OBESE", host.K.strength.DEFAULTS, 1)
     spec.fm = 9.4 * H2
-    assert host.call("body.newLean", spec, 2, 0.0).band == "obese"
+    assert host.call("body.new", spec, 2, 0.0).band == "obese"
     spec.sexIdx = 2
-    assert host.call("body.newLean", spec, 1, 0.0).band == "overweight"
+    assert host.call("body.new", spec, 1, 0.0).band == "overweight"

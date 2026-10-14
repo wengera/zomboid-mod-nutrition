@@ -3,9 +3,11 @@
 The file is a server/ file the kernel host does not load, so it is loaded on top of the session host
 the way test_metabolism_shape.py loads NR_Server_Metabolism.lua. NR.call indexes obj[name] and calls it
 with obj first, so a Lua table of function fields stands in for a Java object. The body is built with
-the real K.body.new and every level, XP, trait and carry read is stubbed by hand; the kernel math is
+the real K.body.new over K.body.create and every level, trait and carry read is stubbed by hand; the kernel math is
 the real kernel. A stub proves the wiring, the order and the guards, not the engine's real getters,
-which the live acceptance runs read.
+which the live acceptance runs read. Since Plan 13 Task 12 the minute writes no level (the XP-implied level, the
+ceiling and the write policy are removed); the carry's trait factor reads the native level's band until Task 14
+(ruling 13-28), and STR.ladder and STR.remap stay for the level write.
 """
 import os
 
@@ -106,11 +108,11 @@ end
 RAISING = r"""
 function(player, record, age)
     local K = NutritionRevamp.kernel
-    local orig = K.strength.policy
-    K.strength.policy = function() error("boom") end
+    local orig = K.strength.eAcute
+    K.strength.eAcute = function() error("boom") end
     NR_TEST_AGE = age
     local ok, err = pcall(NutritionRevamp.server.strength.minute, "admin", player, record)
-    K.strength.policy = orig
+    K.strength.eAcute = orig
     return ok, err
 end
 """
@@ -155,9 +157,9 @@ def player(h, level=5, xp=40000, traits=None, delta=1.0):
     return h.rt.eval(PLAYER)(cfg)
 
 
-def record_for(h, l0=5, ageH=99.0, traitCarry=1.0):
+def record_for(h, ageH=99.0):
     record = h.rt.table()
-    record.body = h.K.body["new"](80, 1, h.table({}), l0, traitCarry, 1.0, ageH)
+    record.body = h.K.body["new"](h.K.body.create(None, None, h.K.strength.DEFAULTS, 1), 1, ageH)
     return record
 
 
@@ -213,152 +215,24 @@ def test_ladder_falls_back_without_perks(str_host):
     assert [t[L] for L in range(1, 11)] == LADDER
 
 
-# --- the vanilla level and BeyondTen (ruling T1-1) ------------------------------------------------
-
-def test_vanilla_level_reads_the_xp(str_host):
-    h = str_host
-    lv, cur = STR(h).vanillaLevel(player(h, level=5, xp=40000), h.G.Perks.Strength)
-    assert lv == 5 and cur == 5
-    lv, _ = STR(h).vanillaLevel(player(h, level=5, xp=20000), h.G.Perks.Strength)
-    assert lv == 4                             # 19500 is level 4's total, 37500 level 5's (#2102)
-
-
-def test_beyondten_parked_xp_reads_ten(str_host):
-    h = str_host
-    h.G.BeyondTen = h.table({"NATIVE_MAX_LEVEL": 10})
-    lv, cur = STR(h).vanillaLevel(player(h, level=10, xp=337500), h.G.Perks.Strength)
-    assert lv == 10 and cur == 10
-    p = player(h, level=10, xp=337500, traits=["STRONG"])
-    record = record_for(h, l0=10)
-    minute(h, p, record, 100.0)
-    assert writes(p) == []                     # no clamp to 9
-
-
-def test_beyondten_absent_parked_xp_reads_nine(str_host):
-    h = str_host
-    lv, _ = STR(h).vanillaLevel(player(h, level=10, xp=337500), h.G.Perks.Strength)
-    assert lv == 9
-    # Without BeyondTen the level follows the XP down (vanilla's rust pass would too, #2124); 9 keeps
-    # STRONG, so no push.
-    p = player(h, level=10, xp=337500, traits=["STRONG"])
-    record = record_for(h, l0=10)
-    pushes = h.G.NR_TEST_PUSHES
-    minute(h, p, record, 100.0)
-    assert writes(p) == [9]
-    assert traits(p) == ["STRONG"]
-    assert h.G.NR_TEST_PUSHES == pushes
-
-
-def test_beyondten_without_native_max_is_ignored(str_host):
-    h = str_host
-    h.G.BeyondTen = h.table({})
-    lv, _ = STR(h).vanillaLevel(player(h, level=10, xp=337500), h.G.Perks.Strength)
-    assert lv == 9
-
-
-def test_beyondten_does_not_lift_a_level_nine(str_host):
-    h = str_host
-    h.G.BeyondTen = h.table({"NATIVE_MAX_LEVEL": 10})
-    lv, _ = STR(h).vanillaLevel(player(h, level=9, xp=337500), h.G.Perks.Strength)
-    assert lv == 9
-
-
 # --- the level write --------------------------------------------------------------------------------
 
-def test_no_write_when_ceiling_meets_the_shown_level(str_host):
+def test_the_minute_writes_no_level_reads_no_xp_and_runs_no_remap(str_host):
+    # Plan 13 Task 12: the level is the day close's (written from Task 14); the minute reads the native level once
     h = str_host
-    p = player(h, level=5, xp=40000)
-    record = record_for(h)
-    w0 = STR(h).stats.writes
-    minute(h, p, record, 100.0)
-    assert writes(p) == []
-    assert STR(h).stats.writes == w0
-    assert record["body"]["shownL"] == 5
-
-
-def test_lean_loss_clamps_one_level_an_hour_with_remap_and_push(str_host):
-    h = str_host
-    p = player(h, level=5, xp=40000, traits=["STOUT"])
-    record = record_for(h)
-    body = record["body"]
-    body.lm = 0.9 * body["lm0"]
-    assert h.K.strength.ceiling(5, body["lm"], body["lm0"], 1.0) == 3
+    p = player(h, level=8, xp=0, traits=["WEAK"])
+    reads = h.rt.eval("{ xp = 0 }")
+    h.rt.eval("function(p, C) local g = p.getXp; p.getXp = function(s) C.xp = C.xp + 1; return g(s) end end")(p, reads)
     pushes = h.G.NR_TEST_PUSHES
-    w0 = STR(h).stats.writes
-    minute(h, p, record, 100.0)
-    assert writes(p) == [4]
-    assert traits(p) == ["FEEBLE"]             # STOUT removed, FEEBLE added
-    assert h.G.NR_TEST_PUSHES == pushes + 1
-    assert STR(h).stats.writes == w0 + 1
-    # The sync rebuilt the level to 5: re-asserted at 4, the trait set unchanged, no second push.
-    p.cfg.level = 5
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert writes(p) == [4, 4]
-    assert h.G.NR_TEST_PUSHES == pushes + 1
-    # Within the hour: nothing more.
-    minute(h, p, record, 100.5)
-    assert writes(p) == [4, 4]
-    # An hour on: the next fall to 3 (FEEBLE again, no push).
-    minute(h, p, record, 101.0)
-    assert writes(p) == [4, 4, 3]
-    assert traits(p) == ["FEEBLE"]
-    assert h.G.NR_TEST_PUSHES == pushes + 1
-
-
-def test_xp_loss_follows_down_at_once(str_host):
-    # K.strength.policy caps desired at lvanilla: an XP loss follows down at once (Task 10's kernel);
-    # the one-per-hour fall paces the ceiling only.
-    h = str_host
-    p = player(h, level=5, xp=0)
     record = record_for(h)
     minute(h, p, record, 100.0)
-    assert writes(p) == [0]
-    assert traits(p) == ["WEAK"]
-    assert record["body"]["shownL"] == 0
-
-
-def test_rise_after_six_held_hours(str_host):
-    h = str_host
-    p = player(h, level=3, xp=40000, traits=["FEEBLE"])
-    record = record_for(h, l0=3)
-    body = record["body"]
-    body.shownL = 3
-    body.lm = body["lm0"] * 2 ** 0.2           # ceiling 5
-    minute(h, p, record, 99.0)
-    for k in range(1, 6):
-        minute(h, p, record, 99.0 + k)
-    assert writes(p) == []                     # five held hours
-    minute(h, p, record, 105.0)
-    assert writes(p) == [4]
-    assert traits(p) == ["FEEBLE"]
-
-
-def test_dt_is_clamped_to_an_hour(str_host):
-    h = str_host
-    p = player(h, level=3, xp=40000)
-    record = record_for(h, l0=3)
-    body = record["body"]
-    body.lm = body["lm0"] * 2 ** 0.2
-    minute(h, p, record, 99.0 + 10.0)          # a ten-hour gap counts one hour
-    assert abs(body["riseHeldH"] - 1.0) < TOL
-    assert writes(p) == []
-    assert abs(body["strAgeH"] - 109.0) < TOL
-
-
-def test_band_traits_absent_are_added(str_host):
-    h = str_host
-    p = player(h, level=8, xp=40000, traits=[])
-    record = record_for(h)
-    pushes = h.G.NR_TEST_PUSHES
-    minute(h, p, record, 100.0)
-    assert writes(p) == [5]                    # 8 above the XP-implied 5
-    assert traits(p) == []                     # level 5 has no band trait
-    assert h.G.NR_TEST_PUSHES == pushes
-    p.cfg.level = 9
-    p.cfg.traits = h.table({"STRONG": True, "WEAK": True})
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert traits(p) == []
-    assert h.G.NR_TEST_PUSHES == pushes + 1
+    assert writes(p) == [] and reads.xp == 0
+    assert traits(p) == ["WEAK"] and h.G.NR_TEST_PUSHES == pushes
+    for gone in ("writes", "bandRepairs"):
+        assert STR(h).stats[gone] is None, gone
+    for gone in ("vanillaLevel", "MAX_DT_H"):
+        assert STR(h)[gone] is None, gone
+    assert record["body"]["strAgeH"] is None
 
 
 def test_missing_push_global_is_counted(str_host):
@@ -366,45 +240,21 @@ def test_missing_push_global_is_counted(str_host):
     saved = h.G.sendSyncPlayerFields
     h.G.sendSyncPlayerFields = None
     try:
-        p = player(h, level=5, xp=0, traits=[])
+        p = player(h, level=0, xp=0, traits=[])
         miss = STR(h).stats.pushMissing
-        minute(h, p, record_for(h), 100.0)
+        assert STR(h).remap(p, 0) is True
     finally:
         h.G.sendSyncPlayerFields = saved
     assert traits(p) == ["WEAK"]
     assert STR(h).stats.pushMissing == miss + 1
 
 
-def test_unreadable_xp_skips_the_level_arm(str_host):
-    h = str_host
-    p = player(h, level=5, xp=None)
-    record = record_for(h)
-    bad = STR(h).stats.badReads
-    minute(h, p, record, 100.0)
-    assert writes(p) == []
-    assert STR(h).stats.badReads == bad + 1
-
-
-def test_an_absent_level_setter_counts_no_write_and_runs_no_remap(str_host):
-    h = str_host
-    p = player(h, level=5, xp=0, traits=["STOUT"])
-    p.setPerkLevelDebug = None
-    record = record_for(h)
-    w0 = STR(h).stats.writes
-    pushes = h.G.NR_TEST_PUSHES
-    minute(h, p, record, 100.0)
-    assert STR(h).stats.writes == w0
-    assert traits(p) == ["STOUT"]              # no remap without the write
-    assert h.G.NR_TEST_PUSHES == pushes
-
-
 def test_an_unreadable_world_age_skips_the_step(str_host):
     h = str_host
     saved = h.G.getGameTime
     h.G.getGameTime = lambda: h.table({})      # no getWorldAgeHours
-    p = player(h, level=5, xp=0)
+    p = player(h, level=5, xp=0, delta=0.5)
     record = record_for(h)
-    body = record["body"]
     bad = STR(h).stats.badReads
     try:
         minute(h, p, record, 100.0)
@@ -412,39 +262,23 @@ def test_an_unreadable_world_age_skips_the_step(str_host):
         h.G.getGameTime = saved
     assert STR(h).stats.badReads == bad + 1
     assert writes(p) == [] and deltas(p) == []
-    assert body["strAgeH"] == 99.0             # never stamped 0
-    assert body["riseHeldH"] == 0
 
 
-def test_band_repair_when_the_level_already_matches(str_host):
-    # #2740: an admin trait edit, or vanilla's own level-down after an XP drop, leaves the Java level at
-    # the shown level with the wrong band set; the minute re-asserts it once
+def test_an_unreadable_level_writes_no_carry(str_host):
+    # the carry's trait factor reads the native level (ruling 13-28): no level, no write, counted
     h = str_host
-    p = player(h, level=3, xp=10500, traits=["STRONG"])   # level 3 implies FEEBLE
-    record = record_for(h, l0=3)
-    record["body"].shownL = 3
-    r0 = STR(h).stats.bandRepairs
-    pushes = h.G.NR_TEST_PUSHES
-    minute(h, p, record, 100.0)
-    assert writes(p) == []
-    assert traits(p) == ["FEEBLE"]
-    assert STR(h).stats.bandRepairs == r0 + 1
-    assert h.G.NR_TEST_PUSHES == pushes + 1
-    minute(h, p, record, 100.0 + 1 / 60)       # repaired: nothing more
-    assert STR(h).stats.bandRepairs == r0 + 1
-    assert h.G.NR_TEST_PUSHES == pushes + 1
-
-
-def test_band_repair_adds_a_missing_trait(str_host):
-    h = str_host
-    p = player(h, level=0, xp=0, traits=[])    # level 0 implies WEAK, absent
-    record = record_for(h, l0=0)
-    record["body"].shownL = 0
-    r0 = STR(h).stats.bandRepairs
-    minute(h, p, record, 100.0)
-    assert writes(p) == []
-    assert traits(p) == ["WEAK"]
-    assert STR(h).stats.bandRepairs == r0 + 1
+    p = player(h, level=None, delta=0.5)
+    bad = STR(h).stats.badReads
+    minute(h, p, record_for(h), 100.0)
+    assert deltas(p) == [] and STR(h).stats.badReads == bad + 1
+    saved = h.G.Perks
+    h.G.Perks = None
+    try:
+        p = player(h, level=9, delta=0.5)
+        minute(h, p, record_for(h), 100.0)
+    finally:
+        h.G.Perks = saved
+    assert deltas(p) == [] and STR(h).stats.badReads == bad + 2
 
 
 FAILING_TRAITS = r"""
@@ -463,24 +297,11 @@ def test_a_failing_add_or_remove_counts_no_repair_and_pushes_nothing(str_host):
     # push every minute
     h = str_host
     p = h.rt.eval(FAILING_TRAITS)(player(h, level=3, xp=10500, traits=["STRONG"]))
-    record = record_for(h, l0=3)
-    record["body"].shownL = 3
-    r0 = STR(h).stats.bandRepairs
     pushes = h.G.NR_TEST_PUSHES
-    minute(h, p, record, 100.0)
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert traits(p) == ["STRONG"]             # nothing could change
-    assert STR(h).stats.bandRepairs == r0
-    assert h.G.NR_TEST_PUSHES == pushes
     assert STR(h).remap(p, 3) is False
-
-
-def test_no_band_repair_on_a_matching_set(str_host):
-    h = str_host
-    p = player(h, level=5, xp=40000, traits=[])
-    r0 = STR(h).stats.bandRepairs
-    minute(h, p, record_for(h), 100.0)
-    assert STR(h).stats.bandRepairs == r0
+    assert STR(h).remap(p, 3) is False
+    assert traits(p) == ["STRONG"]             # nothing could change
+    assert h.G.NR_TEST_PUSHES == pushes
 
 
 def test_never_calls_a_granting_or_leveling_member():
@@ -498,8 +319,8 @@ def test_carry_delta_from_body_fat(str_host):
     record = record_for(h)
     body = record["body"]
     body.fm = 33.0
-    body.lm = 67.0
-    body.lm0 = 67.0
+    body.lm = 66.0
+    body.lx = 1.0                              # the body mass fm + lm + lx: 100 kg at 33 % fat (ruling 13-20)
     h.G.NR_TEST_TOD = 14.0
     cw = STR(h).stats.carryWrites
     minute(h, p, record, 100.0)
@@ -514,12 +335,14 @@ def test_carry_delta_from_body_fat(str_host):
     assert STR(h).stats.carryWrites == cw + 2
 
 
-def test_carry_delta_scales_the_trait_factor(str_host):
+@pytest.mark.parametrize("level, factor", [(0, 0.75), (2, 0.9), (5, 1.0), (7, 1.25), (9, 1.5), (10, 1.5)])
+def test_carry_delta_scales_the_trait_factor(str_host, level, factor):
+    # ruling 13-28: until Task 14 the trait factor is K.strength.traitCarry of the native level's band (#2144)
     h = str_host
-    p = player(h, level=5, xp=40000, delta=1.0)
-    record = record_for(h, traitCarry=1.25)
+    p = player(h, level=level, xp=40000, delta=0.5)
+    record = record_for(h)
     minute(h, p, record, 100.0)
-    assert deltas(p) == [1.25]                 # lean body: eAcute 0
+    assert deltas(p) == [factor]               # lean body: eAcute 0
 
 
 def test_no_carry_write_within_tolerance(str_host):
@@ -559,30 +382,14 @@ def test_a_raising_kernel_never_raises_into_the_walk(str_host):
     assert "boom" in str(STR(h).lastError)
 
 
-def test_a_non_finite_stamp_is_healed(str_host):
-    h = str_host
-    p = player(h)
-    record = record_for(h)
-    body = record["body"]
-    body.strAgeH = float("nan")
-    body.riseHeldH = float("nan")
-    minute(h, p, record, 100.0)
-    assert abs(body["strAgeH"] - 100.0) < TOL
-    assert body["riseHeldH"] == body["riseHeldH"]
-
-
 def test_limitations(str_host):
     h = str_host
     lim = list(STR(h).limitations.values())
-    assert ("the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model "
-            "(#2118)") in lim
-    assert "a rise is one level per six-hour window" in lim
     assert ("the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) "
             "read the current minute's fluids, acute and nutrients sub-tables") in lim
-    assert not any("Plan 4/5" in x for x in lim)
-    assert not any("gates nothing" in x for x in lim)
-    assert ("while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; "
-            "BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)") in lim
+    assert ("no level is written yet and the carry's trait factor reads the native level's band; an unreadable "
+            "level writes no carry that minute") in lim
+    assert not any("ceiling" in x or "six-hour" in x for x in lim)
     # shipped text names register rows, never plan tasks or rulings
     assert not any("Task " in x or "ruling" in x for x in lim)
 
@@ -663,7 +470,8 @@ def test_twenty_eight_hours_awake_is_minus_four(str_host):
 
 def test_caffeine_active_is_plus_two(str_host):
     h = str_host
-    w = 80.0
+    base = h.K.body.create(None, None, h.K.strength.DEFAULTS, 1)
+    w = base.fm + base.lm                      # the no-trait body's mass, lx 0 (the dose is per kg of it)
     assert _acute_delta(h, acute=dict(caf=3 * w)) == pytest.approx(1.02, abs=1e-12)
     assert _acute_delta(h, acute=dict(caf=3 * w - 1)) == 1.0     # below 3 mg/kg: inactive
 
@@ -692,9 +500,9 @@ def test_a_raising_push_global_is_counted_and_the_carry_still_written(str_host):
         body = record["body"]
         body.fm = 33.0
         body.lm = 67.0
-        body.lm0 = 67.0
         h.G.NR_TEST_TOD = 14.0
         miss, cw, fails = STR(h).stats.pushMissing, STR(h).stats.carryWrites, STR(h).stats.failures
+        assert STR(h).remap(p, 0) is True       # the remap's push raised: counted, the change stands
         minute(h, p, record, 100.0)
     finally:
         h.G.sendSyncPlayerFields = saved

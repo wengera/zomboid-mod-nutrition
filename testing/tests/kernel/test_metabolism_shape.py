@@ -44,7 +44,9 @@ function(age)
         }
     end
     CharacterTrait = { ATHLETIC = "ATHLETIC", FIT = "FIT", OUT_OF_SHAPE = "OUT_OF_SHAPE", UNFIT = "UNFIT",
-                       STRONG = "STRONG", STOUT = "STOUT" }
+                       STRONG = "STRONG", STOUT = "STOUT", FEEBLE = "FEEBLE", WEAK = "WEAK", OBESE = "OBESE",
+                       OVERWEIGHT = "OVERWEIGHT", UNDERWEIGHT = "UNDERWEIGHT", VERY_UNDERWEIGHT = "VERY_UNDERWEIGHT",
+                       EMACIATED = "EMACIATED" }
     Perks = { Strength = "Strength" }
     MoodleType = { HEAVY_LOAD = "HEAVY_LOAD", HYPERTHERMIA = "HYPERTHERMIA" }
     BodyPartType = { UpperLeg_L = "UpperLeg_L", UpperLeg_R = "UpperLeg_R", LowerLeg_L = "LowerLeg_L",
@@ -220,52 +222,90 @@ def seed(h, body, hour=99, **amounts):
 
 # --- first sight --------------------------------------------------------------------------------------
 
-def test_first_sight_splits_the_body(met_host):
+def D(h):
+    return h.K.strength.DEFAULTS
+
+
+def spec(h, muscle=None, weight=None, sex_idx=1):
+    return h.py(h.K.body.create(muscle, weight, D(h), sex_idx))
+
+
+def test_first_sight_builds_the_no_trait_body(met_host):
+    # Plan 13 Task 12 (ruling 13-6): a character holding no band trait is the no-trait creation body, whatever its
+    # native weight; body.levelDue asks the Strength minute to write the level once
     h = met_host
-    splits = MET(h).stats.splits
-    record = fresh(h, player(h))
+    creates = MET(h).stats.creates
+    record = fresh(h, player(h, weight=95.0))
     body = record["body"]
-    assert body is not None
-    assert abs(body["fm"] - 14.4) < 1e-6
-    assert abs(body["lm"] - 65.6) < 1e-6
-    assert body["l0"] == 5
-    assert body["traitCarry"] == 1.0
-    assert 0.5 <= body["r"] <= 1.8
-    assert abs(body["r"] - 1.0) < TOL          # twelve draws of 0.5: z = 0, r = exp(0) = 1
-    assert body["sex"] == 1
-    assert abs(body["lastAgeH"] - 100.0) < TOL
-    assert body["dayIndex"] == 4
-    assert MET(h).stats.splits == splits + 1
+    want = spec(h)
+    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
+        assert body[k] == want[k], k
+    assert body["levelDue"] is True and body["S"] == 0 and body["lx"] == 0
+    assert body["band"] == "normal"
+    assert body["sex"] == 1 and abs(body["lastAgeH"] - 100.0) < TOL and body["dayIndex"] == 4
+    assert MET(h).stats.creates == creates + 1 and MET(h).stats.splits is None
     assert body["eeDay"] == 0                  # dtM is 0 on the first minute
+    for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "shownL", "n", "vStr", "delta"):
+        assert body[k] is None, k
     assert nonfinite(h, record) == ""
 
 
-def test_first_sight_reads_sex_build_and_the_responder_clamp(met_host):
+def test_first_sight_with_strong_and_obese_builds_strongs_f0_and_obeses_fat(met_host):
+    # the brief: the held muscle and weight band traits are the creation picks (ruling 13-6)
     h = met_host
-    h.G.NR_TEST_RAND = 1.0                     # z = 12 - 6 = 6: exp(1.8) clamps to 1.8
-    try:
-        p = player(h, female=True, traits={"ATHLETIC": True}, weight=62.0, strength=3, delta=0.9)
-        body = fresh(h, p)["body"]
-    finally:
-        h.G.NR_TEST_RAND = 0.5
-    assert body["sex"] == 2
-    assert abs(body["r"] - 1.8) < TOL
-    assert body["l0"] == 3
-    assert abs(body["traitCarry"] - 0.9) < TOL
-    fm, lm, _ = h.K.body.split(62.0, 1, h.table({"athletic": True}))    # NR.SexSpecific off: the male split
-    assert abs(body["fm"] - fm) < TOL and abs(body["lm"] - lm) < TOL
-    h.G.NR_TEST_RAND = 0.0                     # z = -6: exp(-1.8) clamps to 0.5
-    try:
-        body = fresh(h, player(h))["body"]
-    finally:
-        h.G.NR_TEST_RAND = 0.5
-    assert abs(body["r"] - 0.5) < TOL
+    body = fresh(h, player(h, traits={"STRONG": True, "OBESE": True}))["body"]
+    want = spec(h, "STRONG", "OBESE")
+    assert body["F0"] == want["F0"] and body["fm"] == want["fm"]
+    assert body["F0"] != spec(h)["F0"] and body["fm"] != spec(h)["fm"]
+    assert body["N0"] == D(h).N0["STRONG"] and body["fatT"] == 2 and body["band"] == "obese"
+
+
+@pytest.mark.parametrize("traits, muscle, weight", [
+    ({"FEEBLE": True}, "FEEBLE", None),
+    ({"WEAK": True, "OVERWEIGHT": True}, "WEAK", "OVERWEIGHT"),
+    ({"STOUT": True, "UNDERWEIGHT": True}, "STOUT", "UNDERWEIGHT"),
+    ({"EMACIATED": True}, None, "VERY_UNDERWEIGHT"),                # Emaciated reads as Very Underweight
+    ({"ATHLETIC": True, "FIT": True}, None, None),                  # a fitness trait is no band pick
+])
+def test_first_sight_reads_the_held_band_traits_never_the_native_level(met_host, traits, muscle, weight):
+    h = met_host
+    for strength in (0, 5, 10):                # the native level never moves the body
+        body = fresh(h, player(h, traits=traits, strength=strength, weight=60.0 + 10 * strength))["body"]
+        want = spec(h, muscle, weight)
+        for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
+            assert body[k] == want[k], (traits, strength, k)
+
+
+GUARDED_PLAYER = r"""
+function(p, C)
+    p.getPerkLevel = function(self) C.perk = C.perk + 1; return 9 end
+    p.getMaxWeightDelta = function(self) C.delta = C.delta + 1; return 1.5 end
+    local nut = p.getNutrition
+    p.getNutrition = function(self) C.nutrition = C.nutrition + 1; return nut(self) end
+    return p
+end
+"""
+
+
+def test_ensure_body_reads_no_carry_delta_no_perk_level_and_no_weight(met_host):
+    # the brief: ensureBody no longer reads getMaxWeightDelta or getPerkLevel (ruling 13-7: the carry is the band's);
+    # the weight read went with the split
+    h = met_host
+    C = h.rt.eval("{ perk = 0, delta = 0, nutrition = 0 }")
+    p = h.rt.eval(GUARDED_PLAYER)(player(h, traits={"STOUT": True}), C)
+    record = h.rt.table()
+    MET(h).ensureBody("admin", p, record, 100.0)
+    assert record["body"]["N0"] == D(h).N0["STOUT"]
+    assert (C.perk, C.delta, C.nutrition) == (0, 0, 0)
+    record2 = fresh(h, p)
+    minute(h, p, record2, 100.0 + 1 / 60)
+    assert (C.perk, C.delta) == (0, 0)         # nor does the minute or its heal
 
 
 def test_a_female_first_sight_builds_the_male_body_unless_sex_specific_is_on(met_host):
-    # Plan 13 Task 3 fix 1: the creation split reads the effective sex; body.sex keeps the engine's value
+    # Plan 13 Task 3 fix 1: the creation body reads the effective sex; body.sex keeps the engine's value
     h = met_host
-    traits = {"ATHLETIC": True}
+    traits = {"OVERWEIGHT": True}
     nr = h.G.NutritionRevamp.server
     made = nr.options is None
     if made:
@@ -284,32 +324,18 @@ def test_a_female_first_sight_builds_the_male_body_unless_sex_specific_is_on(met
         opts.sexSpecific = saved
         if made:
             nr.options = None
-    fm, lm, _ = h.K.body.split(62.0, 2, h.table({"athletic": True}))
-    assert on["sex"] == 2 and abs(on["fm"] - fm) < TOL and abs(on["lm"] - lm) < TOL
-    assert on["fm"] != off["fm"]
+    want = spec(h, None, "OVERWEIGHT", 2)
+    assert on["sex"] == 2 and on["fm"] == want["fm"] and on["lm"] == want["lm"]
+    assert on["fm"] != off["fm"] and off["fm"] == spec(h, None, "OVERWEIGHT", 1)["fm"]
 
 
 def test_first_sight_defaults_when_every_getter_is_absent(met_host):
     h = met_host
-    saved = h.G.ZombRandFloat
-    h.G.ZombRandFloat = None
-    try:
-        record = fresh(h, h.rt.table())        # a player with no members at all
-    finally:
-        h.G.ZombRandFloat = saved
+    record = fresh(h, h.rt.table())            # a player with no members at all: male, no band trait held
     body = record["body"]
-    assert abs(body["fm"] + body["lm"] - 80.0) < 1e-6
-    assert body["sex"] == 1 and body["l0"] == 0 and body["traitCarry"] == 1.0 and body["r"] == 1
+    want = spec(h)
+    assert body["fm"] == want["fm"] and body["lm"] == want["lm"] and body["sex"] == 1
     assert nonfinite(h, record) == ""
-
-
-def test_trait_carry_is_read_once(met_host):
-    h = met_host
-    p = player(h, delta=1.0)
-    record = fresh(h, p)
-    p.cfg.delta = 0.5                          # the mod's own later write: never re-read
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert record["body"]["traitCarry"] == 1.0
 
 
 # --- the minute -----------------------------------------------------------------------------------------
@@ -335,10 +361,12 @@ def test_minute_dt_is_clamped_to_an_hour(met_host):
     h = met_host
     p = player(h, moving=False, rate=1.5)      # idle Default, billed at its Compendium MET
     record = fresh(h, p)
-    minute(h, p, record, 100.0 + 5.0)          # five hours later: billed as 60 minutes
     body = record["body"]
+    body.lx = 1.25                             # the body mass the bill reads is fm + lm + lx (ruling 13-20)
+    mass = body["fm"] + body["lm"] + 1.25
+    minute(h, p, record, 100.0 + 5.0)          # five hours later: billed as 60 minutes
     ree = h.K.energy.ree(body["lm"])
-    act = max(h.K.energy.activityMet("Default", False, 1, 0) - 1.0, 0) * 80.0
+    act = max(h.K.energy.activityMet("Default", False, 1, 0) - 1.0, 0) * mass
     assert abs(body["actKcalDay"] - act) < 1e-6
     assert abs(body["eeDay"] - (ree / 1440 * 60 + act)) < 1e-6
 
@@ -463,19 +491,6 @@ def test_read_activity_hour_of_day(met_host):
         h.G.NR_TEST_TOD = None
 
 
-def test_loaded_minute_banks_a_resistance_event_only_with_a_max_weight(met_host):
-    h = met_host
-    p = player(h, carried=17.0, maxW=20, rate=3.1 * (1 + 0.35 * 0.85 * 0.85))
-    record = fresh(h, p)
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert record["body"]["vStrHigh"] > 0      # 0.85 of max: a high load minute
-    p0 = player(h, carried=17.0, maxW=0)
-    record0 = fresh(h, p0)
-    minute(h, p0, record0, 100.0 + 1 / 60)
-    assert record0["body"]["vStr"] == 0        # maxW 0: loadMinute is not called
-    assert nonfinite(h, record0) == ""
-
-
 # --- the day close -------------------------------------------------------------------------------------
 
 def online(h, p, record, age):
@@ -587,15 +602,13 @@ def test_day_close_runs_the_partition_strength_and_tac(met_host):
     record = fresh(h, p, 100.0)
     body = record["body"]
     fm0 = body["fm"]
-    body.vStr = 2.0
-    body.vStrHigh = 2.0
-    body.n = 0.0
+    body.sigDay = 6 * D(h).xpPerSet            # today's six sets of Strength XP (ruling 13-12)
     for i in range(1, 8):
         body.bandWeek[i][1] = 60               # a full week of band-1 minutes: TAC rises
     online(h, p, record, 124.0)
     assert body["fm"] < fm0                    # an hour's deficit paid by fat
-    assert body["n"] > 0 and body["nHist"][14] == body["n"]
-    assert body["cumDef"] > 0
+    assert body["S"] == 6.0 and body["sig7"][7] == 6 * D(h).xpPerSet and body["sigDay"] == 0
+    assert body["T"] > 1.0                     # the neural factor rose on the week's sets
     assert body["tac"] > 1.0
     assert body["pPrevKg"] == 0                # no protein eaten on the closed day
 
@@ -618,8 +631,9 @@ def test_close_order_training_ring_before_tac_and_at_after_the_ring():
     with open(METABOLISM, encoding="utf-8") as fh:
         src = fh.read()
     region = src[src.index("local function closeDay("):src.index("MET.stats.days = MET.stats.days + 1")]
-    order = ["body.tDisuse = body.tDisuse + 1", "K.training.doses(body)", "K.partition.day(",
-             "K.strength.closeDay(", "K.training.closeDay(body)", "K.training.weekMinutes(body)",
+    order = ["body.tDisuse = body.tDisuse + 1", "K.strength.signalClose(body)", "K.partition.disuse(body)",
+             "K.strength.detrain(", "K.strength.neural(", "K.strength.day(", "body.fmRef = K.max(body.fmRef, body.fm)",
+             "K.traits.axes(", "body.S = S", "K.training.closeDay(body)", "K.training.weekMinutes(body)",
              "K.aerobic.tacDay(", "K.partition.closeDay(body)", "K.energy.atStep(",
              "K.partition.deficitWeek(body)"]
     at = [region.index(s) for s in order]
@@ -627,6 +641,8 @@ def test_close_order_training_ring_before_tac_and_at_after_the_ring():
     assert "K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm)" in region   # ruling W-1
     assert "actKcalDay" not in region
     assert re.search(r"K\.aerobic\.tacDay\(.*, immobilised\)", region)   # ruling W-2
+    for gone in ("K.training.doses", "K.partition.day(", "K.strength.closeDay("):
+        assert gone not in region, gone
 
 
 SPY = r"""
@@ -709,6 +725,145 @@ def test_immobilised_days_run_disuse(met_host):
     assert body["tDisuse"] == 0
 
 
+# --- the lean-mass day close (Plan 13 Task 12) ------------------------------------------------------------------------
+# A spy wraps the kernel functions the close calls, counts each call and keeps the arguments and returns it names; the
+# minute runs an hour online across a world-day boundary, so the step closes one day (ruling 13-5).
+CLOSE_COUNT = r"""
+function(player, record, age)
+    local K = NutritionRevamp.kernel
+    local names = { { K.strength, "signalClose" }, { K.strength, "day" }, { K.strength, "growth" },
+                    { K.strength, "detrain" }, { K.strength, "neural" }, { K.strength, "peakStep" },
+                    { K.traits, "axes" }, { K.partition, "disuse" } }
+    local seen = { n = {}, ret = {}, args = {} }
+    local saved = {}
+    for i = 1, #names do
+        local t, k = names[i][1], names[i][2]
+        local f = t[k]
+        saved[i] = f
+        seen.n[k] = 0
+        t[k] = function(...)
+            seen.n[k] = seen.n[k] + 1
+            seen.args[k] = { ... }
+            local r = { f(...) }
+            seen.ret[k] = r
+            return unpack(r)
+        end
+    end
+    record.body.lastAgeH = age - 1
+    NR_TEST_AGE = age
+    local ok, err = pcall(NutritionRevamp.server.metabolism.minute, "admin", player, record)
+    for i = 1, #names do names[i][1][names[i][2]] = saved[i] end
+    seen.ok = ok
+    seen.err = err
+    return seen
+end
+"""
+
+
+def test_one_close_runs_signal_close_day_and_axes_once_and_writes_the_sets(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    for i in range(1, 8):
+        body.sig7[i] = 100.0 * i               # slot 1 (100) leaves at the shift; slots 2-7 are the six kept days
+    body.sigDay = 800.0
+    failures = MET(h).stats.failures
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True and MET(h).stats.failures == failures
+    for k, n in (("signalClose", 1), ("day", 1), ("axes", 1), ("disuse", 0)):
+        assert seen.n[k] == n, k
+    want = (200 + 300 + 400 + 500 + 600 + 700 + 800.0) / D(h).xpPerSet    # today's slot in, the oldest out
+    assert body["S"] == want and seen.args["day"][2] == want
+    assert seen.args["day"][8] == D(h).ts      # the biology clock rides on P
+    assert body["sigDay"] == 0 and body["sig7"][7] == 800.0
+
+
+def test_the_close_reads_the_servers_strength_table(met_host, opts):
+    # the brief: P is NR.server.options.strength, falling back to DEFAULTS when absent
+    h = met_host
+    P, _ = h.K.strength.params(h.table({"StrengthXPPerSet": 100}))
+    opts.strength = P
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    record["body"].sigDay = 300.0
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True
+    assert record["body"]["S"] == 3.0 and h.G.rawequal(seen.args["day"][7], P)
+
+
+def test_the_close_weighs_the_day_per_kg_of_the_body_mass(met_host):
+    # ruling 13-20: w = fm + lm + lx; the protein the close hands on is per kg of it, and so is the alcohol
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.lx = 2.5
+    body.pDay = 100.0
+    body.alcDay = 30.0
+    w = body["fm"] + body["lm"] + 2.5
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True
+    assert seen.args["day"][3] == 100.0 / w and seen.args["day"][6] == 30.0 / w
+    assert body["pPrevKg"] == 100.0 / w
+
+
+def test_an_immobilised_close_runs_disuse_and_no_growth(met_host):
+    # ruling 13-13 and the Task 8 review (amendment 3): the disuse arm in place of growth, regain and detraining;
+    # detraining is called for its grace counter and its kg discarded; lx untouched; the neural factor still steps
+    h = met_host
+    p = player(h, fracture={"LowerLeg_L": 30.0}, traits={"STRONG": True})
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.lm = body["F0"] + 3.0                 # above the set point: detraining would take kg on this day
+    body.grace = 100                           # past the grace days, no sets: a detraining day
+    body.lx = 0.5
+    lm, fm = body["lm"], body["fm"]
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 124.0)
+    assert seen.ok is True
+    assert seen.n["disuse"] == 1 and seen.n["day"] == 0 and seen.n["growth"] == 0 and seen.n["peakStep"] == 0
+    assert seen.n["detrain"] == 1 and seen.n["neural"] == 1 and seen.n["axes"] == 1
+    dfm, dlm = seen.ret["disuse"][1], seen.ret["disuse"][2]
+    assert dlm < 0 and seen.ret["detrain"][1] > 0   # detraining's kg is real, and discarded
+    assert body["lm"] == lm + dlm               # the disuse arm alone moved the lean
+    assert body["fm"] == fm + dfm
+    assert body["lx"] == 0.5 and body["grace"] == 101 and body["tDisuse"] == 1 and body["Tgrace"] == 1
+    # a trained, fed day while immobilised grows nothing: the signal resets the grace counter and steps T only
+    body.sigDay = 50 * D(h).xpPerSet
+    body.pDay = 200.0
+    lm, T = body["lm"], body["T"]
+    seen = h.rt.eval(CLOSE_COUNT)(p, record, 148.0)
+    assert seen.ok is True and seen.n["growth"] == 0 and seen.n["day"] == 0
+    assert body["lm"] == lm + seen.ret["disuse"][2] and body["grace"] == 0 and body["T"] > T
+    assert body["S"] == 50.0
+
+
+def test_an_immobilised_close_keeps_the_floors(met_host):
+    # ruling 13-35: the disuse arm's change is applied under fmMin and fMinShare * F0
+    h = met_host
+    p = player(h, fracture={"UpperLeg_R": 30.0})
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.lm = D(h).fMinShare * body["F0"] + 1e-6
+    body.fm = D(h).fmMin + 1e-6
+    body.ebDay = -5000.0
+    online(h, p, record, 124.0)
+    assert body["lm"] == D(h).fMinShare * body["F0"] and body["fm"] == D(h).fmMin
+
+
+def test_the_close_writes_the_band_and_marks_the_traits_dirty_only_when_it_changes(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    online(h, p, record, 124.0)
+    assert body["band"] == "normal" and body["traitsDirty"] is None
+    body.fm = 12.5 * 1.7 * 1.7                 # past the obese cut by more than the margin
+    online(h, p, record, 148.0)
+    assert body["band"] == "obese" and body["traitsDirty"] is True and body["fatT"] == 2
+    assert body["fmRef"] >= body["fm"]         # the re-base runs before the axes read the day's fat
+
+
 # --- the stamps -----------------------------------------------------------------------------------------
 
 def test_coefficients_stamped_neutral_on_a_fresh_body(met_host):
@@ -788,7 +943,7 @@ def test_a_non_finite_stamp_heals_and_counts(met_host):
     failures = MET(h).stats.failures
     minute(h, p, record, 100.0 + 1 / 60)
     assert nonfinite(h, record) == ""
-    assert abs(body["fm"] - body["fm0"]) < TOL
+    assert body["fm"] == spec(h)["fm"]           # the no-trait body's fat (Plan 13 Task 12)
     assert body["tac"] == 1.0
     assert body["energyState"] == body["energyState"]
     assert MET(h).stats.failures == failures + 1
@@ -803,37 +958,39 @@ def test_heal_covers_day_index_ages_and_creation_masses(met_host):
     body.dayIndex = NAN
     body.lastAgeH = NAN
     body.trail.at = float("inf")
-    body.fm0 = NAN
-    body.lm0 = NAN
+    body.F0 = NAN
+    body.Pk = NAN
     failures = MET(h).stats.failures
     days = MET(h).stats.days
     minute(h, p, record, 110.0)
-    assert body["dayIndex"] == 4               # floor(110 / 24); a NaN never stops the closes
+    assert body["dayIndex"] == 4               # floor(110 / 24), no record day to read; a NaN never stops the closes
     assert MET(h).stats.days == days           # healed to today: no spurious close
     assert body["lastAgeH"] == 110.0
     assert body["trail"]["at"] == 110.0
-    assert abs(body["fm0"] - body["fm"]) < 1e-6 and abs(body["lm0"] - body["lm"]) < 1e-6
+    assert body["F0"] == spec(h)["F0"] and body["Pk"] == spec(h)["Pk"]
     assert MET(h).stats.failures == failures + 1
-    for k in ("dayIndex", "lastAgeH", "trail.at", "fm0", "lm0"):
+    for k in ("dayIndex", "lastAgeH", "trail.at", "F0", "Pk"):
         assert k in MET(h).lastError
     assert nonfinite(h, record) == ""
     online(h, p, record, 120.0)
     assert body["dayIndex"] == 5               # the closes run again
 
 
-def test_heal_creation_masses_fall_back_to_the_split(met_host):
+def test_heal_day_index_reads_the_records_own_day(met_host):
+    # Task 12 amendment 5: the record-day lower bound is the Nutrients step's last seen day, else the Effects day
     h = met_host
     p = player(h)
-    record = fresh(h, p, 100.0)
-    body = record["body"]
-    body.fm = NAN
-    body.fm0 = NAN
-    body.lm = NAN
-    body.lm0 = NAN
-    minute(h, p, record, 100.0 + 1 / 60)
-    fm, lm, _ = h.K.body.split(80, 1, h.table({}))
-    assert abs(body["fm0"] - fm) < TOL and abs(body["lm0"] - lm) < TOL
-    assert nonfinite(h, record) == ""
+    for subs, want in (({"nutrients": {"lastDayIndex": 2}, "effects": {"lastDay": 1}}, 2),
+                       ({"nutrients": {"lastDayIndex": NAN}, "effects": {"lastDay": 1}}, 1),
+                       ({"effects": {"lastDay": 3}}, 3),
+                       ({}, 4)):
+        record = fresh(h, p, 100.0)
+        for k, v in subs.items():
+            record[k] = h.table(v)
+        record["body"].dayIndex = NAN
+        assert MET(h).dayFloor(record) == (want if want != 4 else None)
+        minute(h, p, record, 100.0 + 1 / 60)
+        assert record["body"]["dayIndex"] == want, subs
 
 
 def test_heal_stamps_non_finite_ring_slots(met_host):
@@ -848,7 +1005,7 @@ def test_heal_stamps_non_finite_ring_slots(met_host):
     failures = MET(h).stats.failures
     minute(h, p, record, 100.0 + 1 / 60)
     assert body["p7"][2] == 0 and body["eb7"][7] == 0 and body["trail"]["carb"][h.K.body.trailSlot(100)] == 0
-    assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < 1e-6
+    assert abs(body["mass7"][1] - (body["fm"] + body["lm"] + body["lx"])) < 1e-6
     assert MET(h).stats.failures == failures + 1
     for k in ("p7", "eb7", "trail.carb", "mass7"):
         assert k in MET(h).lastError
@@ -861,31 +1018,27 @@ def test_heal_covers_the_creation_scalars_and_the_strength_and_band_rings(met_ho
     p = player(h, strength=7)
     record = fresh(h, p, 100.0)
     body = record["body"]
-    body.r = NAN
-    body.traitCarry = float("inf")
-    body.l0 = NAN
+    body.N0 = NAN
+    body.T = float("inf")
+    body.grace = NAN
     body.tDisuse = NAN
     body.lm0dis = NAN
-    body.nPeak = NAN
-    body.tPeakD = NAN
+    body.fatT = 7
     body.exKcalDay = NAN
-    body.nHist[3] = NAN
+    body.sig7[3] = NAN
     body.bandWeek[2][1] = NAN
     body.bandWeek[5][2] = float("-inf")
     failures = MET(h).stats.failures
     minute(h, p, record, 100.0 + 1 / 60)
-    assert body["r"] == 1 and body["traitCarry"] == 1
-    assert body["l0"] == 7                     # the Strength level read now
-    assert body["tDisuse"] == 0 and body["nPeak"] == 0
+    assert body["N0"] == 1 and body["T"] == 1 and body["grace"] == 0
+    assert body["tDisuse"] == 0 and body["fatT"] == 0
     assert abs(body["lm0dis"] - body["lm"]) < TOL
-    assert body["tPeakD"] == body["dayIndex"]
     assert body["exKcalDay"] == body["exKcalDay"]
-    assert body["nHist"][3] == 0
+    assert body["sig7"][3] == 0
     assert body["bandWeek"][2][1] == 0 and body["bandWeek"][5][2] == 0
     assert MET(h).stats.failures == failures + 1
     named = MET(h).lastError.split("non-finite ")[1].split(" for ")[0].split(",")
-    for k in ("r", "traitCarry", "l0", "tDisuse", "lm0dis", "nPeak", "tPeakD", "exKcalDay", "nHist",
-              "bandWeek"):
+    for k in ("N0", "T", "grace", "tDisuse", "lm0dis", "fatT", "exKcalDay", "sig7", "bandWeek"):
         assert k in named, k
     assert nonfinite(h, record) == ""
     online(h, p, record, 124.0)                # the closes run on the healed record
@@ -1420,6 +1573,20 @@ def test_the_day_alcohol_reaches_rmod_per_kg(met_host, opts):
     assert body["rmod"] < 1.0
 
 
+def test_the_day_alcohol_reads_the_body_mass_with_the_labile_lean(met_host, opts):
+    # ruling 13-20: the minute's mass after the close check is fm + lm + lx
+    h = met_host
+    p = player(h)
+    record = fresh(h, p)
+    body = record["body"]
+    body.lx = 3.0
+    body.alcDay = 50.0
+    minute(h, p, record, 100.0 + 1 / 60)
+    w = body["fm"] + body["lm"] + 3.0
+    assert body["rmod"] == _rmod(h, body, alc=50.0 / w)
+    assert body["rmod"] != _rmod(h, body, alc=50.0 / (w - 3.0))   # inside the arm's 0.5-1 g/kg ramp: the mass moves it
+
+
 def test_unreadable_sub_table_values_read_neutral(met_host, opts):
     h = met_host
     failures = MET(h).stats.failures
@@ -1736,3 +1903,25 @@ def test_a_metabolism_minute_makes_no_more_java_calls_than_before_the_calendar(m
         h.G.getGameTime = C.restore
     for k, v in HEAD_JAVA_CALLS.items():
         assert got[k] <= v, (k, got)
+
+
+# Plan 13 Task 12: first sight reads the held band traits (4 muscle and 5 weight gets at most) where the Plan 3 body
+# read the weight, the six build traits, the Strength level and the carry delta. The first-sight minute's count was
+# read at the day-close seam commit 6fa69ca7 (43 for a player holding no trait and for one holding Strong) and pinned:
+# it makes no more. The steady, close and return minutes keep HEAD_JAVA_CALLS above.
+HEAD_FIRST_SIGHT_CALLS = 43   # read at 6fa69ca7
+
+
+@pytest.mark.parametrize("traits", [{}, {"STRONG": True}, {"STOUT": True, "EMACIATED": True}])
+def test_a_first_sight_minute_makes_no_more_java_calls_than_the_plan_3_body(met_host, traits):
+    h = met_host
+    p = player(h, traits=traits)
+    C = h.rt.eval("{ n = 0 }")
+    h.rt.eval(JAVA_COUNT)(p, C)
+    try:
+        record = h.rt.table()
+        minute(h, p, record, 100.0)
+    finally:
+        h.G.getGameTime = C.restore
+    assert record["body"] is not None
+    assert C.n <= HEAD_FIRST_SIGHT_CALLS, C.n

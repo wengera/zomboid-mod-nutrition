@@ -181,7 +181,7 @@ end
 -- mean is nil (unknown) until the 7-day ring holds seven closed days (the character's birth day from bornAge).
 local function closeDay(E, record, body, closing)
     local a = record.acute
-    local w = body.fm + body.lm
+    local w = body.fm + body.lm + body.lx
     local pMean = nil
     if finite(body.bornAge) and type(body.p7) == "table" and w > 0
         and body.dayIndex - math.floor(body.bornAge / 24) >= EFF.P7_DAYS then
@@ -425,7 +425,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     if body == nil or nut == nil or fluids == nil or a == nil then return end
     if not finite(dtM) then dtM = 1 end
     if not finite(ageH) then ageH = nut.lastAgeH end
-    local w = body.fm + body.lm
+    local w = body.fm + body.lm + body.lx
     local O = NR.server.options or EMPTY
     local sev = finite(O.severity) and O.severity or 1
     local canKill = O.deficienciesCanKill ~= false

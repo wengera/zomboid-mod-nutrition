@@ -20,7 +20,7 @@ def _close(a, b):
 
 
 def _body(host, **kw):
-    d = dict(lm=65.6, fm=14.4, at=0.0, inDay=0.0, eeDay=0.0, ebDay=0.0, actKcalDay=0.0, exKcalDay=0.0,
+    d = dict(lm=65.6, fm=14.4, lx=0.0, at=0.0, inDay=0.0, eeDay=0.0, ebDay=0.0, actKcalDay=0.0, exKcalDay=0.0,
              pDay=0.0, carbDay=0.0, lipDay=0.0)
     d.update(kw)
     b = host.table(d)
@@ -227,6 +227,16 @@ def test_minute_walking_banks_exercise_above_the_idle_class(host):
     assert _close(b.exKcalDay, 3.3333333333333335)
     host.K.energy.minute(b, 3.8, False, 1, 10)
     assert _close(b.exKcalDay, 11 * (3.8 - 1.3) * 80 / 60)
+
+
+def test_minute_total_mass_terms_count_the_labile_lean(host):
+    # ruling 13-20: the activity bill and the exercise kcal read the total mass fm + lm + lx; REE reads lm alone
+    b = _body(host, lm=63.6, lx=2.0)
+    host.K.energy.minute(b, 3.8, False, 1, 1)
+    ree = host.K.energy.ree(63.6) / 1440
+    assert _close(b.exKcalDay, (3.8 - 1.3) * 80 / 60)
+    assert _close(b.actKcalDay, (3.8 - host.K.energy.MET_REST) * 80 / 60)
+    assert _close(b.eeDay, ree + (3.8 - host.K.energy.MET_REST) * 80 / 60)
 
 
 # --- intake ---

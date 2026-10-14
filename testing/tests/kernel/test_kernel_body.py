@@ -1,11 +1,11 @@
-"""The body split, the weight band, the direction flags and the macro-mirror maps (NR_Kernel_Body.lua),
-Plan 3 Task 6.
+"""The weight band, the direction flags, the macro-mirror maps, the trailing-24 h window and the record calendar
+(NR_Kernel_Body.lua), Plan 3 Task 6. The band-anchored weight split (split, interp and their tables, the build
+offsets) and the old constructor are removed in Plan 13 Task 12: the body is K.body.new over K.body.create
+(test_body_create.py).
 
 NR_Kernel_Body.lua is a kernel file (its name is NR_Kernel*), so the session `host` fixture loads it
 through its glob and already has NutritionRevamp.kernel.body. Every expectation below is hand-computed
-from the file's constants: the band-anchored fat-fraction table (anchors 50/60/70/80/95/105 kg; male
-0.06..0.33, female 0.15..0.40; S1051 open, a design-phase-v1 game choice), the build offsets, the
-BF_MIN/BF_MAX clamp, the band edges (#0531, #0155), the flag thresholds (ruling 17) and the mirror maps
+from the file's constants: the band edges (#0531, #0155), the flag thresholds (ruling 17) and the mirror maps
 (#0022, #0023, ruling 13).
 """
 import pytest
@@ -17,21 +17,15 @@ def _close(a, b):
     return abs(a - b) < TOL
 
 
-def _build(host, **flags):
-    return host.table(flags)
-
-
 # --- constants ---
 
 def test_constants(host):
     b = host.K.body
-    assert list(host.py(b.ANCHORS_W).values()) == [50, 60, 70, 80, 95, 105]
-    assert list(host.py(b.BF_MALE).values()) == [0.06, 0.09, 0.13, 0.18, 0.27, 0.33]
-    assert list(host.py(b.BF_FEMALE).values()) == [0.15, 0.19, 0.23, 0.28, 0.35, 0.40]
-    assert host.py(b.BF_MIN) == {1: 0.04, 2: 0.12}
-    assert b.BF_MAX == 0.55
-    assert host.py(b.BUILD_OFFSET) == {"athletic": -0.04, "fit": -0.02, "outOfShape": 0.02,
-                                       "unfit": 0.04, "strong": -0.02, "stout": -0.01}
+    assert b.WEEK_N == 7
+    # Plan 13 Task 12 (spec section 9.2): the weight split and its tables are gone, and so is newLean (renamed new)
+    for name in ("split", "interp", "ANCHORS_W", "BF_MALE", "BF_FEMALE", "BF_MIN", "BF_MAX", "BUILD_OFFSET",
+                 "BUILD_KEYS", "KNOTS", "W_MIN", "W_MAX", "newLean"):
+        assert b[name] is None, name
 
 
 # --- effSex (Plan 13 Task 3) ---
@@ -42,80 +36,6 @@ def test_eff_sex_is_male_unless_the_option_is_on(host):
     assert host.call("body.effSex", 1, True) == 1
     assert host.call("body.effSex", 1, False) == 1
     assert host.call("body.effSex", 2, None) == 1
-
-
-# --- interp ---
-
-@pytest.mark.parametrize("w,sex,bf", [
-    (80, 1, 0.18),
-    (87.5, 1, 0.225),
-    (40, 1, 0.06),        # flat below the first anchor
-    (50, 1, 0.06),
-    (105, 1, 0.33),
-    (120, 2, 0.40),       # flat above the last anchor
-    (55, 2, 0.17),
-    (80, 2, 0.28),
-])
-def test_interp(host, w, sex, bf):
-    assert _close(host.call("body.interp", w, sex), bf)
-
-
-# --- split ---
-
-def test_split_plain(host):
-    fm, lm, bf = host.call("body.split", 80, 1, _build(host))
-    assert _close(fm, 14.4)
-    assert _close(lm, 65.6)
-    assert _close(bf, 0.18)
-
-
-def test_split_athletic_offset(host):
-    fm, lm, bf = host.call("body.split", 80, 1, _build(host, athletic=True))
-    assert _close(bf, 0.14)
-    assert _close(fm, 80 * 0.14)
-    assert _close(fm + lm, 80)
-
-
-def test_split_false_flag_adds_nothing(host):
-    _, _, bf = host.call("body.split", 80, 1, _build(host, athletic=False, stout=True))
-    assert _close(bf, 0.17)
-
-
-def test_split_clamps_at_bf_min(host):
-    fm, lm, bf = host.call("body.split", 50, 1, _build(host, athletic=True, strong=True))
-    assert _close(bf, 0.04)
-    assert _close(fm, 2.0)
-    assert _close(lm, 48.0)
-
-
-def test_split_clamps_at_bf_min_female(host):
-    _, _, bf = host.call("body.split", 40, 2, _build(host, athletic=True, fit=True))
-    assert _close(bf, 0.12)
-
-
-def test_split_clamps_at_bf_max(host):
-    _, _, bf = host.call("body.split", 150, 2, _build(host, unfit=True, outOfShape=True, stout=True))
-    assert _close(bf, 0.45)
-    b = host.K.body
-    b.BF_MAX = 0.42
-    try:
-        _, _, bf = host.call("body.split", 150, 2, _build(host, unfit=True))
-        assert _close(bf, 0.42)
-    finally:
-        b.BF_MAX = 0.55
-
-
-def test_split_clamps_weight_high(host):
-    fm, lm, bf = host.call("body.split", 300, 2, _build(host))
-    assert _close(bf, 0.40)
-    assert _close(fm, 80.0)
-    assert _close(lm, 120.0)
-
-
-def test_split_clamps_weight_low(host):
-    fm, lm, bf = host.call("body.split", 10, 1, _build(host))
-    assert _close(bf, 0.06)
-    assert _close(fm + lm, 35.0)
 
 
 # --- band ---
@@ -205,59 +125,16 @@ def test_map_lipids(host, g, out):
 
 # --- new ---
 
-def test_new_record_body(host):
-    body = host.py(host.K.body["new"](80, 1, _build(host), 5, 1.0, 1.0, 100))
-    scalars = {
-        "fm0": body["fm"], "lm0": body["lm"], "lm0dis": body["lm"], "fmRef": body["fm"], "l0": 5, "sex": 1, "r": 1.0,
-        "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "pPrevKg": 0.8, "strAgeH": 100, "at": 0, "dayIndex": 4, "wday": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
-        "actKcalDay": 0, "exKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "vStr": 0,
-        "vHyp": 0, "vStrHigh": 0, "metMinDay": 0, "band1Day": 0, "band2Day": 0, "n": 0, "nPeak": 0,
-        "tPeakD": 4, "cumDef": 0, "tDisuse": 0, "shownL": 5, "riseHeldH": 0, "lastFallAge": 100,
-        "delta": 1.0, "band": "normal", "tac": 1.0, "rmod": 1, "energyState": 1,
-    }
-    for k, v in scalars.items():
-        assert body[k] == v, k
-    assert _close(body["fm"], 14.4)
-    assert _close(body["lm"], 65.6)
-    assert list(body["eb7"].values()) == [0] * 7
-    assert list(body["mass7"].values()) == [80] * 7
-    assert len(body["mass7"]) == 7
-    assert list(body["bandWeek"].values()) == [{1: 0, 2: 0}] * 7
-    assert len(body["bandWeek"]) == 7
-    assert list(body["nHist"].values()) == [0] * 14
-    assert len(body["nHist"]) == 14
-    assert list(body["p7"].values()) == [0] * 7
-    assert len(body["p7"]) == 7
-    trail = body["trail"]                               # the trailing-24 h window (Plan 11d Task 9c), empty at birth
-    assert trail["at"] == 100 and trail["ch"] == -1
-    assert set(trail) == {"at", "ch", "c"} | set(KEYS)
-    ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "p7", "trail"}
-    assert set(body) == set(scalars) | {"fm", "lm"} | ring_keys
-
-
-def test_new_rings_and_band_read_the_clamped_weight(host):
-    # Close fix wave (T6 review): mass7 and band read the clamped weight fm + lm uses, not the raw w.
-    py = host.py(host.K.body["new"](300, 1, _build(host), 5, 1.0, 1.0, 0))
-    assert py["mass7"][1] == 200
-    assert list(py["mass7"].values()) == [200] * 7
-    assert py["band"] == "obese"
-    assert _close(py["fm"] + py["lm"], 200)
-    low = host.py(host.K.body["new"](20, 2, _build(host), 5, 1.0, 1.0, 0))
-    assert list(low["mass7"].values()) == [35] * 7
-    assert low["band"] == "emaciated"
-
-
 def test_new_rings_are_distinct_tables(host):
-    body = host.K.body["new"](62, 2, _build(host, fit=True), 3, 0.9, 1.3, 47.5, True)
+    spec = host.call("body.create", "FEEBLE", "OVERWEIGHT", host.K.strength.DEFAULTS, 2)
+    body = host.K.body["new"](spec, 2, 47.5)
     week = body.bandWeek
     assert not host.rt.eval("rawequal")(week[1], week[2])
+    assert not host.rt.eval("rawequal")(body.sig7, body.eb7)
+    week[1][1] = 5
+    assert week[2][1] == 0
     py = host.py(body)
-    assert py["band"] == "veryUnderweight"
-    assert py["dayIndex"] == 1
-    assert py["wday"] == 1
-    assert py["tPeakD"] == 1
-    assert py["delta"] == 0.9
-    assert _close(py["fm"] / 62, 0.19 * 0.8 + 0.23 * 0.2 - 0.02)
+    assert py["dayIndex"] == 1 and py["wday"] == 1
 
 
 # --- the trailing-24 h window (Plan 11d Task 9c, ruling C-8) ---

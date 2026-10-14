@@ -116,7 +116,7 @@ end
 local function step(username, player, record, ctx)
     local body = record.body
     if body == nil then return end
-    local w = body.fm + body.lm
+    local w = body.fm + body.lm + body.lx                -- the body mass: the weight slot (ruling 13-20)
     if not finite(w) or w <= 0 then
         WGT.stats.failures = WGT.stats.failures + 1
         WGT.lastError = "weight: non-finite or non-positive mass for " .. tostring(username) .. "; nothing written"

@@ -4,7 +4,7 @@
 `perfect_run`) and spec section 3.2's kg columns at 1.70 m (2.89 m2), unrounded: the muscle starts through N0 and lean,
 the set point and the natural cap moved by the trait share, the cap clamped at the natural FFMI limit, the peak, the
 fat and thin weight picks by sex, the rungs, the anti-stacking exclusions over every legal pick set of the 8 body traits
-for both sexes, and `K.body.newLean` (the constructor Task 12 renames to `new`) under ten years of perfect training.
+for both sexes, and `K.body.new` (renamed from `newLean` in Task 12) under ten years of perfect training.
 """
 import pytest
 
@@ -130,7 +130,7 @@ def test_perfect_training_from_each_start_matches_the_reference(host, muscle):
     D = _d(host)
     key = muscle or "none"
     lm = sl.LEVEL_MODEL
-    b = host.call("body.newLean", host.call("body.create", muscle, None, D), 1, 0)
+    b = host.call("body.new", host.call("body.create", muscle, None, D), 1, 0)
     ref = sl.perfect_run(key, 3650)
     marks = (1, 28, 70, 182, 365, 730, 1460, 2190, 3650)
     for day in range(1, 3651):
@@ -281,13 +281,13 @@ def test_create_reads_its_own_keys(host, over):
 
 # --- the constructor ---
 
-def test_new_lean_lays_the_spec_and_the_surviving_fields(host):
+def test_new_lays_the_spec_and_the_surviving_fields(host):
     spec = host.call("body.create", "STRONG", "OBESE", _d(host), 2)
-    b = host.call("body.newLean", spec, 2, 50.0)
+    b = host.call("body.new", spec, 2, 50.0)
     for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
         assert b[k] == spec[k], k
     assert b.fatT == 2 and b.thinT == 0
-    assert (b.lx, b.grace, b.sigDay, b.T, b.Tgrace) == (0, 0, 0, 1, 0)
+    assert (b.lx, b.grace, b.sigDay, b.T, b.Tgrace, b.S) == (0, 0, 0, 1, 0, 0)
     assert [b.sig7[i] for i in range(1, 8)] == [0] * 7
     assert b.fmRef == b.fm and b.lm0dis == b.lm
     assert b.sex == 2 and b.bornAge == 50.0 and b.lastAgeH == 50.0 and b.wday == 2 and b.dayIndex == 2
@@ -310,10 +310,10 @@ def test_new_lean_lays_the_spec_and_the_surviving_fields(host):
 
 
 @pytest.mark.parametrize("m, w, sx", [("STRONG", "OBESE", 2), ("WEAK", None, 1), ("STRONG", "VERY_UNDERWEIGHT", 1)])
-def test_new_lean_anchors_and_the_disuse_count(host, m, w, sx):
+def test_new_anchors_and_the_disuse_count(host, m, w, sx):
     # the disuse arm survives Task 12 (its count tDisuse and its anchor lm0dis, spec section 9.2)
     spec = host.call("body.create", m, w, _d(host), sx)
-    b = host.call("body.newLean", spec, sx, 0.0)
+    b = host.call("body.new", spec, sx, 0.0)
     assert b.tDisuse == 0
     assert b.lm0dis == spec.lm and b.fmRef == spec.fm and b.Pk == spec.Pk
 

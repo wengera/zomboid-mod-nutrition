@@ -1,48 +1,15 @@
--- NR_Kernel_Body.lua -- the body model's pure pieces: the band-anchored split of a starting
--- weight into fat and lean mass, the record.body table the adapter creates at first sight, the
--- vanilla weight band, the three direction flags off the 7-day trend, the legacy macro-mirror maps that turn
--- the mod's trailing-24 h figures into the vanilla Nutrition stores other mods read, and the trailing-24 h window.
+-- NR_Kernel_Body.lua -- the body model's pure pieces: the record.body table the adapter creates (the creation
+-- body of a muscle and a weight pick, K.body.create, laid by K.body.new), the vanilla weight band, the three direction
+-- flags off the 7-day trend, the legacy macro-mirror maps that turn the mod's trailing-24 h figures into the vanilla
+-- Nutrition stores other mods read, the trailing-24 h window and the record calendar.
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.floor and the bounded numeric `for` over the kernel's own tables are allowed.
 -- This file sorts after NR_Kernel.lua, and every K.clamp / K.min reference is at call time.
 local K = NutritionRevamp.kernel
 K.body = {}
 
--- The band-anchored fat-fraction table: body weight anchors (kg) and the fat fraction at each, by sex
--- (index 1 male, 2 female); piecewise-linear between anchors, flat beyond the first and last.
-K.body.ANCHORS_W = { 50, 60, 70, 80, 95, 105 } -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BF_MALE = { 0.06, 0.09, 0.13, 0.18, 0.27, 0.33 } -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BF_FEMALE = { 0.15, 0.19, 0.23, 0.28, 0.35, 0.40 } -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-
--- The fat-fraction floor by sex (index 1 male, 2 female) and the common ceiling.
-K.body.BF_MIN = { 0.04, 0.12 } -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BF_MAX = 0.55 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-
--- The creation-build offsets on the fat fraction, added for each build flag that is true.
-K.body.BUILD_OFFSET = {}
-K.body.BUILD_OFFSET.athletic = -0.04 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BUILD_OFFSET.fit = -0.02 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BUILD_OFFSET.outOfShape = 0.02 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BUILD_OFFSET.unfit = 0.04 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BUILD_OFFSET.strong = -0.02 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-K.body.BUILD_OFFSET.stout = -0.01 -- S1051 design-phase-v1: the band-anchored split; a game choice until the row settles
-
--- The length of the seven-day rings (eb7, mass7, p7, bandWeek; slot 1 the oldest, the last yesterday).
+-- The length of the seven-day rings (eb7, mass7, p7, sig7, bandWeek; slot 1 the oldest, the last yesterday).
 K.body.WEEK_N = 7
-
--- The build flag names, walked in order by split (a numeric `for` over the kernel's own list).
-K.body.BUILD_KEYS = { "athletic", "fit", "outOfShape", "unfit", "strong", "stout" }
-
--- The weight clamp split applies before it reads the table (kg).
-K.body.W_MIN = 35 -- design-phase-v1 game choice: a sanity clamp on the read weight, no row
-K.body.W_MAX = 200 -- design-phase-v1 game choice: a sanity clamp on the read weight, no row
-
--- The same table as K.interp's knots, by sex (index 1 male, 2 female), built once at load.
-K.body.KNOTS = { {}, {} }
-for i = 1, #K.body.ANCHORS_W do
-    K.body.KNOTS[1][i] = { K.body.ANCHORS_W[i], K.body.BF_MALE[i] }
-    K.body.KNOTS[2][i] = { K.body.ANCHORS_W[i], K.body.BF_FEMALE[i] }
-end
 
 -- The sex every sex-indexed table is read at (index 1 male, 2 female): the engine's sex only when the mod-wide
 -- NR.SexSpecific option is on and the character is female, else male (1). record.body.sex keeps the engine's value.
@@ -51,35 +18,6 @@ function K.body.effSex(sex, specific)
         return 2
     end
     return 1
-end
-
--- The piecewise-linear fat fraction at weight w for sex (2 female, any other male), flat beyond the end
--- anchors (K.interp).
-function K.body.interp(w, sex)
-    local kn = K.body.KNOTS[1]
-    if sex == 2 then
-        kn = K.body.KNOTS[2]
-    end
-    return K.interp(kn, w)
-end
-
--- Split weight w into fat mass, lean mass and the fat fraction: w clamped to [W_MIN, W_MAX]; the
--- fraction is interp plus the offsets of every true build flag, clamped to [BF_MIN[sex], BF_MAX].
--- build is a table of booleans keyed by BUILD_KEYS (a missing key is false).
-function K.body.split(w, sex, build)
-    local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
-    local off = 0
-    local keys = K.body.BUILD_KEYS
-    for i = 1, #keys do
-        local k = keys[i]
-        if build[k] then
-            off = off + K.body.BUILD_OFFSET[k]
-        end
-    end
-    local bf = K.clamp(K.body.interp(wc, sex) + off, K.body.BF_MIN[sex], K.body.BF_MAX)
-    local fm = wc * bf
-    local lm = wc - fm
-    return fm, lm, bf
 end
 
 -- The vanilla weight band of weight w (kg): its trait thresholds (#0531, #0155). Normal is the open
@@ -151,83 +89,6 @@ end
 -- The legacy lipid store: the trailing-24 h lipid intake (g) minus a 70 g reference.
 function K.body.mapLipids(gIn24h)
     return K.clamp(gIn24h - 70, -500, 1000) -- game choice, ruling 13
-end
-
--- A fresh record.body at first sight: weight w (kg), sex (1 male, 2 female), the build flags, the
--- Strength level l0, the creation-trait carry factor, the responder constant r and the world age in
--- hours. Numbers, one string (band) and tables of numbers only (#1495: global modData refuses
--- functions and userdata). The rings are built with numeric `for`; every bandWeek slot is its own
--- table. p7 holds each closed day's protein grams (slot 7 is yesterday; NR_Server_Effects' protein
--- week). The rings and the band read the clamped weight split reads (fm + lm), not the raw w. trail is
--- the trailing-24 h window (K.body.newTrail), empty at birth; pPrevKg is the closed day's protein per
--- kg, neutral at birth. specific is the mod-wide NR.SexSpecific: the mass split reads K.body.effSex(sex, specific)
--- (male unless it is on), while body.sex keeps the engine's value.
-function K.body.new(w, sex, build, l0, traitCarry, r, ageH, specific)
-    local fm, lm = K.body.split(w, K.body.effSex(sex, specific), build)
-    local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
-    local day = math.floor(ageH / 24)
-    local body = {}
-    body.fm = fm
-    body.lm = lm
-    body.fm0 = fm
-    body.lm0 = lm
-    body.lm0dis = lm
-    body.fmRef = fm
-    body.l0 = l0
-    body.sex = sex
-    body.r = r
-    body.traitCarry = traitCarry
-    body.bornAge = ageH
-    body.lastAgeH = ageH
-    body.strAgeH = ageH
-    body.at = 0
-    body.dayIndex = day
-    body.wday = day
-    body.inDay = 0
-    body.eeDay = 0
-    body.ebDay = 0
-    body.actKcalDay = 0
-    body.exKcalDay = 0
-    body.pDay = 0
-    body.carbDay = 0
-    body.lipDay = 0
-    body.alcDay = 0
-    body.eb7 = {}
-    body.mass7 = {}
-    body.bandWeek = {}
-    body.p7 = {}
-    for i = 1, K.body.WEEK_N do
-        body.eb7[i] = 0
-        body.mass7[i] = wc
-        body.bandWeek[i] = { 0, 0 }
-        body.p7[i] = 0
-    end
-    body.trail = K.body.newTrail(ageH)
-    body.vStr = 0
-    body.vHyp = 0
-    body.vStrHigh = 0
-    body.metMinDay = 0
-    body.band1Day = 0
-    body.band2Day = 0
-    body.n = 0
-    body.nPeak = 0
-    body.tPeakD = day
-    body.nHist = {}
-    for i = 1, K.strength.MEM_HOLD_DAYS do
-        body.nHist[i] = 0
-    end
-    body.cumDef = 0
-    body.tDisuse = 0
-    body.shownL = l0
-    body.riseHeldH = 0
-    body.lastFallAge = ageH
-    body.delta = traitCarry
-    body.band = K.body.band(wc)
-    body.tac = 1.0
-    body.rmod = 1
-    body.pPrevKg = 0.8 -- = K.aerobic.P_LOW; neutral
-    body.energyState = 1
-    return body
 end
 
 -- The trailing-24 h window: one hourly ring per quantity, TRAIL_N slots, game hour h
@@ -453,11 +314,13 @@ end
 
 -- A fresh record.body from a creation spec (K.body.create), the engine's sex (1 male, 2 female) and the world age in
 -- hours: the spec's lean, set point, cap, peak, N0, fat and rungs; the labile lean, the grace counters and the signal
--- ring at 0; T at 1; fmRef and lm0dis at the start; the calendar, the day accumulators, the rings (mass7 at
--- lm + lx + fm) and the trailing-24 h window as K.body.new lays them. Numbers and tables of numbers only (#1495).
--- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30).
--- Task 12 renames this to K.body.new and removes the old constructor.
-function K.body.newLean(spec, sex, ageH)
+-- ring at 0; T at 1; fmRef and lm0dis at the start; the calendar at the world day, the day accumulators at 0, the
+-- seven-day rings (mass7 at the body mass lm + lx + fm), the trailing-24 h window (K.body.newTrail, empty at birth) and
+-- the neutral rmod, tac, pPrevKg and energyState. Numbers and tables of numbers only (#1495).
+-- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30). The closed week's
+-- sets S start at 0. The adapter builds every body here: first sight (NR_Server_Metabolism.ensureBody over the band
+-- traits held), the store's default body and the heal's no-trait values (K.body.create(nil, nil, P)).
+function K.body.new(spec, sex, ageH)
     local day = math.floor(ageH / 24)
     local body = {}
     body.lm = spec.lm
@@ -474,6 +337,7 @@ function K.body.newLean(spec, sex, ageH)
     body.sigDay = 0
     body.T = 1
     body.Tgrace = 0
+    body.S = 0
     body.tDisuse = 0
     body.fmRef = spec.fm
     body.lm0dis = spec.lm

@@ -1,26 +1,32 @@
 -- NR_Kernel_Heal.lua -- the body record's self-heal (the #2833 pattern; Plan 10 Task R3, moved out of
 -- NR_Server_Metabolism.lua's local heal). The adapter runs it once, before the minute's arithmetic (Plan 11
--- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. Masses heal to their creation values
--- (a non-finite creation value to the current mass, else the 80 kg split); rmod's protein input to the neutral
--- P_LOW; dayIndex to the held peak's record day tPeakD, else to the world day (a NaN would stop every day close, and
--- the online-day count never jumps forward to the world's); wday to the world day; lastAgeH to the world age; a ring slot to 0 (mass7's to the current mass); the trailing-24 h window's age to the world age with every ring emptied,
--- and a window slot to 0, its ring named once a slot (K.heal.trail). Every field and ring is laid by K.body.new, so
--- the heal creates none. The creation scalars heal too: r and
--- traitCarry to 1, l0 to the Strength level the adapter read (its one engine read, made only when body.l0 is not
--- finite, and passed in), tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to dayIndex; every
--- nHist and bandWeek slot to 0, and the Strength stamps (strAgeH and lastFallAge to the world age, riseHeldH to 0, shownL to l0). Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code:
--- no fast region. Every K.body / K.aerobic / K.strength reference is at call time.
+-- ruling 10): a non-finite scalar or ring slot is stamped its neutral and named. The masses and the creation scalars
+-- (lm, fm, F0, Fc, Pk) heal to the no-trait body's values (K.body.create(nil, nil, P) at the effective sex, Plan 13
+-- Task 12), N0 to the no-trait 1 and T to 1; fmRef to the current fat; rmod's protein input to the neutral P_LOW;
+-- dayIndex to the record-day lower bound the adapter passes (the Nutrients step's last seen day, else the Effects
+-- day), else to the world day (a NaN would stop every day close; the world day is the limitation: it counts the
+-- offline days the record calendar skips, ruling 13-5); wday to the world day; lastAgeH to the world age; the labile
+-- lean, the grace counters, the signal, the closed week's sets and the day accumulators to 0; a fat rung that is not
+-- a whole number in 0..2, or a thin rung not in 0..3, to 0; lm0dis to the current lean; a ring slot to 0 (mass7's to
+-- the current body mass fm + lm + lx); the trailing-24 h window's age to the world age with every ring emptied, and a
+-- window slot to 0, its ring named once a slot (K.heal.trail). Every field and ring is laid by K.body.new, so the heal
+-- creates none. Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code: no fast region. Every
+-- K.body / K.aerobic / K.strength reference is at call time.
 local K = NutritionRevamp.kernel
 K.heal = {}
 
 -- The scalars that heal to a fixed neutral, as { key, neutral } pairs in the order the names are reported in.
-K.heal.NEUTRAL = { { "energyState", 1 }, { "rmod", 1 }, { "tac", 1 }, { "at", 0 }, { "n", 0 }, { "vStr", 0 },
-                   { "vHyp", 0 }, { "vStrHigh", 0 }, { "inDay", 0 }, { "eeDay", 0 }, { "ebDay", 0 },
-                   { "actKcalDay", 0 }, { "exKcalDay", 0 }, { "pDay", 0 }, { "carbDay", 0 }, { "lipDay", 0 },
-                   { "alcDay", 0 }, { "metMinDay", 0 }, { "band1Day", 0 }, { "band2Day", 0 }, { "cumDef", 0 },
-                   { "r", 1 }, { "traitCarry", 1 }, { "tDisuse", 0 }, { "nPeak", 0 }, { "riseHeldH", 0 } }
+K.heal.NEUTRAL = { { "energyState", 1 }, { "rmod", 1 }, { "tac", 1 }, { "at", 0 }, { "inDay", 0 }, { "eeDay", 0 },
+                   { "ebDay", 0 }, { "actKcalDay", 0 }, { "exKcalDay", 0 }, { "pDay", 0 }, { "carbDay", 0 },
+                   { "lipDay", 0 }, { "alcDay", 0 }, { "metMinDay", 0 }, { "band1Day", 0 }, { "band2Day", 0 },
+                   { "tDisuse", 0 }, { "lx", 0 }, { "grace", 0 }, { "Tgrace", 0 }, { "sigDay", 0 }, { "S", 0 },
+                   { "N0", 1 }, { "T", 1 } }
+-- The creation fields that heal to the no-trait body's value (K.body.create's keys), in report order.
+K.heal.CREATION = { "lm", "fm", "F0", "Fc", "Pk" }
+-- The rungs and their highest value: a held rung is a whole number from 0 (K.traits.axes).
+K.heal.RUNGS = { { "fatT", 2 }, { "thinT", 3 } }
 -- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
-K.heal.ZERO_RINGS = { "eb7", "p7" }
+K.heal.ZERO_RINGS = { "eb7", "p7", "sig7" }
 
 -- The names so far, comma-joined, with one more appended (a repeat is appended again, as the adapter's log
 -- always read).
@@ -31,36 +37,25 @@ function K.heal.mark(bad, name)
     return bad .. "," .. name
 end
 
--- Heal body in place at world age ageH; l0 is the Strength level read now (nil or non-finite reads 0), used only
--- when body.l0 is not finite. Returns the comma-joined names of the healed fields, or nil when none was.
-function K.heal.body(body, ageH, l0, specific)
+-- Whether v is a held rung: a whole number from 0 to top.
+function K.heal.rung(v, top)
+    return K.finite(v) and v >= 0 and v <= top and v == math.floor(v)
+end
+
+-- Heal body in place at world age ageH. specific is NR.SexSpecific, P the strength table the no-trait body is built
+-- with (nil reads K.strength.DEFAULTS) and dayFloor the record-day lower bound a non-finite dayIndex heals to (nil or
+-- non-finite reads the world day). Returns the comma-joined names of the healed fields, or nil when none was.
+function K.heal.body(body, ageH, specific, P, dayFloor)
     local bad = nil
-    if not K.finite(body.fm0) or not K.finite(body.lm0) then
-        local fmS, lmS = K.body.split(80, K.body.effSex(body.sex, specific), {}) -- the effective sex; body.sex stays raw
-        if not K.finite(body.fm0) then
-            if K.finite(body.fm) then
-                body.fm0 = body.fm
-            else
-                body.fm0 = fmS
-            end
-            bad = K.heal.mark(bad, "fm0")
+    local base = nil
+    local creation = K.heal.CREATION
+    for i = 1, #creation do
+        local k = creation[i]
+        if not K.finite(body[k]) then
+            base = base or K.body.create(nil, nil, P or K.strength.DEFAULTS, K.body.effSex(body.sex, specific))
+            body[k] = base[k]
+            bad = K.heal.mark(bad, k)
         end
-        if not K.finite(body.lm0) then
-            if K.finite(body.lm) then
-                body.lm0 = body.lm
-            else
-                body.lm0 = lmS
-            end
-            bad = K.heal.mark(bad, "lm0")
-        end
-    end
-    if not K.finite(body.fm) then
-        body.fm = body.fm0
-        bad = K.heal.mark(bad, "fm")
-    end
-    if not K.finite(body.lm) then
-        body.lm = body.lm0
-        bad = K.heal.mark(bad, "lm")
     end
     if not K.finite(body.fmRef) then
         body.fmRef = body.fm
@@ -71,8 +66,8 @@ function K.heal.body(body, ageH, l0, specific)
         bad = K.heal.mark(bad, "pPrevKg")
     end
     if not K.finite(body.dayIndex) then
-        if K.finite(body.tPeakD) then
-            body.dayIndex = body.tPeakD
+        if K.finite(dayFloor) then
+            body.dayIndex = dayFloor
         else
             body.dayIndex = math.floor(ageH / 24)
         end
@@ -94,39 +89,17 @@ function K.heal.body(body, ageH, l0, specific)
             bad = K.heal.mark(bad, k)
         end
     end
-    if not K.finite(body.l0) then
-        if K.finite(l0) then
-            body.l0 = l0
-        else
-            body.l0 = 0
+    local rungs = K.heal.RUNGS
+    for i = 1, #rungs do
+        local k = rungs[i][1]
+        if not K.heal.rung(body[k], rungs[i][2]) then
+            body[k] = 0
+            bad = K.heal.mark(bad, k)
         end
-        bad = K.heal.mark(bad, "l0")
     end
     if not K.finite(body.lm0dis) then
         body.lm0dis = body.lm
         bad = K.heal.mark(bad, "lm0dis")
-    end
-    if not K.finite(body.tPeakD) then
-        body.tPeakD = body.dayIndex
-        bad = K.heal.mark(bad, "tPeakD")
-    end
-    if not K.finite(body.strAgeH) then
-        body.strAgeH = ageH
-        bad = K.heal.mark(bad, "strAgeH")
-    end
-    if not K.finite(body.lastFallAge) then
-        body.lastFallAge = ageH
-        bad = K.heal.mark(bad, "lastFallAge")
-    end
-    if not K.finite(body.shownL) then
-        body.shownL = body.l0
-        bad = K.heal.mark(bad, "shownL")
-    end
-    for i = 1, K.strength.MEM_HOLD_DAYS do
-        if not K.finite(body.nHist[i]) then
-            body.nHist[i] = 0
-            bad = K.heal.mark(bad, "nHist")
-        end
     end
     for i = 1, K.body.WEEK_N do
         local slot = body.bandWeek[i]
@@ -141,7 +114,7 @@ function K.heal.body(body, ageH, l0, specific)
     end
     for i = 1, K.body.WEEK_N do
         if not K.finite(body.mass7[i]) then
-            body.mass7[i] = body.fm + body.lm
+            body.mass7[i] = body.fm + body.lm + body.lx
             bad = K.heal.mark(bad, "mass7")
         end
     end

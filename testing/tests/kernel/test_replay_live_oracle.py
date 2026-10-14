@@ -220,7 +220,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
     _, bf = energy_run(fed, days, backend="server", **kw)
     _, bx = energy_run(fast, days, backend="server", **kw)
     body = bf.record().body
-    assert body.r == 1 and body.sex == 1 and abs(bf.maint() - 1948.73) < 0.01   # the oracle's 70 kg man
+    assert body.sex == 1 and abs(bf.maint() - 1948.73) < 0.01   # the oracle's 70 kg man (participant.py)
     W = M.FAST_WARM_DAYS
     ifed, ifast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]

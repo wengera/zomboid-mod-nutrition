@@ -17,7 +17,7 @@ ORDER = ["vitC", "iron", "vitB12", "calcium", "vitA"]
 # The fields each constructor lays that the store drops at load (derived), read off the owning steps (the kernel
 # file's comments name them).
 DERIVED = {
-    "body": {"band", "delta", "rmod", "energyState"},
+    "body": {"rmod", "energyState"},
     # the trailing-24 h window (Plan 11d Task 9c): its age and rings are inputs, its closed sums derived
     "trail": {"ch", "c"},
     "nutrients": {"allReplete", "ironGrade", "anaemia", "vitDClinical"},
@@ -101,16 +101,26 @@ def stored(h):
                    "kineticsAge": 30.25, "stomachFill": 0.9, "junk": 7,
                    "lastIntake": {"source": "baseline", "fullType": "Base.Apple"},
                    "reconcile": {"count": 3, "baseline": {"calories": 100}}})
-    body = h.call("body.new", 82.0, 1, h.table({}), 5, 1.1, 1.2, 24.0)
+    body = h.call("body.new", h.call("body.create", "STOUT", "OVERWEIGHT", h.K.strength.DEFAULTS, 1), 1, 24.0)
     body["tac"] = 1.3
     body["rmod"] = 0.7
-    body["band"] = "stale"
-    body["shownL"] = 4
+    body["band"] = "obese"
+    body["fatT"] = 2
     body["inDayClosed"] = 2100
     body["met"] = 3.5
     body["eb7"][7] = -250
     body["bandWeek"][7][1] = 45
-    body["nHist"][14] = 0.4
+    body["sig7"][7] = 520.0
+    body["sigDay"] = 130.0
+    body["S"] = 3.25
+    body["lx"] = 0.75
+    body["grace"] = 4
+    body["T"] = 1.04
+    body["Tgrace"] = 2
+    body["Pk"] = body["lm"] + 1.5
+    body["wroteL"] = 7
+    body["levelDue"] = True
+    body["traitsDirty"] = True
     rec["body"] = body
     nut = h.call("nutrients.newState", h.table({"ORDER": {i + 1: k for i, k in enumerate(ORDER)}}))
     nut["epoch"] = 9
@@ -174,6 +184,80 @@ def test_inputs_are_dotted_strings(host):
     assert lst(S(host).split("username")) == ["username"]
 
 
+# Plan 13 Task 12: the lean-mass body's inputs, and the Plan 3 fields no longer saved.
+NEW_BODY_INPUTS = ("body.F0", "body.Fc", "body.Pk", "body.lx", "body.grace", "body.sigDay", "body.sig7.*", "body.S",
+                   "body.fatT", "body.thinT", "body.band", "body.wroteL", "body.wday", "body.N0", "body.T",
+                   "body.Tgrace")
+REMOVED_BODY_PATHS = ("body.fm0", "body.lm0", "body.l0", "body.r", "body.traitCarry", "body.strAgeH", "body.vStr",
+                      "body.vHyp", "body.vStrHigh", "body.n", "body.nPeak", "body.tPeakD", "body.nHist.*",
+                      "body.cumDef", "body.shownL", "body.riseHeldH", "body.lastFallAge")
+
+
+def test_the_lean_mass_body_fields_are_inputs_and_the_plan_3_ones_are_not(host):
+    paths = lst(S(host).INPUTS)
+    for p in NEW_BODY_INPUTS:
+        assert p in paths, p
+    for p in REMOVED_BODY_PATHS:
+        assert p not in paths, p
+        assert not S(host).isInput(p.replace(".*", ".1")), p
+
+
+def test_every_new_input_round_trips_and_a_removed_field_is_dropped(host):
+    raw = stored(host)
+    b = raw["body"]
+    for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "vStr", "vHyp", "vStrHigh", "n", "nPeak", "tPeakD",
+              "cumDef", "shownL", "riseHeldH", "lastFallAge"):
+        b[k] = 1.25
+    b["nHist"] = host.table({1: 0.4})
+    b["F0"] = b["F0"] + 0.5
+    b["Fc"] = b["Fc"] - 0.5
+    b["N0"] = 1.07
+    b["thinT"] = 0
+    b["wday"] = 3
+    saved = S(host).inputsOnly(raw)
+    text = host.K.json.encode(saved, host.rt.eval("function(x) return string.format('%.17g', x) end"))
+    decoded, err = host.K.json.decode(text)
+    assert err is None
+    got = host.py(S(host).load(decoded, order(host), recs(host))["body"])
+    want = host.py(b)
+    for p in NEW_BODY_INPUTS:
+        k = p.split(".")[1]
+        assert got[k] == want[k], k
+    for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "vStr", "vHyp", "vStrHigh", "n", "nPeak", "tPeakD",
+              "nHist", "cumDef", "shownL", "riseHeldH", "lastFallAge"):
+        assert k not in got, k
+
+
+def test_a_created_thin_body_keeps_its_rung_through_a_save(host):
+    # Task 12 amendment 4: the created Underweight and Very Underweight bodies sit on their entry edge, held only by
+    # the rung creation hands in; the save keeps the rung
+    for weight, rung in (("UNDERWEIGHT", 1), ("VERY_UNDERWEIGHT", 2)):
+        spec = host.call("body.create", "STOUT", weight, host.K.strength.DEFAULTS, 1)
+        rec = host.table({"username": "u", "firstSeen": 1.0, "lastSeen": 1.0})
+        rec["body"] = host.call("body.new", spec, 1, 1.0)
+        assert rec["body"]["thinT"] == rung
+        text = host.K.json.encode(S(host).inputsOnly(rec), host.rt.eval("function(x) return string.format('%.17g', x) end"))
+        decoded, err = host.K.json.decode(text)
+        assert err is None
+        b = S(host).load(decoded, order(host), recs(host))["body"]
+        assert b["thinT"] == rung and b["fatT"] == 0, weight
+        assert b["band"] == ("underweight" if rung == 1 else "veryUnderweight")
+
+
+def test_the_default_body_is_built_with_the_servers_strength_table(host):
+    # the brief: bodyBase reads the server's table where the adapter has it, so a tuned server's cap holds for a body
+    # whose stored cap is lost; nil reads DEFAULTS
+    P, _ = host.K.strength.params(host.table({"StrengthCapLevel": 14}))
+    tuned = host.K.body.create(None, None, P, 1)
+    plain = host.K.body.create(None, None, host.K.strength.DEFAULTS, 1)
+    assert tuned.Fc != plain.Fc
+    raw = host.table({"body": {"sex": 1, "lastAgeH": 5.0}})
+    assert S(host).load(raw, None, recs(host), False, P)["body"]["Fc"] == tuned.Fc
+    assert S(host).load(raw, None, recs(host), False, None)["body"]["Fc"] == plain.Fc
+    target = host.table({})
+    assert S(host).fillInPlace(target, raw, None, recs(host), False, P)["body"]["Fc"] == tuned.Fc
+
+
 def test_the_record_calendar_is_an_input(host):
     # Plan 13 Task 4 (ruling 13-5): the world day of the open record day is saved beside the record's day count
     paths = lst(S(host).INPUTS)
@@ -218,7 +302,7 @@ def classify(h, prefix, table, derived):
 
 
 def test_every_body_field_is_classified(host):
-    body = host.call("body.new", 80.0, 2, host.table({}), 3, 1.0, 1.0, 48.0)
+    body = host.call("body.new", host.call("body.create", "FEEBLE", None, host.K.strength.DEFAULTS, 2), 2, 48.0)
     assert classify(host, "body", body, DERIVED["body"] | {"trail"}) == []    # trail: mixed, walked below
     assert classify(host, "body.trail", body["trail"], DERIVED["trail"]) == []
 
@@ -282,9 +366,13 @@ def test_load_of_a_stored_record_keeps_the_inputs_and_drops_the_derived(host):
     assert r["reconcile"] == {"count": 3}
     assert r["kineticsAge"] == 30.25
     b = r["body"]
-    assert b["tac"] == 1.3 and b["shownL"] == 4 and b["inDayClosed"] == 2100 and b["l0"] == 5
-    assert b["eb7"][7] == -250 and b["bandWeek"][7] == {1: 45, 2: 0} and b["nHist"][14] == 0.4
-    assert b["rmod"] == 1 and b["band"] == "normal" and "met" not in b       # rebuilt by K.body.new
+    assert b["tac"] == 1.3 and b["inDayClosed"] == 2100 and b["band"] == "obese" and b["fatT"] == 2
+    assert b["eb7"][7] == -250 and b["bandWeek"][7] == {1: 45, 2: 0} and b["sig7"][7] == 520.0
+    assert (b["sigDay"], b["S"], b["lx"], b["grace"], b["T"], b["Tgrace"], b["wroteL"]) == (130.0, 3.25, 0.75, 4,
+                                                                                           1.04, 2, 7)
+    assert b["Pk"] == b["lm"] + 1.5
+    assert b["rmod"] == 1 and "met" not in b                                 # rebuilt by K.body.new
+    assert "levelDue" not in b and "traitsDirty" not in b                    # the adapters' minute stamps: dropped
     n = r["nutrients"]
     assert (n["vitC"]["p"], n["vitC"]["g"], n["vitC"]["gl"], n["vitC"]["ah"]) == (0.12, 4, 3, 50)
     assert n["vitC"]["x"] == 0 and n["allReplete"] is False                  # x derived; allReplete recomputed (vitC at grade 4)
@@ -353,9 +441,12 @@ def test_a_body_builds_at_its_sex_and_heals_an_odd_one(host):
 
 
 def test_a_stored_female_body_defaults_to_the_male_masses_unless_sex_specific_is_on(host):
-    # Plan 13 Task 3 fix 1: bodyBase builds and heals at the effective sex; the stored sex stays 2
-    fmM, lmM, _ = host.K.body.split(80, 1, host.table({}))
-    fmF, lmF, _ = host.K.body.split(80, 2, host.table({}))
+    # Plan 13 Task 3 fix 1: bodyBase builds and heals at the effective sex; the stored sex stays 2. Task 12: the
+    # default body is the no-trait creation body (K.body.create(nil, nil, P)), whose fat reads the sex's FMI
+    D = host.K.strength.DEFAULTS
+    male, female = host.K.body.create(None, None, D, 1), host.K.body.create(None, None, D, 2)
+    fmM, lmM = male.fm, male.lm
+    fmF, lmF = female.fm, female.lm
     assert fmM != fmF
     for specific, want in ((None, (fmM, lmM)), (False, (fmM, lmM)), (True, (fmF, lmF))):
         raw = host.table({"body": {"sex": 2, "lastAgeH": 5.0}})
@@ -368,10 +459,11 @@ def test_a_stored_female_body_defaults_to_the_male_masses_unless_sex_specific_is
 
 def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
     # Plan 12 A4 (K2 B3): a non-finite fm, lm or lastAgeH is saved as JSON null and reads back absent; the load heals it
-    # as K.heal.body does (fm and lm from the 80 kg split at the stored sex, lastAgeH the record's last sight) and keeps
+    # as K.heal.body does (fm and lm the no-trait body's at the stored sex, lastAgeH the record's last sight) and keeps
     # the rest of the record, where it raised before and the server laid a fresh one
     nan = float("nan")
-    fmS, lmS, _ = host.K.body.split(80, 2, host.table({}))
+    base = host.K.body.create(None, None, host.K.strength.DEFAULTS, 2)
+    fmS, lmS = base.fm, base.lm
     for body, want in (({"fm": nan, "lm": 50.0}, (fmS, 50.0, 30.0)),
                        ({"fm": 20.0, "lm": nan}, (20.0, lmS, 30.0)),
                        ({"fm": 20.0, "lm": 50.0, "lastAgeH": nan}, (20.0, 50.0, 30.0)),
@@ -383,7 +475,7 @@ def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
         text = host.K.json.encode(S(host).inputsOnly(raw), host.rt.eval("function(x) return string.format('%.17g', x) end"))
         decoded, err = host.K.json.decode(text)
         assert err is None
-        r = host.py(S(host).load(decoded, None, recs(host), True))     # NR.SexSpecific on: the female 80 kg split
+        r = host.py(S(host).load(decoded, None, recs(host), True))     # NR.SexSpecific on: the female no-trait body
         got = (r["body"]["fm"], r["body"]["lm"], r["body"]["lastAgeH"])
         assert got == pytest.approx(want), body
         assert r["body"]["sex"] == 2 and r["nutrients"]["zinc"]["p"] == 0.3, body
@@ -414,7 +506,7 @@ def test_inputs_only_holds_no_derived_field(host):
     raw = stored(host)
     out = host.py(S(host).inputsOnly(raw))
     assert "junk" not in out and "stomachFill" not in out and "lastIntake" not in out
-    assert "rmod" not in out["body"] and "band" not in out["body"] and out["body"]["tac"] == 1.3
+    assert "rmod" not in out["body"] and out["body"]["band"] == "obese" and out["body"]["tac"] == 1.3
     assert "x" not in out["nutrients"]["vitC"] and out["nutrients"]["vitC"]["g"] == 4
     assert out["nutrients"]["retired"] == {"p": 0.5}                         # the save keeps what the record holds
     assert "allReplete" not in out["nutrients"] and out["nutrients"]["epoch"] == 9
@@ -482,6 +574,14 @@ def test_load_recomputes_dehyd_pct_through_the_fluids_kernel(host):
     assert S(host).load(host.table({"fluids": {"water": -1640.0}}), order(host), recs(host))["fluids"]["dehydPct"] == 0
 
 
+def test_load_recomputes_dehyd_pct_at_the_body_mass_with_the_labile_lean(host):
+    # ruling 13-20: the body mass is fm + lm + lx
+    raw = host.table({"fluids": {"water": -1640.0}, "body": {"fm": 20.0, "lm": 60.0, "lx": 2.0, "sex": 1,
+                                                             "lastAgeH": 5.0}})
+    r = S(host).load(raw, order(host), recs(host))
+    assert r["fluids"]["dehydPct"] == host.K.fluids.dehydPct(r["fluids"], 82.0, 0) == 2.0
+
+
 def test_the_minute_and_the_load_agree_on_all_replete(host):
     st = host.call("nutrients.newState", host.G.NutritionRevamp.data.records)
     st["vitC"]["g"] = 2
@@ -491,7 +591,7 @@ def test_the_minute_and_the_load_agree_on_all_replete(host):
 
 
 def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
-    for p in ("body.eb7", "body.mass7", "body.p7", "body.trail.kcal", "body.trail.lip", "body.bandWeek", "body.nHist",
+    for p in ("body.eb7", "body.mass7", "body.p7", "body.trail.kcal", "body.trail.lip", "body.bandWeek", "body.sig7",
               "stomach.buffer", "pool", "nutrients.vitC.p"):
         assert S(host).isInput(p), p
     for p in ("body", "nutrients", "stomach", "acute", "body.rmod", "nutrients.vitC.x", "fluids", "reconcile.baseline"):
@@ -527,7 +627,7 @@ def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
     assert rec["username"] == "admin" and rec["resets"] == 2
     assert rec["junk"] is None and rec["lastIntake"] is None
     assert rec["reconcile"]["count"] == 3 and rec["reconcile"]["baseline"] is None
-    assert rec["body"]["band"] != "stale" and rec["body"]["inDayClosed"] == 2100
+    assert rec["body"]["rmod"] == 1 and rec["body"]["inDayClosed"] == 2100
 
 
 def test_fill_in_place_from_another_raw_clears_every_old_key(host):

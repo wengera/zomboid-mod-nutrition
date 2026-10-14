@@ -251,7 +251,7 @@ end
 
 -- One expenditure step of dtM game minutes (the caller clamps dtM to [0, 60]; offline time is not
 -- integrated). REE per minute, reduced by adaptive thermogenesis, times the cold multiplier at rest
--- (clamped to [1, COLD_MAX]); activity above MET_REST times total mass per hour. Mutates body's day
+-- (clamped to [1, COLD_MAX]); activity above MET_REST times the total mass fm + lm + lx per hour. Mutates body's day
 -- accumulators, balance and trailing-24 h window (ee and ex, body.trail's current hour); returns the energy spent
 -- and the activity part. Beside actKcalDay (net activity above 1 MET) it banks exKcalDay, the MET above the idle
 -- class (COMPENDIUM.Default, 1.3) times total mass per hour: the exercise energy availability subtracts.
@@ -261,10 +261,10 @@ function K.energy.minute(body, met, resting, coldMult, dtM)
         coldK = K.clamp(coldMult, 1, K.energy.COLD_MAX)
     end
     local reeMin = K.energy.ree(body.lm) / 1440 * (1 - body.at) * coldK
-    local actMin = K.max(met - K.energy.MET_REST, 0) * (body.fm + body.lm) / 60
+    local actMin = K.max(met - K.energy.MET_REST, 0) * (body.fm + body.lm + body.lx) / 60
     local ee = (reeMin + actMin) * dtM
     local act = actMin * dtM
-    local ex = K.max(met - K.energy.COMPENDIUM.Default, 0) * (body.fm + body.lm) / 60 * dtM
+    local ex = K.max(met - K.energy.COMPENDIUM.Default, 0) * (body.fm + body.lm + body.lx) / 60 * dtM
     body.eeDay = body.eeDay + ee
     body.actKcalDay = body.actKcalDay + act
     body.exKcalDay = body.exKcalDay + ex -- S0691: EA is intake minus EXERCISE expenditure per kg FFM; the idle class is not exercise

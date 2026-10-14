@@ -6,7 +6,7 @@
 -- sets o.exeDataType, and calls serverStart by a rawget that falls through to the class table (NetTimedAction.start).
 -- So this file wraps ISFitnessAction.serverStart and serverStop once: the wrapper calls the original, then records the
 -- action's exeDataType per username at the start and clears it at the stop. NR_Server_Metabolism bills the recorded
--- type's MET (K.energy.EXERCISE_MET) while the exercise flag is set, and NR_Server_Training classes a rep by it. The
+-- type's MET (K.energy.EXERCISE_MET) while the exercise flag is set (the bill reads it through FIT.typeOf). The
 -- record is also dropped at the player's departure (FIT.forget).
 --
 -- Shape (the intake wrappers' shape, NR_Server_Intake.lua):

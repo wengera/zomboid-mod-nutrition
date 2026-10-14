@@ -1,24 +1,15 @@
 -- NR_Server_Strength.lua -- the body model's Strength adapter (spec § 4.3): once per player per
 -- game minute, after the metabolism step (the pipeline's ORDER, NR_Server_Minute, runs the strength
--- step after metabolism, nutrients and effects), it reads the XP-implied Strength level, sets the ceiling the lean
--- ratio and the functional factor allow, moves the shown level one step by the write policy, writes it
--- when the Java level differs, re-applies vanilla's band remap and pushes the trait block when the
--- trait set changed, and re-asserts the carry delta.
+-- step after metabolism, nutrients and effects), it re-asserts the carry delta. The lean-mass body's level is moved
+-- at the day close (NR_Server_Metabolism) and written here from Plan 13 Task 14 on; until then the minute writes no
+-- level and the carry's trait factor reads the native level's band (ruling 13-28).
 --
--- The level is a clamp, never a grant (#2701): the shown level is min(XP-implied, ceiling), written with
--- setPerkLevelDebug alone (ruling T3-1, run x141s-20261005-105131: the write held through the
--- experience push, the rust pass and an admin SyncXp, and ran no band remap, #2867-#2874), so the band
--- (XpUpdate.lua:207-243, #2157) is re-applied here. Any divergence -- the client's XP sync, an admin
--- edit -- is corrected every minute (#2740), the band trait set included: when the Java level already
--- equals the shown level but the band traits differ from what that level implies (an admin trait edit;
--- an XP drop vanilla's own level-down met with no write, run x141c-20261005-132133), the remap runs as
--- a repair. This file never calls LevelPerk, LoseLevel, setXPToLevel,
--- addXp or AddXP, and never writes the carry base (#2704): a level-only write moves no XP and cannot
--- trip the XP anti-cheat.
+-- The carry delta is the trait factor of the muscle band (K.strength.traitCarry, #2144; ruling 13-7) times
+-- (1 + eAcute), written with setMaxWeightDelta when it differs from the live delta, so any other writer is
+-- re-asserted against (#2143, #2565). This file never writes the carry base (#2704).
 --
--- BeyondTen (#2850, 1.3.4): for a perk at Java level 10 it holds getXP at the level-9 total every server
--- tick and banks the excess as mastery, so the XP-implied level reads 9 for a legitimate level 10; while
--- BeyondTen is loaded a level-10 perk whose XP is at least the level-9 total reads 10.
+-- STR.ladder (the XP ladder) and STR.remap (vanilla's band remap, the measured route of #2867-#2874) are kept for
+-- the level write.
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
 -- inside a function behind a nil check, so the file loads with no engine
@@ -27,18 +18,14 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.strength = {
-    stats = { minutes = 0, writes = 0, pushes = 0, pushMissing = 0, carryWrites = 0, failures = 0,
-              badReads = 0, ladderFallbacks = 0, bandRepairs = 0 },
+    stats = { minutes = 0, pushes = 0, pushMissing = 0, carryWrites = 0, failures = 0,
+              badReads = 0, ladderFallbacks = 0 },
     lastError = nil,
     wired = false,
     totals = nil,
     limitations = {
-        "the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model (#2118)",
-        "a rise is one level per six-hour window",
         "the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) read the current minute's fluids, acute and nutrients sub-tables",
-        "while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)",
-        "an XP loss follows down at once; the ceiling falls one level per game hour",
-        "offline time is not integrated: the rise hold counts at most one hour per minute",
+        "no level is written yet and the carry's trait factor reads the native level's band; an unreadable level writes no carry that minute",
     },
 }
 local STR = NR.server.strength
@@ -49,8 +36,6 @@ STR.FALLBACK_TOTALS = { 1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 
 STR.BAND_TRAITS = { "WEAK", "FEEBLE", "STOUT", "STRONG" }
 -- The carry delta re-assertion tolerance.
 STR.CARRY_EPS = 0.001
--- The rise hold's per-minute step cap, hours.
-STR.MAX_DT_H = 1
 
 local finite = NR.finite
 
@@ -88,21 +73,6 @@ function STR.ladder()
     end
     STR.totals = totals
     return totals
-end
-
--- The XP-implied level and the Java level now, or nil when either read fails. BeyondTen's parked XP
--- reads 10 for a level-10 perk (#2850).
-function STR.vanillaLevel(player, perk)
-    local xp = num(obj(player, "getXp"), "getXP", nil, perk)
-    local current = num(player, "getPerkLevel", nil, perk)
-    if xp == nil or current == nil then return nil, nil end
-    local totals = STR.ladder()
-    local lvanilla = K.strength.xpLevel(xp, totals)
-    if current == K.strength.L_MAX and xp >= totals[K.strength.L_MAX - 1] and BeyondTen ~= nil
-        and BeyondTen.NATIVE_MAX_LEVEL ~= nil then
-        lvanilla = K.strength.L_MAX
-    end
-    return lvanilla, current
 end
 
 -- Vanilla's band remap for a written level: every band trait but the level's own is removed if present,
@@ -153,17 +123,18 @@ local function acuteInputs(record, w)
     return dehydPct, sweatActive, awakeH, caffeineActive, vitDClinical
 end
 
--- The carry delta: traitCarry x (1 + eAcute), the dehydration, sweat, hours-awake, caffeine
--- and vitamin D inputs read off the record (acuteInputs); written when it differs from the live delta by
--- more than CARRY_EPS, so any other writer is re-asserted against (#2143, #2565).
-local function carry(player, record, body, ageH, ctx)
+-- The carry delta: the trait factor of level's band (K.strength.traitCarry) x (1 + eAcute), the dehydration, sweat,
+-- hours-awake, caffeine and vitamin D inputs read off the record (acuteInputs) at the body mass fm + lm + lx; written
+-- when it differs from the live delta by more than CARRY_EPS, so any other writer is re-asserted against (#2143,
+-- #2565).
+local function carry(player, record, body, ageH, ctx, level)
     local hourOfDay = NR.read.hour(ctx, ageH)
-    local w = body.fm + body.lm
+    local w = body.fm + body.lm + body.lx
     local bf = 0
     if w > 0 then bf = body.fm / w end
     local dehydPct, sweatActive, awakeH, caffeineActive, vitDClinical = acuteInputs(record, w)
     local eAcute = K.strength.eAcute(dehydPct, sweatActive, awakeH, hourOfDay, caffeineActive, vitDClinical, bf)
-    local delta = K.strength.carryDelta(body.traitCarry, eAcute)
+    local delta = K.strength.carryDelta(K.strength.traitCarry(level), eAcute)
     if not finite(delta) then return end
     local live = num(player, "getMaxWeightDelta", nil)
     if live == nil or math.abs(delta - live) > STR.CARRY_EPS then
@@ -181,27 +152,14 @@ local function step(username, player, record, ctx)
         STR.stats.badReads = STR.stats.badReads + 1
         return
     end
-    local dtH = K.clamp(ageH - body.strAgeH, 0, STR.MAX_DT_H)
-    body.strAgeH = ageH
     local perk = Perks ~= nil and Perks.Strength or nil
-    if perk ~= nil then
-        local lvanilla, current = STR.vanillaLevel(player, perk)
-        if lvanilla == nil then
-            STR.stats.badReads = STR.stats.badReads + 1
-        else
-            local lceil = K.strength.ceiling(body.l0, body.lm, body.lm0, K.strength.fSlow(body, body.dayIndex))
-            local desired = K.strength.policy(body, lvanilla, lceil, ageH, dtH)
-            if current ~= desired then
-                if NR.call(player, "setPerkLevelDebug", perk, desired) then
-                    STR.stats.writes = STR.stats.writes + 1
-                    STR.remap(player, desired, ctx)
-                end
-            elseif STR.remap(player, desired, ctx) then
-                STR.stats.bandRepairs = STR.stats.bandRepairs + 1   -- #2740: the band set re-asserted
-            end
-        end
+    local level = nil
+    if perk ~= nil then level = num(player, "getPerkLevel", nil, perk) end
+    if level == nil then
+        STR.stats.badReads = STR.stats.badReads + 1
+        return
     end
-    carry(player, record, body, ageH, ctx)
+    carry(player, record, body, ageH, ctx, level)               -- the native level's band until Task 14 (ruling 13-28)
 end
 
 -- One player's minute: the pipeline's strength step (NR_Server_Minute.run, called from P.work).

@@ -445,7 +445,8 @@ def test_karl_2021_well_fed_arm_at_the_eight_sampling_points(host):
 
 
 # The readings under the refit meal pool M (Plan 11g Task 6c fix 2, fit-11g-20261012d; Karl's surplus day's under the
-# deficit drive's refit, Task 7, fit-11g-deficit-20261012; fix 1's fit-11g-20261012c and Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
+# deficit drive's refit, Task 7, fit-11g-deficit-20261012, re-pinned under Plan 13 Task 12's lean partition at the day
+# close, its first moves at the 4th to 6th decimal; fix 1's fit-11g-20261012c and Task 6c's fit-11g-20261012b before it; the gut stage G's in Task 6, the provisional G's in Task 4, the P
 # model's in Task 3 at the mod tree 44115b1a, d62ed4ea), to 9 decimals: PIN the readings, DIST their named distances to
 # STUDY (model less study). The targets are asserted from the registry (gut_oracles.check).
 PIN = {
@@ -479,15 +480,15 @@ PIN = {
                       'liquid': ([-0.430224171, -0.35372768, -0.257924274, -0.167711007, -0.080822144], 302)},
     'fasted_diekmann': {'hf': ([-0.633988974, -0.577250398, -0.466143798, -0.246912023, -0.026811308], 375),
                         'lf': ([-0.653444393, -0.594919199, -0.480539613, -0.255641276, -0.030611033], 377)},
-    'karl_bal': -49.210607787,
-    'karl_by_day': [-41.4698928, -54.426095899, -51.735834662],
-    'karl_rest': 0.150385805,
-    'karl_troughs': [0.039781418, 0.032040333, 0.033928533],
-    'karl_rest_trough': 0.074172729,
-    'karl_pre_breakfast': [0.281351094, 0.202777695, 0.214800682],
-    'karl_rest_pre_breakfast': 0.281351094,
-    'karl_troughs_rel': [0.536334828, 0.43196918, 0.457425972],
-    'karl_pre_breakfast_rel': [1.0, 0.720728297, 0.763461335],
+    'karl_bal': -49.210035778,
+    'karl_by_day': [-41.469871886, -54.425662814, -51.734572633],
+    'karl_rest': 0.150386219,
+    'karl_troughs': [0.03978156, 0.032040739, 0.033929617],
+    'karl_rest_trough': 0.074172944,
+    'karl_pre_breakfast': [0.281351652, 0.20277995, 0.214805136],
+    'karl_rest_pre_breakfast': 0.281351652,
+    'karl_troughs_rel': [0.536335194, 0.431973402, 0.457439268],
+    'karl_pre_breakfast_rel': [1.0, 0.720734883, 0.763475654],
 }
 DIST = {
     'cut40': 0.015702383,
@@ -505,10 +506,10 @@ DIST = {
     'marmonier': (123, 122, 135),
     'melanson': (154, 91),
     'moore': -88,
-    'karl_bal': 5.789392213,
-    'karl_by_day': (4.5301072, 6.573904101, 13.264165338),
-    'karl_troughs_rel': (0.321334828, 0.22296918, 0.351425972),
-    'karl_pre_breakfast_rel': (0.0, 0.158728297, 0.244461335),
+    'karl_bal': 5.789964222,
+    'karl_by_day': (4.530128114, 6.574337186, 13.265427367),
+    'karl_troughs_rel': (0.321335194, 0.222973402, 0.351439268),
+    'karl_pre_breakfast_rel': (0.0, 0.158734883, 0.244475654),
 }
 
 

@@ -1,13 +1,12 @@
-"""The training signal (NR_Kernel_Training.lua), Plan 3 Task 8.
+"""The training signal (NR_Kernel_Training.lua), Plan 3 Task 8; the aerobic side only since Plan 13 Task 12
+(ruling 13-18: the resistance side -- event, loadMinute, actionMinute, decay, doses and their constants -- is removed).
 
 NR_Kernel_Training.lua is a kernel file (its name is NR_Kernel*), so the session `host` fixture loads it
 through its glob and already has NutritionRevamp.kernel.training. Every expectation below is hand-computed
 from the file's constants: the engine's resting MET floor 1.5 (Metabolics.Default; spec § 7 item 35);
 vanilla's heavy-load factors {1, 1.5, 1.9, 2.3, 2.8} (#2255); the mass reference 80 kg (#0453); the
-band METs 6.0 and 9.0 (a game choice, § 7 item 31); the weekly accumulator time constant 7 d (S0576/S0577);
-the dose half-saturations K_STR 4 (S0582) and K_HYP 10 (S0576); the strength weights by class (S0575);
-the set-equivalents (game choices, § 7 item 30); the maintenance floor 1 high set-equivalent (S0616);
-the climb credits (#2632); the hard-day floor 10 band-2 minutes (the endurance report).
+band METs 6.0 and 9.0 (a game choice, § 7 item 31); the climb credits (#2632); the hard-day floor 10 band-2
+minutes (the endurance report).
 """
 import math
 
@@ -25,8 +24,7 @@ def _ring(pairs):
 
 
 def _body(host, **kw):
-    d = dict(vStr=0.0, vHyp=0.0, vStrHigh=0.0, metMinDay=0.0, band1Day=0.0, band2Day=0.0,
-             bandWeek=_ring([(0, 0)] * 7))
+    d = dict(metMinDay=0.0, band1Day=0.0, band2Day=0.0, bandWeek=_ring([(0, 0)] * 7))
     d.update(kw)
     return host.table(d)
 
@@ -37,21 +35,21 @@ def test_scalar_constants(host):
     t = host.K.training
     assert t.MET_FLOOR == 1.5 and t.MASS_REF == 80
     assert t.BAND1_MET == 6.0 and t.BAND2_MET == 9.0
-    assert t.TAU_V_DAYS == 7 and t.K_STR == 4 and t.K_HYP == 10
-    assert t.MAINTAIN_HIGH == 1 and t.HARD_DAY_MIN == 10
+    assert t.HARD_DAY_MIN == 10
 
 
-def test_set_equivalents(host):
+def test_the_resistance_side_is_gone(host):
+    # ruling 13-18: the Strength signal is the AddXP capture's (K.strength.signalClose); nothing of the old side stays
     t = host.K.training
-    assert t.S_REP_ARMS == 0.10 and t.S_REP_LEGS == 0.05 and t.S_HIT == 0.05 and t.S_TREE == 0.07
-    assert t.S_LOAD_HIGH_PER_MIN == 0.10 and t.S_LOAD_MOD_PER_MIN == 0.05
-    assert t.S_ACTION_MOD_PER_MIN == 0.02 and t.S_ACTION_HIGH_PER_MIN == 0.04
+    for name in ("event", "loadMinute", "actionMinute", "decay", "doses", "W_STR", "TAU_V_DAYS", "K_STR", "K_HYP",
+                 "MAINTAIN_HIGH", "S_REP_ARMS", "S_REP_LEGS", "S_HIT", "S_TREE", "S_LOAD_HIGH_PER_MIN",
+                 "S_LOAD_MOD_PER_MIN", "S_ACTION_MOD_PER_MIN", "S_ACTION_HIGH_PER_MIN"):
+        assert t[name] is None, name
 
 
 def test_table_constants(host):
     t = host.K.training
     assert host.py(t.LOAD_MULT) == {1: 1, 2: 1.5, 3: 1.9, 4: 2.3, 5: 2.8}
-    assert host.py(t.W_STR) == dict(low=0.5, moderate=0.8, high=1.0)
     assert host.py(t.CLIMB_MET) == dict(JumpFence=4.0, ClimbRope=8.0)
 
 
@@ -129,97 +127,6 @@ def test_climb_credit_unknown_class_is_zero(host, cls):
     b = _body(host, metMinDay=1.0)
     assert host.call("training.climbCredit", b, cls, 80) == 0
     assert b.metMinDay == 1.0
-
-
-# --- event ---
-
-def test_event_moderate(host):
-    b = _body(host)
-    host.call("training.event", b, 0.10, "moderate", None)
-    assert _close(b.vStr, 0.08) and _close(b.vHyp, 0.10) and b.vStrHigh == 0
-
-
-def test_event_low(host):
-    b = _body(host)
-    host.call("training.event", b, 0.10, "low")
-    assert _close(b.vStr, 0.05) and _close(b.vHyp, 0.10) and b.vStrHigh == 0
-
-
-def test_event_high_with_hits(host):
-    b = _body(host, vStr=1.0, vHyp=2.0, vStrHigh=0.5)
-    host.call("training.event", b, 0.10, "high", 3)
-    assert _close(b.vStr, 1.3) and _close(b.vHyp, 2.3) and _close(b.vStrHigh, 0.8)
-
-
-def test_event_hits_floor_at_one(host):
-    b = _body(host)
-    host.call("training.event", b, 0.10, "high", 0)
-    assert _close(b.vStr, 0.10) and _close(b.vHyp, 0.10) and _close(b.vStrHigh, 0.10)
-
-
-# --- loadMinute ---
-
-@pytest.mark.parametrize("carried, vstr, vhyp, vhigh", [
-    (90, 0.10, 0.10, 0.10),
-    (80, 0.10, 0.10, 0.10),
-    (60, 0.04, 0.05, 0.0),
-    (50, 0.04, 0.05, 0.0),
-    (40, 0.0, 0.0, 0.0),
-])
-def test_load_minute(host, carried, vstr, vhyp, vhigh):
-    b = _body(host)
-    host.call("training.loadMinute", b, carried, 100, 1)
-    assert _close(b.vStr, vstr) and _close(b.vHyp, vhyp) and _close(b.vStrHigh, vhigh)
-
-
-def test_load_minute_scales_by_dt(host):
-    b = _body(host)
-    host.call("training.loadMinute", b, 90, 100, 3)
-    assert _close(b.vHyp, 0.30) and _close(b.vStrHigh, 0.30)
-
-
-# --- actionMinute ---
-
-@pytest.mark.parametrize("modifier, moving, vstr, vhyp, vhigh", [
-    (8, False, 0.04, 0.04, 0.04),
-    (4, False, 0.016, 0.02, 0.0),
-    (8, True, 0.0, 0.0, 0.0),
-    (3, False, 0.0, 0.0, 0.0),
-])
-def test_action_minute(host, modifier, moving, vstr, vhyp, vhigh):
-    b = _body(host)
-    host.call("training.actionMinute", b, modifier, moving, 1)
-    assert _close(b.vStr, vstr) and _close(b.vHyp, vhyp) and _close(b.vStrHigh, vhigh)
-
-
-# --- decay ---
-
-def test_decay_one_time_constant(host):
-    b = _body(host, vStr=4.0, vHyp=10.0, vStrHigh=1.0)
-    host.call("training.decay", b, 7 * 1440)
-    d = math.exp(-1)
-    assert _close(b.vStr, 4.0 * d) and _close(b.vHyp, 10.0 * d) and _close(b.vStrHigh, d)
-
-
-def test_decay_one_minute(host):
-    b = _body(host, vStr=2.0, vHyp=2.0, vStrHigh=2.0)
-    host.call("training.decay", b, 1)
-    d = math.exp(-1 / (7 * 1440))
-    assert _close(b.vStr, 2.0 * d) and _close(b.vHyp, 2.0 * d) and _close(b.vStrHigh, 2.0 * d)
-
-
-# --- doses ---
-
-def test_doses_half_saturation(host):
-    b = _body(host, vStr=4.0, vHyp=10.0, vStrHigh=1.0)
-    d_str, d_hyp, maintained = host.call("training.doses", b)
-    assert _close(d_str, 0.5) and _close(d_hyp, 0.5) and maintained is True
-
-
-def test_doses_zero_and_not_maintained(host):
-    b = _body(host, vStrHigh=0.99)
-    d_str, d_hyp, maintained = host.call("training.doses", b)
-    assert d_str == 0 and d_hyp == 0 and maintained is False
 
 
 # --- closeDay ---
