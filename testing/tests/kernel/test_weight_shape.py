@@ -100,6 +100,7 @@ function(cfg)
             end,
         }
         if cfg.noAdd then coll.add = nil end
+        if cfg.noGet then coll.get = nil end
         return coll
     end
     return p
@@ -175,6 +176,7 @@ def record_for(h, fm=15.0, lm=65.0, band=None, fatT=0, thinT=0, dirty=False):
         body.band = band
     body.fatT = fatT
     body.thinT = thinT
+    body.traitsDay = body.dayIndex
     if dirty:
         body.traitsDirty = True
     record.body = body
@@ -387,17 +389,69 @@ def test_a_normal_axis_ignores_a_non_band_trait(wgt_host):
     assert pushes(h) == n0
 
 
-def test_a_stray_beside_the_wanted_trait_waits_for_the_next_dirty_write(wgt_host):
-    # the limitation: the minute's held check reads the wanted trait alone (the old repair read's gets, Rule 6)
+def test_a_stray_beside_the_wanted_trait_goes_at_the_next_day(wgt_host):
     h = wgt_host
     p = player(h, traits=["OBESE", "OVERWEIGHT"])
     record = record_for(h, fm=40.0, lm=65.0, band="obese", fatT=2)
     minute(h, p, record)
     assert calls(p, "remove") == []
-    record.body.traitsDirty = True
+    record.body.dayIndex = record.body.dayIndex + 1
     minute(h, p, record, 100.0 + 1 / 60)
     assert edits(p, "remove") == ["OVERWEIGHT"]
     assert held(p) == ["OBESE"]
+
+
+def test_a_raise_after_a_landed_removal_still_pushes(wgt_host):
+    h = wgt_host
+    p = player(h, traits=["OBESE"])
+    p.cfg.raising = "add"
+    record = record_for(h, band="overweight", fatT=1, dirty=True)
+    n0 = pushes(h)
+    minute(h, p, record)
+    assert held(p) == []
+    assert pushes(h) == n0 + 1
+
+
+def test_an_absent_get_differs_from_nothing_and_writes_nothing(wgt_host):
+    # review T15 m2: an unreadable get compares nothing
+    h = wgt_host
+    p = player(h, traits=["OBESE"])
+    p.cfg.noGet = True
+    n0 = pushes(h)
+    minute(h, p, record_for(h))
+    assert calls(p, "add") == [] and calls(p, "remove") == []
+    assert pushes(h) == n0
+
+
+def test_a_nil_fat_rung_never_raises(wgt_host):
+    # review T15 m2: wantOf over a nil rung builds a fresh table, never a cache key
+    h = wgt_host
+    p = player(h)
+    record = record_for(h)
+    record.body.fatT = None
+    s0 = stats(h)
+    minute(h, p, record)
+    assert stats(h)["failures"] == s0["failures"]
+    assert calls(p, "setWeight") == [80.0]
+
+
+def test_a_dirty_write_with_an_absent_get_keeps_the_flag(wgt_host):
+    # review T15 m2
+    h = wgt_host
+    p = player(h)
+    p.cfg.noGet = True
+    record = record_for(h, band="overweight", fatT=1, dirty=True)
+    minute(h, p, record)
+    assert record.body.traitsDirty is True
+
+
+def test_a_thin_rung_excludes_a_held_fat_rung_at_the_write(wgt_host):
+    # review T15 m3: precedence holds at the write even when both rungs are set
+    h = wgt_host
+    p = player(h, traits=["OBESE"])
+    minute(h, p, record_for(h, fm=5.0, lm=48.0, band="underweight", fatT=2, thinT=1, dirty=True))
+    assert held(p) == ["UNDERWEIGHT"]
+    assert edits(p, "remove") == ["OBESE"]
 
 
 def test_apply_trait_from_weight_is_never_called(wgt_host):
@@ -731,7 +785,7 @@ def test_limitations(wgt_host):
     lim = list(WGT(wgt_host).limitations.values())
     assert "the mirror is a plain overwrite; its four written values are the reconciliation's baseline (NR_Server_Reconcile)" in lim
     assert "the weight-direction thresholds are a game choice" in lim
-    assert any(x.startswith("a stray band trait beside the wanted one") for x in lim)
+    assert "a stray band trait beside the wanted one is removed at the first minute of the next record day (a once-a-day audit; the minute's held check reads the wanted trait alone, Rule 6)" in lim
 
 
 def test_never_writes_the_strength_level_or_carry():

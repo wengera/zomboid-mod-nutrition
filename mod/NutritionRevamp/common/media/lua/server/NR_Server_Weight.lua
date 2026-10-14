@@ -39,7 +39,7 @@ NR.server.weight = {
     limitations = {
         "the mirror is a plain overwrite; its four written values are the reconciliation's baseline (NR_Server_Reconcile)",
         "the weight-direction thresholds are a game choice",
-        "a stray band trait beside the wanted one is removed only at the next day-close write: the minute's held check reads the wanted trait alone, as many gets as the old repair read (Rule 6)",
+        "a stray band trait beside the wanted one is removed at the first minute of the next record day (a once-a-day audit; the minute's held check reads the wanted trait alone, Rule 6)",
     },
 }
 local WGT = NR.server.weight
@@ -89,6 +89,10 @@ local function differs(coll, want)
     return false
 end
 
+-- Whether the write in progress has landed an edit: kept outside write's return, so a raise after a landed edit
+-- still pushes it.
+local edit = { changed = false }
+
 -- The write: each of the five added when wanted and absent, removed when held and unwanted. Returns whether the
 -- collection changed and whether every read and edit landed.
 local function write(coll, want)
@@ -101,9 +105,19 @@ local function write(coll, want)
             if not okG then
                 complete = false
             elseif want[name] == true and present ~= true then
-                if NR.call(coll, "add", t) then changed = true else complete = false end
+                if NR.call(coll, "add", t) then
+                    changed = true
+                    edit.changed = true
+                else
+                    complete = false
+                end
             elseif want[name] ~= true and present == true then
-                if NR.call(coll, "remove", t) then changed = true else complete = false end
+                if NR.call(coll, "remove", t) then
+                    changed = true
+                    edit.changed = true
+                else
+                    complete = false
+                end
             end
         end
     end
@@ -111,19 +125,33 @@ local function write(coll, want)
 end
 
 -- The five weight-band traits from the body's axes (spec section 8): when body.traitsDirty (the day close changed the
--- band) or the held set differs from K.traits.WANT(body.fatT, body.thinT), each is added or removed through the trait
--- collection and the trait block is pushed once if the collection changed. A dirty write that landed clears
--- body.traitsDirty and returns true (the band changed: the caller marks the bus); an unreadable registry or
--- collection, or an edit that failed, keeps it for the next minute. ctx (optional) is the pipeline's, whose trait
--- collection read (NR.read) it shares.
+-- band), at the first minute of a record day (the audit: body.traitsDay, not stored, so a restart audits once) or when
+-- the held set differs from K.traits.WANT(fatT, body.thinT), each is added or removed through the trait collection
+-- and the trait block is pushed once if the collection changed (also when a later edit raised). A thinness rung
+-- excludes the fat traits here too (precedence). A dirty write that landed clears body.traitsDirty and returns true
+-- (the band changed: the caller marks the bus); an unreadable registry or collection, or an edit that failed, keeps
+-- it for the next minute. ctx (optional) is the pipeline's, whose trait collection read (NR.read) it shares.
 function WGT.writeTraits(player, body, ctx)
     if CharacterTrait == nil then return false end
     local coll = NR.read.traits(ctx, player)
     if coll == nil then return false end
-    local want = wantOf(body.fatT, body.thinT)
+    local fatT = body.fatT
+    if type(body.thinT) == "number" and body.thinT > 0 then
+        fatT = 0
+    end
+    local want = wantOf(fatT, body.thinT)
     local dirty = body.traitsDirty == true
-    if not dirty and not differs(coll, want) then return false end
-    local changed, complete = write(coll, want)
+    local audit = body.traitsDay ~= body.dayIndex
+    if not dirty and not audit and not differs(coll, want) then return false end
+    edit.changed = false
+    local okW, changed, complete = pcall(write, coll, want)
+    if not okW then
+        if edit.changed then
+            NR.pushTraits(player, WGT.stats)
+        end
+        error(changed, 0)
+    end
+    if complete then body.traitsDay = body.dayIndex end
     if changed then NR.pushTraits(player, WGT.stats) end
     if not dirty then
         if changed then WGT.stats.bandRepairs = WGT.stats.bandRepairs + 1 end
