@@ -534,3 +534,47 @@ end
 function K.strength.carryDelta(traitCarry, eAcute)
     return traitCarry * (1 + eAcute) -- ruling 11
 end
+
+-- ============================================================ the AddXP capture (spec section 4, ruling 13-11)
+-- The protein factor vanilla's XP.AddXP applies off the server's protein store (#2112; the 42.21 jar's AddXP
+-- @107-@190): x1.5 strictly between 50 and 300, x0.7 strictly below -300, else 1.
+K.strength.PROTEIN_LO = 50 -- #2112
+K.strength.PROTEIN_HI = 300 -- #2112
+K.strength.PROTEIN_HI_FACTOR = 1.5 -- #2112
+K.strength.PROTEIN_NEG = -300 -- #2112
+K.strength.PROTEIN_NEG_FACTOR = 0.7 -- #2112
+
+-- The protein factor of a store (a NaN store compares false everywhere and reads 1).
+function K.strength.proteinFactor(store)
+    local S = K.strength
+    if store > S.PROTEIN_LO and store < S.PROTEIN_HI then
+        return S.PROTEIN_HI_FACTOR
+    end
+    if store < S.PROTEIN_NEG then
+        return S.PROTEIN_NEG_FACTOR
+    end
+    return 1
+end
+
+-- One Strength grant's training signal, in Strength XP before vanilla's multipliers: 0 for a non-finite or
+-- non-positive amount; else the amount divided by the protein factor of store, the sandbox multiplier (one that is
+-- not a positive finite number reads 1) and the book multiplier when above 1 (a non-finite one reads 1; #2113), times
+-- 1 for a grant inside a recorded Fitness set (fitness true) or P.incidental for any other (S1951, S1961, S1962).
+function K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)
+    if not K.finite(amount) or not (amount > 0) then
+        return 0
+    end
+    local sm = sandboxMult
+    if not K.finite(sm) or not (sm > 0) then
+        sm = 1
+    end
+    local bm = bookMult
+    if not K.finite(bm) then
+        bm = 1
+    end
+    local xp = amount / K.strength.proteinFactor(store) / sm / K.max(1, bm)
+    if fitness then
+        return xp
+    end
+    return xp * P.incidental
+end

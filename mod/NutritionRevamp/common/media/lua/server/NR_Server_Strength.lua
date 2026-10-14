@@ -9,7 +9,8 @@
 -- re-asserted against (#2143, #2565). This file never writes the carry base (#2704).
 --
 -- STR.ladder (the XP ladder) and STR.remap (vanilla's band remap, the measured route of #2867-#2874) are kept for
--- the level write.
+-- the level write. STR.onXp, the AddXP listener, captures each Strength grant as training signal into body.sigDay
+-- (spec section 4).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
 -- inside a function behind a nil check, so the file loads with no engine
@@ -21,11 +22,17 @@ NR.server.strength = {
     stats = { minutes = 0, pushes = 0, pushMissing = 0, carryWrites = 0, failures = 0,
               badReads = 0, ladderFallbacks = 0 },
     lastError = nil,
+    -- The AddXP capture's counters, beside the minute's (the golden trace walks stats).
+    xpStats = { captures = 0, ignored = 0, failures = 0 },
+    xpError = nil,
+    -- True while the mod's own level write runs, so its XP grants are not captured as training.
+    pinning = false,
     wired = false,
     totals = nil,
     limitations = {
         "the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) read the current minute's fluids, acute and nutrients sub-tables",
         "no level is written yet and the carry's trait factor reads the native level's band; an unreadable level writes no carry that minute",
+        "the training signal is the Strength XP the engine's XP event reports; a grant the engine makes without the event (to a sleeping character, or to one whose Strength XP sits at the level-10 total) trains nothing",
     },
 }
 local STR = NR.server.strength
@@ -176,9 +183,101 @@ function STR.minute(username, player, record, ctx)
     end
 end
 
--- Wiring: registered as the pipeline's strength step at OnServerStarted. ORDER runs it after the
--- metabolism step, so the body exists and its day has closed
--- before this step reads it.
+-- ------------------------------------------------------------ the AddXP capture (spec section 4, ruling 13-11)
+-- AddXP(chr, perk, amount) (#2125) fires last in IsoGameCharacter$XP.AddXP, after the level loops (LevelPerk
+-- @997-@1002 L14334, LoseLevel @1151-@1157 L14350) and after every multiplier and the level-10 clamp
+-- (@1346-@1364 L14375-L14376), so amount is the landed XP and getPerkLevel already reads the grant's level.
+-- GameServer.addXp re-seeds NetworkCharacterAI.updateXpChecker after AddXP returns (@55-@59 L1920).
+-- The landed amount carries the protein factor (AddXP @107-@190, #2112), the book multiplier (@738-@756, #2113) and
+-- the sandbox multiplier (@757-@823 L14305-L14308: MultiplierConfig.Global when GlobalToggle, else the per-perk
+-- MultiplierConfig.Strength; SandboxOptions$MultiplierConfig.<init> @19 L356, @37 L357, @69 L359), the last two behind
+-- AddXP's second boolean (@225 L14258), which the server's Lua addXp route passes true. K.strength.capture divides all
+-- three out and weights a grant outside a recorded Fitness set by P.incidental; the signal lands in body.sigDay
+-- (ruling 13-12). The XP never moves the mod's level: a grant that left the native level off body.wroteL stamps
+-- body.levelDue for the level write (ruling 13-29).
+-- Cadence (Rule 6): event-driven, no clock work. Any other perk returns before a Java read; a Strength grant reads
+-- the username, the protein store, the book multiplier and the level (six calls); the sandbox and the set are Lua.
+
+-- The sandbox multiplier the engine applied to a Strength grant, or nil (the kernel reads a bad one as 1).
+local function sandboxMult()
+    local sv = SandboxVars
+    if type(sv) ~= "table" then return nil end
+    local cfg = sv.MultiplierConfig
+    if type(cfg) ~= "table" then return nil end
+    if cfg.GlobalToggle ~= false then return cfg.Global end
+    return cfg.Strength
+end
+
+-- The strength parameters (the server's options, else DEFAULTS).
+local function strengthP()
+    local opts = NR.server.options
+    if opts ~= nil and opts.strength ~= nil then return opts.strength end
+    return K.strength.DEFAULTS
+end
+
+-- The username of a player, or nil.
+local function username(player)
+    local ok, name = NR.call(player, "getUsername")
+    if ok and type(name) == "string" then return name end
+    return nil
+end
+
+-- The body of an existing record, or nil; never creates a record.
+local function bodyOf(name)
+    local S = NR.server.store
+    if S == nil or name == nil then return nil end
+    local records = S.records
+    if records == nil and S.attach ~= nil then records = S.attach() end
+    if records == nil then return nil end
+    local record = records[name]
+    if record == nil then return nil end
+    return record.body
+end
+
+-- Whether username's recorded Fitness set is running (NR_Server_Fitness's record; one Lua table lookup).
+local function inSet(name)
+    local fit = NR.server.fitness
+    return fit ~= nil and fit.typeOf ~= nil and fit.typeOf(name) ~= nil
+end
+
+local function xpStep(player, perk, amount)
+    local name = username(player)
+    local body = bodyOf(name)
+    if body == nil then
+        STR.xpStats.ignored = STR.xpStats.ignored + 1
+        return
+    end
+    if finite(amount) and amount > 0 then
+        local store = num(obj(player, "getNutrition"), "getProteins", 0)
+        local book = num(obj(player, "getXp"), "getMultiplier", 1, perk)
+        local sig = K.strength.capture(amount, store, sandboxMult(), book, inSet(name), strengthP())
+        body.sigDay = body.sigDay + sig
+        STR.xpStats.captures = STR.xpStats.captures + 1
+    else
+        STR.xpStats.ignored = STR.xpStats.ignored + 1     -- rust or nothing landed: no signal
+    end
+    local level = num(player, "getPerkLevel", nil, perk)
+    if level ~= nil and level ~= body.wroteL then
+        body.levelDue = true                              -- ruling 13-29: Task 14's STR.repin replaces the stamp
+    end
+end
+
+-- The AddXP listener: Strength only, and nothing while the mod writes the level itself (STR.pinning). One pcall; a
+-- failure is counted and kept, never raised into the engine's event dispatch.
+function STR.onXp(player, perk, amount)
+    if STR.pinning then return end
+    if Perks == nil or perk ~= Perks.Strength then return end
+    local ok, err = pcall(xpStep, player, perk, amount)
+    if not ok then
+        STR.xpStats.failures = STR.xpStats.failures + 1
+        STR.xpError = err
+        NR.log.say(2, "strength: XP capture failed: " .. tostring(err))
+    end
+end
+
+-- Wiring: registered as the pipeline's strength step at OnServerStarted (ORDER runs it after the metabolism step, so
+-- the body exists and its day has closed before this step reads it), and STR.onXp as the AddXP listener, once, on the
+-- server only.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
@@ -186,5 +285,6 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         STR.wired = true
         local MIN = NR.server.minute
         MIN.register("strength", STR.minute)
+        if Events.AddXP ~= nil then Events.AddXP.Add(STR.onXp) end
     end)
 end

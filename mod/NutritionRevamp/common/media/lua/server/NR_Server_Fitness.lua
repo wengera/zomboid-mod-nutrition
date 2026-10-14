@@ -55,7 +55,7 @@ local function username(action)
     return nil
 end
 
--- The recorded exercise type of username's current set, or nil (Metabolism's and Training's one read).
+-- The recorded exercise type of username's current set, or nil (Metabolism's and Strength's one read).
 function FIT.typeOf(name)
     if name == nil then return nil end
     return FIT.exeType[name]

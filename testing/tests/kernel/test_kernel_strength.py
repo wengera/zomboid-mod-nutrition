@@ -652,3 +652,66 @@ def test_the_options_adapter_rebuilds_strength_only_when_a_leaf_changed():
     rt.execute("SandboxVars = nil")
     NR.server.readOptions("poll")                              # no table: the last P stands
     assert G.NR_CALLS == 4
+
+
+# --- the AddXP capture (Plan 13 Task 13; spec section 4, ruling 13-11) ---
+
+@pytest.mark.parametrize("store, f", [(0, 1.0), (60, 1.5), (299.9, 1.5), (300, 1.0), (-301, 0.7), (-300, 1.0)])
+def test_protein_factor(host, store, f):
+    assert host.call("strength.proteinFactor", store) == f
+
+
+@pytest.mark.parametrize("store, f", [(50, 1.0), (50.001, 1.5), (-300.001, 0.7), (float("nan"), 1.0)])
+def test_protein_factor_edges(host, store, f):
+    # #2112: both bounds strict; a NaN store compares false everywhere and reads the neutral 1
+    assert host.call("strength.proteinFactor", store) == f
+
+
+def test_protein_constants(host):
+    s = host.K.strength
+    assert (s.PROTEIN_LO, s.PROTEIN_HI, s.PROTEIN_HI_FACTOR) == (50, 300, 1.5)
+    assert (s.PROTEIN_NEG, s.PROTEIN_NEG_FACTOR) == (-300, 0.7)
+
+
+def test_capture_divides_the_chain_and_weights_the_source(host):
+    D = host.K.strength.DEFAULTS
+    assert abs(host.call("strength.capture", 9.0, 60, 2.0, 1.0, True, D) - 3.0) < 1e-12
+    assert abs(host.call("strength.capture", 6.0, 0, 1.0, 1.0, False, D) - 6.0 * D["incidental"]) < 1e-12
+    assert host.call("strength.capture", -1.0, 0, 1.0, 1.0, True, D) == 0
+    assert abs(host.call("strength.capture", 6.0, 0, 0.0, 1.0, True, D) - 6.0) < 1e-12
+
+
+def test_capture_divides_a_book_above_1_only(host):
+    D = host.K.strength.DEFAULTS
+    assert abs(host.call("strength.capture", 6.0, 0, 1.0, 3.0, True, D) - 2.0) < 1e-12
+    assert abs(host.call("strength.capture", 6.0, 0, 1.0, 0.5, True, D) - 6.0) < 1e-12      # <= 1: not applied
+    assert abs(host.call("strength.capture", 6.0, 0, 1.0, 1.0, True, D) - 6.0) < 1e-12
+
+
+def test_capture_the_low_protein_factor_is_divided_out(host):
+    D = host.K.strength.DEFAULTS
+    assert abs(host.call("strength.capture", 7.0, -400, 1.0, 1.0, True, D) - 10.0) < 1e-12
+
+
+@pytest.mark.parametrize("sm", [float("nan"), float("inf"), -2.0, 0.0, "x", None])
+def test_capture_a_bad_sandbox_multiplier_reads_1(host, sm):
+    D = host.K.strength.DEFAULTS
+    assert abs(host.call("strength.capture", 6.0, 0, sm, 1.0, True, D) - 6.0) < 1e-12
+
+
+@pytest.mark.parametrize("bm", [float("nan"), float("inf"), "x", None])
+def test_capture_a_bad_book_multiplier_reads_1(host, bm):
+    D = host.K.strength.DEFAULTS
+    assert abs(host.call("strength.capture", 6.0, 0, 1.0, bm, True, D) - 6.0) < 1e-12
+
+
+@pytest.mark.parametrize("amount", [0, -0.0, float("nan"), float("inf"), float("-inf"), "6", None])
+def test_capture_a_bad_or_non_positive_amount_is_0(host, amount):
+    D = host.K.strength.DEFAULTS
+    assert host.call("strength.capture", amount, 0, 1.0, 1.0, True, D) == 0
+
+
+def test_capture_reads_the_incidental_weight_off_P(host):
+    P = host.table({"incidental": 0.5})
+    assert abs(host.call("strength.capture", 6.0, 60, 1.0, 1.0, False, P) - 2.0) < 1e-12
+    assert abs(host.call("strength.capture", 6.0, 60, 1.0, 1.0, True, P) - 4.0) < 1e-12

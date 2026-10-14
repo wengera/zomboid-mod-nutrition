@@ -307,6 +307,7 @@ def test_a_failing_add_or_remove_counts_no_repair_and_pushes_nothing(str_host):
 def test_never_calls_a_granting_or_leveling_member():
     with open(STRENGTH, encoding="utf-8") as fh:
         code = "\n".join(l.split("--")[0] for l in fh.read().splitlines())
+    code = code.replace("Events.AddXP", "")                   # the capture listens to the event (Task 13)
     for name in ("LevelPerk", "LoseLevel", "setXPToLevel", "addXp", "AddXP", "setMaxWeightBase"):
         assert name not in code
 
@@ -510,3 +511,332 @@ def test_a_raising_push_global_is_counted_and_the_carry_still_written(str_host):
     assert STR(h).stats.pushMissing == miss + 1
     assert STR(h).stats.carryWrites == cw + 1
     assert STR(h).stats.failures == fails
+
+
+# --- the AddXP capture (Plan 13 Task 13; spec section 4, rulings 13-11, 13-12, 13-29) ------------------
+
+# A player stand-in for the AddXP listener: every Java member it answers counts its call in cfg.calls.
+XP_PLAYER = r"""
+function(cfg)
+    cfg.calls = {}
+    local function hit(name) cfg.calls[name] = (cfg.calls[name] or 0) + 1 end
+    local p = { cfg = cfg }
+    p.getUsername = function(self) hit("getUsername"); return self.cfg.name end
+    p.getNutrition = function(self)
+        hit("getNutrition")
+        return { getProteins = function(s) hit("getProteins"); return self.cfg.proteins end }
+    end
+    p.getXp = function(self)
+        hit("getXp")
+        return { getMultiplier = function(s, perk)
+            hit("getMultiplier")
+            if perk ~= Perks.Strength then error("the book read another perk") end
+            return self.cfg.book
+        end }
+    end
+    p.getPerkLevel = function(self, perk) hit("getPerkLevel"); return self.cfg.level end
+    return p
+end
+"""
+
+XP_SETUP = r"""
+function(records, exe)
+    local NR = NutritionRevamp
+    local saved = { store = NR.server.store, fitness = NR.server.fitness, sv = SandboxVars, fit = Perks.Fitness,
+                    pinning = NR.server.strength.pinning, options = NR.server.options }
+    NR.server.store = { records = records }
+    NR.server.fitness = { typeOf = function(name) if name == nil then return nil end return exe[name] end }
+    SandboxVars = { MultiplierConfig = { Global = 2.0, GlobalToggle = true, Strength = 4.0 } }
+    Perks.Fitness = { name = "Fitness" }
+    return saved
+end
+"""
+
+XP_TEARDOWN = r"""
+function(saved)
+    local NR = NutritionRevamp
+    NR.server.store = saved.store
+    NR.server.fitness = saved.fitness
+    SandboxVars = saved.sv
+    Perks.Fitness = saved.fit
+    NR.server.strength.pinning = saved.pinning
+    NR.server.options = saved.options
+end
+"""
+
+
+@pytest.fixture
+def xp(str_host):
+    h = str_host
+    records = h.rt.table()
+    exe = h.rt.table()
+    saved = h.rt.eval(XP_SETUP)(records, exe)
+    try:
+        yield h, records, exe
+    finally:
+        h.rt.eval(XP_TEARDOWN)(saved)
+
+
+def xp_player(h, name="admin", proteins=60.0, book=1.0, level=5):
+    cfg = h.rt.table()
+    cfg.name = name
+    cfg.proteins = proteins
+    cfg.book = book
+    cfg.level = level
+    return h.rt.eval(XP_PLAYER)(cfg)
+
+
+def calls(p):
+    return {k: v for k, v in p.cfg.calls.items()}
+
+
+def xp_stats(h):
+    return dict(STR(h).xpStats.items())
+
+
+def grant(h, p, amount, perk="Strength"):
+    STR(h).onXp(p, h.G.Perks[perk], amount)
+
+
+def test_a_fitness_grant_adds_nothing_and_reads_no_java(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    p = xp_player(h)
+    before = xp_stats(h)
+    grant(h, p, 9.0, "Fitness")
+    assert records.admin.body.sigDay == 0
+    assert calls(p) == {}
+    assert xp_stats(h) == before
+
+
+def test_a_strength_grant_in_a_recorded_set_adds_the_full_share(xp):
+    # 9 XP landed at proteins 60 (x1.5) under Global 2 (GlobalToggle): 9 / 1.5 / 2 = 3 (ruling 13-11)
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    caps = STR(h).xpStats.captures
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 3.0) < 1e-12
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 6.0) < 1e-12        # accumulates into the day's slot (ruling 13-12)
+    assert STR(h).xpStats.captures == caps + 2
+
+
+def test_a_strength_grant_outside_a_set_adds_the_incidental_share(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.bob = "pushups"                                          # another player's set
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 3.0 * h.K.strength.DEFAULTS.incidental) < 1e-12
+
+
+def test_the_incidental_weight_is_the_servers_option(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    h.G.NutritionRevamp.server.options = h.table({"strength": {"incidental": 0.5}})
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 1.5) < 1e-12
+
+
+def test_an_absent_fitness_adapter_reads_incidental(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    h.G.NutritionRevamp.server.fitness = None
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 3.0 * h.K.strength.DEFAULTS.incidental) < 1e-12
+
+
+def test_the_per_perk_multiplier_reads_without_the_global_toggle(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "squats"
+    h.G.SandboxVars.MultiplierConfig.GlobalToggle = False
+    grant(h, xp_player(h, proteins=0.0), 8.0)
+    assert abs(records.admin.body.sigDay - 2.0) < 1e-12        # 8 / 1 / Strength 4
+
+
+def test_an_absent_or_bad_sandbox_multiplier_reads_1(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "squats"
+    h.G.SandboxVars = None
+    grant(h, xp_player(h, proteins=0.0), 8.0)
+    assert abs(records.admin.body.sigDay - 8.0) < 1e-12
+    h.G.SandboxVars = h.table({"MultiplierConfig": {"Global": float("nan"), "GlobalToggle": True}})
+    grant(h, xp_player(h, proteins=0.0), 8.0)
+    assert abs(records.admin.body.sigDay - 16.0) < 1e-12
+    h.G.SandboxVars = h.table({})
+    grant(h, xp_player(h, proteins=0.0), 8.0)
+    assert abs(records.admin.body.sigDay - 24.0) < 1e-12
+
+
+def test_the_book_multiplier_divides_above_1_only(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "squats"
+    h.G.SandboxVars = None
+    grant(h, xp_player(h, proteins=0.0, book=4.0), 8.0)
+    assert abs(records.admin.body.sigDay - 2.0) < 1e-12
+    grant(h, xp_player(h, proteins=0.0, book=0.5), 8.0)
+    assert abs(records.admin.body.sigDay - 10.0) < 1e-12
+    grant(h, xp_player(h, proteins=0.0, book=None), 8.0)      # unreadable: 1
+    assert abs(records.admin.body.sigDay - 18.0) < 1e-12
+
+
+def test_pinning_blocks_the_capture(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    p = xp_player(h, level=9)
+    before = xp_stats(h)
+    STR(h).pinning = True
+    grant(h, p, 9.0)
+    assert records.admin.body.sigDay == 0
+    assert records.admin.body.levelDue is None
+    assert calls(p) == {}
+    assert xp_stats(h) == before
+
+
+def test_a_player_with_no_record_gets_none(xp):
+    h, records, exe = xp
+    exe.admin = "pushups"
+    ign = STR(h).xpStats.ignored
+    grant(h, xp_player(h), 9.0)
+    assert records.admin is None
+    assert STR(h).xpStats.ignored == ign + 1
+    records.admin = h.rt.table()                                 # a record with no body yet
+    grant(h, xp_player(h), 9.0)
+    assert records.admin.body is None
+    assert STR(h).xpStats.ignored == ign + 2
+
+
+def test_an_absent_store_creates_nothing(xp):
+    h, records, exe = xp
+    h.G.NutritionRevamp.server.store = None
+    ign = STR(h).xpStats.ignored
+    grant(h, xp_player(h), 9.0)
+    assert h.G.NutritionRevamp.server.store is None
+    assert STR(h).xpStats.ignored == ign + 1
+
+
+def test_the_store_is_attached_when_its_records_are_absent(xp):
+    # bodyOf reads S.attach() when S.records is nil (Training's helper, moved here)
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "pushups"
+    store = h.G.NutritionRevamp.server.store
+    store.records = None
+    store.attach = h.rt.eval("function(recs) return function() return recs end end")(records)
+    grant(h, xp_player(h), 9.0)
+    assert abs(records.admin.body.sigDay - 3.0) < 1e-12
+
+
+def test_a_grant_that_moves_the_level_off_wrote_l_stamps_level_due(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    body = records.admin.body
+    body.wroteL = 5
+    grant(h, xp_player(h, level=5), 9.0)
+    assert body.levelDue is None                                 # same level: no stamp
+    grant(h, xp_player(h, level=6), 9.0)
+    assert body.levelDue is True                                 # ruling 13-29 (Task 14: STR.repin)
+
+
+def test_a_rust_grant_captures_nothing_reads_no_chain_and_still_checks_the_level(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    body = records.admin.body
+    body.wroteL = 5
+    p = xp_player(h, level=4)
+    ign = STR(h).xpStats.ignored
+    grant(h, p, -30.0)
+    assert body.sigDay == 0 and body.levelDue is True
+    assert calls(p) == {"getUsername": 1, "getPerkLevel": 1}
+    assert STR(h).xpStats.ignored == ign + 1
+
+
+def test_an_unreadable_level_stamps_nothing(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    records.admin.body.wroteL = 5
+    grant(h, xp_player(h, level=None), 9.0)
+    assert records.admin.body.levelDue is None
+    assert records.admin.body.sigDay > 0
+
+
+def test_a_strength_grant_makes_six_java_reads(xp):
+    # Rule 6: the name, the protein store, the book multiplier and the level; the sandbox and the set are Lua
+    h, records, exe = xp
+    records.admin = record_for(h)
+    p = xp_player(h)
+    grant(h, p, 9.0)
+    assert calls(p) == {"getUsername": 1, "getNutrition": 1, "getProteins": 1, "getXp": 1, "getMultiplier": 1,
+                        "getPerkLevel": 1}
+
+
+def test_an_unreadable_protein_store_reads_0(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    exe.admin = "squats"
+    h.G.SandboxVars = None
+    grant(h, xp_player(h, proteins=None), 8.0)
+    assert abs(records.admin.body.sigDay - 8.0) < 1e-12
+
+
+def test_a_raising_capture_is_counted_never_raised(xp):
+    h, records, exe = xp
+    records.admin = record_for(h)
+    orig = h.K.strength.capture
+    h.K.strength.capture = h.rt.eval("function() error('boom') end")
+    fails = STR(h).xpStats.failures
+    try:
+        grant(h, xp_player(h), 9.0)
+    finally:
+        h.K.strength.capture = orig
+    assert STR(h).xpStats.failures == fails + 1
+    assert "boom" in str(STR(h).xpError)
+    assert records.admin.body.sigDay == 0
+
+
+def test_the_capture_counters_stay_out_of_the_minutes_stats(str_host):
+    # the golden trace walks STR.stats (golden_trace.STATS_NAMES); the capture counts beside it in STR.xpStats
+    st = dict(STR(str_host).stats.items())
+    for name in ("captures", "ignored"):
+        assert name not in st
+
+
+def _wiring_host(server):
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    with open(CORE, encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Core.lua")()
+    rt.execute(r"""
+        NR_STARTED = {}
+        NR_XP = {}
+        Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end },
+                   AddXP = { Add = function(fn) NR_XP[#NR_XP + 1] = fn end } }
+        NutritionRevamp.server.players = {}
+    """)
+    rt.globals().isServer = rt.eval("function() return %s end" % ("true" if server else "false"))
+    for n in ("NR_Server_Minute.lua", "NR_Server_Strength.lua"):
+        with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
+            load(fh.read(), "@" + n)()
+    return rt
+
+
+def test_the_addxp_listener_is_wired_once_at_server_start():
+    rt = _wiring_host(True)
+    G = rt.globals()
+    assert len(G.NR_XP) == 0                                     # nothing at load
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")  # a second start wires nothing twice
+    assert len(G.NR_XP) == 1
+    assert rt.eval("rawequal")(G.NR_XP[1], G.NutritionRevamp.server.strength.onXp)
+
+
+def test_the_addxp_listener_is_not_wired_on_a_client():
+    rt = _wiring_host(False)
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
+    assert len(rt.globals().NR_XP) == 0
