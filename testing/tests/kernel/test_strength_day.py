@@ -469,3 +469,32 @@ def test_retraining_block_two_over_block_one_is_the_pinned_ratio(host):
     ratio = (b["lm"] - Fd) / g1
     assert 0.80 <= ratio <= 1.25
     assert abs(ratio - EXACT_PINS["rantila_block2_over_1"]) < 1e-9
+
+
+@pytest.mark.parametrize("tdee", [0.0, -50.0, float("nan")])
+def test_a_zero_tdee_partitions_the_real_balance(host, tdee):
+    # the guard reads the gate at balance, but the partition arms take the day's real E
+    D = _d(host)
+    ob = so.body_at(_q(1.0), so.L_at_s(0.5), 11.0)
+    ob.Pk = ob.F
+    ob.X = 0.3
+    for E in (200.0, 0.0, -200.0):
+        b0 = _lua_body_from(host, ob)
+        grow = host.call("strength.growth", b0, 15.0, 2.0, min(E, 0.0), 2600.0, 0.0, D)
+        if E >= 0:
+            dX, dM = host.call("partition.surplusLean", b0, grow, 15.0, 2.0, E, D, 1.0)
+        else:
+            _, dX, dM = host.call("partition.deficitLean", b0, grow, 15.0, 2.0, E, D, 1.0)
+        b = _lua_body_from(host, ob)
+        host.call("strength.day", b, 15.0, 2.0, E, tdee, 0.0, D, 1.0)
+        assert b["fm"] == max(ob.M + dM, D["fmMin"]) and b["lx"] == max(ob.X + dX, 0.0), (tdee, E)
+
+
+def test_neural_threshold_is_strictly_below_m_wsat(host):
+    D = _d(host)
+    at = D["m"] * D["Wsat"]
+    b = host.table({"T": 1.05, "Tgrace": 30})
+    host.call("strength.neural", b, at, D, 1.0)
+    assert b["Tgrace"] == 0 and b["T"] > 1.05
+    T, tg = sl.neural_day(1.05, 30, at, 1.0)
+    assert b["T"] == T and b["Tgrace"] == tg
