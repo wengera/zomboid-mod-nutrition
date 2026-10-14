@@ -1,0 +1,13 @@
+module Base
+{
+    character_trait_definition base:obese
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = base:obese,
+        Cost = -10,
+        UIName = UI_trait_obese,
+        UIDescription = UI_trait_obesedesc,
+        MutuallyExclusiveTraits = base:athletic;base:emaciated;base:fit;base:lighteater;base:very underweight;base:underweight;base:overweight,
+    }
+}

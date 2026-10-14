@@ -1,0 +1,5 @@
+name=TKX TraitLevers
+id=TKX_TraitLevers
+description=Plan 13 Task 0 experiment: a restated base:obese trait block, Lua edits of two trait definitions, an OnNewGame writer and an AddXP recorder on the server. Test profiles only.
+modversion=1.0
+versionMin=42.21.0

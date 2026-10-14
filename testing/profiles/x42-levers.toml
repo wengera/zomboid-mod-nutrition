@@ -1,0 +1,37 @@
+# testing/profiles/x42-levers.toml - Plan 13 Task 0 (run x421): the live engine checks before any build of the
+# lean-mass Strength redesign. PZTestKit + TKX_TraitLevers by its path on fixture `two`, both provisioned clients
+# attached in order (`admin` -debug, then `bob`, the release user-role client, each ready before the next).
+# No NutritionRevamp: the profile loads no mod/ file (the probe mod restates base:obese, edits two trait
+# definitions at shared file scope, writes on the server's OnNewGame and records every server AddXP event; its
+# recorder replaces TKX_XpEvents, ruling 13-27). Nutrition = false (ruling T18-1) and DayLength 1.
+# The driver is testing/experiments/x421_levers.py on testing/experiments/x42_levers_lib.py.
+# The fixture's own server ini holds AntiCheatXP=2 (kick); the driver reads the run's ini and records it.
+# The verify rows are load gates only, each certain to pass if the probe mod loaded on that side: the server's
+# TKX_TraitLevers.version, then each client's.
+fixture = "two"
+description = "PZTestKit + TKX_TraitLevers on fixture two, admin (debug) and bob (release, user role), Nutrition off, DayLength 1, build 42.21.0 - the Plan 13 Task 0 live engine checks (trait definitions, creation writes, the band swap, AddXP sources, the level-10 park, the XP pin under the anti-cheat)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_TraitLevers.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "TKX_TraitLevers.version", expect = '"resolved": true' },
+  { side = "client:bob", cmd = "lua.global", args = "TKX_TraitLevers.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_TraitLevers"
+path = "testing/experiments/TKX_TraitLevers"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
