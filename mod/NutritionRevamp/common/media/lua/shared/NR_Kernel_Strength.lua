@@ -164,6 +164,45 @@ function K.strength.status(body)
     return K.clamp((body.lm - body.F0) / (body.Fc - body.F0), 0, 1)
 end
 
+-- The protein gate f_p at p g/kg/d: the fp_knots read flat past their ends (spec section 5).
+function K.strength.fp(p, P)
+    return K.interp(P.fp_knots, p)
+end
+
+-- The energy gate f_e at balance E kcal/d, status s, protein p g/kg/d and expenditure tdee (spec section 5):
+-- zero at the status zero point E0s (deepened for a high-protein novice) and below; the balance gate bal
+-- times the share of the way from E0s to balance in a deficit; from bal toward 1 across a surplus that
+-- saturates at surplus_full of tdee, less full_drop with status.
+function K.strength.fe(E, s, p, tdee, P)
+    local ramp = K.clamp((p - P.nov_p0) / P.nov_pspan, 0, 1)
+    local E0s = P.E0 * (1 - P.E0_drop * s) * (1 + P.a_nov * (1 - s) ^ 2 * ramp)
+    local bal = P.fbal0 * (1 - P.fbal_drop * s) * (1 - P.trained_need * s)
+    if E <= E0s then
+        return 0
+    end
+    if E < 0 then
+        return bal * (1 - E / E0s)
+    end
+    local full = P.surplus_full * (1 - P.full_drop * s) * tdee
+    return bal + (1 - bal) * K.min(1, E / full)
+end
+
+-- The day's lean gain in kg before the biology clock ts (spec section 5): k a week times the room to the
+-- cap Fc, the signal and the two gates, times the alcohol gate; while lm sits below the held peak Pk, the
+-- regain term (half-life regain_hl_wk, the signal capped at 1, the same gates) wins if larger. Never negative.
+function K.strength.growth(body, S, p, E, tdee, alcGkg, P)
+    local s = K.strength.status(body)
+    local G = K.strength.signal(S, s, P)
+    local gates = K.strength.fp(p, P) * K.strength.fe(E, s, p, tdee, P)
+    local grow = P.k * (body.Fc - body.lm) * G * gates / 7 * K.partition.gAlc(alcGkg)
+    if body.lm < body.Pk then
+        local lr = math.log(2) / P.regain_hl_wk
+        local regain = lr * (body.Pk - body.lm) * K.min(1, G) * gates / 7
+        grow = K.max(grow, regain)
+    end
+    return K.max(0, grow)
+end
+
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 -- ============================================================ the Plan 3 model (removed in Plan 13 Task 12)
