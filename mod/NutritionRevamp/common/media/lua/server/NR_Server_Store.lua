@@ -28,15 +28,15 @@
 -- once a real minute, and after an eat, a drink or a respawn's reset) and per index write.
 -- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
 -- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
--- and one whose preload reads nothing while the index names the player is deferred (nothing opened, counted in
--- store.file.stats.deferred, logged once, the flag kept so the next store step tries again) for S.DEFER_MAX_MS of
+-- and one whose preload reads nothing while the index names the player, or a slot file is present but unreadable,
+-- is deferred (nothing opened, counted in store.file.stats.deferred, logged once, the flag kept) for S.DEFER_MAX_MS of
 -- real time from the player's first deferral (F.deferSince: a deferred save retries at every store
 -- step, once a game minute, so a count of steps would be seconds at a short day). The first save past the window
 -- gives up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation;
 -- a clock that does not read never gives up. So the fresh record never overwrites the real one for a transient
 -- failure (logged at level 2); the flag and the window clear at the first save, at a recovery and at a reset. A
--- player first seen after the last index write has no such protection: the index does not name them, so two failed
--- reads save them new.
+-- player the index does not name (first seen after its last write, or any player while it is locked) is protected
+-- only by an unreadable slot file: two reads that answer nothing, as for a missing file, save them new.
 --
 -- The load: the first S.get of a username in a sight -- the players' queue calls it
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
@@ -256,17 +256,24 @@ local function target(at, atPath, last, who)
 end
 
 -- The newest complete slot's raw record, or nil; it remembers which slot holds it, so the next save opens the other.
-function F.load(username)
-    local a, ta = readDoc(F.slot(username, "a"), "rec")
-    local b, tb = readDoc(F.slot(username, "b"), "rec")
+-- Second: whether either slot file is present but unreadable (a missing file is not), which F.save's deferral reads.
+local function loadSlots(username)
+    local a, ta, badA = readDoc(F.slot(username, "a"), "rec")
+    local b, tb, badB = readDoc(F.slot(username, "b"), "rec")
     local docs = { a = a, b = b }
     local texts = { a = ta, b = tb }
+    local bad = badA == true or badB == true
     local which = K.store.newest(docs.a, docs.b)
-    if which == nil then return nil end
+    if which == nil then return nil, bad end
     F.gen[username] = docs[which].gen
     F.last[username] = texts[which]
     F.at[username] = which
-    return docs[which].rec
+    return docs[which].rec, bad
+end
+
+-- The newest complete slot's raw record, or nil (loadSlots, its first value).
+function F.load(username)
+    return (loadSlots(username))
 end
 
 -- A record S.get created fresh this sight whose files the save's preload found after all (a transient read
@@ -293,12 +300,14 @@ end
 function F.save(username, record)
     if record == nil then return false end
     if F.gen[username] == nil then
-        local raw = F.load(username)
+        local raw, bad = loadSlots(username)
         if raw ~= nil and S.fresh[username] == true then
             S.recover(username, record, raw)
             return false
         end
-        if raw == nil and S.fresh[username] == true and F.index[username] ~= nil then
+        -- deferred on the slot files themselves (present but unreadable) or on the index, which a locked index
+        -- cannot answer; a missing slot never defers, so a new player writes
+        if raw == nil and S.fresh[username] == true and (bad or F.index[username] ~= nil) then
             local now = nowMs()
             if F.deferSince[username] == nil then F.deferSince[username] = now end
             local since = F.deferSince[username]
@@ -362,7 +371,7 @@ end
 --     (F.indexPin) and the unreadable one is never opened, so the next boot reads what was written;
 --   * both are unreadable: the index is locked for this boot, since a gen-1 write would land on one file and the
 --     next on the other, so the real index, with every stamp, would be written over. The players then go unpruned
---     and their deferral protection is off until a re-read at the hourly prune (or a restart) reads the pair.
+--     and only an unreadable slot file defers their saves until a re-read at the hourly prune (or a restart).
 -- Logged once each, at level 1.
 function F.readIndex()
     local a, ta, badA = readDoc(F.indexPath("a"), "players")

@@ -1239,3 +1239,33 @@ def test_the_attempt_stamp_spaces_a_failing_writers_retries_by_the_save_gap():
     for m in range(15, 18):
         game_minute(h, m, 10000)                                                # inside the gap of the attempt
     assert F.stats.writeFailures == fails + 1
+
+
+# --- Plan 12 close A1: the deferral keys on the slot files themselves, so a locked index still protects them -------
+
+def test_unreadable_slots_under_a_locked_index_defer_the_save_and_keep_the_slots():
+    torn = index_doc(7, {"old": 990, "admin": 980})[:20]
+    slots = {ROOT + ADMIN + "a.json": slot_doc(6, 6)[:15], ROOT + ADMIN + "b.json": "garbage"}
+    files = dict(slots)
+    files.update({ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"})
+    h = boot(files=files)
+    st = h.NR.server.store
+    assert st.file.indexLocked is True and st.file.index["admin"] is None       # the index cannot say who returns
+    h.online(h.player("admin"))
+    run_minutes(h, 5)
+    assert st.stats.created == 1 and st.fresh["admin"] is True                  # fresh, still waiting for its files
+    assert st.file.stats.deferred >= 1
+    assert opened_with(h, ROOT + "p_") == []                                    # no slot opened for a write
+    for k, v in slots.items():
+        assert h.T.files[k] == v                                                # the returning player's slots kept
+
+
+def test_a_new_player_under_a_locked_index_with_no_slot_files_still_writes():
+    torn = index_doc(7, {"old": 990})[:20]
+    h = boot(files={ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"})
+    st = h.NR.server.store
+    assert st.file.indexLocked is True
+    h.online(h.player("admin"))
+    run_minutes(h, 5)
+    assert opened_with(h, ROOT + ADMIN)                                         # a missing slot never defers
+    assert st.file.stats.deferred == 0 and st.fresh["admin"] is None
