@@ -150,14 +150,16 @@ def test_mirror_empty_plan4_sub_tables_read_zero(host):
 
 def test_mirror_body_scalars_from_a_present_body(host):
     body = host.table({"fm": 20.0, "lm": 59.0, "lx": 1.0, "band": "normal", "energyState": 1.25, "tac": 0.9,
-                       "rmod": 0.8, "delta": 2, "ebDay": -300.0, "eeDay": 2400.0, "inDay": 2100.0})
+                       "rmod": 0.8, "delta": 2, "ebDay": -300.0, "eeDay": 2400.0, "inDay": 2100.0,
+                       "N0": 1.1, "T": 0.9, "S": 9.5})
     m = host.py(host.call("mirror.build", rec(host, body=body), host.table({"mode": 1, "version": "v", "build": "b"})))
     assert m["body_fm"] == 20.0 and m["body_lm"] == 59.0 and m["body_weight"] == 80.0   # fm + lm + lx (ruling 13-20)
     assert m["body_band"] == "normal" and m["body_energyState"] == 1.25 and m["body_tac"] == 0.9
     assert "body_dmod" not in m and m["body_rmod"] == 0.8 and m["body_delta"] == 2
     assert m["body_ebDay"] == -300.0 and m["body_eeDay"] == 2400.0 and m["body_inDay"] == 2100.0
-    # ruling 13-19: the old Strength keys go (Task 18 adds body_level and body_sets)
+    # ruling 13-19: the old Strength keys go; the true level and the closed week's sets take their place
     assert "body_shownL" not in m and "body_dStr" not in m and "body_dHyp" not in m
+    assert m["body_level"] == host.K.strength.level(59.0, 1.1, 0.9, host.K.strength.DEFAULTS) and m["body_sets"] == 9.5
     # a body the Strength minute has not reached yet carries no delta: the key reads 0, never absent
     body.delta = None
     m = host.py(host.call("mirror.build", rec(host, body=body), host.table({"mode": 1, "version": "v", "build": "b"})))
@@ -222,3 +224,31 @@ def test_mirror_nut_keys_are_three_per_order_key_over_the_shipped_order(host):
     assert len([k for k in m if k.startswith("nut_") and k.endswith("_x")]) == n
     assert len([k for k in m if k.startswith("nut_")]) == 3 * n
     assert n == 27        # the pool and rung families add 2 x 27 = 54 scalars per push
+
+
+def _level_mirror(host, P=None, **over):
+    f = {"fm": 20.0, "lm": 59.0, "lx": 1.0, "band": "normal", "energyState": 1.25, "tac": 0.9, "rmod": 0.8,
+         "ebDay": 0.0, "eeDay": 0.0, "inDay": 0.0, "N0": 1.1, "T": 0.9, "S": 12.0}
+    f.update(over)
+    meta = host.table({"mode": 1, "version": "v", "build": "b"})
+    return host.py(host.call("mirror.build", rec(host, body=host.table(f)), meta, None, None, P))
+
+
+def test_mirror_level_reads_the_passed_strength_table_not_the_defaults(host):
+    P = host.K.strength.params(host.table({"StrengthYearsToLevel10": 3.0}))[0]
+    D = host.K.strength.DEFAULTS
+    assert P.R != D.R
+    m = _level_mirror(host, P)
+    assert m["body_level"] == host.K.strength.level(59.0, 1.1, 0.9, P)
+    assert m["body_level"] != host.K.strength.level(59.0, 1.1, 0.9, D)
+    assert _level_mirror(host)["body_level"] == host.K.strength.level(59.0, 1.1, 0.9, D)   # nil reads DEFAULTS
+
+
+def test_mirror_without_a_finite_level_sends_no_level_key(host):
+    nan = float("nan")
+    for bad in ({"N0": nan}, {"T": nan}, {"N0": float("inf")}, {"N0": None}, {"lm": nan}):
+        m = _level_mirror(host, None, **bad)
+        assert "body_level" not in m, bad
+    m = host.py(host.call("mirror.build", rec(host), host.table(META)))
+    assert "body_level" not in m and "body_sets" not in m
+    assert all(isinstance(v, (str, int, float, bool)) for v in _level_mirror(host).values())

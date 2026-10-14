@@ -11,8 +11,9 @@ K.mirror = {}
 -- record: the stored inputs; meta: { mode, version, build }; order: the nutrient keys to carry as nut_<key>_g
 -- (the adapter passes NR.data.records.ORDER; nil carries none); energyLevel: the energy class the bus holds (its last
 -- signature's energy digit, K.view.signatureEnergy), carried as body_energyLevel,
--- absent when nil. Returns a new flat table.
-function K.mirror.build(record, meta, order, energyLevel)
+-- absent when nil; P the strength table the body_level reads (the server's options, nil reads K.strength.DEFAULTS).
+-- Returns a new flat table.
+function K.mirror.build(record, meta, order, energyLevel, P)
     local m = {}
     m.username = record.username
     m.firstSeen = record.firstSeen
@@ -26,7 +27,7 @@ function K.mirror.build(record, meta, order, energyLevel)
     K.mirror.nutrients(m, record.nutrients, order)
     K.mirror.fluids(m, record.fluids)
     K.mirror.acute(m, record.acute)
-    K.mirror.body(m, record.body)
+    K.mirror.body(m, record.body, P)
     m.body_energyLevel = energyLevel
     K.mirror.effects(m, record.effects)
     return m
@@ -34,7 +35,16 @@ end
 
 -- The body's scalars as body_<name>; 0 (the band "") when the record has no body yet. body_weight is the body
 -- mass fm + lm + lx (ruling 13-20); body_delta reads 0 until the Strength minute first writes the carry.
-function K.mirror.body(m, body)
+-- body_level (the true Strength level, K.strength.level at P) and body_sets (the closed week's S) are ruling 13-19's;
+-- body_level is absent, never NaN, when the body is absent or its lm, N0 or T is not finite (the view reads No data).
+function K.mirror.finite(v)
+    if type(v) ~= "number" then
+        return false
+    end
+    return v == v and v ~= math.huge and v ~= -math.huge
+end
+
+function K.mirror.body(m, body, P)
     m.body_fm = 0
     m.body_lm = 0
     m.body_weight = 0
@@ -60,6 +70,13 @@ function K.mirror.body(m, body)
     m.body_ebDay = body.ebDay
     m.body_eeDay = body.eeDay
     m.body_inDay = body.inDay
+    m.body_sets = body.S
+    if K.mirror.finite(body.lm) and K.mirror.finite(body.N0) and K.mirror.finite(body.T) then
+        local level = K.strength.level(body.lm, body.N0, body.T, P or K.strength.DEFAULTS)
+        if K.mirror.finite(level) then
+            m.body_level = level
+        end
+    end
 end
 
 -- Nut_<key>_g for each key of order, and the epoch; 0 when the sub-table or a key is absent.

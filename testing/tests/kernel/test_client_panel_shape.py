@@ -537,3 +537,11 @@ def test_the_height_cap_never_falls_below_the_title_bar():
     rt.execute("getPlayerScreenHeight = function(n) return 150 end")   # below the panel's top (y = 200)
     frame(rt, p)
     assert p.height == 16
+
+
+def test_no_client_file_reads_a_retired_strength_mirror_key():
+    # Plan 13 Task 18 (ruling 13-19): body_shownL, body_dStr and body_dHyp left the mirror; body_level and body_sets replace them
+    for p in glob.glob(os.path.join(CLIENT, "*.lua")):
+        src = open(p, encoding="utf-8").read()
+        for key in ("body_shownL", "body_dStr", "body_dHyp"):
+            assert key not in src, (os.path.basename(p), key)

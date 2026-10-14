@@ -169,7 +169,7 @@ def test_rows_at_symptoms_are_the_six_class_rows_only(host):
 def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 2, arr(host, ["vitC", "iron", "zinc"])))
     extra = rows[6:]
-    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_fat", "body_energyState",
+    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_fat", "body_level", "body_energyState",
                                         "fluids_dehydPct", "nut_vitC_g", "nut_iron_g", "nut_iron_x"]   # zinc not yet graded: no row
     by = {r["key"]: r for r in extra}
     assert by["body_band"]["text"] == "UI_NR_Band_normal" and by["body_band"]["isKey"] is True
@@ -190,7 +190,7 @@ def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
 def test_rows_at_numbers_add_the_figures(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 3, arr(host, ["vitC", "iron"])))
     keys = [r["key"] for r in rows[6:]]
-    assert keys == ["body_band", "body_weight", "body_fat", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
+    assert keys == ["body_band", "body_weight", "body_fat", "body_level", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
                     "nut_vitC_g", "nut_vitC_p", "nut_vitC_x", "nut_iron_g", "nut_iron_p", "nut_iron_x",
                     "acute_caf", "acute_bac", "acute_debtH"]
     by = {r["key"]: r for r in rows}
@@ -738,3 +738,42 @@ def test_the_push_signature_holds_the_energy_digit_on_the_last_signature(host):
     s = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 1100)
     assert host.call("view.signatureEnergy", s) == 4
     assert host.call("view.signatureEnergy", None) is None and host.call("view.signatureEnergy", "x") is None
+
+
+# --- the Strength row (Plan 13 Task 18, ruling 13-19) ----------------------------------------------------------
+
+def level_row(h, level, lv=2, **extra):
+    m = {"body_band": "normal", "body_weight": 78.0, "body_fm": 14.0}
+    if level is not None:
+        m["body_level"] = level
+    m.update(extra)
+    rows = rows_of(h, V(h).rows(h.table(m), lv, None))
+    return rows, next((r for r in rows if r["key"] == "body_level"), None)
+
+
+@pytest.mark.parametrize("level,text", [(12.34, "12.3"), (9.96, "9.9"), (9.99999, "9.9"), (12.0, "12.0"),
+                                        (0.0, "0.0"), (0.04, "0.0"), (5.0, "5.0"), (30.0, "30.0")])
+def test_the_strength_row_truncates_and_never_rounds_up(host, level, text):
+    _, row = level_row(host, level)
+    assert row == {"key": "body_level", "label": "UI_NR_Row_body_level", "text": text, "level": 2, "isKey": False}
+
+
+def test_the_strength_row_sits_after_the_fat_row_at_bands_and_numbers_only(host):
+    for lv, want in ((1, False), (2, True), (3, True)):
+        rows, row = level_row(host, 12.34, lv)
+        assert (row is not None) is want, lv
+    rows, _ = level_row(host, 12.34, 2)
+    keys = [r["key"] for r in rows]
+    assert keys.index("body_level") == keys.index("body_fat") + 1
+
+
+def test_a_body_less_mirror_shows_no_data_for_strength(host):
+    _, row = level_row(host, None)
+    assert row["text"] == "UI_NR_Band_none" and row["isKey"] is True
+    _, row = level_row(host, float("nan"))
+    assert row["text"] == "UI_NR_Band_none"
+    _, row = level_row(host, float("inf"))
+    assert row["text"] == "UI_NR_Band_none"
+    rows = rows_of(host, V(host).rows(None, 2, None))
+    assert {r["key"]: r for r in rows}["body_level"]["text"] == "UI_NR_Band_none"
+

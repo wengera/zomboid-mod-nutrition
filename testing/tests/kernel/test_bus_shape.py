@@ -204,3 +204,25 @@ def test_a_mirror_request_for_a_dead_record_is_not_answered():
     h.T.now = h.T.now + 5001
     h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
     assert len(h.T.sent) - n0 == 1
+
+
+def test_the_mirror_reads_its_level_at_the_servers_strength_table():
+    # Plan 13 Task 18 (ruling 13-19): body_level moves with NR.StrengthYearsToLevel10, so sendMirror passes
+    # NR.server.options.strength, else the mirror reads K.strength.DEFAULTS
+    h = Host(extra_env=SEND + MIRRORS)
+    p = online(h)
+    B = h.NR.server.bus
+    _settle(h)
+    last = lambda: h.T.mirrors[len(h.T.mirrors)]
+    h.NR.server.options = None
+    assert B.sendMirror(p, h.record("a")) is True
+    body = h.record("a").body
+    body.N0 = 2.0                                        # S above 1, where R moves the level
+    assert B.sendMirror(p, h.record("a")) is True
+    assert last().body_level == h.K.strength.level(body.lm, body.N0, body.T, h.K.strength.DEFAULTS)
+    P = h.K.strength.params(h.rt.table(StrengthYearsToLevel10=2.0))[0]
+    h.NR.server.options = h.rt.table(strength=P)
+    assert B.sendMirror(p, h.record("a")) is True
+    assert last().body_level == h.K.strength.level(body.lm, body.N0, body.T, P)
+    assert last().body_level != h.K.strength.level(body.lm, body.N0, body.T, h.K.strength.DEFAULTS)
+    assert last().body_sets == body.S

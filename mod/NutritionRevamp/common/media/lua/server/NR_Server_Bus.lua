@@ -41,10 +41,17 @@ end
 
 local nowMs = NR.nowMs
 
+-- The strength table the mirror's body_level reads: the server's options, else nil (the mirror reads DEFAULTS).
+function B.strengthP()
+    local opts = NR.server.options
+    if opts ~= nil then return opts.strength end
+    return nil
+end
+
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end
     if sendServerCommand == nil then return false end
-    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER, K.view.signatureEnergy(B.lastSig[record.username]))
+    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER, K.view.signatureEnergy(B.lastSig[record.username]), B.strengthP())
     if not okB then
         B.build.failed = B.build.failed + 1
         NR.log.say(2, "bus: mirror build failed for " .. tostring(record.username) .. ": " .. tostring(m))

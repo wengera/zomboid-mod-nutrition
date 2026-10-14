@@ -114,6 +114,7 @@ def constructed():
     for g in range(1, 5):
         out.add("UI_NR_Grade_%d" % g)
     out.add("UI_NR_Row_body_fat")
+    out.add("UI_NR_Row_body_level")
     for w in ("veryLean", "lean", "healthy", "high", "veryHigh"):
         out.add("UI_NR_FatBand_" + w)
     out.add("UI_NR_Tip_Rich")

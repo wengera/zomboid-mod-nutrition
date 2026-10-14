@@ -234,6 +234,7 @@ function K.view.rows(m, level, order, fat, ungraded)
     K.view.push(rows, "body_band", "UI_NR_Row_body_band", K.view.bandKey("UI_NR_Band_", mm.body_band), 2, true)
     K.view.push(rows, "body_weight", "UI_NR_Row_body_weight", K.view.unitText(mm.body_weight, 1, "kg"), 2, false)
     K.view.fatRow(rows, mm, fat)
+    K.view.levelRow(rows, mm)
     K.view.push(rows, "body_energyState", "UI_NR_Row_body_energyState", "UI_NR_Class_energy_" .. K.view.fmt(c.energy, 0), 2, true)
     if lv >= 3 then
         K.view.push(rows, "body_fm", "UI_NR_Row_body_fm", K.view.unitText(mm.body_fm, 1, "kg"), 3, false)
@@ -663,6 +664,17 @@ function K.view.fatBand(m, female, last)
         cuts = K.view.FAT_CUTS_FEMALE
     end
     return K.view.heldRung(fm / w, cuts, last, K.view.FAT_BAND)
+end
+
+-- The Strength row, pushed at level 2 (ruling 13-19): the true level truncated to one decimal, never rounded up (a 9.96 reads
+-- 9.9, not 10.0 beside a native 9), or No data when the mirror carries no finite body_level.
+function K.view.levelRow(rows, m)
+    local v = m.body_level
+    if type(v) ~= "number" or v ~= v or v == math.huge or v == -math.huge then
+        K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.NO_DATA, 2, true)
+        return
+    end
+    K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(math.floor(v * 10) / 10, 1), 2, false)
 end
 
 -- The Body fat row, pushed at level 2: its text the band word (UI_NR_FatBand_<word>) or No data, its fatBand the index the
