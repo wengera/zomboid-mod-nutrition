@@ -514,3 +514,26 @@ def test_a_raising_render_is_caught():
     rt.execute("function ISCollapsableWindow:render() error('render boom') end")
     frame(rt, p)
     assert P(rt).stats.errors == 1
+
+
+def test_a_mirror_request_while_the_player_is_dead_is_not_sent():
+    rt = rt_env()
+    create(rt)
+    sends = G(rt).NR_T.sends
+    rt.execute("NR_T.player.isDead = function(self) return true end")
+    assert G(rt).NutritionRevamp.client.requestMirror() is False
+    assert G(rt).NR_T.sends == sends
+    rt.execute("NR_T.player.isDead = function(self) return false end")
+    assert G(rt).NutritionRevamp.client.requestMirror() is True
+    assert G(rt).NR_T.sends == sends + 1
+
+
+def test_the_height_cap_never_falls_below_the_title_bar():
+    rt = rt_env()
+    create(rt)
+    p = inst(rt)
+    frame(rt, p)
+    big_mirror(rt)
+    rt.execute("getPlayerScreenHeight = function(n) return 150 end")   # below the panel's top (y = 200)
+    frame(rt, p)
+    assert p.height == 16

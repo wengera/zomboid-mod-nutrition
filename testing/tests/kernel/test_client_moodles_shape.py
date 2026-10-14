@@ -662,3 +662,16 @@ def test_player_one_gets_no_overfull_moodle():
     boot(rt)
     create(rt, 1)
     assert M(rt).handles.overfull is None and M(rt).stats.got == 0
+
+
+def test_a_split_screen_players_death_keeps_player_zeros_moodles():
+    rt = rt_env()
+    boot(rt)
+    create(rt)
+    m = M(rt)
+    m.apply(classes(rt, energy=2, deficiency=3))
+    rt.execute("NR_T.other = { getPlayerNum = function(self) return 1 end }")
+    fire(rt, "OnPlayerDeath", "NR_T.other")
+    assert m.levels.energy == 2 and m.levels.deficiency == 3
+    fire(rt, "OnPlayerDeath", "NR_T.player")
+    assert m.levels.energy == 0

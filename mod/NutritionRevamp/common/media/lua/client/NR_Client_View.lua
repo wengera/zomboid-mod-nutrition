@@ -209,7 +209,6 @@ function V.onPlayerDeath(player)
     local ok, present, pn = pcall(NR.call, player, "getPlayerNum")
     if ok and present and type(pn) == "number" and pn ~= 0 then return end
     nr.client.clearMirror()
-    V.fatBand = nil
     V.refresh(true)
 end
 

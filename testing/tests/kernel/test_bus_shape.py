@@ -191,3 +191,16 @@ def test_the_mirror_reports_the_running_mode_not_the_polled_option():
     O.mode = 2 if running == 1 else 1                    # the operator changed the option mid-run
     assert h.NR.server.bus.meta()["mode"] == running
     assert "mode=" + h.NR.modeName(running) in h.NR.selfReport("server")
+
+
+def test_a_mirror_request_for_a_dead_record_is_not_answered():
+    h = Host(extra_env=SEND)
+    p = online(h)
+    n0 = len(h.T.sent)
+    h.record("a").dead = True
+    h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
+    assert len(h.T.sent) == n0                           # the dead character is not brought back to the client
+    h.record("a").dead = False
+    h.T.now = h.T.now + 5001
+    h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", p, None)
+    assert len(h.T.sent) - n0 == 1

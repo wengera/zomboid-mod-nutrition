@@ -172,6 +172,7 @@ function PANEL.fit(self)
     local cap = screenHeight(self.playerNum) - y
     local h = want
     if h > cap then h = cap end
+    if h < th then h = th end
     call(self, "setHeight", h)
     local room = h - th - 2 * TITLE_GAP
     local fit = math.floor(room / lh)

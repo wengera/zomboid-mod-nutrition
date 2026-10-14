@@ -16,6 +16,8 @@ function NR.client.requestMirror()
     if sendClientCommand == nil or getPlayer == nil then return false end
     local okP, p = pcall(getPlayer)
     if not okP or p == nil then return false end
+    local okC, present, dead = pcall(NR.call, p, "isDead")
+    if okC and present and dead == true then return false end
     local ok = pcall(sendClientCommand, p, "NutritionRevamp", "mirror.request", {})
     return ok
 end

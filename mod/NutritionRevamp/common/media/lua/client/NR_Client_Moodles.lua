@@ -363,6 +363,8 @@ end
 -- OnPlayerDeath: the framework suspends its moodles on death (:549); the own column's kept levels go to zero, so
 -- it draws nothing until the next apply (a respawn's create re-applies the view's classes).
 function MOODLES.onPlayerDeath(player)
+    local ok, present, pn = pcall(NutritionRevamp.call, player, "getPlayerNum")
+    if ok and present and type(pn) == "number" and pn ~= 0 then return end
     local M = NutritionRevamp.client.moodles
     for i = 1, #M.classes do
         M.levels[M.classes[i]] = 0
