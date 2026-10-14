@@ -1259,3 +1259,100 @@ TK.register("action.cancel", function()
     out.javaAfter = C.javaActions(p)
     return out
 end)
+
+-- ---- Plan 13 Task 0: the creation pick rewrite and the client experience read (client) -----------
+-- <TraitName> [<TraitName> ...]. Arms a one-shot rewrite of the pick list the coop creation accept sends.
+-- The route (CoopCharacterCreation.lua): accept() calls self:accept1() (:75), whose :66-69 clears
+-- getWorld():getLuaTraits() and copies the profession screen's selected list into it with addLuaTrait; then
+-- accept() runs initPlayer() and setPlayerMouse(nil) (:100), whose new player's CreatePlayerPacket.set copies
+-- IsoWorld.getLuaTraits() into the packet (jar L69-L70) the server applies before it fires OnNewGame. So the
+-- class's accept1 is wrapped (once, the original kept in TK.picksOrig): after the original returns true and
+-- while armed, the list is cleared and one getWorld():addLuaTrait(CharacterTrait.<field>) is made per argument,
+-- in the order given, and the arm is spent. It sends what it is given, legal or not: no cost, exclusion or
+-- profession check. Each name resolves as trait.def's does (TK.traitEnum); an unknown name refuses the arm.
+-- The rewrite's own record is TK.picksFired = {count, wall, picks, listAfter [, error]} (lua.read _G TK.picksFired.*).
+-- @args <TraitName> [<TraitName> ...]  (up to 20; trait.def's spellings)
+-- @reply {ok, armed, picks} | {ok, armed, reason} | string
+-- @purpose Test-only: arms a one-shot rewrite of the pick list the next coop creation accept sends (after vanilla's copy in accept1, before setPlayerMouse sends it): the list is cleared and the given traits added in order, legal or not.
+TK.register("creation.picks", function(argv)
+    if argv[1] == nil then return "usage: creation.picks <TraitName> [<TraitName> ...]" end
+    if #argv > 20 then return "usage: creation.picks takes at most 20 traits" end
+    local out = { ok = false, armed = false, picks = {} }
+    local enums = {}
+    for i = 1, #argv do
+        local e, field = TK.traitEnum(argv[i])
+        if e == nil then
+            out.reason = "no CharacterTrait." .. tostring(field)
+            return out
+        end
+        enums[#enums + 1] = e
+        out.picks[#out.picks + 1] = argv[i]
+    end
+    if CoopCharacterCreation == nil or CoopCharacterCreation.accept1 == nil then
+        out.reason = "no CoopCharacterCreation.accept1"
+        return out
+    end
+    if getWorld == nil then
+        out.reason = "no getWorld"
+        return out
+    end
+    if TK.picksOrig == nil then
+        TK.picksOrig = CoopCharacterCreation.accept1
+        CoopCharacterCreation.accept1 = function(self, ...)
+            local r = TK.picksOrig(self, ...)
+            local armed = TK.picksArmed
+            if r and armed ~= nil then
+                TK.picksArmed = nil
+                local fired = TK.picksFired or { count = 0 }
+                fired.count = (fired.count or 0) + 1
+                fired.wall = TK.now()
+                fired.picks = armed.names
+                local okW, err = pcall(function()
+                    local w = getWorld()
+                    w:getLuaTraits():clear()
+                    for k = 1, #armed.enums do w:addLuaTrait(armed.enums[k]) end
+                    local list = w:getLuaTraits()
+                    local after = {}
+                    for k = 0, list:size() - 1 do
+                        local t = list:get(k)
+                        local _, nm = TK.call(t, "getName")
+                        after[#after + 1] = tostring(nm or t)
+                    end
+                    fired.listAfter = after
+                end)
+                if not okW then fired.error = tostring(err) end
+                TK.picksFired = fired
+            end
+            return r
+        end
+    end
+    TK.picksArmed = { enums = enums, names = out.picks }
+    out.ok, out.armed = true, true
+    return out
+end)
+
+-- <PerkName>. The client twin of the server's perk.xp (ruling 13-26): the local player's raw experience and
+-- level of one perk, read in one tick through getXp():getXP(perk) and getPerkLevel(perk), so a driver grades
+-- what the client holds beside the server's read in the same wall second.
+-- @args <PerkName>
+-- @reply {perk, side, xp, level [, error]} | {error, perk} | string
+-- @purpose Client-side read of the local player's raw perk experience beside its level, the twin of the server's perk.xp.
+TK.register("perk.xp", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local name = argv[1]
+    if not name then return "usage: perk.xp <PerkName>" end
+    local perk = Perks and Perks[name]
+    if not perk then return { error = "no Perks." .. tostring(name), perk = name } end
+    local out = { perk = name, side = TK.side }
+    local okXp, xp = TK.call(p, "getXp")
+    if not okXp or xp == nil then
+        out.error = "no IsoGameCharacter:getXp()"
+        return out
+    end
+    local okV, v = TK.call(xp, "getXP", perk)
+    if not okV then out.error = "no XP:getXP(Perk)" else out.xp = v end
+    local _, lvl = TK.call(p, "getPerkLevel", perk)
+    out.level = lvl
+    return out
+end)

@@ -1514,3 +1514,101 @@ TK.register("lua.read", function(argv)
     end
     return out
 end)
+
+-- ---- Plan 13 Task 0: the trait-definition read (shared) ------------------------------------------
+-- <TraitName>. Reads the trait definition the side answering holds, so a driver compares the server's
+-- definitions with a client's after the join (a restated `character_trait_definition` block, or a Lua
+-- edit of a definition's lists, has to reach both sides). The name resolves to the enum CharacterTrait[name]
+-- first, then the static field spelling (CamelCase split on its humps and upper-cased: Obese -> OBESE,
+-- OutOfShape -> OUT_OF_SHAPE); the definition is CharacterTraitDefinition.getCharacterTraitDefinition(enum).
+-- Its getters are walked index-first: getCost, isFree (the script's IsProfessionTrait), getLabel and
+-- getDescription (both translated when the definition was built), getXpBoosts (a Java HashMap<Perk,Integer>,
+-- walked by keySet():iterator() and keyed by the perk's getId), getMutuallyExclusiveTraits and
+-- getGrantedTraits (Java ArrayLists of CharacterTrait, walked by size()/get(i) from 0, #0940, each named by
+-- its getName, the registry's own spelling). An unknown trait or a missing definition replies ok=false with
+-- the reason; a getter that raises is left out of the reply.
+local function tkTraitEnum(name)
+    if CharacterTrait == nil or name == nil then return nil, nil end
+    local e = CharacterTrait[name]
+    if e ~= nil then return e, name end
+    local split = (string.gsub(name, "(%l)(%u)", "%1_%2"))
+    local field = string.upper(split)
+    e = CharacterTrait[field]
+    if e ~= nil then return e, field end
+    return nil, field
+end
+TK.traitEnum = tkTraitEnum
+
+local function tkTraitNameList(list)
+    local out = {}
+    local okS, size = pcall(function() local _, v = TK.call(list, "size"); return v end)
+    if not okS or type(size) ~= "number" then return out end
+    for i = 0, size - 1 do
+        local okG, t = pcall(function() local _, v = TK.call(list, "get", i); return v end)
+        if okG and t ~= nil then
+            local okN, nm = pcall(function() local _, v = TK.call(t, "getName"); return v end)
+            out[#out + 1] = okN and nm ~= nil and tostring(nm) or tostring(t)
+        end
+    end
+    return out
+end
+
+local function tkPerkBoosts(map)
+    local out = {}
+    if map == nil then return out end
+    local okK, keys = pcall(function() local _, v = TK.call(map, "keySet"); return v end)
+    if not okK or keys == nil then return out end
+    local okI, it = pcall(function() local _, v = TK.call(keys, "iterator"); return v end)
+    if not okI or it == nil then return out end
+    local guard = 0
+    while guard < 200 do
+        guard = guard + 1
+        local okH, more = pcall(function() local _, v = TK.call(it, "hasNext"); return v end)
+        if not okH or more ~= true then break end
+        local okN, perk = pcall(function() local _, v = TK.call(it, "next"); return v end)
+        if not okN or perk == nil then break end
+        local okId, id = pcall(function() local _, v = TK.call(perk, "getId"); return v end)
+        local key = (okId and id ~= nil) and tostring(id) or tostring(perk)
+        local okV, val = pcall(function() local _, v = TK.call(map, "get", perk); return v end)
+        out[key] = okV and val or nil
+    end
+    return out
+end
+
+-- @args <TraitName>  (the registry spelling Obese, or the static field OBESE; CamelCase maps to the field)
+-- @reply {ok, side, trait, field, cost, free, xpBoosts = {<Perk> = n}, exclusive = {names}, granted = {names}, label, description} | {ok, side, trait, reason} | string
+-- @purpose Reads the trait definition the side answering holds (CharacterTraitDefinition.getCharacterTraitDefinition): cost, free (IsProfessionTrait), the XP boosts by perk id, the mutually exclusive and granted traits by name, the label and description, walking the Java maps and lists index-first.
+TK.register("trait.def", function(argv)
+    local name = argv[1]
+    if name == nil then return "usage: trait.def <TraitName>" end
+    local out = { ok = false, side = TK.side, trait = name }
+    local enum, field = tkTraitEnum(name)
+    out.field = field
+    if enum == nil then
+        out.reason = "no CharacterTrait." .. tostring(field)
+        return out
+    end
+    if CharacterTraitDefinition == nil or CharacterTraitDefinition.getCharacterTraitDefinition == nil then
+        out.reason = "no CharacterTraitDefinition.getCharacterTraitDefinition"
+        return out
+    end
+    local okD, def = pcall(CharacterTraitDefinition.getCharacterTraitDefinition, enum)
+    if not okD or def == nil then
+        out.reason = "no definition for CharacterTrait." .. tostring(field) .. (okD and "" or (": " .. tostring(def)))
+        return out
+    end
+    local function get(m)
+        local okG, v = pcall(function() local _, r = TK.call(def, m); return r end)
+        if okG then return v end
+        return nil
+    end
+    out.cost = get("getCost")
+    out.free = get("isFree")
+    out.label = get("getLabel")
+    out.description = get("getDescription")
+    out.xpBoosts = tkPerkBoosts(get("getXpBoosts"))
+    out.exclusive = tkTraitNameList(get("getMutuallyExclusiveTraits"))
+    out.granted = tkTraitNameList(get("getGrantedTraits"))
+    out.ok = true
+    return out
+end)

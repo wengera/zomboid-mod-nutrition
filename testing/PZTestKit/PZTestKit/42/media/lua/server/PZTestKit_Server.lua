@@ -4879,3 +4879,54 @@ function H0s.work(g)
     if not ok then error(err, 0) end
 end
 end
+
+-- ---- Plan 13 Task 0: the experience park (server) ------------------------------------------------
+-- <user> <Perk> <xpLevel>. Writes a perk's experience to the start total of xpLevel through
+-- getXp():setXPToLevel(perk, xpLevel) ONLY, the level untouched (no setPerkLevelDebug, no LevelPerk): the
+-- park BeyondTen makes at a native level 10 (#2850) and the first half of ruling 13-9's pin. setXPToLevel
+-- re-seeds nothing in the anti-cheat's checker (#2862) and pushes nothing to the client. The level and the
+-- raw experience are read either side in the same tick; ok says the call ran and the experience now reads
+-- the level's start total (perk:getTotalXpForLevel(xpLevel), index-first through PerkFactory.getPerk).
+-- @args <user> <Perk> <xpLevel>
+-- @reply {ok, perk, levelBefore, levelAfter, xpBefore, xpAfter [, target] [, reason]} | string
+-- @purpose Test-only: writes a named player's perk experience to a level's start total through getXp():setXPToLevel only (the level untouched), replying the level and experience either side in the same tick.
+TK.register("perk.park", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name, lvl = argv[2], tonumber(argv[3])
+    if name == nil or lvl == nil or lvl ~= math.floor(lvl) or lvl < 0 or lvl > 10 then
+        return "usage: perk.park <user> <Perk> <xpLevel>  (0 <= xpLevel <= 10)"
+    end
+    local out = { ok = false, perk = name }
+    local perk = Perks and Perks[name]
+    if perk == nil then
+        out.reason = "no Perks." .. tostring(name)
+        return out
+    end
+    local _, xp = TK.call(p, "getXp")
+    if xp == nil then
+        out.reason = "no IsoGameCharacter:getXp()"
+        return out
+    end
+    local _, lb = TK.call(p, "getPerkLevel", perk)
+    local _, xb = TK.call(xp, "getXP", perk)
+    out.levelBefore, out.xpBefore = lb, xb
+    local ran, err = pcall(function() TK.call(xp, "setXPToLevel", perk, lvl) end)
+    local _, la = TK.call(p, "getPerkLevel", perk)
+    local _, xa = TK.call(xp, "getXP", perk)
+    out.levelAfter, out.xpAfter = la, xa
+    if PerkFactory ~= nil and PerkFactory.getPerk ~= nil then
+        local okP, pf = pcall(PerkFactory.getPerk, perk)
+        if okP and pf ~= nil then
+            local okT, total = pcall(function() local _, v = TK.call(pf, "getTotalXpForLevel", lvl); return v end)
+            if okT then out.target = total end
+        end
+    end
+    if not ran then
+        out.reason = "setXPToLevel raised: " .. tostring(err)
+        return out
+    end
+    out.ok = (out.target == nil) or (xa == out.target)
+    if not out.ok then out.reason = "the experience does not read the level's start total" end
+    return out
+end)
