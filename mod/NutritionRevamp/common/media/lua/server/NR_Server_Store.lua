@@ -448,6 +448,8 @@ function S.reset(username, worldAgeHours)
     end
     t[username] = r
     sights(t)[username] = true
+    local IN = NR.server.intake
+    if IN ~= nil and IN.forget ~= nil then IN.forget(username) end  -- nothing the dead character ate carries over
     -- a reset reaches the file at the next store step (ruling T20-3)
     S.mark(username)
     NR.log.say(2, "store: reset record for " .. tostring(username) .. " (reset " .. tostring(r.resets) .. ")")

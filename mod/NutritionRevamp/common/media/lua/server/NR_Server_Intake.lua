@@ -149,6 +149,15 @@ function IN.addIngested(username, vec)
     return sum
 end
 
+-- A respawn's reset (NR_Server_Store's S.reset): the dead character's pending gut doses and ingested sum are
+-- dropped, so the new character's first Nutrients minute never inherits a drink landed in the death minute.
+function IN.forget(username)
+    local tables = { IN.pendingAlc, IN.pendingCaf, IN.lastIngested }
+    for i = 1, 3 do
+        if tables[i] ~= nil then tables[i][username] = nil end
+    end
+end
+
 -- The acute dose test at the eat (ruling 18): every record with an `acute` field and a vector key is
 -- tested on the landed vector against the body mass (fm + lm) and the stomach's food fill before this eat
 -- (K.stomach.recordFoodFill, the solid lane alone, ruling T6c-1: drunk water is not food; no stomach reads empty).
