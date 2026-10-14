@@ -365,9 +365,7 @@ def test_mirror_on_writes_the_four_mapped_stores(wgt_host):
     assert abs(calls(p, "setProteins")[0] - 75.0) < TOL
     assert calls(p, "setCarbohydrates") == [0.0]
     assert calls(p, "setLipids") == [30.0]
-    last = list(body.mirrorLast.values())
-    assert len(last) == 4
-    assert last[0] == -500.0 and abs(last[1] - 75.0) < TOL and last[2] == 0.0 and last[3] == 30.0
+    assert body.mirrorLast is None                      # the four written values are kept nowhere: nothing read them
     assert stats(h)["mirrorWrites"] == s0["mirrorWrites"] + 1
 
 

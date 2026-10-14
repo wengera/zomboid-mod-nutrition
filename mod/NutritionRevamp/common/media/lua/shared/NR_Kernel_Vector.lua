@@ -32,6 +32,9 @@ function K.vector.new()
     return v
 end
 
+-- One shared zero vector, read only (K.vector.craft's source for a type with no seed); never written.
+K.vector.EMPTY = K.vector.new()
+
 -- Accumulate src into dst over every declared key, scaled, and return dst (the same object, no
 -- allocation): dst[k] = dst[k] + (src[k] or 0) * scale. A missing src key counts as 0.
 function K.vector.add(dst, src, scale)
@@ -131,13 +134,12 @@ end
 function K.vector.craft(lookup, consumedCounts, share)
     local vec = K.vector.new()
     local missing = {}
-    local empty = K.vector.new()
     for fullType, count in pairs(consumedCounts) do
         local seed = lookup(fullType)
         if seed == nil then
             missing[#missing + 1] = fullType
         end
-        local src = seed or empty
+        local src = seed or K.vector.EMPTY
         K.vector.add(vec, src, count * share)
     end
     return vec, missing

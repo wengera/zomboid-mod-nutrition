@@ -335,7 +335,7 @@ def test_the_healing_cold_and_drain_free_magnitudes(eh):
     assert [by[("alc", "band", n)]["rNut"] for n in (1, 2)] == [0.90, 0.80]
     assert by[("boutVig", "flag", None)]["rNut"] == 0.95
     assert [by[("bgroupMax", "flag", n)]["stressTarget"] for n in (3, 4)] == [0.03, 0.06]
-    assert by[("bac", "band", 1)]["stressTarget"] == 0                   # never during (S0931)
+    assert ("bac", "band", 1) not in by                                  # never during (S0931): no row that adds 0
     assert by[("bg", "band", 3)] == {"fOffNut": 0.10, "speedMul": 0.85, "tempOffset": -0.2}
     assert by[("bg", "band", 2)] == {"speedMul": 0.92}
     assert by[("iu", "band", (20, 25))] == {"speedMul": 0.90}

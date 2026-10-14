@@ -17,12 +17,12 @@ ORDER = ["vitC", "iron", "vitB12", "calcium", "vitA"]
 # The fields each constructor lays that the store drops at load (derived), read off the owning steps (the kernel
 # file's comments name them).
 DERIVED = {
-    "body": {"band", "delta", "rmod", "energyState", "mirrorLast"},
+    "body": {"band", "delta", "rmod", "energyState"},
     # the trailing-24 h window (Plan 11d Task 9c): its age and rings are inputs, its closed sums derived
     "trail": {"ch", "c"},
     "nutrients": {"allReplete", "ironGrade", "anaemia", "vitDClinical"},
     "key": {"x"},
-    "acute": {"wd", "wdH", "bac", "g", "circ", "frozen", "iu", "iuSleep"},
+    "acute": {"wd", "bac", "g", "circ", "frozen", "iu", "iuSleep"},
     "fluids": {"dehydPct", "c", "naPlasma", "thirstTarget", "sweatLmin"},
     "effects": {"key", "mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget",
                 "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",

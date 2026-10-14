@@ -91,15 +91,6 @@ local function mirror(nut, body, w)
     local okP = NR.call(nut, "setProteins", prot)
     local okH = NR.call(nut, "setCarbohydrates", carb)
     local okL = NR.call(nut, "setLipids", lip)
-    local last = body.mirrorLast
-    if type(last) ~= "table" then
-        last = {}
-        body.mirrorLast = last
-    end
-    last[1] = cal
-    last[2] = prot
-    last[3] = carb
-    last[4] = lip
     WGT.stats.mirrorWrites = WGT.stats.mirrorWrites + 1
     if okC and okP and okH and okL then
         return { calories = cal, carbs = carb, lipids = lip, proteins = prot }

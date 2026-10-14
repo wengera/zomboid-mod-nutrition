@@ -155,8 +155,8 @@ function K.interact.b12Two(s, rec, aAbs, R, kEff, dtD, dtH)
 end
 
 -- Calcium: the bone counter in mg, bone += absorbed - lossPerDay x dtD, held between 0 and the starting
--- skeleton; aAbs is already the absorbed amount (K.stomach.BIOAVAIL.calcium), so counter.absorb is never
--- applied again. p = bone / skeleton.
+-- skeleton; aAbs is already the absorbed amount (K.stomach.BIOAVAIL.calcium), so no absorption is applied
+-- again. p = bone / skeleton.
 function K.interact.calciumTwo(s, rec, aAbs, sex, dtD)
     local c = rec.counter
     local full = c.skeleton[sex] * 1000

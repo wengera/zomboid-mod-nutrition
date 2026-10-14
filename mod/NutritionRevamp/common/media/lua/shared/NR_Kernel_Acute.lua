@@ -173,7 +173,6 @@ function K.acute.new(ageH)
         cafMean = 0,
         cafTol = 0,
         cafLowH = 0,
-        wdH = -1,
         wd = 0,
         slowMet = false,
         alc = 0,
@@ -234,8 +233,7 @@ end
 -- daily-rate EMA takes the step's sample (dose x 24 / dtH mg/day) with alpha = dtH / 168, written without
 -- the division so a dose-only step (dtH 0) adds dose / 7; tolerance relaxes toward clamp(mean/400, 0, 1)
 -- with tau 7 d both ways; withdrawal hours accrue while tolerant and the load is under 10.7 mg. wd is the
--- withdrawal intensity 0..1 and wdH the hours since its onset (-1 outside the episode). w is accepted for
--- the call shape (the effect scalars take it).
+-- withdrawal intensity 0..1 (0 outside the episode). w is accepted for the call shape.
 function K.acute.caffeine(a, doseAbsMg, w, dtH)
     local A = K.acute
     local thalf = A.CAF_THALF_H
@@ -255,13 +253,10 @@ function K.acute.caffeine(a, doseAbsMg, w, dtH)
     local h = a.cafLowH
     if h <= A.CAF_WD_ONSET_H or h >= A.CAF_WD_END_H then
         a.wd = 0
-        a.wdH = -1
     elseif h <= A.CAF_WD_PEAK_H then
         a.wd = (h - A.CAF_WD_ONSET_H) / (A.CAF_WD_PEAK_H - A.CAF_WD_ONSET_H)
-        a.wdH = h - A.CAF_WD_ONSET_H
     else
         a.wd = (A.CAF_WD_END_H - h) / (A.CAF_WD_END_H - A.CAF_WD_PEAK_H)
-        a.wdH = h - A.CAF_WD_ONSET_H
     end
     return a
 end
@@ -401,17 +396,18 @@ end
 -- One sleep step over dtH game hours at world age ageH. sleepDisabled (the server's SleepAllowed and
 -- SleepNeeded not both true, the reset ahead of the hook, run x151s) freezes the state at rested: hours
 -- awake, debt, the sleep run and the window's sleep are 0, S is S_RESTED and the window restarts at ageH,
--- so a later re-enable opens a fresh window; frozen is set and circ still computed. Otherwise: asleep,
--- the run (sleptH), the bout (boutH) and the window's sleep accrue, the bout's gap clears, hours awake
--- reset to 0 once the bout reaches NAP_MIN_H (at that minute, ruling T17-4) and otherwise hold, and S
--- decays on chi_s to a debt floor capped at S_FLOOR_MAX; awake, the run clears, a bout in progress counts
--- its gap (gapH) and ends when the gap reaches BOUT_GAP_H -- a bout that had reset hours awake then
--- credits the whole gap to them, the waking having begun at its start -- hours awake accrue unless a
--- bout of at least NAP_MIN_H is in progress, and S rises toward 1 on chi_w shortened by the debt. A gap
--- under BOUT_GAP_H inside a bout is so tolerated (the harness hold's isAsleep misses, #2840). sleptH is
--- the unbroken run, kept for the readers; the reset reads the bout. The 24 h window closes
--- when ageH has run WINDOW_H past its start: the shortfall against need (7.5 h x needFactor, the trait
--- multiplier) adds to the debt, the excess repays REPAY of itself, clamped [0, DEBT_MAX].
+-- so a later re-enable opens a fresh window; frozen is set and circ still computed. Otherwise: asleep, the
+-- run (sleptH), the bout (boutH) and the window's sleep accrue, the bout's gap clears, hours awake reset to 0
+-- once the bout reaches NAP_MIN_H (at that minute, ruling T17-4) and otherwise hold, and S decays on chi_s to
+-- a debt floor capped at S_FLOOR_MAX; awake, the run clears, a bout in progress counts its gap (gapH) and ends
+-- when the gap reaches BOUT_GAP_H -- a bout that had reset hours awake then credits the whole gap to them, the
+-- waking having begun at its start -- hours awake accrue unless a bout of at least NAP_MIN_H is in progress,
+-- and S rises toward 1 on chi_w shortened by the debt. A gap under BOUT_GAP_H inside a bout is so tolerated
+-- (the harness hold's isAsleep misses, #2840). sleptH, the unbroken run, is the record's one
+-- asleep-this-minute signal (above 0 after an asleep step, 0 after an awake one), which the live experiments'
+-- rings read (x30_sleep_lib); the reset reads the bout. The 24 h window closes when ageH has run WINDOW_H past
+-- its start: the shortfall against need (7.5 h x needFactor, the trait multiplier) adds to the debt, the
+-- excess repays REPAY of itself, clamped [0, DEBT_MAX].
 -- Plan 5 (ruling 11): mAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
 -- multiplier), each 1 when nil; their clamps are the caller's. At a bout's first asleep minute (boutH 0
 -- before this step) boutVig latches whether a band-2 minute ended within VIG_WINDOW_H before ageH; it holds

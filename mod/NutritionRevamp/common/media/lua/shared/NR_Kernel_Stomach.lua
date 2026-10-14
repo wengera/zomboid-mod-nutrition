@@ -21,7 +21,8 @@ K.stomach = {}
 -- Per-nutrient bioavailability of the emptied vector. water and fibre pass through as intake
 -- (judgement); vitC 0.85 is a judgement (food vitamin C is absorbed at about 70-90 %); phytate is an
 -- anti-nutrient context, not a pooled nutrient, so it absorbs at 0. A macro has no entry and passes at
--- 1.0; every non-macro key is listed (an unlisted one would pass at 1.0). The fat-soluble keys
+-- 1.0; every non-macro key is listed but caffeine and ethanol, which the gut lane absorbs (NR_Server_Intake's
+-- landing diverts them) and which pass at 1.0 unlisted. The fat-soluble keys
 -- (retinol, carotene, vitD, vitE, vitK) take the fat factor in absorb on top of this entry.
 K.stomach.BIOAVAIL = {}
 K.stomach.BIOAVAIL.water = 1.0
@@ -49,8 +50,6 @@ K.stomach.BIOAVAIL.zinc = 1.0 -- design-phase-v1 game choice: absorb default 1.0
 K.stomach.BIOAVAIL.iodine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
 K.stomach.BIOAVAIL.selenium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
 K.stomach.BIOAVAIL.efa = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.caffeine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.ethanol = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
 
 -- The fat-soluble keys that take the fat factor in absorb (vitamin D takes its own floored form).
 K.stomach.FAT_SOLUBLE = {}

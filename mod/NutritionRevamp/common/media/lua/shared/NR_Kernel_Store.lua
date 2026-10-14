@@ -83,7 +83,7 @@ K.store.INPUTS = {
     -- blood glucose (each relaxes from its last value); the sleep state, its bout, gap and window; the
     -- refeeding close's counts, mass window, BMI, risk, day count and event; the exercise and cold EMAs and
     -- the vigorous latch; the retinol EMA; the adapter's 7-day alcohol mean, day alcohol, last fed age and the
-    -- band baselines. bac, g, wd, wdH, circ, frozen, iu, iuSleep and av are recomputed each minute: derived.
+    -- band baselines. bac, g, wd, circ, frozen, iu, iuSleep and av are recomputed each minute: derived.
     "acute.gutAlc", "acute.gutCaf", "acute.caf", "acute.cafMean", "acute.cafTol", "acute.cafLowH",
     "acute.slowMet", "acute.alc", "acute.alcPeak", "acute.hang", "acute.hangH", "acute.glyc", "acute.bg",
     "acute.awakeH", "acute.debtH", "acute.sleptH", "acute.boutH", "acute.gapH", "acute.winStartH",

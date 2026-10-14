@@ -30,7 +30,7 @@ local NR = NutritionRevamp
 NR.data = NR.data or {}
 
 NR.data.effects = {
-    -- Ruling 8: the vitamin D rows ship gated off until an outdoor-daylight seat exists (kSun 0, open S1064).
+    -- Ruling 8: the vitamin D rows ship gated off until an outdoor-daylight seat exists (no cutaneous term, open S1064).
     VITD_EFFECTS = false,
     -- The bleeding time a spontaneous bruise starts at (F4; the adapter's event write).
     BRUISE_T0 = 0.05, -- game choice: about 1.79 x damageScaler health per bruise (open S1153)
@@ -210,9 +210,6 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 2, 8 }, list = { -- 1.5 % and above, S0098/S0099
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0098", gc = true }, -- direction only, no effect size; game choice (open S1145)
             { ch = "stat", s = "panicTarget", v = 7, row = "S0098", gc = true }, -- tension/anxiety p = 0.029; 7, not 6: level 1 is > 6 #2369; game choice (open S1145)
-        } },
-        { src = "bac", on = "band", at = 1, list = { -- intoxicated: nothing during (the never-during gate), S0931
-            { ch = "stat", s = "stressTarget", v = 0, row = "S0931" }, -- S0931 inconsistent and unusable; the spec adds nothing while bac > 0
         } },
         -- E3 panic and unhappiness from sleep loss (iuS band, iuSleepQ = band x 0.125): panic 14 x iuSleepQ capped 20
         -- (S0916 SMD 0.57-0.63 x 24 = 13.7-15.1; the cap a game choice, open S1147); unhappiness 25 x iuSleepQ / 1.5

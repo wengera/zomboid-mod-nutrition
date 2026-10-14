@@ -216,13 +216,12 @@ def test_new_record_body(host):
     assert len(body["bandWeek"]) == 7
     assert list(body["nHist"].values()) == [0] * 14
     assert len(body["nHist"]) == 14
-    assert body["mirrorLast"] == {1: 0, 2: 0, 3: 0, 4: 0}
     assert list(body["p7"].values()) == [0] * 7
     assert len(body["p7"]) == 7
     trail = body["trail"]                               # the trailing-24 h window (Plan 11d Task 9c), empty at birth
     assert trail["at"] == 100 and trail["ch"] == -1
     assert set(trail) == {"at", "ch", "c"} | set(KEYS)
-    ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "mirrorLast", "p7", "trail"}
+    ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "p7", "trail"}
     assert set(body) == set(scalars) | {"fm", "lm"} | ring_keys
 
 

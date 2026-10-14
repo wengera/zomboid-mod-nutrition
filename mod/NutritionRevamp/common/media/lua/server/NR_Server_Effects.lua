@@ -36,7 +36,7 @@ NR.server.effects = {
     limitations = {
         "the one-minute lag: mAcc and rRec feed the NEXT minute's sleep-pressure step (Nutrients runs the sleep step before this file builds them)",
         "the engine part of mAcc and rRec reads the writer's engine reads of the previous minute (its endurance read, resting, the thermoregulator's fatigue multiplier, the sleep traits, StatsDecrease, the bed); before the writer's first minute it reads the neutrals",
-        "the vitamin D effect rows ship gated off (VITD_EFFECTS false): no sun term exists (kSun 0, S1064 open)",
+        "the vitamin D effect rows ship gated off (VITD_EFFECTS false): no sun term exists (no outdoor-daylight read, S1064 open)",
         "omega-3 drives no mood row: S0919 is EPA-specific and the vector carries no EPA key",
         "speedMul is computed and stamped but no speed write is applied (X47 open: the WalkSpeed write is gone at the first 266 ms sample)",
         "aimMul is computed and stamped but applied by no seat (X86 open: the engine clears a written aim flag on most updates)",

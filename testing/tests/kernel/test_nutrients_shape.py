@@ -961,7 +961,7 @@ def test_limitations_name_the_close_fix_wave(nut_host):
     # the vitamin D sun term ships 0: clinical at zero intake in ln(1/0.17)/(ln2/60) = 153.4 d, /30 = 5.1 d
     k = math.log(2) / 60
     assert abs(math.log(1 / 0.17) / k - 153.4) < 0.05 and abs(math.log(1 / 0.17) / k / 30 - 5.1) < 0.05
-    assert "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)" in lims
+    assert "vitamin D has no cutaneous term (no outdoor-daylight read, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)" in lims
     assert "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed" in lims
     assert "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water" in lims
     assert "the fat factor reads the stomach buffer's lipids before each minute's emptying: it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %" in lims

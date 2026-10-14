@@ -116,10 +116,8 @@ def test_every_unit_matches_the_units_contract(rh):
             continue
         assert rec["key"] in units, key
         assert rec["unit"] == units[rec["key"]], key
-        if rec.get("key2") is not None:
-            assert rec["unit"] == units[rec["key2"]], key
+        assert rec.get("key2") is None, key                     # no record carries a second key no Lua reads
     assert _rec(rh, "vitA")["key"] == "retinol"
-    assert _rec(rh, "vitA")["key2"] == "carotene"
     assert _rec(rh, "copper")["unit"] == "ug"
 
 
@@ -203,12 +201,14 @@ def test_the_hand_rates(rh):
 
 
 def test_the_store_derived_rates_close(rh):
-    # magnesium k = R_abs / soft-tissue store = 400 x 0.325 / 10 000; iodine k = 150 / 15 000; B12 2.5 / 2500
+    # magnesium k = R_abs / soft-tissue store = 400 x 0.325 / 10 000; iodine k = 150 / 15 000 (the stores sit in
+    # the rates' comments: no Lua reads a display store, so no record lays one)
     mg = _rec(rh, "magnesium")
-    assert abs(mg["k"] - mg["R"][1] * mg["absorb"] / mg["store"]) < 1e-12
+    assert abs(mg["k"] - mg["R"][1] * mg["absorb"] / 10000) < 1e-12
     io = _rec(rh, "iodine")
-    assert abs(io["k"] - io["R"][1] / io["store"]) < 1e-12
-    assert _rec(rh, "vitB12")["store"] == 2500
+    assert abs(io["k"] - io["R"][1] / 15000) < 1e-12
+    for key in ("vitC", "vitB12", "magnesium", "iodine"):
+        assert _rec(rh, key).get("store") is None, key
 
 
 # Ruling 5: the records whose replete-to-clinical time at zero intake exceeds 90 days take the dial.
@@ -277,19 +277,19 @@ def test_food_magnesium_at_the_rda_reaches_no_excess_rung(rh):
 
 def test_the_counter_derived_and_excess_fields(rh):
     cu = _rec(rh, "copper")
-    assert cu["derived"] == {"from": "zinc", "kcu": 0.02, "ulZn": 40}
+    assert cu["derived"] == {"kcu": 0.02, "ulZn": 40}
     assert cu["ul"] == 10000
     ca = _rec(rh, "calcium")
-    assert ca["counter"]["absorb"] == 0.25 and ca["counter"]["lossPerDay"] == 200
+    assert ca["counter"].get("absorb") is None and ca["counter"]["lossPerDay"] == 200   # absorbed once, by the stomach
     assert ca["counter"]["skeleton"] == {1: 1400, 2: 1200}       # S0411: 1400 g men, 1200 g women
     assert ca["ul"] == 2500
     assert "counter" not in _rec(rh, "biotin")                    # untracked: no raw-egg counter (Plan 11d Task 9c)
-    fib = _rec(rh, "fibre")["counter"]
-    assert (fib["marginal"], fib["depleted"]) == (0.5, 0.25)
+    fib = _rec(rh, "fibre")
+    assert set(fib["counter"]) == {"kEma"} and (fib["ladder"][1], fib["ladder"][2]) == (0.5, 0.25)
     se = _rec(rh, "selenium")
     assert se["ul"] == 400 and se["chronic"] == {"perDay": 5000}
     vd = _rec(rh, "vitD")
-    assert vd["sun"]["kSun"] == 0.0 and "pCap" not in vd       # ruling T7-2: S0167 is a toxicity limit
+    assert vd.get("sun") is None and "pCap" not in vd          # no cutaneous term; ruling T7-2: S0167 is a toxicity limit
     assert vd["ul"] == 100 and vd["chronic"] == {"perDay": 250, "store": 5}
     assert _rec(rh, "vitB6")["chronic"]["holdD"] == 180        # ruling T7-3
     assert _rec(rh, "vitC")["ul"] == 2000 and _rec(rh, "vitC")["pCap"] == 1.0

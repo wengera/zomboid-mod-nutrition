@@ -11,8 +11,8 @@
 -- Fields the engine reads (task-6 report): kind, R, scale, Rscale, absorb, k, pCap, ladder,
 -- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.holdD, chronic.store, acute.perKg, acute.abs, dialExp.
 -- Fields for the adapters, never read by the engine: key (the vector key; nil when the vector has none),
--- key2, unit (NR.data.UNITS for the key), Rmin, store (display mass at p = 1), L, two, counter, derived,
--- sun, kFemale, trpShare, trpPerNE.
+-- unit (NR.data.UNITS for the key), Rmin, L, two, counter, derived, kFemale, trpShare, trpPerNE. A field no Lua
+-- reads is not laid: a store mass a rate derives from sits in that rate's comment.
 -- R is {male, female} per day on the INGESTED basis; the engine's absorbed requirement is R x absorb, and
 -- absorb mirrors K.stomach.BIOAVAIL for the key (nil = the engine's default 1.0, open row S1060).
 -- Ladders are {marginal, depleted, clinical} on p; a record with no ladder takes the engine's generic one.
@@ -69,7 +69,6 @@ NR.data.records = {
             },
             ul = 2000, -- mg/d, rung 1 (GI only), S0219
             pCap = 1.0, -- plasma and cells saturate at 100-200 mg/d, S0220/S0221
-            store = 1500, -- mg total body pool (display; the Store_eff cross-check closes), S0222
         },
         -- Thiamine: energy-scaled requirement; the RDA rides as Rmin, read by the band only (K.view.dailyR), never by the engine: the
         -- requirement is energy-scaled only (ruling 6). At the fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA.
@@ -206,7 +205,6 @@ NR.data.records = {
                 fThreshold = 0.10, -- p2 = min(1, p/0.10), design-phase-v1 game choice (open S1073)
             },
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
-            store = 2500, -- ug total body store at p = 1 (display), S0354
         },
         -- Choline: the female rate x0.57 rides on NR_Server_Nutrients' kMul.choline (ruling T19-3; the engine reads
         -- one k times ctx.kMul). The UL is supplement-only.
@@ -234,7 +232,6 @@ NR.data.records = {
         -- (S0202). No cap: hoardable to toxicity.
         vitA = {
             key = "retinol",
-            key2 = "carotene",
             unit = "ug",
             kind = "pool2",
             R = {
@@ -263,7 +260,7 @@ NR.data.records = {
             },
         },
         -- Vitamin D: one compartment at the parent half-life; p in units of serum 25(OH)D / 75 nmol/L (the 75 a
-        -- design-phase-v1 game choice, open S1065). kSun ships 0: no outdoor-daylight read exists on this build
+        -- design-phase-v1 game choice, open S1065). No cutaneous term: no outdoor-daylight read exists on this build
         -- (open S1064); with no sun no diet keeps D replete (formulas briefing L3).
         vitD = {
             key = "vitD",
@@ -283,10 +280,6 @@ NR.data.records = {
             chronic = {
                 perDay = 250, -- ug/d sustained, rung 2 (toxicity unlikely below 250), S1029
                 store = 5, -- p >= 375/75 nmol/L, rung 2, S1030
-            },
-            sun = {
-                kSun = 0.0, -- p per outdoor daylight minute: kSun ships 0: no outdoor-daylight read exists on this build (open S1064); with no sun no diet keeps D replete; design-phase-v1 game choice
-                note = "kSun ships 0: no outdoor-daylight read exists on this build (open S1064)",
             },
         },
         -- Vitamin E: a ledger (tracked, no grade); the adipose turnover is open (S0213); no dietary deficiency.
@@ -399,7 +392,6 @@ NR.data.records = {
                 900, -- female RDA ug/d, S0470
             },
             derived = {
-                from = "zinc",
                 kcu = 0.02, -- per day, game choice (the zinc-to-copper dose-response is open S0572)
                 ulZn = 40, -- mg/d zinc UL the loss runs above, S0446
             },
@@ -417,7 +409,7 @@ NR.data.records = {
                 310, -- female RDA mg/d (19-30 y), S0419
             },
             absorb = 0.325, -- K.stomach.BIOAVAIL.magnesium, fractional absorption with no added phytate, S0536
-            k = 0.013, -- = R_abs/store = 400 x 0.325/10 000 (t1/2 53 d), S0422/S0423
+            k = 0.013, -- = R_abs/store = 400 x 0.325/10 000, the store 10 000 mg exchangeable soft tissue = 40 % of ~25 g (t1/2 53 d), S0422/S0423
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
@@ -426,11 +418,10 @@ NR.data.records = {
             ul = 350, -- mg/d from supplements only, S0421
             ulBasis = "supplement", -- no UL on food magnesium (S0421): no food intake meets it
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
-            store = 10000, -- mg exchangeable soft tissue = 40 % of ~25 g, S0422/S0423
         },
         -- Calcium: a bone counter, bone += absorbed - 200 mg/d zero-order (Task 10); a season moves it < 1 %. Used
-        -- for the calcium x iron factor and display. counter.absorb is the fraction the stomach ALREADY applies
-        -- (K.stomach.BIOAVAIL.calcium): Task 10 must not apply it twice to an absorbed amount.
+        -- for the calcium x iron factor and display. The counter takes the absorbed amount: absorb, the fraction the
+        -- stomach already applies (K.stomach.BIOAVAIL.calcium), is never applied again.
         calcium = {
             key = "calcium",
             unit = "mg",
@@ -441,7 +432,6 @@ NR.data.records = {
             },
             absorb = 0.25, -- K.stomach.BIOAVAIL.calcium, ~25 % of intake, S0413
             counter = {
-                absorb = 0.25, -- fractional absorption, S0413
                 lossPerDay = 200, -- mg/d obligatory renal loss, S0414
                 skeleton = {
                     1400, -- male skeletal calcium g at maturity, S0411
@@ -459,7 +449,7 @@ NR.data.records = {
                 150, -- male RDA ug/d, S0456
                 150, -- female RDA ug/d, S0456
             },
-            k = 0.01, -- = R/store = 150/15 000 (t1/2 69 d), S0456/S0459
+            k = 0.01, -- = R/store = 150/15 000, the store 15 000 ug thyroid iodine (t1/2 69 d), S0456/S0459
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
@@ -467,7 +457,6 @@ NR.data.records = {
             },
             ul = 1100, -- ug/d, S0458
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
-            store = 15000, -- ug thyroid iodine, S0459
         },
         -- Selenium: excess only (Keshan needs regional soil). The UL is the FNB's 400 (EFSA's 255, S1039, noted).
         -- No acute or lethal number ships: that row is open (S1054).
@@ -485,7 +474,7 @@ NR.data.records = {
             },
         },
         -- Fibre: a counter, the 7-day EMA of intake/R (Task 10); relief needs sustained intake ~4 weeks (S0483).
-        -- The ladder on the EMA is the counter's marginal/depleted, with no clinical rung.
+        -- The ladder is on the EMA, with no clinical rung.
         fibre = {
             key = "fibre",
             unit = "g",
@@ -496,12 +485,10 @@ NR.data.records = {
             },
             counter = {
                 kEma = 0.19804205158855578, -- = ln2/3.5: K.nutrients.kFromHalfLife(3.5), design-phase-v1 game choice (open S1090)
-                marginal = 0.5, -- EMA of intake/R, design-phase-v1 game choice (open S1090)
-                depleted = 0.25, -- EMA of intake/R, design-phase-v1 game choice (open S1090)
             },
             ladder = {
-                0.5, -- marginal = counter.marginal, design-phase-v1 game choice (open S1090)
-                0.25, -- depleted = counter.depleted, design-phase-v1 game choice (open S1090)
+                0.5, -- marginal: the EMA of intake/R, design-phase-v1 game choice (open S1090)
+                0.25, -- depleted: the EMA of intake/R, design-phase-v1 game choice (open S1090)
                 0.0, -- game choice: no clinical rung for fibre (open S1090)
             },
         },

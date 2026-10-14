@@ -67,7 +67,7 @@ def test_constants(host):
 
 def test_new_state_shape(host):
     a = host.py(_new(host, 100.0))
-    assert a == dict(caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
+    assert a == dict(caf=0, cafMean=0, cafTol=0, cafLowH=0, wd=0, slowMet=False, alc=0, bac=0,
                      alcPeak=0, hangH=0, hang=0, glyc=462, g=1, bg=5.0, awakeH=0, debtH=0, sleptH=0,
                      winStartH=100.0, winSleptH=0, S=0.17, circ=0, frozen=False, starvedDays=0, lowDay=False,
                      mass90max=0, mass90ageH=100.0, bmi=0, refeedRisk=0, refeedDayN=-1, refeedEvent=False, iu=0,
@@ -147,28 +147,27 @@ def test_withdrawal_gated_and_shaped(host):
     for _ in range(6 * 60):
         A.caffeine(a, 0, 80, MIN)
     assert _close(a.cafLowH, 6, 1e-9)
-    assert a.wd == 0 and a.wdH == -1  # before the 12 h onset
+    assert a.wd == 0  # before the 12 h onset
     for _ in range(30 * 60):
         A.caffeine(a, 0, 80, MIN)
     # cafTol 0.5 * exp(-36/168) = 0.40356 > 0.25: still gated in
     assert _close(a.cafTol, 0.5 * math.exp(-36 / 168), 1e-9)
     assert _close(a.wd, 1.0, 1e-9)  # (36 - 12) / 24 at the peak
-    assert _close(a.wdH, 24, 1e-9)
     for _ in range(42 * 60):
         A.caffeine(a, 0, 80, MIN)
     assert _close(a.wd, 0.5, 1e-9)  # (120 - 78) / 84; cafTol 0.5 * exp(-78/168) = 0.3143 > 0.25
-    assert _close(a.wdH, 66, 1e-9)
+    assert a.wdH is None  # the hours since onset, written and never read, are not kept
     # rising arm midpoint: 24 h -> (24 - 12) / 24 = 0.5
     b = _new(host)
     b.cafTol = 0.5
     A.caffeine(b, 0, 80, 24)
-    assert _close(b.wd, 0.5) and _close(b.wdH, 12)
+    assert _close(b.wd, 0.5)
     # past 120 h: 0
     c = _new(host)
     c.cafTol = 1.0
     c.cafMean = 400
     A.caffeine(c, 0, 80, 121)
-    assert c.wd == 0 and c.wdH == -1
+    assert c.wd == 0
 
 
 def test_withdrawal_not_gated(host):
@@ -181,7 +180,7 @@ def test_withdrawal_not_gated(host):
     b.cafTol = 0.5
     b.cafLowH = 30
     A.caffeine(b, 200, 80, MIN)  # a dose resets the abstinence clock
-    assert b.cafLowH == 0 and b.wd == 0 and b.wdH == -1
+    assert b.cafLowH == 0 and b.wd == 0
 
 
 # ---- the gut lane (ruling T17-2) ----

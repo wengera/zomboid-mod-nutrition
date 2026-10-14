@@ -38,7 +38,7 @@ def test_constants(host):
     expect = {"water": 1.0, "fibre": 1.0, "vitC": 0.85, "iron": 0.18, "phytate": 0.0,
               "carotene": 0.14, "calcium": 0.25, "magnesium": 0.325}
     for k in ("retinol", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12",
-              "choline", "sodium", "potassium", "zinc", "iodine", "selenium", "efa", "caffeine", "ethanol"):
+              "choline", "sodium", "potassium", "zinc", "iodine", "selenium", "efa"):
         expect[k] = 1.0
     assert host.py(s.BIOAVAIL) == expect
     assert s.VITD_FAT_FREE == 0.76
@@ -207,8 +207,9 @@ def test_absorb_with_a_phytate_free_context_is_bare(host):
     assert abs(out["iron"] - 0.18 * math.exp(0.65)) < 1e-12
 
 
-def test_bioavail_lists_every_non_macro_key(host):
-    keys = set(host.K.vector.KEYS.values()) - set(host.K.vector.MACROS.values())
+def test_bioavail_lists_every_non_macro_key_but_the_gut_lanes(host):
+    # caffeine and ethanol go to the gut lane at the landing (NR_Server_Intake) and pass absorb at 1.0 unlisted
+    keys = set(host.K.vector.KEYS.values()) - set(host.K.vector.MACROS.values()) - {"caffeine", "ethanol"}
     assert set(host.py(host.K.stomach.BIOAVAIL)) == keys
 
 

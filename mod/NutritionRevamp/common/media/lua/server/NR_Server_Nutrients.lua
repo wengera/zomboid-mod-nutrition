@@ -54,7 +54,7 @@ NR.server.nutrients = {
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (S1102 open): a drink with a meal peaks as early as one on an empty stomach",
         "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying: two meals in the buffer act as one meal, and the inhibition eases as the buffer empties",
         "a sleep bout tolerates awake gaps under 10 game minutes (S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",
-        "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
+        "vitamin D has no cutaneous term (no outdoor-daylight read, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
         "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
         "the fat factor reads the stomach buffer's lipids before each minute's emptying: it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %",
         "the minute's training band is read off the growth of Metabolism's day accumulators band1Day/band2Day (no per-minute band is stamped); a minute whose day close skipped days reads the new day's growth alone",
