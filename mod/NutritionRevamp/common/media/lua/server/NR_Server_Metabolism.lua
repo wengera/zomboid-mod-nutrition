@@ -66,7 +66,7 @@ MET.BUILD_TRAITS = {
 -- non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read). A ring takes this minute's values only
 -- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded. The trailing-24 h
 -- window (Plan 11d Task 9c) takes values this minute only in its age and its current hour's slot, so those are guarded.
-MET.GUARD = { "fm", "lm", "energyState", "dmod", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
+MET.GUARD = { "fm", "lm", "energyState", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
               "inDayClosed", "dayIndex", "band1Day", "band2Day", "exKcalDay", "carbDay", "pDay",
               "lipDay", "ebDay", "n", "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "lastAgeH", "vStr", "vHyp", "epoc" }
 MET.GUARD_RINGS = { "eb7", "p7", "mass7" }
@@ -98,15 +98,13 @@ local flag = NR.flag
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
 
--- The nutrient scalars dmod, rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
+-- The nutrient scalars rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
 -- writes record.nutrients, record.fluids and record.acute). Its step runs after this one, so these are
 -- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a fresh character's first
 -- minute, before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
--- range reads the neutral the Plan 3 stubs passed: iron grade 1, not all replete, dehydration 0, glycogen
--- 1, hours awake 0, sleep debt 0, caffeine effect 0, tolerance 0. Read: nutrients.ironGrade (1-4),
--- nutrients.allReplete (true), fluids.dehydPct, acute.g, acute.awakeH, acute.debtH, acute.caf (through
--- K.acute.cafEffect) and acute.cafTol. w is the minute's starting mass, kg.
-local function nutrientInputs(record, w)
+-- range reads the neutral: iron grade 1, not all replete, dehydration 0, glycogen 1, sleep debt 0. Read:
+-- nutrients.ironGrade (1-4), nutrients.allReplete (true), fluids.dehydPct, acute.g and acute.debtH.
+local function nutrientInputs(record)
     local nut, fl, ac = record.nutrients, record.fluids, record.acute
     local ironGrade, allReplete = 1, false
     if type(nut) == "table" then
@@ -116,15 +114,12 @@ local function nutrientInputs(record, w)
     end
     local dehydPct = 0
     if type(fl) == "table" and finite(fl.dehydPct) then dehydPct = K.max(0, fl.dehydPct) end
-    local g, awakeH, debtH, cafEffect, cafTol = 1, 0, 0, 0, 0
+    local g, debtH = 1, 0
     if type(ac) == "table" then
         if finite(ac.g) then g = K.clamp(ac.g, 0, 1) end
-        if finite(ac.awakeH) then awakeH = K.max(0, ac.awakeH) end
         if finite(ac.debtH) then debtH = K.max(0, ac.debtH) end
-        if finite(ac.caf) and w > 0 then cafEffect = K.acute.cafEffect(ac, w) end
-        if finite(ac.cafTol) then cafTol = K.clamp(ac.cafTol, 0, 1) end
     end
-    return ironGrade, allReplete, dehydPct, g, awakeH, debtH, cafEffect, cafTol
+    return ironGrade, allReplete, dehydPct, g, debtH
 end
 
 -- The responder constant R = exp(0.3 z), z the sum of twelve uniform draws minus 6 (an approximate unit
@@ -170,7 +165,7 @@ function MET.ensureBody(username, player, record, ageH)
 end
 
 -- The minute's activity: className, moving, modifier, loadKg, heavyLevel, coldMult, exercising,
--- swiping, immobilised, hourOfDay, maxW, heatLevel, climbClass. ageH (optional) is the minute's world
+-- swiping, immobilised, hourOfDay, maxW, climbClass. ageH (optional) is the minute's world
 -- age; ctx (optional) the pipeline's context, whose shared engine reads (NR.read) it takes and keeps. climbClass
 -- is the K.training.CLIMB_MET class of the climb state the character is in at the sample (a fence vault JumpFence,
 -- a window climb ClimbRope), or nil: a per-minute state sample, so a climb shorter than the gap between samples is
@@ -191,14 +186,8 @@ function MET.readActivity(player, ageH, ctx)
     local moving = flag(player, "isPlayerMoving")
     local moodles = obj(player, "getMoodles")
     local heavyLevel = 0
-    local heatLevel = 0
-    if MoodleType ~= nil then
-        if MoodleType.HEAVY_LOAD ~= nil then
-            heavyLevel = K.clamp(math.floor(num(moodles, "getMoodleLevel", 0, MoodleType.HEAVY_LOAD)), 0, 4)
-        end
-        if MoodleType.HYPERTHERMIA ~= nil then
-            heatLevel = K.clamp(math.floor(num(moodles, "getMoodleLevel", 0, MoodleType.HYPERTHERMIA)), 0, 4)
-        end
+    if MoodleType ~= nil and MoodleType.HEAVY_LOAD ~= nil then
+        heavyLevel = K.clamp(math.floor(num(moodles, "getMoodleLevel", 0, MoodleType.HEAVY_LOAD)), 0, 4)
     end
     local coldMult = num(thermo, "getEnergyMultiplier", 1)
     local exercising = obj(obj(player, "getFitness"), "getCurrentExe") ~= nil
@@ -228,7 +217,7 @@ function MET.readActivity(player, ageH, ctx)
     end
     local hourOfDay = NR.read.hour(ctx, ageH or NR.read.ageH(ctx))
     return className, moving, 1, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised, hourOfDay,
-        maxW, heatLevel, climbClass, okR and finite(rate) and rate or nil
+        maxW, climbClass, okR and finite(rate) and rate or nil
 end
 
 -- One day close: the disuse day count (before the partition, so the first immobilised day runs with
@@ -379,7 +368,7 @@ local function step(username, player, record, ctx)
         K.energy.intake(body, handoff, dtM)
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, rateClass, exMet = MET.readBilled(username, player, ageH, ctx)
+        hourOfDay, maxW, climbClass, rateClass, exMet = MET.readBilled(username, player, ageH, ctx)
     local met = K.energy.activityMet(className, moving, modifier, loadKg, exMet)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
@@ -399,7 +388,7 @@ local function step(username, player, record, ctx)
     K.training.decay(body, dtM)
     local dStr, _, maintained = K.training.doses(body)
     K.strength.neuralStep(body, dStr, maintained, immobilised, dtM / 1440)
-    local ironGrade, allReplete, dehydPct, g, awakeH, debtH, cafEffect, cafTol = nutrientInputs(record, w)
+    local ironGrade, allReplete, dehydPct, g, debtH = nutrientInputs(record)
     local today = math.floor(ageH / 24)
     local closes = 0
     while today > body.dayIndex and closes < MET.MAX_CLOSES do
@@ -421,7 +410,6 @@ local function step(username, player, record, ctx)
         balanceBonus = 1.05                                -- game choice, spec s4.5
     end
     local alcGkg = body.alcDay / w
-    body.dmod = K.aerobic.dmod(body.tac, g, dehydPct, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), ironGrade, awakeH, cafEffect, cafTol)
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
     local ex24 = K.body.trail24(body.trail, "ex")          -- the trailing-24 h exercise kcal
     body.energyState = K.deficit.activityState(K.energy.eb24h(body), ex24, sat.L, fatDep, MET.ee24(body))
@@ -513,7 +501,7 @@ MET.prevExe = {}
 
 function MET.readBilled(username, player, ageH, ctx)
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, rate = MET.readActivity(player, ageH, ctx)
+        hourOfDay, maxW, climbClass, rate = MET.readActivity(player, ageH, ctx)
     local falling = K.energy.rateFalling(MET.prevRate[username], rate)
     if MET.prevExe[username] == true and not exercising then falling = true end
     MET.prevRate[username] = rate
@@ -526,7 +514,7 @@ function MET.readBilled(username, player, ageH, ctx)
     end
     if not known then MET.stats.exeFallbacks = MET.stats.exeFallbacks + 1 end
     return billClass, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel, climbClass, className, exMet
+        hourOfDay, maxW, climbClass, className, exMet
 end
 
 -- Plan 11h (C-2): the exercise type NR_Server_Fitness.lua recorded at the set's start; a Lua table lookup, no Java

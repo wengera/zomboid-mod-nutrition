@@ -13,7 +13,7 @@
 -- sub-table raw carries, its own kernel constructor) and copies every INPUT path present in raw over it, so a
 -- missing input keeps the constructor's default and an unknown or derived field never survives. The copy is
 -- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
--- constructor's neutral values (the mirror's dmod, rmod, energyState, band, dehydPct, iu, ... and the
+-- constructor's neutral values (the mirror's rmod, energyState, band, dehydPct, iu, ... and the
 -- effects set), except stomachFill, which load recomputes from the stomach's inputs (the physical fill and the writer's
 -- fallback; the writer's F is W.satietyF), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
 -- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.

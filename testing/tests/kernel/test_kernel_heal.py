@@ -15,7 +15,7 @@ NAN = float("nan")
 INF = float("inf")
 
 SCALARS = ["fm0", "lm0", "fm", "lm", "fmRef", "pPrevKg", "dayIndex", "lastAgeH",
-           "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay", "eeDay", "ebDay",
+           "energyState", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay", "eeDay", "ebDay",
            "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day",
            "cumDef", "r", "traitCarry", "tDisuse", "nPeak", "l0", "lm0dis", "tPeakD"]
 RINGS7 = ["mass7", "eb7", "p7"]

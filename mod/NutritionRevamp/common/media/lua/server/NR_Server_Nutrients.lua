@@ -9,8 +9,8 @@
 -- Metabolism, Nutrients (this file), Effects, Strength, Weight; each registers its step at OnServerStarted
 -- (Training has no minute step). NR_Server_Options loads before NR_Server_Players and so polls on
 -- EveryOneMinute directly, ahead of the drain. Metabolism reads the absorbed handoff's four macros first;
--- this file then consumes it (the context lives one player's minute). Metabolism's dmod/rmod
--- read the PREVIOUS minute's scalars stamped here (a one-minute lag, stated in the limitations).
+-- this file then consumes it (the context lives one player's minute). Metabolism's rmod
+-- reads the PREVIOUS minute's scalars stamped here (a one-minute lag, stated in the limitations).
 --
 -- Plan 4 writes no stat, moodle or health: every value here is mod state for Plan 5 and the mirror.
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
@@ -36,7 +36,7 @@ NR.server.nutrients = {
     wired = false,
     sleepDisabled = false,
     limitations = {
-        "the one-minute lag: Metabolism's dmod and rmod read the previous minute's nutrient, fluid and acute stamps",
+        "the one-minute lag: Metabolism's rmod reads the previous minute's nutrient, fluid and acute stamps",
         "metabolic water is omitted (the water AI, S0088, is read as basal turnover above S1688's minimum losses)",
         "retained sodium carries its water isotonically (S1683): sodium stored without water at high sustained intakes (S1673, S1677) is not modelled, and a sodium deficit contracts the set point isotonically only to 8 % of ECF (0.20 L/kg, S1714; S1717, S1722's volume threshold applied to ECF, a game choice), then ever less to a bound of 20 % (S1729, McCance's plateau by eye); past the onset the same ramp relaxes the hypotonic thirst cap (S1729, S1731, S1724; riding the ramp is a game choice, the human cut-off open, S1695, S1736), so the lost water is drunk back and the pool dilutes, and only water not yet replaced reads as dehydration",
         "sweat sodium adapts to a sodium deficit, not to heat exposure alone: the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration here although S1755, S1739 and S1743 fall without a known deficit, no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)",

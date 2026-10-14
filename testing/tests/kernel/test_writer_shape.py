@@ -382,7 +382,7 @@ def test_the_effects_step_reads_the_writers_engine_reads():
     p = player(h)
     step(h, p, record(h), 1)
     assert h.NR.server.writer.inp["a"].endurance == pytest.approx(0.9)
-    assert h.NR.server.writer.inp["a"].endFold is False
+    assert h.NR.server.writer.inp["a"].endFold is None       # the endurance fold's flag, never on, is gone
 
 
 def test_nutrition_makes_sense_draws_one_boot_warning():

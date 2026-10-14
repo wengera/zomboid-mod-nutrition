@@ -14,11 +14,11 @@ local K = NutritionRevamp.kernel
 K.heal = {}
 
 -- The scalars that heal to a fixed neutral, and their order (the order the names are reported in).
-K.heal.NEUTRAL = { energyState = 1, dmod = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
+K.heal.NEUTRAL = { energyState = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
                    vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, exKcalDay = 0, pDay = 0,
                    carbDay = 0, lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0,
                    r = 1, traitCarry = 1, tDisuse = 0, nPeak = 0 }
-K.heal.NEUTRAL_KEYS = { "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
+K.heal.NEUTRAL_KEYS = { "energyState", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
                         "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
                         "metMinDay", "band1Day", "band2Day", "cumDef", "r", "traitCarry", "tDisuse", "nPeak" }
 -- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.

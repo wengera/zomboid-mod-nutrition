@@ -117,7 +117,6 @@ function W.readEngine(username, h, p, ctx)
     end
     local T = CharacterTrait
     i.endurance = get(h, CharacterStat.ENDURANCE) or 1
-    i.endFold = false
     i.sitting = NR.flag(p, "isSitOnGround") or NR.flag(p, "isSittingOnFurniture")
     i.resting = NR.flag(p, "isResting")
     i.thermoFatigue = NR.num(h.thermo, "getFatigueMultiplier", 1)

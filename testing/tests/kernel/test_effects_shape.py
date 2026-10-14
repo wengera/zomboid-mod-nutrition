@@ -785,14 +785,14 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
     lims = list(EFF(eff_host).limitations.values())
     joined = " | ".join(lims)
     for needle in ("one-minute lag", "VITD_EFFECTS false", "omega-3", "X47", "X86", "POISON ships 0",
-                   "FOOD_SICKNESS", "capped under moodle level 4", "dmod", "stale until relog", "X81",
+                   "FOOD_SICKNESS", "capped under moodle level 4", "stale until relog", "X81",
                    "not saved (#3020)", "natively held", "Cat Eyes"):
         assert needle in joined, needle
     # ruling T16-1: the sleep-onset latency terms ship unapplied
     assert ("the sleep-onset latency terms (solAddH, solMul) are stamped and unapplied: under the hybrid vanilla sets "
             "the sleep delay") in lims
     assert any("the cold fold" in s and "X105" in s and "0.1 gate" in s for s in lims)
-    assert any("melee swings would drain scaled by dmod" in s and "shipped, they are unscaled" in s for s in lims)
+    assert not any("dmod" in s or "endurance fold" in s for s in lims)   # no drain coefficient and no fold remain
     assert any("X81" in s and "0.45 °C under the set point (x161b)" in s for s in lims)
 
 

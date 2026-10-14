@@ -1,11 +1,9 @@
 -- NR_Kernel_Aerobic.lua -- the body model's trained aerobic capacity (Plan 3): TAC, stepped once per game
 -- day toward a target set by the week's aerobic volume and gated by protein, energy availability, iron
--- and sleep; and the two endurance coefficients it and the body's state set, the drain coefficient dmod
--- and the regeneration coefficient rmod, computed on the slow clock and handed down as scalars.
--- Plan 3 applies rmod only to the asleep regeneration arm the fast kernel already owns (ruling 2); dmod
--- is stamped for Plan 5's awake takeover. Iron, glycogen, dehydration, caffeine, alcohol, sleep debt,
--- hours awake and the balance dial are read from the record's Plan 4 sub-tables by the adapter (Plan 3
--- ruling 12 held them neutral until Plan 4 Task 13).
+-- and sleep; and the regeneration coefficient rmod it and the body's state set, computed on the slow clock
+-- and handed down as a scalar, which applies to the asleep regeneration arm only (ruling 2): awake endurance
+-- stays vanilla's, so no drain coefficient is computed. Iron, glycogen, dehydration, alcohol, sleep debt and the
+-- balance dial are read from the record's Plan 4 sub-tables by the adapter.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region, so math.exp and math.log are allowed. This file sorts before NR_Kernel_Body.lua, so every
 -- K.clamp / K.min / K.max reference is at call time.
@@ -38,47 +36,18 @@ K.aerobic.G_SLEEP_SEVERE = 0.70 -- S0721; rungs inference
 K.aerobic.SLEEP_DEBT_FROM = 8 -- S0721; game choice: the debt in hours at which the gate starts
 K.aerobic.SLEEP_DEBT_SPAN = 16 -- S0721; game choice: severe at 8 + 16 = 24 h
 
--- The excess-fat reference: the sex's normal-band fat at 80 kg (1 male, 2 female), K.body.BF_MALE[4]
--- and BF_FEMALE[4] times 80 (Ruling T6-1); the adapter passes FM_NORMAL_80[body.sex] to excessPct.
-K.aerobic.FM_NORMAL_80 = { 14.4, 22.4 } -- S1051 design-phase-v1, a reading of K.body's anchors
-
--- The coefficients' exponents on TAC, the drain cap and the regeneration floor.
-K.aerobic.EXP_D = -0.8 -- game choices § 7 item 31
+-- The coefficient's exponent on TAC and its floor.
 K.aerobic.EXP_R = 1.2 -- game choices § 7 item 31
-K.aerobic.D_CAP = 2.5 -- game choices § 7 item 31
 K.aerobic.R_FLOOR = 0.25 -- game choices § 7 item 31
 
--- Glycogen: the drain rises GLYC_D x (1 - g)^2; regeneration runs at GLYC_R + (1 - GLYC_R) x g.
-K.aerobic.GLYC_D = 0.35 -- S0684
+-- Glycogen: regeneration runs at GLYC_R + (1 - GLYC_R) x g.
 K.aerobic.GLYC_R = 0.5 -- 0.5: a game choice (S0684 is the drain side)
 
--- Dehydration in percent body mass: the drain's two slopes above HYDR_T1 and HYDR_T2.
+-- Dehydration in percent body mass above which regeneration falls.
 K.aerobic.HYDR_T1 = 2 -- S0706/S0707
-K.aerobic.HYDR_K1 = 0.03 -- S0706/S0707
-K.aerobic.HYDR_T2 = 4 -- S0706/S0707
-K.aerobic.HYDR_K2 = 0.09 -- S0706/S0707
 
--- The heat ladder by the engine's hyperthermia level 0-4 (indexed level + 1), and the heat-dehydration
--- interaction HEAT_HYDR_K x (d / HEAT_HYDR_PCT) x (level / HEAT_HYDR_LEVEL).
-K.aerobic.HEAT = { 1.0, 1.10, 1.25, 1.50, 2.00 } -- S0730 design-phase-v1: open row, a game choice until it settles
-K.aerobic.HEAT_HYDR_K = 0.10 -- S1021
-K.aerobic.HEAT_HYDR_PCT = 4 -- game-choice normalisers (S1021 gives the interaction's direction): the dehydration unit
-K.aerobic.HEAT_HYDR_LEVEL = 2 -- game-choice normalisers (S1021 gives the interaction's direction): the heat-level unit
-
--- Fat as load: per point of excess fat percentage.
-K.aerobic.FAT_LOAD_K = 0.008 -- S0723
-
--- Iron grades 1-4 on the drain and on regeneration.
-K.aerobic.IRON_D = { 1.0, 1.03, 1.08, 1.20 } -- S0696/S0697/S0694
+-- Iron grades 1-4 on regeneration.
 K.aerobic.IRON_R = { 1.0, 0.95, 0.88, 0.75 } -- S0699 (fatigue SMD −0.38; VO₂max NS): the rungs a game mapping
-
--- Hours awake past the knee raise the drain, capped.
-K.aerobic.AWAKE_KNEE = 18 -- S0763; knee ruling 11
-K.aerobic.AWAKE_K = 0.004 -- S0763
-K.aerobic.AWAKE_CAP = 1.20 -- 1.20: a game choice (S0763 states no cap)
-
--- Caffeine lowers the drain by CAF_K x effect x (1 - tolerance).
-K.aerobic.CAF_K = 0.03 -- S0531
 
 -- Regeneration: dehydration above HYDR_T1 and sleep debt, each floored; alcohol above ALC_T g/kg, full
 -- at 2 x ALC_T.
@@ -137,27 +106,6 @@ function K.aerobic.tacDay(body, weekMin1, hardDays, gIron, gProt, gEnergy, gSlee
     end
     body.tac = K.clamp(tac, A.TAC_MIN, A.TAC_MAX)
     return body
-end
-
--- Excess fat as a percentage of body mass: 100 x max(0, fm - fmNormal) / w (Ruling T6-1: fmNormal is
--- FM_NORMAL_80 by sex, not body.fmRef).
-function K.aerobic.excessPct(fm, fmNormal, w)
-    return 100 * K.max(0, fm - fmNormal) / w
-end
-
--- The drain coefficient: TAC^EXP_D x glycogen x dehydration x heat (with its dehydration interaction)
--- x fat load x iron x hours awake x caffeine, capped at D_CAP. heatLevel 0-4, ironGrade 1-4.
-function K.aerobic.dmod(tac, g, dehydPct, heatLevel, excessPct, ironGrade, hoursAwake, cafEffect, cafTol)
-    local A = K.aerobic
-    local v = math.exp(A.EXP_D * math.log(tac))
-    v = v * (1 + A.GLYC_D * (1 - g) * (1 - g))
-    v = v * (1 + A.HYDR_K1 * K.max(0, dehydPct - A.HYDR_T1) + A.HYDR_K2 * K.max(0, dehydPct - A.HYDR_T2))
-    v = v * A.HEAT[heatLevel + 1] * (1 + A.HEAT_HYDR_K * (dehydPct / A.HEAT_HYDR_PCT) * (heatLevel / A.HEAT_HYDR_LEVEL))
-    v = v * (1 + A.FAT_LOAD_K * excessPct)
-    v = v * A.IRON_D[ironGrade]
-    v = v * K.min(A.AWAKE_CAP, 1 + A.AWAKE_K * K.max(0, hoursAwake - A.AWAKE_KNEE))
-    v = v * (1 - A.CAF_K * cafEffect * (1 - cafTol))
-    return K.min(A.D_CAP, v)
 end
 
 -- The regeneration coefficient: TAC^EXP_R x glycogen x protFactor x iron x dehydration x sleep debt x

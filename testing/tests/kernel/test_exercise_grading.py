@@ -255,8 +255,9 @@ function(p, counter)
 end
 """
 
-# The Java calls one flagged minute made at cbca565c (before this task), counted by this proxy on the same stand-in.
-JAVA_CALLS_PER_SET_MINUTE = 32
+# The Java calls one flagged minute made at cbca565c (before this task), counted by this proxy on the same stand-in:
+# 32 then, 31 since the hyperthermia moodle read, which fed only the drain coefficient, went with it (Plan 12 3a).
+JAVA_CALLS_PER_SET_MINUTE = 31
 
 
 def _count(h, exe_type):

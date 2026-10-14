@@ -97,17 +97,13 @@ def test_caffeine_halflife_normal_and_slow(host):
     assert _close(b.caf, 139.91358827433697, 1e-9)  # 200 * exp(-ln2 * 5 / 9.7); the briefing's 139.94 is a slip
 
 
-def test_caf_effect_and_active(host):
+def test_caffeine_active(host):
     A = host.K.acute
     a = _new(host)
-    a.caf = 240
-    assert _close(A.cafEffect(a, 80), 1.0)  # 240 / (3 * 80)
+    a.caf = 240                             # 3 mg/kg at 80 kg
     assert A.caffeineActive(a, 80) is True
     a.caf = 120
-    assert _close(A.cafEffect(a, 80), 0.5)
     assert A.caffeineActive(a, 80) is False
-    a.caf = 1000
-    assert A.cafEffect(a, 80) == 1
 
 
 def test_caffeine_mean_is_a_daily_rate(host):

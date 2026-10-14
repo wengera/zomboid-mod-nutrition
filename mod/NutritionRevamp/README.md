@@ -159,7 +159,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Whether the healing effects reach healing while awake is not yet measured, and a wound's last fraction heals at the normal rate. The regeneration settings are not saved with the character; the mod sets them again each time.
 - The protein grade reads unknown for the first seven days. Protein needs read a neutral figure before the first day closes.
 - The refeeding sickness holds for the whole day of the event.
-- Endurance stays vanilla's while awake: the mod's endurance drain factor is not applied, and asleep its recovery factor applies one minute late.
+- Endurance stays vanilla's while awake. Asleep, the mod's recovery factor applies one minute late.
 - The sleep-onset delay is the game's. A wake of under 10 game minutes during the night counts as sleep.
 - The sleep model needs `SleepAllowed` and `SleepNeeded` both on, and reads them once at start.
 - The cold-catching effect is not yet measured.

@@ -17,7 +17,7 @@ ORDER = ["vitC", "iron", "vitB12", "calcium", "vitA"]
 # The fields each constructor lays that the store drops at load (derived), read off the owning steps (the kernel
 # file's comments name them).
 DERIVED = {
-    "body": {"band", "delta", "dmod", "rmod", "energyState", "mirrorLast"},
+    "body": {"band", "delta", "rmod", "energyState", "mirrorLast"},
     # the trailing-24 h window (Plan 11d Task 9c): its age and rings are inputs, its closed sums derived
     "trail": {"ch", "c"},
     "nutrients": {"allReplete", "ironGrade", "anaemia", "vitDClinical"},
@@ -103,7 +103,7 @@ def stored(h):
                    "reconcile": {"count": 3, "baseline": {"calories": 100}}})
     body = h.call("body.new", 82.0, 1, h.table({}), 5, 1.1, 1.2, 24.0)
     body["tac"] = 1.3
-    body["dmod"] = 0.7
+    body["rmod"] = 0.7
     body["band"] = "stale"
     body["shownL"] = 4
     body["inDayClosed"] = 2100
@@ -185,7 +185,7 @@ def test_is_input_matches_a_star_and_anything_under_an_input(host):
     assert not S(host).isInput("nutrients.vitC.x")
     assert S(host).isInput("body.bandWeek.3") and S(host).isInput("body.bandWeek.3.1")
     assert S(host).isInput("stomach.buffer.calories") and S(host).isInput("pool.iron")
-    assert not S(host).isInput("body") and not S(host).isInput("body.dmod") and not S(host).isInput("stomachFill")
+    assert not S(host).isInput("body") and not S(host).isInput("body.rmod") and not S(host).isInput("stomachFill")
     assert not S(host).isInput("lastIntake.source") and not S(host).isInput("reconcile.baseline.calories")
     assert S(host).isInput("reconcile.count") and S(host).isInput("effects.own.nv")
 
@@ -278,7 +278,7 @@ def test_load_of_a_stored_record_keeps_the_inputs_and_drops_the_derived(host):
     b = r["body"]
     assert b["tac"] == 1.3 and b["shownL"] == 4 and b["inDayClosed"] == 2100 and b["l0"] == 5
     assert b["eb7"][7] == -250 and b["bandWeek"][7] == {1: 45, 2: 0} and b["nHist"][14] == 0.4
-    assert b["dmod"] == 1 and b["band"] == "normal" and "met" not in b       # rebuilt by K.body.new
+    assert b["rmod"] == 1 and b["band"] == "normal" and "met" not in b       # rebuilt by K.body.new
     n = r["nutrients"]
     assert (n["vitC"]["p"], n["vitC"]["g"], n["vitC"]["gl"], n["vitC"]["ah"]) == (0.12, 4, 3, 50)
     assert n["vitC"]["x"] == 0 and n["allReplete"] is False                  # x derived; allReplete recomputed (vitC at grade 4)
@@ -343,7 +343,7 @@ def test_a_body_builds_at_its_sex_and_heals_an_odd_one(host):
     # Plan 12 A4 (K2 B5): a stored sex other than 1 or 2 would stop every nutrient minute (a nil R[sex]); it heals to 1
     for odd in (3, 0, 1.5, float("nan")):
         r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": odd, "lastAgeH": 1.0}}), None, recs(host)))
-        assert r["body"]["sex"] == 1 and r["body"]["dmod"] == 1, odd
+        assert r["body"]["sex"] == 1 and r["body"]["rmod"] == 1, odd
 
 
 def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
@@ -394,14 +394,14 @@ def test_inputs_only_holds_no_derived_field(host):
     raw = stored(host)
     out = host.py(S(host).inputsOnly(raw))
     assert "junk" not in out and "stomachFill" not in out and "lastIntake" not in out
-    assert "dmod" not in out["body"] and "band" not in out["body"] and out["body"]["tac"] == 1.3
+    assert "rmod" not in out["body"] and "band" not in out["body"] and out["body"]["tac"] == 1.3
     assert "x" not in out["nutrients"]["vitC"] and out["nutrients"]["vitC"]["g"] == 4
     assert out["nutrients"]["retired"] == {"p": 0.5}                         # the save keeps what the record holds
     assert "allReplete" not in out["nutrients"] and out["nutrients"]["epoch"] == 9
     assert out["effects"] == {"dirty": True, "epoch": 7, "own": {"nv": True, "ss": False}, "nvDays": 3, "pe": 2,
                               "ea": 22, "lastDay": 1, "exSeen": 80}
     assert out["reconcile"] == {"count": 3}
-    assert raw["body"]["dmod"] == 0.7                                        # the record itself is untouched
+    assert raw["body"]["rmod"] == 0.7                                        # the record itself is untouched
 
 
 def test_inputs_only_copies_deep(host):
@@ -474,7 +474,7 @@ def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
     for p in ("body.eb7", "body.mass7", "body.p7", "body.trail.kcal", "body.trail.lip", "body.bandWeek", "body.nHist",
               "stomach.buffer", "pool", "nutrients.vitC.p"):
         assert S(host).isInput(p), p
-    for p in ("body", "nutrients", "stomach", "acute", "body.dmod", "nutrients.vitC.x", "fluids", "reconcile.baseline"):
+    for p in ("body", "nutrients", "stomach", "acute", "body.rmod", "nutrients.vitC.x", "fluids", "reconcile.baseline"):
         assert not S(host).isInput(p), p
 
 

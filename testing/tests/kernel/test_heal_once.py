@@ -65,7 +65,7 @@ CROSS = (
         ("weight", ("fm", "lm", "pDay", "carbDay", "lipDay", "ebDay")),
         ("kinetics", ("energyState",)),
         ("writer", ("energyState", "rmod", "met")),   # met: the heavy-work band of the acute term (Plan 11c Task 6)
-        ("bus", ("energyState", "dmod", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
+        ("bus", ("energyState", "rmod", "ebDay", "eeDay", "fm", "inDay", "lm", "tac", "vStr", "vHyp")),
         ("store", ("fm", "lm", "lastAgeH", "dayIndex", "inDay", "eeDay", "ebDay", "exKcalDay",
                    "pDay", "carbDay", "lipDay", "alcDay", "inDayClosed", "pPrevKg", "band1Day", "band2Day", "n",
                    "nPeak", "tPeakD", "cumDef", "tDisuse", "tac", "vStr", "vHyp",

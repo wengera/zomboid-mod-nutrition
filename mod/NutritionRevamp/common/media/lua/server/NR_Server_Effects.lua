@@ -42,7 +42,6 @@ NR.server.effects = {
         "aimMul is computed and stamped but applied by no seat (X86 open: the engine clears a written aim flag on most updates)",
         "POISON ships 0 at every toxicity rung; the rungs act through FOOD_SICKNESS floors 30/55/85, never the SICKNESS stat",
         "the HUNGER and THIRST views are capped under moodle level 4 always: the level-4 Hungry and Thirsty moodles never show",
-        "while the endurance fold is on (it ships off, X35) melee swings would drain scaled by dmod like any other drain; shipped, they are unscaled",
         "a trait change is pushed to its owner only: other clients' copies of a player's traits stay stale until relog (#2603)",
         "tempTarget is applied uncalibrated: the equilibrium of the held target against the regulator is unmeasured (X81); at rest the core already sits about 0.45 °C under the set point (x161b), so a −0.2 target does not act at rest",
         "the regeneration constants are not saved (#3020): re-asserted at every rebuild, at every drain start or stop and at first sight",
@@ -236,10 +235,7 @@ local function engineFactors(username)
     if inp == nil then
         return K.effects.mEngine(1, false, 1, 1, 1), K.effects.rEngine(1, 1)
     end
-    local endLast = finite(inp.endLast) and inp.endLast or nil
-    if endLast == nil or inp.endFold ~= true then
-        endLast = finite(inp.endurance) and inp.endurance or 1
-    end
+    local endLast = finite(inp.endurance) and inp.endurance or 1
     local resting = inp.sitting == true or inp.resting == true
     local thermo = finite(inp.thermoFatigue) and inp.thermoFatigue or 1
     local sd = finite(inp.sd) and inp.sd or 1

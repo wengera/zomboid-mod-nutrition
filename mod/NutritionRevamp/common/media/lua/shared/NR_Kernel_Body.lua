@@ -211,7 +211,6 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.delta = traitCarry
     body.band = K.body.band(wc)
     body.tac = 1.0
-    body.dmod = 1
     body.rmod = 1
     body.pPrevKg = 0.8 -- = K.aerobic.P_LOW; neutral
     body.energyState = 1

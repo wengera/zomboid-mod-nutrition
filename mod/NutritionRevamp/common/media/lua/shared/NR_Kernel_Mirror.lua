@@ -40,7 +40,6 @@ function K.mirror.body(m, body)
     m.body_band = ""
     m.body_energyState = 0
     m.body_tac = 0
-    m.body_dmod = 0
     m.body_rmod = 0
     m.body_shownL = 0
     m.body_delta = 0
@@ -58,7 +57,6 @@ function K.mirror.body(m, body)
     m.body_band = body.band
     m.body_energyState = body.energyState
     m.body_tac = body.tac
-    m.body_dmod = body.dmod
     m.body_rmod = body.rmod
     m.body_shownL = body.shownL
     m.body_delta = body.delta

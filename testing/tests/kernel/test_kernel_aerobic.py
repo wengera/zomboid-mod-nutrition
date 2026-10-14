@@ -34,19 +34,10 @@ def _tac(host, tac, week, hard, gi=1.0, gp=1.0, ge=1.0, gs=1.0, dtD=1.0, imm=Fal
     return body.tac
 
 
-# The neutral drain and regeneration arguments: TAC 1, glycogen full, no dehydration, heat 0, no excess
-# fat, iron replete, 10 h awake, no caffeine; protein factor 1, no sleep debt, no alcohol, no bonus.
-D0 = dict(tac=1.0, g=1.0, dehydPct=0.0, heatLevel=0, excessPct=0.0, ironGrade=1, hoursAwake=10.0,
-          cafEffect=0.0, cafTol=0.0)
+# The neutral regeneration arguments: TAC 1, glycogen full, protein factor 1, iron replete, no dehydration, no
+# sleep debt, no alcohol, no bonus.
 R0 = dict(tac=1.0, g=1.0, protFactor=1.0, ironGrade=1, dehydPct=0.0, debtH=0.0, alcGPerKg=0.0,
           balanceBonus=1.0)
-
-
-def _dmod(host, **kw):
-    a = dict(D0)
-    a.update(kw)
-    return host.K.aerobic.dmod(a["tac"], a["g"], a["dehydPct"], a["heatLevel"], a["excessPct"],
-                               a["ironGrade"], a["hoursAwake"], a["cafEffect"], a["cafTol"])
 
 
 def _rmod(host, **kw):
@@ -63,21 +54,18 @@ def test_constants(host):
     assert (A.VOL_WEEK_FULL, A.HARD_DAYS_KEEP, A.G_PROT_LOW, A.P_LOW) == (240, 2, 0.85, 0.8)
     assert (A.EA_THRESHOLD, A.G_ENERGY_LOW, A.G_SLEEP_SEVERE) == (30, 0.5, 0.70)
     assert list(host.py(A.G_IRON).values()) == [1.0, 0.7, 0.4, 0.4]
-    assert (A.EXP_D, A.EXP_R, A.D_CAP, A.R_FLOOR, A.GLYC_D) == (-0.8, 1.2, 2.5, 0.25, 0.35)
-    assert (A.HYDR_T1, A.HYDR_K1, A.HYDR_T2, A.HYDR_K2) == (2, 0.03, 4, 0.09)
-    assert list(host.py(A.HEAT).values()) == [1.0, 1.10, 1.25, 1.50, 2.00]
-    assert (A.HEAT_HYDR_K, A.FAT_LOAD_K) == (0.10, 0.008)
-    assert list(host.py(A.IRON_D).values()) == [1.0, 1.03, 1.08, 1.20]
+    assert (A.EXP_R, A.R_FLOOR, A.GLYC_R, A.HYDR_T1) == (1.2, 0.25, 0.5, 2)
     assert list(host.py(A.IRON_R).values()) == [1.0, 0.95, 0.88, 0.75]
-    assert (A.AWAKE_KNEE, A.AWAKE_K, A.AWAKE_CAP, A.CAF_K) == (18, 0.004, 1.20, 0.03)
     assert (A.HYDR_R_K, A.HYDR_R_FLOOR, A.DEBT_R_K, A.DEBT_R_FLOOR, A.ALC_K, A.ALC_T) == (0.05, 0.70, 0.01, 0.60, 0.15, 0.5)
 
 
-def test_fm_normal_80_reads_the_body_anchors(host):
-    # Ruling T6-1: the excess reference is the sex's normal-band fat at 80 kg, a reading of K.body's anchors
-    fm = host.py(host.K.aerobic.FM_NORMAL_80)
-    assert _close(fm[1], 14.4) and _close(fm[2], 22.4)
-    assert _close(fm[1], host.K.body.BF_MALE[4] * 80) and _close(fm[2], host.K.body.BF_FEMALE[4] * 80)
+def test_no_drain_coefficient_is_computed(host):
+    # Plan 12 3a (K1 R1): awake endurance stays vanilla's, so the drain coefficient dmod, applied nowhere, is gone
+    # with its fat-excess reference: no kernel function, no body field, no mirror key
+    A = host.K.aerobic
+    for name in ("dmod", "excessPct", "FM_NORMAL_80", "EXP_D", "D_CAP", "GLYC_D", "HEAT", "IRON_D", "CAF_K"):
+        assert A[name] is None, name
+    assert host.K.acute.cafEffect is None
 
 
 def test_gprot(host):
@@ -180,47 +168,6 @@ def test_tac_returns_the_body(host):
     body = _body(host, 1.0)
     out = host.K.aerobic.tacDay(body, 240, 2, 1, 1, 1, 1, 1, False)
     assert host.rt.eval("rawequal")(out, body)
-
-
-def test_excess_pct(host):
-    assert _close(host.K.aerobic.excessPct(20, 14.4, 80), 7.0)
-    assert host.K.aerobic.excessPct(10, 14.4, 80) == 0
-
-
-def test_dmod_neutral_is_exactly_one(host):
-    assert _dmod(host) == 1
-
-
-def test_dmod_tac(host):
-    assert _close(_dmod(host, tac=1.1), 1.1 ** -0.8)
-    assert _close(_dmod(host, tac=1.1), 0.926592, 1e-5)          # the plan's rounding; exact 0.9265863
-
-
-@pytest.mark.parametrize("kw,factor", [
-    (dict(g=0.0), 1.35),                                             # glycogen empty, S0684
-    (dict(g=0.5), 1 + 0.35 * 0.25),
-    (dict(dehydPct=2.0), 1.0),                                       # below the first threshold
-    (dict(dehydPct=3.0), 1.03),
-    (dict(dehydPct=5.0), 1 + 0.09 + 0.09),
-    (dict(heatLevel=2), 1.25),                                       # HEAT index 3
-    (dict(heatLevel=4), 2.00),
-    (dict(heatLevel=2, dehydPct=4.0), 1.25 * (1 + 0.10 * 1 * 1) * 1.06),
-    (dict(excessPct=10.0), 1.08),
-    (dict(ironGrade=4), 1.20),
-    (dict(ironGrade=2), 1.03),
-    (dict(hoursAwake=18.0), 1.0),                                    # the knee, ruling 11
-    (dict(hoursAwake=28.0), 1.04),
-    (dict(hoursAwake=100.0), 1.20),                                  # capped
-    (dict(cafEffect=1.0, cafTol=0.0), 0.97),
-    (dict(cafEffect=1.0, cafTol=0.5), 0.985),
-])
-def test_dmod_terms(host, kw, factor):
-    assert _close(_dmod(host, **kw), factor)
-
-
-def test_dmod_stacked_worst_case_caps(host):
-    v = _dmod(host, tac=0.8, g=0.0, dehydPct=6.0, heatLevel=4, excessPct=30.0, ironGrade=4, hoursAwake=100.0)
-    assert v == 2.5
 
 
 def test_rmod_neutral_is_exactly_one(host):

@@ -266,11 +266,6 @@ function K.acute.caffeine(a, doseAbsMg, w, dtH)
     return a
 end
 
--- The caffeine performance scalar: full at 3 mg/kg on board (S0531).
-function K.acute.cafEffect(a, w)
-    return K.clamp(a.caf / (K.acute.CAF_EFFECT_MGKG * w), 0, 1)
-end
-
 -- Whether 3 mg/kg is on board (S0626).
 function K.acute.caffeineActive(a, w)
     return a.caf >= K.acute.CAF_EFFECT_MGKG * w

@@ -362,7 +362,7 @@ def test_kinetics_hands_off_the_absorbed_vector(met_host):
 def _activity(h, p):
     r = MET(h).readActivity(p)
     return dict(className=r[0], moving=r[1], modifier=r[2], loadKg=r[3], heavyLevel=r[4], coldMult=r[5],
-                exercising=r[6], swiping=r[7], immobilised=r[8], hourOfDay=r[9], maxW=r[10], heatLevel=r[11])
+                exercising=r[6], swiping=r[7], immobilised=r[8], hourOfDay=r[9], maxW=r[10], climbClass=r[11])
 
 
 def test_read_activity_classifies_the_rate(met_host):
@@ -371,7 +371,7 @@ def test_read_activity_classifies_the_rate(met_host):
     assert a["className"] == "Walking5kmh"
     assert a["moving"] is True and a["modifier"] == 1
     assert a["loadKg"] == 0 and a["maxW"] == 20
-    assert a["heavyLevel"] == 0 and a["heatLevel"] == 0 and a["coldMult"] == 1
+    assert a["heavyLevel"] == 0 and a["coldMult"] == 1
     assert a["exercising"] is False and a["swiping"] is False and a["immobilised"] is False
 
 
@@ -421,7 +421,7 @@ def test_read_activity_flags_and_moodles(met_host):
                             cold=2.5, fracture={"LowerLeg_R": 30.0}))
     assert a["exercising"] is True and a["swiping"] is True
     assert a["heavyLevel"] == 4                # clamped 0-4
-    assert a["heatLevel"] == 2
+    assert "heatLevel" not in a                # the hyperthermia level fed only the drain coefficient, now gone
     assert a["coldMult"] == 2.5
     assert a["immobilised"] is True
     assert _activity(h, player(h, splint={"UpperLeg_L": True}))["immobilised"] is True
@@ -622,16 +622,8 @@ def test_coefficients_stamped_neutral_on_a_fresh_body(met_host):
     record = fresh(h, p)
     minute(h, p, record, 100.0 + 1 / 60)
     body = record["body"]
-    assert abs(body["dmod"] - 1.0) < TOL       # tac 1, no excess fat, heat 0
+    assert body["dmod"] is None                # no drain coefficient: awake endurance stays vanilla's
     assert abs(body["rmod"] - 1.0) < TOL       # tac 1, protein gate neutral before the first close
-
-
-def test_heat_raises_the_drain_coefficient(met_host):
-    h = met_host
-    p = player(h, moodles={"HYPERTHERMIA": 2})
-    record = fresh(h, p)
-    minute(h, p, record, 100.0 + 1 / 60)
-    assert abs(record["body"]["dmod"] - h.K.aerobic.HEAT[3]) < TOL
 
 
 def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
@@ -849,9 +841,9 @@ def test_a_climb_state_minute_credits_its_class_once(met_host, state, cls):
 
 def test_read_activity_reads_the_climb_state(met_host):
     h = met_host
-    assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[12] == "JumpFence"
-    assert MET(h).readActivity(player(h, climb="WINDOW"), 100.0)[12] == "ClimbRope"
-    assert MET(h).readActivity(player(h), 100.0)[12] is None
+    assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[11] == "JumpFence"
+    assert MET(h).readActivity(player(h, climb="WINDOW"), 100.0)[11] == "ClimbRope"
+    assert MET(h).readActivity(player(h), 100.0)[11] is None
 
 
 def test_absent_climb_state_globals_read_no_climb(met_host):
@@ -861,7 +853,7 @@ def test_absent_climb_state_globals_read_no_climb(met_host):
     G.ClimbOverFenceState = None
     G.ClimbThroughWindowState = h.table({})    # a class global without instance
     try:
-        assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[12] is None
+        assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[11] is None
         got, _ = _climb_credit(h, "FENCE")
         assert got == 0
     finally:
@@ -1175,7 +1167,7 @@ def test_self_report_reads_nutrition_off_by_default():
     assert "nutritionOn=false" in G.NutritionRevamp.selfReport("server")
 
 
-# --- the Plan 4 scalars: the record's nutrients, fluids and acute sub-tables feed dmod, rmod, TAC and E --
+# --- the Plan 4 scalars: the record's nutrients, fluids and acute sub-tables feed rmod, TAC and E ---------
 
 @pytest.fixture
 def opts(met_host):
@@ -1223,17 +1215,8 @@ def _activity_es(h, record, fatDep=0, ee24=True):
     return D.activityState(E.eb24h(body), ex24, L, fatDep, ee24h if ee24 else None)
 
 
-def _excess(h, body):
-    w = body["fm"] + body["lm"]
-    return h.K.aerobic.excessPct(body["fm"], h.K.aerobic.FM_NORMAL_80[body["sex"]], w)
-
-
 def _rmod(h, body, g=1, iron=1, dehyd=0, debt=0, alc=0, bonus=1):
     return h.K.aerobic.rmod(body["tac"], g, h.K.aerobic.gProt(body["pPrevKg"]), iron, dehyd, debt, alc, bonus)
-
-
-def _dmod(h, body, g=1, dehyd=0, heat=0, iron=1, awake=0, caf=0, tol=0):
-    return h.K.aerobic.dmod(body["tac"], g, dehyd, heat, _excess(h, body), iron, awake, caf, tol)
 
 
 def test_a_pre_plan4_record_reads_the_plan3_values(met_host, opts):
@@ -1241,18 +1224,15 @@ def test_a_pre_plan4_record_reads_the_plan3_values(met_host, opts):
     record = _plan4(h)
     body = record["body"]
     assert record["nutrients"] is None and record["fluids"] is None and record["acute"] is None
-    assert body["dmod"] == _dmod(h, body)
     assert body["rmod"] == _rmod(h, body)
-    assert abs(body["dmod"] - 1.0) < TOL and abs(body["rmod"] - 1.0) < TOL
+    assert abs(body["rmod"] - 1.0) < TOL
     assert body["energyState"] == _activity_es(h, record)   # Plan 11c Task 6: the walker's exercise lagged
 
 
-def test_iron_grade_four_reaches_dmod_and_rmod(met_host, opts):
+def test_iron_grade_four_reaches_rmod(met_host, opts):
     h = met_host
     record = _plan4(h, nutrients=dict(ironGrade=4))
     body = record["body"]
-    assert body["dmod"] == _dmod(h, body, iron=4)
-    assert abs(body["dmod"] - 1.20) < TOL          # IRON_D[4] on a neutral body
     assert body["rmod"] == _rmod(h, body, iron=4)
     assert abs(body["rmod"] - 0.75) < TOL          # IRON_R[4]
 
@@ -1267,7 +1247,6 @@ def test_dehydration_lowers_rmod_by_the_kernel_factor(met_host, opts):
     factor = max(A.HYDR_R_FLOOR, 1 - A.HYDR_R_K * max(0, 5 - A.HYDR_T1))
     assert abs(body["rmod"] - base * factor) < TOL
     assert body["rmod"] < base
-    assert body["dmod"] == _dmod(h, body, dehyd=5)
 
 
 def test_the_balance_bonus_follows_all_replete_and_the_dial(met_host, opts):
@@ -1297,14 +1276,10 @@ def test_absent_options_read_the_dial_default_on(met_host):
     assert abs(body["rmod"] - base * 1.05) < TOL
 
 
-def test_the_acute_scalars_reach_dmod_rmod_and_the_energy_state(met_host, opts):
+def test_the_acute_scalars_reach_rmod_and_the_energy_state(met_host, opts):
     h = met_host
     record = _plan4(h, acute=dict(g=0.5, awakeH=22.0, debtH=12.0, caf=120.0, cafTol=0.25))
     body = record["body"]
-    w = body["fm"] + body["lm"]
-    caf = h.K.acute.cafEffect(record["acute"], w)
-    assert 0 < caf < 1
-    assert body["dmod"] == _dmod(h, body, g=0.5, awake=22.0, caf=caf, tol=0.25)
     assert body["rmod"] == _rmod(h, body, g=0.5, debt=12.0)
     assert body["energyState"] == _activity_es(h, record)    # g does not enter the state (ruling T4-1)
 
@@ -1327,12 +1302,11 @@ def test_unreadable_sub_table_values_read_neutral(met_host, opts):
     record.acute.debtH = None
     minute(h, player(h), record, 100.0 + 2 / 60)
     body = record["body"]
-    assert body["dmod"] == _dmod(h, body)
     assert body["rmod"] == _rmod(h, body)
     assert nonfinite(h, record) == ""
     for grade in (0, 2.5, NAN, "4"):
         rec = _plan4(h, nutrients=dict(ironGrade=grade))
-        assert rec["body"]["dmod"] == _dmod(h, rec["body"])
+        assert rec["body"]["rmod"] == _rmod(h, rec["body"])
     assert MET(h).stats.failures == failures       # no raise, no heal: the reads never stamp a bad value
 
 

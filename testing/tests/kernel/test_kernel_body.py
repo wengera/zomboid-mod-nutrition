@@ -203,7 +203,7 @@ def test_new_record_body(host):
         "actKcalDay": 0, "exKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "vStr": 0,
         "vHyp": 0, "vStrHigh": 0, "metMinDay": 0, "band1Day": 0, "band2Day": 0, "n": 0, "nPeak": 0,
         "tPeakD": 4, "cumDef": 0, "tDisuse": 0, "shownL": 5, "riseHeldH": 0, "lastFallAge": 100,
-        "delta": 1.0, "band": "normal", "tac": 1.0, "dmod": 1, "rmod": 1, "energyState": 1,
+        "delta": 1.0, "band": "normal", "tac": 1.0, "rmod": 1, "energyState": 1,
     }
     for k, v in scalars.items():
         assert body[k] == v, k
