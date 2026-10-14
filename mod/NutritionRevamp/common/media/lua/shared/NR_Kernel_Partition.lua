@@ -215,3 +215,65 @@ function K.partition.deficitWeek(body)
     end
     return sum < 0
 end
+
+-- ============================================================ the lean-mass partition (Plan 13)
+-- Spec section 5.1, the oracle's exact day (ruling 13-2). F is body.lm, the labile lean (water, glycogen,
+-- organ: weight, not level or REE) body.lx and fat body.fm. Every constant is P's (K.strength.DEFAULTS
+-- or a server's params, ruling 13-1) save RHO_LEAN, RHO_FAT and FAT_CEIL_KCAL above. The arms return the
+-- changes before the floors; the day applies them (Task 8). grow is the day's lean gain already scaled by
+-- the biology clock ts, and its energy is charged at grow / ts (ruling 13-3).
+
+-- Forbes' lean weight share of a mass change at fat mass fm kg: forbes_c / (forbes_c + fm) (S0054, S0055).
+function K.partition.forbes(fm, P)
+    return P.forbes_c / (P.forbes_c + fm)
+end
+
+-- The training dose T of S weekly hard sets: S / S_def, full at 1 (S1997).
+function K.partition.training(S, P)
+    return K.min(1, S / P.S_def)
+end
+
+-- The surplus arm (E >= 0), returning dX, dM (kg): growth is paid first; a surplus that cannot pay it has
+-- fat fund the difference, and then lx decays on x_tau_d days (the day has no surplus left). Otherwise the
+-- rest splits by the lean weight share xs = forbes(fm) * the protein ramp (p - xs_p0) / xs_pspan (ruling
+-- 13-37, never pdef_*) * (1 - T) into lx, capped at x_max_frac * F, and fat.
+function K.partition.surplusLean(body, grow, S, p, E, P, ts)
+    local RL = K.partition.RHO_LEAN
+    local RF = K.partition.RHO_FAT
+    local rest = E - grow / ts * RL
+    if rest <= 0 then
+        return -body.lx / P.x_tau_d, rest / RF
+    end
+    local ramp = K.clamp((p - P.xs_p0) / P.xs_pspan, 0, 1)
+    local xs = K.partition.forbes(body.fm, P) * ramp * (1 - K.partition.training(S, P))
+    local dW = rest / (xs * RL + (1 - xs) * RF)
+    local room = K.max(0, P.x_max_frac * body.lm - body.lx)
+    local dX = K.min(xs * dW, room)
+    return dX, (rest - dX * RL) / RF
+end
+
+-- The deficit arm (E < 0), returning dF, dX, dM (kg), dF the partition's own lean change (growth not in
+-- it): the lean weight share forbes(fm) * prot, prot = 1 - wT * T - wP * the protein ramp over pdef_lo ..
+-- pdef_hi, clamped to [prot_floor, 1]; fat pays the rest up to Alpert's ceiling and the overflow splits by
+-- prot (lean pays prot of it, fat the spared rest). lx pays the lean loss first and F the remainder; what
+-- is left of lx decays on x_tau_d days; fat funds the day's growth (recomposition).
+function K.partition.deficitLean(body, grow, S, p, E, P, ts)
+    local RL = K.partition.RHO_LEAN
+    local RF = K.partition.RHO_FAT
+    local gP = K.clamp((p - P.pdef_lo) / (P.pdef_hi - P.pdef_lo), 0, 1)
+    local prot = K.clamp(1 - P.wT * K.partition.training(S, P) - P.wP * gP, P.prot_floor, 1)
+    local share = K.partition.forbes(body.fm, P) * prot
+    local dW = -E / (share * RL + (1 - share) * RF)
+    local leanLoss = share * dW
+    local fatLoss = (1 - share) * dW
+    local cap = K.partition.FAT_CEIL_KCAL * body.fm / RF
+    if fatLoss > cap then
+        local over = (fatLoss - cap) * RF
+        fatLoss = cap + over * (1 - prot) / RF
+        leanLoss = leanLoss + over * prot / RL
+    end
+    local fromX = K.min(body.lx, leanLoss)
+    local dX = -fromX - (body.lx - fromX) / P.x_tau_d
+    local dM = -fatLoss - grow / ts * RL / RF
+    return -(leanLoss - fromX), dX, dM
+end
