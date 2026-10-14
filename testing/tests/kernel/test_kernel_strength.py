@@ -457,7 +457,7 @@ def test_every_option_has_a_name_and_a_tooltip_stating_its_range(host):
     for name, key, lo, hi, *_ in _rows(host):
         assert tr["Sandbox_NR_" + name].strip(), name
         tip = tr["Sandbox_NR_" + name + "_tooltip"]
-        assert tip.strip() and tip.endswith(".") or "Range" in tip, name
+        assert tip.strip() and tip.endswith("."), name
         assert "Range" in tip, name
     ts = tr["Sandbox_NR_StrengthTimeScale_tooltip"]
     assert "the biology clock: 1.0 is one biological day per game day; weekly sets are still counted over 7 game days" in ts.lower()
@@ -667,10 +667,23 @@ def test_the_guard_falls_back_at_exact_equality(host):
         S.threshold, S.setCap = real_t, real_c
 
 
-def test_the_guard_reads_the_servers_cap_level(host):
-    # capLevel 20 puts bio level 15 at s = 2/3, where Sg0 1.0 with beta 4 still passes (it fails at the default cap's 0.87)
-    P, fell = _params(host, {"StrengthThreshold": 1.0, "StrengthThresholdRise": 4, "StrengthCapLevel": 20})
-    assert fell is False and P["beta"] == 4
+def test_the_guard_reads_the_effective_cap(host):
+    # K.body.create holds Fc at the natural limit (bio level 5 + (ffmiNaturalRaw - ffmi5) / ffmiPerLevel, about 17.74),
+    # so capLevel 20 guards at 17.74: Sg0 1.0 with beta 4 trips there, and capLevel 17.7 and 20 behave the same
+    bad = {"StrengthThreshold": 1.0, "StrengthThresholdRise": 4}
+    assert _params(host, dict(bad, StrengthCapLevel=20))[1] is True
+    assert _params(host, dict(bad, StrengthCapLevel=17.7))[1] is True
+    D = host.py(host.K.strength.DEFAULTS)
+    eff = 5 + (D["ffmiNaturalRaw"] - D["ffmi5"]) / D["ffmiPerLevel"]
+    assert 17.7 < eff < 17.8
+    s15 = 10 / (eff - 5)
+    beta = math.log(30 + (12 - 30) * s15) / s15      # equality at Sg0 1.0 under the effective cap
+    under = dict(StrengthThreshold=1.0, StrengthThresholdRise=beta * 0.999)
+    over = dict(StrengthThreshold=1.0, StrengthThresholdRise=beta * 1.001)
+    for cap in (20, 19, 17.8):        # every cap above the natural limit guards the same
+        assert _params(host, dict(under, StrengthCapLevel=cap))[1] is False
+        assert _params(host, dict(over, StrengthCapLevel=cap))[1] is True
+    assert _params(host, dict(under, StrengthCapLevel=20))[0]["beta"] == beta * 0.999
 
 
 # --- K.readLeaf (Plan 13 ruling 13-32; moved from NR_Server_Options with its clamp rule) ---
@@ -729,16 +742,17 @@ def test_the_options_adapter_rebuilds_strength_only_when_a_leaf_changed():
     NR = G.NutritionRevamp
     D = NR.kernel.strength.DEFAULTS
     same = rt.eval("rawequal")
-    assert same(NR.server.options.strength, D)
+    assert NR.server.options.strength.k == D.k and not same(NR.server.options.strength, D)
     NR.server.readOptions("a")
     assert G.NR_CALLS == 1 and not same(NR.server.options.strength, D) and NR.server.options.strength.ts == 1.0
     first = NR.server.options.strength
     for _ in range(5):
         NR.server.readOptions("poll")                          # nothing moved: no rebuild
     assert G.NR_CALLS == 1 and same(NR.server.options.strength, first)
+    before = NR.server.options.strength
     rt.execute("SandboxVars.NR.StrengthRate = 2.0")
     NR.server.readOptions("poll")
-    assert G.NR_CALLS == 2 and NR.server.options.strength.k == 2 * D.k
+    assert G.NR_CALLS == 2 and not same(NR.server.options.strength, before) and NR.server.options.strength.k == 2 * D.k
     rt.execute("SandboxVars.NR.Mode = 2")                      # a non-strength leaf: no rebuild
     NR.server.readOptions("poll")
     assert G.NR_CALLS == 2

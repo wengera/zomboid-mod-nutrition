@@ -344,7 +344,7 @@ local rValue = K.strength.DEFAULTS.R
 -- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
 -- option read through K.readLeaf, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
 -- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
--- cap's room the growth threshold must sit under the set cap, else beta, Sg0 and Smax1 revert to DEFAULTS;
+-- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else beta, Sg0 and Smax1 revert to DEFAULTS;
 -- returns P and whether it fell back.
 function K.strength.params(sv)
     local S = K.strength
@@ -392,8 +392,9 @@ function K.strength.params(sv)
     P.R = rValue
     P.M5 = D.M5
     local fellBack = false
-    if P.capLevel > 15 then
-        local s15 = (15 - 5) / (P.capLevel - 5)
+    local capBio = K.min(P.capLevel, 5 + (P.ffmiNaturalRaw - P.ffmi5) / P.ffmiPerLevel) -- K.body.create holds Fc at the natural limit
+    if capBio > 15 then
+        local s15 = (15 - 5) / (capBio - 5)
         if S.threshold(s15, P) >= S.setCap(s15, P) then
             P.beta = D.beta
             P.Sg0 = D.Sg0

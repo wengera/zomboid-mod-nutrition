@@ -18,7 +18,7 @@ local K = NR.kernel
 -- The Plan 11 option: recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
 -- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
 -- The Plan 13 strength options: O.strength is K.strength.params of the NR.Strength* and NR.LeanLoss* leaves
--- (DEFAULTS until one differs from the default), rebuilt only when a leaf changed since the last read, by one
+-- (params(nil) until one differs from the default), rebuilt only when a leaf changed since the last read, by one
 -- comparison loop over the raw leaves (Rule 6: the table is not rebuilt per minute); a load-guard fallback logs once at
 -- level 1 with the three values read. It fires no changed hook: the steps read O.strength each time.
 -- The Plan 13 option: sexSpecific, a boolean (default false): off, every character reads the male values wherever the mod
@@ -26,7 +26,7 @@ local K = NR.kernel
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30, sexSpecific = false, strength = K.strength.DEFAULTS }
+                      recordKeepDays = 30, sexSpecific = false, strength = K.strength.params(nil) }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
