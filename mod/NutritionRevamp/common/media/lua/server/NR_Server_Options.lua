@@ -16,10 +16,12 @@ local NR = NutritionRevamp
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
 -- The Plan 11 option: recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
 -- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
+-- The Plan 13 option: sexSpecific, a boolean (default false): off, every character reads the male values wherever the mod
+-- indexes by sex (K.body.effSex); the steps read it each minute through the options table, so it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30 }
+                      recordKeepDays = 30, sexSpecific = false }
 local O = NR.server.options
 
 local MODE_NAMES = { "managed", "overlay" }
@@ -56,6 +58,7 @@ function NR.server.readOptions(where)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
+    O.sexSpecific = readLeaf(sv, "SexSpecific", false)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed

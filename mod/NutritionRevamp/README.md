@@ -37,6 +37,7 @@ Every option sits on the sandbox page `Nutrition Revamp` under the prefix `NR`.
 | `NR.Severity` | 1.0 (0 to 3) | Scales every penalty a deficiency or an excess brings. 0 removes them all except the health drains, which `NR.DeficienciesCanKill` controls. Short Sighted needs 1.0 or more. |
 | `NR.VisibilityMode` | 2 (Bands) | How much each player's interface shows: 1 Symptoms, 2 Bands, 3 Numbers. A character with the Nutritionist trait sees Numbers whatever the option. |
 | `NR.RecordKeepDays` | 30 (0 to 3650) | A player's nutrition record is dropped after this many real days without the player online; a returning player then starts a fresh record from the character as it stands (see the lost-record limitation under Body, energy and exercise). 0 keeps every record. Counted in real time, because game days pass at each server's own speed. Time the server is down counts too. |
+| `NR.SexSpecific` | off | Off, every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, alcohol, iron, calcium); on, a female character uses the female values. |
 
 The server re-reads the options every in-game minute, so a change made while the server runs takes effect without a restart, except `NR.Mode`, which is read at start.
 

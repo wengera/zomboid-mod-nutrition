@@ -44,6 +44,15 @@ for i = 1, #K.body.ANCHORS_W do
     K.body.KNOTS[2][i] = { K.body.ANCHORS_W[i], K.body.BF_FEMALE[i] }
 end
 
+-- The sex every sex-indexed table is read at (index 1 male, 2 female): the engine's sex only when the mod-wide
+-- NR.SexSpecific option is on and the character is female, else male (1). record.body.sex keeps the engine's value.
+function K.body.effSex(sex, specific)
+    if specific == true and sex == 2 then
+        return 2
+    end
+    return 1
+end
+
 -- The piecewise-linear fat fraction at weight w for sex (2 female, any other male), flat beyond the end
 -- anchors (K.interp).
 function K.body.interp(w, sex)

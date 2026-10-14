@@ -367,9 +367,10 @@ local function step(username, player, record, ctx)
     NUT.kMul.thiamine = K.interact.thiamineAlcoholK(1, alcGkg)
     -- choline's female rate (S0378 the ratio, labelled on the record): x kFemale on a female body
     local cho = NR.data.records.REC.choline
-    NUT.kMul.choline = (body.sex == 2 and cho ~= nil and cho.kFemale) or 1
+    local sex = K.body.effSex(body.sex, O.sexSpecific)          -- the effective sex, read once per minute (NR.SexSpecific)
+    NUT.kMul.choline = (sex == 2 and cho ~= nil and cho.kFemale) or 1
     local kctx = NUT.ctx
-    kctx.sex = body.sex
+    kctx.sex = sex
     kctx.w = w
     kctx.lm = body.lm
     kctx.eeMJ = ee24 * 4.184 / 1000                         -- kcal to MJ
@@ -392,7 +393,7 @@ local function step(username, player, record, ctx)
     if not finite(coldMult) then coldMult = 1 end
     K.fluids.intake(f, absorbed)
     local fctx = NUT.fctx
-    fctx.sex = body.sex
+    fctx.sex = sex
     fctx.met = met
     fctx.thermoFluids = num(NR.read.thermo(ctx, player), "getFluidsMultiplier", 1)
     fctx.coldMult = coldMult
@@ -436,7 +437,7 @@ local function step(username, player, record, ctx)
     local asleep = NR.read.asleep(ctx, player)
     local hourOfDay = NR.read.hour(ctx, ageH)
     K.acute.caffeine(a, cafDose, w, dtH)                   -- the gut lane's dose (CAF_ABSORB applied there)
-    K.acute.alcohol(a, alcDose, w, body.sex, dtH)
+    K.acute.alcohol(a, alcDose, w, sex, dtH)
     local ethIng = ingested.ethanol or 0
     body.alcDay = body.alcDay + ethIng                      -- Plan 3's alcohol gate, finally written
     a.alcDayG = a.alcDayG + ethIng

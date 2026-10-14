@@ -274,7 +274,7 @@ end
 local function traits(player, record, body, E, nut, sev, dtD, ctx)
     local vitA = nut.vitA
     local zinc, iron, ribo = nut.zinc, nut.iron, nut.riboflavin
-    local sex = body.sex
+    local sex = K.body.effSex(body.sex, NR.server.options.sexSpecific)
     local rec = NR.data.records.REC.vitA
     local R = rec ~= nil and rec.R ~= nil and rec.R[sex] or nil
     local retOk = finite(R) and finite(record.acute.retEma) and record.acute.retEma >= R
@@ -509,7 +509,8 @@ local function step(username, player, record, body, dtM, ageH, ctx)
 
     -- 6. the drain (kernel order: compose, nvMinute, drain)
     local wasLethal = E.lethal
-    local d = K.effects.drain(E, nut, fluids, a, E.pe, w > 0 and body.fm / w or 0, body.sex, canKill)
+    local d = K.effects.drain(E, nut, fluids, a, E.pe, w > 0 and body.fm / w or 0,
+                           K.body.effSex(body.sex, NR.server.options.sexSpecific), canKill)
 
     if record.dead == true then
         EFF.stats.skippedDead = EFF.stats.skippedDead + 1

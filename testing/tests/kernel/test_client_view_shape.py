@@ -350,6 +350,28 @@ def test_readFemale_answers_the_player_and_keeps_the_last_answer_on_a_failed_cal
     assert v.readFemale(None) is True                   # no player: the last answer
 
 
+def test_the_view_reads_male_unless_the_sex_option_is_on():
+    # Plan 13 Task 3: V.female = isFemale and SandboxVars.NR.SexSpecific == true
+    rt = rt_env()
+    v = V(rt)
+    rt.execute("NR_T.player.isFemale = function(self) return true end")
+    v.recompute(G(rt).NR_T.player)
+    assert v.female is False                                       # option absent
+    rt.execute("SandboxVars.NR.SexSpecific = false")
+    v.recompute(G(rt).NR_T.player)
+    assert v.female is False
+    rt.execute("SandboxVars.NR.SexSpecific = true")
+    v.recompute(G(rt).NR_T.player)
+    assert v.female is True
+    rt.execute("NR_T.player.isFemale = function(self) return false end")
+    v.recompute(G(rt).NR_T.player)
+    assert v.female is False
+    rt.execute("SandboxVars = nil")                                # unreadable reads false
+    rt.execute("NR_T.player.isFemale = function(self) return true end")
+    v.recompute(G(rt).NR_T.player)
+    assert v.female is False
+
+
 # ------------------------------------------------------------------------------------------- the cache
 
 def test_refresh_rebuilds_only_when_received_or_level_moved():

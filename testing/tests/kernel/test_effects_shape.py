@@ -708,6 +708,39 @@ def test_the_protein_side_waits_for_seven_closed_days(eff_host):
     assert rec["effects"]["lastDay"] == 11
 
 
+def _female_starved(h):
+    rec = record(h)
+    p, cfg = player(h, rec)
+    minute(h, p, rec)                                            # the first minute builds the effects table
+    body = rec["body"]
+    body["sex"] = 2                                              # the engine's value; the option decides what is read
+    body["fm"] = 5.0                                             # 5 / 80 = 0.0625: above the male floor 0.04, below the female 0.10
+    body["lm"] = 75.0
+    body["dayIndex"] = 11
+    body["inDayClosed"] = 2000.0
+    rec["effects"]["exSeen"] = 0
+    rec["acute"]["retEma"] = 800.0                               # below the male R 900, above the female R 700
+    return rec, p
+
+
+def test_the_drain_floor_and_the_retinol_requirement_read_the_effective_sex(eff_host):
+    # Plan 13 Task 3: rec.R[sex] and K.effects.drain's BF_FLOOR[sex] index the effective sex, male unless NR.SexSpecific
+    h = eff_host
+    rec, p = _female_starved(h)
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    E = rec["effects"]
+    assert E["pe"] == 4 and E["lethal"] == 0 and E["drain"] == 0   # the male floor 0.04 is not reached
+    nv_off = E["nvDays"]
+    setopts(h, SexSpecific=True)
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert E["lethal"] == 1 and E["drain"] > 0                     # the female floor 0.10 is
+    setopts(h)
+    rec2, p2 = _female_starved(h)
+    setopts(h, SexSpecific=True)
+    minute(h, p2, rec2, ageH=100.0 + 1 / 60)
+    assert rec2["effects"]["nvDays"] > nv_off                       # retEma 800 >= the female R 700: retinol replete
+
+
 def test_the_closed_day_energy_availability_takes_the_exercise_seen(eff_host):
     h = eff_host
     rec = record(h)

@@ -82,6 +82,14 @@ function V.readFemale(player)
     return V.female
 end
 
+-- The server option SandboxVars.NR.SexSpecific: true only when it reads true (a missing or unreadable value is false,
+-- the option's default), so every character reads the male values.
+function V.readSexSpecific()
+    if SandboxVars == nil then return false end
+    local ok, v = pcall(function() return SandboxVars.NR.SexSpecific end)
+    return ok and v == true
+end
+
 -- The server option SandboxVars.NR.VisibilityMode (1 Symptoms, 2 Bands, 3 Numbers); a missing or non-number value
 -- reads 2, Bands, the option's default. K.view.level clamps it.
 function V.readOption()
@@ -165,7 +173,7 @@ end
 -- The level from the stored option and trait; true when it moved.
 function V.recompute(player)
     V.hasTrait = V.readTrait(player)
-    V.female = V.readFemale(player)
+    V.female = V.readFemale(player) and V.readSexSpecific()
     V.optionLevel = V.readOption()
     local before = V.level
     V.level = levelOf(V.optionLevel, V.hasTrait)

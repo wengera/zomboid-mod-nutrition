@@ -980,13 +980,17 @@ def test_niacin_takes_the_tryptophan_credit(nut_host):
 
 
 def test_choline_takes_the_female_rate(nut_host):
-    # ruling T19-3: kMul.choline = kFemale (0.57) on a female body, 1 on a male; thiamine's term unchanged
+    # ruling T19-3: kMul.choline = kFemale (0.57) on a female body with NR.SexSpecific on, 1 on a male; thiamine's term unchanged
     h = nut_host
     thia = h.K.interact.thiamineAlcoholK(1, 0)
     fem = player(h, female=True)
     record = fresh(h, fem)
     assert record["body"]["sex"] == 2
-    alone(h, fem, record, 100.0 + 1 / 60)
+    h.rt.eval(READ)(h.table({"SexSpecific": True}))
+    try:
+        alone(h, fem, record, 100.0 + 1 / 60)
+    finally:
+        h.rt.eval(READ)(h.table({}))
     assert NUT(h).kMul.choline == 0.57
     assert NUT(h).kMul.thiamine == thia
     male = player(h)
@@ -994,6 +998,46 @@ def test_choline_takes_the_female_rate(nut_host):
     alone(h, male, record, 100.0 + 1 / 60)
     assert NUT(h).kMul.choline == 1
     assert NUT(h).kMul.thiamine == thia
+
+
+def test_a_female_record_reads_the_male_values_unless_sex_specific_is_on(nut_host):
+    # Plan 13 Task 3: the requirement map (ctx.sex), the choline factor, Widmark r and the fluids AI index by the effective sex
+    h = nut_host
+    assert h.G.NutritionRevamp.server.options.sexSpecific is False
+    fem = player(h, female=True)
+    record = fresh(h, fem)
+    assert record["body"]["sex"] == 2                              # the record keeps the engine's value
+    alone(h, fem, record, 100.0 + 1 / 60)
+    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1 and NUT(h).kMul.choline == 1
+    male = player(h)
+    mrec = fresh(h, male)
+    alone(h, male, mrec, 100.0 + 1 / 60)
+    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1 and NUT(h).kMul.choline == 1
+    h.rt.eval(READ)(h.table({"SexSpecific": True}))
+    try:
+        alone(h, fem, record, 100.0 + 2 / 60)
+        assert NUT(h).ctx.sex == 2 and NUT(h).fctx.sex == 2 and NUT(h).kMul.choline == 0.57
+        alone(h, male, mrec, 100.0 + 2 / 60)
+        assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1
+    finally:
+        h.rt.eval(READ)(h.table({}))
+    assert h.G.NutritionRevamp.server.options.sexSpecific is False
+
+
+def test_the_alcohol_step_reads_the_effective_sex(nut_host):
+    # the Widmark r is indexed by the sex K.acute.alcohol receives: 0.68 male, 0.55 female
+    h = nut_host
+    fem = player(h, female=True)
+    off, on = fresh(h, fem), fresh(h, fem)
+    gut(off, 20.0, 0)
+    gut(on, 20.0, 0)
+    alone(h, fem, off, 100.0 + 1 / 60)
+    h.rt.eval(READ)(h.table({"SexSpecific": True}))
+    try:
+        alone(h, fem, on, 100.0 + 1 / 60)
+    finally:
+        h.rt.eval(READ)(h.table({}))
+    assert off["acute"]["bac"] < on["acute"]["bac"]                # the male r is larger, so the same dose reads a lower BAC
 
 
 # --- the heal --------------------------------------------------------------------------------------------

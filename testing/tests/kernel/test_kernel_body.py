@@ -34,6 +34,16 @@ def test_constants(host):
                                        "unfit": 0.04, "strong": -0.02, "stout": -0.01}
 
 
+# --- effSex (Plan 13 Task 3) ---
+
+def test_eff_sex_is_male_unless_the_option_is_on(host):
+    assert host.call("body.effSex", 2, False) == 1
+    assert host.call("body.effSex", 2, True) == 2
+    assert host.call("body.effSex", 1, True) == 1
+    assert host.call("body.effSex", 1, False) == 1
+    assert host.call("body.effSex", 2, None) == 1
+
+
 # --- interp ---
 
 @pytest.mark.parametrize("w,sex,bf", [
