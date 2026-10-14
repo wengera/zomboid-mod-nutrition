@@ -1008,3 +1008,29 @@ def test_a_reset_clears_the_deferral_window():
     assert S.file.deferSince["admin"] == h.T.now
     S.reset("admin", 101.0)
     assert S.file.deferSince["admin"] is None
+
+
+# --- Plan 12 (S B3): an index pair that is present but unreadable is never written over this boot ------------------
+
+def test_an_unreadable_index_pair_is_never_written_over_this_boot():
+    torn = index_doc(7, {"old": 990, "admin": 980})[:20]                        # a torn copy of the real index
+    for files in ({ROOT + "index_a.json": torn, ROOT + "index_b.json": "garbage"},
+                  {ROOT + "index_b.json": torn}):
+        h = boot(files=files)
+        h.online(h.player("admin"))                                             # a new name to the index
+        run_minutes(h, 3)
+        h.online()                                                              # a departure dirties the index
+        run_minutes(h, 8, start=4)
+        h.T.now = h.T.now + 3600001
+        run_minutes(h, 2, start=12)                                             # the hourly prune
+        for k, v in files.items():
+            assert h.T.files[k] == v                                            # the real index kept as it was
+        assert opened_with(h, ROOT + "index_") == []
+        assert opened_with(h, ROOT + ADMIN)                                     # the slots are still saved
+        said = [p for p in h.printed() if "index files are present but unreadable" in p]
+        assert len(said) == 1                                                   # logged once
+
+
+def test_a_missing_index_pair_is_written_as_new():
+    h = boot()
+    assert opened_with(h, ROOT + "index_")[:1] == [ROOT + "index_a.json"]       # the boot prune writes gen 1

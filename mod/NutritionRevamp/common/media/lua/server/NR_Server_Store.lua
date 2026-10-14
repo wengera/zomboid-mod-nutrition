@@ -221,7 +221,7 @@ end
 
 -- One file of a pair decoded: the object and its text, or nil. A missing or empty file is nil and uncounted; one
 -- that does not decode (torn, or nested past the decoder's stack: the decode runs under pcall) or lacks done, gen
--- or its body table is a read failure, logged.
+-- or its body table is a read failure, logged, and answers true third.
 local function readDoc(path, body)
     local text = F.read(path)
     if text == nil or text == "" then return nil end
@@ -233,7 +233,7 @@ local function readDoc(path, body)
     if type(t) ~= "table" or t.done ~= true or type(t.gen) ~= "number" or type(t[body]) ~= "table" then
         F.stats.readFailures = F.stats.readFailures + 1
         NR.log.say(2, "store: " .. tostring(path) .. " unreadable: " .. tostring(err))
-        return nil
+        return nil, nil, true
     end
     return t, text
 end
@@ -343,8 +343,12 @@ function F.save(username, record)
 end
 
 -- The index into the file of its pair that does not hold the newest complete copy (target, as F.save). A written
--- index is clean.
+-- index is clean. A locked index (F.readIndex) is never written: the call cleans the flag and answers false.
 function F.writeIndex()
+    if F.indexLocked then
+        F.indexDirty = false
+        return false
+    end
     local gen = F.indexGen + 1
     local which = target(F.indexAt, F.indexPath(F.indexAt or "a"), F.lastIndex, "the index")
     local text = K.json.encode({ gen = gen, players = F.index, done = true }, F.fmt)
@@ -357,13 +361,24 @@ function F.writeIndex()
     return true
 end
 
+-- The index read at boot. When no file of the pair reads and either is present but unreadable (a torn or locked-
+-- open copy, not a missing one), the index is locked for this boot: a gen-1 write would land on one file and the
+-- next on the other, so the real index, with every stamp, would be written over. The players then go unpruned and
+-- their deferral protection is off until a restart reads the pair; logged once, at level 1.
 function F.readIndex()
-    local a, ta = readDoc(F.indexPath("a"), "players")
-    local b, tb = readDoc(F.indexPath("b"), "players")
+    local a, ta, badA = readDoc(F.indexPath("a"), "players")
+    local b, tb, badB = readDoc(F.indexPath("b"), "players")
     local docs = { a = a, b = b }
     local texts = { a = ta, b = tb }
     local which = K.store.newest(docs.a, docs.b)
-    if which == nil then return end
+    if which == nil then
+        if badA or badB then
+            F.indexLocked = true
+            NR.log.say(1, "store: the index files are present but unreadable; the index is not written this boot, "
+                .. "so no record is pruned until a restart reads it")
+        end
+        return
+    end
     F.index = docs[which].players
     F.lastIndex = texts[which]
     F.indexGen = docs[which].gen
