@@ -1111,6 +1111,7 @@ def test_both_index_files_torn_lock_the_index_and_a_later_good_read_lifts_it():
     run_minutes(h, 2, start=3)                                                  # the next hourly prune re-reads
     assert not F.indexLocked
     assert F.index["old"] == 990 and F.indexGen >= 9
+    assert F.index["admin"] > 980                                               # the stamp laid while locked wins the merge
 
 
 def test_a_failing_writer_is_retried_once_per_save_gap_and_marks_the_index_once():
@@ -1170,3 +1171,71 @@ def test_a_departure_of_a_player_with_no_held_record_queues_no_flush():
     assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
     assert h.NR.server.store.file.indexDirty is False
 
+
+
+# --- Plan 12 B3: only a flush that writes marks the index --------------------------------------------------------
+
+def index_players(h):
+    return json.loads(index_text(h))["players"]
+
+
+def test_a_successful_retry_reaches_the_index_file():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    F = h.NR.server.store.file
+    h.online()                                                                  # departs
+    h.T.nilWriter = True
+    game_minute(h, 11, 1000)
+    game_minute(h, 12, 1000)                                                    # the flush fails
+    assert F.dirty["admin"] is True
+    game_minute(h, 13, 400000)                                                  # the index task writes the old stamp
+    F.indexDirty = False
+    h.T.nilWriter = False
+    game_minute(h, 14, 61000)                                                   # the retry is queued
+    game_minute(h, 15, 1000)                                                    # and writes
+    assert F.dirty["admin"] is None and F.indexDirty is True
+    game_minute(h, 16, 400000)                                                  # the store.index task
+    assert F.indexDirty is False
+    assert index_players(h)["admin"] == F.index["admin"]
+    assert F.index["admin"] > 100.0
+
+
+def test_a_dirty_departure_replaced_by_a_retry_still_marks_the_index():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    F = h.NR.server.store.file
+    F.dirty["admin"] = True                                                     # an earlier flush wrote nothing
+    F.lastWrite["admin"] = 0
+    F.indexDirty = False
+    h.online()                                                                  # the departure flush is queued
+    h.NR.server.store.retryAway(h.T.now + 200000)                               # the retry replaces it by name
+    n = len(h.T.opened)
+    game_minute(h, 11, 1000)
+    game_minute(h, 12, 400000)
+    game_minute(h, 13, 400000)
+    assert len(opened_with(h, ROOT + ADMIN, n)) >= 1
+    assert F.indexDirty is False
+    assert index_players(h)["admin"] == F.index["admin"]
+    assert len(opened_with(h, ROOT + "index_", n)) >= 1
+
+
+def test_the_attempt_stamp_spaces_a_failing_writers_retries_by_the_save_gap():
+    h = boot()
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    F = h.NR.server.store.file
+    land(h, "admin")
+    h.online()                                                                  # departs
+    h.T.nilWriter = True
+    game_minute(h, 11, 1000)
+    game_minute(h, 12, 1000)                                                    # the flush fails
+    fails = F.stats.writeFailures
+    game_minute(h, 13, 61000)                                                   # a gap on: the retry is queued
+    game_minute(h, 14, 1000)                                                    # and fails
+    assert F.stats.writeFailures == fails + 1
+    for m in range(15, 18):
+        game_minute(h, m, 10000)                                                # inside the gap of the attempt
+    assert F.stats.writeFailures == fails + 1

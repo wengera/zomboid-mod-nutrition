@@ -395,7 +395,6 @@ function F.readIndex()
         end
         return
     end
-    local lifted = F.indexLocked == true
     F.indexLocked = false
     F.indexPin = nil
     local players = docs[which].players
@@ -406,7 +405,6 @@ function F.readIndex()
     F.lastIndex = texts[which]
     F.indexGen = docs[which].gen
     F.indexAt = which
-    if lifted then F.indexDirty = true end                 -- the stamps laid while locked reach the file
 end
 
 function S.get(username, worldAgeHours)
@@ -439,21 +437,24 @@ end
 -- for the debounced store.index task (ten departures in a minute write it once, not ten times). A save that writes
 -- nothing (a failed write, a deferral) keeps the dirty mark and stamps the attempt as the slot's last write, so the
 -- minute's retry (S.retryAway) comes once per save gap, not every minute; a returned player's own store step takes
--- the mark instead. A record no longer held (pruned) ends the retries. A retry does not mark the index again.
-local function flush(username, retry)
+-- the mark instead. A record no longer held (pruned) ends the retries. Only a flush that writes marks the index.
+local function flush(username)
     local r = S.records and S.records[username]
     F.dirty[username] = nil                                -- the flush is the dirty slot's save
-    if retry ~= true then F.indexDirty = true end          -- the departure's stamp reaches the file at the next store.index task
-    if r == nil or F.save(username, r) then return end
+    if r == nil then return end
+    if F.save(username, r) then
+        F.indexDirty = true                                -- the departure's stamp reaches the file at the next store.index task
+        return
+    end
     F.dirty[username] = true
     F.lastWrite[username] = nowMs() or F.lastWrite[username]
 end
 
 -- The flush as a one-shot task on the players' queue (it rides the budget), when the record is held.
-local function queueFlush(username, retry)
+local function queueFlush(username)
     local P = NR.server.players
     if P ~= nil and P.task ~= nil and S.records ~= nil and S.records[username] ~= nil then
-        P.task("store.flush." .. K.store.hexName(username), function() flush(username, retry) end)
+        P.task("store.flush." .. K.store.hexName(username), function() flush(username) end)
     end
 end
 
@@ -466,7 +467,7 @@ function S.retryAway(now)
         if S.records == nil or S.records[username] == nil then
             F.dirty[username] = nil                        -- a pruned record ends the retries
         elseif P.online[username] == nil and K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then
-            queueFlush(username, true)
+            queueFlush(username)
         end
     end
 end
