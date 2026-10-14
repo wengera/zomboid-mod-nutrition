@@ -589,13 +589,15 @@ end
 
 -- ============================================================ the level write (spec section 7, Plan 13 Task 14)
 -- The native XP pinned for shown level n and bar fraction frac over the cumulative ladder totals (totals[0] = 0):
--- level n's starting total plus frac of the way to the next (ruling 13-9); at L_MAX the level-9 total, the park, so
+-- level n's starting total plus frac of the way to the next, at most 1 XP below it (ruling 13-9; a float frac near 1
+-- never lands on the next level's total); at L_MAX the level-9 total, the park, so
 -- the engine's AddXP keeps firing its event (it returns before the event at the level-10 total, #2109).
 function K.strength.pinXp(n, frac, totals)
     if n >= K.strength.L_MAX then
         return totals[K.strength.L_MAX - 1]
     end
-    return totals[n] + frac * (totals[n + 1] - totals[n])
+    local gap = totals[n + 1] - totals[n]
+    return totals[n] + K.min(frac * gap, gap - 1)
 end
 
 -- BeyondTen's mastery levels end at 15 (its BT.MAX_LEVEL, Shared.lua:10-12).

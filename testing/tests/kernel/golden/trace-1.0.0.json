@@ -6224,6 +6224,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 1,
+     "sleepDeferrals": 0,
      "stepFailures": 0,
      "xpGrants": 6,
      "xpPins": 6
@@ -12480,6 +12481,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 1,
+     "sleepDeferrals": 0,
      "stepFailures": 0,
      "xpGrants": 6,
      "xpPins": 6
@@ -12641,7 +12643,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -13184,9 +13186,9 @@
        "slp": 0.02,
        "std": 0.002
       },
-      "delta": 0.90000000000000002,
-      "deltaWrites": 1,
-      "levelDowns": 1,
+      "delta": 1,
+      "deltaWrites": 0,
+      "levelDowns": 0,
       "levelUps": 0,
       "parts": {
        "Hand_L": {
@@ -13268,14 +13270,14 @@
         "writes": 0
        }
       },
-      "perk": 4,
+      "perk": 5,
       "perkWrites": 0,
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
-      "xpGrants": 2,
-      "xpSets": 2
+      "xp": 2250,
+      "xpGrants": 1,
+      "xpSets": 1
      },
      "statSets": 359,
      "written": {
@@ -17854,7 +17856,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 0.90000000000000002,
+      "delta": 1,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -17875,7 +17877,7 @@
       "inDay": 0,
       "inDayClosed": 88.733559405885543,
       "lastAgeH": 120,
-      "levelDue": false,
+      "levelDue": true,
       "lipDay": 0,
       "lm": 52.019990449305951,
       "lm0dis": 52.019999999999996,
@@ -18093,7 +18095,7 @@
       },
       "traitsDay": 5,
       "wday": 5,
-      "wroteL": 4
+      "wroteL": 5
      },
      "dead": false,
      "effects": {
@@ -18742,20 +18744,21 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 6,
+     "carryWrites": 5,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 9,
-     "levelWrites": 12,
+     "levelSteps": 8,
+     "levelWrites": 11,
      "masteryWrites": 0,
      "minutes": 540,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 6,
+     "pushes": 5,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
-     "xpGrants": 11,
-     "xpPins": 12
+     "xpGrants": 10,
+     "xpPins": 11
     },
     "training": null,
     "weight": {
@@ -18788,8 +18791,7 @@
      "g1:2": 1,
      "g2:2": 1,
      "g4:2": 2,
-     "g5:2": 1,
-     "g6:2": 1
+     "g5:2": 1
     }
    }
   },
@@ -18918,7 +18920,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -19550,7 +19552,7 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -25006,6 +25008,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 6,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 12,
      "xpPins": 13
@@ -25172,7 +25175,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -25807,7 +25810,7 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -31268,6 +31271,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 6,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 12,
      "xpPins": 13
@@ -31434,7 +31438,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -32069,7 +32073,7 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -37521,6 +37525,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 7,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
      "xpPins": 14
@@ -37687,7 +37692,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -38323,7 +38328,7 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -43775,6 +43780,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 7,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
      "xpPins": 14
@@ -43941,7 +43947,7 @@
       "perk": 4,
       "perkWrites": 0,
       "traits": {},
-      "xp": 2571.1322201323246,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -44579,7 +44585,7 @@
       "traits": {
        "trait:NEEDS_LESS_SLEEP": true
       },
-      "xp": 2571.4256764567472,
+      "xp": 2570,
       "xpGrants": 2,
       "xpSets": 2
      },
@@ -50031,6 +50037,7 @@
      "pinFailures": 0,
      "pushMissing": 0,
      "pushes": 7,
+     "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
      "xpPins": 14

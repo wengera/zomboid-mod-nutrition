@@ -392,6 +392,32 @@ def test_a_new_characters_start_writes_its_band_level(str_host, muscle, n):
     assert p.cfg.xp == h.K.strength.pinXp(n, 0, STR(h).ladder())
 
 
+def test_a_sleeping_character_defers_the_write(str_host):
+    h = str_host
+    p = player(h, level=5, xp=40000)
+    h.rt.eval("function(p) p.isAsleep = function(s) return p.cfg.asleep end end")(p)
+    p.cfg.asleep = True
+    record = body_at(h, 6.5)
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert lst(p.cfg.steps) == [] and lst(p.cfg.xpSets) == [] and record["body"].levelDue is True
+    p.cfg.asleep = False
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert p.cfg.level == 6 and record["body"].levelDue is False
+    assert p.cfg.xp == pytest.approx(67500 + 0.5 * 60000, abs=1e-6)
+
+
+def test_a_step_inside_a_band_pushes_nothing(str_host):
+    h = str_host
+    p = player(h, level=7, xp=130000)
+    record = body_at(h, 6.5)
+    record["body"].levelDue = True
+    pushes = h.G.NR_TEST_PUSHES
+    minute(h, p, record, 100.0)
+    assert p.cfg.level == 6 and lst(p.cfg.steps) == [-1]
+    assert h.G.NR_TEST_PUSHES == pushes
+
+
 def test_the_minute_rewrites_after_an_admin_set(str_host):
     # the #2740 re-assertion: an admin's setPerkLevelDebug leaves native off body.wroteL; the next minute steps back
     h = str_host
@@ -559,6 +585,67 @@ def test_leaving_10_under_beyond_ten_zeroes_its_stored_xp_then_pins(str_host):
     assert lst(bt.sets) == [0]
     assert p.cfg.level == 9 and lst(p.cfg.xpSets) == [9]
     assert p.cfg.xp == pytest.approx(337500 + 0.5 * 150000, abs=1e-6)
+
+
+def test_leaving_a_written_10_already_demoted_to_9_zeroes_the_stored_xp(str_host):
+    # native fell to 9 before the write (a rust pass the guard missed); the record wrote 10
+    h = str_host
+    bt = beyond_ten(h)
+    p = player(h, level=9, xp=337500)
+    record = body_at(h, 9.5)
+    record["body"].wroteL = 10
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert lst(bt.sets) == [0] and lst(p.cfg.xpSets) == [9]
+
+
+SERVER_SYNC = r"""
+function()
+    local srv = { syncs = {} }
+    srv.SendPerkSync = function(player, perk, old, new)
+        srv.syncs[#srv.syncs + 1] = { perk = perk, old = old, new = new }
+    end
+    BeyondTenServer = srv
+    return srv
+end
+"""
+
+
+def test_a_mastery_write_sends_beyond_tens_client_sync(str_host):
+    h = str_host
+    saved = h.G.BeyondTenServer
+    try:
+        bt = beyond_ten(h)
+        bt.SetStoredXP = h.rt.eval(
+            "function(bt) return function(c, perk, v) bt.sets[#bt.sets + 1] = v; return v, 10, 12 end end")(bt)
+        srv = h.rt.eval(SERVER_SYNC)()
+        p = player(h, level=10, xp=337500)
+        minute(h, p, body_at(h, 12.0), 100.0)
+        assert lst(bt.sets) == [2100] and len(lst(srv.syncs)) == 1
+        s = srv.syncs[1]
+        assert h.rt.eval("rawequal")(s.perk, h.G.Perks.Strength) and (s.old, s.new) == (10, 12)
+    finally:
+        h.G.BeyondTenServer = saved
+
+
+def test_a_mastery_write_without_beyond_ten_server_raises_nothing(str_host):
+    h = str_host
+    saved = h.G.BeyondTenServer
+    h.G.BeyondTenServer = None
+    try:
+        bt = beyond_ten(h)
+        p = player(h, level=10, xp=337500)
+        record = body_at(h, 12.0)
+        failures = STR(h).stats.failures
+        minute(h, p, record, 100.0)
+        assert lst(bt.sets) == [2100] and record["body"].wroteL == 10
+        assert STR(h).stats.failures == failures
+        h.G.BeyondTenServer = h.rt.eval("function() return { SendPerkSync = function() error('sync boom') end } end")()
+        record["body"].levelDue = True
+        minute(h, p, record, 100.0 + 1 / 60)
+        assert len(lst(bt.sets)) == 2 and STR(h).stats.failures == failures
+    finally:
+        h.G.BeyondTenServer = saved
 
 
 def test_below_10_beyond_ten_is_left_alone(str_host):
@@ -764,8 +851,8 @@ def test_limitations(str_host):
             "read the current minute's fluids, acute and nutrients sub-tables") in lim
     assert ("an unreadable native level writes no level that minute; the carry then reads the last written level's "
             "band, and nothing before the first write") in lim
-    assert ("the bar's fraction lands through the engine's XP grant, which a sleeping character does not receive, so "
-            "a level written while asleep shows its level's starting total until the next write") in lim
+    assert ("the engine's XP grant does not reach a sleeping character, and the bar's fraction lands through it, so "
+            "a level write due while the character sleeps waits until it wakes") in lim
     assert not any("ceiling" in x or "six-hour" in x for x in lim)
     # shipped text names register rows, never plan tasks or rulings
     assert not any("Task " in x or "ruling" in x for x in lim)

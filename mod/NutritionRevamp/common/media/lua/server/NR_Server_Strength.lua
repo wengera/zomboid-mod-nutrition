@@ -24,7 +24,8 @@ local K = NR.kernel
 NR.server.strength = {
     stats = { minutes = 0, pushes = 0, pushMissing = 0, carryWrites = 0, failures = 0,
               badReads = 0, ladderFallbacks = 0, levelWrites = 0, levelSteps = 0, stepFailures = 0,
-              xpPins = 0, xpGrants = 0, pinFailures = 0, masteryWrites = 0, guarded = 0 },
+              xpPins = 0, xpGrants = 0, pinFailures = 0, masteryWrites = 0, guarded = 0,
+              sleepDeferrals = 0 },
     lastError = nil,
     -- The AddXP capture's counters, beside the minute's (the golden trace walks stats).
     xpStats = { captures = 0, ignored = 0, failures = 0 },
@@ -36,7 +37,7 @@ NR.server.strength = {
     limitations = {
         "the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) read the current minute's fluids, acute and nutrients sub-tables",
         "an unreadable native level writes no level that minute; the carry then reads the last written level's band, and nothing before the first write",
-        "the bar's fraction lands through the engine's XP grant, which a sleeping character does not receive, so a level written while asleep shows its level's starting total until the next write",
+        "the engine's XP grant does not reach a sleeping character, and the bar's fraction lands through it, so a level write due while the character sleeps waits until it wakes",
         "the training signal is the Strength XP the engine's XP event reports; a grant the engine makes without the event (to a sleeping character, or to one whose Strength XP sits at the level-10 total) trains nothing; a Strength grant made without vanilla's multipliers (the admin /addxp without -true, a mod's addXpNoMultiplier) is divided by a sandbox multiplier it never received; a grant that ends a skill book's range counts at the book's factor, because the engine drops the book before the event (AddXP @876-@962 L14323-L14328)",
     },
 }
@@ -256,6 +257,7 @@ end
 -- function a fallback route swaps, ruling 13-8); the XP (STR.pin: n's starting total plus the fraction for n <= 9,
 -- ruling 13-9; parked at the level-9 total at 10, spec section 7); and with BeyondTen loaded, its stored mastery XP
 -- (ruling 13-42), never native XP while the native level is 10. Then body.wroteL = n and body.levelDue = false.
+-- A write due while the character sleeps waits, levelDue kept, until it wakes (the engine drops a sleeper's grant).
 -- Cadence (Rule 6): once per day close per player (Metabolism stamps levelDue), and when the native level left the
 -- written one; a minute with no write due reads the level only, as before.
 
@@ -316,17 +318,26 @@ end
 
 -- BeyondTen's stored Strength XP for shown level L (ruling 13-42): K.strength.masteryXp over its own cumulative cost
 -- (BeyondTen.GetTotalMasteryCost(perk, level), Shared.lua:222), set through BeyondTen.SetStoredXP(player, perk,
--- value) (Shared.lua:272), which clamps to its level-15 cost; 0 below 10 (the write on leaving native 10).
+-- value) (Shared.lua:272), which clamps to its level-15 cost; 0 below 10 (the write on leaving native 10); then
+-- BeyondTenServer.SendPerkSync(player, perk, old, new), its own client sync, when present.
 local function mastery(bt, player, perk, L)
     local v = 0
     if L >= K.strength.L_MAX then
         v = K.strength.masteryXp(L, function(level) return bt.GetTotalMasteryCost(perk, level) end)
     end
-    bt.SetStoredXP(player, perk, v)
+    local _, old, new = bt.SetStoredXP(player, perk, v)
     STR.stats.masteryWrites = STR.stats.masteryWrites + 1
+    local srv = BeyondTenServer                         -- its client mirror (Server.lua:277 Server.SendPerkSync)
+    if type(srv) == "table" and type(srv.SendPerkSync) == "function" then
+        pcall(srv.SendPerkSync, player, perk, old, new)
+    end
 end
 
 local function writeBody(player, body, perk, native)
+    if flag(player, "isAsleep") then
+        STR.stats.sleepDeferrals = STR.stats.sleepDeferrals + 1
+        return                                          -- AddXP drops a sleeper's grant (L14222-L14223): levelDue stays
+    end
     local L = K.strength.level(body.lm, body.N0, body.T, strengthP())
     if not finite(L) then
         STR.stats.badReads = STR.stats.badReads + 1
@@ -346,7 +357,9 @@ local function writeBody(player, body, perk, native)
     if n >= K.strength.L_MAX and bt ~= nil then
         mastery(bt, player, perk, L)                    -- never native XP at native 10 under BeyondTen
     else
-        if bt ~= nil and native >= K.strength.L_MAX then mastery(bt, player, perk, L) end
+        if bt ~= nil and (native >= K.strength.L_MAX or body.wroteL == K.strength.L_MAX) then
+            mastery(bt, player, perk, L)                -- leaving 10: BeyondTen's stored XP to 0
+        end
         if not STR.pin(player, perk, n, frac) then STR.stats.pinFailures = STR.stats.pinFailures + 1 end
     end
     body.wroteL = n

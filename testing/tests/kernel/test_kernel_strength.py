@@ -737,6 +737,12 @@ def test_pin_xp_at_10_parks_at_the_level_9_total(host):
     assert host.call("strength.pinXp", 10, 0.7, t) == 337500
 
 
+def test_pin_xp_stays_one_xp_below_the_next_total(host):
+    t = host.table(LADDER_T)
+    assert host.call("strength.pinXp", 7, 1 - 1e-10, t) <= 217500 - 1
+    assert host.call("strength.pinXp", 7, 0.5, t) == 127500 + 0.5 * 90000
+
+
 def test_raw_xp_divides_the_chain_capture_reads(host):
     s = host.K.strength
     assert abs(s.rawXp(9.0, 60, 2.0, 1.0) - 3.0) < 1e-12
@@ -764,7 +770,7 @@ def _cost(host):
 
 
 @pytest.mark.parametrize("L, want", [(12.0, 2100), (10.4, 400), (16.2, 6000), (15.0, 6000), (12.5, 2700),
-                                     (10.0, 0), (11.9999999999, 2100), (9.5, 0)])
+                                     (10.0, 0), (11.9999999999, 2100), (9.5, 0), (14.5, 5300)])
 def test_mastery_xp_reads_the_cost_at_the_floor_plus_the_fraction(host, L, want):
     # ruling 13-42: cost(min(floor(L), 15)) + frac (cost(next) - cost(floor(L))); 0 + frac cost(11) on [10, 11)
     assert abs(host.call("strength.masteryXp", L, _cost(host)) - want) < 1e-6
