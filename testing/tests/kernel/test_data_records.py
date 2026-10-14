@@ -250,7 +250,7 @@ def test_the_two_compartment_fields(rh):
 
 
 def test_only_the_supplement_based_uls_are_marked(rh):
-    # Plan 12 A2: the ULs whose basis is supplemental or added forms (magnesium S0421, niacin S0269, folate S0330,
+    # Plan 12 A2: the ULs whose basis is supplemental or added forms (magnesium S0421, niacin S1913, folate S1914,
     # vitamin E S0173) carry ulBasis "supplement"; every other UL is a total-intake one and carries none
     marked = {key for key in ORDER if _rec(rh, key).get("ulBasis") is not None}
     assert marked == {"magnesium", "niacin", "folate", "vitE"}

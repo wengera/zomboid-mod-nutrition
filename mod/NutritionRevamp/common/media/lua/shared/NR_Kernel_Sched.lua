@@ -43,7 +43,8 @@ end
 -- the budget is the whole queue; a lone one is a stall (a world save, a GC pause, the last minute of a fast-forward)
 -- and is not read, so the frames after a hitch do not each run the whole queue. TPM_DEFAULT before a count exists. A
 -- count of 0 is no count: every minute event is followed by at least one tick (#3348-#3350), so 0 is only the boot's
--- first minute.
+-- first minute. At the onset of a fast clock one minute is still sized at the old tick count, and two minutes after a
+-- 2-tick read the budget halves the queue: staleness, not lost time.
 function K.sched.ticksPerMinute(last, prev)
     local S = K.sched
     local t = nil

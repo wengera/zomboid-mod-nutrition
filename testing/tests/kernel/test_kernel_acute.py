@@ -540,8 +540,19 @@ def test_skip_moves_every_age_anchor_by_the_gap(host):
     a = _new(host, 10.0)
     a.lastFedAgeH = 12.0
     a.lastVigAgeH = 11.0
-    A.skip(a, 72.0)
+    A.skip(a, 17.0, 72.0)
     assert a.winStartH == 82.0 and a.mass90ageH == 82.0 and a.lastFedAgeH == 84.0 and a.lastVigAgeH == 83.0
+
+
+def test_skip_leaves_an_anchor_laid_in_the_return_minute(host):
+    # a lastFedAgeH stamped at the return (ageH, after the step's start fromH) is not shifted again by the gap
+    A = host.K.acute
+    a = _new(host, 10.0)
+    a.lastFedAgeH = 100.0
+    a.lastVigAgeH = 100.0
+    A.skip(a, 17.0, 72.0)
+    assert a.lastFedAgeH == 100.0 and a.lastVigAgeH == 100.0
+    assert a.winStartH == 82.0 and a.mass90ageH == 82.0
 
 
 def test_a_night_slept_then_a_skipped_gap_books_no_debt(host):
@@ -552,7 +563,7 @@ def test_a_night_slept_then_a_skipped_gap_books_no_debt(host):
     t = _sleep(host, a, 8.0, t)
     assert a.debtH == 0 and _close(a.winStartH, 24.0, 1e-6)
     a.lastFedAgeH = t
-    A.skip(a, 72.0)
+    A.skip(a, t, 72.0)
     A.sleepMinute(a, False, 9.0, 1.0, t + 73.0, 1.0, False)
     assert a.debtH == 0 and _close(a.winStartH, 96.0, 1e-6)
 
