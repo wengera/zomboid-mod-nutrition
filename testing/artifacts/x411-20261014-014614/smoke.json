@@ -1,0 +1,5493 @@
+{
+ "steps": [
+  {
+   "step": "S0_ping",
+   "side": "server",
+   "cmd": "ping",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 131.573,
+   "wall_after": 131.831,
+   "epoch_ms_before": 1791956905747,
+   "epoch_ms_after": 1791956906005,
+   "took": 0.258,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "S0_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 131.831,
+   "wall_after": 132.087,
+   "epoch_ms_before": 1791956906005,
+   "epoch_ms_after": 1791956906261,
+   "took": 0.256,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S0_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 132.087,
+   "wall_after": 132.845,
+   "epoch_ms_before": 1791956906261,
+   "epoch_ms_after": 1791956907019,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 4.8686323165893555,
+    "hour": 11,
+    "minutes": 52,
+    "mult": 4.586879253387451,
+    "trueMult": 1,
+    "wall": 1791956906838
+   }
+  },
+  {
+   "step": "S0_runs",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.minute.stats.runs NutritionRevamp.server.store.records.admin NutritionRevamp.server.store.records.bob NutritionRevamp.server.nutrients.sleepDisabled",
+   "phase": "S0",
+   "wall_before": 132.847,
+   "wall_after": 133.364,
+   "epoch_ms_before": 1791956907020,
+   "epoch_ms_after": 1791956907538,
+   "took": 0.517,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {
+     "NutritionRevamp.server.store.records.admin": 17,
+     "NutritionRevamp.server.store.records.bob": 17
+    },
+    "values": {
+     "NutritionRevamp.server.minute.stats.runs": 105,
+     "NutritionRevamp.server.nutrients.sleepDisabled": false
+    }
+   }
+  },
+  {
+   "step": "S0_ring",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "S0",
+   "wall_before": 133.369,
+   "wall_after": 133.881,
+   "epoch_ms_before": 1791956907543,
+   "epoch_ms_after": 1791956908055,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "acute.debtH",
+     "acute.winStartH",
+     "acute.winSleptH",
+     "acute.mass90ageH",
+     "acute.lastFedAgeH",
+     "acute.lastVigAgeH",
+     "nutrients.lastAgeH",
+     "satiety.nicH"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 8,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "acute.debtH": 0,
+      "acute.winStartH": 3.2852916717529297,
+      "acute.winSleptH": 0,
+      "acute.mass90ageH": 3.2852916717529297,
+      "acute.lastFedAgeH": 3.2852916717529297,
+      "acute.lastVigAgeH": -1000000000,
+      "nutrients.lastAgeH": 4.884033203125,
+      "satiety.nicH": 4.884033203125
+     }
+    }
+   }
+  },
+  {
+   "step": "S0_rec",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "S0",
+   "wall_before": 133.881,
+   "wall_after": 134.138,
+   "epoch_ms_before": 1791956908055,
+   "epoch_ms_after": 1791956908312,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 4.884033203125,
+     "satiety.nicH": 4.884033203125
+    }
+   }
+  },
+  {
+   "step": "S0_col_lv0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "S0",
+   "wall_before": 134.138,
+   "wall_after": 134.645,
+   "epoch_ms_before": 1791956908312,
+   "epoch_ms_after": 1791956908819,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 2,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 0,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 0
+    }
+   }
+  },
+  {
+   "step": "S0_col_probe",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.probe overfull",
+   "phase": "S0",
+   "wall_before": 134.645,
+   "wall_after": 135.152,
+   "epoch_ms_before": 1791956908819,
+   "epoch_ms_after": 1791956909326,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.probe",
+    "nargs": 1,
+    "r1": 0,
+    "r2": false,
+    "r3": "own"
+   }
+  },
+  {
+   "step": "S0_col_lv1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "S0",
+   "wall_before": 135.152,
+   "wall_after": 135.658,
+   "epoch_ms_before": 1791956909326,
+   "epoch_ms_after": 1791956909832,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 2,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 0,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 0
+    }
+   }
+  },
+  {
+   "step": "S0_col_enabled",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.isEnabled",
+   "phase": "S0",
+   "wall_before": 135.658,
+   "wall_after": 136.165,
+   "epoch_ms_before": 1791956909832,
+   "epoch_ms_after": 1791956910339,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.isEnabled",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "OFF_pre_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 136.168,
+   "wall_after": 136.675,
+   "epoch_ms_before": 1791956910342,
+   "epoch_ms_after": 1791956910849,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 4.967791557312012,
+    "hour": 11,
+    "minutes": 58,
+    "mult": 4.746857643127441,
+    "trueMult": 1,
+    "wall": 1791956910639
+   }
+  },
+  {
+   "step": "OFF_pre",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "OFF",
+   "wall_before": 136.675,
+   "wall_after": 137.182,
+   "epoch_ms_before": 1791956910849,
+   "epoch_ms_after": 1791956911356,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 4.967791557312012,
+     "satiety.nicH": 4.967791557312012
+    }
+   }
+  },
+  {
+   "step": "OFF_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 142.13,
+   "wall_after": 142.39,
+   "epoch_ms_before": 1791956916304,
+   "epoch_ms_after": 1791956916564,
+   "took": 0.26,
+   "ack": {}
+  },
+  {
+   "step": "OFF_away",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "OFF",
+   "wall_before": 142.39,
+   "wall_after": 143.151,
+   "epoch_ms_before": 1791956916564,
+   "epoch_ms_after": 1791956917325,
+   "took": 0.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 5.002174377441406,
+     "satiety.nicH": 5.002174377441406
+    }
+   }
+  },
+  {
+   "step": "OFF_away_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 143.151,
+   "wall_after": 143.914,
+   "epoch_ms_before": 1791956917325,
+   "epoch_ms_after": 1791956918088,
+   "took": 0.763,
+   "ack": {
+    "worldAge": 5.15214729309082,
+    "hour": 12,
+    "minutes": 9,
+    "mult": 4.693040370941162,
+    "trueMult": 1,
+    "wall": 1791956917843
+   }
+  },
+  {
+   "step": "OFF_mult0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 143.914,
+   "wall_after": 144.423,
+   "epoch_ms_before": 1791956918088,
+   "epoch_ms_after": 1791956918597,
+   "took": 0.509,
+   "ack": {
+    "worldAge": 5.167840003967285,
+    "hour": 12,
+    "minutes": 10,
+    "mult": 4.710487365722656,
+    "trueMult": 1,
+    "wall": 1791956918437
+   }
+  },
+  {
+   "step": "OFF_raise",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "30.0",
+   "phase": "OFF",
+   "wall_before": 144.423,
+   "wall_after": 144.933,
+   "epoch_ms_before": 1791956918597,
+   "epoch_ms_after": 1791956919107,
+   "took": 0.51,
+   "ack": "mult=30 eff=142.18283081054688",
+   "ack_shape": "str"
+  },
+  {
+   "step": "OFF_raise_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 144.933,
+   "wall_after": 145.193,
+   "epoch_ms_before": 1791956919107,
+   "epoch_ms_after": 1791956919367,
+   "took": 0.26,
+   "ack": {
+    "worldAge": 5.26263427734375,
+    "hour": 12,
+    "minutes": 15,
+    "mult": 142.27259826660156,
+    "trueMult": 30,
+    "wall": 1791956919131
+   }
+  },
+  {
+   "step": "OFF_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1.0",
+   "phase": "OFF",
+   "wall_before": 206.51,
+   "wall_after": 206.771,
+   "epoch_ms_before": 1791956980684,
+   "epoch_ms_after": 1791956980945,
+   "took": 0.261,
+   "ack": "mult=1 eff=4.773292064666748",
+   "ack_shape": "str"
+  },
+  {
+   "step": "OFF_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 206.771,
+   "wall_after": 207.029,
+   "epoch_ms_before": 1791956980945,
+   "epoch_ms_after": 1791956981203,
+   "took": 0.258,
+   "ack": {
+    "worldAge": 54.41763687133789,
+    "hour": 13,
+    "minutes": 25,
+    "mult": 4.77560567855835,
+    "trueMult": 1,
+    "wall": 1791956981034
+   }
+  },
+  {
+   "step": "OFF_back_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 207.029,
+   "wall_after": 207.543,
+   "epoch_ms_before": 1791956981203,
+   "epoch_ms_after": 1791956981717,
+   "took": 0.514,
+   "ack": {
+    "worldAge": 54.433570861816406,
+    "hour": 13,
+    "minutes": 26,
+    "mult": 4.777091026306152,
+    "trueMult": 1,
+    "wall": 1791956981634
+   }
+  },
+  {
+   "step": "OFF_launch_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 207.543,
+   "wall_after": 207.803,
+   "epoch_ms_before": 1791956981717,
+   "epoch_ms_after": 1791956981977,
+   "took": 0.26,
+   "ack": {
+    "worldAge": 54.44154357910156,
+    "hour": 13,
+    "minutes": 26,
+    "mult": 4.780826091766357,
+    "trueMult": 1,
+    "wall": 1791956981939
+   }
+  },
+  {
+   "step": "OFF_join_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "OFF",
+   "wall_before": 264.075,
+   "wall_after": 264.583,
+   "epoch_ms_before": 1791957038249,
+   "epoch_ms_after": 1791957038757,
+   "took": 0.508,
+   "ack": {
+    "worldAge": 55.95213317871094,
+    "hour": 14,
+    "minutes": 57,
+    "mult": 4.731311798095703,
+    "trueMult": 1,
+    "wall": 1791957038635
+   }
+  },
+  {
+   "step": "OFF_first",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "OFF",
+   "wall_before": 264.583,
+   "wall_after": 265.093,
+   "epoch_ms_before": 1791957038757,
+   "epoch_ms_after": 1791957039267,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 53.200910568237305,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 55.91779327392578,
+     "acute.lastFedAgeH": 53.200910568237305,
+     "acute.lastVigAgeH": -999999950.0843811,
+     "nutrients.lastAgeH": 55.95213317871094,
+     "satiety.nicH": 55.95213317871094
+    }
+   }
+  },
+  {
+   "step": "OFF_post",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin acute.debtH acute.winStartH acute.winSleptH acute.mass90ageH acute.lastFedAgeH acute.lastVigAgeH nutrients.lastAgeH satiety.nicH",
+   "phase": "OFF",
+   "wall_before": 266.409,
+   "wall_after": 267.167,
+   "epoch_ms_before": 1791957040583,
+   "epoch_ms_after": 1791957041341,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 53.200910568237305,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 55.91779327392578,
+     "acute.lastFedAgeH": 53.200910568237305,
+     "acute.lastVigAgeH": -999999950.0843811,
+     "nutrients.lastAgeH": 56.00223922729492,
+     "satiety.nicH": 56.00223922729492
+    }
+   }
+  },
+  {
+   "step": "OFF_ring_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "OFF",
+   "wall_before": 267.168,
+   "wall_after": 267.678,
+   "epoch_ms_before": 1791957041341,
+   "epoch_ms_after": 1791957041852,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 720,
+    "skipped": 0,
+    "next": 721,
+    "more": true,
+    "oldest": 1,
+    "newest": 732,
+    "recorded": 732,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 732,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "OFF_ring_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read 721",
+   "phase": "OFF",
+   "wall_before": 267.696,
+   "wall_after": 267.952,
+   "epoch_ms_before": 1791957041870,
+   "epoch_ms_after": 1791957042126,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 721,
+    "rows": 13,
+    "skipped": 0,
+    "next": 734,
+    "more": false,
+    "oldest": 1,
+    "newest": 733,
+    "recorded": 733,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 733,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-721",
+    "file": "pzt-results/minute-ring-admin-721.json"
+   }
+  },
+  {
+   "step": "OFF_ring_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "OFF",
+   "wall_before": 267.958,
+   "wall_after": 268.465,
+   "epoch_ms_before": 1791957042131,
+   "epoch_ms_after": 1791957042639,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 733,
+    "overwritten": 0,
+    "errors": 0
+   }
+  },
+  {
+   "step": "C0_col_lv0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "C0",
+   "wall_before": 268.471,
+   "wall_after": 268.729,
+   "epoch_ms_before": 1791957042645,
+   "epoch_ms_after": 1791957042903,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 1,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 0,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 0
+    }
+   }
+  },
+  {
+   "step": "C0_col_probe",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.probe overfull",
+   "phase": "C0",
+   "wall_before": 268.729,
+   "wall_after": 269.241,
+   "epoch_ms_before": 1791957042903,
+   "epoch_ms_after": 1791957043415,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.probe",
+    "nargs": 1,
+    "r1": 0,
+    "r2": false,
+    "r3": "own"
+   }
+  },
+  {
+   "step": "C0_col_lv1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "C0",
+   "wall_before": 269.241,
+   "wall_after": 269.748,
+   "epoch_ms_before": 1791957043415,
+   "epoch_ms_after": 1791957043922,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 1,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 0,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 0
+    }
+   }
+  },
+  {
+   "step": "C0_col_enabled",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.isEnabled",
+   "phase": "C0",
+   "wall_before": 269.748,
+   "wall_after": 270.257,
+   "epoch_ms_before": 1791957043922,
+   "epoch_ms_after": 1791957044431,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.isEnabled",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "MG_pre",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 270.261,
+   "wall_after": 270.768,
+   "epoch_ms_before": 1791957044435,
+   "epoch_ms_after": 1791957044942,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 0,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 0,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 0,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 0,
+     "nutrients.selenium.x": 0,
+     "nutrients.lastAgeH": 56.101898193359375
+    }
+   }
+  },
+  {
+   "step": "MG_spawn_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pasta",
+   "phase": "MG",
+   "wall_before": 270.768,
+   "wall_after": 271.526,
+   "epoch_ms_before": 1791957044942,
+   "epoch_ms_after": 1791957045700,
+   "took": 0.758,
+   "ack": "no item Base.Pasta in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "MG_spawn_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Pasta\" 1",
+   "phase": "MG",
+   "wall_before": 271.526,
+   "wall_after": 271.56,
+   "epoch_ms_before": 1791957045700,
+   "epoch_ms_after": 1791957045734,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "MG_spawn_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pasta",
+   "phase": "MG",
+   "wall_before": 274.061,
+   "wall_after": 274.82,
+   "epoch_ms_before": 1791957048235,
+   "epoch_ms_after": 1791957048994,
+   "took": 0.759,
+   "ack": {
+    "fullType": "Base.Pasta",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.6000000238418579,
+    "baseHunger": -0.6000000238418579,
+    "calories": 3360.14990234375,
+    "carbs": 676.2899780273438,
+    "lipids": 13.680000305175781,
+    "proteins": 118.0999984741211,
+    "id": 1333279714,
+    "uses": 0.6000000238418579,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0.6000000238418579,
+    "hungerChange": -0.6000000238418579,
+    "isCookable": false,
+    "actualWeight": 2.000000238418579,
+    "weight": 2,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 56.218448638916016
+   }
+  },
+  {
+   "step": "MG_landed0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 274.82,
+   "wall_after": 275.329,
+   "epoch_ms_before": 1791957048994,
+   "epoch_ms_after": 1791957049503,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "MG",
+   "wall_before": 275.329,
+   "wall_after": 275.842,
+   "epoch_ms_before": 1791957049503,
+   "epoch_ms_after": 1791957050016,
+   "took": 0.513,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "MG_eat",
+   "side": "client:admin",
+   "cmd": "eat.action",
+   "args": "Base.Pasta 1",
+   "phase": "MG",
+   "wall_before": 275.842,
+   "wall_after": 276.099,
+   "epoch_ms_before": 1791957050016,
+   "epoch_ms_after": 1791957050273,
+   "took": 0.257,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 1333279714,
+    "itemBefore": {
+     "fullType": "Base.Pasta",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.6000000238418579,
+     "baseHunger": -0.6000000238418579,
+     "calories": 3360.14990234375,
+     "carbs": 676.2899780273438,
+     "lipids": 13.680000305175781,
+     "proteins": 118.0999984741211,
+     "id": 1333279714,
+     "uses": 0.6000000238418579,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0.6000000238418579,
+     "hungerChange": -0.6000000238418579,
+     "isCookable": false,
+     "actualWeight": 2.000000238418579,
+     "weight": 2,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 464.158748626709,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": -290.825439453125,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 79.9725570678711,
+     "hunger": 0.2525333762168884,
+     "thirst": 0.14555957913398743,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 276.099,
+   "wall_after": 276.607,
+   "epoch_ms_before": 1791957050273,
+   "epoch_ms_after": 1791957050781,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 277.107,
+   "wall_after": 277.871,
+   "epoch_ms_before": 1791957051281,
+   "epoch_ms_after": 1791957052045,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 278.372,
+   "wall_after": 279.136,
+   "epoch_ms_before": 1791957052545,
+   "epoch_ms_after": 1791957053310,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 279.636,
+   "wall_after": 279.897,
+   "epoch_ms_before": 1791957053810,
+   "epoch_ms_after": 1791957054070,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 280.397,
+   "wall_after": 280.908,
+   "epoch_ms_before": 1791957054571,
+   "epoch_ms_after": 1791957055082,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 281.408,
+   "wall_after": 281.664,
+   "epoch_ms_before": 1791957055582,
+   "epoch_ms_after": 1791957055838,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 282.165,
+   "wall_after": 282.671,
+   "epoch_ms_before": 1791957056338,
+   "epoch_ms_after": 1791957056845,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 283.172,
+   "wall_after": 283.43,
+   "epoch_ms_before": 1791957057345,
+   "epoch_ms_after": 1791957057604,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 283.931,
+   "wall_after": 284.189,
+   "epoch_ms_before": 1791957058104,
+   "epoch_ms_after": 1791957058363,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 284.689,
+   "wall_after": 285.199,
+   "epoch_ms_before": 1791957058863,
+   "epoch_ms_after": 1791957059373,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 0
+    }
+   }
+  },
+  {
+   "step": "MG_land",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.landed",
+   "phase": "MG",
+   "wall_before": 285.699,
+   "wall_after": 285.955,
+   "epoch_ms_before": 1791957059873,
+   "epoch_ms_after": 1791957060129,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.landed": 1
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 285.955,
+   "wall_after": 286.717,
+   "epoch_ms_before": 1791957060129,
+   "epoch_ms_after": 1791957060891,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 480.0209860491196,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 65.00208711084021,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3541.2868970793534,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 572.4023833642331,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.51872253417969
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 287.717,
+   "wall_after": 287.975,
+   "epoch_ms_before": 1791957061891,
+   "epoch_ms_after": 1791957062149,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 479.38478350969064,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.91593568394433,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3536.5934028733777,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 571.6437418455178,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.55055236816406
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 288.975,
+   "wall_after": 289.737,
+   "epoch_ms_before": 1791957063149,
+   "epoch_ms_after": 1791957063911,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 478.3781476768316,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.77962199767207,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3529.1670894649264,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 570.4433760976557,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.60100173950195
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 290.738,
+   "wall_after": 290.994,
+   "epoch_ms_before": 1791957064911,
+   "epoch_ms_after": 1791957065168,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 477.69028734300656,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.68647532567466,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3524.0924971908585,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 569.6231350958114,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.635536193847656
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 291.994,
+   "wall_after": 292.25,
+   "epoch_ms_before": 1791957066168,
+   "epoch_ms_after": 1791957066424,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 477.05588478417803,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.6005676433216,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3519.412282087048,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 568.8666399690575,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.66743087768555
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 293.251,
+   "wall_after": 293.511,
+   "epoch_ms_before": 1791957067425,
+   "epoch_ms_after": 1791957067685,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 476.36947143171227,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.50761691444147,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3514.3483647131966,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 568.0481244242304,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.701988220214844
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 294.511,
+   "wall_after": 294.771,
+   "epoch_ms_before": 1791957068685,
+   "epoch_ms_after": 1791957068945,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 475.73621806870136,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.42186485054846,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3509.676627638908,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 567.2929996592815,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.73391342163086
+    }
+   }
+  },
+  {
+   "step": "MG_read",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin nutrients.magnesium.e24 nutrients.magnesium.x nutrients.niacin.e24 nutrients.niacin.x nutrients.folate.e24 nutrients.folate.x nutrients.selenium.e24 nutrients.selenium.x nutrients.lastAgeH",
+   "phase": "MG",
+   "wall_before": 295.772,
+   "wall_after": 296.029,
+   "epoch_ms_before": 1791957069946,
+   "epoch_ms_after": 1791957070203,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "nutrients.magnesium.e24": 475.05087294176184,
+     "nutrients.magnesium.x": 0,
+     "nutrients.niacin.e24": 64.32905877552874,
+     "nutrients.niacin.x": 0,
+     "nutrients.folate.e24": 3504.6205909477126,
+     "nutrients.folate.x": 0,
+     "nutrients.selenium.e24": 566.4757579230064,
+     "nutrients.selenium.x": 1,
+     "nutrients.lastAgeH": 56.76851272583008
+    }
+   }
+  },
+  {
+   "step": "COL_m1_rc0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received",
+   "phase": "COL",
+   "wall_before": 296.033,
+   "wall_after": 296.538,
+   "epoch_ms_before": 1791957070207,
+   "epoch_ms_after": 1791957070712,
+   "took": 0.505,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 2
+    }
+   }
+  },
+  {
+   "step": "COL_m1_req",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.requestMirror",
+   "phase": "COL",
+   "wall_before": 296.538,
+   "wall_after": 297.045,
+   "epoch_ms_before": 1791957070712,
+   "epoch_ms_after": 1791957071219,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.requestMirror",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "COL_m1_arr",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received",
+   "phase": "COL",
+   "wall_before": 297.045,
+   "wall_after": 297.556,
+   "epoch_ms_before": 1791957071219,
+   "epoch_ms_after": 1791957071730,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 3
+    }
+   }
+  },
+  {
+   "step": "COL_col1_lv0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "COL",
+   "wall_before": 297.556,
+   "wall_after": 298.063,
+   "epoch_ms_before": 1791957071730,
+   "epoch_ms_after": 1791957072237,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 3,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 1,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 2
+    }
+   }
+  },
+  {
+   "step": "COL_col1_probe",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.probe overfull",
+   "phase": "COL",
+   "wall_before": 298.063,
+   "wall_after": 298.57,
+   "epoch_ms_before": 1791957072237,
+   "epoch_ms_after": 1791957072744,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.probe",
+    "nargs": 1,
+    "r1": 2,
+    "r2": true,
+    "r3": "own"
+   }
+  },
+  {
+   "step": "COL_col1_lv1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received moodles.route moodles.levels.energy moodles.levels.hydration moodles.levels.deficiency moodles.levels.excess moodles.levels.stimulant moodles.levels.sleep moodles.levels.overfull",
+   "phase": "COL",
+   "wall_before": 298.57,
+   "wall_after": 299.078,
+   "epoch_ms_before": 1791957072744,
+   "epoch_ms_after": 1791957073252,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 9,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 3,
+     "moodles.route": "own",
+     "moodles.levels.energy": 0,
+     "moodles.levels.hydration": 0,
+     "moodles.levels.deficiency": 0,
+     "moodles.levels.excess": 1,
+     "moodles.levels.stimulant": 0,
+     "moodles.levels.sleep": 0,
+     "moodles.levels.overfull": 2
+    }
+   }
+  },
+  {
+   "step": "COL_col1_enabled",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.moodles.isEnabled",
+   "phase": "COL",
+   "wall_before": 299.078,
+   "wall_after": 299.585,
+   "epoch_ms_before": 1791957073252,
+   "epoch_ms_after": 1791957073759,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.moodles.isEnabled",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "XR_m_rc0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received",
+   "phase": "XR",
+   "wall_before": 302.038,
+   "wall_after": 302.547,
+   "epoch_ms_before": 1791957076212,
+   "epoch_ms_after": 1791957076721,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 3
+    }
+   }
+  },
+  {
+   "step": "XR_m_req",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.requestMirror",
+   "phase": "XR",
+   "wall_before": 302.547,
+   "wall_after": 303.053,
+   "epoch_ms_before": 1791957076721,
+   "epoch_ms_after": 1791957077227,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.requestMirror",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "XR_m_arr",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client received",
+   "phase": "XR",
+   "wall_before": 303.053,
+   "wall_after": 303.564,
+   "epoch_ms_before": 1791957077227,
+   "epoch_ms_after": 1791957077738,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "received": 4
+    }
+   }
+  },
+  {
+   "step": "XR_lv0",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.level",
+   "phase": "XR",
+   "wall_before": 303.564,
+   "wall_after": 304.073,
+   "epoch_ms_before": 1791957077738,
+   "epoch_ms_after": 1791957078246,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "view.level": 2
+    }
+   }
+  },
+  {
+   "step": "XR_set2",
+   "side": "client:admin",
+   "cmd": "lua.setpath",
+   "args": "NutritionRevamp.client.view.level 2",
+   "phase": "XR",
+   "wall_before": 304.073,
+   "wall_after": 304.579,
+   "epoch_ms_before": 1791957078246,
+   "epoch_ms_after": 1791957078753,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "2",
+    "after": "2"
+   }
+  },
+  {
+   "step": "XR_refresh2",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.view.refresh true",
+   "phase": "XR",
+   "wall_before": 304.579,
+   "wall_after": 305.09,
+   "epoch_ms_before": 1791957078753,
+   "epoch_ms_after": 1791957079264,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true
+   }
+  },
+  {
+   "step": "XR_L2_head",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.level view.lastLevel received mirror.nut_magnesium_x mirror.nut_selenium_x view.rows",
+   "phase": "XR",
+   "wall_before": 305.09,
+   "wall_after": 305.596,
+   "epoch_ms_before": 1791957079264,
+   "epoch_ms_after": 1791957079770,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {
+     "view.rows": 32
+    },
+    "values": {
+     "view.level": 2,
+     "view.lastLevel": 2,
+     "received": 4,
+     "mirror.nut_magnesium_x": 0,
+     "mirror.nut_selenium_x": 1
+    }
+   }
+  },
+  {
+   "step": "XR_L2_keys1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.rows.1.key view.rows.2.key view.rows.3.key view.rows.4.key view.rows.5.key view.rows.6.key view.rows.7.key view.rows.8.key view.rows.9.key view.rows.10.key view.rows.11.key view.rows.12.key view.rows.13.key view.rows.14.key view.rows.15.key view.rows.16.key view.rows.17.key view.rows.18.key view.rows.19.key view.rows.20.key view.rows.21.key view.rows.22.key view.rows.23.key view.rows.24.key view.rows.25.key view.rows.26.key view.rows.27.key view.rows.28.key view.rows.29.key view.rows.30.key view.rows.31.key view.rows.32.key",
+   "phase": "XR",
+   "wall_before": 305.597,
+   "wall_after": 306.104,
+   "epoch_ms_before": 1791957079770,
+   "epoch_ms_after": 1791957080278,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 32,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "view.rows.1.key": "energy",
+     "view.rows.2.key": "hydration",
+     "view.rows.3.key": "deficiency",
+     "view.rows.4.key": "excess",
+     "view.rows.5.key": "stimulant",
+     "view.rows.6.key": "sleep",
+     "view.rows.7.key": "body_band",
+     "view.rows.8.key": "body_weight",
+     "view.rows.9.key": "body_fat",
+     "view.rows.10.key": "body_energyState",
+     "view.rows.11.key": "fluids_dehydPct",
+     "view.rows.12.key": "nut_vitC_g",
+     "view.rows.13.key": "nut_thiamine_g",
+     "view.rows.14.key": "nut_riboflavin_g",
+     "view.rows.15.key": "nut_niacin_g",
+     "view.rows.16.key": "nut_vitB6_g",
+     "view.rows.17.key": "nut_folate_g",
+     "view.rows.18.key": "nut_vitB12_g",
+     "view.rows.19.key": "nut_choline_g",
+     "view.rows.20.key": "nut_vitA_g",
+     "view.rows.21.key": "nut_vitD_g",
+     "view.rows.22.key": "nut_vitK_g",
+     "view.rows.23.key": "nut_biotin_g",
+     "view.rows.24.key": "nut_iron_g",
+     "view.rows.25.key": "nut_zinc_g",
+     "view.rows.26.key": "nut_copper_g",
+     "view.rows.27.key": "nut_magnesium_g",
+     "view.rows.28.key": "nut_calcium_g",
+     "view.rows.29.key": "nut_iodine_g",
+     "view.rows.30.key": "nut_fibre_g",
+     "view.rows.31.key": "nut_efa_g",
+     "view.rows.32.key": "nut_selenium_x"
+    }
+   }
+  },
+  {
+   "step": "XR_L2_nut_selenium_x",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client.view.rows.32 key text valueText label level",
+   "phase": "XR",
+   "wall_before": 306.104,
+   "wall_after": 306.613,
+   "epoch_ms_before": 1791957080278,
+   "epoch_ms_after": 1791957080787,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client.view.rows.32",
+    "n": 5,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "key": "nut_selenium_x",
+     "text": "UI_NR_Class_excess_1",
+     "valueText": "Elevated",
+     "label": "UI_NR_Row_selenium_x",
+     "level": 2
+    }
+   }
+  },
+  {
+   "step": "XR_set3",
+   "side": "client:admin",
+   "cmd": "lua.setpath",
+   "args": "NutritionRevamp.client.view.level 3",
+   "phase": "XR",
+   "wall_before": 306.613,
+   "wall_after": 307.121,
+   "epoch_ms_before": 1791957080787,
+   "epoch_ms_after": 1791957081294,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "2",
+    "after": "3"
+   }
+  },
+  {
+   "step": "XR_refresh3",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.view.refresh true",
+   "phase": "XR",
+   "wall_before": 307.121,
+   "wall_after": 307.633,
+   "epoch_ms_before": 1791957081295,
+   "epoch_ms_after": 1791957081807,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true
+   }
+  },
+  {
+   "step": "XR_L3_head",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.level view.lastLevel received mirror.nut_magnesium_x mirror.nut_selenium_x view.rows",
+   "phase": "XR",
+   "wall_before": 307.633,
+   "wall_after": 308.141,
+   "epoch_ms_before": 1791957081807,
+   "epoch_ms_after": 1791957082315,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {
+     "view.rows": 77
+    },
+    "values": {
+     "view.level": 3,
+     "view.lastLevel": 3,
+     "received": 4,
+     "mirror.nut_magnesium_x": 0,
+     "mirror.nut_selenium_x": 1
+    }
+   }
+  },
+  {
+   "step": "XR_L3_keys1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.rows.1.key view.rows.2.key view.rows.3.key view.rows.4.key view.rows.5.key view.rows.6.key view.rows.7.key view.rows.8.key view.rows.9.key view.rows.10.key view.rows.11.key view.rows.12.key view.rows.13.key view.rows.14.key view.rows.15.key view.rows.16.key view.rows.17.key view.rows.18.key view.rows.19.key view.rows.20.key view.rows.21.key view.rows.22.key view.rows.23.key view.rows.24.key view.rows.25.key view.rows.26.key view.rows.27.key view.rows.28.key view.rows.29.key view.rows.30.key view.rows.31.key view.rows.32.key view.rows.33.key view.rows.34.key view.rows.35.key view.rows.36.key view.rows.37.key view.rows.38.key view.rows.39.key view.rows.40.key view.rows.41.key view.rows.42.key view.rows.43.key view.rows.44.key view.rows.45.key view.rows.46.key view.rows.47.key view.rows.48.key view.rows.49.key view.rows.50.key view.rows.51.key view.rows.52.key view.rows.53.key view.rows.54.key view.rows.55.key view.rows.56.key view.rows.57.key view.rows.58.key view.rows.59.key view.rows.60.key",
+   "phase": "XR",
+   "wall_before": 308.141,
+   "wall_after": 308.653,
+   "epoch_ms_before": 1791957082315,
+   "epoch_ms_after": 1791957082827,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 60,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "view.rows.1.key": "energy",
+     "view.rows.2.key": "hydration",
+     "view.rows.3.key": "deficiency",
+     "view.rows.4.key": "excess",
+     "view.rows.5.key": "stimulant",
+     "view.rows.6.key": "sleep",
+     "view.rows.7.key": "body_band",
+     "view.rows.8.key": "body_weight",
+     "view.rows.9.key": "body_fat",
+     "view.rows.10.key": "body_energyState",
+     "view.rows.11.key": "body_fm",
+     "view.rows.12.key": "body_lm",
+     "view.rows.13.key": "fluids_dehydPct",
+     "view.rows.14.key": "nut_vitC_g",
+     "view.rows.15.key": "nut_vitC_p",
+     "view.rows.16.key": "nut_vitC_x",
+     "view.rows.17.key": "nut_thiamine_g",
+     "view.rows.18.key": "nut_thiamine_p",
+     "view.rows.19.key": "nut_thiamine_x",
+     "view.rows.20.key": "nut_riboflavin_g",
+     "view.rows.21.key": "nut_riboflavin_p",
+     "view.rows.22.key": "nut_riboflavin_x",
+     "view.rows.23.key": "nut_niacin_g",
+     "view.rows.24.key": "nut_niacin_p",
+     "view.rows.25.key": "nut_niacin_x",
+     "view.rows.26.key": "nut_vitB6_g",
+     "view.rows.27.key": "nut_vitB6_p",
+     "view.rows.28.key": "nut_vitB6_x",
+     "view.rows.29.key": "nut_folate_g",
+     "view.rows.30.key": "nut_folate_p",
+     "view.rows.31.key": "nut_folate_x",
+     "view.rows.32.key": "nut_vitB12_g",
+     "view.rows.33.key": "nut_vitB12_p",
+     "view.rows.34.key": "nut_vitB12_x",
+     "view.rows.35.key": "nut_choline_g",
+     "view.rows.36.key": "nut_choline_p",
+     "view.rows.37.key": "nut_choline_x",
+     "view.rows.38.key": "nut_vitA_g",
+     "view.rows.39.key": "nut_vitA_p",
+     "view.rows.40.key": "nut_vitA_x",
+     "view.rows.41.key": "nut_vitD_g",
+     "view.rows.42.key": "nut_vitD_p",
+     "view.rows.43.key": "nut_vitD_x",
+     "view.rows.44.key": "nut_vitK_g",
+     "view.rows.45.key": "nut_vitK_p",
+     "view.rows.46.key": "nut_vitK_x",
+     "view.rows.47.key": "nut_biotin_g",
+     "view.rows.48.key": "nut_biotin_p",
+     "view.rows.49.key": "nut_biotin_x",
+     "view.rows.50.key": "nut_iron_g",
+     "view.rows.51.key": "nut_iron_p",
+     "view.rows.52.key": "nut_iron_x",
+     "view.rows.53.key": "nut_zinc_g",
+     "view.rows.54.key": "nut_zinc_p",
+     "view.rows.55.key": "nut_zinc_x",
+     "view.rows.56.key": "nut_copper_g",
+     "view.rows.57.key": "nut_copper_p",
+     "view.rows.58.key": "nut_copper_x",
+     "view.rows.59.key": "nut_magnesium_g",
+     "view.rows.60.key": "nut_magnesium_p"
+    }
+   }
+  },
+  {
+   "step": "XR_L3_keys61",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.rows.61.key view.rows.62.key view.rows.63.key view.rows.64.key view.rows.65.key view.rows.66.key view.rows.67.key view.rows.68.key view.rows.69.key view.rows.70.key view.rows.71.key view.rows.72.key view.rows.73.key view.rows.74.key view.rows.75.key view.rows.76.key view.rows.77.key",
+   "phase": "XR",
+   "wall_before": 308.653,
+   "wall_after": 309.162,
+   "epoch_ms_before": 1791957082827,
+   "epoch_ms_after": 1791957083335,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 17,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "view.rows.61.key": "nut_magnesium_x",
+     "view.rows.62.key": "nut_calcium_g",
+     "view.rows.63.key": "nut_calcium_p",
+     "view.rows.64.key": "nut_calcium_x",
+     "view.rows.65.key": "nut_iodine_g",
+     "view.rows.66.key": "nut_iodine_p",
+     "view.rows.67.key": "nut_iodine_x",
+     "view.rows.68.key": "nut_fibre_g",
+     "view.rows.69.key": "nut_fibre_p",
+     "view.rows.70.key": "nut_fibre_x",
+     "view.rows.71.key": "nut_efa_g",
+     "view.rows.72.key": "nut_efa_p",
+     "view.rows.73.key": "nut_efa_x",
+     "view.rows.74.key": "nut_selenium_x",
+     "view.rows.75.key": "acute_caf",
+     "view.rows.76.key": "acute_bac",
+     "view.rows.77.key": "acute_debtH"
+    }
+   }
+  },
+  {
+   "step": "XR_L3_nut_magnesium_x",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client.view.rows.61 key text valueText label level",
+   "phase": "XR",
+   "wall_before": 309.162,
+   "wall_after": 309.668,
+   "epoch_ms_before": 1791957083335,
+   "epoch_ms_after": 1791957083842,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client.view.rows.61",
+    "n": 5,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "key": "nut_magnesium_x",
+     "text": "0",
+     "valueText": "0",
+     "label": "UI_NR_Row_magnesium_x",
+     "level": 3
+    }
+   }
+  },
+  {
+   "step": "XR_L3_nut_selenium_x",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client.view.rows.74 key text valueText label level",
+   "phase": "XR",
+   "wall_before": 309.668,
+   "wall_after": 310.18,
+   "epoch_ms_before": 1791957083842,
+   "epoch_ms_after": 1791957084354,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client.view.rows.74",
+    "n": 5,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "key": "nut_selenium_x",
+     "text": "1",
+     "valueText": "1",
+     "label": "UI_NR_Row_selenium_x",
+     "level": 3
+    }
+   }
+  },
+  {
+   "step": "XR_restore",
+   "side": "client:admin",
+   "cmd": "lua.setpath",
+   "args": "NutritionRevamp.client.view.level 2",
+   "phase": "XR",
+   "wall_before": 310.18,
+   "wall_after": 310.686,
+   "epoch_ms_before": 1791957084354,
+   "epoch_ms_after": 1791957084860,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "3",
+    "after": "2"
+   }
+  },
+  {
+   "step": "XR_restore_refresh",
+   "side": "client:admin",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.view.refresh true",
+   "phase": "XR",
+   "wall_before": 310.686,
+   "wall_after": 311.196,
+   "epoch_ms_before": 1791957084860,
+   "epoch_ms_after": 1791957085369,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true
+   }
+  },
+  {
+   "step": "XR_lv1",
+   "side": "client:admin",
+   "cmd": "lua.read",
+   "args": "NutritionRevamp.client view.level",
+   "phase": "XR",
+   "wall_before": 311.196,
+   "wall_after": 311.703,
+   "epoch_ms_before": 1791957085369,
+   "epoch_ms_after": 1791957085877,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "NutritionRevamp.client",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "view.level": 2
+    }
+   }
+  },
+  {
+   "step": "Z_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "Z",
+   "wall_before": 311.753,
+   "wall_after": 312.009,
+   "epoch_ms_before": 1791957085927,
+   "epoch_ms_after": 1791957086183,
+   "took": 0.256,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "Z_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "Z",
+   "wall_before": 312.009,
+   "wall_after": 312.273,
+   "epoch_ms_before": 1791957086183,
+   "epoch_ms_after": 1791957086447,
+   "took": 0.264,
+   "ack": {
+    "worldAge": 57.218780517578125,
+    "hour": 16,
+    "minutes": 13,
+    "mult": 4.795600414276123,
+    "trueMult": 1,
+    "wall": 1791957086338
+   }
+  }
+ ],
+ "notes": [
+  {
+   "wall": 321.95,
+   "phase": "Z",
+   "note": "logs read"
+  }
+ ],
+ "phases": {
+  "S0": {
+   "ping": true,
+   "players": [
+    "admin",
+    "bob"
+   ],
+   "time": {
+    "worldAge": 4.8686323165893555,
+    "hour": 11,
+    "minutes": 52,
+    "mult": 4.586879253387451,
+    "trueMult": 1,
+    "wall": 132.087,
+    "wall_after": 132.845
+   },
+   "wait": {
+    "done": true,
+    "last": {
+     "runs": 105,
+     "records": true,
+     "sleepDisabled": false
+    },
+    "polls": 1,
+    "kept": [
+     {
+      "runs": 105,
+      "records": true,
+      "sleepDisabled": false
+     }
+    ]
+   },
+   "sleepDisabled": false,
+   "ring_start": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "acute.debtH",
+     "acute.winStartH",
+     "acute.winSleptH",
+     "acute.mass90ageH",
+     "acute.lastFedAgeH",
+     "acute.lastVigAgeH",
+     "nutrients.lastAgeH",
+     "satiety.nicH"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 8,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "acute.debtH": 0,
+      "acute.winStartH": 3.2852916717529297,
+      "acute.winSleptH": 0,
+      "acute.mass90ageH": 3.2852916717529297,
+      "acute.lastFedAgeH": 3.2852916717529297,
+      "acute.lastVigAgeH": -1000000000,
+      "nutrients.lastAgeH": 4.884033203125,
+      "satiety.nicH": 4.884033203125
+     }
+    },
+    "wall": 133.369,
+    "wall_after": 133.881
+   },
+   "record": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 4.884033203125,
+     "satiety.nicH": 4.884033203125
+    },
+    "wall": 133.881,
+    "wall_after": 134.138
+   }
+  },
+  "OFF": {
+   "rejoined": true,
+   "pre_snap": {
+    "worldAge": 4.967791557312012,
+    "hour": 11,
+    "minutes": 58,
+    "mult": 4.746857643127441,
+    "trueMult": 1,
+    "wall": 136.168,
+    "wall_after": 136.675
+   },
+   "pre": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 4.967791557312012,
+     "satiety.nicH": 4.967791557312012
+    },
+    "wall": 136.675,
+    "wall_after": 137.182
+   },
+   "quit_admin": {
+    "wall0": 137.182,
+    "rc": 0,
+    "wall1": 140.085
+   },
+   "quit_bob": {
+    "wall0": 140.085,
+    "rc": 0,
+    "wall1": 142.13
+   },
+   "depart": {
+    "done": true,
+    "last": {
+     "players": {},
+     "wall": 142.13
+    },
+    "polls": 1,
+    "kept": [
+     {
+      "players": {},
+      "wall": 142.13
+     }
+    ]
+   },
+   "away": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 3.2852916717529297,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 3.2852916717529297,
+     "acute.lastFedAgeH": 3.2852916717529297,
+     "acute.lastVigAgeH": -1000000000,
+     "nutrients.lastAgeH": 5.002174377441406,
+     "satiety.nicH": 5.002174377441406
+    },
+    "wall": 142.39,
+    "wall_after": 143.151
+   },
+   "away_snap": {
+    "worldAge": 5.15214729309082,
+    "hour": 12,
+    "minutes": 9,
+    "mult": 4.693040370941162,
+    "trueMult": 1,
+    "wall": 143.151,
+    "wall_after": 143.914
+   },
+   "Lq": 5.002174377441406,
+   "mult0_snap": {
+    "worldAge": 5.167840003967285,
+    "hour": 12,
+    "minutes": 10,
+    "mult": 4.710487365722656,
+    "trueMult": 1,
+    "wall": 143.914,
+    "wall_after": 144.423
+   },
+   "restore_to": 1,
+   "true_mults": [
+    {
+     "at": "raise",
+     "trueMult": 30
+    },
+    {
+     "wall": 145.193,
+     "worldAge": 5.4998579025268555,
+     "trueMult": 30,
+     "mult": 142.14158630371094
+    },
+    {
+     "wall": 147.456,
+     "worldAge": 7.326076507568359,
+     "trueMult": 30,
+     "mult": 143.18641662597656
+    },
+    {
+     "wall": 149.718,
+     "worldAge": 9.079824447631836,
+     "trueMult": 30,
+     "mult": 143.6476287841797
+    },
+    {
+     "wall": 151.979,
+     "worldAge": 10.916189193725586,
+     "trueMult": 30,
+     "mult": 144.14305114746094
+    },
+    {
+     "wall": 154.239,
+     "worldAge": 12.672779083251953,
+     "trueMult": 30,
+     "mult": 143.3204803466797
+    },
+    {
+     "wall": 156.498,
+     "worldAge": 14.508264541625977,
+     "trueMult": 30,
+     "mult": 143.6694793701172
+    },
+    {
+     "wall": 158.759,
+     "worldAge": 16.345048904418945,
+     "trueMult": 30,
+     "mult": 143.7568359375
+    },
+    {
+     "wall": 161.019,
+     "worldAge": 18.101200103759766,
+     "trueMult": 30,
+     "mult": 143.88404846191406
+    },
+    {
+     "wall": 163.281,
+     "worldAge": 19.93634605407715,
+     "trueMult": 30,
+     "mult": 143.59817504882812
+    },
+    {
+     "wall": 165.543,
+     "worldAge": 21.69216537475586,
+     "trueMult": 30,
+     "mult": 143.5962371826172
+    },
+    {
+     "wall": 167.804,
+     "worldAge": 23.528772354125977,
+     "trueMult": 30,
+     "mult": 143.73927307128906
+    },
+    {
+     "wall": 170.066,
+     "worldAge": 25.36385726928711,
+     "trueMult": 30,
+     "mult": 143.56924438476562
+    },
+    {
+     "wall": 172.327,
+     "worldAge": 27.119300842285156,
+     "trueMult": 30,
+     "mult": 143.73318481445312
+    },
+    {
+     "wall": 174.592,
+     "worldAge": 28.954975128173828,
+     "trueMult": 30,
+     "mult": 143.6640625
+    },
+    {
+     "wall": 176.854,
+     "worldAge": 30.71135139465332,
+     "trueMult": 30,
+     "mult": 143.44326782226562
+    },
+    {
+     "wall": 179.111,
+     "worldAge": 32.5455322265625,
+     "trueMult": 30,
+     "mult": 143.51171875
+    },
+    {
+     "wall": 181.368,
+     "worldAge": 34.37989044189453,
+     "trueMult": 30,
+     "mult": 143.47239685058594
+    },
+    {
+     "wall": 183.632,
+     "worldAge": 36.135223388671875,
+     "trueMult": 30,
+     "mult": 144.05770874023438
+    },
+    {
+     "wall": 185.894,
+     "worldAge": 37.97187042236328,
+     "trueMult": 30,
+     "mult": 143.95413208007812
+    },
+    {
+     "wall": 188.157,
+     "worldAge": 39.72821044921875,
+     "trueMult": 30,
+     "mult": 143.59007263183594
+    },
+    {
+     "wall": 190.419,
+     "worldAge": 41.563575744628906,
+     "trueMult": 30,
+     "mult": 143.39500427246094
+    },
+    {
+     "wall": 192.679,
+     "worldAge": 43.39704132080078,
+     "trueMult": 30,
+     "mult": 143.37155151367188
+    },
+    {
+     "wall": 194.94,
+     "worldAge": 45.15118408203125,
+     "trueMult": 30,
+     "mult": 143.59190368652344
+    },
+    {
+     "wall": 197.203,
+     "worldAge": 46.986297607421875,
+     "trueMult": 30,
+     "mult": 143.84048461914062
+    },
+    {
+     "wall": 199.466,
+     "worldAge": 48.82339096069336,
+     "trueMult": 30,
+     "mult": 144.09873962402344
+    },
+    {
+     "wall": 201.727,
+     "worldAge": 50.57999038696289,
+     "trueMult": 30,
+     "mult": 143.93698120117188
+    },
+    {
+     "wall": 203.987,
+     "worldAge": 52.41521453857422,
+     "trueMult": 30,
+     "mult": 144.1450958251953
+    },
+    {
+     "wall": 206.25,
+     "worldAge": 54.170379638671875,
+     "trueMult": 30,
+     "mult": 143.29042053222656
+    }
+   ],
+   "raise": {
+    "reply": "mult=30 eff=142.18283081054688",
+    "snap": {
+     "worldAge": 5.26263427734375,
+     "hour": 12,
+     "minutes": 15,
+     "mult": 142.27259826660156,
+     "trueMult": 30,
+     "wall": 144.933,
+     "wall_after": 145.193
+    },
+    "trueMult": 30,
+    "ok": true
+   },
+   "away_wait": {
+    "done": true,
+    "last": {
+     "worldAge": 54.170379638671875,
+     "wall": 206.25,
+     "trueMult": 30
+    },
+    "polls": 28,
+    "kept": [
+     {
+      "worldAge": 5.4998579025268555,
+      "wall": 145.193,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 7.326076507568359,
+      "wall": 147.456,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 9.079824447631836,
+      "wall": 149.718,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 10.916189193725586,
+      "wall": 151.979,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 12.672779083251953,
+      "wall": 154.239,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 46.986297607421875,
+      "wall": 197.203,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 48.82339096069336,
+      "wall": 199.466,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 50.57999038696289,
+      "wall": 201.727,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 52.41521453857422,
+      "wall": 203.987,
+      "trueMult": 30
+     },
+     {
+      "worldAge": 54.170379638671875,
+      "wall": 206.25,
+      "trueMult": 30
+     }
+    ]
+   },
+   "restore": {
+    "first": {
+     "reply": "mult=1 eff=4.773292064666748",
+     "snap": {
+      "worldAge": 54.41763687133789,
+      "hour": 13,
+      "minutes": 25,
+      "mult": 4.77560567855835,
+      "trueMult": 1,
+      "wall": 206.771,
+      "wall_after": 207.029
+     },
+     "trueMult": 1,
+     "ok": true
+    },
+    "ok": true
+   },
+   "restored_ok": true,
+   "back_snap": {
+    "worldAge": 54.433570861816406,
+    "hour": 13,
+    "minutes": 26,
+    "mult": 4.777091026306152,
+    "trueMult": 1,
+    "wall": 207.029,
+    "wall_after": 207.543
+   },
+   "launch_snap": {
+    "worldAge": 54.44154357910156,
+    "hour": 13,
+    "minutes": 26,
+    "mult": 4.780826091766357,
+    "trueMult": 1,
+    "wall": 207.543,
+    "wall_after": 207.803
+   },
+   "launch": {
+    "restored": true,
+    "ready_took": 55.8
+   },
+   "join_snap": {
+    "worldAge": 55.95213317871094,
+    "hour": 14,
+    "minutes": 57,
+    "mult": 4.731311798095703,
+    "trueMult": 1,
+    "wall": 264.075,
+    "wall_after": 264.583
+   },
+   "first": {
+    "done": true,
+    "last": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 8,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "acute.debtH": 0,
+      "acute.winStartH": 53.200910568237305,
+      "acute.winSleptH": 0,
+      "acute.mass90ageH": 55.91779327392578,
+      "acute.lastFedAgeH": 53.200910568237305,
+      "acute.lastVigAgeH": -999999950.0843811,
+      "nutrients.lastAgeH": 55.95213317871094,
+      "satiety.nicH": 55.95213317871094
+     },
+     "wall": 264.583,
+     "wall_after": 265.093
+    },
+    "polls": 1,
+    "kept": [
+     {
+      "ok": true,
+      "side": "server",
+      "root": "record:admin",
+      "n": 8,
+      "missing": {},
+      "types": {},
+      "tables": {},
+      "values": {
+       "acute.debtH": 0,
+       "acute.winStartH": 53.200910568237305,
+       "acute.winSleptH": 0,
+       "acute.mass90ageH": 55.91779327392578,
+       "acute.lastFedAgeH": 53.200910568237305,
+       "acute.lastVigAgeH": -999999950.0843811,
+       "nutrients.lastAgeH": 55.95213317871094,
+       "satiety.nicH": 55.95213317871094
+      },
+      "wall": 264.583,
+      "wall_after": 265.093
+     }
+    ]
+   },
+   "settle": {
+    "done": true,
+    "last": {
+     "worldAge": 56.00223922729492,
+     "wall": 266.153,
+     "trueMult": 1
+    },
+    "polls": 2,
+    "kept": [
+     {
+      "worldAge": 55.983741760253906,
+      "wall": 265.093,
+      "trueMult": 1
+     },
+     {
+      "worldAge": 56.00223922729492,
+      "wall": 266.153,
+      "trueMult": 1
+     }
+    ]
+   },
+   "post": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "acute.debtH": 0,
+     "acute.winStartH": 53.200910568237305,
+     "acute.winSleptH": 0,
+     "acute.mass90ageH": 55.91779327392578,
+     "acute.lastFedAgeH": 53.200910568237305,
+     "acute.lastVigAgeH": -999999950.0843811,
+     "nutrients.lastAgeH": 56.00223922729492,
+     "satiety.nicH": 56.00223922729492
+    },
+    "wall": 266.409,
+    "wall_after": 267.167
+   },
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "from": 1,
+      "rows": 720,
+      "skipped": 0,
+      "next": 721,
+      "more": true,
+      "oldest": 1,
+      "newest": 732,
+      "recorded": 732,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "result": "minute-ring-admin-1",
+      "error": null
+     },
+     "doc_rows": 720,
+     "file": "minute-ring-admin-1.json"
+    },
+    {
+     "reply": {
+      "ok": true,
+      "from": 721,
+      "rows": 13,
+      "skipped": 0,
+      "next": 734,
+      "more": false,
+      "oldest": 1,
+      "newest": 733,
+      "recorded": 733,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "result": "minute-ring-admin-721",
+      "error": null
+     },
+     "doc_rows": 13,
+     "file": "minute-ring-admin-721.json"
+    }
+   ],
+   "ring_stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 733,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 267.958,
+    "wall_after": 268.465
+   }
+  },
+  "C0": {
+   "read": true
+  },
+  "MG": {
+   "reads": [
+    {
+     "wall": 285.955,
+     "values": {
+      "nutrients.magnesium.e24": 480.0209860491196,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 65.00208711084021,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3541.2868970793534,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 572.4023833642331,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.51872253417969
+     }
+    },
+    {
+     "wall": 287.717,
+     "values": {
+      "nutrients.magnesium.e24": 479.38478350969064,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.91593568394433,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3536.5934028733777,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 571.6437418455178,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.55055236816406
+     }
+    },
+    {
+     "wall": 288.975,
+     "values": {
+      "nutrients.magnesium.e24": 478.3781476768316,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.77962199767207,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3529.1670894649264,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 570.4433760976557,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.60100173950195
+     }
+    },
+    {
+     "wall": 290.738,
+     "values": {
+      "nutrients.magnesium.e24": 477.69028734300656,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.68647532567466,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3524.0924971908585,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 569.6231350958114,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.635536193847656
+     }
+    },
+    {
+     "wall": 291.994,
+     "values": {
+      "nutrients.magnesium.e24": 477.05588478417803,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.6005676433216,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3519.412282087048,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 568.8666399690575,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.66743087768555
+     }
+    },
+    {
+     "wall": 293.251,
+     "values": {
+      "nutrients.magnesium.e24": 476.36947143171227,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.50761691444147,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3514.3483647131966,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 568.0481244242304,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.701988220214844
+     }
+    },
+    {
+     "wall": 294.511,
+     "values": {
+      "nutrients.magnesium.e24": 475.73621806870136,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.42186485054846,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3509.676627638908,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 567.2929996592815,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.73391342163086
+     }
+    },
+    {
+     "wall": 295.772,
+     "values": {
+      "nutrients.magnesium.e24": 475.05087294176184,
+      "nutrients.magnesium.x": 0,
+      "nutrients.niacin.e24": 64.32905877552874,
+      "nutrients.niacin.x": 0,
+      "nutrients.folate.e24": 3504.6205909477126,
+      "nutrients.folate.x": 0,
+      "nutrients.selenium.e24": 566.4757579230064,
+      "nutrients.selenium.x": 1,
+      "nutrients.lastAgeH": 56.76851272583008
+     }
+    }
+   ],
+   "void": null,
+   "pre": {
+    "nutrients.magnesium.e24": 0,
+    "nutrients.magnesium.x": 0,
+    "nutrients.niacin.e24": 0,
+    "nutrients.niacin.x": 0,
+    "nutrients.folate.e24": 0,
+    "nutrients.folate.x": 0,
+    "nutrients.selenium.e24": 0,
+    "nutrients.selenium.x": 0,
+    "nutrients.lastAgeH": 56.101898193359375
+   },
+   "eats": [
+    {
+     "food": "Base.Pasta",
+     "spawn": {
+      "type": "Base.Pasta",
+      "n": 1,
+      "before": {
+       "id": null,
+       "fullType": null,
+       "hungChange": null,
+       "hungerChange": null,
+       "baseHunger": null,
+       "calories": null,
+       "uses": null,
+       "age": null,
+       "error": null,
+       "raw": "no item Base.Pasta in admin's inventory",
+       "wall": 270.768
+      },
+      "additem": {
+       "ok": true,
+       "reply": ""
+      },
+      "after": {
+       "id": 1333279714,
+       "fullType": "Base.Pasta",
+       "hungChange": -0.6000000238418579,
+       "hungerChange": -0.6000000238418579,
+       "baseHunger": -0.6000000238418579,
+       "calories": 3360.14990234375,
+       "uses": 0.6000000238418579,
+       "age": 0,
+       "error": null,
+       "raw": null,
+       "wall": 274.061
+      },
+      "leftover_before": false,
+      "confirmed": true
+     },
+     "landed0": 0,
+     "eat": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1333279714,
+      "validStart": true,
+      "maxTime": 464.158748626709,
+      "error": null,
+      "raw": null,
+      "wall": 275.842,
+      "tag": "MG"
+     },
+     "land": {
+      "done": true,
+      "last": {
+       "landed": 1
+      },
+      "polls": 11,
+      "kept": [
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 0
+       },
+       {
+        "landed": 1
+       }
+      ]
+     },
+     "landed": true
+    }
+   ],
+   "food": "Base.Pasta"
+  },
+  "COL": {
+   "drive": null,
+   "arrival": {
+    "rc0": 2,
+    "request": {
+     "ok": true,
+     "r1": true,
+     "err": null,
+     "raw": null
+    },
+    "arrived": true,
+    "polls": 1
+   }
+  },
+  "XR": {
+   "reads": {
+    "2": {
+     "level": 2,
+     "lastLevel": 2,
+     "received": 4,
+     "mg_x": 0,
+     "se_x": 1,
+     "n": 32,
+     "keys": [
+      "energy",
+      "hydration",
+      "deficiency",
+      "excess",
+      "stimulant",
+      "sleep",
+      "body_band",
+      "body_weight",
+      "body_fat",
+      "body_energyState",
+      "fluids_dehydPct",
+      "nut_vitC_g",
+      "nut_thiamine_g",
+      "nut_riboflavin_g",
+      "nut_niacin_g",
+      "nut_vitB6_g",
+      "nut_folate_g",
+      "nut_vitB12_g",
+      "nut_choline_g",
+      "nut_vitA_g",
+      "nut_vitD_g",
+      "nut_vitK_g",
+      "nut_biotin_g",
+      "nut_iron_g",
+      "nut_zinc_g",
+      "nut_copper_g",
+      "nut_magnesium_g",
+      "nut_calcium_g",
+      "nut_iodine_g",
+      "nut_fibre_g",
+      "nut_efa_g",
+      "nut_selenium_x"
+     ],
+     "rows": {
+      "nut_selenium_x": {
+       "key": "nut_selenium_x",
+       "text": "UI_NR_Class_excess_1",
+       "valueText": "Elevated",
+       "label": "UI_NR_Row_selenium_x",
+       "level": 2
+      }
+     }
+    },
+    "3": {
+     "level": 3,
+     "lastLevel": 3,
+     "received": 4,
+     "mg_x": 0,
+     "se_x": 1,
+     "n": 77,
+     "keys": [
+      "energy",
+      "hydration",
+      "deficiency",
+      "excess",
+      "stimulant",
+      "sleep",
+      "body_band",
+      "body_weight",
+      "body_fat",
+      "body_energyState",
+      "body_fm",
+      "body_lm",
+      "fluids_dehydPct",
+      "nut_vitC_g",
+      "nut_vitC_p",
+      "nut_vitC_x",
+      "nut_thiamine_g",
+      "nut_thiamine_p",
+      "nut_thiamine_x",
+      "nut_riboflavin_g",
+      "nut_riboflavin_p",
+      "nut_riboflavin_x",
+      "nut_niacin_g",
+      "nut_niacin_p",
+      "nut_niacin_x",
+      "nut_vitB6_g",
+      "nut_vitB6_p",
+      "nut_vitB6_x",
+      "nut_folate_g",
+      "nut_folate_p",
+      "nut_folate_x",
+      "nut_vitB12_g",
+      "nut_vitB12_p",
+      "nut_vitB12_x",
+      "nut_choline_g",
+      "nut_choline_p",
+      "nut_choline_x",
+      "nut_vitA_g",
+      "nut_vitA_p",
+      "nut_vitA_x",
+      "nut_vitD_g",
+      "nut_vitD_p",
+      "nut_vitD_x",
+      "nut_vitK_g",
+      "nut_vitK_p",
+      "nut_vitK_x",
+      "nut_biotin_g",
+      "nut_biotin_p",
+      "nut_biotin_x",
+      "nut_iron_g",
+      "nut_iron_p",
+      "nut_iron_x",
+      "nut_zinc_g",
+      "nut_zinc_p",
+      "nut_zinc_x",
+      "nut_copper_g",
+      "nut_copper_p",
+      "nut_copper_x",
+      "nut_magnesium_g",
+      "nut_magnesium_p",
+      "nut_magnesium_x",
+      "nut_calcium_g",
+      "nut_calcium_p",
+      "nut_calcium_x",
+      "nut_iodine_g",
+      "nut_iodine_p",
+      "nut_iodine_x",
+      "nut_fibre_g",
+      "nut_fibre_p",
+      "nut_fibre_x",
+      "nut_efa_g",
+      "nut_efa_p",
+      "nut_efa_x",
+      "nut_selenium_x",
+      "acute_caf",
+      "acute_bac",
+      "acute_debtH"
+     ],
+     "rows": {
+      "nut_magnesium_x": {
+       "key": "nut_magnesium_x",
+       "text": "0",
+       "valueText": "0",
+       "label": "UI_NR_Row_magnesium_x",
+       "level": 3
+      },
+      "nut_selenium_x": {
+       "key": "nut_selenium_x",
+       "text": "1",
+       "valueText": "1",
+       "label": "UI_NR_Row_selenium_x",
+       "level": 3
+      }
+     }
+    }
+   },
+   "arrival": {
+    "rc0": 3,
+    "request": {
+     "ok": true,
+     "r1": true,
+     "err": null,
+     "raw": null
+    },
+    "arrived": true,
+    "polls": 1
+   },
+   "level_before": 2,
+   "set2": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "2",
+    "after": "2",
+    "wall": 304.073,
+    "wall_after": 304.579
+   },
+   "refresh2": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true,
+    "wall": 304.579,
+    "wall_after": 305.09
+   },
+   "set3": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "2",
+    "after": "3",
+    "wall": 306.613,
+    "wall_after": 307.121
+   },
+   "refresh3": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true,
+    "wall": 307.121,
+    "wall_after": 307.633
+   },
+   "restore": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.level",
+    "before": "3",
+    "after": "2",
+    "wall": 310.18,
+    "wall_after": 310.686
+   },
+   "restore_refresh": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.view.refresh",
+    "nargs": 1,
+    "r1": true,
+    "wall": 310.686,
+    "wall_after": 311.196
+   },
+   "level_after": 2
+  },
+  "Z": {
+   "server_mod_error_lines": [],
+   "admin_console_mod_error_lines": [],
+   "admin_parked": false,
+   "mem": {
+    "tag": "Z",
+    "wall": 311.753,
+    "free_gb": 7.5
+   },
+   "bus_dead": null,
+   "players": [
+    "admin"
+   ],
+   "time": {
+    "worldAge": 57.218780517578125,
+    "hour": 16,
+    "minutes": 13,
+    "mult": 4.795600414276123,
+    "trueMult": 1,
+    "wall": 312.009,
+    "wall_after": 312.273
+   }
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "S0": {
+   "start": 131.573,
+   "end": 136.166
+  },
+  "OFF": {
+   "start": 136.168,
+   "end": 268.465
+  },
+  "C0": {
+   "start": 268.471,
+   "end": 270.257
+  },
+  "MG": {
+   "start": 270.261,
+   "end": 296.029
+  },
+  "COL": {
+   "start": 296.033,
+   "end": 299.585
+  },
+  "XR": {
+   "start": 299.589,
+   "end": 311.703
+  },
+  "Z": {
+   "start": 311.709,
+   "end": 312.273
+  }
+ },
+ "verdicts": {
+  "OFF_AWAY": {
+   "phase": "OFF_AWAY",
+   "predicted": {
+    "every away ring row": "the away state of every OFF field",
+    "falsifier": "an away row that moved",
+    "unmeasured": "no away row"
+   },
+   "falsifier": "an away row that moved",
+   "observed": {
+    "away_rows": 718,
+    "moved": []
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "OFF_WIN": {
+   "phase": "OFF_WIN",
+   "predicted": {
+    "winStartH at P1": "Q's + gap, + 24 h per window the integrated hour closes",
+    "tolerance": 1e-06,
+    "falsifier": "any other value (the unfixed: Q's + whole days)",
+    "trivial": "the fixed and unfixed values within 0.01 h"
+   },
+   "falsifier": "any other value (the unfixed: Q's + whole days)",
+   "observed": {
+    "winStartH_q": 3.2852916717529297,
+    "winStartH_1": 53.200910568237305,
+    "expected": 53.200910568237305,
+    "windows_closed": 0,
+    "unfixed": 51.28529167175293,
+    "unfixed_windows": 2,
+    "separated": true,
+    "gap_h": 49.915618896484375
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "OFF_DEBT": {
+   "phase": "OFF_DEBT",
+   "predicted": {
+    "debtH at P1": "Q's when no window closes in the integrated hour, else within [Q's - REPAY x 24, Q's + k x 7.5 x NEED_MORE]",
+    "falsifier": "outside (about 7.5 h per missed day)",
+    "unmeasured": "gap < 24 h",
+    "void": "sleepDisabled true"
+   },
+   "falsifier": "outside (about 7.5 h per missed day)",
+   "observed": {
+    "debtH_q": 0,
+    "debtH_1": 0,
+    "windows_closed": 0,
+    "gap_h": 49.915618896484375,
+    "sleepDisabled": false,
+    "unfixed_expected": 15.0,
+    "allowed": [
+     0,
+     0
+    ],
+    "unfixed_lo": 5.625
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "OFF_ANCHORS": {
+   "phase": "OFF_ANCHORS",
+   "predicted": {
+    "mass90ageH, lastFedAgeH, lastVigAgeH at P1": "Q's + gap, or A1 when re-laid",
+    "falsifier": "an anchor left at Q's value or at any other",
+    "trivial": "every anchor re-laid"
+   },
+   "falsifier": "an anchor left at Q's value or at any other",
+   "observed": {
+    "anchors": {
+     "acute.mass90ageH": {
+      "q": 3.2852916717529297,
+      "1": 55.91779327392578,
+      "expected": 53.200910568237305,
+      "class": "relaid"
+     },
+     "acute.lastFedAgeH": {
+      "q": 3.2852916717529297,
+      "1": 53.200910568237305,
+      "expected": 53.200910568237305,
+      "class": "moved"
+     },
+     "acute.lastVigAgeH": {
+      "q": -1000000000,
+      "1": -999999950.0843811,
+      "expected": -999999950.0843811,
+      "class": "moved"
+     }
+    },
+    "gap_h": 49.915618896484375
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "OFF_NIC": {
+   "phase": "OFF_NIC",
+   "predicted": {
+    "nicH at P1": "Q's + gap with NICOTINE_WITHDRAWAL above 0",
+    "trivial": "the stat 0",
+    "falsifier": "another value",
+    "unmeasured": "no nicH"
+   },
+   "falsifier": "the stat reads 0: the writer lays nicH at the minute",
+   "observed": {
+    "nicH_q": 5.002174377441406,
+    "nicH_1": 55.91779327392578,
+    "NICOTINE_WITHDRAWAL": 0,
+    "gap_h": 49.915618896484375
+   },
+   "verdict": "trivial",
+   "wall": 321.951
+  },
+  "MG": {
+   "phase": "MG",
+   "predicted": {
+    "magnesium.x at every read with e24 >= 350": 0,
+    "falsifier": "a rung >= 1",
+    "unmeasured": "e24 never reached 350"
+   },
+   "falsifier": "a rung >= 1",
+   "observed": {
+    "food": "Base.Pasta",
+    "ul": 350.0,
+    "reads": 8,
+    "samples": 8,
+    "e24_max": 480.0209860491196,
+    "bad": [],
+    "selenium": [
+     [
+      566.4757579230064,
+      1
+     ]
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "MG_NIACIN": {
+   "phase": "MG_NIACIN",
+   "predicted": {
+    "niacin.x at every read with e24 >= 35": 0,
+    "falsifier": "a rung >= 1",
+    "unmeasured": "e24 never reached 35"
+   },
+   "falsifier": "a rung >= 1",
+   "observed": {
+    "food": "Base.Pasta",
+    "ul": 35.0,
+    "reads": 8,
+    "samples": 8,
+    "e24_max": 65.00208711084021,
+    "bad": [],
+    "selenium": [
+     [
+      566.4757579230064,
+      1
+     ]
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "MG_FOLATE": {
+   "phase": "MG_FOLATE",
+   "predicted": {
+    "folate.x at every read with e24 >= 1000": 0,
+    "falsifier": "a rung >= 1",
+    "unmeasured": "e24 never reached 1000"
+   },
+   "falsifier": "a rung >= 1",
+   "observed": {
+    "food": "Base.Pasta",
+    "ul": 1000.0,
+    "reads": 8,
+    "samples": 8,
+    "e24_max": 3541.2868970793534,
+    "bad": [],
+    "selenium": [
+     [
+      566.4757579230064,
+      1
+     ]
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "COL_ZERO": {
+   "phase": "COL_ZERO",
+   "predicted": {
+    "onUI at an agreeing read with every level 0": false,
+    "falsifier": "true",
+    "unmeasured": "no such read (route own, moodles enabled)"
+   },
+   "falsifier": "true",
+   "observed": {
+    "reads": [
+     {
+      "tag": "S0_col",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 0,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 0
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       0,
+       false,
+       "own"
+      ],
+      "enabled": true
+     },
+     {
+      "tag": "C0_col",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 0,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 0
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       0,
+       false,
+       "own"
+      ],
+      "enabled": true
+     },
+     {
+      "tag": "COL_col1",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 1,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 2
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       2,
+       true,
+       "own"
+      ],
+      "enabled": true
+     }
+    ],
+    "skipped": [],
+    "samples": [
+     "S0_col",
+     "C0_col"
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "COL_RAISED": {
+   "phase": "COL_RAISED",
+   "predicted": {
+    "onUI at an agreeing read with a level above 0": true,
+    "falsifier": "false",
+    "unmeasured": "no such read"
+   },
+   "falsifier": "false",
+   "observed": {
+    "reads": [
+     {
+      "tag": "S0_col",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 0,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 0
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       0,
+       false,
+       "own"
+      ],
+      "enabled": true
+     },
+     {
+      "tag": "C0_col",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 0,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 0
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       0,
+       false,
+       "own"
+      ],
+      "enabled": true
+     },
+     {
+      "tag": "COL_col1",
+      "levels": {
+       "energy": 0,
+       "hydration": 0,
+       "deficiency": 0,
+       "excess": 1,
+       "stimulant": 0,
+       "sleep": 0,
+       "overfull": 2
+      },
+      "stable": true,
+      "route": "own",
+      "probe": [
+       2,
+       true,
+       "own"
+      ],
+      "enabled": true
+     }
+    ],
+    "skipped": [],
+    "samples": [
+     "COL_col1"
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "XR_MG": {
+   "phase": "XR_MG",
+   "predicted": {
+    "at Bands with the rung 0": "no row nut_magnesium_x",
+    "falsifier": "the row present",
+    "unmeasured": "no Bands read or the rung not 0"
+   },
+   "falsifier": "the row present",
+   "observed": {
+    "present": false,
+    "mg_x": 0
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "XR_MG_NUM": {
+   "phase": "XR_MG_NUM",
+   "predicted": {
+    "at Numbers with the rung 0": "the row nut_magnesium_x with text 0",
+    "falsifier": "absent or another text",
+    "unmeasured": "no Numbers read or the rung not 0"
+   },
+   "falsifier": "absent or another text",
+   "observed": {
+    "row": {
+     "key": "nut_magnesium_x",
+     "text": "0",
+     "valueText": "0",
+     "label": "UI_NR_Row_magnesium_x",
+     "level": 3
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "XR_SE": {
+   "phase": "XR_SE",
+   "predicted": {
+    "with nut_selenium_x n > 0": "Bands: text UI_NR_Class_excess_<min(n,3)>; Numbers: text n",
+    "falsifier": "absent or another text",
+    "unmeasured": "the rung 0 or no read"
+   },
+   "falsifier": "absent or another text",
+   "observed": {
+    "bands": {
+     "level": 2,
+     "lastLevel": 2,
+     "received": 4,
+     "mg_x": 0,
+     "se_x": 1,
+     "n": 32,
+     "keys": [
+      "energy",
+      "hydration",
+      "deficiency",
+      "excess",
+      "stimulant",
+      "sleep",
+      "body_band",
+      "body_weight",
+      "body_fat",
+      "body_energyState",
+      "fluids_dehydPct",
+      "nut_vitC_g",
+      "nut_thiamine_g",
+      "nut_riboflavin_g",
+      "nut_niacin_g",
+      "nut_vitB6_g",
+      "nut_folate_g",
+      "nut_vitB12_g",
+      "nut_choline_g",
+      "nut_vitA_g",
+      "nut_vitD_g",
+      "nut_vitK_g",
+      "nut_biotin_g",
+      "nut_iron_g",
+      "nut_zinc_g",
+      "nut_copper_g",
+      "nut_magnesium_g",
+      "nut_calcium_g",
+      "nut_iodine_g",
+      "nut_fibre_g",
+      "nut_efa_g",
+      "nut_selenium_x"
+     ],
+     "rows": {
+      "nut_selenium_x": {
+       "key": "nut_selenium_x",
+       "text": "UI_NR_Class_excess_1",
+       "valueText": "Elevated",
+       "label": "UI_NR_Row_selenium_x",
+       "level": 2
+      }
+     }
+    },
+    "numbers": {
+     "level": 3,
+     "lastLevel": 3,
+     "received": 4,
+     "mg_x": 0,
+     "se_x": 1,
+     "n": 77,
+     "keys": [
+      "energy",
+      "hydration",
+      "deficiency",
+      "excess",
+      "stimulant",
+      "sleep",
+      "body_band",
+      "body_weight",
+      "body_fat",
+      "body_energyState",
+      "body_fm",
+      "body_lm",
+      "fluids_dehydPct",
+      "nut_vitC_g",
+      "nut_vitC_p",
+      "nut_vitC_x",
+      "nut_thiamine_g",
+      "nut_thiamine_p",
+      "nut_thiamine_x",
+      "nut_riboflavin_g",
+      "nut_riboflavin_p",
+      "nut_riboflavin_x",
+      "nut_niacin_g",
+      "nut_niacin_p",
+      "nut_niacin_x",
+      "nut_vitB6_g",
+      "nut_vitB6_p",
+      "nut_vitB6_x",
+      "nut_folate_g",
+      "nut_folate_p",
+      "nut_folate_x",
+      "nut_vitB12_g",
+      "nut_vitB12_p",
+      "nut_vitB12_x",
+      "nut_choline_g",
+      "nut_choline_p",
+      "nut_choline_x",
+      "nut_vitA_g",
+      "nut_vitA_p",
+      "nut_vitA_x",
+      "nut_vitD_g",
+      "nut_vitD_p",
+      "nut_vitD_x",
+      "nut_vitK_g",
+      "nut_vitK_p",
+      "nut_vitK_x",
+      "nut_biotin_g",
+      "nut_biotin_p",
+      "nut_biotin_x",
+      "nut_iron_g",
+      "nut_iron_p",
+      "nut_iron_x",
+      "nut_zinc_g",
+      "nut_zinc_p",
+      "nut_zinc_x",
+      "nut_copper_g",
+      "nut_copper_p",
+      "nut_copper_x",
+      "nut_magnesium_g",
+      "nut_magnesium_p",
+      "nut_magnesium_x",
+      "nut_calcium_g",
+      "nut_calcium_p",
+      "nut_calcium_x",
+      "nut_iodine_g",
+      "nut_iodine_p",
+      "nut_iodine_x",
+      "nut_fibre_g",
+      "nut_fibre_p",
+      "nut_fibre_x",
+      "nut_efa_g",
+      "nut_efa_p",
+      "nut_efa_x",
+      "nut_selenium_x",
+      "acute_caf",
+      "acute_bac",
+      "acute_debtH"
+     ],
+     "rows": {
+      "nut_magnesium_x": {
+       "key": "nut_magnesium_x",
+       "text": "0",
+       "valueText": "0",
+       "label": "UI_NR_Row_magnesium_x",
+       "level": 3
+      },
+      "nut_selenium_x": {
+       "key": "nut_selenium_x",
+       "text": "1",
+       "valueText": "1",
+       "label": "UI_NR_Row_selenium_x",
+       "level": 3
+      }
+     }
+    },
+    "bands_valid": true,
+    "numbers_valid": true,
+    "checked": [
+     2,
+     3
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": {
+    "mod_error": "none",
+    "admin_lua_error": false,
+    "players": "a list"
+   },
+   "falsifier": "a mod error line, admin parked, or no players answer",
+   "observed": {
+    "mod_error_lines": [],
+    "admin_lua_error": false,
+    "admin_parked": false,
+    "players": [
+     "admin"
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 321.951
+  }
+ },
+ "readings": {
+  "ring_rows": 733,
+  "OFF": {
+   "source": "ring",
+   "tolerance": 1e-06,
+   "away_rows": 718,
+   "q_from_away_row": false,
+   "q": {
+    "acute.debtH": 0,
+    "acute.winStartH": 3.2852916717529297,
+    "acute.winSleptH": 0,
+    "acute.mass90ageH": 3.2852916717529297,
+    "acute.lastFedAgeH": 3.2852916717529297,
+    "acute.lastVigAgeH": -1000000000,
+    "nutrients.lastAgeH": 5.002174377441406,
+    "satiety.nicH": 5.002174377441406
+   },
+   "p1": {
+    "acute.debtH": 0,
+    "acute.winStartH": 53.200910568237305,
+    "acute.winSleptH": 0,
+    "acute.mass90ageH": 55.91779327392578,
+    "acute.lastFedAgeH": 53.200910568237305,
+    "acute.lastVigAgeH": -999999950.0843811,
+    "nutrients.lastAgeH": 55.91779327392578,
+    "satiety.nicH": 55.91779327392578,
+    "s": 727,
+    "age": 55.93369674682617,
+    "NICOTINE_WITHDRAWAL": 0
+   },
+   "Lq": 5.002174377441406,
+   "A1": 55.91779327392578,
+   "gap_h": 49.915618896484375,
+   "missed_days": 2.079817454020182,
+   "true_mults": [
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30
+   ],
+   "unfixed_windows": 2
+  }
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.215,
+   "free_gb": 13.84
+  },
+  {
+   "tag": "ready",
+   "wall": 131.565,
+   "free_gb": 0.3
+  },
+  {
+   "tag": "Z",
+   "wall": 311.753,
+   "free_gb": 7.5
+  }
+ ],
+ "col_reads": [
+  {
+   "tag": "S0_col",
+   "levels": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 0,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 0
+   },
+   "levels_after": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 0,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 0
+   },
+   "stable": true,
+   "route": "own",
+   "received": 2,
+   "probe": [
+    0,
+    false,
+    "own"
+   ],
+   "probe_ok": true,
+   "enabled": true,
+   "wall": 134.645
+  },
+  {
+   "tag": "C0_col",
+   "levels": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 0,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 0
+   },
+   "levels_after": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 0,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 0
+   },
+   "stable": true,
+   "route": "own",
+   "received": 1,
+   "probe": [
+    0,
+    false,
+    "own"
+   ],
+   "probe_ok": true,
+   "enabled": true,
+   "wall": 268.729
+  },
+  {
+   "tag": "COL_col1",
+   "levels": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 1,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 2
+   },
+   "levels_after": {
+    "energy": 0,
+    "hydration": 0,
+    "deficiency": 0,
+    "excess": 1,
+    "stimulant": 0,
+    "sleep": 0,
+    "overfull": 2
+   },
+   "stable": true,
+   "route": "own",
+   "received": 3,
+   "probe": [
+    2,
+    true,
+    "own"
+   ],
+   "probe_ok": true,
+   "enabled": true,
+   "wall": 298.063
+  }
+ ],
+ "world_changes": {
+  "restored": "fixture two restored into the run dir (server and both client caches)",
+  "left_in_place": [
+   "OFF: admin and bob quit; the clock ran at AWAY_MULT and was restored; admin rejoined from a fresh fixture restore in <run>/c1b; bob did not rejoin",
+   "RCON additem Base.Pasta x1",
+   "MG: admin ate Base.Pasta"
+  ]
+ },
+ "run_id": "x411-20261014-014614",
+ "session": "Plan 12 Task 5 (x411): the post-fix smoke on the staged release -- the offline skip, the supplement-only ULs, the own moodle column and the excess row; one boot of x41-smoke",
+ "users": [
+  "admin",
+  "bob"
+ ],
+ "profile": {
+  "name": "x41-smoke",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x41-smoke.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the staged NutritionRevamp release copy (release/plan12-x41) + TKX_StudyFoods, fixture two, admin and bob, Nutrition off, DayLength 1, sleep on, build 42.21.0 - x411, Plan 12 Task 5: the post-fix smoke (offline skip, supplement ULs, the own column, the excess row).",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_StudyFoods"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan12-x41\\NutritionRevamp\\Contents\\mods\\NutritionRevamp",
+   "TKX_StudyFoods": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_StudyFoods"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin",
+   "bob"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261008-073547",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "cd9ad7cb",
+ "harness_lua_commit": "a9cc6ea5",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "2b80f0d8",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/plan12-x41/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest": "release/plan12-x41/NutritionRevamp/MANIFEST.json",
+  "staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan12-x41 (the controller, before the boot); the driver checks it and never stages",
+  "ring_note": "a ring row is sampled inside EveryOneMinute before the mod's queue drains that minute",
+  "skip_note": "NR_Server_Nutrients.lua caps a step at 60 game minutes and K.acute.skipRecord moves every world-age anchor laid at or before the previous step's age by the rest",
+  "harness_markers_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"minute.ring\", function(argv)": true,
+    "-- Reply change (016dce05)": true,
+    "TK.register(\"item.get\", function(argv)": true,
+    "TK.register(\"foodtimer.set\", function(argv)": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"eat.action\", function(argv)": true,
+    "TK.register(\"lua.setpath\", function(argv)": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"lua.call\", function(argv)": true,
+    "TK.register(\"lua.read\", function(argv)": true,
+    "trueMult = gt:getTrueMultiplier()": true
+   }
+  },
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "constants": {
+  "PROFILE": "x41-smoke",
+  "PREFIX": "x411",
+  "SESSION": "Plan 12 Task 5 (x411): the post-fix smoke on the staged release -- the offline skip, the supplement-only ULs, the own moodle column and the excess row; one boot of x41-smoke",
+  "ARTIFACT": "smoke.json",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "SRV": "server",
+  "ADMIN": "client:admin",
+  "USERS": [
+   "admin",
+   "bob"
+  ],
+  "QUIT_USERS": [
+   "admin",
+   "bob"
+  ],
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release/plan12-x41",
+  "STAGE_ROOT": "release/plan12-x41/NutritionRevamp",
+  "STAGE_MOD": "release/plan12-x41/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(argv)",
+    "-- Reply change (016dce05)",
+    "TK.register(\"item.get\", function(argv)",
+    "TK.register(\"foodtimer.set\", function(argv)"
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"eat.action\", function(argv)",
+    "TK.register(\"lua.setpath\", function(argv)"
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"lua.call\", function(argv)",
+    "TK.register(\"lua.read\", function(argv)",
+    "trueMult = gt:getTrueMultiplier()"
+   ]
+  },
+  "NR": "NutritionRevamp",
+  "MIN_FREE_GB": 12.0,
+  "BUDGET_S": 840.0,
+  "PHASE_EST_S": {
+   "S0": 25.0,
+   "OFF": 300.0,
+   "C0": 8.0,
+   "MG": 70.0,
+   "COL": 110.0,
+   "XR": 30.0
+  },
+  "PING_TIMEOUT_S": 5,
+  "POLL_S": 0.3,
+  "S0_WAIT_S": 90.0,
+  "MIN_RUNS": 4,
+  "LOG_LIMIT": 400,
+  "SPAWN_WAIT_S": 2.5,
+  "GAME_MIN_S": 0.625,
+  "OFF_PATHS": [
+   "acute.debtH",
+   "acute.winStartH",
+   "acute.winSleptH",
+   "acute.mass90ageH",
+   "acute.lastFedAgeH",
+   "acute.lastVigAgeH",
+   "nutrients.lastAgeH",
+   "satiety.nicH"
+  ],
+  "RING_PATHS": [
+   "acute.debtH",
+   "acute.winStartH",
+   "acute.winSleptH",
+   "acute.mass90ageH",
+   "acute.lastFedAgeH",
+   "acute.lastVigAgeH",
+   "nutrients.lastAgeH",
+   "satiety.nicH"
+  ],
+  "LAST": "nutrients.lastAgeH",
+  "ANCHORS": [
+   "acute.mass90ageH",
+   "acute.lastFedAgeH",
+   "acute.lastVigAgeH"
+  ],
+  "DEPART_CAP_S": 30.0,
+  "AWAY_MULT": 30.0,
+  "AWAY_H": 49.0,
+  "AWAY_POLL_S": 2.0,
+  "AWAY_CAP_S": 150.0,
+  "FIRST_CAP_S": 30.0,
+  "OFF_SETTLE_MIN": 3.0,
+  "OFF_TOL": 1e-06,
+  "OFF_TOL_DIRECT": 0.05,
+  "STEP_CAP_M": 60.0,
+  "WINDOW_H": 24.0,
+  "SLEEP_NEED_H": 7.5,
+  "NEED_MORE": 1.3,
+  "REPAY": 0.5,
+  "DEBT_MAX": 40.0,
+  "SLEEP_SWITCH": "NutritionRevamp.server.nutrients.sleepDisabled",
+  "MG_FOOD": "Base.Pasta",
+  "MG_FALLBACK": "Base.Cereal",
+  "UL_KEYS": [
+   [
+    "MG",
+    "magnesium",
+    350.0
+   ],
+   [
+    "MG_NIACIN",
+    "niacin",
+    35.0
+   ],
+   [
+    "MG_FOLATE",
+    "folate",
+    1000.0
+   ]
+  ],
+  "NUT_KEYS": [
+   "magnesium",
+   "niacin",
+   "folate",
+   "selenium"
+  ],
+  "NUT_PATHS": [
+   "nutrients.magnesium.e24",
+   "nutrients.magnesium.x",
+   "nutrients.niacin.e24",
+   "nutrients.niacin.x",
+   "nutrients.folate.e24",
+   "nutrients.folate.x",
+   "nutrients.selenium.e24",
+   "nutrients.selenium.x",
+   "nutrients.lastAgeH"
+  ],
+  "LAND_CAP_S": 60.0,
+  "MG_READ_S": 10.0,
+  "MG_READ_GAP_S": 1.0,
+  "LANDED": "NutritionRevamp.server.intake.stats.landed",
+  "CLASSES": [
+   "energy",
+   "hydration",
+   "deficiency",
+   "excess",
+   "stimulant",
+   "sleep",
+   "overfull"
+  ],
+  "COL_PATHS": [
+   "received",
+   "moodles.route",
+   "moodles.levels.energy",
+   "moodles.levels.hydration",
+   "moodles.levels.deficiency",
+   "moodles.levels.excess",
+   "moodles.levels.stimulant",
+   "moodles.levels.sleep",
+   "moodles.levels.overfull"
+  ],
+  "REQUEST_GAP_S": 5.5,
+  "ARRIVE_CAP_S": 8.0,
+  "SLOW_MULT": 0.1,
+  "DRIVE_FOOD": "TKX.Mixed650",
+  "DRIVE_EATS": 2,
+  "ROW_CHUNK": 60,
+  "ROW_MAX": 240,
+  "XR_ROWS": [
+   "nut_magnesium_x",
+   "nut_selenium_x"
+  ],
+  "ROW_FIELDS": [
+   "key",
+   "text",
+   "valueText",
+   "label",
+   "level"
+  ],
+  "RUNG_MAX": 3,
+  "ECHO_RX": "PZTK: ",
+  "PROBE_RX": "\\b(?:lua\\.(?:read|global|call|setpath)|minute\\.ring|time\\.(?:snapshot|multiplier)|item\\.get|foodtimer\\.set|eat\\.action|additem|requestMirror|moodles\\.probe|view\\.refresh)",
+  "CMD_ECHO_RX": "^\\s*(?:lua\\.|minute\\.ring|time\\.|item\\.get|foodtimer\\.set|eat\\.action|additem)",
+  "LOG_RX": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|NR_Client|NR_Kernel|NR_Server|failed:",
+  "PHASES": [
+   [
+    "S0",
+    "<function phase_S0 at 0x00000259141FF9C0>",
+    false
+   ],
+   [
+    "OFF",
+    "<function phase_OFF at 0x00000259141FFA60>",
+    false
+   ],
+   [
+    "C0",
+    "<function phase_C0 at 0x00000259141FFB00>",
+    true
+   ],
+   [
+    "MG",
+    "<function phase_MG at 0x00000259141FFC40>",
+    true
+   ],
+   [
+    "COL",
+    "<function phase_COL at 0x00000259141FFCE0>",
+    true
+   ],
+   [
+    "XR",
+    "<function phase_XR at 0x00000259141FFE20>",
+    true
+   ]
+  ],
+  "DOSES": {
+   "Base.Pasta": {
+    "magnesium": 480.021,
+    "niacin": 65.002089,
+    "folate": 3541.287,
+    "selenium": 572.4024
+   },
+   "Base.Cereal": {
+    "magnesium": 894.292
+   },
+   "TKX.Mixed650": {}
+  },
+  "ULS": {
+   "magnesium": [
+    350.0,
+    true
+   ],
+   "niacin": [
+    35.0,
+    true
+   ],
+   "folate": [
+    1000.0,
+    true
+   ],
+   "selenium": [
+    400.0,
+    false
+   ]
+  },
+  "SELFTEST": [
+   [
+    "fixed",
+    {
+     "smoker": true
+    },
+    {
+     "OFF_AWAY": "as_predicted",
+     "OFF_WIN": "as_predicted",
+     "OFF_DEBT": "as_predicted",
+     "OFF_ANCHORS": "as_predicted",
+     "OFF_NIC": "as_predicted",
+     "MG": "as_predicted",
+     "MG_NIACIN": "as_predicted",
+     "MG_FOLATE": "as_predicted",
+     "COL_ZERO": "as_predicted",
+     "COL_RAISED": "as_predicted",
+     "XR_MG": "as_predicted",
+     "XR_MG_NUM": "as_predicted",
+     "XR_SE": "as_predicted",
+     "Z": "as_predicted"
+    }
+   ],
+   [
+    "broken_b",
+    {
+     "smoker": true,
+     "off": true,
+     "ul": true,
+     "col_zero": true,
+     "xr_se": true,
+     "z": true
+    },
+    {
+     "OFF_WIN": "falsified",
+     "OFF_DEBT": "falsified",
+     "OFF_ANCHORS": "falsified",
+     "OFF_NIC": "falsified",
+     "MG": "falsified",
+     "MG_NIACIN": "falsified",
+     "MG_FOLATE": "falsified",
+     "COL_ZERO": "falsified",
+     "XR_MG": "unmeasured",
+     "XR_SE": "falsified",
+     "Z": "falsified"
+    }
+   ],
+   [
+    "broken_c",
+    {
+     "away_moves": true,
+     "col_raised": true,
+     "xr_mg": true,
+     "xr_num": true,
+     "lowdose": true
+    },
+    {
+     "OFF_AWAY": "falsified",
+     "OFF_ANCHORS": "unmeasured",
+     "MG": "unmeasured",
+     "MG_NIACIN": "as_predicted",
+     "COL_ZERO": "as_predicted",
+     "COL_RAISED": "falsified",
+     "XR_MG": "falsified",
+     "XR_MG_NUM": "falsified",
+     "XR_SE": "as_predicted",
+     "Z": "as_predicted"
+    }
+   ],
+   [
+    "debt_max",
+    {
+     "smoker": true,
+     "debt_max": true
+    },
+    {
+     "OFF_WIN": "as_predicted",
+     "OFF_DEBT": "trivial"
+    }
+   ],
+   [
+    "no_depart",
+    {
+     "no_depart": true
+    },
+    {}
+   ],
+   [
+    "drive",
+    {
+     "no_raise": true
+    },
+    {
+     "COL_ZERO": "as_predicted",
+     "COL_RAISED": "as_predicted",
+     "XR_SE": "unmeasured",
+     "MG": "as_predicted"
+    }
+   ]
+  ]
+ },
+ "predictions": {
+  "OFF_AWAY": {
+   "every away ring row": "the away state of every OFF field",
+   "falsifier": "an away row that moved",
+   "unmeasured": "no away row"
+  },
+  "OFF_WIN": {
+   "winStartH at P1": "Q's + gap, + 24 h per window the integrated hour closes",
+   "tolerance": 1e-06,
+   "falsifier": "any other value (the unfixed: Q's + whole days)",
+   "trivial": "the fixed and unfixed values within 0.01 h"
+  },
+  "OFF_DEBT": {
+   "debtH at P1": "Q's when no window closes in the integrated hour, else within [Q's - REPAY x 24, Q's + k x 7.5 x NEED_MORE]",
+   "falsifier": "outside (about 7.5 h per missed day)",
+   "unmeasured": "gap < 24 h",
+   "void": "sleepDisabled true"
+  },
+  "OFF_ANCHORS": {
+   "mass90ageH, lastFedAgeH, lastVigAgeH at P1": "Q's + gap, or A1 when re-laid",
+   "falsifier": "an anchor left at Q's value or at any other",
+   "trivial": "every anchor re-laid"
+  },
+  "OFF_NIC": {
+   "nicH at P1": "Q's + gap with NICOTINE_WITHDRAWAL above 0",
+   "trivial": "the stat 0",
+   "falsifier": "another value",
+   "unmeasured": "no nicH"
+  },
+  "MG": {
+   "magnesium.x at every read with e24 >= 350": 0,
+   "falsifier": "a rung >= 1",
+   "unmeasured": "e24 never reached 350"
+  },
+  "MG_NIACIN": {
+   "niacin.x at every read with e24 >= 35": 0,
+   "falsifier": "a rung >= 1",
+   "unmeasured": "e24 never reached 35"
+  },
+  "MG_FOLATE": {
+   "folate.x at every read with e24 >= 1000": 0,
+   "falsifier": "a rung >= 1",
+   "unmeasured": "e24 never reached 1000"
+  },
+  "COL_ZERO": {
+   "onUI at an agreeing read with every level 0": false,
+   "falsifier": "true",
+   "unmeasured": "no such read (route own, moodles enabled)"
+  },
+  "COL_RAISED": {
+   "onUI at an agreeing read with a level above 0": true,
+   "falsifier": "false",
+   "unmeasured": "no such read"
+  },
+  "XR_MG": {
+   "at Bands with the rung 0": "no row nut_magnesium_x",
+   "falsifier": "the row present",
+   "unmeasured": "no Bands read or the rung not 0"
+  },
+  "XR_MG_NUM": {
+   "at Numbers with the rung 0": "the row nut_magnesium_x with text 0",
+   "falsifier": "absent or another text",
+   "unmeasured": "no Numbers read or the rung not 0"
+  },
+  "XR_SE": {
+   "with nut_selenium_x n > 0": "Bands: text UI_NR_Class_excess_<min(n,3)>; Numbers: text n",
+   "falsifier": "absent or another text",
+   "unmeasured": "the rung 0 or no read"
+  },
+  "Z": {
+   "mod_error": "none",
+   "admin_lua_error": false,
+   "players": "a list"
+  }
+ },
+ "manifest_gate": {
+  "head": "cd9ad7cb199c69636cc1c48bed9b950bded3ef03",
+  "head_short": "cd9ad7cb",
+  "mod_commit": "e767b20a",
+  "mod_dirty": false,
+  "staged_manifest": "release/plan12-x41/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan12-x41/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest_sha256": "2d016dc59c8745312461d4e1dcf5454179906834f3ce8a93d2ffe87beb0d02bf",
+  "files": 74,
+  "staged_equals_head": true,
+  "staged_tree_equals_head": true,
+  "ok": true,
+  "staged_version": "1.0.0",
+  "verify_rows_match": true
+ },
+ "lint_errors": [],
+ "server_launch_wall": 2.128,
+ "server_started_wall": 34.398,
+ "session_ready_wall": 128.671,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "Base.Pasta",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "Base.Pasta",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -60,
+    "ThirstChange": 60,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "item.script",
+   "args": "Base.Pasta",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "Base.Pasta",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -60,
+    "ThirstChange": 60,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "TKX.Mixed650",
+   "expect": "\"via\"",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.Mixed650",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -32,
+    "ThirstChange": 0,
+    "DaysFresh": 365,
+    "DaysTotallyRotten": 730,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 34.4,
+   "phase": "server_started"
+  },
+  {
+   "t": 34.5,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 73.3,
+   "phase": "client_ready",
+   "took": 38.4,
+   "user": "admin"
+  },
+  {
+   "t": 73.4,
+   "phase": "client_launch",
+   "user": "bob",
+   "restored": true
+  },
+  {
+   "t": 128.7,
+   "phase": "client_ready",
+   "took": 54.9,
+   "user": "bob"
+  },
+  {
+   "t": 128.7,
+   "phase": "session_ready"
+  },
+  {
+   "t": 129.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 129.7,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 130.2,
+   "phase": "verify",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 130.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"Base.Pasta\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \"Th"
+  },
+  {
+   "t": 131.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"Base.Pasta\", \"via\": \"getItem\", \"side\": \"client\", \"access\": {\"HungerChange\": \"get\", \"Th"
+  },
+  {
+   "t": 131.5,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.Mixed650\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 140.1,
+   "phase": "client_quit",
+   "user": "admin",
+   "which": "first",
+   "rc": 0
+  },
+  {
+   "t": 142.1,
+   "phase": "client_quit",
+   "user": "bob",
+   "which": "first",
+   "rc": 0
+  },
+  {
+   "t": 207.9,
+   "phase": "client_launch",
+   "user": "admin",
+   "which": "c1b",
+   "restored": true
+  },
+  {
+   "t": 264.1,
+   "phase": "client_ready",
+   "took": 55.8,
+   "user": "admin",
+   "which": "c1b"
+  },
+  {
+   "t": 271.6,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Pasta\" 1",
+   "ok": true
+  },
+  {
+   "t": 314.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 321.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "OFF_AWAY",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "OFF_WIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "OFF_DEBT",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "OFF_ANCHORS",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "OFF_NIC",
+   "verdict": "trivial"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "MG",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "MG_NIACIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "MG_FOLATE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "COL_ZERO",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "COL_RAISED",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "XR_MG",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "XR_MG_NUM",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "XR_SE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 322.0,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "budget": {
+  "BUDGET_S": 840.0,
+  "checks": [
+   {
+    "phase": "S0",
+    "wall": 131.573,
+    "estimate": 25.0
+   },
+   {
+    "phase": "OFF",
+    "wall": 136.168,
+    "estimate": 300.0
+   },
+   {
+    "phase": "C0",
+    "wall": 268.471,
+    "estimate": 8.0
+   },
+   {
+    "phase": "MG",
+    "wall": 270.261,
+    "estimate": 70.0
+   },
+   {
+    "phase": "COL",
+    "wall": 296.033,
+    "estimate": 110.0
+   },
+   {
+    "phase": "XR",
+    "wall": 299.589,
+    "estimate": 30.0
+   }
+  ]
+ },
+ "eats": [
+  {
+   "queued": true,
+   "fraction": 1,
+   "spawned": "found",
+   "itemId": 1333279714,
+   "validStart": true,
+   "maxTime": 464.158748626709,
+   "error": null,
+   "raw": null,
+   "wall": 275.842,
+   "tag": "MG"
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 35.8,
+   "ready": 38.4
+  },
+  {
+   "user": "bob",
+   "in_game": 52.4,
+   "ready": 54.9
+  },
+  {
+   "user": "admin",
+   "in_game": 53.8,
+   "ready": 55.8
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+   "mod_err": "NR_[A-Z][A-Za-z_]*\\.lua|NR_Client|NR_Kernel|NR_Server|failed:",
+   "echo_excluded": "PZTK: ",
+   "probe_excluded": "\\b(?:lua\\.(?:read|global|call|setpath)|minute\\.ring|time\\.(?:snapshot|multiplier)|item\\.get|foodtimer\\.set|eat\\.action|additem|requestMirror|moodles\\.probe|view\\.refresh)"
+  },
+  "clients": {
+   "admin": [
+    {
+     "console": "clients\\admin\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\admin\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     ],
+     "excluded": 0
+    },
+    {
+     "console": "c1b\\clients\\admin\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\c1b\\clients\\admin\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     ],
+     "excluded": 0
+    }
+   ],
+   "bob": [
+    {
+     "console": "clients\\bob\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\clients\\bob\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     ],
+     "excluded": 0
+    }
+   ]
+  },
+  "server": {
+   "lines": [
+    "LOG  : Mod          f:0 st:2,299,523,131> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:2,299,523,137> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:2,299,523,137> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:2,299,523,138> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:2,299,523,138> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "ERROR: General      f:0 st:2,299,534,599> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,599> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,601> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,601> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,602> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,602> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,603> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,604> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,605> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\TKX_StudyFoods\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,605> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\TKX_StudyFoods\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,606> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:2,299,534,606> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x411-20261014-014614\\server\\mods\\TKX_StudyFoods\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "LOG  : Lua          f:0 st:2,299,547,998> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:2,299,547,998> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,299,548,008> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:2,299,548,009> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:2,299,548,009> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:2,299,548,009> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:2,299,548,145> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+    "ERROR: WorldGen     f:0 st:2,299,548,541> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderW",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,299,548,542> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderS at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderS",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,299,548,542> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderE at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderE",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,299,548,542> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderN at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: ladderN",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:2,299,548,546> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: WindowShape at IsoPropertyType.lookup(IsoPropertyType.java:273). Message: Property Name not found: WindowShape",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:2,299,551,804> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:2,299,551,805> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=13 nutritionOn=false log=2",
+    "LOG  : Lua          f:363 st:2,299,589,511> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:913 st:2,299,644,463> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:1026 st:2,299,655,759> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:1046 st:2,299,657,757> [NutritionRevamp] players: bob left",
+    "LOG  : Lua          f:2274 st:2,299,780,582> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:2770 st:2,299,830,161> [NutritionRevamp] players: admin left"
+   ],
+   "excluded": 14,
+   "mod_errors": []
+  }
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json",
+  "minute-ring-admin-1.json",
+  "minute-ring-admin-721.json"
+ ],
+ "wall_seconds": 322.0
+}
