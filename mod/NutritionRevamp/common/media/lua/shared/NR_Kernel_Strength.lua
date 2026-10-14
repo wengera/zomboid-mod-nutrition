@@ -188,13 +188,14 @@ function K.strength.fe(E, s, p, tdee, P)
 end
 
 -- The day's lean gain in kg before the biology clock ts (spec section 5): k a week times the room to the
--- cap Fc, the signal and the two gates, times the alcohol gate; while lm sits below the held peak Pk, the
--- regain term (half-life regain_hl_wk, the signal capped at 1, the same gates) wins if larger. Never negative.
+-- cap Fc, the signal, the two gates and the alcohol gate; while lm sits below the held peak Pk, the regain
+-- term (half-life regain_hl_wk, the signal capped at 1, the same three gates: a drinking day blunts the same
+-- synthesis, controller ruling) wins if larger. Never negative.
 function K.strength.growth(body, S, p, E, tdee, alcGkg, P)
     local s = K.strength.status(body)
     local G = K.strength.signal(S, s, P)
-    local gates = K.strength.fp(p, P) * K.strength.fe(E, s, p, tdee, P)
-    local grow = P.k * (body.Fc - body.lm) * G * gates / 7 * K.partition.gAlc(alcGkg)
+    local gates = K.strength.fp(p, P) * K.strength.fe(E, s, p, tdee, P) * K.partition.gAlc(alcGkg)
+    local grow = P.k * (body.Fc - body.lm) * G * gates / 7
     if body.lm < body.Pk then
         local lr = math.log(2) / P.regain_hl_wk
         local regain = lr * (body.Pk - body.lm) * K.min(1, G) * gates / 7

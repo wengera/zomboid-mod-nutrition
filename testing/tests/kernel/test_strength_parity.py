@@ -203,6 +203,24 @@ def test_alcohol_scales_growth(host):
     assert abs(drunk - sober * host.K.partition.G_ALC) < 1e-15
 
 
+def test_alcohol_scales_regain(host):
+    # controller ruling (Task 6): regain carries the alcohol gate as growth does
+    D = _d(host)
+    F0 = sm.F_of(5.0)
+    Fc = sm.F_of(16.5)
+    lost = _body(host, F0 + 1.0, F0, Fc, F0 + 8.0)
+    s = host.call("strength.status", lost)
+    G = host.call("strength.signal", 12.0, s, D)
+    gates = host.call("strength.fp", 1.8, D) * host.call("strength.fe", 300.0, s, 1.8, 2600.0, D)
+    regain = math.log(2) / D["regain_hl_wk"] * 7.0 * min(1.0, G) * gates / 7.0
+    grow = D["k"] * (Fc - (F0 + 1.0)) * G * gates / 7.0
+    assert regain > grow  # the regain arm is the one returned
+    sober = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 0.0, D)
+    drunk = host.call("strength.growth", lost, 12.0, 1.8, 300.0, 2600.0, 1.2, D)
+    assert abs(sober - regain) < 1e-12
+    assert abs(drunk - host.K.partition.G_ALC * sober) < 1e-15
+
+
 def test_regain_returns_lost_lean_faster_than_growth(host):
     D = _d(host)
     F0 = sm.F_of(5.0)
