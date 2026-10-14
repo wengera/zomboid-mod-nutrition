@@ -471,12 +471,12 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     return a
 end
 
--- Skip gapH game hours the adapter does not integrate (an offline gap past the step's cap from fromH): every world-age
--- anchor laid at or before fromH moves forward by the gap -- the sleep window's start, the 90-day mass stamp, the last
--- fed minute (the adapter's lastFedAgeH) and the last band-2 minute -- so no window closes, and no fasting, vigorous or
--- mass clock runs, over time the model never saw. An anchor laid after fromH was laid at the return (an eat in the
--- return minute) and stays. Offline time is not simulated (README).
-function K.acute.skip(a, fromH, gapH)
+-- Skip gapH game hours the adapter does not integrate (an offline gap past the step's cap from fromH; every offline
+-- skip takes gapH, then fromH): every world-age anchor laid at or before fromH moves forward by the gap -- the sleep
+-- window's start, the 90-day mass stamp, the last fed minute (the adapter's lastFedAgeH) and the last band-2 minute --
+-- so no window closes, and no fasting, vigorous or mass clock runs, over time the model never saw. An anchor laid after
+-- fromH was laid at the return (an eat in the return minute) and stays. Offline time is not simulated (README).
+function K.acute.skip(a, gapH, fromH)
     if a.winStartH <= fromH then
         a.winStartH = a.winStartH + gapH
     end
@@ -499,7 +499,7 @@ end
 -- return (an eat before the first step back) and stays. A nicH that is absent or not a finite number is left for the
 -- writer's own heal. Returns the record.
 function K.acute.skipRecord(record, gapH, fromH)
-    K.acute.skip(record.acute, fromH, gapH)
+    K.acute.skip(record.acute, gapH, fromH)
     K.monotony.skip(record.monotony, gapH, fromH)
     local s = record.satiety
     if type(s) == "table" and K.vector.finite(s.nicH) and s.nicH <= fromH then
