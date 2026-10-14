@@ -667,14 +667,15 @@ function K.view.fatBand(m, female, last)
 end
 
 -- The Strength row, pushed at level 2 (ruling 13-19): the true level truncated to one decimal, never rounded up (a 9.96 reads
--- 9.9, not 10.0 beside a native 9), or No data when the mirror carries no finite body_level.
+-- 9.9, not 10.0 beside a native 9; a level built on an integer reads it whole), or No data when the mirror carries no finite body_level.
 function K.view.levelRow(rows, m)
     local v = m.body_level
-    if type(v) ~= "number" or v ~= v or v == math.huge or v == -math.huge then
+    if not K.mirror.finite(v) then
         K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.NO_DATA, 2, true)
         return
     end
-    K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(math.floor(v * 10) / 10, 1), 2, false)
+    local shown = K.max(0, math.floor((v + 1e-9) * 10) / 10) -- the epsilon of K.strength.shown; a negative level reads 0.0 (the perk is clamped at 0)
+    K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(shown, 1), 2, false)
 end
 
 -- The Body fat row, pushed at level 2: its text the band word (UI_NR_FatBand_<word>) or No data, its fatBand the index the

@@ -252,3 +252,12 @@ def test_mirror_without_a_finite_level_sends_no_level_key(host):
     m = host.py(host.call("mirror.build", rec(host), host.table(META)))
     assert "body_level" not in m and "body_sets" not in m
     assert all(isinstance(v, (str, int, float, bool)) for v in _level_mirror(host).values())
+
+
+def test_mirror_sends_no_level_when_the_level_is_not_finite_or_s_is_not(host):
+    P = host.K.strength.params(host.table({}))[0]
+    P.R = 1.0                                           # level divides by R - 1: inf or NaN
+    assert "body_level" not in _level_mirror(host, P)
+    m = _level_mirror(host, None, S=float("nan"))
+    assert "body_sets" not in m and "body_level" in m
+    assert _level_mirror(host)["body_sets"] == 12.0

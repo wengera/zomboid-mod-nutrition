@@ -752,7 +752,8 @@ def level_row(h, level, lv=2, **extra):
 
 
 @pytest.mark.parametrize("level,text", [(12.34, "12.3"), (9.96, "9.9"), (9.99999, "9.9"), (12.0, "12.0"),
-                                        (0.0, "0.0"), (0.04, "0.0"), (5.0, "5.0"), (30.0, "30.0")])
+                                        (0.0, "0.0"), (0.04, "0.0"), (5.0, "5.0"), (30.0, "30.0"), (-0.04, "0.0"), (-3.25, "0.0"),
+                                        (6.999999999999997, "7.0"), (0.9999999999999999, "1.0")])
 def test_the_strength_row_truncates_and_never_rounds_up(host, level, text):
     _, row = level_row(host, level)
     assert row == {"key": "body_level", "label": "UI_NR_Row_body_level", "text": text, "level": 2, "isKey": False}
@@ -772,8 +773,16 @@ def test_a_body_less_mirror_shows_no_data_for_strength(host):
     assert row["text"] == "UI_NR_Band_none" and row["isKey"] is True
     _, row = level_row(host, float("nan"))
     assert row["text"] == "UI_NR_Band_none"
-    _, row = level_row(host, float("inf"))
-    assert row["text"] == "UI_NR_Band_none"
+    for bad in (float("inf"), float("-inf")):
+        _, row = level_row(host, bad)
+        assert row["text"] == "UI_NR_Band_none"
     rows = rows_of(host, V(host).rows(None, 2, None))
     assert {r["key"]: r for r in rows}["body_level"]["text"] == "UI_NR_Band_none"
 
+
+def test_a_level_built_on_a_trait_start_level_reads_it_whole(host):
+    D = host.K.strength.DEFAULTS
+    for key in ("STRONG", "STOUT", "none", "FEEBLE", "WEAK"):
+        F = host.K.strength.fOfLevel(D.startLevel[key], D.N0[key], 1, D)
+        _, row = level_row(host, host.K.strength.level(F, D.N0[key], 1, D))
+        assert row["text"] == "%d.0" % D.startLevel[key], key

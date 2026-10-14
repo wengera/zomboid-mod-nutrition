@@ -70,7 +70,9 @@ function K.mirror.body(m, body, P)
     m.body_ebDay = body.ebDay
     m.body_eeDay = body.eeDay
     m.body_inDay = body.inDay
-    m.body_sets = body.S
+    if K.mirror.finite(body.S) then
+        m.body_sets = body.S
+    end
     if K.mirror.finite(body.lm) and K.mirror.finite(body.N0) and K.mirror.finite(body.T) then
         local level = K.strength.level(body.lm, body.N0, body.T, P or K.strength.DEFAULTS)
         if K.mirror.finite(level) then
