@@ -71,8 +71,9 @@ function NR.worldAge()
     return nil
 end
 
+-- A finite number: x - x is 0 for every finite number and NaN for NaN and either infinity.
 function NR.finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+    return type(x) == "number" and x - x == 0
 end
 
 -- The raise log (the bug review's should-fix): a member that raises inside NR.num, NR.obj or
@@ -240,6 +241,10 @@ function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end
 -- bd (optional) is the body damage the caller holds, so a call with no ctx reads it once.
 function RD.thermo(ctx, p, bd) return memo(ctx, "eThermo", readThermo, ctx, p, bd) end
 function RD.nutrition(ctx, p) return memo(ctx, "eNut", readNutrition, p) end
+
+-- The context keys the reads above keep: the pipeline drops them at the end of each player's minute (MIN.run), so the
+-- shared context holds no player's Java objects between drains.
+RD.KEYS = { "eAge", "eHour", "eAsleep", "eTraits", "eBd", "eThermo", "eNut" }
 
 -- The trait-block push (#2099): sendSyncPlayerFields(player, 2), a Java global called with a dot (#2815), under one
 -- pcall, so a raise never skips the work after it in the caller's minute. Counted in stats.pushes, or in

@@ -10,7 +10,7 @@
 -- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
 -- 400 mg. absorb(emptied) with no ctx keeps the Plan 2 reading off the emptied vector itself. Ruling T19-1 extends the
 -- context to the fat factor: ctx carries the buffer's lipids. Caffeine and ethanol never enter the buffer (ruling
--- T17-2: the intake landing diverts them to the acute kernel's gut lane), so their BIOAVAIL entries stay 1.0 and unused.
+-- T17-2: the intake landing diverts them to the acute kernel's gut lane), so they have no BIOAVAIL entry (an unlisted key passes at 1.0).
 -- The emptying constants rest on settled rows as labelled inferences (Plan 11c's block below); the absorption factors
 -- cite settled rows. Pure: tables in, tables out, no Java. Slow-clock code with no @fastpath region, so math.exp and
 -- the bounded `for` over K.vector.KEYS (a Lua table the kernel built, so `#` is a Lua length) are allowed. This file

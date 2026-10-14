@@ -326,17 +326,34 @@ def test_the_requirement_map_follows_the_players_sex():
     assert T(rt).R[1] is None
 
 
-def test_the_same_item_again_reads_only_its_hunger_left():
+def test_the_same_item_again_reads_only_its_hunger_left_and_its_calories():
     rt = rt_with(view=True)
     rt.execute("NR_T.reads = 0; NR_T.apple = NR_T.food('Base.Apple')")
-    rt.execute("for _, n in ipairs({'IsFood', 'getFullType', 'getModData', 'getCalories', 'getBaseHunger'}) do"
+    rt.execute("for _, n in ipairs({'IsFood', 'getFullType', 'getModData', 'getBaseHunger', 'getCarbohydrates'}) do"
                " local f = NR_T.apple[n]; NR_T.apple[n] = function(...) NR_T.reads = NR_T.reads + 1; return f(...) end end")
+    rt.execute("NR_T.cals = 0; local f = NR_T.apple.getCalories"
+               " NR_T.apple.getCalories = function(...) NR_T.cals = NR_T.cals + 1; return f(...) end")
     T(rt).linesFor(rt.eval("NR_T.apple"))
-    first = rt.eval("NR_T.reads")
+    first, cals = rt.eval("NR_T.reads"), rt.eval("NR_T.cals")
     assert first > 0
     for _ in range(3):
         T(rt).linesFor(rt.eval("NR_T.apple"))
     assert rt.eval("NR_T.reads") == first      # no other Java read on a hit
+    assert rt.eval("NR_T.cals") == cals + 3    # the calorie check, once a hit (P12-14)
+
+
+def test_a_calorie_change_with_the_hunger_unchanged_is_not_answered_from_the_last_item():
+    rt = rt_with(view=True)
+    rt.execute("NR_T.o = {}; NR_T.apple = NR_T.food('Base.Apple', NR_T.o)")
+    same = rt.eval("function(a, b) return a == b end")
+    a = T(rt).entryFor(rt.eval("NR_T.apple"))
+    hits = T(rt).stats.cacheHits
+    assert same(T(rt).entryFor(rt.eval("NR_T.apple")), a) and T(rt).stats.cacheHits == hits + 1
+    rt.execute("NR_T.o.cal = 190")                 # the macros moved, the hunger left did not
+    b = T(rt).entryFor(rt.eval("NR_T.apple"))
+    assert T(rt).stats.cacheHits == hits + 1        # a miss: neither T.last nor the keyed cache answered
+    assert not same(b, a)
+    assert same(T(rt).entryFor(rt.eval("NR_T.apple")), b)   # and the new entry is the next hit's
 
 
 # --------------------------------------------------------------------------------------------------- the cache

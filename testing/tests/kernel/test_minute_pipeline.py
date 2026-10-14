@@ -335,3 +335,37 @@ def test_the_shared_reads_keep_a_nil_answer_and_read_afresh_with_no_context():
     assert C.n == 1                                     # a nil answer is kept, not read again
     assert R.nutrition(None, p) is None and R.nutrition(None, p) is None
     assert C.n == 3                                     # no context: every call reads
+
+def test_two_players_in_one_drain_each_read_their_own_engine_answers():
+    # the context is the pipeline's one table: each player's minute reads its own isAsleep, once, and shares it with
+    # its later steps; the next player's minute never sees the previous one's answer
+    h = Host()
+    M = h.NR.server.minute
+    for name in ORDER:
+        M.register(name, h.rt.eval("function() end"))
+    seen = h.rt.eval("{}")
+    reader = h.rt.eval("function(t) return function(u, p, r, ctx)"
+                       " t[#t + 1] = u .. '=' .. tostring(NutritionRevamp.read.asleep(ctx, p)) end end")(seen)
+    M.register("nutrients", reader)
+    M.register("effects", reader)
+    C = h.rt.eval("{ a = 0, b = 0 }")
+    mk = h.rt.eval("function(C, name, v) return { isAsleep = function(s) C[name] = C[name] + 1; return v end } end")
+    pa, pb = mk(C, "a", True), mk(C, "b", False)
+    for u, p in (("a", pa), ("b", pb), ("a", pa)):
+        M.run(u, p, h.rt.table(), 100.0)
+    assert [seen[i] for i in range(1, len(seen) + 1)] == ["a=true", "a=true", "b=false", "b=false", "a=true", "a=true"]
+    assert (C.a, C.b) == (2, 1)                         # one read a player-minute
+
+
+def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
+    h = Host()
+    M = h.NR.server.minute
+    for name in ORDER:
+        M.register(name, h.rt.eval("function() end"))
+    M.register("effects", h.rt.eval("function(u, p, r, ctx) NutritionRevamp.read.asleep(ctx, p);"
+                                     " NutritionRevamp.read.nutrition(ctx, p); ctx.kept = 1 end"))
+    p = h.rt.eval("{ isAsleep = function() return true end, getNutrition = function() return {} end }")
+    M.run("a", p, h.rt.table(), 100.0)
+    keys = [h.NR.read.KEYS[i] for i in range(1, len(h.NR.read.KEYS) + 1)]
+    assert len(keys) == 7 and all(M.ctx[k] is None for k in keys)
+    assert M.ctx.kept == 1                              # a step's own hand-off stays until the next run clears it

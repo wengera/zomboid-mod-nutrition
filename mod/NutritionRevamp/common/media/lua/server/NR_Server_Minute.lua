@@ -30,7 +30,8 @@ function MIN.register(name, fn)
 end
 
 -- One player's minute: clear the context, seed it with the minute's world age (ageH, P.work's read; nil leaves the
--- first step to read it), then every registered step in ORDER, each under its own pcall.
+-- first step to read it), then every registered step in ORDER, each under its own pcall; the engine reads the steps
+-- shared (NR.read.KEYS) are dropped at the end, so no player's Java handles outlive the minute.
 function MIN.run(username, player, record, ageH)
     local ctx = MIN.ctx
     for k in pairs(ctx) do ctx[k] = nil end
@@ -45,6 +46,10 @@ function MIN.run(username, player, record, ageH)
                 NR.log.say(2, "minute: " .. MIN.ORDER[i] .. " failed for " .. tostring(username) .. ": " .. tostring(err))
             end
         end
+    end
+    local keys = NR.read.KEYS
+    for i = 1, #keys do
+        ctx[keys[i]] = nil
     end
 end
 

@@ -266,8 +266,9 @@ function T.keyOf(fullType, declared, level, sex, m)
 end
 
 -- The band entry of one item: { lines, source } (lines.width the widest line in pixels, set beside the array
--- part), or nil for no item or a non-Food. The same item again answers from T.last after one Java read (its hunger
--- left, which every eat moves) and the cheap level and sex; the key and the macro tuple are built on a miss only.
+-- part), or nil for no item or a non-Food. The same item again answers from T.last after two Java reads (its hunger
+-- left, which every eat moves, and its calories, so a macro change with the hunger unchanged is not shown stale) and
+-- the cheap level and sex; the key and the macro tuple are built on a miss only.
 function T.entryFor(item)
     if item == nil then return nil end
     T.hook()
@@ -275,7 +276,7 @@ function T.entryFor(item)
     local sex = T.sex()
     local last = T.last
     if last ~= nil and last.item == item and last.level == level and last.sex == sex
-        and last.hung == read(item, "getHungChange") then
+        and last.hung == read(item, "getHungChange") and last.cal == read(item, "getCalories") then
         T.stats.cacheHits = T.stats.cacheHits + 1
         return last.entry
     end
@@ -292,7 +293,8 @@ function T.entryFor(item)
         entry = T.build(item, fullType, declared, level, sex, macros)
         T.cache[key] = entry
     end
-    T.last = { item = item, level = level, sex = sex, hung = read(item, "getHungChange"), entry = entry }
+    T.last = { item = item, level = level, sex = sex, hung = read(item, "getHungChange"), cal = read(item, "getCalories"),
+               entry = entry }
     return entry
 end
 
