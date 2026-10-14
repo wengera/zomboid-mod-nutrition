@@ -67,6 +67,25 @@ def test_the_neural_rise_grace_and_decay():
     assert abs((T - 1) / (T0 - 1) - math.exp(-1.0)) < 1e-12
 
 
+def test_the_neural_signal_saturates_at_Wsat_and_counts_below_m_Wsat():
+    # half the saturating signal rises at half the rate; the grace counter counts days below m * Wsat (5/3 sets)
+    T, g = 1.0, 0
+    for _ in range(7):
+        T, g = sl.neural_day(T, g, 2.5)
+    assert abs(T - (1.1 - 0.1 * math.exp(-0.5 * 7 / 21))) < 1e-12
+    assert g == 0
+    assert sl.neural_day(T, 5, 1.6)[1] == 6
+    assert sl.neural_day(T, 5, 1.7)[1] == 0
+    # past the grace, a day below the threshold decays T and never raises it
+    T1, g1 = sl.neural_day(1.05, 21, 1.6)
+    assert g1 == 22 and abs(T1 - (1 + 0.05 * math.exp(-1 / 84))) < 1e-12
+    # the biology clock divides the grace and scales the day
+    T2, g2 = sl.neural_day(1.05, 11, 0.0, ts=2.0)
+    assert g2 == 12 and abs(T2 - (1 + 0.05 * math.exp(-2 / 84))) < 1e-12
+    T3, g3 = sl.neural_day(1.0, 0, 20.0, ts=2.0)
+    assert g3 == 0 and abs(T3 - (1.1 - 0.1 * math.exp(-2 / 21))) < 1e-12
+
+
 # The run pinned (Task 2b Step 4): per trait the start (F, F0, Fc, Pk), the shown level at MARKS and the cap, read off
 # strength_level at its commit, so a later kernel or reference change that moves one is named. Strong reaches level 10
 # on day 24, Stout on day 346 and the average on day 1461 (spec section 2.4).
