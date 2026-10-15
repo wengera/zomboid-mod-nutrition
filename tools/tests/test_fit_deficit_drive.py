@@ -25,7 +25,7 @@ LO, HI, SPAN = "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI", "deficit.BALANCE_
 GAIN = "deficit.FAT_GAIN"
 
 
-def fat(slope=100.0, pairs=(100.0, 100.0), low=1900.0):
+def fat(slope=125.0, pairs=(125.0, 125.0), low=1900.0):
     return {"base": 1900.0, "low": low, "kg": [3.25, 5.2, 7.15], "intake": [2225.0, 2420.0, 2615.0], "slope": slope,
             "pairs": list(pairs)}
 
@@ -223,12 +223,17 @@ def test_the_same_grid_gives_byte_identical_output_but_the_date():
 
 # --- Plan 13 Task 10c: the fat mode (K.deficit.FAT_GAIN on S1254) --------------------------------------------------
 
-def test_s1254_reads_the_log_ratio_so_100_kcal_per_kg_is_the_centre():
+def test_s1254_reads_the_log_ratio_so_125_kcal_per_kg_of_fat_is_the_centre():
+    # Plan 13 Task 10c fix 2: S1254 is per kg of weight (k_P 95, S2208); the oracle reads per kg of fat, so the target
+    # is 95 over the Forbes fat share 0.76 Polidori's model assumes (S2206): 125
+    assert (DO.S1254_KCAL_PER_KG_WEIGHT, DO.S1254_FAT_SHARE) == (95.0, 0.76)
+    assert math.isclose(DO.S1254_KCAL_PER_KG, 125.0)
     o = DO.BY_NAME["s1254"]
     assert math.isclose(o.margin(o.pick(readings())), 1.0)
-    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=150.0)))), 0.0, abs_tol=1e-12)
-    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=100.0 / 1.5)))), 0.0, abs_tol=1e-12)
-    assert o.margin(o.pick(readings(s1254=fat(slope=160.0)))) < 0
+    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=125.0 * 1.5)))), 0.0, abs_tol=1e-12)
+    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=125.0 / 1.5)))), 0.0, abs_tol=1e-12)
+    assert o.margin(o.pick(readings(s1254=fat(slope=190.0)))) < 0
+    assert o.margin(o.pick(readings(s1254=fat(slope=80.0)))) < 0
     assert o.margin(o.pick(readings(s1254=fat(slope=0.0)))) == -math.inf
     assert o.margin(o.pick(readings(s1254=fat(slope=-5.0)))) == -math.inf
 
@@ -251,7 +256,7 @@ def test_the_fat_mode_reads_the_fat_group_alone_and_ranks_by_s1254():
     assert "s1254" in F.moving_groups([SPAN]) and set(F.held_groups([SPAN])) == set(DO.FIXED_GROUPS)
     assert F.ranked([GAIN]) == DO.FAT_SCORED and F.ranked([SPAN]) is None
     # ranked by S1254 alone: every other oracle, the scored studies included, is then held as a constraint
-    near, far = F.score(readings(), DO.FAT_SCORED), F.score(readings(s1254=fat(slope=130.0)), DO.FAT_SCORED)
+    near, far = F.score(readings(), DO.FAT_SCORED), F.score(readings(s1254=fat(slope=160.0)), DO.FAT_SCORED)
     assert near["feasible"] and near["loss"] < far["loss"] and math.isclose(near["smallest"], 1.0)
     broken = F.score(readings(dfc=50.0), DO.FAT_SCORED)
     assert not broken["feasible"] and broken["shortfall"] > 0
@@ -270,7 +275,7 @@ def test_a_fat_mode_fit_holds_the_other_groups_once_and_writes_them():
     def fake(args):
         patch, held = args
         assert set(held) == set(DO.GROUPS) - {"s1254"}
-        r = F.score(dict(held, s1254=fat(slope=200.0 * patch[GAIN])), DO.FAT_SCORED)
+        r = F.score(dict(held, s1254=fat(slope=250.0 * patch[GAIN])), DO.FAT_SCORED)
         r["params"] = dict(patch)
         return r
 
@@ -285,6 +290,6 @@ def test_a_fat_mode_fit_holds_the_other_groups_once_and_writes_them():
                 doc = json.load(fh)
     finally:
         F._worker, F.read_groups = saved
-    assert chosen["params"] == {GAIN: 0.5}                    # 200 x 0.5 = 100 kcal/d per kg, the band's centre
+    assert chosen["params"] == {GAIN: 0.5}                    # 250 x 0.5 = 125 kcal/d per kg of fat, the band's centre
     assert [c[1] for c in calls] == [F.held_groups([GAIN])] * 2   # read at the start and at the chosen point only
     assert set(doc["fixed"]["chosen"]) == set(DO.GROUPS) - {"s1254"}

@@ -649,9 +649,11 @@ def fat_loss_server(host):
 
 
 def test_s1254_the_fat_drive_on_the_server_path(host):
-    # S1254 (Polidori 2016: about 100 kcal/d more intake per kg lost) within 1.5x, on the reference body at three fat
-    # depletions inside the low-fat hunger ramp's linear part (Plan 13 Task 10c), and the registry's stability checks:
-    # the pairs within 2x, none flat, nothing below FAT_DEP_LO
+    # S1254 (Polidori 2016: about 100 kcal/d more intake per kg of WEIGHT lost, k_P 95 in its model, S2208) read per kg
+    # of FAT lost against 95 / 0.76 = 125 (the Forbes fat share the model assumes, S2206; deficit_oracles' header;
+    # Plan 13 Task 10c fix 2) within 1.5x, on the reference body at three fat depletions inside the low-fat hunger
+    # ramp's linear part (Plan 13 Task 10c), and the registry's stability checks: the pairs within 2x, none flat,
+    # nothing below FAT_DEP_LO
     from . import deficit_oracles as DO
     r = {"s1254": fat_loss_server(host)}
     for n in ("s1254", "s1254_linear", "s1254_flat", "s1254_low"):

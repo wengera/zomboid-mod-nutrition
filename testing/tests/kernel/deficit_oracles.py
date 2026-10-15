@@ -14,8 +14,12 @@ its role and its row:
     "fixed"       a deficit study no fitted constant moves (Whybrow and E-MECHANIC read the exercise lag L, which the
                   span and the bypass never touch); read and asserted, its margin reported.
 S1254 (Plan 13 Task 10c) is scored on the fat term's gain K.deficit.FAT_GAIN: the reference body held at three fat
-depletions inside the ramp's linear part, eating at the request, its intake rise per kg of fat lost against about 100
-kcal/d (Polidori 2016) within 1.5x, read as ln(slope / 100) so the band's centre is 100. Three stability checks sit
+depletions inside the ramp's linear part, eating at the request, its intake rise per kg of FAT lost against 125 kcal/d
+within 1.5x, read as ln(slope / 125) so the band's centre is 125. S1254 (Polidori 2016) is per kg of body WEIGHT
+(~100; k_P 95 kcal/d per kg in Polidori's own model, S2208), and that model splits a weight change by the Forbes
+relation (S2206), whose fat share at the trial's fat mass is about 0.76 (S2200's SGLT2 pooling and S2203's
+canagliflozin DXA agree; S2199's 0.63 is the low end and gives 150, inside the band): 95 / 0.76 = 125 kcal/d per kg of
+fat (Plan 13 Task 10c fix 2; the controller's ruling on review finding 2). Three stability checks sit
 beside it as constraints (CLAUDE.md section 6): the two pair slopes within 2x of each other (a clamped or degenerate
 read fails), every pair slope at least 30 kcal/d per kg (a flat read fails) and the intake below FAT_DEP_LO within 25
 kcal/d of no loss (the soft threshold). A fit of FAT_GAIN alone (fit_deficit_drive's fat mode) ranks by S1254 and
@@ -150,7 +154,9 @@ GROUPS = {
 FIXED_GROUPS = ("whybrow", "emech")     # no fitted constant moves them: the fit reads them once, at its start point
 FAT_GROUPS = ("s1254",)                 # the only group K.deficit.FAT_GAIN moves (no other reaches FAT_DEP_LO)
 FAT_SCORED = ("s1254",)                 # what a fit of FAT_GAIN alone ranks by
-S1254_KCAL_PER_KG = 100.0               # S1254 (Polidori 2016): about 100 kcal/d of intake per kg of weight lost
+S1254_KCAL_PER_KG_WEIGHT = 95.0         # S1254 (Polidori 2016, ~100) as k_P in its own model (S2208): kcal/d of intake per kg of WEIGHT lost
+S1254_FAT_SHARE = 0.76                  # the fat share of that weight: the Forbes split Polidori's model assumes (S2206; S2200, S2203 agree; S2199 0.63)
+S1254_KCAL_PER_KG = S1254_KCAL_PER_KG_WEIGHT / S1254_FAT_SHARE   # 125 kcal/d per kg of FAT lost: the oracle's unit
 S1254_TOL = 1.5                         # within 1.5x (the brief's band; a labelled DESIGN CHOICE)
 
 
@@ -188,7 +194,7 @@ def _king_margin_value(r):
 
 
 def _log_ratio(slope):
-    """ln(slope / S1254_KCAL_PER_KG), None for a slope that is not positive (outside any band)."""
+    """ln(slope / S1254_KCAL_PER_KG), the slope per kg of fat lost; None for a slope that is not positive (outside any band)."""
     if slope is None or not slope > 0:
         return None
     return math.log(slope / S1254_KCAL_PER_KG)
@@ -239,9 +245,11 @@ ORACLES = [
            tol="0.53-0.89 at 24 weeks, the high dose"),
     Oracle("emech_low", "emech", lambda r: r["emech"][1], lo=0.53, hi=0.89, role="fixed", row="S1320, S1664",
            tol="0.53-0.89 at 24 weeks, the low dose"),
-    # S1254 (Plan 13 Task 10c): the fat term's intake rise per kg lost, and its stability checks
+    # S1254 (Plan 13 Task 10c; fix 2): the fat term's intake rise per kg of fat lost, S1254 converted (see the header),
+    # and its stability checks
     Oracle("s1254", "s1254", lambda r: _log_ratio(r["s1254"]["slope"]), lo=-math.log(S1254_TOL),
-           hi=math.log(S1254_TOL), row="S1254", tol="about 100 kcal/d per kg of fat lost within 1.5x, as ln(slope / 100)"),
+           hi=math.log(S1254_TOL), row="S1254, S2208, S2206",
+           tol="125 kcal/d per kg of fat lost (S1254's 95 per kg of weight / the Forbes fat share 0.76) within 1.5x, as ln(slope / 125)"),
     Oracle("s1254_linear", "s1254", _pair_ratio, lo=0.5, scale=0.5, role="constraint", row="",
            tol="the two pair slopes within 2x (a clamped or degenerate read fails)"),
     Oracle("s1254_flat", "s1254", lambda r: min(r["s1254"]["pairs"]), lo=30.0, scale=30.0, role="constraint", row="",
