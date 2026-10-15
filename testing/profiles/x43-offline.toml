@@ -1,0 +1,29 @@
+# testing/profiles/x43-offline.toml - Plan 13 Task 20 (run x432): nothing in the body moves while the player is offline
+# (spec section 1, ruling 13-5): admin quits, the server runs at least three game days at a raised multiplier with no
+# client online, admin rejoins at the restored one, and the record's close-only fields, its rings and the vanilla
+# Strength XP are unchanged; the next world-day boundary closes exactly one day.
+# PZTestKit at HEAD + the STAGED release copy (release/plan13-x43; see x43-beyondten.toml). Fixture default, the one
+# admin client (-debug). Nutrition false (ruling T18-1), DayLength 1. Build 42.21.0.
+# The driver is testing/experiments/x432_offline.py on testing/experiments/x43_strength_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43), fixture default, admin (debug), Nutrition off, DayLength 1, build 42.21.0 - x432, Plan 13 Task 20: the offline gap."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at true multiplier 1

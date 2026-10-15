@@ -1,0 +1,34 @@
+# testing/profiles/x43-creation.toml - Plan 13 Task 21 (run x433): the creation handler (spec section 3.2; rulings
+# 13-16 under Task 17's fix 3, 13-46, 13-44): five respawns of bob with picks armed through creation.picks, each
+# graded against the creation table, the level and band on both sides, and the server log's strips.
+# PZTestKit at HEAD + the STAGED release copy (release/plan13-x43; see x43-beyondten.toml). Fixture two: admin
+# (-debug), then bob (release, user role), each ready before the next. Nutrition false (ruling T18-1, ruling 13-44),
+# DayLength 1. Build 42.21.0.
+# The driver is testing/experiments/x433_creation.py on testing/experiments/x43_strength_lib.py.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43), fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, build 42.21.0 - x433, Plan 13 Task 21: the creation run."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1, ruling 13-44): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at true multiplier 1
