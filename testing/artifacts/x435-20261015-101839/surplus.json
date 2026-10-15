@@ -1,0 +1,7617 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 70.049,
+   "wall_after": 70.305,
+   "epoch_ms_before": 1792073989463,
+   "epoch_ms_after": 1792073989719,
+   "took": 0.256,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 70.305,
+   "wall_after": 70.814,
+   "epoch_ms_before": 1792073989719,
+   "epoch_ms_after": 1792073990228,
+   "took": 0.509,
+   "ack": {
+    "worldAge": 3.115128517150879,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.4382548332214355,
+    "trueMult": 1,
+    "wall": 1792073990219
+   }
+  },
+  {
+   "step": "S_P",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.options.strength.R NutritionRevamp.server.options.strength.M5 NutritionRevamp.server.options.strength.Fnm NutritionRevamp.server.options.strength.b NutritionRevamp.server.options.strength.incidental NutritionRevamp.server.options.strength.xpPerSet NutritionRevamp.server.options.strength.ts NutritionRevamp.server.options.strength.k",
+   "phase": "S",
+   "wall_before": 71.829,
+   "wall_after": 72.336,
+   "epoch_ms_before": 1792073991243,
+   "epoch_ms_after": 1792073991749,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.options.strength.R": 1.5651015746939971,
+     "NutritionRevamp.server.options.strength.M5": 25.019999999999996,
+     "NutritionRevamp.server.options.strength.Fnm": 27,
+     "NutritionRevamp.server.options.strength.b": 0.8,
+     "NutritionRevamp.server.options.strength.incidental": 1,
+     "NutritionRevamp.server.options.strength.xpPerSet": 360,
+     "NutritionRevamp.server.options.strength.ts": 30,
+     "NutritionRevamp.server.options.strength.k": 0.009906127265972144
+    }
+   }
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength SandboxVars.NR.StrengthTimeScale SandboxVars.NR.StrengthIncidentalWeight",
+   "phase": "S",
+   "wall_before": 72.336,
+   "wall_after": 72.844,
+   "epoch_ms_before": 1792073991749,
+   "epoch_ms_after": 1792073992258,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1,
+     "SandboxVars.NR.StrengthTimeScale": 30,
+     "SandboxVars.NR.StrengthIncidentalWeight": 1
+    }
+   }
+  },
+  {
+   "step": "S_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "S",
+   "wall_before": 72.844,
+   "wall_after": 73.107,
+   "epoch_ms_before": 1792073992258,
+   "epoch_ms_after": 1792073992520,
+   "took": 0.263,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.019999999999996,
+     "body.fm": 13.004999999999999,
+     "body.lx": 0,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.019999999999996,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 3.1504364013671875,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -7.922992874415668,
+     "body.eeDay": 7.922992874415668,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.004999999999999,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.0009977198214877,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "S_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "S",
+   "wall_before": 73.107,
+   "wall_after": 73.617,
+   "epoch_ms_before": 1792073992520,
+   "epoch_ms_after": 1792073993030,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.02499999999999,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "S_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "S",
+   "wall_before": 73.617,
+   "wall_after": 74.376,
+   "epoch_ms_before": 1792073993030,
+   "epoch_ms_after": 1792073993789,
+   "took": 0.759,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.202324867248535
+   }
+  },
+  {
+   "step": "D1_mult0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 76.922,
+   "wall_after": 77.428,
+   "epoch_ms_before": 1792073996335,
+   "epoch_ms_after": 1792073996841,
+   "took": 0.506,
+   "ack": {
+    "worldAge": 3.2841272354125977,
+    "hour": 10,
+    "minutes": 17,
+    "mult": 4.772249698638916,
+    "trueMult": 1,
+    "wall": 1792073996716
+   }
+  },
+  {
+   "step": "D1_raise",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "8.0",
+   "phase": "D",
+   "wall_before": 77.428,
+   "wall_after": 77.939,
+   "epoch_ms_before": 1792073996841,
+   "epoch_ms_after": 1792073997352,
+   "took": 0.511,
+   "ack": "mult=8 eff=38.179264068603516",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D1_raise_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 77.939,
+   "wall_after": 78.2,
+   "epoch_ms_before": 1792073997352,
+   "epoch_ms_after": 1792073997613,
+   "took": 0.261,
+   "ack": {
+    "worldAge": 3.3213300704956055,
+    "hour": 10,
+    "minutes": 19,
+    "mult": 38.3314323425293,
+    "trueMult": 8,
+    "wall": 1792073997416
+   }
+  },
+  {
+   "step": "D1_g0_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 79.237,
+   "wall_after": 79.498,
+   "epoch_ms_before": 1792073998650,
+   "epoch_ms_after": 1792073998912,
+   "took": 0.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.59774112701416
+   }
+  },
+  {
+   "step": "D1_g0",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 79.498,
+   "wall_after": 79.76,
+   "epoch_ms_before": 1792073998912,
+   "epoch_ms_after": 1792073999174,
+   "took": 0.262,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37500,
+    "levelBefore": 5,
+    "xpAfter": 37572,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g1_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 85.54,
+   "wall_after": 85.798,
+   "epoch_ms_before": 1792074004954,
+   "epoch_ms_after": 1792074005212,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37572,
+    "level": 5,
+    "serverWorldAge": 4.936903953552246
+   }
+  },
+  {
+   "step": "D1_g1",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 85.798,
+   "wall_after": 86.059,
+   "epoch_ms_before": 1792074005212,
+   "epoch_ms_after": 1792074005472,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37572,
+    "levelBefore": 5,
+    "xpAfter": 37644,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g2_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 92.374,
+   "wall_after": 92.636,
+   "epoch_ms_before": 1792074011787,
+   "epoch_ms_after": 1792074012050,
+   "took": 0.262,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37644,
+    "level": 5,
+    "serverWorldAge": 6.3812150955200195
+   }
+  },
+  {
+   "step": "D1_g2",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 92.636,
+   "wall_after": 92.892,
+   "epoch_ms_before": 1792074012050,
+   "epoch_ms_after": 1792074012306,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37644,
+    "levelBefore": 5,
+    "xpAfter": 37716,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g3_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 98.663,
+   "wall_after": 98.92,
+   "epoch_ms_before": 1792074018076,
+   "epoch_ms_after": 1792074018333,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37716,
+    "level": 5,
+    "serverWorldAge": 7.719310760498047
+   }
+  },
+  {
+   "step": "D1_g3",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 98.92,
+   "wall_after": 99.175,
+   "epoch_ms_before": 1792074018333,
+   "epoch_ms_after": 1792074018589,
+   "took": 0.255,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37716,
+    "levelBefore": 5,
+    "xpAfter": 37788,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g4_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 104.937,
+   "wall_after": 105.198,
+   "epoch_ms_before": 1792074024351,
+   "epoch_ms_after": 1792074024612,
+   "took": 0.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37788,
+    "level": 5,
+    "serverWorldAge": 9.056526184082031
+   }
+  },
+  {
+   "step": "D1_g4",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 105.198,
+   "wall_after": 105.459,
+   "epoch_ms_before": 1792074024612,
+   "epoch_ms_after": 1792074024872,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37788,
+    "levelBefore": 5,
+    "xpAfter": 37860,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g5_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 111.788,
+   "wall_after": 112.048,
+   "epoch_ms_before": 1792074031201,
+   "epoch_ms_after": 1792074031462,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37860,
+    "level": 5,
+    "serverWorldAge": 10.501070022583008
+   }
+  },
+  {
+   "step": "D1_g5",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 112.048,
+   "wall_after": 112.307,
+   "epoch_ms_before": 1792074031462,
+   "epoch_ms_after": 1792074031720,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37860,
+    "levelBefore": 5,
+    "xpAfter": 37932,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g6_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 118.614,
+   "wall_after": 118.869,
+   "epoch_ms_before": 1792074038027,
+   "epoch_ms_after": 1792074038283,
+   "took": 0.255,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37932,
+    "level": 5,
+    "serverWorldAge": 11.968259811401367
+   }
+  },
+  {
+   "step": "D1_g6",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 118.87,
+   "wall_after": 119.13,
+   "epoch_ms_before": 1792074038283,
+   "epoch_ms_after": 1792074038544,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 37932,
+    "levelBefore": 5,
+    "xpAfter": 38004,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g7_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 125.441,
+   "wall_after": 125.698,
+   "epoch_ms_before": 1792074044854,
+   "epoch_ms_after": 1792074045111,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 38004,
+    "level": 5,
+    "serverWorldAge": 13.414440155029297
+   }
+  },
+  {
+   "step": "D1_g7",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 125.698,
+   "wall_after": 125.957,
+   "epoch_ms_before": 1792074045111,
+   "epoch_ms_after": 1792074045370,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 38004,
+    "levelBefore": 5,
+    "xpAfter": 38076,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g8_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 132.284,
+   "wall_after": 132.54,
+   "epoch_ms_before": 1792074051697,
+   "epoch_ms_after": 1792074051953,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 38076,
+    "level": 5,
+    "serverWorldAge": 14.860065460205078
+   }
+  },
+  {
+   "step": "D1_g8",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 132.54,
+   "wall_after": 132.801,
+   "epoch_ms_before": 1792074051953,
+   "epoch_ms_after": 1792074052214,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 38076,
+    "levelBefore": 5,
+    "xpAfter": 38148,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_g9_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 139.11,
+   "wall_after": 139.37,
+   "epoch_ms_before": 1792074058524,
+   "epoch_ms_after": 1792074058783,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 38148,
+    "level": 5,
+    "serverWorldAge": 16.3267822265625
+   }
+  },
+  {
+   "step": "D1_g9",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 139.37,
+   "wall_after": 139.63,
+   "epoch_ms_before": 1792074058783,
+   "epoch_ms_after": 1792074059044,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 38148,
+    "levelBefore": 5,
+    "xpAfter": 38220,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D1_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1.0",
+   "phase": "D",
+   "wall_before": 171.267,
+   "wall_after": 171.526,
+   "epoch_ms_before": 1792074090680,
+   "epoch_ms_after": 1792074090939,
+   "took": 0.259,
+   "ack": "mult=1 eff=4.782731056213379",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D1_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 171.526,
+   "wall_after": 171.784,
+   "epoch_ms_before": 1792074090939,
+   "epoch_ms_after": 1792074091198,
+   "took": 0.258,
+   "ack": {
+    "worldAge": 23.168357849121094,
+    "hour": 6,
+    "minutes": 10,
+    "mult": 4.779520034790039,
+    "trueMult": 1,
+    "wall": 1792074091121
+   }
+  },
+  {
+   "step": "D1_pre_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 198.068,
+   "wall_after": 198.831,
+   "epoch_ms_before": 1792074117482,
+   "epoch_ms_after": 1792074118245,
+   "took": 0.763,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.019999999999996,
+     "body.fm": 13.004999999999999,
+     "body.lx": 0,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.019999999999996,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 1028.5714285714287,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 23.867416381835938,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -1659.1936550774535,
+     "body.eeDay": 1659.1936550774535,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.004999999999999,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.20893750929688,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "D1_pre_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 198.831,
+   "wall_after": 199.338,
+   "epoch_ms_before": 1792074118245,
+   "epoch_ms_after": 1792074118751,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.02499999999999,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D1_pDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.pDay 130.04999999999998",
+   "phase": "D",
+   "wall_before": 199.338,
+   "wall_after": 200.095,
+   "epoch_ms_before": 1792074118751,
+   "epoch_ms_after": 1792074119509,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.pDay",
+    "key": "pDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 130.04999999999998
+   }
+  },
+  {
+   "step": "D1_ee",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eeDay body.inDay body.dayIndex",
+   "phase": "D",
+   "wall_before": 200.602,
+   "wall_after": 200.858,
+   "epoch_ms_before": 1792074120016,
+   "epoch_ms_after": 1792074120272,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eeDay": 1664.4884188307292,
+     "body.inDay": 0,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "D1_inDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.inDay 1924.4884188307292",
+   "phase": "D",
+   "wall_before": 200.858,
+   "wall_after": 201.37,
+   "epoch_ms_before": 1792074120272,
+   "epoch_ms_after": 1792074120784,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.inDay",
+    "key": "inDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 1924.4884188307292
+   }
+  },
+  {
+   "step": "D1_dset",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.dayIndex",
+   "phase": "D",
+   "wall_before": 201.37,
+   "wall_after": 201.88,
+   "epoch_ms_before": 1792074120784,
+   "epoch_ms_after": 1792074121294,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "D1_post_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 205.756,
+   "wall_after": 206.266,
+   "epoch_ms_before": 1792074125169,
+   "epoch_ms_after": 1792074125680,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.27159354024875,
+     "body.fm": 13.028282683724152,
+     "body.lx": 0.010825766116653928,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.27159354024875,
+     "body.N0": 1,
+     "body.T": 1.0557947457976176,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 2.857142857142857,
+     "body.sigDay": 0,
+     "body.dayIndex": 1,
+     "body.wday": 1,
+     "body.lastAgeH": 24.069320678710938,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -5.533240018423779,
+     "body.eeDay": 5.533240018423779,
+     "body.inDay": 0,
+     "body.inDayClosed": 1924.4884188307292,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.028282683724152,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.2109683110532776,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 130.04999999999998
+    }
+   }
+  },
+  {
+   "step": "D1_post_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 206.266,
+   "wall_after": 207.028,
+   "epoch_ms_before": 1792074125680,
+   "epoch_ms_after": 1792074126442,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 254.70120394397009,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.31070199008956,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D1_lvl",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 207.028,
+   "wall_after": 207.538,
+   "epoch_ms_before": 1792074126442,
+   "epoch_ms_after": 1792074126951,
+   "took": 0.51,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54562.32421875,
+    "level": 5,
+    "serverWorldAge": 24.11722183227539
+   }
+  },
+  {
+   "step": "D1_stats",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "D",
+   "wall_before": 207.538,
+   "wall_after": 208.298,
+   "epoch_ms_before": 1792074126951,
+   "epoch_ms_after": 1792074127711,
+   "took": 0.76,
+   "ack": {
+    "calories": -1679.1558837890625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.31070199008956,
+    "hunger": 0.43885472416877747,
+    "thirst": 0.1709441840648651,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 2,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 11,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 24.135833740234375,
+    "mult": 4.78635835647583,
+    "wall": 1792074127516
+   }
+  },
+  {
+   "step": "D2_mult0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 210.072,
+   "wall_after": 210.834,
+   "epoch_ms_before": 1792074129485,
+   "epoch_ms_after": 1792074130247,
+   "took": 0.762,
+   "ack": {
+    "worldAge": 24.202354431152344,
+    "hour": 7,
+    "minutes": 12,
+    "mult": 4.783797740936279,
+    "trueMult": 1,
+    "wall": 1792074130015
+   }
+  },
+  {
+   "step": "D2_raise",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "8.0",
+   "phase": "D",
+   "wall_before": 210.834,
+   "wall_after": 211.343,
+   "epoch_ms_before": 1792074130247,
+   "epoch_ms_after": 1792074130757,
+   "took": 0.509,
+   "ack": "mult=8 eff=38.25783920288086",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D2_raise_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 211.343,
+   "wall_after": 211.599,
+   "epoch_ms_before": 1792074130757,
+   "epoch_ms_after": 1792074131013,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 24.26097869873047,
+    "hour": 7,
+    "minutes": 15,
+    "mult": 38.32955551147461,
+    "trueMult": 8,
+    "wall": 1792074130816
+   }
+  },
+  {
+   "step": "D2_g0_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 212.626,
+   "wall_after": 212.882,
+   "epoch_ms_before": 1792074132040,
+   "epoch_ms_after": 1792074132296,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54562.32421875,
+    "level": 5,
+    "serverWorldAge": 24.53799057006836
+   }
+  },
+  {
+   "step": "D2_g0",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 212.882,
+   "wall_after": 213.141,
+   "epoch_ms_before": 1792074132296,
+   "epoch_ms_after": 1792074132554,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54562.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54634.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g1_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 219.459,
+   "wall_after": 219.718,
+   "epoch_ms_before": 1792074138872,
+   "epoch_ms_after": 1792074139131,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54634.32421875,
+    "level": 5,
+    "serverWorldAge": 25.984859466552734
+   }
+  },
+  {
+   "step": "D2_g1",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 219.718,
+   "wall_after": 219.973,
+   "epoch_ms_before": 1792074139131,
+   "epoch_ms_after": 1792074139387,
+   "took": 0.255,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54634.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54706.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g2_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 225.751,
+   "wall_after": 226.007,
+   "epoch_ms_before": 1792074145165,
+   "epoch_ms_after": 1792074145421,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54706.32421875,
+    "level": 5,
+    "serverWorldAge": 27.325328826904297
+   }
+  },
+  {
+   "step": "D2_g2",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 226.007,
+   "wall_after": 226.263,
+   "epoch_ms_before": 1792074145421,
+   "epoch_ms_after": 1792074145677,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54706.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54778.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g3_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 232.587,
+   "wall_after": 232.843,
+   "epoch_ms_before": 1792074152000,
+   "epoch_ms_after": 1792074152257,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54778.32421875,
+    "level": 5,
+    "serverWorldAge": 28.77182388305664
+   }
+  },
+  {
+   "step": "D2_g3",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 232.843,
+   "wall_after": 233.099,
+   "epoch_ms_before": 1792074152257,
+   "epoch_ms_after": 1792074152513,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54778.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54850.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g4_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 239.43,
+   "wall_after": 239.685,
+   "epoch_ms_before": 1792074158843,
+   "epoch_ms_after": 1792074159099,
+   "took": 0.255,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54850.32421875,
+    "level": 5,
+    "serverWorldAge": 30.238815307617188
+   }
+  },
+  {
+   "step": "D2_g4",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 239.685,
+   "wall_after": 239.941,
+   "epoch_ms_before": 1792074159099,
+   "epoch_ms_after": 1792074159355,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54850.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54922.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g5_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 246.26,
+   "wall_after": 246.515,
+   "epoch_ms_before": 1792074165673,
+   "epoch_ms_after": 1792074165929,
+   "took": 0.255,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54922.32421875,
+    "level": 5,
+    "serverWorldAge": 31.683788299560547
+   }
+  },
+  {
+   "step": "D2_g5",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 246.515,
+   "wall_after": 246.772,
+   "epoch_ms_before": 1792074165929,
+   "epoch_ms_after": 1792074166185,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54922.32421875,
+    "levelBefore": 5,
+    "xpAfter": 54994.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g6_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 252.525,
+   "wall_after": 252.785,
+   "epoch_ms_before": 1792074171938,
+   "epoch_ms_after": 1792074172198,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 54994.32421875,
+    "level": 5,
+    "serverWorldAge": 33.02204513549805
+   }
+  },
+  {
+   "step": "D2_g6",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 252.785,
+   "wall_after": 253.041,
+   "epoch_ms_before": 1792074172198,
+   "epoch_ms_after": 1792074172455,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 54994.32421875,
+    "levelBefore": 5,
+    "xpAfter": 55066.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g7_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 259.36,
+   "wall_after": 259.62,
+   "epoch_ms_before": 1792074178773,
+   "epoch_ms_after": 1792074179034,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 55066.32421875,
+    "level": 5,
+    "serverWorldAge": 34.467193603515625
+   }
+  },
+  {
+   "step": "D2_g7",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 259.62,
+   "wall_after": 259.876,
+   "epoch_ms_before": 1792074179034,
+   "epoch_ms_after": 1792074179290,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 55066.32421875,
+    "levelBefore": 5,
+    "xpAfter": 55138.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g8_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 265.624,
+   "wall_after": 265.88,
+   "epoch_ms_before": 1792074185038,
+   "epoch_ms_after": 1792074185294,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 55138.32421875,
+    "level": 5,
+    "serverWorldAge": 35.806400299072266
+   }
+  },
+  {
+   "step": "D2_g8",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 265.88,
+   "wall_after": 266.142,
+   "epoch_ms_before": 1792074185294,
+   "epoch_ms_after": 1792074185556,
+   "took": 0.262,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 55138.32421875,
+    "levelBefore": 5,
+    "xpAfter": 55210.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_g9_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 272.471,
+   "wall_after": 272.733,
+   "epoch_ms_before": 1792074191884,
+   "epoch_ms_after": 1792074192146,
+   "took": 0.262,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 55210.32421875,
+    "level": 5,
+    "serverWorldAge": 37.25263977050781
+   }
+  },
+  {
+   "step": "D2_g9",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 272.733,
+   "wall_after": 272.992,
+   "epoch_ms_before": 1792074192146,
+   "epoch_ms_after": 1792074192405,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 55210.32421875,
+    "levelBefore": 5,
+    "xpAfter": 55282.32421875,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D2_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1.0",
+   "phase": "D",
+   "wall_before": 319.202,
+   "wall_after": 319.458,
+   "epoch_ms_before": 1792074238616,
+   "epoch_ms_after": 1792074238872,
+   "took": 0.256,
+   "ack": "mult=1 eff=4.7834343910217285",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D2_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 319.458,
+   "wall_after": 319.718,
+   "epoch_ms_before": 1792074238872,
+   "epoch_ms_after": 1792074239132,
+   "took": 0.26,
+   "ack": {
+    "worldAge": 47.217430114746094,
+    "hour": 6,
+    "minutes": 13,
+    "mult": 4.773804187774658,
+    "trueMult": 1,
+    "wall": 1792074239015
+   }
+  },
+  {
+   "step": "D2_pre_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 344.274,
+   "wall_after": 344.781,
+   "epoch_ms_before": 1792074263688,
+   "epoch_ms_after": 1792074264195,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.27159354024875,
+     "body.fm": 13.028282683724152,
+     "body.lx": 0.010825766116653928,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.27159354024875,
+     "body.N0": 1,
+     "body.T": 1.0557947457976176,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 2.857142857142857,
+     "body.sigDay": 1028.5714285714287,
+     "body.dayIndex": 1,
+     "body.wday": 1,
+     "body.lastAgeH": 47.86854553222656,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -1915.2494305723662,
+     "body.eeDay": 1915.2494305723662,
+     "body.inDay": 0,
+     "body.inDayClosed": 1924.4884188307292,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.028282683724152,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.2426583105120252,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 130.04999999999998
+    }
+   }
+  },
+  {
+   "step": "D2_pre_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 344.781,
+   "wall_after": 345.039,
+   "epoch_ms_before": 1792074264195,
+   "epoch_ms_after": 1792074264452,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 254.70120394397009,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.31070199008956,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D2_pDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.pDay 130.6214039801791",
+   "phase": "D",
+   "wall_before": 345.039,
+   "wall_after": 345.552,
+   "epoch_ms_before": 1792074264452,
+   "epoch_ms_after": 1792074264965,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.pDay",
+    "key": "pDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 130.6214039801791
+   }
+  },
+  {
+   "step": "D2_ee",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eeDay body.inDay body.dayIndex",
+   "phase": "D",
+   "wall_before": 346.669,
+   "wall_after": 346.931,
+   "epoch_ms_before": 1792074266083,
+   "epoch_ms_after": 1792074266345,
+   "took": 0.262,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eeDay": 1920.587534779222,
+     "body.inDay": 0,
+     "body.dayIndex": 1
+    }
+   }
+  },
+  {
+   "step": "D2_inDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.inDay 2180.587534779222",
+   "phase": "D",
+   "wall_before": 346.931,
+   "wall_after": 347.438,
+   "epoch_ms_before": 1792074266345,
+   "epoch_ms_after": 1792074266851,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.inDay",
+    "key": "inDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 2180.587534779222
+   }
+  },
+  {
+   "step": "D2_dset",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.dayIndex",
+   "phase": "D",
+   "wall_before": 347.438,
+   "wall_after": 347.952,
+   "epoch_ms_before": 1792074266851,
+   "epoch_ms_after": 1792074267365,
+   "took": 0.514,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.dayIndex": 1
+    }
+   }
+  },
+  {
+   "step": "D2_post_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 351.835,
+   "wall_after": 352.342,
+   "epoch_ms_before": 1792074271248,
+   "epoch_ms_after": 1792074271756,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.69173444729168,
+     "body.fm": 13.051514034221759,
+     "body.lx": 0.016283817076096465,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.69173444729168,
+     "body.N0": 1,
+     "body.T": 1.089406165014227,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 5.714285714285714,
+     "body.sigDay": 0,
+     "body.dayIndex": 2,
+     "body.wday": 2,
+     "body.lastAgeH": 48.06778335571289,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -5.363436356364231,
+     "body.eeDay": 5.363436356364231,
+     "body.inDay": 0,
+     "body.inDayClosed": 2180.587534779222,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.051514034221759,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.242676849130319,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 1028.5714285714287,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 130.04999999999998,
+     "body.p7.7": 130.6214039801791
+    }
+   }
+  },
+  {
+   "step": "D2_post_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 352.343,
+   "wall_after": 352.854,
+   "epoch_ms_before": 1792074271756,
+   "epoch_ms_after": 1792074272268,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 254.70120394397009,
+     "body.eb7.7": 254.67153016325256,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.31070199008956,
+     "body.mass7.7": 65.75953229858953,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D2_lvl",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 352.854,
+   "wall_after": 353.109,
+   "epoch_ms_before": 1792074272268,
+   "epoch_ms_after": 1792074272523,
+   "took": 0.255,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 48.10238265991211
+   }
+  },
+  {
+   "step": "D2_stats",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "D",
+   "wall_before": 353.109,
+   "wall_after": 353.623,
+   "epoch_ms_before": 1792074272523,
+   "epoch_ms_after": 1792074273037,
+   "took": 0.514,
+   "ack": {
+    "calories": -1927.1441650390625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.75953229858953,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.21340225636959076,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 10,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 48.11833572387695,
+    "mult": 4.781129360198975,
+    "wall": 1792074272916
+   }
+  },
+  {
+   "step": "D3_mult0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 355.654,
+   "wall_after": 356.161,
+   "epoch_ms_before": 1792074275068,
+   "epoch_ms_after": 1792074275575,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 48.18479919433594,
+    "hour": 7,
+    "minutes": 11,
+    "mult": 4.780393123626709,
+    "trueMult": 1,
+    "wall": 1792074275415
+   }
+  },
+  {
+   "step": "D3_raise",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "8.0",
+   "phase": "D",
+   "wall_before": 356.161,
+   "wall_after": 356.669,
+   "epoch_ms_before": 1792074275575,
+   "epoch_ms_after": 1792074276082,
+   "took": 0.508,
+   "ack": "mult=8 eff=38.237457275390625",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D3_raise_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 356.669,
+   "wall_after": 356.925,
+   "epoch_ms_before": 1792074276082,
+   "epoch_ms_after": 1792074276338,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 48.222068786621094,
+    "hour": 7,
+    "minutes": 13,
+    "mult": 38.38715744018555,
+    "trueMult": 8,
+    "wall": 1792074276113
+   }
+  },
+  {
+   "step": "D3_g0_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 357.958,
+   "wall_after": 358.215,
+   "epoch_ms_before": 1792074277372,
+   "epoch_ms_after": 1792074277628,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 48.49872589111328
+   }
+  },
+  {
+   "step": "D3_g0",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 358.215,
+   "wall_after": 358.473,
+   "epoch_ms_before": 1792074277628,
+   "epoch_ms_after": 1792074277887,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67426.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67498.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g1_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 364.23,
+   "wall_after": 364.488,
+   "epoch_ms_before": 1792074283643,
+   "epoch_ms_after": 1792074283902,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67498.2890625,
+    "level": 5,
+    "serverWorldAge": 49.838531494140625
+   }
+  },
+  {
+   "step": "D3_g1",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 364.488,
+   "wall_after": 364.752,
+   "epoch_ms_before": 1792074283902,
+   "epoch_ms_after": 1792074284166,
+   "took": 0.264,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67498.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67426.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g2_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 371.076,
+   "wall_after": 371.335,
+   "epoch_ms_before": 1792074290489,
+   "epoch_ms_after": 1792074290749,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 51.2831916809082
+   }
+  },
+  {
+   "step": "D3_g2",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 371.335,
+   "wall_after": 371.593,
+   "epoch_ms_before": 1792074290749,
+   "epoch_ms_after": 1792074291006,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67426.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67498.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g3_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 377.353,
+   "wall_after": 377.609,
+   "epoch_ms_before": 1792074296766,
+   "epoch_ms_after": 1792074297022,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67498.2890625,
+    "level": 5,
+    "serverWorldAge": 52.62113571166992
+   }
+  },
+  {
+   "step": "D3_g3",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 377.609,
+   "wall_after": 377.866,
+   "epoch_ms_before": 1792074297022,
+   "epoch_ms_after": 1792074297279,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67498.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67426.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g4_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 383.637,
+   "wall_after": 383.895,
+   "epoch_ms_before": 1792074303050,
+   "epoch_ms_after": 1792074303309,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 53.96100616455078
+   }
+  },
+  {
+   "step": "D3_g4",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 383.895,
+   "wall_after": 384.151,
+   "epoch_ms_before": 1792074303309,
+   "epoch_ms_after": 1792074303564,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67426.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67498.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g5_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 390.459,
+   "wall_after": 390.715,
+   "epoch_ms_before": 1792074309873,
+   "epoch_ms_after": 1792074310129,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67498.2890625,
+    "level": 5,
+    "serverWorldAge": 55.40739440917969
+   }
+  },
+  {
+   "step": "D3_g5",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 390.715,
+   "wall_after": 390.974,
+   "epoch_ms_before": 1792074310129,
+   "epoch_ms_after": 1792074310387,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67498.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67426.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g6_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 396.737,
+   "wall_after": 396.996,
+   "epoch_ms_before": 1792074316150,
+   "epoch_ms_after": 1792074316410,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 56.74599075317383
+   }
+  },
+  {
+   "step": "D3_g6",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 396.996,
+   "wall_after": 397.255,
+   "epoch_ms_before": 1792074316410,
+   "epoch_ms_after": 1792074316668,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67426.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67498.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g7_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 403.583,
+   "wall_after": 403.839,
+   "epoch_ms_before": 1792074322996,
+   "epoch_ms_after": 1792074323252,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67498.2890625,
+    "level": 5,
+    "serverWorldAge": 58.191043853759766
+   }
+  },
+  {
+   "step": "D3_g7",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 403.839,
+   "wall_after": 404.097,
+   "epoch_ms_before": 1792074323252,
+   "epoch_ms_after": 1792074323511,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67498.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67426.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g8_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 410.426,
+   "wall_after": 410.682,
+   "epoch_ms_before": 1792074329840,
+   "epoch_ms_after": 1792074330096,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67426.2890625,
+    "level": 5,
+    "serverWorldAge": 59.65863037109375
+   }
+  },
+  {
+   "step": "D3_g8",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 410.682,
+   "wall_after": 410.94,
+   "epoch_ms_before": 1792074330096,
+   "epoch_ms_after": 1792074330353,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67426.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67498.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_g9_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 417.261,
+   "wall_after": 417.517,
+   "epoch_ms_before": 1792074336675,
+   "epoch_ms_after": 1792074336930,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 67498.2890625,
+    "level": 5,
+    "serverWorldAge": 61.10541534423828
+   }
+  },
+  {
+   "step": "D3_g9",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 417.517,
+   "wall_after": 417.778,
+   "epoch_ms_before": 1792074336930,
+   "epoch_ms_after": 1792074337192,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 67498.2890625,
+    "levelBefore": 5,
+    "xpAfter": 67426.2890625,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "D3_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1.0",
+   "phase": "D",
+   "wall_before": 464.001,
+   "wall_after": 464.259,
+   "epoch_ms_before": 1792074383414,
+   "epoch_ms_after": 1792074383672,
+   "took": 0.258,
+   "ack": "mult=1 eff=4.790069103240967",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D3_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 464.259,
+   "wall_after": 464.769,
+   "epoch_ms_before": 1792074383672,
+   "epoch_ms_after": 1792074384182,
+   "took": 0.51,
+   "ack": {
+    "worldAge": 71.08346557617188,
+    "hour": 6,
+    "minutes": 5,
+    "mult": 4.781035900115967,
+    "trueMult": 1,
+    "wall": 1792074384115
+   }
+  },
+  {
+   "step": "D3_pre_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 494.576,
+   "wall_after": 494.832,
+   "epoch_ms_before": 1792074413989,
+   "epoch_ms_after": 1792074414246,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.69173444729168,
+     "body.fm": 13.051514034221759,
+     "body.lx": 0.016283817076096465,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.69173444729168,
+     "body.N0": 1,
+     "body.T": 1.089406165014227,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 5.714285714285714,
+     "body.sigDay": 1028.5714285714287,
+     "body.dayIndex": 2,
+     "body.wday": 2,
+     "body.lastAgeH": 71.86907958984375,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -1928.4802199659632,
+     "body.eeDay": 1928.4802199659632,
+     "body.inDay": 0,
+     "body.inDayClosed": 2180.587534779222,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.051514034221759,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.2443181008563136,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 1028.5714285714287,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 130.04999999999998,
+     "body.p7.7": 130.6214039801791
+    }
+   }
+  },
+  {
+   "step": "D3_pre_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 494.833,
+   "wall_after": 495.094,
+   "epoch_ms_before": 1792074414246,
+   "epoch_ms_after": 1792074414508,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 254.70120394397009,
+     "body.eb7.7": 254.67153016325256,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.31070199008956,
+     "body.mass7.7": 65.75953229858953,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D3_pDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.pDay 131.51906459717907",
+   "phase": "D",
+   "wall_before": 495.094,
+   "wall_after": 495.853,
+   "epoch_ms_before": 1792074414508,
+   "epoch_ms_after": 1792074415267,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.pDay",
+    "key": "pDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 131.51906459717907
+   }
+  },
+  {
+   "step": "D3_ee",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eeDay body.inDay body.dayIndex",
+   "phase": "D",
+   "wall_before": 497.584,
+   "wall_after": 498.343,
+   "epoch_ms_before": 1792074416997,
+   "epoch_ms_after": 1792074417756,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eeDay": 1935.066462807211,
+     "body.inDay": 0,
+     "body.dayIndex": 2
+    }
+   }
+  },
+  {
+   "step": "D3_inDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.inDay 2195.066462807211",
+   "phase": "D",
+   "wall_before": 498.343,
+   "wall_after": 498.856,
+   "epoch_ms_before": 1792074417756,
+   "epoch_ms_after": 1792074418269,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.inDay",
+    "key": "inDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 2195.066462807211
+   }
+  },
+  {
+   "step": "D3_dset",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.dayIndex",
+   "phase": "D",
+   "wall_before": 498.856,
+   "wall_after": 499.62,
+   "epoch_ms_before": 1792074418269,
+   "epoch_ms_after": 1792074419033,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.dayIndex": 2
+    }
+   }
+  },
+  {
+   "step": "D3_post_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 502.134,
+   "wall_after": 502.643,
+   "epoch_ms_before": 1792074421548,
+   "epoch_ms_after": 1792074422057,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 53.226143194914656,
+     "body.fm": 13.074893601445602,
+     "body.lx": 0.017865155220665563,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 53.226143194914656,
+     "body.N0": 1,
+     "body.T": 1.0974611764657665,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 8.571428571428573,
+     "body.sigDay": 0,
+     "body.dayIndex": 3,
+     "body.wday": 3,
+     "body.lastAgeH": 72.06669616699219,
+     "body.levelDue": false,
+     "body.wroteL": 6,
+     "body.pDay": 0,
+     "body.ebDay": -5.367903494786642,
+     "body.eeDay": 5.367903494786642,
+     "body.inDay": 0,
+     "body.inDayClosed": 2195.066462807211,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.074893601445602,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1.25,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.244344718493803,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 1028.5714285714287,
+     "body.sig7.6": 1028.5714285714287,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 130.04999999999998,
+     "body.p7.6": 130.6214039801791,
+     "body.p7.7": 131.51906459717907
+    }
+   }
+  },
+  {
+   "step": "D3_post_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 502.643,
+   "wall_after": 502.901,
+   "epoch_ms_before": 1792074422057,
+   "epoch_ms_after": 1792074422315,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 254.70120394397009,
+     "body.eb7.6": 254.67153016325256,
+     "body.eb7.7": 255.9477470869515,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.31070199008956,
+     "body.mass7.6": 65.75953229858953,
+     "body.mass7.7": 66.31890195158091,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D3_lvl",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 502.901,
+   "wall_after": 503.41,
+   "epoch_ms_before": 1792074422315,
+   "epoch_ms_after": 1792074422824,
+   "took": 0.509,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81602.8046875,
+    "level": 6,
+    "serverWorldAge": 72.10112762451172
+   }
+  },
+  {
+   "step": "D3_stats",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "D",
+   "wall_before": 503.41,
+   "wall_after": 503.918,
+   "epoch_ms_before": 1792074422824,
+   "epoch_ms_after": 1792074423331,
+   "took": 0.508,
+   "ack": {
+    "calories": -1940.3817138671875,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 66.31890195158091,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.22224189341068268,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "stout"
+    ],
+    "maxWeight": 15,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 72.11703491210938,
+    "mult": 4.775330066680908,
+    "wall": 1792074423215
+   }
+  },
+  {
+   "step": "D4_mult0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 505.192,
+   "wall_after": 505.95,
+   "epoch_ms_before": 1792074424605,
+   "epoch_ms_after": 1792074425363,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 72.16746520996094,
+    "hour": 7,
+    "minutes": 10,
+    "mult": 4.768642425537109,
+    "trueMult": 1,
+    "wall": 1792074425119
+   }
+  },
+  {
+   "step": "D4_raise",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "8.0",
+   "phase": "D",
+   "wall_before": 505.95,
+   "wall_after": 506.457,
+   "epoch_ms_before": 1792074425363,
+   "epoch_ms_after": 1792074425871,
+   "took": 0.507,
+   "ack": "mult=8 eff=38.207603454589844",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D4_raise_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 506.457,
+   "wall_after": 506.713,
+   "epoch_ms_before": 1792074425871,
+   "epoch_ms_after": 1792074426127,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 72.22589111328125,
+    "hour": 7,
+    "minutes": 13,
+    "mult": 38.216522216796875,
+    "trueMult": 8,
+    "wall": 1792074425919
+   }
+  },
+  {
+   "step": "D4_g0_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 507.748,
+   "wall_after": 508.007,
+   "epoch_ms_before": 1792074427161,
+   "epoch_ms_after": 1792074427421,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81602.8046875,
+    "level": 6,
+    "serverWorldAge": 72.50215148925781
+   }
+  },
+  {
+   "step": "D4_g0",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 508.007,
+   "wall_after": 508.265,
+   "epoch_ms_before": 1792074427421,
+   "epoch_ms_after": 1792074427679,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81602.8046875,
+    "levelBefore": 6,
+    "xpAfter": 81674.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g1_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 514.036,
+   "wall_after": 514.293,
+   "epoch_ms_before": 1792074433449,
+   "epoch_ms_after": 1792074433706,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81674.8046875,
+    "level": 6,
+    "serverWorldAge": 73.84140014648438
+   }
+  },
+  {
+   "step": "D4_g1",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 514.293,
+   "wall_after": 514.549,
+   "epoch_ms_before": 1792074433706,
+   "epoch_ms_after": 1792074433963,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81674.8046875,
+    "levelBefore": 6,
+    "xpAfter": 81746.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g2_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 520.884,
+   "wall_after": 521.145,
+   "epoch_ms_before": 1792074440298,
+   "epoch_ms_after": 1792074440558,
+   "took": 0.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81746.8046875,
+    "level": 6,
+    "serverWorldAge": 75.28546142578125
+   }
+  },
+  {
+   "step": "D4_g2",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 521.145,
+   "wall_after": 521.405,
+   "epoch_ms_before": 1792074440558,
+   "epoch_ms_after": 1792074440818,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81746.8046875,
+    "levelBefore": 6,
+    "xpAfter": 81818.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g3_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 527.728,
+   "wall_after": 527.987,
+   "epoch_ms_before": 1792074447142,
+   "epoch_ms_after": 1792074447400,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81818.8046875,
+    "level": 6,
+    "serverWorldAge": 76.75190734863281
+   }
+  },
+  {
+   "step": "D4_g3",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 527.987,
+   "wall_after": 528.244,
+   "epoch_ms_before": 1792074447400,
+   "epoch_ms_after": 1792074447657,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81818.8046875,
+    "levelBefore": 6,
+    "xpAfter": 81890.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g4_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 534.583,
+   "wall_after": 534.84,
+   "epoch_ms_before": 1792074453996,
+   "epoch_ms_after": 1792074454253,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81890.8046875,
+    "level": 6,
+    "serverWorldAge": 78.19502258300781
+   }
+  },
+  {
+   "step": "D4_g4",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 534.84,
+   "wall_after": 535.1,
+   "epoch_ms_before": 1792074454253,
+   "epoch_ms_after": 1792074454513,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81890.8046875,
+    "levelBefore": 6,
+    "xpAfter": 81962.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g5_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 541.427,
+   "wall_after": 541.692,
+   "epoch_ms_before": 1792074460840,
+   "epoch_ms_after": 1792074461105,
+   "took": 0.265,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 81962.8046875,
+    "level": 6,
+    "serverWorldAge": 79.6619873046875
+   }
+  },
+  {
+   "step": "D4_g5",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 541.692,
+   "wall_after": 541.95,
+   "epoch_ms_before": 1792074461105,
+   "epoch_ms_after": 1792074461363,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 81962.8046875,
+    "levelBefore": 6,
+    "xpAfter": 82034.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g6_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 548.276,
+   "wall_after": 548.534,
+   "epoch_ms_before": 1792074467690,
+   "epoch_ms_after": 1792074467947,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 82034.8046875,
+    "level": 6,
+    "serverWorldAge": 81.10659790039062
+   }
+  },
+  {
+   "step": "D4_g6",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 548.534,
+   "wall_after": 548.797,
+   "epoch_ms_before": 1792074467947,
+   "epoch_ms_after": 1792074468211,
+   "took": 0.263,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 82034.8046875,
+    "levelBefore": 6,
+    "xpAfter": 82106.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g7_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 555.12,
+   "wall_after": 555.383,
+   "epoch_ms_before": 1792074474534,
+   "epoch_ms_after": 1792074474796,
+   "took": 0.263,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 82106.8046875,
+    "level": 6,
+    "serverWorldAge": 82.57321166992188
+   }
+  },
+  {
+   "step": "D4_g7",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 555.383,
+   "wall_after": 555.641,
+   "epoch_ms_before": 1792074474796,
+   "epoch_ms_after": 1792074475055,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 82106.8046875,
+    "levelBefore": 6,
+    "xpAfter": 82178.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g8_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 561.969,
+   "wall_after": 562.225,
+   "epoch_ms_before": 1792074481382,
+   "epoch_ms_after": 1792074481639,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 82178.8046875,
+    "level": 6,
+    "serverWorldAge": 84.01808166503906
+   }
+  },
+  {
+   "step": "D4_g8",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 562.226,
+   "wall_after": 562.486,
+   "epoch_ms_before": 1792074481639,
+   "epoch_ms_after": 1792074481899,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 82178.8046875,
+    "levelBefore": 6,
+    "xpAfter": 82250.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_g9_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 568.246,
+   "wall_after": 568.51,
+   "epoch_ms_before": 1792074487659,
+   "epoch_ms_after": 1792074487924,
+   "took": 0.264,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 82250.8046875,
+    "level": 6,
+    "serverWorldAge": 85.35740661621094
+   }
+  },
+  {
+   "step": "D4_g9",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 102.85714285714286",
+   "phase": "D",
+   "wall_before": 568.51,
+   "wall_after": 568.767,
+   "epoch_ms_before": 1792074487924,
+   "epoch_ms_after": 1792074488181,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 102.85714285714286,
+    "side": "server",
+    "xpBefore": 82250.8046875,
+    "levelBefore": 6,
+    "xpAfter": 82322.8046875,
+    "levelAfter": 6
+   }
+  },
+  {
+   "step": "D4_restore",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1.0",
+   "phase": "D",
+   "wall_before": 614.067,
+   "wall_after": 614.331,
+   "epoch_ms_before": 1792074533481,
+   "epoch_ms_after": 1792074533744,
+   "took": 0.264,
+   "ack": "mult=1 eff=4.786830425262451",
+   "ack_shape": "str"
+  },
+  {
+   "step": "D4_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "D",
+   "wall_before": 614.331,
+   "wall_after": 614.587,
+   "epoch_ms_before": 1792074533744,
+   "epoch_ms_after": 1792074534001,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 95.10246276855469,
+    "hour": 6,
+    "minutes": 6,
+    "mult": 4.781520366668701,
+    "trueMult": 1,
+    "wall": 1792074533817
+   }
+  },
+  {
+   "step": "D4_pre_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 643.41,
+   "wall_after": 643.918,
+   "epoch_ms_before": 1792074562823,
+   "epoch_ms_after": 1792074563332,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 53.226143194914656,
+     "body.fm": 13.074893601445602,
+     "body.lx": 0.017865155220665563,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 53.226143194914656,
+     "body.N0": 1,
+     "body.T": 1.0974611764657665,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 8.571428571428573,
+     "body.sigDay": 1028.5714285714287,
+     "body.dayIndex": 3,
+     "body.wday": 3,
+     "body.lastAgeH": 95.86785125732422,
+     "body.levelDue": false,
+     "body.wroteL": 6,
+     "body.pDay": 0,
+     "body.ebDay": -1943.1055770909213,
+     "body.eeDay": 1943.1055770909213,
+     "body.inDay": 0,
+     "body.inDayClosed": 2195.066462807211,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.074893601445602,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1.25,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.2461988601515321,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 1028.5714285714287,
+     "body.sig7.6": 1028.5714285714287,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 130.04999999999998,
+     "body.p7.6": 130.6214039801791,
+     "body.p7.7": 131.51906459717907
+    }
+   }
+  },
+  {
+   "step": "D4_pre_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 643.918,
+   "wall_after": 644.68,
+   "epoch_ms_before": 1792074563332,
+   "epoch_ms_after": 1792074564093,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 254.70120394397009,
+     "body.eb7.6": 254.67153016325256,
+     "body.eb7.7": 255.9477470869515,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.31070199008956,
+     "body.mass7.6": 65.75953229858953,
+     "body.mass7.7": 66.31890195158091,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D4_pDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.pDay 132.63780390316182",
+   "phase": "D",
+   "wall_before": 644.68,
+   "wall_after": 644.938,
+   "epoch_ms_before": 1792074564093,
+   "epoch_ms_after": 1792074564352,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.pDay",
+    "key": "pDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 132.63780390316182
+   }
+  },
+  {
+   "step": "D4_ee",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eeDay body.inDay body.dayIndex",
+   "phase": "D",
+   "wall_before": 645.806,
+   "wall_after": 646.318,
+   "epoch_ms_before": 1792074565219,
+   "epoch_ms_after": 1792074565732,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eeDay": 1948.5174354936312,
+     "body.inDay": 0,
+     "body.dayIndex": 3
+    }
+   }
+  },
+  {
+   "step": "D4_inDay",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.inDay 2208.517435493631",
+   "phase": "D",
+   "wall_before": 646.318,
+   "wall_after": 646.825,
+   "epoch_ms_before": 1792074565732,
+   "epoch_ms_after": 1792074566238,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.inDay",
+    "key": "inDay",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 2208.517435493631
+   }
+  },
+  {
+   "step": "D4_dset",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.dayIndex",
+   "phase": "D",
+   "wall_before": 646.825,
+   "wall_after": 647.085,
+   "epoch_ms_before": 1792074566238,
+   "epoch_ms_after": 1792074566498,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.dayIndex": 3
+    }
+   }
+  },
+  {
+   "step": "D4_post_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.energyState body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "D",
+   "wall_before": 650.965,
+   "wall_after": 651.473,
+   "epoch_ms_before": 1792074570379,
+   "epoch_ms_after": 1792074570887,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 48,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 53.84131549271399,
+     "body.fm": 13.097915296780016,
+     "body.lx": 0.017865155220665563,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 53.84131549271399,
+     "body.N0": 1,
+     "body.T": 1.0993915683086781,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 11.428571428571429,
+     "body.sigDay": 0,
+     "body.dayIndex": 4,
+     "body.wday": 4,
+     "body.lastAgeH": 96.0671157836914,
+     "body.levelDue": false,
+     "body.wroteL": 6,
+     "body.pDay": 0,
+     "body.ebDay": -5.443489177652221,
+     "body.eeDay": 5.443489177652221,
+     "body.inDay": 0,
+     "body.inDayClosed": 2208.517435493631,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.097915296780016,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.0506725311279297,
+     "body.sex": 1,
+     "body.delta": 1.25,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.energyState": 1.2462077554109383,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 1028.5714285714287,
+     "body.sig7.5": 1028.5714285714287,
+     "body.sig7.6": 1028.5714285714287,
+     "body.sig7.7": 1028.5714285714287,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 130.04999999999998,
+     "body.p7.5": 130.6214039801791,
+     "body.p7.6": 131.51906459717907,
+     "body.p7.7": 132.63780390316182
+    }
+   }
+  },
+  {
+   "step": "D4_post_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "D",
+   "wall_before": 651.473,
+   "wall_after": 652.231,
+   "epoch_ms_before": 1792074570887,
+   "epoch_ms_after": 1792074571644,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 254.70120394397009,
+     "body.eb7.5": 254.67153016325256,
+     "body.eb7.6": 255.9477470869515,
+     "body.eb7.7": 254.58625541231868,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.31070199008956,
+     "body.mass7.5": 65.75953229858953,
+     "body.mass7.6": 66.31890195158091,
+     "body.mass7.7": 66.95709594471467,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "D4_lvl",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "D",
+   "wall_before": 652.231,
+   "wall_after": 652.738,
+   "epoch_ms_before": 1792074571644,
+   "epoch_ms_after": 1792074572152,
+   "took": 0.507,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 94013.046875,
+    "level": 6,
+    "serverWorldAge": 96.11764526367188
+   }
+  },
+  {
+   "step": "D4_stats",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "D",
+   "wall_before": 652.738,
+   "wall_after": 652.997,
+   "epoch_ms_before": 1792074572152,
+   "epoch_ms_after": 1792074572410,
+   "took": 0.259,
+   "ack": {
+    "calories": -1955.1724853515625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 66.95709594471467,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.22028741240501404,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "stout"
+    ],
+    "maxWeight": 15,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 96.12297058105469,
+    "mult": 4.779988765716553,
+    "wall": 1792074572217
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 70.049,
+   "end": 75.646
+  },
+  "D": {
+   "start": 75.648,
+   "end": 654.012
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "35_E1": {
+   "phase": "35_E1",
+   "predicted": null,
+   "falsifier": "E at the close off +260 by more than 20 kcal",
+   "observed": {
+    "E": 254.70120394397009,
+    "want": 260.0,
+    "tol": 20.0,
+    "set": true,
+    "eeDay_read": 1664.4884188307292,
+    "before_close": true,
+    "miss": -5.298796056029914
+   },
+   "verdict": "as_predicted",
+   "wall": 663.701
+  },
+  "35_close1": {
+   "phase": "35_close1",
+   "predicted": null,
+   "falsifier": "lm off the replay by more than 1e-6 kg or T by more than 1e-9",
+   "observed": {
+    "lm": [
+     52.019999999999996,
+     52.27159354024875
+    ],
+    "T": [
+     1,
+     1.0557947457976176
+    ],
+    "replay": {
+     "lm": 52.27159354024875,
+     "T": 1.0557947457976176,
+     "lx": 0.010825766116653928,
+     "fm": 13.028282683724152,
+     "tdee": [
+      1659.1936550774535,
+      1809.1936550774535
+     ],
+     "tdee_sensitive": false,
+     "lm_hi": 52.27159354024875,
+     "path": {
+      "grow": 0.251593540248758,
+      "regain": 0.0,
+      "arm": "growth",
+      "s": 0.0,
+      "fe": 1.0,
+      "fp": 1.0,
+      "partition": "surplus",
+      "saturated": true
+     }
+    },
+    "inputs": {
+     "w": 65.02499999999999,
+     "S": 2.857142857142857,
+     "p": 2.0,
+     "E": 254.70120394397009,
+     "alc": 0.0,
+     "eeDay_pre": 1659.1936550774535,
+     "ree": 1437.7939999999999
+    },
+    "path": {
+     "grow": 0.251593540248758,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.0,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    },
+    "dayIndex": [
+     0,
+     1
+    ],
+    "dF_live": 0.2515935402487557,
+    "dF_replay": 0.2515935402487557,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.701
+  },
+  "35_level1": {
+   "phase": "35_level1",
+   "predicted": null,
+   "falsifier": "native level or band off heldLevel(level(lm, N0, T), wroteL)",
+   "observed": {
+    "L": 5.568744132237155,
+    "wroteL_pre": 5,
+    "want_native": 5,
+    "want_band": null,
+    "native": 5,
+    "wroteL_post": 5,
+    "bands": [],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_E2": {
+   "phase": "35_E2",
+   "predicted": null,
+   "falsifier": "E at the close off +260 by more than 20 kcal",
+   "observed": {
+    "E": 254.67153016325256,
+    "want": 260.0,
+    "tol": 20.0,
+    "set": true,
+    "eeDay_read": 1920.587534779222,
+    "before_close": true,
+    "miss": -5.328469836747445
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_close2": {
+   "phase": "35_close2",
+   "predicted": null,
+   "falsifier": "lm off the replay by more than 1e-6 kg or T by more than 1e-9",
+   "observed": {
+    "lm": [
+     52.27159354024875,
+     52.69173444729168
+    ],
+    "T": [
+     1.0557947457976176,
+     1.089406165014227
+    ],
+    "replay": {
+     "lm": 52.69173444729168,
+     "T": 1.089406165014227,
+     "lx": 0.016283817076096465,
+     "fm": 13.051514034221759,
+     "tdee": [
+      1915.2494305723662,
+      2065.2494305723662
+     ],
+     "tdee_sensitive": false,
+     "lm_hi": 52.69173444729168,
+     "path": {
+      "grow": 0.4201409070429297,
+      "regain": 0.0,
+      "arm": "growth",
+      "s": 0.015140276229803268,
+      "fe": 1.0,
+      "fp": 1.0,
+      "partition": "surplus",
+      "saturated": true
+     }
+    },
+    "inputs": {
+     "w": 65.31070199008956,
+     "S": 5.714285714285714,
+     "p": 2.0,
+     "E": 254.67153016325256,
+     "alc": 0.0,
+     "eeDay_pre": 1915.2494305723662,
+     "ree": 1442.7503927429004
+    },
+    "path": {
+     "grow": 0.4201409070429297,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.015140276229803268,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    },
+    "dayIndex": [
+     1,
+     2
+    ],
+    "dF_live": 0.42014090704292784,
+    "dF_replay": 0.42014090704292784,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_level2": {
+   "phase": "35_level2",
+   "predicted": null,
+   "falsifier": "native level or band off heldLevel(level(lm, N0, T), wroteL)",
+   "observed": {
+    "L": 5.997542993973719,
+    "wroteL_pre": 5,
+    "want_native": 5,
+    "want_band": null,
+    "native": 5,
+    "wroteL_post": 5,
+    "bands": [],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_E3": {
+   "phase": "35_E3",
+   "predicted": null,
+   "falsifier": "E at the close off +260 by more than 20 kcal",
+   "observed": {
+    "E": 255.9477470869515,
+    "want": 260.0,
+    "tol": 20.0,
+    "set": true,
+    "eeDay_read": 1935.066462807211,
+    "before_close": true,
+    "miss": -4.052252913048505
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_close3": {
+   "phase": "35_close3",
+   "predicted": null,
+   "falsifier": "lm off the replay by more than 1e-6 kg or T by more than 1e-9",
+   "observed": {
+    "lm": [
+     52.69173444729168,
+     53.226143194914656
+    ],
+    "T": [
+     1.089406165014227,
+     1.0974611764657665
+    ],
+    "replay": {
+     "lm": 53.226143194914656,
+     "T": 1.0974611764657665,
+     "lx": 0.017865155220665563,
+     "fm": 13.074893601445602,
+     "tdee": [
+      1928.4802199659632,
+      2078.4802199659634
+     ],
+     "tdee_sensitive": false,
+     "lm_hi": 53.226143194914656,
+     "path": {
+      "grow": 0.5344087476229771,
+      "regain": 0.0,
+      "arm": "growth",
+      "s": 0.04042331561857583,
+      "fe": 1.0,
+      "fp": 1.0,
+      "partition": "surplus",
+      "saturated": true
+     }
+    },
+    "inputs": {
+     "w": 65.75953229858953,
+     "S": 8.571428571428573,
+     "p": 2.0,
+     "E": 255.9477470869515,
+     "alc": 0.0,
+     "eeDay_pre": 1928.4802199659632,
+     "ree": 1451.027168611646
+    },
+    "path": {
+     "grow": 0.5344087476229771,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.04042331561857583,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    },
+    "dayIndex": [
+     2,
+     3
+    ],
+    "dF_live": 0.534408747622976,
+    "dF_replay": 0.534408747622976,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_level3": {
+   "phase": "35_level3",
+   "predicted": null,
+   "falsifier": "native level or band off heldLevel(level(lm, N0, T), wroteL)",
+   "observed": {
+    "L": 6.2350466980762835,
+    "wroteL_pre": 5,
+    "want_native": 6,
+    "want_band": "stout",
+    "native": 6,
+    "wroteL_post": 6,
+    "bands": [
+     "stout"
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_E4": {
+   "phase": "35_E4",
+   "predicted": null,
+   "falsifier": "E at the close off +260 by more than 20 kcal",
+   "observed": {
+    "E": 254.58625541231868,
+    "want": 260.0,
+    "tol": 20.0,
+    "set": true,
+    "eeDay_read": 1948.5174354936312,
+    "before_close": true,
+    "miss": -5.413744587681322
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_close4": {
+   "phase": "35_close4",
+   "predicted": null,
+   "falsifier": "lm off the replay by more than 1e-6 kg or T by more than 1e-9",
+   "observed": {
+    "lm": [
+     53.226143194914656,
+     53.84131549271399
+    ],
+    "T": [
+     1.0974611764657665,
+     1.0993915683086781
+    ],
+    "replay": {
+     "lm": 53.84131549271399,
+     "T": 1.0993915683086781,
+     "lx": 0.017865155220665563,
+     "fm": 13.097915296780016,
+     "tdee": [
+      1943.1055770909213,
+      2093.1055770909215
+     ],
+     "tdee_sensitive": false,
+     "lm_hi": 53.84131549271399,
+     "path": {
+      "grow": 0.6151722977993354,
+      "regain": 0.0,
+      "arm": "growth",
+      "s": 0.07258271069141929,
+      "fe": 1.0,
+      "fp": 1.0,
+      "partition": "surplus",
+      "saturated": true
+     }
+    },
+    "inputs": {
+     "w": 66.31890195158091,
+     "S": 11.428571428571429,
+     "p": 2.0,
+     "E": 254.58625541231868,
+     "alc": 0.0,
+     "eeDay_pre": 1943.1055770909213,
+     "ree": 1461.5550209398186
+    },
+    "path": {
+     "grow": 0.6151722977993354,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.07258271069141929,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    },
+    "dayIndex": [
+     3,
+     4
+    ],
+    "dF_live": 0.615172297799333,
+    "dF_replay": 0.615172297799333,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_level4": {
+   "phase": "35_level4",
+   "predicted": null,
+   "falsifier": "native level or band off heldLevel(level(lm, N0, T), wroteL)",
+   "observed": {
+    "L": 6.441884048872945,
+    "wroteL_pre": 6,
+    "want_native": 6,
+    "want_band": "stout",
+    "native": 6,
+    "wroteL_post": 6,
+    "bands": [
+     "stout"
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  },
+  "35_surplus": {
+   "phase": "35_surplus",
+   "predicted": "at least three closes with 35_E and 35_close as predicted",
+   "falsifier": "fewer than 3 surplus closes reproduce the replay at E +260",
+   "observed": {
+    "good": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "falsified_days": [],
+    "need": 3
+   },
+   "verdict": "as_predicted",
+   "wall": 663.702
+  }
+ },
+ "readings": {
+  "replay_P": {
+   "ts": 30.0,
+   "incidental": 1.0,
+   "xpPerSet": 360.0,
+   "R": 1.5651015746939971,
+   "server": {
+    "R": 1.5651015746939971,
+    "M5": 25.019999999999996,
+    "Fnm": 27,
+    "b": 0.8,
+    "incidental": 1,
+    "xpPerSet": 360,
+    "ts": 30,
+    "k": 0.009906127265972144
+   }
+  }
+ },
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": []
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "time": {
+    "worldAge": 3.115128517150879,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.4382548332214355,
+    "trueMult": 1,
+    "wall": 70.305,
+    "wall_after": 70.814
+   },
+   "ready": {
+    "done": true,
+    "last": {
+     "runs": 4,
+     "lm": 52.019999999999996,
+     "levelDue": false
+    },
+    "polls": 1
+   },
+   "P": {
+    "R": 1.5651015746939971,
+    "M5": 25.019999999999996,
+    "Fnm": 27,
+    "b": 0.8,
+    "incidental": 1,
+    "xpPerSet": 360,
+    "ts": 30,
+    "k": 0.009906127265972144
+   },
+   "sandbox": {
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 1,
+    "SandboxVars.NR.StrengthTimeScale": 30,
+    "SandboxVars.NR.StrengthIncidentalWeight": 1
+   },
+   "body": {
+    "lm": 52.019999999999996,
+    "fm": 13.004999999999999,
+    "lx": 0,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 3.1504364013671875,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -7.922992874415668,
+    "eeDay": 7.922992874415668,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.004999999999999,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.0009977198214877,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.02499999999999,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 72.844,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "xp": {
+    "xp": 37500,
+    "level": 5,
+    "wall": 73.617,
+    "error": null
+   },
+   "death": {
+    "dead": false,
+    "dead_raw": "false",
+    "health": 100.0,
+    "health_raw": "100",
+    "wall": 74.376
+   }
+  },
+  "lead_in": false,
+  "day1": {
+   "grants": [
+    {
+     "i": 0,
+     "xp_open": 37500,
+     "level_open": 5,
+     "xpBefore": 37500,
+     "xpAfter": 37572,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 1,
+     "xp_open": 37572,
+     "level_open": 5,
+     "xpBefore": 37572,
+     "xpAfter": 37644,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 2,
+     "xp_open": 37644,
+     "level_open": 5,
+     "xpBefore": 37644,
+     "xpAfter": 37716,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 3,
+     "xp_open": 37716,
+     "level_open": 5,
+     "xpBefore": 37716,
+     "xpAfter": 37788,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 4,
+     "xp_open": 37788,
+     "level_open": 5,
+     "xpBefore": 37788,
+     "xpAfter": 37860,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 5,
+     "xp_open": 37860,
+     "level_open": 5,
+     "xpBefore": 37860,
+     "xpAfter": 37932,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 6,
+     "xp_open": 37932,
+     "level_open": 5,
+     "xpBefore": 37932,
+     "xpAfter": 38004,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 7,
+     "xp_open": 38004,
+     "level_open": 5,
+     "xpBefore": 38004,
+     "xpAfter": 38076,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 8,
+     "xp_open": 38076,
+     "level_open": 5,
+     "xpBefore": 38076,
+     "xpAfter": 38148,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 9,
+     "xp_open": 38148,
+     "level_open": 5,
+     "xpBefore": 38148,
+     "xpAfter": 38220,
+     "levelAfter": 5,
+     "ok": true
+    }
+   ],
+   "upkeep": [
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 78.718
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 85.018
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 91.86
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 98.141
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 104.418
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 111.267
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 118.101
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 124.927
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 131.76
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 138.594
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 172.544
+     }
+    }
+   ],
+   "closed": true,
+   "graded": true,
+   "placed": {
+    "w": 65.02499999999999,
+    "pDay": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.pDay",
+     "key": "pDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 130.04999999999998,
+     "wall": 199.338,
+     "wall_after": 200.095
+    },
+    "eeDay": 1664.4884188307292,
+    "inDay_before": 0,
+    "day_at_read": 0,
+    "inDay_reply": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.inDay",
+     "key": "inDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 1924.4884188307292,
+     "wall": 200.858,
+     "wall_after": 201.37
+    },
+    "inDay_set": true,
+    "day_after_set": 0,
+    "before_close": true
+   },
+   "boundary": 24.0,
+   "age0": 3.268235206604004,
+   "restore_to": 1,
+   "raise": {
+    "reply": "mult=8 eff=38.179264068603516",
+    "trueMult": 8,
+    "ok": true
+   },
+   "slow_wait": {
+    "done": true,
+    "last": 23.115158081054688,
+    "polls": 42
+   },
+   "restore": {
+    "first": {
+     "reply": "mult=1 eff=4.782731056213379",
+     "trueMult": 1,
+     "ok": true
+    },
+    "ok": true
+   },
+   "place_wait": {
+    "done": true,
+    "last": 23.867416381835938,
+    "polls": 39
+   },
+   "pre": {
+    "lm": 52.019999999999996,
+    "fm": 13.004999999999999,
+    "lx": 0,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 1028.5714285714287,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 23.867416381835938,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -1659.1936550774535,
+    "eeDay": 1659.1936550774535,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.004999999999999,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.20893750929688,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.02499999999999,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 198.068,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "e_wait": {
+    "done": true,
+    "last": 23.93379020690918,
+    "polls": 1
+   },
+   "close_wait": {
+    "done": true,
+    "last": 1,
+    "polls": 3
+   },
+   "post": {
+    "lm": 52.27159354024875,
+    "fm": 13.028282683724152,
+    "lx": 0.010825766116653928,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.27159354024875,
+    "N0": 1,
+    "T": 1.0557947457976176,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 2.857142857142857,
+    "sigDay": 0,
+    "dayIndex": 1,
+    "wday": 1,
+    "lastAgeH": 24.069320678710938,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -5.533240018423779,
+    "eeDay": 5.533240018423779,
+    "inDay": 0,
+    "inDayClosed": 1924.4884188307292,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.028282683724152,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.2109683110532776,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 130.04999999999998,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 254.70120394397009,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.31070199008956,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 205.756,
+    "_missing": []
+   },
+   "days": [
+    0,
+    1
+   ],
+   "xp": {
+    "xp": 54562.32421875,
+    "level": 5,
+    "wall": 207.028,
+    "error": null
+   },
+   "stats": {
+    "calories": -1679.1558837890625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.31070199008956,
+    "hunger": 0.43885472416877747,
+    "thirst": 0.1709441840648651,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 2,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 11,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 24.135833740234375,
+    "mult": 4.78635835647583,
+    "wall": 207.538,
+    "wall_after": 208.298,
+    "side": "server"
+   },
+   "death_after": {
+    "dead": false,
+    "dead_raw": "false",
+    "health": 100.0,
+    "health_raw": "100",
+    "wall": 208.298
+   },
+   "replay": {
+    "lm": 52.27159354024875,
+    "T": 1.0557947457976176,
+    "lx": 0.010825766116653928,
+    "fm": 13.028282683724152,
+    "tdee": [
+     1659.1936550774535,
+     1809.1936550774535
+    ],
+    "tdee_sensitive": false,
+    "lm_hi": 52.27159354024875,
+    "path": {
+     "grow": 0.251593540248758,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.0,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    }
+   },
+   "inputs": {
+    "w": 65.02499999999999,
+    "S": 2.857142857142857,
+    "p": 2.0,
+    "E": 254.70120394397009,
+    "alc": 0.0,
+    "eeDay_pre": 1659.1936550774535,
+    "ree": 1437.7939999999999
+   }
+  },
+  "day2": {
+   "grants": [
+    {
+     "i": 0,
+     "xp_open": 54562.32421875,
+     "level_open": 5,
+     "xpBefore": 54562.32421875,
+     "xpAfter": 54634.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 1,
+     "xp_open": 54634.32421875,
+     "level_open": 5,
+     "xpBefore": 54634.32421875,
+     "xpAfter": 54706.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 2,
+     "xp_open": 54706.32421875,
+     "level_open": 5,
+     "xpBefore": 54706.32421875,
+     "xpAfter": 54778.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 3,
+     "xp_open": 54778.32421875,
+     "level_open": 5,
+     "xpBefore": 54778.32421875,
+     "xpAfter": 54850.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 4,
+     "xp_open": 54850.32421875,
+     "level_open": 5,
+     "xpBefore": 54850.32421875,
+     "xpAfter": 54922.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 5,
+     "xp_open": 54922.32421875,
+     "level_open": 5,
+     "xpBefore": 54922.32421875,
+     "xpAfter": 54994.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 6,
+     "xp_open": 54994.32421875,
+     "level_open": 5,
+     "xpBefore": 54994.32421875,
+     "xpAfter": 55066.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 7,
+     "xp_open": 55066.32421875,
+     "level_open": 5,
+     "xpBefore": 55066.32421875,
+     "xpAfter": 55138.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 8,
+     "xp_open": 55138.32421875,
+     "level_open": 5,
+     "xpBefore": 55138.32421875,
+     "xpAfter": 55210.32421875,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 9,
+     "xp_open": 55210.32421875,
+     "level_open": 5,
+     "xpBefore": 55210.32421875,
+     "xpAfter": 55282.32421875,
+     "levelAfter": 5,
+     "ok": true
+    }
+   ],
+   "upkeep": [
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 212.114
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 218.942
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 225.235
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 232.071
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 238.915
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 245.743
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 252.013
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 258.839
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 265.113
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 271.954
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 320.225
+     }
+    }
+   ],
+   "closed": true,
+   "graded": true,
+   "placed": {
+    "w": 65.31070199008956,
+    "pDay": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.pDay",
+     "key": "pDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 130.6214039801791,
+     "wall": 345.039,
+     "wall_after": 345.552
+    },
+    "eeDay": 1920.587534779222,
+    "inDay_before": 0,
+    "day_at_read": 1,
+    "inDay_reply": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.inDay",
+     "key": "inDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 2180.587534779222,
+     "wall": 346.931,
+     "wall_after": 347.438
+    },
+    "inDay_set": true,
+    "day_after_set": 1,
+    "before_close": true
+   },
+   "boundary": 48.0,
+   "age0": 24.183725357055664,
+   "restore_to": 1,
+   "raise": {
+    "reply": "mult=8 eff=38.25783920288086",
+    "trueMult": 8,
+    "ok": true
+   },
+   "slow_wait": {
+    "done": true,
+    "last": 47.14549255371094,
+    "polls": 61
+   },
+   "restore": {
+    "first": {
+     "reply": "mult=1 eff=4.7834343910217285",
+     "trueMult": 1,
+     "ok": true
+    },
+    "ok": true
+   },
+   "place_wait": {
+    "done": true,
+    "last": 47.86854553222656,
+    "polls": 37
+   },
+   "pre": {
+    "lm": 52.27159354024875,
+    "fm": 13.028282683724152,
+    "lx": 0.010825766116653928,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.27159354024875,
+    "N0": 1,
+    "T": 1.0557947457976176,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 2.857142857142857,
+    "sigDay": 1028.5714285714287,
+    "dayIndex": 1,
+    "wday": 1,
+    "lastAgeH": 47.86854553222656,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -1915.2494305723662,
+    "eeDay": 1915.2494305723662,
+    "inDay": 0,
+    "inDayClosed": 1924.4884188307292,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.028282683724152,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.2426583105120252,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 130.04999999999998,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 254.70120394397009,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.31070199008956,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 344.274,
+    "_missing": []
+   },
+   "e_wait": {
+    "done": true,
+    "last": 47.935028076171875,
+    "polls": 2
+   },
+   "close_wait": {
+    "done": true,
+    "last": 2,
+    "polls": 3
+   },
+   "post": {
+    "lm": 52.69173444729168,
+    "fm": 13.051514034221759,
+    "lx": 0.016283817076096465,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.69173444729168,
+    "N0": 1,
+    "T": 1.089406165014227,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 5.714285714285714,
+    "sigDay": 0,
+    "dayIndex": 2,
+    "wday": 2,
+    "lastAgeH": 48.06778335571289,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -5.363436356364231,
+    "eeDay": 5.363436356364231,
+    "inDay": 0,
+    "inDayClosed": 2180.587534779222,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.051514034221759,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.242676849130319,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 1028.5714285714287,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 130.04999999999998,
+    "p7.7": 130.6214039801791,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 254.70120394397009,
+    "eb7.7": 254.67153016325256,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.31070199008956,
+    "mass7.7": 65.75953229858953,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 351.835,
+    "_missing": []
+   },
+   "days": [
+    1,
+    2
+   ],
+   "xp": {
+    "xp": 67426.2890625,
+    "level": 5,
+    "wall": 352.854,
+    "error": null
+   },
+   "stats": {
+    "calories": -1927.1441650390625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.75953229858953,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.21340225636959076,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 10,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 48.11833572387695,
+    "mult": 4.781129360198975,
+    "wall": 353.109,
+    "wall_after": 353.623,
+    "side": "server"
+   },
+   "death_after": {
+    "dead": false,
+    "dead_raw": "false",
+    "health": 100.0,
+    "health_raw": "100",
+    "wall": 353.623
+   },
+   "replay": {
+    "lm": 52.69173444729168,
+    "T": 1.089406165014227,
+    "lx": 0.016283817076096465,
+    "fm": 13.051514034221759,
+    "tdee": [
+     1915.2494305723662,
+     2065.2494305723662
+    ],
+    "tdee_sensitive": false,
+    "lm_hi": 52.69173444729168,
+    "path": {
+     "grow": 0.4201409070429297,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.015140276229803268,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    }
+   },
+   "inputs": {
+    "w": 65.31070199008956,
+    "S": 5.714285714285714,
+    "p": 2.0,
+    "E": 254.67153016325256,
+    "alc": 0.0,
+    "eeDay_pre": 1915.2494305723662,
+    "ree": 1442.7503927429004
+   }
+  },
+  "day3": {
+   "grants": [
+    {
+     "i": 0,
+     "xp_open": 67426.2890625,
+     "level_open": 5,
+     "xpBefore": 67426.2890625,
+     "xpAfter": 67498.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 1,
+     "xp_open": 67498.2890625,
+     "level_open": 5,
+     "xpBefore": 67498.2890625,
+     "xpAfter": 67426.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 2,
+     "xp_open": 67426.2890625,
+     "level_open": 5,
+     "xpBefore": 67426.2890625,
+     "xpAfter": 67498.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 3,
+     "xp_open": 67498.2890625,
+     "level_open": 5,
+     "xpBefore": 67498.2890625,
+     "xpAfter": 67426.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 4,
+     "xp_open": 67426.2890625,
+     "level_open": 5,
+     "xpBefore": 67426.2890625,
+     "xpAfter": 67498.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 5,
+     "xp_open": 67498.2890625,
+     "level_open": 5,
+     "xpBefore": 67498.2890625,
+     "xpAfter": 67426.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 6,
+     "xp_open": 67426.2890625,
+     "level_open": 5,
+     "xpBefore": 67426.2890625,
+     "xpAfter": 67498.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 7,
+     "xp_open": 67498.2890625,
+     "level_open": 5,
+     "xpBefore": 67498.2890625,
+     "xpAfter": 67426.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 8,
+     "xp_open": 67426.2890625,
+     "level_open": 5,
+     "xpBefore": 67426.2890625,
+     "xpAfter": 67498.2890625,
+     "levelAfter": 5,
+     "ok": true
+    },
+    {
+     "i": 9,
+     "xp_open": 67498.2890625,
+     "level_open": 5,
+     "xpBefore": 67498.2890625,
+     "xpAfter": 67426.2890625,
+     "levelAfter": 5,
+     "ok": true
+    }
+   ],
+   "upkeep": [
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 357.442
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 363.715
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 370.557
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 376.835
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 383.123
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 389.946
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 396.222
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 403.065
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 409.908
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 416.746
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 465.029
+     }
+    }
+   ],
+   "closed": true,
+   "graded": true,
+   "placed": {
+    "w": 65.75953229858953,
+    "pDay": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.pDay",
+     "key": "pDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 131.51906459717907,
+     "wall": 495.094,
+     "wall_after": 495.853
+    },
+    "eeDay": 1935.066462807211,
+    "inDay_before": 0,
+    "day_at_read": 2,
+    "inDay_reply": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.inDay",
+     "key": "inDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 2195.066462807211,
+     "wall": 498.343,
+     "wall_after": 498.856
+    },
+    "inDay_set": true,
+    "day_after_set": 2,
+    "before_close": true
+   },
+   "boundary": 72.0,
+   "age0": 48.168853759765625,
+   "restore_to": 1,
+   "raise": {
+    "reply": "mult=8 eff=38.237457275390625",
+    "trueMult": 8,
+    "ok": true
+   },
+   "slow_wait": {
+    "done": true,
+    "last": 71.00363159179688,
+    "polls": 61
+   },
+   "restore": {
+    "first": {
+     "reply": "mult=1 eff=4.790069103240967",
+     "trueMult": 1,
+     "ok": true
+    },
+    "ok": true
+   },
+   "place_wait": {
+    "done": true,
+    "last": 71.86907958984375,
+    "polls": 45
+   },
+   "pre": {
+    "lm": 52.69173444729168,
+    "fm": 13.051514034221759,
+    "lx": 0.016283817076096465,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.69173444729168,
+    "N0": 1,
+    "T": 1.089406165014227,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 5.714285714285714,
+    "sigDay": 1028.5714285714287,
+    "dayIndex": 2,
+    "wday": 2,
+    "lastAgeH": 71.86907958984375,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -1928.4802199659632,
+    "eeDay": 1928.4802199659632,
+    "inDay": 0,
+    "inDayClosed": 2180.587534779222,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.051514034221759,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.2443181008563136,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 1028.5714285714287,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 130.04999999999998,
+    "p7.7": 130.6214039801791,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 254.70120394397009,
+    "eb7.7": 254.67153016325256,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.31070199008956,
+    "mass7.7": 65.75953229858953,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 494.576,
+    "_missing": []
+   },
+   "e_wait": {
+    "done": true,
+    "last": 71.95059967041016,
+    "polls": 3
+   },
+   "close_wait": {
+    "done": true,
+    "last": 3,
+    "polls": 1
+   },
+   "post": {
+    "lm": 53.226143194914656,
+    "fm": 13.074893601445602,
+    "lx": 0.017865155220665563,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 53.226143194914656,
+    "N0": 1,
+    "T": 1.0974611764657665,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 8.571428571428573,
+    "sigDay": 0,
+    "dayIndex": 3,
+    "wday": 3,
+    "lastAgeH": 72.06669616699219,
+    "levelDue": false,
+    "wroteL": 6,
+    "pDay": 0,
+    "ebDay": -5.367903494786642,
+    "eeDay": 5.367903494786642,
+    "inDay": 0,
+    "inDayClosed": 2195.066462807211,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.074893601445602,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1.25,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.244344718493803,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 1028.5714285714287,
+    "sig7.6": 1028.5714285714287,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 130.04999999999998,
+    "p7.6": 130.6214039801791,
+    "p7.7": 131.51906459717907,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 254.70120394397009,
+    "eb7.6": 254.67153016325256,
+    "eb7.7": 255.9477470869515,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.31070199008956,
+    "mass7.6": 65.75953229858953,
+    "mass7.7": 66.31890195158091,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 502.134,
+    "_missing": []
+   },
+   "days": [
+    2,
+    3
+   ],
+   "xp": {
+    "xp": 81602.8046875,
+    "level": 6,
+    "wall": 502.901,
+    "error": null
+   },
+   "stats": {
+    "calories": -1940.3817138671875,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 66.31890195158091,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.22224189341068268,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "stout"
+    ],
+    "maxWeight": 15,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 72.11703491210938,
+    "mult": 4.775330066680908,
+    "wall": 503.41,
+    "wall_after": 503.918,
+    "side": "server"
+   },
+   "death_after": {
+    "dead": false,
+    "dead_raw": "false",
+    "health": 100.0,
+    "health_raw": "100",
+    "wall": 503.918
+   },
+   "replay": {
+    "lm": 53.226143194914656,
+    "T": 1.0974611764657665,
+    "lx": 0.017865155220665563,
+    "fm": 13.074893601445602,
+    "tdee": [
+     1928.4802199659632,
+     2078.4802199659634
+    ],
+    "tdee_sensitive": false,
+    "lm_hi": 53.226143194914656,
+    "path": {
+     "grow": 0.5344087476229771,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.04042331561857583,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    }
+   },
+   "inputs": {
+    "w": 65.75953229858953,
+    "S": 8.571428571428573,
+    "p": 2.0,
+    "E": 255.9477470869515,
+    "alc": 0.0,
+    "eeDay_pre": 1928.4802199659632,
+    "ree": 1451.027168611646
+   }
+  },
+  "day4": {
+   "grants": [
+    {
+     "i": 0,
+     "xp_open": 81602.8046875,
+     "level_open": 6,
+     "xpBefore": 81602.8046875,
+     "xpAfter": 81674.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 1,
+     "xp_open": 81674.8046875,
+     "level_open": 6,
+     "xpBefore": 81674.8046875,
+     "xpAfter": 81746.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 2,
+     "xp_open": 81746.8046875,
+     "level_open": 6,
+     "xpBefore": 81746.8046875,
+     "xpAfter": 81818.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 3,
+     "xp_open": 81818.8046875,
+     "level_open": 6,
+     "xpBefore": 81818.8046875,
+     "xpAfter": 81890.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 4,
+     "xp_open": 81890.8046875,
+     "level_open": 6,
+     "xpBefore": 81890.8046875,
+     "xpAfter": 81962.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 5,
+     "xp_open": 81962.8046875,
+     "level_open": 6,
+     "xpBefore": 81962.8046875,
+     "xpAfter": 82034.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 6,
+     "xp_open": 82034.8046875,
+     "level_open": 6,
+     "xpBefore": 82034.8046875,
+     "xpAfter": 82106.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 7,
+     "xp_open": 82106.8046875,
+     "level_open": 6,
+     "xpBefore": 82106.8046875,
+     "xpAfter": 82178.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 8,
+     "xp_open": 82178.8046875,
+     "level_open": 6,
+     "xpBefore": 82178.8046875,
+     "xpAfter": 82250.8046875,
+     "levelAfter": 6,
+     "ok": true
+    },
+    {
+     "i": 9,
+     "xp_open": 82250.8046875,
+     "level_open": 6,
+     "xpBefore": 82250.8046875,
+     "xpAfter": 82322.8046875,
+     "levelAfter": 6,
+     "ok": true
+    }
+   ],
+   "upkeep": [
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 507.234
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 513.518
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 520.368
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 527.211
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 534.065
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 540.911
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 547.761
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 554.607
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 561.45
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 567.731
+     }
+    },
+    {
+     "applied": {
+      "thirst": "Stats:set(CharacterStat.THIRST)",
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     },
+     "thirst_after": 0,
+     "hunger_after": 0,
+     "error": null,
+     "death": {
+      "dead": false,
+      "dead_raw": "false",
+      "health": 100.0,
+      "health_raw": "100",
+      "wall": 614.844
+     }
+    }
+   ],
+   "closed": true,
+   "graded": true,
+   "placed": {
+    "w": 66.31890195158091,
+    "pDay": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.pDay",
+     "key": "pDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 132.63780390316182,
+     "wall": 644.68,
+     "wall_after": 644.938
+    },
+    "eeDay": 1948.5174354936312,
+    "inDay_before": 0,
+    "day_at_read": 3,
+    "inDay_reply": {
+     "ok": true,
+     "side": "server",
+     "user": "admin",
+     "path": "body.inDay",
+     "key": "inDay",
+     "keyType": "string",
+     "beforeType": "number",
+     "before": 0,
+     "afterType": "number",
+     "after": 2208.517435493631,
+     "wall": 646.318,
+     "wall_after": 646.825
+    },
+    "inDay_set": true,
+    "day_after_set": 3,
+    "before_close": true
+   },
+   "boundary": 96.0,
+   "age0": 72.15155029296875,
+   "restore_to": 1,
+   "raise": {
+    "reply": "mult=8 eff=38.207603454589844",
+    "trueMult": 8,
+    "ok": true
+   },
+   "slow_wait": {
+    "done": true,
+    "last": 95.05191040039062,
+    "polls": 60
+   },
+   "restore": {
+    "first": {
+     "reply": "mult=1 eff=4.786830425262451",
+     "trueMult": 1,
+     "ok": true
+    },
+    "ok": true
+   },
+   "place_wait": {
+    "done": true,
+    "last": 95.86785125732422,
+    "polls": 44
+   },
+   "pre": {
+    "lm": 53.226143194914656,
+    "fm": 13.074893601445602,
+    "lx": 0.017865155220665563,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 53.226143194914656,
+    "N0": 1,
+    "T": 1.0974611764657665,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 8.571428571428573,
+    "sigDay": 1028.5714285714287,
+    "dayIndex": 3,
+    "wday": 3,
+    "lastAgeH": 95.86785125732422,
+    "levelDue": false,
+    "wroteL": 6,
+    "pDay": 0,
+    "ebDay": -1943.1055770909213,
+    "eeDay": 1943.1055770909213,
+    "inDay": 0,
+    "inDayClosed": 2195.066462807211,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.074893601445602,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1.25,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.2461988601515321,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 1028.5714285714287,
+    "sig7.6": 1028.5714285714287,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 130.04999999999998,
+    "p7.6": 130.6214039801791,
+    "p7.7": 131.51906459717907,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 254.70120394397009,
+    "eb7.6": 254.67153016325256,
+    "eb7.7": 255.9477470869515,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.31070199008956,
+    "mass7.6": 65.75953229858953,
+    "mass7.7": 66.31890195158091,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 643.41,
+    "_missing": []
+   },
+   "e_wait": {
+    "done": true,
+    "last": 95.934326171875,
+    "polls": 2
+   },
+   "close_wait": {
+    "done": true,
+    "last": 4,
+    "polls": 3
+   },
+   "post": {
+    "lm": 53.84131549271399,
+    "fm": 13.097915296780016,
+    "lx": 0.017865155220665563,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 53.84131549271399,
+    "N0": 1,
+    "T": 1.0993915683086781,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 11.428571428571429,
+    "sigDay": 0,
+    "dayIndex": 4,
+    "wday": 4,
+    "lastAgeH": 96.0671157836914,
+    "levelDue": false,
+    "wroteL": 6,
+    "pDay": 0,
+    "ebDay": -5.443489177652221,
+    "eeDay": 5.443489177652221,
+    "inDay": 0,
+    "inDayClosed": 2208.517435493631,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.097915296780016,
+    "tDisuse": 0,
+    "bornAge": 3.0506725311279297,
+    "sex": 1,
+    "delta": 1.25,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "energyState": 1.2462077554109383,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 1028.5714285714287,
+    "sig7.5": 1028.5714285714287,
+    "sig7.6": 1028.5714285714287,
+    "sig7.7": 1028.5714285714287,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 130.04999999999998,
+    "p7.5": 130.6214039801791,
+    "p7.6": 131.51906459717907,
+    "p7.7": 132.63780390316182,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 254.70120394397009,
+    "eb7.5": 254.67153016325256,
+    "eb7.6": 255.9477470869515,
+    "eb7.7": 254.58625541231868,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.31070199008956,
+    "mass7.5": 65.75953229858953,
+    "mass7.6": 66.31890195158091,
+    "mass7.7": 66.95709594471467,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 650.965,
+    "_missing": []
+   },
+   "days": [
+    3,
+    4
+   ],
+   "xp": {
+    "xp": 94013.046875,
+    "level": 6,
+    "wall": 652.231,
+    "error": null
+   },
+   "stats": {
+    "calories": -1955.1724853515625,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 66.95709594471467,
+    "hunger": 0.6899999976158142,
+    "thirst": 0.22028741240501404,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 1,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "stout"
+    ],
+    "maxWeight": 15,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 96.12297058105469,
+    "mult": 4.779988765716553,
+    "wall": 652.738,
+    "wall_after": 652.997,
+    "side": "server"
+   },
+   "death_after": {
+    "dead": false,
+    "dead_raw": "false",
+    "health": 100.0,
+    "health_raw": "100",
+    "wall": 652.997
+   },
+   "replay": {
+    "lm": 53.84131549271399,
+    "T": 1.0993915683086781,
+    "lx": 0.017865155220665563,
+    "fm": 13.097915296780016,
+    "tdee": [
+     1943.1055770909213,
+     2093.1055770909215
+    ],
+    "tdee_sensitive": false,
+    "lm_hi": 53.84131549271399,
+    "path": {
+     "grow": 0.6151722977993354,
+     "regain": 0.0,
+     "arm": "growth",
+     "s": 0.07258271069141929,
+     "fe": 1.0,
+     "fp": 1.0,
+     "partition": "surplus",
+     "saturated": true
+    }
+   },
+   "inputs": {
+    "w": 66.31890195158091,
+    "S": 11.428571428571429,
+    "p": 2.0,
+    "E": 254.58625541231868,
+    "alc": 0.0,
+    "eeDay_pre": 1943.1055770909213,
+    "ree": 1461.5550209398186
+   }
+  }
+ },
+ "run_id": "x435-20261015-101839",
+ "task": "35",
+ "session": "Plan 13 Task 22b: four days of surplus growth against the replay, E placed through inDay; one boot of x43c-surplus",
+ "driver": "x435_surplus.py",
+ "lib": "x43c_strength_lib.py",
+ "user": "admin",
+ "users": [
+  "admin"
+ ],
+ "profile": {
+  "name": "x43c-surplus",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x43c-surplus.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43c), fixture default, admin (debug), Nutrition off, DayLength 1, NR.StrengthTimeScale 30, NR.StrengthIncidentalWeight 1, build 42.21.0 - x435, Plan 13 Task 22b: the surplus growth arm.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan13-x43c\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1,
+   "NR": {
+    "StrengthTimeScale": 30,
+    "StrengthIncidentalWeight": 1
+   }
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "562d68e9",
+ "harness_lua_commit": "9e9f2b06",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "fe37a621",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest": "release/plan13-x43c/NutritionRevamp/MANIFEST.json",
+  "staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan13-x43c (before the boots); the driver checks it and never stages",
+  "harness_markers_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"record.set\", function(argv)": true,
+    "TK.register(\"xp.grant\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true,
+    "TK.register(\"stats.set\", function(argv)": true,
+    "TK.register(\"witness.chain\", function(argv)": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"creation.picks\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"lua.read\", function(argv)": true,
+    "TK.register(\"lua.call\", function(argv)": true,
+    "TK.register(\"trait.def\", function(argv)": true
+   }
+  },
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "LIB_FILE": "x43c_strength_lib.py",
+  "NR": "NutritionRevamp",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release/plan13-x43c",
+  "STAGE_ROOT": "release/plan13-x43c/NutritionRevamp",
+  "STAGE_MOD": "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_SHARED": "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/shared",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "STAGED_UI": "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/shared/Translate/EN/UI.json",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"record.set\", function(argv)",
+    "TK.register(\"xp.grant\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)",
+    "TK.register(\"stats.set\", function(argv)",
+    "TK.register(\"witness.chain\", function(argv)"
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"creation.picks\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)"
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"lua.read\", function(argv)",
+    "TK.register(\"lua.call\", function(argv)",
+    "TK.register(\"trait.def\", function(argv)"
+   ]
+  },
+  "MIN_FREE_GB": 12.0,
+  "POLL_S": 0.3,
+  "SETTLE_S": 2.0,
+  "GAME_MIN_S": 0.625,
+  "CAP_XP": 487500.0,
+  "TOTALS": [
+   0.0,
+   1500.0,
+   4500.0,
+   10500.0,
+   19500.0,
+   37500.0,
+   67500.0,
+   127500.0,
+   217500.0,
+   337500.0,
+   487500.0
+  ],
+  "L_MAX": 10,
+  "DROP_MARGIN": 0.25,
+  "BANDS": [
+   [
+    "weak",
+    1
+   ],
+   [
+    "feeble",
+    4
+   ],
+   [
+    null,
+    5
+   ],
+   [
+    "stout",
+    8
+   ],
+   [
+    "strong",
+    10
+   ]
+  ],
+  "MUSCLE": [
+   "weak",
+   "feeble",
+   "stout",
+   "strong"
+  ],
+  "WEIGHTS": [
+   "emaciated",
+   "veryunderweight",
+   "underweight",
+   "overweight",
+   "obese"
+  ],
+  "KERNEL_WEIGHT": {
+   "overweight": "OVERWEIGHT",
+   "obese": "OBESE",
+   "underweight": "UNDERWEIGHT",
+   "veryunderweight": "VERY_UNDERWEIGHT"
+  },
+  "FAT_WORD": {
+   "1": "overweight",
+   "2": "obese"
+  },
+  "THIN_WORD": {
+   "1": "underweight",
+   "2": "veryunderweight",
+   "3": "emaciated"
+  },
+  "READY_CAP_S": 90.0,
+  "MIN_RUNS": 3,
+  "STR_STATS": "NutritionRevamp.server.strength.stats",
+  "OPT_STR": "NutritionRevamp.server.options.strength",
+  "XP_TOL": 1.0,
+  "REQUEST_GAP_S": 5.5,
+  "ARRIVE_CAP_S": 8.0,
+  "PAIR_GAP_MAX_S": 1.0,
+  "GROWTH_DAYS": 4,
+  "MIN_GOOD": 3,
+  "LEAD_HOUR": 12.0,
+  "DAY_MULT": 8.0,
+  "GRANTS": 10,
+  "GRANT_GAP_H": 1.0,
+  "SETS_A_DAY": 2.857142857142857,
+  "SLOW_HOUR": 23.0,
+  "PLACE_MIN": 8.0,
+  "E_PLACE_MIN": 4.0,
+  "P_GKG": 2.0,
+  "E_KCAL": 260.0,
+  "E_TOL": 20.0,
+  "EE_MARGIN": 150.0,
+  "LM_TOL": 1e-06,
+  "T_TOL": 1e-09,
+  "CLOSE_CAP_S": 30.0,
+  "DAY_CAP_S": 300.0,
+  "DEATH_CAP_S": 20.0,
+  "UI_CAP_S": 30.0,
+  "CREATE_CAP_S": 15.0,
+  "LAND_CAP_S": 60.0,
+  "PAIR_DELAY_S": 4.0,
+  "DUE_CAP_S": 10.0,
+  "WEIGHT_TOL": 0.01,
+  "BODY_TOL": 1e-09,
+  "ES_TOL": 0.02,
+  "G_EXTRAS": [
+   "ThickSkinned",
+   "KeenHearing",
+   "FastHealer"
+  ],
+  "CASES": [
+   [
+    "a",
+    []
+   ],
+   [
+    "b",
+    [
+     "Strong",
+     "Obese"
+    ]
+   ],
+   [
+    "c",
+    [
+     "Weak",
+     "Overweight"
+    ]
+   ],
+   [
+    "d",
+    [
+     "Underweight"
+    ]
+   ],
+   [
+    "e",
+    [
+     "Weak",
+     "VeryUnderweight"
+    ]
+   ],
+   [
+    "f",
+    [
+     "Feeble",
+     "Underweight"
+    ]
+   ],
+   [
+    "g",
+    [
+     "Obese",
+     "Overweight",
+     "ThickSkinned",
+     "KeenHearing",
+     "FastHealer"
+    ]
+   ]
+  ],
+  "REFEED_CASE": "e",
+  "BOUNDARY_MULT": 20.0,
+  "BOUNDARY_CAP_S": 120.0,
+  "ACUTE_CAP_S": 10.0,
+  "NAME_TRAITS": [
+   "Underweight",
+   "VeryUnderweight",
+   "Overweight",
+   "Obese"
+  ],
+  "NAME_KEYS": {
+   "underweight": "UI_NR_trait_underweightname",
+   "veryunderweight": "UI_NR_trait_veryunderweightname",
+   "overweight": "UI_NR_trait_overweightname"
+  },
+  "OBESE_LABEL": "Obese",
+  "PROFESSIONS_TXT": "media\\scripts\\generated\\characters\\character_professions.txt",
+  "ECHO_RX": "PZTK: ",
+  "NEVER_RX": "(?!x)x",
+  "LOG_RX": "NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil",
+  "STRIP_RX": "\\[NutritionRevamp\\] creation: (\\S+) loses (.+?) \\((.*)\\)\\s*$",
+  "CREATED_RX": "\\[NutritionRevamp\\] creation: (\\S+) muscle=(\\S+) weight=(\\S+) prof=(\\S+)",
+  "BODY_SCALARS": [
+   "lm",
+   "fm",
+   "lx",
+   "F0",
+   "Fc",
+   "Pk",
+   "N0",
+   "T",
+   "Tgrace",
+   "grace",
+   "S",
+   "sigDay",
+   "dayIndex",
+   "wday",
+   "lastAgeH",
+   "levelDue",
+   "wroteL",
+   "pDay",
+   "ebDay",
+   "eeDay",
+   "inDay",
+   "inDayClosed",
+   "alcDay",
+   "band",
+   "fatT",
+   "thinT",
+   "fmRef",
+   "tDisuse",
+   "bornAge",
+   "sex",
+   "delta",
+   "lm0dis",
+   "at",
+   "energyState"
+  ],
+  "WEEK_N": 7,
+  "RECORD_EXTRA": [
+   "acute.refeedRisk",
+   "acute.bmi",
+   "acute.starvedDays",
+   "effects.pe"
+  ]
+ },
+ "predictions": {
+  "35_E<k>": "E at the close within 20 kcal of +260",
+  "35_close<k>": "lm to 1e-6 kg and T to 1e-9 of the replay, on the surplus arm with grow > 0",
+  "35_level<k>": "native heldLevel(level, the pre-close wroteL) and its band held",
+  "35_surplus": "at least three closes with 35_E and 35_close as predicted"
+ },
+ "manifest_gate": {
+  "head": "562d68e9471b4605ff68736ac517cf74d15848e2",
+  "head_short": "562d68e9",
+  "mod_commit": "c5139c31",
+  "mod_dirty": false,
+  "staged_manifest": "release/plan13-x43c/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest_sha256": "80824a05a3a47b8947ea048dadda4934234afb2dd624dd384acc9bf83a2dbd35",
+  "files": 76,
+  "staged_equals_head": true,
+  "staged_tree_equals_head": true,
+  "ok": true,
+  "staged_version": "1.0.0",
+  "verify_rows_match": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.028,
+   "free_gb": 19.89
+  },
+  {
+   "tag": "ready",
+   "wall": 70.048,
+   "free_gb": 6.0
+  },
+  {
+   "tag": "after",
+   "wall": 663.711,
+   "free_gb": 19.65
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.563,
+ "server_started_wall": 33.504,
+ "session_ready_wall": 69.261,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 33.5,
+   "phase": "server_started"
+  },
+  {
+   "t": 33.6,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 69.3,
+   "phase": "client_ready",
+   "took": 35.4,
+   "user": "admin"
+  },
+  {
+   "t": 69.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 69.5,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 70.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 656.1,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 663.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 1
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_E1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_close1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_level1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_E2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_close2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_level2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_E3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_close3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_level3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_E4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_close4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_level4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 663.7,
+   "phase": "verdict",
+   "name": "35_surplus",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [
+  "java.io.FileNotFoundException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\server\\Lua\\pzt-cmd.txt (The process cannot access the file because it is being used by another process)\n\tat java.base/java.io.FileInputStream.open0(Native Method)\n\tat java.base/java.io.FileInputStream.open(Unknown Source)\n\tat java.base/java.io.FileInputStream.<init>(Unknown Source)\n\tat zombie.Lua.LuaManager$GlobalObject.getFileReader(LuaManager.java:5216)\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)\n\tat java.base/java.lang.reflect.Method.invoke(Unknown Source)"
+ ],
+ "server_error_count": 1,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 33.3,
+   "ready": 35.4
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,416,667,199> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:2,416,667,201> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:2,416,667,201> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:2,416,667,201> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:2,416,667,202> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,416,692,908> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,416,692,908> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,416,692,920> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,416,692,920> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,416,692,920> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:2,416,692,920> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:2,416,693,029> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,416,696,150> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:2,416,696,150> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+   "LOG  : Lua          f:0 st:2,416,696,151> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=13 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:2,416,696,154> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:333 st:2,416,730,840> [NutritionRevamp] players: first sight of admin",
+   "LOG  : Lua          f:6197 st:2,417,317,140> [NutritionRevamp] players: admin left"
+  ],
+  "server_echo_excluded": 3,
+  "mod_error": [],
+  "creation": [],
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x435-20261015-101839\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "verdict_summary": {
+  "35_E1": "as_predicted",
+  "35_close1": "as_predicted",
+  "35_level1": "as_predicted",
+  "35_E2": "as_predicted",
+  "35_close2": "as_predicted",
+  "35_level2": "as_predicted",
+  "35_E3": "as_predicted",
+  "35_close3": "as_predicted",
+  "35_level3": "as_predicted",
+  "35_E4": "as_predicted",
+  "35_close4": "as_predicted",
+  "35_level4": "as_predicted",
+  "35_surplus": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json",
+  "server-stdout.log"
+ ],
+ "wall_seconds": 663.7
+}

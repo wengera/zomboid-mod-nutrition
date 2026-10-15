@@ -22060,3 +22060,13 @@ x436-20261015-094119,steps,the driver steps: every raw bus reply,"Raw replies an
 x436-20261015-094119,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x436-20261015-094119,checks.S.prof_table,the install's profession costs and boosts,"A copy of the install's script table the expectation reads; not a game reading.",`checks.Ca.prof`
 x436-20261015-094119,verdicts.36_names,falsified,"Falsified by the driver's own Obese prediction (Obese), a vanilla label not read before the run; the mod's three names read as staged.",`checks.S.labels`
+x435-20261015-101839,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x435-20261015-101839,constants,the lib's constants,The driver's settings; not a reading.,
+x435-20261015-101839,memory,host free memory rows,"Host state, not a game reading.",
+x435-20261015-101839,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x435-20261015-101839,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x435-20261015-101839,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
+x435-20261015-101839,checks.day1.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E1.observed.E`
+x435-20261015-101839,checks.day2.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E2.observed.E`
+x435-20261015-101839,checks.day3.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E3.observed.E`
+x435-20261015-101839,checks.day4.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E4.observed.E`
