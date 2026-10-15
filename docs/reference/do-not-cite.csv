@@ -22052,3 +22052,4 @@ x434-20261015-053645,checks.day1.placed.ebDay,260,"The set value; ebDay is recom
 x434-20261015-053645,checks.day2.placed.ebDay,260,"The set value; ebDay is recomputed every minute as inDay - eeDay, so it did not hold to the close.",`verdicts.22_close2.observed.inputs.E`
 x434-20261015-053645,checks.day3.placed.ebDay,260,"The set value on a dead character; no close followed.",`verdicts.22_close3`
 x434-20261015-053645,server_errors,two pzt-cmd.txt read errors,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
+fit-13-fatgain2-20261015,chosen.values.s1254,0.0020205036817756436,"A log ratio, ln(slope / 125); not a slope.",the slope 125 x e to the value: 125.25 kcal/d per kg of fat
