@@ -22115,3 +22115,12 @@ x444-20261015-175242,speeds,the speed rows' mult,"Each row's `mult` is getMultip
 x444-20261015-175242,verdicts.V3_A.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_A.observed.delta`
 x444-20261015-175242,verdicts.V3_B.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_B.observed.delta`
 x444-20261015-175242,verdicts.V3_C.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_C.observed.delta`
+x445-20261015-175946,session,the driver's text,Written before the run; not a reading.,
+x445-20261015-175946,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x445-20261015-175946,constants,the lib's constants,The driver's settings; not a reading.,
+x445-20261015-175946,memory,host free memory rows,"Host state, not a game reading.",
+x445-20261015-175946,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x445-20261015-175946,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
+x445-20261015-175946,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x445-20261015-175946,verdicts.V4_B_decay,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
+x445-20261015-175946,verdicts.V4_B_zero,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
