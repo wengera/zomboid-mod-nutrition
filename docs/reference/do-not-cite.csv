@@ -22043,3 +22043,12 @@ x433-20261015-052759,steps,the driver steps: every raw bus reply,"Raw replies an
 x433-20261015-052759,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x433-20261015-052759,verdicts.21_a_state,unmeasured,"Unmeasured as graded: the lib reads a trait list answered as {}, the harness's empty list, as unread.",`x433-regrade-20261015` `verdicts.21_a_state`
 x433-20261015-052759,checks.S.prof_table,the install's profession costs and boosts,"A copy of the install's script table the expectation reads; not a game reading.",`checks.Ca.prof`
+x434-20261015-053645,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x434-20261015-053645,constants,the lib's constants,The driver's settings; not a reading.,
+x434-20261015-053645,memory,host free memory rows,"Host state, not a game reading.",
+x434-20261015-053645,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x434-20261015-053645,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x434-20261015-053645,checks.day1.placed.ebDay,260,"The set value; ebDay is recomputed every minute as inDay - eeDay, so it did not hold to the close.",`verdicts.22_close1.observed.inputs.E`
+x434-20261015-053645,checks.day2.placed.ebDay,260,"The set value; ebDay is recomputed every minute as inDay - eeDay, so it did not hold to the close.",`verdicts.22_close2.observed.inputs.E`
+x434-20261015-053645,checks.day3.placed.ebDay,260,"The set value on a dead character; no close followed.",`verdicts.22_close3`
+x434-20261015-053645,server_errors,two pzt-cmd.txt read errors,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
