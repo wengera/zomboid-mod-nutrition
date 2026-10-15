@@ -372,12 +372,32 @@ def artifact_file(run, file, root=REPO):
     return path
 
 
+_ALT_RX = re.compile(r"\{([^{}]*)\}")
+
+
+def expand(path):
+    """A path's `{a,b,...}` alternatives expanded in order (several groups expand as a product, left to right):
+    `x.{1,2}.y` -> [`x.1.y`, `x.2.y`]; a path without braces is itself. Lets one provenance name the same leaf
+    under several keys (a dict has no `[*]`), as a do-not-cite key's `{a,b}` does."""
+    m = _ALT_RX.search(path)
+    if not m:
+        return [path]
+    out = []
+    for alt in m.group(1).split(","):
+        out.extend(expand(path[:m.start()] + alt.strip() + path[m.end():]))
+    return out
+
+
 def read_artifact(run, file, path, root=REPO):
-    """The value at `path` in testing/artifacts/<run>/<file>; a list of values when the path holds `[*]`.
+    """The value at `path` in testing/artifacts/<run>/<file>; a list of values when the path holds `[*]` or
+    `{a,b}` alternatives (one value per alternative, in the order written).
 
     Paths are dotted keys with `[n]`, `[*]`, `["literal.key"]` and `[field=value]` steps; a dict step
     matches the longest literal key first. Refuses (DoNotCite) a do-not-cite key, a child of one and a
     parent of one, checking every concrete path the read touches."""
+    alts = expand(path)
+    if len(alts) > 1:
+        return [read_artifact(run, file, p, root) for p in alts]
     doc = _load_json(artifact_file(run, file, root))
     hits = resolve(doc, path)
     seen = set()
@@ -470,7 +490,10 @@ def _script_value(text, key):
 
 def read_dataset(file, key, root=REPO, install=INSTALL):
     """The value at `key` in a dataset file: a JSON path (read_artifact's grammar) in a .json file, or
-    `Module.Item.Field` in a game script (.txt)."""
+    `Module.Item.Field` in a game script (.txt); a list of values for `{a,b}` alternatives (expand)."""
+    alts = expand(key)
+    if len(alts) > 1:
+        return [read_dataset(file, k, root, install) for k in alts]
     full = dataset_path(file, root, install)
     if not os.path.isfile(full):
         raise ProvenanceError("dataset file %s does not exist" % file)
@@ -613,13 +636,29 @@ def _series_module():
     return mod_guide_series
 
 
-def build(series_defs=None, root=REPO, charts=None, validation=None, install=INSTALL):
-    """The data file's dict: every definition run, each series validated, series ordered by id."""
+def coverage_gaps(series_ids, charts, pending):
+    """Ruling T3, the reverse-coverage gate: the chart-listed ids with no series that `pending` does not name, and
+    the pending ids that are built after all or that no chart lists (each a stale entry). Returns (missing, stale)."""
+    built = set(series_ids)
+    listed = {i for c in charts.values() for i in c["series"]}
+    pend = set(pending)
+    missing = sorted(listed - built - pend)
+    stale = sorted((pend & built) | (pend - listed))
+    return missing, stale
+
+
+def build(series_defs=None, root=REPO, charts=None, validation=None, install=INSTALL, pending=None):
+    """The data file's dict: every definition run, each series validated, series ordered by id. `pending` (the
+    series module's PENDING_LIVE when None) names the chart-listed ids that wait on a live run: every other id a
+    chart lists must be built (coverage_gaps), and a pending id must be neither built nor unlisted."""
     if series_defs is None or charts is None or validation is None:
         mod = _series_module()
+        if pending is None:           # the module's pending list goes with the module's charts only
+            pending = getattr(mod, "PENDING_LIVE", ()) if charts is None else ()
         series_defs = mod.SERIES_DEFS if series_defs is None else series_defs
         charts = mod.CHARTS if charts is None else charts
         validation = mod.VALIDATION if validation is None else validation
+    pending = () if pending is None else pending
     commit = None
     series = []
     for fn in series_defs:
@@ -632,6 +671,11 @@ def build(series_defs=None, root=REPO, charts=None, validation=None, install=INS
     dups = sorted({i for i in ids if ids.count(i) > 1})
     if dups:
         raise ProvenanceError("duplicate series ids: %s" % ", ".join(dups))
+    missing, stale = coverage_gaps(ids, charts, pending)
+    if missing:
+        raise ProvenanceError("charts list series with no definition and not pending: %s" % ", ".join(missing))
+    if stale:
+        raise ProvenanceError("pending ids that are built or that no chart lists: %s" % ", ".join(stale))
     if not isinstance(validation, list):
         raise ProvenanceError("validation is a list")
     return {"series": sorted(series, key=lambda s: s["id"]), "charts": charts, "validation": validation}
@@ -642,18 +686,19 @@ def dumps(data):
     return json.dumps(data, sort_keys=True, indent=1, ensure_ascii=False, allow_nan=False) + "\n"
 
 
-def main(argv=None, root=REPO, series_defs=None, charts=None, validation=None):
+def main(argv=None, root=REPO, series_defs=None, charts=None, validation=None, pending=None, out=None):
+    """`out` overrides the data file's path (a test's scratch copy); the default is <root>/docs/mod-guide/data.json."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--check", action="store_true", help="fail when docs/mod-guide/data.json is out of date")
     g.add_argument("--write", action="store_true", help="regenerate docs/mod-guide/data.json")
     args = ap.parse_args(argv)
     try:
-        text = dumps(build(series_defs, root, charts, validation))
+        text = dumps(build(series_defs, root, charts, validation, pending=pending))
     except ProvenanceError as e:
         print("mod_guide_data: %s" % e, file=sys.stderr)
         return 2
-    out = os.path.join(root, *OUT_REL.split("/"))
+    out = out or os.path.join(root, *OUT_REL.split("/"))
     if args.write:
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", encoding="utf-8", newline="\n") as fh:

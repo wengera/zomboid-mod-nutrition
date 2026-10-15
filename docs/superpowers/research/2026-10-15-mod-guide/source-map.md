@@ -32,8 +32,10 @@ player cfg, first sight builds the mod's own creation body from the stand-in's t
 through to `MET.ensureBody`), i.e. the default body above. `sleep_allowed` must be passed: left `None` the mod
 reads an unset option as sleep allowed (the replay docstring) and an awake stand-in builds sleep debt. An eat of a
 vanilla food is `{"minute": m, "kind": "eat", "fullType": "<id>", "cal": …, "carb": …, "lip": …, "pro": …,
-"hunger": <script/100>, "foodType": …}` with the item pass's macros from `data/food-nutrients.json` `.per_item`;
-Task 4 asserts that the vector the intake chain lands equals that record (as #3182 did live for an apple and
+"hunger": <script/100>, "foodType": …}` with the item pass's macros as the game's item reads them
+(`NR_ItemPass_Food.txt`, generated from `data/food-nutrients.json` `.per_item` and written to two decimals, read as
+float32: Task 4, the data winning over this map's first reading of `.per_item`); Task 4 asserts that the vector the
+intake chain lands equals the mod's table and that record to the table's digits (as #3182 did live for an apple and
 bread). Water for a long replay is `autodrop` events (grams). Measured speed: one game day of the server pipeline
 takes about 0.34 s of CPU here (2026-10-15), so a 90-day replay is about 30 s.
 
@@ -135,11 +137,11 @@ not exist yet; § 6 names what fills it.
 | H2-m-fat | mod | kernel | kernel replay 30 days: `meal` events size 500, `comp` MIXED at 07/12/18, `autodrop` 600 g at 08/12/16/20; path `body.fm` read at each 07:00 day close | proof_run `x434-20261015-053645` (#3869: deficit closes equal to the kernel's replay of their inputs) and `x435-20261015-101839` (#3870). |
 | H2-m-lean | mod | kernel | the same replay, `body.lm` + `body.lx` | Same proof. |
 | H2-m-total | mod | kernel | the same replay, `body.fm` + `body.lm` + `body.lx` (the weight the mod writes, README "The body") | Same proof. |
-| H3-v-model-x1 | vanilla | vanilla-model | VM11: start level 5 at 37 500 XP (#2874), +360 XP a set (#3844) × 20 sets a week spread daily, thresholds #2102, cap #2109, protein factor 1 | A pure extrapolation of one measured set. |
-| H3-v-model-x15 | vanilla | vanilla-model | VM11 with the protein factor 1.5 (protein store between 50 and 300, #2112) | #2112 is C-only; V3 measures it. |
+| H3-v-model-x1 | vanilla | vanilla-model | VM11: start level 5 at 37 500 XP (#2874), +360 XP a set (#3844) × 20 sets a week, one every 8.4 game hours from hour 0, thresholds #2102, cap #2109, the protein factor pinned at 1 (`protein_factor`) | A pure extrapolation of one measured set. Task 4 (the model's output, Task 2 ruling): level 9 at the year's end, 412 980 XP; only the ×1.5 line reaches 10. |
+| H3-v-model-x15 | vanilla | vanilla-model | VM11 with the protein factor pinned at 1.5 (protein store between 50 and 300, #2112) | #2112 is C-only; V3 measures it. Level 10 on day 292 (Task 4). |
 | H3-m-level | mod | kernel | Strength day × 365 from the no-pick body, S 20, p 2.0, E +260, tdee 2600, ts 1; `K.strength.level` each day | proof_run x435 (#3870, #3871) and x434 (#3869). |
 | H3-m-written | mod | kernel | the same run, `K.strength.heldLevel` day by day (the perk the player sees) | #3871 (the level write rises at the whole number live). |
-| H4-v-kcal, -carb, -fat, -pro | vanilla | vanilla-model (provenance `dataset`) | `data/food-nutrients.json` `items[pz_id = X].vanilla.calories`, `.carbohydrates`, `.lipids`, `.proteins` for X in `Base.Apple`, `Base.Bread`, `Base.CannedBologneseOpen`, `Base.Burger`, `Base.TunaTinOpen` | The 42.21 scan of the game's own scripts (`data/food-items.json`, the 2026-10-08 scan, CLAUDE.md § 2). Four series. |
+| H4-v-kcal, -carb, -fat, -pro | vanilla | vanilla-model (provenance `dataset`) | the install's item script `<install>/media/scripts/generated/items/food.txt`, `Base.X.Calories`, `.Carbohydrates`, `.Lipids`, `.Proteins` for X in `Apple`, `Bread`, `CannedBologneseOpen`, `Burger`, `TunaTinOpen` (ruling H4-v: the game's own data is the vanilla source; `data/food-nutrients.json`'s `.vanilla` copy stays the mod's) | The 42.21 install (CLAUDE.md § 2). Four series. |
 | H4-m-kcal, -carb, -fat, -pro | mod | kernel (provenance `dataset`) | the same records' `.per_item.calories`, `.carbs`, `.lipids`, `.proteins` (generated with `NR_ItemPass_Food.txt` by `tools/food_nutrients.py`, gated by its `--check`) | proof: x172b (#3182, #3183: a whole Apple and Bread landed the table's vector live). Four series. Burger's carbohydrate 0 → 46.65 g and tuna's protein 15 → 54.44 g are the chart's story. |
 
 ### Scenarios
@@ -188,14 +190,14 @@ not exist yet; § 6 names what fills it.
 | S4a-m-perfect | mod | kernel | Strength day × 365, S 20, p 2.0, E +260 | proof x435, x434. |
 | S4a-m-lowprotein | mod | kernel | the same, p 0.8 | |
 | S4a-m-deficit | mod | kernel | the same, p 2.0, E −500 | |
-| S4a-v-model-x1 | vanilla | vanilla-model | VM11, factor 1 | |
-| S4a-v-model-x07 | vanilla | vanilla-model | VM11, factor 0.7 (protein store below −300, #2112) | |
+| S4a-v-model-x1 | vanilla | vanilla-model | VM11, the protein factor pinned at 1 | Level 9 at the year's end (Task 4). |
+| S4a-v-model-x07 | vanilla | vanilla-model | VM11, the protein factor pinned at 0.7 (protein store below −300, #2112) | |
 | S4b-m-level | mod | kernel | Strength day × 3650, perfect training | proof x435. The oracle's long runs are `strength_oracles.py` `_yearly`, `o_year1`. |
 | S4b-m-cap | mod | kernel | `K.strength.level(body.Fc, body.N0, P.Tmax, P)` of the same body (the level at the cap) | |
-| S4b-v-model | vanilla | vanilla-model | VM11 at 20 sets a week, to level 10 and capped (#2109) | Vanilla reaches 10 in about 42 weeks with the protein factor 1.5 and about 62.5 weeks without (450 000 XP at 7200 or 10 800 a week, #2102). |
+| S4b-v-model | vanilla | vanilla-model | VM11 at 20 sets a week with the protein factor pinned at 1.5, to level 10 and capped (#2109) | Task 4 (the model's output, Task 2 ruling): level 10 on about day 292 at ×1.5; at factor 1 the year ends at level 9 (412 980 XP). Once capped a set's XP is discarded, so rust returns: from about day 340 the line dips from 10 to 9 between sets (Task 2 review M-8; code only, no live reading, and the series says so). |
 | S4b-study | — | study | S1915 (Kouri 1995's natural FFMI 25 kg/m², `strength_level.py` `FC_LIMIT`) shown as a level | |
 | S4c-m-kernel | mod | kernel | Strength day: 365 d perfect, 365 d S 0 p 1.2 E 0, 180 d perfect | The detraining and regain arms were never closed live (G14). |
-| S4c-v-model | vanilla | vanilla-model | VM11 + VM12 (rust): −1 XP per 1200-unit bucket once the timer passes 20 000 (#2151, #2154–#2156): the level does not move in a year | |
+| S4c-v-model | vanilla | vanilla-model | VM11 + VM12 (rust): −1 XP per 1200-unit bucket once the timer passes 20 000 (#2151, #2154–#2156): the level does not move in a year | The first rust step comes 48.6 days after the last set (a fresh character's drops level 5 to 4 at day 48.6): code only, no live reading, and the series says so (Task 4). |
 | S4c-study-0618 | — | study | S0618 (strength loss over 12 weeks of detraining and time to regain) | |
 | S4c-study-0078 | — | study | S0078 (after 20 weeks of detraining, strength stayed above baseline while muscle size returned to it; on retraining, trained and untrained legs responded alike) | Replaces S0617, which is superseded by S0078. Its retraining finding is the opposite of a muscle-memory advantage; the mod's fast regain rests on S0618's under-8-week return, and the chart's note says so. |
 | S5a-m-live-lean | mod | live | `x436-20261015-094119/creation.json` `verdicts.36_<case>_body.observed.record.lm`, case a–f (#3872) | Task 4 cites the leaf, never `observed`. |
@@ -203,21 +205,21 @@ not exist yet; § 6 names what fills it.
 | S5a-m-live-weight | mod | live | `verdicts.36_<case>_body.observed.derived.mass` | |
 | S5a-m-live-level | mod | live | `verdicts.36_<case>_xp.observed.client_level` and `.observed.xp` (Strength 5, 9, 1, 5, 1, 3) | `verdicts.36_<case>_xp` itself holds a `wall` leaf: never cited whole. |
 | S5a-v-model-weight | vanilla | vanilla-model | VM9: creation weights Obese 105, Overweight 95, Underweight 70, Very Underweight 60 (#0533), none 80 | |
-| S5a-v-model-level | vanilla | vanilla-model | VM13: start level 5 plus each muscle trait's boost | JT1 (a script read for Task 2). |
+| S5a-v-model-level | vanilla | vanilla-model | VM13: start level 5 plus each muscle trait's boost | JT1 (a script read for Task 2): vanilla Weak starts at level 0, not 1; the mod's Weak 1 is the mod's own floor (Task 2 ruling). |
 | S5b-m-strong-level | mod | kernel | kernel replay 90 days, stand-in traits `["strong"]` (the trait id the creation reads: Task 4 checks), meals at "request", sleep off; the written Strength level | proof x436 (creation), x434/x435 (closes). The README's "an idle Strong character settles in the Stout band". |
 | S5b-m-weak-level | mod | kernel | the same with `["weak"]` (Task 4 confirms the id) | The spec's Weak. |
 | S5b-m-none-level | mod | kernel | the same, no traits | |
 | S5b-m-gaunt-weight | mod | kernel | the same with Very Underweight (Gaunt); `body.fm` + `body.lm` + `body.lx` | |
 | S5b-m-overfat-weight | mod | kernel | the same with `["overweight"]` (shown as Overfat; Task 4 confirms the id) | The spec's Overfat. |
 | S5b-m-none-weight | mod | kernel | the same, no traits | |
-| S5b-v-model-level | vanilla | vanilla-model | VM11 + VM12: no XP, rust does not move a level in 90 days: flat at the start level | |
+| S5b-v-model-level | vanilla | vanilla-model | VM11 + VM12: no XP from the start level 5 | A fresh character's first rust step drops level 5 to 4 at day 48.6 (the timer from −50 000 to 20 000): code only, no live reading, and the series says so (Task 2 ruling; not flat). |
 | S5c-m-gaunt | mod | kernel | S5b's Gaunt replay, `body.energyState` | proof x436 (#3874). |
 | S5c-m-none | mod | kernel | S5b's no-trait replay, `body.energyState` | |
 | S5c-m-live | mod | live | `x436-20261015-094119/creation.json` `verdicts.36_{d,e,f}_hunger.observed.es` (1.4962, 1.6529, 1.4963; #3874) at day 0 | |
 | S5c-v-model | vanilla | vanilla-model | VM14: hunger reads no weight or fat (#0488, #0501): flat 1 | |
 | S6a-m-day1 | mod | kernel | kernel replay: `drink` Coffee 0.25 L at 08, 12, 16; paths `acute.caf` (mg) and `effects.fOff` | proof_run x151r (#2982, the 5.0 h half-life) and x161f (#3077); both on the Plan 4–5 build (G10). |
 | S6a-m-day14 | mod | kernel | the same schedule every day to day 14; day 14's `acute.caf`, `effects.fOff` (the tolerance's effect) | Tolerance τ 7 days (`test_kernel_acute.py` `test_caffeine_tolerance_tau_7d_both_ways`). The 5 h half-life and the 7-day tolerance are the mod's game choices resting on open rows (S0851, S1123, direction only), so no study series is drawn. Live proof at HEAD: M2. |
-| S6a-v-model | vanilla | vanilla-model | VM15: FATIGUE −0.025 a 0.25 L cup (−10 a litre, #2949), the same on day 14 | Assumes sleep allowed and needed, as V4 runs: under the display default (sleep off) vanilla resets FATIGUE every update (#3009) and the coffee's change does not last; the chart says so. |
+| S6a-v-model | vanilla | vanilla-model | VM15: FATIGUE −0.025 a 0.25 L cup (−10 a litre, #2949), the same on day 14, plotted as the change per cup, not the flat `fatigue` series (Task 2 review M-7) | Assumes sleep allowed and needed, as V4 runs: under the display default (sleep off) vanilla resets FATIGUE every update (#3009) and the coffee's change does not last; the chart says so. |
 | S6b-v-model | vanilla | vanilla-model | VM16: four 0.3 L beers at 0.05 a litre, 400 × alcohol × the hunger factor (#2923, #2926), decay 45.36 a game hour at DayLength 4 (#2922) | |
 | S6b-v-live | vanilla | vanilla-live | V4 `stats.all` polls, `stats.INTOXICATION` | Gap until V4 runs (four `Base.BeerCan`, as the model); #2950 (DayLength 1) is the existing reading. |
 | S6b-m-bac | mod | kernel | kernel replay: `drink` Beer 0.3 L × 4 over an hour; path the record's blood alcohol (`acute.bac` or its name in `NR_Kernel_Acute.lua`, Task 4) | proof_run `x161f-20261006-055908` (#3086) and x151r (#2983). |
@@ -279,6 +281,12 @@ not exist yet; § 6 names what fills it.
 Series by badge: live 26, kernel 65, vanilla-live 11, vanilla-model 31, study 14; 147 in all, H4's two rows and
 SN1's one row each counting as four series. The vanilla-live 11 are gaps until V1–V4 run, except S2d-v-live-weight.
 
+Task 4's outcome (2026-10-15): 127 series built, 10 pending on Task 8's runs (`PENDING_LIVE` in
+`tools/mod_guide_series.py`: the vanilla-live gaps but S2d-v-live-weight), 10 dropped (`DROPPED`: S1b-m-live,
+S1c-m-live, S2a-m-live, S2b-m-live, SH2-m-live, SM1-m-live, SX2-m-live, ST1-m-live and ST2-m-live-plasma fail or cannot
+take the G8 admission test; S2d-m-drain has no register row for its condition, G16). The admission results are the
+data file's `validation` block. S3b-m-live-U and -B keep days 0-4 (x341, x342); x343's days 5-6 fail the test.
+
 ## 3. Promises
 
 | text | support | status |
@@ -288,7 +296,7 @@ SN1's one row each counting as four series. The vanilla-live 11 are gaps until V
 | **No longer happens:** a food's hunger value sets your hunger; a zero-calorie item no longer sates | #3614 (hunger from the stomach and the meal pool), #0503 (vanilla's coupling) | supported |
 | **No longer happens:** hunger drops to zero after a meal | x361 `readings.courses.C650.nadir.live.HUNGER` (0.12539), README limitation "never reaches 0" | supported (needs a register row for the nadir: the leaf exists, no claim) |
 | **No longer happens:** an idle character gains weight on 1500 kcal a day | H2-v-model (#0149, #0455) against H2-m-total | supported after Task 4 (series) |
-| **No longer happens:** Strength experience levels you up; a year or so of grinding takes you to 10 (about 42 weeks with protein, 62 without) | #3851 (XP is the training signal), #3871 (the level follows the body), H3 series | supported |
+| **No longer happens:** Strength experience levels you up; a year or so of grinding takes you to 10 (level 10 on about day 292 with the protein factor 1.5; level 9 at the year's end without) | #3851 (XP is the training signal), #3871 (the level follows the body), H3 series | supported |
 | **No longer happens:** weight-band traits follow the scale; a muscular heavy character is no longer Overweight | #3856 (the fat axis scaled by lean), #3873, #0155 | supported |
 | **No longer happens:** a thin or fat trait changes only the scale | #3874 (a thin start is hungry), #3872 (the bodies) | supported |
 | **No longer happens:** Strength stays forever without training (vanilla's rust is one XP a step) | #2151, #2155 (vanilla), S4c-m-kernel (mod) | supported by series; the detraining arm has no live reading (G14) |

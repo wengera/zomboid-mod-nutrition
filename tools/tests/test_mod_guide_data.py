@@ -567,15 +567,82 @@ class KernelCommit(unittest.TestCase):
         self.assertEqual(g.kernel_commit(self.repo), second)              # a mod commit moves it
 
 
+class Alternatives(Fixture):
+    """`{a,b}` alternatives in a path (Plan 14 Task 4): one provenance names a leaf under several dict keys."""
+
+    def test_expand_in_order_and_as_a_product(self):
+        self.assertEqual(g.expand("a.b"), ["a.b"])
+        self.assertEqual(g.expand("x.{1,2}.y"), ["x.1.y", "x.2.y"])
+        self.assertEqual(g.expand("{a,b}.{c,d}"), ["a.c", "a.d", "b.c", "b.d"])
+
+    def test_artifact_reads_one_value_per_alternative(self):
+        self.assertEqual(self.read("arms.{right,left}.kcal"), [20, 10])
+        self.assertEqual(self.read("items[pz_id={Base.Bread,Base.Apple}].kcal"), [250, 95])
+
+    def test_an_alternative_still_meets_the_guard(self):
+        with self.assertRaises(g.DoNotCite):
+            self.read("readings.day.{trough,peak}")
+        with self.assertRaises(g.DoNotCite):
+            self.read("arms.{mid,left}.wall")
+
+    def test_dataset_reads_alternatives(self):
+        self.assertEqual(g.read_dataset("<install>/media/scripts/items_food.txt", "Base.{Bread,Apple}.Calories",
+                                        self.root, self.install), [250, 95])
+        self.assertEqual(g.read_dataset("data/food.json", "items[pz_id={Base.Toast,Base.Apple}].kcal", self.root,
+                                        self.install), [250, 95])
+
+    def test_a_validated_series_may_name_alternatives(self):
+        s = self.series(provenance={"kind": "artifact", "run": RUN, "file": "ring.json", "path": "arms.{left,right}.kcal"})
+        self.validate(s)
+
+
+CHARTS2 = {"C1": {"section": "s", "title": "t", "x": "x", "y": "y", "series": ["s0", "s1", "s2", "p0"]}}
+
+
+class CoverageGate(Fixture):
+    """Ruling T3: every id a chart lists is built or pending; a pending id is neither built nor unlisted."""
+
+    def test_gaps_reported(self):
+        self.assertEqual(g.coverage_gaps(["s0"], CHARTS2, ["p0"]), (["s1", "s2"], []))
+        self.assertEqual(g.coverage_gaps(["s0", "s1", "s2", "p0"], CHARTS2, ["p0"]), ([], ["p0"]))
+        self.assertEqual(g.coverage_gaps(["s0", "s1", "s2"], CHARTS2, ["p0", "zz"]), ([], ["zz"]))
+
+    def test_build_passes_with_the_pending_id(self):
+        data = g.build(_defs(), self.root, CHARTS2, [], self.install, pending=("p0",))
+        self.assertEqual([s["id"] for s in data["series"]], ["s0", "s1", "s2"])
+
+    def test_build_fails_on_a_listed_id_with_no_series(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "no definition and not pending: p0"):
+            g.build(_defs(), self.root, CHARTS2, [], self.install, pending=())
+
+    def test_build_fails_on_a_stale_pending_id(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "pending ids that are built or that no chart lists: s2"):
+            g.build(_defs(), self.root, CHARTS2, [], self.install, pending=("p0", "s2"))
+
+    def test_main_reports_the_gate_and_takes_an_out_path(self):
+        out = os.path.join(self.root, "elsewhere", "data.json")
+        os.makedirs(os.path.dirname(out))
+        err = io.StringIO()
+        with redirect_stdout(io.StringIO()), redirect_stderr(err):
+            self.assertEqual(g.main(["--write"], self.root, _defs(), CHARTS2, [], pending=(), out=out), 2)
+            self.assertEqual(g.main(["--write"], self.root, _defs(), CHARTS2, [], pending=("p0",), out=out), 0)
+            self.assertEqual(g.main(["--check"], self.root, _defs(), CHARTS2, [], pending=("p0",), out=out), 0)
+        self.assertIn("p0", err.getvalue())
+        self.assertFalse(os.path.exists(os.path.join(self.root, "docs", "mod-guide", "data.json")))
+
+
 class RealRepo(unittest.TestCase):
-    def test_stub_builds_empty_series_and_the_charts(self):
-        data = g.build()
-        self.assertEqual(data["series"], [])
-        self.assertEqual(data["validation"], [])
-        self.assertEqual(len(data["charts"]), 39)
-        self.assertEqual(sum(len(c["series"]) for c in data["charts"].values()), 147)
-        for cid, c in data["charts"].items():
+    def test_the_charts_and_the_committed_data_file(self):
+        import mod_guide_series as S
+        self.assertEqual(len(S.MAP_CHARTS), 39)
+        self.assertEqual(sum(len(c["series"]) for c in S.MAP_CHARTS.values()), 147)
+        for cid, c in S.CHARTS.items():
             self.assertEqual(set(c), {"section", "title", "x", "y", "series"}, cid)
+        with open(os.path.join(REPO, *g.OUT_REL.split("/")), encoding="utf-8") as fh:
+            data = json.load(fh)
+        self.assertEqual(data["charts"], S.CHARTS)
+        missing, stale = g.coverage_gaps([s["id"] for s in data["series"]], data["charts"], S.PENDING_LIVE)
+        self.assertEqual((missing, stale), ([], []))
 
     def test_real_ring_keys_read(self):
         run = "x361-20261012-200722"
