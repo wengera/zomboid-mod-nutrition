@@ -24,25 +24,39 @@ DNC = (
     "%(run)s,*,everything,a whole-run prose restriction,\n"
     "%(run)s,\"multi.a, multi.b\",1,two keys in one cell,\n"
     "%(run)s,\"multi.d, *\",1,a key beside a prose star,\n"
+    "%(run)s,rows_list[2].stomach.liquid,1,a flat ring key,\n"
+    "%(run)s,ack.*.lastCookMinute,1,a glob over scalar siblings,\n"
+    "%(alias)s,ok.aliased,1,a row filed under the alias,\n"
+    "%(run)s,steps[set_x].v,1,a named bracket,\n"
     "x999-other,ok.leaf,1,another run,\n"
-) % {"run": RUN}
+) % {"run": RUN, "alias": ALIAS}
 
 ARTIFACT = {
-    "readings": {"day": {"peak": 3.5, "trough": 1.25}, "night": {"peak": 2.0}},
+    "readings": {"day": {"peak": 3.5, "trough": 1.25, "peak_at": 4}, "night": {"peak": 2.0}},
     "phases": {"A": {"watch": {"raw": 9, "mean": 4}}, "B": {"watch": {"raw": 8, "mean": 5}}},
     "arms": {"left": {"wall": 1, "kcal": 10}, "right": {"wall": 2, "kcal": 20}, "mid": {"wall": 3}},
     "multi": {"a": 1, "b": 2, "c": 3, "d": 4},
-    "ok": {"leaf": 7},
+    "ok": {"leaf": 7, "aliased": 8},
+    "ack": {"perk": "Cooking", "c1": {"lastCookMinute": 5, "x": 1}},
+    "steps": [{"v": 1, "w": 2}, {"v": 3, "w": 4}],
     "rows_list": [
         {"age": 0, "HUNGER": 0.1, "HUNGER_replay": 0.1, "stomach.liquid": 250.0, "stomach": {"liquid": -1}},
         {"age": 1, "HUNGER": 0.2, "HUNGER_replay": 0.2, "stomach.liquid": 240.5, "stomach": {"liquid": -1}},
         {"age": 2, "HUNGER": 0.3, "HUNGER_replay": 0.3, "stomach.liquid": 230.25},
     ],
     "nested": {"stomach": {"fill": 0.5}},
-    "items": [{"pz_id": "Base.Apple", "kcal": 95}, {"pz_id": "Base.Bread", "kcal": 250}],
+    "items": [{"pz_id": "Base.Apple", "kcal": 95}, {"pz_id": "Base.Bread", "kcal": 250},
+              {"pz_id": "Base.Toast", "kcal": 250}],
 }
 
-SCRIPT = """module Base
+SCRIPT = """module Other
+{
+    item Apple
+    {
+        Calories = 1,
+    }
+}
+module Base
 {
     /* a comment item Apple { Calories = 1, } */
     item Apple
@@ -55,6 +69,18 @@ SCRIPT = """module Base
     item Bread
     {
         Calories = 250,
+        component FluidContainer
+        {
+            Capacity = 2,
+        }
+    }
+    item Water
+    {
+        component FluidContainer
+        {
+            Capacity = 3,
+        }
+        Capacity = 1,
     }
 }
 """
@@ -139,6 +165,25 @@ class Schema(Fixture):
             self.validate(self.series(badge="kernel"))
         self.validate(self.series(badge="vanilla-live"))
 
+    def test_provenance_empty_path_rejected(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "must be a non-empty str"):
+            self.validate(self.series(provenance={"kind": "artifact", "run": RUN, "file": "ring.json", "path": ""}))
+
+    def test_units_extra_key_rejected(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "unknown key z"):
+            self.validate(self.series(units={"x": "h", "y": "y", "z": "q"}))
+
+    def test_vanilla_model_needs_formulas_and_claims(self):
+        for p in ({"kind": "vanilla-model", "formulas": [], "claims": ["#0470"]},
+                  {"kind": "vanilla-model", "formulas": ["VM1"], "claims": []}):
+            with self.assertRaisesRegex(g.ProvenanceError, "names its formulas"):
+                self.validate(self.series(id="c-model", badge="vanilla-model", provenance=p))
+
+    def test_kernel_inputs_must_be_plain_json(self):
+        prov = {"kind": "kernel", "script": "tools/replay_live.py", "inputs": {"a": float("nan")}, "proof_run": "x434-proof"}
+        with self.assertRaisesRegex(g.ProvenanceError, "not plain JSON"):
+            self.validate(self.series(id="b-kernel", badge="kernel", provenance=prov))
+
     def test_points_shape(self):
         for bad in ([], [[1]], [[1, "y"]], [[1, float("nan")]], [[None, 1]], [[1, True]], [(1, 2)]):
             with self.assertRaises(g.ProvenanceError, msg=repr(bad)):
@@ -182,7 +227,7 @@ class Schema(Fixture):
 
 class Dataset(Fixture):
     def vdata(self, **prov):
-        p = {"kind": "dataset", "file": self.script, "key": "Base.Apple.Calories", "build": "42.21"}
+        p = {"kind": "dataset", "file": "<install>/media/scripts/items_food.txt", "key": "Base.Apple.Calories", "build": "42.21"}
         p.update(prov)
         return self.series(id="e-vdata", badge="vanilla-model", provenance=p)
 
@@ -207,15 +252,27 @@ class Dataset(Fixture):
         with self.assertRaisesRegex(g.ProvenanceError, "no install build"):
             self.validate(self.series(id="f-mdata", badge="kernel", provenance=dict(p, build="42.21")))
 
-    def test_repo_file_outside_data_and_mod_refused(self):
-        for f in ("notdata/food.json", "data/../notdata/food.json"):
-            with self.assertRaisesRegex(g.ProvenanceError, "under data/ or mod/"):
+    def test_local_absolute_path_refused(self):
+        for f in (self.script, os.path.join(self.root, "data", "food.json"), "/abs/x.json"):
+            with self.assertRaisesRegex(g.ProvenanceError, "local absolute path"):
                 g.dataset_side(f, self.root, self.install)
-        with self.assertRaisesRegex(g.ProvenanceError, "neither under the install"):
-            g.dataset_side(os.path.join(self.root, "data", "food.json"), self.root, self.install)
+        with self.assertRaisesRegex(g.ProvenanceError, "local absolute path"):
+            self.validate(self.vdata(file=self.script))
+        with self.assertRaisesRegex(g.ProvenanceError, "leaves its tree"):
+            g.dataset_side("<install>/../x.txt", self.root, self.install)
+
+    def test_install_path_joins_the_install(self):
+        self.assertEqual(g.dataset_path("<install>/media/scripts/items_food.txt", self.root, self.install),
+                         os.path.join(self.install, "media", "scripts", "items_food.txt"))
+
+    def test_repo_file_outside_data_and_mod_refused(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "under data/ or mod/"):
+            g.dataset_side("notdata/food.json", self.root, self.install)
+        with self.assertRaisesRegex(g.ProvenanceError, "leaves its tree"):
+            g.dataset_side("data/../notdata/food.json", self.root, self.install)
 
     def test_script_reader(self):
-        rd = lambda k: g.read_dataset(self.script, k, self.root, self.install)
+        rd = lambda k: g.read_dataset("<install>/media/scripts/items_food.txt", k, self.root, self.install)
         self.assertEqual(rd("Base.Apple.Calories"), 95)
         self.assertEqual(rd("Base.Apple.Carbohydrates"), 25.13)
         self.assertEqual(rd("Base.Apple.HungerChange"), -15)
@@ -224,6 +281,14 @@ class Dataset(Fixture):
             rd("Base.Bread.HungerChange")
         with self.assertRaises(g.ProvenanceError):
             rd("Base.Cake.Calories")
+        self.assertEqual(rd("Other.Apple.Calories"), 1)                     # scoped to its module
+        with self.assertRaisesRegex(g.ProvenanceError, "no item Bread in module Other"):
+            rd("Other.Bread.Calories")
+        with self.assertRaisesRegex(g.ProvenanceError, "no field Capacity"):
+            rd("Base.Bread.Capacity")                                       # a nested block's field is not the item's
+        self.assertEqual(rd("Base.Water.Capacity"), 1)
+        with self.assertRaisesRegex(g.ProvenanceError, "no module Nope"):
+            rd("Nope.Apple.Calories")
 
     def test_json_selector(self):
         self.assertEqual(g.read_dataset("data/food.json", "items[pz_id = Base.Bread].kcal", self.root, self.install), 250)
@@ -246,7 +311,33 @@ class DoNotCiteGuard(Fixture):
         with self.assertRaisesRegex(g.DoNotCite, "is inside"):
             g.check_citable(RUN, "readings.day.peak.raw", self.root)
 
+    def test_root_read_refused(self):
+        with self.assertRaises(g.DoNotCite):
+            self.read("")
+
+    def test_flat_ring_key_listed(self):
+        with self.assertRaises(g.DoNotCite):
+            self.read("rows_list[2].stomach.liquid")
+        with self.assertRaises(g.DoNotCite):
+            self.read('rows_list[2]["stomach.liquid"]')
+        with self.assertRaises(g.DoNotCite):
+            self.read("rows_list[*].stomach.liquid")
+        self.assertEqual(self.read("rows_list[0].stomach.liquid"), 250.0)
+
+    def test_scalar_leaf_beside_a_glob_key(self):
+        self.assertEqual(self.read("ack.perk"), "Cooking")                  # a scalar holds no listed child
+        self.assertEqual(self.read("ack.c1.x"), 1)
+        with self.assertRaises(g.DoNotCite):
+            self.read("ack.c1.lastCookMinute")
+        with self.assertRaises(g.DoNotCite):
+            self.read("ack.c1")
+        with self.assertRaises(g.DoNotCite):
+            self.read("ack")
+        with self.assertRaises(g.DoNotCite):
+            g.check_citable(RUN, "ack.perk", self.root)                      # without a document: conservative
+
     def test_siblings_allowed(self):
+        self.assertEqual(self.read("readings.day.peak_at"), 4)              # the glob is anchored
         self.assertEqual(self.read("readings.day.trough"), 1.25)
         self.assertEqual(self.read("readings.night.peak"), 2.0)
         self.assertEqual(self.read("phases.A.watch.mean"), 4)
@@ -292,6 +383,17 @@ class DoNotCiteGuard(Fixture):
     def test_other_runs_rows_do_not_apply(self):
         self.assertEqual(self.read("ok.leaf"), 7)
 
+    def test_named_bracket_pattern(self):
+        with self.assertRaises(g.DoNotCite):
+            self.read("steps[*].v")                                         # any row may be the named one
+        self.assertEqual(self.read("steps[0].v"), 1)                         # an index is not the name
+        self.assertEqual(self.read("steps[*].w"), [2, 4])
+
+    def test_a_row_filed_under_the_alias(self):
+        with self.assertRaises(g.DoNotCite):
+            self.read("ok.aliased", run=ALIAS)
+        self.assertEqual(self.read("ok.aliased"), 8)
+
     def test_alias_reads_the_real_run_and_its_rows(self):
         self.assertEqual(self.read("readings.day.trough", run=ALIAS), 1.25)
         with self.assertRaises(g.DoNotCite):
@@ -308,13 +410,19 @@ class RingKeys(Fixture):
     def test_longest_literal_key_first(self):
         self.assertEqual(self.read("rows_list[0].stomach.liquid"), 250.0)
         self.assertEqual(self.read("rows_list[1][\"stomach.liquid\"]"), 240.5)
-        self.assertEqual(self.read("rows_list[*].stomach.liquid"), [250.0, 240.5, 230.25])
+        self.assertEqual(self.read("rows_list[1].stomach.liquid"), 240.5)
 
     def test_nested_keys_still_split(self):
         self.assertEqual(self.read("nested.stomach.fill"), 0.5)
 
     def test_selector(self):
         self.assertEqual(self.read("items[pz_id=Base.Bread].kcal"), 250)
+        self.assertEqual(self.read('items[pz_id="Base.Bread"].kcal'), 250)   # quotes stripped
+        with self.assertRaisesRegex(g.ProvenanceError, "matches 2"):
+            self.read("items[kcal=250].pz_id")
+
+    def test_negative_index(self):
+        self.assertEqual(self.read("rows_list[-1].HUNGER"), 0.3)
 
 
 def _defs(n=3, reverse=False):
@@ -358,6 +466,16 @@ class Determinism(Fixture):
     def test_duplicate_ids_rejected(self):
         with self.assertRaisesRegex(g.ProvenanceError, "duplicate"):
             g.build(_defs(1) + _defs(1), self.root, CHARTS3, [], self.install)
+
+    def test_validation_must_be_a_list(self):
+        with self.assertRaisesRegex(g.ProvenanceError, "validation is a list"):
+            g.build(_defs(), self.root, CHARTS3, {}, self.install)
+
+    def test_writer_keeps_utf8_and_refuses_nan(self):
+        text = g.dumps({"a": "0–6"})
+        self.assertIn("0–6", text)
+        with self.assertRaises(ValueError):
+            g.dumps({"a": float("nan")})
 
     def test_def_may_return_a_list(self):
         defs = [lambda: [f() for f in _defs()]]
@@ -434,13 +552,14 @@ class KernelCommit(unittest.TestCase):
         _write(os.path.join(self.repo, rel), text)
         _git(self.repo, "add", "--", rel)
         _git(self.repo, "commit", "-q", "-m", "c", "--", rel)
-        return _git(self.repo, "log", "-1", "--format=%h")
+        return _git(self.repo, "log", "-1", "--format=%H")[:10]
 
     def test_moves_with_a_mod_commit_only(self):
         with self.assertRaises(g.ProvenanceError):
             g.kernel_commit(self.repo)                                     # no commit yet
         first = self.commit("mod/a.lua", "x = 1\n")
         self.assertEqual(g.kernel_commit(self.repo), first)
+        self.assertEqual(len(first), 10)
         self.commit("docs/page.md", "text\n")
         self.assertEqual(g.kernel_commit(self.repo), first)               # a docs commit leaves it
         second = self.commit("mod/a.lua", "x = 2\n")

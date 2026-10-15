@@ -28,7 +28,11 @@ Badge and provenance pair: `artifact` takes `live` or `vanilla-live`; `kernel` t
 takes `vanilla-model`; `study` takes `study`; `dataset` takes `vanilla-model` for a file under the game's install
 (read-only, its build recorded as `INSTALL_BUILD`) and `kernel` for the mod's own data under `data/` or `mod/`.
 
-A kernel series' `commit` is the mod tree's last commit, `git log -1 --format=%h -- mod`: `build` fills it when a
+A dataset file under the install is stored as `<install>/<path inside the install>`, never as a local absolute
+path, and read by joining it with `INSTALL`.
+
+A kernel series' `commit` is the mod tree's last commit, `git log -1 --format=%H -- mod` cut to 10 characters
+(a fixed length, whatever git's abbreviation setting): `build` fills it when a
 definition leaves it out and refuses one that differs, so a commit under `mod/` moves `data.json` and the
 `--check` gate makes it be regenerated.
 
@@ -41,7 +45,7 @@ alternatives, and several keys in one cell separated by commas. A `*` row is a w
 `claims_check`'s rule; and each run guide's wildcard sentences (CLAUDE.md § 4 item 11, the wall-clock leaves)
 are a review check, not this guard's job.
 """
-import argparse, csv, fnmatch, json, math, os, re, subprocess, sys
+import argparse, csv, json, math, os, re, subprocess, sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OUT_REL = "docs/mod-guide/data.json"
@@ -51,7 +55,9 @@ CLAIMS_REL = "docs/reference/claims.tsv"
 SCIENCE_REL = "docs/reference/science.tsv"
 INSTALL = r"D:\SteamLibrary\steamapps\common\ProjectZomboid"
 INSTALL_BUILD = "42.21"          # CLAUDE.md § 2: the install's build since 2026-10-08
+INSTALL_PREFIX = "<install>/"   # how data.json names a file under the install (never a local absolute path)
 MOD_DATA_DIRS = ("data/", "mod/")
+COMMIT_LEN = 10
 
 BADGES = ("live", "kernel", "vanilla-live", "vanilla-model", "study")
 PROVENANCE = {
@@ -266,7 +272,7 @@ def _tok_match(p, c):
 def _overlaps(ptoks, ctoks):
     """True when one token list is a prefix of the other under matching: equal, child or parent."""
     n = min(len(ptoks), len(ctoks))
-    return n > 0 and all(_tok_match(ptoks[k], ctoks[k]) for k in range(n))
+    return all(_tok_match(ptoks[k], ctoks[k]) for k in range(n))     # an empty read (the root) contains every key
 
 
 _DNC_CACHE = {}
@@ -307,15 +313,21 @@ def real_run(run, root=REPO):
     return a[run]["run"] if run in a else run
 
 
-def check_citable(run, trail, root=REPO):
-    """Raise DoNotCite when the concrete steps `trail` (or the path string) under `run` touch a listed key."""
+def check_citable(run, trail, root=REPO, leaf=False):
+    """Raise DoNotCite when the concrete steps `trail` (or the path string) under `run` touch a listed key.
+
+    `leaf` says the value read is a scalar: a scalar holds no children, so a longer listed key (one that a
+    `*` or `<name>` segment lets match its prefix) cannot lie inside it and does not refuse it. Without a
+    document (a path string alone) the check stays conservative and refuses such a prefix."""
     if isinstance(trail, str):
         trail = _path_steps(trail)
     ctoks = _concrete_tokens(trail)
     dnc = load_dnc(root)
     real = real_run(run, root)
-    for r in {run, real}:
+    for r in (run, real) if real != run else (run,):
         for key, ptoks in dnc.get(r, ()):
+            if leaf and len(ctoks) < len(ptoks):
+                continue
             if _overlaps(ptoks, ctoks):
                 rel = "equals" if len(ptoks) == len(ctoks) else ("is inside" if len(ctoks) > len(ptoks) else "contains")
                 raise DoNotCite("%s %s %s the do-not-cite key %s" % (r, _fmt(trail), rel, key))
@@ -369,11 +381,12 @@ def read_artifact(run, file, path, root=REPO):
     doc = _load_json(artifact_file(run, file, root))
     hits = resolve(doc, path)
     seen = set()
-    for trail, _ in hits:
-        key = tuple(("*",) if isinstance(t, tuple) else (t,) for t in trail)
+    for trail, value in hits:
+        leaf = not isinstance(value, (dict, list))
+        key = (tuple(("*",) if isinstance(t, tuple) else (t,) for t in trail), leaf)
         if key not in seen:
             seen.add(key)
-            check_citable(run, trail, root)
+            check_citable(run, trail, root, leaf)
     return [v for _, v in hits] if _is_wild(path) else hits[0][1]
 
 
@@ -381,39 +394,70 @@ def _is_wild(path):
     return any(isinstance(t, tuple) and t[0] == "all" for t in _path_steps(path))
 
 
-def _norm(p):
-    return os.path.normcase(os.path.normpath(p))
-
-
 def dataset_side(file, root=REPO, install=INSTALL):
-    """'vanilla' for a file under the install, 'mod' for one under the repo's data/ or mod/; else raise."""
-    if os.path.isabs(file) or re.match(r"^[A-Za-z]:", file):
-        if _norm(file).startswith(_norm(install) + os.sep):
-            return "vanilla"
-        raise ProvenanceError("dataset file %s is neither under the install nor in the repository" % file)
+    """'vanilla' for `<install>/...` (a file under the install), 'mod' for one under the repo's data/ or mod/;
+    else raise. A local absolute path is refused: data.json never carries one."""
     rel = file.replace("\\", "/")
-    if rel.startswith("../") or "/../" in rel or not rel.startswith(MOD_DATA_DIRS):
+    if os.path.isabs(file) or re.match(r"^[A-Za-z]:", file) or rel.startswith("/"):
+        raise ProvenanceError("dataset file %s is a local absolute path; name a file under the install as %s..."
+                              % (file, INSTALL_PREFIX))
+    if rel == ".." or rel.startswith("../") or "/../" in rel or rel.endswith("/.."):
+        raise ProvenanceError("dataset file %s leaves its tree" % file)
+    if rel.startswith(INSTALL_PREFIX):
+        if not rel[len(INSTALL_PREFIX):]:
+            raise ProvenanceError("dataset file %s names no file under the install" % file)
+        return "vanilla"
+    if not rel.startswith(MOD_DATA_DIRS):
         raise ProvenanceError("a repository dataset file sits under data/ or mod/: %s" % file)
     return "mod"
 
 
+def dataset_path(file, root=REPO, install=INSTALL):
+    """The local path of a dataset file: `<install>/x` joined with `install`, a repo path with `root`."""
+    rel = file.replace("\\", "/")
+    if dataset_side(file, root, install) == "vanilla":
+        return os.path.join(install, *rel[len(INSTALL_PREFIX):].split("/"))
+    return os.path.join(root, *rel.split("/"))
+
+
+def _block_end(text, start):
+    """The index just past the `}` closing the block whose body starts at `start` (after its `{`)."""
+    depth, j = 1, start
+    while j < len(text) and depth:
+        depth += {"{": 1, "}": -1}.get(text[j], 0)
+        j += 1
+    return j
+
+
 def _script_value(text, key):
-    """`Module.Item.Field` out of a PZ script text: the item block in that module, the field's value."""
+    """`Module.Item.Field` out of a PZ script text: the item block inside that module's block, and the field
+    among the item's own lines (a nested sub-block such as `component FluidContainer { ... }` is skipped)."""
     parts = key.split(".")
     if len(parts) != 3:
         raise ProvenanceError("a script key is Module.Item.Field: %r" % key)
     module, item, field = parts
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    if not re.search(r"\bmodule\s+%s\b" % re.escape(module), text):
+    mods = [mm for mm in re.finditer(r"\bmodule\s+%s\s*\{" % re.escape(module), text)]
+    if not mods:
         raise ProvenanceError("no module %s in the script" % module)
-    m = re.search(r"\bitem\s+%s\s*\{" % re.escape(item), text)
+    m, body = None, ""
+    for mm in mods:
+        body = text[mm.end():_block_end(text, mm.end()) - 1]
+        m = re.search(r"\bitem\s+%s\s*\{" % re.escape(item), body)
+        if m:
+            break
     if not m:
-        raise ProvenanceError("no item %s in the script" % item)
-    depth, j = 1, m.end()
-    while j < len(text) and depth:
-        depth += {"{": 1, "}": -1}.get(text[j], 0)
-        j += 1
-    block = text[m.end():j - 1]
+        raise ProvenanceError("no item %s in module %s" % (item, module))
+    block = body[m.end():_block_end(body, m.end()) - 1]
+    flat, depth = "", 0
+    for ch in block:                                       # the item's own lines: nested blocks dropped
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth = max(0, depth - 1)
+        elif depth == 0:
+            flat += ch
+    block = flat
     f = re.search(r"^\s*%s\s*=\s*([^,\n]*)" % re.escape(field), block, flags=re.M | re.I)
     if not f:
         raise ProvenanceError("item %s has no field %s" % (item, field))
@@ -427,8 +471,7 @@ def _script_value(text, key):
 def read_dataset(file, key, root=REPO, install=INSTALL):
     """The value at `key` in a dataset file: a JSON path (read_artifact's grammar) in a .json file, or
     `Module.Item.Field` in a game script (.txt)."""
-    side = dataset_side(file, root, install)
-    full = file if side == "vanilla" else os.path.join(root, *file.replace("\\", "/").split("/"))
+    full = dataset_path(file, root, install)
     if not os.path.isfile(full):
         raise ProvenanceError("dataset file %s does not exist" % file)
     if full.lower().endswith(".json"):
@@ -441,9 +484,9 @@ def read_dataset(file, key, root=REPO, install=INSTALL):
 # --- the kernel commit, the registers -----------------------------------------------------------------
 
 def kernel_commit(root=REPO):
-    """`git log -1 --format=%h -- mod`: the mod tree's last commit."""
-    p = subprocess.run(["git", "-C", root, "log", "-1", "--format=%h", "--", "mod"], capture_output=True, text=True)
-    sha = p.stdout.strip()
+    """`git log -1 --format=%H -- mod` cut to 10 characters: the mod tree's last commit."""
+    p = subprocess.run(["git", "-C", root, "log", "-1", "--format=%H", "--", "mod"], capture_output=True, text=True)
+    sha = p.stdout.strip()[:COMMIT_LEN]
     if p.returncode != 0 or not sha:
         raise ProvenanceError("no commit touches mod/ in %s" % root)
     return sha
