@@ -281,7 +281,7 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | sixty players' minutes spread over the minute (arithmetic) | about 95 ms a game minute | [#3440/M/arith.] |
 | one player's minute in play, sub-block timers on | 1.459 ms a run over 244 runs | [#3457/M/n=1] |
 | the Nutrients heal pair in that minute | 101 of 356 ms, 28.4 %; the seven heal passes 143 ms, 40.2 % | [#3458/M/n=1] |
-| a typical, a day-closing and a seven-day catch-up minute, benched | 1.134, 1.022 and 1.053 ms a run over 1000 | [#3462/M/n=1] |
+| a typical, a day-closing and a seven-day catch-up minute, benched (the catch-up since removed) | 1.134, 1.022 and 1.053 ms a run over 1000 | [#3462/M/n=1] |
 | first sight's measured parts | 0.861 ms a joiner, a floor | [#3463/M/n=1] |
 | one mirror send of 138 keys | 102 ms over 1000 sends; sixty in one frame about 6.12 ms | [#3464/M/n=1] |
 | a ghost's minute against a real player's | 0.978 fed, 0.778 unfed, over forty pairs | [#3466/M/n=1] |
@@ -304,11 +304,11 @@ A player held deficient is no heavier at 1 ms resolution: with one player's vita
 
 #### Burst sources, benched
 
-Over 1000 interleaved bench runs on copies of one player's record, a typical minute took 1134 ms in total, a minute closing one day in Metabolism, Nutrients and Effects 1022 ms and a catch-up closing seven days 1053 ms, the largest single run 5 ms, so a day close is 0.901 of the typical minute, and with the profile on `metabolism/closeDay` took 20 ms over 1400 closes [#3462/M/n=1].
+Over 1000 interleaved bench runs on copies of one player's record, a typical minute took 1134 ms in total, a minute closing one day in Metabolism, Nutrients and Effects 1022 ms and a catch-up closing seven days 1053 ms, the largest single run 5 ms, so a day close is 0.901 of the typical minute, and with the profile on `metabolism/closeDay` took 20 ms over 1400 closes [#3462/M/n=1]; the catch-up no longer exists, a return closing no missed day since Plan 13 [#3857/C/inference].
 First sight's measured parts, the store's load of a fresh record copy, `ensureBody` on an empty record and the first-sight hooks with the re-hoist skipped and sends stubbed, took 698, 74 and 89 ms over 1000 runs, 0.861 ms a joiner, a floor [#3463/M/n=1].
 One mirror send of the real 138-key payload took 102 ms over 1000 sends, so sixty in one frame are about 6.12 ms, and building the payload alone took 42 ms over 1000 [#3464/M/n=1].
 Across the mod's 07:00 day close at sixty, the burst's first minute frame after 07:00 read 67 ms busy and a 170 ms end-to-end period against the arm's minute-frame p50 of 50 and max of 76 ms, 1.34 times the p50, and under a 10 ms budget the frames within two game minutes of 07:00 read at most 20 ms, that arm's own max [#3481/M/n=1].
-So of the per-minute burst sources benched, a day close and a seven-day catch-up are not one, and the send is one at sixty, when every player's push lands in one frame [#3464/M/n=1] [#3462/M/n=1].
+So of the per-minute burst sources benched, a day close and the seven-day catch-up of that build are not one, and the send is one at sixty, when every player's push lands in one frame [#3464/M/n=1] [#3462/M/n=1].
 First sight's 0.861 ms is a floor, so sixty joiners in one frame would cost at least 51.7 ms (arithmetic), and whether a mass join is a burst is [open](#open) [#3463/M/n=1].
 
 #### The scheduler shoot-out at sixty
@@ -454,7 +454,7 @@ Not covered: a listen server or single-player, real network latency, jitter or l
 - Whether a player notices a long server frame through their own actions on server-owned state, over a real network or among zombies, is unmeasured: the client readings cover another player's motion on the server's host only [#3488/M/n=1] [#3429/C/C-only].
 - Whether the jar's fake client gives per-player load on this build once each of its usernames has a saved character and each runs in its own JVM is untried: as shipped on `42.20.4` it was kicked at `player-connect` for want of a saved character, the `42.21` fake client creates one when it has none, and one JVM gave one connected client [#3494/M/n=1] [#3509/C/C-only] [#3496/M/n=1].
 - What vanilla's own frame costs at a large player count is unread, and it sets the headroom a mod has; the shipped fake client could not supply it [#3440/M/arith.] [#3494/M/n=1].
-- How much heavier a mass reconnect is than a typical minute is unmeasured; a day close, a seven-day catch-up and first sight's measured parts are not heavier a run, but first sight's 0.861 ms is a floor, so sixty joiners in one frame would cost at least 51.7 ms (arithmetic) [#3462/M/n=1] [#3463/M/n=1] [#3387/M/n=1].
+- How much heavier a mass reconnect is than a typical minute is unmeasured; a day close and first sight's measured parts are not heavier a run, and the seven-day catch-up benched beside them is gone, but first sight's 0.861 ms is a floor, so sixty joiners in one frame would cost at least 51.7 ms (arithmetic) [#3462/M/n=1] [#3463/M/n=1] [#3387/M/n=1].
 - Whether the mod's queue keeps its margin with the writer live in every run, at more than two real players, or on a slower host is unmeasured: with dry ghost records it added 7 to 10 ms at the 99th percentile at both spacings and starved none [#3740/M/n=1] [#3744/M/n=1], and the writer-side lanes cost about 0.27 ms of a minute event at sixty on the real players (arithmetic) [#3751/M/n=1].
 - Why the spread cap's spread runs cost more a run than the mod's front-loaded drain at 37 ticks a game minute, the batches' own overhead or the runs themselves, is unresolved [#3745/M/n=1].
 - A send's cost per key is unmeasured: one 138-key payload was priced, about 0.1 ms a send [#3464/M/n=1] [#3437/C/C-only].

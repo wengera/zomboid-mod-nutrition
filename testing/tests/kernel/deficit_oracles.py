@@ -249,11 +249,11 @@ ORACLES = [
     # and its stability checks
     Oracle("s1254", "s1254", lambda r: _log_ratio(r["s1254"]["slope"]), lo=-math.log(S1254_TOL),
            hi=math.log(S1254_TOL), row="S1254, S2208, S2206",
-           tol="125 kcal/d per kg of fat lost (S1254's 95 per kg of weight / the Forbes fat share 0.76) within 1.5x, as ln(slope / 125)"),
+           tol="125 kcal/d per kg of fat lost (S1254 as k_P 95 per kg of weight, S2208, / the Forbes fat share 0.76) within 1.5x, as ln(slope / 125)"),
     Oracle("s1254_linear", "s1254", _pair_ratio, lo=0.5, scale=0.5, role="constraint", row="",
            tol="the two pair slopes within 2x (a clamped or degenerate read fails)"),
     Oracle("s1254_flat", "s1254", lambda r: min(r["s1254"]["pairs"]), lo=30.0, scale=30.0, role="constraint", row="",
-           tol="every pair slope >= 30 kcal/d per kg (a flat read fails)"),
+           tol="every pair slope >= 30 kcal/d per kg of fat (a flat read fails)"),
     Oracle("s1254_low", "s1254", lambda r: abs(r["s1254"]["low"] - r["s1254"]["base"]), hi=25.0, scale=25.0,
            role="constraint", row="S1255", tol="below FAT_DEP_LO within 25 kcal/d of no loss (the soft threshold)"),
 ]

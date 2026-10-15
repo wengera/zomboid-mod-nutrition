@@ -181,7 +181,7 @@ Intoxication is the one stat in this section whose decay runs on the body-damage
 The internal update calls `BodyDamage.Update` before the stat update, so the decay lands before the hook in the same update and a handler's intoxication write is the later one [#2921/C/C-only].
 The constructor sets the reduction value to 0.0042 and the increase value to 400, two private fields behind public getter and setter pairs [#2919/C/C-only].
 Nothing else in the jar or the shipped Lua sets the reduction value and no save or load method names it, so a value a mod sets is gone after a reload [#2920/C/inference].
-In game time the decay is 0.504 times the day length in real minutes per game-hour, about 30.24 per game-hour on the 60-minute default day and 45.36 on a 90-minute day, so 100 intoxication clears in about 3.3 game-hours on the default day [#2922/C/arith.].
+In game time the decay is 0.504 times the day length in real minutes per game-hour, about 30.24 per game-hour on a 60-minute day and 45.36 on the 90-minute default day, so 100 intoxication clears in about 3.3 game-hours on the 60-minute day [#2922/C/arith.].
 Measured live, the decay runs at that rate: INTOXICATION written to 40 on the server fell 0.20123 per wall second and 7.5599 per game hour over 55.7 s at DayLength 1, the multiplier reading 4.781 to 4.799, against the 7.56 per game hour the reading predicts for that day length [#2951/M/n=1, #2922/C/arith.].
 Two writers raise the stat at the drink and at the eat.
 The fluid writer adds 400 times the alcohol it is handed, times 1.1 above 0.8 hunger and 1.25 between 0.6 and 0.8, and calls four pill effects on the character [#2923/C/C-only].
@@ -224,7 +224,7 @@ DISCOMFORT runs on `[0,100]` with a default of 0 at index 2 of the fixed order, 
 The target reads no hunger, food or stomach state [#3601/C/C-only].
 Awake, the stat moves toward the target by `lerp(D, target, r)` per call, with `r = 0.005 * GameTime.getMultiplier()` cut to a fortieth when the target lies above the stat, and it snaps to the target once the two are within `r` [#3602/C/C-only].
 Asleep, the stat is set to the target on every call [#3602/C/C-only].
-The relaxation is exponential and fast: with the target at 0 a value keeps about 0.79 of itself per real second at time speed 1 whatever the day length, and about 0.55 over one game minute of the 60-minute default day [#3606/C/arith.].
+The relaxation is exponential and fast: with the target at 0 a value keeps about 0.79 of itself per real second at time speed 1 whatever the day length, and about 0.55 over one game minute of a 60-minute day [#3606/C/arith.].
 For players the updater runs on the server only, because the body-damage tick returns on a multiplayer client before it, and the only methods in the jar that name the stat outside its registration are the updater and the moodle update [#3603/C/C-only].
 The UNCOMFORTABLE moodle reads DISCOMFORT against 20, 40, 60 and 80 for its four levels, on each side from its own copy [#3604/C/C-only] [#0563].
 While that moodle is up and STRESS is below its maximum, the updater adds `StressFromDiscomfort * DISCOMFORT * k` to STRESS per game-second, with `StressFromDiscomfort` at 1.3e-7 and `k` at 3 unless the target's raw sum exceeds 1 [#3605/C/C-only].
@@ -251,7 +251,7 @@ The sub-updater returns before any of this for a sleeping player, so neither the
 The stat runs on `[0, 0.51]` with a default of 0 at index 11 of the fixed order, so the clamp holds it at 0.51 and the player-stats packet carries it [#2205/C/C-only] [#2208/C/C-only] [#1149/M/n=1].
 For a player on a dedicated server the rise runs on the server alone, because the boredom sub-updater's one call site is in `BodyDamage.Update`, which returns on a multiplayer client before it [#3631/C/C-only].
 The only other methods in the jar that name the stat are the smoking code and the nicotine-stress getter [#3631/C/C-only].
-At time speed 1 the timer passes 1 about 208 real seconds after a full smoke, and the stat then climbs about 3.0e-4 per real second to its cap about 32 real minutes after the smoke, about 12.7 game-hours on the 60-minute default day, before the step `k` ever leaves 1 [#3636/C/arith.].
+At time speed 1 the timer passes 1 about 208 real seconds after a full smoke, and the stat then climbs about 3.0e-4 per real second to its cap about 32 real minutes after the smoke, about 12.7 game-hours on a 60-minute day, before the step `k` ever leaves 1 [#3636/C/arith.].
 
 The only fall is a smoke [#3631/C/C-only] [#3632/C/C-only].
 For a Smoker, `RecipeCodeOnEat.consumeNicotineLogic` adds the item's stress change times the fraction to UNHAPPINESS and STRESS, removes 0.51 times the fraction from NICOTINE_WITHDRAWAL and sets the timer to what remains over 0.51 [#3632/C/C-only].

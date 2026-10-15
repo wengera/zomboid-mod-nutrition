@@ -22053,6 +22053,7 @@ x434-20261015-053645,checks.day2.placed.ebDay,260,"The set value; ebDay is recom
 x434-20261015-053645,checks.day3.placed.ebDay,260,"The set value on a dead character; no close followed.",`verdicts.22_close3`
 x434-20261015-053645,server_errors,two pzt-cmd.txt read errors,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
 fit-13-fatgain2-20261015,chosen.values.s1254,0.0020205036817756436,"A log ratio, ln(slope / 125); not a slope.",the slope 125 x e to the value: 125.25 kcal/d per kg of fat
+fit-13-fatgain-20261015,chosen.values.s1254,0.009519265287838224,"A log ratio, ln(slope / 100); not a slope.",the slope 100 x e to the value
 x436-20261015-094119,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x436-20261015-094119,constants,the lib's constants,The driver's settings; not a reading.,
 x436-20261015-094119,memory,host free memory rows,"Host state, not a game reading.",

@@ -41,6 +41,8 @@ On a client, `IsoWorld.init` takes the load path only when `ClientPlayerDB.clien
 The same event is therefore the hook for the character a client creates after a death, while a returning character with a living stored character never passes this way [#2411/C/inference].
 On a live server a respawn driven through the post-death UI and the coop creation's accept ended in the mod's record reset: its log line, seen 0.007 s after the accept's reply returned, came with a fresh record whose reset count read 1, and the reset's only caller in the mod is its `OnNewGame` handler, so the run read the line and not the event [#3279/M/n=1].
 After a hard kill the returning client's join logged the first sight as its only player line and no reset line, and the record read living with its resets 0, so the handler did not reset it, which character the store held not being read [#3281/M/n=1].
+A server `OnNewGame` handler's writes reach the owning client: in run x422 a handler that wrote the weight 77.7, a trait and a step of Strength from 5 to 6 by `LevelPerk` on a respawn read, on the client's first same-second pair 3 s after it ran, weight 77.69999694824219 and Strength 6 with OUT_OF_SHAPE held and STRONG not, and so did the pairs at 10 and 30 s. [#3839/M/n=1]
+The server keeps an illegal pick list and not the client's order: in run x422 a client whose creation list was rewritten to Strong, Stout, Obese and Overweight reached `OnNewGame` holding both Obese and Overweight, which exclude each other, at Strength 10 with 487500 experience, its known traits reading `obese`, `overweight`, `out of shape` and `strong` in that order, with Stout absent and Out of Shape, never picked, present. [#3840/M/n=1]
 
 <a id="death"></a>
 ### Death: the event the server sees

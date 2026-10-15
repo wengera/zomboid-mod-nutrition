@@ -637,7 +637,7 @@ def fat_loss_intake(host, dep, days=S1254_DAYS):
 
 def fat_loss_server(host):
     """S1254's reading on the server path: the intake at no loss (base), below the ramp (low) and at each S1254_DEP;
-    the least-squares slope of intake on the kg lost over S1254_DEP (kcal/d per kg) and the two consecutive pairs'."""
+    the least-squares slope of intake on the kg of fat lost over S1254_DEP (kcal/d per kg of fat) and the two consecutive pairs'."""
     base, _ = fat_loss_intake(host, 0.0)
     low, _ = fat_loss_intake(host, S1254_LOW)
     pts = [fat_loss_intake(host, d) for d in S1254_DEP]

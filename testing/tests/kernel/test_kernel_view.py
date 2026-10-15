@@ -674,9 +674,9 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
 # 0.1041 (0.1051 at FAT_GAIN 0.524404, 0.0089 under the linear term), levels 3 and 4 from fat depletion 0.2422 and
 # 0.3803 at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 0.2767 and 0.4483 at 0.524404, 0.309 and 0.609 before). Each is reached 0.005 past its stated value and not 0.005 short of it (level 1: 0.005 of
 # es, 40 kcal). A reached level is held until es falls ENERGY_BAND
-# under its bound (Plan 11g Task 7 fix 1, ruling T7-2), so the slow daily sawtooth of a resting fast's es (its largest
-# fall 0.00234 on the server path, the 70 kg man, and the deepest under a reached bound 0.00105 since Plan 13 Task 12, both pinned in
-# test_a_sedentary_fast_never_steps_an_energy_level_down) never steps a level back down; the server holds the level
+# under its bound (Plan 11g Task 7 fix 1, ruling T7-2; ENERGY_BAND 0.035 since Plan 13 Task 10c fix 1), so the slow daily sawtooth of a
+# resting fast's es (its largest fall under the running peak 0.01124 for the 70 kg man, pinned in test_a_sedentary_fast_never_steps_an_energy_level_down,
+# and the deepest under a held bound 0.03055 for the 72.6 kg man over 16 days, in test_a_long_sedentary_fast_never_steps_an_energy_level_down) never steps a level back down; the server holds the level
 # and the mirror carries it to the client (ruling T7-7).
 
 def test_a_resting_character_reaches_every_energy_level(host):

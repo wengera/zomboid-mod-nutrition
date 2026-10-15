@@ -91,6 +91,9 @@ The protein branch: when the perk is `Perks.Strength` and the character is an `I
 The two tests run one after the other rather than as alternatives, and no sandbox option guards either [#2112/C/C-only].
 Both thresholds lie inside the protein store's clamp range, so both arms are reachable in play; neither is exercised on a live server [#0023/M/n=2, #2112/C/C-only].
 The branch reads the protein store of whichever side runs the body, and which side that is for a connected player's grants is under [## Open](#open).
+`AddXP` runs its multiplier block only when its second boolean is true, and there multiplies the amount by the sandbox's `MultiplierConfig.Global` while `MultiplierConfig.GlobalToggle` is on and otherwise by the perk's own option, `SandboxVars.MultiplierConfig.Strength` for Strength, the Lua table holding `Global`, `GlobalToggle` and one entry per perk. [#3835/C/C-only]
+Every vanilla Java route that grants Strength experience on a dedicated server, `Fitness.incStats` and both `hitConsequences`, calls the three-argument `GameServer.addXp(player, perk, amount)`, which passes the multiplier flag on, so the `AddXP` event's amount for a vanilla Strength grant carries the protein factor, the sandbox multiplier and a book multiplier above 1. [#3836/C/C-only]
+`AddXP` removes a skill book's experience multiplier when a grant carries the perk's experience out of the book's range, from at or above its lower total to below it or from below its upper total to at or above it, after it writes the experience and before it fires the `AddXP` event, so a listener that reads `getMultiplier` at the event reads the map after the removal while the event's amount carries the book's factor. [#3837/C/C-only]
 SkillRecoveryJournal ships a protein-keyed multiplier of the same shape for its own exercise grants, a copy of this vanilla branch [#1584].
 Protein's other reader outside the weight model, the recovery multiplier, and why its protein arms never fire under the store's clamp, are stated at [nutrition-core.md#macro-effects](nutrition-core.md#macro-effects).
 
@@ -103,8 +106,8 @@ At the end of every Fitness amount that reaches the store, whether or not a leve
 The private method that carries the same formula is stated at [character-stats.md#updaters](character-stats.md#updaters).
 
 Shipped Lua grants on top of the Java grants, all through the `addXp` global from the install's server file `XpUpdate.lua`.
-Its dice roll `xpUpdate.randXp()` succeeds on a roll of 1 in 100 times the inverse time multiplier when `isServer()` is true, and 1 in 700 times it otherwise [#2115/C/C-only].
-On the move event it grants 2 Strength experience on a `randXp()` roll whenever the inventory weight exceeds half the maximum weight, with no requirement to be moving fast [#2116/C/C-only].
+On 42.21 its move-event grants roll through `IsoPlayer.isRandXp(1000, 0.05, perk)`, which keeps a next-check time per perk on the wall clock and, once the time has passed it, sets it 1000 ms ahead and succeeds on a 1-in-20 roll, so each perk rolls at most once a real second whatever the game speed; the 42.20.4 roll `xpUpdate.randXp()` is gone [#3846/C/C-only].
+On the move event it grants 2 Strength experience on an `isRandXp` roll whenever the inventory weight exceeds half the maximum weight, with no requirement to be moving fast, so a loaded walker earns at most one roll a real second, each a 1-in-20 chance [#3847/C/C-only]; its live rate is at [exercise-and-training.md#training-signals](exercise-and-training.md#training-signals).
 Which side fires the move event is stated at [lua-platform.md#events](../platform/lua-platform.md#events).
 The melee, tree, exercise and endurance-warning grants are stated at [exercise-and-training.md#training-signals](exercise-and-training.md#training-signals).
 For a server-side grant the protein branch reads the server's store, with the client's store having just answered 200 and reverting within a second [#2872/M/n=1].
@@ -122,6 +125,7 @@ It throws on `Perks.MAX` and on a nil perk [#2118/C/C-only].
 It neither reads nor writes experience and fires no `LevelPerk` event, and its only push is `GameClient.sendPerks`, taken on a client alone [#2119/C/C-only].
 On a dedicated server it is therefore a bare field write, and the server's periodic experience push to the owning client, stated on [mp-model.md](../platform/mp-model.md#sync-globals), is what carries the new level down.
 `level0(perk)` sets the level to zero and fires no Lua event and sends no packet [#2120/C/C-only].
+On 42.21 no per-perk absolute experience setter exists: the experience object's per-perk map is written only by `AddXP`, which puts its clamped new total, by `setXPToLevel`, which puts a level's starting total, and by the save load, and the one other class that touches the map, `NetworkCharacterAI`, only copies it into the anti-cheat's checker [#3830/C/C-only].
 Run on a client, `LevelPerk` and `setPerkLevelDebug` send `SyncPerks`, but `LoseLevel` sends it only for `Perks.Sneak` [#2121/C/C-only].
 What `SyncPerks` carries is stated on [wire-packets.md](wire-packets.md#experience-packet).
 
@@ -151,9 +155,11 @@ It then routes to `GameServer.addXp` when `GameServer.server` is set and does no
 `canModifyPlayerStats` passes when the connection's role holds `CanModifyPlayerStatsInThePlayerStatsUI` or when the connection owns that player, so a server-side grant to a connected player's own character always passes [#2134/C/C-only].
 Past its gates, `GameServer.addXp` calls the six-argument `AddXP` with the no-multiplier flag inverted into the second boolean, the third set and the halo flag fourth, so it never meets the local-player gate [#2132/C/C-only].
 It then refreshes the anti-cheat's experience snapshot through `updateXpChecker` [#2132/C/C-only].
+The refresh runs whatever `AddXP` did, and on an awake character `AddXP` discards a Strength grant only when it is non-negative and the perk's experience has reached the level-10 total, so a grant of 0 below that total runs the whole body and fires the `AddXP` event with an amount of 0 [#3831/C/C-only].
 A grant through `addXp` on the server therefore fires the `AddXP` event there unless the character is asleep, and the `LevelPerk` event too when it crosses a threshold [#2161/C/C-only] [#2125/C/C-only] [#2130/C/C-only].
 The `AddXP` Lua event fires on the server for every `addXp` grant, with the amount and the current (even debug-written) level, and for the rust step's -1 [#2871/M/n=1].
 `LevelPerk` fires on the server once per level crossed, up or down, and vanilla's band listener remaps on both [#2895/M/n=1][#2084/M/n=1].
+A Strength experience parked at the level-9 total under level 10 keeps the event firing at the full grant: with Strength at 10 and its experience parked from 487500 to 337500, a grant of 100 fired one Strength event of amount 100 at a protein store of 0 and a multiplier of 1, and the level read 10 after it [#3842/M/n=1].
 
 <a id="readers"></a>
 ### The Java readers of the two levels
@@ -222,6 +228,7 @@ The check is the server option `AntiCheatXP`, whose values 1 to 4 are ban, kick,
 A trip is acted on only for a connection whose role lacks `CantBeKickedByAnticheat`: it is counted and logged, and outside debug mode the second trip before the count decays, by 1 every 150 s, bans at value 1 and kicks at value 2 [#2865/C/C-only].
 The admin, moderator, gm and observer roles hold that capability, so only a user or priority connection can be kicked or banned by the check [#2866/C/C-only].
 On the admin connection a checker-free 1000-experience burst drew no kick and no line under `AntiCheatXP=2` [#2873/M/n=1]; whether it trips for a non-admin connection is open [#2085/C/open].
+On a user connection under `AntiCheatXP=2` a grant of 30000 Strength experience through `addXp` drew no kick over 130.5 s and no anti-cheat line, as the re-seed after every `addXp` grant predicts, so it says nothing about a burst that bypasses the re-seed [#3843/M/n=1].
 Whether a server-side burst trips the check on a live server is under [## Open](#open).
 
 <a id="skill-rust"></a>
@@ -250,13 +257,15 @@ A level written through `setPerkLevelDebug` or `level0` fires no event, so the b
 The band traits are also what the player constructor turned into `maxWeightDelta`, and a later swap does not refresh it, as [#carry-capacity](#carry-capacity) states.
 A load of the experience object replaces the character-trait list along with the levels, as [wire-packets.md](wire-packets.md#experience-packet) states, and how a trait change reaches the client is on [mp-model.md](../platform/mp-model.md#sync-globals).
 A server debug level write runs no remap: Strength written to 3, FEEBLE's band, never gained FEEBLE on either side and counted no `LevelPerk` [#2870/M/n=1].
+On a dedicated server `LevelPerk` and `LoseLevel` each fire the `LevelPerk` Lua event and push nothing, their perk sends being taken on a client alone, and vanilla's band listener is registered by the server file `XpUpdate.lua` with no side guard, so a server-side step of a Strength or Fitness level swaps its band trait on the server and the client learns it only from a later push of the trait list. [#3832/C/C-only]
+Measured on 42.21, a server step of Strength from 5 to 6 by `LevelPerk` left STOUT the only Strength band on the server and the client, and a debug write to 3 left STOUT held and FEEBLE absent on both sides [#3841/M/n=1].
 Measured live, an admin client that removed NIGHT_VISION from its own copy and called `SyncXp` in the same tick erased it from the server at the first read, 352 ms later, and it stayed erased [#3067/M/n=1].
 The same removal without the sync was restored on the client within half a second, and the server kept the trait [#3068/M/n=1].
 
 ## Walls and bounds
 <a id="walls"></a>
 
-Every row this page owns is a reading of the jar or of the install's shipped Lua for build `42.20.4`, and none of it is exercised on a live server.
+Most rows this page owns are readings of the jar or of the install's shipped Lua for build `42.20.4`; the rows the lean-mass plan added are read on `42.21`, and its live readings are the rows tagged M.
 The engine has no lean-mass, fat-mass or aerobic-capacity field and no effective-strength concept: no setter overrides a Strength-derived modifier, and no Strength or Fitness level setter exists besides the generic perk methods [#2159/C/C-only].
 `remoteStrLvl` and `remoteFitLvl` are public fields with no getter, so Lua cannot read either; the first's one reader is the crit-chance term against another player and the second has no reader at all [#2160/C/C-only].
 The Fitness stat's own refresher is private and cannot be called from Lua, as [character-stats.md#updaters](character-stats.md#updaters) states.

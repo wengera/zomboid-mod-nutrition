@@ -54,7 +54,7 @@ A nutrition mod that keeps a per-player store the same way takes on the same thr
 
 ## Walls and bounds
 
-Every line on this page is a reading of the installed mod's Lua, and no run in the artifact tree evidences any of it.
+Every line on this page but the live sentence under Compatibility is a reading of the installed mod's Lua.
 The reading covers all eight files of the mod's `42` tree as of 2026-10-05, the server, client and shared core read whole for their experience, carry and endurance writes and the rest grepped for every writer [#2849/C/C-only].
 The mod has been updated since the reading was taken, and each of its code pointers was re-located by content rather than by line number before being carried here.
 
@@ -71,11 +71,13 @@ A nutrient model whose totals drift that way is indistinguishable, from the play
 The one field Beyond Ten contests with another mod is maximum carry weight, and it shares that field by registering with the carry-weight framework when the framework is loaded rather than by writing last ([#1531/C/C-only], [`#techniques`](#techniques)).
 Its remaining third-party work is explicit rather than defensive: a shim for the skill-recovery journal mod, the carry-weight handshake, and a separate compatibility file for a skill-tooltip mod.
 Beyond Ten wraps vanilla's ten-minute level check on the server so that a Strength or Fitness at Java level 10 with a parked reservoir never loses its level to rust [#2856/C/C-only].
+BeyondTen 1.3.4 publishes a versioned Lua API on the global `BeyondTen`, `API_VERSION` 1: `GetStoredXP(character, perk)` answers the stored mastery experience above the level-10 total, `SetStoredXP(character, perk, value)` clamps the value to 0 through the level-15 cost, stores it and answers the stored value with the old and new effective levels, and `GetTotalMasteryCost(perk, level)` answers the cumulative mastery cost from level 10, 0 at 10 or below, while its server table publishes `SendPerkSync` for its client mirror. [#3833/C/C-only]
+Played live beside the worked example, a level written past 10 parked native Strength at 10 with its experience at 337500 and set this store to its own cost curve's value, a Strength grant at the park still reached the worked example's listener, a forced rust pass left the level at 10, and leaving 10 set the store back to 0 [#3862/M/n=1] [#3863/M/n=1] [#3864/M/n=1].
 Without the carry-weight framework it runs the vanilla carry recompute for every online player every tick and adds one unit per Strength mastery rank through `setMaxWeight`, and it never calls `setMaxWeightBase` or `setMaxWeightDelta` [#2857/C/C-only].
 It also rescales each tick's endurance change on the server for a player holding mastery ranks in Fitness, Sprinting, Nimble, Sneak or Lightfoot, and writes nothing at zero ranks [#2858/C/C-only].
 A nutrition mod therefore meets Beyond Ten in four places: the character modData table both write into, which obliges it to namespace every key and never to replace that table wholesale ([#1091], [`../../platform/mp-model.md#wipe-and-replace`](../../platform/mp-model.md#wipe-and-replace)); the experience of a level-10 Strength or Fitness, held one level low; the carry field; and the endurance stat.
 
-Not covered: its `B41` root tree, which this build does not load, the skills UI and the tooltip compatibility file beyond a grep for writes, and any live reading of its behaviour — the mod's behaviour in a running session was not measured, and the one run that touches this mod is a co-boot in which its version marker resolved on both sides and nothing more was read [#2837/M/n=2].
+Not covered: its `B41` root tree, which this build does not load, the skills UI and the tooltip compatibility file beyond a grep for writes, and any live reading of its behaviour beyond the worked example's level writes: one run is a co-boot in which its version marker resolved on both sides and nothing more was read [#2837/M/n=2], and one wrote the worked example's levels beside it [#3862/M/n=1].
 
 ## Open
 <a id="open"></a>

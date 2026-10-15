@@ -175,14 +175,14 @@ The handler lives in a `server/` file, so on a dedicated server it runs on the s
 The load Strength grant of the same file's move handler is stated at [perks-and-strength](../facts/perks-and-strength.md#events), and `OnPlayerMove`'s triggers at [lua-platform](../platform/lua-platform.md#events).
 
 **The other shipped grants.**
-The same file's move handler grants 1 Fitness XP on its dice roll while the player is running or sprinting and endurance is above the endurance warning [#2201/C/C-only].
-The dice roll's odds per side are stated at [perks-and-strength](../facts/perks-and-strength.md#events).
+The same file's move handler grants 1 Fitness XP and, on a roll of its own, 1 Sprinting XP on `isRandXp` rolls while the player is running or sprinting and endurance is above the endurance warning [#3848/C/C-only].
+The roll, at most one a real second per perk at 1 in 20, is stated at [perks-and-strength](../facts/perks-and-strength.md#xp-grants) [#3846/C/C-only].
 The same file registers an `OnWeaponHitTree` handler that grants 2 Strength XP for a hit on a tree with any weapon but bare hands [#2202/C/C-only].
 Taking a wooden plank off a barricade grants 2 Strength XP in `ISUnbarricadeAction:complete`, beside 2 Woodwork XP without the multiplier [#2203/C/C-only].
 Dismantling a moveable grants XP of its material's perk — 5 for a small object, 10 for a medium one, the size an object without a `ScrapSize` gets, and 15 for a large one — only while the character's level in that perk is below the `LevelForDismantleXPCutoff` sandbox value, a check skipped for Electricity [#2204/C/C-only].
 That option defaults to 0 in the engine and in all four shipped presets, so on a default server the dismantle grant never fires [#2204/C/C-only].
 The `Stone` material's perk is Strength, so with the cutoff raised, dismantling a stone object with a hammer is a Strength grant [#2204/C/C-only].
-Every one of these goes through the `addXp` global, the same route as the melee grants [#2201/C/C-only] [#2202/C/C-only] [#2203/C/C-only] [#2204/C/C-only].
+Every one of these goes through the `addXp` global, the same route as the melee grants [#3848/C/C-only] [#2202/C/C-only] [#2203/C/C-only] [#2204/C/C-only].
 
 **The stomp.**
 A stomp is the `isAimAtFloor() && isDoShove()` branch of `attackCollisionCheck`, whose damage is `Rand.Next(0.7, 1.0) + 0.2 × Strength level` before the shoe modifiers [#2196/C/C-only].
@@ -201,6 +201,8 @@ A multiplayer client therefore never originates a Strength or Fitness grant from
 
 `OnWeaponHitXp` fires on the server for a connected player's landed melee hits, with the hit-count argument 1 [#2880/M/n=1].
 A push-up rep fires Strength then Fitness at amount 0 [#2900/M/n=1].
+One vanilla push-up set to exhaustion grants 360 Strength experience on a dedicated server: in run x423 an admin at Strength 5 and Fitness 5, with a protein store of 0 and every experience multiplier 1, did 60 reps, each firing one Strength `AddXP` event of 6 and one Fitness event of 0, the experience rising by 360, the first and last Strength events 79.902 s apart, and the set ended by itself. [#3844/M/n=1]
+Loaded movement grants Strength on a dedicated server: in run x423 an admin carrying 19.412500381469727 of a 12 kg maximum weight, read moving at 52 of 89 server polls over 180 s of walking, fired 4 Strength `AddXP` events of 2 each and no other event. [#3845/M/n=1]
 
 ## Walls and bounds
 <a id="walls"></a>
