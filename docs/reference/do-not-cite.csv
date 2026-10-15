@@ -22105,3 +22105,13 @@ x443b-20261015-174712,memory,host free memory rows,"Host state, not a game readi
 x443b-20261015-174712,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x443b-20261015-174712,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
 x443b-20261015-174712,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x444-20261015-175242,session,the driver's text,Written before the run; not a reading.,
+x444-20261015-175242,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x444-20261015-175242,constants,the lib's constants,The driver's settings; not a reading.,
+x444-20261015-175242,memory,host free memory rows,"Host state, not a game reading.",
+x444-20261015-175242,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x444-20261015-175242,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
+x444-20261015-175242,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x444-20261015-175242,verdicts.V3_A.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_A.observed.delta`
+x444-20261015-175242,verdicts.V3_B.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_B.observed.delta`
+x444-20261015-175242,verdicts.V3_C.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_C.observed.delta`
