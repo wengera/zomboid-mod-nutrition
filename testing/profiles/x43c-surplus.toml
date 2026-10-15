@@ -1,0 +1,36 @@
+# testing/profiles/x43c-surplus.toml - Plan 13 Task 22b (run x435): the surplus growth arm (spec sections 5 to 7): four
+# game days of 20/7 sets a day of server Strength grants with p = 2.0 g/kg and E = +260 kcal placed through body.inDay
+# at the last drain before each close, each close's lean and neural factor graded against the kernel's replay of the
+# run's own recorded inputs (ruling 8-R), admin kept alive through the harness's stats.set (never by eating).
+# PZTestKit at HEAD + the STAGED release copy (release/plan13-x43c, `python tools/release_pack.py stage
+# mod/NutritionRevamp --out release/plan13-x43c`, made before the boot; mod/ is never booted; the driver checks the
+# staged MANIFEST against release_pack's manifest of a clean mod/NutritionRevamp before the boot and refuses on a
+# mismatch). Fixture default, the one admin client (-debug). [sandbox.NR] StrengthTimeScale 30 (the biology clock) and
+# StrengthIncidentalWeight 1 (a server grant counts whole). Nutrition false (ruling T18-1), DayLength 1. Build 42.21.0.
+# The driver is testing/experiments/x435_surplus.py on testing/experiments/x43c_strength_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43c), fixture default, admin (debug), Nutrition off, DayLength 1, NR.StrengthTimeScale 30, NR.StrengthIncidentalWeight 1, build 42.21.0 - x435, Plan 13 Task 22b: the surplus growth arm."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan13-x43c/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at true multiplier 1
+
+[sandbox.NR]
+StrengthTimeScale = 30
+StrengthIncidentalWeight = 1
