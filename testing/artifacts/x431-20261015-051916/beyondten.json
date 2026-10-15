@@ -1,0 +1,2590 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 55.644,
+   "wall_after": 56.409,
+   "epoch_ms_before": 1792056012020,
+   "epoch_ms_after": 1792056012784,
+   "took": 0.765,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 56.409,
+   "wall_after": 56.921,
+   "epoch_ms_before": 1792056012784,
+   "epoch_ms_after": 1792056013296,
+   "took": 0.512,
+   "ack": {
+    "worldAge": 3.1843223571777344,
+    "hour": 10,
+    "minutes": 11,
+    "mult": 4.6044769287109375,
+    "trueMult": 1,
+    "wall": 1792056013211
+   }
+  },
+  {
+   "step": "S_bt",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "BeyondTen.API_VERSION",
+   "phase": "S",
+   "wall_before": 58.194,
+   "wall_after": 58.452,
+   "epoch_ms_before": 1792056014570,
+   "epoch_ms_after": 1792056014828,
+   "took": 0.258,
+   "ack": {
+    "side": "server",
+    "name": "BeyondTen.API_VERSION",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "S_guard",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NR_StrengthGuardInstalled NR_StrengthGuardInstalled.wrapper NR_StrengthGuardInstalled.orig NR_StrengthGuardInstalled.class xpUpdate.checkForLosingLevel xpUpdate._BeyondTenB42OriginalCheckForLosingLevel",
+   "phase": "S",
+   "wall_before": 58.452,
+   "wall_after": 58.961,
+   "epoch_ms_before": 1792056014828,
+   "epoch_ms_after": 1792056015337,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 6,
+    "missing": {},
+    "types": {
+     "NR_StrengthGuardInstalled.wrapper": "function",
+     "NR_StrengthGuardInstalled.orig": "function",
+     "xpUpdate.checkForLosingLevel": "function",
+     "xpUpdate._BeyondTenB42OriginalCheckForLosingLevel": "function"
+    },
+    "tables": {
+     "NR_StrengthGuardInstalled": 3,
+     "NR_StrengthGuardInstalled.class": 16
+    },
+    "values": {}
+   }
+  },
+  {
+   "step": "S_P",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.options.strength.R NutritionRevamp.server.options.strength.M5 NutritionRevamp.server.options.strength.Fnm NutritionRevamp.server.options.strength.b NutritionRevamp.server.options.strength.incidental NutritionRevamp.server.options.strength.xpPerSet NutritionRevamp.server.options.strength.ts NutritionRevamp.server.options.strength.k",
+   "phase": "S",
+   "wall_before": 58.961,
+   "wall_after": 59.469,
+   "epoch_ms_before": 1792056015337,
+   "epoch_ms_after": 1792056015845,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.options.strength.R": 1.5651015746939971,
+     "NutritionRevamp.server.options.strength.M5": 25.019999999999996,
+     "NutritionRevamp.server.options.strength.Fnm": 27,
+     "NutritionRevamp.server.options.strength.b": 0.8,
+     "NutritionRevamp.server.options.strength.incidental": 0.35,
+     "NutritionRevamp.server.options.strength.xpPerSet": 360,
+     "NutritionRevamp.server.options.strength.ts": 1,
+     "NutritionRevamp.server.options.strength.k": 0.009906127265972144
+    }
+   }
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength SandboxVars.MultiplierConfig.Global SandboxVars.MultiplierConfig.GlobalToggle",
+   "phase": "S",
+   "wall_before": 59.47,
+   "wall_after": 60.234,
+   "epoch_ms_before": 1792056015845,
+   "epoch_ms_after": 1792056016609,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1,
+     "SandboxVars.MultiplierConfig.Global": 1,
+     "SandboxVars.MultiplierConfig.GlobalToggle": true
+    }
+   }
+  },
+  {
+   "step": "S_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "S",
+   "wall_before": 60.234,
+   "wall_after": 60.741,
+   "epoch_ms_before": 1792056016609,
+   "epoch_ms_after": 1792056017117,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.019999999999996,
+     "body.fm": 13.004999999999999,
+     "body.lx": 0,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.019999999999996,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 3.2678098678588867,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -14.43488113823306,
+     "body.eeDay": 14.43488113823306,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.004999999999999,
+     "body.tDisuse": 0,
+     "body.bornAge": 3.086056709289551,
+     "body.sex": 1,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "S_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "S",
+   "wall_before": 60.742,
+   "wall_after": 61.5,
+   "epoch_ms_before": 1792056017117,
+   "epoch_ms_after": 1792056017875,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.02499999999999,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "S_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "S",
+   "wall_before": 61.5,
+   "wall_after": 62.012,
+   "epoch_ms_before": 1792056017875,
+   "epoch_ms_after": 1792056018388,
+   "took": 0.512,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.318035125732422
+   }
+  },
+  {
+   "step": "S_stored",
+   "side": "server",
+   "cmd": "bt.stored",
+   "args": "admin Strength",
+   "phase": "S",
+   "wall_before": 62.012,
+   "wall_after": 62.269,
+   "epoch_ms_before": 1792056018388,
+   "epoch_ms_after": 1792056018645,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 0
+   }
+  },
+  {
+   "step": "S_cost10",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 10",
+   "phase": "S",
+   "wall_before": 62.269,
+   "wall_after": 62.777,
+   "epoch_ms_before": 1792056018645,
+   "epoch_ms_after": 1792056019153,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 0
+   }
+  },
+  {
+   "step": "S_cost11",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 11",
+   "phase": "S",
+   "wall_before": 62.777,
+   "wall_after": 63.286,
+   "epoch_ms_before": 1792056019153,
+   "epoch_ms_after": 1792056019661,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 180000
+   }
+  },
+  {
+   "step": "S_cost12",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 12",
+   "phase": "S",
+   "wall_before": 63.286,
+   "wall_after": 64.046,
+   "epoch_ms_before": 1792056019662,
+   "epoch_ms_after": 1792056020422,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 390000
+   }
+  },
+  {
+   "step": "S_cost13",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 13",
+   "phase": "S",
+   "wall_before": 64.046,
+   "wall_after": 64.306,
+   "epoch_ms_before": 1792056020422,
+   "epoch_ms_after": 1792056020681,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 630000
+   }
+  },
+  {
+   "step": "S_cost14",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 14",
+   "phase": "S",
+   "wall_before": 64.306,
+   "wall_after": 64.562,
+   "epoch_ms_before": 1792056020681,
+   "epoch_ms_after": 1792056020937,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 900000
+   }
+  },
+  {
+   "step": "S_cost15",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "BeyondTen.GetTotalMasteryCost Strength 15",
+   "phase": "S",
+   "wall_before": 64.562,
+   "wall_after": 65.072,
+   "epoch_ms_before": 1792056020938,
+   "epoch_ms_after": 1792056021448,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "BeyondTen.GetTotalMasteryCost",
+    "nargs": 2,
+    "r1": 1200000
+   }
+  },
+  {
+   "step": "W12_nt",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.N0 body.T body.lm body.dayIndex",
+   "phase": "W12",
+   "wall_before": 65.074,
+   "wall_after": 65.831,
+   "epoch_ms_before": 1792056021450,
+   "epoch_ms_after": 1792056022207,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.N0": 1,
+     "body.T": 1,
+     "body.lm": 52.019999999999996,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "W12_set_lm",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.lm 80.0738091349844",
+   "phase": "W12",
+   "wall_before": 66.34,
+   "wall_after": 67.104,
+   "epoch_ms_before": 1792056022715,
+   "epoch_ms_after": 1792056023480,
+   "took": 0.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.lm",
+    "key": "lm",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 52.019999999999996,
+    "afterType": "number",
+    "after": 80.0738091349844
+   }
+  },
+  {
+   "step": "W12_set_due",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.levelDue true",
+   "phase": "W12",
+   "wall_before": 67.104,
+   "wall_after": 67.867,
+   "epoch_ms_before": 1792056023480,
+   "epoch_ms_after": 1792056024243,
+   "took": 0.763,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.levelDue",
+    "key": "levelDue",
+    "keyType": "string",
+    "beforeType": "boolean",
+    "before": false,
+    "afterType": "boolean",
+    "after": true
+   }
+  },
+  {
+   "step": "W12_after",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.N0 body.T body.wroteL body.levelDue body.dayIndex",
+   "phase": "W12",
+   "wall_before": 68.887,
+   "wall_after": 69.649,
+   "epoch_ms_before": 1792056025262,
+   "epoch_ms_after": 1792056026024,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 80.0738091349844,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.wroteL": 10,
+     "body.levelDue": false,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "W12_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "W12",
+   "wall_before": 69.649,
+   "wall_after": 70.162,
+   "epoch_ms_before": 1792056026024,
+   "epoch_ms_after": 1792056026537,
+   "took": 0.513,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 10,
+    "serverWorldAge": 3.535109519958496
+   }
+  },
+  {
+   "step": "W12_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "W12",
+   "wall_before": 70.462,
+   "wall_after": 70.969,
+   "epoch_ms_before": 1792056026837,
+   "epoch_ms_after": 1792056027345,
+   "took": 0.507,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 337500,
+    "level": 10,
+    "serverWorldAge": 3.550992965698242
+   }
+  },
+  {
+   "step": "W12_stored",
+   "side": "server",
+   "cmd": "bt.stored",
+   "args": "admin Strength",
+   "phase": "W12",
+   "wall_before": 70.97,
+   "wall_after": 71.481,
+   "epoch_ms_before": 1792056027345,
+   "epoch_ms_after": 1792056027856,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 461999.9999999993
+   }
+  },
+  {
+   "step": "W12_mirror_req",
+   "side": "client",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.client.requestMirror",
+   "phase": "W12",
+   "wall_before": 71.738,
+   "wall_after": 72.247,
+   "epoch_ms_before": 1792056028113,
+   "epoch_ms_after": 1792056028622,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "NutritionRevamp.client.requestMirror",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "W12_mirror_lv",
+   "side": "client",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.client.mirror.body_level NutritionRevamp.client.mirror.body_sets",
+   "phase": "W12",
+   "wall_before": 72.754,
+   "wall_after": 73.265,
+   "epoch_ms_before": 1792056029129,
+   "epoch_ms_after": 1792056029640,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 2,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.client.mirror.body_level": 12.299999999999997,
+     "NutritionRevamp.client.mirror.body_sets": 0
+    }
+   }
+  },
+  {
+   "step": "G_b0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.sigDay body.dayIndex",
+   "phase": "G",
+   "wall_before": 73.267,
+   "wall_after": 74.025,
+   "epoch_ms_before": 1792056029642,
+   "epoch_ms_after": 1792056030401,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 2,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.sigDay": 0,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "G_cap0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.strength.xpStats.captures",
+   "phase": "G",
+   "wall_before": 74.025,
+   "wall_after": 74.283,
+   "epoch_ms_before": 1792056030401,
+   "epoch_ms_after": 1792056030658,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.strength.xpStats.captures": 0
+    }
+   }
+  },
+  {
+   "step": "G_grant",
+   "side": "server",
+   "cmd": "xp.grant",
+   "args": "admin Strength 1000",
+   "phase": "G",
+   "wall_before": 74.283,
+   "wall_after": 74.796,
+   "epoch_ms_before": 1792056030658,
+   "epoch_ms_after": 1792056031172,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 1000,
+    "side": "server",
+    "xpBefore": 337500,
+    "levelBefore": 10,
+    "xpAfter": 337500,
+    "levelAfter": 10
+   }
+  },
+  {
+   "step": "G_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.sigDay body.dayIndex body.wroteL",
+   "phase": "G",
+   "wall_before": 76.797,
+   "wall_after": 77.055,
+   "epoch_ms_before": 1792056033172,
+   "epoch_ms_after": 1792056033430,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.sigDay": 350,
+     "body.dayIndex": 0,
+     "body.wroteL": 10
+    }
+   }
+  },
+  {
+   "step": "G_cap1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.strength.xpStats.captures",
+   "phase": "G",
+   "wall_before": 77.055,
+   "wall_after": 77.812,
+   "epoch_ms_before": 1792056033430,
+   "epoch_ms_after": 1792056034188,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.strength.xpStats.captures": 1
+    }
+   }
+  },
+  {
+   "step": "G_xp",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "G",
+   "wall_before": 77.812,
+   "wall_after": 78.324,
+   "epoch_ms_before": 1792056034188,
+   "epoch_ms_after": 1792056034699,
+   "took": 0.512,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 337500,
+    "level": 10,
+    "serverWorldAge": 3.7502365112304688
+   }
+  },
+  {
+   "step": "G_stored",
+   "side": "server",
+   "cmd": "bt.stored",
+   "args": "admin Strength",
+   "phase": "G",
+   "wall_before": 78.324,
+   "wall_after": 79.086,
+   "epoch_ms_before": 1792056034700,
+   "epoch_ms_after": 1792056035461,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 461999.9999999993
+   }
+  },
+  {
+   "step": "R_c0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.strength.xpStats.ignored NutritionRevamp.server.strength.stats.guarded",
+   "phase": "R",
+   "wall_before": 79.088,
+   "wall_after": 79.596,
+   "epoch_ms_before": 1792056035463,
+   "epoch_ms_after": 1792056035972,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 2,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.strength.xpStats.ignored": 0,
+     "NutritionRevamp.server.strength.stats.guarded": 0
+    }
+   }
+  },
+  {
+   "step": "R_xp0",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "R",
+   "wall_before": 79.596,
+   "wall_after": 80.358,
+   "epoch_ms_before": 1792056035972,
+   "epoch_ms_after": 1792056036733,
+   "took": 0.762,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 337500,
+    "level": 10,
+    "serverWorldAge": 3.800723075866699
+   }
+  },
+  {
+   "step": "R_w",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.wroteL",
+   "phase": "R",
+   "wall_before": 80.358,
+   "wall_after": 80.868,
+   "epoch_ms_before": 1792056036733,
+   "epoch_ms_after": 1792056037243,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.wroteL": 10
+    }
+   }
+  },
+  {
+   "step": "R_set",
+   "side": "server",
+   "cmd": "moddata.set",
+   "args": "admin strengthUpTimer 25000",
+   "phase": "R",
+   "wall_before": 80.868,
+   "wall_after": 81.631,
+   "epoch_ms_before": 1792056037243,
+   "epoch_ms_after": 1792056038007,
+   "took": 0.763,
+   "ack": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "25000",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "BeyondTen",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 3.83526611328125
+   }
+  },
+  {
+   "step": "R_c1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.strength.xpStats.ignored NutritionRevamp.server.strength.stats.guarded",
+   "phase": "R",
+   "wall_before": 90.462,
+   "wall_after": 90.97,
+   "epoch_ms_before": 1792056046837,
+   "epoch_ms_after": 1792056047345,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 2,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.strength.xpStats.ignored": 1,
+     "NutritionRevamp.server.strength.stats.guarded": 1
+    }
+   }
+  },
+  {
+   "step": "R_xp1",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "R",
+   "wall_before": 90.97,
+   "wall_after": 91.479,
+   "epoch_ms_before": 1792056047345,
+   "epoch_ms_after": 1792056047854,
+   "took": 0.509,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 337500,
+    "level": 10,
+    "serverWorldAge": 4.101051330566406
+   }
+  },
+  {
+   "step": "R_stored",
+   "side": "server",
+   "cmd": "bt.stored",
+   "args": "admin Strength",
+   "phase": "R",
+   "wall_before": 91.479,
+   "wall_after": 92.239,
+   "epoch_ms_before": 1792056047854,
+   "epoch_ms_after": 1792056048615,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 461999.9999999993
+   }
+  },
+  {
+   "step": "R_reset",
+   "side": "server",
+   "cmd": "moddata.set",
+   "args": "admin strengthUpTimer -50000",
+   "phase": "R",
+   "wall_before": 92.239,
+   "wall_after": 92.747,
+   "epoch_ms_before": 1792056048615,
+   "epoch_ms_after": 1792056049122,
+   "took": 0.508,
+   "ack": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "-50000",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "BeyondTen",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 4.135502815246582
+   }
+  },
+  {
+   "step": "W95_nt",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.N0 body.T body.lm body.dayIndex",
+   "phase": "W95",
+   "wall_before": 92.75,
+   "wall_after": 93.509,
+   "epoch_ms_before": 1792056049125,
+   "epoch_ms_after": 1792056049885,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.N0": 1,
+     "body.T": 1,
+     "body.lm": 80.0738091349844,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "W95_set_lm",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.lm 68.83134667875888",
+   "phase": "W95",
+   "wall_before": 94.018,
+   "wall_after": 94.279,
+   "epoch_ms_before": 1792056050394,
+   "epoch_ms_after": 1792056050654,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.lm",
+    "key": "lm",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 80.0738091349844,
+    "afterType": "number",
+    "after": 68.83134667875888
+   }
+  },
+  {
+   "step": "W95_set_due",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin body.levelDue true",
+   "phase": "W95",
+   "wall_before": 94.279,
+   "wall_after": 94.79,
+   "epoch_ms_before": 1792056050654,
+   "epoch_ms_after": 1792056051166,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.levelDue",
+    "key": "levelDue",
+    "keyType": "string",
+    "beforeType": "boolean",
+    "before": false,
+    "afterType": "boolean",
+    "after": true
+   }
+  },
+  {
+   "step": "W95_after",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin body.lm body.N0 body.T body.wroteL body.levelDue body.dayIndex",
+   "phase": "W95",
+   "wall_before": 96.065,
+   "wall_after": 96.322,
+   "epoch_ms_before": 1792056052441,
+   "epoch_ms_after": 1792056052698,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 68.83134667875888,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.wroteL": 9,
+     "body.levelDue": false,
+     "body.dayIndex": 0
+    }
+   }
+  },
+  {
+   "step": "W95_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "W95",
+   "wall_before": 98.323,
+   "wall_after": 98.582,
+   "epoch_ms_before": 1792056054698,
+   "epoch_ms_after": 1792056054957,
+   "took": 0.259,
+   "ack": {
+    "calories": -119.01287078857422,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 81.83634667875887,
+    "hunger": 0.21354317665100098,
+    "thirst": 0.05546300485730171,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "strong"
+    ],
+    "maxWeight": 27,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 4.284018516540527,
+    "mult": 4.789229393005371,
+    "wall": 1792056054714
+   }
+  },
+  {
+   "step": "W95_pair_c",
+   "side": "client",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "W95",
+   "wall_before": 98.582,
+   "wall_after": 98.845,
+   "epoch_ms_before": 1792056054957,
+   "epoch_ms_after": 1792056055221,
+   "took": 0.263,
+   "ack": {
+    "calories": -120.58320617675781,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 81.83634948730469,
+    "hunger": 0.21375976502895355,
+    "thirst": 0.056202277541160583,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "strong"
+    ],
+    "maxWeight": 27,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 4.292322158813477,
+    "mult": 0.8000208139419556,
+    "wall": 1792056054981
+   }
+  },
+  {
+   "step": "W95_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "W95",
+   "wall_before": 98.845,
+   "wall_after": 99.101,
+   "epoch_ms_before": 1792056055221,
+   "epoch_ms_after": 1792056055477,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 412500,
+    "level": 9,
+    "serverWorldAge": 4.302624702453613
+   }
+  },
+  {
+   "step": "W95_pair_cx",
+   "side": "client",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "W95",
+   "wall_before": 99.101,
+   "wall_after": 99.865,
+   "epoch_ms_before": 1792056055477,
+   "epoch_ms_after": 1792056056240,
+   "took": 0.764,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 412500,
+    "level": 9
+   }
+  },
+  {
+   "step": "W95_stored",
+   "side": "server",
+   "cmd": "bt.stored",
+   "args": "admin Strength",
+   "phase": "W95",
+   "wall_before": 99.865,
+   "wall_after": 100.377,
+   "epoch_ms_before": 1792056056241,
+   "epoch_ms_after": 1792056056752,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 0
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 55.644,
+   "end": 65.073
+  },
+  "W12": {
+   "start": 65.074,
+   "end": 73.265
+  },
+  "G": {
+   "start": 73.267,
+   "end": 79.086
+  },
+  "R": {
+   "start": 79.088,
+   "end": 92.747
+  },
+  "W95": {
+   "start": 92.75,
+   "end": 100.377
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "19_sentinel": {
+   "phase": "19_sentinel",
+   "predicted": "NR_StrengthGuardInstalled a table with a wrapper function",
+   "falsifier": "no wrapper function under NR_StrengthGuardInstalled",
+   "observed": {
+    "sentinel_keys": 3,
+    "wrapper": "function",
+    "orig": "function",
+    "current": "function",
+    "bt_original": "function",
+    "answered": true
+   },
+   "verdict": "as_predicted",
+   "wall": 109.868
+  },
+  "19_write12": {
+   "phase": "19_write12",
+   "predicted": {
+    "level": 10,
+    "xp": 337500,
+    "stored": "masteryXp(12.3) over BeyondTen's own costs",
+    "body_level": 12.3
+   },
+   "falsifier": "level not 10, XP not 337500, stored XP or body_level off L",
+   "observed": {
+    "L": 12.299999999999997,
+    "level": 10,
+    "xp": 337500,
+    "stored": 461999.9999999993,
+    "want_stored": 461999.9999999993,
+    "mirror": 12.299999999999997,
+    "wrote": true,
+    "bt_loaded": true,
+    "dayIndex": [
+     0,
+     0
+    ],
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 109.868
+  },
+  "19_grant": {
+   "phase": "19_grant",
+   "predicted": {
+    "d_sigDay": "1000 x incidental",
+    "level": 10
+   },
+   "falsifier": "level left 10 or sigDay off 1000 x incidental",
+   "observed": {
+    "sig0": 0,
+    "sig1": 350,
+    "d_sig": 350,
+    "want": 350.0,
+    "landed": true,
+    "captures": [
+     0,
+     1
+    ],
+    "level": 10,
+    "xpBefore": 337500,
+    "xpAfter": 337500,
+    "day0": 0,
+    "day1": 0,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 109.868
+  },
+  "19_rust": {
+   "phase": "19_rust",
+   "predicted": {
+    "level after a forced rust pass": 10,
+    "outermost": "a reading only (ruling 13-43)"
+   },
+   "falsifier": "the rust pass drops the parked level 10",
+   "observed": {
+    "ignored": [
+     0,
+     1
+    ],
+    "guarded": [
+     0,
+     1
+    ],
+    "level_before": 10,
+    "level_after": 10,
+    "xp_before": 337500,
+    "xp_after": 337500,
+    "wroteL": 10,
+    "rust_events": 1,
+    "guard_returns": 1,
+    "outermost": "the mod's guard (it returned first)"
+   },
+   "verdict": "as_predicted",
+   "wall": 109.868
+  },
+  "19_write95": {
+   "phase": "19_write95",
+   "predicted": {
+    "level": 9,
+    "xp": 412500,
+    "bands": "STRONG alone, server and client"
+   },
+   "falsifier": "level not 9, XP not 412500, or STRONG not held alone on a side",
+   "observed": {
+    "level": 9,
+    "xp": 412500,
+    "want_xp": 412500.0,
+    "stored": 0,
+    "server_traits": [
+     "strong"
+    ],
+    "client_traits": [
+     "strong"
+    ],
+    "pair_gap_s": 0.25900000000000034,
+    "wrote": true,
+    "L": 9.5,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 109.868
+  }
+ },
+ "readings": {},
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "R: admin's strengthUpTimer set to 25000 for one rust pass, then back to -50000"
+  ]
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "time": {
+    "worldAge": 3.1843223571777344,
+    "hour": 10,
+    "minutes": 11,
+    "mult": 4.6044769287109375,
+    "trueMult": 1,
+    "wall": 56.409,
+    "wall_after": 56.921
+   },
+   "ready": {
+    "done": true,
+    "last": {
+     "runs": 7,
+     "lm": 52.019999999999996,
+     "levelDue": false
+    },
+    "polls": 1
+   },
+   "bt": {
+    "side": "server",
+    "name": "BeyondTen.API_VERSION",
+    "type": "number",
+    "resolved": true,
+    "value": 1,
+    "wall": 58.194,
+    "wall_after": 58.452
+   },
+   "sentinel": {
+    "keys": 3,
+    "wrapper": "function",
+    "orig": "function",
+    "class": 16,
+    "current": "function",
+    "bt_original": "function",
+    "missing": {},
+    "answered": true
+   },
+   "P": {
+    "R": 1.5651015746939971,
+    "M5": 25.019999999999996,
+    "Fnm": 27,
+    "b": 0.8,
+    "incidental": 0.35,
+    "xpPerSet": 360,
+    "ts": 1,
+    "k": 0.009906127265972144
+   },
+   "sandbox": {
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 1,
+    "SandboxVars.MultiplierConfig.Global": 1,
+    "SandboxVars.MultiplierConfig.GlobalToggle": true
+   },
+   "body": {
+    "lm": 52.019999999999996,
+    "fm": 13.004999999999999,
+    "lx": 0,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 3.2678098678588867,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -14.43488113823306,
+    "eeDay": 14.43488113823306,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.004999999999999,
+    "tDisuse": 0,
+    "bornAge": 3.086056709289551,
+    "sex": 1,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.02499999999999,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 60.234,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "xp": {
+    "xp": 37500,
+    "level": 5,
+    "wall": 61.5,
+    "error": null
+   },
+   "stored": {
+    "ok": true,
+    "loaded": true,
+    "perk": "Strength",
+    "apiVersion": 1,
+    "stored": 0,
+    "wall": 62.012,
+    "wall_after": 62.269,
+    "side": "server"
+   },
+   "cum": {
+    "10": 0,
+    "11": 180000,
+    "12": 390000,
+    "13": 630000,
+    "14": 900000,
+    "15": 1200000
+   }
+  },
+  "W12": {
+   "L": 12.3,
+   "N0": 1,
+   "T": 1,
+   "lm_before": 52.019999999999996,
+   "day0": 0,
+   "F": 80.0738091349844,
+   "set_lm": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.lm",
+    "key": "lm",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 52.019999999999996,
+    "afterType": "number",
+    "after": 80.0738091349844,
+    "wall": 66.34,
+    "wall_after": 67.104
+   },
+   "set_due": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.levelDue",
+    "key": "levelDue",
+    "keyType": "string",
+    "beforeType": "boolean",
+    "before": false,
+    "afterType": "boolean",
+    "after": true,
+    "wall": 67.104,
+    "wall_after": 67.867
+   },
+   "wrote": true,
+   "wait": {
+    "done": true,
+    "last": {
+     "levelWrites": 2,
+     "due": false
+    },
+    "polls": 1
+   },
+   "after": {
+    "lm": 80.0738091349844,
+    "N0": 1,
+    "T": 1,
+    "wroteL": 10,
+    "levelDue": false,
+    "dayIndex": 0
+   },
+   "day1": 0,
+   "model": {
+    "R": 1.5651015746939971,
+    "M5": 25.019999999999996,
+    "Fnm": 27,
+    "b": 0.8
+   },
+   "cum": {
+    "10": 0,
+    "11": 180000,
+    "12": 390000,
+    "13": 630000,
+    "14": 900000,
+    "15": 1200000
+   },
+   "xp_polls": 2,
+   "level": 10,
+   "xp": 337500,
+   "stored": 461999.9999999993,
+   "bt_loaded": true,
+   "mirror": 12.299999999999997,
+   "mirror_read": {
+    "rc0": 2,
+    "request_ok": true,
+    "arrived": true,
+    "body_level": 12.299999999999997,
+    "body_sets": 0
+   }
+  },
+  "G": {
+   "sig0": 0,
+   "day0": 0,
+   "cap0": 0,
+   "xpBefore": 337500,
+   "xpAfter": 337500,
+   "levelAfterGrant": 10,
+   "sig1": 350,
+   "day1": 0,
+   "cap1": 1,
+   "level": 10,
+   "xp_after": 337500,
+   "stored_after": 461999.9999999993
+  },
+  "R": {
+   "ign0": 0,
+   "grd0": 0,
+   "level0": 10,
+   "xp0": 337500,
+   "wroteL": 10,
+   "set": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "25000",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "BeyondTen",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 3.83526611328125,
+    "wall": 80.868,
+    "wall_after": 81.631
+   },
+   "fired": true,
+   "ign1": 1,
+   "grd1": 1,
+   "level1": 10,
+   "xp1": 337500,
+   "stored_after": 461999.9999999993,
+   "reset": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "-50000",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "BeyondTen",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 4.135502815246582,
+    "wall": 92.239,
+    "wall_after": 92.747
+   }
+  },
+  "W95": {
+   "L": 9.5,
+   "N0": 1,
+   "T": 1,
+   "lm_before": 80.0738091349844,
+   "day0": 0,
+   "F": 68.83134667875888,
+   "set_lm": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.lm",
+    "key": "lm",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 80.0738091349844,
+    "afterType": "number",
+    "after": 68.83134667875888,
+    "wall": 94.018,
+    "wall_after": 94.279
+   },
+   "set_due": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "body.levelDue",
+    "key": "levelDue",
+    "keyType": "string",
+    "beforeType": "boolean",
+    "before": false,
+    "afterType": "boolean",
+    "after": true,
+    "wall": 94.279,
+    "wall_after": 94.79
+   },
+   "wrote": true,
+   "wait": {
+    "done": true,
+    "last": {
+     "levelWrites": 5,
+     "due": false
+    },
+    "polls": 1
+   },
+   "after": {
+    "lm": 68.83134667875888,
+    "N0": 1,
+    "T": 1,
+    "wroteL": 9,
+    "levelDue": false,
+    "dayIndex": 0
+   },
+   "day1": 0,
+   "pair": {
+    "server_stats": {
+     "calories": -119.01287078857422,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 81.83634667875887,
+     "hunger": 0.21354317665100098,
+     "thirst": 0.05546300485730171,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "strong"
+     ],
+     "maxWeight": 27,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 4.284018516540527,
+     "mult": 4.789229393005371,
+     "wall": 98.323,
+     "wall_after": 98.582,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -120.58320617675781,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 81.83634948730469,
+     "hunger": 0.21375976502895355,
+     "thirst": 0.056202277541160583,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "strong"
+     ],
+     "maxWeight": 27,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 4.292322158813477,
+     "mult": 0.8000208139419556,
+     "wall": 98.582,
+     "wall_after": 98.845,
+     "side": "client"
+    },
+    "server_xp": {
+     "xp": 412500,
+     "level": 9,
+     "wall": 98.845,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 412500,
+     "level": 9,
+     "wall": 99.101,
+     "error": null
+    },
+    "gap_s": 0.25900000000000034
+   },
+   "level": 9,
+   "xp": 412500,
+   "server_traits": [
+    "strong"
+   ],
+   "client_traits": [
+    "strong"
+   ],
+   "pair_gap_s": 0.25900000000000034,
+   "stored": 0
+  }
+ },
+ "run_id": "x431-20261015-051916",
+ "task": "19",
+ "session": "Plan 13 Task 19: the BeyondTen level write, grant, rust pass and leave; one boot of x43-beyondten",
+ "driver": "x431_beyondten.py",
+ "lib": "x43_strength_lib.py",
+ "user": "admin",
+ "users": [
+  "admin"
+ ],
+ "profile": {
+  "name": "x43-beyondten",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x43-beyondten.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43) + BeyondTen (workshop 3765241705), fixture default, admin (debug), Nutrition off, DayLength 1, build 42.21.0 - x431, Plan 13 Task 19: the BeyondTen level write, grant, rust pass and leave.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "BeyondTen"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan13-x43\\NutritionRevamp\\Contents\\mods\\NutritionRevamp",
+   "BeyondTen": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3765241705\\mods\\BeyondTen"
+  },
+  "skip": [],
+  "workshop_items": {
+   "BeyondTen": "3765241705"
+  },
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "70212060",
+ "harness_lua_commit": "9e9f2b06",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "70212060",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest": "release/plan13-x43/NutritionRevamp/MANIFEST.json",
+  "staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan13-x43 (before the boots); the driver checks it and never stages",
+  "harness_markers_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"bt.stored\", function(argv)": true,
+    "TK.register(\"record.set\", function(argv)": true,
+    "TK.register(\"xp.grant\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"creation.picks\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"lua.read\", function(argv)": true,
+    "TK.register(\"lua.call\", function(argv)": true,
+    "TK.register(\"trait.def\", function(argv)": true
+   }
+  },
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "LIB_FILE": "x43_strength_lib.py",
+  "NR": "NutritionRevamp",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release/plan13-x43",
+  "STAGE_ROOT": "release/plan13-x43/NutritionRevamp",
+  "STAGE_MOD": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_SHARED": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/shared",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"bt.stored\", function(argv)",
+    "TK.register(\"record.set\", function(argv)",
+    "TK.register(\"xp.grant\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)"
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"creation.picks\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)"
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"lua.read\", function(argv)",
+    "TK.register(\"lua.call\", function(argv)",
+    "TK.register(\"trait.def\", function(argv)"
+   ]
+  },
+  "MIN_FREE_GB": 12.0,
+  "POLL_S": 0.3,
+  "SETTLE_S": 2.0,
+  "GAME_MIN_S": 0.625,
+  "CAP_XP": 487500.0,
+  "TOTALS": [
+   0.0,
+   1500.0,
+   4500.0,
+   10500.0,
+   19500.0,
+   37500.0,
+   67500.0,
+   127500.0,
+   217500.0,
+   337500.0,
+   487500.0
+  ],
+  "L_MAX": 10,
+  "BANDS": [
+   [
+    "weak",
+    1
+   ],
+   [
+    "feeble",
+    4
+   ],
+   [
+    null,
+    5
+   ],
+   [
+    "stout",
+    8
+   ],
+   [
+    "strong",
+    10
+   ]
+  ],
+  "MUSCLE": [
+   "weak",
+   "feeble",
+   "stout",
+   "strong"
+  ],
+  "WEIGHTS": [
+   "emaciated",
+   "veryunderweight",
+   "underweight",
+   "overweight",
+   "obese"
+  ],
+  "READY_CAP_S": 90.0,
+  "MIN_RUNS": 3,
+  "STR_STATS": "NutritionRevamp.server.strength.stats",
+  "STR_XP": "NutritionRevamp.server.strength.xpStats",
+  "OPT_STR": "NutritionRevamp.server.options.strength",
+  "WRITE_CAP_S": 20.0,
+  "REL_TOL": 1e-06,
+  "W12_LEVEL": 12.3,
+  "W95_LEVEL": 9.5,
+  "W12_PARK_S": 8.0,
+  "PARK_XP": 337500.0,
+  "GRANT_19": 1000.0,
+  "MIRROR_TOL": 0.005,
+  "XP_TOL": 1.0,
+  "RUST_TIMER": "25000",
+  "RUST_RESET": "-50000",
+  "RUST_CAP_S": 30.0,
+  "REQUEST_GAP_S": 5.5,
+  "ARRIVE_CAP_S": 8.0,
+  "PAIR_GAP_MAX_S": 1.0,
+  "AWAY_MULT": 30.0,
+  "AWAY_MIN_H": 72.0,
+  "AWAY_HOUR": 20.0,
+  "AWAY_POLL_S": 2.0,
+  "AWAY_CAP_S": 240.0,
+  "DEPART_CAP_S": 30.0,
+  "PRE_LATE_HOUR": 23.0,
+  "FIRST_CAP_S": 40.0,
+  "BOUNDARY_MULT": 8.0,
+  "BOUNDARY_CAP_S": 120.0,
+  "AFTER_HOLD_S": 6.0,
+  "GAP_FIELDS": [
+   "dayIndex",
+   "grace",
+   "Pk",
+   "lm",
+   "fm",
+   "lx"
+  ],
+  "RING_KEYS": [
+   "sig7",
+   "p7",
+   "eb7",
+   "mass7"
+  ],
+  "CLI_BOB": "client:bob",
+  "DEATH_CAP_S": 20.0,
+  "UI_CAP_S": 30.0,
+  "CREATE_CAP_S": 15.0,
+  "LAND_CAP_S": 60.0,
+  "PAIR_DELAY_S": 4.0,
+  "WEIGHT_TOL": 0.01,
+  "BODY_TOL": 1e-09,
+  "D_EXTRAS": [
+   "ThickSkinned",
+   "KeenHearing",
+   "FastHealer",
+   "Brave",
+   "Crafty",
+   "Dextrous",
+   "SpeedDemon"
+  ],
+  "CASES": [
+   [
+    "a",
+    []
+   ],
+   [
+    "b",
+    [
+     "Strong",
+     "Overweight"
+    ]
+   ],
+   [
+    "c",
+    [
+     "Strong",
+     "VeryUnderweight"
+    ]
+   ],
+   [
+    "d",
+    [
+     "Feeble",
+     "Obese",
+     "Overweight",
+     "ThickSkinned",
+     "KeenHearing",
+     "FastHealer",
+     "Brave",
+     "Crafty",
+     "Dextrous",
+     "SpeedDemon"
+    ]
+   ],
+   [
+    "e",
+    [
+     "Weak",
+     "Underweight"
+    ]
+   ]
+  ],
+  "H2": 2.8899999999999997,
+  "FAT_FMI": {
+   "null": 4.5,
+   "overweight": 7.5,
+   "obese": 12.5
+  },
+  "THIN": {
+   "underweight": [
+    18.0,
+    1.5
+   ],
+   "veryunderweight": [
+    16.5,
+    1.0
+   ]
+  },
+  "EXCLUDES": {
+   "underweight": [
+    "weak",
+    "feeble"
+   ],
+   "veryunderweight": [
+    "weak",
+    "feeble"
+   ]
+  },
+  "PROFESSIONS_TXT": "media\\scripts\\generated\\characters\\character_professions.txt",
+  "GROWTH_DAYS": 3,
+  "LEAD_HOUR": 12.0,
+  "DAY_MULT": 8.0,
+  "GRANTS": 10,
+  "GRANT_GAP_H": 1.0,
+  "SETS_A_DAY": 2.857142857142857,
+  "SLOW_HOUR": 23.0,
+  "PLACE_MIN": 4.0,
+  "P_GKG": 2.0,
+  "E_KCAL": 260.0,
+  "EE_MARGIN": 150.0,
+  "LM_TOL": 1e-06,
+  "T_TOL": 1e-09,
+  "CLOSE_CAP_S": 30.0,
+  "DAY_CAP_S": 300.0,
+  "ECHO_RX": "PZTK: ",
+  "NEVER_RX": "(?!x)x",
+  "LOG_RX": "NutritionRevamp|BeyondTen|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil",
+  "STRIP_RX": "\\[NutritionRevamp\\] creation: (\\S+) loses (.+?) \\((.*)\\)\\s*$",
+  "CREATED_RX": "\\[NutritionRevamp\\] creation: (\\S+) muscle=(\\S+) weight=(\\S+) prof=(\\S+)",
+  "BODY_SCALARS": [
+   "lm",
+   "fm",
+   "lx",
+   "F0",
+   "Fc",
+   "Pk",
+   "N0",
+   "T",
+   "Tgrace",
+   "grace",
+   "S",
+   "sigDay",
+   "dayIndex",
+   "wday",
+   "lastAgeH",
+   "levelDue",
+   "wroteL",
+   "pDay",
+   "ebDay",
+   "eeDay",
+   "inDay",
+   "inDayClosed",
+   "alcDay",
+   "band",
+   "fatT",
+   "thinT",
+   "fmRef",
+   "tDisuse",
+   "bornAge",
+   "sex",
+   "delta",
+   "lm0dis",
+   "at",
+   "S"
+  ],
+  "WEEK_N": 7
+ },
+ "predictions": {
+  "19_sentinel": "NR_StrengthGuardInstalled a table with a wrapper function",
+  "19_write12": {
+   "level": 10,
+   "xp": 337500,
+   "stored": "masteryXp(12.3) over BeyondTen's own costs",
+   "body_level": 12.3
+  },
+  "19_grant": {
+   "d_sigDay": "1000 x incidental",
+   "level": 10
+  },
+  "19_rust": {
+   "level after a forced rust pass": 10,
+   "outermost": "a reading only (ruling 13-43)"
+  },
+  "19_write95": {
+   "level": 9,
+   "xp": 412500,
+   "bands": "STRONG alone, server and client"
+  }
+ },
+ "manifest_gate": {
+  "head": "70212060546f56a8d14de1bdab562c2c47f42df8",
+  "head_short": "70212060",
+  "mod_commit": "0a6b0215",
+  "mod_dirty": false,
+  "staged_manifest": "release/plan13-x43/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest_sha256": "ddfe90c99ea87d42676dfe7ad591556c20b8b70ac159343caf75d85caa333931",
+  "files": 76,
+  "staged_equals_head": true,
+  "staged_tree_equals_head": true,
+  "ok": true,
+  "staged_version": "1.0.0",
+  "verify_rows_match": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.003,
+   "free_gb": 18.46
+  },
+  {
+   "tag": "ready",
+   "wall": 55.643,
+   "free_gb": 4.63
+  },
+  {
+   "tag": "after",
+   "wall": 109.87,
+   "free_gb": 18.55
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.595,
+ "server_started_wall": 16.928,
+ "session_ready_wall": 54.32,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "BeyondTen.API_VERSION",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "BeyondTen.API_VERSION",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 16.9,
+   "phase": "server_started"
+  },
+  {
+   "t": 17.1,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 54.3,
+   "phase": "client_ready",
+   "took": 36.9,
+   "user": "admin"
+  },
+  {
+   "t": 54.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 55.1,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 55.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 55.6,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"BeyondTen.API_VERSION\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 102.3,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 109.8,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 109.9,
+   "phase": "verdict",
+   "name": "19_sentinel",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 109.9,
+   "phase": "verdict",
+   "name": "19_write12",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 109.9,
+   "phase": "verdict",
+   "name": "19_grant",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 109.9,
+   "phase": "verdict",
+   "name": "19_rust",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 109.9,
+   "phase": "verdict",
+   "name": "19_write95",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 34.3,
+   "ready": 36.9
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|BeyondTen|LuaError|STACK TRACE|lua error|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,398,703,615> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:2,398,703,618> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:2,398,703,618> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:2,398,703,618> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:2,398,703,618> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "LOG  : Mod          f:0 st:2,398,703,619> loading BeyondTen",
+   "LOG  : Mod          f:0 st:2,398,703,619> mod \"BeyondTen\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\BeyondTen\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\BeyondTen\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\BeyondTen\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\server\\mods\\BeyondTen\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,398,712,601> [BeyondTen/B42] shared boot OK v1.3.4",
+   "LOG  : Lua          f:0 st:2,398,712,601> [BeyondTen/B42] mastery bonuses installed",
+   "LOG  : Lua          f:0 st:2,398,712,610> [BeyondTen/B42] extended mastery bonuses installed",
+   "LOG  : Lua          f:0 st:2,398,713,121> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,121> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,127> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,127> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,127> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,128> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:2,398,713,199> [BeyondTen/B42] server boot OK v1.3.4",
+   "LOG  : Lua          f:0 st:2,398,713,235> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,398,716,537> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:2,398,716,537> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+   "LOG  : Lua          f:0 st:2,398,716,538> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=13 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:2,398,716,542> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:346 st:2,398,752,464> [NutritionRevamp] players: first sight of admin",
+   "LOG  : Lua          f:826 st:2,398,800,433> [NutritionRevamp] players: admin left"
+  ],
+  "server_echo_excluded": 29,
+  "mod_error": [],
+  "creation": [],
+  "log_copy_error": "SameFileError: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\x431-20261015-051916\\\\server-stdout.log' and 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\x431-20261015-051916\\\\server-stdout.log' are the same file",
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0> loading BeyondTen",
+    "LOG  : Mod          f:0> mod \"BeyondTen\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Lua          f:0> [BeyondTen/B42] shared boot OK v1.3.4",
+    "LOG  : Lua          f:0> [BeyondTen/B42] mastery bonuses installed",
+    "LOG  : Lua          f:0> [BeyondTen/B42] extended mastery bonuses installed",
+    "LOG  : Lua          f:0> [BeyondTen/B42] client boot OK v1.3.4",
+    "LOG  : Lua          f:0> [BeyondTen/B42] 15-level Skills UI patch installed",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading BeyondTen",
+    "LOG  : Mod          f:0 st:0> mod \"BeyondTen\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\BeyondTen\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\BeyondTen\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\BeyondTen\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x431-20261015-051916\\clients\\admin\\mods\\BeyondTen\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [BeyondTen/B42] shared boot OK v1.3.4",
+    "LOG  : Lua          f:0 st:0> [BeyondTen/B42] mastery bonuses installed",
+    "LOG  : Lua          f:0 st:0> [BeyondTen/B42] extended mastery bonuses installed",
+    "LOG  : Lua          f:0 st:0> [BeyondTen/B42] client boot OK v1.3.4",
+    "LOG  : Lua          f:0 st:0> [BeyondTen/B42] 15-level Skills UI patch installed",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "verdict_summary": {
+  "19_sentinel": "as_predicted",
+  "19_write12": "as_predicted",
+  "19_grant": "as_predicted",
+  "19_rust": "as_predicted",
+  "19_write95": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json"
+ ],
+ "wall_seconds": 109.9
+}
