@@ -1,0 +1,31 @@
+{
+ "run": "x436-20261015-094119",
+ "source": "testing/artifacts/x436-20261015-094119/creation.json",
+ "rules": [
+  "N1"
+ ],
+ "verdicts": {
+  "36_names_mod": {
+   "verdict": "as_predicted",
+   "observed": {
+    "labels": {
+     "underweight": "Overly Lean",
+     "veryunderweight": "Gaunt",
+     "overweight": "Overfat"
+    },
+    "want": {
+     "underweight": "Overly Lean",
+     "veryunderweight": "Gaunt",
+     "overweight": "Overfat"
+    },
+    "obese_reported": "Very High Weight",
+    "bad": []
+   },
+   "run_verdict_36_names": "falsified"
+  }
+ },
+ "source_sha256": "9eedf16eb6474881b271ee09e432ed233dd7c1cf5ae31cca2f19a84d59f8136c",
+ "summary": {
+  "36_names_mod": "as_predicted"
+ }
+}
