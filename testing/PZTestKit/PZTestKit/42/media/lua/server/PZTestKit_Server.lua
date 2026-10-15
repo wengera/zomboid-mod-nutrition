@@ -4930,3 +4930,40 @@ TK.register("perk.park", function(argv)
     if not out.ok then out.reason = "the experience does not read the level's start total" end
     return out
 end)
+
+-- ---- Plan 13 Task 19: BeyondTen's stored mastery XP (server) ----------------------------------------
+-- <user> <Perk>. Reads BeyondTen.GetStoredXP(player, Perks[<Perk>]) (its Shared.lua:166, the server-authoritative
+-- reader its Server.lua:220 installs) under pcall: the mastery XP banked above the level-10 total. loaded is false
+-- and stored nil when the global BeyondTen is absent (the mod not loaded); ok is false when the player, the perk or
+-- the call fails, with the reason. Reads only; writes nothing (ruling 13-26).
+-- @args <user> <Perk>
+-- @reply {ok, loaded, stored [, apiVersion] [, perk] [, reason]} | string
+-- @purpose Test-only: reads BeyondTen's stored mastery XP for a named player's perk through BeyondTen.GetStoredXP under pcall, nil-safe when BeyondTen is not loaded.
+TK.register("bt.stored", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name = argv[2]
+    if name == nil then return "usage: bt.stored <user> <Perk>" end
+    local out = { ok = false, loaded = false, perk = name }
+    local bt = BeyondTen
+    if type(bt) ~= "table" or type(bt.GetStoredXP) ~= "function" then
+        out.ok = true
+        out.reason = "BeyondTen is not loaded"
+        return out
+    end
+    out.loaded = true
+    out.apiVersion = bt.API_VERSION
+    local perk = Perks and Perks[name]
+    if perk == nil then
+        out.reason = "no Perks." .. tostring(name)
+        return out
+    end
+    local okS, v = pcall(bt.GetStoredXP, p, perk)
+    if not okS then
+        out.reason = "GetStoredXP raised: " .. tostring(v)
+        return out
+    end
+    out.stored = v
+    out.ok = true
+    return out
+end)
