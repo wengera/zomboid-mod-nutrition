@@ -20,7 +20,7 @@ H2 = 1.70 * 1.70
 LADDER = [1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 337500, 487500]
 
 ENV = r"""
-NR_C = { log = {}, defs = {}, profCost = 0, profGrants = {}, penalty = 1, grants = {} }
+NR_C = { log = {}, defs = {}, profCost = 0, profGrants = {}, penalty = 1, grants = {}, profStrength = 0 }
 local function list(items)
     return { items = items,
              size = function(s) return #s.items end,
@@ -71,7 +71,10 @@ CharacterProfessionDefinition.getCharacterProfessionDefinition = function(prof)
     if NR_C.noProfession then return nil end
     local granted = {}
     for _, n in ipairs(NR_C.profGrants) do granted[#granted + 1] = CharacterTrait[n] end
-    return { getCost = function(s) return NR_C.profCost end, getGrantedTraits = function(s) return list(granted) end }
+    local boosts = {}
+    if NR_C.profStrength ~= 0 then boosts[Perks.Strength] = NR_C.profStrength end
+    return { getCost = function(s) return NR_C.profCost end, getGrantedTraits = function(s) return list(granted) end,
+             getXpBoosts = function(s) return boosts end }
 end
 getSandboxOptions = function()
     return { getOptionByName = function(s, n)
@@ -152,10 +155,12 @@ end
 
 # The definitions: the restated blocks' costs and exclusions (NR_Traits_Body.txt), and a few vanilla-shaped others.
 DEFS = {
-    "WEAK": dict(cost=-10, excl=["FEEBLE", "STOUT", "STRONG", "UNDERWEIGHT", "VERY_UNDERWEIGHT"]),
-    "FEEBLE": dict(cost=-6, excl=["STOUT", "STRONG", "WEAK", "UNDERWEIGHT", "VERY_UNDERWEIGHT"]),
-    "STOUT": dict(cost=6, excl=["FEEBLE", "STRONG", "WEAK"]),
-    "STRONG": dict(cost=10, excl=["FEEBLE", "STOUT", "WEAK"]),
+    "WEAK": dict(cost=-10, excl=["FEEBLE", "STOUT", "STRONG", "UNDERWEIGHT", "VERY_UNDERWEIGHT"],
+                 boosts={"Strength": -5}),
+    "FEEBLE": dict(cost=-6, excl=["STOUT", "STRONG", "WEAK", "UNDERWEIGHT", "VERY_UNDERWEIGHT"],
+                   boosts={"Strength": -2}),
+    "STOUT": dict(cost=6, excl=["FEEBLE", "STRONG", "WEAK"], boosts={"Strength": 2}),
+    "STRONG": dict(cost=10, excl=["FEEBLE", "STOUT", "WEAK"], boosts={"Strength": 4}),
     "OBESE": dict(cost=-10, excl=["ATHLETIC", "EMACIATED", "FIT", "LIGHTEATER", "VERY_UNDERWEIGHT", "UNDERWEIGHT",
                                   "OVERWEIGHT", "WEIGHTLOSS"]),
     "OVERWEIGHT": dict(cost=-6, excl=["ATHLETIC", "FIT", "EMACIATED", "VERY_UNDERWEIGHT", "UNDERWEIGHT", "OBESE",
@@ -175,8 +180,10 @@ DEFS = {
 }
 
 
-def _host(prof_cost=8, female=False, sex_specific=False, defs=DEFS):
+def _host(prof_cost=8, female=False, sex_specific=False, defs=DEFS, prof_strength=0):
     h = Host(extra_env=ENV)
+    h.defs = defs
+    h.G.NR_C.profStrength = prof_strength
     C = h.G.NR_C
     for name, spec in defs.items():
         t = h.rt.table()
@@ -188,7 +195,38 @@ def _host(prof_cost=8, female=False, sex_specific=False, defs=DEFS):
     return h
 
 
+MUSCLE = ("WEAK", "FEEBLE", "STOUT", "STRONG")
+
+
+def _band(level):
+    """Vanilla's Strength band for a level (XpUpdate.lua:200-217)."""
+    if level <= 1:
+        return "WEAK"
+    if level <= 4:
+        return "FEEBLE"
+    if level == 5:
+        return None
+    return "STOUT" if level <= 8 else "STRONG"
+
+
+def _applied(h, known):
+    """applyTraits' Strength (trait-levers 3.1): 5 + the held traits' and the profession's Strength boosts, clamped to
+    [0, 10], climbed from 0 with LevelPerk, so from level 1 up the held muscle trait is the level's band (a picked one
+    keeps its place when it is that band, else the band is appended)."""
+    boost = sum(h.defs.get(n, {}).get("boosts", {}).get("Strength", 0) for n in known)
+    level = max(0, min(10, 5 + boost + h.G.NR_C.profStrength))
+    if level >= 1:
+        band = _band(level)
+        kept = [n for n in known if n not in MUSCLE or n == band]
+        if band is not None and band not in kept:
+            kept.append(band)
+        known = kept
+    return level, known
+
+
 def _player(h, known, name="a", **cfg):
+    if "strength" not in cfg:
+        cfg["strength"], known = _applied(h, known)
     p = h.player(name)
     c = h.rt.table()
     c.known = h.rt.table(*known)
@@ -276,7 +314,7 @@ def test_weak_and_underweight_lose_the_later_pick():
 
 def test_the_kernel_pairs_hold_when_no_definition_lists_them():
     defs = dict(DEFS)
-    defs["WEAK"] = dict(cost=-10)
+    defs["WEAK"] = dict(cost=-10, boosts={"Strength": -5})
     defs["UNDERWEIGHT"] = dict(cost=-6)
     h = _host(defs=defs)
     p = _player(h, ["WEAK", "UNDERWEIGHT"])
@@ -387,7 +425,7 @@ def test_a_respawns_new_game_builds_a_fresh_body():
     p = _player(h, ["STRONG"])
     r = _new_game(h, p)
     r.body.lm = 70.0                                            # trained since
-    p2 = _player(h, ["FEEBLE", "OBESE"], strength=5)
+    p2 = _player(h, ["FEEBLE", "OBESE"])
     r2 = _new_game(h, p2)
     assert r2.resets == 1
     assert abs(r2.body.lm - sl.trait_start("FEEBLE")[0]) < 1e-9
@@ -440,10 +478,10 @@ def test_sex_specific_female_overweight_builds_the_female_band(female, specific,
 
 
 def test_a_sleeping_character_keeps_the_level_due():
-    h = _host()
+    h = _host(prof_cost=10)
     p = _player(h, ["STRONG"], asleep=True)
     r = _new_game(h, p)
-    assert r.body.levelDue is True and p.st.perk.Strength == 5
+    assert r.body.levelDue is True and p.st.perk.Strength == 9      # applyTraits' level, the write waiting
     assert h.NR.server.creation.stats.failures == 0
 
 
@@ -455,3 +493,89 @@ def test_a_raising_write_is_counted_and_the_level_stays_due():
     assert h.NR.server.creation.stats.failures == 1
     assert "boom" in str(h.NR.server.creation.lastError)
     assert r.body.levelDue is True                              # the Strength minute writes it
+
+
+# --- fix 1: the muscle pick inferred from the native level (the muscle blocks keep vanilla's Strength boost) ---------
+
+def _picks(h, p):
+    return h.NR.server.creation.picks(p)
+
+
+def test_strong_with_no_profession_boost_climbs_to_nine_and_reads_strong():
+    h = _host(prof_cost=10)
+    p = _player(h, ["STRONG"])
+    assert p.st.perk.Strength == 9 and p.st.traits.STRONG is True     # applyTraits' climb, vanilla's band
+    assert _picks(h, p)[0] == "STRONG"
+    r = _new_game(h, p)
+    assert abs(r.body.lm - sl.trait_start("STRONG")[0]) < 1e-9
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"]["STRONG"]
+
+
+def test_stout_with_a_profession_plus_two_holds_strongs_band_yet_reads_stout():
+    # profession cost 6: STOUT (6) is legal, the held STRONG (10) would not be, so validation reads the inferred pick
+    h = _host(prof_cost=6, prof_strength=2)
+    p = _player(h, ["STOUT"])
+    assert p.st.perk.Strength == 9 and p.st.traits.STRONG is True and not p.st.traits.STOUT
+    assert _picks(h, p)[0] == "STOUT"
+    r = _new_game(h, p)
+    assert h.NR.server.creation.stats.stripped == 0
+    assert abs(r.body.lm - sl.trait_start("STOUT")[0]) < 1e-9
+    assert p.st.perk.Strength == 7 and p.st.traits.STOUT is True and not p.st.traits.STRONG
+
+
+def test_a_stripped_inferred_pick_removes_the_held_band_trait():
+    h = _host(prof_cost=0, prof_strength=2)
+    p = _player(h, ["STOUT"])                                          # holds STRONG; 0 - 6 < 0: the pick goes
+    r = _new_game(h, p)
+    assert any("loses STOUT" in l for l in _printed(h))
+    log = _log(h)
+    steps = [i for i, e in enumerate(log) if e.startswith(("LevelPerk", "LoseLevel"))]
+    assert log.index("remove:STRONG") < steps[0]                       # the strip removes the held band trait itself
+    assert not p.st.traits.STRONG and not p.st.traits.STOUT
+    assert r.body.N0 == 1.0                                            # reverted to 7: 7 - 5 - 2 = 0, no pick
+
+
+def test_strong_with_a_profession_plus_two_is_clamped_at_ten_and_reads_the_held_band():
+    h = _host(prof_cost=10, prof_strength=2)
+    p = _player(h, ["STRONG"])
+    assert p.st.perk.Strength == 10 and p.st.traits.STRONG is True
+    assert _picks(h, p)[0] == "STRONG"
+    r = _new_game(h, p)
+    assert abs(r.body.lm - sl.trait_start("STRONG")[0]) < 1e-9
+
+
+def test_weak_ends_at_native_one_after_the_write():
+    h = _host()
+    p = _player(h, ["WEAK"])
+    assert p.st.perk.Strength == 0 and p.st.traits.WEAK is True       # level 0: no LevelPerk, no swap
+    assert _picks(h, p)[0] == "WEAK"
+    r = _new_game(h, p)
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"]["WEAK"]
+    assert p.st.perk.Strength == 1 and p.st.traits.WEAK is True
+
+
+def test_a_profession_band_with_no_pick_is_neither_validated_nor_built():
+    h = _host(prof_cost=0, prof_strength=1)
+    p = _player(h, [])
+    assert p.st.perk.Strength == 6 and p.st.traits.STOUT is True       # vanilla's band from the profession alone
+    assert _picks(h, p)[0] is None
+    r = _new_game(h, p)
+    assert h.NR.server.creation.stats.stripped == 0                    # STOUT's cost 6 is never counted
+    assert r.body.N0 == 1.0
+    assert p.st.perk.Strength == 5 and not p.st.traits.STOUT
+
+
+def test_an_unmapped_offset_falls_back_to_the_held_band():
+    h = _host()
+    p = _player(h, ["STRONG"], strength=8)                             # 8 - 5 = 3: no muscle boost makes it
+    p.st.traits.STOUT = True
+    p.st.traits.STRONG = None
+    assert _picks(h, p)[0] == "STOUT"
+
+
+def test_a_clamped_level_never_maps_through_the_boost_table():
+    # Stout with a profession +5 climbs to 12, clamped at 10: 10 - 5 - 5 = 0 would read "no pick"; the held band reads
+    h = _host(prof_cost=10, prof_strength=5)
+    p = _player(h, ["STOUT"])
+    assert p.st.perk.Strength == 10
+    assert _picks(h, p)[0] == "STRONG"

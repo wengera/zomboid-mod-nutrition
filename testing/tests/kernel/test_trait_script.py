@@ -1,8 +1,8 @@
 """The 10 restated body trait blocks (Plan 13 Task 16; spec section 3.1; rulings 13-25 and 13-46).
 
 `NR_Traits_Body.txt` restates vanilla's ten character_trait_definition blocks: the costs of the four weight traits
-change, the band traits are no longer profession traits, no body block carries XPBoosts, Weight Gain and Weight Loss
-no longer grant a trait, the exclusions grow, and UIDescription points at the mod's key. Every other vanilla key is
+change, the band traits are no longer profession traits, the four muscle blocks keep vanilla's Strength XPBoosts
+(Plan 13 Task 17 fix 1) and the four weight blocks carry none, Weight Gain and Weight Loss no longer grant a trait, the exclusions grow, and UIDescription points at the mod's key. Every other vanilla key is
 compared against VANILLA, a frozen copy of the ten blocks read once from the 42.21 install
 (scripts/generated/characters/character_traits.txt).
 """
@@ -192,8 +192,15 @@ def test_cost_and_profession(mine, i):
     assert mine[i]["CharacterTrait"] == "base:" + i
 
 
-@pytest.mark.parametrize("i", BODY)
-def test_no_xp_boosts_in_a_body_block(mine, i):
+@pytest.mark.parametrize("i", BODY[:4])
+def test_the_muscle_blocks_keep_vanillas_strength_boost(mine, vanilla, i):
+    # Plan 13 Task 17 fix 1: applyTraits climbs Strength to the picked band, so the handler can infer the pick
+    assert vanilla[i]["XPBoosts"].startswith("Strength=")
+    assert mine[i]["XPBoosts"] == vanilla[i]["XPBoosts"]
+
+
+@pytest.mark.parametrize("i", BODY[4:])
+def test_no_xp_boosts_in_a_weight_block(mine, i):
     assert "XPBoosts" not in mine[i]
 
 
