@@ -1,0 +1,34 @@
+# testing/profiles/x44-mod-sleep.toml - Plan 14 Task 5 (run x447 M2): the mod's acute states live at HEAD for the
+# player guide (the source map's section 5, gaps G10, G15 and G17): three coffees and four beers on day 1, a 4-hour
+# night, meals at the request on day 2; the caffeine, blood alcohol, hangover and sleep-debt states graded against the
+# HEAD kernel replay. x44-mod.toml with [server] SleepAllowed and SleepNeeded true (the map's "sleep on"; with either
+# false the sleep state freezes, #2961), the replay taking sleep_allowed true.
+# PZTestKit + the STAGED copy release/plan14-x44 (see x44-mod.toml), Nutrition false (ruling T18-1), DayLength 1,
+# fixture default, admin (-debug), build 42.21.0.
+# The driver is testing/experiments/x447_mod_acute.py on testing/experiments/x44_guide_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan14-x44), fixture default, admin (debug), Nutrition off, DayLength 1, SleepAllowed and SleepNeeded true, build 42.21.0 - x447, Plan 14 Task 5: the acute states at HEAD."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan14-x44/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1

@@ -1,0 +1,30 @@
+# testing/profiles/x44-vanilla-sleep.toml - Plan 14 Task 5 (run x445 V4): coffee and beer in the vanilla game for the
+# player guide (the source map's section 5). x44-vanilla.toml with [server] SleepAllowed and SleepNeeded true: a
+# coffee's fatigue write holds only when sleep is allowed and needed (#2949; with either false vanilla resets FATIGUE
+# every update, #3009), as the map's V4 row asks. PZTestKit ONLY (no NutritionRevamp, no TKX probe), Nutrition true,
+# DayLength 4, fixture default, admin (-debug), build 42.21.0.
+# The driver is testing/experiments/x445_drinks.py on testing/experiments/x44_guide_lib.py.
+fixture = "default"
+description = "PZTestKit only (the vanilla game), fixture default, admin (debug), Nutrition true, DayLength 4, SleepAllowed and SleepNeeded true, build 42.21.0 - x445, Plan 14 Task 5: coffee and beer."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "SandboxVars.Nutrition", expect = '"value": true' },
+  { side = "server", cmd = "lua.global", args = "SandboxVars.DayLength", expect = '"value": 4' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp", expect = '"resolved": false' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp", expect = '"resolved": false' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = true             # the vanilla nutrition update on: this is the vanilla game
+DayLength = 4                # a 90-minute day (the fixture's own)

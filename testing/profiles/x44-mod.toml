@@ -1,0 +1,36 @@
+# testing/profiles/x44-mod.toml - Plan 14 Task 5 (run x446 M1): the mod's hunger and thirst pipeline re-proved at HEAD
+# for the player guide (the source map's section 5, gaps G7 and G8): one eat of Base.CannedBologneseOpen at the first
+# request, then a 24-hour fast, graded against the HEAD kernel replay (HUNGER, the energy state and the first graded
+# THIRST).
+# PZTestKit + the STAGED copy of mod/NutritionRevamp at HEAD (release/plan14-x44, staged before the boot with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan14-x44`; release/ is gitignored; mod/ is
+# never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 1, sleep off (the fixture's false/false; the
+# replay takes sleep_allowed false). Fixture default, admin (-debug), build 42.21.0.
+# The driver is testing/experiments/x446_mod_fast.py on testing/experiments/x44_guide_lib.py. M2 (x447) runs on
+# x44-mod-sleep.toml.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan14-x44), fixture default, admin (debug), Nutrition off, DayLength 1, sleep off, build 42.21.0 - x446, Plan 14 Task 5: hunger and thirst at HEAD."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan14-x44/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s at speed 1
