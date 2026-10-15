@@ -428,7 +428,7 @@ def test_drivers_name_their_session():
         assert f'KEY = "{key}"' in text and f'PREFIX = "{spec["prefix"]}"' in text, drv
         assert f'PROFILE = "{spec["profile"]}"' in text and f'ARTIFACT = "{spec["artifact"]}"' in text, drv
         b = float(re.search(r"BUDGET_S = ([\d.]+)", text).group(1))
-        assert b < 560.0, (drv, b)
+        assert b <= 500.0, (drv, b)                                     # re-review N-5: the whole call under 10 min
 
 
 # ---------------------------------------------------------------- fix round 1: the pure additions
@@ -494,7 +494,8 @@ def test_m2_plan_is_relative_and_before_the_night():
 def _chain_dir(tmp_path, **over):
     d = tmp_path / "x443a-20261016-100000"
     (d / "server" / "Server").mkdir(parents=True)
-    doc = {"run_id": "x443a-20261016-100000", "checks": {"X": {"anchor": 2.4, "reached": 20.4}}}
+    doc = {"run_id": "x443a-20261016-100000", "checks": {"X": {"anchor": 2.4, "reached": 20.41}},
+           "bus_dead": None, "budget_stop": None, "phase_errors": {}}
     doc.update(over)
     (d / "tuna-a.json").write_text(json.dumps(doc), encoding="utf-8")
     return d
@@ -506,7 +507,10 @@ def test_chain_check(tmp_path):
     assert ok and c["anchor"] == 2.4, c
     assert L.chain_check(None)[1] is False
     assert L.chain_check(str(tmp_path / "nowhere"))[1] is False
-    for over in ({"run_id": "x443-20261016-1"}, {"error": "boom"}, {"abort": "x"}, {"checks": {"X": {}}}):
+    for over in ({"run_id": "x443-20261016-1"}, {"error": "boom"}, {"abort": "x"}, {"checks": {"X": {}}},
+                 {"bus_dead": "X_a"}, {"budget_stop": {"phase": "X"}}, {"phase_errors": {"X": {"error": "e"}}},
+                 {"unrun": [{"tag": "X", "age": 14.4, "kind": "timed"}]},
+                 {"checks": {"X": {"anchor": 2.4, "reached": 12.4}}}):
         t = tmp_path / ("c" + str(abs(hash(json.dumps(over)))))
         t.mkdir()
         assert L.chain_check(str(_chain_dir(t, **over)))[1] is False, over
@@ -834,6 +838,10 @@ class Vanilla:
             if self.f.get("probe_other"):                 # another full container sits first in the inventory
                 out.update({"item": "Base.WhiskeyFull", "litres": 0.5, "fluid": "Whiskey"})
                 return out
+            if self.f.get("probe_item_only") and self.fills:  # another container of the SAME fluid sits first
+                fluid, lit = list(self.fills.values())[-1]
+                out.update({"item": "Base.OtherBottle", "litres": lit or 0.3, "fluid": fluid})
+                return out
             for full, (fluid, lit) in list(self.fills.items()) + [(c, ("Water", 1.0)) for c in
                                                                  self.f.get("carried") or ()]:
                 if (self.inv.get(full) or full in (self.f.get("carried") or ())) and lit > 0:
@@ -1047,6 +1055,51 @@ def test_a_drink_that_lands_past_a_failed_gate_leaves_the_model():
     assert all(d["landed"] and d["fill_ok"] is False for d in out["drinks"])
     assert not [e for e in out["model_inputs"]["scenario"]["events"] if e["kind"] == "drink"]
     assert v["V4_A_coffee"] == "unmeasured" and v["V4_B_decay"] == "unmeasured"
+
+
+def test_the_gate_reads_the_probe_item_alone():
+    # re-review N-3: the probe's first container holds the drink's own fluid but is another item: the gate fails
+    v, out, _w = run_vanilla("V4", {"probe_item_only": True})
+    assert all(d["fill_ok"] is False for d in out["drinks"])
+    assert not [e for e in out["model_inputs"]["scenario"]["events"] if e["kind"] == "drink"]
+
+
+def test_v3_budget_stop_skips_its_later_arms():
+    # re-review R-1: V3 names an arm C; a budget stop in arm A skips B and C (no C_* write, no set left running),
+    # still restores the clock and reads the ring, and keeps the first budget_stop record
+    v, out, w = run_vanilla("V3", budget=30.0)
+    assert out["budget_stop"]["phase"] == "A" and out["skipped_phases"] == ["B", "C"]
+    assert not any(s["step"].startswith("B_") or (s["step"].startswith("C_") and not s["step"].startswith("C_restore"))
+                   for s in out["steps"])                               # the arm's writes; C_restore is phase Z's
+    assert out["checks"]["restore"]["ok"] is True and w.speed == 1 and out["checks"]["R"]["pages"]
+    assert [b["phase"] for b in out["budget_stops"]] == ["A"]
+
+
+def test_the_first_budget_stop_is_kept():
+    # re-review R-1: a closing phase that also hits the budget never overwrites the first stop's record
+    out = fresh_out()
+    S = L.Sess(X.Xs(out, node=str, ask=lambda *a, **k: {}), "V1a")
+
+    def stop():
+        raise X.Budget("past")
+
+    def stop_closing():
+        raise X.Budget("past again")
+    S.restore_clock = stop_closing              # a closing phase by function, raising the budget again
+    S.body_run((("A", stop), ("B", stop), ("C", S.restore_clock)))
+    assert out["budget_stop"]["phase"] == "A" and out["skipped_phases"] == ["B"]
+    assert [b["phase"] for b in out["budget_stops"]] == ["A", "C"]
+
+
+def test_run_to_records_unrun_on_a_budget_stop():
+    w = Vanilla(tempfile.mkdtemp())
+    out = fresh_out()
+    xs = X.Xs(out, node=lambda side: side, clients={}, ask=w.ask, clock=w.clock, sleep=w.sleep, budget_s=3.0)
+    S = L.Sess(xs, "V1a")
+    a = w.age
+    with pytest.raises(X.Budget):
+        S.run_to(a + 5.0, [(a + 4.0, "read", lambda x: None)], L.SPEED_FAST, "T")
+    assert out["unrun"] and out["unrun"][0]["age"] == pytest.approx(a + 4.0)
 
 
 def test_a_carried_container_is_noted():

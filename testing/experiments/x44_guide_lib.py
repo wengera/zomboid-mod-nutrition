@@ -154,7 +154,6 @@ EAT_CAP_S = 40.0
 DRINK_CAP_S = 40.0
 SETTLE_POLLS = 3
 SPEED_UNIT = "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one"
-CLOSING_PHASES = ("C", "Z", "R")       # the phases a budget stop still runs (review M-12)
 # MoodleType's static fields are upper case ('Hungry' is the registry id, not a Lua field; review I-1): moodle.level
 # indexes MoodleType[name] and answers {ok=false, reason="no MoodleType.<name>"} on a miss
 MOODLE_FOOD_EATEN = "FOOD_EATEN"
@@ -1174,7 +1173,9 @@ def preboot(key, profile_name, prefix, driver_file, repo=REPO):
 def chain_check(prev_run, key="V2b", repo=REPO):
     """A chained session's previous run (V2b after V2a), offline: its run folder (an id under testing/runs or a path)
     holds the server cache to boot again and its own artifact, whose run id carries the previous prefix, which reads no
-    error, abort or dead bus, and whose phase X read the anchor. Returns (checks, ok)."""
+    error, abort, dead bus, budget stop, phase error or unrun action, whose phase X read the anchor and reached the
+    anchor plus V2_SPLIT_H (re-review N-1: a short x443a would lose a tin from the 36-hour line). Returns
+    (checks, ok)."""
     src = SESSIONS[SESSIONS[key]["chain_from"]]
     c = {"prev_run": prev_run}
     if not prev_run:
@@ -1194,10 +1195,17 @@ def chain_check(prev_run, key="V2b", repo=REPO):
     doc = doc if isinstance(doc, dict) else {}
     c["run_id"] = doc.get("run_id")
     c["prefix_ok"] = str(doc.get("run_id") or "").startswith(src["prefix"] + "-")
+    # bus_dead is written by xlib.Xs.finish (out["bus_dead"] = the tag the bus died after, else None)
     c["clean"] = not doc.get("error") and not doc.get("abort") and not doc.get("bus_dead")
+    c["no_budget_stop"] = not doc.get("budget_stop")
+    c["no_phase_errors"] = not doc.get("phase_errors")
+    c["no_unrun"] = not doc.get("unrun")
     c["anchor"] = num(g(doc, "checks", "X", "anchor"))
     c["prev_reached"] = num(g(doc, "checks", "X", "reached"))
-    ok = all(c[k] for k in ("dir_ok", "server_cache", "artifact", "prefix_ok", "clean")) and c["anchor"] is not None
+    c["reached_split"] = (c["anchor"] is not None and c["prev_reached"] is not None
+                          and c["prev_reached"] >= c["anchor"] + V2_SPLIT_H - 1e-9)
+    ok = all(c[k] for k in ("dir_ok", "server_cache", "artifact", "prefix_ok", "clean", "no_budget_stop",
+                            "no_phase_errors", "no_unrun", "reached_split"))
     return c, ok
 
 
@@ -1278,19 +1286,31 @@ class Sess:
             self.xs.note(f"{tag}: not reached inside {cap_s} s")
         return {"done": done, "last": last, "polls": n}
 
+    def closing(self, fn):
+        """A closing phase, chosen by its function, never by its letter (re-review R-1: V3 names an arm C): the clock
+        restore, the ring read and the mod's error read."""
+        return fn in (self.restore_clock, self.phase_R, self.m_Z)
+
     def body_run(self, phases):
-        """Each phase through xs.run_phase; once the budget stopped a phase, only the closing phases (CLOSING_PHASES:
-        the clock restore, the ring read, the error read) still run and each later scenario phase is skipped with a
-        note (review M-12: a scenario phase writes before its first check)."""
+        """Each phase through xs.run_phase; once the budget stopped a phase, only the closing phases (Sess.closing)
+        still run and each later scenario phase is skipped with a note (review M-12: a scenario phase writes before its
+        first check). The first budget stop stays the artifact's `budget_stop`; any later one is listed in
+        `budget_stops` (re-review R-1)."""
         for name, fn in phases:
             if self.xs.parked():
                 self.out["abort"] = f"admin parked in the debugger before phase {name}"
                 break
-            if self.out.get("budget_stop") and name not in CLOSING_PHASES:
+            first = self.out.get("budget_stop")
+            if first and not self.closing(fn):
                 self.out.setdefault("skipped_phases", []).append(name)
                 self.xs.note(f"phase {name} skipped: the budget stopped an earlier phase")
                 continue
             self.xs.run_phase(name, fn)
+            now = self.out.get("budget_stop")
+            if now is not None and now is not first:
+                self.out.setdefault("budget_stops", []).append(now)
+                if first is not None:
+                    self.out["budget_stop"] = first
 
     def read(self, kind, row):
         self.reads.setdefault(kind, []).append(row)
@@ -1354,6 +1374,17 @@ class Sess:
         propagates). Actions still pending at the stop are noted and listed in out["unrun"]. Returns the last age
         read."""
         pending = sorted(actions, key=lambda x: x[0])
+        a = None
+        try:
+            a = self._run_loop(end_age, pending, fast, tag)
+        finally:
+            if pending:
+                left = [{"tag": tag, "age": at, "kind": kind} for at, kind, _fn in pending]
+                self.out.setdefault("unrun", []).extend(left)
+                self.xs.note(f"run_to {tag}: {len(left)} action(s) never ran (stopped at age {a})")
+        return a
+
+    def _run_loop(self, end_age, pending, fast, tag):
         self.set_speed(fast, f"{tag}_fast")
         a = None
         while True:
@@ -1380,10 +1411,6 @@ class Sess:
                 break
             if not ran:
                 self.xs.sleep(POLL_S)
-        if pending:
-            left = [{"tag": tag, "age": at, "kind": kind} for at, kind, _fn in pending]
-            self.out.setdefault("unrun", []).extend(left)
-            self.xs.note(f"run_to {tag}: {len(left)} action(s) never ran (stopped at age {a})")
         return a
 
     def stopped(self):
