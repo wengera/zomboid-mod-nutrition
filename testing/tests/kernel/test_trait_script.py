@@ -308,6 +308,11 @@ def test_the_mods_texts_use_the_display_names(mine):
     assert ui["UI_NR_Band_obese"] == "Obese" and ui["UI_NR_Band_emaciated"] == "Emaciated"
     for i in ("weak", "feeble"):
         assert "Cannot be taken" not in ui["UI_NR_trait_%sdesc" % i]
+    with open(os.path.join(os.path.dirname(UI), "Sandbox.json"), encoding="utf-8") as f:
+        sandbox = json.load(f)                           # Task 10c fix 1: the sandbox tooltips name the band too
+    for k, v in sandbox.items():
+        assert "weight band" not in v, (k, v)
+    assert "body-fat band" in sandbox["Sandbox_NR_VisibilityMode_tooltip"]
 
 
 @pytest.mark.parametrize("i", ["underweight", "very underweight"])

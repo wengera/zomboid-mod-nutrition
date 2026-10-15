@@ -124,7 +124,8 @@ def test_the_bus_holds_a_reached_energy_level_inside_the_band():
     B = h.NR.server.bus
     _settle(h)
     seen = []
-    for es in (1.26, 1.245, 1.2405, 1.235, 1.245):      # the bus is first in ORDER, so it reads the state set here
+    band = h.K.view.ENERGY_BAND
+    for es in (1.26, 1.245, 1.25 - band + 0.0005, 1.25 - band - 0.0005, 1.245):   # the bus is first in ORDER, so it reads the state set here
         h.record("a").body.energyState = es
         h.minute(); h.tick(25)
         seen.append(h.K.view.signatureEnergy(B.lastSig["a"]))
@@ -148,7 +149,8 @@ def test_every_mirror_carries_the_level_the_server_holds():
     _settle(h)
     last = lambda: h.T.mirrors[len(h.T.mirrors)]
     seen = []
-    for es in (1.26, 1.245, 1.2405, 1.235, 1.2498):
+    band = h.K.view.ENERGY_BAND
+    for es in (1.26, 1.245, 1.25 - band + 0.0005, 1.25 - band - 0.0005, 1.2498):
         h.record("a").body.energyState = es
         h.minute(); h.tick(25)
         assert B.sendMirror(p, h.record("a")) is True

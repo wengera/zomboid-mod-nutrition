@@ -757,10 +757,13 @@ def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
     # no longer lifts es and es now falls slowly after its plateau as adaptive thermogenesis lowers the deficit. The
     # 70 kg man stays at level 1 (es 1.2438 at 48 h, 1.234 at six days); the flicker the band removes is now the 74 kg
     # man's (the plain rung back at 63.2 h), whose deepest fall under a held bound is 0.008; the largest fall under
-    # es's running peak is the 70 kg man's 0.01124, above ENERGY_BAND, and a 73 kg man holds level 2 by 0.00003
-    # (0.00997 under its bound; a reading, not pinned)
+    # es's running peak is the 70 kg man's 0.01124, above the old ENERGY_BAND 0.01, and a 73 kg man held level 2 by
+    # 0.00003 (0.00997 under its bound; a reading, not pinned). Task 10c fix 1: men from 72.56 kg stepped 2 to 1 late in
+    # day 6 at 0.01 (the 72.6 kg man, pinned here, falls 0.01076 under the bound), so ENERGY_BAND is 0.035 (the long
+    # fast's deepest fall, test_a_long_sedentary_fast_never_steps_an_energy_level_down)
     want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.2)],
-            (74.0, False): [(1, 18.1), (2, 29.6)], (100.0, False): [(1, 17.7), (2, 27.2)]}
+            (72.6, False): [(1, 18.1), (2, 30.6)], (74.0, False): [(1, 18.1), (2, 29.6)],
+            (100.0, False): [(1, 17.7), (2, 27.2)]}
     got = {}
     for (w, female), changes in want.items():
         bus, plain, es = long_fast_levels({"weight": w, "female": female})
@@ -773,5 +776,19 @@ def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
     # per body: the deepest es under a held level's bound, the largest fall under es's running peak from 24 h on, and
     # es at 48 h and at six days, ENERGY_BAND's evidence (its label cites these)
     assert got == {(50.0, True): (0.0, 0.00844, 1.1864, 1.1792), (60.0, True): (0.0, 0.00769, 1.2078, 1.2011),
-                   (70.0, False): (0.0, 0.01124, 1.2438, 1.234), (74.0, False): (0.008, 0.01065, 1.2513, 1.242),
+                   (70.0, False): (0.0, 0.01124, 1.2438, 1.234), (72.6, False): (0.01076, 0.01087, 1.2487, 1.2392),
+                   (74.0, False): (0.008, 0.01065, 1.2513, 1.242),
                    (100.0, False): (0.0, 0.00295, 1.286, 1.2833)}, got
+
+
+def test_a_long_sedentary_fast_never_steps_an_energy_level_down(host):
+    # Plan 13 Task 10c fix 1 (ruling T7-2, ENERGY_BAND re-ruled to 0.035): under the low-fat ramp es keeps falling
+    # after a resting fast's plateau until the fat depletion passes FAT_DEP_LO (about 364 h), so the band must hold a
+    # long fast's deepest fall, not six days'. The 72.6 kg man just reaches level 2 (es peaks at 1.25011) and by day 16
+    # his es sits 0.03055 under its bound; at the old band 0.01 he stepped 2 to 1 late in day 6 (the Task 10c review's
+    # sweep: 0.0307 at 72.55 kg was the deepest over 20-day fasts, so 0.031 is the floor)
+    bus, plain, es = long_fast_levels({"weight": 72.6, "female": False}, fast_days=16)
+    assert all(b >= a for a, b in zip(bus, bus[1:])), level_changes(bus)
+    assert level_changes(bus) == [(1, 18.1), (2, 30.6)], level_changes(bus)
+    assert level_changes(plain) == [(1, 18.1), (2, 30.6), (1, 32.9)]       # the step-down the band holds
+    assert (round(deepest_held_fall(bus, es), 5), round(max(es), 5)) == (0.03055, 1.25011)

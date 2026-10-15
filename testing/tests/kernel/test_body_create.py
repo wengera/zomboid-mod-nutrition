@@ -224,6 +224,21 @@ def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx, prof)
     assert vu[4] > uw[4] > weak[4] == 0 and vu[5] >= uw[5] > weak[5] == 1
 
 
+def test_weak_with_a_thin_pick_starts_malnourished_by_bmi(host):
+    # Task 10c fix 1 (the spec's section 11 ruling): the thin traits read leanness, but the protein-energy grade and the
+    # refeeding risk read BMI by design, so the newly legal Weak + Very Underweight (male, no boost) starts at BMI 15.59,
+    # PE grade 4 and, after its first day close, refeeding risk 2; Weak + Underweight at BMI 16.19, PE grade 3: the
+    # stacked picks' cost, pinned so that it stays deliberate
+    def start(w):
+        b = host.call("body.new", host.call("body.create", "WEAK", w, _d(host), 1, 0), 1, 0.0)
+        kg = b.fm + b.lm + b.lx
+        a = host.call("acute.new", 0.0)
+        host.call("acute.refeedDay", a, 30.0, kg, 24.0, False, False, False)
+        return round(kg / host.K.HEIGHT_M ** 2, 2), host.call("effects.peGrade", a.bmi, a.starvedDays, None), a.refeedRisk
+    assert start("VERY_UNDERWEIGHT") == (15.59, 4, 2)
+    assert start("UNDERWEIGHT") == (16.19, 3, 1)
+
+
 def test_no_pick_pair_is_excluded(host):
     # Task 10c (Angus, 2026-10-15: "Lift the exclusions"): ruling 13-46's table is gone, not left as dead code
     assert host.K.body.EXCLUDES is None

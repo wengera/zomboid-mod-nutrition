@@ -696,15 +696,16 @@ def test_the_energy_ladder_is_the_ruling_9d_2_game_choice(host):
 # --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2) -------------------------------------------------
 
 def test_the_energy_band_is_the_ruling_t7_2_game_choice(host):
-    assert V(host).ENERGY_BAND == 0.01
+    assert V(host).ENERGY_BAND == 0.035                                    # re-ruled at Plan 13 Task 10c fix 1
 
 
 def test_an_energy_level_is_held_until_the_state_falls_the_band_under_its_bound(host):
     lv = lambda es, last=None: host.call("view.energyLevel", es, last)
+    b = V(host).ENERGY_BAND
     assert lv(1.26) == 2 and lv(1.245) == 1 and lv(1.245, 1) == 1          # no last, or a lower one: the plain rung
-    assert lv(1.245, 2) == 2 and lv(1.2401, 2) == 2                        # inside the band under 1.25: held
-    assert lv(1.2399, 2) == 1 and lv(1.0, 4) == 0                          # past the band: down to the plain rung
-    assert lv(1.395, 3) == 3 and lv(1.389, 3) == 2                         # each level's own bound
+    assert lv(1.245, 2) == 2 and lv(1.25 - b + 0.0001, 2) == 2             # inside the band under 1.25: held
+    assert lv(1.25 - b - 0.0001, 2) == 1 and lv(1.0, 4) == 0               # past the band: down to the plain rung
+    assert lv(1.40 - b + 0.0001, 3) == 3 and lv(1.40 - b - 0.0001, 3) == 2 # each level's own bound
     assert lv(1.5, 1) == 3 and lv(1.6, 0) == 4                             # a rise is never held back
     assert lv(1.245, 4) == 2                                               # a held level is never above the band's rung
     assert lv(None, 2) == 0 and lv(float("nan"), 2) == 0 and lv("x", 2) == 0
@@ -732,10 +733,12 @@ def test_the_classes_rows_and_moodles_show_the_mirrors_held_energy_level(host):
 
 def test_the_push_signature_holds_the_energy_digit_on_the_last_signature(host):
     sig = lambda es, lastE=None: host.call("view.pushSignature", es, 0.0, 0.0, 0.0, 0, lastE)
+    b = V(host).ENERGY_BAND
     assert host.call("view.signatureEnergy", sig(1.26)) == 2
     assert host.call("view.signatureEnergy", sig(1.245)) == 1
     assert host.call("view.signatureEnergy", sig(1.245, 2)) == 2
-    assert host.call("view.signatureEnergy", sig(1.235, 2)) == 1
+    assert host.call("view.signatureEnergy", sig(1.25 - b + 0.0005, 2)) == 2
+    assert host.call("view.signatureEnergy", sig(1.25 - b - 0.0005, 2)) == 1
     assert sig(1.245, None) == host.call("view.pushSignature", 1.245, 0.0, 0.0, 0.0, 0)   # the five-argument call is unchanged
     s = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 1100)
     assert host.call("view.signatureEnergy", s) == 4
