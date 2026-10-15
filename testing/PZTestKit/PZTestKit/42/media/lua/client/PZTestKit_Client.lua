@@ -1356,3 +1356,52 @@ TK.register("perk.xp", function(argv)
     out.level = lvl
     return out
 end)
+
+-- ---- Plan 13 Task 1: equip a server-known weapon (client) ----------------------------------------
+-- <fullType>. x423's melee window swung a Base.BaseballBat attack.melee had added client-side (it adds one when the
+-- primary hand is empty): the server logged every PlayerHitZombie packet "not consistent" with "weapon": null and
+-- granted no XP, so a client-only weapon never reaches the server's hit path. This command equips an item the
+-- server owns: a driver adds it first with the server's inventory.add (which reaches the client's inventory),
+-- then this finds the first item of that full type in the local inventory (a getItems() walk, index-first) and
+-- queues vanilla's ISEquipWeaponAction:new(player, item, 50, true, item:isTwoHandWeapon()) through
+-- ISTimedActionQueue.add, the timed action whose complete() the server runs too. `queued` says the add ran; the
+-- server's getPrimaryHandItem (witness.chain) says the equip landed. No item is ever created here.
+-- @args <fullType>
+-- @reply {ok, fullType, itemId, twoHands, queued [, reason | queueError]} | string
+-- @purpose Test-only: queues vanilla's ISEquipWeaponAction on the first local inventory item of a full type (one the server added), so a melee swing carries a weapon the server knows; never creates an item.
+TK.register("weapon.equip", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local fullType = argv[1]
+    if not fullType then return "usage: weapon.equip <fullType>" end
+    local out = { ok = false, fullType = fullType, queued = false }
+    if ISEquipWeaponAction == nil or ISTimedActionQueue == nil or ISTimedActionQueue.add == nil then
+        out.reason = "no ISEquipWeaponAction or ISTimedActionQueue.add"
+        return out
+    end
+    local items = got(got(p, "getInventory"), "getItems")
+    local n = items ~= nil and got(items, "size") or nil
+    local item = nil
+    if type(n) == "number" then
+        for i = 0, n - 1 do
+            local it = got(items, "get", i)
+            if it ~= nil and got(it, "getFullType") == fullType then
+                item = it
+                break
+            end
+        end
+    end
+    if item == nil then
+        out.reason = "no " .. tostring(fullType) .. " in the local inventory"
+        return out
+    end
+    out.itemId = got(item, "getID")
+    out.twoHands = got(item, "isTwoHandWeapon") == true
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISEquipWeaponAction:new(p, item, 50, true, out.twoHands))
+    end)
+    out.queued = ran
+    out.ok = ran
+    if not ran then out.queueError = tostring(err) end
+    return out
+end)
