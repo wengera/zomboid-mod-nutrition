@@ -297,18 +297,15 @@ def test_the_order_weight_then_level_then_the_weight_band_traits():
     assert _held(p) == ["FEEBLE", "VERY_UNDERWEIGHT"]               # Strong thinned to level 3.83: Feeble's band
 
 
-def test_weak_and_underweight_lose_the_later_pick():
+@pytest.mark.parametrize("known", [["WEAK", "UNDERWEIGHT"], ["UNDERWEIGHT", "WEAK"]])
+def test_weak_and_underweight_lose_weak_the_costlier_in_either_order(known):
+    # fix 3: of an excluded pair the higher absolute cost goes (WEAK -10 against UNDERWEIGHT -6), whatever the order
     h = _host()
-    p = _player(h, ["WEAK", "UNDERWEIGHT"])
+    p = _player(h, known)
     r = _new_game(h, p)
-    assert not p.st.traits.UNDERWEIGHT and p.st.traits.WEAK is True
-    assert r.body.thinT == 0 and r.body.N0 == sl.LEVEL_MODEL["N0"]["WEAK"]
-    assert any("loses UNDERWEIGHT" in s and "excluded by WEAK" in s for s in _printed(h))
-    h2 = _host()
-    p2 = _player(h2, ["UNDERWEIGHT", "WEAK"])
-    r2 = _new_game(h2, p2)
-    assert not p2.st.traits.WEAK and p2.st.traits.UNDERWEIGHT is True
-    assert r2.body.thinT == 1 and r2.body.N0 == 1.0
+    assert not p.st.traits.WEAK and p.st.traits.UNDERWEIGHT is True
+    assert r.body.thinT == 1 and r.body.N0 == 1.0
+    assert any("loses WEAK" in s and "excluded by UNDERWEIGHT" in s for s in _printed(h))
 
 
 def test_the_kernel_pairs_hold_when_no_definition_lists_them():
@@ -318,23 +315,24 @@ def test_the_kernel_pairs_hold_when_no_definition_lists_them():
     h = _host(defs=defs)
     p = _player(h, ["WEAK", "UNDERWEIGHT"])
     r = _new_game(h, p)
-    assert r.body.thinT == 0                                    # built without the thin pick
-    assert any("loses UNDERWEIGHT" in s and "excluded by WEAK" in s for s in _printed(h))
+    assert r.body.N0 == 1.0                                     # built without the muscle pick
+    assert any("loses WEAK" in s and "excluded by UNDERWEIGHT" in s for s in _printed(h))
 
 
-def test_overweight_and_obese_lose_the_later():
+@pytest.mark.parametrize("known", [["OVERWEIGHT", "OBESE"], ["OBESE", "OVERWEIGHT"]])
+def test_overweight_and_obese_lose_obese_the_costlier(known):
     h = _host()
-    p = _player(h, ["OVERWEIGHT", "OBESE"])
+    p = _player(h, known)
     r = _new_game(h, p)
     assert p.st.traits.OVERWEIGHT is True and not p.st.traits.OBESE
     assert r.body.fatT == 1
 
 
 @pytest.mark.parametrize("known, lost", [
-    (["ATHLETIC", "WEIGHTGAIN"], "WEIGHTGAIN"),      # Athletic's list does not hold Weight Gain: the reverse read
+    (["ATHLETIC", "WEIGHTGAIN"], "ATHLETIC"),        # Athletic's list does not hold Weight Gain: the reverse read
     (["WEIGHTGAIN", "ATHLETIC"], "ATHLETIC"),        # Weight Gain's list holds Athletic: the forward read
-    (["WEIGHTLOSS", "OBESE"], "OBESE"),
-    (["OBESE", "WEIGHTLOSS"], "WEIGHTLOSS"),
+    (["WEIGHTLOSS", "OBESE"], "OBESE"),              # the costlier (|-10| against |-2|) goes, either order (fix 3)
+    (["OBESE", "WEIGHTLOSS"], "OBESE"),
 ])
 def test_the_exclusion_check_runs_both_ways(known, lost):
     h = _host(prof_cost=10)
@@ -345,9 +343,9 @@ def test_the_exclusion_check_runs_both_ways(known, lost):
     assert all(p.st.traits[n] is True for n in kept)
 
 
-def test_an_over_budget_list_loses_its_last_positive_picks_until_legal_each_logged():
-    # profession 0: STRONG 10, BRAVE 4, SPEEDDEMON 1, OVERWEIGHT -6 -> remaining 0 - 15 + 6 = -9; stripping SPEEDDEMON
-    # (-8) then BRAVE (-4) then STRONG (+6) makes it legal; the bad trait at the end stays
+def test_an_over_budget_list_loses_its_costliest_positive_picks_until_legal_each_logged():
+    # profession 0: STRONG 10, BRAVE 4, SPEEDDEMON 1, OVERWEIGHT -6 -> remaining 0 - 15 + 6 = -9; stripping STRONG, the
+    # costliest (fix 3), makes it 1: legal; the bad trait stays
     h = _host(prof_cost=0)
     p = _player(h, ["STRONG", "BRAVE", "SPEEDDEMON", "OVERWEIGHT"])
     _new_game(h, p)
@@ -616,10 +614,11 @@ def test_a_free_bad_trait_counts_in_the_negative_trait_offset():
     h = _host(prof_cost=-1, defs=defs)
     h.G.NR_C.penalty = 4
     h.G.NR_C.profGrants = h.rt.table("UNFIT")
-    # -1 - (4 + 1 - 6) - (2 - 1) = -1: SPEEDDEMON goes; without the free UNFIT the offset is 0 and nothing goes
+    # -1 - (4 + 1 - 6) - (2 - 1) = -1: BRAVE, the costliest, goes (fix 3); without the free UNFIT the offset is 0 and
+    # nothing goes
     p = _player(h, ["UNFIT", "BRAVE", "SPEEDDEMON", "OVERWEIGHT"])
     _new_game(h, p)
-    assert not p.st.traits.SPEEDDEMON and p.st.traits.BRAVE is True and p.st.traits.UNFIT is True
+    assert not p.st.traits.BRAVE and p.st.traits.SPEEDDEMON is True and p.st.traits.UNFIT is True
 
 
 def test_a_strip_pushes_the_traits_once_and_a_legal_list_pushes_none():
@@ -676,8 +675,9 @@ def test_a_trait_a_held_trait_grants_is_free():
     assert h.NR.server.creation.stats.stripped == 0
 
 
-def test_a_climbed_muscle_pick_is_the_later_of_an_excluded_pair():
-    # Farmer +1: WEAK climbs to 1, so vanilla's listener re-adds WEAK last; the thin pick listed after it is kept
+def test_a_climbed_muscle_pick_follows_the_cost_order_of_an_excluded_pair():
+    # Farmer +1: WEAK climbs to 1 and vanilla's listener re-adds it last; the list order is not read (fix 3): the
+    # inferred WEAK (|-10|) is costlier than UNDERWEIGHT (|-6|) and goes
     h = _host(prof_cost=10, prof_strength=1)
     p = _player(h, ["WEAK", "UNDERWEIGHT"])
     _new_game(h, p)
@@ -822,3 +822,32 @@ def test_a_professions_other_boosts_are_not_its_strength_boost():
     h2.G.NR_C.profSprint = 3
     seen = _first_sight(h2, _player(h2, ["STOUT"])).body
     assert abs(seen.lm - r.body.lm) < 1e-12
+
+
+# --- fix 3: the strip order reads costs and names, never the list order (x422: the server's order is not the client's) --
+
+ILLEGAL = ["OBESE", "OVERWEIGHT", "WEIGHTLOSS", "ATHLETIC", "FIT", "BRAVE", "SPEEDDEMON"]
+
+
+@pytest.mark.parametrize("known", [ILLEGAL, list(reversed(ILLEGAL)), ILLEGAL[3:] + ILLEGAL[:3]])
+def test_one_pick_set_in_any_known_order_strips_the_same_traits(known):
+    h = _host(prof_cost=0)
+    p = _player(h, known)
+    _new_game(h, p)
+    lost = sorted(l.split(" loses ")[1].split(" ")[0] for l in _printed(h) if " loses " in l)
+    # in CRE.before's order: ATHLETIC (10, before OBESE by name) excludes OBESE; OBESE excludes OVERWEIGHT; FIT (6,
+    # before OVERWEIGHT by name) excludes OVERWEIGHT; OVERWEIGHT excludes WEIGHTLOSS; then 0 - (4 + 1) + 2 = -3 strips
+    # BRAVE, the costliest positive, and 0 - 1 + 2 = 1 is legal
+    assert lost == ["ATHLETIC", "BRAVE", "FIT", "OBESE", "OVERWEIGHT"]
+    assert _held(p) == ["SPEEDDEMON", "WEIGHTLOSS"]
+
+
+def test_a_cost_tie_strips_the_name_first_in_alphabetical_order():
+    defs = dict(DEFS)
+    defs["BRAVE"] = dict(cost=3, excl=["SPEEDDEMON"])
+    defs["SPEEDDEMON"] = dict(cost=3)
+    for known in (["BRAVE", "SPEEDDEMON"], ["SPEEDDEMON", "BRAVE"]):
+        h = _host(prof_cost=10, defs=defs)
+        p = _player(h, known)
+        _new_game(h, p)
+        assert not p.st.traits.BRAVE and p.st.traits.SPEEDDEMON is True

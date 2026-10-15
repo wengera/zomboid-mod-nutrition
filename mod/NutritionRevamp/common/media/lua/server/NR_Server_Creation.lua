@@ -5,14 +5,19 @@
 -- sent and before the save (trait-levers sections 3-4); the server enforces neither the point total nor an exclusion.
 --
 -- 1. Validation (ruling 13-16), on the server's own definitions (CharacterTraitDefinition.getCharacterTraitDefinition).
---    The known traits are walked in getKnownTraits() order (the order the client's list sent; the server keeps no pick
---    order). A free trait (the profession's grants, or a held trait's grants) is never stripped; a profession trait
---    (isFree) that no grant names is stripped (fix 2, ruling 13-16). A non-free trait that excludes an earlier kept trait or any free one is stripped: a pair excludes when
---    either definition's getMutuallyExclusiveTraits holds the other, when isMutuallyExclusive answers true either way
---    (Task 16's ruling I2: Weight Gain's Athletic, Fit and Emaciated pairs sit on Weight Gain alone), or when
---    K.body.EXCLUDES pairs them (ruling 13-46). Then, while the creation screen's remaining points read below 0, the last
---    kept non-free trait with a positive cost is stripped: a trait with a cost of 0 or below never raises the
---    total (removing a bad trait lowers the negative-trait offset by at most one, CharacterCreationProfession.lua:918-936).
+--    The strip order never reads the list's order (fix 3): the server's getKnownTraits() is not the client's sent order
+--    (x422, Task 0's check 5: sent strong, stout, obese, overweight; held obese, overweight, out of shape, strong), and
+--    vanilla's band listener rewrites the muscle and Fitness traits during applyTraits. A free trait (the profession's
+--    grants, or a held trait's grants) is never stripped; a profession trait (isFree) that no grant names is stripped
+--    (fix 2, ruling 13-16). A non-free pick that excludes a free trait is stripped. Of two non-free picks that exclude
+--    each other, the one with the higher absolute cost is stripped, a tie stripping the name first in alphabetical
+--    order (CRE.before): the picks are walked in that order, and each is stripped when it excludes a pick still held
+--    that comes later in it. A pair excludes when either definition's getMutuallyExclusiveTraits holds the other, when
+--    isMutuallyExclusive answers true either way (Task 16's ruling I2: Weight Gain's Athletic, Fit and Emaciated pairs
+--    sit on Weight Gain alone), or when K.body.EXCLUDES pairs them (ruling 13-46). Then, while the creation screen's
+--    remaining points read below 0, the kept non-free pick with the highest positive cost is stripped, a tie stripping
+--    the name first in alphabetical order: a trait with a cost of 0 or below never raises the total (removing a bad
+--    trait lowers the negative-trait offset by at most one, CharacterCreationProfession.lua:918-936).
 --    The remaining points are the screen's PointToSpend (lua:client/OptionScreens/CharacterCreationProfession.lua:860-867):
 --      profession cost (:479) + SandboxVars.CharacterFreePoints (:865-866) - the sum of the non-free picks' costs
 --      (addTrait :645, free traits :459-466 and :654-659 never touch it) - the offset (:862, :918-936: n the selected
@@ -53,9 +58,8 @@ NR.server.creation = {
     lastError = nil,
     wired = false,
     limitations = {
-        "the server keeps no pick order, so an illegal list loses its last-listed pick, not its last-picked one (ruling 13-16)",
+        "the server keeps no pick order (x422 measured its getKnownTraits order unlike the client's sent order), so an illegal list loses its costliest pick, a tie its alphabetically first, never its last-picked one (ruling 13-16, fix 3)",
         "a stripped trait's XP boosts are reverted from the level applyTraits clamped to [0, 10], so a boost that was clamped reverts too far",
-        "vanilla's listener re-adds the muscle band last, so a climbed muscle pick is the latest-listed",
         "two muscle picks from a modified client collapse into the one pick their summed boost maps to",
         "a stripped trait's learning-rate entry in the descriptor's XP boost map stays (the engine's map takes integers; it is not edited from Lua)",
         "the muscle pick is inferred from the native Strength level less the profession's and the other held traits' Strength boosts; at a clamped level (0 or 10) it is the held band trait, which a profession's Strength boost can have moved",
@@ -123,6 +127,14 @@ function CRE.excludes(a, b)
     if a.def == nil or b.def == nil then return false end
     return lists(a.def, b.t) or lists(b.def, a.t)
         or flag(a.def, "isMutuallyExclusive", b.def) or flag(b.def, "isMutuallyExclusive", a.def)
+end
+
+-- The strip order (fix 3): the higher absolute cost first, a tie by name in alphabetical order. Among the kept
+-- positive picks the first in it is also the costliest, so the budget strip and the exclusion strip read one order.
+function CRE.before(a, b)
+    local ca, cb = math.abs(a.cost), math.abs(b.cost)
+    if ca ~= cb then return ca > cb end
+    return a.name < b.name
 end
 
 -- The profession's definition off the player's descriptor, or nil (NR_Server_Metabolism's reader, shared with first
@@ -255,23 +267,38 @@ function CRE.validate(player)
         local e = entries[i]
         if grants[e.t] == true then free[#free + 1] = e end
     end
+    local picks = {}
     for i = 1, #entries do
         local e = entries[i]
         if grants[e.t] ~= true then
-            local hit = nil
-            for j = 1, #free do
-                if hit == nil and CRE.excludes(e, free[j]) then hit = free[j] end
-            end
-            for j = 1, #kept do
-                if hit == nil and CRE.excludes(e, kept[j]) then hit = kept[j] end
-            end
             if flag(e.def, "isFree") then
                 strip(player, coll, e, "a profession trait no grant names", stripped)
-            elseif hit ~= nil then
-                strip(player, coll, e, "excluded by " .. hit.name, stripped)
             else
-                kept[#kept + 1] = e
+                local hit = nil
+                for j = 1, #free do
+                    if hit == nil and CRE.excludes(e, free[j]) then hit = free[j] end
+                end
+                if hit ~= nil then
+                    strip(player, coll, e, "excluded by " .. hit.name, stripped)
+                else
+                    picks[#picks + 1] = e
+                end
             end
+        end
+    end
+    table.sort(picks, CRE.before)
+    local gone = {}
+    for i = 1, #picks do
+        local e = picks[i]
+        local hit = nil
+        for j = i + 1, #picks do
+            if hit == nil and not gone[j] and CRE.excludes(e, picks[j]) then hit = picks[j] end
+        end
+        if hit ~= nil then
+            gone[i] = true
+            strip(player, coll, e, "excluded by " .. hit.name, stripped)
+        else
+            kept[#kept + 1] = e
         end
     end
     if pdef == nil then
@@ -282,8 +309,8 @@ function CRE.validate(player)
         local rem = CRE.remaining(profCost, freePoints, penalty, free, kept)
         while rem < 0 do
             local at = nil
-            for j = #kept, 1, -1 do
-                if at == nil and kept[j].cost > 0 then at = j end
+            for j = 1, #kept do
+                if at == nil and kept[j].cost > 0 then at = j end      -- kept is in CRE.before's order
             end
             if at == nil then
                 CRE.stats.budgetUnfixed = CRE.stats.budgetUnfixed + 1
