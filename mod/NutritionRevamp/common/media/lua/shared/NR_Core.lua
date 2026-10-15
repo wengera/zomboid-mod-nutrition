@@ -272,3 +272,19 @@ function NR.runningMode()
     if O ~= nil and O.mode ~= nil then return O.mode end
     return 1
 end
+
+-- The server's strength table (NR_Server_Options builds it from the sandbox), else K.strength.DEFAULTS while no
+-- options table is laid (a runtime without NR_Server_Options); nil in a runtime without the strength kernel, which every
+-- kernel reader takes as DEFAULTS. Every server adapter reads it here, at the call.
+function NR.strengthP()
+    local O = NR.server.options
+    if O ~= nil and O.strength ~= nil then return O.strength end
+    local S = NR.kernel.strength
+    return S ~= nil and S.DEFAULTS or nil
+end
+
+-- NR.SexSpecific: true only when the options table reads it true (an absent table reads off).
+function NR.sexSpecific()
+    local O = NR.server.options
+    return O ~= nil and O.sexSpecific == true
+end

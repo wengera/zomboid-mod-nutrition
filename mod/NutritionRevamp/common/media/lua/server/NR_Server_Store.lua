@@ -140,24 +140,10 @@ local function freshInPlace(username, target, firstSeen)
     return target
 end
 
--- The mod-wide NR.SexSpecific, read at the call (false when the options table is absent).
-function S.sexSpecific()
-    local o = NR.server.options
-    return o ~= nil and o.sexSpecific == true
-end
-
--- The server's strength table (NR_Server_Options), read at the call: the default body's cap and set point
--- (K.store.bodyBase); nil when the options table is absent, which the kernel reads as K.strength.DEFAULTS.
-function S.strengthP()
-    local o = NR.server.options
-    if o == nil then return nil end
-    return o.strength
-end
-
 -- The load of a stored record r, in place (the header). Returns r.
 function S.load(username, r)
     local records = NR.data and NR.data.records
-    local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records, S.sexSpecific(), S.strengthP())
+    local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records, NR.sexSpecific(), NR.strengthP())
     if not ok then
         S.stats.failures = S.stats.failures + 1
         NR.log.say(1, "store: load failed for " .. tostring(username) .. ": " .. tostring(err) .. "; a fresh record laid")
@@ -296,7 +282,7 @@ function S.recover(username, record, raw)
     S.fresh[username] = nil
     F.deferSince[username] = nil
     local records = NR.data and NR.data.records
-    local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records, S.sexSpecific(), S.strengthP())
+    local ok, err = pcall(K.store.fillInPlace, record, raw, records and records.ORDER, records, NR.sexSpecific(), NR.strengthP())
     if not ok then
         S.stats.failures = S.stats.failures + 1
         NR.log.say(1, "store: load failed for " .. tostring(username) .. " (recovery): " .. tostring(err) .. "; a fresh record laid")

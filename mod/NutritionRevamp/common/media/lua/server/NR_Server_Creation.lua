@@ -74,7 +74,6 @@ local num, obj, flag = NR.num, NR.obj, NR.flag
 
 -- The perk level a revert is clamped to.
 CRE.LEVEL_MAX = 10
-CRE.MUSCLE = { "WEAK", "FEEBLE", "STOUT", "STRONG" }
 
 -- A Java static called with a dot (cls.name(...)) under pcall; nil when the class or member is absent or raises.
 local function static(cls, name, ...)
@@ -180,8 +179,9 @@ end
 -- The muscle band name of trait t, or nil.
 local function muscleName(t)
     if CharacterTrait == nil then return nil end
-    for i = 1, #CRE.MUSCLE do
-        if CharacterTrait[CRE.MUSCLE[i]] == t then return CRE.MUSCLE[i] end
+    local names = K.strength.MUSCLE_TRAITS
+    for i = 1, #names do
+        if CharacterTrait[names[i]] == t then return names[i] end
     end
     return nil
 end
@@ -321,7 +321,7 @@ function CRE.picks(player)
     local traits = obj(player, "getCharacterTraits")
     local pdef = professionDef(player)
     local muscle = MET.musclePick(player, traits, pdef)
-    return muscle, MET.heldTrait(traits, MET.WEIGHT_TRAITS), strengthBoost(pdef)
+    return muscle, MET.heldTrait(traits, K.traits.WEIGHT_TRAITS), strengthBoost(pdef)
 end
 
 local function create(username, player, record)

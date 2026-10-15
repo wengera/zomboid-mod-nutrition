@@ -11,8 +11,9 @@
 -- #2144; ruling 13-7) times (1 + eAcute), written with setMaxWeightDelta when it differs from the live delta, so any
 -- other writer is re-asserted against (#2143, #2565). This file never writes the carry base (#2704).
 --
--- STR.ladder is the XP ladder the pin reads; STR.remap (vanilla's band remap, the measured route of #2867-#2874) is
--- kept for the write's fallback route (ruling 13-8), which STR.stepLevel alone would swap in. STR.onXp, the AddXP
+-- STR.ladder is the XP ladder the pin reads; STR.remap (vanilla's band remap, the measured route of #2867-#2874)
+-- re-asserts the muscle band after the creation handler's write (NR_Server_Creation, Task 17b); ruling 13-8's fallback
+-- route was not taken (Task 0 check 6). STR.onXp, the AddXP
 -- listener, captures each Strength grant as training signal into body.sigDay (spec section 4).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
@@ -45,8 +46,6 @@ local STR = NR.server.strength
 
 -- The #2102 ladder (cumulative XP for levels 1-10), the fallback when the perk's own getter is absent.
 STR.FALLBACK_TOTALS = { 1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 337500, 487500 } -- #2102
--- The four Strength band traits vanilla's remap removes before it adds one back (#2157).
-STR.BAND_TRAITS = { "WEAK", "FEEBLE", "STOUT", "STRONG" }
 -- The carry delta re-assertion tolerance.
 STR.CARRY_EPS = 0.001
 
@@ -97,8 +96,9 @@ function STR.remap(player, level, ctx)
     if coll == nil then return false end
     local want = K.strength.bandOf(level)
     local changed = false
-    for i = 1, #STR.BAND_TRAITS do
-        local name = STR.BAND_TRAITS[i]
+    local names = K.strength.MUSCLE_TRAITS                -- the band traits vanilla's remap removes first (#2157)
+    for i = 1, #names do
+        local name = names[i]
         local t = CharacterTrait[name]
         if t ~= nil then
             local present = flag(coll, "get", t)
@@ -171,7 +171,7 @@ local function step(username, player, record, ctx)
     if level == nil then
         STR.stats.badReads = STR.stats.badReads + 1
     elseif body.levelDue or level ~= body.wroteL then
-        STR.write(player, body, perk, level)
+        STR.write(player, body, perk, level, ctx)
     end
     if body.wroteL == nil then return end
     carry(player, record, body, ageH, ctx, body.wroteL)          -- the written level's band (ruling 13-7)
@@ -202,10 +202,10 @@ end
 -- AddXP's second boolean (@225 L14258), which the server's Lua addXp route passes true, as does every vanilla Java
 -- Strength route (Fitness.incStats @194-@201 L351, IsoGameCharacter.hitConsequences @116-@131 L6320,
 -- IsoPlayer.hitConsequences @200-@214 L4466, all through GameServer.addXp(p, perk, f) @0-@5 L1903). K.strength.capture
--- divides all three out and weights a grant outside a recorded Fitness set by P.incidental; the signal lands in body.sigDay
--- (ruling 13-12). The XP never moves the mod's level: a grant that left the native level off body.wroteL, or one that
--- landed on a level-10 Strength, re-pins at once (STR.repin, ruling 13-29): back to the written level, the park
--- restored, BeyondTen's stored XP re-set from the body.
+-- divides all three out and weights a grant outside a recorded Fitness set by P.incidental; the signal lands in
+-- body.sigDay (ruling 13-12). The XP never moves the mod's level: a grant that left the native level off body.wroteL,
+-- or one that landed on a level-10 Strength, re-pins at once (STR.repin, ruling 13-29): back to the written level, the
+-- park restored, BeyondTen's stored XP re-set from the body.
 -- Cadence (Rule 6): event-driven, no clock work. Any other perk returns before a Java read; a Strength grant reads
 -- the username, the protein store, the book multiplier and the level (six calls); the sandbox and the set are Lua.
 
@@ -217,13 +217,6 @@ local function sandboxMult()
     if type(cfg) ~= "table" then return nil end
     if cfg.GlobalToggle ~= false then return cfg.Global end
     return cfg.Strength
-end
-
--- The strength parameters (the server's options, else DEFAULTS).
-local function strengthP()
-    local opts = NR.server.options
-    if opts ~= nil and opts.strength ~= nil then return opts.strength end
-    return K.strength.DEFAULTS
 end
 
 -- The username of a player, or nil.
@@ -255,9 +248,10 @@ end
 -- The shown level L = K.strength.level(lm, N0, T, P) (ruling 13-45), read by K.strength.heldLevel against the level
 -- last written (body.wroteL: a rise at the whole number, a drop only DROP_MARGIN below it; Plan 13 Task 10c) into the
 -- native perk level n and the bar's fraction, is written in three parts: the native level stepped to n
--- (STR.stepLevel, the one function a fallback route swaps, ruling 13-8); the XP (STR.pin: n's starting total plus the fraction for n <= 9,
--- ruling 13-9; parked at the level-9 total at 10, spec section 7); and with BeyondTen loaded, its stored mastery XP
--- (ruling 13-42), never native XP while the native level is 10. Then body.wroteL = n and body.levelDue = false.
+-- (STR.stepLevel, the one function a fallback route swaps, ruling 13-8); the XP (STR.pin: n's starting total plus the
+-- fraction for n <= 9, ruling 13-9; parked at the level-9 total at 10, spec section 7); and with BeyondTen loaded, its
+-- stored mastery XP (ruling 13-42), never native XP while the native level is 10. Then body.wroteL = n and
+-- body.levelDue = false.
 -- A write due while the character sleeps waits, levelDue kept, until it wakes (the engine drops a sleeper's grant).
 -- Cadence (Rule 6): once per day close per player (Metabolism stamps levelDue), and when the native level left the
 -- written one; a minute with no write due reads the level only, as before.
@@ -334,12 +328,12 @@ local function mastery(bt, player, perk, L)
     end
 end
 
-local function writeBody(player, body, perk, native)
-    if flag(player, "isAsleep") then
+local function writeBody(player, body, perk, native, ctx)
+    if NR.read.asleep(ctx, player) then
         STR.stats.sleepDeferrals = STR.stats.sleepDeferrals + 1
         return                                          -- AddXP drops a sleeper's grant (L14222-L14223): levelDue stays
     end
-    local L = K.strength.level(body.lm, body.N0, body.T, strengthP())
+    local L = K.strength.level(body.lm, body.N0, body.T, NR.strengthP())
     if not finite(L) then
         STR.stats.badReads = STR.stats.badReads + 1
         return
@@ -369,23 +363,23 @@ local function writeBody(player, body, perk, native)
 end
 
 -- One level write for a body whose native level reads native (the minute's or the listener's read, so the write
--- reads it no second time); STR.pinning is held for its length and cleared whatever it raised, and the raise goes on
--- to the caller's pcall.
-function STR.write(player, body, perk, native)
+-- reads it no second time); ctx (optional) is the pipeline's, whose asleep read the write shares. STR.pinning is held
+-- for its length and cleared whatever it raised, and the raise goes on to the caller's pcall.
+function STR.write(player, body, perk, native, ctx)
     STR.pinning = true
-    local ok, err = pcall(writeBody, player, body, perk, native)
+    local ok, err = pcall(writeBody, player, body, perk, native, ctx)
     STR.pinning = false
     if not ok then error(err, 0) end
 end
 
--- STR.writeLevel(player, body, ctx): the write with its own level read (ctx, optional, is kept for the fallback
--- route's trait read); nothing when the perk or the level is unreadable.
+-- STR.writeLevel(player, body, ctx): the write with its own level read; ctx (optional) is the pipeline's, whose asleep
+-- read the write shares; nothing when the perk or the level is unreadable.
 function STR.writeLevel(player, body, ctx)
     local perk = Perks ~= nil and Perks.Strength or nil
     if perk == nil then return end
     local native = num(player, "getPerkLevel", nil, perk)
     if native == nil then return end
-    STR.write(player, body, perk, native)
+    STR.write(player, body, perk, native, ctx)
 end
 
 -- The AddXP listener's re-pin (ruling 13-29): the write at the level the grant left, reading no clock.
@@ -444,7 +438,7 @@ local function xpStep(player, perk, amount)
     if finite(amount) and amount > 0 then
         local store = num(obj(player, "getNutrition"), "getProteins", 0)
         local book = num(obj(player, "getXp"), "getMultiplier", 1, perk)
-        local sig = K.strength.capture(amount, store, sandboxMult(), book, inSet(name), strengthP())
+        local sig = K.strength.capture(amount, store, sandboxMult(), book, inSet(name), NR.strengthP())
         body.sigDay = body.sigDay + sig
         STR.xpStats.captures = STR.xpStats.captures + 1
     else

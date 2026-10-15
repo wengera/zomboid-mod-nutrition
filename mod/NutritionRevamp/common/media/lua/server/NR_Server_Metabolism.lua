@@ -58,11 +58,6 @@ local MET = NR.server.metabolism
 
 -- The leg parts whose fracture or splint immobilises.
 MET.LEG_PARTS = { "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
--- The band traits read at first sight (ruling 13-6), as CharacterTrait registry fields: the muscle band (the fallback
--- of MET.musclePick's inference, Task 17b fix 1) and the weight band; Emaciated reads as Very Underweight
--- (K.body.WEIGHT_ALIAS). The first held in each list is the pick.
-MET.MUSCLE_TRAITS = { "STRONG", "STOUT", "FEEBLE", "WEAK" }
-MET.WEIGHT_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 
 -- The post-step guard: the body fields something reads before the next minute's
 -- pre-step heal -- the later steps of the minute (the writer among them), the bus step (first in ORDER) and
@@ -124,20 +119,6 @@ local function nutrientInputs(record)
         if finite(ac.debtH) then debtH = K.max(0, ac.debtH) end
     end
     return ironGrade, allReplete, dehydPct, g, debtH
-end
-
--- The strength table the body steps with: the server's (NR_Server_Options builds it from the sandbox), else the
--- kernel's DEFAULTS when no options table is laid (a runtime without NR_Server_Options).
-function MET.strengthP()
-    local opts = NR.server.options
-    if opts ~= nil and opts.strength ~= nil then return opts.strength end
-    return K.strength.DEFAULTS
-end
-
--- Whether NR.SexSpecific is on (an absent options table reads off).
-local function sexSpecific()
-    local opts = NR.server.options
-    return opts ~= nil and opts.sexSpecific == true
 end
 
 -- The first trait of names the collection holds, or nil (none held, or the registry or the collection unreadable).
@@ -203,8 +184,9 @@ end
 
 -- Whether trait t is one of the muscle band traits.
 local function isMuscleBand(t)
-    for i = 1, #MET.MUSCLE_TRAITS do
-        if CharacterTrait[MET.MUSCLE_TRAITS[i]] == t then return true end
+    local names = K.strength.MUSCLE_TRAITS
+    for i = 1, #names do
+        if CharacterTrait[names[i]] == t then return true end
     end
     return false
 end
@@ -236,7 +218,7 @@ end
 -- The muscle pick creation and first sight build from: MET.inferMuscle, else the held band trait; nil for none.
 function MET.musclePick(player, traits, pdef)
     local muscle = MET.inferMuscle(player, pdef, MET.walk(obj(traits, "getKnownTraits")))
-    if muscle == nil then return MET.heldTrait(traits, MET.MUSCLE_TRAITS) end
+    if muscle == nil then return MET.heldTrait(traits, K.strength.MUSCLE_TRAITS) end
     if muscle == false then return nil end
     return muscle
 end
@@ -248,21 +230,22 @@ end
 function MET.newBody(player, muscle, weight, ageH, profBoost)
     local sex = 1
     if flag(player, "isFemale") then sex = 2 end
-    local spec = K.body.create(muscle, weight, MET.strengthP(), K.body.effSex(sex, sexSpecific()), profBoost)
+    local spec = K.body.create(muscle, weight, NR.strengthP(), K.body.effSex(sex, NR.sexSpecific()), profBoost)
     return K.body.new(spec, sex, ageH)
 end
 
 -- First sight: record.body is the creation body (MET.newBody) over the muscle pick creation reads (MET.musclePick:
 -- inferred from the native Strength level net of the boosts, else the held band trait; Task 17b fix 1, replacing
 -- ruling 13-6's held-band reading, which misreads a boosted profession's own band as a pick) and the weight band trait
--- held, never the weight or carry delta, under the profession's Strength boost (Task 17b); body.levelDue asks the Strength minute to write the level once (Plan 13 Task 14).
+-- held, never the weight or carry delta, under the profession's Strength boost (Task 17b); body.levelDue asks the
+-- Strength minute to write the level once (Plan 13 Task 14).
 -- An existing record.body (the creation handler's, or a loaded one) is never re-read.
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
     local traits = obj(player, "getCharacterTraits")
     local pdef = MET.professionDef(player)
     local muscle = MET.musclePick(player, traits, pdef)
-    local weight = MET.heldTrait(traits, MET.WEIGHT_TRAITS)
+    local weight = MET.heldTrait(traits, K.traits.WEIGHT_TRAITS)
     local body = MET.newBody(player, muscle, weight, ageH, MET.strengthBoost(pdef))
     body.levelDue = true
     record.body = body
@@ -411,7 +394,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     else
         body.tDisuse = 0
     end
-    local P = MET.strengthP()
+    local P = NR.strengthP()
     local S = K.strength.signalClose(body) / P.xpPerSet
     local pPerKg = body.pDay / w
     local tdee = K.max(body.eeDay, K.energy.ree(body.lm))
@@ -421,7 +404,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
         K.strength.day(body, S, pPerKg, body.ebDay, tdee, body.alcDay / w, P, P.ts)
     end
     body.fmRef = K.max(body.fmRef, body.fm)
-    local band = K.traits.axes(body, K.body.effSex(body.sex, sexSpecific()))
+    local band = K.traits.axes(body, K.body.effSex(body.sex, NR.sexSpecific()))
     if band ~= body.band then
         body.band = band
         body.traitsDirty = true
@@ -462,7 +445,7 @@ end
 local function heal(username, record, body, ageH)
     local floor = nil
     if not finite(body.dayIndex) then floor = MET.dayFloor(record) end   -- read only when the heal needs it
-    local bad = K.heal.body(body, ageH, sexSpecific(), MET.strengthP(), floor)
+    local bad = K.heal.body(body, ageH, NR.sexSpecific(), NR.strengthP(), floor)
     if bad ~= nil then
         MET.stats.failures = MET.stats.failures + 1
         MET.lastError = "metabolism: non-finite " .. bad .. " for " .. tostring(username) .. "; stamped neutral"

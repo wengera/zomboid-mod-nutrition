@@ -91,6 +91,10 @@ function K.traits.axes(body, sex)
     return "normal"
 end
 
+-- The five weight-band trait names, in K.traits.WANT's names (CharacterTrait registry fields, #0550): the one list every
+-- server reader walks; vanilla never lets a character hold two, so the order is moot.
+K.traits.WEIGHT_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
+
 -- The five weight-band trait names each true or false from the rungs: one fat trait at most, one thin trait at most.
 function K.traits.WANT(fatT, thinT)
     local want = {}

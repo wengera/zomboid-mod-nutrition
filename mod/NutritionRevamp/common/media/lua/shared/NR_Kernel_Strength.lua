@@ -299,9 +299,9 @@ end
 
 -- One closed day of the body (spec sections 5, 5.1 and 6), the oracle's exact Body.day: the larger of
 -- growth's two arms (each with the biology clock ts applied), detraining at the day's opening status, the
--- partition arm by the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors (lm >= fMinShare * F0,
--- lx >= 0, fm >= fmMin), then the peak and the neural factor (which reads S only). A tdee at or below 0, or
--- NaN, reads the energy gate at balance: the gate's surplus share divides by it. Writes lm, lx, fm, Pk,
+-- partition arm by the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors
+-- (lm >= fMinShare * F0, lx >= 0, fm >= fmMin), then the peak and the neural factor (which reads S only). A tdee at or
+-- below 0, or NaN, reads the energy gate at balance: the gate's surplus share divides by it. Writes lm, lx, fm, Pk,
 -- grace, T and Tgrace; returns the day's dF, dX, dM before the floors.
 function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
     local s = K.strength.status(body)
@@ -405,8 +405,8 @@ local rValue = K.strength.DEFAULTS.R
 -- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
 -- option read through K.readLeaf, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
 -- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
--- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else beta, Sg0 and Smax1 revert to DEFAULTS;
--- returns P and whether it fell back.
+-- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else
+-- beta, Sg0 and Smax1 revert to DEFAULTS; returns P and whether it fell back.
 function K.strength.params(sv)
     local S = K.strength
     local D = S.DEFAULTS
@@ -502,6 +502,10 @@ K.strength.E_ACUTE_MAX = 0.03 -- game choice § 7 item 30
 -- Vanilla's band remap as {highest level, trait}: the first row whose level is >= the shown level.
 -- Level 5 carries no band trait (its row's trait is nil).
 K.strength.BANDS = { { 1, "WEAK" }, { 4, "FEEBLE" }, { 5, nil }, { 8, "STOUT" }, { 10, "STRONG" } } -- #2157: WEAK 0-1, FEEBLE 2-4, none 5, STOUT 6-8, STRONG >= 9
+-- The four muscle-band trait names (CharacterTrait registry fields), the one list every server reader walks:
+-- vanilla's remap removes them before it adds one back (#2157), and vanilla never lets a character hold two, so the
+-- order is moot.
+K.strength.MUSCLE_TRAITS = { "WEAK", "FEEBLE", "STOUT", "STRONG" }
 
 -- The band trait vanilla's remap gives a level (nil at 5); a level above the table reads the last row.
 function K.strength.bandOf(level)

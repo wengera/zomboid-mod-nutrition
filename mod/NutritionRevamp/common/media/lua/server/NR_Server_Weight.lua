@@ -44,9 +44,6 @@ NR.server.weight = {
 }
 local WGT = NR.server.weight
 
--- The five weight-band traits, in K.traits.WANT's names; each is read as the CharacterTrait registry field of that
--- name (#0550).
-WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 local finite = NR.finite
 
 -- K.traits.WANT per rung pair, built once: the rungs are healed whole numbers (fatT 0..2, thinT 0..3, K.heal.RUNGS),
@@ -67,8 +64,9 @@ end
 -- with none wanted, any of the five present. An unreadable get compares nothing.
 local function differs(coll, want)
     local wanted = false
-    for i = 1, #WGT.BAND_TRAITS do
-        local name = WGT.BAND_TRAITS[i]
+    local names = K.traits.WEIGHT_TRAITS
+    for i = 1, #names do
+        local name = names[i]
         if want[name] == true then
             wanted = true
             local t = CharacterTrait[name]
@@ -79,8 +77,8 @@ local function differs(coll, want)
         end
     end
     if wanted then return false end
-    for i = 1, #WGT.BAND_TRAITS do
-        local t = CharacterTrait[WGT.BAND_TRAITS[i]]
+    for i = 1, #names do
+        local t = CharacterTrait[names[i]]
         if t ~= nil then
             local okG, present = NR.call(coll, "get", t)
             if okG and present == true then return true end
@@ -97,8 +95,9 @@ local edit = { changed = false }
 -- collection changed and whether every read and edit landed.
 local function write(coll, want)
     local changed, complete = false, true
-    for i = 1, #WGT.BAND_TRAITS do
-        local name = WGT.BAND_TRAITS[i]
+    local names = K.traits.WEIGHT_TRAITS
+    for i = 1, #names do
+        local name = names[i]
         local t = CharacterTrait[name]
         if t ~= nil then
             local okG, present = NR.call(coll, "get", t)

@@ -271,10 +271,9 @@ local function toggle(coll, t, want, own, key)
 end
 
 -- The two trait toggles and the one push (rule 3: only on a change, only to the owner).
-local function traits(player, record, body, E, nut, sev, dtD, ctx)
+local function traits(player, record, body, E, nut, sev, dtD, ctx, sex)
     local vitA = nut.vitA
     local zinc, iron, ribo = nut.zinc, nut.iron, nut.riboflavin
-    local sex = K.body.effSex(body.sex, NR.server.options.sexSpecific)
     local rec = NR.data.records.REC.vitA
     local R = rec ~= nil and rec.R ~= nil and rec.R[sex] or nil
     local retOk = finite(R) and finite(record.acute.retEma) and record.acute.retEma >= R
@@ -431,6 +430,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     local canKill = O.deficienciesCanKill ~= false
     local bonusOn = O.balanceBonus ~= false
     local excessOn = O.excessEffectsOn ~= false
+    local sex = K.body.effSex(body.sex, O.sexSpecific)  -- the effective sex, read once per minute (NR.SexSpecific)
     local T = NR.data.effects
 
     -- 1. ensure and heal
@@ -505,12 +505,11 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     end
 
     -- 5. the traits (on a direct call for a dead record the night-vision machine runs; the writes do not)
-    local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440, ctx)
+    local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440, ctx, sex)
 
     -- 6. the drain (kernel order: compose, nvMinute, drain)
     local wasLethal = E.lethal
-    local d = K.effects.drain(E, nut, fluids, a, E.pe, w > 0 and body.fm / w or 0,
-                           K.body.effSex(body.sex, NR.server.options.sexSpecific), canKill)
+    local d = K.effects.drain(E, nut, fluids, a, E.pe, w > 0 and body.fm / w or 0, sex, canKill)
 
     if record.dead == true then
         EFF.stats.skippedDead = EFF.stats.skippedDead + 1
