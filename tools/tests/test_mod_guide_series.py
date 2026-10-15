@@ -86,8 +86,12 @@ def water(days, offset=0):
     return [{"minute": d * 1440 + m + offset, "kind": "autodrop", "g": 500.0} for d in range(days) for m in WATER_MIN]
 
 
+# the plate every fed scenario eats, spelled here (a change to the module's PLATE moves the series and fails a check)
+PLATE = ["Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen"]
+
+
 def plate(minute, size):
-    return {"minute": minute, "kind": "meal", "size": size, "plate": list(S.PLATE)}
+    return {"minute": minute, "kind": "meal", "size": size, "plate": list(PLATE)}
 
 
 def arm(events, minutes, paths=(), **kw):
@@ -342,9 +346,9 @@ def test_a_guide_food_lands_its_item_pass_vector(pz):
 def test_a_plate_meal_carries_the_foods_whole_vectors(kh):
     # the plate (replay_live's meal `plate`): every key of the foods' table vectors summed and sized to the kcal
     be = RL.ServerReplay(user="admin", hour_offset=7.0, rng="half", sleep_allowed=False)
-    vec = be.plate_vector(list(S.PLATE), 500.0)
+    vec = be.plate_vector(PLATE, 500.0)
     tot = {}
-    for pz in S.PLATE:
+    for pz in PLATE:
         for k, v in be.NR.data.nutrients.get(pz).items():
             if isinstance(v, (int, float)):
                 tot[k] = tot.get(k, 0.0) + v
@@ -1113,12 +1117,14 @@ def _(kh, sid):
 
 @check("S3b-m-kernel-U")
 def _(kh, sid):
+    # the whole fortnight: unhappiness sits at its cap 30 until day 9, so only the later days see the rotation
+    varied = ("Base.Bread", "Base.CannedBologneseOpen", "Base.Burger", "Base.Apple", "Base.Orange", "Base.TunaTinOpen")
     ev = [eat(d * 1440 + m, "Base.TunaTinOpen") for d in range(7) for m in (60, 300, 540, 780)]
-    ev += [eat(d * 1440 + m, S.VARIED[(d * 4 + i) % len(S.VARIED)]) for d in range(7, 8)
-           for i, m in enumerate((60, 300, 540, 780))]
-    rows, _ = arm(ev + water(8), 8 * 1440)
-    assert pt(sid, 8.0) == rows[-1]["UNHAPPINESS"]
-    return [8.0]
+    ev += [eat(d * 1440 + m, varied[(d * 4 + i) % 6]) for d in range(7, 14) for i, m in enumerate((60, 300, 540, 780))]
+    rows, _ = arm(ev + water(14), 14 * 1440)
+    assert pt(sid, 11.0) == rows[11 * 1440 - 1]["UNHAPPINESS"] < 30
+    assert pt(sid, 14.0) == rows[-1]["UNHAPPINESS"]
+    return [11.0, 14.0]
 
 
 def _s5b_rows(name, minutes, paths, food=True):
