@@ -1,8 +1,9 @@
 """x434-growth -- Plan 13 Task 22 (live): the growth smoke against the model's own replay (ruling 8-R).
 
-One boot of profile x43-growth (fixture default, admin -debug, NR.StrengthTimeScale 30, NR.StrengthIncidentalWeight 1), the STAGED release copy release/plan13-x43 (CLAUDE.md s5, x201), Nutrition
-false, DayLength 1, build 42.21.0. The engine is testing/experiments/x43_strength_lib.py (its docstring holds the
-phases, the reads and the grades); this file names the task, the run prefix, the profile, the artifact, the wall
+One boot of profile x43-growth (fixture default, admin -debug, NR.StrengthTimeScale 30, NR.StrengthIncidentalWeight
+1), the STAGED release copy release/plan13-x43 (CLAUDE.md s5, x201), Nutrition false, DayLength 1, build 42.21.0. The
+engine is testing/experiments/x43b_strength_lib.py (x43_strength_lib.py with two changes after x433; its docstring holds
+the phases, the reads and the grades); this file names the task, the run prefix, the profile, the artifact, the wall
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
 
 PREDICTIONS: each close's lm equals the kernel replay of the record's pre-close body under the close's own
@@ -15,7 +16,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import x43_strength_lib as L   # noqa: E402
+import x43b_strength_lib as L   # noqa: E402
 
 TASK = "22"
 PROFILE = "x43-growth"
