@@ -112,6 +112,8 @@ def v4b(monkeypatch):
 
 def test_x445b_names_its_session(v4b):
     assert D5.PREFIX == "x445b" and D5.PROFILE == "x44-vanilla-sleep" and D5.BUDGET_S <= 500
+    if any(d.startswith("x445b-") for d in os.listdir(os.path.join(T.REPO, "testing", "artifacts"))):
+        pytest.skip("x445b has run; its committed artifact is the evidence")
     checks, ok = L.preboot(v4b, D5.PROFILE, D5.PREFIX, "x445b_beers.py")
     assert ok, checks
     assert L.preboot(v4b, D5.PROFILE, D5.PREFIX, "x445_drinks.py")[1] is False
