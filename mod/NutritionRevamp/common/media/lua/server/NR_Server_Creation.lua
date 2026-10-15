@@ -30,8 +30,10 @@
 --    strip removes the held one), and a held band trait with no pick behind it (a profession's boost) is vanilla's,
 --    never validated.
 -- 2. The body: K.body.create over the inferred muscle pick and the weight-band trait held after validation (CRE.picks;
---    Emaciated is read as Very Underweight by the kernel), at the effective sex (NR.SexSpecific) and the reset's age, through
---    NR_Server_Metabolism's builder, so OnNewGame and first sight build one way; first sight then finds the body present.
+--    Emaciated is read as Very Underweight by the kernel), under the profession's Strength boost (Task 17b: Angus,
+--    "treat it like a small trait"; the start level is the pick's plus the boost, clamped to [0, 10]), at the
+--    effective sex (NR.SexSpecific) and the reset's age, through NR_Server_Metabolism's builder, so OnNewGame and
+--    first sight build one way; first sight then finds the body present.
 -- 3. The writes, in this order: the weight (lm + lx + fm, overwriting applyWeightFromTraits' 50/60/70/95/105 kg,
 --    trait-levers section 3.2); the Strength level (STR.writeLevel: LevelPerk steps, whose vanilla listener swaps the
 --    muscle band, XpUpdate.lua:200-217); then the five weight-band traits (WGT.writeTraits), last, so they are final.
@@ -55,6 +57,7 @@ NR.server.creation = {
         "two muscle picks from a modified client collapse into the one pick their summed boost maps to",
         "a stripped trait's learning-rate entry in the descriptor's XP boost map stays (the engine's map takes integers; it is not edited from Lua)",
         "the muscle pick is inferred from the native Strength level less the profession's and the other held traits' Strength boosts; at a clamped level (0 or 10) it is the held band trait, which a profession's Strength boost can have moved",
+        "a stripped muscle pick's level is reverted with setPerkLevelDebug, which fires no band listener, so when the rebuilt body's start (the profession's boost included) equals the reverted level no step re-adds that level's band trait",
     },
 }
 local CRE = NR.server.creation
@@ -129,11 +132,10 @@ function CRE.excludes(a, b)
         or flag(a.def, "isMutuallyExclusive", b.def) or flag(b.def, "isMutuallyExclusive", a.def)
 end
 
--- The profession's definition off the player's descriptor, or nil.
+-- The profession's definition off the player's descriptor, or nil (NR_Server_Metabolism's reader, shared with first
+-- sight).
 local function professionDef(player)
-    local prof = obj(obj(player, "getDescriptor"), "getCharacterProfession")
-    if prof == nil or CharacterProfessionDefinition == nil then return nil end
-    return static(CharacterProfessionDefinition, "getCharacterProfessionDefinition", prof)
+    return NR.server.metabolism.professionDef(player)
 end
 
 -- The negative-trait offset (CharacterCreationProfession.lua:918-936) for n traits with a negative cost.
@@ -173,22 +175,14 @@ local function addGrants(set, list)
     for i = 1, #ts do set[ts[i]] = true end
 end
 
--- A boost value off transformIntoKahluaTable: a Lua number, or a java Integer read with intValue.
+-- A boost value off transformIntoKahluaTable, and a definition's Strength boost: NR_Server_Metabolism's readers,
+-- shared with first sight (Task 17b).
 local function boostOf(v)
-    if type(v) == "number" then return v end
-    return num(v, "intValue", nil)
+    return NR.server.metabolism.boostOf(v)
 end
 
--- The Strength boost of a definition (its XP boost map read through transformIntoKahluaTable), 0 when it has none.
 local function strengthBoost(def)
-    local map = obj(def, "getXpBoosts")
-    if map == nil or transformIntoKahluaTable == nil or Perks == nil then return 0 end
-    local okT, tbl = pcall(transformIntoKahluaTable, map)
-    if not okT or type(tbl) ~= "table" then return 0 end
-    for perk, v in pairs(tbl) do
-        if perk == Perks.Strength then return boostOf(v) or 0 end
-    end
-    return 0
+    return NR.server.metabolism.strengthBoost(def)
 end
 
 -- The muscle band name of trait t, or nil.
@@ -319,18 +313,20 @@ function CRE.validate(player)
     return stripped
 end
 
--- CRE.picks(player) -> muscle, weight: the inferred muscle pick (CRE.inferMuscle; the held band trait when the level
--- cannot tell) and the weight-band trait held (NR_Server_Metabolism's lists), each nil for none.
+-- CRE.picks(player) -> muscle, weight, profBoost: the inferred muscle pick (CRE.inferMuscle; the held band trait when
+-- the level cannot tell), the weight-band trait held (NR_Server_Metabolism's lists), each nil for none, and the
+-- profession's Strength boost the inference read (0 when unreadable; Task 17b: it raises the start like a small trait).
 function CRE.picks(player)
     local MET = NR.server.metabolism
     local traits = obj(player, "getCharacterTraits")
-    local muscle = CRE.inferMuscle(player, professionDef(player), walk(obj(traits, "getKnownTraits")))
+    local pdef = professionDef(player)
+    local muscle = CRE.inferMuscle(player, pdef, walk(obj(traits, "getKnownTraits")))
     if muscle == nil then
         muscle = MET.heldTrait(traits, MET.MUSCLE_TRAITS)
     elseif muscle == false then
         muscle = nil
     end
-    return muscle, MET.heldTrait(traits, MET.WEIGHT_TRAITS)
+    return muscle, MET.heldTrait(traits, MET.WEIGHT_TRAITS), strengthBoost(pdef)
 end
 
 local function create(username, player, record)
@@ -338,15 +334,16 @@ local function create(username, player, record)
     if not NR.finite(ageH) then ageH = NR.worldAge() end
     if ageH == nil then return end
     CRE.validate(player)
-    local muscle, weight = CRE.picks(player)
-    local body = NR.server.metabolism.newBody(player, muscle, weight, ageH)
+    local muscle, weight, profBoost = CRE.picks(player)
+    local body = NR.server.metabolism.newBody(player, muscle, weight, ageH, profBoost)
     body.levelDue = true                                -- kept when the write defers (a sleeper) or fails
     record.body = body
     NR.call(obj(player, "getNutrition"), "setWeight", body.lm + body.lx + body.fm)
     NR.server.strength.writeLevel(player, body)
     NR.server.weight.writeTraits(player, body)
     CRE.stats.created = CRE.stats.created + 1
-    NR.log.say(2, "creation: " .. tostring(username) .. " muscle=" .. tostring(muscle) .. " weight=" .. tostring(weight))
+    NR.log.say(2, "creation: " .. tostring(username) .. " muscle=" .. tostring(muscle) .. " weight=" .. tostring(weight)
+        .. " prof=" .. tostring(profBoost))
 end
 
 -- CRE.onNewGame(username, player, record): the P.onNewGame hook. One pcall; a failure is counted, kept and logged,

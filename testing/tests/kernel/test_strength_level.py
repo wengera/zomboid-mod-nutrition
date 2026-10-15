@@ -148,3 +148,14 @@ def test_the_floor_below_Fnm():
     assert abs(sl.level(20.0, 1.0, 1.0) - (5.0 - 5.0 / (R - 1.0))) < 1e-12
     assert abs(sl.level(20.0, 1.0, 1.0) - (-3.85)) < 0.005   # spec 2.1
     assert sl.F_of_level(-5.0, 1.0, 1.0) == sl.LEVEL_MODEL["Fnm"]
+
+
+def test_trait_start_takes_a_profession_boost_like_a_small_trait():
+    # Task 17b: the start level is the pick's plus the boost, clamped to [0, 10]; the boost adds no innate factor
+    assert sl.start_level("STRONG", 1) == sl.start_level("STRONG", 2) == 10
+    assert sl.start_level("none", 1) == 6 and sl.start_level("WEAK", -3) == 0
+    assert sl.trait_start("STOUT", prof=0) == sl.trait_start("STOUT")
+    F = sl.trait_start("none", prof=1)[0]
+    assert abs(sl.level(F, 1.0, 1.0) - 6.0) < 1e-9
+    F = sl.trait_start("STOUT", prof=1)[0]
+    assert abs(sl.level(F, sl.LEVEL_MODEL["N0"]["STOUT"], 1.0) - 8.0) < 1e-9

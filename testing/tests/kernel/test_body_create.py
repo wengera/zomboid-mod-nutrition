@@ -178,12 +178,16 @@ def test_emaciated_is_read_as_very_underweight(host):
         assert _spec(host, m, "EMACIATED") == _spec(host, m, "VERY_UNDERWEIGHT")
 
 
+@pytest.mark.parametrize("prof", [0, 1, 2])
 @pytest.mark.parametrize("sexIdx", [1, 2])
-def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx):
+def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx, prof):
+    # Task 17b: the profession's Strength boost is not a pick, but every point-giving body trait still costs the body
+    # at each boost; the exact smallest drop and the free set are prof 0's, and at any boost the free set stays
+    # among the excluded pairs
     D = _d(host)
 
     def body(m, w):
-        s = host.call("body.create", m, w, D, sexIdx)
+        s = host.call("body.create", m, w, D, sexIdx, prof)
         return host.call("strength.level", s["lm"], s["N0"], 1.0, D), s["fm"], s["fatT"]
 
     drops = []
@@ -202,10 +206,14 @@ def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx):
                 _, fm0, fatT0 = body(m, None)
                 assert fatT > fatT0 and fm > fm0, (m, w)
     # amendment 4: the smallest level cost of a point-giving pick over the legal sets
-    assert abs(min(drops) - 1.249) < 0.0005, min(drops)
+    if prof == 0:
+        assert abs(min(drops) - 1.249) < 0.0005, min(drops)
+    else:
+        assert min(drops) >= 0.5, (prof, min(drops))
     # the pairs the rule excludes because they cost nothing
     for m, w in (("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")):
-        assert body(m, w)[0] > body(m, None)[0] - 0.5, (m, w)
+        if prof == 0:
+            assert body(m, w)[0] > body(m, None)[0] - 0.5, (m, w)
     for w in THIN:
         for m in ("WEAK", "FEEBLE"):
             assert host.K.body.EXCLUDES[w][m] is True
@@ -218,10 +226,11 @@ def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx):
                 free.add((m, w))
             if w in THIN and L > body(m, None)[0] - 0.5:
                 free.add((m, w))
-    assert free == {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")}
+    if prof == 0:
+        assert free == {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")}
+        # Feeble with Very Underweight would cost 0.68 levels; it is excluded by the same rule (spec section 3.2)
+        assert abs((body("FEEBLE", None)[0] - body("FEEBLE", "VERY_UNDERWEIGHT")[0]) - 0.68) < 0.005
     assert free <= EXCLUDED
-    # Feeble with Very Underweight would cost 0.68 levels; it is excluded by the same rule (spec section 3.2)
-    assert abs((body("FEEBLE", None)[0] - body("FEEBLE", "VERY_UNDERWEIGHT")[0]) - 0.68) < 0.005
 
 
 def test_the_exclusions_are_exactly_the_four_pairs(host):
@@ -349,3 +358,73 @@ def test_no_legal_pick_is_free_at_the_option_bounds(host, years, sexIdx):
             if w in ("OVERWEIGHT", "OBESE"):
                 _, fm0, fatT0 = body(m, None)
                 assert fatT > fatT0 and fm > fm0, (m, w)
+
+
+# --- Task 17b: a profession's Strength boost starts the body like a small trait ---
+
+PROF = (0, 1, 2)
+
+
+@pytest.mark.parametrize("prof", PROF)
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_profession_boost_matches_the_reference(host, muscle, prof):
+    D = _d(host)
+    key = muscle or "none"
+    s = host.call("body.create", muscle, None, D, None, prof)
+    F, F0, Fc, Pk = sl.trait_start(key, prof=prof)
+    for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+        assert abs(s[k] - v) < 1e-12, (key, prof, k)
+    assert s["N0"] == D["N0"][key]                    # the boost adds no innate factor
+    L = host.call("strength.level", s["lm"], s["N0"], 1.0, D)
+    assert host.call("strength.shown", L)[0] == min(10, D["startLevel"][key] + prof)
+
+
+@pytest.mark.parametrize("prof", PROF)
+@pytest.mark.parametrize("muscle", MUSCLE)
+@pytest.mark.parametrize("weight", THIN)
+def test_a_thin_pick_caps_the_boosted_start(host, muscle, weight, prof):
+    # the boost raises F before the thin cap: lm = min(F_boosted, BMI * H2 - fat)
+    s = host.call("body.create", muscle, weight, _d(host), None, prof)
+    F, F0, Fc, Pk = sl.trait_start(muscle or "none", prof=prof)
+    t = {"UNDERWEIGHT": (18.0, 1.5), "VERY_UNDERWEIGHT": (16.5, 1.0)}[weight]
+    assert abs(s["lm"] - min(F, t[0] * H2 - t[1] * H2)) < 1e-12
+    for k, v in (("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+        assert abs(s[k] - v) < 1e-12, k
+
+
+def test_a_thin_pick_with_a_boost_cuts_more_lean():
+    # Feeble +2 starts at level 5 (above Underweight's 47.69 kg), so Underweight now lowers it
+    F = sl.trait_start("FEEBLE", prof=2)[0]
+    assert F > 18.0 * H2 - 1.5 * H2 > sl.trait_start("FEEBLE")[0]
+
+
+@pytest.mark.parametrize("prof", [1, 2, 3])
+def test_strong_with_a_boost_starts_at_ten(host, prof):
+    D = _d(host)
+    s = host.call("body.create", "STRONG", None, D, None, prof)
+    L = host.call("strength.level", s["lm"], s["N0"], 1.0, D)
+    assert abs(L - 10.0) < 1e-9                       # the start level clamped to 10: the native perk is reachable
+    assert host.call("strength.shown", L)[0] == 10
+
+
+def test_none_with_one_starts_at_six(host):
+    D = _d(host)
+    s = host.call("body.create", None, None, D, None, 1)
+    L = host.call("strength.level", s["lm"], s["N0"], 1.0, D)
+    assert abs(L - 6.0) < 1e-9 and s["N0"] == 1.0
+
+
+def test_a_negative_boost_clamps_at_zero(host):
+    D = _d(host)
+    s = host.call("body.create", "WEAK", None, D, None, -3)
+    assert abs(s["lm"] - host.call("strength.fOfLevel", 0, D["N0"]["WEAK"], 1.0, D)) < 1e-12
+    assert abs(s["lm"] - sl.trait_start("WEAK", prof=-3)[0]) < 1e-12
+
+
+@pytest.mark.parametrize("bad", [None, "2", True, float("nan"), float("inf")])
+def test_an_unreadable_boost_reads_zero(host, bad):
+    D = _d(host)
+    for m in MUSCLE:
+        for w in (None, "UNDERWEIGHT", "OBESE"):
+            got = host.py(host.call("body.create", m, w, D, 1, bad))
+            assert got == host.py(host.call("body.create", m, w, D, 1)), (m, w, bad)

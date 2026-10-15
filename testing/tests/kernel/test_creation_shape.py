@@ -517,8 +517,10 @@ def test_stout_with_a_profession_plus_two_holds_strongs_band_yet_reads_stout():
     assert _picks(h, p)[0] == "STOUT"
     r = _new_game(h, p)
     assert h.NR.server.creation.stats.stripped == 0
-    assert abs(r.body.lm - sl.trait_start("STOUT")[0]) < 1e-9
-    assert p.st.perk.Strength == 7 and p.st.traits.STOUT is True and not p.st.traits.STRONG
+    # Task 17b: the profession's +2 raises Stout's start like a small trait, 7 + 2 = 9, at Stout's N0
+    assert abs(r.body.lm - sl.trait_start("STOUT", prof=2)[0]) < 1e-9
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"]["STOUT"]
+    assert p.st.perk.Strength == 9 and p.st.traits.STRONG is True
 
 
 def test_a_stripped_inferred_pick_removes_the_held_band_trait():
@@ -527,10 +529,13 @@ def test_a_stripped_inferred_pick_removes_the_held_band_trait():
     r = _new_game(h, p)
     assert any("loses STOUT" in l for l in _printed(h))
     log = _log(h)
-    steps = [i for i, e in enumerate(log) if e.startswith(("LevelPerk", "LoseLevel"))]
-    assert log.index("remove:STRONG") < steps[0]                       # the strip removes the held band trait itself
+    assert "remove:STRONG" in log                                      # the strip removes the held band trait itself
+    assert not any(e.startswith(("LevelPerk", "LoseLevel")) for e in log)
     assert not p.st.traits.STRONG and not p.st.traits.STOUT
     assert r.body.N0 == 1.0                                            # reverted to 7: 7 - 5 - 2 = 0, no pick
+    # Task 17b: the body is no pick under the profession's +2, level 7, the reverted level: no step is needed
+    assert abs(r.body.lm - sl.trait_start("none", prof=2)[0]) < 1e-9
+    assert p.st.perk.Strength == 7
 
 
 def test_strong_with_a_profession_plus_two_is_clamped_at_ten_and_reads_the_held_band():
@@ -539,7 +544,10 @@ def test_strong_with_a_profession_plus_two_is_clamped_at_ten_and_reads_the_held_
     assert p.st.perk.Strength == 10 and p.st.traits.STRONG is True
     assert _picks(h, p)[0] == "STRONG"
     r = _new_game(h, p)
-    assert abs(r.body.lm - sl.trait_start("STRONG")[0]) < 1e-9
+    # Task 17b: 9 + 2 clamps to 10, so the native level 10 the climb reached stays
+    assert abs(r.body.lm - sl.trait_start("STRONG", prof=2)[0]) < 1e-9
+    assert sl.start_level("STRONG", 2) == 10
+    assert p.st.perk.Strength == 10 and p.st.traits.STRONG is True
 
 
 def test_weak_ends_at_native_one_after_the_write():
@@ -560,7 +568,9 @@ def test_a_profession_band_with_no_pick_is_neither_validated_nor_built():
     r = _new_game(h, p)
     assert h.NR.server.creation.stats.stripped == 0                    # STOUT's cost 6 is never counted
     assert r.body.N0 == 1.0
-    assert p.st.perk.Strength == 5 and not p.st.traits.STOUT
+    # Task 17b: no pick under the profession's +1 starts at 6, the native level and vanilla's Stout band kept
+    assert abs(r.body.lm - sl.trait_start("none", prof=1)[0]) < 1e-9
+    assert p.st.perk.Strength == 6 and p.st.traits.STOUT is True
 
 
 def test_an_unmapped_offset_falls_back_to_the_held_band():
@@ -670,3 +680,100 @@ def test_a_climbed_muscle_pick_is_the_later_of_an_excluded_pair():
     p = _player(h, ["WEAK", "UNDERWEIGHT"])
     _new_game(h, p)
     assert any("loses WEAK" in l and "excluded by UNDERWEIGHT" in l for l in _printed(h))
+
+
+# --- Task 17b: a profession's Strength boost starts the body like a small trait ------------------------------------
+
+
+def _level(h, b):
+    D = h.K.strength.DEFAULTS
+    return h.K.strength.level(b.lm, b.N0, 1.0, D)
+
+
+@pytest.mark.parametrize("prof", [0, 1, 2])
+@pytest.mark.parametrize("muscle", (None,) + MUSCLE)
+def test_creation_builds_the_reference_start_under_each_boost(muscle, prof):
+    h = _host(prof_cost=10, prof_strength=prof)
+    p = _player(h, [muscle] if muscle else [])
+    r = _new_game(h, p)
+    key = muscle or "none"
+    F, F0, Fc, Pk = sl.trait_start(key, prof=prof)
+    for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+        assert abs(r.body[k] - v) < 1e-12, (key, prof, k)
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"][key]
+    assert p.st.perk.Strength == sl.start_level(key, prof)
+    assert any(("prof=" + str(prof)) in l for l in _printed(h))
+
+
+def test_a_strong_lumberjack_starts_at_ten():
+    h = _host(prof_cost=10, prof_strength=1)
+    p = _player(h, ["STRONG"])
+    r = _new_game(h, p)
+    assert abs(_level(h, r.body) - 10.0) < 1e-9
+    assert p.st.perk.Strength == 10 and p.st.traits.STRONG is True
+
+
+def test_a_farmer_with_no_pick_starts_at_six_holding_stout():
+    h = _host(prof_cost=10, prof_strength=1)
+    p = _player(h, [])
+    r = _new_game(h, p)
+    assert abs(_level(h, r.body) - 6.0) < 1e-9 and r.body.N0 == 1.0
+    assert p.st.perk.Strength == 6 and p.st.traits.STOUT is True
+
+
+def test_a_thin_pick_caps_the_boosted_start():
+    h = _host(prof_cost=10, prof_strength=2)
+    p = _player(h, ["STOUT", "UNDERWEIGHT"])
+    r = _new_game(h, p)
+    F = sl.trait_start("STOUT", prof=2)[0]
+    assert abs(r.body.lm - min(F, (18.0 - 1.5) * H2)) < 1e-12
+    assert r.body.lm < F
+
+
+def test_an_unreadable_profession_builds_no_boost():
+    h = _host(prof_cost=10, prof_strength=1)
+    h.G.NR_C.noProfession = True
+    p = _player(h, [])                                                 # native 6 from the climb, STOUT held
+    r = _new_game(h, p)
+    # no definition: the inference falls back to the held band (STOUT) and the boost reads 0
+    assert abs(r.body.lm - sl.trait_start("STOUT")[0]) < 1e-12
+
+
+def _first_sight(h, p):
+    h.online(p)
+    h.T.age = 100.0 + 1 / 60
+    h.minute()
+    h.tick(3)
+    return h.record(p.getUsername(p))
+
+
+@pytest.mark.parametrize("prof", [0, 1, 2])
+@pytest.mark.parametrize("muscle, weight", [(None, None), ("STRONG", "OVERWEIGHT"), ("STOUT", None),
+                                            ("FEEBLE", "OBESE"), ("WEAK", None), ("STOUT", "UNDERWEIGHT")])
+def test_first_sight_and_creation_build_one_body(muscle, weight, prof):
+    # the same picks and profession, held as the picked bands: first sight (no OnNewGame) and creation build one body
+    picks = [n for n in (muscle, weight) if n]
+    h1 = _host(prof_cost=10, prof_strength=prof)
+    p1 = _player(h1, picks)
+    created = _new_game(h1, p1).body
+    h2 = _host(prof_cost=10, prof_strength=prof)
+    p2 = _player(h2, picks, strength=5)                                # the held traits are the picks themselves
+    seen = _first_sight(h2, p2).body
+    assert h2.NR.server.metabolism.stats.creates == 1
+    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
+        assert abs(seen[k] - created[k]) < 1e-12, (muscle, weight, prof, k)
+
+
+def test_first_sight_reads_the_professions_boost():
+    h = _host(prof_cost=10, prof_strength=2)
+    p = _player(h, ["STOUT"], strength=5)
+    b = _first_sight(h, p).body
+    assert abs(b.lm - sl.trait_start("STOUT", prof=2)[0]) < 1e-12
+
+
+def test_first_sight_with_an_unreadable_profession_reads_no_boost():
+    h = _host(prof_cost=10, prof_strength=2)
+    h.G.NR_C.noProfession = True
+    p = _player(h, ["STOUT"], strength=5)
+    b = _first_sight(h, p).body
+    assert abs(b.lm - sl.trait_start("STOUT")[0]) < 1e-12

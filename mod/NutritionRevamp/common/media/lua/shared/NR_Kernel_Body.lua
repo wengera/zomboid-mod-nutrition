@@ -259,13 +259,20 @@ K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- rulings 13-6, 13-30
 -- sexIdx (2 female, else male): the start lean F solves level(F, N0, 1) = the pick's start level; the set point F0 and
 -- the natural cap Fc move by traitShare of F - F5, Fc clamped at the natural FFMI limit (ruling 13-47); the peak is
 -- max(F, F0); the fat is the pick's FMI times H2, and a thin pick lowers lm to min(F, BMI * H2 - fat) (ruling 13-14).
+-- profBoost is the profession's Strength boost (Plan 13 Task 17b; a nil or non-finite one reads 0): it raises the
+-- start level like a small trait, clamped to [0, 10] so the native perk is reachable, before the thin cap, and adds
+-- no innate factor; F0, Fc and Pk follow the raised F as for a trait.
 -- Returns { lm, F0, Fc, Pk, N0, fm, fatT, thinT, sexIdx }.
-function K.body.create(muscle, weight, P, sexIdx)
+function K.body.create(muscle, weight, P, sexIdx, profBoost)
     local key = muscle or "none"
     local pick = K.body.WEIGHT_ALIAS[weight] or weight
     local H2 = K.HEIGHT_M * K.HEIGHT_M
     local N0 = P.N0[key]
-    local F = K.strength.fOfLevel(P.startLevel[key], N0, 1, P)
+    local boost = 0
+    if K.finite(profBoost) then
+        boost = profBoost
+    end
+    local F = K.strength.fOfLevel(K.clamp(P.startLevel[key] + boost, 0, 10), N0, 1, P)
     local F5 = K.strength.fOfBio(5, P)
     local d = P.traitShare * (F - F5)
     local spec = {}

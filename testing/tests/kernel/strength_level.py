@@ -91,10 +91,17 @@ def F_of_level(L, N0, T, R=None):
     return lm["Fnm"] + M5 * (S / (N0 * T)) ** (1.0 / lm["b"])
 
 
-def trait_start(trait, R=None):
-    """`F, F0, Fc, Pk` of a muscle pick (spec section 3.2; rulings 13-46 and 13-47)."""
+def start_level(trait, prof=0):
+    """The start level of a muscle pick under a profession's Strength boost `prof`, clamped to [0, 10] (spec section
+    3.2; Task 17b): the boost raises the start like a small trait and adds no innate factor."""
+    return min(10.0, max(0.0, LEVEL_MODEL["startLevel"][trait] + prof))
+
+
+def trait_start(trait, R=None, prof=0):
+    """`F, F0, Fc, Pk` of a muscle pick (spec section 3.2; rulings 13-46 and 13-47), under a profession's Strength
+    boost `prof` (Task 17b): F at the pick's N0 and the clamped start level; F0 and Fc move as for a trait."""
     lm = LEVEL_MODEL
-    F = F_of_level(lm["startLevel"][trait], lm["N0"][trait], 1.0, R)
+    F = F_of_level(start_level(trait, prof), lm["N0"][trait], 1.0, R)
     d = lm["traitShare"] * (F - F5)
     F0 = F5 + d
     Fc = min(FC5 + d, FC_LIMIT)
