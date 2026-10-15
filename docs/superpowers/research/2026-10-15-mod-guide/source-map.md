@@ -379,7 +379,7 @@ dry estimate passes 9.5 min.
 | G2 | Vanilla death by hunger was never measured (the one death was thirst, #0173; hunger stopped at 0.6999, #0174) | V1b |
 | G3 | Vanilla weight under real eats: every weight run drove `setCalories` (#0170) | V2 from a store of 3000: it validates the store's arithmetic and the gain rate over 36 h, not 30 days of drift |
 | G4 | Vanilla Strength: the protein factors (#2112) and a live level crossing with its band trait (#2157) are C-only | V3 |
-| G5 | Vanilla intoxication and coffee at DayLength 4 (#2950, #2951 ran at DayLength 1) | V4 (optional) |
+| G5 | Vanilla intoxication and coffee at DayLength 4 (#2950, #2951 ran at DayLength 1) | V4 (ruled to run) |
 | G6 | Vanilla muscle-trait start levels have no vanilla claim | JT1 (Task 2) |
 | G7 | THIRST was never graded against a replay; the mod's thirst proof is x151t on the Plan 4 build, before the 2026-10-10 sodium changes | M1 (ruled to run) |
 | G8 | Every mod hunger proof run (x27x–x36x) predates Plan 13's creation body and low-fat ramp, and x27x, x276 and x30x also predate Plan 11g's satiety rework; old start records may not load at HEAD (no-compatibility rule) | Task 4's admission test (ruled); M1; the pre-11g charts are kernel lines with the old runs as proof only |
@@ -388,7 +388,7 @@ dry estimate passes 9.5 min.
 | G11 | Vitamin C onset cannot be read live (never scaled by OnsetSpeed); the pool proof is x151r on the Plan 4 build | kernel badge with x151r as proof; stated |
 | G12 | H4 and SN1 read dataset records, which fit none of the four provenance kinds | Ruled: a fifth provenance kind `dataset` {file, key}; the game's values take the badge vanilla-model, the mod's generated values the badge kernel (closed) |
 | G13 | Strength over years has live proof only at the biology clock 30 over 2 to 4 closes (x434, x435) | kernel badge; stated |
-| G14 | The detraining, regain and peak arms of the Strength day were never closed live | kernel badge with the oracle studies (S0618, S0617); stated |
+| G14 | The detraining, regain and peak arms of the Strength day were never closed live | kernel badge with the oracle studies (S0618, S0078); stated |
 | G15 | The sleep factor's live run (x30x) is the Plan 11f build, before the 11g rework | admission test; M2 (ruled to run) |
 | G16 | The starvation drain (fat gone) has no live reading and no register row | kernel series S2d-m-drain plus a C row of its condition read off `K.effects.drain`; or M-run (a 90-day fast is out of a live session's reach) |
 | G17 | Three README promises have no support: the hangover, the balance bonus and a health drain from low blood sodium or an iron overdose | Ruled: reworded or dropped in § 3 (the balance bonus and both health drains dropped, sodium and iron reworded, the hangover dropped unless M2 reads it); the README's same lines go to Task 11's fact check |
