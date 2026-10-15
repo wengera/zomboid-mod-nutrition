@@ -372,6 +372,8 @@ def test_manifest_gate_on_a_real_staged_copy():
 @pytest.mark.parametrize("key", sorted(L.SESSIONS))
 def test_preboot_passes_on_the_repository(key):
     spec = L.SESSIONS[key]
+    if any(d.startswith(spec["prefix"] + "-") for d in os.listdir(os.path.join(REPO, "testing", "artifacts"))):
+        pytest.skip("the session has run; its committed artifact is the evidence (test_preboot_refuses_a_committed_artifact covers the refusal)")
     drv = next(f for f in os.listdir(os.path.join(REPO, "testing", "experiments")) if f.startswith(spec["prefix"] + "_"))
     checks, ok = L.preboot(key, spec["profile"], spec["prefix"], drv)
     assert ok, checks
