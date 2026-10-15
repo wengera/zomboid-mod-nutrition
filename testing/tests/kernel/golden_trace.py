@@ -10,10 +10,12 @@ object whose thermoregulator answers a per-player metabolic rate (the class's en
 factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
 catch-a-cold value and the regeneration and health setters, all counting; isAsleep (g6, minutes 40-90),
 isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
-getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug, LevelPerk,
+getMoodles, isFemale (g5), a trait collection (with getKnownTraits, and a descriptor with a profession: Plan 13
+Task 17, ruling 13-36), the Strength perk level, its XP and setPerkLevelDebug, LevelPerk,
 LoseLevel, the XP's setXPToLevel and getMultiplier (Plan 13 Task 14, ruling 13-36), and getStats
 (Plan 11e Task 1, ruling 11e-3: a stats object starting at STAT_START, so the writer's W.step runs every minute).
-The globals beside it: CharacterStat, CharacterTrait (17 sentinels), Perks.Strength with the 75 L (L + 1) ladder, addXp,
+The globals beside it: CharacterStat, CharacterTrait (17 sentinels), CharacterTraitDefinition and
+CharacterProfessionDefinition (Task 17's creation handler reads the costs), Perks.Strength with the 75 L (L + 1) ladder, addXp,
 MoodleType, BodyPartType, sendSyncPlayerFields and syncBodyPart counting, and getSandboxOptions (StatsDecrease 1). A
 small engine step (NR_T.engine) runs before each minute: wound timers fall, an infection and a catch-a-cold rise.
 
@@ -159,6 +161,31 @@ for _, n in ipairs({ "ATHLETIC", "FIT", "OUT_OF_SHAPE", "UNFIT", "STRONG", "STOU
     CharacterTrait[n] = "trait:" .. n
 end
 Perks = { Strength = { name = "Strength" } }
+-- The creation handler's definitions (Plan 13 Task 17, ruling 13-36): each trait's cost (vanilla-shaped stand-in values),
+-- none free, no exclusions, boosts or grants; the profession (every player's descriptor answers one) costs 8.
+NR_T.TRAIT_ORDER = { "ATHLETIC", "FIT", "OUT_OF_SHAPE", "UNFIT", "STRONG", "STOUT", "WEAK", "FEEBLE",
+                     "NEEDS_MORE_SLEEP", "NEEDS_LESS_SLEEP", "NIGHT_VISION", "SHORT_SIGHTED",
+                     "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
+NR_T.TRAIT_COST = { ATHLETIC = 10, FIT = 6, OUT_OF_SHAPE = -6, UNFIT = -10, STRONG = 10, STOUT = 6, WEAK = -10,
+                    FEEBLE = -6, NEEDS_MORE_SLEEP = -4, NEEDS_LESS_SLEEP = 2, NIGHT_VISION = 2, SHORT_SIGHTED = -2,
+                    OBESE = -10, OVERWEIGHT = -6, UNDERWEIGHT = -6, VERY_UNDERWEIGHT = -10, EMACIATED = 0 }
+local function emptyList()
+    return { size = function(s) return 0 end, get = function(s, i) return nil end,
+             contains = function(s, x) return false end }
+end
+CharacterTraitDefinition = {}
+CharacterTraitDefinition.getCharacterTraitDefinition = function(t)
+    local cost = NR_T.TRAIT_COST[string.sub(t, 7)]
+    if cost == nil then return nil end
+    return { getCost = function(d) return cost end, isFree = function(d) return false end,
+             getMutuallyExclusiveTraits = function(d) return emptyList() end,
+             isMutuallyExclusive = function(d, o) return false end,
+             getXpBoosts = function(d) return nil end, getGrantedTraits = function(d) return emptyList() end }
+end
+CharacterProfessionDefinition = {}
+CharacterProfessionDefinition.getCharacterProfessionDefinition = function(prof)
+    return { getCost = function(d) return 8 end, getGrantedTraits = function(d) return emptyList() end }
+end
 Perks.Strength.getTotalXpForLevel = function(s, L) return 75 * L * (L + 1) end
 -- The engine's Lua addXp (Plan 13 Task 14, ruling 13-36): a Strength grant adds to the stand-in's XP and counts.
 addXp = function(p, perk, amount)
@@ -251,7 +278,17 @@ NR_T.decorate = function(p, cfg)
     coll.get = function(c, t) return st.traits[t] == true end
     coll.add = function(c, t) st.traits[t] = true end
     coll.remove = function(c, t) st.traits[t] = nil end
+    -- Plan 13 Task 17 (ruling 13-36): the held traits in NR_T.TRAIT_ORDER, and a descriptor with a profession
+    coll.getKnownTraits = function(c)
+        local held = {}
+        for _, n in ipairs(NR_T.TRAIT_ORDER) do
+            if st.traits[CharacterTrait[n]] then held[#held + 1] = CharacterTrait[n] end
+        end
+        return { size = function(l) return #held end, get = function(l, i) return held[i + 1] end }
+    end
     p.getCharacterTraits = function(s) return coll end
+    local desc = { getCharacterProfession = function(d) return "profession:unemployed" end }
+    p.getDescriptor = function(s) return desc end
     p.getPerkLevel = function(s, perk) if perk == Perks.Strength then return s.st.perk end return 0 end
     local xp = { getXP = function(x, perk) if perk == Perks.Strength then return st.xp end return 0 end }
     -- Plan 13 Task 14 (ruling 13-36): setXPToLevel writes the level's starting total, getMultiplier answers 1

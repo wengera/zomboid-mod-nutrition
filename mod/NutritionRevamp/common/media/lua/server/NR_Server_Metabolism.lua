@@ -150,23 +150,30 @@ function MET.heldTrait(traits, names)
     return nil
 end
 
--- First sight: record.body is the creation body (K.body.create) over the muscle and weight band traits the character
--- holds (ruling 13-6), never its native Strength level, weight or carry delta, at the engine's sex and the world age;
--- body.levelDue asks the Strength minute to write the level once (Plan 13 Task 14). An existing record.body is
+-- The creation body of a muscle and a weight pick (either nil): K.body.create at the engine's sex read through the
+-- effective sex (NR.SexSpecific), laid by K.body.new at the world age ageH. The one builder of first sight and the
+-- creation handler (NR_Server_Creation), so the two build one way.
+function MET.newBody(player, muscle, weight, ageH)
+    local sex = 1
+    if flag(player, "isFemale") then sex = 2 end
+    local spec = K.body.create(muscle, weight, MET.strengthP(), K.body.effSex(sex, sexSpecific()))
+    return K.body.new(spec, sex, ageH)
+end
+
+-- First sight: record.body is the creation body (MET.newBody) over the muscle and weight band traits the character
+-- holds (ruling 13-6), never its native Strength level, weight or carry delta; body.levelDue asks the Strength minute
+-- to write the level once (Plan 13 Task 14). An existing record.body (the creation handler's, or a loaded one) is
 -- never re-read.
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
-    local sex = 1
-    if flag(player, "isFemale") then sex = 2 end
     local traits = obj(player, "getCharacterTraits")
     local muscle = MET.heldTrait(traits, MET.MUSCLE_TRAITS)
     local weight = MET.heldTrait(traits, MET.WEIGHT_TRAITS)
-    local spec = K.body.create(muscle, weight, MET.strengthP(), K.body.effSex(sex, sexSpecific()))
-    local body = K.body.new(spec, sex, ageH)
+    local body = MET.newBody(player, muscle, weight, ageH)
     body.levelDue = true
     record.body = body
     MET.stats.creates = MET.stats.creates + 1
-    NR.log.say(3, "metabolism: first sight of " .. tostring(username) .. " sex=" .. sex .. " muscle="
+    NR.log.say(3, "metabolism: first sight of " .. tostring(username) .. " sex=" .. body.sex .. " muscle="
         .. tostring(muscle) .. " weight=" .. tostring(weight))
     return body
 end

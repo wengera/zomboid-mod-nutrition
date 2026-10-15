@@ -6,9 +6,10 @@
 -- is read off the dead flag. OnNewGame fires server-side for every character a client creates, respawns included
 -- (#2411): it resets the record and evicts the username (#3358); a reset that met no readable clock stays pending
 -- and is made in the player's next queue slot. Java lists are walked with size()/get(i) (#0940).
+-- A made reset fires the onNewGame hooks (username, player, record): the creation handler (NR_Server_Creation).
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {},
+NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {}, onNewGame = {},
                       minutes = 0, drained = 0, served = 0, sight = {}, resetPending = {}, extraSet = {},
                       tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
                       budgetMs = 15, runCap = 1, wired = false, deadHealed = 0 }
@@ -64,14 +65,17 @@ function P.firstSight(username, player)
     return true
 end
 
--- A respawn's reset that OnNewGame could not make (no clock read there), made in the player's queue slot. False
--- while the clock or the store cannot be read: the reset stays pending for the next slot, never dropped.
-function P.makeReset(username)
+-- A respawn's reset that OnNewGame could not make (no clock read there), made in the player's queue slot, then the
+-- onNewGame hooks over the player object the slot holds. False while the clock or the store cannot be read: the reset
+-- stays pending for the next slot, never dropped.
+function P.makeReset(username, player)
     local age = NR.worldAge()
     if age == nil then return false end
-    if NR.server.store.reset(username, age) == nil then return false end
+    local r = NR.server.store.reset(username, age)
+    if r == nil then return false end
     P.resetPending[username] = nil
     NR.log.say(2, "players: the pending reset of " .. tostring(username) .. " is made")
+    fire(P.onNewGame, username, player, r)
     return true
 end
 
@@ -148,7 +152,7 @@ end
 function P.runOne(name)
     local player = P.online[name]
     if player ~= nil then
-        if P.resetPending[name] == true and not P.makeReset(name) then
+        if P.resetPending[name] == true and not P.makeReset(name, player) then
             P.online[name] = nil                        -- no clock: seen again, and sighted, at the next minute
             return
         end
@@ -233,7 +237,8 @@ if Events ~= nil then
                 return
             end
             P.resetPending[username] = nil
-            NR.server.store.reset(username, age)
+            local r = NR.server.store.reset(username, age)
+            if r ~= nil then fire(P.onNewGame, username, player, r) end
         end)
     end
 end
