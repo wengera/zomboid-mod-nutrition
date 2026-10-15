@@ -1,0 +1,7752 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 100.651,
+   "wall_after": 101.159,
+   "epoch_ms_before": 1792056580462,
+   "epoch_ms_after": 1792056580970,
+   "took": 0.508,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 101.159,
+   "wall_after": 101.417,
+   "epoch_ms_before": 1792056580970,
+   "epoch_ms_after": 1792056581227,
+   "took": 0.258,
+   "ack": {
+    "worldAge": 4.483878135681152,
+    "hour": 11,
+    "minutes": 29,
+    "mult": 3.985442876815796,
+    "trueMult": 1,
+    "wall": 1792056581152
+   }
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.CharacterFreePoints SandboxVars.NegativeTraitsPenalty SandboxVars.Nutrition SandboxVars.DayLength",
+   "phase": "S",
+   "wall_before": 102.943,
+   "wall_after": 103.201,
+   "epoch_ms_before": 1792056582753,
+   "epoch_ms_after": 1792056583011,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.CharacterFreePoints": 0,
+     "SandboxVars.NegativeTraitsPenalty": 1,
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1
+    }
+   }
+  },
+  {
+   "step": "S_def_Strong",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Strong",
+   "phase": "S",
+   "wall_before": 103.201,
+   "wall_after": 103.458,
+   "epoch_ms_before": 1792056583011,
+   "epoch_ms_after": 1792056583269,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Strong",
+    "field": "STRONG",
+    "cost": 10,
+    "free": false,
+    "label": "Strong",
+    "description": "UI_NR_trait_strongdesc\n+4 Strength",
+    "xpBoostsRead": true,
+    "xpBoosts": {
+     "Strength": 4
+    },
+    "exclusive": [
+     "feeble",
+     "stout",
+     "weak"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Overweight",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Overweight",
+   "phase": "S",
+   "wall_before": 103.458,
+   "wall_after": 104.218,
+   "epoch_ms_before": 1792056583269,
+   "epoch_ms_after": 1792056584028,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Overweight",
+    "field": "OVERWEIGHT",
+    "cost": -6,
+    "free": false,
+    "label": "High Weight",
+    "description": "UI_NR_trait_overweightdesc",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "athletic",
+     "fit",
+     "emaciated",
+     "very underweight",
+     "underweight",
+     "obese",
+     "weightloss"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_VeryUnderweight",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "VeryUnderweight",
+   "phase": "S",
+   "wall_before": 104.218,
+   "wall_after": 104.976,
+   "epoch_ms_before": 1792056584028,
+   "epoch_ms_after": 1792056584787,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "VeryUnderweight",
+    "field": "VERY_UNDERWEIGHT",
+    "cost": -10,
+    "free": false,
+    "label": "Very Low Weight",
+    "description": "UI_NR_trait_veryunderweightdesc",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "athletic",
+     "obese",
+     "overweight",
+     "heartyappetite",
+     "underweight",
+     "weak",
+     "feeble",
+     "weightgain",
+     "weightloss"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Feeble",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Feeble",
+   "phase": "S",
+   "wall_before": 104.976,
+   "wall_after": 105.237,
+   "epoch_ms_before": 1792056584787,
+   "epoch_ms_after": 1792056585048,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Feeble",
+    "field": "FEEBLE",
+    "cost": -6,
+    "free": false,
+    "label": "Weak",
+    "description": "UI_NR_trait_feebledesc\n-2 Strength",
+    "xpBoostsRead": true,
+    "xpBoosts": {
+     "Strength": -2
+    },
+    "exclusive": [
+     "stout",
+     "strong",
+     "weak",
+     "underweight",
+     "very underweight"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Obese",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Obese",
+   "phase": "S",
+   "wall_before": 105.238,
+   "wall_after": 105.494,
+   "epoch_ms_before": 1792056585048,
+   "epoch_ms_after": 1792056585305,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Obese",
+    "field": "OBESE",
+    "cost": -10,
+    "free": false,
+    "label": "Very High Weight",
+    "description": "UI_NR_trait_obesedesc",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "athletic",
+     "emaciated",
+     "fit",
+     "lighteater",
+     "very underweight",
+     "underweight",
+     "overweight",
+     "weightloss"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_ThickSkinned",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "ThickSkinned",
+   "phase": "S",
+   "wall_before": 105.494,
+   "wall_after": 106.252,
+   "epoch_ms_before": 1792056585305,
+   "epoch_ms_after": 1792056586063,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "ThickSkinned",
+    "field": "THICK_SKINNED",
+    "cost": 8,
+    "free": false,
+    "label": "Thick-skinned",
+    "description": "Lower chance of being scratched or bitten.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "thinskinned"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_KeenHearing",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "KeenHearing",
+   "phase": "S",
+   "wall_before": 106.252,
+   "wall_after": 106.76,
+   "epoch_ms_before": 1792056586063,
+   "epoch_ms_after": 1792056586570,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "KeenHearing",
+    "field": "KEEN_HEARING",
+    "cost": 6,
+    "free": false,
+    "label": "Keen Hearing",
+    "description": "Larger perception radius.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "deaf",
+     "hardofhearing"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_FastHealer",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "FastHealer",
+   "phase": "S",
+   "wall_before": 106.76,
+   "wall_after": 107.269,
+   "epoch_ms_before": 1792056586570,
+   "epoch_ms_after": 1792056587080,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "FastHealer",
+    "field": "FAST_HEALER",
+    "cost": 6,
+    "free": false,
+    "label": "Fast Healer",
+    "description": "Recovers quickly from injuries and illness.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "slowhealer"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Brave",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Brave",
+   "phase": "S",
+   "wall_before": 107.269,
+   "wall_after": 107.525,
+   "epoch_ms_before": 1792056587080,
+   "epoch_ms_after": 1792056587336,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Brave",
+    "field": "BRAVE",
+    "cost": 4,
+    "free": false,
+    "label": "Brave",
+    "description": "Less prone to becoming panicked.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "cowardly",
+     "agoraphobic",
+     "claustrophobic",
+     "desensitized"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Crafty",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Crafty",
+   "phase": "S",
+   "wall_before": 107.525,
+   "wall_after": 108.04,
+   "epoch_ms_before": 1792056587336,
+   "epoch_ms_after": 1792056587851,
+   "took": 0.515,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Crafty",
+    "field": "CRAFTY",
+    "cost": 3,
+    "free": false,
+    "label": "Crafty",
+    "description": "Increased XP gains for Crafting skills.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "fastlearner",
+     "slowlearner"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Dextrous",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Dextrous",
+   "phase": "S",
+   "wall_before": 108.04,
+   "wall_after": 108.799,
+   "epoch_ms_before": 1792056587851,
+   "epoch_ms_after": 1792056588610,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Dextrous",
+    "field": "DEXTROUS",
+    "cost": 2,
+    "free": false,
+    "label": "Dextrous",
+    "description": "Transfers inventory items quickly.\nFaster rope climbing speed, and less chance of falling.\nFaster weapon shouldering time.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "allthumbs"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_SpeedDemon",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "SpeedDemon",
+   "phase": "S",
+   "wall_before": 108.799,
+   "wall_after": 109.056,
+   "epoch_ms_before": 1792056588610,
+   "epoch_ms_after": 1792056588867,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "SpeedDemon",
+    "field": "SPEED_DEMON",
+    "cost": 1,
+    "free": false,
+    "label": "Speed Demon",
+    "description": "Drives very fast.",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "sundaydriver"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Weak",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Weak",
+   "phase": "S",
+   "wall_before": 109.056,
+   "wall_after": 109.317,
+   "epoch_ms_before": 1792056588867,
+   "epoch_ms_after": 1792056589128,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Weak",
+    "field": "WEAK",
+    "cost": -10,
+    "free": false,
+    "label": "Puny",
+    "description": "UI_NR_trait_weakdesc\n-5 Strength",
+    "xpBoostsRead": true,
+    "xpBoosts": {
+     "Strength": -5
+    },
+    "exclusive": [
+     "feeble",
+     "stout",
+     "strong",
+     "underweight",
+     "very underweight"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_def_Underweight",
+   "side": "server",
+   "cmd": "trait.def",
+   "args": "Underweight",
+   "phase": "S",
+   "wall_before": 109.317,
+   "wall_after": 110.076,
+   "epoch_ms_before": 1792056589128,
+   "epoch_ms_after": 1792056589887,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "trait": "Underweight",
+    "field": "UNDERWEIGHT",
+    "cost": -6,
+    "free": false,
+    "label": "Low Weight",
+    "description": "UI_NR_trait_underweightdesc",
+    "xpBoostsRead": true,
+    "xpBoosts": {},
+    "exclusive": [
+     "obese",
+     "very underweight",
+     "overweight",
+     "weak",
+     "feeble",
+     "weightgain"
+    ],
+    "granted": {}
+   }
+  },
+  {
+   "step": "S_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "S",
+   "wall_before": 110.076,
+   "wall_after": 110.584,
+   "epoch_ms_before": 1792056589887,
+   "epoch_ms_after": 1792056590394,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "S_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "S",
+   "wall_before": 110.584,
+   "wall_after": 111.093,
+   "epoch_ms_before": 1792056590394,
+   "epoch_ms_after": 1792056590903,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Ca_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "bob 110",
+   "phase": "Ca",
+   "wall_before": 111.366,
+   "wall_after": 111.874,
+   "epoch_ms_before": 1792056591177,
+   "epoch_ms_after": 1792056591685,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 100,
+    "parts": [
+     35.29412078857422,
+     35.29412078857422,
+     67.64706420898438,
+     67.64706420898438,
+     78.4313735961914,
+     78.4313735961914,
+     81.51260375976562,
+     83.82353210449219,
+     89.21568298339844,
+     90.75630187988281,
+     83.82353210449219,
+     78.4313735961914,
+     78.4313735961914,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438
+    ],
+    "health": 100,
+    "after": 100
+   }
+  },
+  {
+   "step": "Ca_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Ca",
+   "wall_before": 112.633,
+   "wall_after": 113.391,
+   "epoch_ms_before": 1792056592443,
+   "epoch_ms_after": 1792056593201,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ca_onRespawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "Ca",
+   "wall_before": 113.391,
+   "wall_after": 113.898,
+   "epoch_ms_before": 1792056593201,
+   "epoch_ms_after": 1792056593709,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Ca_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ca",
+   "wall_before": 113.898,
+   "wall_after": 114.405,
+   "epoch_ms_before": 1792056593709,
+   "epoch_ms_after": 1792056594216,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ca_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ca",
+   "wall_before": 114.405,
+   "wall_after": 114.913,
+   "epoch_ms_before": 1792056594216,
+   "epoch_ms_after": 1792056594724,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ca_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ca",
+   "wall_before": 114.913,
+   "wall_after": 115.427,
+   "epoch_ms_before": 1792056594724,
+   "epoch_ms_after": 1792056595238,
+   "took": 0.514,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ca_accept",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "Ca",
+   "wall_before": 115.427,
+   "wall_after": 115.935,
+   "epoch_ms_before": 1792056595238,
+   "epoch_ms_after": 1792056595746,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Ca_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "Ca",
+   "wall_before": 120.194,
+   "wall_after": 120.701,
+   "epoch_ms_before": 1792056600005,
+   "epoch_ms_after": 1792056600512,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "Ca_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "Ca",
+   "wall_before": 120.701,
+   "wall_after": 121.209,
+   "epoch_ms_before": 1792056600512,
+   "epoch_ms_after": 1792056601020,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Ca_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "Ca",
+   "wall_before": 121.209,
+   "wall_after": 121.47,
+   "epoch_ms_before": 1792056601020,
+   "epoch_ms_after": 1792056601281,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 52.019999999999996,
+     "body.fm": 13.004999999999999,
+     "body.lx": 0,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.019999999999996,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 4.983525276184082,
+     "body.levelDue": false,
+     "body.wroteL": 5,
+     "body.pDay": 0,
+     "body.ebDay": -10.090090697448765,
+     "body.eeDay": 10.090090697448765,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "normal",
+     "body.fatT": 0,
+     "body.thinT": 0,
+     "body.fmRef": 13.004999999999999,
+     "body.tDisuse": 0,
+     "body.bornAge": 4.856473922729492,
+     "body.sex": 2,
+     "body.delta": 1,
+     "body.lm0dis": 52.019999999999996,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "Ca_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "Ca",
+   "wall_before": 121.47,
+   "wall_after": 121.985,
+   "epoch_ms_before": 1792056601281,
+   "epoch_ms_after": 1792056601795,
+   "took": 0.515,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 65.02499999999999,
+     "body.mass7.2": 65.02499999999999,
+     "body.mass7.3": 65.02499999999999,
+     "body.mass7.4": 65.02499999999999,
+     "body.mass7.5": 65.02499999999999,
+     "body.mass7.6": 65.02499999999999,
+     "body.mass7.7": 65.02499999999999,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "Ca_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "bob",
+   "phase": "Ca",
+   "wall_before": 121.985,
+   "wall_after": 122.5,
+   "epoch_ms_before": 1792056601795,
+   "epoch_ms_after": 1792056602311,
+   "took": 0.515,
+   "ack": {
+    "calories": -12.83092975616455,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.20666469633579254,
+    "thirst": 0.00923756044358015,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 5.033929824829102,
+    "mult": 4.768933296203613,
+    "wall": 1792056602247
+   }
+  },
+  {
+   "step": "Ca_pair_c",
+   "side": "client:bob",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "Ca",
+   "wall_before": 122.5,
+   "wall_after": 123.009,
+   "epoch_ms_before": 1792056602311,
+   "epoch_ms_after": 1792056602820,
+   "took": 0.509,
+   "ack": {
+    "calories": -14.093376159667969,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.0250015258789,
+    "hunger": 0.20687459409236908,
+    "thirst": 0.010208295658230782,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 5.043203353881836,
+    "mult": 0.8000831604003906,
+    "wall": 1792056602598
+   }
+  },
+  {
+   "step": "Ca_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "bob Strength",
+   "phase": "Ca",
+   "wall_before": 123.009,
+   "wall_after": 123.268,
+   "epoch_ms_before": 1792056602820,
+   "epoch_ms_after": 1792056603078,
+   "took": 0.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "bob",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 5.04984188079834
+   }
+  },
+  {
+   "step": "Ca_pair_cx",
+   "side": "client:bob",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "Ca",
+   "wall_before": 123.268,
+   "wall_after": 123.525,
+   "epoch_ms_before": 1792056603078,
+   "epoch_ms_after": 1792056603335,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 37500,
+    "level": 5
+   }
+  },
+  {
+   "step": "Cb_arm",
+   "side": "client:bob",
+   "cmd": "creation.picks",
+   "args": "Strong Overweight",
+   "phase": "Cb",
+   "wall_before": 123.526,
+   "wall_after": 124.035,
+   "epoch_ms_before": 1792056603337,
+   "epoch_ms_after": 1792056603846,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Strong",
+     "Overweight"
+    ]
+   }
+  },
+  {
+   "step": "Cb_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "bob 110",
+   "phase": "Cb",
+   "wall_before": 124.546,
+   "wall_after": 125.054,
+   "epoch_ms_before": 1792056604356,
+   "epoch_ms_after": 1792056604865,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 100,
+    "parts": [
+     35.29412078857422,
+     35.29412078857422,
+     67.64706420898438,
+     67.64706420898438,
+     78.4313735961914,
+     78.4313735961914,
+     81.51260375976562,
+     83.82353210449219,
+     89.21568298339844,
+     90.75630187988281,
+     83.82353210449219,
+     78.4313735961914,
+     78.4313735961914,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438
+    ],
+    "health": 100,
+    "after": 100
+   }
+  },
+  {
+   "step": "Cb_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Cb",
+   "wall_before": 125.813,
+   "wall_after": 126.321,
+   "epoch_ms_before": 1792056605623,
+   "epoch_ms_after": 1792056606132,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_onRespawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "Cb",
+   "wall_before": 126.321,
+   "wall_after": 126.829,
+   "epoch_ms_before": 1792056606132,
+   "epoch_ms_after": 1792056606640,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 126.829,
+   "wall_after": 127.336,
+   "epoch_ms_before": 1792056606640,
+   "epoch_ms_after": 1792056607147,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 127.336,
+   "wall_after": 127.843,
+   "epoch_ms_before": 1792056607147,
+   "epoch_ms_after": 1792056607653,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 127.843,
+   "wall_after": 128.354,
+   "epoch_ms_before": 1792056607653,
+   "epoch_ms_after": 1792056608165,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 129.354,
+   "wall_after": 129.863,
+   "epoch_ms_before": 1792056609165,
+   "epoch_ms_after": 1792056609673,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 129.863,
+   "wall_after": 130.375,
+   "epoch_ms_before": 1792056609673,
+   "epoch_ms_after": 1792056610185,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 130.375,
+   "wall_after": 130.887,
+   "epoch_ms_before": 1792056610185,
+   "epoch_ms_after": 1792056610698,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 131.888,
+   "wall_after": 132.401,
+   "epoch_ms_before": 1792056611698,
+   "epoch_ms_after": 1792056612211,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 132.401,
+   "wall_after": 132.914,
+   "epoch_ms_before": 1792056612211,
+   "epoch_ms_after": 1792056612724,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 132.914,
+   "wall_after": 133.425,
+   "epoch_ms_before": 1792056612724,
+   "epoch_ms_after": 1792056613236,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 134.426,
+   "wall_after": 134.937,
+   "epoch_ms_before": 1792056614236,
+   "epoch_ms_after": 1792056614748,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 134.937,
+   "wall_after": 135.449,
+   "epoch_ms_before": 1792056614748,
+   "epoch_ms_after": 1792056615260,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 135.449,
+   "wall_after": 135.957,
+   "epoch_ms_before": 1792056615260,
+   "epoch_ms_after": 1792056615768,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 136.958,
+   "wall_after": 137.466,
+   "epoch_ms_before": 1792056616768,
+   "epoch_ms_after": 1792056617276,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 137.466,
+   "wall_after": 137.977,
+   "epoch_ms_before": 1792056617276,
+   "epoch_ms_after": 1792056617788,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 137.977,
+   "wall_after": 138.489,
+   "epoch_ms_before": 1792056617788,
+   "epoch_ms_after": 1792056618300,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 139.49,
+   "wall_after": 139.998,
+   "epoch_ms_before": 1792056619301,
+   "epoch_ms_after": 1792056619809,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 139.998,
+   "wall_after": 140.507,
+   "epoch_ms_before": 1792056619809,
+   "epoch_ms_after": 1792056620318,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 140.507,
+   "wall_after": 141.016,
+   "epoch_ms_before": 1792056620318,
+   "epoch_ms_after": 1792056620826,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 142.016,
+   "wall_after": 142.527,
+   "epoch_ms_before": 1792056621827,
+   "epoch_ms_after": 1792056622337,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 142.527,
+   "wall_after": 143.033,
+   "epoch_ms_before": 1792056622337,
+   "epoch_ms_after": 1792056622844,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cb",
+   "wall_before": 143.033,
+   "wall_after": 143.289,
+   "epoch_ms_before": 1792056622844,
+   "epoch_ms_after": 1792056623099,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cb_clickNext",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance clickNext",
+   "phase": "Cb",
+   "wall_before": 143.289,
+   "wall_after": 143.8,
+   "epoch_ms_before": 1792056623099,
+   "epoch_ms_after": 1792056623611,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "clickNext",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cb_accept",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "Cb",
+   "wall_before": 146.8,
+   "wall_after": 147.319,
+   "epoch_ms_before": 1792056626611,
+   "epoch_ms_after": 1792056627130,
+   "took": 0.519,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cb_fired",
+   "side": "client:bob",
+   "cmd": "lua.read",
+   "args": "_G TK.picksFired.count TK.picksFired.error",
+   "phase": "Cb",
+   "wall_before": 147.576,
+   "wall_after": 147.836,
+   "epoch_ms_before": 1792056627387,
+   "epoch_ms_after": 1792056627647,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 2,
+    "missing": {
+     "TK.picksFired.error": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "TK.picksFired.count": 1
+    }
+   }
+  },
+  {
+   "step": "Cb_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "Cb",
+   "wall_before": 151.576,
+   "wall_after": 152.087,
+   "epoch_ms_before": 1792056631387,
+   "epoch_ms_after": 1792056631897,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "Cb_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "Cb",
+   "wall_before": 152.087,
+   "wall_after": 152.595,
+   "epoch_ms_before": 1792056631897,
+   "epoch_ms_after": 1792056632405,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Cb_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "Cb",
+   "wall_before": 152.595,
+   "wall_after": 153.106,
+   "epoch_ms_before": 1792056632405,
+   "epoch_ms_after": 1792056632917,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 60.85672078038634,
+     "body.fm": 21.674999999999997,
+     "body.lx": 0,
+     "body.F0": 56.43836039019317,
+     "body.Fc": 70.4293,
+     "body.Pk": 60.85672078038634,
+     "body.N0": 1.14,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 5.835168838500977,
+     "body.levelDue": false,
+     "body.wroteL": 9,
+     "body.pDay": 0,
+     "body.ebDay": -12.95074232948849,
+     "body.eeDay": 12.95074232948849,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "overweight",
+     "body.fatT": 1,
+     "body.thinT": 0,
+     "body.fmRef": 21.674999999999997,
+     "body.tDisuse": 0,
+     "body.bornAge": 5.694286346435547,
+     "body.sex": 2,
+     "body.delta": 1.5,
+     "body.lm0dis": 60.85672078038634,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "Cb_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "Cb",
+   "wall_before": 153.106,
+   "wall_after": 153.365,
+   "epoch_ms_before": 1792056632917,
+   "epoch_ms_after": 1792056633176,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 82.53172078038634,
+     "body.mass7.2": 82.53172078038634,
+     "body.mass7.3": 82.53172078038634,
+     "body.mass7.4": 82.53172078038634,
+     "body.mass7.5": 82.53172078038634,
+     "body.mass7.6": 82.53172078038634,
+     "body.mass7.7": 82.53172078038634,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "Cb_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "bob",
+   "phase": "Cb",
+   "wall_before": 153.365,
+   "wall_after": 153.88,
+   "epoch_ms_before": 1792056633176,
+   "epoch_ms_after": 1792056633691,
+   "took": 0.515,
+   "ack": {
+    "calories": -14.415127754211426,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 82.53172078038634,
+    "hunger": 0.2104063481092453,
+    "thirst": 0.007510533090680838,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": true,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "overweight",
+     "strong"
+    ],
+    "maxWeight": 27,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 5.8669843673706055,
+    "mult": 4.7675323486328125,
+    "wall": 1792056633553
+   }
+  },
+  {
+   "step": "Cb_pair_c",
+   "side": "client:bob",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "Cb",
+   "wall_before": 153.88,
+   "wall_after": 154.392,
+   "epoch_ms_before": 1792056633691,
+   "epoch_ms_after": 1792056634203,
+   "took": 0.512,
+   "ack": {
+    "calories": -15.875794410705566,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 82.53172302246094,
+    "hunger": 0.2106298804283142,
+    "thirst": 0.008311002515256405,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": true,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "overweight",
+     "strong"
+    ],
+    "maxWeight": 27,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 5.881688117980957,
+    "mult": 0.8000783920288086,
+    "wall": 1792056634096
+   }
+  },
+  {
+   "step": "Cb_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "bob Strength",
+   "phase": "Cb",
+   "wall_before": 154.393,
+   "wall_after": 154.65,
+   "epoch_ms_before": 1792056634203,
+   "epoch_ms_after": 1792056634461,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "bob",
+    "side": "server",
+    "xp": 337500,
+    "level": 9,
+    "serverWorldAge": 5.885531425476074
+   }
+  },
+  {
+   "step": "Cb_pair_cx",
+   "side": "client:bob",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "Cb",
+   "wall_before": 154.65,
+   "wall_after": 154.908,
+   "epoch_ms_before": 1792056634461,
+   "epoch_ms_after": 1792056634718,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 337500,
+    "level": 9
+   }
+  },
+  {
+   "step": "Cc_arm",
+   "side": "client:bob",
+   "cmd": "creation.picks",
+   "args": "Strong VeryUnderweight",
+   "phase": "Cc",
+   "wall_before": 154.912,
+   "wall_after": 155.423,
+   "epoch_ms_before": 1792056634723,
+   "epoch_ms_after": 1792056635234,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Strong",
+     "VeryUnderweight"
+    ]
+   }
+  },
+  {
+   "step": "Cc_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "bob 110",
+   "phase": "Cc",
+   "wall_before": 155.684,
+   "wall_after": 156.447,
+   "epoch_ms_before": 1792056635495,
+   "epoch_ms_after": 1792056636257,
+   "took": 0.763,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 100,
+    "parts": [
+     35.29412078857422,
+     35.29412078857422,
+     67.64706420898438,
+     67.64706420898438,
+     78.4313735961914,
+     78.4313735961914,
+     81.51260375976562,
+     83.82353210449219,
+     89.21568298339844,
+     90.75630187988281,
+     83.82353210449219,
+     78.4313735961914,
+     78.4313735961914,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438
+    ],
+    "health": 100,
+    "after": 100
+   }
+  },
+  {
+   "step": "Cc_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Cc",
+   "wall_before": 156.955,
+   "wall_after": 157.465,
+   "epoch_ms_before": 1792056636766,
+   "epoch_ms_after": 1792056637276,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "failedAt": "0"
+   }
+  },
+  {
+   "step": "Cc_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Cc",
+   "wall_before": 158.465,
+   "wall_after": 158.973,
+   "epoch_ms_before": 1792056638276,
+   "epoch_ms_after": 1792056638783,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_onRespawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "Cc",
+   "wall_before": 158.973,
+   "wall_after": 159.485,
+   "epoch_ms_before": 1792056638783,
+   "epoch_ms_after": 1792056639296,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 159.485,
+   "wall_after": 159.998,
+   "epoch_ms_before": 1792056639296,
+   "epoch_ms_after": 1792056639809,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 159.998,
+   "wall_after": 160.513,
+   "epoch_ms_before": 1792056639809,
+   "epoch_ms_after": 1792056640324,
+   "took": 0.515,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 160.513,
+   "wall_after": 161.026,
+   "epoch_ms_before": 1792056640324,
+   "epoch_ms_after": 1792056640837,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 162.026,
+   "wall_after": 162.536,
+   "epoch_ms_before": 1792056641837,
+   "epoch_ms_after": 1792056642347,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 162.536,
+   "wall_after": 162.79,
+   "epoch_ms_before": 1792056642347,
+   "epoch_ms_after": 1792056642601,
+   "took": 0.254,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 162.79,
+   "wall_after": 163.3,
+   "epoch_ms_before": 1792056642601,
+   "epoch_ms_after": 1792056643111,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 164.301,
+   "wall_after": 164.813,
+   "epoch_ms_before": 1792056644112,
+   "epoch_ms_after": 1792056644623,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 164.813,
+   "wall_after": 165.323,
+   "epoch_ms_before": 1792056644623,
+   "epoch_ms_after": 1792056645134,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 165.323,
+   "wall_after": 165.833,
+   "epoch_ms_before": 1792056645134,
+   "epoch_ms_after": 1792056645644,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 166.834,
+   "wall_after": 167.344,
+   "epoch_ms_before": 1792056646645,
+   "epoch_ms_after": 1792056647155,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 167.344,
+   "wall_after": 167.854,
+   "epoch_ms_before": 1792056647155,
+   "epoch_ms_after": 1792056647665,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 167.854,
+   "wall_after": 168.366,
+   "epoch_ms_before": 1792056647665,
+   "epoch_ms_after": 1792056648176,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 169.366,
+   "wall_after": 169.873,
+   "epoch_ms_before": 1792056649177,
+   "epoch_ms_after": 1792056649684,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 169.873,
+   "wall_after": 170.382,
+   "epoch_ms_before": 1792056649684,
+   "epoch_ms_after": 1792056650193,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 170.382,
+   "wall_after": 170.889,
+   "epoch_ms_before": 1792056650193,
+   "epoch_ms_after": 1792056650699,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 171.889,
+   "wall_after": 172.398,
+   "epoch_ms_before": 1792056651700,
+   "epoch_ms_after": 1792056652208,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 172.398,
+   "wall_after": 172.908,
+   "epoch_ms_before": 1792056652208,
+   "epoch_ms_after": 1792056652719,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 172.908,
+   "wall_after": 173.418,
+   "epoch_ms_before": 1792056652719,
+   "epoch_ms_after": 1792056653229,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 174.419,
+   "wall_after": 174.929,
+   "epoch_ms_before": 1792056654229,
+   "epoch_ms_after": 1792056654740,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 174.929,
+   "wall_after": 175.438,
+   "epoch_ms_before": 1792056654740,
+   "epoch_ms_after": 1792056655248,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cc",
+   "wall_before": 175.438,
+   "wall_after": 175.945,
+   "epoch_ms_before": 1792056655248,
+   "epoch_ms_after": 1792056655756,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cc_clickNext",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance clickNext",
+   "phase": "Cc",
+   "wall_before": 175.945,
+   "wall_after": 176.458,
+   "epoch_ms_before": 1792056655756,
+   "epoch_ms_after": 1792056656268,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "clickNext",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cc_accept",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "Cc",
+   "wall_before": 179.458,
+   "wall_after": 179.967,
+   "epoch_ms_before": 1792056659269,
+   "epoch_ms_after": 1792056659778,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cc_fired",
+   "side": "client:bob",
+   "cmd": "lua.read",
+   "args": "_G TK.picksFired.count TK.picksFired.error",
+   "phase": "Cc",
+   "wall_before": 180.224,
+   "wall_after": 180.481,
+   "epoch_ms_before": 1792056660035,
+   "epoch_ms_after": 1792056660292,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 2,
+    "missing": {
+     "TK.picksFired.error": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "TK.picksFired.count": 2
+    }
+   }
+  },
+  {
+   "step": "Cc_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "Cc",
+   "wall_before": 184.225,
+   "wall_after": 184.483,
+   "epoch_ms_before": 1792056664036,
+   "epoch_ms_after": 1792056664294,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "Cc_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "Cc",
+   "wall_before": 184.483,
+   "wall_after": 185.243,
+   "epoch_ms_before": 1792056664294,
+   "epoch_ms_after": 1792056665054,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Cc_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "Cc",
+   "wall_before": 185.243,
+   "wall_after": 185.75,
+   "epoch_ms_before": 1792056665054,
+   "epoch_ms_after": 1792056665561,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 44.794999999999995,
+     "body.fm": 2.8899999999999997,
+     "body.lx": 0,
+     "body.F0": 56.43836039019317,
+     "body.Fc": 70.4293,
+     "body.Pk": 60.85672078038634,
+     "body.N0": 1.14,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 6.685168266296387,
+     "body.levelDue": false,
+     "body.wroteL": 3,
+     "body.pDay": 0,
+     "body.ebDay": -8.624469970561009,
+     "body.eeDay": 8.624469970561009,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "veryUnderweight",
+     "body.fatT": 0,
+     "body.thinT": 2,
+     "body.fmRef": 2.8899999999999997,
+     "body.tDisuse": 0,
+     "body.bornAge": 6.558869361877441,
+     "body.sex": 2,
+     "body.delta": 0.9,
+     "body.lm0dis": 44.794999999999995,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "Cc_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "Cc",
+   "wall_before": 185.75,
+   "wall_after": 186.513,
+   "epoch_ms_before": 1792056665561,
+   "epoch_ms_after": 1792056666323,
+   "took": 0.763,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 47.684999999999995,
+     "body.mass7.2": 47.684999999999995,
+     "body.mass7.3": 47.684999999999995,
+     "body.mass7.4": 47.684999999999995,
+     "body.mass7.5": 47.684999999999995,
+     "body.mass7.6": 47.684999999999995,
+     "body.mass7.7": 47.684999999999995,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "Cc_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "bob",
+   "phase": "Cc",
+   "wall_before": 186.513,
+   "wall_after": 187.273,
+   "epoch_ms_before": 1792056666324,
+   "epoch_ms_after": 1792056667084,
+   "took": 0.76,
+   "ack": {
+    "calories": -10.83858585357666,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 47.684999999999995,
+    "hunger": 0.21441830694675446,
+    "thirst": 0.01155545748770237,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": true,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "very underweight",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 6.735483169555664,
+    "mult": 4.6249589920043945,
+    "wall": 1792056666848
+   }
+  },
+  {
+   "step": "Cc_pair_c",
+   "side": "client:bob",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "Cc",
+   "wall_before": 187.273,
+   "wall_after": 187.536,
+   "epoch_ms_before": 1792056667084,
+   "epoch_ms_after": 1792056667347,
+   "took": 0.263,
+   "ack": {
+    "calories": -10.83858585357666,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 47.685001373291016,
+    "hunger": 0.21441830694675446,
+    "thirst": 0.01155545748770237,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": true,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "very underweight",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 6.757514953613281,
+    "mult": 0.7999728322029114,
+    "wall": 1792056667093
+   }
+  },
+  {
+   "step": "Cc_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "bob Strength",
+   "phase": "Cc",
+   "wall_before": 187.536,
+   "wall_after": 187.793,
+   "epoch_ms_before": 1792056667347,
+   "epoch_ms_after": 1792056667604,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "bob",
+    "side": "server",
+    "xp": 10500,
+    "level": 3,
+    "serverWorldAge": 6.750990867614746
+   }
+  },
+  {
+   "step": "Cc_pair_cx",
+   "side": "client:bob",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "Cc",
+   "wall_before": 187.793,
+   "wall_after": 188.301,
+   "epoch_ms_before": 1792056667604,
+   "epoch_ms_after": 1792056668111,
+   "took": 0.508,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 10500,
+    "level": 3
+   }
+  },
+  {
+   "step": "Cd_arm",
+   "side": "client:bob",
+   "cmd": "creation.picks",
+   "args": "Feeble Obese Overweight ThickSkinned KeenHearing FastHealer Brave Crafty Dextrous SpeedDemon",
+   "phase": "Cd",
+   "wall_before": 188.304,
+   "wall_after": 188.814,
+   "epoch_ms_before": 1792056668115,
+   "epoch_ms_after": 1792056668624,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Feeble",
+     "Obese",
+     "Overweight",
+     "ThickSkinned",
+     "KeenHearing",
+     "FastHealer",
+     "Brave",
+     "Crafty",
+     "Dextrous",
+     "SpeedDemon"
+    ]
+   }
+  },
+  {
+   "step": "Cd_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "bob 110",
+   "phase": "Cd",
+   "wall_before": 189.07,
+   "wall_after": 189.582,
+   "epoch_ms_before": 1792056668881,
+   "epoch_ms_after": 1792056669392,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 100,
+    "parts": [
+     35.29412078857422,
+     35.29412078857422,
+     67.64706420898438,
+     67.64706420898438,
+     78.4313735961914,
+     78.4313735961914,
+     81.51260375976562,
+     83.82353210449219,
+     89.21568298339844,
+     90.75630187988281,
+     83.82353210449219,
+     78.4313735961914,
+     78.4313735961914,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438
+    ],
+    "health": 100,
+    "after": 100
+   }
+  },
+  {
+   "step": "Cd_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Cd",
+   "wall_before": 190.342,
+   "wall_after": 190.855,
+   "epoch_ms_before": 1792056670153,
+   "epoch_ms_after": 1792056670665,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_onRespawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "Cd",
+   "wall_before": 190.855,
+   "wall_after": 191.362,
+   "epoch_ms_before": 1792056670665,
+   "epoch_ms_after": 1792056671173,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 191.362,
+   "wall_after": 191.87,
+   "epoch_ms_before": 1792056671173,
+   "epoch_ms_after": 1792056671681,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 191.87,
+   "wall_after": 192.38,
+   "epoch_ms_before": 1792056671681,
+   "epoch_ms_after": 1792056672191,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 192.38,
+   "wall_after": 192.891,
+   "epoch_ms_before": 1792056672191,
+   "epoch_ms_after": 1792056672702,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 193.891,
+   "wall_after": 194.4,
+   "epoch_ms_before": 1792056673702,
+   "epoch_ms_after": 1792056674211,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 194.4,
+   "wall_after": 194.908,
+   "epoch_ms_before": 1792056674211,
+   "epoch_ms_after": 1792056674719,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 194.908,
+   "wall_after": 195.418,
+   "epoch_ms_before": 1792056674719,
+   "epoch_ms_after": 1792056675229,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 196.419,
+   "wall_after": 196.93,
+   "epoch_ms_before": 1792056676229,
+   "epoch_ms_after": 1792056676741,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 196.93,
+   "wall_after": 197.441,
+   "epoch_ms_before": 1792056676741,
+   "epoch_ms_after": 1792056677252,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 197.441,
+   "wall_after": 197.95,
+   "epoch_ms_before": 1792056677252,
+   "epoch_ms_after": 1792056677760,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 198.95,
+   "wall_after": 199.458,
+   "epoch_ms_before": 1792056678761,
+   "epoch_ms_after": 1792056679269,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 199.458,
+   "wall_after": 199.967,
+   "epoch_ms_before": 1792056679269,
+   "epoch_ms_after": 1792056679778,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 199.967,
+   "wall_after": 200.476,
+   "epoch_ms_before": 1792056679778,
+   "epoch_ms_after": 1792056680287,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 201.477,
+   "wall_after": 201.985,
+   "epoch_ms_before": 1792056681288,
+   "epoch_ms_after": 1792056681796,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 201.985,
+   "wall_after": 202.495,
+   "epoch_ms_before": 1792056681796,
+   "epoch_ms_after": 1792056682306,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 202.495,
+   "wall_after": 203.003,
+   "epoch_ms_before": 1792056682306,
+   "epoch_ms_after": 1792056682814,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 204.003,
+   "wall_after": 204.511,
+   "epoch_ms_before": 1792056683814,
+   "epoch_ms_after": 1792056684322,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 204.511,
+   "wall_after": 205.021,
+   "epoch_ms_before": 1792056684322,
+   "epoch_ms_after": 1792056684832,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 205.021,
+   "wall_after": 205.532,
+   "epoch_ms_before": 1792056684832,
+   "epoch_ms_after": 1792056685342,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 206.532,
+   "wall_after": 207.039,
+   "epoch_ms_before": 1792056686343,
+   "epoch_ms_after": 1792056686849,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 207.039,
+   "wall_after": 207.297,
+   "epoch_ms_before": 1792056686849,
+   "epoch_ms_after": 1792056687108,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Cd",
+   "wall_before": 207.297,
+   "wall_after": 207.806,
+   "epoch_ms_before": 1792056687108,
+   "epoch_ms_after": 1792056687617,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Cd_clickNext",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance clickNext",
+   "phase": "Cd",
+   "wall_before": 207.806,
+   "wall_after": 208.314,
+   "epoch_ms_before": 1792056687617,
+   "epoch_ms_after": 1792056688124,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "clickNext",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cd_accept",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "Cd",
+   "wall_before": 211.314,
+   "wall_after": 211.823,
+   "epoch_ms_before": 1792056691125,
+   "epoch_ms_after": 1792056691634,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Cd_fired",
+   "side": "client:bob",
+   "cmd": "lua.read",
+   "args": "_G TK.picksFired.count TK.picksFired.error",
+   "phase": "Cd",
+   "wall_before": 212.33,
+   "wall_after": 212.838,
+   "epoch_ms_before": 1792056692140,
+   "epoch_ms_after": 1792056692649,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 2,
+    "missing": {
+     "TK.picksFired.error": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "TK.picksFired.count": 3
+    }
+   }
+  },
+  {
+   "step": "Cd_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "Cd",
+   "wall_before": 216.33,
+   "wall_after": 216.588,
+   "epoch_ms_before": 1792056696141,
+   "epoch_ms_after": 1792056696399,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "Cd_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "Cd",
+   "wall_before": 216.588,
+   "wall_after": 217.096,
+   "epoch_ms_before": 1792056696399,
+   "epoch_ms_after": 1792056696907,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Cd_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "Cd",
+   "wall_before": 217.096,
+   "wall_after": 217.354,
+   "epoch_ms_before": 1792056696907,
+   "epoch_ms_after": 1792056697164,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 47.29591525798105,
+     "body.fm": 21.674999999999997,
+     "body.lx": 0,
+     "body.F0": 49.65795762899052,
+     "body.Fc": 66.27545762899052,
+     "body.Pk": 49.65795762899052,
+     "body.N0": 0.915,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 7.516736030578613,
+     "body.levelDue": false,
+     "body.wroteL": 3,
+     "body.pDay": 0,
+     "body.ebDay": -9.592281402074164,
+     "body.eeDay": 9.592281402074164,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "overweight",
+     "body.fatT": 1,
+     "body.thinT": 0,
+     "body.fmRef": 21.674999999999997,
+     "body.tDisuse": 0,
+     "body.bornAge": 7.391714096069336,
+     "body.sex": 1,
+     "body.delta": 0.8961490163917638,
+     "body.lm0dis": 47.29591525798105,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "Cd_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "Cd",
+   "wall_before": 217.354,
+   "wall_after": 217.863,
+   "epoch_ms_before": 1792056697164,
+   "epoch_ms_after": 1792056697674,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 68.97091525798105,
+     "body.mass7.2": 68.97091525798105,
+     "body.mass7.3": 68.97091525798105,
+     "body.mass7.4": 68.97091525798105,
+     "body.mass7.5": 68.97091525798105,
+     "body.mass7.6": 68.97091525798105,
+     "body.mass7.7": 68.97091525798105,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "Cd_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "bob",
+   "phase": "Cd",
+   "wall_before": 217.864,
+   "wall_after": 218.372,
+   "epoch_ms_before": 1792056697674,
+   "epoch_ms_after": 1792056698183,
+   "took": 0.508,
+   "ack": {
+    "calories": -12.24793529510498,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 68.97091525798105,
+    "hunger": 0.21841295063495636,
+    "thirst": 0.00937591027468443,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": true,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "overweight",
+     "keenhearing",
+     "brave",
+     "crafty",
+     "dextrous",
+     "speeddemon",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 7.567300796508789,
+    "mult": 4.785562038421631,
+    "wall": 1792056698151
+   }
+  },
+  {
+   "step": "Cd_pair_c",
+   "side": "client:bob",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "Cd",
+   "wall_before": 218.372,
+   "wall_after": 218.88,
+   "epoch_ms_before": 1792056698183,
+   "epoch_ms_after": 1792056698691,
+   "took": 0.508,
+   "ack": {
+    "calories": -13.472352981567383,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 68.97091674804688,
+    "hunger": 0.2186376005411148,
+    "thirst": 0.010377993807196617,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": true,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "overweight",
+     "keenhearing",
+     "brave",
+     "crafty",
+     "dextrous",
+     "speeddemon",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 7.577029228210449,
+    "mult": 0.7999440431594849,
+    "wall": 1792056698595
+   }
+  },
+  {
+   "step": "Cd_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "bob Strength",
+   "phase": "Cd",
+   "wall_before": 218.88,
+   "wall_after": 219.14,
+   "epoch_ms_before": 1792056698691,
+   "epoch_ms_after": 1792056698950,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "bob",
+    "side": "server",
+    "xp": 10500,
+    "level": 3,
+    "serverWorldAge": 7.585914611816406
+   }
+  },
+  {
+   "step": "Cd_pair_cx",
+   "side": "client:bob",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "Cd",
+   "wall_before": 219.14,
+   "wall_after": 219.401,
+   "epoch_ms_before": 1792056698950,
+   "epoch_ms_after": 1792056699212,
+   "took": 0.261,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 10500,
+    "level": 3
+   }
+  },
+  {
+   "step": "Ce_arm",
+   "side": "client:bob",
+   "cmd": "creation.picks",
+   "args": "Weak Underweight",
+   "phase": "Ce",
+   "wall_before": 219.405,
+   "wall_after": 219.911,
+   "epoch_ms_before": 1792056699216,
+   "epoch_ms_after": 1792056699722,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Weak",
+     "Underweight"
+    ]
+   }
+  },
+  {
+   "step": "Ce_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "bob 110",
+   "phase": "Ce",
+   "wall_before": 220.423,
+   "wall_after": 220.931,
+   "epoch_ms_before": 1792056700234,
+   "epoch_ms_after": 1792056700742,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 100,
+    "parts": [
+     35.29412078857422,
+     35.29412078857422,
+     67.64706420898438,
+     67.64706420898438,
+     78.4313735961914,
+     78.4313735961914,
+     81.51260375976562,
+     83.82353210449219,
+     89.21568298339844,
+     90.75630187988281,
+     83.82353210449219,
+     78.4313735961914,
+     78.4313735961914,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438,
+     67.64706420898438
+    ],
+    "health": 100,
+    "after": 100
+   }
+  },
+  {
+   "step": "Ce_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Ce",
+   "wall_before": 221.188,
+   "wall_after": 221.444,
+   "epoch_ms_before": 1792056700998,
+   "epoch_ms_after": 1792056701255,
+   "took": 0.256,
+   "ack": {
+    "ok": false,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "failedAt": "0"
+   }
+  },
+  {
+   "step": "Ce_ui",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "Ce",
+   "wall_before": 222.445,
+   "wall_after": 222.952,
+   "epoch_ms_before": 1792056702255,
+   "epoch_ms_after": 1792056702763,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_onRespawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "Ce",
+   "wall_before": 222.952,
+   "wall_after": 223.459,
+   "epoch_ms_before": 1792056702763,
+   "epoch_ms_after": 1792056703269,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 223.459,
+   "wall_after": 223.971,
+   "epoch_ms_before": 1792056703269,
+   "epoch_ms_after": 1792056703781,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 223.971,
+   "wall_after": 224.483,
+   "epoch_ms_before": 1792056703781,
+   "epoch_ms_after": 1792056704294,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 224.483,
+   "wall_after": 224.992,
+   "epoch_ms_before": 1792056704294,
+   "epoch_ms_after": 1792056704803,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 225.993,
+   "wall_after": 226.504,
+   "epoch_ms_before": 1792056705804,
+   "epoch_ms_after": 1792056706315,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 226.504,
+   "wall_after": 227.012,
+   "epoch_ms_before": 1792056706315,
+   "epoch_ms_after": 1792056706822,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 227.012,
+   "wall_after": 227.518,
+   "epoch_ms_before": 1792056706822,
+   "epoch_ms_after": 1792056707328,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 228.518,
+   "wall_after": 229.025,
+   "epoch_ms_before": 1792056708328,
+   "epoch_ms_after": 1792056708836,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 229.025,
+   "wall_after": 229.536,
+   "epoch_ms_before": 1792056708836,
+   "epoch_ms_after": 1792056709346,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 229.536,
+   "wall_after": 229.796,
+   "epoch_ms_before": 1792056709346,
+   "epoch_ms_after": 1792056709606,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 230.796,
+   "wall_after": 231.307,
+   "epoch_ms_before": 1792056710607,
+   "epoch_ms_after": 1792056711118,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 231.307,
+   "wall_after": 231.816,
+   "epoch_ms_before": 1792056711118,
+   "epoch_ms_after": 1792056711627,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 231.816,
+   "wall_after": 232.323,
+   "epoch_ms_before": 1792056711627,
+   "epoch_ms_after": 1792056712134,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 233.323,
+   "wall_after": 233.834,
+   "epoch_ms_before": 1792056713134,
+   "epoch_ms_after": 1792056713645,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 233.834,
+   "wall_after": 234.341,
+   "epoch_ms_before": 1792056713645,
+   "epoch_ms_after": 1792056714152,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 234.341,
+   "wall_after": 234.849,
+   "epoch_ms_before": 1792056714152,
+   "epoch_ms_after": 1792056714659,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 235.849,
+   "wall_after": 236.359,
+   "epoch_ms_before": 1792056715659,
+   "epoch_ms_after": 1792056716170,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 236.359,
+   "wall_after": 236.87,
+   "epoch_ms_before": 1792056716170,
+   "epoch_ms_after": 1792056716681,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 236.87,
+   "wall_after": 237.382,
+   "epoch_ms_before": 1792056716681,
+   "epoch_ms_after": 1792056717192,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_spawn",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 238.382,
+   "wall_after": 238.89,
+   "epoch_ms_before": 1792056718193,
+   "epoch_ms_after": 1792056718701,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 238.89,
+   "wall_after": 239.4,
+   "epoch_ms_before": 1792056718701,
+   "epoch_ms_after": 1792056719211,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_main",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "Ce",
+   "wall_before": 239.4,
+   "wall_after": 239.908,
+   "epoch_ms_before": 1792056719211,
+   "epoch_ms_after": 1792056719719,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "Ce_clickNext",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance clickNext",
+   "phase": "Ce",
+   "wall_before": 239.908,
+   "wall_after": 240.417,
+   "epoch_ms_before": 1792056719719,
+   "epoch_ms_after": 1792056720228,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "clickNext",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Ce_accept",
+   "side": "client:bob",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "Ce",
+   "wall_before": 243.417,
+   "wall_after": 243.926,
+   "epoch_ms_before": 1792056723228,
+   "epoch_ms_after": 1792056723737,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "Ce_fired",
+   "side": "client:bob",
+   "cmd": "lua.read",
+   "args": "_G TK.picksFired.count TK.picksFired.error",
+   "phase": "Ce",
+   "wall_before": 244.182,
+   "wall_after": 244.44,
+   "epoch_ms_before": 1792056723993,
+   "epoch_ms_after": 1792056724251,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 2,
+    "missing": {
+     "TK.picksFired.error": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "TK.picksFired.count": 4
+    }
+   }
+  },
+  {
+   "step": "Ce_prof",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession",
+   "phase": "Ce",
+   "wall_before": 248.183,
+   "wall_after": 248.442,
+   "epoch_ms_before": 1792056727993,
+   "epoch_ms_after": 1792056728253,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed"
+   }
+  },
+  {
+   "step": "Ce_profn",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob getDescriptor.getCharacterProfession.getName",
+   "phase": "Ce",
+   "wall_before": 248.442,
+   "wall_after": 249.204,
+   "epoch_ms_before": 1792056728253,
+   "epoch_ms_after": 1792056729015,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed"
+   }
+  },
+  {
+   "step": "Ce_body_b1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.lm body.fm body.lx body.F0 body.Fc body.Pk body.N0 body.T body.Tgrace body.grace body.S body.sigDay body.dayIndex body.wday body.lastAgeH body.levelDue body.wroteL body.pDay body.ebDay body.eeDay body.inDay body.inDayClosed body.alcDay body.band body.fatT body.thinT body.fmRef body.tDisuse body.bornAge body.sex body.delta body.lm0dis body.at body.sig7.1 body.sig7.2 body.sig7.3 body.sig7.4 body.sig7.5 body.sig7.6 body.sig7.7 body.p7.1 body.p7.2 body.p7.3 body.p7.4 body.p7.5 body.p7.6 body.p7.7",
+   "phase": "Ce",
+   "wall_before": 249.204,
+   "wall_after": 249.715,
+   "epoch_ms_before": 1792056729015,
+   "epoch_ms_after": 1792056729526,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 47,
+    "missing": {
+     "body.inDayClosed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.lm": 47.684999999999995,
+     "body.fm": 4.334999999999999,
+     "body.lx": 0,
+     "body.F0": 52.019999999999996,
+     "body.Fc": 68.63749999999999,
+     "body.Pk": 52.019999999999996,
+     "body.N0": 1,
+     "body.T": 1,
+     "body.Tgrace": 0,
+     "body.grace": 0,
+     "body.S": 0,
+     "body.sigDay": 0,
+     "body.dayIndex": 0,
+     "body.wday": 0,
+     "body.lastAgeH": 8.367934226989746,
+     "body.levelDue": false,
+     "body.wroteL": 3,
+     "body.pDay": 0,
+     "body.ebDay": -8.937238817733528,
+     "body.eeDay": 8.937238817733528,
+     "body.inDay": 0,
+     "body.alcDay": 0,
+     "body.band": "underweight",
+     "body.fatT": 0,
+     "body.thinT": 1,
+     "body.fmRef": 4.334999999999999,
+     "body.tDisuse": 0,
+     "body.bornAge": 8.243734359741211,
+     "body.sex": 2,
+     "body.delta": 0.9,
+     "body.lm0dis": 47.684999999999995,
+     "body.at": 0,
+     "body.sig7.1": 0,
+     "body.sig7.2": 0,
+     "body.sig7.3": 0,
+     "body.sig7.4": 0,
+     "body.sig7.5": 0,
+     "body.sig7.6": 0,
+     "body.sig7.7": 0,
+     "body.p7.1": 0,
+     "body.p7.2": 0,
+     "body.p7.3": 0,
+     "body.p7.4": 0,
+     "body.p7.5": 0,
+     "body.p7.6": 0,
+     "body.p7.7": 0
+    }
+   }
+  },
+  {
+   "step": "Ce_body_b2",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:bob body.eb7.1 body.eb7.2 body.eb7.3 body.eb7.4 body.eb7.5 body.eb7.6 body.eb7.7 body.mass7.1 body.mass7.2 body.mass7.3 body.mass7.4 body.mass7.5 body.mass7.6 body.mass7.7 body.bandWeek.1.1 body.bandWeek.1.2 body.bandWeek.2.1 body.bandWeek.2.2 body.bandWeek.3.1 body.bandWeek.3.2 body.bandWeek.4.1 body.bandWeek.4.2 body.bandWeek.5.1 body.bandWeek.5.2 body.bandWeek.6.1 body.bandWeek.6.2 body.bandWeek.7.1 body.bandWeek.7.2",
+   "phase": "Ce",
+   "wall_before": 249.715,
+   "wall_after": 250.473,
+   "epoch_ms_before": 1792056729526,
+   "epoch_ms_after": 1792056730284,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:bob",
+    "n": 28,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "body.eb7.1": 0,
+     "body.eb7.2": 0,
+     "body.eb7.3": 0,
+     "body.eb7.4": 0,
+     "body.eb7.5": 0,
+     "body.eb7.6": 0,
+     "body.eb7.7": 0,
+     "body.mass7.1": 52.019999999999996,
+     "body.mass7.2": 52.019999999999996,
+     "body.mass7.3": 52.019999999999996,
+     "body.mass7.4": 52.019999999999996,
+     "body.mass7.5": 52.019999999999996,
+     "body.mass7.6": 52.019999999999996,
+     "body.mass7.7": 52.019999999999996,
+     "body.bandWeek.1.1": 0,
+     "body.bandWeek.1.2": 0,
+     "body.bandWeek.2.1": 0,
+     "body.bandWeek.2.2": 0,
+     "body.bandWeek.3.1": 0,
+     "body.bandWeek.3.2": 0,
+     "body.bandWeek.4.1": 0,
+     "body.bandWeek.4.2": 0,
+     "body.bandWeek.5.1": 0,
+     "body.bandWeek.5.2": 0,
+     "body.bandWeek.6.1": 0,
+     "body.bandWeek.6.2": 0,
+     "body.bandWeek.7.1": 0,
+     "body.bandWeek.7.2": 0
+    }
+   }
+  },
+  {
+   "step": "Ce_pair_s",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "bob",
+   "phase": "Ce",
+   "wall_before": 250.473,
+   "wall_after": 250.983,
+   "epoch_ms_before": 1792056730284,
+   "epoch_ms_after": 1792056730794,
+   "took": 0.51,
+   "ack": {
+    "calories": -11.349882125854492,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 52.019999999999996,
+    "hunger": 0.22227275371551514,
+    "thirst": 0.010668720118701458,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": true,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "underweight",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 8.417104721069336,
+    "mult": 4.705183506011963,
+    "wall": 1792056730650
+   }
+  },
+  {
+   "step": "Ce_pair_c",
+   "side": "client:bob",
+   "cmd": "stats.get",
+   "args": "",
+   "phase": "Ce",
+   "wall_before": 250.983,
+   "wall_after": 251.491,
+   "epoch_ms_before": 1792056730794,
+   "epoch_ms_after": 1792056731302,
+   "took": 0.508,
+   "ack": {
+    "calories": -11.349882125854492,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 52.02000045776367,
+    "hunger": 0.22227275371551514,
+    "thirst": 0.010668720118701458,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": true,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": [
+     "underweight",
+     "feeble"
+    ],
+    "maxWeight": 8,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 8.429386138916016,
+    "mult": 0.799987256526947,
+    "wall": 1792056731095
+   }
+  },
+  {
+   "step": "Ce_pair_sx",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "bob Strength",
+   "phase": "Ce",
+   "wall_before": 251.491,
+   "wall_after": 251.752,
+   "epoch_ms_before": 1792056731302,
+   "epoch_ms_after": 1792056731562,
+   "took": 0.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "bob",
+    "side": "server",
+    "xp": 10500,
+    "level": 3,
+    "serverWorldAge": 8.43544864654541
+   }
+  },
+  {
+   "step": "Ce_pair_cx",
+   "side": "client:bob",
+   "cmd": "perk.xp",
+   "args": "Strength",
+   "phase": "Ce",
+   "wall_before": 251.752,
+   "wall_after": 252.008,
+   "epoch_ms_before": 1792056731562,
+   "epoch_ms_after": 1792056731818,
+   "took": 0.256,
+   "ack": {
+    "perk": "Strength",
+    "side": "client",
+    "xp": 10500,
+    "level": 3
+   }
+  }
+ ],
+ "notes": [
+  {
+   "wall": 143.289,
+   "phase": "Cb",
+   "note": "Cb_screens: not reached inside 15.0 s"
+  },
+  {
+   "wall": 175.945,
+   "phase": "Cc",
+   "note": "Cc_screens: not reached inside 15.0 s"
+  },
+  {
+   "wall": 207.806,
+   "phase": "Cd",
+   "note": "Cd_screens: not reached inside 15.0 s"
+  },
+  {
+   "wall": 239.908,
+   "phase": "Ce",
+   "note": "Ce_screens: not reached inside 15.0 s"
+  }
+ ],
+ "phase_walls": {
+  "S": {
+   "start": 100.651,
+   "end": 111.103
+  },
+  "Ca": {
+   "start": 111.106,
+   "end": 123.525
+  },
+  "Cb": {
+   "start": 123.526,
+   "end": 154.908
+  },
+  "Cc": {
+   "start": 154.912,
+   "end": 188.301
+  },
+  "Cd": {
+   "start": 188.304,
+   "end": 219.401
+  },
+  "Ce": {
+   "start": 219.405,
+   "end": 252.008
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "21_a_body": {
+   "phase": "21_a_body",
+   "predicted": null,
+   "falsifier": "the record's body off the creation table",
+   "observed": {
+    "expect": {
+     "lm": 52.019999999999996,
+     "fm": 13.004999999999999,
+     "F0": 52.019999999999996,
+     "Fc": 68.63749999999999,
+     "Pk": 52.019999999999996,
+     "N0": 1.0,
+     "muscle": null,
+     "weight": null,
+     "native": 5
+    },
+    "record": {
+     "lm": 52.019999999999996,
+     "fm": 13.004999999999999,
+     "lx": 0,
+     "F0": 52.019999999999996,
+     "Fc": 68.63749999999999,
+     "Pk": 52.019999999999996,
+     "N0": 1
+    },
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_a_state": {
+   "phase": "21_a_state",
+   "predicted": null,
+   "falsifier": "weight, level, band or weight trait off on a side, or a strip held",
+   "observed": {
+    "server": {
+     "weight": 65.02499999999999,
+     "level": 5,
+     "bands": [],
+     "weights": []
+    },
+    "client": {
+     "weight": 65.0250015258789,
+     "level": 5,
+     "bands": [],
+     "weights": []
+    },
+    "mass": 65.02499999999999,
+    "want_native": 5,
+    "want_band": null,
+    "want_weight": null,
+    "stripped": [],
+    "pair_gap_s": 0.5150000000000006,
+    "why": "the respawn never landed, or a read is missing"
+   },
+   "verdict": "unmeasured",
+   "wall": 264.78
+  },
+  "21_a_strips": {
+   "phase": "21_a_strips",
+   "predicted": null,
+   "falsifier": "the logged strips differ from ruling 13-16's cost order",
+   "observed": {
+    "want": [],
+    "logged": [],
+    "created": {
+     "muscle": "nil",
+     "weight": "nil",
+     "prof": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_b_body": {
+   "phase": "21_b_body",
+   "predicted": null,
+   "falsifier": "the record's body off the creation table",
+   "observed": {
+    "expect": {
+     "lm": 60.85672078038634,
+     "fm": 21.674999999999997,
+     "F0": 56.43836039019317,
+     "Fc": 70.4293,
+     "Pk": 60.85672078038634,
+     "N0": 1.14,
+     "muscle": "strong",
+     "weight": "overweight",
+     "native": 9
+    },
+    "record": {
+     "lm": 60.85672078038634,
+     "fm": 21.674999999999997,
+     "lx": 0,
+     "F0": 56.43836039019317,
+     "Fc": 70.4293,
+     "Pk": 60.85672078038634,
+     "N0": 1.14
+    },
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_b_state": {
+   "phase": "21_b_state",
+   "predicted": null,
+   "falsifier": "weight, level, band or weight trait off on a side, or a strip held",
+   "observed": {
+    "server": {
+     "weight": 82.53172078038634,
+     "level": 9,
+     "bands": [
+      "strong"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "client": {
+     "weight": 82.53172302246094,
+     "level": 9,
+     "bands": [
+      "strong"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "mass": 82.53172078038634,
+    "want_native": 9,
+    "want_band": "strong",
+    "want_weight": "overweight",
+    "stripped": [],
+    "pair_gap_s": 0.5149999999999864,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_b_strips": {
+   "phase": "21_b_strips",
+   "predicted": null,
+   "falsifier": "the logged strips differ from ruling 13-16's cost order",
+   "observed": {
+    "want": [],
+    "logged": [],
+    "created": {
+     "muscle": "STRONG",
+     "weight": "OVERWEIGHT",
+     "prof": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_c_body": {
+   "phase": "21_c_body",
+   "predicted": null,
+   "falsifier": "the record's body off the creation table",
+   "observed": {
+    "expect": {
+     "lm": 44.794999999999995,
+     "fm": 2.8899999999999997,
+     "F0": 56.43836039019317,
+     "Fc": 70.4293,
+     "Pk": 60.85672078038634,
+     "N0": 1.14,
+     "muscle": "strong",
+     "weight": "veryunderweight",
+     "native": 3
+    },
+    "record": {
+     "lm": 44.794999999999995,
+     "fm": 2.8899999999999997,
+     "lx": 0,
+     "F0": 56.43836039019317,
+     "Fc": 70.4293,
+     "Pk": 60.85672078038634,
+     "N0": 1.14
+    },
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_c_state": {
+   "phase": "21_c_state",
+   "predicted": null,
+   "falsifier": "weight, level, band or weight trait off on a side, or a strip held",
+   "observed": {
+    "server": {
+     "weight": 47.684999999999995,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "veryunderweight"
+     ]
+    },
+    "client": {
+     "weight": 47.685001373291016,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "veryunderweight"
+     ]
+    },
+    "mass": 47.684999999999995,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "veryunderweight",
+    "stripped": [],
+    "pair_gap_s": 0.7599999999999909,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_c_strips": {
+   "phase": "21_c_strips",
+   "predicted": null,
+   "falsifier": "the logged strips differ from ruling 13-16's cost order",
+   "observed": {
+    "want": [],
+    "logged": [],
+    "created": {
+     "muscle": "STRONG",
+     "weight": "VERY_UNDERWEIGHT",
+     "prof": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_d_body": {
+   "phase": "21_d_body",
+   "predicted": null,
+   "falsifier": "the record's body off the creation table",
+   "observed": {
+    "expect": {
+     "lm": 47.29591525798105,
+     "fm": 21.674999999999997,
+     "F0": 49.65795762899052,
+     "Fc": 66.27545762899052,
+     "Pk": 49.65795762899052,
+     "N0": 0.915,
+     "muscle": "feeble",
+     "weight": "overweight",
+     "native": 3
+    },
+    "record": {
+     "lm": 47.29591525798105,
+     "fm": 21.674999999999997,
+     "lx": 0,
+     "F0": 49.65795762899052,
+     "Fc": 66.27545762899052,
+     "Pk": 49.65795762899052,
+     "N0": 0.915
+    },
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_d_state": {
+   "phase": "21_d_state",
+   "predicted": null,
+   "falsifier": "weight, level, band or weight trait off on a side, or a strip held",
+   "observed": {
+    "server": {
+     "weight": 68.97091525798105,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "client": {
+     "weight": 68.97091674804688,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "mass": 68.97091525798105,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "overweight",
+    "stripped": [
+     "obese",
+     "thickskinned",
+     "fasthealer"
+    ],
+    "pair_gap_s": 0.5080000000000098,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_d_strips": {
+   "phase": "21_d_strips",
+   "predicted": null,
+   "falsifier": "the logged strips differ from ruling 13-16's cost order",
+   "observed": {
+    "want": [
+     "obese",
+     "thickskinned",
+     "fasthealer"
+    ],
+    "logged": [
+     "obese",
+     "thickskinned",
+     "fasthealer"
+    ],
+    "created": {
+     "muscle": "FEEBLE",
+     "weight": "OVERWEIGHT",
+     "prof": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_e_body": {
+   "phase": "21_e_body",
+   "predicted": null,
+   "falsifier": "the record's body off the creation table",
+   "observed": {
+    "expect": {
+     "lm": 47.684999999999995,
+     "fm": 4.334999999999999,
+     "F0": 52.019999999999996,
+     "Fc": 68.63749999999999,
+     "Pk": 52.019999999999996,
+     "N0": 1.0,
+     "muscle": null,
+     "weight": "underweight",
+     "native": 3
+    },
+    "record": {
+     "lm": 47.684999999999995,
+     "fm": 4.334999999999999,
+     "lx": 0,
+     "F0": 52.019999999999996,
+     "Fc": 68.63749999999999,
+     "Pk": 52.019999999999996,
+     "N0": 1
+    },
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_e_state": {
+   "phase": "21_e_state",
+   "predicted": null,
+   "falsifier": "weight, level, band or weight trait off on a side, or a strip held",
+   "observed": {
+    "server": {
+     "weight": 52.019999999999996,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "underweight"
+     ]
+    },
+    "client": {
+     "weight": 52.02000045776367,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "underweight"
+     ]
+    },
+    "mass": 52.019999999999996,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "underweight",
+    "stripped": [
+     "weak"
+    ],
+    "pair_gap_s": 0.5099999999999909,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  },
+  "21_e_strips": {
+   "phase": "21_e_strips",
+   "predicted": null,
+   "falsifier": "the logged strips differ from ruling 13-16's cost order",
+   "observed": {
+    "want": [
+     "weak"
+    ],
+    "logged": [
+     "weak"
+    ],
+    "created": {
+     "muscle": "nil",
+     "weight": "UNDERWEIGHT",
+     "prof": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 264.78
+  }
+ },
+ "readings": {
+  "creations": [
+   {
+    "strips": [],
+    "created": {
+     "muscle": "nil",
+     "weight": "nil",
+     "prof": "0"
+    }
+   },
+   {
+    "strips": [],
+    "created": {
+     "muscle": "STRONG",
+     "weight": "OVERWEIGHT",
+     "prof": "0"
+    }
+   },
+   {
+    "strips": [],
+    "created": {
+     "muscle": "STRONG",
+     "weight": "VERY_UNDERWEIGHT",
+     "prof": "0"
+    }
+   },
+   {
+    "strips": [
+     "obese",
+     "thickskinned",
+     "fasthealer"
+    ],
+    "created": {
+     "muscle": "FEEBLE",
+     "weight": "OVERWEIGHT",
+     "prof": "0"
+    }
+   },
+   {
+    "strips": [
+     "weak"
+    ],
+    "created": {
+     "muscle": "nil",
+     "weight": "UNDERWEIGHT",
+     "prof": "0"
+    }
+   }
+  ]
+ },
+ "world_changes": {
+  "restored": "fixture two restored into the run dir",
+  "left_in_place": []
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin",
+    "bob"
+   ],
+   "time": {
+    "worldAge": 4.483878135681152,
+    "hour": 11,
+    "minutes": 29,
+    "mult": 3.985442876815796,
+    "trueMult": 1,
+    "wall": 101.159,
+    "wall_after": 101.417
+   },
+   "ready": {
+    "done": true,
+    "last": {
+     "runs": 83,
+     "lm": 52.019999999999996,
+     "levelDue": false
+    },
+    "polls": 1
+   },
+   "sandbox": {
+    "SandboxVars.CharacterFreePoints": 0,
+    "SandboxVars.NegativeTraitsPenalty": 1,
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 1
+   },
+   "defs": {
+    "strong": {
+     "cost": 10,
+     "exclusive": [
+      "feeble",
+      "stout",
+      "weak"
+     ],
+     "free": false,
+     "xpBoosts": {
+      "Strength": 4
+     },
+     "ok": true,
+     "trait": "Strong"
+    },
+    "overweight": {
+     "cost": -6,
+     "exclusive": [
+      "athletic",
+      "fit",
+      "emaciated",
+      "very underweight",
+      "underweight",
+      "obese",
+      "weightloss"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Overweight"
+    },
+    "veryunderweight": {
+     "cost": -10,
+     "exclusive": [
+      "athletic",
+      "obese",
+      "overweight",
+      "heartyappetite",
+      "underweight",
+      "weak",
+      "feeble",
+      "weightgain",
+      "weightloss"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "VeryUnderweight"
+    },
+    "feeble": {
+     "cost": -6,
+     "exclusive": [
+      "stout",
+      "strong",
+      "weak",
+      "underweight",
+      "very underweight"
+     ],
+     "free": false,
+     "xpBoosts": {
+      "Strength": -2
+     },
+     "ok": true,
+     "trait": "Feeble"
+    },
+    "obese": {
+     "cost": -10,
+     "exclusive": [
+      "athletic",
+      "emaciated",
+      "fit",
+      "lighteater",
+      "very underweight",
+      "underweight",
+      "overweight",
+      "weightloss"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Obese"
+    },
+    "thickskinned": {
+     "cost": 8,
+     "exclusive": [
+      "thinskinned"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "ThickSkinned"
+    },
+    "keenhearing": {
+     "cost": 6,
+     "exclusive": [
+      "deaf",
+      "hardofhearing"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "KeenHearing"
+    },
+    "fasthealer": {
+     "cost": 6,
+     "exclusive": [
+      "slowhealer"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "FastHealer"
+    },
+    "brave": {
+     "cost": 4,
+     "exclusive": [
+      "cowardly",
+      "agoraphobic",
+      "claustrophobic",
+      "desensitized"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Brave"
+    },
+    "crafty": {
+     "cost": 3,
+     "exclusive": [
+      "fastlearner",
+      "slowlearner"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Crafty"
+    },
+    "dextrous": {
+     "cost": 2,
+     "exclusive": [
+      "allthumbs"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Dextrous"
+    },
+    "speeddemon": {
+     "cost": 1,
+     "exclusive": [
+      "sundaydriver"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "SpeedDemon"
+    },
+    "weak": {
+     "cost": -10,
+     "exclusive": [
+      "feeble",
+      "stout",
+      "strong",
+      "underweight",
+      "very underweight"
+     ],
+     "free": false,
+     "xpBoosts": {
+      "Strength": -5
+     },
+     "ok": true,
+     "trait": "Weak"
+    },
+    "underweight": {
+     "cost": -6,
+     "exclusive": [
+      "obese",
+      "very underweight",
+      "overweight",
+      "weak",
+      "feeble",
+      "weightgain"
+     ],
+     "free": false,
+     "xpBoosts": {},
+     "ok": true,
+     "trait": "Underweight"
+    }
+   },
+   "profession": {
+    "ok": true,
+    "hops": 2,
+    "value": "base:unemployed",
+    "wall": 110.076,
+    "wall_after": 110.584,
+    "side": "server"
+   },
+   "profession_name": {
+    "ok": true,
+    "hops": 3,
+    "value": "unemployed",
+    "wall": 110.584,
+    "wall_after": 111.093,
+    "side": "server"
+   },
+   "prof_table": {
+    "burglar": [
+     -6,
+     0
+    ],
+    "burgerflipper": [
+     2,
+     0
+    ],
+    "carpenter": [
+     -2,
+     0
+    ],
+    "chef": [
+     -2,
+     0
+    ],
+    "constructionworker": [
+     -2,
+     0
+    ],
+    "doctor": [
+     0,
+     0
+    ],
+    "electrician": [
+     -2,
+     0
+    ],
+    "engineer": [
+     -4,
+     0
+    ],
+    "farmer": [
+     0,
+     1
+    ],
+    "fireofficer": [
+     0,
+     1
+    ],
+    "fisherman": [
+     -2,
+     0
+    ],
+    "fitnessinstructor": [
+     -6,
+     1
+    ],
+    "lumberjack": [
+     0,
+     1
+    ],
+    "mechanics": [
+     -4,
+     0
+    ],
+    "metalworker": [
+     -4,
+     0
+    ],
+    "nurse": [
+     0,
+     0
+    ],
+    "parkranger": [
+     -4,
+     0
+    ],
+    "policeofficer": [
+     -4,
+     0
+    ],
+    "rancher": [
+     0,
+     0
+    ],
+    "repairman": [
+     -2,
+     0
+    ],
+    "securityguard": [
+     -2,
+     0
+    ],
+    "smither": [
+     -6,
+     0
+    ],
+    "tailor": [
+     2,
+     0
+    ],
+    "unemployed": [
+     8,
+     0
+    ],
+    "veteran": [
+     -8,
+     0
+    ]
+   }
+  },
+  "Ca": {
+   "picks": [],
+   "landed": true,
+   "dead": true,
+   "ui": true,
+   "unmeasured": null,
+   "count_before": 0,
+   "route": {
+    "onRespawn": {
+     "ok": true,
+     "side": "client",
+     "path": "ISPostDeathUI.instance.0",
+     "method": "onRespawn",
+     "nargs": 0,
+     "wall": 113.391,
+     "wall_after": 113.898
+    },
+    "screens": {
+     "done": true,
+     "last": {
+      "spawn": false,
+      "profession": false,
+      "main": true
+     },
+     "polls": 1
+    },
+    "clickNext": null,
+    "accept": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopCharacterCreation.instance",
+     "method": "accept",
+     "nargs": 0,
+     "wall": 115.427,
+     "wall_after": 115.935
+    }
+   },
+   "profession": "base:unemployed",
+   "profession_name": "unemployed",
+   "body": {
+    "lm": 52.019999999999996,
+    "fm": 13.004999999999999,
+    "lx": 0,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 4.983525276184082,
+    "levelDue": false,
+    "wroteL": 5,
+    "pDay": 0,
+    "ebDay": -10.090090697448765,
+    "eeDay": 10.090090697448765,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "normal",
+    "fatT": 0,
+    "thinT": 0,
+    "fmRef": 13.004999999999999,
+    "tDisuse": 0,
+    "bornAge": 4.856473922729492,
+    "sex": 2,
+    "delta": 1,
+    "lm0dis": 52.019999999999996,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 65.02499999999999,
+    "mass7.2": 65.02499999999999,
+    "mass7.3": 65.02499999999999,
+    "mass7.4": 65.02499999999999,
+    "mass7.5": 65.02499999999999,
+    "mass7.6": 65.02499999999999,
+    "mass7.7": 65.02499999999999,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 121.209,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "pair": {
+    "server_stats": {
+     "calories": -12.83092975616455,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 65.02499999999999,
+     "hunger": 0.20666469633579254,
+     "thirst": 0.00923756044358015,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 5.033929824829102,
+     "mult": 4.768933296203613,
+     "wall": 121.985,
+     "wall_after": 122.5,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -14.093376159667969,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0.20687459409236908,
+     "thirst": 0.010208295658230782,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 5.043203353881836,
+     "mult": 0.8000831604003906,
+     "wall": 122.5,
+     "wall_after": 123.009,
+     "side": "client:bob"
+    },
+    "server_xp": {
+     "xp": 37500,
+     "level": 5,
+     "wall": 123.009,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 37500,
+     "level": 5,
+     "wall": 123.268,
+     "error": null
+    },
+    "gap_s": 0.5150000000000006
+   },
+   "prof": {
+    "id": "unemployed",
+    "cost": 8,
+    "boost": 0,
+    "free": 0,
+    "penalty": 1
+   },
+   "want_stripped": [],
+   "want_kept": [],
+   "expect": {
+    "lm": 52.019999999999996,
+    "fm": 13.004999999999999,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1.0,
+    "muscle": null,
+    "weight": null,
+    "level": 5.0,
+    "native": 5,
+    "band": null
+   }
+  },
+  "Cb": {
+   "picks": [
+    "Strong",
+    "Overweight"
+   ],
+   "arm": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Strong",
+     "Overweight"
+    ],
+    "wall": 123.526,
+    "wall_after": 124.035,
+    "side": "client:bob"
+   },
+   "landed": true,
+   "dead": true,
+   "ui": true,
+   "unmeasured": null,
+   "count_before": 1,
+   "route": {
+    "onRespawn": {
+     "ok": true,
+     "side": "client",
+     "path": "ISPostDeathUI.instance.0",
+     "method": "onRespawn",
+     "nargs": 0,
+     "wall": 126.321,
+     "wall_after": 126.829
+    },
+    "screens": {
+     "done": false,
+     "last": {
+      "spawn": true,
+      "profession": false,
+      "main": false
+     },
+     "polls": 7
+    },
+    "clickNext": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopMapSpawnSelect.instance",
+     "method": "clickNext",
+     "nargs": 0,
+     "wall": 143.289,
+     "wall_after": 143.8
+    },
+    "accept": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopCharacterCreation.instance",
+     "method": "accept",
+     "nargs": 0,
+     "wall": 146.8,
+     "wall_after": 147.319
+    }
+   },
+   "fired": {
+    "TK.picksFired.count": 1
+   },
+   "profession": "base:unemployed",
+   "profession_name": "unemployed",
+   "body": {
+    "lm": 60.85672078038634,
+    "fm": 21.674999999999997,
+    "lx": 0,
+    "F0": 56.43836039019317,
+    "Fc": 70.4293,
+    "Pk": 60.85672078038634,
+    "N0": 1.14,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 5.835168838500977,
+    "levelDue": false,
+    "wroteL": 9,
+    "pDay": 0,
+    "ebDay": -12.95074232948849,
+    "eeDay": 12.95074232948849,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "overweight",
+    "fatT": 1,
+    "thinT": 0,
+    "fmRef": 21.674999999999997,
+    "tDisuse": 0,
+    "bornAge": 5.694286346435547,
+    "sex": 2,
+    "delta": 1.5,
+    "lm0dis": 60.85672078038634,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 82.53172078038634,
+    "mass7.2": 82.53172078038634,
+    "mass7.3": 82.53172078038634,
+    "mass7.4": 82.53172078038634,
+    "mass7.5": 82.53172078038634,
+    "mass7.6": 82.53172078038634,
+    "mass7.7": 82.53172078038634,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 152.595,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "pair": {
+    "server_stats": {
+     "calories": -14.415127754211426,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 82.53172078038634,
+     "hunger": 0.2104063481092453,
+     "thirst": 0.007510533090680838,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": true,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "overweight",
+      "strong"
+     ],
+     "maxWeight": 27,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 5.8669843673706055,
+     "mult": 4.7675323486328125,
+     "wall": 153.365,
+     "wall_after": 153.88,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -15.875794410705566,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 82.53172302246094,
+     "hunger": 0.2106298804283142,
+     "thirst": 0.008311002515256405,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": true,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "overweight",
+      "strong"
+     ],
+     "maxWeight": 27,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 5.881688117980957,
+     "mult": 0.8000783920288086,
+     "wall": 153.88,
+     "wall_after": 154.392,
+     "side": "client:bob"
+    },
+    "server_xp": {
+     "xp": 337500,
+     "level": 9,
+     "wall": 154.393,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 337500,
+     "level": 9,
+     "wall": 154.65,
+     "error": null
+    },
+    "gap_s": 0.5149999999999864
+   },
+   "prof": {
+    "id": "unemployed",
+    "cost": 8,
+    "boost": 0,
+    "free": 0,
+    "penalty": 1
+   },
+   "want_stripped": [],
+   "want_kept": [
+    "strong",
+    "overweight"
+   ],
+   "expect": {
+    "lm": 60.85672078038634,
+    "fm": 21.674999999999997,
+    "F0": 56.43836039019317,
+    "Fc": 70.4293,
+    "Pk": 60.85672078038634,
+    "N0": 1.14,
+    "muscle": "strong",
+    "weight": "overweight",
+    "level": 9.0,
+    "native": 9,
+    "band": "strong"
+   }
+  },
+  "Cc": {
+   "picks": [
+    "Strong",
+    "VeryUnderweight"
+   ],
+   "arm": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Strong",
+     "VeryUnderweight"
+    ],
+    "wall": 154.912,
+    "wall_after": 155.423,
+    "side": "client:bob"
+   },
+   "landed": true,
+   "dead": true,
+   "ui": true,
+   "unmeasured": null,
+   "count_before": 2,
+   "route": {
+    "onRespawn": {
+     "ok": true,
+     "side": "client",
+     "path": "ISPostDeathUI.instance.0",
+     "method": "onRespawn",
+     "nargs": 0,
+     "wall": 158.973,
+     "wall_after": 159.485
+    },
+    "screens": {
+     "done": false,
+     "last": {
+      "spawn": true,
+      "profession": false,
+      "main": false
+     },
+     "polls": 7
+    },
+    "clickNext": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopMapSpawnSelect.instance",
+     "method": "clickNext",
+     "nargs": 0,
+     "wall": 175.945,
+     "wall_after": 176.458
+    },
+    "accept": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopCharacterCreation.instance",
+     "method": "accept",
+     "nargs": 0,
+     "wall": 179.458,
+     "wall_after": 179.967
+    }
+   },
+   "fired": {
+    "TK.picksFired.count": 2
+   },
+   "profession": "base:unemployed",
+   "profession_name": "unemployed",
+   "body": {
+    "lm": 44.794999999999995,
+    "fm": 2.8899999999999997,
+    "lx": 0,
+    "F0": 56.43836039019317,
+    "Fc": 70.4293,
+    "Pk": 60.85672078038634,
+    "N0": 1.14,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 6.685168266296387,
+    "levelDue": false,
+    "wroteL": 3,
+    "pDay": 0,
+    "ebDay": -8.624469970561009,
+    "eeDay": 8.624469970561009,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "veryUnderweight",
+    "fatT": 0,
+    "thinT": 2,
+    "fmRef": 2.8899999999999997,
+    "tDisuse": 0,
+    "bornAge": 6.558869361877441,
+    "sex": 2,
+    "delta": 0.9,
+    "lm0dis": 44.794999999999995,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 47.684999999999995,
+    "mass7.2": 47.684999999999995,
+    "mass7.3": 47.684999999999995,
+    "mass7.4": 47.684999999999995,
+    "mass7.5": 47.684999999999995,
+    "mass7.6": 47.684999999999995,
+    "mass7.7": 47.684999999999995,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 185.243,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "pair": {
+    "server_stats": {
+     "calories": -10.83858585357666,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 47.684999999999995,
+     "hunger": 0.21441830694675446,
+     "thirst": 0.01155545748770237,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": true,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "very underweight",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 6.735483169555664,
+     "mult": 4.6249589920043945,
+     "wall": 186.513,
+     "wall_after": 187.273,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -10.83858585357666,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 47.685001373291016,
+     "hunger": 0.21441830694675446,
+     "thirst": 0.01155545748770237,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": true,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "very underweight",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 6.757514953613281,
+     "mult": 0.7999728322029114,
+     "wall": 187.273,
+     "wall_after": 187.536,
+     "side": "client:bob"
+    },
+    "server_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 187.536,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 187.793,
+     "error": null
+    },
+    "gap_s": 0.7599999999999909
+   },
+   "prof": {
+    "id": "unemployed",
+    "cost": 8,
+    "boost": 0,
+    "free": 0,
+    "penalty": 1
+   },
+   "want_stripped": [],
+   "want_kept": [
+    "strong",
+    "veryunderweight"
+   ],
+   "expect": {
+    "lm": 44.794999999999995,
+    "fm": 2.8899999999999997,
+    "F0": 56.43836039019317,
+    "Fc": 70.4293,
+    "Pk": 60.85672078038634,
+    "N0": 1.14,
+    "muscle": "strong",
+    "weight": "veryunderweight",
+    "level": 3.8319565388666543,
+    "native": 3,
+    "band": "feeble"
+   }
+  },
+  "Cd": {
+   "picks": [
+    "Feeble",
+    "Obese",
+    "Overweight",
+    "ThickSkinned",
+    "KeenHearing",
+    "FastHealer",
+    "Brave",
+    "Crafty",
+    "Dextrous",
+    "SpeedDemon"
+   ],
+   "arm": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Feeble",
+     "Obese",
+     "Overweight",
+     "ThickSkinned",
+     "KeenHearing",
+     "FastHealer",
+     "Brave",
+     "Crafty",
+     "Dextrous",
+     "SpeedDemon"
+    ],
+    "wall": 188.304,
+    "wall_after": 188.814,
+    "side": "client:bob"
+   },
+   "landed": true,
+   "dead": true,
+   "ui": true,
+   "unmeasured": null,
+   "count_before": 3,
+   "route": {
+    "onRespawn": {
+     "ok": true,
+     "side": "client",
+     "path": "ISPostDeathUI.instance.0",
+     "method": "onRespawn",
+     "nargs": 0,
+     "wall": 190.855,
+     "wall_after": 191.362
+    },
+    "screens": {
+     "done": false,
+     "last": {
+      "spawn": true,
+      "profession": false,
+      "main": false
+     },
+     "polls": 7
+    },
+    "clickNext": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopMapSpawnSelect.instance",
+     "method": "clickNext",
+     "nargs": 0,
+     "wall": 207.806,
+     "wall_after": 208.314
+    },
+    "accept": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopCharacterCreation.instance",
+     "method": "accept",
+     "nargs": 0,
+     "wall": 211.314,
+     "wall_after": 211.823
+    }
+   },
+   "fired": {
+    "TK.picksFired.count": 3
+   },
+   "profession": "base:unemployed",
+   "profession_name": "unemployed",
+   "body": {
+    "lm": 47.29591525798105,
+    "fm": 21.674999999999997,
+    "lx": 0,
+    "F0": 49.65795762899052,
+    "Fc": 66.27545762899052,
+    "Pk": 49.65795762899052,
+    "N0": 0.915,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 7.516736030578613,
+    "levelDue": false,
+    "wroteL": 3,
+    "pDay": 0,
+    "ebDay": -9.592281402074164,
+    "eeDay": 9.592281402074164,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "overweight",
+    "fatT": 1,
+    "thinT": 0,
+    "fmRef": 21.674999999999997,
+    "tDisuse": 0,
+    "bornAge": 7.391714096069336,
+    "sex": 1,
+    "delta": 0.8961490163917638,
+    "lm0dis": 47.29591525798105,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 68.97091525798105,
+    "mass7.2": 68.97091525798105,
+    "mass7.3": 68.97091525798105,
+    "mass7.4": 68.97091525798105,
+    "mass7.5": 68.97091525798105,
+    "mass7.6": 68.97091525798105,
+    "mass7.7": 68.97091525798105,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 217.096,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "pair": {
+    "server_stats": {
+     "calories": -12.24793529510498,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 68.97091525798105,
+     "hunger": 0.21841295063495636,
+     "thirst": 0.00937591027468443,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": true,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "overweight",
+      "keenhearing",
+      "brave",
+      "crafty",
+      "dextrous",
+      "speeddemon",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 7.567300796508789,
+     "mult": 4.785562038421631,
+     "wall": 217.864,
+     "wall_after": 218.372,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -13.472352981567383,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 68.97091674804688,
+     "hunger": 0.2186376005411148,
+     "thirst": 0.010377993807196617,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": true,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "overweight",
+      "keenhearing",
+      "brave",
+      "crafty",
+      "dextrous",
+      "speeddemon",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 7.577029228210449,
+     "mult": 0.7999440431594849,
+     "wall": 218.372,
+     "wall_after": 218.88,
+     "side": "client:bob"
+    },
+    "server_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 218.88,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 219.14,
+     "error": null
+    },
+    "gap_s": 0.5080000000000098
+   },
+   "prof": {
+    "id": "unemployed",
+    "cost": 8,
+    "boost": 0,
+    "free": 0,
+    "penalty": 1
+   },
+   "want_stripped": [
+    "obese",
+    "thickskinned",
+    "fasthealer"
+   ],
+   "want_kept": [
+    "feeble",
+    "keenhearing",
+    "overweight",
+    "brave",
+    "crafty",
+    "dextrous",
+    "speeddemon"
+   ],
+   "expect": {
+    "lm": 47.29591525798105,
+    "fm": 21.674999999999997,
+    "F0": 49.65795762899052,
+    "Fc": 66.27545762899052,
+    "Pk": 49.65795762899052,
+    "N0": 0.915,
+    "muscle": "feeble",
+    "weight": "overweight",
+    "level": 3.0,
+    "native": 3,
+    "band": "feeble"
+   }
+  },
+  "Ce": {
+   "picks": [
+    "Weak",
+    "Underweight"
+   ],
+   "arm": {
+    "ok": true,
+    "armed": true,
+    "picks": [
+     "Weak",
+     "Underweight"
+    ],
+    "wall": 219.405,
+    "wall_after": 219.911,
+    "side": "client:bob"
+   },
+   "landed": true,
+   "dead": true,
+   "ui": true,
+   "unmeasured": null,
+   "count_before": 4,
+   "route": {
+    "onRespawn": {
+     "ok": true,
+     "side": "client",
+     "path": "ISPostDeathUI.instance.0",
+     "method": "onRespawn",
+     "nargs": 0,
+     "wall": 222.952,
+     "wall_after": 223.459
+    },
+    "screens": {
+     "done": false,
+     "last": {
+      "spawn": true,
+      "profession": false,
+      "main": false
+     },
+     "polls": 7
+    },
+    "clickNext": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopMapSpawnSelect.instance",
+     "method": "clickNext",
+     "nargs": 0,
+     "wall": 239.908,
+     "wall_after": 240.417
+    },
+    "accept": {
+     "ok": true,
+     "side": "client",
+     "path": "CoopCharacterCreation.instance",
+     "method": "accept",
+     "nargs": 0,
+     "wall": 243.417,
+     "wall_after": 243.926
+    }
+   },
+   "fired": {
+    "TK.picksFired.count": 4
+   },
+   "profession": "base:unemployed",
+   "profession_name": "unemployed",
+   "body": {
+    "lm": 47.684999999999995,
+    "fm": 4.334999999999999,
+    "lx": 0,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1,
+    "T": 1,
+    "Tgrace": 0,
+    "grace": 0,
+    "S": 0,
+    "sigDay": 0,
+    "dayIndex": 0,
+    "wday": 0,
+    "lastAgeH": 8.367934226989746,
+    "levelDue": false,
+    "wroteL": 3,
+    "pDay": 0,
+    "ebDay": -8.937238817733528,
+    "eeDay": 8.937238817733528,
+    "inDay": 0,
+    "alcDay": 0,
+    "band": "underweight",
+    "fatT": 0,
+    "thinT": 1,
+    "fmRef": 4.334999999999999,
+    "tDisuse": 0,
+    "bornAge": 8.243734359741211,
+    "sex": 2,
+    "delta": 0.9,
+    "lm0dis": 47.684999999999995,
+    "at": 0,
+    "sig7.1": 0,
+    "sig7.2": 0,
+    "sig7.3": 0,
+    "sig7.4": 0,
+    "sig7.5": 0,
+    "sig7.6": 0,
+    "sig7.7": 0,
+    "p7.1": 0,
+    "p7.2": 0,
+    "p7.3": 0,
+    "p7.4": 0,
+    "p7.5": 0,
+    "p7.6": 0,
+    "p7.7": 0,
+    "eb7.1": 0,
+    "eb7.2": 0,
+    "eb7.3": 0,
+    "eb7.4": 0,
+    "eb7.5": 0,
+    "eb7.6": 0,
+    "eb7.7": 0,
+    "mass7.1": 52.019999999999996,
+    "mass7.2": 52.019999999999996,
+    "mass7.3": 52.019999999999996,
+    "mass7.4": 52.019999999999996,
+    "mass7.5": 52.019999999999996,
+    "mass7.6": 52.019999999999996,
+    "mass7.7": 52.019999999999996,
+    "bandWeek.1.1": 0,
+    "bandWeek.1.2": 0,
+    "bandWeek.2.1": 0,
+    "bandWeek.2.2": 0,
+    "bandWeek.3.1": 0,
+    "bandWeek.3.2": 0,
+    "bandWeek.4.1": 0,
+    "bandWeek.4.2": 0,
+    "bandWeek.5.1": 0,
+    "bandWeek.5.2": 0,
+    "bandWeek.6.1": 0,
+    "bandWeek.6.2": 0,
+    "bandWeek.7.1": 0,
+    "bandWeek.7.2": 0,
+    "_wall": 249.204,
+    "_missing": [
+     "body.inDayClosed"
+    ]
+   },
+   "pair": {
+    "server_stats": {
+     "calories": -11.349882125854492,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 52.019999999999996,
+     "hunger": 0.22227275371551514,
+     "thirst": 0.010668720118701458,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": true,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "underweight",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 8.417104721069336,
+     "mult": 4.705183506011963,
+     "wall": 250.473,
+     "wall_after": 250.983,
+     "side": "server"
+    },
+    "client_stats": {
+     "calories": -11.349882125854492,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 52.02000045776367,
+     "hunger": 0.22227275371551514,
+     "thirst": 0.010668720118701458,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 0,
+     "moodles": {
+      "hungry": 1,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": true,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": [
+      "underweight",
+      "feeble"
+     ],
+     "maxWeight": 8,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 8.429386138916016,
+     "mult": 0.799987256526947,
+     "wall": 250.983,
+     "wall_after": 251.491,
+     "side": "client:bob"
+    },
+    "server_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 251.491,
+     "error": null
+    },
+    "client_xp": {
+     "xp": 10500,
+     "level": 3,
+     "wall": 251.752,
+     "error": null
+    },
+    "gap_s": 0.5099999999999909
+   },
+   "prof": {
+    "id": "unemployed",
+    "cost": 8,
+    "boost": 0,
+    "free": 0,
+    "penalty": 1
+   },
+   "want_stripped": [
+    "weak"
+   ],
+   "want_kept": [
+    "underweight"
+   ],
+   "expect": {
+    "lm": 47.684999999999995,
+    "fm": 4.334999999999999,
+    "F0": 52.019999999999996,
+    "Fc": 68.63749999999999,
+    "Pk": 52.019999999999996,
+    "N0": 1.0,
+    "muscle": null,
+    "weight": "underweight",
+    "level": 3.7507115243305664,
+    "native": 3,
+    "band": "feeble"
+   }
+  }
+ },
+ "run_id": "x433-20261015-052759",
+ "task": "21",
+ "session": "Plan 13 Task 21: five respawns of bob with armed picks; one boot of x43-creation",
+ "driver": "x433_creation.py",
+ "lib": "x43_strength_lib.py",
+ "user": "bob",
+ "users": [
+  "admin",
+  "bob"
+ ],
+ "profile": {
+  "name": "x43-creation",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x43-creation.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the staged NutritionRevamp release copy (release/plan13-x43), fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, build 42.21.0 - x433, Plan 13 Task 21: the creation run.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan13-x43\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin",
+   "bob"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261008-073547",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "7d1a5e8d",
+ "harness_lua_commit": "9e9f2b06",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "70212060",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest": "release/plan13-x43/NutritionRevamp/MANIFEST.json",
+  "staging": "python tools/release_pack.py stage mod/NutritionRevamp --out release/plan13-x43 (before the boots); the driver checks it and never stages",
+  "harness_markers_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"bt.stored\", function(argv)": true,
+    "TK.register(\"record.set\", function(argv)": true,
+    "TK.register(\"xp.grant\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"creation.picks\", function(argv)": true,
+    "TK.register(\"perk.xp\", function(argv)": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"lua.read\", function(argv)": true,
+    "TK.register(\"lua.call\", function(argv)": true,
+    "TK.register(\"trait.def\", function(argv)": true
+   }
+  },
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "clients/bob/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "LIB_FILE": "x43_strength_lib.py",
+  "NR": "NutritionRevamp",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release/plan13-x43",
+  "STAGE_ROOT": "release/plan13-x43/NutritionRevamp",
+  "STAGE_MOD": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_SHARED": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/shared",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"bt.stored\", function(argv)",
+    "TK.register(\"record.set\", function(argv)",
+    "TK.register(\"xp.grant\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)"
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"creation.picks\", function(argv)",
+    "TK.register(\"perk.xp\", function(argv)"
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"lua.read\", function(argv)",
+    "TK.register(\"lua.call\", function(argv)",
+    "TK.register(\"trait.def\", function(argv)"
+   ]
+  },
+  "MIN_FREE_GB": 12.0,
+  "POLL_S": 0.3,
+  "SETTLE_S": 2.0,
+  "GAME_MIN_S": 0.625,
+  "CAP_XP": 487500.0,
+  "TOTALS": [
+   0.0,
+   1500.0,
+   4500.0,
+   10500.0,
+   19500.0,
+   37500.0,
+   67500.0,
+   127500.0,
+   217500.0,
+   337500.0,
+   487500.0
+  ],
+  "L_MAX": 10,
+  "BANDS": [
+   [
+    "weak",
+    1
+   ],
+   [
+    "feeble",
+    4
+   ],
+   [
+    null,
+    5
+   ],
+   [
+    "stout",
+    8
+   ],
+   [
+    "strong",
+    10
+   ]
+  ],
+  "MUSCLE": [
+   "weak",
+   "feeble",
+   "stout",
+   "strong"
+  ],
+  "WEIGHTS": [
+   "emaciated",
+   "veryunderweight",
+   "underweight",
+   "overweight",
+   "obese"
+  ],
+  "READY_CAP_S": 90.0,
+  "MIN_RUNS": 3,
+  "STR_STATS": "NutritionRevamp.server.strength.stats",
+  "STR_XP": "NutritionRevamp.server.strength.xpStats",
+  "OPT_STR": "NutritionRevamp.server.options.strength",
+  "WRITE_CAP_S": 20.0,
+  "REL_TOL": 1e-06,
+  "W12_LEVEL": 12.3,
+  "W95_LEVEL": 9.5,
+  "W12_PARK_S": 8.0,
+  "PARK_XP": 337500.0,
+  "GRANT_19": 1000.0,
+  "MIRROR_TOL": 0.005,
+  "XP_TOL": 1.0,
+  "RUST_TIMER": "25000",
+  "RUST_RESET": "-50000",
+  "RUST_CAP_S": 30.0,
+  "REQUEST_GAP_S": 5.5,
+  "ARRIVE_CAP_S": 8.0,
+  "PAIR_GAP_MAX_S": 1.0,
+  "AWAY_MULT": 30.0,
+  "AWAY_MIN_H": 72.0,
+  "AWAY_HOUR": 20.0,
+  "AWAY_POLL_S": 2.0,
+  "AWAY_CAP_S": 240.0,
+  "DEPART_CAP_S": 30.0,
+  "PRE_LATE_HOUR": 23.0,
+  "FIRST_CAP_S": 40.0,
+  "BOUNDARY_MULT": 8.0,
+  "BOUNDARY_CAP_S": 120.0,
+  "AFTER_HOLD_S": 6.0,
+  "GAP_FIELDS": [
+   "dayIndex",
+   "grace",
+   "Pk",
+   "lm",
+   "fm",
+   "lx"
+  ],
+  "RING_KEYS": [
+   "sig7",
+   "p7",
+   "eb7",
+   "mass7"
+  ],
+  "CLI_BOB": "client:bob",
+  "DEATH_CAP_S": 20.0,
+  "UI_CAP_S": 30.0,
+  "CREATE_CAP_S": 15.0,
+  "LAND_CAP_S": 60.0,
+  "PAIR_DELAY_S": 4.0,
+  "WEIGHT_TOL": 0.01,
+  "BODY_TOL": 1e-09,
+  "D_EXTRAS": [
+   "ThickSkinned",
+   "KeenHearing",
+   "FastHealer",
+   "Brave",
+   "Crafty",
+   "Dextrous",
+   "SpeedDemon"
+  ],
+  "CASES": [
+   [
+    "a",
+    []
+   ],
+   [
+    "b",
+    [
+     "Strong",
+     "Overweight"
+    ]
+   ],
+   [
+    "c",
+    [
+     "Strong",
+     "VeryUnderweight"
+    ]
+   ],
+   [
+    "d",
+    [
+     "Feeble",
+     "Obese",
+     "Overweight",
+     "ThickSkinned",
+     "KeenHearing",
+     "FastHealer",
+     "Brave",
+     "Crafty",
+     "Dextrous",
+     "SpeedDemon"
+    ]
+   ],
+   [
+    "e",
+    [
+     "Weak",
+     "Underweight"
+    ]
+   ]
+  ],
+  "H2": 2.8899999999999997,
+  "FAT_FMI": {
+   "null": 4.5,
+   "overweight": 7.5,
+   "obese": 12.5
+  },
+  "THIN": {
+   "underweight": [
+    18.0,
+    1.5
+   ],
+   "veryunderweight": [
+    16.5,
+    1.0
+   ]
+  },
+  "EXCLUDES": {
+   "underweight": [
+    "weak",
+    "feeble"
+   ],
+   "veryunderweight": [
+    "weak",
+    "feeble"
+   ]
+  },
+  "PROFESSIONS_TXT": "media\\scripts\\generated\\characters\\character_professions.txt",
+  "GROWTH_DAYS": 3,
+  "LEAD_HOUR": 12.0,
+  "DAY_MULT": 8.0,
+  "GRANTS": 10,
+  "GRANT_GAP_H": 1.0,
+  "SETS_A_DAY": 2.857142857142857,
+  "SLOW_HOUR": 23.0,
+  "PLACE_MIN": 4.0,
+  "P_GKG": 2.0,
+  "E_KCAL": 260.0,
+  "EE_MARGIN": 150.0,
+  "LM_TOL": 1e-06,
+  "T_TOL": 1e-09,
+  "CLOSE_CAP_S": 30.0,
+  "DAY_CAP_S": 300.0,
+  "ECHO_RX": "PZTK: ",
+  "NEVER_RX": "(?!x)x",
+  "LOG_RX": "NutritionRevamp|BeyondTen|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil",
+  "STRIP_RX": "\\[NutritionRevamp\\] creation: (\\S+) loses (.+?) \\((.*)\\)\\s*$",
+  "CREATED_RX": "\\[NutritionRevamp\\] creation: (\\S+) muscle=(\\S+) weight=(\\S+) prof=(\\S+)",
+  "BODY_SCALARS": [
+   "lm",
+   "fm",
+   "lx",
+   "F0",
+   "Fc",
+   "Pk",
+   "N0",
+   "T",
+   "Tgrace",
+   "grace",
+   "S",
+   "sigDay",
+   "dayIndex",
+   "wday",
+   "lastAgeH",
+   "levelDue",
+   "wroteL",
+   "pDay",
+   "ebDay",
+   "eeDay",
+   "inDay",
+   "inDayClosed",
+   "alcDay",
+   "band",
+   "fatT",
+   "thinT",
+   "fmRef",
+   "tDisuse",
+   "bornAge",
+   "sex",
+   "delta",
+   "lm0dis",
+   "at",
+   "S"
+  ],
+  "WEEK_N": 7
+ },
+ "predictions": {
+  "21_<case>_body": "lm, fm, F0, Fc, Pk, N0 equal the creation table to 1e-9",
+  "21_<case>_state": "weights lm + lx + fm, levels floor(level + 1e-9), the band and weight trait on both sides",
+  "21_<case>_strips": {
+   "a": [],
+   "b": [],
+   "c": [],
+   "d": [
+    "obese",
+    "thickskinned",
+    "fasthealer"
+   ],
+   "e": [
+    "weak"
+   ]
+  }
+ },
+ "manifest_gate": {
+  "head": "7d1a5e8d52b05458ddf29ad350fa80c2ae04b9e9",
+  "head_short": "7d1a5e8d",
+  "mod_commit": "0a6b0215",
+  "mod_dirty": false,
+  "staged_manifest": "release/plan13-x43/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan13-x43/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest_sha256": "ddfe90c99ea87d42676dfe7ad591556c20b8b70ac159343caf75d85caa333931",
+  "files": 76,
+  "staged_equals_head": true,
+  "staged_tree_equals_head": true,
+  "ok": true,
+  "staged_version": "1.0.0",
+  "verify_rows_match": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.893,
+   "free_gb": 18.52
+  },
+  {
+   "tag": "ready",
+   "wall": 100.649,
+   "free_gb": 0.13
+  },
+  {
+   "tag": "after",
+   "wall": 264.785,
+   "free_gb": 20.72
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.89,
+ "server_started_wall": 17.174,
+ "session_ready_wall": 99.305,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 17.2,
+   "phase": "server_started"
+  },
+  {
+   "t": 17.3,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 52.4,
+   "phase": "client_ready",
+   "took": 34.8,
+   "user": "admin"
+  },
+  {
+   "t": 52.5,
+   "phase": "client_launch",
+   "user": "bob",
+   "restored": true
+  },
+  {
+   "t": 99.3,
+   "phase": "client_ready",
+   "took": 46.4,
+   "user": "bob"
+  },
+  {
+   "t": 99.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 99.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 100.1,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 100.6,
+   "phase": "verify",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 254.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 256.8,
+   "phase": "client_quit",
+   "user": "bob",
+   "rc": 0
+  },
+  {
+   "t": 264.7,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_a_body",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_a_state",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_a_strips",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_b_body",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_b_state",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_b_strips",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_c_body",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_c_state",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_c_strips",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_d_body",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_d_state",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_d_strips",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_e_body",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_e_state",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 264.8,
+   "phase": "verdict",
+   "name": "21_e_strips",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 32.8,
+   "ready": 34.8
+  },
+  {
+   "user": "bob",
+   "in_game": 43.8,
+   "ready": 46.4
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|BeyondTen|LuaError|STACK TRACE|lua error|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,399,227,636> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:2,399,227,640> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:2,399,227,640> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:2,399,227,640> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:2,399,227,640> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,399,237,088> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,088> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,097> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,097> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,097> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,097> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:2,399,237,196> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,399,240,217> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:2,399,240,218> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+   "LOG  : Lua          f:0 st:2,399,240,218> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=13 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:2,399,240,223> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:331 st:2,399,274,800> [NutritionRevamp] players: first sight of admin",
+   "LOG  : Lua          f:793 st:2,399,321,447> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:934 st:2,399,335,486> [NutritionRevamp] players: bob is dead; record kept until respawn",
+   "LOG  : Lua          f:967 st:2,399,338,848> [NutritionRevamp] store: reset record for bob (reset 1)",
+   "LOG  : Lua          f:967 st:2,399,338,849> [NutritionRevamp] creation: bob muscle=nil weight=nil prof=0",
+   "LOG  : Lua          f:971 st:2,399,339,186> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:1066 st:2,399,348,682> [NutritionRevamp] players: bob is dead; record kept until respawn",
+   "LOG  : Lua          f:1282 st:2,399,370,352> [NutritionRevamp] store: reset record for bob (reset 2)",
+   "LOG  : Lua          f:1282 st:2,399,370,356> [NutritionRevamp] creation: bob muscle=STRONG weight=OVERWEIGHT prof=0",
+   "LOG  : Lua          f:1285 st:2,399,370,585> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:1379 st:2,399,379,986> [NutritionRevamp] players: bob is dead; record kept until respawn",
+   "LOG  : Lua          f:1607 st:2,399,402,849> [NutritionRevamp] store: reset record for bob (reset 3)",
+   "LOG  : Lua          f:1607 st:2,399,402,854> [NutritionRevamp] creation: bob muscle=STRONG weight=VERY_UNDERWEIGHT prof=0",
+   "LOG  : Lua          f:1610 st:2,399,403,080> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:1712 st:2,399,413,282> [NutritionRevamp] players: bob is dead; record kept until respawn",
+   "LOG  : Lua          f:1927 st:2,399,434,849> [NutritionRevamp] store: reset record for bob (reset 4)",
+   "LOG  : Lua          f:1927 st:2,399,434,849> [NutritionRevamp] creation: bob loses obese (excluded by overweight)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob loses thickskinned (over the point total)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob loses fasthealer (over the point total)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob muscle=FEEBLE weight=OVERWEIGHT prof=0",
+   "LOG  : Lua          f:1931 st:2,399,435,181> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:2025 st:2,399,444,573> [NutritionRevamp] players: bob is dead; record kept until respawn",
+   "LOG  : Lua          f:2247 st:2,399,466,846> [NutritionRevamp] store: reset record for bob (reset 5)",
+   "LOG  : Lua          f:2247 st:2,399,466,847> [NutritionRevamp] creation: bob loses weak (excluded by underweight)",
+   "LOG  : Lua          f:2247 st:2,399,466,848> [NutritionRevamp] creation: bob muscle=nil weight=UNDERWEIGHT prof=0",
+   "LOG  : Lua          f:2250 st:2,399,467,081> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:2338 st:2,399,475,873> [NutritionRevamp] players: admin left",
+   "LOG  : Lua          f:2364 st:2,399,478,473> [NutritionRevamp] players: bob left"
+  ],
+  "server_echo_excluded": 12,
+  "mod_error": [],
+  "creation": [
+   "LOG  : Lua          f:967 st:2,399,338,849> [NutritionRevamp] creation: bob muscle=nil weight=nil prof=0",
+   "LOG  : Lua          f:1282 st:2,399,370,356> [NutritionRevamp] creation: bob muscle=STRONG weight=OVERWEIGHT prof=0",
+   "LOG  : Lua          f:1607 st:2,399,402,854> [NutritionRevamp] creation: bob muscle=STRONG weight=VERY_UNDERWEIGHT prof=0",
+   "LOG  : Lua          f:1927 st:2,399,434,849> [NutritionRevamp] creation: bob loses obese (excluded by overweight)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob loses thickskinned (over the point total)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob loses fasthealer (over the point total)",
+   "LOG  : Lua          f:1927 st:2,399,434,850> [NutritionRevamp] creation: bob muscle=FEEBLE weight=OVERWEIGHT prof=0",
+   "LOG  : Lua          f:2247 st:2,399,466,847> [NutritionRevamp] creation: bob loses weak (excluded by underweight)",
+   "LOG  : Lua          f:2247 st:2,399,466,848> [NutritionRevamp] creation: bob muscle=nil weight=UNDERWEIGHT prof=0"
+  ],
+  "log_copy_error": "SameFileError: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\x433-20261015-052759\\\\server-stdout.log' and 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\x433-20261015-052759\\\\server-stdout.log' are the same file",
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ],
+   "bob": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x433-20261015-052759\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "verdict_summary": {
+  "21_a_body": "as_predicted",
+  "21_a_state": "unmeasured",
+  "21_a_strips": "as_predicted",
+  "21_b_body": "as_predicted",
+  "21_b_state": "as_predicted",
+  "21_b_strips": "as_predicted",
+  "21_c_body": "as_predicted",
+  "21_c_state": "as_predicted",
+  "21_c_strips": "as_predicted",
+  "21_d_body": "as_predicted",
+  "21_d_state": "as_predicted",
+  "21_d_strips": "as_predicted",
+  "21_e_body": "as_predicted",
+  "21_e_state": "as_predicted",
+  "21_e_strips": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json"
+ ],
+ "wall_seconds": 264.8
+}

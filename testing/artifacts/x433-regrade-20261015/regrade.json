@@ -1,0 +1,236 @@
+{
+ "run": "x433-20261015-052759",
+ "source": "testing/artifacts/x433-20261015-052759/creation.json",
+ "rules": [
+  "R1"
+ ],
+ "verdicts": {
+  "21_a_state": {
+   "verdict": "as_predicted",
+   "observed": {
+    "server": {
+     "weight": 65.02499999999999,
+     "level": 5,
+     "bands": [],
+     "weights": []
+    },
+    "client": {
+     "weight": 65.0250015258789,
+     "level": 5,
+     "bands": [],
+     "weights": []
+    },
+    "mass": 65.02499999999999,
+    "want_native": 5,
+    "want_band": null,
+    "want_weight": null,
+    "stripped": [],
+    "pair_gap_s": 0.5150000000000006,
+    "bad": []
+   },
+   "run_verdict": "unmeasured",
+   "r1_applied": true
+  },
+  "21_a_body": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_a_strips": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_b_state": {
+   "verdict": "as_predicted",
+   "observed": {
+    "server": {
+     "weight": 82.53172078038634,
+     "level": 9,
+     "bands": [
+      "strong"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "client": {
+     "weight": 82.53172302246094,
+     "level": 9,
+     "bands": [
+      "strong"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "mass": 82.53172078038634,
+    "want_native": 9,
+    "want_band": "strong",
+    "want_weight": "overweight",
+    "stripped": [],
+    "pair_gap_s": 0.5149999999999864,
+    "bad": []
+   },
+   "run_verdict": "as_predicted",
+   "r1_applied": false
+  },
+  "21_b_body": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_b_strips": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_c_state": {
+   "verdict": "as_predicted",
+   "observed": {
+    "server": {
+     "weight": 47.684999999999995,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "veryunderweight"
+     ]
+    },
+    "client": {
+     "weight": 47.685001373291016,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "veryunderweight"
+     ]
+    },
+    "mass": 47.684999999999995,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "veryunderweight",
+    "stripped": [],
+    "pair_gap_s": 0.7599999999999909,
+    "bad": []
+   },
+   "run_verdict": "as_predicted",
+   "r1_applied": false
+  },
+  "21_c_body": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_c_strips": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_d_state": {
+   "verdict": "as_predicted",
+   "observed": {
+    "server": {
+     "weight": 68.97091525798105,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "client": {
+     "weight": 68.97091674804688,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "overweight"
+     ]
+    },
+    "mass": 68.97091525798105,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "overweight",
+    "stripped": [
+     "obese",
+     "thickskinned",
+     "fasthealer"
+    ],
+    "pair_gap_s": 0.5080000000000098,
+    "bad": []
+   },
+   "run_verdict": "as_predicted",
+   "r1_applied": false
+  },
+  "21_d_body": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_d_strips": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_e_state": {
+   "verdict": "as_predicted",
+   "observed": {
+    "server": {
+     "weight": 52.019999999999996,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "underweight"
+     ]
+    },
+    "client": {
+     "weight": 52.02000045776367,
+     "level": 3,
+     "bands": [
+      "feeble"
+     ],
+     "weights": [
+      "underweight"
+     ]
+    },
+    "mass": 52.019999999999996,
+    "want_native": 3,
+    "want_band": "feeble",
+    "want_weight": "underweight",
+    "stripped": [
+     "weak"
+    ],
+    "pair_gap_s": 0.5099999999999909,
+    "bad": []
+   },
+   "run_verdict": "as_predicted",
+   "r1_applied": false
+  },
+  "21_e_body": {
+   "verdict": "as_predicted",
+   "copied": true
+  },
+  "21_e_strips": {
+   "verdict": "as_predicted",
+   "copied": true
+  }
+ },
+ "source_sha256": "d3c8a4fa25cf93d1f2730513d54438c20f9231dba96b4c4d35be1c90d8cabd82",
+ "lib": "testing/experiments/x43_strength_lib.py",
+ "summary": {
+  "21_a_state": "as_predicted",
+  "21_a_body": "as_predicted",
+  "21_a_strips": "as_predicted",
+  "21_b_state": "as_predicted",
+  "21_b_body": "as_predicted",
+  "21_b_strips": "as_predicted",
+  "21_c_state": "as_predicted",
+  "21_c_body": "as_predicted",
+  "21_c_strips": "as_predicted",
+  "21_d_state": "as_predicted",
+  "21_d_body": "as_predicted",
+  "21_d_strips": "as_predicted",
+  "21_e_state": "as_predicted",
+  "21_e_body": "as_predicted",
+  "21_e_strips": "as_predicted"
+ }
+}
