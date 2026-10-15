@@ -54,7 +54,7 @@ K.strength.DEFAULTS = {
     ffmiPerLevel = 0.5, -- kg/m2 per bio level; game choice (spec section 2.4)
     capLevel = 16.5, -- the untrained natural cap in bio levels; ruling; S1915
     ts = 1.0, -- the biology clock; ruling 13-2
-    xpPerSet = 346, -- provisional until Task 1's calibration run (plan constants block)
+    xpPerSet = 360, -- the Strength XP of one vanilla push-up set to exhaustion, measured: run x423-20261015-040740 (n = 1, Fitness 5, Strength 5)
     incidental = 0.35, -- S1951 fractional, S1961, S1962; game choice
     fMinShare = 0.35, -- F's floor as a share of F0; game choice (the oracle's 0.35 * F0)
     fmMin = 0.5, -- kg, the fat floor; game choice (the Plan 3 guard's value)

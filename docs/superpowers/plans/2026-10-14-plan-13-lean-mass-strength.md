@@ -86,7 +86,7 @@ The non-fitted game constants sit in the same Lua block under their own keys, so
 | `ffmiPerLevel` | 0.5 kg/m² | one bio level | fixed |
 | `capLevel` | 16.5 | the untrained natural cap, in bio levels | `NR.StrengthCapLevel` |
 | `ts` | 1.0 | the biology clock | `NR.StrengthTimeScale` |
-| `xpPerSet` | 346 (provisional until Task 1) | XP of one hard set | `NR.StrengthXPPerSet` |
+| `xpPerSet` | 360 (measured, run x423-20261015-040740) | XP of one hard set | `NR.StrengthXPPerSet` |
 | `incidental` | 0.35 | non-exercise grant weight | `NR.StrengthIncidentalWeight` |
 | `fMinShare` | 0.35 | F's floor as a share of F0 (the model's `0.35 * F0`) | fixed |
 | `fmMin` | 0.5 kg | the fat floor (`K.partition.FM_MIN`) | fixed |

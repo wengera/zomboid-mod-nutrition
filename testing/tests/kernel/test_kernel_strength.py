@@ -133,11 +133,11 @@ def test_signal_close_shifts_lands_today_and_sums(host):
 
 
 def test_signal_close_includes_todays_slot_in_the_sum(host):
-    # the closed week is the six kept days and today's: an all-zero ring with today's 346 reads one set at xpPerSet
-    b = host.table(dict(sigDay=346.0, sig7=_ring([0.0] * 7)))
+    # the closed week is the six kept days and today's: an all-zero ring with today's 360 reads one set at xpPerSet
+    b = host.table(dict(sigDay=360.0, sig7=_ring([0.0] * 7)))
     assert host.K.strength.signalClose(b) / host.K.strength.DEFAULTS.xpPerSet == 1.0
-    assert host.K.strength.signalClose(b) == 346.0      # the next close keeps it in slot 6
-    assert b.sig7[7] == 0 and b.sig7[6] == 346.0
+    assert host.K.strength.signalClose(b) == 360.0      # the next close keeps it in slot 6
+    assert b.sig7[7] == 0 and b.sig7[6] == 360.0
 
 
 # --- the immobilised day (rulings 13-13 and 13-35; Task 12 fix round 1) ---
@@ -211,9 +211,9 @@ def test_disuse_day_steps_the_neural_factor_on_the_clock(host):
 
 # --- the lean-mass strength model (Plan 13 Task 5; rulings 13-1 and 13-45) ---
 
-# The game constants of DEFAULTS (the plan's first constants block, below point T); xpPerSet 346 is provisional
-# until Task 1's calibration run.
-GAME = dict(ffmi5=18.0, ffmiPerLevel=0.5, capLevel=16.5, ts=1.0, xpPerSet=346, incidental=0.35, fMinShare=0.35,
+# The game constants of DEFAULTS (the plan's first constants block, below point T); xpPerSet 360 is measured
+# (run x423-20261015-040740).
+GAME = dict(ffmi5=18.0, ffmiPerLevel=0.5, capLevel=16.5, ts=1.0, xpPerSet=360, incidental=0.35, fMinShare=0.35,
             fmMin=0.5, nov_p0=1.6, nov_pspan=0.8, xs_p0=0.8, xs_pspan=0.8)
 
 

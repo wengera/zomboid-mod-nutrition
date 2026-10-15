@@ -91,7 +91,7 @@ option NR.StrengthTimeScale
 
 option NR.StrengthXPPerSet
 {
-    type = double, min = 50.0, max = 2000.0, default = 346.0,
+    type = double, min = 50.0, max = 2000.0, default = 360.0,
     page = NutritionRevamp, translation = NR_StrengthXPPerSet,
 }
 
