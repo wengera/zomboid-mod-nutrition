@@ -81,11 +81,11 @@ bioLevel = 5 + (FFMI − 18.0) / 0.5      one bio level ≈ 1.445 kg of fat-free
 | none | 1.0 | 52.02 | 5.00 | 5.91 | 6.49 | 7.33 | 8.25 | 9.26 | 10.00 | 10.51 | 10.78 |
 | Stout | 1.07 | 56.66 | 7.00 | 8.01 | 8.57 | 9.28 | 10.06 | 10.92 | 11.59 | 12.08 | 12.34 |
 | Strong | 1.14 | 60.86 | 9.00 | 10.09 | 10.59 | 11.10 | 11.64 | 12.25 | 12.76 | 13.17 | 13.40 |
-| Feeble | 0.915 | 47.30 | 3.00 | 3.79 | 4.37 | 5.29 | 6.30 | 7.39 | 8.17 | 8.67 | 8.93 |
+| Feeble | 0.915 | 47.30 | 3.00 | 3.79 | 4.36 | 5.29 | 6.30 | 7.39 | 8.17 | 8.67 | 8.93 |
 | Weak | 0.82 | 42.12 | 1.00 | 1.85 | 2.42 | 3.37 | 4.41 | 5.51 | 6.28 | 6.76 | 6.99 |
 
   - The early levels are mostly neural: of the average's +0.91 at 4 weeks, T carries about 70 % in log terms (T = 1.0736 of S = 1.103).
-  - Strong passes 10 after 25 days, through T, and Stout after 348 days (23 and 329 before ruling 13-47's clamp). The average needs the full 4 years (day 1461).
+  - Strong passes 10 after 25 days, through T, and Stout after 348 days (23 and 329 before ruling 13-47's clamp). The average needs the full 4 years: its continuous level reaches 10 on day 1461, and the perk, which floors L + 1e-9, reads 10 on day 1460.
   - Feeble and Weak never reach 10.
 
 ## 3. Creation
@@ -97,7 +97,7 @@ On 42.21, the five weight-band traits are hidden profession traits (`IsProfessio
 
 The mod restates the full definition block of each offered trait in a shared script, named `base:<id>` in `module Base`, because a same-name block replaces the whole definition and resets every omitted key (trait-levers § 2). Each restated block:
 - sets `IsProfessionTrait = false`;
-- keep vanilla's Strength `XPBoosts` on the four muscle blocks (so the creation climb lands on the pick's band, Task 17 fix 1) and drop the Fitness `XPBoosts` on the weight blocks;
+- keeps vanilla's Strength `XPBoosts` on the four muscle blocks, so the creation climb lands on the pick's band (Task 17 fix 1), and drops the Fitness `XPBoosts` on the weight blocks;
 - keeps vanilla's cost (the four weight traits take the costs above) and exclusions, and adds the missing pairs: Obese and Overweight both ways and every pair inside a family (the four muscle traits, the four fat and thin traits). A muscle pick and a thin pick never exclude each other: a thin pick is fat-only (Angus, 2026-10-15: "Lift the exclusions"; § 3.2, § 11).
 - shows Underweight as **Overly Lean**, Very Underweight as **Gaunt** and Overweight as **Overfat** through mod `UIName` keys, since the axes read body fat, not weight (Angus, 2026-10-15; § 11). The ids stay vanilla's, and Obese and Emaciated keep their names. `CharacterTraitDefinition.<init>` passes `UIName` through `Translator.getText` as it does `UIDescription` (@54-@62 L35 and @79-@88 L38, jar `4a0e9546ec`), so a mod key resolves either way.
 
@@ -107,7 +107,7 @@ The descriptions are rewritten through the `UI_trait_*` translation keys to say 
 
 ### 3.2 What a pick does
 A server `OnNewGame(player)` handler, guarded by `isServer()`, runs after vanilla's `applyTraits` and before the save (trait-levers §§ 3–4). It:
-1. **Validates the picks.** The point total must be legal and no two picks may exclude each other; any illegal pick is stripped, latest first, and logged. The server checks neither of these itself.
+1. **Validates the picks.** The point total must be legal and no two picks may exclude each other; an illegal pick is stripped and logged: of two picks that exclude each other, the one with the higher absolute cost (a tie by name), then, while the points stay below 0, the costliest positive pick; the server keeps no pick order (x422), so the order is never the list's. The server checks neither of these itself.
 2. **Builds the body:**
 
 | Pick | N0 | Lean F at the start (shown level at T = 1) | Set point F0 | Natural cap Fc | Peak P | Fat |
@@ -135,7 +135,7 @@ A server `OnNewGame(player)` handler, guarded by `isServer()`, runs after vanill
    - **Fat bands** are read through the character's effective sex (§ 8.1, § 13): the male cuts unless `NR.SexSpecific` is on.
    - **The fat start scales with lean (Angus, 2026-10-15; § 11).** A fat or no weight pick's fat is fm = FMI[pick] · H² · F / Favg, where F is the start lean (after a profession's boost) and Favg = fOfBio(5) = 52.02 kg, the untrained average's. The table's kg are the average's; every start sits at its band middle's body-fat share whatever the muscle pick: 20 % for none, 29.4 % for Overweight, 36.8 % for Obese (male table). None + Obese is 30.3 kg of fat and 82.4 kg; Strong + Obese 35.5 kg and 96.4 kg; Weak + Obese 24.6 kg and 66.7 kg; a Strong character with no weight pick starts at 15.2 kg of fat, 20 %, not at a fixed 13.0 kg. The female table (7.0, 11.0, 15.0) scales the same way. A thin pick's fat is a body-fat share of the start lean (Task 10c), so it scales with lean too.
    - **Weight** = F + fat mass. This replaces `K.body.split`'s band-anchored split of vanilla's starting weight.
-3. **Writes the weight, the Strength level (§ 7) and the body traits (§ 8).** Vanilla's creation band swap on `LevelPerk` can leave a trait the player never picked, for example Out of Shape after Weight Gain (trait-levers § 3). The handler's trait write is final.
+3. **Writes the weight, the Strength level (§ 7) and the body traits (§ 8),** in that order. The level write's `LevelPerk` steps let vanilla's listener swap the muscle band, and the handler then re-asserts the band for the native level (`STR.remap`); the five weight-band traits are written last, so they are final. The restated blocks remove vanilla's creation cause of an unpicked trait (Weight Gain's grant of Overweight and that block's Fitness boost, which put Out of Shape on a Weight Gain pick, trait-levers § 3): Weight Gain and Weight Loss grant nothing and the weight blocks carry no Fitness `XPBoosts` (§ 3.1), so no body pick moves Fitness, and the Fitness band traits stay as vanilla's `applyTraits` set them (§ 14).
 
 ## 4. The training signal
 
@@ -233,11 +233,12 @@ At day close, and once at creation, the server computes the shown level L = leve
 - **floor(L) ≥ 10:** native level 10, with native XP parked at the level-9 total (337 500), so the `AddXP` event keeps firing with the full amount (vanilla returns before the event once XP reaches the level-10 total, #2109); the vanilla ten-minute level check is guarded so the parked XP never loses the level, as BeyondTen does (#2850, #2856). A Task 0 check confirms grants at level 10 reach the listener at full size.
   - Vanilla's `XpUpdate` band swap then moves Weak, Feeble, Stout and Strong. A Task 0 live check confirms the swap fires on the mod's write.
   - The short-term carry factor (dehydration, sleep, caffeine) stays as it is.
-- **floor(L) > 10 with BeyondTen loaded** (`BT.API_VERSION == 1`):
+- **floor(L) > 10 with BeyondTen loaded** (the global `BeyondTen` with `BeyondTen.API_VERSION == 1`; `BT` is only a local of BeyondTen's own files, ruling 13-24):
   - native Strength stays at 10;
-  - the server writes BeyondTen's stored XP for L through `BT.SetStoredXP(player, Perks.Strength, value)`, server-authoritative, with the value from BeyondTen's own `GetTotalMasteryCost`;
+  - the server writes BeyondTen's stored XP for L through `BeyondTen.SetStoredXP(player, Perks.Strength, value)`, server-authoritative, with the value from `BeyondTen.GetTotalMasteryCost`, then calls `BeyondTenServer.SendPerkSync(player, perk, old, new)` when present, so the client's mastery bar moves (Task 14 ruling I-2); a write that leaves native 10 sets the stored XP to 0;
   - native XP is never written while the native level is 10, because BeyondTen parks its reservoir there.
 - **floor(L) > 10 without BeyondTen:** the perk shows 10; the extra F still counts in weight and in the panel.
+- The drop margin holds the native level; BeyondTen's mastery level above 10 follows L at each write, so a body at a mastery boundary can move it one level at a day close.
 - **How far above 10.** Under perfect training, the untrained average passes 10 only after Y years and approaches 10.78, its cap with T_max. Stout's cap is 12.34 and Strong's 13.40 (ruling 13-47 clamps both at the natural FFMI limit; they were 12.50 and 14.23 before it), which Strong approaches only past 10 years (13.17 at 10 years). BeyondTen therefore holds at most about 3.4 levels, only for Stout and Strong, and only after years of training; ruling 13-42's clamp at 15 is not reached at the defaults.
 
 ## 8. Body traits in play
@@ -366,12 +367,14 @@ The options follow the existing `NR.<Name>` pattern in `42.21/media/sandbox-opti
 
 At load the options are checked: if S_g0 · e^(0.87β) ≥ S_max(0.87), bio level 15 is unreachable at any rate; the server logs the combination and falls back to the defaults for β, S_g0 and S_max1.
 
+At the corner `NR.StrengthCapLevel` 12 with `NR.StrengthTraitShare` 0 and `NR.StrengthYearsToLevel10` 10, Strong's start (62.22 kg) sits 0.08 kg above its cap (62.14 kg): it grows nothing and detrains toward its set point; no clamp is applied (Task 11 review minor 9).
+
 Pointless or dangerous options, kept out:
 - A raw `NR.StrengthRate` = k: its meaning shifts with β, S_g0 and S_max1, so the option is a multiplier on the fitted k.
 - A raw R: R is derived from `NR.StrengthYearsToLevel10`, so level 10 keeps its meaning.
 - `NR.StrengthThreshold` above about 1.0 at β 3: the anchor becomes unreachable (the guard above).
-- `NR.StrengthTimeScale` above about 7 with a daily Euler step: it overshoots, so the detraining and decay steps are integrated exactly.
-- `NR.StrengthMaintainShare` 0: detraining never runs, which may be intended; the option's tooltip says so.
+- `NR.StrengthTimeScale` above about 7 with a daily Euler step: it overshoots, so the detraining, regain and decay steps are integrated exactly (regain since Task 11c).
+- `NR.StrengthMaintainShare` near 0: detraining would all but never run, so the option's minimum is 0.1 (Task 11 review I-3).
 
 ## 11. Rulings made in the brainstorm
 
@@ -404,6 +407,7 @@ Pointless or dangerous options, kept out:
 - **Energy band.** Ruling: ENERGY_BAND 0.035 — the ramp left the resting-fast fall at up to 0.0307 below a level edge (72.55 kg); 0.031 is the floor over 20-day fasts — cost if wrong: a snack under about 280 kcal no longer steps the moodle down.
 - **Weak with a thin pick.** Ruling: Weak + Very Underweight starts at PE grade 4 with a refeeding risk — the stacked picks' cost: BMI 15.6 is clinically severe malnutrition, and PE and refeeding read BMI by design while the thin traits read leanness — cost if wrong: a harsh start for one rare pick pair.
 - **S1254's unit.** Ruling: FAT_GAIN fitted to 125 kcal/d per kg of fat — S1254's per-kg-weight gain (k_P 95, S2208) converted with the Forbes fat share Polidori's own model assumes (0.76, S2206; S2200, S2203 agree; S2199's 0.63 gives 150, inside the band) — cost if wrong: FAT_GAIN about 20 % low.
+- **BeyondTen above 10.** Ruling: BeyondTen's mastery levels above 10 take no drop margin; they follow L at each write (§ 7) — a held mastery level would need a new store field and an x431 re-smoke, for a band only BeyondTen players reach after months of training (Task 24 review M-13, the controller's ruling) — cost if wrong: a body at a mastery boundary can move BeyondTen's shown level by one at a day close.
 
 ## 12. Testing and evidence
 
