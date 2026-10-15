@@ -21985,3 +21985,18 @@ x411-20261014-014614,phases.OFF.raise.reply,mult=30 eff=142.18283081054688,"The 
 x411-20261014-014614,phases.OFF.restore.first.reply,mult=1 eff=4.773292064666748,"The harness's time.multiplier reply: `eff` is getMultiplier, the effective multiplier (#3762), not the setting; the setting is `trueMult`.",`phases.OFF.restore.first.snap.trueMult`
 x411-20261014-014614,phases.MG.eats[0].spawn.additem,the RCON additem ack,"The RCON ack reads ok, often with an empty reply, whether or not the command ran (the x391g diagnosis); the spawn's evidence is the server's item.get.",`phases.MG.eats[0].spawn.after`
 x411-20261014-014614,verdicts.OFF_NIC,trivial,"Trivial for a non-smoker: the writer lays the nicotine anchor at each minute's age while NICOTINE_WITHDRAWAL reads 0, so its move across the absence is not the skip's.",`verdicts.OFF_ANCHORS.observed`
+x421-20261015-033735,session,the driver's text,Written before the run; not a reading.,
+x421-20261015-033735,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x421-20261015-033735,constants,the lib's constants,The driver's settings; not a reading.,
+x421-20261015-033735,memory,host free memory rows,"Host state, not a game reading.",
+x421-20261015-033735,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x422-20261015-034556,session,the driver's text,Written before the run; not a reading.,
+x422-20261015-034556,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x422-20261015-034556,constants,the lib's constants,The driver's settings; not a reading.,
+x422-20261015-034556,memory,host free memory rows,"Host state, not a game reading.",
+x422-20261015-034556,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x421-20261015-033735,verdicts.1,as_predicted,"A grade defect: every boost map read empty because the harness walk raised (keySet), so no Fitness boost was a vacuous pass.",`x422-20261015-034556` `verdicts.1`
+x421-20261015-033735,checks.defs.server.Obese.xpBoosts,{},"The harness walk raised and returned an empty map; not a reading of the definition.",`x422-20261015-034556` `checks.defs`
+x421-20261015-033735,verdicts.2,falsified,"Falsified on admin's unread edits record (the client was parked), not on any edit.",`x422-20261015-034556` `verdicts.2`
+x421-20261015-033735,verdicts.8,falsified,"The phase never ran (the driver stopped before N1); no event was read.",`x422-20261015-034556` `verdicts.8`
+x422-20261015-034556,verdicts.7,unmeasured,"The in-driver grade folds three sources into one verdict; two of them did not separate a silent source from an unrun one.",`checks.S7.pushups`
