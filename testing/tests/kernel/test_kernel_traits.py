@@ -345,7 +345,7 @@ def test_the_start_leans_are_the_references():
 
 def test_the_average_lean_is_the_strength_kernels(host):
     assert abs(host.call("strength.fOfBio", 5.0, host.K.strength.DEFAULTS) - FAVG) < 1e-12
-    assert abs(host.call("traits.leanAvg") - FAVG) < 1e-12
+    assert abs(host.call("strength.averageLean") - FAVG) < 1e-12
 
 
 @pytest.mark.parametrize("lm", [WEAK_F, FAVG, STRONG_F])

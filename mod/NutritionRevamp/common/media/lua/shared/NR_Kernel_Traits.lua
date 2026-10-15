@@ -18,16 +18,11 @@ K.traits.FAT_CUTS = { { 6, 9 }, { 9, 13 } } -- S2056 (men: excess fat > 6, obese
 K.traits.FAT_WORDS = { "overweight", "obese" }
 K.traits.FAT_MARGIN = 0.3 -- game choice (spec section 8: the damping margin, FMI kg/m2)
 
--- The untrained average lean Favg, fOfBio(5) of the strength defaults (52.02 kg at 1.70 m), read at call time.
-function K.traits.leanAvg()
-    return K.strength.fOfBio(5, K.strength.DEFAULTS)
-end
-
 -- The lean-scaled fat index of fat fm on lean lm: fm / (H2 * lm / Favg), the fat-mass index an average-lean body at the
 -- same body-fat share would read. Comparing it with a cut c and margin m is comparing fm with c * H2 * lm / Favg and
 -- m * H2 * lm / Favg (Task 10b).
 function K.traits.fatIndex(fm, lm)
-    return fm * K.traits.leanAvg() / (K.HEIGHT_M * K.HEIGHT_M * lm)
+    return fm * K.strength.averageLean() / (K.HEIGHT_M * K.HEIGHT_M * lm)
 end
 
 -- The thinness cuts (male): the body-fat share below which Underweight (shown as Overly Lean), Very Underweight

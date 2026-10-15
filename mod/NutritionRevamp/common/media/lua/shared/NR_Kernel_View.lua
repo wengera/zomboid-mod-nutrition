@@ -670,7 +670,7 @@ end
 -- 9.9, not 10.0 beside a native 9; a level built on an integer reads it whole), or No data when the mirror carries no finite body_level.
 function K.view.levelRow(rows, m)
     local v = m.body_level
-    if not K.mirror.finite(v) then
+    if not K.finite(v) then
         K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.NO_DATA, 2, true)
         return
     end

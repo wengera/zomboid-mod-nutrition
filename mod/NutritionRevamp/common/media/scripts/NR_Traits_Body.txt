@@ -1,4 +1,4 @@
-/* The 10 body trait blocks of the nutrition mod (Plan 13 Task 16, spec section 3.1, rulings 13-25 and 13-46): each a
+/* The 10 body trait blocks of the nutrition mod (Plan 13 Task 16, spec section 3.1, ruling 13-25; ruling 13-46's thin pairs lifted in Task 10c): each a
    same-name restatement of vanilla's character_trait_definition, replacing it. The creation costs are Angus's choice
    (spec section 11): Overweight -6, Obese -10, Underweight -6, Very Underweight -10; Weak, Feeble, Stout, Strong,
    Weight Gain and Weight Loss keep vanilla's. The four muscle blocks keep vanilla's Strength XPBoosts (Plan 13 Task 17

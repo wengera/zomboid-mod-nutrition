@@ -37,12 +37,6 @@ end
 -- mass fm + lm + lx (ruling 13-20); body_delta reads 0 until the Strength minute first writes the carry.
 -- body_level (the true Strength level, K.strength.level at P) and body_sets (the closed week's S) are ruling 13-19's;
 -- body_level is absent, never NaN, when the body is absent or its lm, N0 or T is not finite (the view reads No data).
-function K.mirror.finite(v)
-    if type(v) ~= "number" then
-        return false
-    end
-    return v == v and v ~= math.huge and v ~= -math.huge
-end
 
 function K.mirror.body(m, body, P)
     m.body_fm = 0
@@ -70,12 +64,12 @@ function K.mirror.body(m, body, P)
     m.body_ebDay = body.ebDay
     m.body_eeDay = body.eeDay
     m.body_inDay = body.inDay
-    if K.mirror.finite(body.S) then
+    if K.finite(body.S) then
         m.body_sets = body.S
     end
-    if K.mirror.finite(body.lm) and K.mirror.finite(body.N0) and K.mirror.finite(body.T) then
+    if K.finite(body.lm) and K.finite(body.N0) and K.finite(body.T) then
         local level = K.strength.level(body.lm, body.N0, body.T, P or K.strength.DEFAULTS)
-        if K.mirror.finite(level) then
+        if K.finite(level) then
             m.body_level = level
         end
     end

@@ -767,7 +767,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, 1)
         L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
-        if math.floor(ageH / 24) > body.dayIndex then
+        if K.body.calendar(body, ageH, false) == 1 then
             body.inDayClosed = body.inDay
             K.partition.closeDay(body)
         end
@@ -1058,7 +1058,7 @@ function(plan, days, start)
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, 1)
         L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
-        if math.floor(ageH / 24) > body.dayIndex then
+        if K.body.calendar(body, ageH, false) == 1 then
             body.inDayClosed = body.inDay
             K.partition.closeDay(body)
         end

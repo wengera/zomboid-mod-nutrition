@@ -222,6 +222,8 @@ end
 -- world day and closes nothing, so the day open at departure continues as today's record day and nothing advances
 -- while the player is offline. Returns the closes the caller runs, 0 or 1; dayIndex is never touched here: the
 -- caller's K.partition.closeDay advances it by one.
+K.body.GAP_M = 60 -- game minutes: a step longer than this is a return after a gap, never integrated (ruling 13-5)
+
 function K.body.calendar(body, ageH, gapped)
     local today = math.floor(ageH / 24)
     if gapped then
@@ -258,7 +260,7 @@ K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- rulings 13-6, 13-30
 
 -- The start fat of weight pick pick (nil for none; a thin pick or a fat pick) on start lean F at effective sex sexIdx
 -- (2 female, else male): a thin pick's body-fat share (K.body.THIN, plus K.traits.THIN_F_OFFSET for 2) as
--- bf x F / (1 - bf); any other pick's FMI times H2 times F / Favg (K.traits.leanAvg; Task 10b), the female table for 2.
+-- bf x F / (1 - bf); any other pick's FMI times H2 times F / Favg (K.strength.averageLean; Task 10b), the female table for 2.
 function K.body.fatStart(pick, F, sexIdx)
     local bf = K.body.THIN[pick]
     if bf then
@@ -272,7 +274,7 @@ function K.body.fatStart(pick, F, sexIdx)
         fmi = K.body.FAT_FMI_F
     end
     local H2 = K.HEIGHT_M * K.HEIGHT_M
-    return fmi[pick or "none"] * H2 * (F / K.traits.leanAvg())
+    return fmi[pick or "none"] * H2 * (F / K.strength.averageLean())
 end
 
 -- The creation spec of a muscle pick, a weight pick (either nil for none), the strength table P and the effective sex
@@ -322,8 +324,8 @@ end
 -- window (K.body.newTrail, empty at birth) and the neutral rmod, tac, pPrevKg and energyState. Numbers and tables of
 -- numbers only (#1495).
 -- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30). The closed week's
--- sets S start at 0. The adapter builds every body here: first sight (NR_Server_Metabolism.ensureBody over the band
--- traits held), the store's default body and the heal's no-trait values (K.body.create(nil, nil, P)).
+-- sets S start at 0. The adapter builds every body here: first sight (NR_Server_Metabolism.ensureBody over the muscle
+-- pick read off the native level, Task 17b), the store's default body and the heal's no-trait values (K.body.create(nil, nil, P)).
 function K.body.new(spec, sex, ageH)
     local day = math.floor(ageH / 24)
     local body = {}

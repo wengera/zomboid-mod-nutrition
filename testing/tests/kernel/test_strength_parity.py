@@ -181,8 +181,9 @@ def test_growth_matches_the_oracle(host):
     D = _d(host)
     F0 = sm.F_of(5.0)
     Fc = sm.F_of(16.5)
-    # at the set point, grown, below a held peak (twice), at the cap and above it (negative room)
-    bodies = ((F0, F0), (F0 + 4.0, F0 + 4.0), (F0 + 9.0, F0 + 12.0), (F0 + 1.0, F0 + 6.0),
+    # at the set point, grown, below a held peak (twice), above a decayed peak (no regain), at the cap and above it
+    # (negative room)
+    bodies = ((F0, F0), (F0 + 4.0, F0 + 4.0), (F0 + 9.0, F0 + 12.0), (F0 + 1.0, F0 + 6.0), (F0 + 6.0, F0 + 4.0),
               (Fc, Fc), (Fc + 2.0, Fc + 2.0))
     for lm, Pk in bodies:
         b = _body(host, lm, F0, Fc, Pk)

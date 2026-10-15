@@ -1047,6 +1047,8 @@ def test_a_female_record_reads_the_male_values_unless_sex_specific_is_on(nut_hos
     mrec = fresh(h, male)
     alone(h, male, mrec, 100.0 + 1 / 60)
     assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1 and NUT(h).kMul.choline == 1
+    for sub in ("nutrients", "fluids", "acute"):                    # spec section 13: every sex-indexed output equals a male's
+        assert h.py(record[sub]) == h.py(mrec[sub]), sub
     h.rt.eval(READ)(h.table({"SexSpecific": True}))
     try:
         alone(h, fem, record, 100.0 + 2 / 60)
@@ -1432,3 +1434,24 @@ def test_a_stamp_laid_at_the_departure_minute_moves_by_the_gap(nut_host):
     alone(h, p, record, back)
     assert abs(record["satiety"]["nicH"] - (back - 1.0)) < 1e-9
     assert record["satiety"]["nicH"] > last + 70.0
+
+
+def test_the_gap_threshold_is_k_body_gap_m(nut_host):
+    # Task 24 M-5: a step over K.body.GAP_M (60) game minutes skips its excess, one of exactly 60 skips nothing; the
+    # ages are exact in binary, so the 60.9375-minute step kills a `> 61` mutant and the 60-minute one a `> 59`
+    h = nut_host
+    assert h.G.NutritionRevamp.kernel.body.GAP_M == 60
+    p = player(h)
+    record = fresh(h, p)
+    alone(h, p, record, 100.5)
+    acute = h.G.NutritionRevamp.kernel.acute
+    saved = acute.skipRecord
+    calls = []
+    acute.skipRecord = lambda rec, hours, fromH: calls.append((hours, fromH))
+    try:
+        alone(h, p, record, 101.5)                          # exactly 60 game minutes: integrated, nothing skipped
+        assert calls == []
+        alone(h, p, record, 101.5 + 1 + 1 / 64)             # 60.9375 game minutes: 0.9375 of them skipped
+        assert calls == [(0.9375 / 60, 101.5)]
+    finally:
+        acute.skipRecord = saved

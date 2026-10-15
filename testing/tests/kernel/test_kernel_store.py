@@ -459,7 +459,7 @@ def test_a_stored_female_body_defaults_to_the_male_masses_unless_sex_specific_is
 
 def test_a_body_with_a_lost_mass_or_clock_heals_and_keeps_the_record(host):
     # Plan 12 A4 (K2 B3): a non-finite fm, lm or lastAgeH is saved as JSON null and reads back absent; the load heals it
-    # as K.heal.body does (fm and lm the no-trait body's at the stored sex, lastAgeH the record's last sight) and keeps
+    # as K.heal.body does (fm and lm the no-trait body's at the effective sex (NR.SexSpecific on here: the stored female), lastAgeH the record's last sight) and keeps
     # the rest of the record, where it raised before and the server laid a fresh one
     nan = float("nan")
     base = host.K.body.create(None, None, host.K.strength.DEFAULTS, 2)

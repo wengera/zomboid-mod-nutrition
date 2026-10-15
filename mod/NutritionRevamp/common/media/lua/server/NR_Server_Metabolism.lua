@@ -421,8 +421,8 @@ local function step(username, player, record, ctx)
     heal(username, record, body, ageH)
     local sat = MET.healActivity(username, record, body)
     local stepM = (ageH - body.lastAgeH) * 60
-    local dtM = K.clamp(stepM, 0, 60)                     -- offline time is not integrated
-    if stepM > 60 then K.body.trailShift(body.trail, ageH - dtM / 60) end   -- nor kept in the window: it skips the gap
+    local dtM = K.clamp(stepM, 0, K.body.GAP_M)           -- offline time is not integrated
+    if stepM > K.body.GAP_M then K.body.trailShift(body.trail, ageH - dtM / 60) end   -- nor kept in the window: it skips the gap
     K.body.trailTo(body.trail, ageH)                      -- the window to this minute, before its intake and expenditure land
     snapAll(body, sat)
     local w = body.fm + body.lm + body.lx                 -- the body mass (ruling 13-20)
@@ -449,7 +449,7 @@ local function step(username, player, record, ctx)
     K.training.sample(body, K.energy.CLASS_MET[rateClass], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     local ironGrade, allReplete, dehydPct, g, debtH = nutrientInputs(record)
-    if K.body.calendar(body, ageH, stepM > 60) == 1 then   -- a return after a gap closes nothing (ruling 13-5)
+    if K.body.calendar(body, ageH, stepM > K.body.GAP_M) == 1 then   -- a return after a gap closes nothing (ruling 13-5)
         closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     end
     w = body.fm + body.lm + body.lx

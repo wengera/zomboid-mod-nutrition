@@ -249,7 +249,7 @@ def test_exact_regain_never_passes_the_peak():
     for _ in range(60):
         Pk = b.Pk
         s = b.s()
-        grow = P["k"] * (b.Fc - b.F) * sm.Gsig(P, 20.0, s) * sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0) / 7.0 * 30.0
+        grow = max(0.0, P["k"] * (b.Fc - b.F) * sm.Gsig(P, 20.0, s) * sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0) / 7.0 * 30.0)
         rg = _regain_day(P, b, 20.0, 2.0, 260.0) if b.F < b.Pk else 0.0
         b.day(20.0, 2.0, 260.0)
         if rg > grow:

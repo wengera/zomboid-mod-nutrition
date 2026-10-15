@@ -177,8 +177,8 @@ end
 -- non-finite fm or lm the no-trait body's at the effective sex (specific: NR.SexSpecific); an absent or non-finite
 -- lastAgeH ageH, the record's last sight. A non-finite number is saved as JSON null and reads back absent, so without
 -- the heal one bad field cost the whole record. A value of another type is left for K.store.checkLeaf to reject. Then
--- K.body.new over the no-trait body (K.body.create(nil, nil, P), P the server's strength table, nil reading
--- K.strength.DEFAULTS, so a tuned server's cap holds) at the stored sex and clock; the copy then lays the stored
+-- K.body.create(nil, nil, P) at the effective sex (P the server's strength table, nil reading K.strength.DEFAULTS, so a
+-- tuned server's cap holds), laid by K.body.new at the stored sex and clock; the copy then lays the stored
 -- masses, set point, cap, peak, factors, rungs and rings over it.
 function K.store.bodyBase(rb, ageH, specific, P)
     if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
