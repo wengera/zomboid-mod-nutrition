@@ -251,10 +251,10 @@ def test_description_numbers_are_the_kernels(host):
     for i, key in (("weak", "WEAK"), ("feeble", "FEEBLE"), ("stout", "STOUT"), ("strong", "STRONG")):
         got = re.findall(r"Strength (\d+)", ui["UI_NR_trait_%sdesc" % i])
         assert got == [str(int(start[key]))], i
-    fmi = host.py(host.K.body.FAT_FMI)
-    kg = round((fmi["OBESE"] - fmi["none"]) * host.K.HEIGHT_M ** 2)
-    assert re.findall(r"about (\d+) kg", ui["UI_NR_trait_obesedesc"]) == [str(kg)]
-    assert "kg" not in ui["UI_NR_trait_overweightdesc"]
+    # Task 10b: the fat start scales with the start lean, so no fixed kg figure is true for every pick
+    for i in ("overweight", "obese"):
+        assert "kg" not in ui["UI_NR_trait_%sdesc" % i], i
+        assert ui["UI_NR_trait_%sdesc" % i].startswith("Starts carrying more body fat."), i
 
 
 def test_ruling_13_46_pairs_in_both_directions(mine):

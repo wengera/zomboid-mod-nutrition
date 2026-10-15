@@ -242,9 +242,11 @@ end
 -- (ruling 13-46). create builds an excluded pair by the same rules; the creation handler strips one pick first.
 K.body.EXCLUDES = { UNDERWEIGHT = { WEAK = true, FEEBLE = true }, VERY_UNDERWEIGHT = { WEAK = true, FEEBLE = true } } -- ruling 13-46
 
--- The creation fat as a fat mass index (kg/m2) by weight pick: male, the middle of Kelly 2009's bands; female, the
--- middle of the female bands, read only for effective sex 2 (NR.SexSpecific on and the character female).
-K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 12.5 } -- S2056; game choice (the middle of each band)
+-- The creation fat as a fat mass index (kg/m2) at the average lean by weight pick: male, the middle of Kelly 2009's
+-- bands (Obese at class I, 9-12); female, the middle of the female bands, read only for effective sex 2 (NR.SexSpecific
+-- on and the character female). create scales it by the start lean over the average's (Task 10b), so each start sits
+-- at its band middle's body-fat share: male 20 %, 29.4 % and 36.8 % at every lean.
+K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 10.5 } -- S2056; game choice (the middle of each band; Task 10b, Angus)
 K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 } -- S2057; game choice (the middle of each band; ruling 13-31)
 
 -- A thin pick's target BMI (WHO grades) and fat mass index; the lean is lowered to reach the BMI, never raised.
@@ -258,7 +260,8 @@ K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- rulings 13-6, 13-30
 -- The creation spec of a muscle pick, a weight pick (either nil for none), the strength table P and the effective sex
 -- sexIdx (2 female, else male): the start lean F solves level(F, N0, 1) = the pick's start level; the set point F0 and
 -- the natural cap Fc move by traitShare of F - F5, Fc clamped at the natural FFMI limit (ruling 13-47); the peak is
--- max(F, F0); the fat is the pick's FMI times H2, and a thin pick lowers lm to min(F, BMI * H2 - fat) (ruling 13-14).
+-- max(F, F0); the fat is the pick's FMI times H2 times F / Favg (K.traits.leanAvg; Task 10b), and a thin pick's fat is
+-- its FMI times H2, unscaled, with lm lowered to min(F, BMI * H2 - fat) (ruling 13-14).
 -- profBoost is the profession's Strength boost (Plan 13 Task 17b; a nil or non-finite one reads 0): it raises the
 -- start level like a small trait, clamped to [0, 10] so the native perk is reachable, before the thin cap, and adds
 -- no innate factor; F0, Fc and Pk follow the raised F as for a trait.
@@ -291,7 +294,7 @@ function K.body.create(muscle, weight, P, sexIdx, profBoost)
         if spec.sexIdx == 2 then
             fmi = K.body.FAT_FMI_F
         end
-        spec.fm = fmi[pick or "none"] * H2
+        spec.fm = fmi[pick or "none"] * H2 * (F / K.traits.leanAvg())
     end
     spec.fatT = K.body.FAT_RUNG[pick] or 0
     spec.thinT = K.body.THIN_RUNG[pick] or 0

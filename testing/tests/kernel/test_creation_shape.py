@@ -17,6 +17,7 @@ from . import strength_level as sl
 from .server_host import Host
 
 H2 = 1.70 * 1.70
+FAVG = 18.0 * H2   # the untrained average lean; the fat starts scale by F / FAVG (Task 10b)
 LADDER = [1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 337500, 487500]
 
 ENV = r"""
@@ -262,9 +263,10 @@ def test_strong_and_overweight_build_strongs_start_and_overweights_fat():
     for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk)):
         assert abs(b[k] - v) < 1e-9, k
     assert b.N0 == sl.LEVEL_MODEL["N0"]["STRONG"]
-    assert abs(b.fm - 21.675) < 1e-9
+    fm = 7.5 * H2 * F / FAVG                                  # 25.36 kg: Overweight's 29.4 % at Strong's lean
+    assert abs(b.fm - fm) < 1e-9
     assert b.fatT == 1 and b.thinT == 0
-    assert abs(p.nut.weight - (F + 21.675)) < 1e-9          # the weight is the body's, not vanilla's 95 kg
+    assert abs(p.nut.weight - (F + fm)) < 1e-9          # the weight is the body's, not vanilla's 95 kg
     assert h.NR.server.creation.stats.created == 1
 
 
@@ -426,7 +428,7 @@ def test_a_respawns_new_game_builds_a_fresh_body():
     r2 = _new_game(h, p2)
     assert r2.resets == 1
     assert abs(r2.body.lm - sl.trait_start("FEEBLE")[0]) < 1e-9
-    assert abs(r2.body.fm - 12.5 * H2) < 1e-9
+    assert abs(r2.body.fm - 10.5 * H2 * sl.trait_start("FEEBLE")[0] / FAVG) < 1e-9
     assert p2.st.perk.Strength == 3 and p2.st.traits.FEEBLE is True
     assert h.NR.server.creation.stats.created == 2
 

@@ -3,7 +3,7 @@
 `K.body.create(muscle, weight, P, sexIdx)` against the strength-level reference (`strength_level.trait_start`,
 `perfect_run`) and spec section 3.2's kg columns at 1.70 m (2.89 m2), unrounded: the muscle starts through N0 and lean,
 the set point and the natural cap moved by the trait share, the cap clamped at the natural FFMI limit, the peak, the
-fat and thin weight picks by sex, the rungs, the anti-stacking exclusions over every legal pick set of the 8 body traits
+fat and thin weight picks by sex (the fat picks scaled by the start lean over the average's, Task 10b), the rungs, the anti-stacking exclusions over every legal pick set of the 8 body traits
 for both sexes, and `K.body.new` (renamed from `newLean` in Task 12) under ten years of perfect training.
 """
 import pytest
@@ -11,6 +11,7 @@ import pytest
 from . import strength_level as sl
 
 H2 = 1.70 * 1.70
+FAVG = 18.0 * H2   # the untrained average lean, K.strength.fOfBio(5, DEFAULTS)
 MUSCLE = (None, "WEAK", "FEEBLE", "STOUT", "STRONG")
 WEIGHT = (None, "OVERWEIGHT", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT")
 THIN = ("UNDERWEIGHT", "VERY_UNDERWEIGHT")
@@ -68,12 +69,12 @@ def test_muscle_starts_match_the_reference(host, muscle):
     assert s["N0"] == D["N0"][key] == sl.LEVEL_MODEL["N0"][key]
     L = host.call("strength.level", s["lm"], s["N0"], 1.0, D)
     assert host.call("strength.shown", L)[0] == D["startLevel"][key]
-    assert abs(s["fm"] - 4.5 * H2) < 1e-9
+    assert abs(s["fm"] - 4.5 * H2 * F / FAVG) < 1e-9          # Task 10b: 20 % body fat at every start lean
     assert s["fatT"] == 0 and s["thinT"] == 0
 
 
 @pytest.mark.parametrize("weight, fat_kg, lean", [
-    ("OVERWEIGHT", 21.675, None), ("OBESE", 36.125, None),
+    ("OVERWEIGHT", 21.675, None), ("OBESE", 30.345, None),
     ("UNDERWEIGHT", 4.335, 47.685), ("VERY_UNDERWEIGHT", 2.89, 44.795),
 ])
 def test_weight_picks(host, weight, fat_kg, lean):
@@ -150,7 +151,7 @@ def test_female_fat_picks_sit_in_the_female_bands(host, weight, fmi):
     assert s["sexIdx"] == 2
 
 
-@pytest.mark.parametrize("weight, fmi", [(None, 4.5), ("OVERWEIGHT", 7.5), ("OBESE", 12.5)])
+@pytest.mark.parametrize("weight, fmi", [(None, 4.5), ("OVERWEIGHT", 7.5), ("OBESE", 10.5)])
 @pytest.mark.parametrize("sexIdx", [None, 1])
 def test_male_fat_picks_are_the_default(host, weight, fmi, sexIdx):
     s = _spec(host, None, weight, sexIdx=sexIdx)
@@ -428,3 +429,55 @@ def test_an_unreadable_boost_reads_zero(host, bad):
         for w in (None, "UNDERWEIGHT", "OBESE"):
             got = host.py(host.call("body.create", m, w, D, 1, bad))
             assert got == host.py(host.call("body.create", m, w, D, 1)), (m, w, bad)
+
+
+# --- Task 10b: the fat starts scale with the start lean (Angus, 2026-10-15) ---
+
+FAT_MID = {1: {None: 4.5, "OVERWEIGHT": 7.5, "OBESE": 10.5}, 2: {None: 7.0, "OVERWEIGHT": 11.0, "OBESE": 15.0}}
+BANDS = {1: {None: (3.0, 6.0), "OVERWEIGHT": (6.0, 9.0), "OBESE": (9.0, 12.0)},   # Kelly 2009 male, obese class I
+         2: {None: (5.0, 9.0), "OVERWEIGHT": (9.0, 13.0), "OBESE": (13.0, 17.0)}}  # female, obese class I
+
+
+def test_the_fat_tables(host):
+    assert host.py(host.K.body.FAT_FMI) == {"none": 4.5, "OVERWEIGHT": 7.5, "OBESE": 10.5}
+    assert host.py(host.K.body.FAT_FMI_F) == {"none": 7.0, "OVERWEIGHT": 11.0, "OBESE": 15.0}
+
+
+@pytest.mark.parametrize("prof", [0, 1])
+@pytest.mark.parametrize("sexIdx", [1, 2])
+@pytest.mark.parametrize("weight", [None, "OVERWEIGHT", "OBESE"])
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_every_fat_start_sits_mid_band_in_body_fat(host, muscle, weight, sexIdx, prof):
+    s = host.call("body.create", muscle, weight, _d(host), sexIdx, prof)
+    fmi = FAT_MID[sexIdx][weight]
+    lo, hi = BANDS[sexIdx][weight]
+    assert lo < fmi < hi and abs(fmi - (lo + hi) / 2) < 1e-12
+    assert abs(s["fm"] - fmi * H2 * s["lm"] / FAVG) < 1e-9
+    # the body-fat share is the band middle's at the average lean, whatever the start lean
+    bf = s["fm"] / (s["fm"] + s["lm"])
+    assert abs(bf - fmi / (18.0 + fmi)) < 1e-12
+    assert lo / (18.0 + lo) < bf < hi / (18.0 + hi)
+
+
+@pytest.mark.parametrize("muscle, fat, weight", [
+    (None, 30.345, 82.365), ("STRONG", 35.4997538, 96.3564746), ("WEAK", 24.5672261, 66.6824708),
+])
+def test_the_verified_obese_bodies(host, muscle, fat, weight):
+    s = _spec(host, muscle, "OBESE")
+    assert abs(s["fm"] - fat) < 1e-6
+    assert abs(s["lm"] + s["fm"] - weight) < 1e-6
+    assert abs(s["fm"] / (s["lm"] + s["fm"]) - 10.5 / 28.5) < 1e-12   # 36.84 %
+
+
+def test_a_strong_none_pick_starts_at_20_percent_not_a_fixed_13_kg(host):
+    s = _spec(host, "STRONG", None)
+    assert abs(s["fm"] - 4.5 * H2 * sl.trait_start("STRONG")[0] / FAVG) < 1e-9
+    assert s["fm"] > 15.2
+    assert abs(s["fm"] / (s["fm"] + s["lm"]) - 0.2) < 1e-12
+
+
+@pytest.mark.parametrize("weight", THIN)
+@pytest.mark.parametrize("muscle", (None, "STOUT", "STRONG"))
+def test_thin_fat_is_not_scaled(host, muscle, weight):
+    s = _spec(host, muscle, weight)
+    assert s["fm"] == host.K.body.THIN[weight].fmi * H2
