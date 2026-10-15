@@ -53,9 +53,11 @@ AUTODROP_G = 500.0                    # water for every replay that drinks: 500 
 AUTODROP_MIN = (60, 180, 300, 420, 540, 660, 780, 900)   # a day (review C-1: the map's 2.4 L sat below the mod's loss)
 DEHYD_BOUND = 3.0                     # % body mass: the viability guard's bound (rule R-1), a game choice named here:
 #                                       mild, inside the mod's dehydration fatigue bands (+0.06 at 2 %, +0.08 at 3 %,
-#                                       NR_Data_Effects B5) and far under its 10 % lethal line. A fed day on 4 L sits
-#                                       near 1.5 %; a fast's creeps up as the body shrinks (2.2 % by day 3, 2.7 % by
-#                                       day 24, whatever the water: 6 L reads the same), so 3 % holds a fast to its death
+#                                       NR_Data_Effects B5) and far under its 10 % lethal line. The fed replays read 1.2
+#                                       to 1.8 %, the oracle arms 2.0 to 2.45; a fast's peak is the overnight dry window
+#                                       (22:00 to 08:00) and creeps as the body shrinks (2.13 % by day 3, 2.7 % by day
+#                                       24; 12 L a day lowers it only 0.2), so 3 % holds a fast to its death. A guard,
+#                                       not a claim: the guide never calls these characters fully hydrated
 # the plate the mod-side scenarios eat (rule R-1, review C-1): the guide's foods and an orange, whole vectors from the
 # mod's table (replay_live's meal `plate`), so every meal carries real vitamins and minerals in their proportions
 PLATE = ("Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen")
@@ -207,7 +209,13 @@ MAP_CHARTS = {
 PENDING_LIVE = (
     "H1-v-live", "H2-v-live", "S1a-v-live", "S1b-v-live", "S1c-v-live", "S2a-v-live", "S2d-v-live-health",
     "S3b-v-live-U", "S3b-v-live-B", "S6b-v-live",
+    # M1 (x446, the HEAD fresh record; Task 6 runs it, Task 8 draws these): x364 passes the admission on the quantities
+    # these draw, but its start (the pre-Plan-13 body, THIRST 0.05, first sight at 10:00) is not the fresh HEAD record
+    # the kernel lines beside them simulate (re-review N-2, ruling: hold for M1)
+    "S1b-m-live", "S1c-m-live",
 )
+# the admission records whose live series wait on M1 instead (kept in VALIDATION, marked superseded)
+SUPERSEDED_BY_M1 = {"x364:THIRST": "M1 (x446)", "x364:levels": "M1 (x446)"}
 
 # Each series the evidence does not support, and why. A live series fails when the admission of the quantity it draws
 # fails (ADMISSIONS below, recorded in VALIDATION); `admissions()` checks that this table says exactly that.
@@ -846,6 +854,8 @@ def adm(key):
         rec["draws"], rec["proves"] = list(a[5]), list(a[6])
     rec["kind"] = "admission"
     rec["key"] = key
+    if key in SUPERSEDED_BY_M1:
+        rec["superseded_by"] = SUPERSEDED_BY_M1[key]
     if rec["admitted"] != ADMISSION_EXPECT[key]:
         raise D.ProvenanceError("admission %s is %s at HEAD, pinned %s: re-rule its live series and DROPPED"
                                 % (key, rec["admitted"], ADMISSION_EXPECT[key]))
@@ -1091,7 +1101,10 @@ def _grades(days, ev):
                 first2[k] = age / 24.0
                 break
     out["first_grade2_day"] = first2
-    return _done(rows, be, out)
+    out = _done(rows, be, out)
+    out["viab"]["thiamine_g_max"] = max(int(r["nutrients.thiamine.g"]) for r in rows
+                                       if isinstance(r.get("nutrients.thiamine.g"), (int, float)))
+    return out
 
 
 @job
@@ -1643,11 +1656,6 @@ def s_s1b():
     r = VM.simulate({"hours": 36.0, "dt_min": 10.0, "start": {"hunger": 0.0}})
     k = result("j_s1b")
     viable("S1b-m-kernel", "j_s1b")
-    adm("x364:levels")
-    path = "sessions.x364.readings.ring_levels.changes[*].age"
-    ages = read("x36g", "grade.json", path)
-    levels = read("x36g", "grade.json", "sessions.x364.readings.ring_levels.changes[*].to")
-    first = read("x364", "start.json", "rec.firstSeen")
     return [
         series("S1b-v-model", "Vanilla Hungry moodle", "game hours from a fresh start", "moodle level (0-4)",
                "vanilla-model", r["hungry_level"], vmodel("VM1", "VM5"),
@@ -1658,12 +1666,8 @@ def s_s1b():
                kernel({"replay": "fresh record from 07:00, no food, the replay's water, 36 h", "path": SIG,
                        "read": "the thousands digit (test_replay_live_energy.long_fast_levels)",
                        "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x405"),
-               "The level the server pushes (the bus signature's energy digit). " + proof_note("S1b-m-kernel")),
-        series("S1b-m-live", "Nutrition Revamp energy moodle, measured", "game hours from a fresh start",
-               "moodle level (0-4)", "live", [[a - first, lv] for a, lv in zip(ages, levels)],
-               artifact("x36g", "grade.json", path),
-               "x364: the server's level changes, hours from first sight (start.json rec.firstSeen); the HEAD replay "
-               "of x364 puts them within 15 game minutes (VALIDATION x364:levels)."),
+               "The level the server pushes (the bus signature's energy digit), a fresh HEAD record from 07:00. "
+               + proof_note("S1b-m-kernel")),
     ]
 
 
@@ -1671,24 +1675,16 @@ def s_s1c():
     r = VM.simulate({"hours": 24.0, "dt_min": 10.0, "start": {"thirst": 0.0}})
     k = result("j_s1c")
     viable("S1c-m-kernel", "j_s1c", thirst=True)
-    adm("x364:THIRST")
-    pages = "minute-ring-admin-{1,721,1441}.json"     # the last page (1974) holds offline rows with no stats
-    thirst = read("x364", pages, "rows_list[*].THIRST")
-    ages = read("x364", pages, "rows_list[*].age")
-    first = read("x364", "start.json", "rec.firstSeen")
-    live = [[a - first, t] for a, t in zip(ages, thirst) if a is not None and t is not None and a >= first]
     return [
         series("S1c-v-model", "Vanilla, from the game's code", H, "thirst (0-1)", "vanilla-model", r["thirst"],
                vmodel("VM5"), "Linear from 0 at 8.0e-6 a game-second."),
         series("S1c-m-kernel", "Nutrition Revamp, simulated by the mod's code", H, "thirst (0-1)", "kernel",
                k["points"], kernel({"replay": "fresh record from 07:00, no drink, 24 h", "path": "THIRST",
                                     "sleep_allowed": False}, "x364"),
-               "No drink by design: the guard holds the replay alive, at any dehydration. Proof x364, whose THIRST the "
-               "HEAD replay reproduces within 0.0018 (VALIDATION x364:THIRST)."),
-        series("S1c-m-live", "Nutrition Revamp, measured", H, "thirst (0-1)", "live", live[::10],
-               artifact("x364", pages, "rows_list[*].THIRST"),
-               "x364's 32 hours without a drink, hours from first sight; admitted on THIRST within 0.002, a bound "
-               "named here (VALIDATION x364:THIRST). x from rows_list[*].age."),
+               "No drink by design: the guard holds the replay alive, at any dehydration. The line is a fresh HEAD "
+               "record from 07:00. Its proof x364: the HEAD replay of x364's own inputs (its own start record) "
+               "reproduces x364's THIRST within 0.0018 (VALIDATION x364:THIRST); that replay is not the line drawn "
+               "here. M1 (x446) measures the fresh HEAD record."),
     ]
 
 
@@ -1893,7 +1889,10 @@ def s_s3c():
                kernel({"replay": "S3a's diet to day 80, one Base.Orange a day at 10:00 from day 45",
                        "orange": eat(0, "Base.Orange"), "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "path": "nutrients.vitC.p", "sleep_allowed": False}, "x151r"),
-               "The orange mends vitamin C only. " + death_note(v)),
+               "The orange also carries thiamine (%.3f mg against a tuna tin's %.3f), which keeps the thiamine grade "
+               "at %d at worst and averts S3a's cardiac beriberi death (day 57.97); this chart plots vitamin C alone. %s"
+               % (food("Base.Orange")["per_item"]["thiamine"], food("Base.TunaTinOpen")["per_item"]["thiamine"],
+                  v["thiamine_g_max"], death_note(v))),
         series("S3c-study", "Ververs 2019", DAYS, "vitamin C store (0-1)", "study",
                [[45.0, VITC_CLINICAL], [52.0, VITC_CLINICAL]], study("S0229"),
                "Symptoms improved within one week of treatment: drawn as the week from the first orange (day 45 to "

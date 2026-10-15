@@ -131,14 +131,31 @@ def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
-    assert len(built) == 129 and len(S.PENDING_LIVE) == 10 and len(S.DROPPED) == 8
+    assert len(built) == 127 and len(S.PENDING_LIVE) == 12 and len(S.DROPPED) == 8
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
 
 def test_pending_ids_are_the_vanilla_live_gaps_but_the_existing_run():
     vl = {i for c in S.MAP_CHARTS.values() for i in c["series"] if "-v-live" in i}
-    assert set(S.PENDING_LIVE) == vl - {"S2d-v-live-weight"}
+    assert set(S.PENDING_LIVE) == (vl - {"S2d-v-live-weight"}) | {"S1b-m-live", "S1c-m-live"}   # those two for M1
+
+
+def test_n2_the_x364_admissions_stay_recorded_and_superseded_by_m1():
+    for key in ("x364:THIRST", "x364:levels"):
+        v = next(v for v in ADM if v["key"] == key)
+        assert v["admitted"] and v["superseded_by"] == "M1 (x446)"
+        assert set(v["draws"]) <= set(S.PENDING_LIVE)
+    assert all("superseded_by" not in v for v in ADM if v["key"] not in ("x364:THIRST", "x364:levels"))
+    assert "not the line drawn here" in SER["S1c-m-kernel"]["note"]
+
+
+def test_n1_the_orange_s_thiamine_averts_the_beriberi_death():
+    # S3a (tuna alone) reaches thiamine grade 4 and dies of cardiac beriberi; with the orange S3c stays below grade 4
+    assert VIAB["j_s3a"]["thiamine_g_max"] == 4 and VIAB["j_s3a"]["lethal"][1] == 3
+    assert VIAB["j_s3c"]["thiamine_g_max"] < 4 and VIAB["j_s3c"]["lethal"] is None
+    orange, tuna = (_food_rec(pz)["per_item"]["thiamine"] for pz in ("Base.Orange", "Base.TunaTinOpen"))
+    assert orange > tuna and ("%.3f mg against a tuna tin's %.3f" % (orange, tuna)) in SER["S3c-m-pool"]["note"]
 
 
 @pytest.mark.parametrize("sid", sorted(SER))
@@ -706,26 +723,6 @@ def _(kh, sid):
     r = art("x36g", "grade.json", "sessions", "x361", "readings", "readings")
     assert SER[sid]["points"] == [[650.0, r["C650_request_vs_anchor"]["live_min"]],
                                   [400.0, r["C400_held_vs_180"]["live_min"]]]
-    return xs_of(sid)
-
-
-@check("S1b-m-live")
-def _(kh, sid):
-    ch = art("x36g", "grade.json", "sessions", "x364", "readings", "ring_levels", "changes")
-    first = art("x364", "start.json", "rec", "firstSeen")
-    assert SER[sid]["points"] == [[c["age"] - first, c["to"]] for c in ch]
-    assert [round(p[0], 2) for p in SER[sid]["points"]] == [8.37, 20.86]   # the map's 8.37 h and 20.86 h
-    return xs_of(sid)
-
-
-@check("S1c-m-live")
-def _(kh, sid):
-    rows = []
-    for page in (1, 721, 1441):
-        rows += art("x364", "minute-ring-admin-%d.json" % page, "rows_list")
-    first = art("x364", "start.json", "rec", "firstSeen")
-    want = [[r["age"] - first, r["THIRST"]] for r in rows if r["age"] >= first][::10]
-    assert SER[sid]["points"] == want
     return xs_of(sid)
 
 
