@@ -1523,7 +1523,7 @@ end)
 -- OutOfShape -> OUT_OF_SHAPE); the definition is CharacterTraitDefinition.getCharacterTraitDefinition(enum).
 -- Its getters are walked index-first: getCost, isFree (the script's IsProfessionTrait), getLabel and
 -- getDescription (both translated when the definition was built), getXpBoosts (a Java HashMap<Perk,Integer>,
--- walked by keySet():iterator() and keyed by the perk's getId), getMutuallyExclusiveTraits and
+-- walked through vanilla's transformIntoKahluaTable and keyed by the perk's getId; xpBoostsRead says the walk ran), getMutuallyExclusiveTraits and
 -- getGrantedTraits (Java ArrayLists of CharacterTrait, walked by size()/get(i) from 0, #0940, each named by
 -- its getName, the registry's own spelling). An unknown trait or a missing definition replies ok=false with
 -- the reason; a getter that raises is left out of the reply.
@@ -1554,29 +1554,27 @@ local function tkTraitNameList(list)
 end
 
 local function tkPerkBoosts(map)
+    -- x421 (2026-10-15): keySet():iterator() raised "attempted index: iterator of non-table" (the HashMap's
+    -- KeySet is not exposed to Kahlua), and a raise under pcall still parks the -debug client. Vanilla's own
+    -- route is taken instead: transformIntoKahluaTable(map) then pairs (MainCreationMethods.lua:116-118), the
+    -- value an Integer read through intValue when it is not already a number. Returns (boosts, read).
     local out = {}
-    if map == nil then return out end
-    local okK, keys = pcall(function() local _, v = TK.call(map, "keySet"); return v end)
-    if not okK or keys == nil then return out end
-    local okI, it = pcall(function() local _, v = TK.call(keys, "iterator"); return v end)
-    if not okI or it == nil then return out end
-    local guard = 0
-    while guard < 200 do
-        guard = guard + 1
-        local okH, more = pcall(function() local _, v = TK.call(it, "hasNext"); return v end)
-        if not okH or more ~= true then break end
-        local okN, perk = pcall(function() local _, v = TK.call(it, "next"); return v end)
-        if not okN or perk == nil then break end
-        local okId, id = pcall(function() local _, v = TK.call(perk, "getId"); return v end)
-        local key = (okId and id ~= nil) and tostring(id) or tostring(perk)
-        local okV, val = pcall(function() local _, v = TK.call(map, "get", perk); return v end)
-        out[key] = okV and val or nil
+    if map == nil then return out, false end
+    if transformIntoKahluaTable == nil then return out, false end
+    local t = transformIntoKahluaTable(map)
+    if type(t) ~= "table" then return out, false end
+    for perk, val in pairs(t) do
+        local key = tostring(perk)
+        if type(perk) ~= "string" and perk["getId"] ~= nil then key = tostring(perk:getId()) end
+        local n = val
+        if type(val) ~= "number" and val ~= nil and val["intValue"] ~= nil then n = val:intValue() end
+        out[key] = n
     end
-    return out
+    return out, true
 end
 
 -- @args <TraitName>  (the registry spelling Obese, or the static field OBESE; CamelCase maps to the field)
--- @reply {ok, side, trait, field, cost, free, xpBoosts = {<Perk> = n}, exclusive = {names}, granted = {names}, label, description} | {ok, side, trait, reason} | string
+-- @reply {ok, side, trait, field, cost, free, xpBoosts = {<Perk> = n}, xpBoostsRead, exclusive = {names}, granted = {names}, label, description} | {ok, side, trait, reason} | string
 -- @purpose Reads the trait definition the side answering holds (CharacterTraitDefinition.getCharacterTraitDefinition): cost, free (IsProfessionTrait), the XP boosts by perk id, the mutually exclusive and granted traits by name, the label and description, walking the Java maps and lists index-first.
 TK.register("trait.def", function(argv)
     local name = argv[1]
@@ -1606,7 +1604,7 @@ TK.register("trait.def", function(argv)
     out.free = get("isFree")
     out.label = get("getLabel")
     out.description = get("getDescription")
-    out.xpBoosts = tkPerkBoosts(get("getXpBoosts"))
+    out.xpBoosts, out.xpBoostsRead = tkPerkBoosts(get("getXpBoosts"))
     out.exclusive = tkTraitNameList(get("getMutuallyExclusiveTraits"))
     out.granted = tkTraitNameList(get("getGrantedTraits"))
     out.ok = true
