@@ -272,7 +272,7 @@ function K.body.create(muscle, weight, P, sexIdx, profBoost)
     if K.finite(profBoost) then
         boost = profBoost
     end
-    local F = K.strength.fOfLevel(K.clamp(P.startLevel[key] + boost, 0, 10), N0, 1, P)
+    local F = K.strength.fOfLevel(K.clamp(P.startLevel[key] + boost, 0, K.strength.L_MAX), N0, 1, P)
     local F5 = K.strength.fOfBio(5, P)
     local d = P.traitShare * (F - F5)
     local spec = {}

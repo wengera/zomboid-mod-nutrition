@@ -416,7 +416,7 @@
       "delta": 1.5,
       "deltaWrites": 1,
       "levelDowns": 0,
-      "levelUps": 4,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -6217,13 +6217,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 4,
+     "levelSteps": 0,
      "levelWrites": 6,
      "masteryWrites": 0,
      "minutes": 180,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 1,
+     "pushes": 0,
      "sleepDeferrals": 0,
      "stepFailures": 0,
      "xpGrants": 6,
@@ -6256,9 +6256,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g4:2": 1
-    }
+    "players": {}
    }
   },
   {
@@ -6676,7 +6674,7 @@
       "delta": 1.5,
       "deltaWrites": 1,
       "levelDowns": 0,
-      "levelUps": 4,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -12474,13 +12472,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 4,
+     "levelSteps": 0,
      "levelWrites": 6,
      "masteryWrites": 0,
      "minutes": 360,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 1,
+     "pushes": 0,
      "sleepDeferrals": 0,
      "stepFailures": 0,
      "xpGrants": 6,
@@ -12513,9 +12511,7 @@
    },
    "syncs": {
     "parts": {},
-    "players": {
-     "g4:2": 1
-    }
+    "players": {}
    }
   },
   {
@@ -12937,7 +12933,7 @@
       "delta": 1.25,
       "deltaWrites": 2,
       "levelDowns": 1,
-      "levelUps": 4,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -18748,13 +18744,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 8,
+     "levelSteps": 4,
      "levelWrites": 11,
      "masteryWrites": 0,
      "minutes": 540,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 5,
+     "pushes": 4,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 10,
@@ -18790,7 +18786,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 2,
+     "g4:2": 1,
      "g5:2": 1
     }
    }
@@ -19214,7 +19210,7 @@
       "delta": 1.25,
       "deltaWrites": 2,
       "levelDowns": 1,
-      "levelUps": 4,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -25001,13 +24997,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 9,
+     "levelSteps": 5,
      "levelWrites": 13,
      "masteryWrites": 0,
      "minutes": 719,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 6,
+     "pushes": 5,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 12,
@@ -25043,7 +25039,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 2,
+     "g4:2": 1,
      "g5:2": 1,
      "g6:2": 1
     }
@@ -25469,7 +25465,7 @@
       "delta": 1.25,
       "deltaWrites": 2,
       "levelDowns": 1,
-      "levelUps": 4,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -31264,13 +31260,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 9,
+     "levelSteps": 5,
      "levelWrites": 13,
      "masteryWrites": 0,
      "minutes": 898,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 6,
+     "pushes": 5,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 12,
@@ -31306,7 +31302,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 2,
+     "g4:2": 1,
      "g5:2": 1,
      "g6:2": 1
     }
@@ -31731,8 +31727,8 @@
       },
       "delta": 1.1937499999999999,
       "deltaWrites": 1,
-      "levelDowns": 0,
-      "levelUps": 3,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -37518,13 +37514,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 12,
+     "levelSteps": 6,
      "levelWrites": 14,
      "masteryWrites": 0,
      "minutes": 1049,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 7,
+     "pushes": 6,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
@@ -37560,7 +37556,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 3,
+     "g4:2": 2,
      "g5:2": 1,
      "g6:2": 1
     }
@@ -37985,8 +37981,8 @@
       },
       "delta": 1.1937499999999999,
       "deltaWrites": 1,
-      "levelDowns": 0,
-      "levelUps": 3,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -43773,13 +43769,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 12,
+     "levelSteps": 6,
      "levelWrites": 14,
      "masteryWrites": 0,
      "minutes": 1229,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 7,
+     "pushes": 6,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
@@ -43815,7 +43811,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 3,
+     "g4:2": 2,
      "g5:2": 1,
      "g6:2": 1
     }
@@ -44242,8 +44238,8 @@
       },
       "delta": 1.1937499999999999,
       "deltaWrites": 1,
-      "levelDowns": 0,
-      "levelUps": 3,
+      "levelDowns": 1,
+      "levelUps": 0,
       "parts": {
        "Hand_L": {
         "bite": 0,
@@ -50030,13 +50026,13 @@
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
-     "levelSteps": 12,
+     "levelSteps": 6,
      "levelWrites": 14,
      "masteryWrites": 0,
      "minutes": 1409,
      "pinFailures": 0,
      "pushMissing": 0,
-     "pushes": 7,
+     "pushes": 6,
      "sleepDeferrals": 1,
      "stepFailures": 0,
      "xpGrants": 13,
@@ -50072,7 +50068,7 @@
     "players": {
      "g1:2": 1,
      "g2:2": 1,
-     "g4:2": 3,
+     "g4:2": 2,
      "g5:2": 1,
      "g6:2": 1
     }

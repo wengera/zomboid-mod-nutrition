@@ -50,7 +50,7 @@ NR.server.metabolism = {
         "a minute whose raw metabolic rate is falling with no exercise and no movement bills the idle class, so a step down to a lighter activity while standing bills idle until the rate settles; the previous rate is held in memory, so the first minute after a boot reads no fall; the fall is read on the raw rate, so a still player at a sustained class above idle who drops weight (an eat, a sip) may bill one idle minute; body.met, which sweat and fluids (NR_Server_Nutrients), the glycogen draw and Effects' exertion heat (NR_Server_Effects) also read, so reads the set's billed MET on every set minute and 1.3 on every standing fall",
         "the after-burn follows the exercise flag's minutes only, at a fixed share of their exercise kcal released on a fixed game-time constant, whatever the intensity or the day length",
         "a fresh record's 24 h window holds no meals: it reads like an even eater, its energy state rising from first sight at its expenditure rate (a new character or a respawn reaches energy level 1 after several unfed hours, inside the model's range for a skipped meal)",
-        "a fresh record laid over a character the mod has already changed (a return after NR.RecordKeepDays prunes the record, a corrupt file healed fresh, or a deferral that gives up) is built from the band traits the character holds, never its native level, so it restarts at its muscle band's start level plus the profession's Strength boost and may lose up to two native levels (or, where the held band is the profession's own, as a no-pick Farmer's Stout, start above the creation body), and a Night Vision or Short Sighted trait the lost record owned stays, since the effects own only the traits they added; a fix needs a durable marker on the character",
+        "a fresh record laid over a character the mod has already changed (a return after NR.RecordKeepDays prunes the record, a corrupt file healed fresh, or a deferral that gives up) infers its muscle pick from the native Strength level net of the profession's and the other held traits' Strength boosts (vanilla's boost table; the held band trait at a clamped level 0 or 10 or an unmapped offset) and restarts at that pick's start level plus the profession's boost, so a native level the mod or training moved reads as another pick: a Stout pick under +1 whose native level fell from 8 to 6 is read as no pick; and a Night Vision or Short Sighted trait the lost record owned stays, since the effects own only the traits they added; a fix needs a durable marker on the character",
         "an immobilised day runs the disuse arm in place of growth, regain and detraining: the grace counter and the neural factor still step, the remembered peak does not decay that day",
     },
 }
@@ -58,8 +58,9 @@ local MET = NR.server.metabolism
 
 -- The leg parts whose fracture or splint immobilises.
 MET.LEG_PARTS = { "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
--- The band traits read at first sight (ruling 13-6), as CharacterTrait registry fields: the muscle band and the
--- weight band; Emaciated reads as Very Underweight (K.body.WEIGHT_ALIAS). The first held in each list is the pick.
+-- The band traits read at first sight (ruling 13-6), as CharacterTrait registry fields: the muscle band (the fallback
+-- of MET.musclePick's inference, Task 17b fix 1) and the weight band; Emaciated reads as Very Underweight
+-- (K.body.WEIGHT_ALIAS). The first held in each list is the pick.
 MET.MUSCLE_TRAITS = { "STRONG", "STOUT", "FEEBLE", "WEAK" }
 MET.WEIGHT_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
 
@@ -186,6 +187,60 @@ function MET.professionBoost(player)
     return MET.strengthBoost(MET.professionDef(player))
 end
 
+-- The muscle pick by its vanilla Strength boost (the restated blocks keep vanilla's XPBoosts); false is no pick.
+MET.MUSCLE_BY_BOOST = { [-5] = "WEAK", [-2] = "FEEBLE", [0] = false, [2] = "STOUT", [4] = "STRONG" }
+
+-- The elements of a Java list, walked with size()/get(i) (#0940); an unreadable list reads empty.
+function MET.walk(list)
+    local out = {}
+    local n = num(list, "size", 0)
+    for i = 0, n - 1 do
+        local ok, v = NR.try(list, "get", i)
+        if ok and v ~= nil then out[#out + 1] = v end
+    end
+    return out
+end
+
+-- Whether trait t is one of the muscle band traits.
+local function isMuscleBand(t)
+    for i = 1, #MET.MUSCLE_TRAITS do
+        if CharacterTrait[MET.MUSCLE_TRAITS[i]] == t then return true end
+    end
+    return false
+end
+
+-- The server's definition of a trait (CharacterTraitDefinition, a Java static called with a dot under pcall), or nil.
+local function traitDef(t)
+    if CharacterTraitDefinition == nil then return nil end
+    local f = CharacterTraitDefinition.getCharacterTraitDefinition
+    if f == nil then return nil end
+    local ok, def = pcall(f, t)
+    if ok then return def end
+    return nil
+end
+
+-- MET.inferMuscle(player, pdef, known) -> the muscle pick's name, false for no pick, or nil when the native level
+-- cannot tell (unreadable, clamped at 0 or 10, no profession definition, or an offset no muscle boost makes): native
+-- - 5 - the profession's Strength boost - every held non-band trait's Strength boost, mapped by MET.MUSCLE_BY_BOOST.
+function MET.inferMuscle(player, pdef, known)
+    if Perks == nil or Perks.Strength == nil or CharacterTrait == nil or pdef == nil then return nil end
+    local native = num(player, "getPerkLevel", nil, Perks.Strength)
+    if native == nil or native <= 0 or native >= K.strength.L_MAX then return nil end
+    local off = native - 5 - MET.strengthBoost(pdef)
+    for i = 1, #known do
+        if not isMuscleBand(known[i]) then off = off - MET.strengthBoost(traitDef(known[i])) end
+    end
+    return MET.MUSCLE_BY_BOOST[off]
+end
+
+-- The muscle pick creation and first sight build from: MET.inferMuscle, else the held band trait; nil for none.
+function MET.musclePick(player, traits, pdef)
+    local muscle = MET.inferMuscle(player, pdef, MET.walk(obj(traits, "getKnownTraits")))
+    if muscle == nil then return MET.heldTrait(traits, MET.MUSCLE_TRAITS) end
+    if muscle == false then return nil end
+    return muscle
+end
+
 -- The creation body of a muscle and a weight pick (either nil) under the profession's Strength boost profBoost (nil
 -- reads 0; Task 17b): K.body.create at the engine's sex read through the effective sex (NR.SexSpecific), laid by
 -- K.body.new at the world age ageH. The one builder of first sight and the creation handler (NR_Server_Creation), so
@@ -197,16 +252,18 @@ function MET.newBody(player, muscle, weight, ageH, profBoost)
     return K.body.new(spec, sex, ageH)
 end
 
--- First sight: record.body is the creation body (MET.newBody) over the muscle and weight band traits the character
--- holds (ruling 13-6), never its native Strength level, weight or carry delta, under the profession's Strength boost
--- (MET.professionBoost, Task 17b); body.levelDue asks the Strength minute to write the level once (Plan 13 Task 14).
+-- First sight: record.body is the creation body (MET.newBody) over the muscle pick creation reads (MET.musclePick:
+-- inferred from the native Strength level net of the boosts, else the held band trait; Task 17b fix 1, replacing
+-- ruling 13-6's held-band reading, which misreads a boosted profession's own band as a pick) and the weight band trait
+-- held, never the weight or carry delta, under the profession's Strength boost (Task 17b); body.levelDue asks the Strength minute to write the level once (Plan 13 Task 14).
 -- An existing record.body (the creation handler's, or a loaded one) is never re-read.
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
     local traits = obj(player, "getCharacterTraits")
-    local muscle = MET.heldTrait(traits, MET.MUSCLE_TRAITS)
+    local pdef = MET.professionDef(player)
+    local muscle = MET.musclePick(player, traits, pdef)
     local weight = MET.heldTrait(traits, MET.WEIGHT_TRAITS)
-    local body = MET.newBody(player, muscle, weight, ageH, MET.professionBoost(player))
+    local body = MET.newBody(player, muscle, weight, ageH, MET.strengthBoost(pdef))
     body.levelDue = true
     record.body = body
     MET.stats.creates = MET.stats.creates + 1

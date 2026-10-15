@@ -215,9 +215,11 @@ local function newPart(name, init)
 end
 
 -- The decorator: cfg = { cls, rate, inv, maxW, female, traits = {names}, heavy, asleep = {from, to},
--- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue, nicotine }.
+-- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise, hunger, thirst, fatigue, nicotine, perk }.
+-- perk is the Strength level applyTraits left (5 when absent); g4 holds STRONG at vanilla's applied 9 (Plan 13 Task 17b
+-- fix 1: first sight infers the pick from the native level, and a STRONG band at 5 is a state vanilla never leaves).
 NR_T.decorate = function(p, cfg)
-    local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0, levelUps = 0,
+    local st = { traits = {}, perk = cfg.perk or 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0, levelUps = 0,
                  levelDowns = 0, xpSets = 0, xpGrants = 0 }
     for _, n in ipairs(cfg.traits or {}) do st.traits[CharacterTrait[n]] = true end
     p.st = st
@@ -504,7 +506,7 @@ PLAYER_CFG = {
            "parts": {"Hand_R": {"scratch": 3.0, "infect": 0.5}}},
     "g3": {"rate": 1.0, "inv": 6, "maxW": 8, "traits": ["OUT_OF_SHAPE"],
            "parts": {"UpperLeg_L": {"deep": 8.0}}},
-    "g4": {"rate": 6.0, "inv": 12, "maxW": 8, "traits": ["STRONG"], "heavy": 2,
+    "g4": {"rate": 6.0, "inv": 12, "maxW": 8, "traits": ["STRONG"], "heavy": 2, "perk": 9,
            "parts": {"Hand_L": {"burn": 4.0}}},
     "g5": {"rate": 1.1, "inv": 6, "maxW": 8, "traits": ["NEEDS_MORE_SLEEP"], "female": True,
            "parts": {"LowerLeg_L": {"fracture": 30.0}}, "nicotine": NIC_START_G5},
