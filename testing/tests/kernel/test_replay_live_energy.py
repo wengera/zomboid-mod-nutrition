@@ -660,6 +660,7 @@ def test_s1254_the_fat_drive_on_the_server_path(host):
         assert DO.BY_NAME[n].margin(DO.BY_NAME[n].pick(r)) >= 0, (n, r)
     f = r["s1254"]
     assert (round(f["slope"], 1), [round(x, 1) for x in f["pairs"]], round(f["low"] - f["base"], 1)) == READ["s1254"], f
+    assert DO.BY_NAME["s1254"].margin(DO.BY_NAME["s1254"].pick(r)) >= 0.9, f   # the fit sits within ~4 % of 125
 
 
 # the readings the tests above pin that their own lines do not spell out (each at the deficit refit's constants, Plan
@@ -670,7 +671,7 @@ READ = {
     "king": (0.091, 1.24),              # the restriction's late rise and exercise's distance in mm with EX_BYPASS_HI at mid-plateau (Plan 11g Task 7 fix 1, ruling T7-6; 0.091 and 1.01 under Task 7's 0.44; 0.0944 and 0.94 under Task 6c fix 2's satiety refit; 0.0947 and 0.94 under fix 1's; 0.0916 and 0.92 under Task 6c's fit; 0.0995 and 0.98 under the gut stage's fit, Task 6; 0.0863 and 0.92 under its provisional constants, Task 4; 0.0906 and 0.92 on the P model, 0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
     "king_step": 4.6,                   # a 25 % step's exercise arm over control, mm, under the deficit refit (Plan 11g Task 7; 6.83 under Task 6c fix 2's; 6.82 under fix 1's; 6.7 under Task 6c's fit; 7.09 under the gut stage's fit, Task 6; 6.66 under its provisional constants; 6.70 on the P model, Plan 11f Task 2c fix 1)
     "king_nobypass": 0.2,               # no bypass's, mm, under the deficit refit (Plan 11g Task 7; 0.29 under Task 6c fix 2 and fix 1, as under Task 6c's fit; 0.3 under the gut stage's fit, 0.29 under its provisional constants)
-    "s1254": (101.0, [100.6, 101.4], -1.0),   # the slope, kcal/d per kg, the pair slopes and low less base at FAT_GAIN 0.524404 (Plan 13 Task 10c; 96.3 at 0.5)
+    "s1254": (125.3, [124.9, 125.6], -1.0),   # the slope, kcal/d per kg of fat, the pair slopes and low less base at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 101.0, [100.6, 101.4] at Task 10c's 0.524404; 96.3 at 0.5)
     "s1255": (1.0599, 3.9),             # es over day 7 and its rise at the request, mm, under Plan 13 Task 10c's low-fat ramp (1.0739 and 4.8 under Task 12's lean partition at the day close; 1.0777 and 5.1 under the deficit refit, Plan 11g Task 7; 1.0947 and 6.7 in Plan 11f Task 2c fix 1, 1.09 and 5.9 in its Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
 }
 
