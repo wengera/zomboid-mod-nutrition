@@ -2,7 +2,7 @@
 
 The handler runs on server_host's Host (every server/ file in load order, OnServerStarted fired), so the wiring is the
 real one: NR_Server_Players' OnNewGame fires P.onNewGame after store.reset, NR_Server_Creation validates the picks,
-builds the body through NR_Server_Metabolism's builder and writes the weight, the Strength level (NR_Server_Strength)
+builds the body through CRE.newBody (the builder first sight shares) and writes the weight, the Strength level (NR_Server_Strength)
 and the weight-band traits (NR_Server_Weight). The Java side is table-of-functions stand-ins, test_strength_shape.py's
 pattern: a trait collection whose getKnownTraits answers the held traits in pick order; definitions with a cost, a free
 flag, a one-way exclusion list (isMutuallyExclusive reads it one way, as the engine's does for a trait with no grants),
