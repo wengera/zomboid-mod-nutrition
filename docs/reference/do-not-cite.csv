@@ -22070,3 +22070,7 @@ x435-20261015-101839,checks.day1.placed.inDay_reply,the inDay set's reply,"The s
 x435-20261015-101839,checks.day2.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E2.observed.E`
 x435-20261015-101839,checks.day3.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E3.observed.E`
 x435-20261015-101839,checks.day4.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E4.observed.E`
+x436-20261015-094119,verdict_summary.36_names,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`x436-regrade-20261015` `verdicts.36_names_mod`
+x436-regrade-20261015,verdicts.36_names_mod.run_verdict_36_names,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`verdicts.36_names_mod`
+x433-20261015-052759,verdict_summary.21_a_state,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`x433-regrade-20261015` `verdicts.21_a_state`
+x433-regrade-20261015,verdicts.21_a_state.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`verdicts.21_a_state`
