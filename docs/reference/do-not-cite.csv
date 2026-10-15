@@ -22029,3 +22029,10 @@ x431-20261015-051916,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` 
 x431-20261015-051916,checks.W12.F,the driver's fOfLevel(12.3),"The driver's computed set value, not a reading.",`checks.W12.after.lm`
 x431-20261015-051916,checks.W95.F,the driver's fOfLevel(9.5),"The driver's computed set value, not a reading.",`checks.W95.after.lm`
 x431-20261015-051916,checks.W12.mirror_read.rc0,the client's mirror receive count,"A client counter the request waits on; not a reading.",`checks.W12.mirror_read.body_level`
+x432-20261015-052247,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x432-20261015-052247,constants,the lib's constants,The driver's settings; not a reading.,
+x432-20261015-052247,memory,host free memory rows,"Host state, not a game reading.",
+x432-20261015-052247,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x432-20261015-052247,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x432-20261015-052247,checks.OFF.raise.reply,the time.multiplier reply's eff,"The reply's `eff` is getMultiplier, not the true multiplier (#3762).",`checks.OFF.raise.trueMult`
+x432-20261015-052247,checks.OFF.target,the driver's away target,"The driver's computed world age, not a reading.",`checks.OFF.gap_h`
