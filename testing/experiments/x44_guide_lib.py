@@ -1,7 +1,8 @@
 """x44_guide_lib -- the session engine of Plan 14 Task 5's live drivers for the player guide (vanilla Project Zomboid
-against the Nutrition Revamp mod): five vanilla-baseline sessions (x441 V1a, x442 V1b, x443 V2, x444 V3, x445 V4) and
-two modded gap sessions (x446 M1, x447 M2), the source map's section 5 as corrected by its fix round
-(docs/superpowers/research/2026-10-15-mod-guide/source-map.md; the review's corrections, task-1-review.md, bind).
+against the Nutrition Revamp mod): the vanilla-baseline sessions (x441 V1a, x442 V1b, x443a and x443b V2 on one world,
+x444 V3, x445 V4) and two modded gap sessions (x446 M1, x447 M2), the source map's section 5 as corrected by its fix
+round (docs/superpowers/research/2026-10-15-mod-guide/source-map.md; the review's corrections, task-1-review.md, bind).
+Fix round 1 (task-5-review.md): I-1, I-2 and M-1 to M-13 applied; V2 split into x443a and x443b (a reuse boot).
 
 Started from x43c_strength_lib.py (frozen with x436; its plumbing, its staged-copy gate and its harness-marker check are
 copied here, not imported), on testing/experiments/xlib.py (the bus step, the wall budget, the grade recorder, RCON, the
@@ -104,7 +105,9 @@ MIN_FREE_GB = 12.0
 SESSIONS = {
     "V1a": {"prefix": "x441", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "meal.json"},
     "V1b": {"prefix": "x442", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "starve.json"},
-    "V2": {"prefix": "x443", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "tuna.json"},
+    "V2a": {"prefix": "x443a", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "tuna-a.json"},
+    "V2b": {"prefix": "x443b", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "tuna-b.json",
+            "chain_from": "V2a"},
     "V3": {"prefix": "x444", "profile": "x44-vanilla", "kind": "vanilla", "sleep": False, "artifact": "strength.json"},
     "V4": {"prefix": "x445", "profile": "x44-vanilla-sleep", "kind": "vanilla", "sleep": True,
            "artifact": "drinks.json"},
@@ -150,6 +153,12 @@ POLL_S = 0.25
 EAT_CAP_S = 40.0
 DRINK_CAP_S = 40.0
 SETTLE_POLLS = 3
+SPEED_UNIT = "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one"
+CLOSING_PHASES = ("C", "Z", "R")       # the phases a budget stop still runs (review M-12)
+# MoodleType's static fields are upper case ('Hungry' is the registry id, not a Lua field; review I-1): moodle.level
+# indexes MoodleType[name] and answers {ok=false, reason="no MoodleType.<name>"} on a miss
+MOODLE_FOOD_EATEN = "FOOD_EATEN"
+MOODLE_HUNGRY = "HUNGRY"
 MOVED_SHARE = 0.25                     # a drink has landed once its stat moved a quarter of the model's change
 
 # ---- the tolerances (named before any run) ---------------------------------------------------------------------------
@@ -190,8 +199,13 @@ V1B_HUNGRY_4 = 0.70                    # #0508, strict
 # ---- V2 --------------------------------------------------------------------------------------------------------------
 V2_CALORIES = 3000.0
 V2_WEIGHT = 80.0
-V2_EAT_AGES = (1.0, 5.0, 9.0, 13.0, 25.0, 29.0, 33.0)    # 08, 12, 16, 20 on day 1 and 08, 12, 16 on day 2
-V2_END_AGE = 36.0                      # 19:00 on day 2
+# V2 is two sessions on one world (the controller's ruling on the review's concern 3): x443a writes the store and runs
+# the first V2_SPLIT_H game hours from its anchor (the age after the writes); x443b boots x443a's saved world again
+# (a reuse boot) and runs on to the anchor plus V2_SPAN_H. The schedule is relative to the anchor (review M-11): the DL4
+# sessions start near world age 2.35 (x371 2.351, x372 2.359), past 08:00 on day 1.
+V2_EAT_OFFSETS = (0.0, 4.0, 8.0, 12.0, 24.0, 28.0, 32.0)   # four tins on day 1, three on day 2, from the anchor
+V2_SPAN_H = 36.0
+V2_SPLIT_H = 18.0
 V2_THIRST_EVERY_H = 6.0
 # ---- V3 --------------------------------------------------------------------------------------------------------------
 V3_PARK_LEVEL = 5
@@ -244,11 +258,18 @@ ACUTE_TOL = {"acute.caf": ("abs", 1.0), "acute.bac": ("abs", 0.001), "acute.hang
 HANG_TOL_H = 0.25
 M1_FAST_H = 24.0
 M1_REQUEST_CAP_H = 12.0
-M2_COFFEE_HOURS = (10.0, 13.0, 16.0)   # clock hours on day 1
+# M2's schedule is relative to phase X's start (review I-2: the DL1 sessions start near world age 3.2 and phase W
+# waits up to 80 s, about 2.1 game hours, so a 10:00 coffee has passed before X)
+M2_COFFEE_OFFSETS = (0.1, 3.1, 6.1)    # game hours from X's start
+M2_BEER_GAP_H = 3.0                    # the beers at least this long after the last coffee, and not before 19:00
 M2_BEER_HOUR = 19.0
 M2_NIGHT_HOUR = 23.0
+M2_NIGHT_MAX_GAP_H = 4.0               # the night at the next 23:00 when that is at most this long after the beers,
+M2_NIGHT_FALLBACK_H = 1.0              # else this long after them (named in the plan)
 M2_NIGHT_H = 4.0
-M2_END_AGE = 30.0                      # 13:00 on day 2
+M2_DAY2_H = 6.0                        # day 2: meals at the request for this long after the night's end
+FAST_FORWARD_NOTE = ("the night's fast-forward rests on #2956 (x151s, DL1, build 42.20.4; the fast-forward an "
+                     "inference), not re-read on 42.21; the booked hours are the reading")
 HOLD_S = 600
 NIGHT_CAP_S = 90.0
 WAKE_SETTLE_S = 5.0
@@ -261,10 +282,11 @@ HARNESS_MARKERS = {
     "PZTestKit_Server.lua": tuple(f'TK.register("{c}", function(' for c in (
         "minute.ring", "stats.set", "stats.get", "stats.all", "nutrition.get", "nutrition.set", "health.get",
         "moodle.level", "perk.xp", "perk.park", "xp.grant", "item.get", "fluid.fill", "autodrink.probe",
-        "witness.chain", "time.multiplier", "player.sleep", "player.sleep.hold", "foodtimer.set")),
+        "witness.chain", "time.multiplier", "player.sleep", "player.sleep.hold", "foodtimer.set", "players")),
     "PZTestKit_Client.lua": tuple(f'TK.register("{c}", function(' for c in (
         "eat.action", "drink.action", "exercise.do", "action.cancel")),
-    "PZTestKit_Core.lua": tuple(f'TK.register("{c}", function(' for c in ("time.snapshot", "lua.read")),
+    "PZTestKit_Core.lua": tuple(f'TK.register("{c}", function(' for c in ("time.snapshot", "lua.read",
+                                                                         "lua.global")),
 }
 ECHO_RX = re.compile(r"PZTK: ")
 NEVER_RX = re.compile(r"(?!x)x")
@@ -560,12 +582,19 @@ def prerun(key):
         m = model_chain({"start": PRERUN_START, "settings": S, "events": ev, "hours": V1B_CAP_H})
         return {"level4_h": first_cross(m["hunger"], V1B_HUNGRY_4), "death_h": first_at_or_below(m["health"], 0.0),
                 "health_per_h_at_4": VM.health_loss_per_hour(4, 0, 90.0)}
-    if key == "V2":
+    if key in ("V2a", "V2b"):
         ev = [{"t_h": 0.0, "kind": "set", "values": {"calories": V2_CALORIES, "weight": V2_WEIGHT}}]
-        ev += [_eat_ev(a, TUNA) for a in V2_EAT_AGES]
-        ev += [{"t_h": h, "kind": "set", "values": {"thirst": 0.0}} for h in (6.0, 12.0, 18.0, 24.0, 30.0)]
-        m = model_chain({"start": PRERUN_START, "settings": S, "events": ev, "hours": V2_END_AGE})
-        return {"weight_change_36h": m["weight_kg"][-1][1] - V2_WEIGHT, "calories_end": m["calories_store"][-1][1]}
+        ev += [_eat_ev(o, TUNA) for o in V2_EAT_OFFSETS]
+        t = V2_THIRST_EVERY_H
+        while t < V2_SPAN_H:
+            ev.append({"t_h": t, "kind": "set", "values": {"thirst": 0.0}})
+            t += V2_THIRST_EVERY_H
+        m = model_chain({"start": PRERUN_START, "settings": S, "events": ev, "hours": V2_SPAN_H})
+        w = m["weight_kg"]
+        mid = series_at(w, V2_SPLIT_H)
+        return {"span_h": V2_SPAN_H, "weight_change_span": w[-1][1] - V2_WEIGHT,
+                "weight_change_V2a": mid - V2_WEIGHT, "weight_change_V2b": w[-1][1] - mid,
+                "calories_end": m["calories_store"][-1][1]}
     if key == "V3":
         x5 = VM.total_xp_for_level(V3_PARK_LEVEL)
         g_xp = VM.strength_xp_grant(x5, V3_GRANT, 0.0)[0]
@@ -704,13 +733,18 @@ def grade_freeze(rows, eat_age, model, a0, tol_h=FREEZE_TOL_H):
     return "as_predicted", obs
 
 
-def grade_crossing(rows, model, series, field, level, a0, tol_h, after_age=None):
-    """The ring's field first above `level` (after after_age) within tol_h of the model's crossing."""
+def grade_crossing(rows, model, series, field, level, a0, tol_h, after_age=None, last_age=None):
+    """The ring's field first above `level` (after after_age) within tol_h of the model's crossing; no live crossing
+    with the session past the model's age plus tol_h (last_age) is falsified (review M-8: a plateau under 0.70,
+    #0174)."""
     t = first_cross(model.get(series) or [], level, after=0.0 if after_age is None else after_age - a0)
     live = next((r for r in rows or [] if num(r.get("age")) is not None and num(r.get(field)) is not None
                  and (after_age is None or r["age"] >= after_age) and r[field] > level), None)
     obs = {"model_age": None if t is None else t + a0, "live_age": None if live is None else live["age"],
-           "level": level, "tol_h": tol_h}
+           "level": level, "tol_h": tol_h, "last_age": last_age}
+    if t is not None and live is None and last_age is not None and last_age > t + a0 + tol_h:
+        obs["why"] = "no live crossing by the model's age plus the tolerance"
+        return "falsified", obs
     if t is None or live is None:
         obs["why"] = "the model or the ring never crossed"
         return "unmeasured", obs
@@ -721,14 +755,18 @@ def grade_crossing(rows, model, series, field, level, a0, tol_h, after_age=None)
     return "as_predicted", obs
 
 
-def grade_death(death, model, a0, last_age, tol_h=DEATH_TOL_H):
+def grade_death(death, model, a0, last_age, tol_h=DEATH_TOL_H, gone=False):
     """The first read reading admin dead (isDead, or overall health at 0) within tol_h of the model's health-zero age;
-    unmeasured when the session ended before the model's age plus tol_h without a death read."""
+    unmeasured when the session ended before the model's age plus tol_h without a death read, or when the last read
+    found the player gone from the online list (review M-1)."""
     t = first_at_or_below(model.get("health") or [], 0.0)
     obs = {"model_age": None if t is None else t + a0, "live_age": (death or {}).get("age"), "tol_h": tol_h,
-           "last_age": last_age}
+           "last_age": last_age, "gone": gone}
     if t is None:
         obs["why"] = "the model never reaches health 0 in its hours"
+        return "unmeasured", obs
+    if gone and not (death or {}).get("dead"):
+        obs["why"] = "the player left the online list"
         return "unmeasured", obs
     if not (death or {}).get("dead"):
         if last_age is not None and last_age > t + a0 + tol_h:
@@ -816,7 +854,11 @@ def grade_coffee(c, model, a0):
     if t0 is not None and t1 is not None:
         m0, m1 = series_at(s, t0 - a0), series_at(s, t1 - a0)
         pred = None if (m0 is None or m1 is None) else m1 - m0
-    obs = {"before": b, "after": a, "pred": pred, "tol": FATIGUE_TOL, "landed": c.get("landed")}
+    obs = {"before": b, "after": a, "pred": pred, "tol": FATIGUE_TOL, "landed": c.get("landed"),
+           "fill_ok": c.get("fill_ok")}
+    if c.get("fill_ok") is False:
+        obs["why"] = "the coffee's fill gate failed (review M-2)"
+        return "unmeasured", obs
     if b is None or a is None or pred is None or not c.get("landed"):
         obs["why"] = "the drink never landed, or a read is missing"
         return "unmeasured", obs
@@ -877,7 +919,7 @@ def grade_intox_decay(polls, last_drink_age, model, a0):
     return "as_predicted", obs
 
 
-def grade_intox_zero(polls, last_drink_age, model, a0, tol_h=INTOX_ZERO_TOL_H):
+def grade_intox_zero(polls, last_drink_age, model, a0, tol_h=INTOX_ZERO_TOL_H, last_age=None):
     """V4 arm B: the first poll reading INTOXICATION 0 after the last can's model event within tol_h of the model's
     zero age after it (intoxication cannot reach 0 between the cans: each adds 6, the decay between them is under 1)."""
     t = None
@@ -886,7 +928,10 @@ def grade_intox_zero(polls, last_drink_age, model, a0, tol_h=INTOX_ZERO_TOL_H):
     live = next((p for p in polls or [] if num(p.get("age")) is not None and num(p.get("intox")) is not None
                  and last_drink_age is not None and p["age"] > last_drink_age and p["intox"] <= 0.0), None)
     obs = {"model_age": None if t is None else t + a0, "live_age": None if live is None else live["age"],
-           "tol_h": tol_h}
+           "tol_h": tol_h, "last_age": last_age}
+    if t is not None and live is None and last_age is not None and last_age > t + a0 + tol_h:
+        obs["why"] = "no live crossing by the model's age plus the tolerance"
+        return "falsified", obs
     if t is None or live is None:
         obs["why"] = "the model or the polls never read zero"
         return "unmeasured", obs
@@ -1126,6 +1171,36 @@ def preboot(key, profile_name, prefix, driver_file, repo=REPO):
     return c, good
 
 
+def chain_check(prev_run, key="V2b", repo=REPO):
+    """A chained session's previous run (V2b after V2a), offline: its run folder (an id under testing/runs or a path)
+    holds the server cache to boot again and its own artifact, whose run id carries the previous prefix, which reads no
+    error, abort or dead bus, and whose phase X read the anchor. Returns (checks, ok)."""
+    src = SESSIONS[SESSIONS[key]["chain_from"]]
+    c = {"prev_run": prev_run}
+    if not prev_run:
+        c["why"] = "no previous run named (the driver takes x443a's run id or folder as its first argument)"
+        return c, False
+    d = prev_run if os.path.isdir(str(prev_run)) else os.path.join(repo, "testing", "runs", str(prev_run))
+    c["dir"] = d
+    c["dir_ok"] = os.path.isdir(d)
+    c["server_cache"] = os.path.isdir(os.path.join(d, "server", "Server"))
+    doc = None
+    try:
+        with open(os.path.join(d, src["artifact"]), encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError) as e:
+        c["artifact_error"] = f"{type(e).__name__}: {e}"
+    c["artifact"] = isinstance(doc, dict)
+    doc = doc if isinstance(doc, dict) else {}
+    c["run_id"] = doc.get("run_id")
+    c["prefix_ok"] = str(doc.get("run_id") or "").startswith(src["prefix"] + "-")
+    c["clean"] = not doc.get("error") and not doc.get("abort") and not doc.get("bus_dead")
+    c["anchor"] = num(g(doc, "checks", "X", "anchor"))
+    c["prev_reached"] = num(g(doc, "checks", "X", "reached"))
+    ok = all(c[k] for k in ("dir_ok", "server_cache", "artifact", "prefix_ok", "clean")) and c["anchor"] is not None
+    return c, ok
+
+
 def staged_gate(out, git_say, git_dirty, repo=REPO, stage_root=STAGE_ROOT, stage_mod=STAGE_MOD):
     """x43c's: the staged copy's MANIFEST and tree against release_pack.manifest() of a clean mod/ (xlib.manifest_gate),
     and the staged NR_Core.lua's version."""
@@ -1171,7 +1246,9 @@ class Sess:
         self.speeds = self.out.setdefault("speeds", [])
         self.cur_speed = None
         self.restore_to = None
+        self.anchor = None                  # V2's anchor age (V2b: off x443a's artifact)
         self.dead = False
+        self.gone = False
         self.death = None
         self.pages = []
 
@@ -1202,10 +1279,17 @@ class Sess:
         return {"done": done, "last": last, "polls": n}
 
     def body_run(self, phases):
+        """Each phase through xs.run_phase; once the budget stopped a phase, only the closing phases (CLOSING_PHASES:
+        the clock restore, the ring read, the error read) still run and each later scenario phase is skipped with a
+        note (review M-12: a scenario phase writes before its first check)."""
         for name, fn in phases:
             if self.xs.parked():
                 self.out["abort"] = f"admin parked in the debugger before phase {name}"
                 break
+            if self.out.get("budget_stop") and name not in CLOSING_PHASES:
+                self.out.setdefault("skipped_phases", []).append(name)
+                self.xs.note(f"phase {name} skipped: the budget stopped an earlier phase")
+                continue
             self.xs.run_phase(name, fn)
 
     def read(self, kind, row):
@@ -1228,7 +1312,10 @@ class Sess:
             row["fallback"] = self.k(tag + "_mult", SRV, "time.multiplier", fmtnum(n)).get("raw")
         s = self.snap(tag + "_t")
         row.update({"trueMult": num(s.get("trueMult")), "mult": num(s.get("mult")), "age": num(s.get("worldAge")),
-                    "wall": s.get("wall")})
+                    "wall": s.get("wall"), "tag": tag, "unit": SPEED_UNIT})
+        row["ok"] = row["trueMult"] is not None and abs(row["trueMult"] - n) < 1e-6
+        if not row["ok"]:
+            self.xs.note(f"speed {tag}: trueMult {row['trueMult']} after settimespeed {n} ({SPEED_UNIT})")
         self.speeds.append(row)
         self.cur_speed = n
         return row
@@ -1255,6 +1342,7 @@ class Sess:
         else:
             row["set"] = {"reply": self.k("C_restore_mult", SRV, "time.multiplier", fmtnum(v)).get("raw")}
         s = self.snap("C_restore_t")
+        row["unit"] = SPEED_UNIT
         row["trueMult_after"] = num(s.get("trueMult"))
         row["ok"] = row["trueMult_after"] is not None and abs(row["trueMult_after"] - v) <= 1e-6 * max(1.0, v)
         self.D["restore"] = row
@@ -1262,7 +1350,9 @@ class Sess:
     def run_to(self, end_age, actions, fast, tag):
         """At speed `fast` to end_age. actions [(age, kind, fn)], kind "timed" (the clock drops to speed 1 at the age
         minus LEAD_MIN, fn(age) runs at once, then the clock returns to fast) or "read" (fn(age) at its age, at the
-        current speed). Stops at end_age, a death, or the budget (Budget propagates). Returns the last age read."""
+        current speed). Stops at end_age, a death, the player gone from the online list, or the budget (Budget
+        propagates). Actions still pending at the stop are noted and listed in out["unrun"]. Returns the last age
+        read."""
         pending = sorted(actions, key=lambda x: x[0])
         self.set_speed(fast, f"{tag}_fast")
         a = None
@@ -1273,7 +1363,7 @@ class Sess:
                 self.xs.sleep(POLL_S)
                 continue
             ran = False
-            while pending and not self.dead:
+            while pending and not self.stopped():
                 at, kind, fn = pending[0]
                 lead = LEAD_MIN / 60.0 if kind == "timed" else 0.0
                 if a < at - lead:
@@ -1282,15 +1372,22 @@ class Sess:
                 if kind == "timed":
                     self.set_speed(1, f"{tag}_one")
                 fn(a)
-                if kind == "timed" and not self.dead:
+                if kind == "timed" and not self.stopped():
                     self.set_speed(fast, f"{tag}_fast")
                 ran = True
                 a = self.age(tag + "_a2") or a
-            if self.dead or a >= end_age:
+            if self.stopped() or a >= end_age:
                 break
             if not ran:
                 self.xs.sleep(POLL_S)
+        if pending:
+            left = [{"tag": tag, "age": at, "kind": kind} for at, kind, _fn in pending]
+            self.out.setdefault("unrun", []).extend(left)
+            self.xs.note(f"run_to {tag}: {len(left)} action(s) never ran (stopped at age {a})")
         return a
+
+    def stopped(self):
+        return self.dead or self.gone
 
     # -- reads
     def stats_get(self, tag, log=True):
@@ -1315,7 +1412,7 @@ class Sess:
         a = self.k(tag, SRV, "health.get", USER, log=False)
         s = self.snap(tag + "_t", log=False)
         return {"overall": num(a.get("overall")), "health": num(a.get("health")), "age": num(s.get("worldAge")),
-                "ok": a.get("ok"), "reason": a.get("reason")}
+                "ok": a.get("ok"), "reason": a.get("reason"), "raw": a.get("raw")}
 
     def moodle(self, tag, name, age=None):
         a = self.k(tag, SRV, "moodle.level", f"{USER} {name}", log=False)
@@ -1327,11 +1424,20 @@ class Sess:
                 "error": a.get("error")}
 
     def dead_check(self, tag):
+        """isDead (witness.chain) and the overall health (health.get, the fallback at 0). Both handlers answer the
+        string "no online player <user>" once the player has left the online list: then the row is `gone`, the run
+        stops and V1b_death is unmeasured, never "alive past" (review M-1; #3278 read isDead true while the player
+        was still found)."""
         d = self.k(tag + "_dead", SRV, "witness.chain", f"{USER} isDead", log=False)
         h = self.health(tag + "_hp")
         dead = str(d.get("value")).lower() == "true" or (h["overall"] is not None and h["overall"] <= 0.0)
-        row = {"dead": dead, "dead_raw": d.get("value"), "overall": h["overall"], "age": h["age"]}
+        gone = all(str(x or "").startswith("no online player") for x in (d.get("raw"), h.get("raw")))
+        row = {"dead": dead, "dead_raw": d.get("value"), "dead_error": d.get("error"), "overall": h["overall"],
+               "age": h["age"], "gone": gone}
         self.read("health", row)
+        if gone and not self.gone:
+            self.gone = True
+            self.xs.note("admin left the online list: the death read is unmeasured")
         if dead and not self.dead:
             self.dead = True
             self.death = row
@@ -1446,6 +1552,7 @@ class Sess:
         if fluid is not None:
             row["fill"] = self.k(label + "_fill", SRV, "fluid.fill", f"{USER} {container} {fluid} {litres}")
         row["probe_before"] = self.k(label + "_probe0", SRV, "autodrink.probe", USER)
+        self.fill_gate(row, container, fluid)
         b = self.stats_all(label + "_b")
         row["before"] = {"value": stat_of(b, stat), "worldAge": num(b.get("worldAge"))}
         q = self.k(label + "_drink", CLI, "drink.action", f"{container} 1")
@@ -1478,7 +1585,9 @@ class Sess:
         l1 = num(g(row, "probe_after", "litres")) if g(row, "probe_after", "item") == container else 0.0
         row["drunk"] = (l0 - l1) if (l0 is not None and l1 is not None) else None
         settle_age = polls[-1]["age"] if polls else None
-        if row["landed"] and self.a0 is not None:
+        if row["landed"] and not row["fill_ok"]:
+            self.xs.note(f"drink {label}: landed but its fill gate failed; no model event")
+        if row["landed"] and row["fill_ok"] and self.a0 is not None:
             a_ev = (state["moved"] + settle_age) / 2.0 if settle_age is not None else state["moved"]
             row["event_age"] = a_ev
             row["first_moved_age"] = state["moved"]
@@ -1488,6 +1597,26 @@ class Sess:
             self.events.append({"t_h": a_ev - self.a0, "kind": "drink", "litres": lit,
                                 "fluid": {"Coffee": "coffee", "Beer": "beer", None: "beer"}[fluid], "label": label})
         return row
+
+    def fill_gate(self, row, container, fluid):
+        """Review M-2: fluid.fill's ok and read-back fluid, and the probe's first non-empty container and its fluid, all
+        the drink's own; a miss is noted and the drink leaves the model (vanilla) or the replay (modded)."""
+        fill = row.get("fill") or {}
+        pb = row.get("probe_before") or {}
+        want = str(fluid or "").lower()
+        row["fill_ok"] = (fill.get("ok") is True and str(fill.get("fluid", "")).lower() == want
+                          and pb.get("item") == container and str(pb.get("fluid", "")).lower() == want)
+        if not row["fill_ok"]:
+            self.xs.note(f"drink {row.get('label')}: fill gate failed (fill {fill.get('ok')}/{fill.get('fluid')}, "
+                         f"probe {pb.get('item')}/{pb.get('fluid')})")
+        return row["fill_ok"]
+
+    def probe_start(self, P):
+        """Review M-13: the start's first non-empty fluid container (the auto-drink rule); a carried one is noted."""
+        P["probe"] = self.k("S_probe", SRV, "autodrink.probe", USER)
+        if P["probe"].get("item") is not None:
+            self.xs.note(f"S: admin carries a filled container {P['probe'].get('item')} "
+                         f"({P['probe'].get('litres')} L {P['probe'].get('fluid')})")
 
     # -- the ring
     def ring_start(self, paths=(), tag="S_ring"):
@@ -1546,6 +1675,7 @@ class Sess:
         P["sandbox"] = self.settings_read()
         P["clock"] = self.clock_read()
         P["ring"] = self.ring_start()
+        self.probe_start(P)
         P["start"] = self.start_read(strength=strength)
         traits = traits_of(g(P, "start", "stats"))
         P["traits"] = traits
@@ -1584,6 +1714,7 @@ class Sess:
 
     def v1a_B(self):
         B = self.D["B"] = {}
+        n0 = len(self.speeds)
         self.set_speed(1, "B_one")
         B["write"] = self.write("B_set", "stats.set", f"hunger {V1A_HUNGER_B}", ("hunger",))
         B["eat"] = self.eat(BOLOGNESE, "B_eat")
@@ -1593,7 +1724,7 @@ class Sess:
             self.xs.check()
             st = self.stats_get("B_timer", log=False)
             age = num(st.get("worldAge"))
-            m = self.moodle("B_moodle", "FoodEaten", age)
+            m = self.moodle("B_moodle", MOODLE_FOOD_EATEN, age)
             self.read("timer", {"age": age, "foodTimer": num(st.get("foodTimer")),
                                 "standardFoodTime": num(st.get("standardFoodTime")), "hunger": num(st.get("hunger")),
                                 "arm": "B"})
@@ -1603,6 +1734,10 @@ class Sess:
                 break
             self.sleep_until(self.xs.clock() + V1A_TIMER_EVERY_S)
         B["timer_polls"] = polls
+        rows = self.speeds[n0:]
+        B["slow_rows"] = rows
+        B["slow_ok"] = self.cur_speed == 1 and all(r.get("ok") for r in rows) and \
+            (bool(rows) or bool(self.speeds) and self.speeds[-1].get("ok"))
         a = self.age("B_a")
         B["end_age"] = (B["eat"].get("landed_age") or a) + V1A_ARM_B_H
         B["reached"] = self.run_to(B["end_age"], self.hourly(a, B["end_age"], lambda x: self.nutrition("B_nut")),
@@ -1620,7 +1755,7 @@ class Sess:
             return
         self.write(f"X_thirst_{a:.2f}", "stats.set", "thirst 0", ("thirst",))
         self.nutrition(f"X_nut_{a:.2f}")
-        m = self.moodle(f"X_hungry_{a:.2f}", "Hungry", self.age(f"X_hungry_{a:.2f}_t"))
+        m = self.moodle(f"X_hungry_{a:.2f}", MOODLE_HUNGRY, self.age(f"X_hungry_{a:.2f}_t"))
         self.read("hungry", m)
 
     def v1b_X(self):
@@ -1637,37 +1772,55 @@ class Sess:
         P["death"] = self.death
 
     # ======================================================== V2: one food for 36 hours
+    def v2_half(self):
+        return (0.0, V2_SPLIT_H) if self.key == "V2a" else (V2_SPLIT_H, V2_SPAN_H)
+
     def v2_body(self):
         return (("S", self.v2_S), ("X", self.v2_X), ("C", self.restore_clock), ("R", self.phase_R))
 
     def v2_S(self):
         self.phase_S()
-        self.spawn(TUNA, len(V2_EAT_AGES), "S_spawn")
+        lo, hi = self.v2_half()
+        self.spawn(TUNA, sum(1 for o in V2_EAT_OFFSETS if lo <= o < hi), "S_spawn")
 
     def v2_X(self):
+        """V2a: the store written (calories 3000, weight 80; the values read first kept), the anchor read, then the
+        first V2_SPLIT_H game hours. V2b: x443a's anchor (main's chain check, off its artifact), then on to the anchor
+        plus V2_SPAN_H. A tin's age is the anchor plus its offset (a tin already past is eaten at once, named late)."""
         P = self.D["X"] = {}
         self.set_speed(1, "X_one")
-        P["read_first"] = {k: g(self.D, "start", "stats", k) for k in ("calories", "weight")}
-        P["calories"] = self.write("X_cal", "nutrition.set", f"calories {V2_CALORIES!r}", ("calories", "weight"))
-        P["weight"] = self.write("X_wt", "nutrition.set", f"weight {V2_WEIGHT!r}", ("calories", "weight"))
-        self.out["world_changes"]["left_in_place"].append(
-            f"nutrition.set calories {V2_CALORIES} and weight {V2_WEIGHT} (read first: {P['read_first']})")
-        a = self.age("X_a0")
-        acts = []
-        late = []
-        for i, ea in enumerate(V2_EAT_AGES):
-            if ea < a:
+        lo, hi = self.v2_half()
+        if self.key == "V2a":
+            P["read_first"] = {k: g(self.D, "start", "stats", k) for k in ("calories", "weight")}
+            P["calories"] = self.write("X_cal", "nutrition.set", f"calories {V2_CALORIES!r}", ("calories", "weight"))
+            P["weight"] = self.write("X_wt", "nutrition.set", f"weight {V2_WEIGHT!r}", ("calories", "weight"))
+            self.out["world_changes"]["left_in_place"].append(
+                f"nutrition.set calories {V2_CALORIES} and weight {V2_WEIGHT} (read first: {P['read_first']})")
+            self.anchor = self.age("X_anchor")
+        P["anchor"] = self.anchor
+        if self.anchor is None:
+            self.xs.note("X: no anchor age; the scenario is not run")
+            return
+        a = self.age("X_a0") or self.anchor
+        acts, late = [], []
+        for i, off in enumerate(V2_EAT_OFFSETS):
+            if not (lo <= off < hi):
+                continue
+            ea = self.anchor + off
+            if a is not None and ea < a:
                 late.append(ea)
-            acts.append((max(ea, a), "timed", (lambda x, i=i: self.eat(TUNA, f"X_eat{i + 1}"))))
-        acts += self.hourly(a, V2_END_AGE, lambda x: self.nutrition(f"X_nut_{x:.2f}"))
+            acts.append((ea if a is None else max(ea, a), "timed", (lambda x, i=i: self.eat(TUNA, f"X_eat{i + 1}"))))
+        end = self.anchor + hi
+        acts += self.hourly(a, end, lambda x: self.nutrition(f"X_nut_{x:.2f}"))
         t = V2_THIRST_EVERY_H
-        while t < V2_END_AGE:
-            if t > a:
-                acts.append((t, "read", (lambda x: self.write(f"X_thirst_{x:.2f}", "stats.set", "thirst 0",
-                                                              ("thirst",)))))
+        while t < V2_SPAN_H:
+            if lo < t < hi and self.anchor + t > a:
+                acts.append((self.anchor + t, "read", (lambda x: self.write(f"X_thirst_{x:.2f}", "stats.set",
+                                                                            "thirst 0", ("thirst",)))))
             t += V2_THIRST_EVERY_H
         P["late_eats"] = late
-        P["reached"] = self.run_to(V2_END_AGE, acts, SPEED_FAST, "X")
+        P["end_age"] = end
+        P["reached"] = self.run_to(end, acts, SPEED_FAST, "X")
         self.nutrition("X_nut_end")
 
     # ======================================================== V3: Strength experience
@@ -1760,6 +1913,7 @@ class Sess:
     def v4_S(self):
         self.phase_S()
         self.set_speed(1, "S_one")
+        self.D["S"]["thirst"] = self.write("S_thirst", "stats.set", "thirst 0", ("thirst",))   # review M-13
 
     def v4_A(self):
         A = self.D["A"] = {}
@@ -1770,7 +1924,7 @@ class Sess:
                                 "values": {"fatigue": num(f.get("fatigue"))}, "label": "A_fatigue_read"})
         A["spawn"] = self.spawn(BOTTLE, 1, "A_spawn")
         d = self.drink(BOTTLE, "Coffee", COFFEE_L, "A_coffee", "FATIGUE", -1, VM.COFFEE_FATIGUE_PER_L * COFFEE_L)
-        c = {"landed": d["landed"], "drink": d}
+        c = {"landed": d["landed"], "drink": d, "fill_ok": d.get("fill_ok")}
         polls = d.get("polls") or []
         firstm = next((p for p in polls if p.get("age") == d.get("first_moved_age")), None)
         pre = [p for p in polls if d.get("first_moved_age") is not None and p.get("age") is not None
@@ -1812,10 +1966,11 @@ class Sess:
             gain = VM.intoxication_gain(VM.BEER_ALCOHOL_PER_L * BEER_L, 0.0)
             d = self.drink(cont, "Beer", BEER_L, f"B_beer{i + 1}", "INTOXICATION", 1, gain)
             B["cans"].append({k: d.get(k) for k in ("landed", "settled", "event_age", "first_moved_age",
-                                                    "settle_age", "drunk", "model_litres")})
+                                                    "settle_age", "drunk", "model_litres", "fill_ok")})
         polls = []
         a = self.age("B_p0")
         end = (a or 0.0) + V4_INTOX_CAP_H
+        B["poll_end"] = end
 
         def fn():
             s = self.stats_all("B_intox", log=False)
@@ -1883,8 +2038,13 @@ class Sess:
         self._g("V1a_A_timer", grade_reads(ta, model, "foodTimer", "food_timer", a0, TIMER_TOL),
                 "the timer after arm A's eat off the model's (filled where the model's gate says no fill)")
         tb = [r for r in self.reads.get("timer") or [] if r.get("arm") == "B"]
-        self._g("V1a_B_timer", grade_reads(tb, model, "foodTimer", "food_timer", a0, TIMER_TOL),
-                "a timer read in arm B's 25 minutes off the model's fill and decay")
+        if B.get("slow_ok") is False:
+            self.xs.grade("V1a_B_timer", "unmeasured", {"why": "arm B's window ran with a speed row not ok (its 10-s "
+                                                               "cadence assumes speed 1)",
+                                                        "slow_rows": B.get("slow_rows")}, "")
+        else:
+            self._g("V1a_B_timer", grade_reads(tb, model, "foodTimer", "food_timer", a0, TIMER_TOL),
+                    "a timer read in arm B's 25 minutes off the model's fill and decay")
         fe = [dict(r, age=r.get("age")) for r in self.reads.get("food_eaten") or []]
         self._g("V1a_B_moodle", grade_levels(fe, model, "food_timer", VM.FOOD_EATEN_THRESHOLDS, a0),
                 "a FoodEaten moodle level off the model's timer level")
@@ -1910,7 +2070,9 @@ class Sess:
         end = (self.death or {}).get("age") or X_.get("reached") or 1e9
         self._g("V1b_hunger", grade_curve(rows, model, "HUNGER", "hunger", a0, HUNGER_TOL, (start, end), ev_ages),
                 "a ring HUNGER off the model by more than HUNGER_TOL while starving")
-        self._g("V1b_level4", grade_crossing(rows, model, "hunger", "HUNGER", V1B_HUNGRY_4, a0, LEVEL_TOL_H, start),
+        last_ring = max((r["age"] for r in rows), default=None)
+        self._g("V1b_level4", grade_crossing(rows, model, "hunger", "HUNGER", V1B_HUNGRY_4, a0, LEVEL_TOL_H, start,
+                                             last_ring),
                 "HUNGER crossing 0.70 (HUNGRY 4) off the model's crossing by more than LEVEL_TOL_H")
         self._g("V1b_moodle", grade_levels(self.reads.get("hungry"), model, "hunger", VM.HUNGRY_THRESHOLDS, a0),
                 "an hourly Hungry moodle level off the model's")
@@ -1918,7 +2080,9 @@ class Sess:
               if not r.get("dead")]
         self._g("V1b_health", grade_reads(hr, model, "overall", "health", a0, HEALTH_TOL),
                 "a health read off the model's VM10 drain (3.564 a game hour at HUNGRY 4) by more than HEALTH_TOL")
-        self._g("V1b_death", grade_death(self.death, model, a0, X_.get("reached")),
+        hreads = self.reads.get("health") or []
+        gone = bool(hreads) and bool(hreads[-1].get("gone"))
+        self._g("V1b_death", grade_death(self.death, model, a0, X_.get("reached"), gone=gone),
                 "death off the model's health-zero age by more than DEATH_TOL_H, or alive past it")
         nut = self.reads.get("nutrition")
         self._g("V1b_calories", grade_reads(nut, model, "calories", "calories_store", a0, CAL_TOL, CAL_TOL_REL),
@@ -1927,25 +2091,30 @@ class Sess:
                 "an hourly weight off the model's VM8 loss")
 
     def grade_v2(self, model, rows, ev_ages):
-        a0 = self.a0
+        a0, k = self.a0, self.key
         w = g(self.D, "X", "weight", "ages") or [None, None]
         start = w[1] or a0
-        self._g("V2_hunger", grade_curve(rows, model, "HUNGER", "hunger", a0, HUNGER_TOL, (start, 1e9), ev_ages),
+        self._g(f"{k}_hunger", grade_curve(rows, model, "HUNGER", "hunger", a0, HUNGER_TOL, (start, 1e9), ev_ages),
                 "a ring HUNGER off the model with four tins a day")
         nut = [r for r in self.reads.get("nutrition") or [] if num(r.get("age")) is not None and r["age"] >= start]
-        self._g("V2_weight", grade_reads(nut, model, "weight", "weight_kg", a0, WEIGHT_TOL),
+        self._g(f"{k}_weight", grade_reads(nut, model, "weight", "weight_kg", a0, WEIGHT_TOL),
                 "an hourly weight off the model's VM8 gain from the 3000-kcal store")
-        self._g("V2_calories", grade_reads(nut, model, "calories", "calories_store", a0, CAL_TOL, CAL_TOL_REL),
+        self._g(f"{k}_calories", grade_reads(nut, model, "calories", "calories_store", a0, CAL_TOL, CAL_TOL_REL),
                 "an hourly calorie store off the model's arithmetic")
         R = self.out.setdefault("readings", {})
         R["mood"] = {f: [(r.get("age"), r.get(f)) for r in rows[::15] if num(r.get(f)) is not None]
                      for f in ("BOREDOM", "UNHAPPINESS")}
+        R["anchor"] = self.anchor
+        R["span_h"] = [self.v2_half()[0], self.v2_half()[1]]
         if nut:
             m0 = series_at(model["weight_kg"], nut[0]["age"] - a0)
             m1 = series_at(model["weight_kg"], nut[-1]["age"] - a0)
             R["weight_change"] = {"live": (nut[-1].get("weight") or 0) - (nut[0].get("weight") or 0),
                                   "model": None if (m0 is None or m1 is None) else m1 - m0,
                                   "from_age": nut[0]["age"], "to_age": nut[-1]["age"]}
+
+    grade_v2a = grade_v2
+    grade_v2b = grade_v2
 
     def grade_v3(self, model, rows, ev_ages):
         a0 = self.a0
@@ -1975,12 +2144,18 @@ class Sess:
         self._g("V4_A_holds", grade_coffee_holds(A.get("coffee")),
                 "FATIGUE falling to its reset within the hour (the write did not hold with sleep on)")
         B = self.D.get("B") or {}
-        cans = [c for c in B.get("cans") or [] if c.get("landed")]
+        cans = [c for c in B.get("cans") or [] if c.get("landed") and c.get("fill_ok")]
+        if len(cans) < V4_BEERS:
+            for n in ("V4_B_decay", "V4_B_zero"):
+                self.xs.grade(n, "unmeasured", {"why": f"{len(cans)} of {V4_BEERS} cans landed with their fill gate",
+                                                "cans": B.get("cans")}, "")
+            return
         last = max((c.get("settle_age") or c.get("event_age") for c in cans), default=None) if cans else None
         last_ev = max((c.get("event_age") for c in cans if c.get("event_age") is not None), default=None)
         self._g("V4_B_decay", grade_intox_decay(B.get("polls"), last, model, a0),
                 "INTOXICATION's decay off the model's 0.504 x day minutes a game hour by more than INTOX_DECAY_REL")
-        self._g("V4_B_zero", grade_intox_zero(B.get("polls"), last_ev, model, a0),
+        last_poll = max((p["age"] for p in B.get("polls") or [] if num(p.get("age")) is not None), default=None)
+        self._g("V4_B_zero", grade_intox_zero(B.get("polls"), last_ev, model, a0, last_age=last_poll),
                 "INTOXICATION reaching 0 off the model's zero age by more than INTOX_ZERO_TOL_H")
         R = self.out.setdefault("readings", {})
         R["intox_peak"] = max((p["intox"] for p in B.get("polls") or [] if num(p.get("intox")) is not None),
@@ -2004,6 +2179,7 @@ class Sess:
         P["clock"] = self.clock_read()
         P["nutrition"] = self.k("S_nutrition", SRV, "nutrition.get", USER)
         P["stats"] = self.stats_all("S_stats")
+        self.probe_start(P)
 
     def m_H(self):
         P = self.D["H"] = {}
@@ -2097,6 +2273,7 @@ class Sess:
         if fluid is not None:
             row["fill"] = self.k(label + "_fill", SRV, "fluid.fill", f"{USER} {container} {fluid} {litres}")
         row["probe_before"] = self.k(label + "_probe0", SRV, "autodrink.probe", USER)
+        self.fill_gate(row, container, row["fluid"])
         b = self.intake(label + "_before")
         row["age0"] = self.age(label + "_age0")
         q = self.k(label + "_drink", CLI, "drink.action", f"{container} 1")
@@ -2159,34 +2336,51 @@ class Sess:
         n["wake"] = self.k(label + "_wake", SRV, "player.sleep", f"{USER} false")
         self.sleep_until(self.xs.clock() + WAKE_SETTLE_S)
         n["age1"] = self.age(label + "_a1")
+        n["booked_h"] = n["booked"]
+        n["note"] = FAST_FORWARD_NOTE
         return n
+
+    def m2_plan(self, a):
+        """The relative schedule (review I-2): coffees at X's start plus M2_COFFEE_OFFSETS, the beers at least
+        M2_BEER_GAP_H after the last and not before 19:00, the night at the next 23:00 when that is within
+        M2_NIGHT_MAX_GAP_H of the beers (else M2_NIGHT_FALLBACK_H after them)."""
+        coffees = [a + o for o in M2_COFFEE_OFFSETS]
+        beers = max(coffees[-1] + M2_BEER_GAP_H, next_age_of_hour(a, M2_BEER_HOUR))
+        n23 = next_age_of_hour(beers, M2_NIGHT_HOUR)
+        night = n23 if n23 - beers <= M2_NIGHT_MAX_GAP_H else beers + M2_NIGHT_FALLBACK_H
+        return {"start": a, "coffees": coffees, "beers": beers, "night": night,
+                "night_at_23": night == n23, "ok": all(x < night for x in coffees + [beers])}
 
     def m2_X(self):
         P = self.D["X"] = {}
         a = self.age("X_a0") or 0.0
+        plan = P["plan"] = self.m2_plan(a)
+        if not plan["ok"]:
+            self.xs.note(f"X refused: a planned action is not before the night: {plan}")
+            P["refused"] = True
+            return
         acts = []
-        for i, hr in enumerate(M2_COFFEE_HOURS):
+        for i, ca in enumerate(plan["coffees"]):
             def coffee(x, i=i):
                 self.spawn(COFFEE_CONTAINERS[i], 1, f"X_cup{i + 1}")
                 self.m_drink(COFFEE_CONTAINERS[i], "Coffee", COFFEE_L, f"X_coffee{i + 1}")
-            acts.append((max(a, next_age_of_hour(a, hr)), "timed", coffee))
-        beer_age = max(a, next_age_of_hour(a, M2_BEER_HOUR))
+            acts.append((ca, "timed", coffee))
 
         def beers(x):
             for j, cont in enumerate(BEER_CONTAINERS[:V4_BEERS]):
                 self.spawn(cont, 1, f"X_beerspawn{j + 1}")
                 self.m_drink(cont, "Beer", BEER_L, f"X_beer{j + 1}")
-        acts.append((beer_age, "timed", beers))
-        night_age = next_age_of_hour(beer_age, M2_NIGHT_HOUR)
-        acts.append((night_age, "timed", lambda x: P.setdefault("nights", []).append(self.night("N1"))))
-        P["plan"] = {"start": a, "coffees": [x[0] for x in acts[:3]], "beers": beer_age, "night": night_age,
-                     "end": M2_END_AGE}
-        self.run_to(night_age + 0.01, acts, MOD_SPEED_FAST, "X1")
+        acts.append((plan["beers"], "timed", beers))
+        acts.append((plan["night"], "timed", lambda x: P.setdefault("nights", []).append(self.night("N1"))))
+        self.run_to(plan["night"] + 0.01, acts, MOD_SPEED_FAST, "X1")
+        n_end = g((P.get("nights") or [{}])[-1], "age1") or self.age("X_night_end")
+        end = (n_end if n_end is not None else plan["night"] + M2_NIGHT_H) + M2_DAY2_H
+        plan["end"] = end
         k = 0
         P["meals"] = []
         while True:
             self.xs.check()
-            r = self.to_request(f"X_req{k}", M2_END_AGE)
+            r = self.to_request(f"X_req{k}", end)
             if r is None:
                 break
             self.spawn(BOLOGNESE, 1, f"X_mspawn{k}")
@@ -2231,7 +2425,10 @@ class Sess:
         start_stats = g(self.D, "W", "start_stats") or {}
         sa = num(g(self.D, "W", "start_age"))
         sleep = self.key == "M2"
-        events, book = replay_events(rows, self.eats, self.drinks, sa, sleep=sleep)
+        drinks = [d for d in self.drinks if d.get("fill_ok")]
+        if len(drinks) < len(self.drinks):
+            xs.note(f"{len(self.drinks) - len(drinks)} drink(s) failed the fill gate and leave the replay")
+        events, book = replay_events(rows, self.eats, drinks, sa, sleep=sleep)
         nut = g(self.D, "S", "nutrition") or {}
         sex = g(H, "h1_record", "values", "body.sex")
         player = {"female": sex == 2, "weight": num(nut.get("weight")) or 80.0,
@@ -2279,7 +2476,8 @@ class Sess:
 
     # -- the session table
     def phases(self):
-        return {"V1a": self.v1a_body, "V1b": self.v1b_body, "V2": self.v2_body, "V3": self.v3_body,
+        return {"V1a": self.v1a_body, "V1b": self.v1b_body, "V2a": self.v2_body, "V2b": self.v2_body,
+                "V3": self.v3_body,
                 "V4": self.v4_body, "M1": self.m1_body, "M2": self.m2_body}[self.key]()
 
     def grade_all(self):
@@ -2290,7 +2488,7 @@ class Sess:
 
 
 # ================================================================ the live run
-def main(key, profile_name, prefix, artifact, session_text, pred, budget_s, driver_file):
+def main(key, profile_name, prefix, artifact, session_text, pred, budget_s, driver_file, prev_run=None):
     from _common import ask, doctor, git_dirty, git_say, hard_kill   # noqa: E402
     from pzt import fixture as fx, profile                          # noqa: E402
     from pzt.bus import resolve_side                                # noqa: E402
@@ -2304,6 +2502,13 @@ def main(key, profile_name, prefix, artifact, session_text, pred, budget_s, driv
         print(json.dumps({"preboot": pre}, indent=1, default=str))
         print("a pre-boot check failed; the session was not started")
         sys.exit(1)
+    chain = None
+    if spec.get("chain_from"):
+        chain, cok = chain_check(prev_run, key)
+        if not cok:
+            print(json.dumps({"chain": chain}, indent=1, default=str))
+            print("the previous run fails the chain check; the session was not started")
+            sys.exit(1)
     prof = profile.load(profile_name)
     rec_fx = fx.load(prof.fixture)
     run_id, run_dir = new_run_dir(prefix)
@@ -2316,6 +2521,9 @@ def main(key, profile_name, prefix, artifact, session_text, pred, budget_s, driv
               ask=ask, budget_s=budget_s, predictions=pred, user=USER)
     xs.path = os.path.join(run_dir, artifact)
     S = Sess(xs, key, run_dir=run_dir)
+    if chain is not None:
+        S.anchor = chain["anchor"]
+        out["chain"] = chain
     doctor_clean, doctor_text = doctor()
     out.update({
         "run_id": run_id, "session_key": key, "session": session_text, "driver": driver_file, "lib": LIB_FILE,
@@ -2360,8 +2568,14 @@ def main(key, profile_name, prefix, artifact, session_text, pred, budget_s, driv
         xs.refuse("the layout lint found an ERROR in a profile mod folder; the session was not started")
     server = None
     try:
+        if chain is not None:                    # the reuse boot: the previous run's saved world (x35's route)
+            t = xs.wall()
+            shutil.copytree(os.path.join(chain["dir"], "server"), os.path.join(run_dir, "server"))
+            chain["copy_seconds"] = round(xs.wall() - t, 2)
+            out["world_changes"]["restored"] = (f"the previous run {chain['run_id']}'s <run>/server copied whole and "
+                                                "booted again (reuse=True); the admin client a fresh fixture restore")
         server = make_server(run_dir, rec_fx, mods=prof.mods, mod_sources=prof.sources, mod_skip=prof.skip,
-                             sandbox=prof.sandbox or None, ini=prof.ini, gclog=prof.gclog)
+                             sandbox=prof.sandbox or None, ini=prof.ini, gclog=prof.gclog, reuse=chain is not None)
         holder["server"] = server
         xs.server = server
         out["server_launch_wall"] = xs.wall()

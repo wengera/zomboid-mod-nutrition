@@ -7,7 +7,8 @@ the drink, the model and the grades); this file names the session, the run prefi
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
 
 THE SESSION (the source map's V4, the review's M-8):
-  S  the sandbox, the clock's trueMult, minute.ring admin start (no paths), the model's start; speed 1.
+  S  the sandbox, the clock's trueMult, minute.ring admin start (no paths), the start's fluid containers
+     (autodrink.probe), the model's start; speed 1; stats.set admin thirst 0 (the auto-drink rule, review M-13).
   A  stats.set admin fatigue 0.5 and FATIGUE read; RCON additem Base.WaterBottle; fluid.fill admin Base.WaterBottle
      Coffee 0.25 (the server copy, x151r's route); drink.action Base.WaterBottle 1; FATIGUE (stats.all) polled to the
      drop and its settle; then FATIGUE read for one game hour (every game minute for the first 5 at speed 1, then every

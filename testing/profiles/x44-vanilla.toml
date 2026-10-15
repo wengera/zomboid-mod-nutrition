@@ -1,13 +1,14 @@
-# testing/profiles/x44-vanilla.toml - Plan 14 Task 5 (runs x441 V1a, x442 V1b, x443 V2, x444 V3): the vanilla
+# testing/profiles/x44-vanilla.toml - Plan 14 Task 5 (runs x441 V1a, x442 V1b, x443a and x443b V2, x444 V3): the vanilla
 # baseline for the player guide (the source map's section 5, docs/superpowers/research/2026-10-15-mod-guide/
 # source-map.md): a measured meal, starving to death, one food for 36 hours, Strength experience.
 # The vanilla game: PZTestKit ONLY (no NutritionRevamp, no TKX probe), the fixture's own Nutrition (true, the
 # x13-nutrition-on verify row) and DayLength 4 (a 90-minute day), written here so the profile says what the run is.
 # Sleep off (the fixture's false/false; the guide's display default). Fixture default, admin (-debug), build 42.21.0.
-# The drivers are testing/experiments/x441_meal.py, x442_starve.py, x443_tuna.py and x444_strength.py on testing/experiments/x44_guide_lib.py.
+# The drivers are testing/experiments/x441_meal.py, x442_starve.py, x443a_tuna.py, x443b_tuna.py and
+# x444_strength.py on testing/experiments/x44_guide_lib.py.
 # V4 (x445) runs on x44-vanilla-sleep.toml: fatigue holds only with sleep allowed and needed (#2949).
 fixture = "default"
-description = "PZTestKit only (the vanilla game), fixture default, admin (debug), Nutrition true, DayLength 4, sleep off, build 42.21.0 - x441..x444, Plan 14 Task 5: the guide's vanilla baseline."
+description = "PZTestKit only (the vanilla game), fixture default, admin (debug), Nutrition true, DayLength 4, sleep off, build 42.21.0 - x441..x444 (x443a, x443b), Plan 14 Task 5: the guide's vanilla baseline."
 clients = ["admin"]
 run = { hold = 20 }
 verify = [

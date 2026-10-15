@@ -96,7 +96,9 @@ def test_prerun_headlines_are_the_maps():
     assert abs(v1b["level4_h"] - 8.32) < 0.01 and abs(v1b["death_h"] - 36.4) < 0.05
     assert (v3["A"], v3["B_grant_xp_after"], v3["B"], v3["B_level"], v3["C"]) == (360.0, 67200.0, 540.0, 6, 252.0)
     assert v4["coffee_fatigue"] == -0.025 and v4["beer_gain_each"] == 6.0 and abs(v4["decay_per_h"] - 45.36) < 1e-9
-    assert L.prerun("V2")["weight_change_36h"] > 1.0
+    v2 = L.prerun("V2a")
+    assert v2["weight_change_span"] > 1.0 and v2["span_h"] == 36.0 and L.prerun("V2b") == v2
+    assert abs(v2["weight_change_V2a"] + v2["weight_change_V2b"] - v2["weight_change_span"]) < 1e-9
 
 
 def test_series_helpers():
@@ -429,8 +431,107 @@ def test_drivers_name_their_session():
         assert b < 560.0, (drv, b)
 
 
-# ---------------------------------------------------------------- the fake vanilla world
+# ---------------------------------------------------------------- fix round 1: the pure additions
+def test_moodle_names_are_moodletype_fields():
+    # review I-1: MoodleType's static fields are upper case ('Hungry' is the registry id, not a Lua field)
+    for name in (L.MOODLE_FOOD_EATEN, L.MOODLE_HUNGRY):
+        assert re.match(r"^[A-Z_]+$", name), name
+    with open(L.__file__, encoding="utf-8") as fh:
+        src = fh.read()
+    for m in re.finditer(r"self\.moodle\([^,]+,\s*([^,)]+)", src):
+        arg = m.group(1).strip()
+        assert arg.startswith("MOODLE_") or re.match(r'^"[A-Z_]+"$', arg), arg
+
+
+def test_grade_freeze_held_max_branch():
+    # review M-7: one row 0.002 inside the freeze while the unfreeze lands on time
+    m = {"food_timer": [(i / 60.0, max(0.0, 3120.0 - 180.0 * i)) for i in range(60)]}
+    zero = 3120.0 / 180.0 / 60.0
+    rows = [{"age": i / 60.0, "HUNGER": 0.0 if i / 60.0 < zero else 1e-3 * (i / 60.0 - zero) * 60} for i in range(1, 40)]
+    rows[3]["HUNGER"] = 0.002
+    v, o = L.grade_freeze(rows, 0.001, m, 0.0)
+    assert v == "falsified" and o["why"] == "HUNGER rose inside the model's freeze"
+
+
+def test_no_live_crossing_past_the_model_is_falsified():
+    # review M-8: a plateau under 0.70 (#0174) and an INTOXICATION that never reaches 0
+    m = {"hunger": [(i / 60.0, 0.6 + 0.012 * i / 60.0) for i in range(600)]}
+    flat = [{"age": 5.0 + i / 60.0, "HUNGER": min(0.6999, 0.6 + 0.012 * i / 60.0)} for i in range(600)]
+    v, o = L.grade_crossing(flat, m, "hunger", "HUNGER", 0.7, 5.0, 0.1, last_age=flat[-1]["age"])
+    assert v == "falsified" and o["why"] == "no live crossing by the model's age plus the tolerance"
+    assert L.grade_crossing(flat, m, "hunger", "HUNGER", 0.7, 5.0, 0.1, last_age=5.0 + 8.4)[0] == "unmeasured"
+    mi = {"intoxication": [(i / 60.0, max(0.0, 24.0 - 45.36 * i / 60.0)) for i in range(60)]}
+    stuck = [{"age": i / 60.0, "intox": 3.0} for i in range(60)]
+    v, o = L.grade_intox_zero(stuck, 0.0, mi, 0.0, last_age=stuck[-1]["age"])
+    assert v == "falsified" and o["why"] == "no live crossing by the model's age plus the tolerance"
+    assert L.grade_intox_zero(stuck, 0.0, mi, 0.0)[0] == "unmeasured"
+
+
+def test_grade_death_gone_is_unmeasured():
+    m = {"health": [(i / 60.0, max(0.0, 100.0 - 10.0 * i / 60.0)) for i in range(800)]}
+    v, o = L.grade_death(None, m, 5.0, 16.0, gone=True)
+    assert v == "unmeasured" and o["why"] == "the player left the online list"
+    assert L.grade_death(None, m, 5.0, 16.0)[0] == "falsified"
+
+
+def test_coffee_unmeasured_on_a_failed_fill():
+    m = {"fatigue": [(0.0, 0.5), (1.0, 0.5)]}
+    c = {"landed": True, "fill_ok": False, "before": {"fatigue": 0.5, "worldAge": 0.1},
+         "after": {"fatigue": 0.475, "worldAge": 0.2}}
+    assert L.grade_coffee(c, m, 0.0)[0] == "unmeasured"
+
+
+def test_m2_plan_is_relative_and_before_the_night():
+    S = L.Sess(X.Xs(fresh_out(), node=str), "M2")
+    for a in (3.3, 5.5, 9.0, 20.0):
+        p = S.m2_plan(a)
+        assert p["ok"] and p["coffees"][0] == pytest.approx(a + 0.1) and len(p["coffees"]) == 3, p
+        assert p["beers"] >= p["coffees"][-1] + L.M2_BEER_GAP_H and p["night"] > p["beers"], p
+        assert p["night"] - p["beers"] <= L.M2_NIGHT_MAX_GAP_H + 1e-9, p
+    assert S.m2_plan(5.5)["night_at_23"] is True
+
+
+def _chain_dir(tmp_path, **over):
+    d = tmp_path / "x443a-20261016-100000"
+    (d / "server" / "Server").mkdir(parents=True)
+    doc = {"run_id": "x443a-20261016-100000", "checks": {"X": {"anchor": 2.4, "reached": 20.4}}}
+    doc.update(over)
+    (d / "tuna-a.json").write_text(json.dumps(doc), encoding="utf-8")
+    return d
+
+
+def test_chain_check(tmp_path):
+    d = _chain_dir(tmp_path)
+    c, ok = L.chain_check(str(d))
+    assert ok and c["anchor"] == 2.4, c
+    assert L.chain_check(None)[1] is False
+    assert L.chain_check(str(tmp_path / "nowhere"))[1] is False
+    for over in ({"run_id": "x443-20261016-1"}, {"error": "boom"}, {"abort": "x"}, {"checks": {"X": {}}}):
+        t = tmp_path / ("c" + str(abs(hash(json.dumps(over)))))
+        t.mkdir()
+        assert L.chain_check(str(_chain_dir(t, **over)))[1] is False, over
+    shutil.rmtree(d / "server")
+    assert L.chain_check(str(d))[1] is False
+
+
+def test_run_to_records_unrun_actions():
+    w = Vanilla(tempfile.mkdtemp())
+    out = fresh_out()
+    xs = X.Xs(out, node=lambda side: side, clients={}, ask=w.ask, clock=w.clock, sleep=w.sleep)
+    S = L.Sess(xs, "V1a")
+    a = w.age
+    S.run_to(a + 0.5, [(a + 0.2, "read", lambda x: None), (a + 3.0, "read", lambda x: None)], L.SPEED_FAST, "T")
+    assert len(out["unrun"]) == 1 and out["unrun"][0]["age"] == pytest.approx(a + 3.0)
+
+
+# ---------------------------------------------------------------- the fake vanilla world (the real reply shapes)
 WALL_GAME_S = 16.0               # game seconds a wall second at DayLength 4, speed 1 (a game minute is 3.75 s)
+DL4_START = 2.35                 # the DL4 sessions' first reads on this fixture (x371 2.351, x372 2.359)
+DL1_START = 3.2                  # the DL1 sessions' first reads (x361 3.234, x364 3.202, x301 3.184)
+EFF = 4.75                       # getMultiplier against getTrueMultiplier (#3762)
+NUT_KEYS = ("calories", "carbs", "lipids", "proteins", "weight", "hunger", "thirst", "statsApi", "incWeight",
+            "incWeightLot", "decWeight")
+GONE = "no online player admin"
 
 
 class FakeClient:
@@ -459,15 +560,45 @@ class FakeServer:
         return self.w.rcon(cmd)
 
 
+def ring_start_reply(paths):
+    return {"ok": True, "side": "server", "user": "admin", "armed": True, "cap": 4320, "paths": list(paths) or {},
+            "stats": ["HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITHDRAWAL"], "online": True,
+            "probe": {}}
+
+
+def ring_read_reply(world, frm, rows, more):
+    return {"ok": True, "side": "server", "user": "admin", "from": frm, "rows": len(rows), "skipped": 0,
+            "next": frm + len(rows) if more else None, "more": more,
+            "oldest": world.ring[0]["s"] if world.ring else None, "newest": world.ring[-1]["s"] if world.ring else None,
+            "recorded": len(world.ring), "overwritten": 0, "cap": 4320, "events": world.s, "errors": 0,
+            "lastError": None, "gErrors": 0, "gLastError": None, "result": f"minute-ring-admin-{frm}",
+            "file": f"pzt-results/minute-ring-admin-{frm}.json"}
+
+
+def ring_stop_reply(world):
+    return {"ok": True, "side": "server", "user": "admin", "stopped": True, "recorded": len(world.ring),
+            "overwritten": 0, "errors": 0, "lastError": None}
+
+
+def item_state(full, n, age):
+    return {"fullType": full, "cooked": False, "burnt": False, "rotten": False, "frozen": False, "age": 0.0,
+            "hungChange": None, "baseHunger": None, "calories": None, "carbs": None, "lipids": None, "proteins": None,
+            "id": 1000 + n, "uses": 1, "fresh": True, "offAge": 1, "offAgeMax": 2, "freezingTime": 0,
+            "cookingTime": 0, "heat": 1.0, "minutesToCook": 0, "minutesToBurn": 0, "thirstChange": 0,
+            "hungerChange": None, "isCookable": False, "actualWeight": 0.3, "weight": 0.3, "customWeight": False,
+            "lastCookMinute": 0, "serverWorldAge": age}
+
+
 class Vanilla:
     """A vanilla world on the model's own rate functions (VM1-VM16), stepped at most a game minute at a time, with a
-    ring row at every game-minute boundary; `flags` move one mechanism off the model."""
+    ring row at every game-minute boundary; every reply in the harness's own shape (the @reply lines); `flags` move
+    one mechanism or one reply off the real one."""
 
-    def __init__(self, results_dir, flags=None, sleep_allowed=False, age=0.4):
+    def __init__(self, results_dir, flags=None, sleep_allowed=False, age=DL4_START, speed=1):
         self.f = flags or {}
         self.dir = results_dir
         self.sleep_allowed = sleep_allowed
-        self.t, self.age, self.speed = 0.0, age, 1
+        self.t, self.age, self.speed = 0.0, age, speed
         self.st = {"hunger": 0.05, "thirst": 0.02, "food_timer": 0.0, "calories": 800.0, "carbs": 50.0, "lipids": 30.0,
                    "proteins": 20.0, "weight": 80.0, "health": 100.0, "fatigue": 0.1, "intox": 0.0, "endurance": 1.0}
         self.xp, self.level, self.traits = 37500.0, 5, []
@@ -479,7 +610,6 @@ class Vanilla:
         self.dead = False
         self.sm = VM.stats_decrease_multiplier(3)
 
-    # -- the clock
     def clock(self):
         return self.t
 
@@ -502,9 +632,11 @@ class Vanilla:
             game_s -= step
             if abs(self.age * 60.0 - round(self.age * 60.0)) < 1e-7 and self.ring_on:
                 self.s += 1
-                self.ring.append({"s": self.s, "age": self.age, "on": True, "HUNGER": self.st["hunger"],
-                                  "THIRST": self.st["thirst"], "FATIGUE": self.st["fatigue"], "BOREDOM": 0.0,
-                                  "UNHAPPINESS": 0.0, "norec": True})
+                self.ring.append({"s": self.s, "ev": self.s, "age": self.age, "dtM": 1.0,
+                                  "hour": int(L.hour_of(self.age)), "min": 0, "on": not self.gone(),
+                                  "HUNGER": self.st["hunger"], "THIRST": self.st["thirst"],
+                                  "FATIGUE": self.st["fatigue"], "BOREDOM": 0.0, "UNHAPPINESS": 0.0,
+                                  "NICOTINE_WITHDRAWAL": 0.0, "norec": True})
 
     def _step(self, sec):
         s = self.st
@@ -538,6 +670,9 @@ class Vanilla:
         if s["health"] <= 0.0:
             self.dead = True
         self.age += sec / 3600.0
+
+    def gone(self):
+        return bool(self.f.get("leave_at_death") and self.dead)
 
     # -- the actions
     def do_eat(self, full):
@@ -580,80 +715,89 @@ class Vanilla:
                 if b:
                     self.traits.append("base:" + b)
 
-    # -- the bus
-    def snapshot(self):
+    # -- the replies
+    def nut(self):
         s = self.st
         return {"calories": s["calories"], "carbs": s["carbs"], "lipids": s["lipids"], "proteins": s["proteins"],
-                "weight": s["weight"], "hunger": s["hunger"], "thirst": s["thirst"], "endurance": s["endurance"],
-                "fatigue": s["fatigue"], "foodTimer": s["food_timer"], "standardFoodTime": 0.0,
-                "traitList": list(self.traits) if self.traits else {}, "worldAge": self.age, "wall": self.t,
-                "asleep": False, "moving": False}
+                "weight": s["weight"], "hunger": s["hunger"], "thirst": s["thirst"], "statsApi": True,
+                "incWeight": False, "incWeightLot": False, "decWeight": False}
+
+    def snapshot(self):
+        s = self.st
+        return dict(self.nut(), endurance=s["endurance"], fatigue=s["fatigue"], moodles={}, traits={},
+                    traitList=list(self.traits) if self.traits else {}, traitRoute="CharacterTraits",
+                    maxWeight=8.0, foodTimer=s["food_timer"], standardFoodTime=0.0, asleep=False, running=False,
+                    sprinting=False, moving=False, worldAge=self.age, mult=self.speed * EFF, wall=self.t)
+
+    def true_mult(self):
+        return float(self.speed) + (0.5 if self.f.get("mult_lie") else 0.0)
 
     def rcon(self, cmd):
         m = re.match(r'settimespeed (\d+)', cmd)
         if m:
             self.speed = int(m.group(1))
-            return True, "ok"
+            return True, "Time speed set to " + m.group(1)
         m = re.match(r'additem "admin" "([^"]+)" (\d+)', cmd)
         if m:
             self.inv[m.group(1)] = self.inv.get(m.group(1), 0) + int(m.group(2))
-            return True, "added"
-        return False, "unknown"
+            return True, "Item " + m.group(1) + " Added in admin's inventory."
+        return False, "Unknown command " + cmd
 
     def ask(self, node, cmd, args="", timeout=20):
         a = args.split()
         if cmd == "ping":
             return "pong"
         if cmd == "players":
-            return ["admin"]
+            return [] if self.gone() else ["admin"]
         if cmd == "time.snapshot":
-            return {"worldAge": self.age, "hour": int(L.hour_of(self.age)), "minutes": 0, "mult": self.speed * 4.7,
-                    "trueMult": float(self.speed), "wall": self.t}
+            return {"worldAge": self.age, "hour": int(L.hour_of(self.age)), "minutes": 0, "mult": self.speed * EFF,
+                    "trueMult": self.true_mult(), "wall": self.t}
         if cmd == "time.multiplier":
             self.speed = float(a[0])
-            return f"multiplier {a[0]}"
+            return f"mult={self.true_mult()} eff={self.speed * EFF}"
         if cmd == "lua.read":
             v = {"SandboxVars.Nutrition": True, "SandboxVars.DayLength": 4, "SandboxVars.StatsDecrease": 3,
                  "SandboxVars.MultiplierConfig.Global": 1, "SandboxVars.MultiplierConfig.GlobalToggle": True,
                  "SandboxVars.MultiplierConfig.Strength": 1}
             return {"ok": True, "side": "server", "root": a[0], "n": len(a) - 1,
                     "values": {p: v[p] for p in a[1:] if p in v}, "tables": {}, "types": {},
-                    "missing": {p: "nil" for p in a[1:] if p not in v}}
+                    "missing": {p: "nil" for p in a[1:] if p not in v} or {}}
         if cmd == "minute.ring":
             if a[1] == "start":
-                self.ring_on = True
-                return {"ok": True, "side": "server", "user": "admin", "armed": True, "cap": 4320, "paths": {}}
+                self.ring_on, self.ring, self.s = True, [], 0
+                return ring_start_reply(a[2:])
             if a[1] == "read":
                 frm = int(a[2]) if len(a) > 2 else 1
                 rows = [r for r in self.ring if r["s"] >= frm][:720]
-                name = f"minute-ring-admin-{frm}"
-                with open(os.path.join(self.dir, name + ".json"), "w", encoding="utf-8") as fh:
+                with open(os.path.join(self.dir, f"minute-ring-admin-{frm}.json"), "w", encoding="utf-8") as fh:
                     json.dump({"rows_list": rows, "paths": []}, fh)
-                more = len([r for r in self.ring if r["s"] >= frm]) > 720
-                return {"ok": True, "side": "server", "user": "admin", "from": frm, "rows": len(rows), "skipped": 0,
-                        "next": frm + len(rows) if more else None, "more": more, "errors": 0, "result": name}
+                return ring_read_reply(self, frm, rows, len([r for r in self.ring if r["s"] >= frm]) > 720)
             self.ring_on = False
-            return {"ok": True, "side": "server", "user": "admin", "stopped": True, "recorded": self.s}
+            return ring_stop_reply(self)
+        if self.gone():
+            return GONE                                   # every player handler's findPlayer miss
         if cmd == "stats.get":
             return self.snapshot()
         if cmd == "stats.all":
             s = self.st
-            return {"side": "server", "user": "admin", "worldAge": self.age, "mult": 1.0, "wall": self.t,
-                    "stats": {"HUNGER": s["hunger"], "THIRST": s["thirst"], "FATIGUE": s["fatigue"],
-                              "INTOXICATION": s["intox"]}, "missing": {}}
+            return {"side": "server", "user": "admin", "worldAge": self.age, "mult": self.speed * EFF, "wall": self.t,
+                    "stats": {"Hunger": s["hunger"], "Thirst": s["thirst"], "Fatigue": s["fatigue"],
+                              "Intoxication": s["intox"], "Boredom": 0.0, "Unhappiness": 0.0}, "missing": {}}
         if cmd == "stats.set":
             for k, v in zip(a[1::2], a[2::2]):
                 self.st[k] = float(v)
-            return dict(self.snapshot(), applied={k: "stats" for k in a[1::2]})
+            return dict(self.nut(), applied={k: "Stats:set" for k in a[1::2]})
         if cmd in ("nutrition.get", "nutrition.set"):
             if cmd == "nutrition.set":
                 self.st[a[1]] = float(a[2])
-            return self.snapshot()
+            return self.nut()
         if cmd == "health.get":
             return {"ok": True, "side": "server", "overall": self.st["health"], "health": self.st["health"], "parts": {}}
         if cmd == "moodle.level":
+            if a[1] not in ("FOOD_EATEN", "HUNGRY"):
+                return {"ok": False, "side": "server", "user": "admin", "reason": "no MoodleType." + a[1]}
             s = self.st
-            lv = (VM.food_eaten_level(s["food_timer"]) if a[1] == "FoodEaten"
+            lv = (VM.food_eaten_level(s["food_timer"]) if a[1] == "FOOD_EATEN"
                   else VM.moodle_level(s["hunger"], VM.HUNGRY_THRESHOLDS))
             return {"ok": True, "side": "server", "user": "admin", "moodle": a[1],
                     "level": lv + (1 if self.f.get("moodle_off") else 0)}
@@ -664,7 +808,7 @@ class Vanilla:
             b = self.xp
             self.xp = VM.total_xp_for_level(int(a[2]))
             return {"ok": True, "perk": "Strength", "levelBefore": self.level, "levelAfter": self.level,
-                    "xpBefore": b, "xpAfter": self.xp}
+                    "xpBefore": b, "xpAfter": self.xp, "target": self.xp}
         if cmd == "xp.grant":
             b = self.xp
             f = 1.5 if self.f.get("grant_factor") else VM.protein_factor(self.st["proteins"])
@@ -673,66 +817,115 @@ class Vanilla:
                     "xpAfter": self.xp, "levelBefore": self.level, "levelAfter": self.level}
         if cmd == "item.get":
             n = self.inv.get(a[1], 0)
-            return {"fullType": a[1], "id": 1000 + n} if n > 0 else {"fullType": a[1]}
+            return item_state(a[1], n, self.age) if n > 0 else f"no item {a[1]} in admin's inventory"
         if cmd == "fluid.fill":
-            self.fills[a[1]] = (a[2], float(a[3]))
-            return {"ok": True, "side": "server", "fullType": a[1], "litres": float(a[3]), "fluid": a[2]}
+            refused = bool(self.f.get("fill_refused"))
+            if not refused:
+                self.fills[a[1]] = (a[2], float(a[3]))
+            out = {"ok": not refused, "side": "server", "fullType": a[1], "id": 2000, "spawned": False,
+                   "requested": float(a[3]), "litres": 0.0 if refused else float(a[3]),
+                   "fluid": None if refused else a[2], "capacity": 0.3}
+            if refused:
+                out["reason"] = "read-back differs"
+            return out
         if cmd == "autodrink.probe":
-            for full, (fluid, lit) in self.fills.items():
-                if self.inv.get(full) and lit > 0:
-                    return {"ok": True, "item": full, "litres": lit, "fluid": fluid, "containers": len(self.fills)}
-            return {"ok": True, "containers": len(self.fills)}
+            out = {"ok": True, "side": "server", "thirst": self.st["thirst"], "autoDrink": True, "item": None,
+                   "litres": None, "fluid": None, "containers": len(self.fills) + len(self.f.get("carried") or ())}
+            for full, (fluid, lit) in list(self.fills.items()) + [(c, ("Water", 1.0)) for c in
+                                                                 self.f.get("carried") or ()]:
+                if (self.inv.get(full) or full in (self.f.get("carried") or ())) and lit > 0:
+                    out.update({"item": full, "litres": lit, "fluid": fluid})
+                    break
+            return out
         if cmd == "witness.chain":
             if a[1] == "isDead":
+                if self.f.get("no_isdead"):
+                    return {"ok": False, "failedAt": 1, "error": "no member isDead", "hops": 1}
                 return {"ok": True, "value": "true" if self.dead else "false", "hops": 1}
             return {"ok": True, "value": "pushups" if self.exe else "nil", "hops": 2}
         if cmd == "eat.action":
             if not self.inv.get(a[0]):
-                return {"queued": True, "spawned": "client"}
+                return {"queued": True, "fraction": 1, "spawned": "client", "itemId": 9, "itemBefore": {},
+                        "validStart": True, "maxTime": 160, "moodleFoodEaten": 0, "before": self.nut()}
             self.pending.append((self.t + 10.0, lambda full=a[0]: self.do_eat(full)))
-            return {"queued": True, "fraction": 1, "spawned": "found", "itemId": 5}
+            return {"queued": True, "fraction": 1, "spawned": "found", "itemId": 5, "itemBefore": {},
+                    "validStart": True, "maxTime": 160, "moodleFoodEaten": 0, "before": self.nut()}
         if cmd == "drink.action":
             self.pending.append((self.t + 4.0, lambda full=a[0]: self.do_drink(full)))
-            return {"queued": True, "percentage": 1, "spawned": "found", "itemId": 6}
+            return {"queued": True, "percentage": 1.0, "spawned": "found", "itemId": 6, "filledRatioBefore": 1.0,
+                    "before": self.nut()}
         if cmd == "exercise.do":
             self.exe = True
             self.pending.append((self.t + 80.0, self.set_done))
             return {"ok": True, "exercise": a[0], "minutes": int(a[1]), "queued": True, "queueLen": 1}
         if cmd == "action.cancel":
             self.exe = False
-            return {"ok": True}
+            return {"ok": True, "before": 1, "after": 0, "current": None, "started": True, "adding": False,
+                    "stopped": True, "javaBefore": 1, "javaAfter": 0, "cleared": True}
         return {"error": f"fake: unknown {cmd}"}
 
 
-def run_vanilla(key, flags=None, budget=1e9):
-    d = tempfile.mkdtemp()
-    w = Vanilla(d, flags, sleep_allowed=L.SESSIONS[key]["sleep"])
+def run_vanilla(key, flags=None, budget=1e9, world=None, anchor=None, speed=1, keep=False):
+    d = world.dir if world is not None else tempfile.mkdtemp()
+    w = world or Vanilla(d, flags, sleep_allowed=L.SESSIONS[key]["sleep"], speed=speed)
     out = fresh_out()
     xs = X.Xs(out, node=lambda side: side, clients={"admin": FakeClient("admin")}, ask=w.ask, budget_s=budget,
               clock=w.clock, sleep=w.sleep, spawn_wait_s=0.5)
     xs.server = FakeServer(w, d)
     S = L.Sess(xs, key, run_dir=d)
+    S.anchor = anchor
     try:
         S.body_run(S.phases())
         S.grade_all()
     finally:
-        shutil.rmtree(d, ignore_errors=True)
+        if not keep:
+            shutil.rmtree(d, ignore_errors=True)
     assert not out["phase_errors"], out["phase_errors"]
     return {k: v["verdict"] for k, v in out["verdicts"].items()}, out, w
+
+
+def run_v2(flags=None):
+    """x443a, then x443b on the same world with x443a's anchor (the reuse boot; the world does not move between)."""
+    d = tempfile.mkdtemp()
+    w = Vanilla(d, flags)
+    va, oa, _ = run_vanilla("V2a", world=w, keep=True)
+    vb, ob, _ = run_vanilla("V2b", world=w, anchor=oa["checks"]["X"]["anchor"])
+    return va, oa, vb, ob, w
 
 
 def whys(out):
     return {k: v.get("observed", {}).get("why") for k, v in out["verdicts"].items() if v["verdict"] != "as_predicted"}
 
 
-@pytest.mark.parametrize("key", ["V1a", "V1b", "V2", "V3", "V4"])
+@pytest.mark.parametrize("key", ["V1a", "V1b", "V3", "V4"])
 def test_vanilla_flow_as_predicted(key):
     v, out, w = run_vanilla(key)
     assert v and set(v.values()) == {"as_predicted"}, (v, whys(out))
     mi = out["model_inputs"]["scenario"]
     assert mi["start"]["hunger"] == pytest.approx(0.05, abs=0.01) and mi["events"]       # the read start, the events
+    assert out["model_inputs"]["a0"] >= DL4_START                                         # a realistic start age
     assert out["checks"]["restore"]["ok"] is True and w.speed == 1                       # the clock restored
     assert out["checks"]["R"]["pages"]
+    assert bool(out.get("unrun")) is (key == "V1b")                    # V1b's reads past the death are listed unrun
+    assert all(r["ok"] and r["unit"] == L.SPEED_UNIT for r in out["speeds"])
+    assert out["checks"]["S"]["probe"]["item"] is None
+
+
+def test_v2_split_on_one_world():
+    va, oa, vb, ob, w = run_v2()
+    assert set(va.values()) == {"as_predicted"} and set(vb.values()) == {"as_predicted"}, (whys(oa), whys(ob))
+    assert set(va) == {"V2a_hunger", "V2a_weight", "V2a_calories"}
+    anchor = oa["checks"]["X"]["anchor"]
+    assert ob["checks"]["X"]["anchor"] == anchor and anchor >= DL4_START
+    ea = [e for e in oa["eats"] if e["landed"]]
+    eb = [e for e in ob["eats"] if e["landed"]]
+    assert len(ea) == 4 and len(eb) == 3 and w.inv[L.TUNA] == 0
+    assert [round(e["landed_age"] - anchor) for e in ea + eb] == [0, 4, 8, 12, 24, 28, 32]
+    assert oa["checks"]["X"]["end_age"] == pytest.approx(anchor + 18.0)
+    assert ob["checks"]["X"]["end_age"] == pytest.approx(anchor + 36.0)
+    assert not any(s["step"].startswith("X_cal") for s in ob["steps"])                  # x443b writes no store
+    assert abs(oa["readings"]["weight_change"]["live"] - oa["readings"]["weight_change"]["model"]) < 0.02
+    assert not oa["checks"]["X"]["late_eats"]
 
 
 def test_v1a_reads_and_timer():
@@ -741,6 +934,14 @@ def test_v1a_reads_and_timer():
     assert len(tb) >= 8 and max(r["foodTimer"] for r in tb) > 2900          # 25 game minutes, one read a 10 s
     fz = out["verdicts"]["V1a_B_freeze"]["observed"]
     assert abs((fz["model_unfreeze_age"] - out["checks"]["B"]["eat"]["landed_age"]) * 60 - 17.33) < 0.1
+    assert out["verdicts"]["V1a_B_moodle"]["observed"]["n"] >= 8 and out["checks"]["B"]["slow_ok"] is True
+
+
+def test_a_moodle_name_off_moodletype_is_unmeasured(monkeypatch):
+    monkeypatch.setattr(L, "MOODLE_FOOD_EATEN", "FoodEaten")      # the registry id: moodle.level answers ok false
+    v, out, _w = run_vanilla("V1a")
+    assert v["V1a_B_moodle"] == "unmeasured"
+    assert out["reads"]["food_eaten"][0]["reason"] == "no MoodleType.FoodEaten"
 
 
 def test_v1b_dies_and_stops():
@@ -749,19 +950,26 @@ def test_v1b_dies_and_stops():
     assert abs(out["checks"]["X"]["death"]["age"] - out["checks"]["X"]["write"]["ages"][0] - 36.4) < 0.3
 
 
-def test_v2_eats_seven_and_restores():
-    v, out, w = run_vanilla("V2")
-    landed = [e for e in out["eats"] if e["landed"]]
-    assert len(landed) == 7 and w.inv[L.TUNA] == 0
-    rc = out["readings"]["weight_change"]
-    assert rc["model"] > 1.0 and abs(rc["live"] - rc["model"]) < 0.02
+def test_v1b_death_through_health_alone():
+    # review M-5: witness.chain cannot read isDead; the health-0 fallback still reads the death
+    v, out, w = run_vanilla("V1b", {"no_isdead": True})
+    assert v["V1b_death"] == "as_predicted" and out["checks"]["X"]["death"]["dead_raw"] is None
+
+
+def test_v1b_player_gone_at_death_is_unmeasured():
+    # review M-1: the player leaves the online list at health 0: both reads answer "no online player admin"
+    v, out, w = run_vanilla("V1b", {"leave_at_death": True})
+    assert v["V1b_death"] == "unmeasured"
+    assert out["verdicts"]["V1b_death"]["observed"]["why"] == "the player left the online list"
+    assert out["reads"]["health"][-1]["gone"] is True
 
 
 def test_an_eat_at_the_calorie_cap_still_lands():
-    v, out, w = run_vanilla("V2", {"no_cal": True})                        # the store never moves at the eat
-    assert len([e for e in out["eats"] if e["landed"]]) == 7
-    assert all(e["landed_by"] == ["hunger"] or "timer" in e["landed_by"] for e in out["eats"])
-    assert v["V2_calories"] == "falsified" and v["V2_hunger"] == "as_predicted"
+    va, oa, vb, ob, _w = run_v2({"no_cal": True})                         # the store never moves at the eat
+    eats = oa["eats"] + ob["eats"]
+    assert len([e for e in eats if e["landed"]]) == 7
+    assert all(e["landed_by"] == ["hunger"] or "timer" in e["landed_by"] for e in eats)
+    assert va["V2a_calories"] == "falsified" and va["V2a_hunger"] == "as_predicted"
 
 
 def test_v3_sets_and_band():
@@ -781,9 +989,6 @@ def test_v3_sets_and_band():
     ("V1b", "health_fast", ("V1b_health", "V1b_death")),
     ("V1b", "no_death", ("V1b_health", "V1b_death")),
     ("V1b", "weight_flat", ("V1b_weight",)),
-    ("V2", "hunger_fast", ("V2_hunger",)),
-    ("V2", "weight_flat", ("V2_weight",)),
-    ("V2", "burn_high", ("V2_calories",)),
     ("V3", "short_set", ("V3_A",)),
     ("V3", "factor_flat", ("V3_B", "V3_C")),
     ("V3", "grant_factor", ("V3_B_grant",)),
@@ -798,9 +1003,56 @@ def test_vanilla_defects(key, flag, names):
         assert v[n] == "falsified", (n, v, whys(out))
 
 
-def test_budget_stop_still_restores_and_reads():
-    v, out, w = run_vanilla("V2", budget=60.0)
-    assert out["budget_stop"]["phase"] == "X"
+@pytest.mark.parametrize("flag, names", [("hunger_fast", ("V2a_hunger", "V2b_hunger")),
+                                         ("weight_flat", ("V2a_weight", "V2b_weight")),
+                                         ("burn_high", ("V2a_calories", "V2b_calories"))])
+def test_v2_defects(flag, names):
+    va, oa, vb, ob, _w = run_v2({flag: True})
+    v = dict(va, **vb)
+    for n in names:
+        assert v[n] == "falsified", (n, v)
+
+
+def test_restore_returns_the_read_speed():
+    # review M-4: the world starts at speed 3; the restore puts 3 back, not 1
+    v, out, w = run_vanilla("V1a", speed=3)
+    assert out["checks"]["restore"]["restore_to"] == 3 and out["checks"]["restore"]["ok"] is True and w.speed == 3
+    assert set(v.values()) == {"as_predicted"}, whys(out)
+
+
+def test_a_clock_that_reads_off_is_recorded_and_gates_v1a_slow_window():
+    # review M-3 and M-4: trueMult answers off the settimespeed number: every speed row ok false, the restore not ok,
+    # V1a_B_timer unmeasured (its cadence assumes speed 1); the other grades run on world ages
+    v, out, w = run_vanilla("V1a", {"mult_lie": True})
+    assert out["checks"]["restore"]["ok"] is False and not any(r["ok"] for r in out["speeds"])
+    assert v["V1a_B_timer"] == "unmeasured" and v["V1a_B_freeze"] == "as_predicted"
+    assert any("trueMult" in n["note"] for n in out["notes"])
+
+
+def test_a_refused_fill_leaves_the_model():
+    # review M-2: a refused fill drops the drink from the model; V4's grades read unmeasured, never a pass or a fail
+    v, out, _w = run_vanilla("V4", {"fill_refused": True})
+    assert v["V4_A_coffee"] == "unmeasured" and v["V4_B_decay"] == "unmeasured" and v["V4_B_zero"] == "unmeasured"
+    assert not [e for e in out["model_inputs"]["scenario"]["events"] if e["kind"] == "drink"]
+    assert all(d["fill_ok"] is False for d in out["drinks"])
+
+
+def test_a_carried_container_is_noted():
+    v, out, _w = run_vanilla("V1a", {"carried": ["Base.WaterBottle"]})
+    assert out["checks"]["S"]["probe"]["item"] == "Base.WaterBottle"
+    assert any("carries a filled container" in n["note"] for n in out["notes"])
+
+
+def test_v4_zeroes_thirst_at_the_start():
+    v, out, _w = run_vanilla("V4")
+    assert out["checks"]["S"]["thirst"]["values"] == {"thirst": 0.0}
+
+
+def test_budget_stop_skips_the_later_scenario_phases():
+    # review M-12: after the budget stops arm A, arm B never writes; the restore and the ring read still run
+    v, out, w = run_vanilla("V1a", budget=30.0)
+    assert out["budget_stop"]["phase"] == "A" and out["skipped_phases"] == ["B"]
+    assert not any(s["step"].startswith("B_") for s in out["steps"])
     assert out["checks"]["restore"]["ok"] is True and w.speed == 1 and out["checks"]["R"]["pages"]
     assert "model_inputs" in out
 
@@ -820,16 +1072,19 @@ def test_spawned_client_stops_the_eats(tmp_path):
 # ---------------------------------------------------------------- the modded sessions against a fake bus
 class Modded:
     """A minimal modded world: the store's save, the intake and sip counters, the ring with the record paths, a
-    request-driven HUNGER, the drinks and the night's booked sleep. It runs the phases, not the mechanics."""
+    request-driven HUNGER, the drinks and the night's booked sleep, every reply in the harness's own shape. It runs
+    the phases, not the mechanics."""
 
-    def __init__(self, results_dir):
+    def __init__(self, results_dir, age=DL1_START, speed=1, flags=None):
+        self.f = flags or {}
         self.dir = results_dir
-        self.t, self.age, self.speed = 0.0, 2.0, 1
+        self.t, self.age, self.speed = 0.0, age, speed
         self.hunger, self.thirst = 0.1, 0.05
         self.eats = self.landed = self.sips = 0
         self.lw = 100.0
         self.ring, self.ring_on, self.s, self.paths = [], False, 0, []
         self.pending, self.inv, self.slept, self.hold = [], {}, 0.0, False
+        self.fills = {}
 
     def clock(self):
         return self.t
@@ -849,7 +1104,8 @@ class Modded:
             if self.ring_on:
                 for k in range(n0 + 1, math.floor(self.age * 60.0) + 1):
                     self.s += 1
-                    row = {"s": self.s, "age": k / 60.0, "on": True, "HUNGER": self.hunger, "THIRST": self.thirst,
+                    row = {"s": self.s, "ev": self.s, "age": k / 60.0, "dtM": 1.0, "hour": int(L.hour_of(k / 60.0)),
+                           "min": k % 60, "on": True, "HUNGER": self.hunger, "THIRST": self.thirst,
                            L.EATS_G: self.eats, L.LANDED_G: self.landed, L.SIPS_G: self.sips,
                            L.SLEPT: self.slept if self.hold else 0.0}
                     self.ring.append(row)
@@ -862,12 +1118,12 @@ class Modded:
         m = re.match(r'settimespeed (\d+)', cmd)
         if m:
             self.speed = int(m.group(1))
-            return True, "ok"
+            return True, "Time speed set to " + m.group(1)
         m = re.match(r'additem "admin" "([^"]+)" (\d+)', cmd)
         if m:
             self.inv[m.group(1)] = self.inv.get(m.group(1), 0) + int(m.group(2))
-            return True, "added"
-        return False, "?"
+            return True, "Item " + m.group(1) + " Added in admin's inventory."
+        return False, "Unknown command " + cmd
 
     def eat_done(self, full):
         self.inv[full] -= 1
@@ -877,6 +1133,7 @@ class Modded:
 
     def drink_done(self, full):
         self.inv[full] -= 1
+        self.fills[full] = (self.fills.get(full, ("Water", 0.0))[0], 0.0)
         self.sips += 2
 
     def ask(self, node, cmd, args="", timeout=20):
@@ -886,8 +1143,11 @@ class Modded:
         if cmd == "players":
             return ["admin"]
         if cmd == "time.snapshot":
-            return {"worldAge": self.age, "hour": int(L.hour_of(self.age)), "minutes": 0, "mult": 1.0,
+            return {"worldAge": self.age, "hour": int(L.hour_of(self.age)), "minutes": 0, "mult": self.speed * EFF,
                     "trueMult": float(self.speed), "wall": self.t}
+        if cmd == "time.multiplier":
+            self.speed = float(a[0])
+            return f"mult={float(self.speed)} eff={self.speed * EFF}"
         if cmd == "lua.read":
             v = {"NutritionRevamp.server.store.file.lastWrite.admin": self.lw,
                  "NutritionRevamp.server.intake.stats.eats": self.eats,
@@ -903,60 +1163,93 @@ class Modded:
         if cmd == "minute.ring":
             if a[1] == "start":
                 self.ring_on, self.paths = True, a[2:]
-                return {"ok": True, "side": "server", "user": "admin", "armed": True}
+                return ring_start_reply(self.paths)
             if a[1] == "read":
-                name = "minute-ring-admin-1"
-                with open(os.path.join(self.dir, name + ".json"), "w", encoding="utf-8") as fh:
+                with open(os.path.join(self.dir, "minute-ring-admin-1.json"), "w", encoding="utf-8") as fh:
                     json.dump({"rows_list": self.ring, "paths": self.paths}, fh)
-                return {"ok": True, "from": 1, "rows": len(self.ring), "next": None, "more": False, "errors": 0,
-                        "result": name}
-            return {"ok": True, "stopped": True}
+                return ring_read_reply(self, 1, self.ring, False)
+            return ring_stop_reply(self)
         if cmd == "stats.all":
-            return {"side": "server", "worldAge": self.age, "stats": {"HUNGER": self.hunger, "THIRST": self.thirst}}
+            return {"side": "server", "user": "admin", "worldAge": self.age, "mult": self.speed * EFF, "wall": self.t,
+                    "stats": {"Hunger": self.hunger, "Thirst": self.thirst, "Fatigue": 0.1, "Boredom": 0.0,
+                              "Unhappiness": 0.0, "NicotineWithdrawal": 0.0}, "missing": {}}
         if cmd == "nutrition.get":
-            return {"calories": 1000.0, "carbs": 100.0, "lipids": 40.0, "proteins": 60.0, "weight": 65.0}
+            return {"calories": 1000.0, "carbs": 100.0, "lipids": 40.0, "proteins": 60.0, "weight": 65.0,
+                    "hunger": self.hunger, "thirst": self.thirst, "statsApi": True, "incWeight": False,
+                    "incWeightLot": False, "decWeight": False}
         if cmd == "item.get":
             n = self.inv.get(a[1], 0)
-            return {"fullType": a[1], "id": 7 + n} if n else {"fullType": a[1]}
+            return item_state(a[1], n, self.age) if n else f"no item {a[1]} in admin's inventory"
         if cmd == "foodtimer.set":
             return {"requested": 0, "before": 0, "set": True, "after": 0}
         if cmd == "eat.action":
             self.pending.append((self.t + 5.0, lambda f=a[0]: self.eat_done(f)))
-            return {"queued": True, "fraction": 1, "spawned": "found", "itemId": 7}
+            return {"queued": True, "fraction": 1, "spawned": "found", "itemId": 7, "itemBefore": {},
+                    "validStart": True, "maxTime": 160, "moodleFoodEaten": 0, "before": {}}
         if cmd == "fluid.fill":
-            return {"ok": True, "litres": float(a[3]), "fluid": a[2]}
+            refused = bool(self.f.get("fill_refused"))
+            if not refused:
+                self.fills[a[1]] = (a[2], float(a[3]))
+            return {"ok": not refused, "side": "server", "fullType": a[1], "id": 3000, "spawned": False,
+                    "requested": float(a[3]), "litres": 0.0 if refused else float(a[3]),
+                    "fluid": None if refused else a[2], "capacity": 0.3}
         if cmd == "autodrink.probe":
-            return {"ok": True, "item": None, "litres": None, "containers": 0}
+            out = {"ok": True, "side": "server", "thirst": self.thirst, "autoDrink": True, "item": None,
+                   "litres": None, "fluid": None, "containers": len(self.fills)}
+            for full, (fluid, lit) in self.fills.items():
+                if self.inv.get(full) and lit > 0:
+                    out.update({"item": full, "litres": lit, "fluid": fluid})
+                    break
+            return out
         if cmd == "drink.action":
             self.pending.append((self.t + 3.0, lambda f=a[0]: self.drink_done(f)))
-            return {"queued": True, "percentage": 1, "spawned": "found", "itemId": 8}
+            return {"queued": True, "percentage": 1.0, "spawned": "found", "itemId": 8, "filledRatioBefore": 1.0,
+                    "before": {}}
         if cmd == "player.sleep.hold":
             self.hold = a[1] != "0"
             if not self.hold:
                 self.slept = 0.0
-            return {"user": "admin", "armed": self.hold}
+            return {"user": "admin", "seconds": float(a[1]), "before": False, "after": self.hold, "armed": self.hold,
+                    "deadlineWall": self.t + float(a[1])}
         if cmd == "player.sleep":
-            return {"requested": False, "after": False}
+            return {"requested": False, "before": False, "setAsleep": True, "after": False, "held": False}
         return {"error": f"fake: unknown {cmd}"}
 
 
-@pytest.mark.parametrize("key", ["M1", "M2"])
-def test_modded_flow_runs_its_phases(key, tmp_path):
+def run_modded(key, tmp_path, monkeypatch, age=DL1_START, speed=1, flags=None):
     d = str(tmp_path)
-    w = Modded(d)
+    w = Modded(d, age=age, speed=speed, flags=flags)
     out = fresh_out()
     xs = X.Xs(out, node=lambda side: side, clients={"admin": FakeClient("admin")}, ask=w.ask, budget_s=1e9,
               clock=w.clock, sleep=w.sleep, spawn_wait_s=0.5)
     xs.server = FakeServer(w, d)
     S = L.Sess(xs, key, run_dir=d)
+    seen = {}
+    real = L.replay_grade
+
+    def spy(ring_rows, events, start, sleep_allowed, tol, **kw):
+        seen["sleep_allowed"] = sleep_allowed
+        seen["events"] = events
+        return real(ring_rows, events, start, sleep_allowed, tol, **kw)
+    monkeypatch.setattr(L, "replay_grade", spy)
     S.body_run(S.phases())
     assert not out["phase_errors"], out["phase_errors"]
+    return S, out, w, seen, d
+
+
+@pytest.mark.parametrize("key, age", [("M1", DL1_START), ("M2", 3.3), ("M2", 5.5)])
+def test_modded_flow_runs_its_phases(key, age, tmp_path, monkeypatch):
+    S, out, w, seen, d = run_modded(key, tmp_path, monkeypatch, age=age, speed=3)
     assert os.path.isfile(os.path.join(d, "start.json")) and S.eats and all(e["landed"] for e in S.eats)
-    assert out["checks"]["restore"]["ok"] is True and w.speed == 1
-    assert len(out["checks"]["H"]["ring_paths"]) <= 32
+    assert out["checks"]["restore"]["ok"] is True and w.speed == 3                      # the read speed restored
+    assert len(out["checks"]["H"]["ring_paths"]) <= 32 and not out.get("unrun")
     if key == "M2":
-        assert len(S.drinks) == 7 and all(dr["fluid"] in ("Coffee", "Beer") for dr in S.drinks)
-        assert out["checks"]["X"]["nights"][0]["reached"] is True
+        assert [d_["fluid"] for d_ in S.drinks] == ["Coffee"] * 3 + ["Beer"] * 4                # three and four
+        assert all(d_["fill_ok"] for d_ in S.drinks)
+        n = out["checks"]["X"]["nights"][0]
+        assert n["reached"] is True and n["booked_h"] >= L.M2_NIGHT_H and "#2956" in n["note"]
+        plan = out["checks"]["X"]["plan"]
+        assert plan["coffees"][0] >= age and plan["ok"] and plan["end"] > plan["night"]
     S.grade_all()
     assert out["verdicts"]["H1"]["verdict"] == "as_predicted" and out["verdicts"]["RING"]["verdict"] == "as_predicted"
     # the HEAD replay ran over the fake's ring: the fake's HUNGER and THIRST are not the mod's, so they are falsified,
@@ -964,9 +1257,19 @@ def test_modded_flow_runs_its_phases(key, tmp_path):
     assert out["replay"]["rows"] > 100
     assert out["verdicts"][f"{key}_replay_HUNGER"]["verdict"] == "falsified"
     assert out["verdicts"][f"{key}_replay_body.energyState"]["verdict"] == "unmeasured"
+    assert seen["sleep_allowed"] is (key == "M2")                                       # review M-6
     assert out["model_inputs"]["sleep_allowed"] is (key == "M2")
     assert os.path.isfile(os.path.join(d, "events.json")) and os.path.isfile(os.path.join(d, "replay.json"))
     ev = json.load(open(os.path.join(d, "events.json"), encoding="utf-8"))
     assert [e["kind"] for e in ev].count("eat") == len(S.eats)
     if key == "M2":
         assert any(e["kind"] == "sleep" for e in ev) and "M2_hangover" in out["verdicts"]
+        assert [e["kind"] for e in ev].count("drink") >= 7
+
+
+def test_modded_refused_fill_leaves_the_replay(tmp_path, monkeypatch):
+    S, out, w, seen, d = run_modded("M2", tmp_path, monkeypatch, flags={"fill_refused": True})
+    assert S.drinks and not any(d_["fill_ok"] for d_ in S.drinks)
+    S.grade_all()
+    assert not [e for e in seen["events"] if e["kind"] == "drink"]
+    assert any("fill gate" in n["note"] for n in out["notes"])

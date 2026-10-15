@@ -13,14 +13,14 @@ THE SESSION (the source map's V1a, the review's I-3: the timer read by stats.get
   A  at speed 1: stats.set admin hunger 0.25 thirst 0; eat one can whole (HUNGER to 0.01: not at its minimum, so no
      timer fill, #3597); stats.get's foodTimer read; then 6 game hours at speed 30, the store hourly.
   B  at speed 1: stats.set admin hunger 0.10; eat the second can (HUNGER to 0: the timer filled); for 25 game minutes
-     at speed 1 every 10 s stats.get (foodTimer, standardFoodTime) beside moodle.level admin FoodEaten; then 2 game
+     at speed 1 every 10 s stats.get (foodTimer, standardFoodTime) beside moodle.level admin FOOD_EATEN; then 2 game
      hours at speed 30, the store hourly (the Nutrition fields through stats.get, atomic with its server age).
   C  the clock restored; R  the ring read and stopped.
 
 PREDICTIONS (vanilla_model.simulate from the run's own start; the numbers below from the model's defaults, L.prerun):
   arm A's eat leaves HUNGER at about 0.012 and the timer unfilled, HUNGER rising at once (about 0.196 after 6 h);
   arm B's eat fills the timer 3120 units (0.24 x 13000), held at 0 HUNGER for about 17.3 game minutes (3 units a
-  game-second at DayLength 4), the FoodEaten moodle stepping down at 3200/1600/0; THIRST linear at 8e-6 a game-second;
+  game-second at DayLength 4), the FOOD_EATEN moodle stepping down at 3200/1600/0; THIRST linear at 8e-6 a game-second;
   the calorie store falling 57.6 kcal a game hour at 80 kg plus each can's 540.
   Grades: V1a_A_hunger, V1a_A_timer, V1a_B_timer, V1a_B_moodle, V1a_B_freeze, V1a_B_hunger, V1a_thirst, V1a_calories.
 
@@ -49,7 +49,7 @@ PRED = {
     "V1a_A_hunger": "the ring's HUNGER after arm A's eat within 0.003 of the model (no freeze)",
     "V1a_A_timer": "foodTimer after arm A's eat the model's (unfilled) within 100 units",
     "V1a_B_timer": "every arm-B timer read the model's 3120 fill less 3 a game-second within 100 units",
-    "V1a_B_moodle": "every FoodEaten level read the model's (thresholds 0, 1600, 3200, 4800)",
+    "V1a_B_moodle": "every FOOD_EATEN level read the model's (thresholds 0, 1600, 3200, 4800)",
     "V1a_B_freeze": "HUNGER held at 0 and leaving it within 2 game minutes of the model's timer zero",
     "V1a_B_hunger": "the ring's HUNGER in arm B within 0.003 of the model",
     "V1a_thirst": "the ring's THIRST within 0.003 of the model",

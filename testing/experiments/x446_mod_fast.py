@@ -25,7 +25,8 @@ own clock from start.json, with the eat (the item pass's macros, the script's hu
 movement events, reproduces HUNGER within 0.002, body.energyState within 0.005 and THIRST within 0.002 (named before
 the run) on every graded row. Grades: M1_replay_HUNGER, M1_replay_body.energyState, M1_replay_THIRST, H1, RING, Z.
 
-WALL: about 7.5 min (boot about 80 s, the save wait up to 80 s, about 30 game hours at speed 5 about 4 min, teardown).
+WALL: about 7.5 min (boot about 80 s, the save wait up to 80 s, about 30 game hours at speed 5 about 4 min,
+teardown); BUDGET_S 480 keeps the whole call under about 9 min.
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
@@ -40,7 +41,7 @@ KEY = "M1"
 PROFILE = "x44-mod"
 PREFIX = "x446"
 ARTIFACT = "fast.json"
-BUDGET_S = 540.0
+BUDGET_S = 480.0
 _ME = os.path.basename(os.path.abspath(__file__))
 assert _ME.startswith(PREFIX + "_"), f"PREFIX {PREFIX} does not match the driver file {_ME}"
 SESSION = ("Plan 14 Task 5 M1: one can of bolognese at the first request, then a 24-hour fast, on the staged copy at "
