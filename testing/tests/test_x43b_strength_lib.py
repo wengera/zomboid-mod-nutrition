@@ -58,3 +58,19 @@ def test_x434_imports_the_copy():
     with open(os.path.join(T.REPO, "testing", "experiments", "x434_growth.py"), encoding="utf-8") as fh:
         text = fh.read()
     assert "import x43b_strength_lib as L" in text and 'PREFIX = "x434"' in text
+
+
+@pytest.mark.parametrize("muscle, weight", [(None, None), ("STRONG", None), ("STRONG", "OVERWEIGHT"),
+                                            (None, "OBESE"), ("WEAK", "OBESE")])
+def test_the_frozen_creation_fat_is_pinned_against_the_kernels(kern, muscle, weight):
+    # x434 ran on this copy (frozen, CLAUDE.md section 5): its expect_body carries the Task 9 fat table, unscaled, Obese
+    # 12.5; the kernel scales a fat or no weight pick by the start lean since Plan 13 Task 10b (Angus, 2026-10-15).
+    # The next lib copied from this one must carry the Task 10b rule; this pins the gap so the copy cannot miss it.
+    kept = [x.lower().replace("_", "") for x in (muscle, weight) if x]
+    e = LB.expect_body(kept, 0)
+    s = kern.K.body.create(muscle, weight, kern.K.strength.DEFAULTS, 1, 0)
+    w = weight.lower() if weight else None
+    assert LB.FAT_FMI == {None: 4.5, "overweight": 7.5, "obese": 12.5}
+    assert abs(e["fm"] - LB.FAT_FMI[w] * LB.H2) < 1e-12
+    fmi10b = {None: 4.5, "overweight": 7.5, "obese": 10.5}[w]
+    assert abs(float(s["fm"]) - fmi10b * LB.H2 * e["lm"] / (18.0 * LB.H2)) < 1e-9

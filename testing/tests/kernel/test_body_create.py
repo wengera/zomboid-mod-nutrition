@@ -3,7 +3,8 @@
 `K.body.create(muscle, weight, P, sexIdx)` against the strength-level reference (`strength_level.trait_start`,
 `perfect_run`) and spec section 3.2's kg columns at 1.70 m (2.89 m2), unrounded: the muscle starts through N0 and lean,
 the set point and the natural cap moved by the trait share, the cap clamped at the natural FFMI limit, the peak, the
-fat and thin weight picks by sex (the fat picks scaled by the start lean over the average's, Task 10b), the rungs, the anti-stacking exclusions over every legal pick set of the 8 body traits
+fat and thin weight picks by sex (the fat picks scaled by the start lean over the average's, Task 10b), the rungs,
+the anti-stacking exclusions over every legal pick set of the 8 body traits
 for both sexes, and `K.body.new` (renamed from `newLean` in Task 12) under ten years of perfect training.
 """
 import pytest

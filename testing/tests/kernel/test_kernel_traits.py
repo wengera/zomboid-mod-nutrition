@@ -360,3 +360,10 @@ def test_the_female_cuts_scale_the_same_way(host, lm):
         assert host.call("traits.axes", _b(host, x * r, lm, fatT=rung), 2) == want, (lm, x)
     # the same body on the male table reads one rung worse
     assert host.call("traits.axes", _b(host, 9.32 * r, lm), 1) == "obese"
+
+
+def test_the_fat_axis_scales_by_lm_not_lx(host):
+    # the labile lean lx is left out of the lean the fat cuts scale by (Task 10b: body.lm, not lx)
+    for fatT in (0, 1):
+        b = _b(host, 6.4 * H2, FAVG, fatT=fatT, lx=5.0)
+        assert host.call("traits.axes", b, 1) == "overweight", fatT

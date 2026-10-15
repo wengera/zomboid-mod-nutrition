@@ -3,9 +3,10 @@
 -- The fat axis reads the lean-scaled fat index (K.traits.fatIndex) against Kelly 2009's FMI cuts through the effective
 -- sex (K.body.effSex, NR.SexSpecific; ruling 13-17): each cut and its margin scale with the body's lean over the
 -- untrained average's (Task 10b, Angus 2026-10-15), so a muscular body carries more fat before a fat trait applies and
--- the male cuts sit at 25 % and 33.3 % body fat for every lean. The thinness axis reads the BMI (lm + fm) / H2 against WHO's thinness grades, the
--- labile lean lx left out (ruling 13-15). Each axis holds a rung and moves only past its cut by more than its margin,
--- several rungs in one read when the reading is past several; a thinness rung excludes the fat rungs (precedence).
+-- the male cuts sit at 25 % and 33.3 % body fat for every lean. The thinness axis reads the BMI (lm + fm) / H2 against
+-- WHO's thinness grades, the labile lean lx left out (ruling 13-15). Each axis holds a rung and moves only past its cut
+-- by more than its margin, several rungs in one read when the reading is past several; a thinness rung excludes the fat
+-- rungs (precedence).
 -- Pure: numbers and Lua tables in, numbers, strings and Lua tables out, no Java. Slow-clock code with no fast region.
 -- This file sorts after NR_Kernel.lua, and every K.HEIGHT_M reference is at call time.
 local K = NutritionRevamp.kernel
