@@ -4,7 +4,9 @@
 The model feeds the player guide's vanilla-versus-mod charts with the vanilla side's `vanilla-model` series.
 Each formula is a small named function carrying the register rows it rests on in `FORMULAS`, keyed by the
 source map's names (VM1 to VM16 and JT1, `docs/superpowers/research/2026-10-15-mod-guide/source-map.md` § 4).
-It is pure Python, deterministic, and runs no game: every rate is per game-second and is integrated over
+The build: the rows are 42.20.4 claims unless their bound records a 42.21 re-read (CLAUDE.md § 2); the Plan 14
+Task 2 review re-read VM1-VM8, VM11-VM13 and VM16 on the 42.21 jar (buildid 25485521, jar 4a0e9546ec) and they
+hold, and the JT1 and T2.3 reads were taken on 42.21. It is pure Python, deterministic, and runs no game: every rate is per game-second and is integrated over
 segments that end at each output step (`dt_min`), each event time and each activity boundary.
 
     simulate(scenario) -> {series name: [(game hour, value), ...]}
@@ -13,7 +15,8 @@ A scenario is
     {"hours": float, "dt_min": float,
      "start": {...state...}, "settings": {...}, "events": [{"t_h": float, "kind": ..., ...}, ...]}
 
-`start` keys (all optional): hunger, thirst, weight_kg (80), calories, carbs, lipids, proteins, health (100),
+`start` keys (all optional): hunger, thirst, weight_kg (80), calories (800, a fresh vanilla character's store:
+`Nutrition.<init>` @147-@150 L61, T2.3; a chart that starts from another store says so), carbs, lipids, proteins, health (100),
 food_timer, fatigue, intoxication, strength_level (5), strength_xp (that level's total), strength_up_timer
 (-50000), strength_mod (0).
 `settings` keys (all optional): stats_decrease (the sandbox enum 1-5, default 3), day_length_min (90, the
@@ -65,6 +68,8 @@ ROTTEN_HUNGER_DIV = 2.2              # #0032
 HUNGER_FLOOR = 0.01                  # #0030-#0032
 SCRIPT_SCALE = 100.0                 # #0011
 
+START_CALORIES = 800.0               # T2.3: Nutrition.<init> setCalories(800)
+START_WEIGHT = 80.0                  # T2.3: Nutrition.<init> setWeight(80)
 BURN_ASLEEP = 0.003                  # #0454 kcal a game-second at 80 kg
 BURN_IDLE = 0.016                    # #0455
 BURN_MOVING = 0.13                   # #0458
@@ -134,8 +139,10 @@ FORMULAS = {
                    "game-second, solved exactly over a segment; 0 while the food-eaten timer is above 0 and the "
                    "character is not exercising. hunger_rate_awake, hunger_step."},
     "VM2": {"claims": ["#0471", "#2774", "#2775", "#0472", "#2783", "#0498"],
-            "doc": "Hunger exercising (running while moving, or a swing): 1.92e-5 / 3 with the moodle down, 1.92e-5 "
-                   "with it up, with the appetite damping; asleep 1.0e-6 x (1 - H), 0 with the moodle up."},
+            "doc": "Hunger exercising (running while moving, or a swing; sprinting is a separate flag and is not "
+                   "counted): 1.92e-5 / 3 with the moodle down, 1.92e-5 with it up, with the appetite damping; asleep "
+                   "1.0e-6 x (1 - H), 0 with the moodle up. isRunning is false at endurance level 3 or above (#2775); "
+                   "endurance is not modelled, so a running segment counts as exercising throughout."},
     "VM3": {"claims": ["#0054", "#3597", "#0503", "#0530", "#0529", "#0511", "#0528"],
             "doc": "The food-eaten timer: after an eat, only when HUNGER is at its minimum 0, timer += "
                    "abs(hungerChange) x f x 13000, x2 cooked, capped at 11000; it decays day-length-minutes / 30 "
@@ -148,22 +155,24 @@ FORMULAS = {
     "VM5": {"claims": ["#0476", "#0477", "#0491", "#0496", "#2765", "#2766", "#2928", "#0508", "#0509"],
             "doc": "Thirst: dT/dt = 8.0e-6 x StatsDecrease x thirst trait awake, 1.0e-6 asleep, linear, clamped [0, 1]; "
                    "water -0.5 THIRST a litre; HUNGRY above 0.15/0.25/0.45/0.70 and THIRST above 0.12/0.25/0.70/0.84, "
-                   "strict. thirst_rate, moodle_level."},
+                   "strict. The thermoregulator fluids multiplier and the client-only running x1.2 are taken as 1. "
+                   "thirst_rate, moodle_level."},
     "VM6": {"claims": ["#0453", "#0454", "#0455", "#0456", "#0457", "#0458", "#0459", "#0460", "#0461", "#0187",
                        "#0462", "#2187", "#2720", "#0464"],
             "doc": "Calorie burn a game-second x (weight / 80): asleep 0.003 and idle 0.016, both x the action "
                    "modifier (Fitness 3, reading 0.5, building or swinging 8) x the thermoregulator energy "
                    "multiplier (>= 1, taken as 1); walking 0.13 x 0.6, running 0.13, sprinting 0.13 x 1.3, none of "
                    "which the modifier or the energy term reaches. burn_rate."},
-    "VM7": {"claims": ["#0036", "#0069", "#1193", "#0168", "#0022", "#0023"],
+    "VM7": {"claims": ["#0036", "#0069", "#1193", "#0168", "#0022", "#0023", "T2.3"],
             "doc": "The stores: calories and the macros += the item's unmodified values x f at the eat; carbohydrate, "
                    "lipid and protein drain 0.0035, 0.00113, 0.00086 a game-second; calories clamped [-2200, 3700], "
-                   "macros [-500, 1000]."},
+                   "macros [-500, 1000]; a fresh character starts at 800 kcal and 80 kg (T2.3)."},
     "VM8": {"claims": ["#0149", "#0151", "#0152", "#0153", "#0154", "#0161", "#0166",
                        "#0158", "#0159", "#0160", "#0164"],
             "doc": "Weight: above 1000 + (w - 80) x 40 kcal gain 1.3e-5 x min(1, cal / 4000) kg a game-second, x3 "
                    "with carbohydrate or lipid above 700 g, x2 above 400 g; below min(0, (w - 70) x 30) lose 8.5e-6 x "
-                   "min(1, |cal| / 2500). weight_rate."},
+                   "min(1, |cal| / 2500). The Weight Gain (700 below 90 kg) and Weight Loss (1800 above 70 kg) "
+                   "threshold bases are not modelled. weight_rate."},
     "VM9": {"claims": ["#0155", "#0531", "#3069", "#0533", "#0534"],
             "doc": "Weight bands, inclusive at both ends: Emaciated <= 50, Very Underweight (50, 65], Underweight "
                    "(65, 75], none (75, 85), Overweight [85, 100), Obese >= 100; creation weights Obese 105, "
@@ -178,9 +187,10 @@ FORMULAS = {
                     "store strictly between 50 and 300, x0.7 strictly below -300; x the sandbox multiplier; per-level "
                     "costs 1500 ... 150000 (37500 at level 5, 487500 at 10); nothing past level 10; dropped while "
                     "asleep. strength_xp_grant, protein_factor, total_xp_for_level, level_for_xp."},
-    "VM12": {"claims": ["#2151", "#2152", "#2154", "#2155", "#2156", "#2868"],
+    "VM12": {"claims": ["#2151", "#2152", "#2154", "#2155", "#2156", "#2868", "#2130", "#3836"],
              "doc": "Rust, each ten game minutes: the timer += 10; above 20000, entering a new 1200-unit bucket takes "
-                    "1 XP (while XP > 0) and the level drops only when XP falls below that level's total; the timer "
+                    "1 XP (while XP > 0) through addXp and so through AddXP (#2130, #3836): dropped asleep, x the "
+                    "protein factor (0.7 on an unfed store) and the sandbox multiplier; the level drops only when XP falls below that level's total; the timer "
                     "resets to 0 once above 31000; each positive Strength grant takes 3000 off it, floor -50000 "
                     "(the default). rust_tick."},
     "VM13": {"claims": ["#2104", "#2157", "T2.1", "T2.2"],
@@ -199,7 +209,8 @@ FORMULAS = {
     "VM16": {"claims": ["#2923", "#2926", "#2919", "#2922", "#2918", "#2950", "#2951"],
              "doc": "Intoxication: a drink adds 400 x alcohol x (1.1 above 0.8 HUNGER, 1.25 above 0.6 up to 0.8), Beer "
                     "0.05 alcohol a litre; it decays 0.0042 a multiplier unit, 0.504 x day-length minutes a game-hour "
-                    "(45.36 at DayLength 4), floor 0. intoxication_gain, intoxication_decay_per_hour."},
+                    "(45.36 at DayLength 4), floor 0; no upper clamp is modelled. intoxication_gain, "
+                    "intoxication_decay_per_hour."},
     "JT1": {"claims": ["T2.1", "T2.2"],
             "doc": "The muscle traits' Strength XPBoosts from the 42.21 trait script (Weak -5, Feeble -2, Stout +2, "
                    "Strong +4) and applyTraits' arithmetic (seed 5, add, clamp [0, 10]): vanilla start levels Weak 0, "
@@ -425,13 +436,17 @@ def pushup_set_xp(reps=REPS_PER_SET, xp_per_rep=XP_PER_REP):
     return reps * xp_per_rep
 
 
-def rust_tick(timer, mod, xp, level):
-    """VM12: one ten-minute pass of XpUpdate.everyTenMinutes on Strength; returns (timer, mod, xp, level)."""
+def rust_tick(timer, mod, xp, level, grant=None):
+    """VM12: one ten-minute pass of XpUpdate.everyTenMinutes on Strength; returns (timer, mod, xp, level).
+    The -1 goes through `addXp`, so through AddXP (#2130, #3836): `grant(xp, amount) -> (xp, made)` applies the
+    asleep drop, the protein factor and the sandbox multiplier; None is `strength_xp_grant` with no factor."""
+    if grant is None:
+        grant = strength_xp_grant
     timer += RUST_TICK
     if timer > RUST_START and mod != math.floor(timer / RUST_BUCKET):
         mod = math.floor(timer / RUST_BUCKET)
         if xp > 0:
-            xp = max(0.0, xp + RUST_XP)
+            xp = grant(xp, RUST_XP)[0]
         if 1 <= level <= 10 and xp < total_xp_for_level(level):
             level -= 1
     if timer > RUST_RESET:
@@ -504,7 +519,7 @@ def _activity(t, intervals):
         mode = e.get("mode", "pushups")
         if mode in MOVING_MODES:
             state = mode
-            exercising = exercising or mode in ("running", "sprinting")   # #2774: a player running while moving
+            exercising = exercising or mode == "running"   # #2774: a player running while moving
         elif mode == "swing":
             mod, exercising = SWING_MOD, True
         elif mode == "pushups":
@@ -530,8 +545,8 @@ def simulate(scenario):
     fixed_factor = cfg.get("protein_factor")
 
     s = {
-        "hunger": st.get("hunger", 0.0), "thirst": st.get("thirst", 0.0), "weight_kg": st.get("weight_kg", 80.0),
-        "calories_store": st.get("calories", 0.0), "carbs": st.get("carbs", 0.0), "lipids": st.get("lipids", 0.0),
+        "hunger": st.get("hunger", 0.0), "thirst": st.get("thirst", 0.0), "weight_kg": st.get("weight_kg", START_WEIGHT),
+        "calories_store": st.get("calories", START_CALORIES), "carbs": st.get("carbs", 0.0), "lipids": st.get("lipids", 0.0),
         "proteins": st.get("proteins", 0.0), "health": st.get("health", 100.0),
         "food_timer": st.get("food_timer", 0.0), "fatigue": st.get("fatigue", 0.0),
         "intoxication": st.get("intoxication", 0.0),
@@ -639,8 +654,10 @@ def simulate(scenario):
             s["health"] = max(0.0, s["health"] - health_loss_per_hour(hl0, tl0, dlm) * seconds / S_PER_H)
             t = c
         if c > 0 and abs(c / tick - round(c / tick)) < 1e-9:
+            asleep_now = _activity(c, intervals)[0]
             rust_timer, rust_mod, s["strength_xp"], s["strength_level"] = rust_tick(
-                rust_timer, rust_mod, s["strength_xp"], s["strength_level"])
+                rust_timer, rust_mod, s["strength_xp"], s["strength_level"],
+                lambda xp, amount: strength_xp_grant(xp, amount, s["proteins"], xp_mult, asleep_now, fixed_factor))
         while ev_i < len(events) and events[ev_i]["t_h"] * S_PER_H <= c + 1e-9:
             apply(events[ev_i], c)
             ev_i += 1

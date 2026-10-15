@@ -191,7 +191,7 @@ def test_vm4_clamp_0021():
 
 
 def test_vm4_fraction():
-    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.5},
+    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.5, "calories": 0.0},
                        "events": [{"t_h": 0, "kind": "eat", "hunger_change": -0.24, "fraction": 0.5,
                                    "calories": 540}]})
     assert _at(out, "hunger", 0.0) == pytest.approx(0.38)
@@ -252,7 +252,7 @@ def test_vm6_weight_scaling_0461(w, per_day):
 
 def test_vm6_fitness_modifier_2187():
     assert vm.burn_rate("idle", 80, vm.FITNESS_MOD) == pytest.approx(0.048)
-    out = vm.simulate({"hours": 1, "dt_min": 1,
+    out = vm.simulate({"hours": 1, "dt_min": 1, "start": {"calories": 0.0},
                        "events": [{"t_h": 0, "kind": "exercise", "mode": "pushups", "duration_min": 60}]})
     assert _at(out, "calories_store", 1.0) == pytest.approx(-0.048 * 3600, rel=1e-3)
 
@@ -283,7 +283,7 @@ def test_vm7_clamps_0022_0023():
 
 
 def test_vm7_rotten_keeps_calories_0036():
-    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.0},
+    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.0, "calories": 0.0},
                        "events": [{"t_h": 0, "kind": "eat", "hunger_change": -0.2, "state": "rotten",
                                    "calories": 532, "carbs": 99}]})
     assert _at(out, "calories_store", 0.0) == 532 and _at(out, "carbs", 0.0) == 99
@@ -472,8 +472,25 @@ def test_vm12_idle_year_from_a_level_total():
     assert drop / 24 == pytest.approx(48.6, abs=0.05)
     assert set(_series(out, "strength_level")) == {5, 4}
     # ten 1200-unit buckets (16 to 25) a cycle from 20 000 to the 31 000 reset: the first cycle ends at
-    # 56.26 days, fourteen more of 21.54 days fit by day 365, the fifteenth stops short of its 13.9-day lead
-    assert _at(out, "strength_xp", 365 * 24.0) == 37500 - 150
+    # 56.26 days, fourteen more of 21.54 days fit by day 365, the fifteenth stops short of its 13.9-day lead,
+    # so 150 steps; each -1 goes through AddXP (#2130, #3836), and unfed the protein store is below -300 from
+    # 300 / 0.00086 s = 4.04 days (#0069), so each step takes 0.7 (#2112)
+    assert _at(out, "strength_xp", 365 * 24.0) == pytest.approx(37500 - 150 * 0.7)
+
+
+def test_vm12_idle_year_pinned_factor_1():
+    out = vm.simulate({"hours": 365 * 24, "dt_min": 60, "settings": {"protein_factor": 1.0}, "events": []})
+    assert _at(out, "strength_xp", 365 * 24.0) == pytest.approx(37500 - 150)
+
+
+def test_vm12_rust_step_asleep_is_dropped_2161():
+    # the first rust step from -50 000 is tick 7 001 (#2155); asleep across it, AddXP drops the -1
+    t = 7001 * 10 / 60
+    awake = vm.simulate({"hours": t + 1, "dt_min": 60, "settings": {"protein_factor": 1.0}, "events": []})
+    asleep = vm.simulate({"hours": t + 1, "dt_min": 60, "settings": {"protein_factor": 1.0},
+                          "events": [{"t_h": t - 1, "kind": "sleep", "duration_h": 2}]})
+    assert _at(awake, "strength_xp", float(int(t + 1))) == 37499
+    assert _at(asleep, "strength_xp", float(int(t + 1))) == 37500
 
 
 # ---- VM13 and JT1: trait start levels -----------------------------------------------------------------------------------
@@ -548,7 +565,7 @@ def test_vm3_level_edges_0511():
 
 def test_vm6_swing_0460():
     # #0460: a swing sets the modifier to 8.0, 0.128 kcal a game-second idle; #2774 it counts as exercising
-    out = vm.simulate({"hours": 1, "dt_min": 1,
+    out = vm.simulate({"hours": 1, "dt_min": 1, "start": {"calories": 0.0},
                        "events": [{"t_h": 0, "kind": "exercise", "mode": "swing", "duration_min": 60}]})
     assert -_at(out, "calories_store", 1.0) == pytest.approx(0.128 * 3600, rel=1e-4)   # the weight falls a little
     assert _at(out, "hunger", 1.0) == pytest.approx(1 - vm.math.exp(-6.4e-6 * 3600), rel=1e-9)
@@ -568,3 +585,60 @@ def test_vm11_protein_edges_2112():
 def test_vm16_hunger_edges_2923():
     assert [vm.intoxication_gain(0.05, h) for h in (0.58, 0.62, 0.75, 0.79, 0.82)] == \
         pytest.approx([20, 25, 25, 25, 22])
+
+
+# ---- fix round 1: the review's M-1 cases ----------------------------------------------------------------------------
+def test_m1_capped_set_leaves_the_rust_timer_and_rust_dips_to_9():
+    # a set at the cap makes no change (#2109), so no positive AddXP and no -3000 (#2156): the timer runs on
+    # from -50 000 and the first rust step (tick 7 001, #2155) takes the cap to 487 499, level 9
+    t = 7001 * 10 / 60
+    out = vm.simulate({"hours": t + 1, "dt_min": 60, "start": {"strength_level": 10},
+                       "settings": {"protein_factor": 1.0},
+                       "events": [{"t_h": 1, "kind": "exercise", "mode": "pushups"}]})
+    assert _at(out, "strength_xp", 2.0) == 487500
+    end = float(int(t + 1))
+    assert _at(out, "strength_xp", end) == 487499 and _at(out, "strength_level", end) == 9
+
+
+def test_m1_cooked_eat_fills_double_0054():
+    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.1},
+                       "events": [{"t_h": 0, "kind": "eat", "hunger_script": -24, "state": "cooked"}]})
+    assert _at(out, "food_timer", 0.0) == pytest.approx(0.312 * 13000 * 2)
+
+
+def test_m1_beer_reads_live_hunger_2923():
+    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"hunger": 0.7},
+                       "events": [{"t_h": 0, "kind": "drink", "fluid": "beer", "litres": 0.3}]})
+    assert _at(out, "intoxication", 0.0) == pytest.approx(7.5)
+
+
+def test_m1_eat_thirst_scales_with_fraction():
+    out = vm.simulate({"hours": 0, "dt_min": 1, "start": {"thirst": 0.5},
+                       "events": [{"t_h": 0, "kind": "eat", "hunger_change": 0, "thirst_change": -0.1,
+                                   "fraction": 0.5}]})
+    assert _at(out, "thirst", 0.0) == pytest.approx(0.45)
+
+
+def test_m1_asleep_burn_takes_the_modifier_0454():
+    assert vm.burn_rate("asleep", 80, 8) * DAY == pytest.approx(2073.6)
+
+
+def test_m1_timer_gate_is_hunger_at_zero_3597():
+    assert vm.food_timer_fill(0.0, 0.0005, -0.24) == 0.0
+
+
+def test_m1_first_rust_tick_hour_2155():
+    # tick 7 001 from -50 000 is the first timer above 20 000: hour 7001 x 10 / 60 = 1166.83
+    out = vm.simulate({"hours": 1168, "dt_min": 10, "settings": {"protein_factor": 1.0}, "events": []})
+    assert _first_hour(out, "strength_xp", lambda v: v < 37500) == pytest.approx(7001 * 10 / 60, abs=1e-6)
+
+
+def test_m2_sprinting_is_not_exercising_for_hunger_2774():
+    out = vm.simulate({"hours": 1, "dt_min": 1,
+                       "events": [{"t_h": 0, "kind": "exercise", "mode": "sprinting", "duration_min": 60}]})
+    assert _at(out, "hunger", 1.0) == pytest.approx(1 - vm.math.exp(-9.6e-6 * 3600), rel=1e-9)
+
+
+def test_m3_fresh_store_t2_3():
+    out = vm.simulate({"hours": 0, "dt_min": 1, "events": []})
+    assert _at(out, "calories_store", 0.0) == 800.0 and _at(out, "weight_kg", 0.0) == 80.0
