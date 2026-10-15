@@ -1,0 +1,465 @@
+{
+ "charts": {
+  "H1": {
+   "section": "At a glance",
+   "series": [
+    "H1-v-model",
+    "H1-v-live",
+    "H1-m-kernel"
+   ],
+   "title": "Hunger after one meal",
+   "x": "game hours since the meal, 0–6",
+   "y": "hunger, 0–1"
+  },
+  "H2": {
+   "section": "At a glance",
+   "series": [
+    "H2-v-model",
+    "H2-v-live",
+    "H2-m-fat",
+    "H2-m-lean",
+    "H2-m-total"
+   ],
+   "title": "Body mass on 1500 kcal a day",
+   "x": "game days, 0–30",
+   "y": "kg (or change from start)"
+  },
+  "H3": {
+   "section": "At a glance",
+   "series": [
+    "H3-v-model-x1",
+    "H3-v-model-x15",
+    "H3-m-level",
+    "H3-m-written"
+   ],
+   "title": "Strength over a year of training",
+   "x": "game days, 0–365",
+   "y": "Strength level, 0–10"
+  },
+  "H4": {
+   "section": "At a glance",
+   "series": [
+    "H4-v-kcal",
+    "H4-v-carb",
+    "H4-v-fat",
+    "H4-v-pro",
+    "H4-m-kcal",
+    "H4-m-carb",
+    "H4-m-fat",
+    "H4-m-pro"
+   ],
+   "title": "Five common foods, vanilla against the mod",
+   "x": "food (Apple, Bread, Bolognese, Burger, Tuna)",
+   "y": "kcal and grams per item"
+  },
+  "S1a": {
+   "section": "S1 Your first day",
+   "series": [
+    "S1a-v-model",
+    "S1a-v-live",
+    "S1a-m-kernel"
+   ],
+   "title": "Hunger through a first day of four meals",
+   "x": "game hours from 07:00, 0–24",
+   "y": "hunger"
+  },
+  "S1b": {
+   "section": "S1",
+   "series": [
+    "S1b-v-model",
+    "S1b-v-live",
+    "S1b-m-kernel",
+    "S1b-m-live"
+   ],
+   "title": "When the hunger moodles arrive without food",
+   "x": "game hours from a fresh start, 0–36",
+   "y": "moodle level, 0–4"
+  },
+  "S1c": {
+   "section": "S1",
+   "series": [
+    "S1c-v-model",
+    "S1c-v-live",
+    "S1c-m-kernel",
+    "S1c-m-live"
+   ],
+   "title": "Thirst without a drink",
+   "x": "game hours, 0–24",
+   "y": "thirst, 0–1"
+  },
+  "S2a": {
+   "section": "S2 Skipping meals",
+   "series": [
+    "S2a-v-model",
+    "S2a-v-live",
+    "S2a-m-kernel",
+    "S2a-m-live"
+   ],
+   "title": "Hunger through a 36-hour fast and the refeed",
+   "x": "game hours from the last meal, −12–60",
+   "y": "hunger"
+  },
+  "S2b": {
+   "section": "S2",
+   "series": [
+    "S2b-m-kernel",
+    "S2b-m-live",
+    "S2b-study-1613",
+    "S2b-study-1614"
+   ],
+   "title": "Eating after the fast",
+   "x": "day after the fast (day 2, day 3)",
+   "y": "intake ÷ the fed arm's"
+  },
+  "S2c": {
+   "section": "S2",
+   "series": [
+    "S2c-v-model",
+    "S2c-m-kernel",
+    "S2c-study"
+   ],
+   "title": "Hunger as fat is lost",
+   "x": "kg of fat lost",
+   "y": "extra kcal a day eaten at the request"
+  },
+  "S2d": {
+   "section": "S2",
+   "series": [
+    "S2d-v-model-health",
+    "S2d-v-live-health",
+    "S2d-v-model-weight",
+    "S2d-v-live-weight",
+    "S2d-m-mass",
+    "S2d-m-drain"
+   ],
+   "title": "A long fast with water",
+   "x": "game days, 0–90",
+   "y": "health, kg"
+  },
+  "S3a": {
+   "section": "S3 Living on one food",
+   "series": [
+    "S3a-m-pool",
+    "S3a-m-grade",
+    "S3a-study-0224",
+    "S3a-study-0225"
+   ],
+   "title": "Vitamin C on tinned tuna alone",
+   "x": "game days, 0–60",
+   "y": "vitamin C store (0–1) and grade"
+  },
+  "S3b": {
+   "section": "S3",
+   "series": [
+    "S3b-m-live-U",
+    "S3b-m-live-B",
+    "S3b-m-kernel-U",
+    "S3b-v-live-U",
+    "S3b-v-live-B"
+   ],
+   "title": "Mood on one food",
+   "x": "game days, 0–7",
+   "y": "unhappiness, boredom (0–100)"
+  },
+  "S3c": {
+   "section": "S3",
+   "series": [
+    "S3c-m-pool",
+    "S3c-study"
+   ],
+   "title": "What fixes it: an orange a day",
+   "x": "game days, 40–80",
+   "y": "vitamin C store"
+  },
+  "S4a": {
+   "section": "S4 A year at the gym",
+   "series": [
+    "S4a-m-perfect",
+    "S4a-m-lowprotein",
+    "S4a-m-deficit",
+    "S4a-v-model-x1",
+    "S4a-v-model-x07"
+   ],
+   "title": "Strength by diet",
+   "x": "game days, 0–365",
+   "y": "Strength level"
+  },
+  "S4b": {
+   "section": "S4",
+   "series": [
+    "S4b-m-level",
+    "S4b-m-cap",
+    "S4b-v-model",
+    "S4b-study"
+   ],
+   "title": "Ten years toward the natural cap",
+   "x": "game years, 0–10",
+   "y": "Strength level"
+  },
+  "S4c": {
+   "section": "S4",
+   "series": [
+    "S4c-m-kernel",
+    "S4c-v-model",
+    "S4c-study-0618",
+    "S4c-study-0078"
+   ],
+   "title": "Stopping and starting again",
+   "x": "game days, 0–910",
+   "y": "Strength level"
+  },
+  "S5a": {
+   "section": "S5 Choosing your body",
+   "series": [
+    "S5a-m-live-lean",
+    "S5a-m-live-fat",
+    "S5a-m-live-weight",
+    "S5a-m-live-level",
+    "S5a-v-model-weight",
+    "S5a-v-model-level"
+   ],
+   "title": "The starting body of each pick",
+   "x": "pick (none, Strong+Obese, Weak+Overweight, Overly Lean, Weak+Gaunt, Feeble+Overly Lean)",
+   "y": "kg; Strength level"
+  },
+  "S5b": {
+   "section": "S5",
+   "series": [
+    "S5b-m-strong-level",
+    "S5b-m-weak-level",
+    "S5b-m-none-level",
+    "S5b-m-gaunt-weight",
+    "S5b-m-overfat-weight",
+    "S5b-m-none-weight",
+    "S5b-v-model-level"
+   ],
+   "title": "How each body drifts, untrained",
+   "x": "game days, 0–90",
+   "y": "Strength level; kg"
+  },
+  "S5c": {
+   "section": "S5",
+   "series": [
+    "S5c-m-gaunt",
+    "S5c-m-none",
+    "S5c-m-live",
+    "S5c-v-model"
+   ],
+   "title": "A thin start is hungry",
+   "x": "game days, 0–30",
+   "y": "energy state (hunger drive)"
+  },
+  "S6a": {
+   "section": "S6 Coffee, beer, no sleep",
+   "series": [
+    "S6a-m-day1",
+    "S6a-m-day14",
+    "S6a-v-model"
+   ],
+   "title": "Caffeine and tolerance",
+   "x": "game hours over day 1 and day 14",
+   "y": "caffeine in the body (mg); fatigue"
+  },
+  "S6b": {
+   "section": "S6",
+   "series": [
+    "S6b-v-model",
+    "S6b-v-live",
+    "S6b-m-bac",
+    "S6b-m-intox",
+    "S6b-m-hangover"
+   ],
+   "title": "Four beers",
+   "x": "game hours, 0–24",
+   "y": "intoxication (0–100); blood alcohol %"
+  },
+  "S6c": {
+   "section": "S6",
+   "series": [
+    "S6c-m-kernel",
+    "S6c-m-live",
+    "S6c-v-model",
+    "S6c-study"
+   ],
+   "title": "A short night and the next day's hunger",
+   "x": "game days, 0–4",
+   "y": "sleep debt (h); hunger factor"
+  },
+  "SB1": {
+   "section": "The body",
+   "series": [
+    "SB1-m-def-rest",
+    "SB1-m-def-train",
+    "SB1-m-sur-rest",
+    "SB1-m-sur-train"
+   ],
+   "title": "Lean mass at a deficit and a surplus, trained or not",
+   "x": "game days, 0–60",
+   "y": "lean kg"
+  },
+  "SB2": {
+   "section": "The body",
+   "series": [
+    "SB2-v-model",
+    "SB2-m-kernel"
+   ],
+   "title": "Which weight trait a body gets",
+   "x": "example body (lean 90 kg, average, soft 85 kg)",
+   "y": "trait band"
+  },
+  "SC1": {
+   "section": "Caffeine, alcohol and sleep",
+   "series": [
+    "SC1-m-live-booked",
+    "SC1-m-live-debt",
+    "SC1-m-kernel"
+   ],
+   "title": "Short nights build a sleep debt",
+   "x": "night",
+   "y": "hours slept; debt (h)"
+  },
+  "SD1": {
+   "section": "Deficiency and excess",
+   "series": [
+    "SD1-m-live",
+    "SD1-m-kernel"
+   ],
+   "title": "Clinical scurvy and health",
+   "x": "game days",
+   "y": "health"
+  },
+  "SD2": {
+   "section": "Deficiency and excess",
+   "series": [
+    "SD2-m-marginal",
+    "SD2-m-clinical",
+    "SD2-study"
+   ],
+   "title": "How long each nutrient lasts with none eaten",
+   "x": "nutrient",
+   "y": "days to Marginal, days to Clinical"
+  },
+  "SE1": {
+   "section": "Eating and the stomach",
+   "series": [
+    "SE1-m-live-liquid",
+    "SE1-m-live-fill",
+    "SE1-m-kernel-fill"
+   ],
+   "title": "A drink and a meal in the stomach",
+   "x": "game minutes",
+   "y": "grams; fill (0–1)"
+  },
+  "SH1": {
+   "section": "Hunger",
+   "series": [
+    "SH1-m-kernel",
+    "SH1-m-live",
+    "SH1-study-1247",
+    "SH1-study-1248"
+   ],
+   "title": "How long a meal holds hunger off",
+   "x": "meal kcal",
+   "y": "minutes to the hunger request"
+  },
+  "SH2": {
+   "section": "Hunger",
+   "series": [
+    "SH2-m-kernel",
+    "SH2-m-live",
+    "SH2-study"
+   ],
+   "title": "Three meals against six",
+   "x": "arm",
+   "y": "mean hunger over 24 h (ratio)"
+  },
+  "SM1": {
+   "section": "Monotony",
+   "series": [
+    "SM1-m-live",
+    "SM1-m-kernel"
+   ],
+   "title": "Varying the diet lifts the mood",
+   "x": "game hours after the last repeat",
+   "y": "unhappiness"
+  },
+  "SN1": {
+   "section": "Nutrients and foods",
+   "series": [
+    "SN1-m-vitC",
+    "SN1-m-fibre",
+    "SN1-m-iron",
+    "SN1-m-sodium"
+   ],
+   "title": "What the five foods carry",
+   "x": "food",
+   "y": "mg or g per item"
+  },
+  "SS1": {
+   "section": "Strength",
+   "series": [
+    "SS1-m-kernel",
+    "SS1-v-model"
+   ],
+   "title": "A year's Strength by weekly sets",
+   "x": "hard sets a week, 0–20",
+   "y": "Strength level after a year"
+  },
+  "ST1": {
+   "section": "Thirst and salt",
+   "series": [
+    "ST1-v-model",
+    "ST1-m-kernel",
+    "ST1-m-live"
+   ],
+   "title": "Ten hours at rest without a drink",
+   "x": "game hours, 0–10",
+   "y": "thirst"
+  },
+  "ST2": {
+   "section": "Thirst and salt",
+   "series": [
+    "ST2-m-live-na",
+    "ST2-m-live-plasma",
+    "ST2-m-kernel"
+   ],
+   "title": "Five days without salt",
+   "x": "game days, 0–5",
+   "y": "body sodium change (mmol/24 h); plasma sodium"
+  },
+  "SV1": {
+   "section": "What you see on screen",
+   "series": [
+    "SV1-m-kernel",
+    "SV1-m-live"
+   ],
+   "title": "The Overfull moodle",
+   "x": "grams in the stomach",
+   "y": "moodle level, 0–4"
+  },
+  "SX1": {
+   "section": "Exercise and energy",
+   "series": [
+    "SX1-v-model",
+    "SX1-m-kernel",
+    "SX1-m-live"
+   ],
+   "title": "Energy per hour by activity",
+   "x": "activity",
+   "y": "kcal per game hour at 80 kg"
+  },
+  "SX2": {
+   "section": "Exercise and energy",
+   "series": [
+    "SX2-v-model",
+    "SX2-m-live",
+    "SX2-m-kernel"
+   ],
+   "title": "Hunger after hard exercise",
+   "x": "game minutes after the set",
+   "y": "hunger"
+  }
+ },
+ "series": [],
+ "validation": []
+}
