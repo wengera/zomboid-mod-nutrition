@@ -37,9 +37,50 @@ Every option sits on the sandbox page `Nutrition Revamp` under the prefix `NR`.
 | `NR.Severity` | 1.0 (0 to 3) | Scales every penalty a deficiency or an excess brings. 0 removes them all except the health drains, which `NR.DeficienciesCanKill` controls. Short Sighted needs 1.0 or more. |
 | `NR.VisibilityMode` | 2 (Bands) | How much each player's interface shows: 1 Symptoms, 2 Bands, 3 Numbers. A character with the Nutritionist trait sees Numbers whatever the option. |
 | `NR.RecordKeepDays` | 30 (0 to 3650) | A player's nutrition record is dropped after this many real days without the player online; a returning player then starts a fresh record from the character as it stands (see the lost-record limitation under Body, energy and exercise). 0 keeps every record. Counted in real time, because game days pass at each server's own speed. Time the server is down counts too. |
-| `NR.SexSpecific` | false | Off, every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, alcohol, iron, calcium); on, a female character uses the female values. |
+| `NR.SexSpecific` | false | Off, every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, the thin-trait edges, the starting fat, alcohol, iron, calcium); on, a female character uses the female values. |
 
 The server re-reads the options every in-game minute, so a change made while the server runs takes effect without a restart, except `NR.Mode`, which is read at start.
+
+### Strength options
+
+Every Strength option is read through one clamp: a number outside its range takes the nearest bound, except the two whole-day options, which read their default.
+
+| option | default (range) | what it does |
+|---|---|---|
+| `NR.StrengthTimeScale` | 1.0 (0.25 to 30) | The biology clock: 1.0 is one biological day per game day. It multiplies the daily growth, detraining, regain and peak-memory rates and shortens the grace days by the same factor; weekly sets still count over 7 game days. |
+| `NR.StrengthXPPerSet` | 360 (50 to 2000) | How much vanilla Strength experience counts as one hard set (360 is one push-up set to exhaustion, measured). |
+| `NR.StrengthIncidentalWeight` | 0.35 (0 to 1) | The weight on Strength XP earned outside a Fitness exercise (carrying, chopping, combat), relative to the same XP from training. |
+| `NR.StrengthCapLevel` | 16.5 (12 to 20) | The untrained natural muscle cap, in bio levels (one bio level is 0.5 kg/m2 of lean mass; level 5 is the untrained average). Caps above about 17.7 are held at the natural muscle limit. |
+| `NR.StrengthTraitShare` | 0.5 (0 to 1) | The share of a muscle trait's starting lean-mass difference that moves the set point and the cap, as a fraction. |
+| `NR.StrengthYearsToLevel10` | 4 (1 to 10) | How many years of perfect training at a biology clock of 1.0 take the untrained average character to Strength 10, in years. |
+| `NR.StrengthNeuralMax` | 1.1 (1.0 to 1.15) | The most that trained neural drive multiplies strength, as a factor (1.0 is none). |
+| `NR.StrengthNeuralRiseWeeks` | 3 (1 to 8) | The time constant of the neural factor's rise under training, in weeks. |
+| `NR.StrengthNeuralDecayWeeks` | 12 (4 to 26) | The time constant of the neural factor's decay once training has lapsed past its grace days, in weeks. |
+| `NR.StrengthNeuralGraceDays` | 21 (0 to 60) | How many days below the maintenance dose pass before the neural factor starts to decay, in days. |
+| `NR.StrengthNeuralSaturationSets` | 5 (1 to 12) | The weekly hard sets at which the neural factor rises at its full rate, in sets a week. |
+| `NR.StrengthRate` | 1.0 (0.25 to 4) | A multiplier on the fitted muscle growth rate: 2 builds twice as fast, 0.5 half as fast. |
+| `NR.StrengthThreshold` | 0.5 (0.25 to 1.0) | The weekly hard sets a novice needs before muscle grows, in sets a week; the threshold rises with training status. A combination that makes the threshold exceed the set cap falls back to the defaults at load. |
+| `NR.StrengthThresholdRise` | 3 (0 to 4) | How steeply the growth threshold rises with training status, as an exponent (0 is flat). A combination that makes the threshold exceed the set cap falls back to the defaults at load. |
+| `NR.StrengthTrainedSetCap` | 12 (8 to 30) | The most weekly hard sets that count toward growth in a body at its cap, in sets a week. A combination that makes the threshold exceed the set cap falls back to the defaults at load. |
+| `NR.StrengthProteinFull` | 1.6 (1.0 to 3.0) | The protein intake at which growth is not held back by protein, in grams per kilogram a day; the lower protein steps scale with it. |
+| `NR.StrengthDeficitZero` | -650 (-2000 to -200) | The daily energy deficit at which a novice's muscle growth stops, in kcal a day (negative). |
+| `NR.StrengthDeficitZeroStatusDrop` | 0.5 (0 to 0.9) | How far that deficit limit shrinks toward zero for a body at its cap, as a fraction of the limit. |
+| `NR.StrengthNoviceDeficitDepth` | 6 (0 to 10) | How much further a high-protein novice can grow into a deficit, as a multiple of the deficit limit. |
+| `NR.StrengthBalanceGate` | 1.0 (0.5 to 1.0) | The share of full growth available at energy balance for a novice, as a fraction (1.0 is all). |
+| `NR.StrengthBalanceGateStatusDrop` | 0.5 (0 to 0.7) | How far that share drops for a body at its cap, as a fraction of the share. |
+| `NR.StrengthSurplusFull` | 0.1 (0.02 to 0.30) | The energy surplus at which growth is not held back by energy, as a fraction of daily energy expenditure. |
+| `NR.StrengthSurplusFullStatusDrop` | 0.5 (0 to 0.9) | How far that surplus requirement shrinks for a body at its cap, as a fraction of the surplus. |
+| `NR.StrengthTrainedNeedsSurplus` | 0 (0 to 1) | How strongly a body at its cap needs an energy surplus to grow: the option scales the growth available at energy balance by (1 − value × status), so at 1 a body at its cap grows nothing at balance. As a fraction. |
+| `NR.LeanLossTrainingProtect` | 0.35 (0 to 0.9) | The share of a deficit's lean-mass loss that training prevents, as a fraction. |
+| `NR.LeanLossProteinProtect` | 0.6 (0 to 0.9) | The share of a deficit's lean-mass loss that enough protein prevents, as a fraction. |
+| `NR.LeanLossProtectFloor` | 0.1 (0 to 0.5) | The share of a deficit's lean-mass loss that no protection prevents, as a fraction of the loss. |
+| `NR.LeanLossProteinFull` | 1.6 (1.2 to 3.0) | The protein intake at which the protein protection of lean mass in a deficit is complete, in grams per kilogram a day. |
+| `NR.StrengthMaintainShare` | 0.333 (0.1 to 1.0) | The share of the growth threshold (for muscle) and of the neural saturation sets (for the neural factor) that holds strength without growth; weeks below it count toward detraining. As a fraction. |
+| `NR.StrengthGraceDays` | 14 (0 to 60) | How many days of missed training pass before muscle begins to detrain, in days. |
+| `NR.StrengthDetrainHalfLifeWeeks` | 6 (2 to 26) | The half-life of muscle lost to detraining once the grace days have passed, in weeks. |
+| `NR.StrengthDetrainStatusSlowing` | 2 (0 to 4) | How much a trained body's detraining slows with status, as a multiplier on the half-life per unit of status (0 is none). |
+| `NR.StrengthRegainHalfLifeWeeks` | 6 (1 to 26) | The half-life of regaining muscle lost below its held peak, in weeks. |
+| `NR.StrengthPeakHalfLifeYears` | 2 (0.25 to 20) | The half-life of the body's memory of its peak muscle, in years. |
 
 ## Managed and Overlay
 
@@ -66,7 +107,7 @@ Each player's record is kept in files under the server's cache directory, in the
 
 - **The panel.** The `;` key opens a movable, collapsible panel; players can rebind the key on the mod's options page. The rows depend on `NR.VisibilityMode`:
   - **Symptoms:** six words for energy, hydration, deficiency, excess, stimulant and sleep.
-  - **Bands:** also the body-fat band (Emaciated, Gaunt, Overly lean, Normal, Overfat or Obese), the weight, a **Body fat** word (Very lean, Lean, Healthy, High or Very high, with cut points by sex; a shown word holds until the fat share leaves its band by half a percentage point), the energy state, hydration, and a grade for each tracked nutrient (Replete, Marginal, Depleted or Clinical).
+  - **Bands:** also the body-fat band (Emaciated, Gaunt, Overly lean, Normal, Overfat or Obese), the weight, a **Body fat** word (Very lean, Lean, Healthy, High or Very high, with cut points by sex; a shown word holds until the fat share leaves its band by half a percentage point), the energy state, the **Strength** level to one decimal (the body's true level; the Strength perk follows it with a quarter-level hold, see Strength), hydration, and a grade for each tracked nutrient (Replete, Marginal, Depleted or Clinical).
   - **Numbers:** also fat and lean mass, each nutrient's store and excess level, caffeine in the body, blood alcohol and sleep debt.
 - **The character tab.** A Nutrition tab in the character info window shows the same rows.
 - **The food tooltip.** A band below each food's tooltip says where its values come from. At Bands it lists the four macros and the nutrients the item is rich or low in; at Numbers it lists every nutrient. The band shows the values of a whole item. A player can turn the band off on the options page.
@@ -80,15 +121,16 @@ Each player's record is kept in files under the server's cache directory, in the
 - **Hunger.** Hunger comes from physiology, not from vanilla's per-food hunger values:
   - how full the stomach is, with protein filling more and drinks filling less;
   - a pool of recently eaten energy, which fades within a few hours;
-  - the deficit drive: the last 24 hours' energy balance and the body's fat reserves;
+  - the deficit drive: the last 24 hours' energy balance and how much fat the body has lost from its own reference (nothing until a tenth of it is lost, the full drive at seven tenths);
   - the time of day, recent hard exercise (which briefly blunts hunger), sleep debt and nicotine withdrawal.
 
   Past about 730 g in the stomach the Overfull moodle rises in four steps to 1100 g. It warns and never blocks an eat. In Managed mode hunger is held below vanilla's top level, so it never kills.
 - **Thirst.** A body water pool with sodium and potassium. Water is lost through basic turnover and sweat, and sweat grows with work and heat. Salt changes how much water the body holds. Thirst follows the water the body lacks, and water still in the stomach already eases it. In Managed mode thirst is held below vanilla's top level.
 - **Monotony.** Eating the same food day after day lowers mood, up to the first level of Unhappy and Bored; a staple such as bread, rice or pasta counts a quarter as much. It fades over the days after the diet varies.
-- **The body.** A body of fat mass and lean mass, split from the starting weight by sex. Resting and activity expenditure, eating and training move both. The total is written into vanilla's weight. The weight band traits follow body fat, not weight: Overly Lean, Gaunt and Emaciated below 12, 8 and 5 % body fat (20, 16 and 13 % for a woman under `NR.SexSpecific`), Overfat and Obese at a high fat mass for the body's lean, each shown under the mod's name.
+- **The body.** A body of fat mass, lean mass and a small labile lean (water and glycogen that an overfed day stores and a deficit spends first), set at character creation (see Character creation). Resting and activity expenditure, eating and training move it; the lean and labile masses move once a game day. The total is written into vanilla's weight. The weight band traits follow body fat, not weight: Overly Lean, Gaunt and Emaciated below 12, 8 and 5 % body fat (20, 16 and 13 % for a woman under `NR.SexSpecific`); Overfat and Obese from about 26 and 34 % body fat, the fat cuts scaled by the body's lean, so a muscular body holds more fat before they apply. Each is shown under the mod's name, moves only a little past its edge, and is checked once a game day.
+- **Character creation.** The creation screen offers Weak, Feeble, Stout and Strong at their vanilla costs, and Overfat, Obese, Overly Lean and Gaunt (vanilla's Overweight, Obese, Underweight and Very Underweight) for 6, 10, 6 and 10 points; Emaciated is reached only in play. A muscle trait keeps its vanilla start level (Weak 1, Feeble 3, none 5, Stout 7, Strong 9), built from lean mass and an innate strength the trait sets; half the start's lean difference from the average is permanent, so an idle Strong character settles in the Stout band. A profession's Strength boost raises the start like a small trait (a Farmer with no muscle trait starts at 6). A fat trait starts with more fat on the same lean; a thin trait starts with less fat (10 and 6.5 % body fat) and underfed: hungry, with a partly slowed metabolism, until the fat is regained. Weight Gain and Weight Loss change no starting body. The server checks the point total and the exclusions again and strips an illegal trait, the costliest first, logging it.
 - **Exercise and energy use.** Energy use follows the game's own activity level. A Fitness exercise is billed at the energy cost of its type: squats 3.0 MET, push-ups and sit-ups 3.8, burpees 7.5, and the curls and the dumbbell press 3.5. Hard exercise leaves a short after-burn. Muscle glycogen falls with hard work and a low-carbohydrate diet, and blood glucose falls with exhausting work or alcohol on an empty stomach.
-- **Strength and training.** Strength experience is never touched. The shown Strength level is held under a ceiling set by lean mass, training and the recent energy deficit. Strength held for two weeks leaves a memory that keeps much of it through a long lay-off. Exercise reps, melee hits, tree chopping, climbing and carrying heavy loads count as resistance training, and time at a raised activity level counts as aerobic training. Carry capacity moves with dehydration, long hours awake, caffeine and body fat.
+- **Strength.** The Strength level reads the body: its lean mass, a trained neural factor (up to 10 % more strength, built over weeks of training and lost over months without) and an innate strength the muscle trait sets at creation. Strength experience never moves the level; it is the training signal. The week's Strength experience counts as hard sets, one per `NR.StrengthXPPerSet`, and experience earned outside a Fitness exercise (carrying, chopping, combat) counts at `NR.StrengthIncidentalWeight`. Lean mass grows only when training, protein and enough energy act together (growth stops at a deficit of about 650 kcal a day for a novice, less for a trained body), ever more slowly toward a natural cap that no character passes, and a trained body needs more weekly sets to keep growing. Without training, muscle detrains after two weeks toward the body's set point; lost muscle comes back fast toward a remembered peak that fades over years; starvation takes lean mass whatever the training. The level is written once a game day: it rises at each whole level and falls only once the body is a quarter level below it. At the defaults, an untrained character on perfect training (20 hard sets a week, 2 g of protein per kg a day and a 10 % energy surplus) reaches Strength 10 in four years (`NR.StrengthYearsToLevel10`). With BeyondTen loaded, the mod writes BeyondTen's Strength mastery above 10; without it the perk shows 10. Carry capacity follows vanilla's factor for the Strength band and moves with dehydration, long hours awake, caffeine and body fat. Time at a raised activity level counts as aerobic training.
 - **Deficiency and excess.** Each deficiency and excess brings effects of its own: fatigue, mood, sickness, slower healing, heavier bleeding, faster wound infection, colds, body temperature, bruising, and Short Sighted at a clinical vitamin A deficiency. A long, well-stocked vitamin A and zinc intake grants Night Vision. The most severe states drain health (see `NR.DeficienciesCanKill`).
 - **Caffeine, alcohol and sleep debt.** Caffeine is absorbed and cleared over hours, builds tolerance and brings withdrawal. Alcohol raises blood alcohol and drives the game's intoxication, with a hangover after. Sleep debt builds from short nights and raises hunger.
 
@@ -133,19 +175,20 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - A minute in which the game clock cannot be read is skipped. Carried weight is read as kilograms.
 - Chopping is billed as rope climbing (8.0 MET), and a short climb can be missed.
 - A Fitness set the client abandons without stopping it is billed until the client disconnects; the game's server keeps the set running too.
-- A modded exercise, a set started before a reconnect or a server start, or a set on a game build with no Fitness action, is billed at the flat Fitness rate (6.0 MET). Such a set's training is classed from the Strength experience it gives.
+- A modded exercise, a set started before a reconnect or a server start, or a set on a game build with no Fitness action, is billed at the flat Fitness rate (6.0 MET). Its Strength experience counts as incidental training (`NR.StrengthIncidentalWeight`), not as a Fitness set.
 - After a standing player stops an activity, the first minutes may be billed as idle, and an eat or a sip can bill one idle minute.
 - The after-burn follows the Fitness set only, at a fixed share and pace.
 - An exhausted, idle character burns energy as if lightly active.
-- Time offline is not simulated: a long absence counts as at most an hour of the model, and no clock the mod keeps runs while the player is away, so no sleep debt builds, a repeated food does not fade and no day counts toward quitting nicotine; a jump of several days closes the missed days with no protein counted.
-- When a character's saved record is lost (pruned after the server's keep period, a damaged save file, or a save file that stays unreadable), the mod starts a new record from the character as it stands, so changes the mod made earlier stay: a Strength level it lowered becomes the new starting level, the carry capacity it last set becomes the new base, and a Night Vision or Short Sighted trait it added is never taken away.
-- The model's day closes at 07:00 game time, and the daily figures count from that close. The day's energy figure leaves out the exercise of the minute before the close, and a close that skipped days reads only the new day's training.
+- Time offline is not simulated: a long absence counts as at most an hour of the model, and no clock the mod keeps runs while the player is away, so no sleep debt builds, a repeated food does not fade and no day counts toward quitting nicotine; the model's day calendar stops while the player is away, so a return closes no missed day: the body, its training and its Strength stand as they were left.
+- When a character's saved record is lost (pruned after the server's keep period, a damaged save file, or a save file that stays unreadable), the mod starts a new record from the character as it stands, so changes the mod made earlier stay: the muscle trait is read back from the Strength level net of the profession's and the other traits' boosts, so a level that training or the mod moved reads as another trait (a Stout Farmer detrained from 8 to 6 starts again with no muscle trait), and a Night Vision or Short Sighted trait it added is never taken away.
+- The model's day closes at 07:00 game time, and the daily figures count from that close. The day's energy figure leaves out the exercise of the minute before the close.
 - Aerobic training counts minutes in two intensity bands, not total energy.
 - Alcohol's effect on recovery resets at the day close, not over a rolling 24 hours.
-- A rep is counted from the Strength experience the game grants; a character at the Strength experience cap has reps counted from Fitness experience instead.
-- Loss of strength from disuse needs a broken or splinted leg.
-- Strength is clamped to the game's levels 0 to 10. A rise is at most one level per six game hours; a fall follows an experience loss at once and a falling ceiling by one level per game hour.
-- With BeyondTen loaded, its mastery levels above 10 are outside the model, and a level-10 perk holding at least the level-9 experience reads 10.
+- Strength experience the game grants while a character sleeps, or while its Strength experience sits at the level-10 total, trains nothing. A grant made without the game's multipliers (the admin `/addxp` without `-true`) is divided by the sandbox multiplier anyway, and a grant that ends a skill book's range counts at the book's factor.
+- The fast muscle loss of immobilisation needs a broken or splinted leg; otherwise missed training detrains muscle at the normal pace.
+- The Strength perk shows levels 0 to 10. A level is written once a game day, and at once when an admin or a grant moves the perk. It rises at each whole level and falls only a quarter level below the level shown, so the perk can read up to a quarter level above the body; the panel shows the body's true level. A level due while the character sleeps waits until it wakes.
+- With BeyondTen loaded, its mastery levels above 10 follow the body's level at each write, without the quarter-level hold.
+- A thin start stays hungry until its fat is back at the no-trait share: the body never sets that reference lower.
 - The weight direction thresholds are a game choice.
 
 **Deficiency, excess and effects**
