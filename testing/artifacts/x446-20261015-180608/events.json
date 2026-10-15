@@ -1,0 +1,14 @@
+[
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "X_eat",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 226
+ }
+]
