@@ -74,9 +74,10 @@ K.store.INPUTS = {
     -- body, strength (K.strength.signalClose, day, detrain and neural; NR_Server_Metabolism's day close): the day's
     -- signal and the closed days' ring, the closed week's sets, the grace counter, the neural factor and its grace
     -- counter, the disuse day count; the trait rungs and the band word K.traits.axes reads back as its previous
-    -- state; the level last written (NR_Server_Strength, Plan 13 Task 14)
+    -- state; the level last written and a write still due (NR_Server_Strength, Plan 13 Task 14; levelDue since Task
+    -- 24 M-8, so a write deferred on a sleeper or creation's first-minute re-pin survives a restart)
     "body.sigDay", "body.sig7.*", "body.S", "body.grace", "body.T", "body.Tgrace", "body.tDisuse", "body.fatT",
-    "body.thinT", "body.band", "body.wroteL",
+    "body.thinT", "body.band", "body.wroteL", "body.levelDue",
     -- acute (K.acute.*, NR_Server_Nutrients.ensure and closeDay): the gut lane; caffeine's load, rate mean,
     -- tolerance and low-hours, the slow-metaboliser draw; alcohol's load, peak and hangover; glycogen and
     -- blood glucose (each relaxes from its last value); the sleep state, its bout, gap and window; the

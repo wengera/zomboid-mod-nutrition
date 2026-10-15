@@ -228,6 +228,21 @@ def test_every_new_input_round_trips_and_a_removed_field_is_dropped(host):
         assert k not in got, k
 
 
+def test_a_due_level_write_survives_a_save_and_none_reads_nil(host):
+    # Task 24 M-8: body.levelDue is an input, so a level write deferred on a sleeper (or creation's first-minute
+    # re-pin) is still due after a restart; a body saved without it loads it nil
+    fmt = host.rt.eval("function(x) return string.format('%.17g', x) end")
+    for due in (True, None):
+        raw = stored(host)
+        raw["body"]["levelDue"] = due
+        text = host.K.json.encode(S(host).inputsOnly(raw), fmt)
+        decoded, err = host.K.json.decode(text)
+        assert err is None
+        b = S(host).load(decoded, order(host), recs(host))["body"]
+        assert b["levelDue"] is due
+    assert S(host).isInput("body.levelDue")
+
+
 def test_a_created_thin_body_keeps_its_rung_through_a_save(host):
     # Task 12 amendment 4: the created Underweight and Very Underweight bodies sit on their entry edge, held only by
     # the rung creation hands in; the save keeps the rung
@@ -372,7 +387,7 @@ def test_load_of_a_stored_record_keeps_the_inputs_and_drops_the_derived(host):
                                                                                            1.04, 2, 7)
     assert b["Pk"] == b["lm"] + 1.5
     assert b["rmod"] == 1 and "met" not in b                                 # rebuilt by K.body.new
-    assert "levelDue" not in b and "traitsDirty" not in b                    # the adapters' minute stamps: dropped
+    assert b["levelDue"] is True and "traitsDirty" not in b                 # a due level write kept (Task 24 M-8)
     n = r["nutrients"]
     assert (n["vitC"]["p"], n["vitC"]["g"], n["vitC"]["gl"], n["vitC"]["ah"]) == (0.12, 4, 3, 50)
     assert n["vitC"]["x"] == 0 and n["allReplete"] is False                  # x derived; allReplete recomputed (vitC at grade 4)
