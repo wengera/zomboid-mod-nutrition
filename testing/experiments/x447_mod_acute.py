@@ -16,8 +16,8 @@ THE SESSION (the source map's M2):
      coffee at a + 0.1, a + 3.1 and a + 6.1 game hours (each in its own prefilled container type, Base.WaterBottle,
      Base.FountainCupWater, Base.Pop3, spawned by RCON, the server copy refilled with Coffee by fluid.fill, the fill
      gated, drink.action); four beers back to back at least 3 game hours after the last coffee and not before 19:00
-     (Base.BeerCan, Base.BeerBottle, Base.BeerImported, Base.Pop2, each server copy filled with 0.3 L Beer: one type
-     a drink, see x44_guide_lib.BEER_CONTAINERS); the night at the next 23:00 (or 1 game hour after the beers when
+     (Base.BeerCan, Base.Pop2, Base.Pop, Base.SodaCan, each unsealed, its server copy filled with 0.3 L Beer: one
+     type a drink; the pre-run override of the lib's BEER_CONTAINERS, x44_beers.py, fix round 3); the night at the next 23:00 (or 1 game hour after the beers when
      that 23:00 is more than 4 h away): player.sleep.hold, acute.sleptH polled to 4 booked game hours (cap 90 s),
      the hold cancelled and the flag cleared, the booked hours kept as a reading (the fast-forward rests on #2956,
      not re-read on 42.21); then 6 game hours after the night's end, a Base.CannedBologneseOpen at every request
@@ -43,6 +43,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import x44_beers as BE      # noqa: E402
 import x44_guide_lib as L   # noqa: E402
 
 KEY = "M2"
@@ -64,5 +65,27 @@ PRED = {
 }
 
 
+# PRE-RUN FIX (Task 5 fix round 3, before this driver's first boot): x445 found Base.BeerBottle and Base.BeerImported
+# sealed (OpeningRecipe, Opened = false), their fluid.fill reading back 0 L, so the lib's BEER_CONTAINERS would land two
+# of the four beers. The lib is frozen with x441-x446, so the containers are overridden here (x44_beers.BEERS: BeerCan,
+# Pop2, Pop, SodaCan, each unsealed, 0.3 L, no fluid filter) after the pre-boot script check, which refuses the session
+# otherwise. Each live fill is still gated per drink (the lib's fill gate).
+BEERS = BE.BEERS
+
+
+def beers_preboot():
+    """The pre-boot script check of the beer containers; exits before any run folder is made on a failure."""
+    checks, ok = BE.script_check(BEERS)
+    if not ok:
+        import json
+        print(json.dumps(checks, indent=1))
+        print("a beer container fails the script check; the session was not started")
+        sys.exit(1)
+    L.BEER_CONTAINERS = BEERS
+    PRED["beer_containers"] = {"containers": list(BEERS), "script_check": checks}
+    return checks
+
+
 if __name__ == "__main__":
+    beers_preboot()
     L.main(KEY, PROFILE, PREFIX, ARTIFACT, SESSION, PRED, BUDGET_S, _ME)
