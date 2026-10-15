@@ -211,16 +211,13 @@ def _band(level):
 
 def _applied(h, known):
     """applyTraits' Strength (trait-levers 3.1): 5 + the held traits' and the profession's Strength boosts, clamped to
-    [0, 10], climbed from 0 with LevelPerk, so from level 1 up the held muscle trait is the level's band (a picked one
-    keeps its place when it is that band, else the band is appended)."""
+    [0, 10], climbed from 0 with LevelPerk, so from level 1 up the held muscle trait is the level's band, re-added last
+    by vanilla's listener (fix 2: the band is the last entry of getKnownTraits)."""
     boost = sum(h.defs.get(n, {}).get("boosts", {}).get("Strength", 0) for n in known)
     level = max(0, min(10, 5 + boost + h.G.NR_C.profStrength))
     if level >= 1:
         band = _band(level)
-        kept = [n for n in known if n not in MUSCLE or n == band]
-        if band is not None and band not in kept:
-            kept.append(band)
-        known = kept
+        known = [n for n in known if n not in MUSCLE] + ([band] if band is not None else [])
     return level, known
 
 
@@ -283,6 +280,7 @@ def test_the_level_write_lands_nine_with_strong():
 
 def test_the_order_weight_then_level_then_the_weight_band_traits():
     h = _host(prof_cost=10)
+    h.G.NR_C.profGrants = h.rt.table("EMACIATED")
     p = _player(h, ["STRONG", "EMACIATED"])                  # Emaciated is read as Very Underweight: the trait write swaps it
     _new_game(h, p)
     log = _log(h)
@@ -352,10 +350,10 @@ def test_an_over_budget_list_loses_its_last_positive_picks_until_legal_each_logg
     h = _host(prof_cost=0)
     p = _player(h, ["STRONG", "BRAVE", "SPEEDDEMON", "OVERWEIGHT"])
     _new_game(h, p)
-    assert _held(p) == ["OVERWEIGHT"]
+    assert _held(p) == ["BRAVE", "OVERWEIGHT", "SPEEDDEMON"]
     lines = [s for s in _printed(h) if "over the point total" in s]
-    assert [l.split(" loses ")[1].split(" ")[0] for l in lines] == ["SPEEDDEMON", "BRAVE", "STRONG"]
-    assert h.NR.server.creation.stats.stripped == 3
+    assert [l.split(" loses ")[1].split(" ")[0] for l in lines] == ["STRONG"]
+    assert h.NR.server.creation.stats.stripped == 1
 
 
 def test_a_legal_list_keeps_everything():
@@ -384,7 +382,7 @@ def test_free_points_and_the_negative_trait_penalty_enter_the_total():
 
 def test_free_traits_are_never_stripped_and_cost_nothing():
     h = _host(prof_cost=0)
-    h.G.NR_C.profGrants = h.rt.table("BRAVE")                   # a profession grant, though not isFree
+    h.G.NR_C.profGrants = h.rt.table("BRAVE", "AXEMAN")         # a profession grant, though not isFree
     p = _player(h, ["BRAVE", "AXEMAN", "SPEEDDEMON", "OVERWEIGHT"])   # 0 - 1 + 6 = 5: BRAVE costs nothing
     _new_game(h, p)
     assert _held(p) == ["AXEMAN", "BRAVE", "OVERWEIGHT", "SPEEDDEMON"]
@@ -579,3 +577,96 @@ def test_a_clamped_level_never_maps_through_the_boost_table():
     p = _player(h, ["STOUT"])
     assert p.st.perk.Strength == 10
     assert _picks(h, p)[0] == "STRONG"
+
+
+# --- fix 2: the reviewer's tests (scratch-verified, verbatim) ------------------------------------------------
+
+
+def test_a_profession_trait_the_profession_does_not_grant_is_stripped():
+    h = _host(prof_cost=8)
+    p = _player(h, ["AXEMAN", "BRAVE"])                     # AXEMAN is a profession trait (isFree) that no grant names
+    _new_game(h, p)
+    assert not p.st.traits.AXEMAN and p.st.traits.BRAVE is True
+    assert any("loses AXEMAN" in l for l in _printed(h))
+
+
+def test_character_free_points_make_an_otherwise_over_budget_list_legal():
+    h = _host(prof_cost=0)
+    h.G.SandboxVars.CharacterFreePoints = 5
+    p = _player(h, ["BRAVE", "SPEEDDEMON"])                 # 0 + 5 - 5 = 0: legal only with the free points
+    _new_game(h, p)
+    assert h.NR.server.creation.stats.stripped == 0
+
+
+def test_a_free_bad_trait_counts_in_the_negative_trait_offset():
+    defs = dict(DEFS)
+    defs["UNFIT"] = dict(cost=-10)
+    h = _host(prof_cost=-1, defs=defs)
+    h.G.NR_C.penalty = 4
+    h.G.NR_C.profGrants = h.rt.table("UNFIT")
+    # -1 - (4 + 1 - 6) - (2 - 1) = -1: SPEEDDEMON goes; without the free UNFIT the offset is 0 and nothing goes
+    p = _player(h, ["UNFIT", "BRAVE", "SPEEDDEMON", "OVERWEIGHT"])
+    _new_game(h, p)
+    assert not p.st.traits.SPEEDDEMON and p.st.traits.BRAVE is True and p.st.traits.UNFIT is True
+
+
+def test_a_strip_pushes_the_traits_once_and_a_legal_list_pushes_none():
+    h = _host(prof_cost=0)
+    p = _player(h, ["STRONG"])
+    _new_game(h, p)
+    s = h.NR.server.creation.stats
+    assert s.pushes + s.pushMissing == 1
+    h2 = _host(prof_cost=10)
+    p2 = _player(h2, ["STRONG"])
+    _new_game(h2, p2)
+    s2 = h2.NR.server.creation.stats
+    assert s2.pushes + s2.pushMissing == 0
+
+
+def test_a_revert_from_a_clamped_level_stays_in_range():
+    h = _host(prof_cost=0)
+    p = _player(h, ["GYMNAST"], strength=7, sprint=0)        # Sprinting clamped at 0 by applyTraits
+    _new_game(h, p)
+    assert "Sprinting:0" in list(p.st.levelWrites.values())
+    assert p.st.perk.Sprinting == 0
+
+
+def test_an_inferred_pick_with_no_band_held_is_still_validated():
+    h = _host(prof_cost=10, prof_strength=2)
+    p = _player(h, ["UNDERWEIGHT", "FEEBLE"])               # 5 - 2 + 2 = 5: no band held, FEEBLE inferred
+    assert p.st.perk.Strength == 5
+    _new_game(h, p)
+    assert any("loses FEEBLE" in l and "excluded by UNDERWEIGHT" in l for l in _printed(h))
+
+
+def test_the_budget_never_strips_a_pick_of_cost_zero():
+    defs = dict(DEFS)
+    defs["LIGHTEATER"] = dict(cost=0)
+    h = _host(prof_cost=0, defs=defs)
+    p = _player(h, ["STRONG", "LIGHTEATER"])
+    _new_game(h, p)
+    assert p.st.traits.LIGHTEATER is True and not p.st.traits.STRONG
+
+
+def test_a_level_clamped_at_zero_reads_the_held_band():
+    h = _host(prof_cost=10, prof_strength=-3)
+    p = _player(h, ["WEAK"])                                # 5 - 5 - 3 clamps to 0: 0 - 5 + 3 = -2 would read FEEBLE
+    assert p.st.perk.Strength == 0
+    assert _picks(h, p)[0] == "WEAK"
+
+
+def test_a_trait_a_held_trait_grants_is_free():
+    defs = dict(DEFS)
+    defs["BRAVE"] = dict(cost=4, granted=["SPEEDDEMON"])
+    h = _host(prof_cost=4, defs=defs)
+    p = _player(h, ["BRAVE", "SPEEDDEMON"])                 # 4 - 4 = 0: SPEEDDEMON costs nothing as BRAVE's grant
+    _new_game(h, p)
+    assert h.NR.server.creation.stats.stripped == 0
+
+
+def test_a_climbed_muscle_pick_is_the_later_of_an_excluded_pair():
+    # Farmer +1: WEAK climbs to 1, so vanilla's listener re-adds WEAK last; the thin pick listed after it is kept
+    h = _host(prof_cost=10, prof_strength=1)
+    p = _player(h, ["WEAK", "UNDERWEIGHT"])
+    _new_game(h, p)
+    assert any("loses WEAK" in l and "excluded by UNDERWEIGHT" in l for l in _printed(h))

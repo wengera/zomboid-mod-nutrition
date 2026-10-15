@@ -6,8 +6,8 @@
 --
 -- 1. Validation (ruling 13-16), on the server's own definitions (CharacterTraitDefinition.getCharacterTraitDefinition).
 --    The known traits are walked in getKnownTraits() order (the order the client's list sent; the server keeps no pick
---    order). A free trait (the definition's isFree, the profession's grants, or a held trait's grants) is never
---    stripped. A non-free trait that excludes an earlier kept trait or any free one is stripped: a pair excludes when
+--    order). A free trait (the profession's grants, or a held trait's grants) is never stripped; a profession trait
+--    (isFree) that no grant names is stripped (fix 2, ruling 13-16). A non-free trait that excludes an earlier kept trait or any free one is stripped: a pair excludes when
 --    either definition's getMutuallyExclusiveTraits holds the other, when isMutuallyExclusive answers true either way
 --    (Task 16's ruling I2: Weight Gain's Athletic, Fit and Emaciated pairs sit on Weight Gain alone), or when
 --    K.body.EXCLUDES pairs them (ruling 13-46). Then, while the creation screen's remaining points read below 0, the last
@@ -51,6 +51,9 @@ NR.server.creation = {
     limitations = {
         "the server keeps no pick order, so an illegal list loses its last-listed pick, not its last-picked one (ruling 13-16)",
         "a stripped trait's XP boosts are reverted from the level applyTraits clamped to [0, 10], so a boost that was clamped reverts too far",
+        "vanilla's listener re-adds the muscle band last, so a climbed muscle pick is the latest-listed",
+        "two muscle picks from a modified client collapse into the one pick their summed boost maps to",
+        "a stripped trait's learning-rate entry in the descriptor's XP boost map stays (the engine's map takes integers; it is not edited from Lua)",
         "the muscle pick is inferred from the native Strength level less the profession's and the other held traits' Strength boosts; at a clamped level (0 or 10) it is the held band trait, which a profession's Strength boost can have moved",
     },
 }
@@ -270,11 +273,11 @@ function CRE.validate(player)
     local free, kept = {}, {}
     for i = 1, #entries do
         local e = entries[i]
-        if grants[e.t] == true or flag(e.def, "isFree") then free[#free + 1] = e end
+        if grants[e.t] == true then free[#free + 1] = e end
     end
     for i = 1, #entries do
         local e = entries[i]
-        if not (grants[e.t] == true or flag(e.def, "isFree")) then
+        if grants[e.t] ~= true then
             local hit = nil
             for j = 1, #free do
                 if hit == nil and CRE.excludes(e, free[j]) then hit = free[j] end
@@ -282,7 +285,9 @@ function CRE.validate(player)
             for j = 1, #kept do
                 if hit == nil and CRE.excludes(e, kept[j]) then hit = kept[j] end
             end
-            if hit ~= nil then
+            if flag(e.def, "isFree") then
+                strip(player, coll, e, "a profession trait no grant names", stripped)
+            elseif hit ~= nil then
                 strip(player, coll, e, "excluded by " .. hit.name, stripped)
             else
                 kept[#kept + 1] = e
