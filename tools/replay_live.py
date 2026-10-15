@@ -38,7 +38,8 @@ step m, at its start). Kinds:
   autodrop {g}: g grams of water added to the record's fluids.autoDrop before the drain, which the mod's own Nutrients
            step lands after Kinetics (the writer's sip; a `drink` event would land it one drain early, F-T9-4). The row
            before it is `between`, as for any event: the live ring row already shows the autoDrop the replay's lacks
-  meal     {size: "maint" | "request" | kcal, comp: {p, c, f}, food, sate}: an energy-oracle meal; "request" eats
+  meal     {size: "maint" | "request" | kcal, comp: {p, c, f}, food, plate, sate}: an energy-oracle meal (plate, a list
+           of the mod's table fullTypes, makes it those foods' whole vector sized to the kcal; server backend); "request" eats
            650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
            ruling 11c-31; research section 3.7 form 1), es the state the last drain left and hour the event's
   sleep    {asleep}
@@ -816,11 +817,30 @@ class ServerReplay(_Backend):
             spec = study_foods()[ev["food"]]
             per = {k: v * kcal / spec["cal"] for k, v in declared_vector(spec).items()}
             vec = self.R.landVec(self.user, self.table(per), None, ev["food"], spec.get("foodType"))
+        elif "plate" in ev:
+            vec = self.R.landVec(self.user, self.table(self.plate_vector(ev["plate"], kcal)), None, None, None)
         else:
             comp = ev.get("comp", MIXED)
             vec = self.R.mealVec(kcal, comp["p"], comp["c"], comp["f"])
             vec = self.R.landVec(self.user, vec, None, None, None)
         self._log(at, "meal", ev.get("food"), vec, b0)
+
+    def plate_vector(self, foods, kcal):
+        """A plate of real foods sized to kcal: the sum of each fullType's whole vector in the mod's table
+        (NR.data.nutrients.get), every key scaled by kcal over the plate's own kcal, so the meal carries the foods'
+        macros and micronutrients in their proportions."""
+        tot = {}
+        for ft in foods:
+            t = self.NR.data.nutrients.get(ft)
+            if t is None:
+                raise ValueError("plate: %s is not in the mod's table" % ft)
+            for k, v in t.items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    tot[k] = tot.get(k, 0.0) + float(v)
+        if not tot.get("calories"):
+            raise ValueError("plate: no calories in %r" % (foods,))
+        f = kcal / tot["calories"]
+        return {k: v * f for k, v in tot.items()}
 
     def ev_sleep(self, ev, at):
         self.R.u[self.user].asleep = bool(ev["asleep"])

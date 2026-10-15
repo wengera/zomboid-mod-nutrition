@@ -591,6 +591,14 @@ class Alternatives(Fixture):
         self.assertEqual(g.read_dataset("data/food.json", "items[pz_id={Base.Toast,Base.Apple}].kcal", self.root,
                                         self.install), [250, 95])
 
+    def test_file_alternatives_concatenate_the_pages(self):
+        _write(os.path.join(self.root, "testing/artifacts", RUN, "ring2.json"), json.dumps(ARTIFACT))
+        got = g.read_artifact(RUN, "{ring,ring2}.json", "rows_list[*].HUNGER", self.root)
+        self.assertEqual(got, [0.1, 0.2, 0.3, 0.1, 0.2, 0.3])
+        self.assertEqual(g.read_artifact(RUN, "{ring,ring2}.json", "ok.leaf", self.root), [7, 7])
+        with self.assertRaises(g.DoNotCite):
+            g.read_artifact(RUN, "{ring,ring2}.json", "readings.day.peak", self.root)
+
     def test_a_validated_series_may_name_alternatives(self):
         s = self.series(provenance={"kind": "artifact", "run": RUN, "file": "ring.json", "path": "arms.{left,right}.kcal"})
         self.validate(s)

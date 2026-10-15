@@ -642,3 +642,31 @@ def test_m2_sprinting_is_not_exercising_for_hunger_2774():
 def test_m3_fresh_store_t2_3():
     out = vm.simulate({"hours": 0, "dt_min": 1, "events": []})
     assert _at(out, "calories_store", 0.0) == 800.0 and _at(out, "weight_kg", 0.0) == 80.0
+
+
+# ---- T2.4: the 35 kg weight floor (Nutrition.setWeight) -------------------------------------------------------------
+
+def test_t24_floor_clamps_the_weight_and_drains_health():
+    # a store pinned far below the loss threshold from 35.2 kg: the weight stops at 35.0 and health falls 178.2 a
+    # game-hour once it is pressed on the floor (0.0165 a multiplier unit, 120 x 90 units a game-hour)
+    assert vm.weight_floor_health_per_hour(90.0) == pytest.approx(178.2)
+    out = vm.simulate({"hours": 8.0, "dt_min": 1.0, "start": {"weight_kg": 35.2, "calories": -2200.0}, "events": []})
+    rate = -vm.weight_rate(35.2, -2200.0)
+    t_floor = 0.2 / rate / 3600.0                                        # 7.43 h to reach the floor
+    assert 7.0 < t_floor < 7.5
+    assert min(w for _, w in out["weight_kg"]) == 35.0
+    assert _at(out, "health", 7.0) == 100.0
+    assert _at(out, "health", 7.6) == pytest.approx(100.0 - 178.2 * (7.6 - t_floor), abs=0.5)
+    assert _at(out, "health", 8.0) == 0.0
+
+
+def test_t24_no_drain_above_the_floor():
+    out = vm.simulate({"hours": 24.0, "dt_min": 60.0, "start": {"weight_kg": 80.0, "calories": -2200.0}, "events": []})
+    assert _at(out, "health", 24.0) == 100.0 and _at(out, "weight_kg", 24.0) < 80.0
+
+
+def test_t24_floor_seconds():
+    assert vm.floor_seconds(36.0, -0.001, 2000.0) == pytest.approx(1000.0)
+    assert vm.floor_seconds(35.0, -0.001, 600.0) == 600.0
+    assert vm.floor_seconds(36.0, 0.001, 600.0) == 0.0
+    assert vm.floor_seconds(80.0, -1e-5, 600.0) == 0.0

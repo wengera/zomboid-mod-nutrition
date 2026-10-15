@@ -394,7 +394,20 @@ def read_artifact(run, file, path, root=REPO):
 
     Paths are dotted keys with `[n]`, `[*]`, `["literal.key"]` and `[field=value]` steps; a dict step
     matches the longest literal key first. Refuses (DoNotCite) a do-not-cite key, a child of one and a
-    parent of one, checking every concrete path the read touches."""
+    parent of one, checking every concrete path the read touches.
+
+    A `{a,b}` file (a run's ring pages) reads the path in each file in order and concatenates the results: a wild path
+    gives one flat list, any other path one value per file."""
+    files = expand(file)
+    if len(files) > 1:
+        out = []
+        for f in files:
+            got = read_artifact(run, f, path, root)
+            if _is_wild(path) or len(expand(path)) > 1:
+                out.extend(got)
+            else:
+                out.append(got)
+        return out
     alts = expand(path)
     if len(alts) > 1:
         return [read_artifact(run, file, p, root) for p in alts]

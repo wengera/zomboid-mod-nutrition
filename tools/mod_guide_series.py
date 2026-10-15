@@ -28,6 +28,7 @@ no traits, sleep off (`sleep_allowed=False`) unless a series says sleep on, the 
 (`data/food-nutrients.json` `.per_item`) with the game's own hunger value (`.vanilla.hunger` / 100).
 """
 import json
+import math
 import os
 import sys
 
@@ -48,8 +49,19 @@ FOOD_LABELS = ("Apple", "Bread", "Bolognese", "Burger", "Tuna")
 HOUR_OFFSET = 7.0                     # world age 0 is 07:00 on the fixture (x36_gut_lib.HOUR_OFFSET, #2890)
 DAY_MIN = 1440
 MIXED = {"p": 0.15, "c": 0.50, "f": 0.35}   # tools/replay_live.py MIXED
-AUTODROP_G = 600.0                    # the map's water for a long replay: 600 g at 08, 12, 16 and 20
-AUTODROP_MIN = (60, 300, 540, 780)    # 08:00, 12:00, 16:00, 20:00 from 07:00
+AUTODROP_G = 500.0                    # water for every replay that drinks: 500 g every 2 h from 08:00 to 22:00, 4 L
+AUTODROP_MIN = (60, 180, 300, 420, 540, 660, 780, 900)   # a day (review C-1: the map's 2.4 L sat below the mod's loss)
+DEHYD_BOUND = 3.0                     # % body mass: the viability guard's bound (rule R-1), a game choice named here:
+#                                       mild, inside the mod's dehydration fatigue bands (+0.06 at 2 %, +0.08 at 3 %,
+#                                       NR_Data_Effects B5) and far under its 10 % lethal line. A fed day on 4 L sits
+#                                       near 1.5 %; a fast's creeps up as the body shrinks (2.2 % by day 3, 2.7 % by
+#                                       day 24, whatever the water: 6 L reads the same), so 3 % holds a fast to its death
+# the plate the mod-side scenarios eat (rule R-1, review C-1): the guide's foods and an orange, whole vectors from the
+# mod's table (replay_live's meal `plate`), so every meal carries real vitamins and minerals in their proportions
+PLATE = ("Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen")
+# the provisional Task 2 rows the vanilla formulas cite before Task 7 mints them (concern 9, now a guard): vmodel()
+# leaves them out of a provenance and fails the build once one of them is in the register
+UNMINTED = ("T2.1", "T2.2", "T2.3", "T2.4")
 TUNA_MIN = (60, 300, 540, 780)        # four tins at 08, 12, 16 and 20
 REQUEST_MIN = (60, 360, 780)          # meals at the request at 08:00, 13:00 and 20:00 (the oracles' FAST_MEAL_H)
 
@@ -197,14 +209,12 @@ PENDING_LIVE = (
     "S3b-v-live-U", "S3b-v-live-B", "S6b-v-live",
 )
 
-# Each dropped id and why. The admission results behind the G8 drops are in VALIDATION.
+# Each series the evidence does not support, and why. A live series fails when the admission of the quantity it draws
+# fails (ADMISSIONS below, recorded in VALIDATION); `admissions()` checks that this table says exactly that.
 DROPPED = {
-    "S1b-m-live": "G8: x364's HEAD replay misses its ring (HUNGER 0.00265 over 0.002, es 0.00505 over 0.005); the "
-                  "kernel line keeps x364 as its proof run",
-    "S1c-m-live": "G8: x364 fails the admission test on HUNGER and es (its THIRST alone lies within 0.0019)",
-    "S2a-m-live": "G8: x364 fails the admission test",
-    "S2b-m-live": "G8: x271 and x272 (the rows' fast) fail the admission test (pre-Plan 11g rings)",
-    "SH2-m-live": "G8: x276 fails the admission test (a pre-Plan 11g ring); SH2-m-kernel replays its inputs at HEAD",
+    "S2a-m-live": "G8: x364's HEAD replay misses its HUNGER by 0.00265 against 0.002",
+    "S2b-m-live": "G8: x271 and x272 (the rows' fast) miss their HUNGER at HEAD (pre-Plan 11g rings)",
+    "SH2-m-live": "G8: x276 misses its HUNGER at HEAD (a pre-Plan 11g ring); SH2-m-kernel replays its inputs at HEAD",
     "SM1-m-live": "G8: x343's HEAD replay misses its UNHAPPINESS by up to 1.74 against 0.051",
     "SX2-m-live": "G8: x291's HEAD replay misses its satiety.S by up to 0.087 against 1e-6",
     "ST1-m-live": "G8: x151t (the Plan 4 build) carries no ring and no event log to replay at HEAD, so no admission "
@@ -212,14 +222,6 @@ DROPPED = {
     "ST2-m-live-plasma": "G8: the HEAD replays of x281-x284 hold the sodium balance exactly but miss plasma sodium by "
                          "up to 0.072 mmol/L (the creation body's lean mass enters the concentration) against 0.01",
     "S2d-m-drain": "G16: no register row states the starvation drain's condition (K.effects.drain code 1)",
-}
-
-# The admission outcome each run is pinned to (a change that flips one fails the build: re-rule the charts).
-ADMISSION_EXPECT = {
-    "x271": False, "x272": False, "x276": False, "x281": True, "x282": True, "x283": True, "x284": True,
-    "x281:plasma": False, "x282:plasma": False, "x283:plasma": False, "x284:plasma": False,
-    "x291": False, "x301": True, "x302": True, "x341": True, "x342": True, "x343": False, "x361": True,
-    "x363": True, "x364": False, "x37g": True, "x401": True, "x161b": True,
 }
 
 CHARTS = {cid: dict(c, series=[i for i in c["series"] if i not in DROPPED]) for cid, c in MAP_CHARTS.items()}
@@ -308,15 +310,23 @@ def _register():
     return _REG["ids"]
 
 
-def vmodel(*formulas):
-    """A vanilla-model provenance: the formulas and their register rows (a row a later task mints, such as T2.1, is
-    left out until it is in the register)."""
-    ids = _register()
+def vmodel(*formulas, ids=None):
+    """A vanilla-model provenance: the formulas and their register rows. A row the formulas cite that is not in the
+    register is left out only when UNMINTED names it; any other missing row, or an UNMINTED id now in the register
+    (Task 7 has minted it: drop it from UNMINTED and rebuild), fails the build."""
+    ids = _register() if ids is None else ids
+    minted = [u for u in UNMINTED if u in ids]
+    if minted:
+        raise D.ProvenanceError("UNMINTED ids now in the register: %s; drop them from UNMINTED and rebuild"
+                                % ", ".join(minted))
     claims = []
     for f in formulas:
         for c in VM.FORMULAS[f]["claims"]:
-            if c in ids and c not in claims:
-                claims.append(c)
+            if c in ids:
+                if c not in claims:
+                    claims.append(c)
+            elif c not in UNMINTED:
+                raise D.ProvenanceError("%s cites %s, neither in the register nor in UNMINTED" % (f, c))
     return {"kind": "vanilla-model", "formulas": list(formulas), "claims": claims}
 
 
@@ -368,33 +378,80 @@ def eat(minute, pz):
     return ev
 
 
-def autodrops(days):
-    return [{"minute": d * DAY_MIN + m, "kind": "autodrop", "g": AUTODROP_G} for d in range(days) for m in AUTODROP_MIN]
+def autodrops(days, start_day=0):
+    return [{"minute": d * DAY_MIN + m, "kind": "autodrop", "g": AUTODROP_G} for d in range(start_day, days)
+            for m in AUTODROP_MIN]
+
+
+def plate_meal(minute, size):
+    return {"minute": minute, "kind": "meal", "size": size, "plate": list(PLATE)}
 
 
 def request_meals(days):
-    return [{"minute": d * DAY_MIN + m, "kind": "meal", "size": "request", "comp": MIXED}
-            for d in range(days) for m in REQUEST_MIN]
+    return [plate_meal(d * DAY_MIN + m, "request") for d in range(days) for m in REQUEST_MIN]
 
 
 def sort_events(ev):
     return sorted(ev, key=lambda e: e["minute"])
 
 
-# ---- the replays ---------------------------------------------------------------------------------------------------------
+# ---- the replays and the viability guard (rule R-1) -----------------------------------------------------------------------
+
+GUARD = ("fluids.dehydPct", "effects.lethal")
+
 
 def server_run(events, minutes, paths=(), player=None, perk=None, sleep_allowed=False, hour_offset=HOUR_OFFSET,
                start=None):
     """The mod's server pipeline on the lupa host from a fresh record (first sight builds the creation body from the
     stand-in's traits), on a synthetic one-minute clock from world age 0; returns (rows, backend). Row k is the state
     drain k left, at age (k + 1) / 60. `perk` is the native Strength level vanilla's applyTraits left (the creation
-    reads the muscle pick off it: CRE.inferMuscle)."""
+    reads the muscle pick off it: CRE.inferMuscle). Every row carries the guard's paths (viability); an event at or past
+    the last minute is left out (a whole day's water on a shorter window)."""
     RL = _rl()
     be = RL.ServerReplay(start=start, player=player, hour_offset=hour_offset, rng="half", sleep_allowed=sleep_allowed)
     if perk is not None:
         be.p.st.perk = perk
-    rows = RL.run(be, RL.synthetic_ages(minutes), sort_events(events), list(paths), start_age=0.0)
+    events = [e for e in events if "minute" not in e or e["minute"] < minutes]     # a day's water past the window
+    rows = RL.run(be, RL.synthetic_ages(minutes), sort_events(events), list(paths) + list(GUARD), start_age=0.0)
     return rows, be
+
+
+def viability(rows, K=None):
+    """Rule R-1's reading of a replay: the largest fluids.dehydPct, the first lethal onset (age h, code) and the death
+    it brings, the onset plus 100 health at that code's drain rate (K.effects.DRAIN_RATE, health a game minute)."""
+    dmax = max((r.get("fluids.dehydPct") or 0.0) for r in rows)
+    first = next(((r["age"], int(r["effects.lethal"])) for r in rows if r.get("effects.lethal")), None)
+    out = {"max_dehydPct": dmax, "lethal": first, "death_age": None, "hours": rows[-1]["age"] if rows else 0.0}
+    if first is not None:
+        if K is None:
+            K = KHost().K
+        out["death_age"] = first[0] + 100.0 / float(K.effects.DRAIN_RATE[first[1]]) / 60.0
+        out["dmax_to_onset"] = max((r.get("fluids.dehydPct") or 0.0) for r in rows if r["age"] <= first[0])
+    return out
+
+
+def assert_viable(name, v, death=False, thirst=False):
+    """Rule R-1: a replay stays alive and under DEHYD_BOUND over its window, unless the series names the death (then
+    its lines end at v["death_age"]) or the scenario is the thirst itself (no water by design: alive, any dehydration)."""
+    if v["lethal"] is not None and not death:     # death: True (the series shows one), "allowed" (it may), False
+        raise D.ProvenanceError("%s: the replay reaches lethal code %d at %.2f h (rule R-1)"
+                                % (name, v["lethal"][1], v["lethal"][0]))
+    if death is True and v["lethal"] is None:
+        raise D.ProvenanceError("%s: the series names a death and the replay has none" % name)
+    if not thirst:
+        d = v["dmax_to_onset"] if v["lethal"] is not None else v["max_dehydPct"]
+        if d > DEHYD_BOUND:
+            raise D.ProvenanceError("%s: dehydration reaches %.2f %% over the bound %.1f %% (rule R-1)"
+                                    % (name, d, DEHYD_BOUND))
+    return v
+
+
+def until_death(points, v, scale=24.0):
+    """Points up to the death (x in hours / scale), the last one at or before it."""
+    if v["death_age"] is None:
+        return points
+    end = v["death_age"] / scale
+    return [p for p in points if p[0] <= end + 1e-12]
 
 
 def pick(rows, ks, *fields):
@@ -458,7 +515,7 @@ def result(name):
 
 
 def reset():
-    """Forget every computed job and host (a test that edits the Lua tree reruns them)."""
+    """Forget every computed job (a test that edits the Lua tree reruns them)."""
     _RESULTS.clear()
 
 
@@ -468,19 +525,66 @@ JOB_COST = {"j_s2d": 30, "j_s3c": 28, "j_s3a": 21, "j_s5b_strong": 31, "j_s5b_we
             "j_vanilla_s4b": 12, "j_s2a": 3, "j_sh1": 3}
 
 
-# ---- the admission test (ruling G8) ------------------------------------------------------------------------------------
+# ---- the admission test (ruling G8, the I-3 ruling: per drawn quantity, a tolerance with a stated source) --------------
 
-DEFAULT_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005)}      # replay_live.DEFAULT_TOL's two
-FILL_TOL = {"stomachFill": ("abs", 0.002), "stomach.liquid": ("abs", 2.0)}         # x36_gut_lib TOL_GRADE, TOL_EXTRA
-DEBT_TOL = {"acute.debtH": ("abs", 1e-6), "acute.winSleptH": ("abs", 1e-6)}        # x30_grade.TOL_MINE
-S_TOL = {"satiety.S": ("abs", 1e-6)}                                               # x29_grade.TOL_MINE
-THIRST_TOL = {"THIRST": ("abs", 0.002)}        # named here (G7: THIRST was never graded): HUNGER's bound
-SODIUM_TOL = {"fluids.na": ("abs", 1e-6)}      # named here: x28 graded no sodium bound; the balance is exact
-PLASMA_TOL = {"fluids.naPlasma": ("abs", 0.01)}   # named here: the 0.01 mmol/L #3688 states plasma sodium to
+HUNGER_TOL = {"HUNGER": ("abs", 0.002)}
+DEBT_TOL = {"acute.debtH": ("abs", 1e-6), "acute.winSleptH": ("abs", 1e-6)}
+SRC_DEFAULT = "the run's own: replay_live.DEFAULT_TOL (HUNGER 0.002), the pre-registered 11f bound its grade used"
+SRC_DEBT = "the run's own: x30_grade.TOL_MINE (acute.debtH, acute.winSleptH 1e-6)"
+SRC_S = "the run's own: x29_grade.TOL_MINE (satiety.S 1e-6)"
+SRC_FILL = "the run's own: x36_gut_lib.TOL_GRADE (stomachFill 0.002) and TOL_EXTRA (stomach.liquid 2 g)"
+SRC_MOOD = "the run's own: x34_grade's live-against-replay bound, K.hybrid.FLOOR_EPS + REPLAY_TOL_EXTRA 1e-3"
+SRC_THIRST = ("named here, a game choice (the run graded no THIRST, G7): HUNGER's 0.002, the same stat scale and the "
+              "grade's own resolution")
+SRC_LEVELS = ("named here, a game choice (the run graded no level ages): 15 game minutes, a quarter hour of the 36-hour "
+              "chart's resolution")
+SRC_SODIUM = "named here, a game choice (x28 graded no sodium bound): 1e-6 mmol, the record's own arithmetic"
+SRC_PLASMA = "named here, a game choice (x28 graded no plasma bound): 0.01 mmol/L, the precision #3688 states it to"
+LEVEL_TOL_MIN = 15.0
+
+# (key, run, sleep_allowed, tolerance, its source, the live series it admits, the kernel series it proves, pinned)
+ADMISSIONS = (
+    ("x361:HUNGER", "x361", False, HUNGER_TOL, SRC_DEFAULT, ["SH1-m-live"], ["H1-m-kernel", "SH1-m-kernel"], True),
+    ("x362:HUNGER", "x362", False, HUNGER_TOL, SRC_DEFAULT, [], ["S1a-m-kernel"], True),
+    ("x363:fill", "x363", False, {"stomachFill": ("abs", 0.002), "stomach.liquid": ("abs", 2.0)}, SRC_FILL,
+     ["SE1-m-live-liquid", "SE1-m-live-fill"], ["SE1-m-kernel-fill"], True),
+    ("x364:THIRST", "x364", False, {"THIRST": ("abs", 0.002)}, SRC_THIRST, ["S1c-m-live"],
+     ["S1c-m-kernel", "ST1-m-kernel"], True),
+    ("x364:HUNGER", "x364", False, HUNGER_TOL, SRC_DEFAULT, ["S2a-m-live"], ["S2a-m-kernel"], False),
+    ("x364:levels", "x364", False, {"level age (min)": ("abs", LEVEL_TOL_MIN)}, SRC_LEVELS, ["S1b-m-live"], [],
+     True),
+    ("x405:HUNGER", "x405", False, HUNGER_TOL, SRC_DEFAULT, [], ["S1b-m-kernel"], False),
+    ("x271:HUNGER", "x271", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
+    ("x272:HUNGER", "x272", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
+    ("x276:HUNGER", "x276", False, HUNGER_TOL, SRC_DEFAULT, ["SH2-m-live"], ["SH2-m-kernel"], False),
+    ("x281:na", "x281", False, {"fluids.na": ("abs", 1e-6)}, SRC_SODIUM, ["ST2-m-live-na"], ["ST2-m-kernel"], True),
+    ("x282:na", "x282", False, {"fluids.na": ("abs", 1e-6)}, SRC_SODIUM, ["ST2-m-live-na"], ["ST2-m-kernel"], True),
+    ("x283:na", "x283", False, {"fluids.na": ("abs", 1e-6)}, SRC_SODIUM, ["ST2-m-live-na"], ["ST2-m-kernel"], True),
+    ("x284:na", "x284", False, {"fluids.na": ("abs", 1e-6)}, SRC_SODIUM, ["ST2-m-live-na"], ["ST2-m-kernel"], True),
+    ("x281:plasma", "x281", False, {"fluids.naPlasma": ("abs", 0.01)}, SRC_PLASMA, ["ST2-m-live-plasma"], [], False),
+    ("x282:plasma", "x282", False, {"fluids.naPlasma": ("abs", 0.01)}, SRC_PLASMA, ["ST2-m-live-plasma"], [], False),
+    ("x283:plasma", "x283", False, {"fluids.naPlasma": ("abs", 0.01)}, SRC_PLASMA, ["ST2-m-live-plasma"], [], False),
+    ("x284:plasma", "x284", False, {"fluids.naPlasma": ("abs", 0.01)}, SRC_PLASMA, ["ST2-m-live-plasma"], [], False),
+    ("x291:S", "x291", False, {"satiety.S": ("abs", 1e-6)}, SRC_S, ["SX2-m-live"], ["SX2-m-kernel"], False),
+    ("x301:sleep", "x301", True, DEBT_TOL, SRC_DEBT, ["S6c-m-live", "SC1-m-live-booked", "SC1-m-live-debt"],
+     ["S6c-m-kernel", "SC1-m-kernel"], True),
+    ("x302:sleep", "x302", True, DEBT_TOL, SRC_DEBT, ["S6c-m-live", "SC1-m-live-booked", "SC1-m-live-debt"],
+     ["S6c-m-kernel", "SC1-m-kernel"], True),
+    ("x341:mood", "x341", False, "mood", SRC_MOOD, ["S3b-m-live-U", "S3b-m-live-B"], [], True),
+    ("x342:mood", "x342", False, "mood", SRC_MOOD, ["S3b-m-live-U", "S3b-m-live-B"], ["S3b-m-kernel-U"], True),
+    ("x343:mood", "x343", False, "mood", SRC_MOOD, ["SM1-m-live"], ["SM1-m-kernel"], False),
+)
+# runs graded off the HEAD kernel directly (no ring to replay): key -> (the live series, the kernel series)
+OTHER = {"x37g:met": (["SX1-m-live"], ["SX1-m-kernel"]), "x401:level": (["SV1-m-live"], ["SV1-m-kernel"]),
+         "x161b:drain": (["SD1-m-live"], ["SD1-m-kernel"]),
+         "x436:creation": (["S5a-m-live-lean", "S5a-m-live-fat", "S5a-m-live-weight", "S5a-m-live-level",
+                            "S5c-m-live"], [])}
+ADMISSION_EXPECT = {a[0]: a[7] for a in ADMISSIONS}
+ADMISSION_EXPECT.update({k: True for k in OTHER})
 
 
 def mood_tol(eps):
-    """x34_grade's live-against-replay bound for UNHAPPINESS and the remembered targets: FLOOR_EPS plus 1e-3."""
+    """x34_grade's live-against-replay bound for UNHAPPINESS and the remembered target: FLOOR_EPS plus 1e-3."""
     b = eps + 1e-3
     return {"UNHAPPINESS": ("abs", b), "moodLast.b": ("abs", b)}
 
@@ -502,65 +606,127 @@ def _json(run_dir, name):
         return json.load(fh)
 
 
-def admission(run, sleep_allowed, tol, keep=()):
-    """The HEAD replay of run's own inputs against its ring, graded by replay_live.diff under tol. Returns (record,
-    rows): record {kind, run, quantity, tolerance, max_miss, n, admitted}; rows the replay rows' `keep` fields by s."""
+def replay_of(run, sleep_allowed, events=None):
+    """The HEAD replay of run's own inputs (start, events, start stats, player) on its ring's clock and activity:
+    (rows, ring)."""
     RL = _rl()
     d = os.path.join(REPO, "testing", "artifacts", RUN[run])
     ring, paths = _ring(d)
-    rows, _ = RL.replay_live(ring, _json(d, "events.json") or [], _json(d, "start.json"), paths=paths, user="admin",
-                             player=_json(d, "player.json"), start_stats=_json(d, "start-stats.json"),
-                             sleep_allowed=sleep_allowed)
+    rows, _ = RL.replay_live(ring, (_json(d, "events.json") or []) if events is None else events,
+                             _json(d, "start.json"), paths=paths, user="admin", player=_json(d, "player.json"),
+                             start_stats=_json(d, "start-stats.json"), sleep_allowed=sleep_allowed)
+    return rows, ring
+
+
+def level_changes(rows):
+    """The ages of the energy level's changes off the bus signature's digit (x36_gut_lib.ring_levels)."""
+    out, prev = [], None
+    for r in rows:
+        sig = r.get(SIG)
+        if not isinstance(sig, (int, float)):
+            continue
+        lv = int(sig // 1000) % 10
+        if prev is not None and lv != prev:
+            out.append((r["age"], prev, lv))
+        prev = lv
+    return out
+
+
+def admission(run, sleep_allowed, tol, keep=()):
+    """The HEAD replay of run's own inputs against its ring, graded by replay_live.diff under tol. Returns (record,
+    rows): record {run, quantity, tolerance, max_miss, n, admitted}; rows the replay rows' `keep` fields by s."""
+    RL = _rl()
+    rows, ring = replay_of(run, sleep_allowed)
     df = RL.diff(rows, ring, tol)
-    rec = {"kind": "admission", "run": RUN[run], "quantity": sorted(tol),
-           "tolerance": {f: [how, b] for f, (how, b) in sorted(tol.items())},
+    rec = {"run": RUN[run], "quantity": sorted(tol), "tolerance": {f: [how, b] for f, (how, b) in sorted(tol.items())},
            "max_miss": {f: df["fields"][f]["max"] for f in sorted(tol)},
            "n": {f: df["fields"][f]["n"] for f in sorted(tol)}, "admitted": bool(df["ok"])}
     kept = {r["s"]: [r.get("age")] + [r.get(f) for f in keep] for r in rows} if keep else None
     return rec, kept
 
 
+def admission_levels(run, sleep_allowed):
+    """x364:levels: the energy level changes of the HEAD replay against the ring's, by age, within LEVEL_TOL_MIN."""
+    rows, ring = replay_of(run, sleep_allowed)
+    live, rep = level_changes(ring), level_changes(rows)
+    q = "level age (min)"
+    if [(a, b) for _, a, b in live] != [(a, b) for _, a, b in rep]:
+        miss, ok = float("inf"), False
+    else:
+        miss = max((abs(x[0] - y[0]) * 60.0 for x, y in zip(live, rep)), default=0.0)
+        ok = bool(live) and miss <= LEVEL_TOL_MIN
+    rec = {"run": RUN[run], "quantity": [q], "tolerance": {q: ["abs", LEVEL_TOL_MIN]},
+           "max_miss": {q: miss if math.isfinite(miss) else 1e9}, "n": {q: len(live)}, "admitted": ok,
+           "live_changes": [[a * 1.0, b, c] for a, b, c in live], "replay_changes": [[a * 1.0, b, c] for a, b, c in rep]}
+    return rec
+
+
+def _grade(key, run, sleep_allowed, tol, keep=()):
+    if key.endswith(":levels"):
+        return admission_levels(run, sleep_allowed), None
+    if tol == "mood":
+        tol = mood_tol(float(KHost().K.hybrid.FLOOR_EPS))
+    return admission(run, sleep_allowed, dict(tol), keep)
+
+
+def _jobs_of(keys, keep=None):
+    out = {}
+    for a in ADMISSIONS:
+        if a[0] in keys:
+            rec, kept = _grade(a[0], a[1], a[2], a[3], (keep or {}).get(a[0], ()))
+            out[a[0]] = {"rec": rec, "rows": kept}
+    return out
+
+
 @job
 def j_adm_x36():
-    out = {}
-    for run in ("x361", "x363", "x364"):
-        tol = dict(DEFAULT_TOL)
-        if run == "x363":
-            tol.update(FILL_TOL)
-        if run == "x364":
-            tol.update(THIRST_TOL)
-        rec, kept = admission(run, False, tol, keep=("stomachFill",) if run == "x363" else ())
-        out[run] = {"rec": rec, "rows": kept}
-    return out
+    return _jobs_of({"x361:HUNGER", "x362:HUNGER", "x363:fill", "x364:THIRST", "x364:HUNGER", "x364:levels",
+                     "x405:HUNGER"}, {"x363:fill": ("stomachFill",)})
 
 
 @job
 def j_adm_x27():
-    out = {}
-    for run in ("x271", "x272"):
-        out[run] = {"rec": admission(run, False, dict(DEFAULT_TOL))[0]}
-    return out
+    return _jobs_of({"x271:HUNGER", "x272:HUNGER", "x276:HUNGER"})
+
+
+@job
+def j_adm_x28():
+    return _jobs_of({k for k, *_ in ADMISSIONS if k.startswith("x28")})
+
+
+@job
+def j_adm_x29_x30():
+    return _jobs_of({"x291:S", "x301:sleep", "x302:sleep"}, {"x301:sleep": ("acute.debtH",),
+                                                            "x302:sleep": ("acute.debtH",)})
+
+
+@job
+def j_adm_x34():
+    return _jobs_of({"x341:mood", "x342:mood", "x343:mood"}, {"x343:mood": ("UNHAPPINESS",)})
+
+
+ADM_JOB = {}
+for _a in ADMISSIONS:
+    _r = _a[1]
+    ADM_JOB[_a[0]] = ("j_adm_x36" if _r in ("x361", "x362", "x363", "x364", "x405") else
+                      "j_adm_x27" if _r in ("x271", "x272", "x276") else
+                      "j_adm_x28" if _r.startswith("x28") else
+                      "j_adm_x29_x30" if _r in ("x291", "x301", "x302") else "j_adm_x34")
 
 
 @job
 def j_sh2():
-    """x276 (SH2): the admission test, and the HEAD replay of its live events (six meals, S0_*) against its three-meal
-    arm (x27_grade.row8's arm: the six S0_ eats replaced by three TKX.Mixed667 at 08:00 + 5 h k of day 0, world age
-    25 + 5k): the time-weighted mean HUNGER over the 24 h from world age 25 (x27_energy_lib.mean_over)."""
-    RL = _rl()
-    rec, _ = admission("x276", False, dict(DEFAULT_TOL))
+    """SH2: the HEAD replay of x276's live events (six meals, S0_*) against its three-meal arm (x27_grade.row8's arm:
+    the six S0_ eats replaced by three TKX.Mixed667 at 08:00 + 5 h k of day 0, world age 25 + 5k): the time-weighted
+    mean HUNGER over the 24 h from world age 25 (x27_energy_lib.mean_over)."""
     d = os.path.join(REPO, "testing", "artifacts", RUN["x276"])
-    ring, paths = _ring(d)
     ev = _json(d, "events.json")
-    kw = dict(paths=paths, user="admin", player=_json(d, "player.json"), start_stats=_json(d, "start-stats.json"),
-              sleep_allowed=False)
-    six, _ = RL.replay_live(ring, ev, _json(d, "start.json"), **kw)
+    six, _ = replay_of("x276", False)
     t0 = 25.0
     base = [e for e in ev if not str(e.get("label", "")).startswith("S0_")]
     three_ev = [{"age": t0 + 5.0 * k, "kind": "eat", "food": "TKX.Mixed667", "label": "T6_%d" % k} for k in range(3)]
-    three, _ = RL.replay_live(ring, base + three_ev, _json(d, "start.json"), **kw)
-    return {"rec": rec, "six": mean_over(six, t0, 1440), "three": mean_over(three, t0, 1440),
-            "loads": True}
+    three, _ = replay_of("x276", False, base + three_ev)
+    return {"six": mean_over(six, t0, 1440), "three": mean_over(three, t0, 1440), "loads": True}
 
 
 def mean_over(rows, after_age, minutes, field="HUNGER"):
@@ -582,60 +748,6 @@ def mean_over(rows, after_age, minutes, field="HUNGER"):
     return acc / span if span > 0 else None
 
 
-@job
-def j_adm_x28():
-    """x281-x284 (ST2), graded twice: the record's sodium balance (ST2-m-live-na) and plasma sodium (-plasma)."""
-    out = {}
-    for run in ("x281", "x282", "x283", "x284"):
-        out[run] = {"rec": admission(run, False, dict(SODIUM_TOL))[0]}
-        out[run + ":plasma"] = {"rec": admission(run, False, dict(PLASMA_TOL))[0]}
-    return out
-
-
-@job
-def j_adm_x29():
-    return {"x291": {"rec": admission("x291", False, dict(S_TOL))[0]}}
-
-
-@job
-def j_adm_x30():
-    out = {}
-    for run in ("x301", "x302"):
-        rec, kept = admission(run, True, dict(DEBT_TOL), keep=("acute.debtH",))
-        out[run] = {"rec": rec, "rows": kept}
-    return out
-
-
-@job
-def j_adm_x34():
-    K = KHost().K
-    tol = mood_tol(float(K.hybrid.FLOOR_EPS))
-    out = {}
-    for run in ("x341", "x342", "x343"):
-        rec, kept = admission(run, False, tol, keep=("UNHAPPINESS",) if run == "x343" else ())
-        out[run] = {"rec": rec, "rows": kept}
-    return out
-
-
-def adm(run):
-    """The admission record of a run, and a check against ADMISSION_EXPECT."""
-    src = {"x361": "j_adm_x36", "x363": "j_adm_x36", "x364": "j_adm_x36", "x271": "j_adm_x27", "x272": "j_adm_x27",
-           "x276": "j_sh2", "x281": "j_adm_x28", "x282": "j_adm_x28", "x283": "j_adm_x28", "x284": "j_adm_x28",
-           "x281:plasma": "j_adm_x28", "x282:plasma": "j_adm_x28", "x283:plasma": "j_adm_x28",
-           "x284:plasma": "j_adm_x28",
-           "x291": "j_adm_x29", "x301": "j_adm_x30", "x302": "j_adm_x30", "x341": "j_adm_x34", "x342": "j_adm_x34",
-           "x343": "j_adm_x34"}
-    if run in src:
-        r = result(src[run])
-        rec = r["rec"] if run == "x276" else r[run]["rec"]
-    else:
-        rec = OTHER_ADMISSIONS[run]()
-    if rec["admitted"] != ADMISSION_EXPECT[run]:
-        raise D.ProvenanceError("admission of %s is %s at HEAD, pinned %s: re-rule its live series and DROPPED"
-                                % (run, rec["admitted"], ADMISSION_EXPECT[run]))
-    return rec
-
-
 def _adm_x37():
     """x37's billed MET (SX1-m-live): every bill of x371's sets against the HEAD EXERCISE_MET of its type, exactly."""
     K = KHost().K
@@ -644,9 +756,10 @@ def _adm_x37():
     miss = 0.0
     for t, b in zip(types, billed):                      # [*][*] reads flat, one leaf per bill
         miss = max(miss, abs(float(K.energy.EXERCISE_MET[t]) - b))
-    return {"kind": "admission", "run": RUN["x37g"], "quantity": ["billed MET (K.energy.EXERCISE_MET at HEAD)"],
-            "tolerance": {"billed MET": ["abs", 0.0]}, "max_miss": {"billed MET": miss},
-            "n": {"billed MET": len(billed)}, "admitted": miss == 0.0 and len(types) == len(billed) > 0}
+    q = "billed MET"
+    return {"run": RUN["x37g"], "quantity": [q], "tolerance": {q: ["abs", 0.0]}, "max_miss": {q: miss},
+            "n": {q: len(billed)}, "admitted": miss == 0.0 and len(types) == len(billed) > 0,
+            "tolerance_source": "named here: exact, a table read (K.energy.EXERCISE_MET at HEAD)"}
 
 
 def _adm_x401():
@@ -656,9 +769,10 @@ def _adm_x401():
     mass = read("x401", "accept.json", "verdicts.OF.observed.rows[*].server_mass")
     lv = read("x401", "accept.json", "verdicts.OF.observed.rows[*].levels")
     miss = max(abs(float(K.view.fullnessLevel(m)) - v) for m, v in zip(mass, lv))
-    return {"kind": "admission", "run": RUN["x401"], "quantity": ["Overfull level (K.view.fullnessLevel at HEAD)"],
-            "tolerance": {"level": ["abs", 0.0]}, "max_miss": {"level": miss}, "n": {"level": len(mass)},
-            "admitted": miss == 0.0}
+    q = "Overfull level"
+    return {"run": RUN["x401"], "quantity": [q], "tolerance": {q: ["abs", 0.0]}, "max_miss": {q: miss},
+            "n": {q: len(mass)}, "admitted": miss == 0.0,
+            "tolerance_source": "named here: exact, a level (K.view.fullnessLevel at HEAD)"}
 
 
 def scurvy_drain(h):
@@ -679,22 +793,135 @@ def _adm_x161b():
     d, code = scurvy_drain(KHost())
     pred = read("x161b", "body.json", "summaries.I.pred_per_game_h")
     miss = abs(-d * 60.0 - pred)
-    return {"kind": "admission", "run": RUN["x161b"], "quantity": ["scurvy drain a game hour (K.effects.drain at HEAD)"],
-            "tolerance": {"drain": ["abs", 1e-9]}, "max_miss": {"drain": miss}, "n": {"drain": 1},
-            "admitted": miss <= 1e-9 and code == 2}
+    q = "scurvy drain a game hour"
+    return {"run": RUN["x161b"], "quantity": [q], "tolerance": {q: ["abs", 1e-9]}, "max_miss": {q: miss},
+            "n": {q: 1}, "admitted": miss <= 1e-9 and code == 2,
+            "tolerance_source": "named here: 1e-9, the HEAD drain against the run's own prediction of it"}
 
 
-OTHER_ADMISSIONS = {"x37g": _adm_x37, "x401": _adm_x401, "x161b": _adm_x161b}
+PICK_NAME = {None: None, "strong": "STRONG", "weak": "WEAK", "feeble": "FEEBLE", "stout": "STOUT", "obese": "OBESE",
+             "overweight": "OVERWEIGHT", "underweight": "UNDERWEIGHT", "veryunderweight": "VERY_UNDERWEIGHT"}
+
+
+def _adm_x436():
+    """x436's creation bodies (S5a-m-live, S5c-m-live), cases a-f: the HEAD K.body.create of each case's picks against
+    the record's lean and fat, the level written at creation (K.strength.heldLevel of its level at T 1) against the
+    client's, and the start energy state K.deficit.state(0, fatDep) against the server's within the run's 0.02."""
+    h = KHost()
+    K = h.K
+    P = K.strength.DEFAULTS
+    miss = {"lean and fat": 0.0, "level": 0.0, "es": 0.0}
+    for c in "abcdef":
+        body = read("x436", "creation.json", "verdicts.36_%s_body.observed.record.{lm,fm}" % c)
+        musc = read("x436", "creation.json", "verdicts.36_%s_body.observed.expect.muscle" % c)
+        wt = read("x436", "creation.json", "verdicts.36_%s_body.observed.expect.weightPick" % c)
+        lv = read("x436", "creation.json", "verdicts.36_%s_xp.observed.client_level" % c)
+        es = read("x436", "creation.json", "verdicts.36_%s_hunger.observed.es" % c)
+        spec = K.body.create(PICK_NAME[musc], PICK_NAME[wt], P, 1, 0)
+        miss["lean and fat"] = max(miss["lean and fat"], abs(float(spec.lm) - body[0]), abs(float(spec.fm) - body[1]))
+        L = K.strength.level(spec.lm, spec.N0, 1, P)
+        miss["level"] = max(miss["level"], abs(float(K.strength.heldLevel(L, None)[0]) - lv))
+        dep = (float(spec.fmRef) - float(spec.fm)) / float(spec.fmRef)
+        miss["es"] = max(miss["es"], abs(float(K.deficit.state(0, dep)) - es))
+    tol = {"lean and fat": ["abs", 1e-9], "level": ["abs", 0.0], "es": ["abs", 0.02]}
+    return {"run": RUN["x436"], "quantity": sorted(tol), "tolerance": tol, "max_miss": miss,
+            "n": {q: 6 for q in tol}, "admitted": all(miss[q] <= tol[q][1] for q in tol),
+            "tolerance_source": "the run's own: x436's verdicts (the record equal to the staged K.body.create, the "
+                                "level equal, the energy state within its tol 0.02)"}
+
+
+OTHER_FN = {"x37g:met": _adm_x37, "x401:level": _adm_x401, "x161b:drain": _adm_x161b, "x436:creation": _adm_x436}
+
+
+def adm(key):
+    """The VALIDATION record of an admission key: the graded record with its tolerance source, the live series it
+    admits (`draws`) and the kernel series it proves (`proves`), checked against ADMISSION_EXPECT."""
+    if key in OTHER:
+        rec = dict(OTHER_FN[key]())
+        rec["draws"], rec["proves"] = list(OTHER[key][0]), list(OTHER[key][1])
+    else:
+        a = next(x for x in ADMISSIONS if x[0] == key)
+        rec = dict(result(ADM_JOB[key])[key]["rec"])
+        rec["tolerance_source"] = a[4]
+        rec["draws"], rec["proves"] = list(a[5]), list(a[6])
+    rec["kind"] = "admission"
+    rec["key"] = key
+    if rec["admitted"] != ADMISSION_EXPECT[key]:
+        raise D.ProvenanceError("admission %s is %s at HEAD, pinned %s: re-rule its live series and DROPPED"
+                                % (key, rec["admitted"], ADMISSION_EXPECT[key]))
+    return rec
+
+
+def adm_rows(key):
+    return result(ADM_JOB[key])[key]["rows"]
+
+
+def admitted(sid):
+    """Whether every admission that draws the live series sid admits it (S3b's days are drawn per run)."""
+    recs = [adm(k) for k in ADMISSION_EXPECT if sid in (OTHER[k][0] if k in OTHER else
+                                                         next(a for a in ADMISSIONS if a[0] == k)[5])]
+    return bool(recs) and all(r["admitted"] for r in recs)
+
+
+def proofs_failing(sid):
+    """The admission keys whose run proves the kernel series sid and fails at HEAD."""
+    out = []
+    for k in ADMISSION_EXPECT:
+        proves = OTHER[k][1] if k in OTHER else next(a for a in ADMISSIONS if a[0] == k)[6]
+        if sid in proves and not adm(k)["admitted"]:
+            out.append(k)
+    return out
 
 
 def admissions():
-    """Every admission record, ordered by its ADMISSION_EXPECT key (run, then a second quantity's suffix), for
-    VALIDATION."""
-    return [adm(r) for r in sorted(ADMISSION_EXPECT)]
+    """Every admission record, ordered by key, for VALIDATION; DROPPED must name exactly the live series an
+    admission rejects (S3b's x343 days aside: drawn per run), plus the two dropped for other reasons."""
+    recs = [adm(k) for k in sorted(ADMISSION_EXPECT)]
+    rejected = {s for r in recs if not r["admitted"] for s in r["draws"]}
+    rejected -= {"S3b-m-live-U", "S3b-m-live-B"}
+    want = set(DROPPED) - {"ST1-m-live", "S2d-m-drain"}
+    if rejected != want:
+        raise D.ProvenanceError("DROPPED %s does not match the failed admissions %s" % (sorted(want), sorted(rejected)))
+    return recs
+
+
+VIAB = {}
 
 
 def fill_validation():
-    VALIDATION[:] = [v for v in VALIDATION if v.get("kind") != "admission"] + admissions()
+    """VALIDATION: the admission records, then each replay job's viability (rule R-1), kind "viability"."""
+    viab = [dict(v, kind="viability", job=j) for j, v in sorted(VIAB.items())]
+    VALIDATION[:] = [v for v in VALIDATION if v.get("kind") not in ("admission", "viability")] + admissions() + viab
+
+
+def viable(name, sid_job, death=False, thirst=False):
+    """The viability of a job's replay, asserted (rule R-1) and kept for VALIDATION."""
+    v = result(sid_job)["viab"]
+    VIAB[sid_job] = dict(v, series_death=death, thirst_scenario=thirst, bound=DEHYD_BOUND)
+    return assert_viable(name, v, death, thirst)
+
+
+# the replay job behind each kernel series drawn off a multi-minute server replay (rule R-1's test reads it)
+SERIES_JOB = {
+    "H1-m-kernel": "j_h1", "H2-m-fat": "j_h2", "H2-m-lean": "j_h2", "H2-m-total": "j_h2", "S1a-m-kernel": "j_s1a",
+    "S1b-m-kernel": "j_s1b", "S1c-m-kernel": "j_s1c", "ST1-m-kernel": "j_s1c", "S2a-m-kernel": "j_s2a",
+    "S2b-m-kernel": "j_s2b", "S2c-m-kernel": "j_s2c", "S2d-m-mass": "j_s2d", "S3a-m-pool": "j_s3a",
+    "S3a-m-grade": "j_s3a", "S3c-m-pool": "j_s3c", "S3b-m-kernel-U": "j_s3b", "S5b-m-strong-level": "j_s5b_strong",
+    "S5b-m-weak-level": "j_s5b_weak", "S5b-m-none-level": "j_s5b_none", "S5b-m-gaunt-weight": "j_s5b_gaunt",
+    "S5b-m-overfat-weight": "j_s5b_overweight", "S5b-m-none-weight": "j_s5b_none", "S5c-m-gaunt": "j_s5b_gaunt",
+    "S5c-m-none": "j_s5b_none", "S6a-m-day1": "j_s6a", "S6a-m-day14": "j_s6a", "S6b-m-bac": "j_s6b",
+    "S6b-m-intox": "j_s6b", "S6b-m-hangover": "j_s6b", "S6c-m-kernel": "j_s6c", "SX2-m-kernel": "j_sx2",
+}
+THIRST_JOBS = ("j_s1c",)                     # no drink by design: alive, any dehydration
+
+
+def proof_note(sid):
+    """m-7: a kernel series whose proof runs fail the admission test at HEAD says so."""
+    bad = proofs_failing(sid)
+    if not bad:
+        return ""
+    return ("Its proof run%s fail%s the admission test at HEAD (VALIDATION %s); no passing proof run exists for it."
+            % ("s" if len(bad) > 1 else "", "" if len(bad) > 1 else "s", ", ".join(bad)))
 
 
 # ======================================================================================================================
@@ -705,31 +932,36 @@ def _ks(start, stop, step):
     return list(range(start, stop, step))
 
 
+def _done(rows, be, out):
+    out["viab"] = viability(rows, be.K)
+    return out
+
+
 @job
 def j_h1():
-    """H1: a fresh record from 07:00 with no food until the written HUNGER first reaches 0.25 (replay_live
+    """H1: a fresh record from 07:00 with water and no food until the written HUNGER first reaches 0.25 (replay_live
     request_minute), then a whole Base.CannedBologneseOpen at that minute, 6 h after."""
     RL = _rl()
-    rows, _ = server_run([], DAY_MIN)
+    rows, _ = server_run(autodrops(1), DAY_MIN)
     m = int(round(RL.request_minute(rows, 0.0)))
-    rows, _ = server_run([eat(m, "Base.CannedBologneseOpen")], m + 361, ("satiety.M", "body.energyState"))
+    ev = [e for e in autodrops(1) if e["minute"] < m + 361] + [eat(m, "Base.CannedBologneseOpen")]
+    rows, be = server_run(ev, m + 361, ("satiety.M", "body.energyState"))
     pts = pick(rows, [m - 1] + _ks(m, m + 361, 10), "HUNGER")
-    return {"request_minute": m, "points": [[age - m / 60.0, h] for _, age, h in pts]}
+    return _done(rows, be, {"request_minute": m, "points": [[age - m / 60.0, h] for _, age, h in pts]})
 
 
 @job
 def j_h2():
-    """H2: 30 days of three 500 kcal mixed meals at 07, 12 and 18 and 600 g of water at 08, 12, 16 and 20."""
-    ev = [{"minute": d * DAY_MIN + m, "kind": "meal", "size": 500.0, "comp": MIXED} for d in range(30)
-          for m in (0, 300, 660)] + autodrops(30)
-    rows, _ = server_run(ev, 30 * DAY_MIN, ("body.fm", "body.lm", "body.lx"))
-    return {"days": pick(rows, day_ends(30), "body.fm", "body.lm", "body.lx")}
+    """H2: 30 days of three 500 kcal plate meals at 07, 12 and 18 and the replay's water."""
+    ev = [plate_meal(d * DAY_MIN + m, 500.0) for d in range(30) for m in (0, 300, 660)] + autodrops(30)
+    rows, be = server_run(ev, 30 * DAY_MIN, ("body.fm", "body.lm", "body.lx"))
+    return _done(rows, be, {"days": pick(rows, day_ends(30), "body.fm", "body.lm", "body.lx")})
 
 
 @job
 def j_s1a():
-    rows, _ = server_run([eat(m, "Base.TunaTinOpen") for m in TUNA_MIN], DAY_MIN)
-    return {"points": [[age, h] for _, age, h in pick(rows, [0] + _ks(9, DAY_MIN, 10), "HUNGER")]}
+    rows, be = server_run([eat(m, "Base.TunaTinOpen") for m in TUNA_MIN] + autodrops(1), DAY_MIN)
+    return _done(rows, be, {"points": [[age, h] for _, age, h in pick(rows, [0] + _ks(9, DAY_MIN, 10), "HUNGER")]})
 
 
 SIG = "_G.NutritionRevamp.server.bus.lastSig.admin"
@@ -737,52 +969,103 @@ SIG = "_G.NutritionRevamp.server.bus.lastSig.admin"
 
 @job
 def j_s1b():
-    rows, _ = server_run([], 36 * 60, (SIG,))
-    return {"points": [[age, int(s // 1000) % 10] for _, age, s in pick(rows, [0] + _ks(9, 36 * 60, 10), SIG)]}
+    rows, be = server_run(autodrops(2), 36 * 60, (SIG,))
+    return _done(rows, be, {"points": [[age, int(s // 1000) % 10]
+                                       for _, age, s in pick(rows, [0] + _ks(9, 36 * 60, 10), SIG)]})
 
 
 @job
 def j_s1c():
-    rows, _ = server_run([], DAY_MIN, ("fluids.thirstTarget",))
-    return {"points": [[age, t] for _, age, t in pick(rows, [0] + _ks(9, DAY_MIN, 10), "THIRST")]}
+    """S1c and ST1: thirst without a drink, by design (the guard holds it alive, any dehydration)."""
+    rows, be = server_run([], DAY_MIN, ("fluids.thirstTarget",))
+    return _done(rows, be, {"points": [[age, t] for _, age, t in pick(rows, [0] + _ks(9, DAY_MIN, 10), "THIRST")]})
+
+
+def fast_events(plan, days):
+    """An oracle meal plan {minute: size} as plate meals, with the replay's water every day."""
+    ev = [plate_meal(m, k) for m, k in sorted(plan.items())]
+    ev += [{"minute": d * DAY_MIN + 8 * 60 + m, "kind": "autodrop", "g": AUTODROP_G} for d in range(days)
+           for m in AUTODROP_MIN]
+    return ev
 
 
 @job
 def j_s2a():
     """S2a: test_replay_live_oracle.fast_plans()'s fast arm (three warm maintenance days, day 0 at maintenance, day 1
-    skipped, days 2-3 at the request) on the default body, sleep off, on the oracle's clock (minute 0 is 00:00)."""
+    skipped, days 2-3 at the request) as plate meals with water, on the default body, sleep off, on the oracle's clock
+    (minute 0 is 00:00; water every 2 h from 09:00)."""
     O = _kt("test_replay_live_oracle")
     M = _kt("test_satiety_meal_studies")
     _, fast, days = O.fast_plans()
-    ev = [{"minute": m, "kind": "meal", "size": k} for m, k in sorted(fast.items())]
-    rows, _ = server_run(ev, days * DAY_MIN, ("body.energyState",), hour_offset=0.0)
+    rows, be = server_run(fast_events(fast, days), days * DAY_MIN, ("body.energyState",), hour_offset=0.0)
     last = M.at_hour(0, 20)
     ks = [k for k in range(len(rows)) if -12 * 60 <= k + 1 - last <= 60 * 60 and (k + 1 - last) % 10 == 0]
-    return {"last_meal_minute": last, "points": [[(k + 1 - last) / 60.0, h] for k, _, h in pick(rows, ks, "HUNGER")]}
+    return _done(rows, be, {"last_meal_minute": last,
+                            "points": [[(k + 1 - last) / 60.0, h] for k, _, h in pick(rows, ks, "HUNGER")]})
+
+
+def _oracle_arm(plan, days, extra=(), player=None):
+    """An energy-oracle arm on the server path as the oracles run it (asleep 23:00-07:00, test_replay_live_oracle's
+    sleep_events, sleep on), its meals plates and the replay's water added: (rows, backend)."""
+    O = _kt("test_replay_live_oracle")
+    ev = O.sleep_events(days) + fast_events(plan, days) + list(extra)
+    return server_run(ev, days * DAY_MIN, player=player, hour_offset=0.0, sleep_allowed=True)
 
 
 @job
 def j_s2b():
-    E = _kt("test_replay_live_energy")
-    r = E.fast_server()
-    return {"r2": r["r2"], "r3": r["r3"]}
+    """S2b: test_replay_live_energy.fast_server()'s two arms (fed, and the 36 h fast) on its 70 kg man, as plates
+    with water: the day-2 and day-3 intake ratios."""
+    RL = _rl()
+    O = _kt("test_replay_live_oracle")
+    M = _kt("test_satiety_meal_studies")
+    fed, fast, days = O.fast_plans()
+    man = {"weight": 70.0, "female": False}
+    rf, bf = _oracle_arm(fed, days, player=man)
+    rx, bx = _oracle_arm(fast, days, player=man)
+    W = M.FAST_WARM_DAYS
+    i_fed, i_fast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
+    vf, vx = viability(rf, bf.K), viability(rx, bx.K)
+    worst = max((vf, vx), key=lambda v: (v["lethal"] is not None, v["max_dehydPct"]))
+    return {"r2": i_fast[W + 2] / i_fed[W + 2], "r3": i_fast[W + 3] / i_fed[W + 3], "viab": worst}
+
+
+S1254_DEP = (0.0, 0.05, 0.25, 0.40, 0.55)
 
 
 @job
 def j_s2c():
+    """S2c: test_replay_live_energy.fat_loss_intake()'s protocol (the no-trait body's fat set fmRef x (1 - dep) at
+    minute 2, day 0 at maintenance, days 1-4 at the request, sleep 23:00-07:00) as plates with water: the mean intake
+    over days 2-4 at each depletion and the kg of fat lost."""
+    RL = _rl()
     E = _kt("test_replay_live_energy")
+    M = _kt("test_satiety_meal_studies")
     h = KHost()
-    f = E.fat_loss_server(h)
     fm_ref = h.call("body.create", None, None, h.K.strength.DEFAULTS, 1)["fm"]
-    return {"base": f["base"], "low": f["low"], "low_kg": fm_ref * E.S1254_LOW, "kg": list(f["kg"]),
-            "intake": list(f["intake"]), "slope": f["slope"]}
+    days = E.S1254_DAYS
+    out, worst = [], None
+    for dep in S1254_DEP:
+        plan = {int(d * 1440 + hh * 60): ("maint" if d == 0 else "request") for d in range(days)
+                for hh in M.FAST_MEAL_H}
+        extra = [{"minute": 2, "kind": "setpath", "path": "body.fm", "value": fm_ref * (1 - dep)}]
+        rows, be = _oracle_arm(plan, days, extra, player={"female": False})
+        by = RL.intake_by_day(be.eats)
+        out.append([fm_ref * dep, sum(by[d] for d in E.S1254_READ) / len(E.S1254_READ)])
+        v = viability(rows, be.K)
+        if worst is None or (v["lethal"] is not None, v["max_dehydPct"]) > (worst["lethal"] is not None,
+                                                                             worst["max_dehydPct"]):
+            worst = v
+    return {"points": out, "viab": worst}
 
 
 @job
 def j_s2d():
-    rows, _ = server_run(autodrops(90), 90 * DAY_MIN, ("body.fm", "body.lm", "body.lx"))
-    return {"days": pick(rows, day_ends(90), "body.fm", "body.lm", "body.lx"),
-            "hunger_max": max(r["HUNGER"] for r in rows)}
+    """S2d: no food, the replay's water, 90 days (the lines end at the death, rule R-1)."""
+    rows, be = server_run(autodrops(90), 90 * DAY_MIN, ("body.fm", "body.lm", "body.lx", "acute.bmi"))
+    days = pick(rows, day_ends(90), "body.fm", "body.lm", "body.lx", "acute.bmi")
+    codes = sorted({int(r["effects.lethal"]) for r in rows if r.get("effects.lethal")})
+    return _done(rows, be, {"days": days, "hunger_max": max(r["HUNGER"] for r in rows), "codes": codes})
 
 
 def _nutrient_keys():
@@ -798,7 +1081,7 @@ def _tuna_days(days):
 def _grades(days, ev):
     keys = _nutrient_keys()
     paths = ["nutrients.%s.p" % k for k in keys] + ["nutrients.%s.g" % k for k in keys]
-    rows, _ = server_run(ev, days * DAY_MIN, paths)
+    rows, be = server_run(ev, days * DAY_MIN, paths)
     ends = day_ends(days)
     out = {"vitC_p": pick(rows, ends, "nutrients.vitC.p"), "vitC_g": pick(rows, ends, "nutrients.vitC.g")}
     first2 = {}
@@ -808,12 +1091,12 @@ def _grades(days, ev):
                 first2[k] = age / 24.0
                 break
     out["first_grade2_day"] = first2
-    return out
+    return _done(rows, be, out)
 
 
 @job
 def j_s3a():
-    """S3a: four Base.TunaTinOpen a day at 08, 12, 16 and 20 and the long replay's water, 60 days."""
+    """S3a: four Base.TunaTinOpen a day at 08, 12, 16 and 20 and the replay's water, 60 days."""
     return _grades(60, _tuna_days(60))
 
 
@@ -832,12 +1115,13 @@ VARIED = ("Base.Bread", "Base.CannedBologneseOpen", "Base.Burger", "Base.Apple",
 
 @job
 def j_s3b():
-    """S3b: four Base.TunaTinOpen a day for 7 days, then 7 days of four foods a day rotating through VARIED."""
+    """S3b: four Base.TunaTinOpen a day for 7 days, then 7 days of four foods a day rotating through VARIED, water."""
     ev = [eat(d * DAY_MIN + m, "Base.TunaTinOpen") for d in range(7) for m in TUNA_MIN]
     ev += [eat(d * DAY_MIN + m, VARIED[(d * 4 + i) % len(VARIED)]) for d in range(7, 14)
            for i, m in enumerate(TUNA_MIN)]
-    rows, _ = server_run(ev + autodrops(14), 14 * DAY_MIN)
-    return {"points": [[age / 24.0, u] for _, age, u in pick(rows, [0] + _ks(119, 14 * DAY_MIN, 120), "UNHAPPINESS")]}
+    rows, be = server_run(ev + autodrops(14), 14 * DAY_MIN)
+    return _done(rows, be, {"points": [[age / 24.0, u] for _, age, u in
+                                       pick(rows, [0] + _ks(119, 14 * DAY_MIN, 120), "UNHAPPINESS")]})
 
 
 # S5b's bodies: the stand-in's traits and the native Strength level vanilla's applyTraits left (JT1: Strong 9, Weak 0,
@@ -858,7 +1142,7 @@ def _s5b(name):
     for k, age, fm, lm, lx, n0, T, wrote, es in pick(rows, day_ends(90), "body.fm", "body.lm", "body.lx", "body.N0",
                                                       "body.T", "body.wroteL", "body.energyState"):
         days.append([age / 24.0, fm, lm, lx, float(K.strength.level(lm, n0, T, P)), wrote, es])
-    return {"days": days}
+    return _done(rows, be, {"days": days})
 
 
 @job
@@ -891,15 +1175,16 @@ COFFEE_MIN = (60, 300, 540)            # 08:00, 12:00, 16:00
 
 @job
 def j_s6a():
+    """S6a: 0.25 L of Coffee at 08, 12 and 16 every day for 14 days, plate meals at the request and the water."""
     ev = [{"minute": d * DAY_MIN + m, "kind": "drink", "fluid": "Coffee", "litres": 0.25} for d in range(14)
-          for m in COFFEE_MIN]
-    rows, _ = server_run(ev, 14 * DAY_MIN, ("acute.caf", "effects.fOff", "acute.cafTol"))
+          for m in COFFEE_MIN] + request_meals(14) + autodrops(14)
+    rows, be = server_run(ev, 14 * DAY_MIN, ("acute.caf", "effects.fOff", "acute.cafTol"))
     out = {}
     for name, d in (("day1", 0), ("day14", 13)):
         ks = [d * DAY_MIN + k for k in [0] + _ks(9, DAY_MIN, 10)]
         out[name] = [[age - 24.0 * d, c, f] for _, age, c, f in pick(rows, ks, "acute.caf", "effects.fOff")]
     out["tol14"] = rows[14 * DAY_MIN - 1]["acute.cafTol"]
-    return out
+    return _done(rows, be, out)
 
 
 BEER_MIN = (60, 80, 100, 120)          # four 0.3 L beers from 08:00, one every 20 minutes
@@ -907,10 +1192,10 @@ BEER_MIN = (60, 80, 100, 120)          # four 0.3 L beers from 08:00, one every 
 
 @job
 def j_s6b():
-    ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in BEER_MIN]
-    rows, _ = server_run(ev, DAY_MIN, ("acute.bac", "effects.intoxTarget", "acute.hang", "acute.hangH"))
+    ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in BEER_MIN] + autodrops(1)
+    rows, be = server_run(ev, DAY_MIN, ("acute.bac", "effects.intoxTarget", "acute.hang", "acute.hangH"))
     pts = pick(rows, [0] + _ks(9, DAY_MIN, 10), "acute.bac", "effects.intoxTarget", "acute.hang")
-    return {"points": [p for p in pts if None not in p]}     # the first drain's record carries no effects yet
+    return _done(rows, be, {"points": [p for p in pts if None not in p]})   # the first drain carries no effects yet
 
 
 SHORT_NIGHT = 1                        # the night after day 1 runs 03:00-07:00
@@ -927,14 +1212,14 @@ def _s6c_sleep(days):
 
 @job
 def j_s6c():
-    """S6c: sleep on; nights 23:00-07:00 except the night after day 1 (03:00-07:00); meals at the request."""
+    """S6c: sleep on; nights 23:00-07:00 except the night after day 1 (03:00-07:00); plate meals at the request."""
     days = 4
     ev = _s6c_sleep(days) + request_meals(days) + autodrops(days)
     rows, be = server_run([e for e in ev if e["minute"] < days * DAY_MIN], days * DAY_MIN, ("acute.debtH",),
                           sleep_allowed=True)
     K = be.K
-    return {"points": [[age / 24.0, float(K.satiety.sleepFactor(d)), d]
-                       for _, age, d in pick(rows, [0] + _ks(59, days * DAY_MIN, 60), "acute.debtH")]}
+    return _done(rows, be, {"points": [[age / 24.0, float(K.satiety.sleepFactor(d)), d]
+                                       for _, age, d in pick(rows, [0] + _ks(59, days * DAY_MIN, 60), "acute.debtH")]})
 
 
 EXE_PATH = "_G.NutritionRevamp.server.fitness.exeType.admin"
@@ -948,11 +1233,12 @@ def j_sx2():
           {"minute": SET_START + SET_MIN, "kind": "activity", "exercising": False},
           {"minute": SET_START + SET_MIN, "kind": "setpath", "path": EXE_PATH, "value": None}]
     end = SET_START + SET_MIN + 121
-    rows, _ = server_run(ev, end, ("satiety.S", "body.met"))
+    ev += [e for e in autodrops(1) if e["minute"] < end]
+    rows, be = server_run(ev, end, ("satiety.S", "body.met"))
     mets = sorted({r["body.met"] for r in rows[SET_START:SET_START + SET_MIN]})
     after = [[k + 1 - (SET_START + SET_MIN), h, s] for k, _, h, s in
              pick(rows, _ks(SET_START + SET_MIN - 1, end, 5), "HUNGER", "satiety.S")]
-    return {"set_mets": mets, "start_hunger": rows[SET_START - 1]["HUNGER"], "points": after}
+    return _done(rows, be, {"set_mets": mets, "start_hunger": rows[SET_START - 1]["HUNGER"], "points": after})
 
 
 @job
@@ -995,12 +1281,13 @@ def vanilla_strength(days, factor, events, start_level=5):
 
 @job
 def j_vanilla_s4b():
-    """Ten years at 20 sets a week, the protein factor pinned at 1.5: every 7th day, the first day at level 10 and
-    the first day after it below 10 (rust returning once a capped set's XP is discarded), off the daily points."""
+    """Ten years at 20 sets a week, the protein factor pinned at 1.5: each week's lowest daily level (m-4: the weekly
+    sampling hid the rust dip), the first day at level 10 and the first day after it below 10."""
     days = vanilla_strength(3650, 1.5, sets_events(3650))
     reach = next(d for d, lv, _ in days if lv >= 10)
     dip = next((d for d, lv, _ in days if d > reach and lv < 10), None)
-    return {"days": days[::7], "reach": reach, "dip": dip}
+    weekly = [[days[i][0], min(x[1] for x in days[i:i + 7])] for i in range(0, len(days), 7)]
+    return {"weekly_min": weekly, "reach": reach, "dip": dip}
 
 
 @job
@@ -1072,10 +1359,9 @@ def every_n(pts, n):
 def s_h1():
     r = VM.simulate({"hours": 6.0, "dt_min": 10.0, "start": {"hunger": 0.25},
                      "events": [{"t_h": 0.0, "kind": "eat", "hunger_script": -24.0}]})
-    b = VM.simulate({"hours": 1.0, "dt_min": 1.0, "start": {"hunger": 0.10},
-                     "events": [{"t_h": 0.0, "kind": "eat", "hunger_script": -24.0}]})
-    freeze = next(t for t, x in b["food_timer"] if t > 0 and x <= 0.0) * 60.0
+    freeze = 0.24 * VM.FOOD_TIMER_PER_HUNGER / VM.food_timer_decay_per_s(90.0) / 60.0
     k = result("j_h1")
+    viable("H1-m-kernel", "j_h1")
     return [
         series("H1-v-model", "Vanilla, from the game's code", H, HUNGER, "vanilla-model", r["hunger"],
                vmodel("VM1", "VM3", "VM4"),
@@ -1083,9 +1369,10 @@ def s_h1():
                "0.01, above its minimum, so the food-eaten timer is not filled and hunger rises at once. The second "
                "arm (an eat at 0.10, hunger to 0, timer 3120) freezes hunger for %.1f game minutes." % freeze),
         series("H1-m-kernel", "Nutrition Revamp, simulated by the mod's code", H, HUNGER, "kernel", k["points"],
-               kernel({"replay": "fresh record from 07:00, no food until the written HUNGER first reaches 0.25, then a "
-                                 "whole Base.CannedBologneseOpen", "request_minute": k["request_minute"],
-                       "eat": eat(0, "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x361"),
+               kernel({"replay": "fresh record from 07:00 with the replay's water, no food until the written HUNGER "
+                                 "first reaches 0.25, then a whole Base.CannedBologneseOpen",
+                       "request_minute": k["request_minute"], "water": [AUTODROP_G, list(AUTODROP_MIN)],
+                       "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x361"),
                "The mod's replay from the request (x = 0 the read at the request, before the eat). x361's live meal "
                "was a 650 kcal mixed TKX.Mixed650, not this one: its points are drawn on SH1."),
     ]
@@ -1093,22 +1380,38 @@ def s_h1():
 
 # ---- H2 --------------------------------------------------------------------------------------------------------------
 
-def _mixed_eat(t_h, kcal):
-    return {"t_h": t_h, "kind": "eat", "hunger_change": 0.0, "calories": kcal, "proteins": kcal * MIXED["p"] / 4,
-            "carbs": kcal * MIXED["c"] / 4, "lipids": kcal * MIXED["f"] / 9}
+def plate_macros():
+    """The plate's macros per kcal off the item pass's records (.per_item): {carbs, lipids, proteins} g a kcal."""
+    tot = {"calories": 0.0, "carbs": 0.0, "lipids": 0.0, "proteins": 0.0}
+    for pz in PLATE:
+        for k in tot:
+            tot[k] += food(pz)["per_item"][k]
+    return {k: tot[k] / tot["calories"] for k in ("carbs", "lipids", "proteins")}
+
+
+def _plate_eat(t_h, kcal):
+    m = plate_macros()
+    return {"t_h": t_h, "kind": "eat", "hunger_change": 0.0, "calories": kcal, "proteins": kcal * m["proteins"],
+            "carbs": kcal * m["carbs"], "lipids": kcal * m["lipids"]}
+
+
+WATER_NOTE = "water %.0f g every 2 game hours from 08:00 to 22:00" % AUTODROP_G
+PLATE_NOTE = ("Meals are plates of the guide's foods and an orange (%s), every vector from the mod's table; %s."
+              % (", ".join(p.split(".")[1] for p in PLATE), WATER_NOTE))
 
 
 def s_h2():
-    ev = [_mixed_eat(24.0 * d + h, 500.0) for d in range(30) for h in (0.0, 5.0, 11.0)]
+    ev = [_plate_eat(24.0 * d + h, 500.0) for d in range(30) for h in (0.0, 5.0, 11.0)]
     r = VM.simulate({"hours": 720.0, "dt_min": DAY_MIN, "start": {"weight_kg": 80.0, "calories": 0.0}, "events": ev})
     days = result("j_h2")["days"]
-    inp = {"replay": "30 days: meal events size 500 MIXED at 07, 12, 18; autodrop 600 g at 08, 12, 16, 20",
-           "read": "each 07:00 day close", "sleep_allowed": False}
-    note = "From the mod's no-trait creation body (lean 52.02 kg, fat 13.005 kg), sleep off."
+    viable("H2", "j_h2")
+    inp = {"replay": "30 days: plate meals of 500 kcal at 07, 12, 18 and the replay's water", "plate": list(PLATE),
+           "water": [AUTODROP_G, list(AUTODROP_MIN)], "read": "each 07:00 day close", "sleep_allowed": False}
+    note = "From the mod's no-trait creation body (lean 52.02 kg, fat 13.005 kg), sleep off. " + PLATE_NOTE
     return [
         series("H2-v-model", "Vanilla, from the game's code", DAYS, "kg", "vanilla-model",
                [[t / 24.0, w] for t, w in r["weight_kg"]], vmodel("VM6", "VM7", "VM8"),
-               "80 kg, calorie store 0, three 500 kcal mixed meals at 07, 12 and 18 (15/50/35 %% energy), awake idle "
+               "80 kg, calorie store 0, three 500 kcal meals of the same plate's macros at 07, 12 and 18, awake idle "
                "all day: the idle day burns %.1f kcal at 80 kg, so the store climbs past the 1000 kcal gain threshold."
                % (VM.burn_rate() * 86400)),
         series("H2-m-fat", "Fat mass, simulated by the mod's code", DAYS, "kg", "kernel",
@@ -1179,22 +1482,25 @@ def s_s4b():
     sched = [(3650,) + PERFECT]
     d = strength_days(sched, every=7)
     j = result("j_vanilla_s4b")
-    v, dip = j["days"], j["dip"]
+    v, dip = j["weekly_min"], j["dip"]
     h = KHost()
     K = h.K
     P = K.strength.DEFAULTS
     nat = float(K.strength.level(P.ffmiNaturalRaw * K.HEIGHT_M * K.HEIGHT_M, 1.0, P.Tmax, P))
     return [
         series("S4b-m-level", "Nutrition Revamp, perfect training", "game years", LEVEL, "kernel",
-               [[r[0] / 365.0, r[1]] for r in d], kernel(s_inputs(sched, every=7), "x435")),
+               [[r[0] / 365.0, r[1]] for r in d], kernel(s_inputs(sched, every=7), "x435"),
+               "The body's continuous level, which passes 10; the perk shown stops at 10."),
         series("S4b-m-cap", "The body's natural cap", "game years", LEVEL, "kernel",
                [[r[0] / 365.0, r[6]] for r in d],
-               kernel(s_inputs(sched, every=7, read="K.strength.level(body.Fc, body.N0, P.Tmax, P)"), "x435")),
+               kernel(s_inputs(sched, every=7, read="K.strength.level(body.Fc, body.N0, P.Tmax, P)"), "x435"),
+               "The continuous level at the cap, above 10; the perk shown stops at 10."),
         series("S4b-v-model", "Vanilla, protein factor 1.5", "game years", LEVEL, "vanilla-model",
-               [[day / 365.0, lv] for day, lv, _ in v], vmodel("VM11", "VM12"),
+               [[day / 365.0, lv] for day, lv in v], vmodel("VM11", "VM12"),
                "20 sets a week at the protein factor pinned at 1.5: level 10 on day %.0f, then capped (#2109). Once "
                "capped a set's XP is discarded, so the rust timer is no longer pushed back: from day %.0f rust takes "
-               "XP and the level dips from 10 to 9 between sets (code only, no live reading)." % (j["reach"], dip)),
+               "XP and the level dips from 10 to 9 between sets (code only, no live reading). Each point is its "
+               "week's lowest daily level." % (j["reach"], dip)),
         series("S4b-study", "Kouri 1995's natural limit", "game years", LEVEL, "study", [[0.0, nat], [10.0, nat]],
                study("S1915"),
                "Kouri's FFMI 25 kg/m2, normalised to 1.80 m, is %.2f at the mod's %.2f m (FFMI - 6.3 x (1.80 - "
@@ -1214,6 +1520,7 @@ def s_s4c():
         return 5 + 5 * (S - 1) / (R - 1)
 
     L365 = next(r[1] for r in d if r[0] == 365)
+    L785 = next(r[1] for r in d if r[0] == 785)
     S365 = 1 + (L365 - 5) * (R - 1) / 5
     return [
         series("S4c-m-kernel", "Nutrition Revamp", DAYS, LEVEL, "kernel", [[r[0], r[1]] for r in d],
@@ -1227,14 +1534,17 @@ def s_s4c():
                "the level does not move in the year (code only, no live reading)."),
         series("S4c-study-0618", "Detraining for 12 weeks, and the regain", DAYS, LEVEL, "study",
                [[365 + 84, lvl(0.95 * S365)], [365 + 84, lvl(0.85 * S365)], [730 + 56, L365]], study("S0618"),
-               "S0618's -5 to -15 % strength after 12 weeks of detraining, from the mod's day-365 strength on the "
-               "level scale (K.strength.level is linear in strength), and its under-8-week return to the trained "
-               "level on retraining, which the mod's fast regain rests on."),
+               "S0618 (older men, 12 weeks trained, then 12 weeks detrained): -5 to -15 %% strength after the 12 "
+               "weeks, drawn from the mod's day-365 strength on the level scale (K.strength.level is linear in "
+               "strength), and the trained level back within 8 weeks of retraining. The mod regains more slowly: "
+               "%.2f after 8 weeks of retraining against %.2f trained, %.2f by day 910. Its detraining runs 52 weeks, "
+               "so the timescales are not comparable." % (L785, L365, d[-1][1])),
         series("S4c-study-0078", "Strength after 20 weeks of detraining", DAYS, LEVEL, "study",
-               [[365 + 140, 5.0]], study("S0078"),
-               "S0078: after 20 weeks of detraining strength stayed above the untrained baseline (drawn as level 5) "
-               "while muscle size returned to it; on retraining, trained and untrained legs responded alike (no "
-               "muscle-memory advantage)."),
+               [[365 + 140, 5.0], [365 + 140, L365]], study("S0078"),
+               "S0078 (9 men, 10 women): after 20 weeks of detraining strength stayed above the untrained baseline "
+               "while muscle size returned to it, by an amount the row does not give: drawn as the range from the "
+               "baseline (level 5) to the trained level, never a value. On retraining, trained and untrained legs "
+               "responded alike (no muscle-memory advantage)."),
     ]
 
 
@@ -1316,20 +1626,28 @@ def s_s1a():
     ev = [{"t_h": h, "kind": "eat", "hunger_script": -18.0} for h in (1.0, 5.0, 9.0, 13.0)]
     r = VM.simulate({"hours": 24.0, "dt_min": 10.0, "start": {"hunger": 0.0}, "events": ev})
     k = result("j_s1a")
+    viable("S1a-m-kernel", "j_s1a")
     return [
         series("S1a-v-model", "Vanilla, from the game's code", "game hours from 07:00", HUNGER, "vanilla-model",
                r["hunger"], vmodel("VM1", "VM3", "VM4"),
                "HUNGER 0 at 07:00, a Base.TunaTinOpen (-0.18) at 08, 12, 16 and 20."),
         series("S1a-m-kernel", "Nutrition Revamp, simulated by the mod's code", "game hours from 07:00", HUNGER,
                "kernel", k["points"],
-               kernel({"replay": "fresh record from 07:00, a whole Base.TunaTinOpen at 08, 12, 16, 20",
-                       "eat": eat(0, "Base.TunaTinOpen"), "sleep_allowed": False}, "x362")),
+               kernel({"replay": "fresh record from 07:00, a whole Base.TunaTinOpen at 08, 12, 16, 20 and the "
+                                 "replay's water", "eat": eat(0, "Base.TunaTinOpen"),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x362")),
     ]
 
 
 def s_s1b():
     r = VM.simulate({"hours": 36.0, "dt_min": 10.0, "start": {"hunger": 0.0}})
     k = result("j_s1b")
+    viable("S1b-m-kernel", "j_s1b")
+    adm("x364:levels")
+    path = "sessions.x364.readings.ring_levels.changes[*].age"
+    ages = read("x36g", "grade.json", path)
+    levels = read("x36g", "grade.json", "sessions.x364.readings.ring_levels.changes[*].to")
+    first = read("x364", "start.json", "rec.firstSeen")
     return [
         series("S1b-v-model", "Vanilla Hungry moodle", "game hours from a fresh start", "moodle level (0-4)",
                "vanilla-model", r["hungry_level"], vmodel("VM1", "VM5"),
@@ -1337,23 +1655,40 @@ def s_s1b():
                    "%.2f" % VM.hours_to_hunger(t) for t in VM.HUNGRY_THRESHOLDS)),
         series("S1b-m-kernel", "Nutrition Revamp energy moodle", "game hours from a fresh start", "moodle level (0-4)",
                "kernel", k["points"],
-               kernel({"replay": "fresh record from 07:00, no food, 36 h", "path": SIG,
+               kernel({"replay": "fresh record from 07:00, no food, the replay's water, 36 h", "path": SIG,
                        "read": "the thousands digit (test_replay_live_energy.long_fast_levels)",
-                       "sleep_allowed": False}, "x405"),
-               "The level the server pushes (the bus signature's energy digit)."),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x405"),
+               "The level the server pushes (the bus signature's energy digit). " + proof_note("S1b-m-kernel")),
+        series("S1b-m-live", "Nutrition Revamp energy moodle, measured", "game hours from a fresh start",
+               "moodle level (0-4)", "live", [[a - first, lv] for a, lv in zip(ages, levels)],
+               artifact("x36g", "grade.json", path),
+               "x364: the server's level changes, hours from first sight (start.json rec.firstSeen); the HEAD replay "
+               "of x364 puts them within 15 game minutes (VALIDATION x364:levels)."),
     ]
 
 
 def s_s1c():
     r = VM.simulate({"hours": 24.0, "dt_min": 10.0, "start": {"thirst": 0.0}})
     k = result("j_s1c")
+    viable("S1c-m-kernel", "j_s1c", thirst=True)
+    adm("x364:THIRST")
+    pages = "minute-ring-admin-{1,721,1441}.json"     # the last page (1974) holds offline rows with no stats
+    thirst = read("x364", pages, "rows_list[*].THIRST")
+    ages = read("x364", pages, "rows_list[*].age")
+    first = read("x364", "start.json", "rec.firstSeen")
+    live = [[a - first, t] for a, t in zip(ages, thirst) if a is not None and t is not None and a >= first]
     return [
         series("S1c-v-model", "Vanilla, from the game's code", H, "thirst (0-1)", "vanilla-model", r["thirst"],
                vmodel("VM5"), "Linear from 0 at 8.0e-6 a game-second."),
         series("S1c-m-kernel", "Nutrition Revamp, simulated by the mod's code", H, "thirst (0-1)", "kernel",
                k["points"], kernel({"replay": "fresh record from 07:00, no drink, 24 h", "path": "THIRST",
-                                    "sleep_allowed": False}, "x151t"),
-               "Proof x151t is the Plan 4 build (G7); M1 grades THIRST at HEAD."),
+                                    "sleep_allowed": False}, "x364"),
+               "No drink by design: the guard holds the replay alive, at any dehydration. Proof x364, whose THIRST the "
+               "HEAD replay reproduces within 0.0018 (VALIDATION x364:THIRST)."),
+        series("S1c-m-live", "Nutrition Revamp, measured", H, "thirst (0-1)", "live", live[::10],
+               artifact("x364", pages, "rows_list[*].THIRST"),
+               "x364's 32 hours without a drink, hours from first sight; admitted on THIRST within 0.002, a bound "
+               "named here (VALIDATION x364:THIRST). x from rows_list[*].age."),
     ]
 
 
@@ -1365,6 +1700,7 @@ def s_s2a():
     ev += [{"t_h": 13.0 + h, "kind": "eat", "hunger_script": -24.0} for h in (36.0, 40.0, 46.0)]
     r = VM.simulate({"hours": 13.0 + 60.0, "dt_min": 10.0, "start": {"hunger": 0.0}, "events": ev})
     k = result("j_s2a")
+    viable("S2a-m-kernel", "j_s2a")
     return [
         series("S2a-v-model", "Vanilla, from the game's code", "game hours from the last meal", HUNGER,
                "vanilla-model", [[t - 13.0, x] for t, x in r["hunger"]], vmodel("VM1", "VM3", "VM4"),
@@ -1372,21 +1708,26 @@ def s_s2a():
                "filled), no food for 36 h, then the same meals at 08, 12 and 18."),
         series("S2a-m-kernel", "Nutrition Revamp, simulated by the mod's code", "game hours from the last meal",
                HUNGER, "kernel", k["points"],
-               kernel({"replay": "test_replay_live_oracle.fast_plans() fast arm on the default body",
-                       "clock": "minute 0 is 00:00", "sleep_allowed": False}, "x364"),
-               "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request; "
-               "x364's live points fail the admission test (VALIDATION)."),
+               kernel({"replay": "test_replay_live_oracle.fast_plans() fast arm on the default body, its meals plates",
+                       "plate": list(PLATE), "water": [AUTODROP_G, "every 2 h, 09:00-23:00"], "clock": "minute 0 is 00:00",
+                       "sleep_allowed": False}, "x364"),
+               "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
+               + PLATE_NOTE.replace("08:00 to 22:00", "09:00 to 23:00") + " " + proof_note("S2a-m-kernel")),
     ]
 
 
 def s_s2b():
     k = result("j_s2b")
+    viable("S2b-m-kernel", "j_s2b")
     return [
         series("S2b-m-kernel", "Nutrition Revamp, simulated by the mod's code", "day after the fast",
                "intake / the fed arm's", "kernel", [["day 2", k["r2"]], ["day 3", k["r3"]]],
-               kernel({"replay": "test_replay_live_energy.fast_server()", "body": "the oracle's 70 kg man (MAN)",
-                       "sleep": "23:00-07:00, the oracle's protocol"}, "x27g"),
-               "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on."),
+               kernel({"replay": "test_replay_live_energy.fast_server()'s two arms, its meals plates, with water",
+                       "plate": list(PLATE), "water": [AUTODROP_G, "every 2 h, 09:00-23:00"],
+                       "body": "the oracle's 70 kg man (MAN)", "sleep": "23:00-07:00, the oracle's protocol"}, "x27g"),
+               "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted "
+               "on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the "
+               "admission test at HEAD (VALIDATION)."),
         series("S2b-study-1613", "Johnstone 2002", "day after the fast", "intake / the fed arm's", "study",
                [["day 2", 12.2 / 10.2]], study("S1613"), "12.2 against 10.2 MJ on the day after a 36 h fast."),
         series("S2b-study-1614", "Clayton 2016", "day after the fast", "intake / the fed arm's", "study",
@@ -1397,20 +1738,21 @@ def s_s2b():
 
 def s_s2c():
     k = result("j_s2c")
-    xs = [0.0, k["low_kg"]] + k["kg"]
-    ys = [0.0, k["low"] - k["base"]] + [y - k["base"] for y in k["intake"]]
+    viable("S2c-m-kernel", "j_s2c")
+    base = k["points"][0][1]
+    xs = [x for x, _ in k["points"]]
     DO = _kt("deficit_oracles")
     per = DO.S1254_KCAL_PER_KG
     return [
         series("S2c-v-model", "Vanilla, from the game's code", "kg of fat lost", "extra kcal a day", "vanilla-model",
                [[0.0, 0.0], [max(xs), 0.0]], vmodel("VM14"), "No hunger term reads a body store."),
         series("S2c-m-kernel", "Nutrition Revamp, simulated by the mod's code", "kg of fat lost", "extra kcal a day",
-               "kernel", list(zip(xs, ys)),
-               kernel({"replay": "test_replay_live_energy.fat_loss_server()", "depletions": [0.0, 0.05, 0.25, 0.4,
-                                                                                               0.55],
+               "kernel", [[x, y - base] for x, y in k["points"]],
+               kernel({"replay": "test_replay_live_energy.fat_loss_intake()'s protocol, its meals plates, with water",
+                       "depletions": list(S1254_DEP), "plate": list(PLATE), "water": [AUTODROP_G, "every 2 h, 09:00-23:00"],
                        "sleep": "23:00-07:00, the oracle's protocol"}, "x436"),
                "The no-trait body's fat set lower; intake at the request over days 2-4 less the full body's; sleep on, "
-               "the oracle's protocol."),
+               "the oracle's protocol; plates of real foods with water (rule R-1)."),
         series("S2c-study", "Polidori 2016", "kg of fat lost", "extra kcal a day", "study",
                [[x, per * x] for x in (0.0, max(xs))], study("S1254"),
                "About 100 kcal a day per kg of weight lost, 125 per kg of fat (S2208, S2206; "
@@ -1418,80 +1760,112 @@ def s_s2c():
     ]
 
 
+CODE_NAME = {1: "starvation (protein-energy grade 4 with BMI under 12 or the fat floor)", 2: "terminal scurvy",
+             3: "cardiac beriberi (thiamine)", 4: "pellagra", 5: "severe hyponatraemia", 6: "severe dehydration",
+             7: "iron overload"}
+
+
+def _vanilla_fast():
+    """S2d's vanilla run: HUNGER from 0, no food, 0.25 L of water every 4 h, a fresh 80 kg character (store 800),
+    1-minute steps to its death (VM10; the weight floor, T2.4, is not reached first)."""
+    ev = [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25} for h in range(4, 72, 4)]
+    sim = VM.simulate({"hours": 72.0, "dt_min": 1.0, "start": {"hunger": 0.0}, "events": ev})
+    death = next(t for t, x in sim["health"] if x <= 0)
+    return sim, death
+
+
 def s_s2d():
-    rh = VM.simulate({"hours": 72.0, "dt_min": 60.0, "start": {"hunger": 0.0},
-                      "events": [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25}
-                                 for h in range(4, 72, 4)]})
-    health = []
-    for t, x in rh["health"]:
-        health.append([t, x])
-        if x <= 0:
-            break
-    rw = VM.simulate({"hours": 90 * 24.0, "dt_min": DAY_MIN, "start": {}})
+    sim, death = _vanilla_fast()
+    hourly = [[t / 24.0, x] for t, x in sim["health"][::60] if t < death] + [[death / 24.0, 0.0]]
+    weight = [[t / 24.0, w] for t, w in sim["weight_kg"][::1440] if t < death]
+    weight.append([death / 24.0, next(w for t, w in sim["weight_kg"] if t >= death)])
     samples = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[*].weight")
     ages = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[*].worldAge")
+    store0 = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[0].calories")
     k = result("j_s2d")
-    fine = VM.simulate({"hours": 72.0, "dt_min": 1.0, "start": {"hunger": 0.0},
-                        "events": [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25}
-                                   for h in range(4, 72, 4)]})
-    death = next((t for t, x in fine["health"] if x <= 0), None)
+    v = viable("S2d-m-mass", "j_s2d", death=True)
+    code = v["lethal"][1]
+    mass = until_death([[a / 24.0, fm + lm + lx] for _, a, fm, lm, lx, bmi in k["days"]], v)
+    mass.append([v["death_age"] / 24.0, mass[-1][1]])
     return [
-        series("S2d-v-model-health", "Vanilla health", "game hours from the last meal", "health", "vanilla-model",
-               health, vmodel("VM1", "VM5", "VM10"),
+        series("S2d-v-model-health", "Vanilla health", DAYS, "health", "vanilla-model", hourly,
+               vmodel("VM1", "VM5", "VM10"),
                "HUNGER from 0, no food, water every 4 h; level 4 at 34.84 h, then -3.564 health a game hour at "
-               "DayLength 4 with no regeneration: death at %.1f h." % death),
-        series("S2d-v-model-weight", "Vanilla weight", DAYS, "kg", "vanilla-model",
-               [[t / 24.0, w] for t, w in rw["weight_kg"]], vmodel("VM6", "VM7", "VM8"),
-               "A fresh 80 kg character (calorie store 800), no food: the store falls to its -2200 floor, then the "
-               "loss runs at 0.646 kg a game day; no weight floor is modelled. It reads as if hunger were held (the "
-               "live control pinned it): unheld, the character dies of hunger in %.1f game hours (S2d-v-model-health)."
-               % death),
+               "DayLength 4 with no regeneration: death at %.2f game days (%.1f h); the line ends there." % (
+                   death / 24.0, death)),
+        series("S2d-v-model-weight", "Vanilla weight", DAYS, "kg", "vanilla-model", weight,
+               vmodel("VM6", "VM7", "VM8"),
+               "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the "
+               "weight with it, until the hunger death at %.2f game days ends the line (S2d-v-model-health). Below "
+               "35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never "
+               "reaches it before the hunger death." % (death / 24.0)),
         series("S2d-v-live-weight", "Vanilla weight, measured", DAYS, "kg", "vanilla-live",
                [[(a - ages[0]) / 24.0, w] for a, w in zip(ages, samples)],
                artifact("scen", "scenario-nutrition_3day_fast.json", "test.samples[*].weight"),
-               "Build 42.20.4, vanilla Nutrition on, hunger pinned (a control, #0500); x from test.samples[*].worldAge."),
-        series("S2d-m-mass", "Nutrition Revamp body mass", DAYS, "kg", "kernel",
-               [[a / 24.0, fm + lm + lx] for _, a, fm, lm, lx in k["days"]],
-               kernel({"replay": "90 days, no food, autodrop 600 g at 08, 12, 16, 20",
+               "Build 42.20.4, vanilla Nutrition on, hunger pinned (a control, #0500), so this character did not die; "
+               "its calorie store started at %g (test.samples[0].calories), the model's at 800; x from "
+               "test.samples[*].worldAge." % store0),
+        series("S2d-m-mass", "Nutrition Revamp body mass", DAYS, "kg", "kernel", mass,
+               kernel({"replay": "90 days, no food, the replay's water", "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "path": "body.fm + body.lm + body.lx", "sleep_allowed": False}, "x434"),
-               "The mod's no-trait creation body; its HUNGER never passed %.4f in the replay (#3074, #3123)."
-               % k["hunger_max"]),
+               "The mod's no-trait creation body with water and no food. Its first lethal state is %s at day %.2f "
+               "(lethal code %d); health is gone at day %.2f, where the line ends (100 at K.effects.DRAIN_RATE). Its "
+               "HUNGER never passed %.4f (#3074, #3123)." % (CODE_NAME[code], v["lethal"][0] / 24.0, code,
+                                                             v["death_age"] / 24.0, k["hunger_max"])),
     ]
 
 
 # ---- S3 --------------------------------------------------------------------------------------------------------------
 
 VITC_CLINICAL = 0.15                   # NR_Data_Records vitC ladder[3]
+PADAYATTY = "Padayatty 2016 (Hodges 1971's controlled series)"
+BY_CONSTRUCTION = ("The mod's vitamin C rate k is fitted to this 40 days (NR_Data_Records: K.nutrients.calib(0.15, 40)), "
+                   "so the kernel agrees with it by construction.")
+
+
+def death_note(v):
+    if v["lethal"] is None:
+        return "The replay stays alive and hydrated over the window (rule R-1)."
+    code = v["lethal"][1]
+    return ("This diet kills: its first lethal state is %s at day %.2f (lethal code %d) and health is gone at day "
+            "%.2f, where the lines end (rule R-1)." % (CODE_NAME[code], v["lethal"][0] / 24.0, code,
+                                                       v["death_age"] / 24.0))
 
 
 def s_s3a():
     k = result("j_s3a")
+    v = viable("S3a", "j_s3a", death="allowed")
     firsts = sorted((d, n) for n, d in k["first_grade2_day"].items() if n != "vitC")[:2]
-    inp = {"replay": "60 days, four Base.TunaTinOpen a day at 08, 12, 16, 20, autodrop 600 g at 08, 12, 16, 20",
-           "eat": eat(0, "Base.TunaTinOpen"), "sleep_allowed": False}
+    inp = {"replay": "60 days, four Base.TunaTinOpen a day at 08, 12, 16, 20 and the replay's water",
+           "eat": eat(0, "Base.TunaTinOpen"), "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}
     others = "; ".join("%s marginal from day %.0f" % (n, d) for d, n in firsts) or "no other record marginal"
     return [
         series("S3a-m-pool", "Vitamin C store", DAYS, "vitamin C store (0-1)", "kernel",
-               [[a / 24.0, p] for _, a, p in k["vitC_p"]], kernel(dict(inp, path="nutrients.vitC.p"), "x151r"),
+               until_death([[a / 24.0, p] for _, a, p in k["vitC_p"]], v),
+               kernel(dict(inp, path="nutrients.vitC.p"), "x151r"),
                "Proof x151r (the Plan 4 build, OnsetSpeed 30: G11); vitamin C is never scaled by OnsetSpeed. The "
-               "first other records to reach grade 2 on this diet: %s." % others),
+               "first other records to reach grade 2 on this diet: %s. %s" % (others, death_note(v))),
         series("S3a-m-grade", "Vitamin C grade", DAYS, "grade (1 replete - 4 clinical)", "kernel",
-               [[a / 24.0, g] for _, a, g in k["vitC_g"]], kernel(dict(inp, path="nutrients.vitC.g"), "x151r")),
+               until_death([[a / 24.0, g] for _, a, g in k["vitC_g"]], v),
+               kernel(dict(inp, path="nutrients.vitC.g"), "x151r"), death_note(v)),
         series("S3a-study-0224", "Padayatty 2016: one self-experimenter", DAYS, "vitamin C store (0-1)", "study",
                [[161.0, VITC_CLINICAL]], study("S0224"),
                "161 days to scurvy signs, drawn at the clinical store 0.15."),
-        series("S3a-study-0225", "Hodges 1971 (controlled series)", DAYS, "vitamin C store (0-1)", "study",
+        series("S3a-study-0225", PADAYATTY, DAYS, "vitamin C store (0-1)", "study",
                [[40.0, VITC_CLINICAL]], study("S0225"),
-               "About 40 days to scurvy signs, drawn at the clinical store 0.15."),
+               "About 40 days to scurvy signs, drawn at the clinical store 0.15. " + BY_CONSTRUCTION),
     ]
 
 
 def s_s3b():
     u = read("x34r", "rows.json", "row13.days.days.{0,1,2,3,4}.server_U")
     b = read("x34r", "rows.json", "row13.days.days.{0,1,2,3,4}.moodLast_b")
-    for r in ("x341", "x342", "x343"):
-        adm(r)
+    sessions = read("x34r", "rows.json", "row13.days.days.{0,1,2,3,4}.session")
+    if set(sessions) != {"x341", "x342"} or not all(adm(r + ":mood")["admitted"] for r in ("x341", "x342")):
+        raise D.ProvenanceError("S3b's days 0-4 must come from the admitted x341 and x342")
+    adm("x343:mood")
     k = result("j_s3b")
+    viable("S3b-m-kernel-U", "j_s3b")
     note = ("Days 0-4 from x341 and x342, which pass the admission test; x343's days 5-6 fail it and are not drawn. "
             "The eats were TKX.Mono450.")
     return [
@@ -1503,20 +1877,27 @@ def s_s3b():
         series("S3b-m-kernel-U", "Unhappiness, simulated by the mod's code", DAYS, "unhappiness (0-100)", "kernel",
                k["points"],
                kernel({"replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating "
-                                 "through " + ", ".join(VARIED), "path": "UNHAPPINESS", "sleep_allowed": False},
-                      "x343"), "Proof: the x34 chain (#3683)."),
+                                 "through " + ", ".join(VARIED) + ", with the replay's water", "path": "UNHAPPINESS",
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x342"),
+               "Proof x342, whose UNHAPPINESS the HEAD replay reproduces (VALIDATION x342:mood); the x34 chain, "
+               "#3683."),
     ]
 
 
 def s_s3c():
     k = result("j_s3c")
+    v = viable("S3c", "j_s3c", death="allowed")
     return [
         series("S3c-m-pool", "Vitamin C store", DAYS, "vitamin C store (0-1)", "kernel",
-               [[a / 24.0, p] for _, a, p in k["vitC_p"] if a / 24.0 >= 40.0 - 1e-9],
+               until_death([[a / 24.0, p] for _, a, p in k["vitC_p"] if a / 24.0 >= 40.0 - 1e-9], v),
                kernel({"replay": "S3a's diet to day 80, one Base.Orange a day at 10:00 from day 45",
-                       "orange": eat(0, "Base.Orange"), "path": "nutrients.vitC.p", "sleep_allowed": False}, "x151r")),
-        series("S3c-study", "Ververs 2019", DAYS, "vitamin C store (0-1)", "study", [[52.0, VITC_CLINICAL]],
-               study("S0229"), "Symptoms improved within one week of treatment (day 45 + 7)."),
+                       "orange": eat(0, "Base.Orange"), "water": [AUTODROP_G, list(AUTODROP_MIN)],
+                       "path": "nutrients.vitC.p", "sleep_allowed": False}, "x151r"),
+               "The orange mends vitamin C only. " + death_note(v)),
+        series("S3c-study", "Ververs 2019", DAYS, "vitamin C store (0-1)", "study",
+               [[45.0, VITC_CLINICAL], [52.0, VITC_CLINICAL]], study("S0229"),
+               "Symptoms improved within one week of treatment: drawn as the week from the first orange (day 45 to "
+               "52), not a value; the study gives no store."),
     ]
 
 
@@ -1551,8 +1932,10 @@ def s_s5a():
 
 def s_s5b():
     out = []
-    inp = {"replay": "90 days from the creation body, meals at the request at 08, 13, 20, autodrop 600 g at 08, 12, "
-                     "16, 20", "sleep_allowed": False}
+    for name in S5B:
+        viable("S5b-" + name, "j_s5b_" + name)
+    inp = {"replay": "90 days from the creation body, plate meals at the request at 08, 13, 20 and the replay's water",
+           "plate": list(PLATE), "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}
     for name, sid, label in (("strong", "S5b-m-strong-level", "Strong"), ("weak", "S5b-m-weak-level", "Weak"),
                              ("none", "S5b-m-none-level", "No pick")):
         d = result("j_s5b_" + name)["days"]
@@ -1583,7 +1966,9 @@ def s_s5c():
     g = result("j_s5b_gaunt")["days"][:31]
     n = result("j_s5b_none")["days"][:31]
     es = read("x436", "creation.json", "verdicts.36_{d,e,f}_hunger.observed.es")
-    inp = {"replay": "S5b's", "path": "body.energyState", "sleep_allowed": False}
+    viable("S5c-gaunt", "j_s5b_gaunt")
+    viable("S5c-none", "j_s5b_none")
+    inp = {"replay": "S5b's", "path": "body.energyState", "plate": list(PLATE), "sleep_allowed": False}
     return [
         series("S5c-m-gaunt", "Gaunt", DAYS, "energy state", "kernel", [[x[0], x[6]] for x in g],
                kernel(dict(inp, traits=S5B["gaunt"][0]), "x436")),
@@ -1601,8 +1986,10 @@ def s_s5c():
 
 def s_s6a():
     k = result("j_s6a")
+    viable("S6a", "j_s6a")
     cup = VM.fatigue_change(0.25)
-    inp = {"replay": "0.25 L Coffee at 08, 12, 16 every day for 14 days", "sleep_allowed": False}
+    inp = {"replay": "0.25 L Coffee at 08, 12, 16 every day for 14 days, plate meals at the request and the replay's "
+                     "water", "plate": list(PLATE), "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}
     return [
         series("S6a-m-day1", "Caffeine on day 1", "game hours from 07:00", "caffeine (mg)", "kernel",
                [[x, c] for x, c, f in k["day1"]], kernel(dict(inp, path="acute.caf", day=1), "x161f"),
@@ -1621,12 +2008,17 @@ def s_s6a():
 
 def s_s6b():
     ev = [{"t_h": m / 60.0, "kind": "drink", "fluid": "beer", "litres": 0.3} for m in BEER_MIN]
-    r = VM.simulate({"hours": 24.0, "dt_min": 10.0, "start": {}, "events": ev})
+    r = VM.simulate({"hours": 24.0, "dt_min": 1.0, "start": {}, "events": ev})
     k = result("j_s6b")["points"]
-    inp = {"replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00", "sleep_allowed": False}
+    viable("S6b", "j_s6b")
+    inp = {"replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
+           "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}
     return [
         series("S6b-v-model", "Vanilla intoxication", H, "intoxication (0-100)", "vanilla-model", r["intoxication"],
-               vmodel("VM16"), "400 x alcohol x the hunger factor a drink; decay 45.36 a game hour at DayLength 4."),
+               vmodel("VM16"),
+               "400 x alcohol x the hunger factor a drink; decay 45.36 a game hour at DayLength 4, so each beer's 6 is "
+               "gone in about 8 game minutes (1-minute output). Code only: #2950 read DayLength 1, and V4 measures "
+               "DayLength 4."),
         series("S6b-m-bac", "Blood alcohol", H, "blood alcohol (%)", "kernel", [[a, b] for _, a, b, i, hg in k],
                kernel(dict(inp, path="acute.bac"), "x161f")),
         series("S6b-m-intox", "Intoxication the mod writes", H, "intoxication (0-100)", "kernel",
@@ -1640,16 +2032,21 @@ def s_s6b():
 
 def s_s6c():
     k = result("j_s6c")["points"]
+    viable("S6c-m-kernel", "j_s6c")
     debt = read("x30g", "rows.json", "row11.closes[*].debt_after")
     ages = read("x30g", "rows.json", "row11.closes[*].age_after")
     for r in ("x301", "x302"):
-        adm(r)
+        adm(r + ":sleep")
+    last = k[-1]
     return [
         series("S6c-m-kernel", "Nutrition Revamp hunger factor", DAYS, "hunger factor", "kernel",
                [[d, f] for d, f, _ in k],
-               kernel({"replay": "sleep on: nights 23:00-07:00, the night after day 1 03:00-07:00; meals at the "
-                                 "request", "path": "acute.debtH", "read": "K.satiety.sleepFactor(acute.debtH)",
-                       "sleep_allowed": True}, "x30g")),
+               kernel({"replay": "sleep on: nights 23:00-07:00, the night after day 1 03:00-07:00; plate meals at "
+                                 "the request and the replay's water", "plate": list(PLATE),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "path": "acute.debtH",
+                       "read": "K.satiety.sleepFactor(acute.debtH)", "sleep_allowed": True}, "x30g"),
+               "The debt is repaid slowly (K.acute.REPAY): it still reads %.2f h at day 4, so the factor holds at %.2f "
+               "for days after the one short night, where S1566 measured the next day alone." % (last[2], last[1])),
         series("S6c-m-live", "Sleep debt, measured", DAYS, "sleep debt (h)", "live",
                [[a / 24.0, d] for a, d in zip(ages, debt)], artifact("x30g", "rows.json", "row11.closes[*].debt_after"),
                "Sleep on. x301 and x302's debts at each window close; they pass the admission test on the sleep "
@@ -1657,21 +2054,22 @@ def s_s6c():
         series("S6c-v-model", "Vanilla", DAYS, "hunger factor", "vanilla-model", [[0.0, 1.0], [4.0, 1.0]],
                vmodel("VM14"), "No sleep term reads hunger: a flat 1."),
         series("S6c-study", "Brondel 2010", DAYS, "intake / the rested day's", "study",
-               [[1.0 + 17.0 / 24.0, 1.22], [2.0 + 16.0 / 24.0, 1.22]], study("S1566"),
-               "22 % more energy eaten on the day after one 4 h night, drawn over that day."),
+               [[2.0, 1.22], [2.0 + 16.0 / 24.0, 1.22]], study("S1566"),
+               "22 % more energy eaten on the day after one 4 h night, drawn over that waking day (07:00 to 23:00 "
+               "after the 03:00-07:00 night)."),
     ]
 
 
 # ---- systems ---------------------------------------------------------------------------------------------------------
 
 def s_se1():
-    adm("x363")
+    adm("x363:fill")
     liq = read("x363", "minute-ring-admin-1.json", 'rows_list[*]["stomach.liquid"]')
     fill = read("x363", "minute-ring-admin-1.json", "rows_list[*].stomachFill")
     ages = read("x363", "minute-ring-admin-1.json", "rows_list[*].age")
     ss = read("x363", "minute-ring-admin-1.json", "rows_list[*].s")
     a0 = ages[0]
-    rep = result("j_adm_x36")["x363"]["rows"]
+    rep = adm_rows("x363:fill")
     kern = [[(rep[s][0] - a0) * 60.0, rep[s][1]] for s in sorted(rep, key=float)
             if rep[s][1] is not None and rep[s][0] is not None]
     note = "x363 (mod 7093079b) passes the admission test; minutes from the ring's first row (page 1)."
@@ -1691,7 +2089,7 @@ def s_se1():
 def s_sh1():
     k = result("j_sh1")["minutes"]
     kc = (190.0, 400.0, 825.0)
-    adm("x361")
+    adm("x361:HUNGER")
     live = read("x36g", "grade.json", "sessions.x361.readings.readings.{C650_request_vs_anchor,C400_held_vs_180}.live_min")
     return [
         series("SH1-m-kernel", "Nutrition Revamp, simulated", "meal kcal", "minutes to the hunger request", "kernel",
@@ -1703,7 +2101,7 @@ def s_sh1():
                artifact("x36g", "grade.json",
                         "sessions.x361.readings.readings.{C650_request_vs_anchor,C400_held_vs_180}.live_min"),
                "x361: a 650 kcal mixed meal at the request (minutes to the next request) and a 400 kcal one (minutes "
-               "held below the request); x361 passes the admission test."),
+               "held below the request); x361 passes the admission test on HUNGER, the stat both are read off."),
         series("SH1-study-1247", "Callahan 2004", "meal kcal", "minutes to the hunger request", "study",
                [[190.0, 247.0], [400.0, 286.0], [825.0, 321.0]], study("S1247"),
                "Preloads of 7.5, 16 and 33 % of daily energy, drawn at the replay's 190, 400 and 825 kcal."),
@@ -1716,13 +2114,14 @@ def s_sh1():
 
 def s_sh2():
     k = result("j_sh2")
-    adm("x276")
+    adm("x276:HUNGER")
     return [
         series("SH2-m-kernel", "Nutrition Revamp, simulated", "arm", "mean hunger over 24 h / three meals'", "kernel",
                [["three meals", 1.0], ["six meals", k["six"] / k["three"]]],
                kernel({"replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal "
                                  "arm (x27_grade.row8)", "window": "world age 25 to 49"}, "x276"),
-               "x276's start record loads at HEAD; its own live means fail the admission test and are not drawn."),
+               "x276's start record loads at HEAD; its own live means fail the admission test and are not drawn. "
+               + proof_note("SH2-m-kernel")),
         series("SH2-study", "Ohkawara 2013", "arm", "mean hunger over 24 h / three meals'", "study",
                [["three meals", 1.0], ["six meals", 41850.0 / 36612.0]], study("S1608"),
                "Hunger AUC 41850 on six meals against 36612 on three."),
@@ -1732,12 +2131,14 @@ def s_sh2():
 def s_st1():
     r = VM.simulate({"hours": 10.0, "dt_min": 10.0, "start": {"thirst": 0.0}})
     k = [p for p in result("j_s1c")["points"] if p[0] <= 10.0 + 1e-9]
+    viable("ST1-m-kernel", "j_s1c", thirst=True)
     return [
         series("ST1-v-model", "Vanilla, from the game's code", H, "thirst (0-1)", "vanilla-model", r["thirst"],
                vmodel("VM5")),
         series("ST1-m-kernel", "Nutrition Revamp, simulated", H, "thirst (0-1)", "kernel", k,
                kernel({"replay": "fresh record from 07:00 at rest, no drink, the first 10 h", "path": "THIRST",
-                       "sleep_allowed": False}, "x151t"), "Proof as S1c (G7)."),
+                       "sleep_allowed": False}, "x364"),
+               "No drink by design (alive, any dehydration: rule R-1); proof x364 as S1c (VALIDATION x364:THIRST)."),
     ]
 
 
@@ -1745,7 +2146,7 @@ def s_st2():
     path = "sodium.by_day.{1,2,3,4,5}.na_change_per_24h"
     na = read("x28g", "rows.json", path)
     for r in ("x281", "x282", "x283", "x284"):
-        adm(r)
+        adm(r + ":na")
     return [
         series("ST2-m-live-na", "Body sodium, measured", DAYS, "mmol a day", "live", list(zip(range(1, 6), na)),
                artifact("x28g", "rows.json", path),
@@ -1757,8 +2158,8 @@ def s_st2():
 
 
 def s_sm1():
-    adm("x343")
-    rows = result("j_adm_x34")["x343"]["rows"]
+    adm("x343:mood")
+    rows = adm_rows("x343:mood")
     a0 = read("x34r", "rows.json", "row13.release.from_age")
     a1 = read("x34r", "rows.json", "row13.release.to_age")
     pts = [[(v[0] - a0), v[1]] for s, v in sorted(rows.items(), key=lambda kv: float(kv[0]))
@@ -1768,7 +2169,8 @@ def s_sm1():
                "kernel", every_n(pts, 30),
                kernel({"replay": "x343's events.json from its start.json at HEAD", "path": "UNHAPPINESS",
                        "window": "row13.release from_age to to_age", "sleep_allowed": False}, "x343"),
-               "x343's own ring fails the admission test at HEAD (VALIDATION), so the live line is not drawn."),
+               "The replay of x343's own inputs at HEAD; x343's ring fails the admission test there (VALIDATION "
+               "x343:mood), so its live line is not drawn and no passing proof run exists for this one."),
     ]
 
 
@@ -1813,7 +2215,7 @@ def s_sx1():
     K = KHost().K
     v = [[n, VM.burn_rate(state, 80.0, mod) * 3600.0] for n, state, mod in SX1_V]
     m = [[n, float(K.energy[t][key]) * 80.0] for n, t, key in SX1_M]
-    adm("x37g")
+    adm("x37g:met")
     types = read("x37g", "grade.json", "sessions.x371.sets[*].bills[*].type")
     billed = read("x37g", "grade.json", "sessions.x371.sets[*].bills[*].billed")
     seen = {}
@@ -1835,6 +2237,7 @@ def s_sx1():
 
 def s_sx2():
     k = result("j_sx2")
+    viable("SX2-m-kernel", "j_sx2")
     if k["set_mets"] != [7.5]:
         raise D.ProvenanceError("SX2's burpee set billed %r, not 7.5 MET" % (k["set_mets"],))
     h0 = k["start_hunger"]
@@ -1850,9 +2253,10 @@ def s_sx2():
         series("SX2-m-kernel", "Nutrition Revamp", "game minutes after the set", HUNGER, "kernel",
                [[x, hh] for x, hh, s in k["points"]],
                kernel({"replay": "fresh record from 07:00; a 30-minute burpee set from 09:00 (an activity event "
-                                 "exercising, a setpath of %s to burpees), then rest" % EXE_PATH, "path": "HUNGER",
+                                 "exercising, a setpath of %s to burpees), then rest, with the replay's water"
+                                 % EXE_PATH, "path": "HUNGER", "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "billed_met": k["set_mets"], "sleep_allowed": False}, "x29g"),
-               "The set billed 7.5 MET a minute (K.energy.EXERCISE_MET.burpees)."),
+               "The set billed 7.5 MET a minute (K.energy.EXERCISE_MET.burpees). " + proof_note("SX2-m-kernel")),
     ]
 
 
@@ -1861,20 +2265,25 @@ def s_sd1():
     d, code = scurvy_drain(h)
     per_h = d * 60.0
     days = 100.0 / per_h / 24.0
-    adm("x161b")
-    live = read("x161b", "body.json", "summaries.I.health.per_game_h")
+    adm("x161b:drain")
+    rate = read("x161b", "body.json", "summaries.I.health.per_game_h")
+    h0 = read("x161b", "body.json", "health_reads[53].overall")
+    h1 = read("x161b", "body.json", "health_reads[70].overall")
+    t0 = (100.0 - h0) / per_h / 24.0                     # where the kernel's line reads the first read's health
+    t1 = t0 + (h0 - h1) / -rate / 24.0                   # the measured span at the measured rate
     return [
         series("SD1-m-kernel", "Nutrition Revamp", DAYS, "health", "kernel",
                [[x, max(0.0, 100.0 - per_h * 24.0 * x)] for x in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, days]],
                kernel({"function": "K.effects.drain", "state": "vitC grade 4 held SCURVY_H, nothing else",
                        "drain_per_minute": d, "code": code}, "x161b"),
                "%.4f health a game hour from 100: death %.1f game days into the drain; the 168 game hours are a game "
-               "choice (S1168 open)." % (per_h, days)),
-        series("SD1-m-live", "Measured rate", DAYS, "health", "live",
-               [[0.0, 100.0], [100.0 / -live / 24.0, 0.0]],
-               artifact("x161b", "body.json", "summaries.I.health.per_game_h"),
-               "x161b's measured -0.5985 health a game hour over 18 reads, drawn from 100 (an extrapolation of the "
-               "rate). The HEAD drain equals the run's prediction (VALIDATION)."),
+               "choice (S1168 open). x161b measured %.4f a game hour (summaries.I.health.per_game_h)." % (
+                   per_h, days, rate)),
+        series("SD1-m-live", "Measured", DAYS, "health", "live", [[t0, h0], [t1, h1]],
+               artifact("x161b", "body.json", "health_reads[{53,70}].overall"),
+               "x161b's measured span only: health %.2f to %.2f over its 18 reads (%.2f game hours at its measured "
+               "%.4f a game hour), placed where the kernel's line reads its first health; the HEAD drain equals the "
+               "run's prediction (VALIDATION x161b:drain)." % (h0, h1, (h0 - h1) / -rate, rate)),
     ]
 
 
@@ -1904,34 +2313,46 @@ def sd2_days():
     return out
 
 
+def sd2_left():
+    """The records sd2_days does not step (another kind, or no rate)."""
+    recs = KHost().NR.data.records
+    out = []
+    for i in range(1, len(recs.ORDER) + 1):
+        rec = recs.REC[recs.ORDER[i]]
+        if rec.kind != "pool" or rec.k is None:
+            out.append("%s (%s)" % (recs.ORDER[i], rec.kind))
+    return out
+
+
 def s_sd2():
     rows = sd2_days()
+    left = ", ".join(sd2_left())
     inp = {"function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
            "records": "NR.data.records, kind pool"}
     return [
         series("SD2-m-marginal", "Days to Marginal", "nutrient", "days", "kernel",
                [[k, d2] for k, d2, d4 in rows if d2 is not None], kernel(inp, "x151r"),
-               "The pool records at OnsetSpeed 1; a record of another kind is not stepped this way."),
+               "The pool records at OnsetSpeed 1. Left out, being of another kind: %s." % left),
         series("SD2-m-clinical", "Days to Clinical", "nutrient", "days", "kernel",
-               [[k, d4] for k, d2, d4 in rows if d4 is not None], kernel(inp, "x151r")),
-        series("SD2-study", "Hodges 1971", "nutrient", "days", "study", [["vitC", 40.0]], study("S0225"),
+               [[k, d4] for k, d2, d4 in rows if d4 is not None], kernel(inp, "x151r"),
+               "Left out, being of another kind: %s." % left),
+        series("SD2-study", PADAYATTY, "nutrient", "days", "study", [["vitC", 40.0]], study("S0225"),
                "Vitamin C is the record whose rate is calibrated on an onset study (scurvy at about 40 days); the "
-               "other records rest on half-lives or game choices."),
+               "other records rest on half-lives or game choices. " + BY_CONSTRUCTION),
     ]
 
 
 def s_sc1():
     for r in ("x301", "x302"):
-        adm(r)
+        adm(r + ":sleep")
     labels = read("x30g", "rows.json", "row11.nights[*].label")
     booked = read("x30g", "rows.json", "row11.nights[*].booked_h")
     debt = read("x30g", "rows.json", "row11.closes[*].debt_after")
     sess = read("x30g", "rows.json", "row11.closes[*].session")
     s_after = read("x30g", "rows.json", "row11.closes[*].s_after")
-    rep = result("j_adm_x30")
     kern = []
     for lab, se, s in zip(labels, sess, s_after):
-        rows = rep[se]["rows"]
+        rows = adm_rows(se + ":sleep")
         v = rows.get(s)
         if v is None:
             v = rows.get(float(s))
@@ -1950,13 +2371,13 @@ def s_sc1():
 
 def s_sv1():
     K = KHost().K
-    m = [[g, int(K.view.fullnessLevel(float(g)))] for g in range(0, 1201, 10)]
-    adm("x401")
+    m = [[g, int(K.view.fullnessLevel(float(g)))] for g in range(0, 2501, 10)]
+    adm("x401:level")
     mass = read("x401", "accept.json", "verdicts.OF.observed.rows[*].server_mass")
     lv = read("x401", "accept.json", "verdicts.OF.observed.rows[*].levels")
     return [
         series("SV1-m-kernel", "Nutrition Revamp", "grams in the stomach", "moodle level (0-4)", "kernel", m,
-               kernel({"function": "K.view.fullnessLevel(mass)", "grams": [0, 1200, 10]}, "x401")),
+               kernel({"function": "K.view.fullnessLevel(mass)", "grams": [0, 2500, 10]}, "x401")),
         series("SV1-m-live", "Measured", "grams in the stomach", "moodle level (0-4)", "live",
                list(zip(mass, lv)), artifact("x401", "accept.json", "verdicts.OF.observed.rows[*].server_mass"),
                "x401's rows with the level the client showed (verdicts.OF.observed.rows[*].levels; #3778); each "
@@ -1965,7 +2386,8 @@ def s_sv1():
 
 
 def s_validation():
-    """No series: fills VALIDATION with the admission records (the build reads the list after every definition)."""
+    """No series: fills VALIDATION with the admission and viability records (the build reads the list after every
+    definition, so this one runs last)."""
     fill_validation()
     return []
 

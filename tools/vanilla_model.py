@@ -94,6 +94,7 @@ GAIN_FULL_CAL = 4000.0
 LOSS_RATE = 8.5e-6                   # #0154
 LOSS_FULL_CAL = 2500.0
 MACRO_X3, MACRO_X2 = 700.0, 400.0    # #0153
+WEIGHT_FLOOR = 35.0                  # T2.4: Nutrition.setWeight clamps below 35 kg and drains health
 MACRO_X3_MULT, MACRO_X2_MULT = 3.0, 2.0
 
 CREATION_WEIGHTS = {"OBESE": 105.0, "OVERWEIGHT": 95.0, "UNDERWEIGHT": 70.0,
@@ -168,11 +169,14 @@ FORMULAS = {
                    "lipid and protein drain 0.0035, 0.00113, 0.00086 a game-second; calories clamped [-2200, 3700], "
                    "macros [-500, 1000]; a fresh character starts at 800 kcal and 80 kg (T2.3)."},
     "VM8": {"claims": ["#0149", "#0151", "#0152", "#0153", "#0154", "#0161", "#0166",
-                       "#0158", "#0159", "#0160", "#0164"],
+                       "#0158", "#0159", "#0160", "#0164", "T2.4"],
             "doc": "Weight: above 1000 + (w - 80) x 40 kcal gain 1.3e-5 x min(1, cal / 4000) kg a game-second, x3 "
                    "with carbohydrate or lipid above 700 g, x2 above 400 g; below min(0, (w - 70) x 30) lose 8.5e-6 x "
                    "min(1, |cal| / 2500). The Weight Gain (700 below 90 kg) and Weight Loss (1800 above 70 kg) "
-                   "threshold bases are not modelled. weight_rate."},
+                   "threshold bases are not modelled. The floor (T2.4): updateWeight calls setWeight every server "
+                   "update, and setWeight clamps a weight below 35 kg to 35 and takes "
+                   "getHealthReductionFromSevereBadMoodles x the multiplier off health each time (0.0165 a "
+                   "multiplier unit, 178.2 a game-hour at DayLength 4). weight_rate, weight_floor_health_per_hour."},
     "VM9": {"claims": ["#0155", "#0531", "#3069", "#0533", "#0534"],
             "doc": "Weight bands, inclusive at both ends: Emaciated <= 50, Very Underweight (50, 65], Underweight "
                    "(65, 75], none (75, 85), Overweight [85, 100), Obese >= 100; creation weights Obese 105, "
@@ -360,6 +364,20 @@ def weight_rate(weight, calories, carbs=0.0, lipids=0.0):
     if calories < loss_threshold(weight):
         return -LOSS_RATE * min(1.0, abs(calories) / LOSS_FULL_CAL)
     return 0.0
+
+
+def weight_floor_health_per_hour(day_length_min=90.0):
+    """T2.4: the health the 35 kg floor takes a game-hour while the loss branch pushes below it (0.0165 a unit)."""
+    return SEVERE_HEALTH * multiplier_units_per_hour(day_length_min)
+
+
+def floor_seconds(weight, rate, seconds):
+    """T2.4: the seconds of a segment spent pressed on the 35 kg floor, the weight at its start and its rate (kg/s)."""
+    if rate >= 0.0:
+        return 0.0
+    if weight <= WEIGHT_FLOOR:
+        return seconds
+    return max(0.0, seconds - (weight - WEIGHT_FLOOR) / -rate)
 
 
 # ---- VM9: bands -----------------------------------------------------------------------------------------------
@@ -585,7 +603,9 @@ def simulate(scenario):
         s["thirst"] = clamp(s["thirst"] + thirst_rate(asleep, sm, thirst_trait) * seconds, 0.0, 1.0)
         # stores and weight (VM6-VM8)
         w = s["weight_kg"]
-        s["weight_kg"] = w + weight_rate(w, s["calories_store"], s["carbs"], s["lipids"]) * seconds
+        wr = weight_rate(w, s["calories_store"], s["carbs"], s["lipids"])
+        s["floor_s"] = floor_seconds(w, wr, seconds)
+        s["weight_kg"] = max(WEIGHT_FLOOR, w + wr * seconds) if wr < 0 else w + wr * seconds
         burn = burn_rate(state, w, mod, energy)
         s["calories_store"] = clamp(s["calories_store"] - burn * seconds, CAL_MIN, CAL_MAX)
         s["carbs"] = clamp(s["carbs"] - CARB_DRAIN * seconds, MACRO_MIN, MACRO_MAX)
@@ -651,7 +671,8 @@ def simulate(scenario):
             tl0 = moodle_level(s["thirst"], THIRST_THRESHOLDS)
             seconds = c - t
             advance(t, seconds)
-            s["health"] = max(0.0, s["health"] - health_loss_per_hour(hl0, tl0, dlm) * seconds / S_PER_H)
+            loss = health_loss_per_hour(hl0, tl0, dlm) * seconds + weight_floor_health_per_hour(dlm) * s.pop("floor_s")
+            s["health"] = max(0.0, s["health"] - loss / S_PER_H)
             t = c
         if c > 0 and abs(c / tick - round(c / tick)) < 1e-9:
             asleep_now = _activity(c, intervals)[0]
