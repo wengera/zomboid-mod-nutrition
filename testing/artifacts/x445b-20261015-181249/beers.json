@@ -1,0 +1,3294 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 54.805,
+   "wall_after": 56.315,
+   "epoch_ms_before": 1792102424263,
+   "epoch_ms_after": 1792102425773,
+   "took": 1.51,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength SandboxVars.StatsDecrease SandboxVars.MultiplierConfig.Global SandboxVars.MultiplierConfig.GlobalToggle SandboxVars.MultiplierConfig.Strength",
+   "phase": "S",
+   "wall_before": 56.315,
+   "wall_after": 58.329,
+   "epoch_ms_before": 1792102425773,
+   "epoch_ms_after": 1792102427787,
+   "took": 2.014,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": true,
+     "SandboxVars.DayLength": 4,
+     "SandboxVars.StatsDecrease": 3,
+     "SandboxVars.MultiplierConfig.Global": 1,
+     "SandboxVars.MultiplierConfig.GlobalToggle": true,
+     "SandboxVars.MultiplierConfig.Strength": 1
+    }
+   }
+  },
+  {
+   "step": "S_clock",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 58.329,
+   "wall_after": 58.589,
+   "epoch_ms_before": 1792102427787,
+   "epoch_ms_after": 1792102428047,
+   "took": 0.26,
+   "ack": {
+    "worldAge": 2.3503599166870117,
+    "hour": 9,
+    "minutes": 21,
+    "mult": 4.764583110809326,
+    "trueMult": 1,
+    "wall": 1792102427865
+   }
+  },
+  {
+   "step": "S_ring",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start",
+   "phase": "S",
+   "wall_before": 58.589,
+   "wall_after": 60.346,
+   "epoch_ms_before": 1792102428047,
+   "epoch_ms_after": 1792102429804,
+   "took": 1.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": {},
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true
+   }
+  },
+  {
+   "step": "S_probe",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 60.346,
+   "wall_after": 62.37,
+   "epoch_ms_before": 1792102429804,
+   "epoch_ms_after": 1792102431828,
+   "took": 2.024,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 0,
+    "thirst": 0.0015989000676199794,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "S_start_stats",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 62.37,
+   "wall_after": 64.137,
+   "epoch_ms_before": 1792102431828,
+   "epoch_ms_after": 1792102433595,
+   "took": 1.767,
+   "ack": {
+    "calories": 796.140869140625,
+    "carbs": -0.8440334796905518,
+    "lipids": -0.27250218391418457,
+    "proteins": -0.20739108324050903,
+    "weight": 80,
+    "hunger": 0.002222679788246751,
+    "thirst": 0.0018542816396802664,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 0.0022395483683794737,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.375605583190918,
+    "mult": 4.79326057434082,
+    "wall": 1792102433557
+   }
+  },
+  {
+   "step": "S_start_all",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 68.166,
+   "wall_after": 69.676,
+   "epoch_ms_before": 1792102437625,
+   "epoch_ms_after": 1792102439134,
+   "took": 1.51,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.02542862668633461,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.0031522156205028296,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0030644366052001715,
+     "Idleness": 0.053283315151929855,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.88507080078125,
+     "Thirst": 0.0025576006155461073,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792102439054,
+    "user": "admin",
+    "worldAge": 2.400026321411133,
+    "mult": 4.795121669769287
+   }
+  },
+  {
+   "step": "S_one",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "S",
+   "wall_before": 69.676,
+   "wall_after": 69.704,
+   "epoch_ms_before": 1792102439134,
+   "epoch_ms_after": 1792102439162,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "S_one_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 69.704,
+   "wall_after": 70.216,
+   "epoch_ms_before": 1792102439162,
+   "epoch_ms_after": 1792102439674,
+   "took": 0.512,
+   "ack": {
+    "worldAge": 2.4022464752197266,
+    "hour": 9,
+    "minutes": 24,
+    "mult": 4.7835774421691895,
+    "trueMult": 1,
+    "wall": 1792102439563
+   }
+  },
+  {
+   "step": "S_thirst",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin thirst 0",
+   "phase": "S",
+   "wall_before": 72.232,
+   "wall_after": 73.494,
+   "epoch_ms_before": 1792102441690,
+   "epoch_ms_after": 1792102442952,
+   "took": 1.262,
+   "ack": {
+    "calories": 793.7616577148438,
+    "carbs": -1.3641444444656372,
+    "lipids": -0.4404236376285553,
+    "proteins": -0.3351896107196808,
+    "weight": 80,
+    "hunger": 0.003645094344392419,
+    "thirst": 0,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "thirst": "Stats:set(CharacterStat.THIRST)"
+    }
+   }
+  },
+  {
+   "step": "B_spawn1_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BeerCan",
+   "phase": "B",
+   "wall_before": 74.253,
+   "wall_after": 76.268,
+   "epoch_ms_before": 1792102443712,
+   "epoch_ms_after": 1792102445726,
+   "took": 2.015,
+   "ack": "no item Base.BeerCan in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "B_spawn1_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.BeerCan\" 1",
+   "phase": "B",
+   "wall_before": 76.268,
+   "wall_after": 76.341,
+   "epoch_ms_before": 1792102445726,
+   "epoch_ms_after": 1792102445799,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.BeerCan Added in admin's inventory."
+   }
+  },
+  {
+   "step": "B_spawn1_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BeerCan",
+   "phase": "B",
+   "wall_before": 78.842,
+   "wall_after": 80.355,
+   "epoch_ms_before": 1792102448300,
+   "epoch_ms_after": 1792102449813,
+   "took": 1.513,
+   "ack": {
+    "fullType": "Base.BeerCan",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 742849020,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 2.4466257095336914
+   }
+  },
+  {
+   "step": "B_beer1_fill",
+   "side": "server",
+   "cmd": "fluid.fill",
+   "args": "admin Base.BeerCan Beer 0.3",
+   "phase": "B",
+   "wall_before": 80.355,
+   "wall_after": 81.117,
+   "epoch_ms_before": 1792102449813,
+   "epoch_ms_after": 1792102450575,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.BeerCan",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 742849020,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer1_probe0",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 81.117,
+   "wall_after": 82.126,
+   "epoch_ms_before": 1792102450575,
+   "epoch_ms_after": 1792102451584,
+   "took": 1.009,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 1,
+    "thirst": 0.0011121411807835102,
+    "autoDrink": true,
+    "item": "Base.BeerCan",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer1_b",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 82.126,
+   "wall_after": 84.142,
+   "epoch_ms_before": 1792102451584,
+   "epoch_ms_after": 1792102453600,
+   "took": 2.016,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.07577675580978394,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.00556394224986434,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.005278877913951874,
+     "Idleness": 0.09188922494649887,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.832942962646484,
+     "Thirst": 0.0013675772352144122,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792102453562,
+    "user": "admin",
+    "worldAge": 2.4643688201904297,
+    "mult": 4.79730224609375
+   }
+  },
+  {
+   "step": "B_beer1_drink",
+   "side": "client",
+   "cmd": "drink.action",
+   "args": "Base.BeerCan 1",
+   "phase": "B",
+   "wall_before": 84.142,
+   "wall_after": 84.401,
+   "epoch_ms_before": 1792102453600,
+   "epoch_ms_after": 1792102453859,
+   "took": 0.259,
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 742849020,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 791.2274780273438,
+     "carbs": -1.9177343845367432,
+     "lipids": -0.6191542744636536,
+     "proteins": -0.47121480107307434,
+     "weight": 80,
+     "hunger": 0.005156843923032284,
+     "thirst": 0.0012653496814891696,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "B_beer1_probe1",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 95.986,
+   "wall_after": 96.245,
+   "epoch_ms_before": 1792102465444,
+   "epoch_ms_after": 1792102465703,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 1,
+    "thirst": 0.0009205524111166596,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "B_spawn2_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pop2",
+   "phase": "B",
+   "wall_before": 96.245,
+   "wall_after": 98.259,
+   "epoch_ms_before": 1792102465703,
+   "epoch_ms_after": 1792102467717,
+   "took": 2.014,
+   "ack": "no item Base.Pop2 in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "B_spawn2_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Pop2\" 1",
+   "phase": "B",
+   "wall_before": 98.259,
+   "wall_after": 98.26,
+   "epoch_ms_before": 1792102467717,
+   "epoch_ms_after": 1792102467718,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "B_spawn2_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pop2",
+   "phase": "B",
+   "wall_before": 100.76,
+   "wall_after": 102.275,
+   "epoch_ms_before": 1792102470218,
+   "epoch_ms_after": 1792102471733,
+   "took": 1.515,
+   "ack": {
+    "fullType": "Base.Pop2",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 284241551,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 2.5442581176757812
+   }
+  },
+  {
+   "step": "B_beer2_fill",
+   "side": "server",
+   "cmd": "fluid.fill",
+   "args": "admin Base.Pop2 Beer 0.3",
+   "phase": "B",
+   "wall_before": 102.275,
+   "wall_after": 103.534,
+   "epoch_ms_before": 1792102471733,
+   "epoch_ms_after": 1792102472992,
+   "took": 1.259,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.Pop2",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 284241551,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer2_probe0",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 103.534,
+   "wall_after": 104.291,
+   "epoch_ms_before": 1792102472992,
+   "epoch_ms_after": 1792102473749,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 2,
+    "thirst": 0.001943100243806839,
+    "autoDrink": true,
+    "item": "Base.Pop2",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer2_b",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 104.291,
+   "wall_after": 106.308,
+   "epoch_ms_before": 1792102473749,
+   "epoch_ms_after": 1792102475766,
+   "took": 2.017,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.105077363550663,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.00953275803476572,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0021300718653947115,
+     "Idleness": 0.15047535300254822,
+     "Intoxication": 1.6112338304519653,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.79176330566406,
+     "Thirst": 0.002198757603764534,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792102475560,
+    "user": "admin",
+    "worldAge": 2.56201171875,
+    "mult": 4.797563076019287
+   }
+  },
+  {
+   "step": "B_beer2_drink",
+   "side": "client",
+   "cmd": "drink.action",
+   "args": "Base.Pop2 1",
+   "phase": "B",
+   "wall_before": 106.308,
+   "wall_after": 106.817,
+   "epoch_ms_before": 1792102475766,
+   "epoch_ms_after": 1792102476276,
+   "took": 0.509,
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 284241551,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 937.5980224609375,
+     "carbs": 7.7589569091796875,
+     "lipids": -1.0344256162643433,
+     "proteins": 0.43084144592285156,
+     "weight": 80,
+     "hunger": 0.0021607386879622936,
+     "thirst": 0.002224368043243885,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "B_beer2_probe1",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 116.164,
+   "wall_after": 118.174,
+   "epoch_ms_before": 1792102485622,
+   "epoch_ms_after": 1792102487632,
+   "took": 2.01,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 2,
+    "thirst": 0.0008563111769035459,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "B_spawn3_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pop",
+   "phase": "B",
+   "wall_before": 118.174,
+   "wall_after": 118.681,
+   "epoch_ms_before": 1792102487632,
+   "epoch_ms_after": 1792102488139,
+   "took": 0.507,
+   "ack": "no item Base.Pop in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "B_spawn3_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Pop\" 1",
+   "phase": "B",
+   "wall_before": 118.681,
+   "wall_after": 118.703,
+   "epoch_ms_before": 1792102488139,
+   "epoch_ms_after": 1792102488161,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "B_spawn3_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pop",
+   "phase": "B",
+   "wall_before": 121.203,
+   "wall_after": 122.212,
+   "epoch_ms_before": 1792102490661,
+   "epoch_ms_after": 1792102491670,
+   "took": 1.009,
+   "ack": {
+    "fullType": "Base.Pop",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 2018050651,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 2.6330204010009766
+   }
+  },
+  {
+   "step": "B_beer3_fill",
+   "side": "server",
+   "cmd": "fluid.fill",
+   "args": "admin Base.Pop Beer 0.3",
+   "phase": "B",
+   "wall_before": 122.212,
+   "wall_after": 124.228,
+   "epoch_ms_before": 1792102491670,
+   "epoch_ms_after": 1792102493686,
+   "took": 2.016,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.Pop",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 2018050651,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer3_probe0",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 124.228,
+   "wall_after": 126.239,
+   "epoch_ms_before": 1792102493686,
+   "epoch_ms_after": 1792102495697,
+   "took": 2.011,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 3,
+    "thirst": 0.0018659441266208887,
+    "autoDrink": true,
+    "item": "Base.Pop",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer3_b",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 126.239,
+   "wall_after": 128.253,
+   "epoch_ms_before": 1792102495697,
+   "epoch_ms_after": 1792102497711,
+   "took": 2.014,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.14942987263202667,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.013835478574037552,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.002068278146907687,
+     "Idleness": 0.209061399102211,
+     "Intoxication": 3.1821327209472656,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.776206970214844,
+     "Thirst": 0.0021343857515603304,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792102497559,
+    "user": "admin",
+    "worldAge": 2.659646987915039,
+    "mult": 4.7940354347229
+   }
+  },
+  {
+   "step": "B_beer3_drink",
+   "side": "client",
+   "cmd": "drink.action",
+   "args": "Base.Pop 1",
+   "phase": "B",
+   "wall_before": 128.253,
+   "wall_after": 128.762,
+   "epoch_ms_before": 1792102497711,
+   "epoch_ms_after": 1792102498220,
+   "took": 0.509,
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 2018050651,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 1084.8343505859375,
+     "carbs": 17.53582000732422,
+     "lipids": -1.4316353797912598,
+     "proteins": 1.3515576124191284,
+     "weight": 80.0010986328125,
+     "hunger": 0.0020989212207496166,
+     "thirst": 0.0021599747706204653,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "B_beer3_probe1",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 137.336,
+   "wall_after": 138.345,
+   "epoch_ms_before": 1792102506794,
+   "epoch_ms_after": 1792102507803,
+   "took": 1.009,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 3,
+    "thirst": 0.0006004719762131572,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "B_spawn4_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.SodaCan",
+   "phase": "B",
+   "wall_before": 138.345,
+   "wall_after": 140.354,
+   "epoch_ms_before": 1792102507803,
+   "epoch_ms_after": 1792102509812,
+   "took": 2.009,
+   "ack": "no item Base.SodaCan in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "B_spawn4_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.SodaCan\" 1",
+   "phase": "B",
+   "wall_before": 140.354,
+   "wall_after": 140.373,
+   "epoch_ms_before": 1792102509812,
+   "epoch_ms_after": 1792102509831,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "B_spawn4_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.SodaCan",
+   "phase": "B",
+   "wall_before": 142.873,
+   "wall_after": 144.136,
+   "epoch_ms_before": 1792102512331,
+   "epoch_ms_after": 1792102513594,
+   "took": 1.263,
+   "ack": {
+    "fullType": "Base.SodaCan",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 591584326,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 2.7306127548217773
+   }
+  },
+  {
+   "step": "B_beer4_fill",
+   "side": "server",
+   "cmd": "fluid.fill",
+   "args": "admin Base.SodaCan Beer 0.3",
+   "phase": "B",
+   "wall_before": 144.136,
+   "wall_after": 144.893,
+   "epoch_ms_before": 1792102513594,
+   "epoch_ms_after": 1792102514351,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.SodaCan",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 591584326,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer4_probe0",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 144.893,
+   "wall_after": 146.155,
+   "epoch_ms_before": 1792102514351,
+   "epoch_ms_after": 1792102515613,
+   "took": 1.262,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 4,
+    "thirst": 0.0016229446046054363,
+    "autoDrink": true,
+    "item": "Base.SodaCan",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer"
+   }
+  },
+  {
+   "step": "B_beer4_b",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 146.155,
+   "wall_after": 148.167,
+   "epoch_ms_before": 1792102515613,
+   "epoch_ms_after": 1792102517625,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.170888751745224,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.01804405264556408,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0017620136495679617,
+     "Idleness": 0.2622922956943512,
+     "Intoxication": 5.157885551452637,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.771690368652344,
+     "Thirst": 0.0018784792628139257,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792102517559,
+    "user": "admin",
+    "worldAge": 2.7483606338500977,
+    "mult": 4.7882490158081055
+   }
+  },
+  {
+   "step": "B_beer4_drink",
+   "side": "client",
+   "cmd": "drink.action",
+   "args": "Base.SodaCan 1",
+   "phase": "B",
+   "wall_before": 148.167,
+   "wall_after": 148.673,
+   "epoch_ms_before": 1792102517625,
+   "epoch_ms_after": 1792102518131,
+   "took": 0.506,
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 591584326,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 1232.229248046875,
+     "carbs": 27.39952850341797,
+     "lipids": -1.7925423383712769,
+     "proteins": 2.297057628631592,
+     "weight": 80.00235748291016,
+     "hunger": 0.0017926841974258423,
+     "thirst": 0.0019040832994505763,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "B_beer4_probe1",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 160.003,
+   "wall_after": 160.263,
+   "epoch_ms_before": 1792102529461,
+   "epoch_ms_after": 1792102529721,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 4,
+    "thirst": 0.0008565515745431185,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "C_restore",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "C",
+   "wall_before": 204.189,
+   "wall_after": 204.305,
+   "epoch_ms_before": 1792102573647,
+   "epoch_ms_after": 1792102573763,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 204.305,
+   "wall_after": 204.813,
+   "epoch_ms_before": 1792102573763,
+   "epoch_ms_after": 1792102574271,
+   "took": 0.508,
+   "ack": {
+    "worldAge": 3.0000877380371094,
+    "hour": 10,
+    "minutes": 0,
+    "mult": 4.798803329467773,
+    "trueMult": 1,
+    "wall": 1792102574262
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 204.813,
+   "wall_after": 206.324,
+   "epoch_ms_before": 1792102574272,
+   "epoch_ms_after": 1792102575782,
+   "took": 1.511,
+   "ack": {
+    "worldAge": 3.0058603286743164,
+    "hour": 10,
+    "minutes": 0,
+    "mult": 4.798459529876709,
+    "trueMult": 1,
+    "wall": 1792102575555
+   }
+  },
+  {
+   "step": "R_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "R",
+   "wall_before": 206.327,
+   "wall_after": 208.341,
+   "epoch_ms_before": 1792102575785,
+   "epoch_ms_after": 1792102577799,
+   "took": 2.014,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 39,
+    "skipped": 0,
+    "next": 40,
+    "more": false,
+    "oldest": 1,
+    "newest": 39,
+    "recorded": 39,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 39,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "R_ring_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "R",
+   "wall_before": 208.35,
+   "wall_after": 208.608,
+   "epoch_ms_before": 1792102577808,
+   "epoch_ms_after": 1792102578066,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 39,
+    "overwritten": 0,
+    "errors": 0
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 54.805,
+   "end": 74.252
+  },
+  "B": {
+   "start": 74.253,
+   "end": 204.186
+  },
+  "C": {
+   "start": 204.189,
+   "end": 206.324
+  },
+  "R": {
+   "start": 206.327,
+   "end": 208.608
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "V4_B_decay": {
+   "phase": "V4_B_decay",
+   "predicted": "INTOXICATION's slope after the last can within 5 % of the model's -45.36 a game hour",
+   "falsifier": "INTOXICATION's decay off the model's 0.504 x day minutes a game hour by more than INTOX_DECAY_REL",
+   "observed": {
+    "n": 8,
+    "live_per_h": -45.359711149302946,
+    "model_per_h": -45.35999999999997,
+    "rel_tol": 0.05,
+    "rel": 6.3679606927934666e-06
+   },
+   "verdict": "as_predicted",
+   "wall": 218.374
+  },
+  "V4_B_zero": {
+   "phase": "V4_B_zero",
+   "predicted": "INTOXICATION first read 0 within 0.05 game hour of the model's zero",
+   "falsifier": "INTOXICATION reaching 0 off the model's zero age by more than INTOX_ZERO_TOL_H",
+   "observed": {
+    "model_age": 3.0240918526153298,
+    "live_age": 2.996976852416992,
+    "tol_h": 0.05,
+    "last_age": 2.996976852416992,
+    "miss_h": -0.02711500019833757
+   },
+   "verdict": "as_predicted",
+   "wall": 218.374
+  }
+ },
+ "readings": {
+  "intox_peak": 9.949642181396484,
+  "intox_model_peak": 10.926647796630856
+ },
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "RCON additem Base.BeerCan x1",
+   "RCON additem Base.Pop2 x1",
+   "RCON additem Base.Pop x1",
+   "RCON additem Base.SodaCan x1"
+  ]
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "sandbox": {
+    "SandboxVars.Nutrition": true,
+    "SandboxVars.DayLength": 4,
+    "SandboxVars.StatsDecrease": 3,
+    "SandboxVars.MultiplierConfig.Global": 1,
+    "SandboxVars.MultiplierConfig.GlobalToggle": true,
+    "SandboxVars.MultiplierConfig.Strength": 1
+   },
+   "clock": {
+    "worldAge": 2.3503599166870117,
+    "hour": 9,
+    "minutes": 21,
+    "mult": 4.764583110809326,
+    "trueMult": 1,
+    "wall": 58.329,
+    "wall_after": 58.589
+   },
+   "ring": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": {},
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "wall": 58.589,
+    "wall_after": 60.346
+   },
+   "probe": {
+    "ok": true,
+    "side": "server",
+    "containers": 0,
+    "thirst": 0.0015989000676199794,
+    "autoDrink": true,
+    "wall": 60.346,
+    "wall_after": 62.37
+   },
+   "start": {
+    "stats": {
+     "calories": 796.140869140625,
+     "carbs": -0.8440334796905518,
+     "lipids": -0.27250218391418457,
+     "proteins": -0.20739108324050903,
+     "weight": 80,
+     "hunger": 0.002222679788246751,
+     "thirst": 0.0018542816396802664,
+     "endurance": 1,
+     "fatigue": 0.0022395483683794737,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "moving": false,
+     "worldAge": 2.375605583190918,
+     "wall": 62.37,
+     "traitList": {},
+     "error": null
+    },
+    "health": {
+     "overall": 100,
+     "health": 100,
+     "age": 2.3933658599853516,
+     "ok": true,
+     "reason": null,
+     "raw": null
+    },
+    "stats_all": {
+     "side": "server",
+     "stats": {
+      "Anger": 0,
+      "Boredom": 0.02542862668633461,
+      "Discomfort": 0,
+      "Endurance": 1,
+      "Fatigue": 0.0031522156205028296,
+      "Fitness": 0,
+      "FoodSickness": 0,
+      "Hunger": 0.0030644366052001715,
+      "Idleness": 0.053283315151929855,
+      "Intoxication": 0,
+      "Morale": 1,
+      "NicotineWithdrawal": 0,
+      "Pain": 0,
+      "Panic": 0,
+      "Poison": 0,
+      "Sanity": 1,
+      "Sickness": 0,
+      "Stress": 0,
+      "Temperature": 36.88507080078125,
+      "Thirst": 0.0025576006155461073,
+      "Unhappiness": 0,
+      "Wetness": 0,
+      "ZombieFever": 0,
+      "ZombieInfection": 0
+     },
+     "missing": {},
+     "wall": 68.166,
+     "user": "admin",
+     "worldAge": 2.400026321411133,
+     "mult": 4.795121669769287,
+     "wall_after": 69.676
+    },
+    "xp": null
+   },
+   "traits": [],
+   "settings": {
+    "day_length_min": 90.0,
+    "stats_decrease": 3,
+    "appetite": 1.0,
+    "sleep_allowed": true,
+    "xp_multiplier": 1.0
+   },
+   "thirst": {
+    "tag": "S_thirst",
+    "cmd": "stats.set",
+    "args": "thirst 0",
+    "values": {
+     "thirst": 0
+    },
+    "ages": [
+     2.411111831665039,
+     2.419994354248047
+    ],
+    "applied": {
+     "thirst": "Stats:set(CharacterStat.THIRST)"
+    }
+   }
+  },
+  "ring_start": {
+   "ok": true,
+   "side": "server",
+   "user": "admin",
+   "armed": true,
+   "cap": 4320,
+   "paths": {},
+   "stats": [
+    "HUNGER",
+    "THIRST",
+    "FATIGUE",
+    "BOREDOM",
+    "UNHAPPINESS",
+    "NICOTINE_WITHDRAWAL"
+   ],
+   "online": true,
+   "wall": 58.589,
+   "wall_after": 60.346
+  },
+  "start": {
+   "stats": {
+    "calories": 796.140869140625,
+    "carbs": -0.8440334796905518,
+    "lipids": -0.27250218391418457,
+    "proteins": -0.20739108324050903,
+    "weight": 80,
+    "hunger": 0.002222679788246751,
+    "thirst": 0.0018542816396802664,
+    "endurance": 1,
+    "fatigue": 0.0022395483683794737,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "moving": false,
+    "worldAge": 2.375605583190918,
+    "wall": 62.37,
+    "traitList": {},
+    "error": null
+   },
+   "health": {
+    "overall": 100,
+    "health": 100,
+    "age": 2.3933658599853516,
+    "ok": true,
+    "reason": null,
+    "raw": null
+   },
+   "stats_all": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.02542862668633461,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.0031522156205028296,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0030644366052001715,
+     "Idleness": 0.053283315151929855,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.88507080078125,
+     "Thirst": 0.0025576006155461073,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 68.166,
+    "user": "admin",
+    "worldAge": 2.400026321411133,
+    "mult": 4.795121669769287,
+    "wall_after": 69.676
+   },
+   "xp": null
+  },
+  "B": {
+   "cans": [
+    {
+     "landed": true,
+     "settled": true,
+     "event_age": 2.4949913024902344,
+     "first_moved_age": 2.473245620727539,
+     "settle_age": 2.5167369842529297,
+     "drunk": 0.30000001192092896,
+     "model_litres": 0.30000001192092896,
+     "fill_ok": true
+    },
+    {
+     "landed": true,
+     "settled": true,
+     "event_age": 2.593083381652832,
+     "first_moved_age": 2.579768180847168,
+     "settle_age": 2.606398582458496,
+     "drunk": 0.30000001192092896,
+     "model_litres": 0.30000001192092896,
+     "fill_ok": true
+    },
+    {
+     "landed": true,
+     "settled": true,
+     "event_age": 2.688910961151123,
+     "first_moved_age": 2.6773805618286133,
+     "settle_age": 2.700441360473633,
+     "drunk": 0.30000001192092896,
+     "model_litres": 0.30000001192092896,
+     "fill_ok": true
+    },
+    {
+     "landed": true,
+     "settled": true,
+     "event_age": 2.7832045555114746,
+     "first_moved_age": 2.766115188598633,
+     "settle_age": 2.8002939224243164,
+     "drunk": 0.30000001192092896,
+     "model_litres": 0.30000001192092896,
+     "fill_ok": true
+    }
+   ],
+   "poll_end": 3.810495376586914,
+   "polls": [
+    {
+     "age": 2.4670333862304688,
+     "intox": 0.4548163414001465
+    },
+    {
+     "age": 2.473245620727539,
+     "intox": 2.1100621223449707
+    },
+    {
+     "age": 2.4821128845214844,
+     "intox": 4.295214653015137
+    },
+    {
+     "age": 2.4909887313842773,
+     "intox": 4.832712650299072
+    },
+    {
+     "age": 2.499866485595703,
+     "intox": 4.43009090423584
+    },
+    {
+     "age": 2.5087451934814453,
+     "intox": 4.027309417724609
+    },
+    {
+     "age": 2.5167369842529297,
+     "intox": 3.6647775173187256
+    },
+    {
+     "age": 2.5668935775756836,
+     "intox": 1.8138580322265625
+    },
+    {
+     "age": 2.570889472961426,
+     "intox": 3.0562832355499268
+    },
+    {
+     "age": 2.579768180847168,
+     "intox": 5.109140396118164
+    },
+    {
+     "age": 2.58376407623291,
+     "intox": 6.092942714691162
+    },
+    {
+     "age": 2.588648796081543,
+     "intox": 6.402914524078369
+    },
+    {
+     "age": 2.5975255966186523,
+     "intox": 6.000244617462158
+    },
+    {
+     "age": 2.6001882553100586,
+     "intox": 5.879428863525391
+    },
+    {
+     "age": 2.606398582458496,
+     "intox": 5.5977044105529785
+    },
+    {
+     "age": 2.6667518615722656,
+     "intox": 4.053461074829102
+    },
+    {
+     "age": 2.6685266494750977,
+     "intox": 4.618197917938232
+    },
+    {
+     "age": 2.6773805618286133,
+     "intox": 6.798904895782471
+    },
+    {
+     "age": 2.683584213256836,
+     "intox": 8.0963716506958
+    },
+    {
+     "age": 2.686245918273926,
+     "intox": 7.975650310516357
+    },
+    {
+     "age": 2.6951169967651367,
+     "intox": 7.573256015777588
+    },
+    {
+     "age": 2.700441360473633,
+     "intox": 7.331690311431885
+    },
+    {
+     "age": 2.757237434387207,
+     "intox": 6.4594268798828125
+    },
+    {
+     "age": 2.766115188598633,
+     "intox": 8.773494720458984
+    },
+    {
+     "age": 2.7749929428100586,
+     "intox": 9.949642181396484
+    },
+    {
+     "age": 2.783426284790039,
+     "intox": 9.56705093383789
+    },
+    {
+     "age": 2.7927474975585938,
+     "intox": 9.144271850585938
+    },
+    {
+     "age": 2.8002939224243164,
+     "intox": 8.801995277404785
+    },
+    {
+     "age": 2.816708564758301,
+     "intox": 8.057422637939453
+    },
+    {
+     "age": 2.828251838684082,
+     "intox": 7.533801078796387
+    },
+    {
+     "age": 2.8460121154785156,
+     "intox": 6.728234767913818
+    },
+    {
+     "age": 2.863780975341797,
+     "intox": 5.922390460968018
+    },
+    {
+     "age": 2.8815460205078125,
+     "intox": 5.116521835327148
+    },
+    {
+     "age": 2.899311065673828,
+     "intox": 4.310653209686279
+    },
+    {
+     "age": 2.9170713424682617,
+     "intox": 3.505061626434326
+    },
+    {
+     "age": 2.9334917068481445,
+     "intox": 2.760338306427002
+    },
+    {
+     "age": 2.9437055587768555,
+     "intox": 2.297020196914673
+    },
+    {
+     "age": 2.96144962310791,
+     "intox": 1.4920029640197754
+    },
+    {
+     "age": 2.979212760925293,
+     "intox": 0.6862515211105347
+    },
+    {
+     "age": 2.996976852416992,
+     "intox": 0
+    }
+   ]
+  },
+  "spawns": [
+   {
+    "type": "Base.BeerCan",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.BeerCan in admin's inventory",
+     "wall": 74.253
+    },
+    "additem": {
+     "ok": true,
+     "reply": "Item Base.BeerCan Added in admin's inventory."
+    },
+    "after": {
+     "id": 742849020,
+     "fullType": "Base.BeerCan",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 78.842
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   {
+    "type": "Base.Pop2",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.Pop2 in admin's inventory",
+     "wall": 96.245
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 284241551,
+     "fullType": "Base.Pop2",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 100.76
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   {
+    "type": "Base.Pop",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.Pop in admin's inventory",
+     "wall": 118.174
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 2018050651,
+     "fullType": "Base.Pop",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 121.203
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   {
+    "type": "Base.SodaCan",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.SodaCan in admin's inventory",
+     "wall": 138.345
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 591584326,
+     "fullType": "Base.SodaCan",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 142.873
+    },
+    "leftover_before": false,
+    "confirmed": true
+   }
+  ],
+  "restore": {
+   "restore_to": 1,
+   "set": {
+    "want": 1,
+    "rcon_ok": true,
+    "trueMult": 1,
+    "mult": 4.798803329467773,
+    "age": 3.0000877380371094,
+    "wall": 204.305,
+    "tag": "C_restore",
+    "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one",
+    "ok": true
+   },
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one",
+   "trueMult_after": 1,
+   "ok": true
+  },
+  "R": {
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "from": 1,
+      "rows": 39,
+      "skipped": 0,
+      "next": 40,
+      "more": false,
+      "oldest": 1,
+      "newest": 39,
+      "recorded": 39,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "result": "minute-ring-admin-1"
+     },
+     "doc_rows": 39,
+     "file": "minute-ring-admin-1.json"
+    }
+   ],
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 39,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 208.35,
+    "wall_after": 208.608
+   }
+  }
+ },
+ "speeds": [
+  {
+   "want": 1,
+   "rcon_ok": true,
+   "trueMult": 1,
+   "mult": 4.7835774421691895,
+   "age": 2.4022464752197266,
+   "wall": 69.704,
+   "tag": "S_one",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one",
+   "ok": true
+  },
+  {
+   "want": 1,
+   "rcon_ok": true,
+   "trueMult": 1,
+   "mult": 4.798803329467773,
+   "age": 3.0000877380371094,
+   "wall": 204.305,
+   "tag": "C_restore",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one",
+   "ok": true
+  }
+ ],
+ "run_id": "x445b-20261015-181249",
+ "session_key": "V4b",
+ "session": "Plan 14 Task 5 fix 3, V4's beer arm: four unsealed beers back to back in the vanilla game with sleep on; one boot of x44-vanilla-sleep",
+ "driver": "x445b_beers.py",
+ "lib": "x44_guide_lib.py",
+ "user": "admin",
+ "profile": {
+  "name": "x44-vanilla-sleep",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x44-vanilla-sleep.toml",
+  "fixture": "default",
+  "description": "PZTestKit only (the vanilla game), fixture default, admin (debug), Nutrition true, DayLength 4, SleepAllowed and SleepNeeded true, build 42.21.0 - x445, Plan 14 Task 5: coffee and beer.",
+  "mods": [
+   "PZTestKit"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": true,
+   "DayLength": 4
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "prefix": true,
+  "profile": true,
+  "driver_file": true,
+  "no_prior_artifact": true,
+  "profile_checks": {
+   "named_profile": true,
+   "header_names_file": true,
+   "fixture_default": true,
+   "one_admin_client": true,
+   "sleep_keys": true,
+   "mods_harness_only": true,
+   "nutrition_true": true,
+   "day_length": true,
+   "verify_nutrition_on": true,
+   "verify_mod_absent": true
+  },
+  "harness_markers": true,
+  "harness_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"minute.ring\", function(": true,
+    "TK.register(\"stats.set\", function(": true,
+    "TK.register(\"stats.get\", function(": true,
+    "TK.register(\"stats.all\", function(": true,
+    "TK.register(\"nutrition.get\", function(": true,
+    "TK.register(\"nutrition.set\", function(": true,
+    "TK.register(\"health.get\", function(": true,
+    "TK.register(\"moodle.level\", function(": true,
+    "TK.register(\"perk.xp\", function(": true,
+    "TK.register(\"perk.park\", function(": true,
+    "TK.register(\"xp.grant\", function(": true,
+    "TK.register(\"item.get\", function(": true,
+    "TK.register(\"fluid.fill\", function(": true,
+    "TK.register(\"autodrink.probe\", function(": true,
+    "TK.register(\"witness.chain\", function(": true,
+    "TK.register(\"time.multiplier\", function(": true,
+    "TK.register(\"player.sleep\", function(": true,
+    "TK.register(\"player.sleep.hold\", function(": true,
+    "TK.register(\"foodtimer.set\", function(": true,
+    "TK.register(\"players\", function(": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"eat.action\", function(": true,
+    "TK.register(\"drink.action\", function(": true,
+    "TK.register(\"exercise.do\", function(": true,
+    "TK.register(\"action.cancel\", function(": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"time.snapshot\", function(": true,
+    "TK.register(\"lua.read\", function(": true,
+    "TK.register(\"lua.global\", function(": true
+   }
+  }
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "59678ed2",
+ "harness_lua_commit": "9e9f2b06",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "add5dabf",
+ "model_commit": "d31ec5a0",
+ "replay_tool_commit": "d31ec5a0",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "LIB_FILE": "x44_guide_lib.py",
+  "NR": "NutritionRevamp",
+  "USER": "admin",
+  "CLI": "client",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release/plan14-x44",
+  "STAGE_ROOT": "release/plan14-x44/NutritionRevamp",
+  "STAGE_MOD": "release/plan14-x44/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "MIN_FREE_GB": 12.0,
+  "SESSIONS": {
+   "V1a": {
+    "prefix": "x441",
+    "profile": "x44-vanilla",
+    "kind": "vanilla",
+    "sleep": false,
+    "artifact": "meal.json"
+   },
+   "V1b": {
+    "prefix": "x442",
+    "profile": "x44-vanilla",
+    "kind": "vanilla",
+    "sleep": false,
+    "artifact": "starve.json"
+   },
+   "V2a": {
+    "prefix": "x443a",
+    "profile": "x44-vanilla",
+    "kind": "vanilla",
+    "sleep": false,
+    "artifact": "tuna-a.json"
+   },
+   "V2b": {
+    "prefix": "x443b",
+    "profile": "x44-vanilla",
+    "kind": "vanilla",
+    "sleep": false,
+    "artifact": "tuna-b.json",
+    "chain_from": "V2a"
+   },
+   "V3": {
+    "prefix": "x444",
+    "profile": "x44-vanilla",
+    "kind": "vanilla",
+    "sleep": false,
+    "artifact": "strength.json"
+   },
+   "V4": {
+    "prefix": "x445",
+    "profile": "x44-vanilla-sleep",
+    "kind": "vanilla",
+    "sleep": true,
+    "artifact": "drinks.json"
+   },
+   "M1": {
+    "prefix": "x446",
+    "profile": "x44-mod",
+    "kind": "mod",
+    "sleep": false,
+    "artifact": "fast.json"
+   },
+   "M2": {
+    "prefix": "x447",
+    "profile": "x44-mod-sleep",
+    "kind": "mod",
+    "sleep": true,
+    "artifact": "acute.json"
+   },
+   "V4b": {
+    "prefix": "x445b",
+    "profile": "x44-vanilla-sleep",
+    "kind": "vanilla",
+    "sleep": true,
+    "artifact": "beers.json"
+   }
+  },
+  "VANILLA_DAY_LENGTH": 4,
+  "MOD_DAY_LENGTH": 1,
+  "DAY_LENGTH_MIN": {
+   "1": 15.0,
+   "4": 90.0
+  },
+  "BOLOGNESE": "Base.CannedBologneseOpen",
+  "TUNA": "Base.TunaTinOpen",
+  "BEER": "Base.BeerCan",
+  "BOTTLE": "Base.WaterBottle",
+  "VANILLA_FOODS": {
+   "Base.CannedBologneseOpen": {
+    "hunger_script": -24.0,
+    "calories": 540.0,
+    "carbs": 68.0,
+    "lipids": 22.0,
+    "proteins": 18.0,
+    "foodType": "Meat"
+   },
+   "Base.TunaTinOpen": {
+    "hunger_script": -18.0,
+    "calories": 370.0,
+    "carbs": 0.0,
+    "lipids": 34.0,
+    "proteins": 15.0,
+    "foodType": "Fish"
+   }
+  },
+  "MOD_FOODS": {
+   "Base.CannedBologneseOpen": {
+    "cal": 540.0,
+    "carb": 61.83,
+    "lip": 22.19,
+    "pro": 23.6,
+    "hunger_script": -24.0,
+    "foodType": "Meat"
+   }
+  },
+  "COFFEE_L": 0.25,
+  "BEER_L": 0.3,
+  "BEER_CONTAINERS": [
+   "Base.BeerCan",
+   "Base.Pop2",
+   "Base.Pop",
+   "Base.SodaCan"
+  ],
+  "COFFEE_CONTAINERS": [
+   "Base.WaterBottle",
+   "Base.FountainCupWater",
+   "Base.Pop3"
+  ],
+  "HOUR_OFFSET": 7.0,
+  "SPEED_FAST": 30,
+  "MOD_SPEED_FAST": 5,
+  "LEAD_MIN": 3.0,
+  "POLL_S": 0.25,
+  "EAT_CAP_S": 40.0,
+  "DRINK_CAP_S": 40.0,
+  "SETTLE_POLLS": 3,
+  "SPEED_UNIT": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one",
+  "MOODLE_FOOD_EATEN": "FOOD_EATEN",
+  "MOODLE_HUNGRY": "HUNGRY",
+  "MOVED_SHARE": 0.25,
+  "HUNGER_TOL": 0.003,
+  "THIRST_TOL": 0.003,
+  "EVENT_SKIP_H": 0.03333333333333333,
+  "TIMER_TOL": 100.0,
+  "MOODLE_SKEW_H": 0.016666666666666666,
+  "FREEZE_TOL_H": 0.03333333333333333,
+  "FREEZE_EPS": 0.0005,
+  "CAL_TOL": 5.0,
+  "CAL_TOL_REL": 0.01,
+  "WEIGHT_TOL": 0.02,
+  "HEALTH_TOL": 1.0,
+  "LEVEL_TOL_H": 0.1,
+  "DEATH_TOL_H": 0.5,
+  "REP_TOL": 2,
+  "XP_TOL": 1.0,
+  "FATIGUE_TOL": 0.005,
+  "FATIGUE_RESET": 0.1,
+  "INTOX_DECAY_REL": 0.05,
+  "INTOX_ZERO_TOL_H": 0.05,
+  "INTOX_FIT_MIN": 1.0,
+  "MODEL_DT_MIN": 1.0,
+  "V1A_HUNGER_A": 0.25,
+  "V1A_HUNGER_B": 0.1,
+  "V1A_ARM_A_H": 6.0,
+  "V1A_ARM_B_H": 2.0,
+  "V1A_TIMER_WINDOW_M": 25.0,
+  "V1A_TIMER_EVERY_S": 10.0,
+  "V1B_HUNGER": 0.6,
+  "V1B_CAP_H": 40.0,
+  "V1B_HEALTH_EVERY_H": 0.25,
+  "V1B_HUNGRY_4": 0.7,
+  "V2_CALORIES": 3000.0,
+  "V2_WEIGHT": 80.0,
+  "V2_EAT_OFFSETS": [
+   0.0,
+   4.0,
+   8.0,
+   12.0,
+   24.0,
+   28.0,
+   32.0
+  ],
+  "V2_SPAN_H": 36.0,
+  "V2_SPLIT_H": 18.0,
+  "V2_THIRST_EVERY_H": 6.0,
+  "V3_PARK_LEVEL": 5,
+  "V3_GRANT": 29700.0,
+  "V3_PROTEINS": [
+   [
+    "A",
+    0.0
+   ],
+   [
+    "B",
+    100.0
+   ],
+   [
+    "C",
+    -400.0
+   ]
+  ],
+  "PUSHUP_ASK_M": 60,
+  "SET_START_CAP_S": 20.0,
+  "SET_CAP_S": 200.0,
+  "EXE_CLEAR_CAP_S": 20.0,
+  "BANDS": [
+   [
+    "weak",
+    1
+   ],
+   [
+    "feeble",
+    4
+   ],
+   [
+    null,
+    5
+   ],
+   [
+    "stout",
+    8
+   ],
+   [
+    "strong",
+    10
+   ]
+  ],
+  "MUSCLE": [
+   "weak",
+   "feeble",
+   "stout",
+   "strong"
+  ],
+  "V4_FATIGUE": 0.5,
+  "V4_HOLD_H": 1.0,
+  "V4_HOLD_SLOW_M": 5.0,
+  "V4_BEERS": 4,
+  "V4_INTOX_EVERY_S": 2.0,
+  "V4_INTOX_CAP_H": 1.0,
+  "H_REQ": 0.25,
+  "APPROACH": 0.246,
+  "SAVE_CAP_S": 80.0,
+  "LITRES_PER_THIRST": 2.0,
+  "AUTODROP": "fluids.autoDrop",
+  "SLEPT": "acute.sleptH",
+  "EATS_G": "_G.NutritionRevamp.server.intake.stats.eats",
+  "LANDED_G": "_G.NutritionRevamp.server.intake.stats.landed",
+  "SIPS_G": "_G.NutritionRevamp.server.intake.stats.sips",
+  "LASTSIG": "_G.NutritionRevamp.server.bus.lastSig.admin",
+  "INTAKE_PATHS": [
+   "NutritionRevamp.server.intake.stats.eats",
+   "NutritionRevamp.server.intake.stats.landed",
+   "NutritionRevamp.server.intake.stats.sips"
+  ],
+  "FLUSH_PATHS": [
+   "NutritionRevamp.server.players.online.admin",
+   "NutritionRevamp.server.store.file.lastWrite.admin",
+   "NutritionRevamp.server.store.file.stats.writes"
+  ],
+  "RING_GLOBALS": [
+   "_G.NutritionRevamp.server.writer.stats.writes",
+   "_G.NutritionRevamp.server.writer.stats.sips",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed",
+   "_G.NutritionRevamp.server.intake.stats.sips",
+   "_G.NutritionRevamp.server.bus.lastSig.admin"
+  ],
+  "M1_RING": [
+   "satiety.M",
+   "satiety.S",
+   "satiety.L",
+   "satiety.t",
+   "stomachFill",
+   "stomach.liquid",
+   "body.energyState",
+   "body.met",
+   "body.fm",
+   "body.lm",
+   "body.inDay",
+   "body.eeDay",
+   "kineticsAge",
+   "fluids.water",
+   "fluids.na",
+   "fluids.naPlasma",
+   "fluids.autoDrop",
+   "fluids.thirstTarget",
+   "fluids.dehydPct",
+   "_G.NutritionRevamp.server.writer.stats.writes",
+   "_G.NutritionRevamp.server.writer.stats.sips",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed",
+   "_G.NutritionRevamp.server.intake.stats.sips",
+   "_G.NutritionRevamp.server.bus.lastSig.admin"
+  ],
+  "M2_RING": [
+   "satiety.M",
+   "satiety.S",
+   "satiety.L",
+   "satiety.t",
+   "stomachFill",
+   "stomach.liquid",
+   "body.energyState",
+   "body.met",
+   "kineticsAge",
+   "fluids.water",
+   "fluids.autoDrop",
+   "fluids.thirstTarget",
+   "acute.caf",
+   "acute.cafTol",
+   "acute.gutCaf",
+   "acute.alc",
+   "acute.bac",
+   "acute.gutAlc",
+   "acute.hang",
+   "acute.hangH",
+   "acute.debtH",
+   "acute.sleptH",
+   "acute.winSleptH",
+   "acute.S",
+   "effects.fOff",
+   "_G.NutritionRevamp.server.writer.stats.writes",
+   "_G.NutritionRevamp.server.writer.stats.sips",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed",
+   "_G.NutritionRevamp.server.intake.stats.sips",
+   "_G.NutritionRevamp.server.bus.lastSig.admin"
+  ],
+  "H1_EXTRA": [
+   "firstSeen",
+   "body.sex",
+   "body.fm",
+   "body.lm"
+  ],
+  "STAT_NAMES": {
+   "HUNGER": "Hunger",
+   "THIRST": "Thirst",
+   "FATIGUE": "Fatigue",
+   "BOREDOM": "Boredom",
+   "UNHAPPINESS": "Unhappiness",
+   "NICOTINE_WITHDRAWAL": "NicotineWithdrawal",
+   "INTOXICATION": "Intoxication"
+  },
+  "REPLAY_TOL": {
+   "HUNGER": [
+    "abs",
+    0.002
+   ],
+   "body.energyState": [
+    "abs",
+    0.005
+   ],
+   "THIRST": [
+    "abs",
+    0.002
+   ]
+  },
+  "ACUTE_TOL": {
+   "acute.caf": [
+    "abs",
+    1.0
+   ],
+   "acute.bac": [
+    "abs",
+    0.001
+   ],
+   "acute.hang": [
+    "abs",
+    0.5
+   ],
+   "acute.debtH": [
+    "abs",
+    0.05
+   ]
+  },
+  "HANG_TOL_H": 0.25,
+  "M1_FAST_H": 24.0,
+  "M1_REQUEST_CAP_H": 12.0,
+  "M2_COFFEE_OFFSETS": [
+   0.1,
+   3.1,
+   6.1
+  ],
+  "M2_BEER_GAP_H": 3.0,
+  "M2_BEER_HOUR": 19.0,
+  "M2_NIGHT_HOUR": 23.0,
+  "M2_NIGHT_MAX_GAP_H": 4.0,
+  "M2_NIGHT_FALLBACK_H": 1.0,
+  "M2_NIGHT_H": 4.0,
+  "M2_DAY2_H": 6.0,
+  "FAST_FORWARD_NOTE": "the night's fast-forward rests on #2956 (x151s, DL1, build 42.20.4; the fast-forward an inference), not re-read on 42.21; the booked hours are the reading",
+  "HOLD_S": 600,
+  "NIGHT_CAP_S": 90.0,
+  "WAKE_SETTLE_S": 5.0,
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(",
+    "TK.register(\"stats.set\", function(",
+    "TK.register(\"stats.get\", function(",
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"nutrition.set\", function(",
+    "TK.register(\"health.get\", function(",
+    "TK.register(\"moodle.level\", function(",
+    "TK.register(\"perk.xp\", function(",
+    "TK.register(\"perk.park\", function(",
+    "TK.register(\"xp.grant\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"fluid.fill\", function(",
+    "TK.register(\"autodrink.probe\", function(",
+    "TK.register(\"witness.chain\", function(",
+    "TK.register(\"time.multiplier\", function(",
+    "TK.register(\"player.sleep\", function(",
+    "TK.register(\"player.sleep.hold\", function(",
+    "TK.register(\"foodtimer.set\", function(",
+    "TK.register(\"players\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"eat.action\", function(",
+    "TK.register(\"drink.action\", function(",
+    "TK.register(\"exercise.do\", function(",
+    "TK.register(\"action.cancel\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"lua.global\", function("
+   ]
+  },
+  "ECHO_RX": "PZTK: ",
+  "NEVER_RX": "(?!x)x",
+  "LOG_RX": "NutritionRevamp|NR_|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil",
+  "STATS_GET_KEYS": [
+   "calories",
+   "carbs",
+   "lipids",
+   "proteins",
+   "weight",
+   "hunger",
+   "thirst",
+   "endurance",
+   "fatigue",
+   "foodTimer",
+   "standardFoodTime",
+   "asleep",
+   "moving",
+   "worldAge",
+   "wall"
+  ],
+  "START_KEYS": {
+   "hunger": "hunger",
+   "thirst": "thirst",
+   "weight_kg": "weight_kg",
+   "calories": "calories_store",
+   "carbs": "carbs",
+   "lipids": "lipids",
+   "proteins": "proteins",
+   "health": "health",
+   "food_timer": "food_timer",
+   "fatigue": "fatigue",
+   "intoxication": "intoxication",
+   "strength_xp": "strength_xp",
+   "strength_level": "strength_level"
+  },
+  "WRITE_KEYS": {
+   "hunger": "hunger",
+   "thirst": "thirst",
+   "fatigue": "fatigue",
+   "calories": "calories",
+   "weight": "weight_kg",
+   "carbs": "carbs",
+   "lipids": "lipids",
+   "proteins": "proteins",
+   "strength_xp": "strength_xp",
+   "strength_level": "strength_level",
+   "food_timer": "food_timer"
+  },
+  "WRITE_KINDS": [
+   "set",
+   "grant"
+  ],
+  "PRERUN_START": {
+   "hunger": 0.0,
+   "thirst": 0.0,
+   "weight_kg": 80.0,
+   "calories": 800.0,
+   "health": 100.0,
+   "food_timer": 0.0,
+   "fatigue": 0.0,
+   "intoxication": 0.0
+  },
+  "PRERUN_SETTINGS": {
+   "day_length_min": 90.0,
+   "stats_decrease": 3,
+   "appetite": 1.0,
+   "sleep_allowed": false,
+   "xp_multiplier": 1.0
+  }
+ },
+ "predictions": {
+  "prerun": {
+   "coffee_fatigue": -0.025,
+   "beer_gain_each": 6.0,
+   "decay_per_h": 45.36,
+   "zero_after_first_h": 0.5291005291005291
+  },
+  "V4_B_decay": "INTOXICATION's slope after the last can within 5 % of the model's -45.36 a game hour",
+  "V4_B_zero": "INTOXICATION first read 0 within 0.05 game hour of the model's zero",
+  "beer_containers": [
+   "Base.BeerCan",
+   "Base.Pop2",
+   "Base.Pop",
+   "Base.SodaCan"
+  ],
+  "beer_script_check": {
+   "containers": [
+    {
+     "item": "Base.BeerCan",
+     "line": 6101,
+     "found": true,
+     "fluid_container": true,
+     "capacity": 0.3,
+     "opened_false": false,
+     "opening_recipe": false,
+     "fluid_filter": false,
+     "prefilled": true,
+     "ok": true
+    },
+    {
+     "item": "Base.Pop2",
+     "line": 7051,
+     "found": true,
+     "fluid_container": true,
+     "capacity": 0.3,
+     "opened_false": false,
+     "opening_recipe": false,
+     "fluid_filter": false,
+     "prefilled": true,
+     "ok": true
+    },
+    {
+     "item": "Base.Pop",
+     "line": 7025,
+     "found": true,
+     "fluid_container": true,
+     "capacity": 0.3,
+     "opened_false": false,
+     "opening_recipe": false,
+     "fluid_filter": false,
+     "prefilled": true,
+     "ok": true
+    },
+    {
+     "item": "Base.SodaCan",
+     "line": 7174,
+     "found": true,
+     "fluid_container": true,
+     "capacity": 0.3,
+     "opened_false": false,
+     "opening_recipe": false,
+     "fluid_filter": false,
+     "prefilled": true,
+     "ok": true
+    }
+   ],
+   "distinct": true,
+   "apart_from_coffees": true,
+   "count": 4
+  }
+ },
+ "meta": {
+  "budget_s": 360.0,
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.954,
+   "free_gb": 17.57
+  },
+  {
+   "tag": "ready",
+   "wall": 54.804,
+   "free_gb": 4.17
+  },
+  {
+   "tag": "after",
+   "wall": 218.379,
+   "free_gb": 17.67
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.315,
+ "server_started_wall": 14.818,
+ "session_ready_wall": 51.01,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "SandboxVars.Nutrition",
+   "expect": "\"value\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "SandboxVars.Nutrition",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "SandboxVars.DayLength",
+   "expect": "\"value\": 4",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "SandboxVars.DayLength",
+    "type": "number",
+    "resolved": true,
+    "value": 4
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp",
+   "expect": "\"resolved\": false",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp",
+    "failedAt": "NutritionRevamp",
+    "resolved": false
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp",
+   "expect": "\"resolved\": false",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp",
+    "failedAt": "NutritionRevamp",
+    "resolved": false
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 14.8,
+   "phase": "server_started"
+  },
+  {
+   "t": 14.9,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 51.0,
+   "phase": "client_ready",
+   "took": 35.8,
+   "user": "admin"
+  },
+  {
+   "t": 51.0,
+   "phase": "session_ready"
+  },
+  {
+   "t": 52.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"SandboxVars.Nutrition\", \"type\": \"boolean\", \"resolved\": true, \"value\": tr"
+  },
+  {
+   "t": 54.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"SandboxVars.DayLength\", \"type\": \"number\", \"resolved\": true, \"value\": 4}"
+  },
+  {
+   "t": 54.5,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp\", \"failedAt\": \"NutritionRevamp\", \"resolved\": false}"
+  },
+  {
+   "t": 54.8,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp\", \"failedAt\": \"NutritionRevamp\", \"resolved\": false}"
+  },
+  {
+   "t": 69.7,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 76.3,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.BeerCan\" 1",
+   "ok": true
+  },
+  {
+   "t": 98.3,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Pop2\" 1",
+   "ok": true
+  },
+  {
+   "t": 118.7,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Pop\" 1",
+   "ok": true
+  },
+  {
+   "t": 140.4,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.SodaCan\" 1",
+   "ok": true
+  },
+  {
+   "t": 204.3,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 210.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 218.3,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 218.4,
+   "phase": "verdict",
+   "name": "V4_B_decay",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 218.4,
+   "phase": "verdict",
+   "name": "V4_B_zero",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 33.8,
+   "ready": 35.8
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|NR_|LuaError|STACK TRACE|lua error|attempted index|tried to call nil"
+  },
+  "server": [
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:"
+  ],
+  "server_echo_excluded": 1,
+  "mod_error": [],
+  "clients": {
+   "admin": [
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:"
+   ]
+  }
+ },
+ "reads": {},
+ "writes": [
+  {
+   "tag": "S_thirst",
+   "cmd": "stats.set",
+   "args": "thirst 0",
+   "values": {
+    "thirst": 0
+   },
+   "ages": [
+    2.411111831665039,
+    2.419994354248047
+   ],
+   "applied": {
+    "thirst": "Stats:set(CharacterStat.THIRST)"
+   }
+  }
+ ],
+ "eats": [],
+ "drinks": [
+  {
+   "label": "B_beer1",
+   "container": "Base.BeerCan",
+   "fluid": "Beer",
+   "landed": true,
+   "fill": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.BeerCan",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 742849020,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 80.355,
+    "wall_after": 81.117
+   },
+   "probe_before": {
+    "ok": true,
+    "side": "server",
+    "containers": 1,
+    "thirst": 0.0011121411807835102,
+    "autoDrink": true,
+    "item": "Base.BeerCan",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 81.117,
+    "wall_after": 82.126
+   },
+   "fill_ok": true,
+   "before": {
+    "value": 0,
+    "worldAge": 2.4643688201904297
+   },
+   "queued": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 742849020,
+    "filledRatioBefore": 1,
+    "error": null,
+    "raw": null,
+    "wall": 84.142
+   },
+   "polls": [
+    {
+     "age": 2.4670333862304688,
+     "value": 0.4548163414001465
+    },
+    {
+     "age": 2.473245620727539,
+     "value": 2.1100621223449707
+    },
+    {
+     "age": 2.4821128845214844,
+     "value": 4.295214653015137
+    },
+    {
+     "age": 2.4909887313842773,
+     "value": 4.832712650299072
+    },
+    {
+     "age": 2.499866485595703,
+     "value": 4.43009090423584
+    },
+    {
+     "age": 2.5087451934814453,
+     "value": 4.027309417724609
+    },
+    {
+     "age": 2.5167369842529297,
+     "value": 3.6647775173187256
+    }
+   ],
+   "settled": true,
+   "probe_after": {
+    "ok": true,
+    "side": "server",
+    "containers": 1,
+    "thirst": 0.0009205524111166596,
+    "autoDrink": true,
+    "wall": 95.986,
+    "wall_after": 96.245
+   },
+   "drunk": 0.30000001192092896,
+   "event_age": 2.4949913024902344,
+   "first_moved_age": 2.473245620727539,
+   "settle_age": 2.5167369842529297,
+   "model_litres": 0.30000001192092896
+  },
+  {
+   "label": "B_beer2",
+   "container": "Base.Pop2",
+   "fluid": "Beer",
+   "landed": true,
+   "fill": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.Pop2",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 284241551,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 102.275,
+    "wall_after": 103.534
+   },
+   "probe_before": {
+    "ok": true,
+    "side": "server",
+    "containers": 2,
+    "thirst": 0.001943100243806839,
+    "autoDrink": true,
+    "item": "Base.Pop2",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 103.534,
+    "wall_after": 104.291
+   },
+   "fill_ok": true,
+   "before": {
+    "value": 1.6112338304519653,
+    "worldAge": 2.56201171875
+   },
+   "queued": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 284241551,
+    "filledRatioBefore": 1,
+    "error": null,
+    "raw": null,
+    "wall": 106.308
+   },
+   "polls": [
+    {
+     "age": 2.5668935775756836,
+     "value": 1.8138580322265625
+    },
+    {
+     "age": 2.570889472961426,
+     "value": 3.0562832355499268
+    },
+    {
+     "age": 2.579768180847168,
+     "value": 5.109140396118164
+    },
+    {
+     "age": 2.58376407623291,
+     "value": 6.092942714691162
+    },
+    {
+     "age": 2.588648796081543,
+     "value": 6.402914524078369
+    },
+    {
+     "age": 2.5975255966186523,
+     "value": 6.000244617462158
+    },
+    {
+     "age": 2.6001882553100586,
+     "value": 5.879428863525391
+    },
+    {
+     "age": 2.606398582458496,
+     "value": 5.5977044105529785
+    }
+   ],
+   "settled": true,
+   "probe_after": {
+    "ok": true,
+    "side": "server",
+    "containers": 2,
+    "thirst": 0.0008563111769035459,
+    "autoDrink": true,
+    "wall": 116.164,
+    "wall_after": 118.174
+   },
+   "drunk": 0.30000001192092896,
+   "event_age": 2.593083381652832,
+   "first_moved_age": 2.579768180847168,
+   "settle_age": 2.606398582458496,
+   "model_litres": 0.30000001192092896
+  },
+  {
+   "label": "B_beer3",
+   "container": "Base.Pop",
+   "fluid": "Beer",
+   "landed": true,
+   "fill": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.Pop",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 2018050651,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 122.212,
+    "wall_after": 124.228
+   },
+   "probe_before": {
+    "ok": true,
+    "side": "server",
+    "containers": 3,
+    "thirst": 0.0018659441266208887,
+    "autoDrink": true,
+    "item": "Base.Pop",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 124.228,
+    "wall_after": 126.239
+   },
+   "fill_ok": true,
+   "before": {
+    "value": 3.1821327209472656,
+    "worldAge": 2.659646987915039
+   },
+   "queued": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 2018050651,
+    "filledRatioBefore": 1,
+    "error": null,
+    "raw": null,
+    "wall": 128.253
+   },
+   "polls": [
+    {
+     "age": 2.6667518615722656,
+     "value": 4.053461074829102
+    },
+    {
+     "age": 2.6685266494750977,
+     "value": 4.618197917938232
+    },
+    {
+     "age": 2.6773805618286133,
+     "value": 6.798904895782471
+    },
+    {
+     "age": 2.683584213256836,
+     "value": 8.0963716506958
+    },
+    {
+     "age": 2.686245918273926,
+     "value": 7.975650310516357
+    },
+    {
+     "age": 2.6951169967651367,
+     "value": 7.573256015777588
+    },
+    {
+     "age": 2.700441360473633,
+     "value": 7.331690311431885
+    }
+   ],
+   "settled": true,
+   "probe_after": {
+    "ok": true,
+    "side": "server",
+    "containers": 3,
+    "thirst": 0.0006004719762131572,
+    "autoDrink": true,
+    "wall": 137.336,
+    "wall_after": 138.345
+   },
+   "drunk": 0.30000001192092896,
+   "event_age": 2.688910961151123,
+   "first_moved_age": 2.6773805618286133,
+   "settle_age": 2.700441360473633,
+   "model_litres": 0.30000001192092896
+  },
+  {
+   "label": "B_beer4",
+   "container": "Base.SodaCan",
+   "fluid": "Beer",
+   "landed": true,
+   "fill": {
+    "ok": true,
+    "side": "server",
+    "fullType": "Base.SodaCan",
+    "requested": 0.3,
+    "spawned": false,
+    "id": 591584326,
+    "litres": 0.30000001192092896,
+    "capacity": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 144.136,
+    "wall_after": 144.893
+   },
+   "probe_before": {
+    "ok": true,
+    "side": "server",
+    "containers": 4,
+    "thirst": 0.0016229446046054363,
+    "autoDrink": true,
+    "item": "Base.SodaCan",
+    "litres": 0.30000001192092896,
+    "fluid": "Beer",
+    "wall": 144.893,
+    "wall_after": 146.155
+   },
+   "fill_ok": true,
+   "before": {
+    "value": 5.157885551452637,
+    "worldAge": 2.7483606338500977
+   },
+   "queued": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 591584326,
+    "filledRatioBefore": 1,
+    "error": null,
+    "raw": null,
+    "wall": 148.167
+   },
+   "polls": [
+    {
+     "age": 2.757237434387207,
+     "value": 6.4594268798828125
+    },
+    {
+     "age": 2.766115188598633,
+     "value": 8.773494720458984
+    },
+    {
+     "age": 2.7749929428100586,
+     "value": 9.949642181396484
+    },
+    {
+     "age": 2.783426284790039,
+     "value": 9.56705093383789
+    },
+    {
+     "age": 2.7927474975585938,
+     "value": 9.144271850585938
+    },
+    {
+     "age": 2.8002939224243164,
+     "value": 8.801995277404785
+    }
+   ],
+   "settled": true,
+   "probe_after": {
+    "ok": true,
+    "side": "server",
+    "containers": 4,
+    "thirst": 0.0008565515745431185,
+    "autoDrink": true,
+    "wall": 160.003,
+    "wall_after": 160.263
+   },
+   "drunk": 0.30000001192092896,
+   "event_age": 2.7832045555114746,
+   "first_moved_age": 2.766115188598633,
+   "settle_age": 2.8002939224243164,
+   "model_litres": 0.30000001192092896
+  }
+ ],
+ "model_inputs": {
+  "a0": 2.375605583190918,
+  "scenario": {
+   "start": {
+    "hunger": 0.002222679788246751,
+    "thirst": 0.0018542816396802664,
+    "weight_kg": 80,
+    "calories": 796.140869140625,
+    "carbs": -0.8440334796905518,
+    "lipids": -0.27250218391418457,
+    "proteins": -0.20739108324050903,
+    "fatigue": 0.0022395483683794737,
+    "food_timer": 0,
+    "health": 100,
+    "intoxication": 0,
+    "defaulted": []
+   },
+   "settings": {
+    "day_length_min": 90.0,
+    "stats_decrease": 3,
+    "appetite": 1.0,
+    "sleep_allowed": true,
+    "xp_multiplier": 1.0
+   },
+   "events": [
+    {
+     "t_h": 0.039947509765625,
+     "kind": "set",
+     "values": {
+      "thirst": 0
+     },
+     "label": "S_thirst"
+    },
+    {
+     "t_h": 0.1193857192993164,
+     "kind": "drink",
+     "litres": 0.30000001192092896,
+     "fluid": "beer",
+     "label": "B_beer1"
+    },
+    {
+     "t_h": 0.21747779846191406,
+     "kind": "drink",
+     "litres": 0.30000001192092896,
+     "fluid": "beer",
+     "label": "B_beer2"
+    },
+    {
+     "t_h": 0.3133053779602051,
+     "kind": "drink",
+     "litres": 0.30000001192092896,
+     "fluid": "beer",
+     "label": "B_beer3"
+    },
+    {
+     "t_h": 0.40759897232055664,
+     "kind": "drink",
+     "litres": 0.30000001192092896,
+     "fluid": "beer",
+     "label": "B_beer4"
+    }
+   ],
+   "hours": 0.6578154881795247,
+   "dt_min": 1.0
+  },
+  "tool": "tools/vanilla_model.py simulate, chained at each write by testing/experiments/x44_guide_lib.py model_chain"
+ },
+ "verdict_summary": {
+  "V4_B_decay": "as_predicted",
+  "V4_B_zero": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "minute-ring-admin-1.json"
+ ],
+ "wall_seconds": 218.4
+}
