@@ -1,0 +1,1996 @@
+[
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.0078125,
+  "s": 73
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.046875,
+  "s": 74
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.0234375,
+  "s": 75
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.03125,
+  "s": 76
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.03125,
+  "s": 77
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.0390625,
+  "s": 78
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.03125,
+  "s": 79
+ },
+ {
+  "fluid": "Coffee",
+  "kind": "drink",
+  "label": "X_coffee1",
+  "litres": 0.0390625,
+  "s": 80
+ },
+ {
+  "age": 7.2506303787231445,
+  "autoDrop": 0.1500000103882344,
+  "g": 300.00002077646883,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 245
+ },
+ {
+  "age": 16.069149017333984,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 774
+ },
+ {
+  "age": 16.12250328063965,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 775
+ },
+ {
+  "age": 16.17577362060547,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 776
+ },
+ {
+  "age": 16.442108154296875,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 781
+ },
+ {
+  "age": 16.495277404785156,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 782
+ },
+ {
+  "age": 16.761445999145508,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 787
+ },
+ {
+  "age": 16.81462287902832,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 788
+ },
+ {
+  "age": 17.18770408630371,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 795
+ },
+ {
+  "age": 17.240909576416016,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 796
+ },
+ {
+  "age": 17.61334800720215,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 803
+ },
+ {
+  "age": 17.666501998901367,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 804
+ },
+ {
+  "age": 17.826263427734375,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 807
+ },
+ {
+  "age": 17.879444122314453,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 808
+ },
+ {
+  "age": 18.2522029876709,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 815
+ },
+ {
+  "age": 18.305341720581055,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 816
+ },
+ {
+  "age": 18.677597045898438,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 823
+ },
+ {
+  "age": 18.730785369873047,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 824
+ },
+ {
+  "age": 18.890413284301758,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 827
+ },
+ {
+  "age": 18.943498611450195,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 828
+ },
+ {
+  "age": 19.209373474121094,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 833
+ },
+ {
+  "age": 19.26258659362793,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 834
+ },
+ {
+  "age": 19.63500213623047,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 841
+ },
+ {
+  "age": 19.688251495361328,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 842
+ },
+ {
+  "age": 19.954387664794922,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 847
+ },
+ {
+  "age": 20.00751304626465,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 848
+ },
+ {
+  "age": 20.379901885986328,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 855
+ },
+ {
+  "age": 20.433143615722656,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 856
+ },
+ {
+  "age": 20.805875778198242,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 863
+ },
+ {
+  "age": 20.858989715576172,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 864
+ },
+ {
+  "age": 21.018585205078125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 867
+ },
+ {
+  "age": 21.071956634521484,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 868
+ },
+ {
+  "age": 21.33788299560547,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 873
+ },
+ {
+  "age": 21.391258239746094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 874
+ },
+ {
+  "age": 21.656984329223633,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 879
+ },
+ {
+  "age": 21.710058212280273,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 880
+ },
+ {
+  "age": 22.082576751708984,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 887
+ },
+ {
+  "age": 22.135623931884766,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 888
+ },
+ {
+  "age": 22.507648468017578,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 895
+ },
+ {
+  "age": 22.560819625854492,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 896
+ },
+ {
+  "age": 22.93299102783203,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 903
+ },
+ {
+  "age": 22.98611831665039,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 904
+ },
+ {
+  "age": 23.145801544189453,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 907
+ },
+ {
+  "age": 23.19888687133789,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 908
+ },
+ {
+  "age": 23.570938110351562,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 915
+ },
+ {
+  "age": 23.62415313720703,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 916
+ },
+ {
+  "age": 23.89019775390625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 921
+ },
+ {
+  "age": 23.94332504272461,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 922
+ },
+ {
+  "age": 24.209089279174805,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 927
+ },
+ {
+  "age": 24.26232147216797,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 928
+ },
+ {
+  "age": 24.634431838989258,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 935
+ },
+ {
+  "age": 24.68766212463379,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 936
+ },
+ {
+  "age": 24.953596115112305,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 941
+ },
+ {
+  "age": 25.006725311279297,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 942
+ },
+ {
+  "age": 25.272871017456055,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 947
+ },
+ {
+  "age": 25.326000213623047,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 948
+ },
+ {
+  "age": 25.698265075683594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 955
+ },
+ {
+  "age": 25.75145149230957,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 956
+ },
+ {
+  "age": 26.017433166503906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 961
+ },
+ {
+  "age": 26.070690155029297,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 962
+ },
+ {
+  "age": 26.336750030517578,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 967
+ },
+ {
+  "age": 26.389936447143555,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 968
+ },
+ {
+  "age": 26.762163162231445,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 975
+ },
+ {
+  "age": 26.815277099609375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 976
+ },
+ {
+  "age": 27.081317901611328,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 981
+ },
+ {
+  "age": 27.134626388549805,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 982
+ },
+ {
+  "age": 27.40070343017578,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 987
+ },
+ {
+  "age": 27.45389747619629,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 988
+ },
+ {
+  "age": 27.826473236083984,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 995
+ },
+ {
+  "age": 27.879682540893555,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 996
+ },
+ {
+  "age": 28.25217056274414,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1003
+ },
+ {
+  "age": 28.3052978515625,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1004
+ },
+ {
+  "age": 28.465065002441406,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1007
+ },
+ {
+  "age": 28.51826286315918,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1008
+ },
+ {
+  "age": 28.78438949584961,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1013
+ },
+ {
+  "age": 28.83747673034668,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1014
+ },
+ {
+  "age": 29.20966339111328,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1021
+ },
+ {
+  "age": 29.262863159179688,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1022
+ },
+ {
+  "age": 29.528854370117188,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1027
+ },
+ {
+  "age": 29.582115173339844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1028
+ },
+ {
+  "age": 29.848068237304688,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1033
+ },
+ {
+  "age": 29.90141487121582,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1034
+ },
+ {
+  "age": 30.274185180664062,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1041
+ },
+ {
+  "age": 30.32737159729004,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1042
+ },
+ {
+  "age": 30.593494415283203,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1047
+ },
+ {
+  "age": 30.646629333496094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1048
+ },
+ {
+  "age": 31.018898010253906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1055
+ },
+ {
+  "age": 31.072113037109375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1056
+ },
+ {
+  "age": 31.44461441040039,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1063
+ },
+ {
+  "age": 31.49777603149414,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1064
+ },
+ {
+  "age": 31.657535552978516,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1067
+ },
+ {
+  "age": 31.71076202392578,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1068
+ },
+ {
+  "age": 32.083595275878906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1075
+ },
+ {
+  "age": 32.13670349121094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1076
+ },
+ {
+  "age": 32.50933074951172,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1083
+ },
+ {
+  "age": 32.562591552734375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1084
+ },
+ {
+  "age": 32.72222137451172,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1087
+ },
+ {
+  "age": 32.77557373046875,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1088
+ },
+ {
+  "age": 33.14805603027344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1095
+ },
+ {
+  "age": 33.20139694213867,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1096
+ },
+ {
+  "age": 33.57421112060547,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1103
+ },
+ {
+  "age": 33.6273307800293,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1104
+ },
+ {
+  "age": 33.78681182861328,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1107
+ },
+ {
+  "age": 33.8399543762207,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1108
+ },
+ {
+  "age": 34.21251678466797,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1115
+ },
+ {
+  "age": 34.26568603515625,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1116
+ },
+ {
+  "age": 34.637786865234375,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1123
+ },
+ {
+  "age": 34.69084548950195,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1124
+ },
+ {
+  "age": 34.850364685058594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1127
+ },
+ {
+  "age": 34.903438568115234,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1128
+ },
+ {
+  "age": 35.275367736816406,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1135
+ },
+ {
+  "age": 35.328453063964844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1136
+ },
+ {
+  "age": 35.70075225830078,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1143
+ },
+ {
+  "age": 35.75400161743164,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1144
+ },
+ {
+  "age": 35.91331481933594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1147
+ },
+ {
+  "age": 35.96642303466797,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1148
+ },
+ {
+  "age": 36.232330322265625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1153
+ },
+ {
+  "age": 36.28546905517578,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1154
+ },
+ {
+  "age": 36.657615661621094,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1161
+ },
+ {
+  "age": 36.710777282714844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1162
+ },
+ {
+  "age": 36.97679901123047,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1167
+ },
+ {
+  "age": 37.0299186706543,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1168
+ },
+ {
+  "age": 37.29561996459961,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1173
+ },
+ {
+  "age": 37.34867858886719,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1174
+ },
+ {
+  "age": 37.72084045410156,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1181
+ },
+ {
+  "age": 37.77388000488281,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1182
+ },
+ {
+  "age": 38.039649963378906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1187
+ },
+ {
+  "age": 38.09288787841797,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1188
+ },
+ {
+  "age": 38.4647102355957,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1195
+ },
+ {
+  "age": 38.5178337097168,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1196
+ },
+ {
+  "age": 38.89021301269531,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1203
+ },
+ {
+  "age": 38.94345474243164,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1204
+ },
+ {
+  "age": 39.10329818725586,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1207
+ },
+ {
+  "age": 39.15658950805664,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1208
+ },
+ {
+  "age": 39.42282485961914,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1213
+ },
+ {
+  "age": 39.47589111328125,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1214
+ },
+ {
+  "age": 39.84812545776367,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1221
+ },
+ {
+  "age": 39.90132141113281,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1222
+ },
+ {
+  "age": 40.167049407958984,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1227
+ },
+ {
+  "age": 40.22016525268555,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1228
+ },
+ {
+  "age": 40.59218978881836,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1235
+ },
+ {
+  "age": 40.645263671875,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1236
+ },
+ {
+  "age": 41.017173767089844,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1243
+ },
+ {
+  "age": 41.070457458496094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1244
+ },
+ {
+  "age": 41.22987365722656,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1247
+ },
+ {
+  "age": 41.282920837402344,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1248
+ },
+ {
+  "age": 41.6547966003418,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1255
+ },
+ {
+  "age": 41.707855224609375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1256
+ },
+ {
+  "age": 42.08009338378906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1263
+ },
+ {
+  "age": 42.13317108154297,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1264
+ },
+ {
+  "age": 42.292564392089844,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1267
+ },
+ {
+  "age": 42.345703125,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1268
+ },
+ {
+  "age": 42.71800231933594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1275
+ },
+ {
+  "age": 42.77125549316406,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1276
+ },
+ {
+  "age": 43.03702926635742,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1281
+ },
+ {
+  "age": 43.090187072753906,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1282
+ },
+ {
+  "age": 43.355926513671875,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1287
+ },
+ {
+  "age": 43.409019470214844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1288
+ },
+ {
+  "age": 43.78123092651367,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1295
+ },
+ {
+  "age": 43.83437728881836,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1296
+ },
+ {
+  "age": 44.20671844482422,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1303
+ },
+ {
+  "age": 44.259925842285156,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1304
+ },
+ {
+  "age": 44.41935729980469,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1307
+ },
+ {
+  "age": 44.472591400146484,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1308
+ },
+ {
+  "age": 44.84465408325195,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1315
+ },
+ {
+  "age": 44.898170471191406,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1316
+ },
+ {
+  "age": 45.27000045776367,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1323
+ },
+ {
+  "age": 45.32301330566406,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1324
+ },
+ {
+  "age": 45.482276916503906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1327
+ },
+ {
+  "age": 45.53538131713867,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1328
+ },
+ {
+  "age": 45.907623291015625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1335
+ },
+ {
+  "age": 45.96072006225586,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1336
+ },
+ {
+  "age": 46.33262634277344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1343
+ },
+ {
+  "age": 46.38562774658203,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1344
+ },
+ {
+  "age": 46.545074462890625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1347
+ },
+ {
+  "age": 46.59809875488281,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1348
+ },
+ {
+  "age": 46.96971130371094,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1355
+ },
+ {
+  "age": 47.02275466918945,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1356
+ },
+ {
+  "age": 47.394649505615234,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1363
+ },
+ {
+  "age": 47.447792053222656,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1364
+ },
+ {
+  "age": 47.607032775878906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1367
+ },
+ {
+  "age": 47.66011047363281,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1368
+ },
+ {
+  "age": 48.03229904174805,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1375
+ },
+ {
+  "age": 48.08578109741211,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1376
+ },
+ {
+  "age": 48.4576301574707,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1383
+ },
+ {
+  "age": 48.51106262207031,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1384
+ },
+ {
+  "age": 48.670379638671875,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1387
+ },
+ {
+  "age": 48.72356033325195,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1388
+ },
+ {
+  "age": 49.095462799072266,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1395
+ },
+ {
+  "age": 49.14851379394531,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1396
+ },
+ {
+  "age": 49.52056121826172,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1403
+ },
+ {
+  "age": 49.57368087768555,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1404
+ },
+ {
+  "age": 49.733421325683594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1407
+ },
+ {
+  "age": 49.78635025024414,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1408
+ },
+ {
+  "age": 50.157676696777344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1415
+ },
+ {
+  "age": 50.21070098876953,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1416
+ },
+ {
+  "age": 50.47615051269531,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1421
+ },
+ {
+  "age": 50.52935791015625,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1422
+ },
+ {
+  "age": 50.794921875,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1427
+ },
+ {
+  "age": 50.848121643066406,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1428
+ },
+ {
+  "age": 51.22056579589844,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1435
+ },
+ {
+  "age": 51.27364730834961,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1436
+ },
+ {
+  "age": 51.645782470703125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1443
+ },
+ {
+  "age": 51.698978424072266,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1444
+ },
+ {
+  "age": 51.858489990234375,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1447
+ },
+ {
+  "age": 51.91166687011719,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1448
+ },
+ {
+  "age": 52.284156799316406,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1455
+ },
+ {
+  "age": 52.33730697631836,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1456
+ },
+ {
+  "age": 52.709720611572266,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1463
+ },
+ {
+  "age": 52.76298904418945,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1464
+ },
+ {
+  "age": 52.92273712158203,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1467
+ },
+ {
+  "age": 52.97577667236328,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1468
+ },
+ {
+  "age": 53.34784698486328,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1475
+ },
+ {
+  "age": 53.401023864746094,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1476
+ },
+ {
+  "age": 53.66690444946289,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1481
+ },
+ {
+  "age": 53.7202033996582,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1482
+ },
+ {
+  "age": 53.98612976074219,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1487
+ },
+ {
+  "age": 54.039371490478516,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1488
+ },
+ {
+  "age": 54.41188430786133,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1495
+ },
+ {
+  "age": 54.46513366699219,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1496
+ },
+ {
+  "age": 54.83784866333008,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1503
+ },
+ {
+  "age": 54.89107894897461,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1504
+ },
+ {
+  "age": 55.05076217651367,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1507
+ },
+ {
+  "age": 55.10395812988281,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1508
+ },
+ {
+  "age": 55.476688385009766,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1515
+ },
+ {
+  "age": 55.529850006103516,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1516
+ },
+ {
+  "age": 55.90242385864258,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1523
+ },
+ {
+  "age": 55.95564270019531,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1524
+ },
+ {
+  "age": 56.115440368652344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1527
+ },
+ {
+  "age": 56.16872024536133,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1528
+ },
+ {
+  "age": 56.54115295410156,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1535
+ },
+ {
+  "age": 56.594600677490234,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1536
+ },
+ {
+  "age": 56.96739196777344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1543
+ },
+ {
+  "age": 57.02067565917969,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1544
+ },
+ {
+  "age": 57.18041229248047,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1547
+ },
+ {
+  "age": 57.233619689941406,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1548
+ },
+ {
+  "age": 57.60607147216797,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1555
+ },
+ {
+  "age": 57.659271240234375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1556
+ },
+ {
+  "age": 58.03173828125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1563
+ },
+ {
+  "age": 58.084999084472656,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1564
+ },
+ {
+  "age": 58.24458312988281,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1567
+ },
+ {
+  "age": 58.29771423339844,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1568
+ },
+ {
+  "age": 58.6702766418457,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1575
+ },
+ {
+  "age": 58.72351837158203,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1576
+ },
+ {
+  "age": 58.98965072631836,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1581
+ },
+ {
+  "age": 59.04286193847656,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1582
+ },
+ {
+  "age": 59.30897521972656,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1587
+ },
+ {
+  "age": 59.362213134765625,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1588
+ },
+ {
+  "age": 59.734474182128906,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1595
+ },
+ {
+  "age": 59.78777313232422,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1596
+ },
+ {
+  "age": 60.160030364990234,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1603
+ },
+ {
+  "age": 60.213417053222656,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1604
+ },
+ {
+  "age": 60.37297058105469,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1607
+ },
+ {
+  "age": 60.426273345947266,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1608
+ },
+ {
+  "age": 60.798763275146484,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1615
+ },
+ {
+  "age": 60.85186767578125,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1616
+ },
+ {
+  "age": 61.11797332763672,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1621
+ },
+ {
+  "age": 61.171146392822266,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1622
+ },
+ {
+  "age": 61.437278747558594,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1627
+ },
+ {
+  "age": 61.49038314819336,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1628
+ },
+ {
+  "age": 61.86289978027344,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1635
+ },
+ {
+  "age": 61.91607666015625,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1636
+ },
+ {
+  "age": 62.28861999511719,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1643
+ },
+ {
+  "age": 62.34173583984375,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1644
+ },
+ {
+  "age": 62.501251220703125,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1647
+ },
+ {
+  "age": 62.5544319152832,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1648
+ },
+ {
+  "age": 62.92693328857422,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1655
+ },
+ {
+  "age": 62.98003387451172,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1656
+ },
+ {
+  "age": 63.24598693847656,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1661
+ },
+ {
+  "age": 63.29911422729492,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1662
+ },
+ {
+  "age": 63.56534957885742,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1667
+ },
+ {
+  "age": 63.61852264404297,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1668
+ },
+ {
+  "age": 63.884765625,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1673
+ },
+ {
+  "age": 63.93795394897461,
+  "asleep": true,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1674
+ },
+ {
+  "age": 64.31050109863281,
+  "asleep": false,
+  "kind": "sleep",
+  "label": "ring-sleep",
+  "s": 1681
+ },
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "X_meal0",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 1714
+ }
+]

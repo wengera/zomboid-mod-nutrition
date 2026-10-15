@@ -22139,3 +22139,24 @@ x445b-20261015-181249,memory,host free memory rows,"Host state, not a game readi
 x445b-20261015-181249,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x445b-20261015-181249,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
 x445b-20261015-181249,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x447-20261015-181709,session,the driver's text,Written before the run; not a reading.,
+x447-20261015-181709,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x447-20261015-181709,constants,the lib's constants,The driver's settings; not a reading.,
+x447-20261015-181709,memory,host free memory rows,"Host state, not a game reading.",
+x447-20261015-181709,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x447-20261015-181709,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
+x447-20261015-181709,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x447-20261015-181709,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",
+x447-20261015-181709,verdicts.M2_replay_HUNGER,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_body.energyState,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_THIRST,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_acute.caf,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_acute.bac,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_acute.hang,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_hangover,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
+x447-20261015-181709,verdicts.M2_replay_acute.debtH,as_predicted,"Trivial: acute.debtH read 0 on both sides on every row.",
+x447-20261015-181709,drinks[2].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[2].fill`
+x447-20261015-181709,drinks[3].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[3].fill`
+x447-20261015-181709,drinks[4].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[4].fill`
+x447-20261015-181709,drinks[5].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[5].fill`
+x447-20261015-181709,drinks[6].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[6].fill`
