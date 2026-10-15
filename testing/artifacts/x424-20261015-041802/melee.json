@@ -1,0 +1,1340 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 53.047,
+   "wall_after": 53.3,
+   "epoch_ms_before": 1792052335824,
+   "epoch_ms_after": 1792052336076,
+   "took": 0.253,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 53.3,
+   "wall_after": 53.806,
+   "epoch_ms_before": 1792052336076,
+   "epoch_ms_after": 1792052336583,
+   "took": 0.506,
+   "ack": {
+    "worldAge": 3.113697052001953,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.4427971839904785,
+    "trueMult": 1,
+    "wall": 1792052336543
+   }
+  },
+  {
+   "step": "S_role",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin getRole.getName",
+   "phase": "S",
+   "wall_before": 53.807,
+   "wall_after": 54.06,
+   "epoch_ms_before": 1792052336583,
+   "epoch_ms_after": 1792052336836,
+   "took": 0.253,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "admin"
+   }
+  },
+  {
+   "step": "S_mult",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.MultiplierConfig.Global SandboxVars.MultiplierConfig.GlobalToggle SandboxVars.MultiplierConfig.Strength SandboxVars.Nutrition SandboxVars.DayLength TKX_TraitLevers.newGame.count TKX_TraitLevers.server",
+   "phase": "S",
+   "wall_before": 54.06,
+   "wall_after": 54.813,
+   "epoch_ms_before": 1792052336836,
+   "epoch_ms_after": 1792052337590,
+   "took": 0.753,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {
+     "TKX_TraitLevers.newGame.count": "nil at newGame"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.MultiplierConfig.Global": 1,
+     "SandboxVars.MultiplierConfig.GlobalToggle": true,
+     "SandboxVars.MultiplierConfig.Strength": 1,
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1,
+     "TKX_TraitLevers.server": true
+    }
+   }
+  },
+  {
+   "step": "S_fit",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Fitness",
+   "phase": "S",
+   "wall_before": 54.813,
+   "wall_after": 55.321,
+   "epoch_ms_before": 1792052337590,
+   "epoch_ms_after": 1792052338097,
+   "took": 0.508,
+   "ack": {
+    "perk": "Fitness",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.151608467102051
+   }
+  },
+  {
+   "step": "S_str",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "S",
+   "wall_before": 55.321,
+   "wall_after": 55.833,
+   "epoch_ms_before": 1792052338097,
+   "epoch_ms_after": 1792052338609,
+   "took": 0.512,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.164517402648926
+   }
+  },
+  {
+   "step": "S_body",
+   "side": "server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 55.833,
+   "wall_after": 56.091,
+   "epoch_ms_before": 1792052338609,
+   "epoch_ms_after": 1792052338868,
+   "took": 0.258,
+   "ack": {
+    "calories": 799.6544799804688,
+    "carbs": -0.07557673007249832,
+    "lipids": -0.024400489404797554,
+    "proteins": -0.01857028342783451,
+    "weight": 80,
+    "hunger": 0.004336696583777666,
+    "thirst": 0.003621625015512109,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 9.692494495538995e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 3.1671180725097656,
+    "mult": 4.680477619171143,
+    "wall": 1792052338656
+   }
+  },
+  {
+   "step": "E_add",
+   "side": "server",
+   "cmd": "inventory.add",
+   "args": "admin Base.BaseballBat 1",
+   "phase": "E",
+   "wall_before": 56.092,
+   "wall_after": 56.6,
+   "epoch_ms_before": 1792052338869,
+   "epoch_ms_after": 1792052339377,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "fullType": "Base.BaseballBat",
+    "count": 1,
+    "side": "server",
+    "invWeight": 3.4125001430511475,
+    "maxWeight": 12
+   }
+  },
+  {
+   "step": "E_equip",
+   "side": "client",
+   "cmd": "weapon.equip",
+   "args": "Base.BaseballBat",
+   "phase": "E",
+   "wall_before": 58.601,
+   "wall_after": 59.111,
+   "epoch_ms_before": 1792052341378,
+   "epoch_ms_after": 1792052341888,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "fullType": "Base.BaseballBat",
+    "queued": false,
+    "reason": "no Base.BaseballBat in the local inventory"
+   }
+  },
+  {
+   "step": "M_gate_xp0",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "M2",
+   "wall_before": 75.509,
+   "wall_after": 76.02,
+   "epoch_ms_before": 1792052358285,
+   "epoch_ms_after": 1792052358797,
+   "took": 0.511,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.6953907012939453
+   }
+  },
+  {
+   "step": "M_rest",
+   "side": "server",
+   "cmd": "stats.setany",
+   "args": "admin ENDURANCE 1",
+   "phase": "M2",
+   "wall_before": 76.02,
+   "wall_after": 76.778,
+   "epoch_ms_before": 1792052358797,
+   "epoch_ms_after": 1792052359555,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "stat": "ENDURANCE",
+    "side": "server",
+    "requested": 1,
+    "before": 1,
+    "after": 1
+   }
+  },
+  {
+   "step": "M_xp_before",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "M2",
+   "wall_before": 76.778,
+   "wall_after": 77.289,
+   "epoch_ms_before": 1792052359555,
+   "epoch_ms_after": 1792052360065,
+   "took": 0.511,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.735295295715332
+   }
+  },
+  {
+   "step": "M_reset",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "TKX_TraitLevers.xpReset",
+   "phase": "M2",
+   "wall_before": 77.289,
+   "wall_after": 77.795,
+   "epoch_ms_before": 1792052360065,
+   "epoch_ms_after": 1792052360572,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "TKX_TraitLevers.xpReset",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "M_horde",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "createhorde 1 admin",
+   "phase": "M2",
+   "wall_before": 77.795,
+   "wall_after": 77.958,
+   "epoch_ms_before": 1792052360572,
+   "epoch_ms_after": 1792052360735,
+   "ack": {
+    "ok": true,
+    "reply": "Horde spawned."
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 77.959,
+   "wall_after": 78.72,
+   "epoch_ms_before": 1792052360736,
+   "epoch_ms_after": 1792052361497,
+   "took": 0.761,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 80.721,
+   "wall_after": 81.229,
+   "epoch_ms_before": 1792052363497,
+   "epoch_ms_after": 1792052364006,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 83.229,
+   "wall_after": 83.739,
+   "epoch_ms_before": 1792052366006,
+   "epoch_ms_after": 1792052366516,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 85.74,
+   "wall_after": 86.247,
+   "epoch_ms_before": 1792052368516,
+   "epoch_ms_after": 1792052369024,
+   "took": 0.507,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 88.247,
+   "wall_after": 88.759,
+   "epoch_ms_before": 1792052371024,
+   "epoch_ms_after": 1792052371536,
+   "took": 0.512,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 90.759,
+   "wall_after": 91.272,
+   "epoch_ms_before": 1792052373536,
+   "epoch_ms_after": 1792052374049,
+   "took": 0.513,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 93.272,
+   "wall_after": 93.781,
+   "epoch_ms_before": 1792052376049,
+   "epoch_ms_after": 1792052376558,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 95.782,
+   "wall_after": 96.291,
+   "epoch_ms_before": 1792052378558,
+   "epoch_ms_after": 1792052379068,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 98.291,
+   "wall_after": 98.8,
+   "epoch_ms_before": 1792052381068,
+   "epoch_ms_after": 1792052381577,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 100.801,
+   "wall_after": 101.062,
+   "epoch_ms_before": 1792052383578,
+   "epoch_ms_after": 1792052383839,
+   "took": 0.261,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 103.062,
+   "wall_after": 103.57,
+   "epoch_ms_before": 1792052385839,
+   "epoch_ms_after": 1792052386347,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 105.57,
+   "wall_after": 106.079,
+   "epoch_ms_before": 1792052388347,
+   "epoch_ms_after": 1792052388856,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 108.079,
+   "wall_after": 108.587,
+   "epoch_ms_before": 1792052390856,
+   "epoch_ms_after": 1792052391364,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_horde",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "createhorde 1 admin",
+   "phase": "M2",
+   "wall_before": 108.587,
+   "wall_after": 108.613,
+   "epoch_ms_before": 1792052391364,
+   "epoch_ms_after": 1792052391390,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 110.614,
+   "wall_after": 111.122,
+   "epoch_ms_before": 1792052393391,
+   "epoch_ms_after": 1792052393899,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 113.123,
+   "wall_after": 113.635,
+   "epoch_ms_before": 1792052395899,
+   "epoch_ms_after": 1792052396412,
+   "took": 0.512,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 115.636,
+   "wall_after": 116.146,
+   "epoch_ms_before": 1792052398413,
+   "epoch_ms_after": 1792052398923,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 118.147,
+   "wall_after": 118.658,
+   "epoch_ms_before": 1792052400924,
+   "epoch_ms_after": 1792052401435,
+   "took": 0.511,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 120.659,
+   "wall_after": 121.172,
+   "epoch_ms_before": 1792052403435,
+   "epoch_ms_after": 1792052403949,
+   "took": 0.513,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 123.173,
+   "wall_after": 123.686,
+   "epoch_ms_before": 1792052405949,
+   "epoch_ms_after": 1792052406463,
+   "took": 0.513,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 125.686,
+   "wall_after": 126.197,
+   "epoch_ms_before": 1792052408463,
+   "epoch_ms_after": 1792052408974,
+   "took": 0.511,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 128.198,
+   "wall_after": 128.707,
+   "epoch_ms_before": 1792052410974,
+   "epoch_ms_after": 1792052411484,
+   "took": 0.509,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 130.708,
+   "wall_after": 131.222,
+   "epoch_ms_before": 1792052413484,
+   "epoch_ms_after": 1792052413999,
+   "took": 0.514,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 133.223,
+   "wall_after": 133.737,
+   "epoch_ms_before": 1792052415999,
+   "epoch_ms_after": 1792052416513,
+   "took": 0.514,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 135.737,
+   "wall_after": 136.245,
+   "epoch_ms_before": 1792052418514,
+   "epoch_ms_after": 1792052419022,
+   "took": 0.508,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_atk",
+   "side": "client",
+   "cmd": "attack.melee",
+   "args": "10",
+   "phase": "M2",
+   "wall_before": 138.245,
+   "wall_after": 138.755,
+   "epoch_ms_before": 1792052421022,
+   "epoch_ms_after": 1792052421532,
+   "took": 0.51,
+   "ack": {
+    "ok": false,
+    "reason": "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)"
+   }
+  },
+  {
+   "step": "M_read_n",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G TKX_TraitLevers.xp.n TKX_TraitLevers.xp.calls TKX_TraitLevers.xp.dropped",
+   "phase": "M2",
+   "wall_before": 140.756,
+   "wall_after": 141.264,
+   "epoch_ms_before": 1792052423533,
+   "epoch_ms_after": 1792052424041,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "TKX_TraitLevers.xp.n": 0,
+     "TKX_TraitLevers.xp.calls": 0,
+     "TKX_TraitLevers.xp.dropped": 0
+    }
+   }
+  },
+  {
+   "step": "M_xp_after",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "phase": "M2",
+   "wall_before": 141.264,
+   "wall_after": 141.772,
+   "epoch_ms_before": 1792052424041,
+   "epoch_ms_after": 1792052424549,
+   "took": 0.508,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 5.452045440673828
+   }
+  },
+  {
+   "step": "M_hand",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin getPrimaryHandItem.getFullType",
+   "phase": "M2",
+   "wall_before": 141.772,
+   "wall_after": 142.533,
+   "epoch_ms_before": 1792052424549,
+   "epoch_ms_after": 1792052425310,
+   "took": 0.761,
+   "ack": {
+    "ok": false,
+    "hops": 2,
+    "failedAt": 2,
+    "error": "nil before hop 2"
+   }
+  }
+ ],
+ "notes": [
+  {
+   "wall": 138.755,
+   "phase": "M2",
+   "note": "melee: no zombie within 2 tiles for 60.0 s; 0 window(s)"
+  }
+ ],
+ "phase_walls": {
+  "S": {
+   "start": 53.047,
+   "end": 56.091
+  },
+  "E": {
+   "start": 56.092,
+   "end": 75.508
+  },
+  "M2": {
+   "start": 75.509,
+   "end": 142.538
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "7_melee": {
+   "phase": "7_melee",
+   "predicted": {
+    "melee hit, server-known bat": "at least one positive Strength AddXP event (#2880)"
+   },
+   "falsifier": "a server-side hit (a weapon-skill event, or a dead target with no inconsistent hit packet) with no positive Strength event",
+   "observed": {
+    "events": 0,
+    "amounts": [],
+    "all_events": 0,
+    "perks": [],
+    "other_perk_events": [],
+    "windows": 0,
+    "swings_made": [],
+    "target_dead": false,
+    "inconsistent_lines": 0,
+    "weapon_on_server": false,
+    "hordes": 2,
+    "misses": 25,
+    "strength_sum": 0,
+    "dropped": 0,
+    "xp_delta": 0,
+    "gate": {
+     "xp_read": 37500,
+     "level_read": 5,
+     "parked": false,
+     "xp_open": 37500,
+     "level_open": 5
+    },
+    "why": "the weapon never read in the server's primary hand"
+   },
+   "verdict": "unmeasured",
+   "wall": 151.951
+  }
+ },
+ "world_changes": {
+  "restored": "fixture default restored into the run dir (server and client caches)",
+  "left_in_place": [
+   "zombies spawned by createhorde near admin in M2"
+  ]
+ },
+ "run_id": "x424-20261015-041802",
+ "session": "Plan 13 Task 1: check 7's melee source with a server-added, server-equipped bat (after x423's client-only bat); one boot of x42-calib, fixture default, admin the subject",
+ "driver": "x424_melee.py",
+ "lib": "x42d_melee_lib.py",
+ "lib_base": "x42c_calib_lib.py",
+ "user": "admin",
+ "users": [
+  "admin"
+ ],
+ "profile": {
+  "name": "x42-calib",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x42-calib.toml",
+  "fixture": "default",
+  "description": "PZTestKit + TKX_TraitLevers on fixture default, admin (debug), Nutrition off, DayLength 1, build 42.21.0 - the Plan 13 Task 1 XP-per-set calibration and check 7's loaded-movement and melee sources.",
+  "mods": [
+   "PZTestKit",
+   "TKX_TraitLevers"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_TraitLevers": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_TraitLevers"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "e44db941",
+ "harness_lua_commit": "c92ffdd7",
+ "harness_lua_dirty": false,
+ "probe_commit": "77768e30",
+ "probe_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "e44db941",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "CLI": "client",
+  "USER": "admin",
+  "LIB_FILE": "x42d_melee_lib.py",
+  "WEAPON": "Base.BaseballBat",
+  "EQUIP_WAIT_S": 2.0,
+  "EQUIP_CAP_S": 15.0,
+  "MELEE_SWINGS": 10,
+  "MELEE_WINDOWS": 3,
+  "MELEE_FIND_S": 60.0,
+  "MELEE_RESULT_S": 20.0,
+  "INCONSISTENT_RX": "PlayerHitZombie is not consistent|AttackCollisionCheckPacket is not consistent"
+ },
+ "predictions": {
+  "7_melee": {
+   "melee hit, server-known bat": "at least one positive Strength AddXP event (#2880)"
+  }
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.056,
+   "free_gb": 19.7
+  },
+  {
+   "tag": "ready",
+   "wall": 53.046,
+   "free_gb": 6.1
+  },
+  {
+   "tag": "after",
+   "wall": 151.953,
+   "free_gb": 19.63
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.549,
+ "server_started_wall": 16.432,
+ "session_ready_wall": 52.277,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_TraitLevers.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_TraitLevers.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_TraitLevers.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_TraitLevers.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 16.4,
+   "phase": "server_started"
+  },
+  {
+   "t": 16.5,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 52.3,
+   "phase": "client_ready",
+   "took": 35.4,
+   "user": "admin"
+  },
+  {
+   "t": 52.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 52.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_TraitLevers.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1"
+  },
+  {
+   "t": 53.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_TraitLevers.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1"
+  },
+  {
+   "t": 78.0,
+   "phase": "rcon",
+   "cmd": "createhorde 1 admin",
+   "ok": true
+  },
+  {
+   "t": 108.6,
+   "phase": "rcon",
+   "cmd": "createhorde 1 admin",
+   "ok": true
+  },
+  {
+   "t": 144.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 151.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 152.0,
+   "phase": "verdict",
+   "name": "7_melee",
+   "verdict": "unmeasured"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "time": {
+    "worldAge": 3.113697052001953,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.4427971839904785,
+    "trueMult": 1,
+    "wall": 53.3,
+    "wall_after": 53.806
+   },
+   "role": {
+    "ok": true,
+    "hops": 2,
+    "value": "admin",
+    "wall": 53.807,
+    "wall_after": 54.06,
+    "side": "server"
+   },
+   "mult": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 7,
+    "missing": {
+     "TKX_TraitLevers.newGame.count": "nil at newGame"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.MultiplierConfig.Global": 1,
+     "SandboxVars.MultiplierConfig.GlobalToggle": true,
+     "SandboxVars.MultiplierConfig.Strength": 1,
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1,
+     "TKX_TraitLevers.server": true
+    },
+    "wall": 54.06,
+    "wall_after": 54.813
+   },
+   "fitness": {
+    "perk": "Fitness",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.151608467102051,
+    "wall": 54.813,
+    "wall_after": 55.321
+   },
+   "strength": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.164517402648926,
+    "wall": 55.321,
+    "wall_after": 55.833
+   },
+   "body": {
+    "wall": 55.833,
+    "endurance": 1,
+    "proteins": -0.01857028342783451,
+    "moving": false,
+    "maxWeight": 12,
+    "enduranceMoodle": 0,
+    "heavyLoad": 0,
+    "worldAge": 3.1671180725097656
+   }
+  },
+  "equip": {
+   "add": {
+    "ok": true,
+    "fullType": "Base.BaseballBat",
+    "count": 1,
+    "side": "server",
+    "invWeight": 3.4125001430511475,
+    "maxWeight": 12,
+    "wall": 56.092,
+    "wall_after": 56.6
+   },
+   "equip": {
+    "ok": false,
+    "fullType": "Base.BaseballBat",
+    "queued": false,
+    "reason": "no Base.BaseballBat in the local inventory",
+    "wall": 58.601,
+    "wall_after": 59.111,
+    "side": "client"
+   },
+   "on_server": false,
+   "polls": [
+    {
+     "wall": 59.111,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 61.129,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 63.15,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 65.167,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 66.936,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 68.953,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 70.467,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 72.486,
+     "server": null,
+     "client": null
+    },
+    {
+     "wall": 74.498,
+     "server": null,
+     "client": null
+    }
+   ]
+  },
+  "melee": {
+   "windows": [],
+   "hordes": [
+    {
+     "ok": true,
+     "reply": "Horde spawned."
+    },
+    {
+     "ok": true,
+     "reply": ""
+    }
+   ],
+   "misses": 25,
+   "weapon_on_server": false,
+   "gate": {
+    "xp_read": 37500,
+    "level_read": 5,
+    "parked": false,
+    "xp_open": 37500,
+    "level_open": 5
+   },
+   "rest": {
+    "ok": true,
+    "stat": "ENDURANCE",
+    "side": "server",
+    "requested": 1,
+    "before": 1,
+    "after": 1,
+    "wall": 76.02,
+    "wall_after": 76.778
+   },
+   "xp_before": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 3.735295295715332,
+    "wall": 76.778,
+    "wall_after": 77.289
+   },
+   "reset": {
+    "ok": true,
+    "side": "server",
+    "path": "TKX_TraitLevers.xpReset",
+    "nargs": 0,
+    "r1": true,
+    "wall": 77.289,
+    "wall_after": 77.795
+   },
+   "n": 0,
+   "calls": 0,
+   "dropped": 0,
+   "events": [],
+   "xp_after": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 5.452045440673828,
+    "wall": 141.264,
+    "wall_after": 141.772
+   },
+   "hand_after": {
+    "ok": false,
+    "hops": 2,
+    "failedAt": 2,
+    "error": "nil before hop 2",
+    "wall": 141.772,
+    "wall_after": 142.533,
+    "side": "server"
+   },
+   "inconsistent": []
+  }
+ },
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 32.8,
+   "ready": 35.4
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "TKX_TraitLevers|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+   "inconsistent": "PlayerHitZombie is not consistent|AttackCollisionCheckPacket is not consistent"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,395,029,944> loading TKX_TraitLevers",
+   "LOG  : Mod          f:0 st:2,395,029,944> mod \"TKX_TraitLevers\" overrides",
+   "LOG  : Mod          f:0 st:2,395,029,945> mod \"TKX_TraitLevers\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\server\\mods\\TKX_TraitLevers\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\server\\mods\\TKX_TraitLevers\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\server\\mods\\TKX_TraitLevers\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\server\\mods\\TKX_TraitLevers\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:"
+  ],
+  "server_echo_excluded": 4,
+  "server_inconsistent": [],
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading TKX_TraitLevers",
+    "LOG  : Mod          f:0> mod \"TKX_TraitLevers\" overrides",
+    "LOG  : Mod          f:0> mod \"TKX_TraitLevers\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading TKX_TraitLevers",
+    "LOG  : Mod          f:0 st:0> mod \"TKX_TraitLevers\" overrides",
+    "LOG  : Mod          f:0 st:0> mod \"TKX_TraitLevers\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\clients\\admin\\mods\\TKX_TraitLevers\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\clients\\admin\\mods\\TKX_TraitLevers\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\clients\\admin\\mods\\TKX_TraitLevers\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x424-20261015-041802\\clients\\admin\\mods\\TKX_TraitLevers\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:"
+   ]
+  }
+ },
+ "bus_dead": null,
+ "copied": [],
+ "wall_seconds": 152.0
+}

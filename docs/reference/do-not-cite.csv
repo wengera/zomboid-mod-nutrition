@@ -22000,3 +22000,24 @@ x421-20261015-033735,checks.defs.server.Obese.xpBoosts,{},"The harness walk rais
 x421-20261015-033735,verdicts.2,falsified,"Falsified on admin's unread edits record (the client was parked), not on any edit.",`x422-20261015-034556` `verdicts.2`
 x421-20261015-033735,verdicts.8,falsified,"The phase never ran (the driver stopped before N1); no event was read.",`x422-20261015-034556` `verdicts.8`
 x422-20261015-034556,verdicts.7,unmeasured,"The in-driver grade folds three sources into one verdict; two of them did not separate a silent source from an unrun one.",`checks.S7.pushups`
+x423-20261015-040740,session,the driver's text,Written before the run; not a reading.,
+x423-20261015-040740,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x423-20261015-040740,constants,the lib's constants,The driver's settings; not a reading.,
+x423-20261015-040740,memory,host free memory rows,"Host state, not a game reading.",
+x423-20261015-040740,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x423-20261015-040740,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x424-20261015-041802,session,the driver's text,Written before the run; not a reading.,
+x424-20261015-041802,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x424-20261015-041802,constants,the lib's constants,The driver's settings; not a reading.,
+x424-20261015-041802,memory,host free memory rows,"Host state, not a game reading.",
+x424-20261015-041802,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x424-20261015-041802,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x425-20261015-042217,session,the driver's text,Written before the run; not a reading.,
+x425-20261015-042217,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x425-20261015-042217,constants,the lib's constants,The driver's settings; not a reading.,
+x425-20261015-042217,memory,host free memory rows,"Host state, not a game reading.",
+x425-20261015-042217,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x425-20261015-042217,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
+x423-20261015-040740,verdicts.7_melee,falsified,"Falsified as graded on the client's dead target, which the lib counted as a hit; the server logged every hit packet not consistent with weapon null, so no hit reached the server's hit path.",`server-stdout.log:2395-2410`; `x425-20261015-042217`
+x423-20261015-040740,checks.melee.windows[0].result.targetDead,true,"A client read of a target the server's hit path never reached; not hit evidence.",`server-stdout.log:2395-2410`
+x423-20261015-040740,reading.vanilla_strength_rate_s4,the driver's comparison constant,"Copied from the research note, not measured.",`verdicts.pushups.observed`
