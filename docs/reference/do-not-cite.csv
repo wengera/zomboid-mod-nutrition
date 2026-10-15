@@ -22098,3 +22098,10 @@ x443a-20261015-174228,memory,host free memory rows,"Host state, not a game readi
 x443a-20261015-174228,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x443a-20261015-174228,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
 x443a-20261015-174228,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x443b-20261015-174712,session,the driver's text,Written before the run; not a reading.,
+x443b-20261015-174712,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x443b-20261015-174712,constants,the lib's constants,The driver's settings; not a reading.,
+x443b-20261015-174712,memory,host free memory rows,"Host state, not a game reading.",
+x443b-20261015-174712,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x443b-20261015-174712,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
+x443b-20261015-174712,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
