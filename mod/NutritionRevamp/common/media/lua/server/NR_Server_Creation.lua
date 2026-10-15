@@ -19,7 +19,8 @@
 --    remaining points read below 0, the kept non-free pick with the highest positive cost is stripped, a tie stripping
 --    the name first in alphabetical order: a trait with a cost of 0 or below never raises the total (removing a bad
 --    trait lowers the negative-trait offset by at most one, CharacterCreationProfession.lua:918-936).
---    The remaining points are the screen's PointToSpend (lua:client/OptionScreens/CharacterCreationProfession.lua:860-867):
+--    The remaining points are the screen's PointToSpend
+--    (lua:client/OptionScreens/CharacterCreationProfession.lua:860-867):
 --      profession cost (:479) + SandboxVars.CharacterFreePoints (:865-866) - the sum of the non-free picks' costs
 --      (addTrait :645, free traits :459-466 and :654-659 never touch it) - the offset (:862, :918-936: n the selected
 --      traits with a negative cost, free ones included; NegativeTraitsPenalty 2 floor(n/3), 3 floor(n/2), 4 n - 1)
@@ -27,27 +28,30 @@
 --    the point check (nothing is stripped on a guess). A stripped trait is removed from the collection, its XP boosts
 --    reverted (setPerkLevelDebug(perk, level - boost) clamped to [0, 10], then setXPToLevel; applyTraits applied them,
 --    trait-levers section 3.1), and logged at level 1.
---    The muscle pick is inferred first (CRE.inferMuscle, fix 1; NR_Server_Metabolism's MET.inferMuscle, which first
---    sight shares since Task 17b fix 1): applyTraits climbs Strength with LevelPerk and vanilla's
+--    The muscle pick is inferred first (CRE.inferMuscle, fix 1, which first sight shares since Task 17b fix 1):
+--    applyTraits climbs Strength with LevelPerk and vanilla's
 --    listener (XpUpdate.lua:196-218) swaps the muscle band at every step, so the trait held is the native level's band,
 --    not the pick. The four muscle blocks keep vanilla's Strength boosts (NR_Traits_Body.txt), so native - 5 - the
 --    profession's Strength boost - every other held trait's Strength boost is the pick's boost, mapped through
---    MET.MUSCLE_BY_BOOST; a native level at 0 or 10 (clamped), an unreadable one or an unmapped offset falls back to the
+--    CRE.MUSCLE_BY_BOOST; a native level at 0 or 10 (clamped), an unreadable one or an unmapped offset falls back to the
 --    held band trait. Validation reads the inferred pick in place of the held band trait (its cost and exclusions; a
 --    strip removes the held one), and a held band trait with no pick behind it (a profession's boost) is vanilla's,
 --    never validated.
 -- 2. The body: K.body.create over the inferred muscle pick and the weight-band trait held after validation (CRE.picks;
 --    Emaciated is read as Very Underweight by the kernel), under the profession's Strength boost (Task 17b: Angus,
 --    "treat it like a small trait"; the start level is the pick's plus the boost, clamped to [0, 10]), at the
---    effective sex (NR.SexSpecific) and the reset's age, through NR_Server_Metabolism's builder, so OnNewGame and
---    first sight build one way; first sight then finds the body present.
+--    effective sex (NR.SexSpecific) and the reset's age, through CRE.newBody, the builder first sight
+--    (NR_Server_Metabolism.ensureBody) shares, so OnNewGame and first sight build one way; first sight then finds the
+--    body present. This file holds the readers both share (CRE.walk, CRE.traitDef, CRE.heldTrait, CRE.boostOf,
+--    CRE.strengthBoost, CRE.professionDef, CRE.inferMuscle, CRE.musclePick, CRE.newBody), read at call time.
 -- 3. The writes, in this order: the weight (lm + lx + fm, overwriting applyWeightFromTraits' 50/60/70/95/105 kg,
 --    trait-levers section 3.2); the Strength level (STR.writeLevel: LevelPerk steps, whose vanilla listener swaps the
 --    muscle band, XpUpdate.lua:200-217), then the muscle band re-asserted for the native level (STR.remap: a strip's
---    setPerkLevelDebug swaps no band, and a write that takes no step fires no listener); then the five weight-band traits (WGT.writeTraits), last, so they are final.
---    Fitness band traits are vanilla's and stay (spec section 14). body.levelDue stays true after the level write, so
---    the first server minute writes the level again and re-pins the XP fraction OnNewGame's write loses (x433 read
---    XP 10500 at a shown 3.83; Plan 13 Task 10c ruling: cost if wrong, one extra write).
+--    setPerkLevelDebug swaps no band, and a write that takes no step fires no listener); then the five weight-band
+--    traits (WGT.writeTraits), last, so they are final. Fitness band traits are vanilla's and stay (spec section 14).
+--    body.levelDue stays true after the level write, so the first server minute writes the level again and re-pins the
+--    XP fraction OnNewGame's write loses (x433 read XP 10500 at a shown 3.83; Plan 13 Task 10c ruling: cost if wrong,
+--    one extra write).
 --
 -- Java statics (CharacterTraitDefinition, CharacterProfessionDefinition, transformIntoKahluaTable) are called with a dot
 -- under pcall, as vanilla calls them; every other Java read goes through NR.call. Each global is named only inside a
@@ -66,6 +70,7 @@ NR.server.creation = {
         "two muscle picks from a modified client collapse into the one pick their summed boost maps to",
         "a stripped trait's learning-rate entry in the descriptor's XP boost map stays (the engine's map takes integers; it is not edited from Lua)",
         "the muscle pick is inferred from the native Strength level less the profession's and the other held traits' Strength boosts; at a clamped level (0 or 10) it is the held band trait, which a profession's Strength boost can have moved",
+        "an exclusion chain from a modified client (A excludes B, B excludes C) strips the costlier pick of each pair, A and B, where stripping B alone would make the list legal",
     },
 }
 local CRE = NR.server.creation
@@ -85,15 +90,106 @@ local function static(cls, name, ...)
     return nil
 end
 
--- The server's definition of a trait, or nil.
-local function defOf(t)
+-- The server's definition of a trait (CharacterTraitDefinition, a Java static called with a dot under pcall), or nil.
+function CRE.traitDef(t)
     if CharacterTraitDefinition == nil then return nil end
     return static(CharacterTraitDefinition, "getCharacterTraitDefinition", t)
 end
 
--- The elements of a Java list (NR_Server_Metabolism's walker, MET.walk).
-local function walk(list)
-    return NR.server.metabolism.walk(list)
+-- The elements of a Java list, walked with size()/get(i) (#0940); an unreadable list reads empty.
+function CRE.walk(list)
+    local out = {}
+    local n = num(list, "size", 0)
+    for i = 0, n - 1 do
+        local ok, v = NR.try(list, "get", i)
+        if ok and v ~= nil then out[#out + 1] = v end
+    end
+    return out
+end
+
+-- The first trait of names the collection holds, or nil (none held, or the registry or the collection unreadable).
+-- Vanilla never lets a character hold two weight-band traits (nor two muscle-band traits), so the list order is moot.
+function CRE.heldTrait(traits, names)
+    if CharacterTrait == nil or traits == nil then return nil end
+    for i = 1, #names do
+        local t = CharacterTrait[names[i]]
+        if t ~= nil and flag(traits, "get", t) then return names[i] end
+    end
+    return nil
+end
+
+-- A boost value off transformIntoKahluaTable: a Lua number, or a java Integer read with intValue; nil when neither.
+function CRE.boostOf(v)
+    if type(v) == "number" then return v end
+    return num(v, "intValue", nil)
+end
+
+-- The Strength boost of a trait or profession definition (its XP boost map read through transformIntoKahluaTable),
+-- 0 when it has none or the map is unreadable.
+function CRE.strengthBoost(def)
+    local map = obj(def, "getXpBoosts")
+    if map == nil or transformIntoKahluaTable == nil or Perks == nil then return 0 end
+    local okT, tbl = pcall(transformIntoKahluaTable, map)
+    if not okT or type(tbl) ~= "table" then return 0 end
+    for perk, v in pairs(tbl) do
+        if perk == Perks.Strength then return CRE.boostOf(v) or 0 end
+    end
+    return 0
+end
+
+-- The profession's definition off the player's descriptor (CharacterProfessionDefinition, a Java static called with
+-- a dot under pcall), or nil.
+function CRE.professionDef(player)
+    local prof = obj(obj(player, "getDescriptor"), "getCharacterProfession")
+    if prof == nil or CharacterProfessionDefinition == nil then return nil end
+    return static(CharacterProfessionDefinition, "getCharacterProfessionDefinition", prof)
+end
+
+-- The muscle pick by its vanilla Strength boost (the restated blocks keep vanilla's XPBoosts); false is no pick.
+CRE.MUSCLE_BY_BOOST = { [-5] = "WEAK", [-2] = "FEEBLE", [0] = false, [2] = "STOUT", [4] = "STRONG" }
+
+-- The muscle band name of trait t, or nil.
+local function muscleName(t)
+    if CharacterTrait == nil then return nil end
+    local names = K.strength.MUSCLE_TRAITS
+    for i = 1, #names do
+        if CharacterTrait[names[i]] == t then return names[i] end
+    end
+    return nil
+end
+
+-- CRE.inferMuscle(player, pdef, known) -> the muscle pick's name, false for no pick, or nil when the native level
+-- cannot tell (unreadable, clamped at 0 or 10, no profession definition, or an offset no muscle boost makes): native
+-- - 5 - the profession's Strength boost - every held non-band trait's Strength boost, mapped by CRE.MUSCLE_BY_BOOST.
+-- known is the held traits; their muscle band traits are not subtracted (their boost is the unknown).
+function CRE.inferMuscle(player, pdef, known)
+    if Perks == nil or Perks.Strength == nil or CharacterTrait == nil or pdef == nil then return nil end
+    local native = num(player, "getPerkLevel", nil, Perks.Strength)
+    if native == nil or native <= 0 or native >= K.strength.L_MAX then return nil end
+    local off = native - 5 - CRE.strengthBoost(pdef)
+    for i = 1, #known do
+        if muscleName(known[i]) == nil then off = off - CRE.strengthBoost(CRE.traitDef(known[i])) end
+    end
+    return CRE.MUSCLE_BY_BOOST[off]
+end
+
+-- The muscle pick creation and first sight build from: CRE.inferMuscle, else the held band trait; nil for none.
+function CRE.musclePick(player, traits, pdef)
+    local muscle = CRE.inferMuscle(player, pdef, CRE.walk(obj(traits, "getKnownTraits")))
+    if muscle == nil then return CRE.heldTrait(traits, K.strength.MUSCLE_TRAITS) end
+    if muscle == false then return nil end
+    return muscle
+end
+
+-- The creation body of a muscle and a weight pick (either nil) under the profession's Strength boost profBoost (nil
+-- reads 0; Task 17b): K.body.create at the engine's sex read through the effective sex (NR.SexSpecific), laid by
+-- K.body.new at the world age ageH. The one builder of first sight (NR_Server_Metabolism.ensureBody) and the creation
+-- handler, so the two build one way.
+function CRE.newBody(player, muscle, weight, ageH, profBoost)
+    local sex = 1
+    if flag(player, "isFemale") then sex = 2 end
+    local spec = K.body.create(muscle, weight, NR.strengthP(), K.body.effSex(sex, NR.sexSpecific()), profBoost)
+    return K.body.new(spec, sex, ageH)
 end
 
 -- A trait's name for the log and the stripped list.
@@ -121,12 +217,6 @@ function CRE.before(a, b)
     local ca, cb = math.abs(a.cost), math.abs(b.cost)
     if ca ~= cb then return ca > cb end
     return a.name < b.name
-end
-
--- The profession's definition off the player's descriptor, or nil (NR_Server_Metabolism's reader, shared with first
--- sight).
-local function professionDef(player)
-    return NR.server.metabolism.professionDef(player)
 end
 
 -- The negative-trait offset (CharacterCreationProfession.lua:918-936) for n traits with a negative cost.
@@ -162,35 +252,8 @@ end
 
 -- A set keyed by the traits of a Java list of traits.
 local function addGrants(set, list)
-    local ts = walk(list)
+    local ts = CRE.walk(list)
     for i = 1, #ts do set[ts[i]] = true end
-end
-
--- A boost value off transformIntoKahluaTable, and a definition's Strength boost: NR_Server_Metabolism's readers,
--- shared with first sight (Task 17b).
-local function boostOf(v)
-    return NR.server.metabolism.boostOf(v)
-end
-
-local function strengthBoost(def)
-    return NR.server.metabolism.strengthBoost(def)
-end
-
--- The muscle band name of trait t, or nil.
-local function muscleName(t)
-    if CharacterTrait == nil then return nil end
-    local names = K.strength.MUSCLE_TRAITS
-    for i = 1, #names do
-        if CharacterTrait[names[i]] == t then return names[i] end
-    end
-    return nil
-end
-
--- CRE.inferMuscle(player, pdef, known) -> the muscle pick's name, false for no pick, or nil when the native level
--- cannot tell (unreadable, clamped at 0 or 10, no profession definition, or an offset no muscle boost makes).
--- known is the held traits; their muscle band traits are not subtracted (their boost is the unknown).
-function CRE.inferMuscle(player, pdef, known)
-    return NR.server.metabolism.inferMuscle(player, pdef, known)
 end
 
 -- Reverts a stripped trait's XP boosts: each boosted perk's level less the boost, clamped to [0, 10], written with
@@ -202,7 +265,7 @@ local function revertBoosts(player, def)
     if not okT or type(tbl) ~= "table" then return end
     local xp = obj(player, "getXp")
     for perk, v in pairs(tbl) do
-        local boost = boostOf(v)
+        local boost = CRE.boostOf(v)
         local level = num(player, "getPerkLevel", nil, perk)
         if boost ~= nil and boost ~= 0 and level ~= nil then
             local to = K.clamp(level - boost, 0, CRE.LEVEL_MAX)
@@ -227,15 +290,15 @@ function CRE.validate(player)
     local stripped = {}
     if CharacterTraitDefinition == nil then return stripped end
     local coll = obj(player, "getCharacterTraits")
-    local known = walk(obj(coll, "getKnownTraits"))
-    local pdef = professionDef(player)
+    local known = CRE.walk(obj(coll, "getKnownTraits"))
+    local pdef = CRE.professionDef(player)
     local grants = {}
     addGrants(grants, obj(pdef, "getGrantedTraits"))
     local muscle = CRE.inferMuscle(player, pdef, known)
     local entries = {}
     local placed = false
     local function enter(t, held)
-        local def = defOf(t)
+        local def = CRE.traitDef(t)
         addGrants(grants, obj(def, "getGrantedTraits"))
         entries[#entries + 1] = { t = t, def = def, name = nameOf(t), cost = num(def, "getCost", 0), held = held }
     end
@@ -313,15 +376,14 @@ function CRE.validate(player)
     return stripped
 end
 
--- CRE.picks(player) -> muscle, weight, profBoost: the inferred muscle pick (CRE.inferMuscle; the held band trait when
--- the level cannot tell), the weight-band trait held (NR_Server_Metabolism's lists), each nil for none, and the
+-- CRE.picks(player) -> muscle, weight, profBoost: the inferred muscle pick (CRE.musclePick; the held band trait when
+-- the level cannot tell), the weight-band trait held (K.traits.WEIGHT_TRAITS), each nil for none, and the
 -- profession's Strength boost the inference read (0 when unreadable; Task 17b: it raises the start like a small trait).
 function CRE.picks(player)
-    local MET = NR.server.metabolism
     local traits = obj(player, "getCharacterTraits")
-    local pdef = professionDef(player)
-    local muscle = MET.musclePick(player, traits, pdef)
-    return muscle, MET.heldTrait(traits, K.traits.WEIGHT_TRAITS), strengthBoost(pdef)
+    local pdef = CRE.professionDef(player)
+    local muscle = CRE.musclePick(player, traits, pdef)
+    return muscle, CRE.heldTrait(traits, K.traits.WEIGHT_TRAITS), CRE.strengthBoost(pdef)
 end
 
 local function create(username, player, record)
@@ -330,7 +392,7 @@ local function create(username, player, record)
     if ageH == nil then return end
     CRE.validate(player)
     local muscle, weight, profBoost = CRE.picks(player)
-    local body = NR.server.metabolism.newBody(player, muscle, weight, ageH, profBoost)
+    local body = CRE.newBody(player, muscle, weight, ageH, profBoost)
     body.levelDue = true                                -- kept when the write raises
     record.body = body
     NR.call(obj(player, "getNutrition"), "setWeight", body.lm + body.lx + body.fm)

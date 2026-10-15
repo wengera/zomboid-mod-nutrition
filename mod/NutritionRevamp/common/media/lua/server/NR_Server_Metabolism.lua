@@ -121,132 +121,20 @@ local function nutrientInputs(record)
     return ironGrade, allReplete, dehydPct, g, debtH
 end
 
--- The first trait of names the collection holds, or nil (none held, or the registry or the collection unreadable).
--- Vanilla never lets a character hold two weight-band traits (nor two muscle-band traits), so the list order is moot.
-function MET.heldTrait(traits, names)
-    if CharacterTrait == nil or traits == nil then return nil end
-    for i = 1, #names do
-        local t = CharacterTrait[names[i]]
-        if t ~= nil and flag(traits, "get", t) then return names[i] end
-    end
-    return nil
-end
-
--- A boost value off transformIntoKahluaTable: a Lua number, or a java Integer read with intValue; nil when neither.
-function MET.boostOf(v)
-    if type(v) == "number" then return v end
-    return num(v, "intValue", nil)
-end
-
--- The Strength boost of a trait or profession definition (its XP boost map read through transformIntoKahluaTable),
--- 0 when it has none or the map is unreadable.
-function MET.strengthBoost(def)
-    local map = obj(def, "getXpBoosts")
-    if map == nil or transformIntoKahluaTable == nil or Perks == nil then return 0 end
-    local okT, tbl = pcall(transformIntoKahluaTable, map)
-    if not okT or type(tbl) ~= "table" then return 0 end
-    for perk, v in pairs(tbl) do
-        if perk == Perks.Strength then return MET.boostOf(v) or 0 end
-    end
-    return 0
-end
-
--- The profession's definition off the player's descriptor (CharacterProfessionDefinition, a Java static called with
--- a dot under pcall), or nil.
-function MET.professionDef(player)
-    local prof = obj(obj(player, "getDescriptor"), "getCharacterProfession")
-    if prof == nil or CharacterProfessionDefinition == nil then return nil end
-    local f = CharacterProfessionDefinition.getCharacterProfessionDefinition
-    if f == nil then return nil end
-    local ok, def = pcall(f, prof)
-    if ok then return def end
-    return nil
-end
-
--- The profession's Strength boost (Plan 13 Task 17b): 0 when the profession or its boosts are unreadable.
-function MET.professionBoost(player)
-    return MET.strengthBoost(MET.professionDef(player))
-end
-
--- The muscle pick by its vanilla Strength boost (the restated blocks keep vanilla's XPBoosts); false is no pick.
-MET.MUSCLE_BY_BOOST = { [-5] = "WEAK", [-2] = "FEEBLE", [0] = false, [2] = "STOUT", [4] = "STRONG" }
-
--- The elements of a Java list, walked with size()/get(i) (#0940); an unreadable list reads empty.
-function MET.walk(list)
-    local out = {}
-    local n = num(list, "size", 0)
-    for i = 0, n - 1 do
-        local ok, v = NR.try(list, "get", i)
-        if ok and v ~= nil then out[#out + 1] = v end
-    end
-    return out
-end
-
--- Whether trait t is one of the muscle band traits.
-local function isMuscleBand(t)
-    local names = K.strength.MUSCLE_TRAITS
-    for i = 1, #names do
-        if CharacterTrait[names[i]] == t then return true end
-    end
-    return false
-end
-
--- The server's definition of a trait (CharacterTraitDefinition, a Java static called with a dot under pcall), or nil.
-local function traitDef(t)
-    if CharacterTraitDefinition == nil then return nil end
-    local f = CharacterTraitDefinition.getCharacterTraitDefinition
-    if f == nil then return nil end
-    local ok, def = pcall(f, t)
-    if ok then return def end
-    return nil
-end
-
--- MET.inferMuscle(player, pdef, known) -> the muscle pick's name, false for no pick, or nil when the native level
--- cannot tell (unreadable, clamped at 0 or 10, no profession definition, or an offset no muscle boost makes): native
--- - 5 - the profession's Strength boost - every held non-band trait's Strength boost, mapped by MET.MUSCLE_BY_BOOST.
-function MET.inferMuscle(player, pdef, known)
-    if Perks == nil or Perks.Strength == nil or CharacterTrait == nil or pdef == nil then return nil end
-    local native = num(player, "getPerkLevel", nil, Perks.Strength)
-    if native == nil or native <= 0 or native >= K.strength.L_MAX then return nil end
-    local off = native - 5 - MET.strengthBoost(pdef)
-    for i = 1, #known do
-        if not isMuscleBand(known[i]) then off = off - MET.strengthBoost(traitDef(known[i])) end
-    end
-    return MET.MUSCLE_BY_BOOST[off]
-end
-
--- The muscle pick creation and first sight build from: MET.inferMuscle, else the held band trait; nil for none.
-function MET.musclePick(player, traits, pdef)
-    local muscle = MET.inferMuscle(player, pdef, MET.walk(obj(traits, "getKnownTraits")))
-    if muscle == nil then return MET.heldTrait(traits, K.strength.MUSCLE_TRAITS) end
-    if muscle == false then return nil end
-    return muscle
-end
-
--- The creation body of a muscle and a weight pick (either nil) under the profession's Strength boost profBoost (nil
--- reads 0; Task 17b): K.body.create at the engine's sex read through the effective sex (NR.SexSpecific), laid by
--- K.body.new at the world age ageH. The one builder of first sight and the creation handler (NR_Server_Creation), so
--- the two build one way.
-function MET.newBody(player, muscle, weight, ageH, profBoost)
-    local sex = 1
-    if flag(player, "isFemale") then sex = 2 end
-    local spec = K.body.create(muscle, weight, NR.strengthP(), K.body.effSex(sex, NR.sexSpecific()), profBoost)
-    return K.body.new(spec, sex, ageH)
-end
-
--- First sight: record.body is the creation body (MET.newBody) over the muscle pick creation reads (MET.musclePick:
--- inferred from the native Strength level net of the boosts, else the held band trait; Task 17b fix 1, replacing
+-- First sight: record.body is the creation body (CRE.newBody, NR_Server_Creation) over the muscle pick creation reads
+-- (CRE.musclePick: inferred from the native Strength level net of the boosts, else the held band trait; Task 17b fix 1, replacing
 -- ruling 13-6's held-band reading, which misreads a boosted profession's own band as a pick) and the weight band trait
 -- held, never the weight or carry delta, under the profession's Strength boost (Task 17b); body.levelDue asks the
 -- Strength minute to write the level once (Plan 13 Task 14).
 -- An existing record.body (the creation handler's, or a loaded one) is never re-read.
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
+    local CRE = NR.server.creation                      -- its readers, read at call time (Creation loads first)
     local traits = obj(player, "getCharacterTraits")
-    local pdef = MET.professionDef(player)
-    local muscle = MET.musclePick(player, traits, pdef)
-    local weight = MET.heldTrait(traits, K.traits.WEIGHT_TRAITS)
-    local body = MET.newBody(player, muscle, weight, ageH, MET.strengthBoost(pdef))
+    local pdef = CRE.professionDef(player)
+    local muscle = CRE.musclePick(player, traits, pdef)
+    local weight = CRE.heldTrait(traits, K.traits.WEIGHT_TRAITS)
+    local body = CRE.newBody(player, muscle, weight, ageH, CRE.strengthBoost(pdef))
     body.levelDue = true
     record.body = body
     MET.stats.creates = MET.stats.creates + 1

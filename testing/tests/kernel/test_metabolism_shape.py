@@ -18,6 +18,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 SERVER = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server")
 SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
 METABOLISM = os.path.join(SERVER, "NR_Server_Metabolism.lua")
+CREATION = os.path.join(SERVER, "NR_Server_Creation.lua")
 KINETICS = os.path.join(SERVER, "NR_Server_Kinetics.lua")
 INTAKE = os.path.join(SERVER, "NR_Server_Intake.lua")
 CORE = os.path.join(SHARED, "NR_Core.lua")
@@ -168,6 +169,8 @@ def met_host(host):
         _load(host, INTAKE, "@NR_Server_Intake.lua")
     if host.G.NutritionRevamp.server.kinetics is None:
         _load(host, KINETICS, "@NR_Server_Kinetics.lua")
+    if host.G.NutritionRevamp.server.creation is None:    # first sight builds through its readers (Task 24, I-1)
+        _load(host, CREATION, "@NR_Server_Creation.lua")
     _load(host, METABOLISM, "@NR_Server_Metabolism.lua")
     saved = host.rt.eval(SETUP)(100.0)
     try:
@@ -1333,6 +1336,10 @@ def _players_runtime():
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_HANDLERS.OnServerStarted do NR_HANDLERS.OnServerStarted[i]() end")
+    # first sight builds through the creation readers (Task 24, I-1); loaded after the wiring, so its OnNewGame hook
+    # stays unwired and first sight is what these tests read
+    with open(CREATION, encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Server_Creation.lua")()
     return rt
 
 

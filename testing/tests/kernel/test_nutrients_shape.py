@@ -184,6 +184,8 @@ def nut_host(host):
         _load(host, os.path.join(SERVER, "NR_Server_Intake.lua"), "@NR_Server_Intake.lua")
     saved = host.rt.eval(SETUP)(100.0)
     _load(host, os.path.join(SERVER, "NR_Server_Kinetics.lua"), "@NR_Server_Kinetics.lua")
+    if host.G.NutritionRevamp.server.creation is None:    # first sight builds through its readers (Task 24, I-1)
+        _load(host, os.path.join(SERVER, "NR_Server_Creation.lua"), "@NR_Server_Creation.lua")
     _load(host, os.path.join(SERVER, "NR_Server_Metabolism.lua"), "@NR_Server_Metabolism.lua")
     _load(host, os.path.join(SHARED, "NR_Data_Records.lua"), "@NR_Data_Records.lua")
     _load(host, os.path.join(SERVER, "NR_Server_Options.lua"), "@NR_Server_Options.lua")
