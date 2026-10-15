@@ -568,9 +568,12 @@ class _Backend:
 # builds added a deficit floor, 0.02 x max(0, es - 1), to the hunger target, which the shipped kernel lost in Plan 11g
 # Task 7 fix 1 (ruling T7-1): "replay.DEFICIT_FLOOR" is a replay-only constant (REPLAY_ONLY) that restores the
 # recording build's K.deficit.hungerTarget and K.deficit.unsated on that replay's host, so the rings' HUNGER readings
-# stay those of the pipeline that produced them.
+# stay those of the pipeline that produced them. Those builds also read the fat store linearly, 0.5 x fatDep (ruling
+# 14), which Plan 13 Task 10c replaced by the low-fat ramp FAT_GAIN x clamp((fatDep - FAT_DEP_LO) / (FAT_DEP_HI -
+# FAT_DEP_LO), 0, 1): the ramp at gain 0.5 from 0 to 1 is that linear term exactly, so the three fat constants restore it.
 DEFICIT_11F = {"deficit.BALANCE_SPAN_KCAL": 3100.0, "replay.DEFICIT_FLOOR": 0.02, "deficit.EX_BYPASS_LO": 0.282,
-               "deficit.EX_BYPASS_HI": 0.575}
+               "deficit.EX_BYPASS_HI": 0.575, "deficit.FAT_GAIN": 0.5, "deficit.FAT_DEP_LO": 0.0,
+               "deficit.FAT_DEP_HI": 1.0}
 
 # The satiety and deficit constants the Plan 11g Task 8 live rings (x361 to x364) were recorded under (build 7093079b,
 # the final model: Task 6c fix 2's meal-pool fit and Task 7's deficit refit). A ring replays at its recording build's

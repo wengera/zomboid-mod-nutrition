@@ -151,21 +151,28 @@ def test_expected_strips_penalty_and_unread_cost():
 def test_expected_body_equals_the_kernel_table(kern, muscle, weight, prof):
     # the lib is frozen at the build x431-x433 ran on (the plan's Task 9 fat table); Plan 13 Task 10b (Angus,
     # 2026-10-15) scales the kernel's fat start by the start lean over the average's and moves Obese from FMI 12.5
-    # to 10.5, so the kernel's fm is checked against that rule and the lib's against its own frozen table
+    # to 10.5, so the kernel's fm is checked against that rule and the lib's against its own frozen table. Task 10c
+    # (Angus, 2026-10-15) makes a thin pick fat-only (the muscle pick's lean, a body-fat share of 10 % or 6.5 %), so
+    # a thin set's kernel body is checked against that rule and the lib's thin lean against its own frozen BMI rule
     kept = [x.lower().replace("_", "") for x in (muscle, weight) if x]
     e = L.expect_body(kept, prof)
     s = kern.K.body.create(muscle, weight, kern.K.strength.DEFAULTS, 1, prof)
-    for k in ("lm", "F0", "Fc", "Pk", "N0"):
-        assert abs(float(s[k]) - e[k]) < 1e-9, k
     H2 = L.H2
     if weight in ("UNDERWEIGHT", "VERY_UNDERWEIGHT"):
-        assert abs(float(s["fm"]) - e["fm"]) < 1e-9
-    else:
-        w = weight.lower() if weight else None
-        fmi10b = {None: 4.5, "overweight": 7.5, "obese": 10.5}[w]
-        assert abs(float(s["fm"]) - fmi10b * H2 * e["lm"] / (18.0 * H2)) < 1e-9
-        assert abs(e["fm"] - L.FAT_FMI[w] * H2) < 1e-12
-        assert L.FAT_FMI == {None: 4.5, "overweight": 7.5, "obese": 12.5}
+        e0 = L.expect_body([x for x in kept if x not in ("underweight", "veryunderweight")], prof)
+        for k in ("lm", "F0", "Fc", "Pk", "N0"):
+            assert abs(float(s[k]) - e0[k]) < 1e-9, k
+        bf = {"UNDERWEIGHT": 0.10, "VERY_UNDERWEIGHT": 0.065}[weight]
+        assert abs(float(s["fm"]) - bf * e0["lm"] / (1 - bf)) < 1e-9
+        assert e["lm"] < e0["lm"]                                  # the frozen lib still lowers the lean
+        return
+    for k in ("lm", "F0", "Fc", "Pk", "N0"):
+        assert abs(float(s[k]) - e[k]) < 1e-9, k
+    w = weight.lower() if weight else None
+    fmi10b = {None: 4.5, "overweight": 7.5, "obese": 10.5}[w]
+    assert abs(float(s["fm"]) - fmi10b * H2 * e["lm"] / (18.0 * H2)) < 1e-9
+    assert abs(e["fm"] - L.FAT_FMI[w] * H2) < 1e-12
+    assert L.FAT_FMI == {None: 4.5, "overweight": 7.5, "obese": 12.5}
 
 
 def test_the_thin_picks_land_feeble():

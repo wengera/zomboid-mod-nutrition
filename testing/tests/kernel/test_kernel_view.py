@@ -667,11 +667,13 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
 # --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11g Task 7's span) -------
 # eb24h is a trailing 24 h balance, so a sedentary fast plateaus at about -1,950 kcal (the 36 h fast's reading) and,
 # since the deficit drive's refit on the deficit studies alone (Plan 11g Task 7: BALANCE_SPAN_KCAL 3970.55; 3100 in
-# Plan 11f Task 2c fix 1, 3300 in its Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3970.55 + 0.5 x fatDep = 1.2456 +
-# 0.5 x fatDep. Level 1 comes from a 794 kcal trailing deficit (on the server path about 18 h after the last meal; 620
-# kcal at the 3,100 kcal span, 1,500 at 7,500), level 2 not from the plateau alone (1.2456 sits 0.0044 under 1.25) but
-# from fat depletion 0.0089, levels 3 and 4 from fat depletion 0.309 and 0.609. Each is reached 0.005 past its stated
-# value and not 0.005 short of it (level 1: 0.005 of es, 40 kcal). A reached level is held until es falls ENERGY_BAND
+# Plan 11f Task 2c fix 1, 3300 in its Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3970.55 + the fat term = 1.2456 +
+# FAT_GAIN x clamp((fatDep - 0.10) / 0.60, 0, 1) since Plan 13 Task 10c's low-fat ramp (0.5 x fatDep before). Level 1
+# comes from a 794 kcal trailing deficit (on the server path about 18 h after the last meal; 620 kcal at the 3,100 kcal
+# span, 1,500 at 7,500), level 2 not from the plateau alone (1.2456 sits 0.0044 under 1.25) but from fat depletion
+# 0.1051 (0.0089 under the linear term), levels 3 and 4 from fat depletion 0.2767 and 0.4483 at FAT_GAIN 0.524404
+# (0.309 and 0.609 before). Each is reached 0.005 past its stated value and not 0.005 short of it (level 1: 0.005 of
+# es, 40 kcal). A reached level is held until es falls ENERGY_BAND
 # under its bound (Plan 11g Task 7 fix 1, ruling T7-2), so the slow daily sawtooth of a resting fast's es (its largest
 # fall 0.00234 on the server path, the 70 kg man, and the deepest under a reached bound 0.00105 since Plan 13 Task 12, both pinned in
 # test_a_sedentary_fast_never_steps_an_energy_level_down) never steps a level back down; the server holds the level
@@ -682,7 +684,7 @@ def test_a_resting_character_reaches_every_energy_level(host):
     level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
     assert level(E.state(-754.0, 0)) == 0 and level(E.state(-834.0, 0)) == 1
     assert level(E.state(-1950.0, 0)) == 1                      # the plateau alone: es 1.2456, under level 2's 1.25
-    for want, dep in ((2, 0.0089), (3, 0.3089), (4, 0.6089)):
+    for want, dep in ((2, 0.1051), (3, 0.2767), (4, 0.4483)):
         assert level(E.state(-1950.0, dep + 0.005)) == want, (want, dep)
         assert level(E.state(-1950.0, dep - 0.005)) == want - 1, (want, dep)
 

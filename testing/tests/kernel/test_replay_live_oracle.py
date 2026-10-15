@@ -225,7 +225,7 @@ def test_the_36_h_fast_through_the_server_adapters_is_the_named_gap(host):
     ifed, ifast = RL.intake_by_day(bf.eats), RL.intake_by_day(bx.eats)
     r2, r3 = ifast[W + 2] / ifed[W + 2], ifast[W + 3] / ifed[W + 3]
     assert r2 > 1 and r3 < r2                                   # the oracle's direction (ruling 11d-3)
-    assert (round(r2, 3), round(r3, 3)) == (1.148, 0.981), (r2, r3)      # a reading (Plan 11g Task 7; 1.196, 0.969 in Plan 11f Task 2c fix 1; 1.174 in its Task 2c, 1.342 before)
+    assert (round(r2, 3), round(r3, 3)) == (1.145, 0.979), (r2, r3)      # a reading (Plan 13 Task 10c's low-fat ramp; 1.148, 0.981 under Plan 11g Task 7; 1.196, 0.969 in Plan 11f Task 2c fix 1; 1.174 in its Task 2c, 1.342 before)
 
 
 # --- the writer replays and monotony through the server adapters ----------------------------------------------------

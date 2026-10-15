@@ -1,8 +1,9 @@
-"""The 10 restated body trait blocks (Plan 13 Task 16; spec section 3.1; rulings 13-25 and 13-46).
+"""The 10 restated body trait blocks (Plan 13 Task 16; spec section 3.1; ruling 13-25; Task 10c).
 
 `NR_Traits_Body.txt` restates vanilla's ten character_trait_definition blocks: the costs of the four weight traits
 change, the band traits are no longer profession traits, the four muscle blocks keep vanilla's Strength XPBoosts
-(Plan 13 Task 17 fix 1) and the four weight blocks carry none, Weight Gain and Weight Loss no longer grant a trait, the exclusions grow, and UIDescription points at the mod's key. Every other vanilla key is
+(Plan 13 Task 17 fix 1) and the four weight blocks carry none, Weight Gain and Weight Loss no longer grant a trait, the exclusions grow, and UIDescription points at the mod's key; Underweight, Very Underweight and Overweight
+show the mod's names (Task 10c: UIName points at the mod's key, Overly Lean, Gaunt and Overfat). Every other vanilla key is
 compared against VANILLA, a frozen copy of the ten blocks read once from the 42.21 install
 (scripts/generated/characters/character_traits.txt).
 """
@@ -20,10 +21,12 @@ IDS = ["weak", "feeble", "stout", "strong", "obese", "overweight", "underweight"
 BODY = IDS[:8]
 COST = {"weak": -10, "feeble": -6, "stout": 6, "strong": 10, "obese": -10, "overweight": -6, "underweight": -6,
         "very underweight": -10, "weightgain": -2, "weightloss": -2}
-CHANGED = {"IsProfessionTrait", "Cost", "XPBoosts", "GrantedTraits", "MutuallyExclusiveTraits", "UIDescription"}
+CHANGED = {"IsProfessionTrait", "Cost", "XPBoosts", "GrantedTraits", "MutuallyExclusiveTraits", "UIDescription", "UIName"}
+# Task 10c (Angus, 2026-10-15: "rename the traits to correlate them to leanness and not total weight"): the ids stay
+# vanilla's; Obese and Emaciated keep their names
+NAMED = {"underweight": "Overly Lean", "very underweight": "Gaunt", "overweight": "Overfat"}
 WEIGHT_GAIN = {"weightloss", "underweight", "very underweight", "emaciated", "athletic", "fit"}
 WEIGHT_LOSS = {"weightgain", "overweight", "obese", "very underweight"}
-KERNEL = {"WEAK": "weak", "FEEBLE": "feeble", "UNDERWEIGHT": "underweight", "VERY_UNDERWEIGHT": "very underweight"}
 
 VANILLA = '''
     character_trait_definition base:weak
@@ -257,26 +260,13 @@ def test_description_numbers_are_the_kernels(host):
         assert ui["UI_NR_trait_%sdesc" % i].startswith("Starts carrying more body fat."), i
 
 
-def test_ruling_13_46_pairs_in_both_directions(mine):
-    for m in ("weak", "feeble"):
-        for t in ("underweight", "very underweight"):
-            assert t in excl(mine[m]) and m in excl(mine[t])
-
-
-def test_the_script_pairs_equal_the_kernels_excludes(mine, host):
-    kernel = set()
-    for w, row in host.py(host.K.body.EXCLUDES).items():
-        for m, on in row.items():
-            assert on is True
-            kernel.add(frozenset((KERNEL[m], KERNEL[w])))
-    # the script's pairs between the muscle picks (weak, feeble) and the thin picks, undirected
-    script = {frozenset((a, b)) for a in ("weak", "feeble") for b in ("underweight", "very underweight")
-              if b in excl(mine[a]) or a in excl(mine[b])}
-    assert script == kernel
-    # and nothing else crosses the muscle and thin families in the script
+def test_no_muscle_pick_excludes_a_thin_pick(mine, host):
+    # Task 10c (Angus, 2026-10-15: "Lift the exclusions"): a thin pick is fat-only, so nothing crosses the muscle and
+    # thin families either way, and the kernel's table of ruling 13-46 is gone
     cross = {frozenset((a, b)) for a in BODY[:4] for b in ("underweight", "very underweight")
              if b in excl(mine[a]) or a in excl(mine[b])}
-    assert cross == kernel
+    assert cross == set()
+    assert host.K.body.EXCLUDES is None
 
 
 @pytest.mark.parametrize("i", IDS)
@@ -287,6 +277,50 @@ def test_every_other_vanilla_key_is_kept_verbatim(mine, vanilla, i):
     assert set(mine[i]) - set(vanilla[i]) == set()
     assert "Texture" not in mine[i]
     assert mine[i]["UIDescription"] == "UI_NR_trait_%sdesc" % i.replace(" ", "")
+    if i in NAMED:
+        assert mine[i]["UIName"] == "UI_NR_trait_%sname" % i.replace(" ", "")
+    else:
+        assert mine[i]["UIName"] == vanilla[i]["UIName"]
+
+
+@pytest.mark.parametrize("i", sorted(NAMED))
+def test_the_renamed_traits_show_their_leanness_names(mine, i):
+    # CharacterTraitDefinition.<init> @54-@62 L35 passes UIName through Translator.getText, as it does UIDescription
+    # (@79-@88 L38), so a mod key resolves either way (jar 4a0e9546ec)
+    import json
+    with open(UI, encoding="utf-8") as f:
+        ui = json.load(f)
+    assert ui[mine[i]["UIName"]] == NAMED[i]
+
+
+def test_the_mods_texts_use_the_display_names(mine):
+    # every mod-written text that names these traits uses the display names: the descriptions and the panel's band words
+    import json
+    with open(UI, encoding="utf-8") as f:
+        ui = json.load(f)
+    for k, v in ui.items():
+        if k.startswith("UI_NR_trait_") or k.startswith("UI_NR_Band_"):
+            for old in ("Underweight", "underweight", "Overweight", "overweight"):
+                assert old not in v, (k, v)
+    assert ui["UI_NR_Band_underweight"] == "Overly lean"
+    assert ui["UI_NR_Band_veryUnderweight"] == "Gaunt"
+    assert ui["UI_NR_Band_overweight"] == "Overfat"
+    assert ui["UI_NR_Band_obese"] == "Obese" and ui["UI_NR_Band_emaciated"] == "Emaciated"
+    for i in ("weak", "feeble"):
+        assert "Cannot be taken" not in ui["UI_NR_trait_%sdesc" % i]
+
+
+@pytest.mark.parametrize("i", ["underweight", "very underweight"])
+def test_the_thin_descriptions_state_the_new_rule(i):
+    # Task 10c: fat only, underfed and hungry until regained, the same while-it-lasts penalties; no number
+    import json
+    with open(UI, encoding="utf-8") as f:
+        ui = json.load(f)
+    d = ui["UI_NR_trait_%sdesc" % i.replace(" ", "")]
+    assert d.startswith("Starts underfed:")
+    assert "no muscle lost" in d and "until the fat is regained" in d
+    assert d.endswith("While it lasts: lower endurance and more prone to injury.")
+    assert not re.search(r"\d", d)
 
 
 def test_the_description_keys_are_defined(mine):
@@ -295,3 +329,5 @@ def test_the_description_keys_are_defined(mine):
         ui = json.load(f)
     for i in IDS:
         assert ui[mine[i]["UIDescription"]].strip()
+        if mine[i]["UIName"].startswith("UI_NR_"):
+            assert ui[mine[i]["UIName"]].strip()

@@ -390,3 +390,40 @@ def test_the_bypassed_share_is_not_scaled_by_the_gain(host):
     lag = host.K.deficit.EX_LAG_GAIN * L
     assert host.call("deficit.activityState", eb, ex, L, 0, ee) == pytest.approx(
         host.call("deficit.state", eb + ex - (lag + 0.5 * (ex - lag)), 0))
+
+
+# --- Plan 13 Task 10c: the low-fat hunger ramp (the fat term of the energy state) ----------------------------------
+
+def test_the_fat_ramp_constants(host):
+    D = host.K.deficit
+    assert (D.FAT_DEP_LO, D.FAT_DEP_HI) == (0.10, 0.70)
+    assert 0 < D.FAT_GAIN <= 1.5
+
+
+@pytest.mark.parametrize("dep, share", [(0.0, 0.0), (0.05, 0.0), (0.10, 0.0), (0.16, 0.1), (0.40, 0.5), (0.64, 0.9),
+                                        (0.70, 1.0), (0.85, 1.0), (1.0, 1.0), (-0.2, 0.0)])
+def test_the_fat_term_is_a_ramp_with_a_soft_threshold(host, dep, share):
+    # near nothing at modest loss (below FAT_DEP_LO), linear across the ramp, whole from FAT_DEP_HI
+    D = host.K.deficit
+    assert host.call("deficit.fatTerm", dep) == pytest.approx(D.FAT_GAIN * share, abs=1e-12)
+    assert host.call("deficit.state", 0.0, dep) == pytest.approx(1 + D.FAT_GAIN * share, abs=1e-12)
+
+
+def test_the_fat_term_reads_its_constants_at_call_time(host):
+    D = host.K.deficit
+    keep = (D.FAT_GAIN, D.FAT_DEP_LO, D.FAT_DEP_HI)
+    try:
+        D.FAT_GAIN, D.FAT_DEP_LO, D.FAT_DEP_HI = 0.8, 0.2, 0.6
+        assert host.call("deficit.fatTerm", 0.15) == 0
+        assert host.call("deficit.fatTerm", 0.4) == pytest.approx(0.4)
+        assert host.call("deficit.fatTerm", 0.7) == pytest.approx(0.8)
+    finally:
+        D.FAT_GAIN, D.FAT_DEP_LO, D.FAT_DEP_HI = keep
+
+
+def test_the_state_keeps_its_clamp_with_the_fat_term(host):
+    # the whole state stays clamped to [0.5, 2.0]: the saturated balance term plus the whole fat term
+    D = host.K.deficit
+    assert host.call("deficit.state", -1e9, 1.0) == pytest.approx(min(2.0, 1.5 + D.FAT_GAIN))
+    assert host.call("deficit.state", 1e9, 0.0) == pytest.approx(0.5)
+    assert host.call("deficit.state", 1e9, 1.0) == pytest.approx(0.5 + D.FAT_GAIN)

@@ -774,3 +774,52 @@ def _cost(host):
 def test_mastery_xp_reads_the_cost_at_the_floor_plus_the_fraction(host, L, want):
     # ruling 13-42: cost(min(floor(L), 15)) + frac (cost(next) - cost(floor(L))); 0 + frac cost(11) on [10, 11)
     assert abs(host.call("strength.masteryXp", L, _cost(host)) - want) < 1e-6
+
+
+# --- Plan 13 Task 10c: the level-drop hysteresis (Angus, 2026-10-15: "Drop only 0.25 below") ---
+
+@pytest.mark.parametrize("L, Lw, n, frac", [
+    (5.0, None, 5, 0), (4.99, None, 4, 0.99),                      # nothing written: shown's floor
+    (4.9, 5, 5, 0), (4.76, 5, 5, 0), (4.75, 5, 5, 0),               # within 0.25 below: held, an empty bar
+    (4.74, 5, 4, 0.74),                                              # past it: down to floor(L + 0.25)
+    (3.8, 5, 4, 0), (3.7, 5, 3, 0.7),                               # several levels at once, to floor(L + 0.25)
+    (5.99, 5, 5, 0.99), (6.0, 5, 6, 0), (6.3, 5, 6, 0.3),           # a rise lands at the whole number, not later
+    (8.2, 5, 8, 0.2),
+    (9.8, 10, 10, 0), (9.76, 10, 10, 0), (9.74, 10, 9, 0.74), (12.3, 10, 10, 0),
+    (-0.4, 0, 0, 0), (0.5, 3, 0, 0.5), (2.9, 3, 3, 0),
+])
+def test_held_level(host, L, Lw, n, frac):
+    got_n, got_frac = host.call("strength.heldLevel", L, Lw)
+    assert got_n == n and _close(got_frac, frac, 1e-9), (L, Lw, got_n, got_frac)
+
+
+@pytest.mark.parametrize("Lw", [None, float("nan"), float("inf"), "5", True])
+def test_held_level_without_a_finite_written_level_is_shown(host, Lw):
+    for L in (4.9, 5.0, 7.3, 10.0, 12.0):
+        assert tuple(host.call("strength.heldLevel", L, Lw)) == tuple(host.call("strength.shown", L))
+
+
+def test_the_drop_margin(host):
+    assert host.K.strength.DROP_MARGIN == 0.25
+
+
+def test_held_level_reads_the_drop_margin(host):
+    keep = host.K.strength.DROP_MARGIN
+    try:
+        host.K.strength.DROP_MARGIN = 0.5
+        assert host.call("strength.heldLevel", 4.6, 5)[0] == 5
+        assert host.call("strength.heldLevel", 4.49, 5)[0] == 4
+        assert host.call("strength.heldLevel", 3.6, 5)[0] == 4         # floor(3.6 + 0.5)
+        host.K.strength.DROP_MARGIN = 0
+        assert host.call("strength.heldLevel", 4.99, 5)[0] == 4
+    finally:
+        host.K.strength.DROP_MARGIN = keep
+
+
+def test_a_small_loss_never_drops_and_a_regain_never_needs_a_margin(host):
+    # a day's dip and the next day's regain: the written level never leaves 5, and once past 6 it shows 6 at once
+    Lw = 5
+    for L in (5.0, 4.9, 4.8, 4.95, 5.2, 5.9):
+        Lw = host.call("strength.heldLevel", L, Lw)[0]
+        assert Lw == 5, L
+    assert host.call("strength.heldLevel", 6.0, Lw)[0] == 6

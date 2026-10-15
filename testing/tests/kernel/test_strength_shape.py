@@ -1475,3 +1475,83 @@ def test_the_addxp_listener_is_not_wired_on_a_client():
     rt = _wiring_host(False)
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
     assert len(rt.globals().NR_XP) == 0
+
+
+
+# --- Plan 13 Task 10c: the level-drop hysteresis on the write (Angus, 2026-10-15: "Drop only 0.25 below") ---------
+
+def test_an_untrained_start_at_five_holds_five_after_an_underfed_day(str_host):
+    # ledger concern 4: a fresh untrained character at exactly 5.0 floored to native 4 (Feeble's band) after one
+    # underfed day; the drop now waits until the level is 0.25 below 5
+    h = str_host
+    p = player(h, level=5, xp=37500)
+    record = body_at(h, 5.0)
+    body = record["body"]
+    body.levelDue = True
+    minute(h, p, record, 100.0)
+    assert body.wroteL == 5 and p.cfg.level == 5
+    body.lm = h.K.strength.fOfLevel(4.97, body.N0, body.T, h.K.strength.DEFAULTS)    # one underfed day
+    body.levelDue = True
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert p.cfg.level == 5 and body.wroteL == 5 and lst(p.cfg.steps) == []
+    assert traits(p) == []                                     # no Feeble band
+    assert p.cfg.xp == 37500                                   # held: level 5's starting total, an empty bar
+    body.lm = h.K.strength.fOfLevel(4.7, body.N0, body.T, h.K.strength.DEFAULTS)
+    body.levelDue = True
+    minute(h, p, record, 100.0 + 2 / 60)
+    assert p.cfg.level == 4 and body.wroteL == 4               # 0.3 below: dropped to floor(4.7 + 0.25)
+
+
+def test_a_rise_lands_at_the_whole_number(str_host):
+    h = str_host
+    p = player(h, level=5, xp=37500)
+    record = body_at(h, 6.0)
+    record["body"].wroteL = 5
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert p.cfg.level == 6 and record["body"].wroteL == 6
+
+
+def test_a_native_ten_at_9_8_holds_ten_parked(str_host):
+    h = str_host
+    p = player(h, level=10, xp=337500)
+    record = body_at(h, 9.8)
+    record["body"].wroteL = 10
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert p.cfg.level == 10 and lst(p.cfg.steps) == [] and record["body"].wroteL == 10
+    assert p.cfg.xp == 337500                                  # the park at the level-9 total
+    record["body"].lm = h.K.strength.fOfLevel(9.7, record["body"].N0, record["body"].T, h.K.strength.DEFAULTS)
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert p.cfg.level == 9 and record["body"].wroteL == 9
+    assert p.cfg.xp == pytest.approx(337500 + 0.7 * 150000, abs=1e-6)
+
+
+def test_under_beyond_ten_a_ten_at_9_8_holds_ten_and_its_stored_xp_reads_ten(str_host):
+    h = str_host
+    bt = beyond_ten(h)
+    p = player(h, level=10, xp=337500)
+    record = body_at(h, 9.8)
+    record["body"].wroteL = 10
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert p.cfg.level == 10 and record["body"].wroteL == 10
+    assert lst(p.cfg.xpSets) == [] and lst(p.cfg.grants) == []    # never native XP at native 10
+    assert lst(bt.sets) == [0]                                     # level 10's mastery start
+
+
+def test_a_drop_due_while_asleep_waits_then_follows_the_hysteresis(str_host):
+    h = str_host
+    p = player(h, level=7, xp=130000)
+    h.rt.eval("function(p) p.isAsleep = function(s) return p.cfg.asleep end end")(p)
+    p.cfg.asleep = True
+    record = body_at(h, 6.5)
+    record["body"].wroteL = 7
+    record["body"].levelDue = True
+    minute(h, p, record, 100.0)
+    assert lst(p.cfg.steps) == [] and record["body"].levelDue is True and record["body"].wroteL == 7
+    p.cfg.asleep = False
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert p.cfg.level == 6 and record["body"].wroteL == 6 and record["body"].levelDue is False
+    assert p.cfg.xp == pytest.approx(67500 + 0.5 * 60000, abs=1e-6)

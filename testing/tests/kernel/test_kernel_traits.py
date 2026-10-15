@@ -1,9 +1,10 @@
-"""The body-trait axes with damping (Plan 13 Task 10; spec section 8; rulings 13-15, 13-17, 13-30 and 13-31).
+"""The body-trait axes with damping (Plan 13 Task 10; spec section 8; rulings 13-15, 13-17, 13-30 and 13-31; Task 10c).
 
 `K.traits.axes(body, sex)` reads the lean-scaled fat index fm / (H2 * lm / Favg) against Kelly 2009's FMI cuts (S2056
 male, S2057 female, the female table only for effective sex 2; Task 10b, Angus 2026-10-15: a cut and its margin scale
 with the body's lean lm over the untrained average's Favg, so the male cuts sit at 25 % and 33.3 % body fat for every
-lean) and the BMI (lm + fm) / H2 against WHO's thinness grades (S2059), each with
+lean) and the body-fat share fm / (lm + fm) against the thin edges 12, 8 and 5 % (Task 10c, Angus 2026-10-15: "thin
+should start at below 12% bodyfat"; the female values 8 points higher, THIN_F_OFFSET), each with
 its game-choice margin; a thinness rung excludes the fat rungs. `K.traits.held` is the damped step, `K.traits.WANT`
 the five weight-band trait names. The constants are also read through decoy copies, so a test passes only when the
 kernel reads the table it is handed.
@@ -17,8 +18,7 @@ MUSCLE = (None, "WEAK", "FEEBLE", "STOUT", "STRONG")
 WEIGHT = (None, "OVERWEIGHT", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED")
 WORD = {None: "normal", "OVERWEIGHT": "overweight", "OBESE": "obese", "UNDERWEIGHT": "underweight",
         "VERY_UNDERWEIGHT": "veryUnderweight", "EMACIATED": "veryUnderweight"}
-EXCLUDED = {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("WEAK", "EMACIATED"),
-            ("FEEBLE", "UNDERWEIGHT"), ("FEEBLE", "VERY_UNDERWEIGHT"), ("FEEBLE", "EMACIATED")}
+THIN_WORDS = ["normal", "underweight", "veryUnderweight", "emaciated"]
 
 
 def _b(host, fm, lm, fatT=0, thinT=0, lx=0):
@@ -26,15 +26,15 @@ def _b(host, fm, lm, fatT=0, thinT=0, lx=0):
 
 
 def _fmi(host, fmi, fatT=0, sex=1):
-    """The word at a fat-mass index for a body at the average lean (its BMI well above the thin cuts)."""
+    """The word at a fat-mass index for a body at the average lean (its body fat well above the thin edges)."""
     b = _b(host, fmi * H2, FAVG, fatT=fatT)
     return host.call("traits.axes", b, sex), b["fatT"]
 
 
-def _bmi(host, bmi, thinT=0):
-    """The word at a BMI with a fat-mass index of 1 (far below every fat cut)."""
-    b = _b(host, 1.0 * H2, (bmi - 1.0) * H2, thinT=thinT)
-    return host.call("traits.axes", b, 1), b["thinT"]
+def _bf(host, bf, thinT=0, sex=1, lm=50.0):
+    """The word at a body-fat share bf on lean lm (its fat index far below every fat cut)."""
+    b = _b(host, bf * lm / (1 - bf), lm, thinT=thinT)
+    return host.call("traits.axes", b, sex), b["thinT"]
 
 
 def _held(host, rung, x, cuts, margin, up):
@@ -58,7 +58,7 @@ def test_overweight_holds_inside_the_margin_on_the_way_back(host):
 
 
 def test_thinness_excludes_the_fat_traits(host):
-    b = _b(host, 7.0 * H2, 44.0 - 7.0 * H2, fatT=1)   # BMI 15.2 with FMI 7: thin wins
+    b = _b(host, 2.0, 48.0, fatT=1)                     # 4 % body fat: Emaciated, the held fat rung cleared
     assert host.call("traits.axes", b, 1) == "emaciated"
     assert b["fatT"] == 0
 
@@ -79,9 +79,10 @@ def test_the_constants(host):
     assert T["FAT_CUTS"] == {1: {1: 6, 2: 9}, 2: {1: 9, 2: 13}}
     assert T["FAT_WORDS"] == {1: "overweight", 2: "obese"}
     assert T["FAT_MARGIN"] == 0.3
-    assert T["THIN_CUTS"] == {1: 18.5, 2: 17, 3: 16}
+    assert T["THIN_CUTS"] == {1: 0.12, 2: 0.08, 3: 0.05}
     assert T["THIN_WORDS"] == {1: "underweight", 2: "veryUnderweight", 3: "emaciated"}
-    assert T["THIN_MARGIN"] == 0.5
+    assert T["THIN_MARGIN"] == 0.005
+    assert T["THIN_F_OFFSET"] == 0.08
 
 
 # --- held: the damped step ---
@@ -151,70 +152,114 @@ def test_the_female_table_is_read_only_for_effective_sex_2(host):
     assert _fmi(host, 9.4, 0, None) == ("obese", 2)
 
 
-@pytest.mark.parametrize("bmi, thinT, want", [
-    (18.01, 0, "normal"), (17.99, 0, "underweight"), (16.51, 0, "underweight"), (16.49, 0, "veryUnderweight"),
-    (15.51, 0, "veryUnderweight"), (15.49, 0, "emaciated"),
-    (18.99, 1, "underweight"), (19.01, 1, "normal"), (17.49, 2, "veryUnderweight"), (17.51, 2, "underweight"),
-    (16.49, 3, "emaciated"), (16.51, 3, "veryUnderweight"),
-])
-def test_thin_cuts(host, bmi, thinT, want):
-    words = ["normal", "underweight", "veryUnderweight", "emaciated"]
-    assert _bmi(host, bmi, thinT) == (want, words.index(want))
+# the thin edges 0.12, 0.08, 0.05 with the 0.005 margin (Task 10c): a rung is entered past edge - margin and left past
+# edge + margin
+THIN_CASES = [
+    (0.1151, 0, "normal"), (0.1149, 0, "underweight"), (0.0751, 0, "underweight"), (0.0749, 0, "veryUnderweight"),
+    (0.0451, 0, "veryUnderweight"), (0.0449, 0, "emaciated"),
+    (0.1249, 1, "underweight"), (0.1251, 1, "normal"), (0.0849, 2, "veryUnderweight"), (0.0851, 2, "underweight"),
+    (0.1251, 2, "normal"), (0.0549, 3, "emaciated"), (0.0551, 3, "veryUnderweight"), (0.0749, 3, "veryUnderweight"),
+    (0.20, 3, "normal"), (0.01, 0, "emaciated"),
+]
 
 
-def test_the_bmi_is_lean_plus_fat_without_the_labile_lean(host):
+@pytest.mark.parametrize("bf, thinT, want", THIN_CASES)
+def test_thin_edges(host, bf, thinT, want):
+    assert _bf(host, bf, thinT) == (want, THIN_WORDS.index(want))
+
+
+@pytest.mark.parametrize("bf, thinT, want", THIN_CASES)
+def test_the_female_thin_edges_sit_8_points_higher(host, bf, thinT, want):
+    # NR.SexSpecific on, a female character: 20 / 16 / 13 %, the same margin
+    assert _bf(host, bf + 0.08, thinT, sex=2) == (want, THIN_WORDS.index(want))
+    # the male edges for effective sex 1 and for an unread sex
+    assert _bf(host, bf, thinT, sex=None) == (want, THIN_WORDS.index(want))
+
+
+def test_the_female_offset_is_read_only_for_effective_sex_2(host):
+    assert _bf(host, 0.15, 0, sex=1) == ("normal", 0)
+    assert _bf(host, 0.15, 0, sex=2) == ("veryUnderweight", 2)
+    assert _bf(host, 0.19, 0, sex=2) == ("underweight", 1)
+
+
+def test_thinness_reads_body_fat_not_bmi(host):
+    # Task 10c (Angus, 2026-10-15): thin is leanness, not weight. A light body at a normal share is normal (BMI 17.3
+    # at 20 %), a heavy lean one is thin (BMI 28.8 at 10 %), whatever the height
+    assert host.call("traits.axes", _b(host, 10.0, 40.0), 1) == "normal"
+    assert host.call("traits.axes", _b(host, 75.0 / 9.0, 75.0), 1) == "underweight"
+    keepH = host.K.HEIGHT_M
+    try:
+        for h in (1.5, 2.0):
+            host.K.HEIGHT_M = h
+            assert host.call("traits.axes", _b(host, 10.0, 40.0), 1) == "normal", h
+            assert host.call("traits.axes", _b(host, 75.0 / 9.0, 75.0), 1) == "underweight", h
+    finally:
+        host.K.HEIGHT_M = keepH
+
+
+def test_the_body_fat_share_leaves_out_the_labile_lean(host):
     # ruling 13-15: lx rides in the weight slot but never counts toward thinness, nor toward the fat index
-    b = _b(host, 1.0 * H2, 15.4 * H2, lx=5.0)                   # BMI 16.4 from lm + fm; 18.13 with lx
+    b = _b(host, 50.0 * 0.07 / 0.93, 50.0, lx=5.0)             # 7 % of lm + fm; 6.4 % with lx
     assert host.call("traits.axes", b, 1) == "veryUnderweight"
-    b = _b(host, 7.0 * H2, 44.0 - 7.0 * H2, lx=5.0)             # BMI 15.2 from lm + fm; FMI 7 with or without lx
-    assert host.call("traits.axes", b, 1) == "emaciated"
+    b = _b(host, 50.0 * 0.11 / 0.89, 50.0, lx=-3.0)            # 11 % of lm + fm; 11.7 % with lx
+    assert host.call("traits.axes", b, 1) == "underweight"
     b = _b(host, 6.2 * H2, 52.0, lx=5.0)                        # FMI 6.2: lx is lean, not fat
     assert host.call("traits.axes", b, 1) == "normal"
-    # the fat counts: lean 50 alone is BMI 17.3, with 13 kg of fat 21.8
-    b = _b(host, 13.0, 50.0)
-    assert host.call("traits.axes", b, 1) == "normal"
+
+
+def test_a_massless_body_reads_the_deepest_rung(host):
+    assert host.call("traits.thinReading", 0.0, 0.0, 1) == 0
+    assert host.call("traits.thinReading", 0.0, 0.0, 2) == pytest.approx(-0.08)
+    assert host.call("traits.thinReading", 5.0, 45.0, 1) == pytest.approx(0.1)
+    assert host.call("traits.thinReading", 5.0, 45.0, 2) == pytest.approx(0.02)
 
 
 def test_precedence_clears_a_held_fat_rung(host):
-    b = _b(host, 12.0 * H2, (16.0 - 12.0) * H2, fatT=2, thinT=1)   # FMI 12, BMI 16: thin holds, fat cleared
+    b = _b(host, 3.0, 40.0, fatT=2, thinT=1)            # 7 % body fat: thin holds and deepens, fat cleared
     assert host.call("traits.axes", b, 1) == "veryUnderweight"
     assert (b["fatT"], b["thinT"]) == (0, 2)
     # back out of thinness, the fat axis is read afresh from 0
     b = _b(host, 12.0 * H2, 52.0, fatT=0, thinT=1)
     assert host.call("traits.axes", b, 1) == "obese"
     assert (b["fatT"], b["thinT"]) == (2, 0)
-    b = _b(host, 6.5 * H2, (17.9 - 6.5) * H2, fatT=1)   # BMI 17.9, FMI 6.5: Underweight clears Overweight
+    b = _b(host, 5.0, 45.0, fatT=1)                     # 10 % body fat: Underweight clears a held Overweight
     assert host.call("traits.axes", b, 1) == "underweight"
     assert (b["fatT"], b["thinT"]) == (0, 1)
 
 
 def test_axes_reads_its_tables(host):
     T = host.K.traits
-    keep = {k: T[k] for k in ("FAT_CUTS", "FAT_WORDS", "FAT_MARGIN", "THIN_CUTS", "THIN_WORDS", "THIN_MARGIN")}
+    keep = {k: T[k] for k in ("FAT_CUTS", "FAT_WORDS", "FAT_MARGIN", "THIN_CUTS", "THIN_WORDS", "THIN_MARGIN",
+                              "THIN_F_OFFSET")}
     keepH = host.K.HEIGHT_M
     try:
         T.FAT_CUTS = host.table({1: {1: 2, 2: 3}, 2: {1: 4, 2: 5}})
         T.FAT_WORDS = host.table({1: "fatA", 2: "fatB"})
         T.FAT_MARGIN = 0.1
-        T.THIN_CUTS = host.table({1: 30, 2: 29, 3: 28})
-        T.THIN_WORDS = host.table({1: "thinA", 2: "thinB", 3: "thinC"})
-        T.THIN_MARGIN = 0.2
+        T.THIN_CUTS = host.table({1: -1, 2: -2, 3: -3})          # no thin rung while the fat decoys are read
         s = 40.0 * H2 / FAVG                                      # the fat index scales with lean (Task 10b)
         assert host.call("traits.axes", _b(host, 2.05 * H2 * s, 40.0 * H2), 1) == "normal"
         assert host.call("traits.axes", _b(host, 2.15 * H2 * s, 40.0 * H2), 1) == "fatA"
         assert host.call("traits.axes", _b(host, 3.15 * H2 * s, 40.0 * H2), 1) == "fatB"
         assert host.call("traits.axes", _b(host, 4.15 * H2 * s, 40.0 * H2), 2) == "fatA"
         assert host.call("traits.axes", _b(host, 5.15 * H2 * s, 40.0 * H2), 2) == "fatB"
-        assert host.call("traits.axes", _b(host, 1.0 * H2, 28.75 * H2), 1) == "thinA"
-        assert host.call("traits.axes", _b(host, 1.0 * H2, 27.75 * H2), 1) == "thinB"
-        assert host.call("traits.axes", _b(host, 1.0 * H2, 26.75 * H2), 1) == "thinC"
-        assert host.call("traits.axes", _b(host, 1.0 * H2, 28.95 * H2), 1) == "normal"
+        T.FAT_CUTS = host.table({1: {1: 100, 2: 200}, 2: {1: 100, 2: 200}})   # no fat rung under the thin decoys
+        T.THIN_CUTS = host.table({1: 0.30, 2: 0.25, 3: 0.22})
+        T.THIN_WORDS = host.table({1: "thinA", 2: "thinB", 3: "thinC"})
+        T.THIN_MARGIN = 0.01
+        T.THIN_F_OFFSET = 0.03
+        assert _bf(host, 0.295)[0] == "normal"
+        assert _bf(host, 0.285)[0] == "thinA"
+        assert _bf(host, 0.235)[0] == "thinB"
+        assert _bf(host, 0.205)[0] == "thinC"
+        assert _bf(host, 0.305, sex=2)[0] == "thinA"                # 0.305 - 0.03 = 0.275
+        assert _bf(host, 0.325, sex=2)[0] == "normal"
         for k, v in keep.items():
             T[k] = v
         host.K.HEIGHT_M = 2.0                                      # H2 = 4: the average lean is 18 * 4 = 72 kg
         assert host.call("traits.axes", _b(host, 6.4 * H2, 72.0), 1) == "normal"
         assert host.call("traits.axes", _b(host, 6.4 * 4.0, 72.0), 1) == "overweight"
-        assert host.call("traits.axes", _b(host, 1.0 * 4.0, 17.9 * 4.0 - 4.0), 1) == "underweight"  # BMI 17.9 at 2 m
+        assert _bf(host, 0.11)[0] == "underweight"                  # the thin axis is height-free
     finally:
         for k, v in keep.items():
             T[k] = v
@@ -237,19 +282,38 @@ def test_want(host, fatT, thinT, on):
 
 # --- the creation picks and the constructor ---
 
+@pytest.mark.parametrize("prof", [0, 1, 2])
 @pytest.mark.parametrize("sexIdx", [1, 2])
-@pytest.mark.parametrize("muscle, weight", [(m, w) for m in MUSCLE for w in WEIGHT if (m, w) not in EXCLUDED])
-def test_every_legal_creation_pick_keeps_its_rung(host, muscle, weight, sexIdx):
-    # the excluded pairs (ruling 13-46) are left out: Weak with Underweight sits at BMI 16.07 and reads Very Underweight
-    s = host.call("body.create", muscle, weight, host.K.strength.DEFAULTS, sexIdx)
+@pytest.mark.parametrize("muscle, weight", [(m, w) for m in MUSCLE for w in WEIGHT])
+def test_every_creation_pick_keeps_its_rung(host, muscle, weight, sexIdx, prof):
+    # every pair is legal since Task 10c (the exclusions lifted): each created body reads its pick's word and rungs
+    s = host.call("body.create", muscle, weight, host.K.strength.DEFAULTS, sexIdx, prof)
     fatT, thinT = s["fatT"], s["thinT"]
     assert host.call("traits.axes", s, sexIdx) == WORD[weight]
     assert (s["fatT"], s["thinT"]) == (fatT, thinT)
 
 
+@pytest.mark.parametrize("prof", [0, 1, 2])
+@pytest.mark.parametrize("sexIdx", [1, 2])
+@pytest.mark.parametrize("muscle, weight", [(m, w) for m in MUSCLE for w in ("UNDERWEIGHT", "VERY_UNDERWEIGHT")])
+def test_a_created_thin_pick_is_held_by_the_axis_alone(host, muscle, weight, sexIdx, prof):
+    # Task 10c: the thin starts sit mid-band (10 % and 6.5 %, female 18 % and 14.5 %), so a reading from no rung at
+    # all enters the pick's rung and goes no deeper (Task 10's concern 2: a start on its entry edge, gone)
+    s = host.call("body.create", muscle, weight, host.K.strength.DEFAULTS, sexIdx, prof)
+    want = s["thinT"]
+    s.thinT = 0
+    assert host.call("traits.axes", s, sexIdx) == WORD[weight]
+    assert s["thinT"] == want
+    bf = host.call("traits.thinReading", s["fm"], s["lm"], sexIdx)
+    cuts = (0.12, 0.08, 0.05)
+    margin = 0.005
+    assert bf <= cuts[want - 1] - margin - 0.01 + 1e-12            # inside the rung by a point or more past entry
+    assert bf >= cuts[want] - margin + 0.01 - 1e-12                 # and a point or more short of the next rung's
+
+
 @pytest.mark.parametrize("muscle, weight, sexIdx", [
     (None, None, 1), ("STRONG", "OBESE", 2), (None, "OVERWEIGHT", 1), ("STOUT", "UNDERWEIGHT", 2),
-    (None, "EMACIATED", 1),
+    (None, "EMACIATED", 1), ("WEAK", "VERY_UNDERWEIGHT", 1), ("FEEBLE", "UNDERWEIGHT", 2),
 ])
 def test_new_lays_the_band(host, muscle, weight, sexIdx):
     spec = host.call("body.create", muscle, weight, host.K.strength.DEFAULTS, sexIdx)

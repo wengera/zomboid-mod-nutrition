@@ -13,6 +13,13 @@ its role and its row:
                   S1255's ceiling); outside it the candidate is infeasible;
     "fixed"       a deficit study no fitted constant moves (Whybrow and E-MECHANIC read the exercise lag L, which the
                   span and the bypass never touch); read and asserted, its margin reported.
+S1254 (Plan 13 Task 10c) is scored on the fat term's gain K.deficit.FAT_GAIN: the reference body held at three fat
+depletions inside the ramp's linear part, eating at the request, its intake rise per kg of fat lost against about 100
+kcal/d (Polidori 2016) within 1.5x, read as ln(slope / 100) so the band's centre is 100. Three stability checks sit
+beside it as constraints (CLAUDE.md section 6): the two pair slopes within 2x of each other (a clamped or degenerate
+read fails), every pair slope at least 30 kcal/d per kg (a flat read fails) and the intake below FAT_DEP_LO within 25
+kcal/d of no loss (the soft threshold). A fit of FAT_GAIN alone (fit_deficit_drive's fat mode) ranks by S1254 and
+holds every other oracle as a constraint, read once: no other study reaches a depletion of FAT_DEP_LO.
 The margin of a reading is its distance inside the band over the band's half-width (1 at the centre, 0 at an edge,
 negative outside); a one-sided band's margin is its distance inside over its `scale`. King 2011's band is the
 exercise arm's distance from control under min(3.3 mm, a quarter of the restriction's rise), with the rise above 0.02.
@@ -28,6 +35,8 @@ or the fit's patched one); the server-path replays build their own hosts (tools/
 from . import test_replay_live_energy as E
 from . import test_satiety_activity as A
 from . import test_satiety_meal_studies as M
+
+import math
 
 import replay_live as RL  # noqa: E402  (test_replay_live_energy puts tools/ on the path)
 
@@ -123,6 +132,10 @@ def _emech(h):
     return [E.e_mechanic_server(h, cls, weeks=(24,))[0] for cls in ("MediumWork", "UsingTools")]
 
 
+def _s1254(h):
+    return E.fat_loss_server(h)
+
+
 GROUPS = {
     "fast": _fast,
     "karl": karl,
@@ -132,8 +145,13 @@ GROUPS = {
     "s1255": _s1255,
     "whybrow": _whybrow,
     "emech": _emech,
+    "s1254": _s1254,
 }
 FIXED_GROUPS = ("whybrow", "emech")     # no fitted constant moves them: the fit reads them once, at its start point
+FAT_GROUPS = ("s1254",)                 # the only group K.deficit.FAT_GAIN moves (no other reaches FAT_DEP_LO)
+FAT_SCORED = ("s1254",)                 # what a fit of FAT_GAIN alone ranks by
+S1254_KCAL_PER_KG = 100.0               # S1254 (Polidori 2016): about 100 kcal/d of intake per kg of weight lost
+S1254_TOL = 1.5                         # within 1.5x (the brief's band; a labelled DESIGN CHOICE)
 
 
 # --- the oracles -----------------------------------------------------------------------------------------------------
@@ -167,6 +185,21 @@ def _king_margin_value(r):
     if not k["rise"] > 0.02:
         return float("inf")
     return k["dmm"] - min(3.3, 0.25 * k["risemm"])
+
+
+def _log_ratio(slope):
+    """ln(slope / S1254_KCAL_PER_KG), None for a slope that is not positive (outside any band)."""
+    if slope is None or not slope > 0:
+        return None
+    return math.log(slope / S1254_KCAL_PER_KG)
+
+
+def _pair_ratio(r):
+    """The smaller pair slope over the larger (1 linear, toward 0 bent or clamped), None when neither rises."""
+    p = r["s1254"]["pairs"]
+    if not max(p) > 0:
+        return None
+    return min(p) / max(p)
 
 
 def _karl_worst_dfc(r):
@@ -206,6 +239,15 @@ ORACLES = [
            tol="0.53-0.89 at 24 weeks, the high dose"),
     Oracle("emech_low", "emech", lambda r: r["emech"][1], lo=0.53, hi=0.89, role="fixed", row="S1320, S1664",
            tol="0.53-0.89 at 24 weeks, the low dose"),
+    # S1254 (Plan 13 Task 10c): the fat term's intake rise per kg lost, and its stability checks
+    Oracle("s1254", "s1254", lambda r: _log_ratio(r["s1254"]["slope"]), lo=-math.log(S1254_TOL),
+           hi=math.log(S1254_TOL), row="S1254", tol="about 100 kcal/d per kg of fat lost within 1.5x, as ln(slope / 100)"),
+    Oracle("s1254_linear", "s1254", _pair_ratio, lo=0.5, scale=0.5, role="constraint", row="",
+           tol="the two pair slopes within 2x (a clamped or degenerate read fails)"),
+    Oracle("s1254_flat", "s1254", lambda r: min(r["s1254"]["pairs"]), lo=30.0, scale=30.0, role="constraint", row="",
+           tol="every pair slope >= 30 kcal/d per kg (a flat read fails)"),
+    Oracle("s1254_low", "s1254", lambda r: abs(r["s1254"]["low"] - r["s1254"]["base"]), hi=25.0, scale=25.0,
+           role="constraint", row="S1255", tol="below FAT_DEP_LO within 25 kcal/d of no loss (the soft threshold)"),
 ]
 
 assert len({o.name for o in ORACLES}) == len(ORACLES)
@@ -225,8 +267,9 @@ def margins(readings):
 
 def objective(readings, scored=None):
     """(feasible, the smallest scored margin, the constraints' total shortfall): a candidate is feasible when every
-    constraint and fixed oracle holds; the fit maximises the smallest scored margin among the feasible."""
+    oracle outside the ranked ones holds; the fit maximises the smallest ranked margin among the feasible. The ranked
+    ones are the scored oracles, or `scored` (FAT_SCORED for a fit of FAT_GAIN alone, every other oracle then held)."""
     m = margins(readings)
-    names = scored or [o.name for o in ORACLES if o.role == "scored"]
-    short = sum(-min(0.0, m[o.name]) for o in ORACLES if o.role != "scored")
+    names = list(scored or [o.name for o in ORACLES if o.role == "scored"])
+    short = sum(-min(0.0, m[o.name]) for o in ORACLES if o.name not in names)
     return short == 0, min(m[n] for n in names), short

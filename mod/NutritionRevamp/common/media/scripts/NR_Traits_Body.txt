@@ -3,8 +3,11 @@
    (spec section 11): Overweight -6, Obese -10, Underweight -6, Very Underweight -10; Weak, Feeble, Stout, Strong,
    Weight Gain and Weight Loss keep vanilla's. The four muscle blocks keep vanilla's Strength XPBoosts (Plan 13 Task 17
    fix 1): applyTraits then lands the native level in the picked band, and the creation handler infers the pick from
-   that level. No other block carries XPBoosts, no block carries GrantedTraits, no block is a profession trait, Weak
-   and Feeble exclude Underweight and Very Underweight, and the description keys are the mod's own.
+   that level. No other block carries XPBoosts, no block carries GrantedTraits, no block is a profession trait, and
+   the description keys are the mod's own. A thin pick is fat-only, so Weak and Feeble may be taken with Underweight
+   and Very Underweight (Plan 13 Task 10c, Angus 2026-10-15: "Lift the exclusions"). Underweight, Very Underweight
+   and Overweight show the mod's names, Overly Lean, Gaunt and Overfat (the ids stay vanilla's: the axes read body
+   fat, not weight).
    Weight Gain and Weight Loss keep the exclusions their removed grants implied (Weight Gain: Underweight, Very
    Underweight, Emaciated, Athletic, Fit; Weight Loss: Overweight, Obese, Very Underweight), written two-way on the
    restated blocks; Emaciated, Athletic and Fit are not restated, so those three pairs sit on Weight Gain alone (the
@@ -19,7 +22,7 @@ module Base
         Cost = -10,
         UIName = UI_trait_weak,
         UIDescription = UI_NR_trait_weakdesc,
-        MutuallyExclusiveTraits = base:feeble;base:stout;base:strong;base:underweight;base:very underweight,
+        MutuallyExclusiveTraits = base:feeble;base:stout;base:strong,
         XPBoosts = Strength=-5,
     }
 
@@ -31,7 +34,7 @@ module Base
         Cost = -6,
         UIName = UI_trait_feeble,
         UIDescription = UI_NR_trait_feebledesc,
-        MutuallyExclusiveTraits = base:stout;base:strong;base:weak;base:underweight;base:very underweight,
+        MutuallyExclusiveTraits = base:stout;base:strong;base:weak,
         XPBoosts = Strength=-2,
     }
 
@@ -76,7 +79,7 @@ module Base
         DisabledInMultiplayer = false,
         CharacterTrait = base:overweight,
         Cost = -6,
-        UIName = UI_trait_overweight,
+        UIName = UI_NR_trait_overweightname,
         UIDescription = UI_NR_trait_overweightdesc,
         MutuallyExclusiveTraits = base:athletic;base:fit;base:emaciated;base:very underweight;base:underweight;base:obese;base:weightloss,
     }
@@ -87,9 +90,9 @@ module Base
         DisabledInMultiplayer = false,
         CharacterTrait = base:underweight,
         Cost = -6,
-        UIName = UI_trait_underweight,
+        UIName = UI_NR_trait_underweightname,
         UIDescription = UI_NR_trait_underweightdesc,
-        MutuallyExclusiveTraits = base:obese;base:very underweight;base:overweight;base:weak;base:feeble;base:weightgain,
+        MutuallyExclusiveTraits = base:obese;base:very underweight;base:overweight;base:weightgain,
     }
 
     character_trait_definition base:very underweight
@@ -98,9 +101,9 @@ module Base
         DisabledInMultiplayer = false,
         CharacterTrait = base:very underweight,
         Cost = -10,
-        UIName = UI_trait_veryunderweight,
+        UIName = UI_NR_trait_veryunderweightname,
         UIDescription = UI_NR_trait_veryunderweightdesc,
-        MutuallyExclusiveTraits = base:athletic;base:obese;base:overweight;base:heartyappetite;base:underweight;base:weak;base:feeble;base:weightgain;base:weightloss,
+        MutuallyExclusiveTraits = base:athletic;base:obese;base:overweight;base:heartyappetite;base:underweight;base:weightgain;base:weightloss,
     }
 
     character_trait_definition base:weightgain

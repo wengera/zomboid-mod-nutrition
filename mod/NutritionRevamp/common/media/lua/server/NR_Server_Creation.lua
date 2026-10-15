@@ -14,7 +14,8 @@
 --    order (CRE.before): the picks are walked in that order, and each is stripped when it excludes a pick still held
 --    that comes later in it. A pair excludes when either definition's getMutuallyExclusiveTraits holds the other, when
 --    isMutuallyExclusive answers true either way (Task 16's ruling I2: Weight Gain's Athletic, Fit and Emaciated pairs
---    sit on Weight Gain alone), or when K.body.EXCLUDES pairs them (ruling 13-46). Then, while the creation screen's
+--    sit on Weight Gain alone); the mod adds no pair of its own (Plan 13 Task 10c lifted ruling 13-46's muscle and thin
+--    pairs: a thin pick is fat-only). Then, while the creation screen's
 --    remaining points read below 0, the kept non-free pick with the highest positive cost is stripped, a tie stripping
 --    the name first in alphabetical order: a trait with a cost of 0 or below never raises the total (removing a bad
 --    trait lowers the negative-trait offset by at most one, CharacterCreationProfession.lua:918-936).
@@ -44,7 +45,9 @@
 --    trait-levers section 3.2); the Strength level (STR.writeLevel: LevelPerk steps, whose vanilla listener swaps the
 --    muscle band, XpUpdate.lua:200-217), then the muscle band re-asserted for the native level (STR.remap: a strip's
 --    setPerkLevelDebug swaps no band, and a write that takes no step fires no listener); then the five weight-band traits (WGT.writeTraits), last, so they are final.
---    Fitness band traits are vanilla's and stay (spec section 14). A level write the sleep guard defers keeps levelDue.
+--    Fitness band traits are vanilla's and stay (spec section 14). body.levelDue stays true after the level write, so
+--    the first server minute writes the level again and re-pins the XP fraction OnNewGame's write loses (x433 read
+--    XP 10500 at a shown 3.83; Plan 13 Task 10c ruling: cost if wrong, one extra write).
 --
 -- Java statics (CharacterTraitDefinition, CharacterProfessionDefinition, transformIntoKahluaTable) are called with a dot
 -- under pcall, as vanilla calls them; every other Java read goes through NR.call. Each global is named only inside a
@@ -106,24 +109,8 @@ local function lists(def, t)
     return flag(obj(def, "getMutuallyExclusiveTraits"), "contains", t)
 end
 
--- Whether K.body.EXCLUDES (ruling 13-46) pairs the two traits, either way round.
-local function kernelExcludes(ta, tb)
-    if CharacterTrait == nil then return false end
-    for thin, muscles in pairs(K.body.EXCLUDES) do
-        local tt = CharacterTrait[thin]
-        if tt ~= nil then
-            for muscle, _ in pairs(muscles) do
-                local tm = CharacterTrait[muscle]
-                if tm ~= nil and ((ta == tt and tb == tm) or (ta == tm and tb == tt)) then return true end
-            end
-        end
-    end
-    return false
-end
-
 -- Whether entries a and b exclude each other, in both directions (Task 16's ruling I2).
 function CRE.excludes(a, b)
-    if kernelExcludes(a.t, b.t) then return true end
     if a.def == nil or b.def == nil then return false end
     return lists(a.def, b.t) or lists(b.def, a.t)
         or flag(a.def, "isMutuallyExclusive", b.def) or flag(b.def, "isMutuallyExclusive", a.def)
@@ -344,10 +331,11 @@ local function create(username, player, record)
     CRE.validate(player)
     local muscle, weight, profBoost = CRE.picks(player)
     local body = NR.server.metabolism.newBody(player, muscle, weight, ageH, profBoost)
-    body.levelDue = true                                -- kept when the write defers (a sleeper) or fails
+    body.levelDue = true                                -- kept when the write raises
     record.body = body
     NR.call(obj(player, "getNutrition"), "setWeight", body.lm + body.lx + body.fm)
     NR.server.strength.writeLevel(player, body)
+    body.levelDue = true                                -- the first minute re-pins the fraction (Plan 13 Task 10c)
     local native = Perks ~= nil and num(player, "getPerkLevel", nil, Perks.Strength) or nil
     if native ~= nil then NR.server.strength.remap(player, native) end  -- a strip's setPerkLevelDebug swaps no band
     NR.server.weight.writeTraits(player, body)

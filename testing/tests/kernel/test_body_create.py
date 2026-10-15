@@ -3,8 +3,9 @@
 `K.body.create(muscle, weight, P, sexIdx)` against the strength-level reference (`strength_level.trait_start`,
 `perfect_run`) and spec section 3.2's kg columns at 1.70 m (2.89 m2), unrounded: the muscle starts through N0 and lean,
 the set point and the natural cap moved by the trait share, the cap clamped at the natural FFMI limit, the peak, the
-fat and thin weight picks by sex (the fat picks scaled by the start lean over the average's, Task 10b), the rungs,
-the anti-stacking exclusions over every legal pick set of the 8 body traits
+fat and thin weight picks by sex (the fat picks scaled by the start lean over the average's, Task 10b; the thin picks
+fat-only, at a body-fat share mid-band below their edge, with the no-pick fat as their reference, Task 10c), the rungs,
+the anti-stacking test over every pick set of the 8 body traits (none excluded since Task 10c)
 for both sexes, and `K.body.new` (renamed from `newLean` in Task 12) under ten years of perfect training.
 """
 import pytest
@@ -16,12 +17,7 @@ FAVG = 18.0 * H2   # the untrained average lean, K.strength.fOfBio(5, DEFAULTS)
 MUSCLE = (None, "WEAK", "FEEBLE", "STOUT", "STRONG")
 WEIGHT = (None, "OVERWEIGHT", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT")
 THIN = ("UNDERWEIGHT", "VERY_UNDERWEIGHT")
-EXCLUDED = {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT"),
-            ("FEEBLE", "VERY_UNDERWEIGHT")}
-
-
-def _legal(m, w):
-    return not (w in THIN and m in ("WEAK", "FEEBLE"))
+THIN_BF = {1: {"UNDERWEIGHT": 0.10, "VERY_UNDERWEIGHT": 0.065}, 2: {"UNDERWEIGHT": 0.18, "VERY_UNDERWEIGHT": 0.145}}
 
 
 def _d(host):
@@ -38,7 +34,7 @@ def _copy(host, **over):
     return P
 
 
-SPEC_KEYS = ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT", "sexIdx")
+SPEC_KEYS = ("lm", "F0", "Fc", "Pk", "N0", "fm", "fmRef", "fatT", "thinT", "sexIdx")
 
 
 def _spec(host, m, w, P=None, sexIdx=None):
@@ -74,15 +70,15 @@ def test_muscle_starts_match_the_reference(host, muscle):
     assert s["fatT"] == 0 and s["thinT"] == 0
 
 
-@pytest.mark.parametrize("weight, fat_kg, lean", [
-    ("OVERWEIGHT", 21.675, None), ("OBESE", 30.345, None),
-    ("UNDERWEIGHT", 4.335, 47.685), ("VERY_UNDERWEIGHT", 2.89, 44.795),
+@pytest.mark.parametrize("weight, fat_kg", [
+    ("OVERWEIGHT", 21.675), ("OBESE", 30.345),
+    ("UNDERWEIGHT", 0.10 * FAVG / 0.90), ("VERY_UNDERWEIGHT", 0.065 * FAVG / 0.935),   # 5.78 and 3.6164 kg
 ])
-def test_weight_picks(host, weight, fat_kg, lean):
+def test_weight_picks(host, weight, fat_kg):
     D = _d(host)
     s = host.call("body.create", None, weight, D)
     assert abs(s["fm"] - fat_kg) < 1e-9
-    assert abs(s["lm"] - (lean if lean is not None else sl.F5)) < 1e-9
+    assert abs(s["lm"] - sl.F5) < 1e-9                  # every weight pick keeps the muscle pick's lean (Task 10c)
     # a weight pick leaves the set point, the cap and the peak where the muscle pick put them
     F, F0, Fc, Pk = sl.trait_start("none")
     for k, v in (("F0", F0), ("Fc", Fc), ("Pk", Pk)):
@@ -109,22 +105,19 @@ def test_the_peak_starts_at_the_larger_of_start_and_set_point(host, muscle):
     assert (s["Pk"] > s["lm"]) == (muscle in ("WEAK", "FEEBLE"))
 
 
-def test_thin_is_depletion_below_the_peak(host):
-    D = _d(host)
-    s = host.call("body.create", "STRONG", "VERY_UNDERWEIGHT", D)
-    assert s["lm"] < s["F0"] < s["Pk"]
-    assert abs(s["Pk"] - sl.trait_start("STRONG")[0]) < 1e-9
-
-
+@pytest.mark.parametrize("sexIdx", [1, 2])
 @pytest.mark.parametrize("muscle", MUSCLE)
 @pytest.mark.parametrize("weight", THIN)
-def test_thin_never_raises_lean(host, muscle, weight):
-    # ruling 13-14: F = min(F_start, BMI_target * H2 - fat_target), built for excluded pairs too
-    s = _spec(host, muscle, weight)
-    F = sl.trait_start(muscle or "none")[0]
-    t = {"UNDERWEIGHT": (18.0, 1.5), "VERY_UNDERWEIGHT": (16.5, 1.0)}[weight]
-    assert abs(s["lm"] - min(F, t[0] * H2 - t[1] * H2)) < 1e-12
-    assert s["lm"] <= F
+def test_a_thin_pick_removes_fat_not_muscle(host, muscle, weight, sexIdx):
+    # Task 10c (Angus, 2026-10-15): the lean, set point, cap, peak and N0 are the muscle pick's alone
+    s = _spec(host, muscle, weight, sexIdx=sexIdx)
+    s0 = _spec(host, muscle, None, sexIdx=sexIdx)
+    for k in ("lm", "F0", "Fc", "Pk", "N0"):
+        assert s[k] == s0[k], k
+    bf = THIN_BF[sexIdx][weight]
+    assert abs(s["fm"] - bf * s["lm"] / (1 - bf)) < 1e-9
+    assert abs(s["fm"] / (s["fm"] + s["lm"]) - bf) < 1e-12
+    assert s["fm"] < s0["fm"]
 
 
 @pytest.mark.parametrize("muscle", MUSCLE)
@@ -161,9 +154,11 @@ def test_male_fat_picks_are_the_default(host, weight, fmi, sexIdx):
 
 
 @pytest.mark.parametrize("weight", THIN)
-def test_thin_fat_is_the_same_for_both_sexes(host, weight):
-    assert _spec(host, None, weight, sexIdx=1)["fm"] == _spec(host, None, weight, sexIdx=2)["fm"]
-    assert _spec(host, None, weight, sexIdx=1)["lm"] == _spec(host, None, weight, sexIdx=2)["lm"]
+def test_thin_fat_sits_8_points_higher_for_the_female_values(host, weight):
+    # the essential-fat offset (K.traits.THIN_F_OFFSET): 18 % and 14.5 % against 10 % and 6.5 %, on the same lean
+    m, f = _spec(host, None, weight, sexIdx=1), _spec(host, None, weight, sexIdx=2)
+    assert m["lm"] == f["lm"]
+    assert abs(f["fm"] / (f["fm"] + f["lm"]) - (m["fm"] / (m["fm"] + m["lm"]) + 0.08)) < 1e-12
 
 
 @pytest.mark.parametrize("weight, fatT, thinT", [(None, 0, 0), ("OVERWEIGHT", 1, 0), ("OBESE", 2, 0),
@@ -180,65 +175,58 @@ def test_emaciated_is_read_as_very_underweight(host):
         assert _spec(host, m, "EMACIATED") == _spec(host, m, "VERY_UNDERWEIGHT")
 
 
+def _costs(host, P, sexIdx, prof=None):
+    """body(m, w) -> (level, fm, fatT, thinT, the start's fatDep, its energy state at balance) for every pick set."""
+    def body(m, w):
+        s = host.call("body.create", m, w, P, sexIdx, prof)
+        fd = (s["fmRef"] - s["fm"]) / s["fmRef"]
+        return (host.call("strength.level", s["lm"], s["N0"], 1.0, P), s["fm"], s["fatT"], s["thinT"], fd,
+                host.call("deficit.state", 0.0, fd))
+    return body
+
+
+def _assert_every_point_giver_costs(body, drops=None):
+    """Every point-giving body trait makes the created body measurably worse than the same set without it: a muscle
+    pick (Weak, Feeble) half a level or more of Strength; a fat pick (Overweight, Obese) a fat rung and more fat; a thin
+    pick (Underweight, Very Underweight; fat-only since Task 10c) a thin rung, less fat and a start underfed, hungry
+    and partly adapted (fatDep > 0, the energy state above 1)."""
+    for m in MUSCLE:
+        for w in WEIGHT:
+            L, fm, fatT, thinT, fd, es = body(m, w)
+            if m in ("WEAK", "FEEBLE"):
+                L0 = body(None, w)[0]
+                assert L <= L0 - 0.5, (m, w)
+                if drops is not None:
+                    drops.append(L0 - L)
+            if w in ("OVERWEIGHT", "OBESE"):
+                _, fm0, fatT0, _, _, _ = body(m, None)
+                assert fatT > fatT0 and fm > fm0, (m, w)
+            if w in THIN:
+                _, fm0, _, thinT0, fd0, es0 = body(m, None)
+                assert thinT > thinT0 and fm < fm0, (m, w)
+                assert fd > fd0 == 0 and es > es0 == 1, (m, w, fd, es)
+
+
 @pytest.mark.parametrize("prof", [0, 1, 2])
 @pytest.mark.parametrize("sexIdx", [1, 2])
 def test_creation_pick_sets_every_point_giver_costs_the_body(host, sexIdx, prof):
-    # Task 17b: the profession's Strength boost is not a pick, but every point-giving body trait still costs the body
-    # at each boost; the exact smallest drop and the free set are prof 0's, and at any boost the free set stays
-    # among the excluded pairs
-    D = _d(host)
-
-    def body(m, w):
-        s = host.call("body.create", m, w, D, sexIdx, prof)
-        return host.call("strength.level", s["lm"], s["N0"], 1.0, D), s["fm"], s["fatT"]
-
+    # Angus 2026-10-14: every point-giving trait makes the created body measurably worse, over every pick set (none is
+    # excluded since Task 10c) at profession boosts 0, 1 and 2 (Task 17b: the boost is not a pick)
     drops = []
-    for m in MUSCLE:
-        for w in WEIGHT:
-            if not _legal(m, w):
-                continue
-            L, fm, fatT = body(m, w)
-            if m in ("WEAK", "FEEBLE"):
-                assert L <= body(None, w)[0] - 0.5, (m, w)
-                drops.append(body(None, w)[0] - L)
-            if w in THIN:
-                assert L <= body(m, None)[0] - 0.5, (m, w)
-                drops.append(body(m, None)[0] - L)
-            if w in ("OVERWEIGHT", "OBESE"):
-                _, fm0, fatT0 = body(m, None)
-                assert fatT > fatT0 and fm > fm0, (m, w)
-    # amendment 4: the smallest level cost of a point-giving pick over the legal sets
-    if prof == 0:
-        assert abs(min(drops) - 1.249) < 0.0005, min(drops)
-    else:
-        assert min(drops) >= 0.5, (prof, min(drops))
-    # the pairs the rule excludes because they cost nothing
-    for m, w in (("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")):
-        if prof == 0:
-            assert body(m, w)[0] > body(m, None)[0] - 0.5, (m, w)
-    for w in THIN:
-        for m in ("WEAK", "FEEBLE"):
-            assert host.K.body.EXCLUDES[w][m] is True
-    # the zero-cost pairs over every set, legal or not, all sit among the excluded ones
-    free = set()
-    for m in MUSCLE:
-        for w in WEIGHT:
-            L = body(m, w)[0]
-            if m in ("WEAK", "FEEBLE") and L > body(None, w)[0] - 0.5:
-                free.add((m, w))
-            if w in THIN and L > body(m, None)[0] - 0.5:
-                free.add((m, w))
-    if prof == 0:
-        assert free == {("WEAK", "UNDERWEIGHT"), ("WEAK", "VERY_UNDERWEIGHT"), ("FEEBLE", "UNDERWEIGHT")}
-        # Feeble with Very Underweight would cost 0.68 levels; it is excluded by the same rule (spec section 3.2)
-        assert abs((body("FEEBLE", None)[0] - body("FEEBLE", "VERY_UNDERWEIGHT")[0]) - 0.68) < 0.005
-    assert free <= EXCLUDED
+    body = _costs(host, _d(host), sexIdx, prof)
+    _assert_every_point_giver_costs(body, drops)
+    # the smallest Strength cost of a muscle pick (Feeble against none, 5 to 3) over every set and boost
+    assert abs(min(drops) - 2.0) < 1e-9, min(drops)
+    # Weak with Underweight is worse than Weak alone, and Weak with Very Underweight worse again (Task 10c)
+    weak, uw, vu = body("WEAK", None), body("WEAK", "UNDERWEIGHT"), body("WEAK", "VERY_UNDERWEIGHT")
+    assert uw[0] == weak[0] == vu[0]                                 # the same Strength: fat-only
+    assert vu[1] < uw[1] < weak[1] and vu[3] > uw[3] > weak[3] == 0
+    assert vu[4] > uw[4] > weak[4] == 0 and vu[5] >= uw[5] > weak[5] == 1
 
 
-def test_the_exclusions_are_exactly_the_four_pairs(host):
-    got = {(m, w) for w, row in host.py(host.K.body.EXCLUDES).items() for m, on in row.items() if on is True}
-    assert got == EXCLUDED
-    assert {(m, w) for m in MUSCLE for w in WEIGHT if not _legal(m, w)} == EXCLUDED
+def test_no_pick_pair_is_excluded(host):
+    # Task 10c (Angus, 2026-10-15: "Lift the exclusions"): ruling 13-46's table is gone, not left as dead code
+    assert host.K.body.EXCLUDES is None
 
 
 # --- the keys create reads, against decoys (amendment 5) ---
@@ -326,7 +314,8 @@ def test_new_anchors_and_the_disuse_count(host, m, w, sx):
     spec = host.call("body.create", m, w, _d(host), sx)
     b = host.call("body.new", spec, sx, 0.0)
     assert b.tDisuse == 0
-    assert b.lm0dis == spec.lm and b.fmRef == spec.fm and b.Pk == spec.Pk
+    assert b.lm0dis == spec.lm and b.fmRef == spec.fmRef and b.Pk == spec.Pk
+    assert (b.fmRef == b.fm) == (w not in THIN)                     # a thin start's reference is the no-pick fat
 
 
 def test_the_pick_tables_are_the_enumerated_ones(host):
@@ -344,22 +333,7 @@ def test_no_legal_pick_is_free_at_the_option_bounds(host, years, sexIdx):
     # NR.StrengthYearsToLevel10 is the one option that moves the start lean and the level scale (R)
     P = _copy(host, yearsTo10=years, R=host.call("strength.R", years))
 
-    def body(m, w):
-        s = host.call("body.create", m, w, P, sexIdx)
-        return host.call("strength.level", s["lm"], s["N0"], 1.0, P), s["fm"], s["fatT"]
-
-    for m in MUSCLE:
-        for w in WEIGHT:
-            if not _legal(m, w):
-                continue
-            L, fm, fatT = body(m, w)
-            if m in ("WEAK", "FEEBLE"):
-                assert L <= body(None, w)[0] - 0.5, (m, w)
-            if w in THIN:
-                assert L <= body(m, None)[0] - 0.5, (m, w)
-            if w in ("OVERWEIGHT", "OBESE"):
-                _, fm0, fatT0 = body(m, None)
-                assert fatT > fatT0 and fm > fm0, (m, w)
+    _assert_every_point_giver_costs(_costs(host, P, sexIdx))
 
 
 # --- Task 17b: a profession's Strength boost starts the body like a small trait ---
@@ -384,20 +358,14 @@ def test_profession_boost_matches_the_reference(host, muscle, prof):
 @pytest.mark.parametrize("prof", PROF)
 @pytest.mark.parametrize("muscle", MUSCLE)
 @pytest.mark.parametrize("weight", THIN)
-def test_a_thin_pick_caps_the_boosted_start(host, muscle, weight, prof):
-    # the boost raises F before the thin cap: lm = min(F_boosted, BMI * H2 - fat)
+def test_a_thin_pick_keeps_the_boosted_start(host, muscle, weight, prof):
+    # Task 10c: the boost raises F and a thin pick lowers only the fat, at its share of the boosted lean
     s = host.call("body.create", muscle, weight, _d(host), None, prof)
     F, F0, Fc, Pk = sl.trait_start(muscle or "none", prof=prof)
-    t = {"UNDERWEIGHT": (18.0, 1.5), "VERY_UNDERWEIGHT": (16.5, 1.0)}[weight]
-    assert abs(s["lm"] - min(F, t[0] * H2 - t[1] * H2)) < 1e-12
-    for k, v in (("F0", F0), ("Fc", Fc), ("Pk", Pk)):
+    for k, v in (("lm", F), ("F0", F0), ("Fc", Fc), ("Pk", Pk)):
         assert abs(s[k] - v) < 1e-12, k
-
-
-def test_a_thin_pick_with_a_boost_cuts_more_lean():
-    # Feeble +2 starts at level 5 (above Underweight's 47.69 kg), so Underweight now lowers it
-    F = sl.trait_start("FEEBLE", prof=2)[0]
-    assert F > 18.0 * H2 - 1.5 * H2 > sl.trait_start("FEEBLE")[0]
+    bf = THIN_BF[1][weight]
+    assert abs(s["fm"] - bf * F / (1 - bf)) < 1e-9
 
 
 @pytest.mark.parametrize("prof", [1, 2, 3])
@@ -478,7 +446,49 @@ def test_a_strong_none_pick_starts_at_20_percent_not_a_fixed_13_kg(host):
 
 
 @pytest.mark.parametrize("weight", THIN)
-@pytest.mark.parametrize("muscle", (None, "STOUT", "STRONG"))
-def test_thin_fat_is_not_scaled(host, muscle, weight):
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_thin_fat_scales_with_lean(host, muscle, weight):
+    # Task 10c: a thin start is a body-fat share, so its fat in kg follows the lean
     s = _spec(host, muscle, weight)
-    assert s["fm"] == host.K.body.THIN[weight].fmi * H2
+    assert s["fm"] == host.call("body.fatStart", weight, s["lm"], 1)
+    assert abs(s["fm"] / (s["fm"] + s["lm"]) - host.K.body.THIN[weight]) < 1e-12
+
+
+def test_the_thin_table(host):
+    assert host.py(host.K.body.THIN) == {"UNDERWEIGHT": 0.10, "VERY_UNDERWEIGHT": 0.065}
+
+
+# --- Task 10c: the underfed thin start (Angus, 2026-10-15: "Underfed: hungry until regained") ---
+
+@pytest.mark.parametrize("prof", [0, 1, 2])
+@pytest.mark.parametrize("sexIdx", [1, 2])
+@pytest.mark.parametrize("weight", (None, "OVERWEIGHT", "OBESE", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED"))
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_fm_ref_is_the_no_pick_fat_for_a_thin_start_and_the_fat_otherwise(host, muscle, weight, sexIdx, prof):
+    s = host.call("body.create", muscle, weight, _d(host), sexIdx, prof)
+    none = host.call("body.create", muscle, None, _d(host), sexIdx, prof)
+    if weight in THIN + ("EMACIATED",):
+        assert s["fmRef"] == none["fm"]                            # the no-pick fat on the same lean, sex and boost
+        assert s["fmRef"] == host.call("body.fatStart", None, s["lm"], sexIdx)
+        assert s["fmRef"] > s["fm"]
+    else:
+        assert s["fmRef"] == s["fm"]
+
+
+@pytest.mark.parametrize("sexIdx, weight, fat_dep", [
+    (1, "UNDERWEIGHT", 1 - (0.10 / 0.90) / (4.5 / 18.0)), (1, "VERY_UNDERWEIGHT", 1 - (0.065 / 0.935) / (4.5 / 18.0)),
+    (2, "UNDERWEIGHT", 1 - (0.18 / 0.82) / (7.0 / 18.0)), (2, "VERY_UNDERWEIGHT", 1 - (0.145 / 0.855) / (7.0 / 18.0)),
+])
+@pytest.mark.parametrize("muscle", MUSCLE)
+def test_a_thin_start_is_underfed_from_its_first_minute(host, muscle, sexIdx, weight, fat_dep):
+    # fatDep = (fmRef - fm) / fmRef is the same at every lean (both fats scale with it): 0.5556 and 0.7219 male,
+    # 0.4355 and 0.5639 female; the energy state at balance is above 1 (the low-fat hunger ramp), and adaptive
+    # thermogenesis reads the same reference, so the start is partly adapted (the reduced-weight state, S2179)
+    b = host.call("body.new", host.call("body.create", muscle, weight, _d(host), sexIdx), sexIdx, 0.0)
+    fd = (b.fmRef - b.fm) / b.fmRef
+    assert abs(fd - fat_dep) < 1e-12
+    assert abs(host.call("deficit.state", 0.0, fd) - host.call("deficit.state", 0.0, fat_dep)) < 1e-12
+    assert host.call("deficit.state", 0.0, fd) > 1
+    assert host.call("energy.atTarget", b.fm, b.fmRef) > 0
+    nb = host.call("body.new", host.call("body.create", muscle, None, _d(host), sexIdx), sexIdx, 0.0)
+    assert host.call("energy.atTarget", nb.fm, nb.fmRef) == 0

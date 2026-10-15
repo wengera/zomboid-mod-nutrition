@@ -32,6 +32,12 @@ bounds; a point already scored is not re-run.
 
 The spec (JSON): {"params": {"deficit.BALANCE_SPAN_KCAL": [3100, 3800], ...}, "refine": {"rounds": 3, "factor": 1.1}}
 Without --grid the spec is PARAMS at their shipped values, refined. fit.json is deterministic apart from `date`.
+
+The fat mode (Plan 13 Task 10c): a spec naming only FAT_PARAMS (K.deficit.FAT_GAIN, the low-fat hunger ramp's gain)
+scores each candidate on deficit_oracles.FAT_GROUPS alone and ranks it by FAT_SCORED (S1254, the intake rise per kg of
+fat lost), every other oracle then a constraint read once at the start point and once at the chosen one (written
+beside the fixed groups): no other study reaches FAT_DEP_LO, so FAT_GAIN moves none of them, and the chosen point's
+reading shows it. --fat runs the fat mode at the shipped gain, refined.
 """
 import argparse
 import datetime
@@ -50,11 +56,12 @@ from kernel import deficit_oracles as DO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 
 PARAMS = ("deficit.BALANCE_SPAN_KCAL", "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI")
+FAT_PARAMS = ("deficit.FAT_GAIN",)      # the fat mode's constants (Plan 13 Task 10c)
 # (low, high, low inclusive): the span positive; LO at least S1318's bound (Whybrow 2008: the men's high-exercise arm
 # runs a 24-h deficit share of 0.2814, which compensates about 30 % and so takes a bypass weight of 0: LO >= 0.282,
 # Plan 11f Task 2c fix 2); HI at most a whole day's expenditure
 BOUNDS = {"deficit.BALANCE_SPAN_KCAL": (0.0, math.inf, False), "deficit.EX_BYPASS_LO": (0.282, 1.0, True),
-          "deficit.EX_BYPASS_HI": (0.282, 1.0, False)}
+          "deficit.EX_BYPASS_HI": (0.282, 1.0, False), "deficit.FAT_GAIN": (0.0, 1.5, False)}
 PENALTY = 10.0                  # a DESIGN CHOICE: the loss per unit of constraint shortfall (margins run -inf..1)
 TIE = 0.001                     # a DESIGN CHOICE: Plan 11f Task 2c's tie (its margins rounded to 0.001)
 DEFAULT_REFINE = {"rounds": 3, "factor": 1.1}
@@ -98,8 +105,34 @@ def load_spec(spec):
     return spec
 
 
-def default_spec():
-    return {"params": {k: [v] for k, v in FG.current(PARAMS).items()}, "refine": dict(DEFAULT_REFINE)}
+def default_spec(names=PARAMS):
+    return {"params": {k: [v] for k, v in FG.current(names).items()}, "refine": dict(DEFAULT_REFINE)}
+
+
+def fat_mode(names):
+    """Whether a fit over `names` is the fat mode: every name one of FAT_PARAMS."""
+    return bool(names) and all(n in FAT_PARAMS for n in names)
+
+
+def moving_groups(names):
+    """The groups a candidate over `names` is read on: FAT_GROUPS in the fat mode, else every group but the fixed."""
+    if fat_mode(names):
+        return list(DO.FAT_GROUPS)
+    return [g for g in DO.GROUPS if g not in DO.FIXED_GROUPS]
+
+
+def held_groups(names):
+    """The groups read once, at the start point and at the chosen one: the fixed groups, and in the fat mode every
+    group FAT_GAIN does not move."""
+    moving = moving_groups(names)
+    return tuple(g for g in DO.GROUPS if g not in moving)
+
+
+def ranked(names):
+    """The oracles a candidate is ranked by: FAT_SCORED in the fat mode, else the scored ones (None)."""
+    if fat_mode(names):
+        return DO.FAT_SCORED
+    return None
 
 
 def read_groups(patch, names):
@@ -119,8 +152,9 @@ def read_groups(patch, names):
         FG._ACTIVE = {}
 
 
-def score(readings):
-    """{loss, feasible, smallest, shortfall, margins, values} for a full set of readings."""
+def score(readings, scored=None):
+    """{loss, feasible, smallest, shortfall, margins, values} for a full set of readings, ranked by `scored` (the
+    scored oracles when None)."""
     margins = DO.margins(readings)
     values = {}
     for o in DO.ORACLES:
@@ -128,7 +162,7 @@ def score(readings):
             values[o.name] = o.pick(readings)
         except Exception:
             values[o.name] = None
-    feasible, smallest, short = DO.objective(readings)
+    feasible, smallest, short = DO.objective(readings, scored)
     loss = -smallest + PENALTY * short
     if not math.isfinite(loss):
         loss = 1e9
@@ -137,11 +171,11 @@ def score(readings):
 
 
 def evaluate(patch, fixed):
-    """Every moving group on a fresh host with `patch`, the fixed readings `fixed` beside them, scored."""
-    moving = [g for g in DO.GROUPS if g not in DO.FIXED_GROUPS]
-    readings = read_groups(patch, moving)
+    """Every moving group on a fresh host with `patch`, the held readings `fixed` beside them, scored."""
+    names = list(patch)
+    readings = read_groups(patch, moving_groups(names))
     readings.update(fixed)
-    r = score(readings)
+    r = score(readings, ranked(names))
     r["params"] = dict(patch)
     return r
 
@@ -180,7 +214,7 @@ def search(spec, jobs=1, fixed=None, start=None):
     if start is None:
         start = FG.current(names)
     if fixed is None:
-        fixed = read_groups({}, DO.FIXED_GROUPS)
+        fixed = read_groups({}, held_groups(names))
     s = fitlib.Search(_worker, jobs, job=lambda p: (p, fixed))
     try:
         fitlib.grid_then_refine(spec, s, DEFAULT_REFINE, _admit, valid=_valid)
@@ -193,7 +227,7 @@ def fit(spec, out, jobs=1):
     """Runs the search and writes <out>/fit.json and <out>/fit-compact.json; returns the chosen candidate."""
     FG.current(list(spec["params"]))                     # refuse an unknown constant before any run
     cands, chosen, fixed, start = search(spec, jobs)
-    at_chosen = read_groups(chosen["params"], DO.FIXED_GROUPS)
+    at_chosen = read_groups(chosen["params"], held_groups(list(spec["params"])))
     doc = {"grid": spec, "head": FG.head_sha(), "date": datetime.datetime.now().isoformat(timespec="seconds"),
            "start": start, "penalty": PENALTY, "tie": TIE,
            "oracles": [{"name": o.name, "group": o.group, "role": o.role, "row": o.row, "lo": o.lo, "hi": o.hi,
@@ -215,11 +249,12 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="the directory fit.json and fit-compact.json are written to")
     ap.add_argument("--compact", metavar="FIT_JSON", help="write <out>/fit-compact.json from this full fit.json; no fit runs")
     ap.add_argument("--jobs", type=int, default=1, help="candidates scored in parallel (one host per process)")
+    ap.add_argument("--fat", action="store_true", help="the fat mode at the shipped FAT_GAIN, refined (no --grid)")
     args = ap.parse_args(argv)
     if args.compact:
         print("wrote " + FG.write_compact(args.compact, args.out))
         return 0
-    spec = load_spec(args.grid) if args.grid else default_spec()
+    spec = load_spec(args.grid) if args.grid else default_spec(FAT_PARAMS if args.fat else PARAMS)
     chosen = fit(spec, args.out, args.jobs)
     print("chosen: loss %.6g (smallest margin %.4f, feasible %s) at %s" % (
         chosen["loss"], chosen["smallest"], chosen["feasible"], json.dumps(chosen["params"], sort_keys=True)))

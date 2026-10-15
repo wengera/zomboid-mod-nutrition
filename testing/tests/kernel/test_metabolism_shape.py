@@ -899,7 +899,11 @@ def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
     eb = h.K.energy.eb24h(body)                # the trailing-24 h window (Plan 11d Task 9c)
     expected = h.K.deficit.state(eb, 0.5)
     assert abs(body["energyState"] - expected) < TOL
-    assert abs(body["energyState"] - 1.75) < TOL  # the balance term saturates: 1 + 0.5 + 0.5 x 0.5
+    # the balance term saturates and the fat term reads the low-fat ramp (Plan 13 Task 10c): 1 + 0.5 + FAT_GAIN x
+    # (0.5 - FAT_DEP_LO) / (FAT_DEP_HI - FAT_DEP_LO)
+    D = h.K.deficit
+    assert abs(body["energyState"] - (1.5 + D.FAT_GAIN * (0.5 - D.FAT_DEP_LO) / (D.FAT_DEP_HI - D.FAT_DEP_LO))) < TOL
+    assert body["energyState"] > 1.5
 
 
 def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(met_host):

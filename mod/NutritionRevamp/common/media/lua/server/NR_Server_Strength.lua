@@ -252,9 +252,10 @@ local function inSet(name)
 end
 
 -- ------------------------------------------------------------ the level write (spec section 7, Plan 13 Task 14)
--- The shown level L = K.strength.level(lm, N0, T, P) (ruling 13-45), floored by K.strength.shown into the native perk
--- level n and the bar's fraction, is written in three parts: the native level stepped to n (STR.stepLevel, the one
--- function a fallback route swaps, ruling 13-8); the XP (STR.pin: n's starting total plus the fraction for n <= 9,
+-- The shown level L = K.strength.level(lm, N0, T, P) (ruling 13-45), read by K.strength.heldLevel against the level
+-- last written (body.wroteL: a rise at the whole number, a drop only DROP_MARGIN below it; Plan 13 Task 10c) into the
+-- native perk level n and the bar's fraction, is written in three parts: the native level stepped to n
+-- (STR.stepLevel, the one function a fallback route swaps, ruling 13-8); the XP (STR.pin: n's starting total plus the fraction for n <= 9,
 -- ruling 13-9; parked at the level-9 total at 10, spec section 7); and with BeyondTen loaded, its stored mastery XP
 -- (ruling 13-42), never native XP while the native level is 10. Then body.wroteL = n and body.levelDue = false.
 -- A write due while the character sleeps waits, levelDue kept, until it wakes (the engine drops a sleeper's grant).
@@ -343,7 +344,7 @@ local function writeBody(player, body, perk, native)
         STR.stats.badReads = STR.stats.badReads + 1
         return
     end
-    local n, frac = K.strength.shown(L)
+    local n, frac = K.strength.heldLevel(L, body.wroteL)
     local reached = STR.stepLevel(player, perk, native, n)
     STR.stats.levelSteps = STR.stats.levelSteps + math.abs(reached - native)
     if reached ~= native and K.strength.bandOf(reached) ~= K.strength.bandOf(native) then

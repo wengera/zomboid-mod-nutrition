@@ -436,5 +436,9 @@ class ReplayConstantsTest(unittest.TestCase):
         self.assertAlmostEqual(un(0.46, 1.5), (0.46 - 0.01) / 1.5, places=12)
         shipped = RL.ServerReplay()
         self.assertIsNone(shipped.K.deficit.DEFICIT_FLOOR)
+        # Plan 13 Task 10c: the 11f builds read the fat store as 0.5 x fatDep; the three fat constants restore it
+        for dep in (0.0, 0.05, 0.3, 0.8, 1.0):
+            self.assertEqual(be.K.deficit.fatTerm(dep), 0.5 * dep)
+        self.assertEqual(shipped.K.deficit.fatTerm(0.05), 0)                 # the shipped ramp reads nothing there
         self.assertEqual(shipped.K.deficit.hungerTarget(1.0, 1.5), 0)       # the shipped kernel has no floor
         self.assertAlmostEqual(shipped.K.deficit.unsated(0.45, 1.5), 0.3, places=12)

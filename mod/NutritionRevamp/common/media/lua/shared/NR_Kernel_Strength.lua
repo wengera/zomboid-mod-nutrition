@@ -156,6 +156,31 @@ function K.strength.shown(L)
     return n, frac
 end
 
+-- The shown level's drop margin (Plan 13 Task 10c): the written level falls only once the continuous level is this
+-- far below it, so a day's small loss never drops a level the next day's regain would restore.
+K.strength.DROP_MARGIN = 0.25 -- game choice (Angus 2026-10-15: "Drop only 0.25 below")
+
+-- The written perk level n and the bar's fraction for continuous level L under the level last written Lw (nil, or not
+-- a finite number, when none was written): n rises to floor(L) (shown's floor) when that is above Lw; drops to
+-- floor(L + DROP_MARGIN), with shown's epsilon, only when L < Lw - DROP_MARGIN; else holds at Lw, clamped to
+-- [0, L_MAX]. frac is L - n where L is above n and below L_MAX, else 0 (a held level shows an empty bar).
+function K.strength.heldLevel(L, Lw)
+    local n, frac = K.strength.shown(L)
+    if not K.finite(Lw) or n > Lw then
+        return n, frac
+    end
+    if L < Lw - K.strength.DROP_MARGIN then
+        n = K.clamp(math.floor(L + K.strength.DROP_MARGIN + 1e-9), 0, K.strength.L_MAX)
+    else
+        n = K.clamp(Lw, 0, K.strength.L_MAX)
+    end
+    frac = 0
+    if L > n and n < K.strength.L_MAX then
+        frac = L - n
+    end
+    return n, frac
+end
+
 -- The growth status s in [0, 1]: lean above the set point as a share of the cap's room (bio units by
 -- construction); 0 when the cap sits at or below the set point.
 function K.strength.status(body)

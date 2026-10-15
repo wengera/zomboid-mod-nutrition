@@ -134,11 +134,14 @@ def literals():
 
 
 def script_keys():
-    """Plan 13 Task 16: the UIDescription keys the restated trait blocks of NR_Traits_Body.txt name."""
+    """Plan 13 Task 16: the UIDescription keys the restated trait blocks of NR_Traits_Body.txt name, and (Task 10c) the
+    UIName keys of the three renamed blocks."""
     src = read(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "scripts", "NR_Traits_Body.txt"))
     keys = set(re.findall(r"UIDescription = (UI_NR_\w+)", src))
     assert len(keys) == 10
-    return keys
+    names = set(re.findall(r"UIName = (UI_NR_\w+)", src))
+    assert names == {"UI_NR_trait_underweightname", "UI_NR_trait_veryunderweightname", "UI_NR_trait_overweightname"}
+    return keys | names
 
 
 def target(key):

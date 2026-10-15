@@ -19,11 +19,32 @@ K.deficit = {}
 -- carries it: tools/fit_deficit_drive.py over testing/tests/kernel/deficit_oracles.py).
 K.deficit.BALANCE_SPAN_KCAL = 3970.55 -- game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012), from Plan 11f Task 2c fix 1's 3100 (fitted with Karl 2021's well-fed arm in the bands, ruling 2c-2), Plan 11f Task 2c's 3300, Plan 11d's 7500 (ruling 9c-1) and Plan 3 ruling 14's 1500 (S1271 open: no row gives a hunger rise per kcal of deficit): fitted with EX_BYPASS_LO 0.282 and EX_BYPASS_HI (0.44 at the fit's tie, 0.405 at mid-plateau since its fix round 1, ruling T7-6, the score unchanged) and with the deficit floor, which fitted at its bound 0 and was removed (ruling T7-1), scored on the server path for the best smallest margin, 0.492 of a half-width: the 36 h fast's next-day intake 1.148 against S1613's 1.20 (Johnstone 2002, within 1.1x) and day 3 0.981 against S1614's 1.0 (Clayton 2016), Karl 2021's DEF arm +30.4 % against S1325's +26 % (+25.8 to +33.7 % over twin K's five billings, each within 1.5x), King 2011 at steady state within 1.24 mm of control (S1312); held as constraints: Karl's BAL arm, carried by the meal pool M and the stomach's fill since Plan 11g Task 6c, -49.2 % inside S1892's -64 to -46 % (S1325), six meals against three 0.982 (S1608, within 0.9-1.3), the steady eater at balance and S1255 (CALERIE 2: < 10 mm at a 25 % deficit; reads 5.1 mm, reproduced); held from above by S1613's day 2 (r2 falls with the span) and from below by Karl's DEF arm billed ClimbRope (+33.7 %, rising toward the 39 % ceiling as the span falls)
 
--- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion, down under surplus,
--- clamped to [0.5, 2.0] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
+-- --- the fat term: the low-fat hunger ramp (Plan 13 Task 10c) ---------------------------------------------------
+-- The fat store's drive enters on its depletion from the body's own reference (fatDep = (fmRef - fm) / fmRef), never
+-- on its level: a stable lean body reads none (S2189-S2193, constitutional thinness; S2184-S2186: the level of fat
+-- does not predict intake), a body that lost fat reads it, more per kg the leaner it started (S2181). The term is a
+-- ramp with a soft threshold, FAT_GAIN x clamp((fatDep - FAT_DEP_LO) / (FAT_DEP_HI - FAT_DEP_LO), 0, 1): near nothing
+-- at modest loss, full at Minnesota's depletion (S2180), in place of ruling 14's linear 0.5 x fatDep (S2196 open:
+-- no row gives hunger against fat lost in lean people as a dose-response).
+K.deficit.FAT_DEP_LO = 0.10 -- game choice (S1255: a 25 % restriction moved hunger < 10 mm over 2 y; S2177: a 10 % reduced weight moved post-meal fullness, not fasting hunger or intake): the depletion below which the fat term is 0
+K.deficit.FAT_DEP_HI = 0.70 -- game choice (S2180: Minnesota's 70 % of body fat lost, marked hyperphagia): the depletion at which the fat term is whole
+K.deficit.FAT_GAIN = 0.524404 -- fitted, Plan 13 Task 10c (tools/fit_deficit_drive.py in its fat mode, fit-13-fatgain-20261015): S1254 (Polidori 2016: about 100 kcal/d more intake per kg lost) on the server path, the reference body held at fat depletions 0.25, 0.40 and 0.55 and eating at the request, reads 100.96 kcal/d per kg (a margin of 0.977 of the 1.5x band, centred on 100), the pair slopes 100.56 and 101.35 (the linearity check 0.992), 0.96 kcal/d below FAT_DEP_LO; smooth through x0.95 and x1.05 (0.5 reads 96.3, 0.55 about 106); every other deficit oracle unmoved (none reaches FAT_DEP_LO); the gain is a game choice under S2196 (open: no dose-response of hunger on fat lost in lean people)
+
+-- The fat term of the energy state at depletion fatDep (0 none .. 1 all of the reference lost): 0 at or below
+-- FAT_DEP_LO, the common case, before any arithmetic (the per-minute path, Rule 6).
+function K.deficit.fatTerm(fatDep)
+    local D = K.deficit
+    if not (fatDep > D.FAT_DEP_LO) then
+        return 0
+    end
+    return D.FAT_GAIN * K.clamp((fatDep - D.FAT_DEP_LO) / (D.FAT_DEP_HI - D.FAT_DEP_LO), 0, 1)
+end
+
+-- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion (the fat term above), down
+-- under surplus, clamped to [0.5, 2.0] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
 -- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
 function K.deficit.state(eb24h, fatDep)
-    return K.clamp(1 + 0.5 * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + 0.5 * fatDep, 0.5, 2.0) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1
+    return K.clamp(1 + 0.5 * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + K.deficit.fatTerm(fatDep), 0.5, 2.0) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1; the fat term, Plan 13 Task 10c
 end
 
 -- --- the exercise lag ---------------------------------------------------------------------------------------------

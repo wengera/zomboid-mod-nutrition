@@ -237,10 +237,8 @@ end
 
 -- ============================================================ the creation body (Plan 13 Task 9; spec section 3.2)
 -- What each muscle and weight pick sets in the starting body. The muscle pick (nil reads "none") sets the start lean
--- through its innate factor N0 and its start level; the weight pick sets the fat and, for a thin pick, lowers the lean.
--- Underweight and Very Underweight exclude Weak and Feeble: at their starts the thin pick would give points at no cost
--- (ruling 13-46). create builds an excluded pair by the same rules; the creation handler strips one pick first.
-K.body.EXCLUDES = { UNDERWEIGHT = { WEAK = true, FEEBLE = true }, VERY_UNDERWEIGHT = { WEAK = true, FEEBLE = true } } -- ruling 13-46
+-- through its innate factor N0 and its start level; the weight pick sets the fat alone (Plan 13 Task 10c, Angus
+-- 2026-10-15: a thin pick removes fat, not muscle), so every weight pick may be taken with every muscle pick.
 
 -- The creation fat as a fat mass index (kg/m2) at the average lean by weight pick: male, the middle of Kelly 2009's
 -- bands (Obese at class I, 9-12); female, the middle of the female bands, read only for effective sex 2 (NR.SexSpecific
@@ -249,23 +247,45 @@ K.body.EXCLUDES = { UNDERWEIGHT = { WEAK = true, FEEBLE = true }, VERY_UNDERWEIG
 K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 10.5 } -- S2056; game choice (the middle of each band; Task 10b, Angus)
 K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 } -- S2057; game choice (the middle of each band; ruling 13-31)
 
--- A thin pick's target BMI (WHO grades) and fat mass index; the lean is lowered to reach the BMI, never raised.
-K.body.THIN = { UNDERWEIGHT = { bmi = 18.0, fmi = 1.5 }, VERY_UNDERWEIGHT = { bmi = 16.5, fmi = 1.0 } } -- S1905 (fat at BMI 18); ruling 13-14
+-- A thin pick's start body-fat share (male), mid-band below its entry edge (K.traits.THIN_CUTS 0.12 and 0.08); the
+-- female values add K.traits.THIN_F_OFFSET (18 % and 14.5 %). The fat is bf x lm / (1 - bf) on the muscle pick's lean.
+K.body.THIN = { UNDERWEIGHT = 0.10, VERY_UNDERWEIGHT = 0.065 } -- game choice (Plan 13 Task 10c, Angus 2026-10-15: mid-band below 12 % and 8 %)
 
 -- The rungs of a weight pick (ruling 13-30), and Emaciated read as Very Underweight (rung 2).
 K.body.FAT_RUNG = { OVERWEIGHT = 1, OBESE = 2 } -- ruling 13-30
 K.body.THIN_RUNG = { UNDERWEIGHT = 1, VERY_UNDERWEIGHT = 2 } -- ruling 13-30
 K.body.WEIGHT_ALIAS = { EMACIATED = "VERY_UNDERWEIGHT" } -- rulings 13-6, 13-30
 
+-- The start fat of weight pick pick (nil for none; a thin pick or a fat pick) on start lean F at effective sex sexIdx
+-- (2 female, else male): a thin pick's body-fat share (K.body.THIN, plus K.traits.THIN_F_OFFSET for 2) as
+-- bf x F / (1 - bf); any other pick's FMI times H2 times F / Favg (K.traits.leanAvg; Task 10b), the female table for 2.
+function K.body.fatStart(pick, F, sexIdx)
+    local bf = K.body.THIN[pick]
+    if bf then
+        if sexIdx == 2 then
+            bf = bf + K.traits.THIN_F_OFFSET
+        end
+        return bf * F / (1 - bf)
+    end
+    local fmi = K.body.FAT_FMI
+    if sexIdx == 2 then
+        fmi = K.body.FAT_FMI_F
+    end
+    local H2 = K.HEIGHT_M * K.HEIGHT_M
+    return fmi[pick or "none"] * H2 * (F / K.traits.leanAvg())
+end
+
 -- The creation spec of a muscle pick, a weight pick (either nil for none), the strength table P and the effective sex
 -- sexIdx (2 female, else male): the start lean F solves level(F, N0, 1) = the pick's start level; the set point F0 and
 -- the natural cap Fc move by traitShare of F - F5, Fc clamped at the natural FFMI limit (ruling 13-47); the peak is
--- max(F, F0); the fat is the pick's FMI times H2 times F / Favg (K.traits.leanAvg; Task 10b), and a thin pick's fat is
--- its FMI times H2, unscaled, with lm lowered to min(F, BMI * H2 - fat) (ruling 13-14).
+-- max(F, F0); the lean is F for every weight pick; the fat is the pick's start fat (K.body.fatStart) on F; and fmRef,
+-- the fat reference the depletion reads, is the no-pick fat on F, so a thin start is underfed from its first minute
+-- (fatDep = (fmRef - fm) / fmRef > 0: hungry, and partly adapted, until regained; Angus 2026-10-15), every other
+-- start at its own fat.
 -- profBoost is the profession's Strength boost (Plan 13 Task 17b; a nil or non-finite one reads 0): it raises the
--- start level like a small trait, clamped to [0, 10] so the native perk is reachable, before the thin cap, and adds
--- no innate factor; F0, Fc and Pk follow the raised F as for a trait.
--- Returns { lm, F0, Fc, Pk, N0, fm, fatT, thinT, sexIdx }.
+-- start level like a small trait, clamped to [0, 10] so the native perk is reachable, and adds no innate factor; F0, Fc
+-- and Pk follow the raised F as for a trait.
+-- Returns { lm, F0, Fc, Pk, N0, fm, fmRef, fatT, thinT, sexIdx }.
 function K.body.create(muscle, weight, P, sexIdx, profBoost)
     local key = muscle or "none"
     local pick = K.body.WEIGHT_ALIAS[weight] or weight
@@ -285,16 +305,10 @@ function K.body.create(muscle, weight, P, sexIdx, profBoost)
     spec.Pk = K.max(F, spec.F0)
     spec.lm = F
     spec.sexIdx = sexIdx or 1
-    local thin = K.body.THIN[pick]
-    if thin then
-        spec.fm = thin.fmi * H2
-        spec.lm = K.min(F, thin.bmi * H2 - spec.fm)
-    else
-        local fmi = K.body.FAT_FMI
-        if spec.sexIdx == 2 then
-            fmi = K.body.FAT_FMI_F
-        end
-        spec.fm = fmi[pick or "none"] * H2 * (F / K.traits.leanAvg())
+    spec.fm = K.body.fatStart(pick, F, spec.sexIdx)
+    spec.fmRef = K.body.fatStart(nil, F, spec.sexIdx)
+    if K.body.THIN[pick] == nil then
+        spec.fmRef = spec.fm
     end
     spec.fatT = K.body.FAT_RUNG[pick] or 0
     spec.thinT = K.body.THIN_RUNG[pick] or 0
@@ -303,9 +317,10 @@ end
 
 -- A fresh record.body from a creation spec (K.body.create), the engine's sex (1 male, 2 female) and the world age in
 -- hours: the spec's lean, set point, cap, peak, N0, fat and rungs; the labile lean, the grace counters and the signal
--- ring at 0; T at 1; fmRef and lm0dis at the start; the calendar at the world day, the day accumulators at 0, the
--- seven-day rings (mass7 at the body mass lm + lx + fm), the trailing-24 h window (K.body.newTrail, empty at birth) and
--- the neutral rmod, tac, pPrevKg and energyState. Numbers and tables of numbers only (#1495).
+-- ring at 0; T at 1; fmRef the spec's (the no-pick fat for a thin start) and lm0dis at the start; the calendar at the
+-- world day, the day accumulators at 0, the seven-day rings (mass7 at the body mass lm + lx + fm), the trailing-24 h
+-- window (K.body.newTrail, empty at birth) and the neutral rmod, tac, pPrevKg and energyState. Numbers and tables of
+-- numbers only (#1495).
 -- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30). The closed week's
 -- sets S start at 0. The adapter builds every body here: first sight (NR_Server_Metabolism.ensureBody over the band
 -- traits held), the store's default body and the heal's no-trait values (K.body.create(nil, nil, P)).
@@ -328,7 +343,7 @@ function K.body.new(spec, sex, ageH)
     body.Tgrace = 0
     body.S = 0
     body.tDisuse = 0
-    body.fmRef = spec.fm
+    body.fmRef = spec.fmRef
     body.lm0dis = spec.lm
     body.sex = sex
     body.bornAge = ageH

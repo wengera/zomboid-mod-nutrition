@@ -1,4 +1,4 @@
-"""NR_Server_Creation, the OnNewGame creation handler (Plan 13 Task 17; spec section 3.2; rulings 13-16, 13-31, 13-46).
+"""NR_Server_Creation, the OnNewGame creation handler (Plan 13 Task 17; spec section 3.2; rulings 13-16, 13-31; Task 10c).
 
 The handler runs on server_host's Host (every server/ file in load order, OnServerStarted fired), so the wiring is the
 real one: NR_Server_Players' OnNewGame fires P.onNewGame after store.reset, NR_Server_Creation validates the picks,
@@ -157,19 +157,17 @@ end
 
 # The definitions: the restated blocks' costs and exclusions (NR_Traits_Body.txt), and a few vanilla-shaped others.
 DEFS = {
-    "WEAK": dict(cost=-10, excl=["FEEBLE", "STOUT", "STRONG", "UNDERWEIGHT", "VERY_UNDERWEIGHT"],
-                 boosts={"Strength": -5}),
-    "FEEBLE": dict(cost=-6, excl=["STOUT", "STRONG", "WEAK", "UNDERWEIGHT", "VERY_UNDERWEIGHT"],
-                   boosts={"Strength": -2}),
+    "WEAK": dict(cost=-10, excl=["FEEBLE", "STOUT", "STRONG"], boosts={"Strength": -5}),
+    "FEEBLE": dict(cost=-6, excl=["STOUT", "STRONG", "WEAK"], boosts={"Strength": -2}),
     "STOUT": dict(cost=6, excl=["FEEBLE", "STRONG", "WEAK"], boosts={"Strength": 2}),
     "STRONG": dict(cost=10, excl=["FEEBLE", "STOUT", "WEAK"], boosts={"Strength": 4}),
     "OBESE": dict(cost=-10, excl=["ATHLETIC", "EMACIATED", "FIT", "LIGHTEATER", "VERY_UNDERWEIGHT", "UNDERWEIGHT",
                                   "OVERWEIGHT", "WEIGHTLOSS"]),
     "OVERWEIGHT": dict(cost=-6, excl=["ATHLETIC", "FIT", "EMACIATED", "VERY_UNDERWEIGHT", "UNDERWEIGHT", "OBESE",
                                       "WEIGHTLOSS"]),
-    "UNDERWEIGHT": dict(cost=-6, excl=["OBESE", "VERY_UNDERWEIGHT", "OVERWEIGHT", "WEAK", "FEEBLE", "WEIGHTGAIN"]),
-    "VERY_UNDERWEIGHT": dict(cost=-10, excl=["ATHLETIC", "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "WEAK", "FEEBLE",
-                                             "WEIGHTGAIN", "WEIGHTLOSS"]),
+    "UNDERWEIGHT": dict(cost=-6, excl=["OBESE", "VERY_UNDERWEIGHT", "OVERWEIGHT", "WEIGHTGAIN"]),
+    "VERY_UNDERWEIGHT": dict(cost=-10, excl=["ATHLETIC", "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "WEIGHTGAIN",
+                                             "WEIGHTLOSS"]),
     "WEIGHTGAIN": dict(cost=-2, excl=["WEIGHTLOSS", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED", "ATHLETIC", "FIT"]),
     "WEIGHTLOSS": dict(cost=-2, excl=["WEIGHTGAIN", "OVERWEIGHT", "OBESE", "VERY_UNDERWEIGHT"]),
     "ATHLETIC": dict(cost=10, excl=["FIT", "OUT_OF_SHAPE", "UNFIT", "OBESE", "OVERWEIGHT", "VERY_UNDERWEIGHT"]),
@@ -277,14 +275,37 @@ def test_the_level_write_lands_nine_with_strong():
     assert p.st.perk.Strength == 9
     assert p.st.traits.STRONG is True
     assert not p.st.traits.STOUT
-    assert r.body.wroteL == 9 and r.body.levelDue is False
+    assert r.body.wroteL == 9 and r.body.levelDue is True          # the first minute re-pins (Task 10c)
     assert p.st.traits.OVERWEIGHT is True
+
+
+def test_new_game_leaves_the_level_due_and_the_next_minute_writes_it_once():
+    # Task 10c (the creation re-pin): x433 read XP 10500 at a shown 3.83, the fraction lost at OnNewGame; the handler
+    # leaves levelDue true so the first server minute writes the level again (ruling: cost if wrong, one extra write)
+    h = _host()
+    p = _player(h, ["FEEBLE"])
+    r = _new_game(h, p)
+    STR = h.NR.server.strength
+    writes = STR.stats.levelWrites
+    assert r.body.levelDue is True and writes == 1
+    h.online(p)
+    h.T.age = 100.0 + 1 / 60
+    h.minute()
+    h.tick(3)
+    assert STR.stats.levelWrites == writes + 1
+    assert r.body.levelDue is False and r.body.wroteL == 3
+    h.T.age = 100.0 + 2 / 60
+    h.minute()
+    h.tick(3)
+    assert STR.stats.levelWrites == writes + 1                      # once: the next minute writes nothing
 
 
 def test_the_order_weight_then_level_then_the_weight_band_traits():
     h = _host(prof_cost=10)
     h.G.NR_C.profGrants = h.rt.table("EMACIATED")
-    p = _player(h, ["STRONG", "EMACIATED"])                  # Emaciated is read as Very Underweight: the trait write swaps it
+    # Emaciated is read as Very Underweight: the trait write swaps it. A native 8 (an offset no muscle boost makes)
+    # reads the held band, Strong, so the write steps 8 to 9 (a thin pick moves no level since Task 10c)
+    p = _player(h, ["STRONG", "EMACIATED"], strength=8)
     _new_game(h, p)
     log = _log(h)
     i_weight = log.index("setWeight")
@@ -296,29 +317,38 @@ def test_the_order_weight_then_level_then_the_weight_band_traits():
     assert i_weight < levels[0]
     assert band[-1] > levels[-1]                              # the trait write is last, so it is final
     assert "add:VERY_UNDERWEIGHT" in log and "remove:EMACIATED" in log
-    assert _held(p) == ["FEEBLE", "VERY_UNDERWEIGHT"]               # Strong thinned to level 3.83: Feeble's band
+    assert _held(p) == ["STRONG", "VERY_UNDERWEIGHT"]               # a thin pick is fat-only: Strong keeps level 9
 
 
-@pytest.mark.parametrize("known", [["WEAK", "UNDERWEIGHT"], ["UNDERWEIGHT", "WEAK"]])
-def test_weak_and_underweight_lose_weak_the_costlier_in_either_order(known):
-    # fix 3: of an excluded pair the higher absolute cost goes (WEAK -10 against UNDERWEIGHT -6), whatever the order
-    h = _host()
+@pytest.mark.parametrize("muscle", ["WEAK", "FEEBLE"])
+@pytest.mark.parametrize("thin", ["UNDERWEIGHT", "VERY_UNDERWEIGHT"])
+@pytest.mark.parametrize("order", [0, 1])
+def test_weak_and_feeble_are_kept_with_a_thin_pick_in_either_order(muscle, thin, order):
+    # Task 10c (Angus, 2026-10-15: "Lift the exclusions"): nothing is stripped, and the body is the muscle pick's lean
+    # with the thin pick's fat
+    known = [muscle, thin] if order == 0 else [thin, muscle]
+    h = _host(prof_cost=20)
     p = _player(h, known)
     r = _new_game(h, p)
-    assert not p.st.traits.WEAK and p.st.traits.UNDERWEIGHT is True
-    assert r.body.thinT == 1 and r.body.N0 == 1.0
-    assert any("loses WEAK" in s and "excluded by UNDERWEIGHT" in s for s in _printed(h))
+    assert h.NR.server.creation.stats.stripped == 0
+    assert p.st.traits[muscle] is True and p.st.traits[thin] is True
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"][muscle]
+    assert abs(r.body.lm - sl.trait_start(muscle)[0]) < 1e-9
+    assert r.body.thinT == {"UNDERWEIGHT": 1, "VERY_UNDERWEIGHT": 2}[thin]
+    assert r.body.fmRef > r.body.fm
+    assert not any(" loses " in s for s in _printed(h))
 
 
-def test_the_kernel_pairs_hold_when_no_definition_lists_them():
+def test_the_handler_adds_no_pair_of_its_own():
+    # with no definition listing a pair, the handler strips nothing (ruling 13-46's kernel table is gone)
     defs = dict(DEFS)
     defs["WEAK"] = dict(cost=-10, boosts={"Strength": -5})
     defs["UNDERWEIGHT"] = dict(cost=-6)
     h = _host(defs=defs)
     p = _player(h, ["WEAK", "UNDERWEIGHT"])
     r = _new_game(h, p)
-    assert r.body.N0 == 1.0                                     # built without the muscle pick
-    assert any("loses WEAK" in s and "excluded by UNDERWEIGHT" in s for s in _printed(h))
+    assert r.body.N0 == sl.LEVEL_MODEL["N0"]["WEAK"]
+    assert h.NR.server.creation.stats.stripped == 0
 
 
 @pytest.mark.parametrize("known", [["OVERWEIGHT", "OBESE"], ["OBESE", "OVERWEIGHT"]])
@@ -645,11 +675,13 @@ def test_a_revert_from_a_clamped_level_stays_in_range():
 
 
 def test_an_inferred_pick_with_no_band_held_is_still_validated():
-    h = _host(prof_cost=10, prof_strength=2)
-    p = _player(h, ["UNDERWEIGHT", "FEEBLE"])               # 5 - 2 + 2 = 5: no band held, FEEBLE inferred
+    defs = dict(DEFS)
+    defs["BRAVE"] = dict(cost=4, excl=["FEEBLE"])           # a pair the definitions list (no mod pair exists)
+    h = _host(prof_cost=10, prof_strength=2, defs=defs)
+    p = _player(h, ["BRAVE", "FEEBLE"])                     # 5 - 2 + 2 = 5: no band held, FEEBLE inferred
     assert p.st.perk.Strength == 5
     _new_game(h, p)
-    assert any("loses FEEBLE" in l and "excluded by UNDERWEIGHT" in l for l in _printed(h))
+    assert any("loses FEEBLE" in l and "excluded by BRAVE" in l for l in _printed(h))
 
 
 def test_the_budget_never_strips_a_pick_of_cost_zero():
@@ -679,11 +711,13 @@ def test_a_trait_a_held_trait_grants_is_free():
 
 def test_a_climbed_muscle_pick_follows_the_cost_order_of_an_excluded_pair():
     # Farmer +1: WEAK climbs to 1 and vanilla's listener re-adds it last; the list order is not read (fix 3): the
-    # inferred WEAK (|-10|) is costlier than UNDERWEIGHT (|-6|) and goes
-    h = _host(prof_cost=10, prof_strength=1)
-    p = _player(h, ["WEAK", "UNDERWEIGHT"])
+    # inferred WEAK (|-10|) is costlier than BRAVE (|4|, a pair the definitions list) and goes
+    defs = dict(DEFS)
+    defs["BRAVE"] = dict(cost=4, excl=["WEAK"])
+    h = _host(prof_cost=10, prof_strength=1, defs=defs)
+    p = _player(h, ["WEAK", "BRAVE"])
     _new_game(h, p)
-    assert any("loses WEAK" in l and "excluded by UNDERWEIGHT" in l for l in _printed(h))
+    assert any("loses WEAK" in l and "excluded by BRAVE" in l for l in _printed(h))
 
 
 # --- Task 17b: a profession's Strength boost starts the body like a small trait ------------------------------------
@@ -725,13 +759,15 @@ def test_a_farmer_with_no_pick_starts_at_six_holding_stout():
     assert p.st.perk.Strength == 6 and p.st.traits.STOUT is True
 
 
-def test_a_thin_pick_caps_the_boosted_start():
+def test_a_thin_pick_keeps_the_boosted_start():
+    # Task 10c: the thin pick lowers only the fat, to 10 % of the boosted lean's body; fmRef is that lean's no-pick fat
     h = _host(prof_cost=10, prof_strength=2)
     p = _player(h, ["STOUT", "UNDERWEIGHT"])
     r = _new_game(h, p)
     F = sl.trait_start("STOUT", prof=2)[0]
-    assert abs(r.body.lm - min(F, (18.0 - 1.5) * H2)) < 1e-12
-    assert r.body.lm < F
+    assert abs(r.body.lm - F) < 1e-12
+    assert abs(r.body.fm - 0.10 * F / 0.90) < 1e-9
+    assert abs(r.body.fmRef - 4.5 * H2 * F / FAVG) < 1e-9
 
 
 def test_an_unreadable_profession_builds_no_boost():
@@ -756,15 +792,13 @@ def _first_sight(h, p):
 @pytest.mark.parametrize("weight", (None, "OVERWEIGHT", "UNDERWEIGHT"))
 def test_first_sight_of_vanillas_creation_state_builds_the_creation_body(muscle, weight, prof):
     # the character as applyTraits left it (native level and its band), seen first with no OnNewGame
-    if weight == "UNDERWEIGHT" and muscle in ("WEAK", "FEEBLE"):
-        pytest.skip("excluded pair")
     picks = [n for n in (muscle, weight) if n]
     h1 = _host(prof_cost=10, prof_strength=prof)
     created = _new_game(h1, _player(h1, picks)).body
     h2 = _host(prof_cost=10, prof_strength=prof)
     seen = _first_sight(h2, _player(h2, picks)).body
     assert h2.NR.server.metabolism.stats.creates == 1
-    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fatT", "thinT"):
+    for k in ("lm", "F0", "Fc", "Pk", "N0", "fm", "fmRef", "fatT", "thinT"):
         assert abs(seen[k] - created[k]) < 1e-12, (muscle, weight, prof, k)
 
 

@@ -297,7 +297,8 @@ def test_a_balanced_eater_reads_balance_before_breakfast(host):
     assert worst < 1950.0 / 1440 + 1e-6, worst          # at every hour end: within the one minute the slot attribution moves
 
 
-@pytest.mark.parametrize("eb,dep,es", [(-3970.55, 0, 1.5), (3970.55, 0, 0.5), (0, 1, 1.5), (-15000, 1, 2.0),
+# (0, 1): the whole fat term, FAT_GAIN 0.524404, since Plan 13 Task 10c's low-fat ramp (0.5 x fatDep before)
+@pytest.mark.parametrize("eb,dep,es", [(-3970.55, 0, 1.5), (3970.55, 0, 0.5), (0, 1, 1.524404), (-15000, 1, 2.0),
                                        (0, 0, 1.0), (-1985.275, 0, 1.25), (15000, 0, 0.5), (15000, -1, 0.5),
                                        (-15000, 2, 2.0)])
 def test_state(host, eb, dep, es):

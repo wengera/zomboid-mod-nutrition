@@ -212,13 +212,15 @@ def test_the_36_h_fast_on_the_server_path(host):
     # kcal, the fast arm 2,236 on day 2 (2,333 in Plan 11f Task 2c fix 1, 2,637 before). At 12, 24 and 36 h of the fast
     # es reads 1.001, 1.164 and 1.249 (1.001, 1.21 and 1.318 at 3100 / 0.02; 1.001, 1.087 and 1.134 at 7500 / 1.0), eb24
     # -1, -1300 and -1945 and g 1.0, 0.946 and 0.766 (the balance and g do not move with the drive). Under Plan 13 Task 12's lean partition at the day close the
-    # fed arm eats 1,947 and 1,940 kcal and the fast arm 2,235 on day 2 (the ratios, es, eb24 and g hold their roundings)
+    # fed arm eats 1,947 and 1,940 kcal and the fast arm 2,235 on day 2 (the ratios, es, eb24 and g hold their roundings).
+    # Under Plan 13 Task 10c's low-fat ramp (no fat term below a depletion of 0.10): day 2 1.145 (0.954x S1613), day 3
+    # 0.979; the fed arm 1,946 and 1,939 kcal, the fast arm 2,228; es at 12, 24 and 36 h 1.0, 1.164 and 1.245
     f = fast_server()
     assert f["r2"] > 1 and f["r3"] < f["r2"], f
     assert M.ratio(f["r2"], 1.20) <= M.TOL and M.ratio(f["r3"], 1.0) <= M.TOL, f
-    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.148, 0.981), f
-    assert [round(x) for x in f["fed"]] == [1947, 1940] and round(f["fast"]) == 2235, f
-    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.001, 1.164, 1.249], f
+    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.145, 0.979), f
+    assert [round(x) for x in f["fed"]] == [1946, 1939] and round(f["fast"]) == 2228, f
+    assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.0, 1.164, 1.245], f
     assert [round(x["body.eb24"]) for x in f["log"]] == [-1, -1300, -1945], f
     assert [round(x["acute.g"], 3) for x in f["log"]] == [1.0, 0.946, 0.766], f
 
@@ -228,11 +230,11 @@ def test_the_steady_eater_on_the_server_path(host):
     # at 0.9995, 0.9958 and 0.9966 x maintenance under Plan 11g Task 7's refit (1.0011, 0.9956 and 0.997 at 3100 / 0.02;
     # 1.0083, 0.9956 and 1.0007 at 7500 / 1.0), es 1.0017 to 1.002 over day 5 (1.0018 to 1.0022; 1.0007 to 1.0011): the
     # 20:00 dinner empties after midnight into the hour-slotted window. Under Plan 13 Task 12's lean partition at the day close: 0.9994, 0.9957 and 0.9964, es 1.0016
-    # to 1.0019
+    # to 1.0019. Under Plan 13 Task 10c's low-fat ramp: 0.9988, 0.995 and 0.9957, es 1.0008 to 1.0012
     ratios, es = steady_server()
     assert all(abs(r - 1) <= M.STEADY_TOL for r in ratios) and all(abs(e - 1) <= M.STEADY_TOL for e in es)
-    assert [round(r, 4) for r in ratios] == [0.9994, 0.9957, 0.9964], ratios
-    assert (round(min(es), 4), round(max(es), 4)) == (1.0016, 1.0019), es
+    assert [round(r, 4) for r in ratios] == [0.9988, 0.995, 0.9957], ratios
+    assert (round(min(es), 4), round(max(es), 4)) == (1.0008, 1.0012), es
 
 
 def test_six_meals_against_three_on_the_server_path(host):
@@ -383,10 +385,11 @@ def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
     # of the 24 h expenditure, past EX_BYPASS_HI 0.405, so the lag is bypassed whole (about 0.68 of the ramp at 0.575),
     # and the sleep factor's 1.18 from the 4 h nights; BAL's surplus excludes the lagged exercise share, so it reads a
     # large one. Under Plan 13 Task 12's lean partition at the day close BAL and DEF hold; DEF's expenditure reads 19.79, 19.90 and 19.78 MJ (19.88 and 19.75 before),
-    # 0.72 over the doubly labelled water (0.71), BAL's day 3 20.03 (20.02)
+    # 0.72 over the doubly labelled water (0.71), BAL's day 3 20.03 (20.02). Under Plan 13 Task 10c's low-fat ramp DEF
+    # reads +30.0 (BAL -49.2)
     k = karl_k()
     assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-49.2, 30.4), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-49.2, 30.0), k
     # the calibration check against the doubly labelled water: the gap is a reading, never tuned
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.9, 19.78], k["ee"]
     assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.03], k["ee"]
@@ -402,10 +405,11 @@ def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
     # and -51.4 under Task 6c fix 1's satiety refit; +41.0 and -49.7 under Task 6c's fit; +40.6 and -41.4 under the gut stage's fit, Task 6; +40.4 and -42.8 under G's provisional constants; +40.7 and -42.0 on the P model; +47.0 and -40.2 in Plan 11f
     # Task 2c). The writer's limitation names it:
     # heavy work the model does not class as vigorous overshoots the hunger rise of a heavy labour deficit (S1325)
-    # Under Plan 13 Task 12's lean partition at the day close: DEF +41.6, BAL -45.8
+    # Under Plan 13 Task 12's lean partition at the day close: DEF +41.6, BAL -45.8; under Task 10c's low-fat ramp DEF
+    # +41.1, still over the 39 ceiling
     k = karl_k(vigorous=False)
     assert karl_pass(k["bal"], k["dfc"]) == (False, False), k
-    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.8, 41.6), k
+    assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.8, 41.1), k
     assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.9, 19.78], k["ee"]      # the vigorous twin's kcal
 
 
@@ -507,14 +511,15 @@ def test_karl_2021_the_ramp_passes_where_no_bypass_fails_and_a_25_percent_step_n
     # deficit refit (Plan 11g Task 7): no bypass reads +8.0 and still fails, but the step reads +31.8, inside the band:
     # the wider span (3970.55) lowers every arm's rise, and the ramp, now 0.282 to 0.405, bypasses Karl's DEF days (a
     # 24-h deficit share of about 0.48) whole as the step does (the ramp +30.4); the ramp's case rests on King 2011 alone
-    # (test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves). Under Plan 13 Task 12's lean partition at the day close the step reads +31.9
+    # (test_king_2011_the_ramp_holds_the_band_a_25_percent_step_leaves). Under Plan 13 Task 12's lean partition at the day close the step reads +31.9;
+    # under Task 10c's low-fat ramp no bypass +7.6 and the step +31.4
     ramp = karl_k()
     none = with_bypass(NO_BYPASS, karl_k)
     step = with_bypass(STEP, karl_k)
     assert karl_pass(ramp["bal"], ramp["dfc"]) == (True, True), ramp
     assert karl_pass(none["bal"], none["dfc"])[1] is False and none["dfc"] < 17.3, none
     assert karl_pass(step["bal"], step["dfc"]) == (True, True) and ramp["dfc"] <= step["dfc"] < 39.0, step
-    assert (round(none["dfc"], 1), round(step["dfc"], 1)) == (8.0, 31.9), (none["dfc"], step["dfc"])
+    assert (round(none["dfc"], 1), round(step["dfc"], 1)) == (7.6, 31.4), (none["dfc"], step["dfc"])
 
 
 # --- the lag: Whybrow 2008 (S1318) and E-MECHANIC (S1320, S1664) ---------------------------------------------------
@@ -606,6 +611,55 @@ def test_a_25_percent_deficit_on_the_server_path(host):
     assert (round(e, 4), round(mm, 1)) == READ["s1255"], (e, mm)
 
 
+# --- S1254: the fat drive, ad-libitum intake per kg of fat lost (Plan 13 Task 10c) -----------------------------------
+
+S1254_DEP = (0.25, 0.40, 0.55)    # the fat depletions read, inside the ramp's linear part (FAT_DEP_LO 0.10 to HI 0.70)
+S1254_LOW = 0.05                  # a depletion below FAT_DEP_LO: the soft threshold reads nothing there
+S1254_DAYS = 5                    # day 0 at maintenance (fills the window), days 1-4 eaten at the request
+S1254_READ = (2, 3, 4)            # the days read: day 1 carries the first day's catch-up
+
+
+def fat_loss_intake(host, dep, days=S1254_DAYS):
+    """The reference (no-trait) body, its fat set fmRef x (1 - dep) at minute 2 (fmRef kept), eating three meals at
+    maintenance on day 0 and at the request after (ad libitum, the steady eater's protocol), asleep 23:00-07:00: the
+    mean intake over S1254_READ, kcal/d, and the fat lost, kg. The reduced body's own maintenance sizes day 0."""
+    fm_ref = host.call("body.create", None, None, host.K.strength.DEFAULTS, 1)["fm"]
+    ev = sleep_events(days)
+    ev.append({"minute": 2, "kind": "setpath", "path": "body.fm", "value": fm_ref * (1 - dep)})
+    for d in range(days):
+        for h in M.FAST_MEAL_H:
+            ev.append({"minute": int(d * 1440 + h * 60), "kind": "meal", "size": "maint" if d == 0 else "request"})
+    ev.sort(key=lambda e: e["minute"])
+    _, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", player={"female": False}, rng="half")
+    by = RL.intake_by_day(be.eats)
+    return sum(by[d] for d in S1254_READ) / len(S1254_READ), fm_ref * dep
+
+
+def fat_loss_server(host):
+    """S1254's reading on the server path: the intake at no loss (base), below the ramp (low) and at each S1254_DEP;
+    the least-squares slope of intake on the kg lost over S1254_DEP (kcal/d per kg) and the two consecutive pairs'."""
+    base, _ = fat_loss_intake(host, 0.0)
+    low, _ = fat_loss_intake(host, S1254_LOW)
+    pts = [fat_loss_intake(host, d) for d in S1254_DEP]
+    xs, ys = [p[1] for p in pts], [p[0] for p in pts]
+    mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+    slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sum((x - mx) ** 2 for x in xs)
+    pairs = [(ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]) for i in range(len(xs) - 1)]
+    return {"base": base, "low": low, "kg": xs, "intake": ys, "slope": slope, "pairs": pairs}
+
+
+def test_s1254_the_fat_drive_on_the_server_path(host):
+    # S1254 (Polidori 2016: about 100 kcal/d more intake per kg lost) within 1.5x, on the reference body at three fat
+    # depletions inside the low-fat hunger ramp's linear part (Plan 13 Task 10c), and the registry's stability checks:
+    # the pairs within 2x, none flat, nothing below FAT_DEP_LO
+    from . import deficit_oracles as DO
+    r = {"s1254": fat_loss_server(host)}
+    for n in ("s1254", "s1254_linear", "s1254_flat", "s1254_low"):
+        assert DO.BY_NAME[n].margin(DO.BY_NAME[n].pick(r)) >= 0, (n, r)
+    f = r["s1254"]
+    assert (round(f["slope"], 1), [round(x, 1) for x in f["pairs"]], round(f["low"] - f["base"], 1)) == READ["s1254"], f
+
+
 # the readings the tests above pin that their own lines do not spell out (each at the deficit refit's constants, Plan
 # 11g Task 7)
 READ = {
@@ -614,7 +668,8 @@ READ = {
     "king": (0.091, 1.24),              # the restriction's late rise and exercise's distance in mm with EX_BYPASS_HI at mid-plateau (Plan 11g Task 7 fix 1, ruling T7-6; 0.091 and 1.01 under Task 7's 0.44; 0.0944 and 0.94 under Task 6c fix 2's satiety refit; 0.0947 and 0.94 under fix 1's; 0.0916 and 0.92 under Task 6c's fit; 0.0995 and 0.98 under the gut stage's fit, Task 6; 0.0863 and 0.92 under its provisional constants, Task 4; 0.0906 and 0.92 on the P model, 0.089 and 0.62 in Task 2c, 0.1043 and 2.43 at 7500 / 1.0)
     "king_step": 4.6,                   # a 25 % step's exercise arm over control, mm, under the deficit refit (Plan 11g Task 7; 6.83 under Task 6c fix 2's; 6.82 under fix 1's; 6.7 under Task 6c's fit; 7.09 under the gut stage's fit, Task 6; 6.66 under its provisional constants; 6.70 on the P model, Plan 11f Task 2c fix 1)
     "king_nobypass": 0.2,               # no bypass's, mm, under the deficit refit (Plan 11g Task 7; 0.29 under Task 6c fix 2 and fix 1, as under Task 6c's fit; 0.3 under the gut stage's fit, 0.29 under its provisional constants)
-    "s1255": (1.0739, 4.8),             # es over day 7 and its rise at the request, mm, under Plan 13 Task 12's lean partition at the day close (1.0777 and 5.1 under the deficit refit, Plan 11g Task 7; 1.0947 and 6.7 in Plan 11f Task 2c fix 1, 1.09 and 5.9 in its Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
+    "s1254": (101.0, [100.6, 101.4], -1.0),   # the slope, kcal/d per kg, the pair slopes and low less base at FAT_GAIN 0.524404 (Plan 13 Task 10c; 96.3 at 0.5)
+    "s1255": (1.0599, 3.9),             # es over day 7 and its rise at the request, mm, under Plan 13 Task 10c's low-fat ramp (1.0739 and 4.8 under Task 12's lean partition at the day close; 1.0777 and 5.1 under the deficit refit, Plan 11g Task 7; 1.0947 and 6.7 in Plan 11f Task 2c fix 1, 1.09 and 5.9 in its Task 2c, 1.0492 and 16.0 at 7500 / 1.0)
 }
 
 
@@ -625,15 +680,16 @@ def test_karl_2021_over_twin_k_five_billings_the_fit_ranks_by(host):
     # -64 to -46 %, DEF within 1.5x of +26 %). ClimbRope sets the smallest scored margin (+33.7 toward the 39 ceiling,
     # 0.492 of a half-width) and the loaded walk holds EX_BYPASS_HI from above (+25.8 at 0.405, Task 7 fix 1's
     # mid-plateau; +22.8 at Task 7's 0.44, +21.9 at 0.45). Under Plan 13 Task 12's lean partition at the day close: run10 +32.9, the loaded walk +25.7, no battery
-    # +29.5, ClimbRope's margin 0.487
+    # +29.5, ClimbRope's margin 0.487. Under Task 10c's low-fat ramp: as built +30.0, ClimbRope +33.2, run10 +32.4, the
+    # loaded walk +25.2, no battery +29.0, ClimbRope's margin 0.531 (fast_r2's 0.468 is now the smallest scored margin)
     from . import deficit_oracles as DO
     k = DO.karl(host)
     for alt, r in k.items():
         assert karl_pass(r["bal"], r["dfc"]) == (True, True), (alt, r)
     assert {a: (round(r["bal"], 1), round(r["dfc"], 1)) for a, r in k.items()} == {
-        "asbuilt": (-49.2, 30.4), "climb": (-48.4, 33.7), "run10": (-49.1, 32.9), "loadwalk": (-49.4, 25.7),
-        "nobattery": (-49.3, 29.5)}, k
-    assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.487, k
+        "asbuilt": (-49.2, 30.0), "climb": (-48.4, 33.2), "run10": (-49.1, 32.4), "loadwalk": (-49.4, 25.2),
+        "nobattery": (-49.3, 29.0)}, k
+    assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.531, k
 
 
 # --- the energy moodle over a resting fast (Plan 11g Task 7 fix 1, ruling T7-2) ----------------------------------------
@@ -697,19 +753,25 @@ def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
     # and 100 kg men, pinned below), so a bound inside that range meets some body's sawtooth. Under Plan 13 Task 12's lean partition at the day close the plain rung
     # steps back at 66.3 h (67.6 before), the man's deepest fall under a held bound reads 0.00105 (0.00092), and es at
     # 48 h and six days 1.2117 and 1.2229, 1.2481 and 1.2562, 1.2897 and 1.3049 for the 60 kg woman and the 70 and
-    # 100 kg men
-    want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.1), (2, 52.0)],
-            (100.0, False): [(1, 17.7), (2, 27.1)]}
+    # 100 kg men. Plan 13 Task 10c's low-fat ramp: a six-day fast depletes under FAT_DEP_LO (0.10), so the fat term
+    # no longer lifts es and es now falls slowly after its plateau as adaptive thermogenesis lowers the deficit. The
+    # 70 kg man stays at level 1 (es 1.2438 at 48 h, 1.234 at six days); the flicker the band removes is now the 74 kg
+    # man's (the plain rung back at 63.2 h), whose deepest fall under a held bound is 0.008; the largest fall under
+    # es's running peak is the 70 kg man's 0.01124, above ENERGY_BAND, and a 73 kg man holds level 2 by 0.00003
+    # (0.00997 under its bound; a reading, not pinned)
+    want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.2)],
+            (74.0, False): [(1, 18.1), (2, 29.6)], (100.0, False): [(1, 17.7), (2, 27.2)]}
     got = {}
     for (w, female), changes in want.items():
         bus, plain, es = long_fast_levels({"weight": w, "female": female})
         assert all(b >= a for a, b in zip(bus, bus[1:])), (w, female, level_changes(bus))
         assert level_changes(bus) == changes, (w, female, level_changes(bus))
-        if w == 70.0:
-            assert level_changes(plain) == [(1, 18.1), (2, 52.0), (1, 66.3), (2, 76.0)]   # the flicker the band removes
+        if w == 74.0:
+            assert level_changes(plain) == [(1, 18.1), (2, 29.6), (1, 63.2)]   # the flicker the band removes
         got[(w, female)] = (round(deepest_held_fall(bus, es), 5), round(largest_drawdown(es), 5),
                             round(es[48 * 60], 4), round(es[-1], 4))
     # per body: the deepest es under a held level's bound, the largest fall under es's running peak from 24 h on, and
     # es at 48 h and at six days, ENERGY_BAND's evidence (its label cites these)
-    assert got == {(50.0, True): (0.0, 0.00173, 1.1904, 1.201), (60.0, True): (0.0, 0.00161, 1.2117, 1.2229),
-                   (70.0, False): (0.00105, 0.00234, 1.2481, 1.2562), (100.0, False): (0.0, 0.00071, 1.2897, 1.3049)}, got
+    assert got == {(50.0, True): (0.0, 0.00844, 1.1864, 1.1792), (60.0, True): (0.0, 0.00769, 1.2078, 1.2011),
+                   (70.0, False): (0.0, 0.01124, 1.2438, 1.234), (74.0, False): (0.008, 0.01065, 1.2513, 1.242),
+                   (100.0, False): (0.0, 0.00295, 1.286, 1.2833)}, got

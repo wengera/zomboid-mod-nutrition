@@ -22,14 +22,20 @@ from kernel import test_replay_live_energy as E  # noqa: E402
 from kernel import test_satiety_meal_studies as M  # noqa: E402
 
 LO, HI, SPAN = "deficit.EX_BYPASS_LO", "deficit.EX_BYPASS_HI", "deficit.BALANCE_SPAN_KCAL"
+GAIN = "deficit.FAT_GAIN"
 
 
-def readings(dfc=30.0, bal=-55.0, r2=1.2, r3=1.0, dmm=0.5, rise=0.09, steady=1.0, six=1.0, mm=5.0):
+def fat(slope=100.0, pairs=(100.0, 100.0), low=1900.0):
+    return {"base": 1900.0, "low": low, "kg": [3.25, 5.2, 7.15], "intake": [2225.0, 2420.0, 2615.0], "slope": slope,
+            "pairs": list(pairs)}
+
+
+def readings(dfc=30.0, bal=-55.0, r2=1.2, r3=1.0, dmm=0.5, rise=0.09, steady=1.0, six=1.0, mm=5.0, s1254=None):
     karl = {a: {"bal": bal, "dfc": dfc} for a in DO.KARL_ALTS}
     return {"fast": {"r2": r2, "r3": r3}, "karl": karl,
             "king": {"bout": 73, "rise": rise, "risemm": rise * 260.0, "dmm": dmm},
             "steady": {"ratios": [steady] * 3, "es": [steady, steady]}, "six": six, "s1255": {"es": 1.09, "mm": mm},
-            "whybrow": [[53, 0.30, 0.04], [27, 0.30, 0.04]], "emech": [0.7, 0.7]}
+            "whybrow": [[53, 0.30, 0.04], [27, 0.30, 0.04]], "emech": [0.7, 0.7], "s1254": s1254 or fat()}
 
 
 def test_the_margin_is_the_distance_inside_over_the_half_width():
@@ -131,7 +137,7 @@ def test_the_registry_bands_are_the_tests_bands():
     assert math.isclose(by["fast_r2"].lo, 1.20 / M.TOL) and math.isclose(by["fast_r3"].hi, M.TOL)
     assert by["steady"].hi == M.STEADY_TOL and (by["six"].lo, by["six"].hi) == (0.9, 1.3) and by["s1255"].hi == 10.0
     assert {o.role for o in DO.ORACLES} == {"scored", "constraint", "fixed"}
-    assert [o.name for o in DO.ORACLES if o.role == "scored"] == ["fast_r2", "fast_r3", "karl_def", "king"]
+    assert [o.name for o in DO.ORACLES if o.role == "scored"] == ["fast_r2", "fast_r3", "karl_def", "king", "s1254"]
     assert {o.group for o in DO.ORACLES if o.role == "fixed"} == set(DO.FIXED_GROUPS)
 
 
@@ -213,3 +219,72 @@ def test_the_same_grid_gives_byte_identical_output_but_the_date():
     for c in compacts:                                       # the compact file hashes its source, date included
         c.pop("source_sha256")
     assert compacts[0] == compacts[1]
+
+
+# --- Plan 13 Task 10c: the fat mode (K.deficit.FAT_GAIN on S1254) --------------------------------------------------
+
+def test_s1254_reads_the_log_ratio_so_100_kcal_per_kg_is_the_centre():
+    o = DO.BY_NAME["s1254"]
+    assert math.isclose(o.margin(o.pick(readings())), 1.0)
+    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=150.0)))), 0.0, abs_tol=1e-12)
+    assert math.isclose(o.margin(o.pick(readings(s1254=fat(slope=100.0 / 1.5)))), 0.0, abs_tol=1e-12)
+    assert o.margin(o.pick(readings(s1254=fat(slope=160.0)))) < 0
+    assert o.margin(o.pick(readings(s1254=fat(slope=0.0)))) == -math.inf
+    assert o.margin(o.pick(readings(s1254=fat(slope=-5.0)))) == -math.inf
+
+
+def test_the_stability_checks_fail_a_flat_a_bent_and_a_threshold_free_read():
+    m = DO.margins
+    assert min(m(readings())[n] for n in ("s1254_linear", "s1254_flat", "s1254_low")) >= 0
+    assert m(readings(s1254=fat(slope=2.0, pairs=(2.0, 2.0))))["s1254_flat"] < 0           # flat (FAT_GAIN 0)
+    assert m(readings(s1254=fat(pairs=(0.0, 0.0))))["s1254_linear"] == -math.inf          # nothing rises
+    assert m(readings(s1254=fat(pairs=(150.0, 40.0))))["s1254_linear"] < 0                # clamped at the top
+    assert m(readings(s1254=fat(low=1960.0)))["s1254_low"] < 0                             # no soft threshold
+    for n in ("s1254_linear", "s1254_flat", "s1254_low"):
+        assert DO.BY_NAME[n].role == "constraint"
+
+
+def test_the_fat_mode_reads_the_fat_group_alone_and_ranks_by_s1254():
+    assert F.fat_mode([GAIN]) and not F.fat_mode([GAIN, SPAN]) and not F.fat_mode([])
+    assert F.moving_groups([GAIN]) == ["s1254"]
+    assert set(F.held_groups([GAIN])) == set(DO.GROUPS) - {"s1254"}
+    assert "s1254" in F.moving_groups([SPAN]) and set(F.held_groups([SPAN])) == set(DO.FIXED_GROUPS)
+    assert F.ranked([GAIN]) == DO.FAT_SCORED and F.ranked([SPAN]) is None
+    # ranked by S1254 alone: every other oracle, the scored studies included, is then held as a constraint
+    near, far = F.score(readings(), DO.FAT_SCORED), F.score(readings(s1254=fat(slope=130.0)), DO.FAT_SCORED)
+    assert near["feasible"] and near["loss"] < far["loss"] and math.isclose(near["smallest"], 1.0)
+    broken = F.score(readings(dfc=50.0), DO.FAT_SCORED)
+    assert not broken["feasible"] and broken["shortfall"] > 0
+
+
+def test_the_fat_gain_is_bounded():
+    assert F._inside(GAIN, 0.5) and F._inside(GAIN, 1.5) and not F._inside(GAIN, 0.0) and not F._inside(GAIN, 1.6)
+    assert F.FAT_PARAMS == (GAIN,)
+    assert F.default_spec(F.FAT_PARAMS)["params"] == {GAIN: [F.FG.current([GAIN])[GAIN]]}
+
+
+def test_a_fat_mode_fit_holds_the_other_groups_once_and_writes_them():
+    saved = F._worker, F.read_groups
+    calls = []
+
+    def fake(args):
+        patch, held = args
+        assert set(held) == set(DO.GROUPS) - {"s1254"}
+        r = F.score(dict(held, s1254=fat(slope=200.0 * patch[GAIN])), DO.FAT_SCORED)
+        r["params"] = dict(patch)
+        return r
+
+    def canned(patch, names):
+        calls.append((dict(patch), tuple(names)))
+        return {n: readings()[n] for n in names}
+    F._worker, F.read_groups = fake, canned
+    try:
+        with tempfile.TemporaryDirectory() as out:
+            chosen = F.fit(F.load_spec({"params": {GAIN: [0.3, 0.5, 0.7]}, "refine": {"rounds": 0}}), out)
+            with open(os.path.join(out, "fit.json"), encoding="utf-8") as fh:
+                doc = json.load(fh)
+    finally:
+        F._worker, F.read_groups = saved
+    assert chosen["params"] == {GAIN: 0.5}                    # 200 x 0.5 = 100 kcal/d per kg, the band's centre
+    assert [c[1] for c in calls] == [F.held_groups([GAIN])] * 2   # read at the start and at the chosen point only
+    assert set(doc["fixed"]["chosen"]) == set(DO.GROUPS) - {"s1254"}
