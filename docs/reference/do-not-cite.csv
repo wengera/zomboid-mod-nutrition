@@ -22160,3 +22160,12 @@ x447-20261015-181709,drinks[3].fill_ok,false,"The fill read ok; the gate failed 
 x447-20261015-181709,drinks[4].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[4].fill`
 x447-20261015-181709,drinks[5].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[5].fill`
 x447-20261015-181709,drinks[6].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[6].fill`
+x447-regrade-20261015,verdicts.M2r_HUNGER.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_HUNGER`
+x447-regrade-20261015,verdicts.M2r_body.energyState.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_body.energyState`
+x447-regrade-20261015,verdicts.M2r_THIRST.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_THIRST`
+x447-regrade-20261015,verdicts.M2r_acute.caf.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.caf`
+x447-regrade-20261015,verdicts.M2r_acute.bac.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.bac`
+x447-regrade-20261015,verdicts.M2r_acute.hang.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.hang`
+x447-regrade-20261015,verdicts.M2r_acute.debtH.run_verdict,a copy of the run's verdict,"The run's own (trivial) verdict; not a reading.",
+x447-regrade-20261015,verdicts.M2r_hangover.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_hangover`
+x447-regrade-20261015,verdicts.M2r_acute.debtH,as_predicted,"Trivial: acute.debtH read 0 on both sides on every row.",
