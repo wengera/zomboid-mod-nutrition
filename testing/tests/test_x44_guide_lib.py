@@ -831,6 +831,9 @@ class Vanilla:
         if cmd == "autodrink.probe":
             out = {"ok": True, "side": "server", "thirst": self.st["thirst"], "autoDrink": True, "item": None,
                    "litres": None, "fluid": None, "containers": len(self.fills) + len(self.f.get("carried") or ())}
+            if self.f.get("probe_other"):                 # another full container sits first in the inventory
+                out.update({"item": "Base.WhiskeyFull", "litres": 0.5, "fluid": "Whiskey"})
+                return out
             for full, (fluid, lit) in list(self.fills.items()) + [(c, ("Water", 1.0)) for c in
                                                                  self.f.get("carried") or ()]:
                 if (self.inv.get(full) or full in (self.f.get("carried") or ())) and lit > 0:
@@ -1035,6 +1038,15 @@ def test_a_refused_fill_leaves_the_model():
     assert v["V4_A_coffee"] == "unmeasured" and v["V4_B_decay"] == "unmeasured" and v["V4_B_zero"] == "unmeasured"
     assert not [e for e in out["model_inputs"]["scenario"]["events"] if e["kind"] == "drink"]
     assert all(d["fill_ok"] is False for d in out["drinks"])
+
+
+def test_a_drink_that_lands_past_a_failed_gate_leaves_the_model():
+    # review M-2: the fill succeeded and the drinks landed, but the probe's first container is another: the gate fails,
+    # so no drink enters the model and V4's grades read unmeasured
+    v, out, _w = run_vanilla("V4", {"probe_other": True})
+    assert all(d["landed"] and d["fill_ok"] is False for d in out["drinks"])
+    assert not [e for e in out["model_inputs"]["scenario"]["events"] if e["kind"] == "drink"]
+    assert v["V4_A_coffee"] == "unmeasured" and v["V4_B_decay"] == "unmeasured"
 
 
 def test_a_carried_container_is_noted():
