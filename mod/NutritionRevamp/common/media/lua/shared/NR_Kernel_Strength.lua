@@ -66,7 +66,7 @@ K.strength.DEFAULTS = {
     b = 0.8, -- S2121 (derived 0.79), S0085
     Fnm = 27.0, -- kg; S2133; game choice
     N0 = { STRONG = 1.14, STOUT = 1.07, none = 1.0, FEEBLE = 0.915, WEAK = 0.82 }, -- S2142, S2143, S2145, S2162, S2166; game choice (S2170 open)
-    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- the vanilla start levels (Weak's 1 the floor)
+    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
     traitShare = 0.5, -- Angus
     ffmiNatural = 25.0, -- kg/m2 normalised to 1.80 m; S1915 (ruling 13-47)
     kouriCoef = 6.3, -- kg/m2 per m below 1.80 m; S1915 (Kouri 1995's height normalisation, its range cell; ruling 13-47)
