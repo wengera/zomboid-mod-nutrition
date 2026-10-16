@@ -17,7 +17,11 @@ Status: outline. Angus decided every item in the 2026-10-16 game-feel review. Th
   - real energy and water needs.
 - **The bends:** where the two conflict, the guide states the bend.
 - **The refinement (item 4):** survival difficulty that comes from real physiology is where the mod should be tougher than vanilla ("make the literal survivor experience tougher where it should be").
-- **Health drains:** they are body damage with a floor, not a death timer. Starvation and the like wear the body down, so a zombie or a fall finishes the job.
+- **Health drains signal damage, not lethality:**
+  - a state drains health early, at vanilla's pacing, as the body takes damage;
+  - the drain stops at a floor that deepens on science's clock;
+  - the floor reaches 0 only at the state's real death time. Every state that kills in reality kills then, with no toggle.
+  - Angus: "once it actually would kill you, that healh drain should be where it ends at 0"; "deficiencies which make sense to kill you should just kill you, I dont think we need to toggle those off".
 
 ## Workstream A: hunger and eating (items 3, 11, 4, 10a, 10b)
 1. **A calibrated hunger writer (item 3).** The study-fitted satiety model stays underneath and decides relative fullness: meal size, protein, bulk and time of day. The value written to HUNGER passes through a calibration curve:
@@ -45,10 +49,14 @@ Status: outline. Angus decided every item in the 2026-10-16 game-feel review. Th
    - the 0.83 thirst cap lifts at Parched, by about vanilla's 29 h.
 2. **A drain-and-floor model:**
    - **Drain:** a health drain at the mod's own per-game-day rate, independent of day length. It reaches a first floor at about vanilla's death time: about 2.5–4 days for starvation, about 35 h for dehydration.
-   - **Floors:** the floor deepens over time on science's timeline. For starvation it sinks over weeks toward about 10, with death at about 6–9 weeks; for dehydration, over 2–3 days, with death at about 3 days.
-   - **Death:** health reaches 0 only with the can-kill option on.
-   - **Other drains:** scurvy, beriberi and the other lethal deficiency states move to the same floor model.
-   - **Open:** whether the existing `NR.DeficienciesCanKill` becomes the one can-kill option for all drains, and the final floor values and drain rates.
+   - **Floors:** the floor deepens over time on science's clock and reaches 0 at the real death time:
+     - dehydration about 3 days;
+     - starvation about 6–9 weeks;
+     - beriberi in weeks;
+     - scurvy and pellagra in months.
+   - **No toggle:** `NR.DeficienciesCanKill` is removed (the mod is unreleased, so there is no migration).
+   - **Every lethal deficiency state** moves to this model, its death time from science.
+   - **Open:** the final floor curves and drain rates.
 3. **Effects in science's order, at vanilla's sizes:**
    - **Starvation:** weakness, then cold and healing, then infection and mood. Appetite eases after about day 3 in a real fast, but the Starving signal stays on screen (the stated bend).
    - **Dehydration:** 2 % fatigue and endurance; 3–4 % weakness and heat intolerance; 6 %+ dizziness and confusion (panic moves here from 1.5 %); 10 %+ collapse.
