@@ -496,7 +496,7 @@ def test_vm12_rust_step_asleep_is_dropped_2161():
 # ---- VM13 and JT1: trait start levels -----------------------------------------------------------------------------------
 @pytest.mark.parametrize("trait,level", [(None, 5), ("WEAK", 0), ("FEEBLE", 3), ("STOUT", 7), ("STRONG", 9)])
 def test_vm13_jt1_start_levels(trait, level):
-    # #2104 seeds 5; T2.1 the boosts -5, -2, +2, +4; T2.2 the clamp to [0, 10]
+    # #2104 seeds 5; #3878 the boosts -5, -2, +2, +4; #3879 the clamp to [0, 10]
     assert vm.start_strength_level(trait) == level
 
 
@@ -670,7 +670,7 @@ def test_m3_fresh_store_t2_3():
     assert _at(out, "calories_store", 0.0) == 800.0 and _at(out, "weight_kg", 0.0) == 80.0
 
 
-# ---- T2.4: the 35 kg weight floor (Nutrition.setWeight) -------------------------------------------------------------
+# ---- #3881: the 35 kg weight floor (Nutrition.setWeight) -------------------------------------------------------------
 
 def test_t24_floor_clamps_the_weight_and_drains_health():
     # a store pinned far below the loss threshold from 35.2 kg: the weight stops at 35.0 and health falls 178.2 a

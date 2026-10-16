@@ -41,6 +41,7 @@ The weight model is the arithmetic and the cadence it runs at; the clamps are th
 
 The weight model is a branch, a rate and a pair of multipliers, evaluated afresh on every tick of the character it belongs to.
 It keeps no accumulator and no timer of its own, so there is no window in which a change to the stores is ignored and none in which one is applied twice.
+A fresh character starts at 80 kg with a calorie store of 800 kcal, both set by `Nutrition`'s constructor, before a weight trait moves the weight [#3880/C/C-only].
 
 The weight update runs once per character update tick with no timer gate, reached from the player update through the two internal update steps, which are gated only on the character-stats disabler, and then through the nutrition update [#0902/C/C-only].
 
@@ -170,6 +171,7 @@ Every rate on this page is per game-second or per game-day for that reason, and 
 The residuals are the check's own quadrature rather than model error.
 Integrating hourly samples at each interval's left endpoint biases the predicted weight by about 0.025 kg over three game-days, and re-integrating the same samples at the interval midpoint collapses the residuals to -0.0003 kg and -0.0002 kg, so about 0.03 kg per three game-days is the floor of what the check can resolve [#0164/M/one-fixture].
 The midpoint figures come from an offline re-integration of the same two committed artifacts rather than from a fourth run [#0164/M/one-fixture].
+On build 42.21 the formula, integrated from each session's own start state, matched a surplus on one character over two sessions from world age 2.4652042388916016: its store written to 3000 kcal at 80 kg and seven `Base.TunaTinOpen` eaten, the weight read 80.02469593645765 kg at world age 3.0934629440307617 and 81.4192053475972 at 38.50537109375, every hourly read within 0.00031931595052014927 kg of the formula in the first session and 0.0005957867189749777 in the second [#3884/M/n=1].
 
 What bounds a fed character is the ceiling, not the rate constant.
 The fed run asked for 12000 kcal in six 2000 kcal doses and the store kept 7210, losing 4790 kcal to the clamp, the doses landing at game-hours 0, 12, 24, 36, 48 and 60 [#0165/M/one-fixture].

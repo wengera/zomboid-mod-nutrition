@@ -163,6 +163,7 @@ Like every write to the stat, it holds only on the side that owns the stat; the 
 
 Food and fluids write both stats too: `Eat` adds each item's endurance and fatigue changes, and that write and its order are [eating-pipeline.md](../facts/eating-pipeline.md#eat).
 A drink's fatigue write lands at the drink and is lost only to the reset: 0.2 litres of Coffee (`fatigueChange = -10.0` per litre) drunk by one server-side `DrinkFluid` call lowered FATIGUE from 0.5765 to 0.5566 on a server that allows and needs sleep and the lower value held, while on a server that disables sleep the stat sat at its reset value of 0.00011, the probe's minimum read 0 across the drink and every later read was 0.00011 again [#2949/M/n=1].
+On build 42.21 at DayLength 4 with sleep allowed and needed, a 0.25-litre coffee lowered FATIGUE from 0.5018665790557861 to 0.47877752780914307, and no read in the following game hour fell below 0.47955122590065 [#3887/M/n=1].
 A pill writes fatigue on its own path, [eating-pipeline.md](../facts/eating-pipeline.md#pill-path).
 
 <a id="fatigue"></a>

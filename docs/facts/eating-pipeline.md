@@ -249,6 +249,7 @@ Four of the fluid's getters then divide the stored value by 100 — `getHungerCh
 The container multiplies the fluid's `Properties` by the litres it holds, so `getProperties()` is already litres-weighted and the whole per-litre convention lives in the container and never in the loader [#0630].
 Those litres are a full container's: the initial amount defaults to `Capacity` when the script writes none, the `:share` suffix multiplies it and the add clamps to the capacity [#0632/C/snapshot].
 Drinking then spends that litres-weighted aggregate times the fraction drunk [#0633].
+A sealed bottle takes no fluid: `Base.BeerBottle` and `Base.BeerImported`, whose scripts carry `Opened = false` and an opening recipe, each read back 0 litres after a server-side fill of 0.3 into a capacity of 0.30000001192092896 [#3889/M/n=1].
 
 The chain is measured and not only read: a full 0.3-litre can wrote 120.000031 calories, 31.200001 grams of carbohydrate, minus 0.036 hunger and minus 0.090 thirst — the per-container columns exactly, with the hundredfold division applied to the two stat columns on the way to the stats object — while the same can at half wrote 60.0 and 15.6 and was left holding 0.15 litres [#1892/M/n=1].
 The fraction is a share of the container's current contents and not of its capacity, so on a full can a fraction of one empties it and a half halves it, but a second half takes half of what is left [#1733/C/C-only].

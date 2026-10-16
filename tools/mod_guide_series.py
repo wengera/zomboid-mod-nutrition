@@ -61,9 +61,9 @@ DEHYD_BOUND = 3.0                     # % body mass: the viability guard's bound
 # the plate the mod-side scenarios eat (rule R-1, review C-1): the guide's foods and an orange, whole vectors from the
 # mod's table (replay_live's meal `plate`), so every meal carries real vitamins and minerals in their proportions
 PLATE = ("Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen")
-# the provisional Task 2 rows the vanilla formulas cite before Task 7 mints them (concern 9, now a guard): vmodel()
-# leaves them out of a provenance and fails the build once one of them is in the register
-UNMINTED = ("T2.1", "T2.2", "T2.3", "T2.4")
+# provisional rows a vanilla formula cites before their mint (concern 9, a guard): vmodel() leaves them out of a
+# provenance and fails the build once one of them is in the register. Task 7's mint took T2.1-T2.4 to #3878-#3881.
+UNMINTED = ()
 TUNA_MIN = (60, 300, 540, 780)        # four tins at 08, 12, 16 and 20
 REQUEST_MIN = (60, 360, 780)          # meals at the request at 08:00, 13:00 and 20:00 (the oracles' FAST_MEAL_H)
 
@@ -2075,7 +2075,7 @@ CODE_NAME = {1: "starvation (protein-energy grade 4 with BMI under 12 or the fat
 
 def _vanilla_fast():
     """S2d's vanilla run: HUNGER from 0, no food, 0.25 L of water every 4 h, a fresh 80 kg character (store 800),
-    1-minute steps to its death (VM10; the weight floor, T2.4, is not reached first)."""
+    1-minute steps to its death (VM10; the weight floor, #3881, is not reached first)."""
     ev = [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25} for h in range(4, 72, 4)]
     sim = VM.simulate({"hours": 72.0, "dt_min": 1.0, "start": {"hunger": 0.0}, "events": ev})
     death = next(t for t, x in sim["health"] if x <= 0)
@@ -2105,7 +2105,7 @@ def s_s2d():
                vmodel("VM6", "VM7", "VM8"),
                "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the "
                "weight with it, until the hunger death at %.2f game days ends the line (S2d-v-model-health). Below "
-               "35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never "
+               "35 kg the game clamps the weight and drains health (Nutrition.setWeight, #3881); a fast never "
                "reaches it before the hunger death. Live, a starving character's store fell %.2f kcal a game hour "
                "faster than the model's (x442): the one term the model leaves out that can raise the idle burn is the "
                "thermoregulator's energy multiplier, taken as 1 here (#0464, never below 1); the run read no thermal "

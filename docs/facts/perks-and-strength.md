@@ -52,6 +52,8 @@ Its one other write, the Fitness stat, sits behind `Core.debug` and so never run
 `IsoGameCharacter.applyTraits` seeds both Strength and Fitness at level 5 before it applies the chosen traits' offsets [#2104/C/C-only].
 It then raises each perk to its target through `LevelPerk`, one step at a time, and calls `setXPToLevel` so the experience matches the level [#2104/C/C-only].
 Because it levels through `LevelPerk`, character creation fires the level event once per step, and the event's band-trait writes land then [#2104/C/C-only] [#2127/C/C-only].
+The install's trait script gives the four muscle traits a Strength boost each, the file's only four: −5 for Weak, −2 for Feeble, +2 for Stout and +4 for Strong [#3878/C/C-only].
+`applyTraits` adds the picked traits' boosts and then the profession's to the seed of 5, clamps each sum to 0 to 10 and raises the perk to it before `setXPToLevel`, so vanilla starts Strength at 0 for Weak, 3 for Feeble, 5 with no muscle trait, 7 for Stout and 9 for Strong before a profession boost [#3879/C/arith.].
 The default fixture's admin starts with Strength experience 37500, level 5's total, at level 5 [#2874/M/n=1].
 
 <a id="xp-grants"></a>
@@ -89,7 +91,8 @@ The predicate's thresholds, which read the weight-band traits, are stated at [bo
 
 The protein branch: when the perk is `Perks.Strength` and the character is an `IsoPlayer`, a protein store strictly between 50 and 300 multiplies the amount by 1.5, and a protein store below −300 multiplies it by 0.7 [#2112/C/C-only].
 The two tests run one after the other rather than as alternatives, and no sandbox option guards either [#2112/C/C-only].
-Both thresholds lie inside the protein store's clamp range, so both arms are reachable in play; neither is exercised on a live server [#0023/M/n=2, #2112/C/C-only].
+Both thresholds lie inside the protein store's clamp range, so both arms are reachable in play [#0023/M/n=2, #2112/C/C-only].
+Measured on build 42.21, three push-up sets to exhaustion granted 360, 540 and 252.1875 Strength experience at protein stores of 0, 100 and −400, a 29700 grant through the harness at a store of 0 took the experience from 37500 to 67200, and the set that crossed level 6 left Stout as the one band trait [#3886/M/n=1].
 The branch reads the protein store of whichever side runs the body, and which side that is for a connected player's grants is under [## Open](#open).
 `AddXP` runs its multiplier block only when its second boolean is true, and there multiplies the amount by the sandbox's `MultiplierConfig.Global` while `MultiplierConfig.GlobalToggle` is on and otherwise by the perk's own option, `SandboxVars.MultiplierConfig.Strength` for Strength, the Lua table holding `Global`, `GlobalToggle` and one entry per perk. [#3835/C/C-only]
 Every vanilla Java route that grants Strength experience on a dedicated server, `Fitness.incStats` and both `hitConsequences`, calls the three-argument `GameServer.addXp(player, perk, amount)`, which passes the multiplier flag on, so the `AddXP` event's amount for a vanilla Strength grant carries the protein factor, the sandbox multiplier and a book multiplier above 1. [#3836/C/C-only]

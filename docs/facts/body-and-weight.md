@@ -92,6 +92,7 @@ Over three game-days the carbohydrate drain measured minus 302.4 per game-day ag
 Sustained running at the running branch's rate crosses the whole 5 900 kcal range of the calorie store in about 12.6 game-hours, arithmetic on the coded constant and the store clamps ([nutrition-core.md#clamps](nutrition-core.md#clamps)) [#0465/C/arith.].
 `Nutrition.update` returns early for a dead or god-mode character, and its only caller is the second internal player update step, itself gated by the character-stats disabler [#0466].
 The store this burn drains is clamped at both ends, so an idle starving character reaches the floor and the burn stops mattering ([nutrition-core.md#clamps](nutrition-core.md#clamps)).
+On a starving character on build 42.21 the store fell from 796.040771484375 kcal at world age 2.3836374282836914 to −1288.3040771484375 at 38.16264343261719, 24.367725142485597 kcal below the idle rate at an energy multiplier of 1 over the same span, the gap growing steadily; the run read no thermal total [#3885/M/n=1].
 
 The moving flag of a client-driven walk reaches the server's copy of the player in part of its ticks (226 of 301 on a walk, 53 of 141 on a sprint leg); the run and sprint flags reached it on no tick of x141a's arms [#2877/M/n=1] but on 11 of 188 sampled ticks of x224's 15 s `player.sprint` leg, 8 of them with the moving flag [#3384/M/n=1], so the server's running branch is reachable on the harness's sprint route, intermittently [#0591/M/n=1/open].
 
@@ -173,6 +174,7 @@ The awake hunger arm adds `rate × StatsDecrease × appetite × multiplier × de
 Asleep with the food-eaten moodle at 0, hunger rises per update by `HungerIncreaseWhileAsleep × StatsDecrease × appetite × multiplier × deltaMinutesPerDay × getHungerMultiplier()`; with it up, by a product of `HungerIncreaseWhenWellFed`, `HungerIncreaseWhileAsleep` and StatsDecrease twice, which is 0 at the shipped constant. [#2783/C/C-only]
 
 Left alone, the thirst clock kills: a fed subject whose hunger and thirst were not pinned lost health from 100 to 0 starting at about 29.13 game-hours, at 17.820029 health per game-hour on a 90-minute-day fixture, and died at game-hour 35 [#0173/M/one-fixture].
+The hunger clock kills too: on build 42.21 a character starved from a HUNGER of 0.6000000238418579, written by world age 2.4204587936401367 with thirst held at 0, crossed the level-4 threshold of 0.7 at 10.745660781860352 and read health 0 at 38.866790771484375, its previous quarter-hourly read 0.7235565185546875 at 38.627498626708984, on a 90-minute-day fixture, and the save's corpse count rose by one [#3882/M/n=1].
 The level-4 thirst crossing at about 29.13 game-hours is day-length independent because thirst accumulation carries the delta-minutes-per-day factor, while the health drain does not, so 100 health takes 8.4 game-hours at 11.88 per game-hour on a 60-minute day against 5.6 game-hours at 17.82 on the 90-minute default; the 60-minute arm is arithmetic on the measured one [#0175/C/arith.].
 
 <a id="multipliers"></a>
@@ -285,6 +287,7 @@ A real eat resets the health-from-food timer rather than adding to a primed one:
 The timer decays at a fixed game-time rate of 3.000 units per game-world second on a 90-minute-day fixture, flat across nine samples covering 11 500.6 units over 3 833.5 game-seconds [#0527/M/n=1].
 It decays by 1 times the game-time multiplier per `BodyDamage.Update` tick, carrying that multiplier but not the delta-minutes-per-day factor every stat rate carries, so the decay is the day length over 30 units per game-second — 3.0 on the 90-minute default day and 2.0 on a 60-minute one — frame-rate independent and, in game time, independent of the time-speed setting, because the multiplier itself scales with speed and read 4.78 to 4.80 at speed 1 and 143.5 to 144.0 at speed 30 [#0529/M/n=1].
 So the 11 000-unit `JustAteFood` cap is about an hour of game time: 11 000 over 3.0 is 3 667 game-seconds, or 1.02 game-hours, and one moodle level of 1 600 units is about 8.9 game-minutes; in wall-clock terms on that fixture that is about 7.7 real seconds at time speed 30 and about 3.8 real minutes at speed 1 [#0528/M/arith.].
+Measured on build 42.21, a whole can of bolognese eaten at a HUNGER written to 0.10000000149011612 held HUNGER at 0 on 16 ring rows after it landed at world age 8.563473224639893, the timer reading 3086.43408203125 at 8.568800926208496 and 45.574806213378906 at 8.850337028503418 and then −2.395939826965332: the decay runs while the timer is above 0, and its last step takes it below 0 with no floor [#3883/M/n=1].
 The fill path itself is unmeasured: `JustAteFood` fills the timer from the absolute hunger change times a factor times 13000, doubled if the food is cooked and capped at 11 000, and the run's gate was supplied by a direct timer write rather than by a fill [#0530/C/C-only].
 
 <a id="weight-bands"></a>
@@ -313,6 +316,8 @@ A server mod's per-minute weight write holds the slot on both sides within 1e-3 
 The weight formula that feeds all of this — the gain and loss thresholds, the rates and the macro multipliers — is [nutrition-core.md#weight-model](nutrition-core.md#weight-model).
 One correction belongs here rather than there: `setIncWeightLot(true)` fires on the double-gain arm as well as the triple, that is from carbohydrates or lipids above 400 rather than above 700, so a display suffix driven by the flag appears from 400 [#1101, #1491/C/C-only].
 The session that read the flag exercised the 700 side only, at carbohydrates 800, so the double arm was never entered and a probe at 500 would measure it directly [#1491/C/C-only].
+
+Below 35 kg the weight goes no lower: `updateWeight` calls `setWeight` on every server update, and `setWeight` clamps a weight under 35 kg to 35, takes the severe-moodle health constant times the game-time multiplier off overall health and fires the damage event with `LOWWEIGHT`, so a character the loss branch presses on the floor loses about 178.2 health a game hour at DayLength 4 [#3881/C/C-only].
 
 <a id="weight-traits"></a>
 ### What a weight band does

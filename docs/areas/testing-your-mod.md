@@ -268,6 +268,7 @@ An empty stomach no longer reaches the level-4 hunger drain: the HUNGER view hel
 The Tired thresholds fell within about a tenth of a game hour of the kernel's replay of the live record, roughly twelve, fourteen and sixteen and a half hours after the record's birth near 10:05 [#3075/M/n=1].
 A scenario that holds sleep through the harness gets the recovery constant only on the minutes the record counts asleep, about 85 per cent of them, so S falls more slowly than a wholly asleep step [#3076/M/n=1].
 A coffee moves the fatigue offset by the kernel's caffeine term at every slow minute [#3077/M/n=1].
+A fresh record's day at the staged build `498bd4a5` matched the kernel's replay of its own inputs: one can at the first request and the fast after it to world age 30.982593536376953 in run x446 held within 0.00040657115329256754 in HUNGER, 0.0009289091617230572 in energy state and 0.0015537936891687476 in THIRST over 1622 ring rows [#3890/M/n=1], and with the six drinks M2 drank live put back its hangover began at world age 20.646059036254883 on the ring and in the replay alike [#3891/M/n=1].
 The endurance fold switched on live scales a squat set's drop within the run's coarse band, while two resting windows do not isolate its regeneration arm [#3078/M/n=1].
 A clinical B-vitamin store drives STRESS up at the net rate and holds it on the floor, and the floor's removal hands the stat back to the decay [#3080/M/n=1].
 The set the record carries is the composer's on that record at every whole read [#3081/M/n=1].

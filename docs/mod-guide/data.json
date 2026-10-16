@@ -1853,6 +1853,7 @@
      "#0168",
      "#0022",
      "#0023",
+     "#3880",
      "#0149",
      "#0151",
      "#0152",
@@ -1863,7 +1864,8 @@
      "#0158",
      "#0159",
      "#0160",
-     "#0164"
+     "#0164",
+     "#3881"
     ],
     "formulas": [
      "VM6",
@@ -19609,7 +19611,7 @@
    "chart": "S2d",
    "id": "S2d-v-model-weight",
    "label": "Vanilla weight",
-   "note": "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the weight with it, until the hunger death at 2.62 game days ends the line (S2d-v-model-health). Below 35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never reaches it before the hunger death. Live, a starving character's store fell 0.68 kcal a game hour faster than the model's (x442): the one term the model leaves out that can raise the idle burn is the thermoregulator's energy multiplier, taken as 1 here (#0464, never below 1); the run read no thermal total, so that cause is unmeasured.",
+   "note": "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the weight with it, until the hunger death at 2.62 game days ends the line (S2d-v-model-health). Below 35 kg the game clamps the weight and drains health (Nutrition.setWeight, #3881); a fast never reaches it before the hunger death. Live, a starving character's store fell 0.68 kcal a game hour faster than the model's (x442): the one term the model leaves out that can raise the idle burn is the thermoregulator's energy multiplier, taken as 1 here (#0464, never below 1); the run read no thermal total, so that cause is unmeasured.",
    "points": [
     [
      0.0,
@@ -19650,6 +19652,7 @@
      "#0168",
      "#0022",
      "#0023",
+     "#3880",
      "#0149",
      "#0151",
      "#0152",
@@ -19660,7 +19663,8 @@
      "#0158",
      "#0159",
      "#0160",
-     "#0164"
+     "#0164",
+     "#3881"
     ],
     "formulas": [
      "VM6",
@@ -37639,7 +37643,9 @@
    "provenance": {
     "claims": [
      "#2104",
-     "#2157"
+     "#2157",
+     "#3878",
+     "#3879"
     ],
     "formulas": [
      "VM13",
@@ -40571,7 +40577,9 @@
      "#2868",
      "#2130",
      "#2104",
-     "#2157"
+     "#2157",
+     "#3878",
+     "#3879"
     ],
     "formulas": [
      "VM11",

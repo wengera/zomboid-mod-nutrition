@@ -6,7 +6,7 @@ Each formula is a small named function carrying the register rows it rests on in
 source map's names (VM1 to VM16 and JT1, `docs/superpowers/research/2026-10-15-mod-guide/source-map.md` § 4).
 The build: the rows are 42.20.4 claims unless their bound records a 42.21 re-read (CLAUDE.md § 2); the Plan 14
 Task 2 review re-read VM1-VM8, VM11-VM13 and VM16 on the 42.21 jar (buildid 25485521, jar 4a0e9546ec) and they
-hold, and the JT1 and T2.3 reads were taken on 42.21. It is pure Python, deterministic, and runs no game: every rate is per game-second and is integrated over
+hold, and the JT1 and #3880 reads were taken on 42.21. It is pure Python, deterministic, and runs no game: every rate is per game-second and is integrated over
 segments that end at each output step (`dt_min`), each event time and each activity boundary.
 
     simulate(scenario) -> {series name: [(game hour, value), ...]}
@@ -16,7 +16,7 @@ A scenario is
      "start": {...state...}, "settings": {...}, "events": [{"t_h": float, "kind": ..., ...}, ...]}
 
 `start` keys (all optional): hunger, thirst, weight_kg (80), calories (800, a fresh vanilla character's store:
-`Nutrition.<init>` @147-@150 L61, T2.3; a chart that starts from another store says so), carbs, lipids, proteins, health (100),
+`Nutrition.<init>` @147-@150 L61, #3880; a chart that starts from another store says so), carbs, lipids, proteins, health (100),
 food_timer, fatigue, intoxication, strength_level (5), strength_xp (that level's total), strength_up_timer
 (-50000), strength_mod (0).
 `settings` keys (all optional): stats_decrease (the sandbox enum 1-5, default 3), day_length_min (90, the
@@ -71,8 +71,8 @@ ROTTEN_HUNGER_DIV = 2.2              # #0032
 HUNGER_FLOOR = 0.01                  # #0030-#0032
 SCRIPT_SCALE = 100.0                 # #0011
 
-START_CALORIES = 800.0               # T2.3: Nutrition.<init> setCalories(800)
-START_WEIGHT = 80.0                  # T2.3: Nutrition.<init> setWeight(80)
+START_CALORIES = 800.0               # #3880: Nutrition.<init> setCalories(800)
+START_WEIGHT = 80.0                  # #3880: Nutrition.<init> setWeight(80)
 BURN_ASLEEP = 0.003                  # #0454 kcal a game-second at 80 kg
 BURN_IDLE = 0.016                    # #0455
 BURN_MOVING = 0.13                   # #0458
@@ -97,7 +97,7 @@ GAIN_FULL_CAL = 4000.0
 LOSS_RATE = 8.5e-6                   # #0154
 LOSS_FULL_CAL = 2500.0
 MACRO_X3, MACRO_X2 = 700.0, 400.0    # #0153
-WEIGHT_FLOOR = 35.0                  # T2.4: Nutrition.setWeight clamps below 35 kg and drains health
+WEIGHT_FLOOR = 35.0                  # #3881: Nutrition.setWeight clamps below 35 kg and drains health
 MACRO_X3_MULT, MACRO_X2_MULT = 3.0, 2.0
 
 CREATION_WEIGHTS = {"OBESE": 105.0, "OVERWEIGHT": 95.0, "UNDERWEIGHT": 70.0,
@@ -122,7 +122,7 @@ RUST_GRANT = -3000.0                 # #2156
 RUST_FLOOR = -50000.0                # #2152, #2156
 
 START_LEVEL = 5                      # #2104
-MUSCLE_BOOSTS = {"WEAK": -5, "FEEBLE": -2, "STOUT": 2, "STRONG": 4}   # JT1 (T2.1)
+MUSCLE_BOOSTS = {"WEAK": -5, "FEEBLE": -2, "STOUT": 2, "STRONG": 4}   # JT1 (#3878)
 
 COFFEE_FATIGUE_PER_L = -0.10         # #2949: fatigueChange -10 a litre, ÷100
 BEER_ALCOHOL_PER_L = 0.05            # #2926
@@ -167,16 +167,16 @@ FORMULAS = {
                    "modifier (Fitness 3, reading 0.5, building or swinging 8) x the thermoregulator energy "
                    "multiplier (>= 1, taken as 1); walking 0.13 x 0.6, running 0.13, sprinting 0.13 x 1.3, none of "
                    "which the modifier or the energy term reaches. burn_rate."},
-    "VM7": {"claims": ["#0036", "#0069", "#1193", "#0168", "#0022", "#0023", "T2.3"],
+    "VM7": {"claims": ["#0036", "#0069", "#1193", "#0168", "#0022", "#0023", "#3880"],
             "doc": "The stores: calories and the macros += the item's unmodified values x f at the eat; carbohydrate, "
                    "lipid and protein drain 0.0035, 0.00113, 0.00086 a game-second; calories clamped [-2200, 3700], "
-                   "macros [-500, 1000]; a fresh character starts at 800 kcal and 80 kg (T2.3)."},
+                   "macros [-500, 1000]; a fresh character starts at 800 kcal and 80 kg (#3880)."},
     "VM8": {"claims": ["#0149", "#0151", "#0152", "#0153", "#0154", "#0161", "#0166",
-                       "#0158", "#0159", "#0160", "#0164", "T2.4"],
+                       "#0158", "#0159", "#0160", "#0164", "#3881"],
             "doc": "Weight: above 1000 + (w - 80) x 40 kcal gain 1.3e-5 x min(1, cal / 4000) kg a game-second, x3 "
                    "with carbohydrate or lipid above 700 g, x2 above 400 g; below min(0, (w - 70) x 30) lose 8.5e-6 x "
                    "min(1, |cal| / 2500). The Weight Gain (700 below 90 kg) and Weight Loss (1800 above 70 kg) "
-                   "threshold bases are not modelled. The floor (T2.4): updateWeight calls setWeight every server "
+                   "threshold bases are not modelled. The floor (#3881): updateWeight calls setWeight every server "
                    "update, and setWeight clamps a weight below 35 kg to 35 and takes "
                    "getHealthReductionFromSevereBadMoodles x the multiplier off health each time (0.0165 a "
                    "multiplier unit, 178.2 a game-hour at DayLength 4). weight_rate, weight_floor_health_per_hour."},
@@ -200,7 +200,7 @@ FORMULAS = {
                     "protein factor (0.7 on an unfed store) and the sandbox multiplier; the level drops only when XP falls below that level's total; the timer "
                     "resets to 0 once above 31000; each positive Strength grant takes 3000 off it, floor -50000 "
                     "(the default). rust_tick."},
-    "VM13": {"claims": ["#2104", "#2157", "T2.1", "T2.2"],
+    "VM13": {"claims": ["#2104", "#2157", "#3878", "#3879"],
              "doc": "Trait start levels: Strength is seeded at 5, then each trait's and the profession's XPBoosts "
                     "are added, clamped to [0, 10], and the perk raised one LevelPerk at a time with the "
                     "experience set to the level's total; the LevelPerk event remaps the band trait. "
@@ -223,7 +223,7 @@ FORMULAS = {
                     "2026-10-16 on 42.21; not minted); the peak at the drink's end and the zero do not depend on the "
                     "profile, only on the dose, the duration and the first sip. "
                     "intoxication_gain, intoxication_decay_per_hour, drink_rates."},
-    "JT1": {"claims": ["T2.1", "T2.2"],
+    "JT1": {"claims": ["#3878", "#3879"],
             "doc": "The muscle traits' Strength XPBoosts from the 42.21 trait script (Weak -5, Feeble -2, Stout +2, "
                    "Strong +4) and applyTraits' arithmetic (seed 5, add, clamp [0, 10]): vanilla start levels Weak 0, "
                    "Feeble 3, none 5, Stout 7, Strong 9. MUSCLE_BOOSTS, start_strength_level."},
@@ -375,12 +375,12 @@ def weight_rate(weight, calories, carbs=0.0, lipids=0.0):
 
 
 def weight_floor_health_per_hour(day_length_min=90.0):
-    """T2.4: the health the 35 kg floor takes a game-hour while the loss branch pushes below it (0.0165 a unit)."""
+    """#3881: the health the 35 kg floor takes a game-hour while the loss branch pushes below it (0.0165 a unit)."""
     return SEVERE_HEALTH * multiplier_units_per_hour(day_length_min)
 
 
 def floor_seconds(weight, rate, seconds):
-    """T2.4: the seconds of a segment spent pressed on the 35 kg floor, the weight at its start and its rate (kg/s)."""
+    """#3881: the seconds of a segment spent pressed on the 35 kg floor, the weight at its start and its rate (kg/s)."""
     if rate >= 0.0:
         return 0.0
     if weight <= WEIGHT_FLOOR:

@@ -309,16 +309,19 @@ def test_r4_a_qualitative_study_finding_is_a_range(sid):
 
 # ---- the UNMINTED guard ----------------------------------------------------------------------------------------------
 
-def test_unminted_ids_are_left_out_until_minted_and_then_fail():
+def test_unminted_ids_are_left_out_until_minted_and_then_fail(monkeypatch):
     ids = set(S._register())
+    assert S.UNMINTED == () and {"#3878", "#3879", "#3880", "#3881"} <= ids     # Task 7's mint of T2.1-T2.4
     prov = S.vmodel("VM13", "JT1", ids=ids)
-    assert "T2.1" not in prov["claims"] and "#2104" in prov["claims"]
-    with pytest.raises(D.ProvenanceError, match="UNMINTED ids now in the register: T2.4"):
-        S.vmodel("VM8", ids=ids | {"T2.4"})
+    assert {"#3878", "#3879", "#2104"} <= set(prov["claims"])
+    assert "#3881" in VM.FORMULAS["VM8"]["claims"] and "#3880" in VM.FORMULAS["VM7"]["claims"]
+    monkeypatch.setattr(S, "UNMINTED", ("T9.9",))
+    monkeypatch.setitem(VM.FORMULAS, "VMX", {"claims": ["#2104", "T9.9"], "doc": ""})
+    assert S.vmodel("VMX", ids=ids)["claims"] == ["#2104"]
+    with pytest.raises(D.ProvenanceError, match="UNMINTED ids now in the register: T9.9"):
+        S.vmodel("VMX", ids=ids | {"T9.9"})
     with pytest.raises(D.ProvenanceError, match="neither in the register nor in UNMINTED"):
         S.vmodel("VM9", ids=ids - {"#0155"})
-    assert set(S.UNMINTED) == {"T2.1", "T2.2", "T2.3", "T2.4"}
-    assert "T2.4" in VM.FORMULAS["VM8"]["claims"]
 
 
 # ---- carries ---------------------------------------------------------------------------------------------------------
