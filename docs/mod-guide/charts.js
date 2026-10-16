@@ -152,11 +152,9 @@
     "S6a": {
       facets: [
         { label: "Caffeine", series: ["S6a-m-day1", "S6a-m-day14"], unit: "caffeine, mg", yMin: 0 },
-        { label: "Tolerance", series: ["S6a-m-tolerance"], unit: "tolerance (0-1)", yMin: 0, yMax: 1 },
+        { label: "Tolerance", series: ["S6a-m-tolerance"], unit: "tolerance (0-1)", yMin: 0, yMax: 1, xMin: 0, xMax: 14, xTitle: "game days" },
         { label: "Vanilla, fatigue per cup", series: ["S6a-v-model"], unit: "fatigue change", yMin: -0.05, yMax: 0 }
       ],
-      /* A view whose series the data file does not hold yet: it shows a placeholder and a pending chip. */
-      pendingViews: { "S6a-m-tolerance": "kernel" },
       xMin: 0, xMax: 24
     },
     "S6b": {
@@ -172,7 +170,7 @@
     "S6c": {
       facets: [
         { label: "Hunger", series: ["S6c-m-kernel", "S6c-v-model", "S6c-study"], unit: "hunger factor", yMin: 0 },
-        { label: "Sleep debt", series: ["S6c-m-live"], unit: "sleep debt, hours", yMin: 0 }
+        { label: "Sleep debt", series: ["S6c-m-live"], unit: "sleep debt, hours", yMin: 0, xMax: 4.5, xTitle: "game days" }
       ],
       xMin: 0, xMax: 4
     }

@@ -541,6 +541,58 @@ class Scenarios(_Base):
                     self.assertEqual(ymin, 0.0, "%s %s: %s" % (cid, label, text))
         self.assertGreaterEqual(checked, 14)
 
+    def test_a_facet_drawing_only_its_own_runs_shows_every_point(self):
+        """Task 11 M1 and M14: a facet whose series are all of one x span (S6a's Tolerance in days, S6c's Sleep
+        debt to day 4.13) sets x bounds that hold every point; S2d's views clip by design and name it in xTitle."""
+        cases = [("S6a", "Tolerance"), ("S6c", "Sleep debt")]
+        for cid, label in cases:
+            with self.subTest(chart=cid, view=label):
+                block = _opts_block(self.js, cid)
+                m = re.search(r'\{ label: "%s", series: \[([^\]]*)\]([^\n]*)' % re.escape(label), block)
+                self.assertIsNotNone(m)
+                rest = m.group(2)
+
+                def bound(key):
+                    b = (re.search(r"\b%s: (-?[0-9.]+)" % key, rest)
+                         or re.search(r"^      [^\n{]*\b%s: (-?[0-9.]+)" % key, block, re.M))
+                    return float(b.group(1)) if b else None
+                lo, hi = bound("xMin"), bound("xMax")
+                for sid in re.findall(r'"([^"]+)"', m.group(1)):
+                    xs = [p[0] for p in self.series[sid]["points"]]
+                    if lo is not None:
+                        self.assertGreaterEqual(min(xs), lo, sid)
+                    self.assertIsNotNone(hi)
+                    self.assertLessEqual(max(xs), hi, sid)
+                    self.assertLessEqual(hi, 1.25 * max(xs), "%s: the axis runs well past its points" % sid)
+        self.assertNotIn("S6a-m-tolerance", _pending_views(self.js), "a built series is no pending view")
+        self.assertIn('xTitle: "game days"', _opts_block(self.js, "S6a"))
+
+    STALE = [
+        # Task 11 I1: the mod's own severe-dehydration drain kills; only the game's drains are capped away
+        r"never reach their top moodle and never kill", r"so thirst never kills",
+        # I2 and I3: the hangover's start has a live row (#3891); caffeine and blood alcohol of x447 have none
+        r"promises neither", r"hangover start, caffeine and blood alcohol",
+        # I4, I5, I6: vanilla Weak starts at 0; rust's step comes near day 49; exertion does not speed vanilla hunger
+        r"keep their vanilla costs and start levels", r"rust takes a year", r"faster when you exert yourself",
+        # M1, M2, M9: the tolerance view is drawn; the health view's dots died; the live beer decay is measured
+        r"blunts each cup is not drawn yet", r"The dots are an older live vanilla run",
+        r"Read from the game's code, at the default day length", r"which fades over hours",
+        # M8, M10, M11, M12 and the FFMI fragment
+        r"the week is a game choice", r"Push-ups alone", r"a food with no calories no longer fills you",
+        r"Vitamin C, water, caffeine, alcohol and sleep are never sped up", r"; FFMI, the lean mass",
+    ]
+
+    def test_task_11_stale_sentences_stay_gone(self):
+        for pat in self.STALE:
+            with self.subTest(pattern=pat):
+                self.assertIsNone(re.search(pat, self.html), pat)
+
+    def test_the_hangover_is_promised_on_both_sides_with_its_row(self):
+        """Task 11 I2 and I3: S6 and the Systems section both promise the hangover, and its science cites #3891."""
+        self.assertGreaterEqual(len(re.findall(r"leaves a hangover once the alcohol has (?:gone|cleared)", self.html)), 3)
+        self.assertGreaterEqual(self.html.count("(#3891)"), 2)
+        self.assertEqual(self.series["S6b-m-hangover"]["provenance"]["proof_run"], "x447-regrade-20261015")
+
     PINNED = [
         ("S2d-m-mass", "last.x|r0", "27"),
         ("S4a-v-model-x1", "last.y|r0", "9"),

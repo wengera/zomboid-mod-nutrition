@@ -617,7 +617,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "eat": {
       "cal": 540.0,
@@ -828,8 +828,12 @@
    "chart": "H1",
    "id": "H1-v-model",
    "label": "Vanilla, from the game's code",
-   "note": "HUNGER 0.25 at the eat of a whole Base.CannedBologneseOpen (-0.24, not cooked); after it HUNGER reads 0.01, above its minimum, so the food-eaten timer is not filled and hunger rises at once. The second arm (an eat at 0.10, hunger to 0, timer 3120) freezes hunger for 17.3 game minutes.",
+   "note": "HUNGER 0.25 at the eat of a whole Base.CannedBologneseOpen (-0.24, not cooked), drawn at x = 0 before the eat, as the mod's line is; after it HUNGER reads 0.01, above its minimum, so the food-eaten timer is not filled and hunger rises at once. The second arm (an eat at 0.10, hunger to 0, timer 3120) freezes hunger for 17.3 game minutes.",
    "points": [
+    [
+     0.0,
+     0.25
+    ],
     [
      0.0,
      0.010000000000000009
@@ -1151,7 +1155,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.fm",
      "plate": [
@@ -1321,7 +1325,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.lm + body.lx",
      "plate": [
@@ -1491,7 +1495,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "plate": [
@@ -3352,7 +3356,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -4849,7 +4853,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -8774,7 +8778,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -10019,7 +10023,7 @@
    "chart": "S1b",
    "id": "S1b-m-kernel",
    "label": "Nutrition Revamp energy moodle",
-   "note": "The level the server pushes (the bus signature's energy digit), a fresh HEAD record from 07:00. Its proof run fails the admission test at HEAD (VALIDATION x405:HUNGER); no passing proof run exists for it.",
+   "note": "The level the server pushes (the bus signature's energy digit), a fresh HEAD record from 07:00.",
    "points": [
     [
      0.016666666666666666,
@@ -10891,7 +10895,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "_G.NutritionRevamp.server.bus.lastSig.admin",
      "read": "the thousands digit (test_replay_live_energy.long_fast_levels)",
@@ -10912,7 +10916,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x405-20261013-155742",
+    "proof_run": "x446-20261015-180608",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -11161,7 +11165,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "_G.NutritionRevamp.server.bus.lastSig.admin",
      "replay": "x446's own inputs at HEAD: its start.json, its events.json (one Base.CannedBologneseOpen at the first hunger request), its player.json, on its ring's own clock (replay_live.replay_live)",
@@ -12939,7 +12943,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00, no drink, 24 h",
@@ -13147,7 +13151,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "THIRST",
      "replay": "x446's own inputs at HEAD: its start.json, its events.json (one Base.CannedBologneseOpen at the first hunger request), its player.json, on its ring's own clock (replay_live.replay_live)",
@@ -15951,7 +15955,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "clock": "minute 0 is 00:00",
      "plate": [
@@ -18041,7 +18045,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "body": "the oracle's 70 kg man (MAN)",
      "plate": [
@@ -18143,7 +18147,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "depletions": [
       0.0,
@@ -18359,7 +18363,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "replay": "90 days, no food, the replay's water",
@@ -19923,7 +19927,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -20207,7 +20211,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -20973,7 +20977,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating through Base.Bread, Base.CannedBologneseOpen, Base.Burger, Base.Apple, Base.Orange, Base.TunaTinOpen, with the replay's water",
@@ -21874,7 +21878,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "orange": {
       "cal": 65.0,
@@ -23410,7 +23414,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -24906,7 +24910,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -26402,7 +26406,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -31531,7 +31535,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -33658,7 +33662,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -36575,7 +36579,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 5,
@@ -36642,7 +36646,7 @@
    "chart": "S4c",
    "id": "S4c-study-0618",
    "label": "Detraining for 12 weeks, and the regain",
-   "note": "S0618 (older men, 12 weeks trained, then 12 weeks detrained): -5 to -15 % strength after the 12 weeks, drawn from the mod's day-365 strength on the level scale (K.strength.level is linear in strength), and the trained level back within 8 weeks of retraining. The mod regains more slowly: 6.92 after 8 weeks of retraining against 8.25 trained, 7.80 by day 910. Its detraining runs 52 weeks, so the timescales are not comparable.",
+   "note": "S0618 (older men, 12 weeks trained, then 12 weeks detrained): -5 to -15 % strength after the 12 weeks, drawn from the mod's day-365 strength on the level scale (K.strength.level is linear in strength), and the trained level back within 8 weeks of retraining. The mod regains more slowly: about 6.9 after 8 weeks of retraining against 8.25 trained, 7.80 by day 910. Its detraining runs 52 weeks, so the timescales are not comparable.",
    "points": [
     [
      449,
@@ -38081,7 +38085,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -38494,7 +38498,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 5,
      "path": "body.wroteL",
@@ -38905,7 +38909,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -39316,7 +39320,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -39729,7 +39733,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 9,
      "path": "body.wroteL",
@@ -40142,7 +40146,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "native_strength": 0,
      "path": "body.wroteL",
@@ -40725,7 +40729,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -40914,7 +40918,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -41560,7 +41564,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "day": 1,
      "path": "acute.caf",
@@ -42186,7 +42190,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "day": 14,
      "path": "acute.caf",
@@ -42292,7 +42296,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "acute.cafTol",
      "plate": [
@@ -42948,7 +42952,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "acute.bac",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -42981,7 +42985,7 @@
    "chart": "S6b",
    "id": "S6b-m-hangover",
    "label": "Hangover",
-   "note": "A live session read the hangover start where the mod's code puts it: x447's ring and the HEAD replay of its own drinks both first at world age 20.6461 (x447-regrade-20261015, the six drinks drunk live put back).",
+   "note": "A live session read the hangover start where the mod's code puts it: x447's ring and the HEAD replay of its own drinks both first at world age 20.6461 (x447-regrade-20261015, the proof run, the six drinks drunk live put back; #3891).",
    "points": [
     [
      0.16666666666666666,
@@ -43561,7 +43565,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "acute.hang",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -43581,7 +43585,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x161f-20261006-055908",
+    "proof_run": "x447-regrade-20261015",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -44174,7 +44178,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -50572,7 +50576,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "acute.debtH",
      "plate": [
@@ -50955,7 +50959,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51233,7 +51237,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51511,7 +51515,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51789,7 +51793,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51835,7 +51839,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "bodies": [
       [
@@ -51927,7 +51931,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "acute.debtH",
      "read": "at each close's s_after",
@@ -52053,7 +52057,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "code": 2,
      "drain_per_minute": 0.00992063492063492,
@@ -52157,7 +52161,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -52232,7 +52236,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -52620,7 +52624,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "stomachFill",
      "replay": "x363's events.json from its start.json at HEAD",
@@ -53446,7 +53450,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "clock": "09:00",
      "preloads_kcal": [
@@ -53563,7 +53567,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal arm (x27_grade.row8)",
      "window": "world age 25 to 49"
@@ -53983,7 +53987,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "x343's events.json from its start.json at HEAD",
@@ -54184,7 +54188,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -54591,7 +54595,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00 at rest, no drink, the first 10 h",
@@ -54907,7 +54911,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "body": "the 80 kg reference man",
      "function": "test_sodium_balance.simulate(days=5, na_day=0)"
@@ -55972,7 +55976,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "function": "K.view.fullnessLevel(mass)",
      "grams": [
@@ -56070,7 +56074,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "classes": [
       [
@@ -56343,7 +56347,7 @@
     ]
    ],
    "provenance": {
-    "commit": "57ccd0510a",
+    "commit": "2649c17030",
     "inputs": {
      "billed_met": [
       7.5

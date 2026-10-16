@@ -958,10 +958,21 @@ SERIES_JOB = {
 THIRST_JOBS = ("j_s1c",)                     # no drink by design: alive, any dehydration
 
 
+def proofs_passing(sid):
+    """The admission keys whose run proves the kernel series sid and passes at HEAD."""
+    out = []
+    for k in ADMISSION_EXPECT:
+        proves = OTHER[k][1] if k in OTHER else next(a for a in ADMISSIONS if a[0] == k)[6]
+        if sid in proves and adm(k)["admitted"]:
+            out.append(k)
+    return out
+
+
 def proof_note(sid):
-    """m-7: a kernel series whose proof runs fail the admission test at HEAD says so."""
+    """m-7: a kernel series whose proof runs fail the admission test at HEAD, and none passes, says so (an admitted
+    record that also proves it leaves the note empty: Task 11 M13)."""
     bad = proofs_failing(sid)
-    if not bad:
+    if not bad or proofs_passing(sid):
         return ""
     return ("Its proof run%s fail%s the admission test at HEAD (VALIDATION %s); no passing proof run exists for it."
             % ("s" if len(bad) > 1 else "", "" if len(bad) > 1 else "s", ", ".join(bad)))
@@ -1477,9 +1488,10 @@ def s_h1():
     k = result("j_h1")
     viable("H1-m-kernel", "j_h1")
     return [
-        series("H1-v-model", "Vanilla, from the game's code", H, HUNGER, "vanilla-model", r["hunger"],
-               vmodel("VM1", "VM3", "VM4"),
-               "HUNGER 0.25 at the eat of a whole Base.CannedBologneseOpen (-0.24, not cooked); after it HUNGER reads "
+        series("H1-v-model", "Vanilla, from the game's code", H, HUNGER, "vanilla-model",
+               [[0.0, 0.25]] + list(r["hunger"]), vmodel("VM1", "VM3", "VM4"),
+               "HUNGER 0.25 at the eat of a whole Base.CannedBologneseOpen (-0.24, not cooked), drawn at x = 0 before "
+               "the eat, as the mod's line is; after it HUNGER reads "
                "0.01, above its minimum, so the food-eaten timer is not filled and hunger rises at once. The second "
                "arm (an eat at 0.10, hunger to 0, timer 3120) freezes hunger for %.1f game minutes." % freeze),
         h1_live(),
@@ -1694,7 +1706,7 @@ def s_s4c():
                "S0618 (older men, 12 weeks trained, then 12 weeks detrained): -5 to -15 %% strength after the 12 "
                "weeks, drawn from the mod's day-365 strength on the level scale (K.strength.level is linear in "
                "strength), and the trained level back within 8 weeks of retraining. The mod regains more slowly: "
-               "%.2f after 8 weeks of retraining against %.2f trained, %.2f by day 910. Its detraining runs 52 weeks, "
+               "about %.1f after 8 weeks of retraining against %.2f trained, %.2f by day 910. Its detraining runs 52 weeks, "
                "so the timescales are not comparable." % (L785, L365, d[-1][1])),
         series("S4c-study-0078", "Strength after 20 weeks of detraining", DAYS, LEVEL, "study",
                [[365 + 140, 5.0], [365 + 140, L365]], study("S0078"),
@@ -1835,9 +1847,9 @@ def s_s1b():
                "kernel", k["points"],
                kernel({"replay": "fresh record from 07:00, no food, the replay's water, 36 h", "path": SIG,
                        "read": "the thousands digit (test_replay_live_energy.long_fast_levels)",
-                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x405"),
-               "The level the server pushes (the bus signature's energy digit), a fresh HEAD record from 07:00. "
-               + proof_note("S1b-m-kernel")),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x446"),
+               ("The level the server pushes (the bus signature's energy digit), a fresh HEAD record from 07:00. "
+                + proof_note("S1b-m-kernel")).rstrip()),
     ]
 
 
@@ -2368,10 +2380,11 @@ def s_s6b():
                [[a, i] for _, a, b, i, hg in k], kernel(dict(inp, path="effects.intoxTarget"), "x161f"),
                "The writer's target (#3086)."),
         series("S6b-m-hangover", "Hangover", H, "hangover (0 or 1)", "kernel", [[a, hg] for _, a, b, i, hg in k],
-               kernel(dict(inp, path="acute.hang"), "x161f"),
+               kernel(dict(inp, path="acute.hang"), "x447r"),
                "A live session read the hangover start where the mod's code puts it: x447's ring and the HEAD "
-               "replay of its own drinks both first at world age %.4f (x447-regrade-20261015, the six drinks drunk "
-               "live put back)." % read("x447r", "regrade.json", "verdicts.M2r_hangover.observed.live_age")),
+               "replay of its own drinks both first at world age %.4f (x447-regrade-20261015, the proof run, the six "
+               "drinks drunk live put back; #3891)." % read("x447r", "regrade.json",
+                                                           "verdicts.M2r_hangover.observed.live_age")),
     ]
 
 

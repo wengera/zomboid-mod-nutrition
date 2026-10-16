@@ -399,7 +399,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <tr><th scope="row"><a href="#sys-hunger">Hunger</a></th>
           <td>Each food carries a hunger value. Eating subtracts it, and hunger climbs at a steady rate between meals.</td>
           <td>Hunger comes from your body: how full your stomach is, the energy you ate recently, and how much fat you have lost.</td>
-          <td>A big meal holds you longer than a snack, and a food with no calories no longer fills you.</td></tr>
+          <td>A big meal holds you longer than a snack, and a food's hunger value no longer counts: only its bulk and its calories do.</td></tr>
         <tr><th scope="row"><a href="#sys-thirst">Thirst</a></th>
           <td>Thirst rises at a steady rate and a drink takes it down.</td>
           <td>Your body keeps a pool of water and salt. You lose water through sweat and turnover, faster when you work or it is hot.</td>
@@ -411,7 +411,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <tr><th scope="row"><a href="#sys-strength">Strength</a></th>
           <td>Experience raises the level, and slow rust takes it back.</td>
           <td>The level reads your muscle. Training, protein and enough food grow it, and it fades when you stop.</td>
-          <td>Push-ups alone will not make you strong. You have to eat for it.</td></tr>
+          <td>Push-ups build Strength fastest when you eat enough protein and food.</td></tr>
         <tr><th scope="row"><a href="#sys-traits">Weight traits</a></th>
           <td>Follow the scale.</td>
           <td>Follow your body fat, scaled by your muscle.</td>
@@ -426,7 +426,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <td>Tinned tuna is a protein food, and a burger's bun has carbohydrate in it.</td></tr>
         <tr><th scope="row"><a href="#sys-deficiency">Death by hunger, thirst or deficiency</a></th>
           <td>Hunger or thirst at their top moodle drain your health until you die.</td>
-          <td>In the default Managed mode, hunger and thirst never reach their top moodle and never kill. Severe deficiencies and a total fast still can.</td>
+          <td>In the default Managed mode, hunger and thirst never reach their top moodle, so the game's own hunger and thirst drains never run. Severe deficiencies, a total fast and going without water still can kill.</td>
           <td>A missed lunch will not kill you. Scurvy and beriberi can.</td></tr>
       </tbody>
     </table>
@@ -434,7 +434,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
 
   <div class="charts">
     <figure class="chart" data-chart="H1">
-      <p class="chart-note">Vanilla takes the can's hunger value off in one go. Hunger falls to <span data-fill="H1-v-model" data-pick="first.y|r2"></span> and starts climbing at once. The mod reads the same can through your stomach. Hunger falls to <span data-fill="H1-m-kernel" data-pick="min.y|r2"></span>, then rises slowly as the stomach empties and the energy is spent, reaching <span data-fill="H1-m-kernel" data-pick="last.y|r2"></span> by the end of the chart.</p>
+      <p class="chart-note">Vanilla takes the can's hunger value off in one go. Hunger falls to <span data-fill="H1-v-model" data-pick="min.y|r2"></span> and starts climbing at once. The mod reads the same can through your stomach. Hunger falls to <span data-fill="H1-m-kernel" data-pick="min.y|r2"></span>, then rises slowly as the stomach empties and the energy is spent, reaching <span data-fill="H1-m-kernel" data-pick="last.y|r2"></span> by the end of the chart.</p>
     </figure>
 
     <figure class="chart" data-chart="H2">
@@ -498,8 +498,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-hunger">Hunger</a> <a href="#sys-eating">Eating and the stomach</a> <a href="#sys-thirst">Thirst and salt</a> <a href="#sys-screen">What you see on screen</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>The vanilla lines are the game's own rates run forward (VM1, VM3 to VM5): hunger and thirst rise linearly, and a food subtracts its HungerChange (#0503). The moodle thresholds are #0492 to #0495. The mod's lines are its code replaying a fresh no-trait body from 07:00; the hunger line's proof run is x362 (#3703). The Managed cap on thirst is #3123, held live in #3103.</p>
-      <p>The measured lines (a vanilla session, and the mod's fresh body measured live) fill in from the guide's newest sessions.</p>
+      <p>The vanilla lines are the game's own rates run forward (VM1, VM3 to VM5): thirst rises linearly and hunger at a rate that eases as it climbs (#0476, #0474), and a food subtracts its HungerChange (#0006). The moodles cross at the times of #0492 to #0495, at the thresholds of #0508. The mod's lines are its code replaying a fresh no-trait body from 07:00; the hunger line's proof run is x362 (#3703). The Managed cap on thirst is #3123, held live in #3103.</p>
+      <p>The measured lines are the vanilla sessions x441, x442 and x443 on 42.21 (#3882, #3883, #3884) and M1, the mod's fresh body measured live (x446, #3890).</p>
     </div></details>
   </section>
 
@@ -530,12 +530,12 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p class="chart-note">Vanilla's hunger ignores the fat you have lost. In the mod, a survivor who has lost <span data-fill="S2c-m-kernel" data-pick="last.x|r1"></span> kg of fat eats about <span data-fill="S2c-m-kernel" data-pick="last.y|r0"></span> kcal a day more when hunger asks. The study line puts the same loss at <span data-fill="S2c-study" data-pick="last.y|r0"></span> kcal.</p>
       </figure>
       <figure class="chart" data-chart="S2d">
-        <p class="chart-note">Vanilla starves to death <span data-fill="S2d-v-model-health" data-pick="last.x|mul:24|r0"></span> game hours after its last meal. With water and no food the mod's survivor lives for weeks. Its body mass falls from <span data-fill="S2d-m-mass" data-pick="first.y|r1"></span> kg to <span data-fill="S2d-m-mass" data-pick="last.y|r1"></span> kg, and beriberi, turning deadly in the fourth week, kills it by day <span data-fill="S2d-m-mass" data-pick="last.x|r0"></span>. Its hunger never reaches the top level. The dots are an older live vanilla run whose hunger was held still, so that survivor lived on. The mod's health line is not drawn yet. Use the buttons to switch between the mod's body mass, vanilla's weight and vanilla's health.</p>
+        <p class="chart-note">Vanilla starves to death <span data-fill="S2d-v-model-health" data-pick="last.x|mul:24|r0"></span> game hours after its last meal. With water and no food the mod's survivor lives for weeks. Its body mass falls from <span data-fill="S2d-m-mass" data-pick="first.y|r1"></span> kg to <span data-fill="S2d-m-mass" data-pick="last.y|r1"></span> kg, and beriberi, turning deadly in the fourth week, kills it by day <span data-fill="S2d-m-mass" data-pick="last.x|r0"></span>. Its hunger never reaches the top level. On the vanilla weight view the dots are an older live run whose hunger was held still, so that survivor lived on. On the vanilla health view they are a newer run that starved to death when the game's code predicts. The mod's health line is not drawn yet. Use the buttons to switch between the mod's body mass, vanilla's weight and vanilla's health.</p>
       </figure>
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-hunger">Hunger</a> <a href="#sys-body">The body</a> <a href="#sys-deficiency">Deficiency and excess</a> <a href="#options">Deficiencies can kill</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>Vanilla's starvation is VM10: hunger from 0 reaches the top level at 34.84 h, then health drains at the DayLength 4 rate (#0518) with no regeneration (#2353, #2354). The live session x442 started a vanilla survivor at HUNGER 0.60 with thirst held at 0, and its death and every graded quantity matched the model run from its own start.</p>
+      <p>Vanilla's starvation is VM10: hunger from 0 reaches the top level at 34.84 h, then health drains at the DayLength 4 rate (#0518) with no regeneration (#2353, #2354). The live session x442 started a vanilla survivor at HUNGER 0.60 with thirst held at 0, and its death and every graded quantity matched the model run from its own start (#3882).</p>
       <p>The Managed cap is #3123, held live on an empty stomach in #3074. The mod's hunger after a missed day follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670) on an earlier build. Hunger rising with fat lost follows Polidori 2016 (S1254); a thin start's hunger is #3874.</p>
       <p>The long fast is the mod's code replaying its no-trait body with water every two hours and no food (proof x434, #3869). Its first lethal state is cardiac beriberi, from the thiamine store; the dial that lets a deficiency kill is #3105. The refeeding risk state is #3875 and #2987; the refeeding event itself has no reading and is not promised. The vanilla weight dots are a 42.20.4 control run whose hunger was pinned (#0500).</p>
     </div></details>
@@ -569,8 +569,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-deficiency">Deficiency and excess</a> <a href="#sys-monotony">Monotony</a> <a href="#sys-nutrients">Nutrients and foods</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>The vitamin C line is the mod's code replaying four TunaTinOpen a day with water; its grade crossings fall where the code puts them live (x151r, #2977, #2978). Vitamin C's onset is calibrated on Hodges' controlled series as Padayatty 2016 reports it (S0225), so the code agrees with that mark by construction; S0224 is the self-experimenter. Vitamin C is never sped up by the onset option. On this diet fibre turns Marginal first, then choline, and cardiac beriberi (thiamine) is the first lethal state.</p>
-      <p>The mood readings are #3683, from x341 and x342 on the test food TKX.Mono450; the stat is read against the first-level thresholds of #2369. The orange's thiamine (0.120 mg against a tuna tin's 0.071) keeps the thiamine grade off Clinical. The week of improvement is Ververs 2019 (S0229).</p>
+      <p>The vitamin C line is the mod's code replaying four TunaTinOpen a day with water; its grade crossings fall where the code puts them live (x151r, #2977, #2978). The mod calibrates vitamin C's onset on Hodges' controlled series as Padayatty 2016 reports it (S0225), so the code agrees with that mark by construction; S0224 is the self-experimenter. Vitamin C is never sped up by the onset option. On this diet fibre turns Marginal first, then choline, and cardiac beriberi (thiamine) is the first lethal state.</p>
+      <p>The mood readings are #3683, from x341 and x342 on the test food TKX.Mono450; the guide reads the stat against the first-level thresholds of #2369. The orange's thiamine (0.120 mg against a tuna tin's 0.071) keeps the thiamine grade off Clinical. The week of improvement is Ververs 2019 (S0229).</p>
     </div></details>
   </section>
 
@@ -636,7 +636,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-traits">Body traits and character creation</a> <a href="#sys-strength">Strength</a> <a href="#sys-body">The body</a> <a href="#sys-hunger">Hunger</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>The creation bodies and levels were read live in x436 (#3872); a thin start's hunger is #3874, and the trait bands #3856 and #3873. The permanent half of a muscle trait's lean difference is #3855. Vanilla's creation weights are #0533, and its start level is 5 plus the trait's boost, clamped at 0, so its Weak starts at 0 (a script read); the mod's Weak 1 is its own floor.</p>
+      <p>x436 read the creation bodies and levels live (#3872); a thin start's hunger is #3874, and the trait bands #3856 and #3873. The permanent half of a muscle trait's lean difference is #3855. Vanilla's creation weights are #0533, and its start level is 5 plus the trait's boost, clamped at 0, so its Weak starts at 0 (a script read); the mod's Weak 1 is its own floor.</p>
       <p>The drift lines are the mod's code over 90 days, eating when hunger asks; vanilla's rust step is a reading of the code with no live run.</p>
     </div></details>
   </section>
@@ -649,7 +649,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </header>
     <div class="compare">
       <div class="side side-vanilla" data-scene="vanilla"><h3>Vanilla</h3>
-        <p>A cup of coffee takes a fixed amount off your fatigue, the same on the first day as the hundredth, and it lasts only when the server has sleep on. A beer raises drunkenness by an amount fixed by the drink, a little more when you are hungry. Read from the game's code, at the default day length it clears within minutes.</p>
+        <p>A cup of coffee takes a fixed amount off your fatigue, the same on the first day as the hundredth, and it lasts only when the server has sleep on. A beer raises drunkenness by an amount fixed by the drink, a little more when you are hungry. At the default day length it clears within minutes, as a live session measured.</p>
         <p>Sleep has no debt and no effect on hunger.</p>
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
@@ -659,10 +659,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <div class="charts" data-scene="charts">
       <figure class="chart" data-chart="S6a">
-        <p class="chart-note">A cup at breakfast, lunch and mid-afternoon takes the mod's caffeine to <span data-fill="S6a-m-day1" data-pick="max.y|r0"></span> mg on the first day. By the second week it never falls below <span data-fill="S6a-m-day14" data-pick="min.y|r0"></span> mg and peaks at <span data-fill="S6a-m-day14" data-pick="max.y|r0"></span>. Vanilla takes <span data-fill="S6a-v-model" data-pick="first.y|abs|r3"></span> off fatigue a cup, every day. The lines show the caffeine in your body, which builds up a little over the days. The tolerance that grows beside it and blunts each cup is not drawn yet.</p>
+        <p class="chart-note">A cup at breakfast, lunch and mid-afternoon takes the mod's caffeine to <span data-fill="S6a-m-day1" data-pick="max.y|r0"></span> mg on the first day. By the second week it never falls below <span data-fill="S6a-m-day14" data-pick="min.y|r0"></span> mg and peaks at <span data-fill="S6a-m-day14" data-pick="max.y|r0"></span>. Vanilla takes <span data-fill="S6a-v-model" data-pick="first.y|abs|r3"></span> off fatigue a cup, every day. The lines show the caffeine in your body, which builds up a little over the days. The Tolerance button shows what grows beside it and blunts each cup, reaching <span data-fill="S6a-m-tolerance" data-pick="last.y|r2"></span> by day <span data-fill="S6a-m-tolerance" data-pick="last.x|r0"></span>.</p>
       </figure>
       <figure class="chart" data-chart="S6b">
-        <p class="chart-note">In the game's code each of vanilla's beers adds <span data-fill="S6b-v-model" data-pick="max.y|r0"></span> to drunkenness, and it is gone within minutes. In the mod blood alcohol peaks at <span data-fill="S6b-m-bac" data-pick="max.y|r3"></span> percent and drunkenness at <span data-fill="S6b-m-intox" data-pick="max.y|r0"></span>. A hangover starts at hour <span data-fill="S6b-m-hangover" data-pick="x@y>=1|r1"></span>, once the alcohol has cleared. A live session saw the hangover start where the mod's code put it. Use the buttons to switch between drunkenness, blood alcohol and the hangover.</p>
+        <p class="chart-note">In the game's code each of vanilla's beers adds <span data-fill="S6b-v-model" data-pick="max.y|r0"></span> to drunkenness, and it is gone within minutes. In the mod blood alcohol peaks at <span data-fill="S6b-m-bac" data-pick="max.y|r3"></span> percent and drunkenness at <span data-fill="S6b-m-intox" data-pick="max.y|r0"></span>. A hangover starts <span data-fill="S6b-m-hangover" data-pick="x@y>=1|r1"></span> hours into the chart, once the alcohol has cleared. A live session saw the hangover start where the mod's code put it. Use the buttons to switch between drunkenness, blood alcohol and the hangover.</p>
       </figure>
       <figure class="chart" data-chart="S6c">
         <p class="chart-note">With sleep on, one night cut short raises the mod's hunger by <span data-fill="S6c-m-kernel" data-pick="max.y|sub:1|pct0"></span> percent. The study found people ate <span data-fill="S6c-study" data-pick="first.y|sub:1|pct0"></span> percent more the next day. In the mod the extra hunger lasts for days, because the debt is repaid slowly. The dots are two live sessions' sleep debt, on their own schedule of short nights, at most <span data-fill="S6c-m-live" data-pick="max.y|r1"></span> hours. Vanilla's hunger ignores sleep.</p>
@@ -670,9 +670,9 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-acute">Caffeine, alcohol and sleep</a> <a href="#sys-hunger">Hunger</a> <a href="#options">The sleep options</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>The caffeine lines are the mod's code with a 5 h half-life (x151r, #2982) and a tolerance with a 7-day time constant; the offset follows caffeine and its tolerance live (#3077). Both are game choices on open science rows, so no study is drawn. Vanilla's cup is −10 fatigue a litre (#2949), and with sleep off vanilla resets fatigue every update (#3009).</p>
-      <p>Vanilla's drunkenness is VM16: 400 × alcohol × the hunger factor a drink (#2923, #2926), decaying 45.36 a game hour at DayLength 4 (#2922). The mod's blood alcohol and the drunkenness it writes are #3086. The hangover start, caffeine and blood alcohol of the live session x447 matched the code's replay of its own drinks in the regrade x447-regrade-20261015; that session's night is not used here.</p>
-      <p>The sleep debt and its hunger factor were read live in x301 and x302 (#3677, #3638), after Brondel 2010's one short night (S1566).</p>
+      <p>The caffeine lines are the mod's code with a 5 h half-life (x151r, #2982) and a tolerance with a 7-day time constant; the offset follows caffeine and its tolerance live (#3077). Both are game choices on open science rows, so the chart draws no study. Vanilla's cup is −10 fatigue a litre (#2949), and with sleep off vanilla resets fatigue every update (#3009).</p>
+      <p>Vanilla's drunkenness is VM16: 400 × alcohol × the hunger factor a drink (#2923, #2926), decaying 45.36 a game hour at DayLength 4 (#2922). The mod's blood alcohol and the drunkenness it writes are #3086. The hangover of the live session x447 started where the code's replay of its own drinks puts it, in the regrade x447-regrade-20261015 (#3891); that session's night is not used here.</p>
+      <p>x301 and x302 read the sleep debt and its hunger factor live (#3677, #3638), after Brondel 2010's one short night (S1566).</p>
     </div></details>
   </section>
 </section>
@@ -740,7 +740,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <ul><li>Overeating raises the Overfull moodle, and it never blocks an eat. The game itself still refuses an eat at the top level of its own fullness moodle.</li></ul>
       </div>
       <div class="gone" data-block="no-longer"><h3>What no longer happens</h3>
-        <ul><li>A food's hunger value no longer sets your hunger, and a food with no calories no longer fills you.</li></ul>
+        <ul><li>A food's hunger value no longer sets your hunger. Only its bulk in your stomach and the energy it carries count.</li></ul>
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
@@ -754,7 +754,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="sys-hunger-h">Hunger</h2>
     <div class="compare">
       <div class="side side-vanilla" data-block="vanilla"><h3>Vanilla</h3>
-        <p>Hunger rises at a steady rate, faster when you exert yourself. Each food subtracts its hunger value. Left long enough, hunger reaches the top Hungry moodle and drains your health until you die.</p>
+        <p>Hunger rises at a steady rate, and a big meal pauses it for a while. Each food subtracts its hunger value. Left long enough, hunger reaches the top Hungry moodle and drains your health until you die.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>In the default Managed mode the mod writes your hunger every game minute from your body. Three things drive it: how full your stomach is, with protein filling more and drinks less; a pool of recently eaten energy that fades over a few hours; and a deficit drive from the last day's energy balance and the fat you have lost.</p>
@@ -763,7 +763,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SH1">
-        <p class="chart-note">A bigger meal holds hunger off longer. Replaying a feeding study, the mod holds hunger off for <span data-fill="SH1-m-kernel" data-pick="first.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="first.x|r0"></span> kcal drink and <span data-fill="SH1-m-kernel" data-pick="last.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="last.x|r0"></span> kcal one. Measured live, a <span data-fill="SH1-m-live" data-pick="first.x|r0"></span> kcal meal held it off for <span data-fill="SH1-m-live" data-pick="first.y|r0"></span> minutes.</p>
+        <p class="chart-note">A bigger meal holds hunger off longer. Replaying a feeding study, the mod holds hunger off for <span data-fill="SH1-m-kernel" data-pick="first.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="first.x|r0"></span> kcal drink and <span data-fill="SH1-m-kernel" data-pick="last.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="last.x|r0"></span> kcal one. Measured live, a <span data-fill="SH1-m-live" data-pick="first.x|r0"></span> kcal meal held it off for <span data-fill="SH1-m-live" data-pick="first.y|r0"></span> minutes. The dot at <span data-fill="SH1-m-live" data-pick="last.x|r0"></span> kcal counts a different span, the minutes hunger stayed below the request.</p>
       </figure>
       <figure class="chart" data-chart="SH2">
         <p class="chart-note">Splitting the same food into more, smaller meals barely changes the mod's hunger over a day. Six meals read <span data-fill="SH2-m-kernel" data-pick="y@x=six meals|pct0"></span> percent of three meals. The study behind the chart found that six meals left people hungrier, so here the mod and the study disagree.</p>
@@ -787,7 +787,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <details class="science" data-block="science"><summary>The science</summary><div>
       <p>Managed mode caps the written HUNGER below the top moodle's threshold (#3123); live, HUNGER stayed at or under that cap on an empty stomach (#3074). Vanilla's top Hungry level is where its starvation drain runs (#0508, #0516).</p>
       <p>The meal-size curve is fitted to Callahan 2004's liquid preloads (S1247) and checked against Cummings 2004's intermeal intervals (S1248); x361 measured the live interval (#3700). Six against three meals is Ohkawara 2013 (S1608), which the mod does not reproduce.</p>
-      <p>The fat-loss drive follows Polidori 2016's rise in intake per kilogram lost (S1254); a thin start's hunger is #3874. The day after a fast follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670); the current code's replay of a fast reads <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent. After a meal HUNGER does not return to zero (x361's nadir).</p>
+      <p>The fat-loss drive follows Polidori 2016's rise in intake per kilogram lost (S1254); a thin start's hunger is #3874. The day after a fast follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670); the current code's replay of a fast reads <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent. After a meal HUNGER does not return to zero: the replay of a can of bolognese bottoms out at <span data-fill="H1-m-kernel" data-pick="min.y|r2"></span>, and M1's live ring matched its replay (#3890).</p>
     </div></details>
   </section>
 
@@ -816,12 +816,12 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <ul><li>On a salt-free diet your body loses sodium slowly and holds its blood sodium.</li></ul>
       </div>
       <div class="gone" data-block="no-longer"><h3>What no longer happens</h3>
-        <ul><li>In Managed mode thirst never reaches the top Thirsty moodle, so thirst never kills. Severe deficiencies still can.</li></ul>
+        <ul><li>In Managed mode thirst never reaches the top Thirsty moodle, so the game's thirst drain never runs.</li></ul>
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
       <p>The thirst cap is the same Managed-mode cap as hunger's (#3123); live, THIRST stopped under the top level (#3103, #3011).</p>
-      <p>The sodium balance on a salt-free diet was read live over five days in x281 to x284: a loss of about <span data-fill="ST2-m-live-na" data-pick="last.y|abs|r1"></span> mmol a day, plasma sodium held, no grade change (#3688). The plasma reading is not drawn: the mod's replay misses it by more than the run's tolerance.</p>
+      <p>x281 to x284 read the sodium balance on a salt-free diet live over five days: a loss of about <span data-fill="ST2-m-live-na" data-pick="last.y|abs|r1"></span> mmol a day, plasma sodium held, no grade change (#3688). The plasma reading is not drawn: the mod's replay misses it by more than the run's tolerance.</p>
     </div></details>
   </section>
 
@@ -940,7 +940,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SS1">
-        <p class="chart-note">With no sets at all, vanilla's rust takes a year to cost a level, from <span data-fill="H3-v-model-x1" data-pick="first.y|r0"></span> to <span data-fill="SS1-v-model" data-pick="y@x=0|r0"></span>, while the mod's untrained body holds. At the most sets on the chart the mod's body reaches <span data-fill="SS1-m-kernel" data-pick="last.y|r1"></span> and vanilla's experience <span data-fill="SS1-v-model" data-pick="last.y|r0"></span>. Each extra set adds less in the mod.</p>
+        <p class="chart-note">With no sets at all, vanilla's rust costs a fresh character a level within the year, from <span data-fill="H3-v-model-x1" data-pick="first.y|r0"></span> to <span data-fill="SS1-v-model" data-pick="y@x=0|r0"></span>, a reading of the game's code, while the mod's untrained body holds. At the most sets on the chart the mod's body reaches <span data-fill="SS1-m-kernel" data-pick="last.y|r1"></span> and vanilla's experience <span data-fill="SS1-v-model" data-pick="last.y|r0"></span>. Each extra set adds less in the mod.</p>
       </figure>
     </div>
     <div class="promises">
@@ -955,7 +955,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>XP is the training signal and the level follows the body (#3851, #3871). The natural cap is Kouri 1995's fat-free mass index limit (S1915) as a level (#3853); FFMI, the lean mass over height squared.</p>
+      <p>XP is the training signal and the level follows the body (#3851, #3871). The natural cap is Kouri 1995's limit on the fat-free mass index (S1915), the lean mass over the height squared, read as a level (#3853).</p>
       <p>Detraining and regain follow Blocquiaux 2020 (S0618), where under eight weeks of retraining restored the trained strength. Psilander 2019 (S0078) found no retraining advantage in muscle size, so the fast regain is the mod's reading of S0618. Their arms were never closed live, so those lines carry the code's badge only. Vanilla's rust is one XP a step once its timer passes (#2151, #2155); its protein factor is #2112, and one push-up set to exhaustion is #3844.</p>
     </div></details>
   </section>
@@ -968,7 +968,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p>Weak, Feeble, Stout and Strong set your starting Strength. Underweight, Very Underweight, Overweight and Obese set your starting weight, and they follow the scale from then on.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>The muscle traits keep their vanilla costs and start levels, built now from lean mass and an innate strength. Part of a muscle trait's head start is permanent, so an idle Strong survivor settles into the Stout range.</p>
+        <p>The muscle traits keep their vanilla costs and, but for Weak, their start levels: vanilla starts Weak at <span data-fill="S5a-v-model-level" data-pick="y@x=Weak + Overweight|r0"></span> and the mod at <span data-fill="S5a-m-live-level" data-pick="y@x=Weak + Overweight|r0"></span>. Each is built now from lean mass and an innate strength. Part of a muscle trait's head start is permanent, so an idle Strong survivor settles into the Stout range.</p>
         <p>The weight traits become Overfat, Obese, Overly Lean and Gaunt, and they follow your body fat, scaled by your muscle. You reach Emaciated only in play. A fat trait starts you with more fat on the same lean. A thin trait starts you with less fat, hungry and with a slowed metabolism until you regain it.</p>
       </div>
     </div>
@@ -1026,8 +1026,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The grade crossings fall where the code puts them (#2978). Vitamin C's onset is calibrated on Padayatty 2016's account of Hodges' controlled series, about <span data-fill="SD2-study" data-pick="first.y|r0"></span> days to scurvy (S0225), so the code agrees with it by construction; a self-experimenter took <span data-fill="S3a-study-0224" data-pick="first.x|r0"></span> days (S0224). The other stores rest on half-lives or game choices.</p>
-      <p>The scurvy drain was read live in x161b (#3106). The time from clinical scurvy to death has no settled study value (S1168 is open), so the week is a game choice.</p>
+      <p>The grade crossings fall where the code puts them (#2978). The mod calibrates vitamin C's onset on Padayatty 2016's account of Hodges' controlled series, about <span data-fill="SD2-study" data-pick="first.y|r0"></span> days to scurvy (S0225), so the code agrees with it by construction; a self-experimenter took <span data-fill="S3a-study-0224" data-pick="first.x|r0"></span> days (S0224). The other stores rest on half-lives or game choices.</p>
+      <p>The scurvy drain was read live in x161b (#3106). The time from clinical scurvy to death has no settled study value (S1168 is open), so the pace is a game choice.</p>
       <p>Night Vision is #3093 and #3095, Short Sighted #3098, and the iron excess rung that drives food sickness #3084. A health drain from low blood sodium or an iron overdose is not promised.</p>
     </div></details>
   </section>
@@ -1037,10 +1037,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="sys-acute-h">Caffeine, alcohol and sleep</h2>
     <div class="compare">
       <div class="side side-vanilla" data-block="vanilla"><h3>Vanilla</h3>
-        <p>Coffee lowers fatigue by a set amount per drink. Beer and other alcohol raise drunkenness, which fades over hours. Sleeping lowers fatigue, and there is no sleep debt. With the server's sleep options off, the game clears fatigue on its own.</p>
+        <p>Coffee lowers fatigue by a set amount per drink. Beer and other alcohol raise drunkenness, which fades at a fixed rate: a beer's worth is gone within minutes at the default day length. Sleeping lowers fatigue, and there is no sleep debt. With the server's sleep options off, the game clears fatigue on its own.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>Your body absorbs and clears caffeine over hours, and a daily coffee drinker builds tolerance. Alcohol raises blood alcohol, which drives the game's drunkenness.</p>
+        <p>Your body absorbs and clears caffeine over hours, and a daily coffee drinker builds tolerance. Alcohol raises blood alcohol, which drives the game's drunkenness, and heavy drinking leaves a hangover once the alcohol has cleared.</p>
         <p>When the server turns sleep on, short nights build a sleep debt that raises your hunger the next day, and long nights pay it back.</p>
       </div>
     </div>
@@ -1053,6 +1053,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <div class="can" data-block="can"><h3>What can happen</h3>
         <ul>
           <li>Coffee works less well when you drink it every day.</li>
+          <li>Heavy drinking leaves a hangover once the alcohol has cleared.</li>
           <li>A short night raises the next day's hunger.</li>
         </ul>
       </div>
@@ -1061,7 +1062,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The caffeine offset follows caffeine and its tolerance live (#3077). The sleep debt and its hunger factor were read live in x301 and x302 (#3677, #3638), after Brondel 2010's one short night (S1566). The hangover and caffeine withdrawal have no live reading yet, so the guide promises neither.</p>
+      <p>The caffeine offset follows caffeine and its tolerance live (#3077). x301 and x302 read the sleep debt and its hunger factor live (#3677, #3638), after Brondel 2010's one short night (S1566). The hangover's start was read live, where the code puts it, in the regrade of x447 (#3891). Caffeine withdrawal has no live reading yet, so the guide does not promise it.</p>
     </div></details>
   </section>
 
@@ -1113,7 +1114,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <div class="opt"><div><h3>What the panel shows</h3><span class="opt-key">NR.VisibilityMode</span></div>
       <p>Symptoms shows a word for each system. Bands, the default, adds your body-fat band, your weight, your Strength and a grade for each nutrient. Numbers shows every store.</p></div>
     <div class="opt"><div><h3>Onset speed</h3><span class="opt-key">NR.OnsetSpeed</span></div>
-      <p>How fast the slow deficiencies develop and recover. The default is real time. Vitamin C, water, caffeine, alcohol and sleep are never sped up.</p></div>
+      <p>How fast the slow deficiencies develop and recover. The default is real time. Vitamin C and the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never sped up.</p></div>
     <div class="opt"><div><h3>Severity and excess</h3><span class="opt-key">NR.Severity, NR.ExcessEffectsOn</span></div>
       <p>Severity scales every penalty a deficiency or an excess brings. The excess option turns the effects of eating too much of a nutrient on or off.</p></div>
     <div class="opt"><div><h3>Sex-specific values</h3><span class="opt-key">NR.SexSpecific</span></div>

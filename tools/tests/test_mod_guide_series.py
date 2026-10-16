@@ -162,6 +162,29 @@ def test_n1_the_orange_s_thiamine_averts_the_beriberi_death():
     assert orange > tuna and ("%.3f mg against a tuna tin's %.3f" % (orange, tuna)) in SER["S3c-m-pool"]["note"]
 
 
+def test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_proves_it():
+    named = 0
+    for sid, s in sorted(SER.items()):
+        if s["badge"] != "kernel":
+            continue
+        bad = [v["key"] for v in ADM if sid in v["proves"] and not v["admitted"]]
+        good = [v["key"] for v in ADM if sid in v["proves"] and v["admitted"]]
+        says = "no passing proof run exists" in s.get("note", "")
+        assert says == bool(bad and not good), sid
+        named += says
+    assert named >= 4
+    assert SER["S1b-m-kernel"]["provenance"]["proof_run"] == S.RUN["x446"]
+    assert S.proof_note("S1b-m-kernel") == "" and S.proofs_passing("S1b-m-kernel") == ["x446:levels"]
+
+
+def test_task_11_the_hangover_proof_and_h1_s_pre_eat_point():
+    # I3: the hangover's proof run is x447's regrade (#3891), not x161f; M7: both H1 lines start before the eat
+    assert SER["S6b-m-hangover"]["provenance"]["proof_run"] == S.RUN["x447r"]
+    assert "#3891" in SER["S6b-m-hangover"]["note"]
+    assert SER["H1-v-model"]["points"][0] == [0.0, 0.25] and SER["H1-m-kernel"]["points"][0][0] == 0
+    assert SER["H1-v-model"]["points"][1][0] == 0.0 and round(SER["H1-v-model"]["points"][1][1], 2) == 0.01
+
+
 @pytest.mark.parametrize("sid", sorted(SER))
 def test_each_series_is_non_empty_and_its_provenance_resolves(sid):
     s = json.loads(json.dumps(SER[sid]))
@@ -453,7 +476,8 @@ def h_after(h0, seconds):
 
 @check("H1-v-model")
 def _(kh, sid):
-    assert pt(sid, 0.0) == pytest.approx(0.25 - 0.24)                  # 0.01: above the minimum, no timer
+    assert SER[sid]["points"][0] == [0.0, 0.25]                          # Task 11 M7: the pre-eat state at x = 0
+    assert SER[sid]["points"][1][1] == pytest.approx(0.25 - 0.24)       # 0.01: above the minimum, no timer
     assert pt(sid, 6.0) == pytest.approx(h_after(0.01, 6 * 3600), abs=1e-12)
     assert "17.3 game minutes" in SER[sid]["note"]                      # m-1: 0.24 x 13000 / 3.0 a second
     return [0.0, 6.0]
