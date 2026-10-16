@@ -127,3 +127,25 @@ def test_a_regrade_that_drops_a_drink_fails_and_grades_nothing(inp):
 def test_the_run_events_rebuild_from_the_gate_rule(inp):
     _, ev_run, _ = R.build(inp, R.gate_passed)
     assert R.norm(ev_run) == R.norm(inp["events_run"])
+
+
+# ---------------------------------------------------------------- REP's failing cases (the review's F7)
+def test_rep_fails_when_an_event_is_dropped_from_the_runs_events(inp):
+    bad = copy.deepcopy(inp)
+    bad["events_run"] = bad["events_run"][1:]
+    v, o = R.reproduce(bad)
+    assert v == "falsified" and o["events_equal"] is False
+
+
+def test_rep_fails_on_a_perturbed_run_field_stat(inp):
+    bad = copy.deepcopy(inp)
+    bad["d"]["replay"]["fields"]["HUNGER"]["max"] += 0.01
+    v, o = R.reproduce(bad)
+    assert v == "falsified" and o["events_equal"] is True and "rebuilt_fields" in o
+
+
+def test_rep_is_unmeasured_without_run_fields(inp):
+    bad = copy.deepcopy(inp)
+    bad["d"]["replay"] = {}
+    v, o = R.reproduce(bad)
+    assert v == "unmeasured" and o["events_equal"] is True

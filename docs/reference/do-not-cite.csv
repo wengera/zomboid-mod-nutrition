@@ -22081,7 +22081,11 @@ x441-20261015-172803,constants,the lib's constants,The driver's settings; not a 
 x441-20261015-172803,memory,host free memory rows,"Host state, not a game reading.",
 x441-20261015-172803,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x441-20261015-172803,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x441-20261015-172803,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x441-20261015-172803,speeds[0].mult,4.7874226570129395,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x441-20261015-172803,speeds[1].mult,143.48155212402344,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x441-20261015-172803,speeds[2].mult,4.77319860458374,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x441-20261015-172803,speeds[3].mult,143.6147003173828,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
+x441-20261015-172803,speeds[4].mult,4.795438766479492,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[4].trueMult`
 x441-20261015-172803,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a game fault.",
 x442-20261015-173502,session,the driver's text,Written before the run; not a reading.,
 x442-20261015-173502,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
@@ -22089,7 +22093,9 @@ x442-20261015-173502,constants,the lib's constants,The driver's settings; not a 
 x442-20261015-173502,memory,host free memory rows,"Host state, not a game reading.",
 x442-20261015-173502,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x442-20261015-173502,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x442-20261015-173502,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x442-20261015-173502,speeds[0].mult,4.772982597351074,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x442-20261015-173502,speeds[1].mult,143.88941955566406,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x442-20261015-173502,speeds[2].mult,4.777027130126953,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
 x442-20261015-173502,checks.X.death.dead,true,"Set through the health-0 fallback; the isDead witness read `""false""` (`checks.X.death.dead_raw`).",`checks.X.death.overall`
 x443a-20261015-174228,session,the driver's text,Written before the run; not a reading.,
 x443a-20261015-174228,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
@@ -22097,21 +22103,40 @@ x443a-20261015-174228,constants,the lib's constants,The driver's settings; not a
 x443a-20261015-174228,memory,host free memory rows,"Host state, not a game reading.",
 x443a-20261015-174228,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x443a-20261015-174228,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x443a-20261015-174228,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x443a-20261015-174228,speeds[0].mult,4.794052600860596,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x443a-20261015-174228,speeds[1].mult,143.6299591064453,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x443a-20261015-174228,speeds[2].mult,4.789026737213135,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x443a-20261015-174228,speeds[3].mult,143.46424865722656,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
+x443a-20261015-174228,speeds[4].mult,4.782114505767822,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[4].trueMult`
+x443a-20261015-174228,speeds[5].mult,143.68927001953125,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[5].trueMult`
+x443a-20261015-174228,speeds[6].mult,4.777535915374756,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[6].trueMult`
+x443a-20261015-174228,speeds[7].mult,144.33372497558594,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[7].trueMult`
+x443a-20261015-174228,speeds[8].mult,4.785704135894775,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[8].trueMult`
+x443a-20261015-174228,speeds[9].mult,143.75856018066406,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[9].trueMult`
+x443a-20261015-174228,speeds[10].mult,4.781173229217529,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[10].trueMult`
 x443b-20261015-174712,session,the driver's text,Written before the run; not a reading.,
 x443b-20261015-174712,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x443b-20261015-174712,constants,the lib's constants,The driver's settings; not a reading.,
 x443b-20261015-174712,memory,host free memory rows,"Host state, not a game reading.",
 x443b-20261015-174712,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x443b-20261015-174712,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x443b-20261015-174712,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x443b-20261015-174712,speeds[0].mult,4.789241313934326,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x443b-20261015-174712,speeds[1].mult,143.87832641601562,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x443b-20261015-174712,speeds[2].mult,4.795028209686279,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x443b-20261015-174712,speeds[3].mult,143.7982940673828,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
+x443b-20261015-174712,speeds[4].mult,4.788457870483398,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[4].trueMult`
+x443b-20261015-174712,speeds[5].mult,143.61257934570312,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[5].trueMult`
+x443b-20261015-174712,speeds[6].mult,4.7898640632629395,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[6].trueMult`
+x443b-20261015-174712,speeds[7].mult,143.52708435058594,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[7].trueMult`
+x443b-20261015-174712,speeds[8].mult,4.7833781242370605,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[8].trueMult`
 x444-20261015-175242,session,the driver's text,Written before the run; not a reading.,
 x444-20261015-175242,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x444-20261015-175242,constants,the lib's constants,The driver's settings; not a reading.,
 x444-20261015-175242,memory,host free memory rows,"Host state, not a game reading.",
 x444-20261015-175242,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x444-20261015-175242,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x444-20261015-175242,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x444-20261015-175242,speeds[0].mult,4.790127754211426,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x444-20261015-175242,speeds[1].mult,4.798738956451416,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
 x444-20261015-175242,verdicts.V3_A.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_A.observed.delta`
 x444-20261015-175242,verdicts.V3_B.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_B.observed.delta`
 x444-20261015-175242,verdicts.V3_C.observed.reps_live,the delta over 6 x the factor,"Derived from the experience delta, not a counted rep.",`verdicts.V3_C.observed.delta`
@@ -22121,7 +22146,10 @@ x445-20261015-175946,constants,the lib's constants,The driver's settings; not a 
 x445-20261015-175946,memory,host free memory rows,"Host state, not a game reading.",
 x445-20261015-175946,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x445-20261015-175946,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x445-20261015-175946,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x445-20261015-175946,speeds[0].mult,4.786447525024414,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x445-20261015-175946,speeds[1].mult,143.9350128173828,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x445-20261015-175946,speeds[2].mult,4.785208702087402,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x445-20261015-175946,speeds[3].mult,4.797118663787842,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
 x445-20261015-175946,verdicts.V4_B_decay,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
 x445-20261015-175946,verdicts.V4_B_zero,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
 x446-20261015-180608,session,the driver's text,Written before the run; not a reading.,
@@ -22130,7 +22158,10 @@ x446-20261015-180608,constants,the lib's constants,The driver's settings; not a 
 x446-20261015-180608,memory,host free memory rows,"Host state, not a game reading.",
 x446-20261015-180608,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x446-20261015-180608,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x446-20261015-180608,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x446-20261015-180608,speeds[0].mult,23.90497589111328,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x446-20261015-180608,speeds[1].mult,4.784737586975098,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x446-20261015-180608,speeds[2].mult,23.87346076965332,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x446-20261015-180608,speeds[3].mult,4.7718915939331055,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
 x446-20261015-180608,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",
 x445b-20261015-181249,session,the driver's text,Written before the run; not a reading.,
 x445b-20261015-181249,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
@@ -22138,14 +22169,29 @@ x445b-20261015-181249,constants,the lib's constants,The driver's settings; not a
 x445b-20261015-181249,memory,host free memory rows,"Host state, not a game reading.",
 x445b-20261015-181249,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x445b-20261015-181249,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x445b-20261015-181249,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x445b-20261015-181249,speeds[0].mult,4.7835774421691895,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x445b-20261015-181249,speeds[1].mult,4.798803329467773,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
 x447-20261015-181709,session,the driver's text,Written before the run; not a reading.,
 x447-20261015-181709,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x447-20261015-181709,constants,the lib's constants,The driver's settings; not a reading.,
 x447-20261015-181709,memory,host free memory rows,"Host state, not a game reading.",
 x447-20261015-181709,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x447-20261015-181709,checks.S.clock.mult,getMultiplier,"The `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.clock.trueMult`
-x447-20261015-181709,speeds,the speed rows' mult,"Each row's `mult` is getMultiplier, not the true multiplier (#3762); its `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x447-20261015-181709,speeds[0].mult,23.873828887939453,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[0].trueMult`
+x447-20261015-181709,speeds[1].mult,4.758658409118652,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
+x447-20261015-181709,speeds[2].mult,23.849584579467773,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
+x447-20261015-181709,speeds[3].mult,4.778072834014893,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
+x447-20261015-181709,speeds[4].mult,23.9283390045166,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[4].trueMult`
+x447-20261015-181709,speeds[5].mult,4.78345251083374,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[5].trueMult`
+x447-20261015-181709,speeds[6].mult,23.82801628112793,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[6].trueMult`
+x447-20261015-181709,speeds[7].mult,4.776777744293213,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[7].trueMult`
+x447-20261015-181709,speeds[8].mult,23.829103469848633,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[8].trueMult`
+x447-20261015-181709,speeds[9].mult,4.77960729598999,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[9].trueMult`
+x447-20261015-181709,speeds[10].mult,23.92001724243164,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[10].trueMult`
+x447-20261015-181709,speeds[11].mult,4.7761454582214355,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[11].trueMult`
+x447-20261015-181709,speeds[12].mult,23.843534469604492,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[12].trueMult`
+x447-20261015-181709,speeds[13].mult,4.7930121421813965,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[13].trueMult`
+x447-20261015-181709,speeds[14].mult,4.7797698974609375,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[14].trueMult`
 x447-20261015-181709,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",
 x447-20261015-181709,verdicts.M2_replay_HUNGER,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
 x447-20261015-181709,verdicts.M2_replay_body.energyState,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
@@ -22169,3 +22215,6 @@ x447-regrade-20261015,verdicts.M2r_acute.hang.run_verdict,a copy of the run's do
 x447-regrade-20261015,verdicts.M2r_acute.debtH.run_verdict,a copy of the run's verdict,"The run's own (trivial) verdict; not a reading.",
 x447-regrade-20261015,verdicts.M2r_hangover.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_hangover`
 x447-regrade-20261015,verdicts.M2r_acute.debtH,as_predicted,"Trivial: acute.debtH read 0 on both sides on every row.",
+x447-20261015-181709,replay.fields,the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`x447-regrade-20261015` `replay.fields`
+x447-regrade-20261015,verdicts.REP.observed.run_fields,a copy of the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
+x447-regrade-20261015,verdicts.REP.observed.rebuilt_fields,the rebuilt run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
