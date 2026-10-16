@@ -19,7 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item o
 - The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and the client's counters stayed at 0 when the game's own drink action ran, the client's install not witnessed [#2825/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
-- Vanilla has no overeating effect in Java: `Eat` and `JustAteFood` add no stat for eating while full, and the one cap, the refusal at FOOD_EATEN level 3, is checked in client Lua alone [#3596/C/C-only] [#3597/C/C-only] [#3599/C/C-only] [#0522/C/C-only].
+- Vanilla has no overeating effect in Java: `Eat` and `JustAteFood` add no stat for eating while full, and the one cap, the refusal at FOOD_EATEN level 3, is checked in client Lua except in the open-and-eat craft, whose Java refuses at the same level [#3596/C/C-only] [#3597/C/C-only] [#3599/C/C-only] [#0522/C/C-only] [#3895/C/C-only].
 
 ## How it works
 
@@ -355,9 +355,14 @@ Neither method names DISCOMFORT, so vanilla adds no sickness, discomfort or othe
 `Eat` adds the item's hunger change before it calls `JustAteFood`, so the gate reads the HUNGER the eat leaves behind [#3598/C/inference].
 An eat fills the timer, and so can raise the FOOD_EATEN moodle, only when `abs(getHungerChange() * f)` is at least the HUNGER it found, whatever wrote that HUNGER last [#3598/C/inference].
 A mod that writes HUNGER on the server therefore decides which eats raise the moodle, because HUNGER left above an item's hunger change keeps that item from filling the timer at all [#3598/C/inference].
-The refusal at FOOD_EATEN level 3 lives in client Lua alone: the inventory menus hide the eat [#0522/C/C-only] and the action queue refuses a queued one [#3599/C/C-only].
+A drink fills the same timer with no such gate: `DrinkFluid` sets it to `(int)(timer + abs(hungerChange) × 13000)`, the drunk fluid's hunger change, with no HUNGER test, no cooked doubling and no 11000 cap [#3893/C/C-only].
+So any drink whose hunger change adds a whole unit raises the timer, and with it the FOOD_EATEN moodle, whatever HUNGER reads [#3893/C/C-only].
+The refusal at FOOD_EATEN level 3 lives in client Lua for the eat and drink actions: the inventory menus hide the eat [#0522/C/C-only] and the action queue refuses a queued one [#3599/C/C-only].
 The eat and drink actions' `isValidStart` is called only by the client's action queue when it starts the next queued action, an action queued into an empty queue begins without it, and no class in the jar names `isValidStart` [#3599/C/C-only].
 A server-side `Eat`, whether another mod's or one a mod drives directly, meets no cap [#3599/C/C-only].
+One Java site refuses at the same level: `RecipeCodeOnCreate.openAndEat` returns before it queues the eat when the FOOD_EATEN moodle is at level 3 or more, or the recipe's eat percentage is at or below 0; on a server it would otherwise send the owning client the command that queues `ISEatFoodAction` [#3895/C/C-only].
+In multiplayer the client's FOOD_EATEN moodle follows the server's timer: the client's body-damage tick returns before the timer's decay, the timer reaches the client inside the body-damage main fields of the eat's push and of the 1 Hz player-stats packet, and each side recomputes its moodles from its own copy [#3896/C/inference].
+A server-side `setHealthFromFoodTimer` therefore reaches the client's moodle and its eat gates with no client write [#3896/C/inference].
 
 <a id="script-scale"></a>
 ### The script-to-instance scale

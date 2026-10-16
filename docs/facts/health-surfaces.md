@@ -33,8 +33,13 @@ The two supported routes spread an amount over the parts instead [#2346/C/C-only
 `ReduceGeneralHealth(f)` returns at once for an argument at or below zero [#2346/C/C-only].
 Otherwise it divides the argument by the part count and each part's share again by that part's damage modifier, then calls `BodyPart.ReduceHealth` on every part [#2346/C/C-only].
 Before any of that it calls `forceAwake` on its character whenever overall health is at or below `10`, so a drain that crosses that line wakes a sleeper [#2346/C/C-only].
+Vanilla makes that call with its reduction total, the poison and severe-moodle terms, on every server tick that reaches the drain, whether or not the total is zero, and the wake test runs before the zero return, so a sleeper at 10 health or less, above 0 and outside god mode, is woken every tick with no drain running [#3900/C/inference].
 `AddGeneralHealth(f)` counts only the parts below `100` health, divides the argument among them and applies no damage modifier [#2347/C/C-only].
 A heal therefore concentrates on the damaged parts, while a loss lands on every part [#2346/C/C-only] [#2347/C/C-only].
+The damage modifiers are 0.1 for the hands, 0.2 for the forearms, lower legs and feet, 0.3 for the upper arms and upper legs, 0.35 for the upper torso, 0.4 for the lower torso and groin, 0.6 for the head and 0.7 for the neck, 5.05 over the 17 parts [#3898/C/C-only].
+A general loss of 100 from full therefore leaves the hands at 41.18 and the neck at 91.60 with no part clamped, and a heal of y spread over 17 damaged parts that none of them completes raises overall health by y × 5.05 / 17, about 0.297 y [#3898/C/C-only].
+A general loss marks no injury: `BodyPart.ReduceHealth` only clamps and writes the part's health, `BodyPart.DamageUpdate` reads part health only to clamp it at 0, and `BodyPart.HasInjury` reads no health [#3899/C/C-only].
+The health panel, outside cheat mode, lists a part only on an injury, a bandage, stitches, a splint, additional pain over 10 or stiffness over 5, and prints part health only in cheat mode, so a player sees a general drain only as overall health falling [#3899/C/C-only].
 Measured live, a server `ReduceGeneralHealth(10)` reached the owning client's overall and per-part health within about a second, the client's later copies equalling server reads taken a fraction of a second before; the packet that carries them was not identified [#3040/M/n=1].
 
 The tick stops when overall body health is exactly zero [#2343/C/C-only].
@@ -111,6 +116,8 @@ Within a session the written constants held: halved, they read back unchanged 31
 The severe-moodle constant sits beside them [#2355/C/C-only].
 `healthReductionFromSevereBadMoodles` defaults to `0.0165` and has a public getter and setter [#2355/C/C-only].
 It is the single constant every severe-moodle health-loss term is built from, so one write scales all six terms together [#2355/C/C-only].
+The food heal, the 1600 standard health-from-food time and the severe-moodle constant are not saved either: each is set only by the constructor and its own setter, and no save or load body names it, so a value a mod writes is gone after a reload [#3897/C/inference].
+The standard time is read only through its getter, by `Moodle.Update`, and the severe-moodle constant only by `BodyDamage` and `Nutrition` [#3897/C/inference].
 
 <a id="severe-drain"></a>
 ### The severe-moodle drain
@@ -146,7 +153,7 @@ What raises the stat at eat time is stated at [food-item-model.md#poison](food-i
 Poison costs health only in combination with the sickness moodle [#2358/C/C-only].
 The drain runs while `POISON` is above `10` and the `SICK` moodle is at level 1 or more [#2358/C/C-only].
 Its size is `0.0035 × min(POISON / 10, 3)` per multiplier unit, so it caps at `0.0105` once poison reaches `30` [#2358/C/C-only].
-Poison then decays by `ZomboidGlobals.poisonLevelDecrease` per multiplier unit, faster while the food-eaten moodle is up [#0520/C/C-only].
+Poison then decays by `ZomboidGlobals.poisonLevelDecrease` per multiplier unit, and while the food-eaten moodle is up by a further 1.5e-4 times its level a tick, a term without the multiplier [#3894/C/C-only].
 
 Poison feeds food sickness on every tick it is above zero [#2359/C/C-only].
 `FOOD_SICKNESS` grows by `getInfectionGrowthRate() × (2 + round(POISON / 10))` per multiplier unit, the growth rate defaulting to `0.001` [#2359/C/C-only].
