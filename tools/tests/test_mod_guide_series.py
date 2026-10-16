@@ -122,21 +122,16 @@ def kh():
     return S.KHost()
 
 
-# The tests that depend on the current mod build (Plan 15 ruling): they run the mod's Lua (a replay, an admission, the
-# kernel host) or check the committed data against mod/'s last commit. While docs/mod-guide/REBUILD_PENDING exists,
-# tools/tests/conftest.py skips them, and every test taking `kh`, with the marker's reason; the rest read the
-# committed data file and the tool's own machinery and keep running.
+# The tests that compare the current mod build with the committed guide data (Plan 15 ruling): a re-derivation, an
+# admission or a death against data.json, or the data's provenance against mod/'s last commit. While
+# docs/mod-guide/REBUILD_PENDING exists, tools/tests/conftest.py skips them with the marker's reason; every other test,
+# the mod-build checks that do not read data.json included, keeps running.
 MOD_BUILD_TESTS = (
     "test_each_series_is_non_empty_and_its_provenance_resolves",
     "test_each_series_value_is_rederived",
     "test_r1_a_fresh_fast_on_the_map_s_old_water_dies_of_dehydration",
     "test_r2_the_admission_grades_what_a_run_draws",
-    "test_r2_a_flipped_admission_fails_the_build",
     "test_r2_the_level_changes_of_x364_within_the_named_bound",
-    "test_the_trait_ids_the_s5b_series_use",
-    "test_the_burpee_set_bills_7_5_met",
-    "test_a_guide_food_lands_its_item_pass_vector",
-    "test_a_plate_meal_carries_the_foods_whole_vectors",
     "test_s3a_lines_end_at_the_death",
 )
 

@@ -87,11 +87,6 @@ local function set(h, stat, v)
     if not ok then W.stats.failures = W.stats.failures + 1 end
 end
 
-local function trait(h, id)
-    if id == nil then return false end
-    return NR.flag(h.traits, "get", id)
-end
-
 -- The handles, once per player object (a respawn or a reconnect is a new object, #3360): nil when the player has
 -- no stats object or the stat enum is absent, and the writer then writes nothing for that player.
 function W.hoist(username, p)
@@ -127,10 +122,11 @@ function W.readEngine(username, h, p, ctx)
         if ctx ~= nil then ctx.sd = sd end
     end
     i.sd = sd
-    i.needsLess = T ~= nil and trait(h, T.NEEDS_LESS_SLEEP)
-    i.needsMore = T ~= nil and trait(h, T.NEEDS_MORE_SLEEP)
-    i.insomniac = T ~= nil and trait(h, T.INSOMNIAC)
-    i.nightOwl = T ~= nil and trait(h, T.NIGHT_OWL)
+    -- Rule 6: the minute's shared trait flags (NR.read.trait), so the sleep traits Nutrients read cost no second get
+    i.needsLess = T ~= nil and NR.read.trait(ctx, p, T.NEEDS_LESS_SLEEP, h.traits)
+    i.needsMore = T ~= nil and NR.read.trait(ctx, p, T.NEEDS_MORE_SLEEP, h.traits)
+    i.insomniac = T ~= nil and NR.read.trait(ctx, p, T.INSOMNIAC, h.traits)
+    i.nightOwl = T ~= nil and NR.read.trait(ctx, p, T.NIGHT_OWL, h.traits)
     i.bedFactor = W.BED[NR.obj(p, "getBedType")] or 1
     return i
 end

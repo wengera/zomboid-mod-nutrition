@@ -243,9 +243,34 @@ function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end
 function RD.thermo(ctx, p, bd) return memo(ctx, "eThermo", readThermo, ctx, p, bd) end
 function RD.nutrition(ctx, p) return memo(ctx, "eNut", readNutrition, p) end
 
+-- One trait flag a player-minute (Plan 15 Task 3 fix 1): the first get of trait t is kept in the minute's flag table
+-- (ctx.eFlags, the one reused table RD.FLAGS, emptied when a minute first reads a flag), so Nutrients' sleep and thirst
+-- traits and the writer's sleep traits share one get each. Only for traits no step changes inside the minute: the
+-- band, night-vision and short-sight traits Effects, Strength and Weight toggle are read off the collection. coll
+-- (optional) is the collection the caller holds (the writer's hoisted h.traits), taken as the minute's when none is
+-- read yet; with no ctx every call reads. A raise or a non-boolean answer reads false (NR.flag).
+RD.FLAGS = {}
+function RD.trait(ctx, p, t, coll)
+    if t == nil then return false end
+    if ctx == nil then return NR.flag(coll or readTraits(p), "get", t) end
+    local f = ctx.eFlags
+    if f == nil then
+        f = RD.FLAGS
+        for k in pairs(f) do f[k] = nil end
+        ctx.eFlags = f
+    end
+    local v = f[t]
+    if v == nil then
+        if coll ~= nil and ctx.eTraits == nil then ctx.eTraits = coll end
+        v = NR.flag(RD.traits(ctx, p), "get", t)
+        f[t] = v
+    end
+    return v
+end
+
 -- The context keys the reads above keep: the pipeline drops them at the end of each player's minute (MIN.run), so the
 -- shared context holds no player's Java objects between drains.
-RD.KEYS = { "eAge", "eHour", "eAsleep", "eTraits", "eBd", "eThermo", "eNut" }
+RD.KEYS = { "eAge", "eHour", "eAsleep", "eTraits", "eBd", "eThermo", "eNut", "eFlags" }
 
 -- The trait-block push (#2099): sendSyncPlayerFields(player, 2), a Java global called with a dot (#2815), under one
 -- pcall, so a raise never skips the work after it in the caller's minute. Counted in stats.pushes, or in

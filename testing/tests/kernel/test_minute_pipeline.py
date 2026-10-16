@@ -8,6 +8,8 @@ a recorder around the Effects minute (what the step hands it) pins them here on 
 on the minute a player returns after 30 game minutes away, ctx.ageH is the world age, and a record forced lethal
 on that minute takes ReduceGeneralHealth == E.drain x 30.
 """
+import pytest
+
 from . import golden_trace
 from .server_host import Host
 
@@ -264,6 +266,56 @@ def test_a_player_minute_makes_no_more_trait_or_sandbox_calls_than_the_p_model_w
     assert per["sd"] == 1                               # one read a player-minute, shared by Kinetics and the writer
 
 
+# Plan 15 Task 3 fix 1: the thirst traits' two gets (Nutrients' basal scale) are paid for by sharing each trait flag
+# across the minute (NR.read.trait): the writer's sleep traits reuse needFactor's gets. Trait gets a player-minute on
+# golden_trace's g1 with the HIGH_THIRST and LOW_THIRST sentinels added, counted as above; read at c4d9349e (before
+# Task 3) for no trait, High Thirst and Needs More Sleep: 11, 11 and 10. Pinned at this build's counts, each at most one
+# over the build before.
+HEAD_TRAIT_GETS = {(): 11, ("HIGH_THIRST",): 11, ("NEEDS_MORE_SLEEP",): 10}   # read at c4d9349e
+TRAIT_GETS = {(): 11, ("HIGH_THIRST",): 10, ("NEEDS_MORE_SLEEP",): 11}
+
+
+@pytest.mark.parametrize("traits", sorted(TRAIT_GETS))
+def test_a_player_minute_shares_each_trait_flag(traits):
+    h = golden_trace.new_host()
+    h.rt.eval("function() CharacterTrait.HIGH_THIRST = 'trait:HIGH_THIRST'; "
+              "CharacterTrait.LOW_THIRST = 'trait:LOW_THIRST' end")()
+    C = h.rt.eval("{ getCharacterTraits = 0, traitGet = 0, sd = 0, wrapped = {} }")
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    h.rt.eval(COUNT)(g1, C)
+    coll = g1.getCharacterTraits(g1)
+    for t in traits:
+        coll.add(coll, h.rt.eval("function(n) return CharacterTrait[n] end")(t))
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):                               # the first sight and the writer's hoist
+        _minute(h, start + m / 60.0)
+    base = {k: C[k] for k in P_MODEL_CALLS}
+    n = 10
+    for m in range(4, 4 + n):
+        _minute(h, start + m / 60.0)
+    per = {k: (C[k] - base[k]) / n for k in P_MODEL_CALLS}
+    assert per == {"getCharacterTraits": 1, "traitGet": TRAIT_GETS[traits], "sd": 1}, (traits, per)
+    assert TRAIT_GETS[traits] <= HEAD_TRAIT_GETS[traits] + 1
+
+
+def test_the_shared_trait_flag_is_read_once_a_minute_and_afresh_with_no_context():
+    h = Host()
+    C = h.rt.eval("{ n = 0, coll = 0 }")
+    p = h.rt.eval("function(C) local coll = { get = function(s, t) C.n = C.n + 1; return t == 'A' end }"
+                  " return { getCharacterTraits = function(s) C.coll = C.coll + 1; return coll end } end")(C)
+    R = h.NR.read
+    ctx = h.rt.table()
+    assert R.trait(ctx, p, "A") is True and R.trait(ctx, p, "A") is True
+    assert R.trait(ctx, p, "B") is False and R.trait(ctx, p, "B") is False
+    assert (C.n, C.coll) == (2, 1)                      # one get per trait, one collection read
+    assert R.trait(ctx, p, None) is False and C.n == 2  # an absent trait id reads false, no get
+    fresh = h.rt.table()
+    assert R.trait(fresh, p, "A") is True and C.n == 3  # a new minute empties the flags
+    assert R.trait(None, p, "A") is True and R.trait(None, p, "A") is True
+    assert C.n == 5                                     # no context: every call reads
+
+
 # --- Rule 6: the player-minute's shared engine reads (Plan 12 S R1) ------------------------------------------------
 # The minute's steps run in one call, so a member several of them read answers the same: NR.read keeps the first read
 # on the pipeline's context. Before, a player-minute read isAsleep 4 times, getCharacterTraits 4, getBodyDamage and
@@ -367,5 +419,5 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
     p = h.rt.eval("{ isAsleep = function() return true end, getNutrition = function() return {} end }")
     M.run("a", p, h.rt.table(), 100.0)
     keys = [h.NR.read.KEYS[i] for i in range(1, len(h.NR.read.KEYS) + 1)]
-    assert len(keys) == 7 and all(M.ctx[k] is None for k in keys)
+    assert len(keys) == 8 and all(M.ctx[k] is None for k in keys)       # eFlags since Plan 15 Task 3 fix 1
     assert M.ctx.kept == 1                              # a step's own hand-off stays until the next run clears it

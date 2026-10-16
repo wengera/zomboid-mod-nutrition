@@ -577,7 +577,9 @@ def test_the_thirst_traits_leave_the_sweat_alone(nut_host):
 # Rule 6: the Java calls of a steady Nutrients minute on the pipeline's context (test_metabolism_shape's JAVA_COUNT
 # counts every method of the player stand-in and of every table one returns, and getGameTime). Read at c4d9349e,
 # before Plan 15 Task 3: 11 for a player with no thirst trait and for one with High Thirst. The task adds the trait
-# reads on the shared trait set: 2 gets (HIGH_THIRST, then LOW_THIRST only when High Thirst is not held).
+# reads on the shared trait set: 2 gets (HIGH_THIRST, then LOW_THIRST only when High Thirst is not held). Across the
+# whole player-minute they are paid for by the shared flags (fix 1: the writer reuses needFactor's sleep-trait gets),
+# pinned in test_minute_pipeline.py's test_a_player_minute_shares_each_trait_flag.
 HEAD_NUT_JAVA_CALLS = 11   # read at c4d9349e
 
 

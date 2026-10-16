@@ -136,32 +136,25 @@ function NUT.readSleepOptions()
 end
 
 -- The sleep-need factor off the character's trait set (the CharacterTrait registry objects); ctx is the pipeline's.
+-- Rule 6: each flag is the minute's shared read (NR.read.trait), which the writer's sleep traits reuse.
 local function needFactor(player, ctx)
-    if CharacterTrait == nil then return 1 end
-    local traits = NR.read.traits(ctx, player)
-    local tMore, tLess = CharacterTrait.NEEDS_MORE_SLEEP, CharacterTrait.NEEDS_LESS_SLEEP
-    if tMore ~= nil then
-        local okM, more = NR.call(traits, "get", tMore)
-        if okM and more == true then return NUT.NEED_MORE end
-    end
-    if tLess ~= nil then
-        local okL, less = NR.call(traits, "get", tLess)
-        if okL and less == true then return NUT.NEED_LESS end
-    end
+    local T = CharacterTrait
+    if T == nil then return 1 end
+    if NR.read.trait(ctx, player, T.NEEDS_MORE_SLEEP) then return NUT.NEED_MORE end
+    if NR.read.trait(ctx, player, T.NEEDS_LESS_SLEEP) then return NUT.NEED_LESS end
     return 1
 end
 
 -- The basal water loss's scale (K.fluids.basalG's traitScale): High Thirst x1.5 or Low Thirst x0.5
 -- (K.fluids.thirstTrait; game choices, spec section 3.4) times the sandbox's StatsDecrease multiplier, which scales
--- vanilla's thirst rate the same way (#2765); sweat is never scaled. Rule 6: the trait set is the pipeline's shared
--- read (needFactor's), and the multiplier is Kinetics' read on ctx.sd, else read here and handed on for the writer.
+-- vanilla's thirst rate the same way (#2765); sweat is never scaled. Rule 6: each flag is the minute's shared read
+-- (NR.read.trait), and the multiplier is Kinetics' read on ctx.sd, else read here and handed on for the writer.
 local function basalScale(player, ctx)
     local high, low = false, false
     local T = CharacterTrait
     if T ~= nil then
-        local traits = NR.read.traits(ctx, player)
-        high = T.HIGH_THIRST ~= nil and NR.flag(traits, "get", T.HIGH_THIRST)
-        low = not high and T.LOW_THIRST ~= nil and NR.flag(traits, "get", T.LOW_THIRST)
+        high = NR.read.trait(ctx, player, T.HIGH_THIRST)
+        low = not high and NR.read.trait(ctx, player, T.LOW_THIRST)
     end
     local sd = ctx ~= nil and ctx.sd or nil
     if sd == nil then

@@ -1,6 +1,6 @@
-"""The rebuild marker's skip (Plan 15 ruling): while docs/mod-guide/REBUILD_PENDING exists, a test module's
-MOD_BUILD_TESTS, and every test taking the `kh` kernel host there, skip with the marker's text. The marker is read
-through tools/mod_guide_data.py's rebuild_pending; removing it runs them again.
+"""The rebuild marker's skip (Plan 15 ruling): while docs/mod-guide/REBUILD_PENDING exists, the tests a module names
+in MOD_BUILD_TESTS skip with the marker's text. The marker is read through tools/mod_guide_data.py's rebuild_pending;
+removing it runs them again.
 """
 import os
 import sys
@@ -19,7 +19,7 @@ def mod_build_skip(item, reason):
     if names is None:
         return False
     fn = getattr(item, "originalname", None) or item.name.split("[")[0]
-    if fn not in names and "kh" not in getattr(item, "fixturenames", ()):
+    if fn not in names:
         return False
     item.add_marker(pytest.mark.skip(reason="%s: %s" % (mod_guide_data.PENDING_REL, reason)))
     return True

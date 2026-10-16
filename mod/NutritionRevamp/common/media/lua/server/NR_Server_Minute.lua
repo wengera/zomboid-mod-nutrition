@@ -5,10 +5,12 @@
 --
 -- The context (ctx): one table reused per call and cleared at the start of each player's run, so nothing in it
 -- outlives one player's minute. Its fields: absorbed and mealCa (Kinetics writes them; Metabolism and Nutrients
--- read them); sd (Kinetics' sandbox read), activityClass and exercising (Metabolism's), which the writer reads; body,
+-- read them); sd (Kinetics' sandbox read, else Nutrients'), which Nutrients' basal scale and the writer read;
+-- activityClass and exercising (Metabolism's), which the writer reads; body,
 -- dtM and ageH (Nutrients stamps them where its minute reaches its end; the Effects step runs only when they are
 -- stamped); and the minute's shared engine reads under NR.read's e-prefixed keys (eAge, the world age P.work read,
--- seeded here; eHour, eAsleep, eTraits, eBd, eThermo and eNut, each kept at its first read). An adapter that wraps
+-- seeded here; eHour, eAsleep, eTraits, eBd, eThermo and eNut, each kept at its first read, and eFlags, the trait
+-- flags NR.read.trait keeps). An adapter that wraps
 -- its own body in a pcall keeps it, with its own counters and log lines; this guard is the outer net, so a step that
 -- raises inside its own pcall never reaches stats.failures here.
 --

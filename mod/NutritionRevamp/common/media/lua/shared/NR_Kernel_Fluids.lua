@@ -29,7 +29,7 @@ K.fluids.OSM_REF = 140 -- midpoint of S1045's 135-145 normal range
 K.fluids.BASAL_G = 2000 -- game choice (spec section 3.4) inside S1688's net 1050-3100 mL/d, built from S1686, S1687, S1688, S2220, S2222
 K.fluids.BASAL_G_PER_LM = 32 -- S2218's 37.34 mL of turnover per kg fat-free mass x S2220's 85 % drink-and-food share, 31.74 rounded (derived)
 
--- The thirst traits' scale on the basal loss alone, never on sweat (spec section 3.4: vanilla's thirst rate x2 and x0.5, #2765).
+-- The thirst traits' scale on the basal loss alone, never on sweat (spec section 3.4: vanilla's thirst rate x2 and x0.5, #0486).
 K.fluids.HIGH_THIRST = 1.5 -- game choice (spec section 3.4) inside the decision's x1.5-2 for High Thirst
 K.fluids.LOW_THIRST = 0.5 -- game choice (spec section 3.4): Low Thirst at vanilla's x0.5
 
@@ -175,7 +175,7 @@ function K.fluids.basalG(lm, traitScale)
     return K.max(g * traitScale, 0)
 end
 
--- The thirst traits' scale: High Thirst wins over Low Thirst (vanilla never grants both), 1 with neither.
+-- The thirst traits' scale: High Thirst wins over Low Thirst, 1 with neither (game choice, spec section 3.4: vanilla's two independent tests give 1.0 when both are held, #2767; creation never grants both).
 function K.fluids.thirstTrait(high, low)
     if high then
         return K.fluids.HIGH_THIRST

@@ -48,8 +48,8 @@ are a review check, not this guard's job.
 The rebuild marker (Plan 15 ruling): while `docs/mod-guide/REBUILD_PENDING` exists, a plan has ruled that the guide's
 data is rebuilt in one later task and that mod changes until then move it. `--check` of the committed data file then
 prints a SKIPPED line naming the marker and its text and exits 0, and `tools/tests/conftest.py` skips the guide tests
-that depend on the current mod build (`MOD_BUILD_TESTS` in each test module, and every test taking the `kh` kernel
-host). Removing the marker restores both. `--write`, and a `--check` of another path (`out`), never read it.
+that compare the current mod build with the committed data (`MOD_BUILD_TESTS` in each test module). Removing the
+marker restores both. `--write`, and a `--check` of another path (`out`), never read it.
 """
 import argparse, csv, json, math, os, re, subprocess, sys
 
