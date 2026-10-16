@@ -74,13 +74,19 @@ K.fluids.K_TAU_H = 24 -- design-phase-v1 game choice (open row S1097: the renal 
 K.fluids.NA_MG_PER_MMOL = 23 -- molar mass, no row needed
 K.fluids.K_MG_PER_MMOL = 39.1 -- molar mass, no row needed
 
--- The thirst knots {dehydPct, THIRST}: the vanilla moodle levels #0509 at 1/2/4/6 per cent deficit.
+-- The volume-thirst knots {dehydPct, THIRST}, one per vanilla moodle level (#0509) at 1/2/3/4 per cent deficit. Vanilla
+-- tests each threshold with a strict greater-than (#0507), so a level shows just past it. Plan 15 Task 5 (option B):
+-- Parched (level 4, 0.84) sits on the 4 % dehydration onset (K.drain.DEHYD_KNOTS), where the writer lifts its 0.83
+-- cap (K.hybrid.caps): about 32 h without water at rest, against vanilla's 29.17 h (#0495). The 3 % knot is set so the
+-- combined thirst (thirstTarget: the volume and osmotic drives) crosses level 3's 0.70 at 3 % at rest, where the
+-- osmotic drive reads about 0.45: about 24 h without water (vanilla's 0.70 at 24.3 h by #0495's rate); by volume alone
+-- level 3 comes at about 3.6 %.
 K.fluids.THIRST_KNOTS = {
     { 0, 0 }, -- euhydrated: no thirst
     { 1, 0.12 }, -- moodle level 1 (#0509) at 1 %: design-phase-v1 game choice (open row S1098)
     { 2, 0.25 }, -- moodle level 2 (#0509) on the 2 % threshold, S0092
-    { 4, 0.70 }, -- moodle level 3 (#0509) on the 4 % strain point, S0709
-    { 6, 0.84 }, -- moodle level 4 (#0509) at 6 %: design-phase-v1 game choice (open row S1098)
+    { 3, 0.45 }, -- moodle level 3 (#0509) at 3 % at rest with the osmotic drive, S2248's anorexia: game choice (spec section 3.1, vanilla's pace; open row S1098)
+    { 4, 0.84 }, -- moodle level 4 (#0509), Parched, at the 4 % dehydration onset, S2248's weariness and apathy: game choice (spec section 3.1; open row S1098)
     { 8, 1.0 }, -- full thirst at 8 %: design-phase-v1 game choice (open row S1098)
 }
 
@@ -92,11 +98,6 @@ K.fluids.OSM_MAX = 4 -- design-phase-v1 game choice (open row S1099: the osmotic
 -- Hypotonic suppression: below HYPO_NA thirst stays under HYPO_CAP (#2770), relaxed past the defence onset (defence).
 K.fluids.HYPO_NA = 135 -- S0102
 K.fluids.HYPO_CAP = 0.09 -- game choice under #2770's 0.1 autoDrink trigger, so suppression stops drinking (open S1695)
-
--- The view's cap under vanilla's level-4 drain (#0518/#0519), once read while the Plan 4 kill dial was off. Plan 15
--- Task 4 removed the option, and with it thirstTarget's only reading; the constant is kept for Task 5's conditional
--- caps (K.hybrid), whose thirstCap holds the same value.
-K.fluids.KILL_CAP = 0.83 -- game choice, ruling 8
 
 -- The hyponatraemia ladder, mmol/L: grade 1 below [1], 2 below [2], 3 below [3].
 K.fluids.HYPONAT = {

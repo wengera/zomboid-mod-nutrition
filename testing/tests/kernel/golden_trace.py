@@ -9,7 +9,8 @@ The stand-in player is server_host's PLAYER (untouched) under this file's decora
 object whose thermoregulator answers a per-player metabolic rate (the class's engine MET times the engine's load
 factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
 catch-a-cold value and the regeneration, food-heal and health setters, all counting, and an overall-health read (100,
-or g6's 45, less the health taken plus the health added); isAsleep (g6, minutes 40-90),
+or g6's 45, less the health taken plus the health added), and the severe-moodle constant's getter and counting setter
+(Plan 15 Task 5); isAsleep (g6, minutes 40-90),
 isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
 getMoodles, isFemale (g5), a trait collection (with getKnownTraits, and a descriptor with a profession: Plan 13
 Task 17, ruling 13-36), the Strength perk level, its XP and setPerkLevelDebug, LevelPerk,
@@ -200,7 +201,8 @@ Perks.Strength.getTotalXpForLevel = function(s, L) return 75 * L * (L + 1) end
 addXp = function(p, perk, amount)
     if perk == Perks.Strength then p.st.xp = p.st.xp + amount; p.st.xpGrants = p.st.xpGrants + 1 end
 end
-MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHERMIA" }
+MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHERMIA", HUNGRY = "moodle:HUNGRY",
+               THIRST = "moodle:THIRST", SICK = "moodle:SICK", BLEEDING = "moodle:BLEEDING" }   -- the last four: Plan 15 Task 5
 BodyPartType = {}
 NR_T.PARTS = { "Hand_L", "Hand_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
 for _, n in ipairs(NR_T.PARTS) do BodyPartType[n] = "part:" .. n end
@@ -241,7 +243,7 @@ NR_T.decorate = function(p, cfg)
     thermo.getSetPoint = function(s) return 37.0 end
     local bst = { std = 0.002, red = 0.0013, sev = 0.0008, slp = 0.02, regenSets = 0, reduced = 0,
                   reduceCalls = 0, added = 0, cold = cfg.cold or 0, coldRise = cfg.coldRise or 0, coldSets = 0,
-                  food = 0.015, foodSets = 0 }
+                  food = 0.015, foodSets = 0, sbm = 0.0165, sbmSets = 0 }
     local health0 = cfg.health or 100
     st.body = bst
     local parts, byType = {}, {}
@@ -267,6 +269,9 @@ NR_T.decorate = function(p, cfg)
     bd.setHealthFromFood = function(s, v) s.st.food = v; s.st.foodSets = s.st.foodSets + 1 end
     bd.getOverallBodyHealth = function(s) return health0 - s.st.reduced + s.st.added end
     bd.AddGeneralHealth = function(s, v) s.st.added = s.st.added + v end
+    -- Plan 15 Task 5 (option B): the severe-moodle constant, the constructor's 0.0165 (#0516), its setter counting
+    bd.getHealthReductionFromSevereBadMoodles = function(s) return s.st.sbm end
+    bd.setHealthReductionFromSevereBadMoodles = function(s, v) s.st.sbm = v; s.st.sbmSets = s.st.sbmSets + 1 end
     NR_T.bodies[#NR_T.bodies + 1] = bd
     bd.parts = parts
     p.getBodyDamage = function(s) return bd end

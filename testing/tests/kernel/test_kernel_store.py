@@ -29,7 +29,7 @@ DERIVED = {
                 "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
                 "intoxTarget", "tempTarget", "mAcc", "rRec"},
     # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step)
-    "drain": {"active", "state", "targetFloor", "rate", "drainThisMinute", "starvedH"},
+    "drain": {"active", "state", "targetFloor", "rate", "drainThisMinute", "starvedH", "starving", "dehydrated"},
     "stomach": set(),
 }
 

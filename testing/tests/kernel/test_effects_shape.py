@@ -961,7 +961,7 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
     lims = list(EFF(eff_host).limitations.values())
     joined = " | ".join(lims)
     for needle in ("one-minute lag", "VITD_EFFECTS false", "omega-3", "X47", "X86", "POISON ships 0",
-                   "FOOD_SICKNESS", "capped under moodle level 4", "stale until relog", "X81",
+                   "FOOD_SICKNESS", "capped under moodle level 4 until the starvation", "stale until relog", "X81",
                    "not saved (#3020)", "natively held", "Cat Eyes"):
         assert needle in joined, needle
     # ruling T16-1: the sleep-onset latency terms ship unapplied

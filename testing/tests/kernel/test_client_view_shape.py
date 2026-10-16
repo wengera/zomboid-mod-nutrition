@@ -393,7 +393,7 @@ def test_refresh_rebuilds_only_when_received_or_level_moved():
 
 def test_the_mirror_handler_calls_onMirror_once_per_arrival():
     rt = rt_env()
-    receive(rt, "{ fluids_dehydPct = 5 }")
+    receive(rt, "{ fluids_dehydPct = 3.5 }")
     v = V(rt)
     assert v.stats.rebuilds == 1 and v.lastReceived == 1
     assert v.classes.hydration == 3

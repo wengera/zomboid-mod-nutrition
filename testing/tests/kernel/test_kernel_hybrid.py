@@ -219,3 +219,72 @@ def test_the_panic_wait_does_not_hold_the_unhappiness_rise_or_a_boredom_fall(hos
     assert out.unhappy == pytest.approx(22 / 60)
     out = run(host, dtS=60, bored=20, boredTarget=0, lastBoredTarget=10, panic=7)
     assert out.bored == pytest.approx(10)
+
+
+# --- Plan 15 Task 5: option B, the caps lift at the crises --------------------------------------------------------
+def test_the_caps_hold_under_level_4_with_no_crisis(host):
+    c = host.call("hybrid.defaults")
+    st = host.table({"starving": False, "dehydrated": False})
+    assert host.call("hybrid.caps", st, c) == (0.69, 0, 0.83)
+    assert host.call("hybrid.caps", host.table({}), c) == (0.69, 0, 0.83)       # absent flags read no crisis
+
+
+def test_starvation_lifts_the_hunger_cap_and_holds_starving_above_level_4(host):
+    c = host.call("hybrid.defaults")
+    assert host.call("hybrid.caps", host.table({"starving": True}), c) == (1, 0.71, 0.83)
+    assert c.starvingMin > host.K.hybrid.HUNGRY_4                               # vanilla's Starving shows (#0508's strict >)
+    out = run(host, mode=1, starving=True, hungerTarget=0.3)
+    assert out.hunger == pytest.approx(0.71)                                     # held at least 0.71
+    out = run(host, mode=1, starving=True, hungerTarget=0.93)
+    assert out.hunger == pytest.approx(0.93)                                     # the model's own value above it, to 1
+    assert run(host, mode=1, starving=True, hungerTarget=1.4).hunger == 1
+    assert run(host, mode=1, starving=False, hungerTarget=0.93).hunger == pytest.approx(0.69)
+    assert run(host, mode=1, starving=True, hungerTarget=NAN).hunger is None    # a NaN target still writes nothing
+
+
+def test_dehydration_lifts_the_thirst_cap(host):
+    c = host.call("hybrid.defaults")
+    assert host.call("hybrid.caps", host.table({"dehydrated": True}), c) == (0.69, 0, 1)
+    out = run(host, mode=1, dehydrated=True, thirst=0.8, thirstTarget=0.92)
+    assert out.thirst == pytest.approx(0.92)
+    assert run(host, mode=1, dehydrated=False, thirst=0.8, thirstTarget=0.92).thirst == pytest.approx(0.83)
+    out = run(host, mode=1, dehydrated=True, starving=True, hungerTarget=0.5, thirst=0.8, thirstTarget=0.95)
+    assert (out.hunger, out.thirst) == (pytest.approx(0.71), pytest.approx(0.95))
+    assert run(host, mode=2, dehydrated=True, starving=True, hungerTarget=0.9).hunger is None   # Overlay writes none
+
+
+def test_level_4_is_vanillas_strict_threshold(host):
+    S = host.K.hybrid.severe
+    assert (host.K.hybrid.HUNGRY_4, host.K.hybrid.THIRST_4) == (0.70, 0.84)    # #0508, #0509
+    assert S(0.70, 0.84) is False and S(0.69, 0.83) is False
+    assert S(0.7001, 0) is True and S(0, 0.8401) is True and S(0.71, 0.9) is True
+
+
+def test_the_re_applied_terms_are_vanillas_multiples_of_the_constant(host):
+    R = host.K.hybrid.severeRate
+    assert R(0, False, 0, 0, False) == (0, 0)
+    assert R(4, True, 0, 0, False) == (1, 0)              # SICK 4 on an arm: the whole constant (#2356)
+    assert R(4, False, 0, 0, False) == (0, 0)             # SICK 4 with neither arm: none
+    assert R(3, True, 0, 0, False) == (0, 0)              # SICK 3: none
+    assert R(0, False, 4, 0, False) == (1, 0)             # BLEEDING 4: the whole constant
+    assert R(0, False, 3, 0, False) == (0, 0)
+    f3, h3 = R(0, False, 0, 3, True)
+    f4, h4 = R(0, False, 0, 4, True)
+    assert (f3, h3) == (pytest.approx(0.5), pytest.approx(0.5))   # 0.1 x 1 / ((5 - 3) / 10): the constant over 2
+    assert (f4, h4) == (pytest.approx(1.0), pytest.approx(1.0))   # the constant over 1
+    assert R(0, False, 0, 2, True) == (0, 0) and R(0, False, 0, 4, False) == (0, 0)
+    f, h = R(4, True, 4, 4, True)
+    assert (f, h) == (pytest.approx(3.0), pytest.approx(1.0))
+    assert (host.K.hybrid.HEAVY_ROLL, host.K.hybrid.HEAVY_STRAIN) == (0.1, 0.5)
+
+
+def test_the_re_applied_rates_per_game_hour_match_the_registers_arithmetic(host):
+    # #0516's 0.0165 constant over 120 x 90 multiplier units a game hour at DayLength 4 (#2922): SICK 4 and BLEEDING 4
+    # take 178.2 a game hour, as #3881 states for the 35 kg floor's per-update term; the HUNGRY and THIRST terms the
+    # constant also carries are 3.564 and 17.82 (#0518), which option B leaves to the mod's floors
+    units_h = 120 * 90
+    f, _ = host.K.hybrid.severeRate(4, True, 0, 0, False)
+    assert f * 0.0165 * units_h == pytest.approx(178.2)
+    f, _ = host.K.hybrid.severeRate(0, False, 0, 3, True)
+    assert f * 0.0165 * units_h == pytest.approx(89.1)
+    assert 0.0165 / 50 * units_h == pytest.approx(3.564) and 0.0165 / 10 * units_h == pytest.approx(17.82)

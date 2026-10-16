@@ -9,18 +9,20 @@ K.hybrid = {}
 
 function K.hybrid.defaults()
     return {
-        hungerCap = 0.69,                -- under HUNGRY level 4 at 0.70, #0508 (Plan 5 ruling 14)
-        thirstCap = 0.83,                -- under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14)
+        hungerCap = 0.69,                -- under HUNGRY level 4 at 0.70, #0508 (Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
+        thirstCap = 0.83,                -- under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
         moodRiseUnhappy = 22 / 3600,     -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
         moodRiseSick = 25 / 3600,        -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
         moodRiseStress = 5.0e-5, moodRiseBored = 25 / 3600, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
         maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (the pipeline's clamp)
+        liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
+        starvingMin = 0.71,              -- HUNGER at least this while starving, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; Task 6 calibrates the curve above it)
     }
 end
 
 function K.hybrid.input()
     return {
-        dtS = 0, mode = 1, asleep = false, hunger = 0, hungerTarget = 0, thirst = 0, thirstTarget = nil,
+        dtS = 0, mode = 1, asleep = false, starving = false, dehydrated = false, hunger = 0, hungerTarget = 0, thirst = 0, thirstTarget = nil,
         lastThirst = nil, sipOK = true, fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0,
         stress = 0, stressTarget = 0, unhappy = 0, unhappyTarget = 0, lastUnhappyTarget = 0, foodSick = 0,
         foodSickTarget = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
@@ -52,14 +54,15 @@ function K.hybrid.write(inp, out, c)
     out.fatigue = nil
     if inp.mode == 1 then
         -- K.clamp passes a NaN through, so each target is tested first: a NaN target writes nothing (t == t)
+        local hCap, hMin, tCap = K.hybrid.caps(inp, c)
         local h = inp.hungerTarget
         if h == h then
-            out.hunger = K.clamp(h, 0, c.hungerCap)
+            out.hunger = K.clamp(h, hMin, hCap)
         end
         out.sip = K.hybrid.sip(inp.thirst, inp.lastThirst, inp.sipOK)
         local t = inp.thirstTarget
         if t ~= nil and t == t then
-            out.thirst = K.clamp(t - out.sip, 0, c.thirstCap)
+            out.thirst = K.clamp(t - out.sip, 0, tCap)
         end
         if inp.fOwned and not inp.fFrozen then
             local f = inp.fS + inp.fCirc + inp.fOff
@@ -151,4 +154,61 @@ function K.hybrid.boredRise(inp, c, s)
         return 0
     end
     return c.moodRiseBored * s
+end
+
+-- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3): the caps lift at the crises, so vanilla's own
+-- Starving and Parched moodles show. state is any table with the drain flags (record.drain, or the writer's input,
+-- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1 and holds it at least
+-- starvingMin; dehydrated (K.drain's dehydration state active, a body-water deficit of 4 % or more) lifts THIRST's cap
+-- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under 0.69 and
+-- THIRST under 0.83, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
+function K.hybrid.caps(state, c)
+    local hCap, hMin, tCap = c.hungerCap, 0, c.thirstCap
+    if state.starving == true then
+        hCap = c.liftedCap
+        hMin = c.starvingMin
+    end
+    if state.dehydrated == true then
+        tCap = c.liftedCap
+    end
+    return hCap, hMin, tCap
+end
+
+-- The level-4 thresholds, each a strict greater-than (#0507): HUNGRY above 0.70 (#0508), THIRST above 0.84 (#0509).
+K.hybrid.HUNGRY_4 = 0.70 -- VANILLA #0508
+K.hybrid.THIRST_4 = 0.84 -- VANILLA #0509, #0577
+
+-- Whether a HUNGER and a THIRST stand at level 4: vanilla's severe-moodle drain runs there (#0516), so the writer
+-- sets the shared constant to 0 while this holds.
+function K.hybrid.severe(hunger, thirst)
+    return hunger > K.hybrid.HUNGRY_4 or thirst > K.hybrid.THIRST_4
+end
+
+-- Vanilla's other severe-moodle terms, which the shared constant also carries (#2356, x451): while the writer holds the
+-- constant at 0 it re-applies them at vanilla's rates. Each is a multiple of the constant per multiplier unit:
+-- SICK level 4 on either arm and BLEEDING level 4 the whole constant (BodyDamage.Update L2365, L2370, L2376); a
+-- HEAVY_LOAD above level 2 the constant over (5 - level) / 10 on a one-in-ten roll a tick (Rand.PerThirtiethOfASecond
+-- with 10 draws RandAbstract.Next(0, 10 f), a uniform float, under f: probability 1/10 whatever the frame rate, read on
+-- 42.21), so in expectation the constant over (5 - level), half of it also going to back-muscle strain (L2391-L2393).
+K.hybrid.SEVERE_SICK = 1 -- VANILLA #2356 (SICK 4, either arm: the whole constant)
+K.hybrid.SEVERE_BLEED = 1 -- VANILLA #2356 (BLEEDING 4: the whole constant)
+K.hybrid.HEAVY_ROLL = 0.1 -- VANILLA #2356's roll (Rand.PerThirtiethOfASecond(10) @0-@28 L41-L42 over RandAbstract.Next(FF) L84, uniform; an inference, read on 42.21)
+K.hybrid.HEAVY_STRAIN = 0.5 -- VANILLA #2356 (half the heavy-load term goes to back-muscle strain, L2393)
+
+-- The multiple of the constant per multiplier unit the re-applied terms take at these moodle levels (sickArm: one of
+-- the SICK arms holds; heavyOK: the HEAVY_LOAD term's further conditions hold), and its heavy-load share (the strain's
+-- base). Levels are 0-4.
+function K.hybrid.severeRate(sickLvl, sickArm, bleedLvl, heavyLvl, heavyOK)
+    local f = 0
+    if sickLvl == 4 and sickArm then
+        f = f + K.hybrid.SEVERE_SICK
+    end
+    if bleedLvl == 4 then
+        f = f + K.hybrid.SEVERE_BLEED
+    end
+    local heavy = 0
+    if heavyLvl > 2 and heavyOK then
+        heavy = K.hybrid.HEAVY_ROLL / ((5 - heavyLvl) / 10)
+    end
+    return f + heavy, heavy
 end

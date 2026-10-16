@@ -7,7 +7,7 @@ local K = NR.kernel
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
 -- The Plan 4 dials: onsetSpeed multiplies the rate of every slow deficiency record;
--- the HUNGER and THIRST views are capped under level 4 whatever the dial; excessEffectsOn off
+-- the HUNGER and THIRST views are capped under level 4 outside the starvation and dehydration states (K.hybrid.caps) whatever the dial; excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
 -- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope. No option gates the
 -- health drains: every lethal state drains to its floor and kills at its death point (Plan 15 Task 4, spec section 1.3).

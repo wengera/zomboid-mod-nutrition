@@ -429,6 +429,10 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
 # whose dehydration state starts at 6 %). Read at 1398d765, the build before: 67 steady and 69 draining
 # (ReduceGeneralHealth). Here the steady minute is unchanged; a draining minute adds the overall-health read the floor
 # needs and one stat write (the 4-6 % band's apathy row writes UNHAPPINESS, Plan 15 Task 4's effect order).
+# Plan 15 Task 5 (option B): the 12 % deficit is Parched, so the writer holds the severe-moodle constant at 0 and
+# re-applies its other terms each minute: three moodle levels (SICK, BLEEDING, HEAVY_LOAD) a minute while the constant
+# is 0 (read at eb3ef7b2, the build before, with the same stand-in: 71); the constant itself is written only when its
+# wanted value changes, so neither case pays a write a steady minute.
 ENGINE_COUNT = r"""
 function(p, C)
     local seen = {}
@@ -454,7 +458,8 @@ function(p, C)
 end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
-ENGINE_CALLS = {"steady": 67, "drain": 71}
+ENGINE_CALLS = {"steady": 67, "drain": 74}
+TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
 
 
 @pytest.mark.parametrize("case", sorted(ENGINE_CALLS))
@@ -479,4 +484,6 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     assert (C.n - base) / n == ENGINE_CALLS[case]
     assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
     assert rec["drain"]["active"] is (case == "drain")
-    assert ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2
+    assert ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
+    assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2
+    assert (C.by["setHealthReductionFromSevereBadMoodles"] or 0) == (2 if case == "drain" else 1)   # first sight, then once at Parched

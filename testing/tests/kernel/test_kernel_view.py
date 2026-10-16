@@ -106,7 +106,7 @@ def test_energy_map(host, es, want):
     assert V(host).classes(host.table({"body_energyState": es}))["energy"] == want
 
 
-@pytest.mark.parametrize("pct,want", [(0, 0), (0.9, 0), (1, 1), (2, 2), (3.9, 2), (4, 3), (6, 4), (12, 4)])
+@pytest.mark.parametrize("pct,want", [(0, 0), (0.9, 0), (1, 1), (2, 2), (2.9, 2), (3, 3), (3.9, 3), (4, 4), (12, 4)])
 def test_hydration_follows_the_thirst_knots(host, pct, want):
     assert V(host).classes(host.table({"fluids_dehydPct": pct}))["hydration"] == want
 

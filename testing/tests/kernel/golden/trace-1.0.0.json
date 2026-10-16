@@ -35,6 +35,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -161,6 +163,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -289,6 +293,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -417,6 +423,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 16,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -545,6 +553,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -673,6 +683,8 @@
        "reduceCalls": 1,
        "reduced": 0.13888888888888098,
        "regenSets": 8,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -777,7 +789,7 @@
       "INTOXICATION": 0,
       "PANIC": 7,
       "STRESS": 0.0029999999999998296,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 0.36666666666664582
      }
     }
@@ -1124,11 +1136,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -2026,11 +2040,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -2927,11 +2943,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -3829,11 +3847,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -4729,11 +4749,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -5630,11 +5652,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 0.48333333333333428,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.525958663971196
      },
@@ -6363,6 +6387,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -6489,6 +6515,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -6617,6 +6645,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -6745,6 +6775,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 20,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -6873,6 +6905,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -7001,6 +7035,8 @@
        "reduceCalls": 31,
        "reduced": 4.3055555555555465,
        "regenSets": 8,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -7105,7 +7141,7 @@
       "INTOXICATION": 0,
       "PANIC": 7,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 11.366666666666646
      }
     }
@@ -7452,11 +7488,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -8354,11 +8392,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -9255,11 +9295,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -10157,11 +10199,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -11057,11 +11101,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -11958,11 +12004,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 0.98333333333333428,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.416386124282226
      },
@@ -12690,6 +12738,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 20,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -12816,6 +12866,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -12946,6 +12998,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -13074,6 +13128,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 24,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -13202,6 +13258,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -13330,6 +13388,8 @@
        "reduceCalls": 61,
        "reduced": 8.4722222222222179,
        "regenSets": 12,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -13434,7 +13494,7 @@
       "INTOXICATION": 0,
       "PANIC": 7,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -13782,11 +13842,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -14685,11 +14747,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -15587,11 +15651,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -16494,11 +16560,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -17395,11 +17463,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -18297,11 +18367,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 1.4833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.302316157847386
      },
@@ -19032,6 +19104,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 20,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -19158,6 +19232,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -19288,6 +19364,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -19416,6 +19494,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 32,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -19544,6 +19624,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -19672,6 +19754,8 @@
        "reduceCalls": 91,
        "reduced": 10.780897857167234,
        "regenSets": 12,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -19776,7 +19860,7 @@
       "INTOXICATION": 0,
       "PANIC": 7,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -20124,11 +20208,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -21027,11 +21113,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -21928,11 +22016,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.31666666666666288,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -22812,11 +22902,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -23713,11 +23805,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -24615,11 +24709,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 1.9833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.219102142832767
      },
@@ -25351,6 +25447,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 20,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -25477,6 +25575,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -25607,6 +25707,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -25735,6 +25837,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 40,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -25863,6 +25967,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -25993,6 +26099,8 @@
        "reduceCalls": 107,
        "reduced": 10.977708647665972,
        "regenSets": 16,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -26097,7 +26205,7 @@
       "INTOXICATION": 0,
       "PANIC": 8.875,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -26445,11 +26553,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -27350,11 +27460,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -28251,11 +28363,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 0.81666666666666288,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -29135,11 +29249,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.4666666666666686,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -30036,11 +30152,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -30940,11 +31058,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 2.4833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.327997037306382
      },
@@ -31676,6 +31796,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 24,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -31802,6 +31924,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -31932,6 +32056,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -32060,6 +32186,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -32188,6 +32316,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -32318,6 +32448,8 @@
        "reduceCalls": 117,
        "reduced": 11.188746518221615,
        "regenSets": 16,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -32422,7 +32554,7 @@
       "INTOXICATION": 0,
       "PANIC": 8.875,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -32770,11 +32902,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -33675,11 +33809,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -34576,11 +34712,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.3166666666666629,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -35460,11 +35598,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -36352,11 +36492,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -37256,11 +37398,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 2.9833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.496741586127719
      },
@@ -37992,6 +38136,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 24,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -38118,6 +38264,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 12,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -38248,6 +38396,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -38376,6 +38526,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 12,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -38478,7 +38630,7 @@
       "FATIGUE": 0.50481385043821969,
       "HUNGER": 0.068682251851877721,
       "INTOXICATION": 0,
-      "THIRST": 0.52573063569501222
+      "THIRST": 0.52234483565873313
      }
     },
     "g5": {
@@ -38504,6 +38656,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -38634,6 +38788,8 @@
        "reduceCalls": 125,
        "reduced": 11.396119494597281,
        "regenSets": 16,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -38738,7 +38894,7 @@
       "INTOXICATION": 0,
       "PANIC": 8.875,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -39086,11 +39242,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -39991,11 +40149,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -40892,11 +41052,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 1.8166666666666629,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -41776,11 +41938,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -41857,7 +42021,7 @@
       "sweatActive": true,
       "sweatK": 0.80750738005503431,
       "sweatLmin": 0.0080750738005498836,
-      "thirstTarget": 0.52573063569501222,
+      "thirstTarget": 0.52234483565873313,
       "viewPct": 2.2012396208394862,
       "water": -1836.9759473971872
      },
@@ -42668,11 +42832,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.4833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -43572,11 +43738,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 3.4833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.637603717024334
      },
@@ -44308,6 +44476,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 28,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -44434,6 +44604,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 16,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -44564,6 +44736,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 4,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -44692,6 +44866,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 16,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -44794,7 +44970,7 @@
       "FATIGUE": 0.55073861429281523,
       "HUNGER": 0.074450089984077941,
       "INTOXICATION": 0,
-      "THIRST": 0.61439107849987085
+      "THIRST": 0.60578319045159212
      }
     },
     "g5": {
@@ -44820,6 +44996,8 @@
        "reduceCalls": 0,
        "reduced": 0,
        "regenSets": 8,
+       "sbm": 0.016500000000000001,
+       "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
        "std": 0.002
@@ -44950,6 +45128,8 @@
        "reduceCalls": 137,
        "reduced": 11.477513945581494,
        "regenSets": 16,
+       "sbm": 0,
+       "sbmSets": 2,
        "sev": 0,
        "slp": 0,
        "std": 0
@@ -45054,7 +45234,7 @@
       "INTOXICATION": 0,
       "PANIC": 8.875,
       "STRESS": 0.059999999999999998,
-      "THIRST": 0.82999999999999996,
+      "THIRST": 1,
       "UNHAPPINESS": 21
      }
     }
@@ -45402,11 +45582,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -46307,11 +46489,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -47208,11 +47392,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 2.3166666666666629,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -48092,11 +48278,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -48173,7 +48361,7 @@
       "sweatActive": true,
       "sweatK": 0.80750738005503431,
       "sweatLmin": 0.0080750738005498836,
-      "thirstTarget": 0.61439107849987085,
+      "thirstTarget": 0.60578319045159212,
       "viewPct": 2.5576502752067367,
       "water": -2105.9270328132425
      },
@@ -48984,11 +49172,13 @@
      "drain": {
       "active": false,
       "bmi0": 0,
+      "dehydrated": false,
       "drainThisMinute": 0,
       "feH": 0,
       "naH": 0,
       "rate": 0,
       "starvedH": 3.9833333333333343,
+      "starving": false,
       "state": 0,
       "targetFloor": 100
      },
@@ -49888,11 +50078,13 @@
      "drain": {
       "active": true,
       "bmi0": 0,
+      "dehydrated": true,
       "drainThisMinute": 0.13888888888888098,
       "feH": 0,
       "naH": 0,
       "rate": 200,
       "starvedH": 3.9833333333333343,
+      "starving": false,
       "state": 6,
       "targetFloor": 34.638851447509722
      },

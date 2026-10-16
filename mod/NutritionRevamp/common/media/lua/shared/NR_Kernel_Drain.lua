@@ -15,7 +15,8 @@
 -- and iron rungs' follow the record's own hours in the state (record.drain.naH, feH). The rates are per game day and
 -- independent of day length.
 -- record.drain holds the inputs a save keeps (bmi0, naH, feH; K.store.INPUTS) and the minute's derived outputs
--- (active, state, targetFloor, rate, drainThisMinute, starvedH). Pure: Lua tables in and out, no Java. Slow-clock code
+-- (active, state, targetFloor, rate, drainThisMinute, starvedH, and the starving and dehydrated flags the writer's caps
+-- read, K.hybrid.caps, Plan 15 Task 5). Pure: Lua tables in and out, no Java. Slow-clock code
 -- with no fast region; every K.acute / K.fluids / K.HEIGHT_M reference is at call time.
 local K = NutritionRevamp.kernel
 K.drain = {}
@@ -139,6 +140,8 @@ function K.drain.new()
         rate = 0,
         drainThisMinute = 0,
         starvedH = 0,
+        starving = false,
+        dehydrated = false,
     }
 end
 
@@ -270,8 +273,9 @@ K.drain.IN = { lm = 0, fm = 0, bmi0 = 0, dehydPct = 0 }
 -- One minute of dtM game minutes at world age ageH (nil reads record.nutrients.lastAgeH): every state's onset test, the
 -- clocks the record keeps (the onset BMI, the sodium and iron hours) and the outputs on record.drain: active, state
 -- (the code whose floor is lowest), targetFloor (100 with none), rate (the fastest active, health per game day),
--- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - floor) and
--- starvedH. Returns record.drain.
+-- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - floor),
+-- starvedH, and starving and dehydrated: whether the starvation and the dehydration states are active, whichever
+-- floor wins (the writer lifts its HUNGER and THIRST caps on them, K.hybrid.caps). Returns record.drain.
 function K.drain.step(record, dtM, ageH)
     local D = K.drain.ensure(record)
     local body, nut, fl, a = record.body, record.nutrients, record.fluids, record.acute
@@ -281,6 +285,8 @@ function K.drain.step(record, dtM, ageH)
     D.rate = 0
     D.drainThisMinute = 0
     D.starvedH = 0
+    D.starving = false
+    D.dehydrated = false
     if body == nil or nut == nil or fl == nil or a == nil then
         return D
     end
@@ -298,6 +304,7 @@ function K.drain.step(record, dtM, ageH)
         end
         inp.bmi0 = D.bmi0
         K.drain.consider(D, K.drain.STARVATION, 0, inp)
+        D.starving = true
     else
         D.bmi0 = 0
     end
@@ -312,6 +319,7 @@ function K.drain.step(record, dtM, ageH)
     end
     if fl.dehydPct >= K.drain.states[K.drain.DEHYD].onset then
         K.drain.consider(D, K.drain.DEHYD, 0, inp)
+        D.dehydrated = true
     end
     local iron = nut.iron
     if iron ~= nil and iron.x == K.drain.IRON_RUNG then
@@ -343,6 +351,8 @@ K.drain.REGEN = {
 K.drain.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- Multiplier units a game minute per real minute of day length: a game hour sums 120 x the day length's minutes (#2922).
 K.drain.UNITS_PER_MIN = 2 -- 120 / 60, #2922
+-- The day length in real minutes an adapter assumes when the sandbox is unreadable: vanilla's 90-minute default day.
+K.drain.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
 -- AddGeneralHealth(y) with all 17 parts below 100 raises overall health by y x 5.05 / 17 (#3898).
 K.drain.PART_SPREAD = 17 / 5.05 -- #3898
 K.drain.HEAL_EPS = 0.01 -- health: under the floor by less than this is at it, no row needed

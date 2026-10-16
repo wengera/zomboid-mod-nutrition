@@ -32,8 +32,8 @@ K.view.ENERGY_AT = {
 K.view.HYDRATION_AT = {
     1, -- gc: moodle level 1 at 1 % (Plan 4 ruling 8; open row S1098)
     2, -- level 2 on the 2 % performance threshold, S0092
-    4, -- level 3 on the 4 % strain point, S0709
-    6, -- gc: moodle level 4 at 6 % (Plan 4 ruling 8; open row S1098)
+    3, -- gc: level 3 at 3 % (Plan 15 Task 5, spec section 3.1; open row S1098)
+    4, -- gc: level 4, Parched, at the 4 % dehydration onset (Plan 15 Task 5, spec section 3.1; open row S1098)
 }
 
 -- stimulant: acute_caf, the caffeine in the body in mg (K.acute.caffeine).

@@ -453,7 +453,8 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
     "overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x"
-    " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69: F is the stomach's "
+    " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69 below starvation "
+    "(K.hybrid.caps): F is the stomach's "
     "fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the "
     "1100 g hard capacity, drunk liquid counting at 0.279 of its mass, and M the meal pool, the weighted kcal eaten, "
     "fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and "
@@ -496,7 +497,7 @@ LIMITATION_FOUR = (
 
 def test_limitation_four_names_the_overwrite_and_the_meal_pool():
     lim = list(Host().NR.server.writer.limitations.values())
-    assert len(lim) == 13                                  # the self-report prints the count: 13 since Plan 11g Task 8 (MC-29, ruling T8-1)
+    assert len(lim) == 14                                  # the self-report prints the count: 14 since Plan 15 Task 5 (option B's line; 13 since Plan 11g Task 8, MC-29, ruling T8-1)
     assert lim[3] == LIMITATION_FOUR
 
 

@@ -157,7 +157,7 @@ function K.satiety.sated(F, Mn)
 end
 
 -- The hunger target before the factors: K.deficit.hungerTarget(sated(F, mealRead(M)), energyState). The writer multiplies
--- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH) and caps it at 0.69; the replays read it.
+-- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH) and caps it at 0.69 below starvation (K.hybrid.caps); the replays read it.
 function K.satiety.target(F, M, energyState)
     return K.deficit.hungerTarget(K.satiety.sated(F, K.satiety.mealRead(M)), energyState)
 end
