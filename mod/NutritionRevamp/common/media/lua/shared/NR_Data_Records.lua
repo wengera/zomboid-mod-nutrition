@@ -87,15 +87,15 @@ NR.data.records = {
                 1.2, -- male RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
                 1.1, -- female RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
             },
-            k = 0.05134423559703299, -- = ln2/13.5: K.nutrients.kFromHalfLife(13.5); the 9-18 d whole-body half-life midpoint, S0240
+            k = 0.020844493746521427, -- = ln(1.2/0.5)/42: K.nutrients.calib(0.4166666666666667, 42); clinical at 42 d with none eaten, game choice (open S0243; Plan 15 ruling M2) inside S2255's one to three months and S2256's almost two months; S2258 saw 4-5 weeks at 0.5 mg/d stay subclinical; the 33.3 d half-life this implies exceeds S0240's 9-18 d isotope half-life: the onset wins, stated
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
-                0.4166666666666667, -- clinical = 0.5/1.2: K.nutrients.fFromThreshold(0.5, 1.2); signs below 0.5 mg/d, S0242 (reached at 17.05 d)
+                0.4166666666666667, -- clinical = 0.5/1.2: K.nutrients.fFromThreshold(0.5, 1.2); signs below 0.5 mg/d, S0242 (reached at 42 d)
             },
             pCap = 1.0, -- surplus excreted from the 1-12 h fast pool, S0241 (judgement)
         },
-        -- Riboflavin: no store row and no onset row (S0260 open), so it takes thiamine's rate. No UL (S0255).
+        -- Riboflavin: no store row and no onset row (S0260 open), so it takes thiamine's isotope half-life (S0240), not thiamine's onset-calibrated rate. No UL (S0255).
         riboflavin = {
             key = "riboflavin",
             unit = "mg",
@@ -104,7 +104,7 @@ NR.data.records = {
                 1.3, -- male RDA mg/d, S0253
                 1.1, -- female RDA mg/d, S0253
             },
-            k = 0.05134423559703299, -- = thiamine's ln2/13.5, design-phase-v1 game choice (open S1067; onset open S0260)
+            k = 0.05134423559703299, -- = ln2/13.5: K.nutrients.kFromHalfLife(13.5); S0240's thiamine whole-body half-life midpoint, design-phase-v1 game choice (open S1067; onset open S0260)
             pCap = 1.0, -- urinary excretion rises sharply above ~1 mg/d (tissue saturation), S0257
         },
         -- Niacin (mg NE): energy-scaled; NE = niacin + tryptophan/60, the tryptophan read from protein at trpShare

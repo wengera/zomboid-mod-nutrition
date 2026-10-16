@@ -75,8 +75,8 @@ EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- state is active (it runs through any drain otherwise, jar-checks Check 2) and vanilla's again when none is; Plan 15
 -- Task 8 sets its size outside a drain.
 EFF.REGEN_FOOD = 0.015 -- VANILLA #3897
--- The day length in real minutes a server with no readable sandbox heals at: the 60-minute day (#0518's mapping).
-EFF.DAY_MINUTES = 60 -- VANILLA #0518
+-- The fallback for an unreadable sandbox: the day length in real minutes the heal assumes, vanilla's 90-minute default day (#2922).
+EFF.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
 EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
@@ -318,7 +318,7 @@ local function moodleLevel(moodles, t)
 end
 
 -- The heal toward the floor (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
--- and sleep (K.drain.regenAddition, #0514, #0515), scaled by healMul, times the multiplier units of a game minute at the
+-- and sleep (K.drain.regenAddition, #2721, #0515), scaled by healMul, times the multiplier units of a game minute at the
 -- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the floor and no more
 -- (K.drain.heal, #3898). Read only on a minute that heals.
 local function healToFloor(player, bd, D, E, health, asleep, dtM)

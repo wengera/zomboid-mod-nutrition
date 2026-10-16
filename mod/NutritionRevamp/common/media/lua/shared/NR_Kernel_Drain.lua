@@ -332,13 +332,13 @@ function K.drain.take(D, health)
     return K.clamp(health - D.targetFloor, 0, D.drainThisMinute)
 end
 
--- Healing toward the floor (Plan 15 Task 4 fix 1, ruling L2): vanilla's regeneration tier (#0514, #2721, #2353) and its
+-- Healing toward the floor (Plan 15 Task 4 fix 1, ruling L2): vanilla's regeneration tier (#2721, #2353) and its
 -- additions per multiplier unit (#2354); asleep, the sleeping addition, which HUNGRY or THIRST at level 4 zeroes (#0515).
 K.drain.REGEN = {
     0.002, -- tier 0, the standard addition: VANILLA #2354
     0.0013, -- tier 1, the reduced addition (a HUNGRY, SICK or THIRST level 2): VANILLA #2354
     0.0008, -- tier 2, the severely reduced addition (a level 3, or SICK 4): VANILLA #2354
-    0, -- tier 3, HUNGRY or THIRST at level 4: VANILLA #0514
+    0, -- tier 3, HUNGRY or THIRST at level 4: VANILLA #2721, #2353
 }
 K.drain.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- Multiplier units a game minute per real minute of day length: a game hour sums 120 x the day length's minutes (#2922).
@@ -347,7 +347,7 @@ K.drain.UNITS_PER_MIN = 2 -- 120 / 60, #2922
 K.drain.PART_SPREAD = 17 / 5.05 -- #3898
 K.drain.HEAL_EPS = 0.01 -- health: under the floor by less than this is at it, no row needed
 
--- Vanilla's regeneration addition per multiplier unit for the HUNGRY, THIRST and SICK moodle levels and sleep (#0514,
+-- Vanilla's regeneration addition per multiplier unit for the HUNGRY, THIRST and SICK moodle levels and sleep (#2721,
 -- #2353, #0515): asleep the sleeping addition, 0 at HUNGRY or THIRST 4; awake a level 2 drops to the reduced tier, a 3
 -- (or SICK 4) to the severely reduced, HUNGRY or THIRST 4 to none.
 function K.drain.regenAddition(hungerLvl, thirstLvl, sickLvl, asleep)

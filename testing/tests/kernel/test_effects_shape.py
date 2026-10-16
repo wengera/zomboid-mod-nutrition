@@ -1002,7 +1002,7 @@ def test_a_fast_keeps_the_penalties_of_a_body_already_under_normal_bmi(eff_host)
 
 def test_health_under_the_floor_heals_toward_it_at_vanillas_pace_and_never_above(eff_host):
     # ruling L2: a wound left health at 20 under clinical scurvy's floor 50; vanilla's standard addition 0.002 a
-    # multiplier unit x 2 units a game minute per day-length minute (60, no sandbox read) = 0.24 a game minute, scaled by
+    # multiplier unit x 2 units a game minute per day-length minute (90, the fallback with no sandbox read) = 0.36 a game minute, scaled by
     # scurvy's healMul 0.5 (S0958), through AddGeneralHealth, until the floor; never above it, and no drain under it
     h = eff_host
     rec = record(h)
@@ -1010,14 +1010,14 @@ def test_health_under_the_floor_heals_toward_it_at_vanillas_pace_and_never_above
     p, cfg = player(h, rec, health=20.0)
     minute(h, p, rec)
     assert rec["effects"]["healMul"] == 0.5
-    assert lst(cfg["log"]["add"]) == [pytest.approx(0.002 * 0.5 * 2 * 60, abs=TOL)]
+    assert lst(cfg["log"]["add"]) == [pytest.approx(0.002 * 0.5 * 2 * 90, abs=TOL)]
     assert lst(cfg["log"]["reduce"]) == []
     for m in range(1, 2000):
         minute(h, p, rec, ageH=100.0 + m / 60)
         assert cfg["health"] <= rec["drain"]["targetFloor"] + 1e-9
     assert cfg["health"] == pytest.approx(rec["drain"]["targetFloor"], abs=0.011)
     n = len(lst(cfg["log"]["add"]))
-    assert 600 < n < 2000 and EFF(h).stats.healMinutes >= n
+    assert 500 < n < 2000 and EFF(h).stats.healMinutes >= n    # 30 health at 0.18 x 5.05 / 17 a minute: 561
     regen = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])}
     assert regen["setStandardHealthAddition"] == 0 and regen["setHealthFromFood"] == 0   # vanilla's own stays off
 

@@ -158,7 +158,7 @@ def test_the_ladders_are_the_rows(rh):
 # (record, kernel function, its arguments): every derived rate recomputed through the kernel to 1e-9.
 DERIVED = [
     ("vitC", "calib", (0.15, 40)),
-    ("thiamine", "kFromHalfLife", (13.5,)),
+    ("thiamine", "calib", (0.5 / 1.2, 42)),
     ("riboflavin", "kFromHalfLife", (13.5,)),
     ("niacin", "calib", (0.25, 55)),
     ("vitB6", "kFromHalfLife", (29,)),
@@ -181,8 +181,8 @@ def test_each_derived_rate_is_the_kernels_function(rh, key, fn, args):
 def test_the_hand_rates(rh):
     k = lambda key: _rec(rh, key)["k"]
     assert k("vitC") == pytest.approx(0.0474280, abs=1e-7)
-    assert k("thiamine") == pytest.approx(0.0513442356, abs=1e-10)
-    assert k("riboflavin") == k("thiamine")                     # game choice: thiamine's (open S1067)
+    assert k("thiamine") == pytest.approx(0.0208444937, abs=1e-10)  # clinical at 42 d with none eaten (Plan 15 Task 4b)
+    assert k("riboflavin") == pytest.approx(0.0513442356, abs=1e-10)  # game choice: S0240's thiamine half-life (open S1067)
     assert k("niacin") == pytest.approx(0.0252054, abs=1e-7)
     assert k("folate") == pytest.approx(0.0255843, abs=1e-7)
     assert k("choline") == pytest.approx(0.0573320, abs=1e-7)
@@ -407,7 +407,7 @@ def _simulate(h, days, dial=None):
 def test_zero_intake_for_forty_days(rh):
     state, first = _simulate(rh, 41)
     assert 39 <= first["vitC"] <= 41                           # ln(1/0.15)/k = 40 d
-    assert 16 <= first["thiamine"] <= 18                       # ln(1/0.4167)/0.0513 = 17.05 d
+    assert "thiamine" not in first and state["thiamine"]["g"] == 3   # depleted at 38.3 d, clinical only at 42 d
     assert first["choline"] == pytest.approx(21, abs=1 / 24 + 1e-9)
     assert first["efa"] == pytest.approx(28, abs=1 / 24 + 1e-9)
     assert first["riboflavin"] == pytest.approx(27, abs=1 / 24 + 1e-9)
@@ -417,6 +417,13 @@ def test_zero_intake_for_forty_days(rh):
     assert state["iron"]["g"] == 1 and state["vitA"]["g"] == 1
     assert state["vitE"]["g"] == 1 and state["sodium"]["g"] == 1 and state["caffeine"]["g"] == 1
     assert state["allReplete"] is False
+
+
+def test_thiamine_reaches_clinical_at_six_weeks_with_none_eaten(rh):
+    # Plan 15 Task 4b (ruling M2): k = ln(1.2/0.5)/42, so p = 0.5/1.2 at day 42 (S2255, S2256; open S0243)
+    state, first = _simulate(rh, 43)
+    assert first["thiamine"] == pytest.approx(42, abs=1 / 24 + 1e-9)
+    assert first["riboflavin"] == pytest.approx(27, abs=1 / 24 + 1e-9)   # unchanged: S0240's half-life
 
 
 def test_the_dial_compresses_b12(rh):

@@ -11,7 +11,10 @@ import pytest
 
 TOL = 1e-12
 H2 = 1.70 * 1.70
-DEATH_DAY = 52.05                     # the review's replay (dtM 1) at Plan 15 Task 4 fix 1; Task 4b's to update
+FAST_DEATHS = {                       # water-only fasts (dtM 1) at Plan 15 Task 4b: (body weight kg, days, death day, state)
+    "default": (None, 63, 61.91, 1),  # starvation at BMI 12 (K.drain.STARVATION); thiamine clinical only at day 42
+    "90 kg": (90.0, 78, 77.00, 3),    # wet beriberi (K.drain.BERIBERI): clinical at day 42 + 840 h, before BMI 12 (~day 120)
+}
 
 
 @pytest.fixture(scope="module")
@@ -332,7 +335,7 @@ def test_vanillas_regeneration_tier(host, D):
     assert a(0, 0, 0, False) == 0.002 and a(1, 1, 1, False) == 0.002                 # #2354 standard
     assert a(2, 0, 0, False) == 0.0013 and a(0, 0, 2, False) == 0.0013                # level 2: reduced
     assert a(0, 3, 0, False) == 0.0008 and a(0, 0, 4, False) == 0.0008                # level 3, or SICK 4
-    assert a(4, 0, 0, False) == 0 and a(0, 4, 3, False) == 0                          # HUNGRY or THIRST 4 (#0514)
+    assert a(4, 0, 0, False) == 0 and a(0, 4, 3, False) == 0                          # HUNGRY or THIRST 4 (#2721)
     assert a(3, 3, 3, True) == 0.02 and a(0, 4, 0, True) == 0                         # asleep; #0515 zeroes it at 4
     assert D.UNITS_PER_MIN == 2 and D.PART_SPREAD == pytest.approx(17 / 5.05, abs=TOL)
 
@@ -352,11 +355,12 @@ def test_the_heal_reaches_the_floor_and_never_passes_it(host, D):
     assert D.heal(d, 20.0, 0.24, 1.0) == 0
 
 
-def test_a_total_fast_with_water_ends_by_beriberi_at_day_52(host):
-    """End to end (the Task 4 review's M2): the whole server pipeline (tools/replay_live.replay_arm), the default body,
-    water only (0.5 L every 6 h), until health reaches 0. Pinned as it stands at Plan 15 Task 4 fix 1: thiamine reaches
-    the clinical grade at about day 17, so wet beriberi's floor kills at day 52.05 whatever the body, before the BMI
-    death point (about day 62). TASK 4b'S TO UPDATE: its thiamine calibration moves this death and its cause."""
+@pytest.mark.parametrize("body", sorted(FAST_DEATHS))
+def test_a_water_only_fast_kills_the_default_body_by_starvation_and_a_90_kg_body_by_beriberi(host, body):
+    """End to end (the Task 4 review's M2, Plan 15 Task 4b): the whole server pipeline (tools/replay_live.replay_arm),
+    water only (0.5 L every 6 h), until health reaches 0. Thiamine reaches the clinical grade at day 42 with none
+    eaten, so wet beriberi kills at about day 77 (42 + 840 h): after the default body's BMI-12 death (day 61.9), before
+    the 90 kg body's (about day 120)."""
     import os
     import sys
     tools = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
@@ -364,11 +368,12 @@ def test_a_total_fast_with_water_ends_by_beriberi_at_day_52(host):
     if tools not in sys.path:
         sys.path.insert(0, tools)
     import replay_live as RL
+    weight, days, death_day, death_state = FAST_DEATHS[body]
     dtM = 1.0
-    days = 53
     events = [{"minute": int(k * 360 / dtM), "kind": "drink", "fluid": "Water", "litres": 0.5} for k in range(days * 4)]
-    paths = ["drain.state", "drain.targetFloor"]
+    paths = ["drain.state", "drain.targetFloor", "nutrients.thiamine.g"]
     deaths = []
+    clinical = []
     orig = RL.ServerReplay.row
 
     def row(self, p):
@@ -377,16 +382,20 @@ def test_a_total_fast_with_water_ends_by_beriberi_at_day_52(host):
         out["health"] = 100 - st.reduced + st.added
         return out
     RL.ServerReplay.row = row
+    kw = {} if weight is None else {"player": {"weight": weight}}
     try:
-        rows, _ = RL.replay_arm(events, minutes=int(days * 1440 / dtM), start_age=100.0, dtM=dtM, paths=paths)
+        rows, _ = RL.replay_arm(events, minutes=int(days * 1440 / dtM), start_age=100.0, dtM=dtM, paths=paths, **kw)
     finally:
         RL.ServerReplay.row = orig
     t0 = rows[0]["age"] - dtM / 60
     for r in rows:
+        if not clinical and r["nutrients.thiamine.g"] == 4:
+            clinical.append((r["age"] - t0) / 24)
         if r["health"] <= 1e-6:
             deaths.append(((r["age"] - t0) / 24, r["drain.state"]))
             break
     assert deaths, "no death in %d days" % days
     day, state = deaths[0]
-    assert state == 3                                    # wet beriberi (K.drain.BERIBERI)
-    assert day == pytest.approx(DEATH_DAY, abs=0.1)
+    assert state == death_state
+    assert day == pytest.approx(death_day, abs=0.1)
+    assert clinical[0] == pytest.approx(42, abs=0.01)    # both bodies: clinical at day 42 with none eaten
