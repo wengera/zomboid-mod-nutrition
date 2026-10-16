@@ -572,6 +572,9 @@ def test_vm16_spread_beer_0085():
                       "events": [{"t_h": 0.0, "kind": "drink", "fluid": "water", "litres": 0.4}]})
     assert _at(w, "thirst", 0.2) == pytest.approx(_at(w0, "thirst", 0.2), abs=1e-12)
     assert "#0085" in vm.FORMULAS["VM16"]["claims"] and "#2925" in vm.FORMULAS["VM16"]["claims"]
+    # the hunger factor reaches a spread drink: at HUNGER 0.7 the dose is 6 x 1.25 (#2923)
+    hungry = vm.simulate({"hours": 0.5, "dt_min": 0.05, "start": {"hunger": 0.7}, "events": ev})
+    assert _at(hungry, "intoxication", 0.1 + dur) == pytest.approx(6 * 1.25 - 45.36 * dur, rel=1e-6)
 
 
 # ---- boundary probes (each threshold within 10 % on both sides) ------------------------------------------------------

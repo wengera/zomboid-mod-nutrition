@@ -104,10 +104,10 @@ MAP_CHARTS = {
            "series": ["S1a-v-model", "S1a-v-live", "S1a-m-kernel"]},
     "S1b": {"section": "S1", "title": "When the hunger moodles arrive without food",
            "x": "game hours from a fresh start, 0–36", "y": "moodle level, 0–4",
-           "series": ["S1b-v-model", "S1b-v-live", "S1b-m-kernel", "S1b-m-live"]},
+           "series": ["S1b-v-model", "S1b-v-live", "S1b-m-kernel", "S1b-m-kernel-m1", "S1b-m-live"]},
     "S1c": {"section": "S1", "title": "Thirst without a drink",
            "x": "game hours, 0–24", "y": "thirst, 0–1",
-           "series": ["S1c-v-model", "S1c-v-live", "S1c-m-kernel", "S1c-m-live"]},
+           "series": ["S1c-v-model", "S1c-v-live", "S1c-m-kernel", "S1c-m-kernel-m1", "S1c-m-live"]},
     "S2a": {"section": "S2 Skipping meals", "title": "Hunger through a 36-hour fast and the refeed",
            "x": "game hours from the last meal, −12–60", "y": "hunger",
            "series": ["S2a-v-model", "S2a-v-live", "S2a-m-kernel", "S2a-m-live"]},
@@ -148,7 +148,8 @@ MAP_CHARTS = {
            "x": "game days, 0–30", "y": "energy state (hunger drive)",
            "series": ["S5c-m-gaunt", "S5c-m-none", "S5c-m-live", "S5c-v-model"]},
     "S6a": {"section": "S6 Coffee, beer, no sleep", "title": "Caffeine and tolerance",
-           "x": "game hours over day 1 and day 14", "y": "caffeine in the body (mg); fatigue",
+           "x": "game hours over day 1 and day 14; game days for the tolerance",
+           "y": "caffeine in the body (mg); tolerance (0–1); fatigue",
            "series": ["S6a-m-day1", "S6a-m-day14", "S6a-m-tolerance", "S6a-v-model"]},
     "S6b": {"section": "S6", "title": "Four beers",
            "x": "game hours, 0–24", "y": "intoxication (0–100); blood alcohol %",
@@ -458,12 +459,12 @@ def until_death(points, v, scale=24.0):
     return [p for p in points if p[0] <= end + 1e-12]
 
 
-def to_death(points, v, scale=24.0):
-    """until_death's points with a last point at the death itself, holding the last sampled value (the line ends at
-    the death, not at the last daily sample before it)."""
+def to_death(points, v, at_death, scale=24.0):
+    """until_death's points with a last point at the death itself, the replay's own value at the death minute (the
+    line ends at the death, not at the last daily sample before it)."""
     pts = until_death(points, v, scale)
     if v["death_age"] is not None and pts and pts[-1][0] < v["death_age"] / scale:
-        pts.append([v["death_age"] / scale, pts[-1][1]])
+        pts.append([v["death_age"] / scale, at_death])
     return pts
 
 
@@ -533,7 +534,7 @@ def reset():
 
 
 # rough CPU seconds, for the pool's order only
-JOB_COST = {"j_s2d": 30, "j_s3c": 28, "j_s3a": 21, "j_s5b_strong": 31, "j_s5b_weak": 31, "j_s5b_none": 31,
+JOB_COST = {"j_m1_replay": 4, "j_s2d": 30, "j_s3c": 28, "j_s3a": 21, "j_s5b_strong": 31, "j_s5b_weak": 31, "j_s5b_none": 31,
             "j_s5b_gaunt": 31, "j_s5b_overweight": 31, "j_h2": 11, "j_s2c": 9, "j_s2b": 6, "j_s3b": 5, "j_s6a": 5,
             "j_vanilla_s4b": 12, "j_s2a": 3, "j_sh1": 3}
 
@@ -569,9 +570,9 @@ ADMISSIONS = (
     ("x364:levels", "x364", False, {"level age (min)": ("abs", LEVEL_TOL_MIN)}, SRC_LEVELS, [], [], True),
     # M1 (x446, the HEAD fresh record, Task 6): the quantities S1b-m-live and S1c-m-live draw (re-review N-2)
     ("x446:THIRST", "x446", False, {"THIRST": ("abs", 0.002)}, SRC_M1, ["S1c-m-live"],
-     ["S1c-m-kernel", "ST1-m-kernel"], True),
+     ["S1c-m-kernel", "S1c-m-kernel-m1", "ST1-m-kernel"], True),
     ("x446:levels", "x446", False, {"level age (min)": ("abs", LEVEL_TOL_MIN)}, SRC_LEVELS_M1, ["S1b-m-live"],
-     ["S1b-m-kernel"], True),
+     ["S1b-m-kernel", "S1b-m-kernel-m1"], True),
     ("x405:HUNGER", "x405", False, HUNGER_TOL, SRC_DEFAULT, [], ["S1b-m-kernel"], False),
     ("x271:HUNGER", "x271", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x272:HUNGER", "x272", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
@@ -706,6 +707,19 @@ def j_adm_x36():
 @job
 def j_adm_x44():
     return _jobs_of({"x446:THIRST", "x446:levels"})
+
+
+@job
+def j_m1_replay():
+    """M1's kernel lines (ruling I1): the HEAD replay of x446's own inputs (its start.json, its one eat in events.json,
+    its player.json, on its ring's own clock: replay_of), the energy level and THIRST at every 30th row."""
+    rows, _ = replay_of("x446", False)
+    lv = [(r["s"], r["age"], int(r[SIG] // 1000) % 10) for r in rows if isinstance(r.get(SIG), (int, float))]
+    changes = {lv[i][1] for i in range(1, len(lv)) if lv[i][2] != lv[i - 1][2]}
+    changes |= {lv[i - 1][1] for i in range(1, len(lv)) if lv[i][2] != lv[i - 1][2]}
+    th = [(r["s"], r["age"], r["THIRST"]) for r in rows if isinstance(r.get("THIRST"), (int, float))]
+    return {"levels": [[a, l] for _, a, l in thin(lv, 30, changes)], "thirst": [[a, t] for _, a, t in thin(th, 30)],
+            "change": [[r[1], r[2]] for r in lv if r[1] in changes]}
 
 
 @job
@@ -1121,6 +1135,12 @@ def _grades(days, ev):
                 break
     out["first_grade2_day"] = first2
     out = _done(rows, be, out)
+    da = out["viab"]["death_age"]
+    if da is not None:                                    # the row at the death minute (row k ends at (k + 1) / 60)
+        k = int(round(da * 60.0)) - 1
+        if 0 <= k < len(rows):
+            out["at_death"] = {"age": rows[k]["age"], "vitC_p": rows[k]["nutrients.vitC.p"],
+                               "vitC_g": rows[k]["nutrients.vitC.g"]}
     out["viab"]["thiamine_g_max"] = max(int(r["nutrients.thiamine.g"]) for r in rows
                                        if isinstance(r.get("nutrients.thiamine.g"), (int, float)))
     return out
@@ -1500,8 +1520,8 @@ def h2_live():
     return series("H2-v-live", "Vanilla weight, measured", DAYS, "kg", "vanilla-live", pts,
                   artifact("x443a", "tuna-a.json", "reads.nutrition[*].weight"),
                   "x443a and x443b (build 42.21), one character over 36 game hours: the store written to 3000 kcal at "
-                  "80 kg, then four Base.TunaTinOpen a day (x443b's reads, reads.nutrition[*].weight, continue it after "
-                  "a 0.28 h gap no session graded). It checks the store's arithmetic and the gain rate, not the "
+                  "80 kg, then four Base.TunaTinOpen a day (also read: x443b-20261015-174712 `tuna-b.json` "
+                  "`reads.nutrition[*].weight`, continuing it after a 0.28 h gap no session graded). It checks the store's arithmetic and the gain rate, not the "
                   "30-day line: weight %.3f to %.3f kg; the model matches every read within %.1g kg (VALIDATION "
                   "x443a:weight, x443b:weight)." % (pts[0][1], pts[-1][1], max(abs(vval("x443a:weight")["miss"]),
                                                                               abs(vval("x443b:weight")["miss"]))))
@@ -1546,8 +1566,9 @@ def s_h2():
                [[t / 24.0, w] for t, w in r["weight_kg"]], vmodel("VM6", "VM7", "VM8"),
                "80 kg, calorie store 0, three 500 kcal meals of the same plate's macros at 07, 12 and 18, awake idle "
                "all day: the idle day burns %.1f kcal at 80 kg, so the store climbs past the 1000 kcal gain threshold. "
-               "The idle burn takes the thermoregulator's energy multiplier as 1 (#0464): live, a starving vanilla "
-               "character's store fell %.2f kcal a game hour faster (x442, VALIDATION x442:calorie store)."
+               "The idle burn takes the thermoregulator's energy multiplier as 1 (#0464); live, a starving vanilla "
+               "character's store fell %.2f kcal a game hour faster (x442, VALIDATION x442:calorie store), a gap the "
+               "model does not explain."
                % (VM.burn_rate() * 86400, burn_gap_per_h())),
         h2_live(),
         series("H2-m-fat", "Fat mass, simulated by the mod's code", DAYS, "kg", "kernel",
@@ -1789,11 +1810,12 @@ def s1a_live():
     return series("S1a-v-live", "Vanilla, measured", "game hours from 07:00", HUNGER, "vanilla-live",
                   [[a - t0 + 1.0, v] for _, a, v in thin(rows, 10)],
                   artifact("x443a", ring_file("x443a"), "rows_list[*].HUNGER"),
-                  "x443a, then x443b's ring (rows_list[*].HUNGER) after a 0.28 h gap (build 42.21): a Base.TunaTinOpen "
-                  "at the anchor plus 0, 4, 8, 12, 24 and 28 game hours, x moved so the first tin (world age %.4f) sits "
+                  "Build 42.21: x443a's four Base.TunaTinOpen at the anchor plus 0, 4, 8 and 12 game hours, then "
+                  "x443b's ring (also read: x443b-20261015-174712 `%s` `rows_list[*].HUNGER`) after a 0.28 h gap, "
+                  "with no tin in the drawn 24 h; x moved so the first tin (world age %.4f) sits "
                   "at 08:00 like the model's; its store was written to 3000 kcal first, which hunger does not read "
                   "(#0501). The model matches every row within %.1g (VALIDATION x443a:HUNGER, x443b:HUNGER)."
-                  % (t0, max(abs(vval("x443a:HUNGER")["miss"]), abs(vval("x443b:HUNGER")["miss"]))))
+                  % (ring_file("x443b"), t0, max(abs(vval("x443a:HUNGER")["miss"]), abs(vval("x443b:HUNGER")["miss"]))))
 
 
 def s_s1b():
@@ -1807,6 +1829,7 @@ def s_s1b():
                "From HUNGER 0, no food: levels at %s game hours (each step a point of its own beside the "
                "10-minute points)." % ", ".join("%.2f" % t for t in steps)),
         s1b_live_v(),
+        s1b_kernel_m1(),
         s1b_live_m(),
         series("S1b-m-kernel", "Nutrition Revamp energy moodle", "game hours from a fresh start", "moodle level (0-4)",
                "kernel", k["points"],
@@ -1845,6 +1868,37 @@ def s1b_live_v():
                      abs(vval("x442:HUNGRY 4 crossing (game h)")["miss"])))
 
 
+M1_INPUTS = {"replay": "x446's own inputs at HEAD: its start.json, its events.json (one Base.CannedBologneseOpen at the "
+                        "first hunger request), its player.json, on its ring's own clock (replay_live.replay_live)",
+             "sleep_allowed": False}
+
+
+def s1b_kernel_m1():
+    """I1: the mod's code on M1's own inputs, beside the no-eat line: the HEAD replay of x446's own start and eat."""
+    fs, eat_age = m1_first_seen(), m1_eat_age()
+    k = result("j_m1_replay")
+    up = next(a for a, l in k["levels"] if l >= 1)
+    return series("S1b-m-kernel-m1", "Nutrition Revamp, simulated, one can at the first request",
+                  "game hours from a fresh start", "moodle level (0-4)", "kernel",
+                  [[a - fs, l] for a, l in k["levels"]], kernel(dict(M1_INPUTS, path=SIG), "x446"),
+                  "The mod's code replaying M1's own run (x446): one Base.CannedBologneseOpen %.2f h after first sight, "
+                  "then no food; level 1 %.2f h after first sight. x from start.json's rec.firstSeen; the replay runs on "
+                  "the ring's clock from the saved start, %.2f h after first sight, so it is the line the measured dots "
+                  "beside it are graded against (VALIDATION x446:levels)." % (eat_age - fs, up - fs, k["levels"][0][0] - fs))
+
+
+def s1c_kernel_m1():
+    fs, eat_age = m1_first_seen(), m1_eat_age()
+    k = result("j_m1_replay")
+    return series("S1c-m-kernel-m1", "Nutrition Revamp, simulated, one can at the first request", H, "thirst (0-1)",
+                  "kernel", [[a - fs, t] for a, t in k["thirst"] if a - fs <= 24.0 + 1e-9],
+                  kernel(dict(M1_INPUTS, path="THIRST"), "x446"),
+                  "The mod's code replaying M1's own run (x446): no drink, one Base.CannedBologneseOpen %.2f h after "
+                  "first sight, whose water lowers THIRST for a while; x from start.json's rec.firstSeen, the replay "
+                  "from the saved start %.2f h after it, to 24 h (VALIDATION x446:THIRST)."
+                  % (eat_age - fs, k["thirst"][0][0] - fs))
+
+
 def s1b_live_m():
     """M1 (x446): the energy moodle level off the bus signature's digit, x from the record's first sight."""
     adm("x446:levels")
@@ -1879,6 +1933,7 @@ def s_s1c():
                "(x446 ate one can). x364's older start passes as well (VALIDATION x364:THIRST, superseded)."
                % adm("x446:THIRST")["max_miss"]["THIRST"]),
         s1c_live_v(),
+        s1c_kernel_m1(),
         s1c_live_m(),
     ]
 
@@ -2052,7 +2107,9 @@ def s_s2d():
                "weight with it, until the hunger death at %.2f game days ends the line (S2d-v-model-health). Below "
                "35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never "
                "reaches it before the hunger death. Live, a starving character's store fell %.2f kcal a game hour "
-               "faster than the model's (x442): the idle burn's thermoregulator term, taken as 1 here (#0464)."
+               "faster than the model's (x442): the one term the model leaves out that can raise the idle burn is the "
+               "thermoregulator's energy multiplier, taken as 1 here (#0464, never below 1); the run read no thermal "
+               "total, so that cause is unmeasured."
                % (death / 24.0, burn_gap_per_h())),
         s2d_live_health(death),
         series("S2d-v-live-weight", "Vanilla weight, measured", DAYS, "kg", "vanilla-live",
@@ -2097,12 +2154,12 @@ def s_s3a():
     others = "; ".join("%s marginal from day %.0f" % (n, d) for d, n in firsts) or "no other record marginal"
     return [
         series("S3a-m-pool", "Vitamin C store", DAYS, "vitamin C store (0-1)", "kernel",
-               to_death([[a / 24.0, p] for _, a, p in k["vitC_p"]], v),
+               to_death([[a / 24.0, p] for _, a, p in k["vitC_p"]], v, k["at_death"]["vitC_p"]),
                kernel(dict(inp, path="nutrients.vitC.p"), "x151r"),
                "Proof x151r (the Plan 4 build, OnsetSpeed 30: G11); vitamin C is never scaled by OnsetSpeed. The "
                "first other records to reach grade 2 on this diet: %s. %s" % (others, death_note(v))),
         series("S3a-m-grade", "Vitamin C grade", DAYS, "grade (1 replete - 4 clinical)", "kernel",
-               to_death([[a / 24.0, g] for _, a, g in k["vitC_g"]], v),
+               to_death([[a / 24.0, g] for _, a, g in k["vitC_g"]], v, k["at_death"]["vitC_g"]),
                kernel(dict(inp, path="nutrients.vitC.g"), "x151r"), death_note(v)),
         series("S3a-study-0224", "Padayatty 2016: one self-experimenter", DAYS, "vitamin C store (0-1)", "study",
                [[161.0, VITC_CLINICAL]], study("S0224"),
@@ -2149,10 +2206,12 @@ def s3b_live(sid, field, label, unit):
     vals = [v for _, _, v in rows]
     return series(sid, label, DAYS, unit, "vanilla-live", [[(a - t0) / 24.0, v] for _, a, v in thin(rows, 30)],
                   artifact("x443a", ring_file("x443a"), "rows_list[*].%s" % field),
-                  "x443a, then x443b's ring after a 0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game "
+                  "x443a, then x443b's ring (also read: x443b-20261015-174712 `%s` `rows_list[*].%s`) after a "
+                  "0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game "
                   "hours, standing idle; %s read %.4g to %.4g. The rise is the idle character's, not the food's: the "
                   "game's Base.TunaTinOpen script carries no boredom or unhappiness change, and vanilla has no "
-                  "monotony term. The vanilla model has no mood, so the line is ungraded." % (field, min(vals), max(vals)))
+                  "monotony term. The vanilla model has no mood, so the line is ungraded."
+                  % (ring_file("x443b"), field, field, min(vals), max(vals)))
 
 
 def s_s3c():
@@ -2277,8 +2336,8 @@ def s_s6a():
                "on open rows (S0851, S1123), so no study is drawn." % k["tol14"]),
         series("S6a-m-tolerance", "Caffeine tolerance", DAYS, "tolerance (0-1)", "kernel", k["tol"],
                kernel(dict(inp, path="acute.cafTol", read="each 07:00 day close"), "x161f"),
-               "The same replay's tolerance at each day close: it relaxes toward the day's mean caffeine over %d mg "
-               "(K.acute.CAF_TOL_REF) with tau 7 days, reading %.3f on day 14; a game choice on open rows (S0851, "
+               "The same replay's tolerance at each day close: it relaxes, tau 7 days, toward the 7-day mean of the "
+               "daily caffeine absorbed over %d mg a day (K.acute.CAF_TOL_REF, CAF_MEAN_H), reading %.3f on day 14; a game choice on open rows (S0851, "
                "S1123), so no study is drawn." % (int(float(KHost().K.acute.CAF_TOL_REF)), k["tol"][-1][1])),
         series("S6a-v-model", "Vanilla FATIGUE per cup", "game hours from 07:00", "fatigue change", "vanilla-model",
                [[1.0, cup], [5.0, cup], [9.0, cup]], vmodel("VM15"),
@@ -2325,8 +2384,9 @@ def s6b_live():
                   [[a - t0 + 1.0, v] for a, v in zip(ages, vals)],
                   artifact("x445b", "beers.json", "checks.B.polls[*].intox"),
                   "x445b (build 42.21, DayLength 4, sleep on): four 0.3 L beers back to back, not 20 minutes apart as "
-                  "the model's; x moved so the last read before the first sip (world age %.4f) sits at 08:00. Each "
-                  "can peaked at %s; the decay ran %.2f a game hour against the model's 45.36 (VALIDATION x445b)."
+                  "the model's; x moved so the last read before the first sip (world age %.4f) sits at 08:00. "
+                  "INTOXICATION peaked at %s after cans 1 to 4 (each can's dose stacking on what was left of the last); "
+                  "the decay ran %.2f a game hour against the model's 45.36 (VALIDATION x445b)."
                   % (t0, ", ".join("%.2f" % vval("x445b:INTOXICATION peak, can %d" % i)["live"] for i in range(1, 5)),
                      -vval("x445b:INTOXICATION decay a game hour")["live"]))
 
@@ -2708,12 +2768,16 @@ CAUSE_FLOOR = ("the game's timer has no floor: BodyDamage.Update takes the multi
 CAUSE_BURN = ("the idle burn's thermoregulator term: updateCalories multiplies the idle and asleep burn by the "
               "thermoregulator's energy multiplier (#0187, #0455), which is 1 plus 0.05 and 0.10 times the squared "
               "primary and secondary totals on the cold side (#0464); the model takes it as 1, and a value 1.2 % above "
-              "1 accounts for the gap. The run read no thermal total, so the model is not fitted to it: the vanilla "
-              "weight and store lines state it.")
+              "1 would account for the gap; unmeasured: the run read no thermal total, and x441 and x443a/b show the "
+              "same sign at about a third of the rate. The model is not fitted to it: the vanilla weight and store "
+              "lines state it as a candidate.")
 CAUSE_SPREAD = ("the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk "
                 "(#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. "
                 "The model now spreads a drink with a duration over it (VM16); with each can spread over its live span "
-                "the zero and the peaks land on the live reads.")
+                "the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak "
+                "poll and to start between the run's last read before it and its first rising poll (inputs read off "
+                "the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends "
+                "only on the first sip and the dose, is the timing test.")
 CAUSE_FREEZE = ("row resolution: the first ring row above FREEZE_EPS (0.0005) sits a row past the live unfreeze (s391 "
                 "reads 0.000414 at 8.8668); the live timer's own zero, 8.8545, is the model's 8.8524 within 8 game "
                 "seconds, the placement above.")
@@ -2954,7 +3018,8 @@ def v_x445b():
     m_inst = L.model_chain(sc)
     polls = list(zip(read(run, f, "checks.B.polls[*].age"), read(run, f, "checks.B.polls[*].intox")))
     last = read(run, f, "drinks[3].event_age")
-    pts = [(a, v) for a, v in polls if a > last + L.EVENT_SKIP_H and v > L.INTOX_FIT_MIN]
+    fit_from = read(run, f, "checks.B.cans[3].settle_age")          # the run's own V4_B_decay fit start
+    pts = [(a, v) for a, v in polls if a > fit_from + L.EVENT_SKIP_H and v > L.INTOX_FIT_MIN]
     live = L.fit_slope(pts)
     pred = -VM.intoxication_decay_per_hour(90.0)
     out = [vrec(run, "INTOXICATION decay a game hour", pred, live, L.INTOX_DECAY_REL * abs(pred),
@@ -2974,7 +3039,9 @@ def v_x445b():
                  "named here: inside the model's bracket, the first sip anywhere between the run's last read before "
                  "it and the first poll that rose", at=pa, within=within, miss=miss, how="bracket",
                  cause=CAUSE_SPREAD, draws=["S6b-v-live"])
-        r.update(model_bracket=[lo, hi], model_instant=VM.intoxication_gain(VM.BEER_ALCOHOL_PER_L * 0.3, 0.0))
+        ea = read(run, f, "drinks[%d].event_age" % i)
+        inst = max(v for t, v in m_inst["intoxication"] if ea - a0 - 0.02 <= t <= pa - a0 + 0.02)
+        r.update(model_bracket=[lo, hi], model_instant=inst)
         out.append(r)
     return out
 

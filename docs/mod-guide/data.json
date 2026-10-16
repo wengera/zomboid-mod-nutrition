@@ -69,6 +69,7 @@
     "S1b-v-model",
     "S1b-v-live",
     "S1b-m-kernel",
+    "S1b-m-kernel-m1",
     "S1b-m-live"
    ],
    "title": "When the hunger moodles arrive without food",
@@ -81,6 +82,7 @@
     "S1c-v-model",
     "S1c-v-live",
     "S1c-m-kernel",
+    "S1c-m-kernel-m1",
     "S1c-m-live"
    ],
    "title": "Thirst without a drink",
@@ -255,8 +257,8 @@
     "S6a-v-model"
    ],
    "title": "Caffeine and tolerance",
-   "x": "game hours over day 1 and day 14",
-   "y": "caffeine in the body (mg); fatigue"
+   "x": "game hours over day 1 and day 14; game days for the tolerance",
+   "y": "caffeine in the body (mg); tolerance (0–1); fatigue"
   },
   "S6b": {
    "section": "S6",
@@ -615,7 +617,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "eat": {
       "cal": 540.0,
@@ -1149,7 +1151,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.fm",
      "plate": [
@@ -1319,7 +1321,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.lm + body.lx",
      "plate": [
@@ -1489,7 +1491,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "plate": [
@@ -1531,7 +1533,7 @@
    "chart": "H2",
    "id": "H2-v-live",
    "label": "Vanilla weight, measured",
-   "note": "x443a and x443b (build 42.21), one character over 36 game hours: the store written to 3000 kcal at 80 kg, then four Base.TunaTinOpen a day (x443b's reads, reads.nutrition[*].weight, continue it after a 0.28 h gap no session graded). It checks the store's arithmetic and the gain rate, not the 30-day line: weight 80.025 to 81.419 kg; the model matches every read within 0.0006 kg (VALIDATION x443a:weight, x443b:weight).",
+   "note": "x443a and x443b (build 42.21), one character over 36 game hours: the store written to 3000 kcal at 80 kg, then four Base.TunaTinOpen a day (also read: x443b-20261015-174712 `tuna-b.json` `reads.nutrition[*].weight`, continuing it after a 0.28 h gap no session graded). It checks the store's arithmetic and the gain rate, not the 30-day line: weight 80.025 to 81.419 kg; the model matches every read within 0.0006 kg (VALIDATION x443a:weight, x443b:weight).",
    "points": [
     [
      0.026177446047465008,
@@ -1702,7 +1704,7 @@
    "chart": "H2",
    "id": "H2-v-model",
    "label": "Vanilla, from the game's code",
-   "note": "80 kg, calorie store 0, three 500 kcal meals of the same plate's macros at 07, 12 and 18, awake idle all day: the idle day burns 1382.4 kcal at 80 kg, so the store climbs past the 1000 kcal gain threshold. The idle burn takes the thermoregulator's energy multiplier as 1 (#0464): live, a starving vanilla character's store fell 0.68 kcal a game hour faster (x442, VALIDATION x442:calorie store).",
+   "note": "80 kg, calorie store 0, three 500 kcal meals of the same plate's macros at 07, 12 and 18, awake idle all day: the idle day burns 1382.4 kcal at 80 kg, so the store climbs past the 1000 kcal gain threshold. The idle burn takes the thermoregulator's energy multiplier as 1 (#0464); live, a starving vanilla character's store fell 0.68 kcal a game hour faster (x442, VALIDATION x442:calorie store), a gap the model does not explain.",
    "points": [
     [
      0.0,
@@ -3348,7 +3350,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -4845,7 +4847,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -8770,7 +8772,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -8813,7 +8815,7 @@
    "chart": "S1a",
    "id": "S1a-v-live",
    "label": "Vanilla, measured",
-   "note": "x443a, then x443b's ring (rows_list[*].HUNGER) after a 0.28 h gap (build 42.21): a Base.TunaTinOpen at the anchor plus 0, 4, 8, 12, 24 and 28 game hours, x moved so the first tin (world age 2.5705) sits at 08:00 like the model's; its store was written to 3000 kcal first, which hunger does not read (#0501). The model matches every row within 0.0001 (VALIDATION x443a:HUNGER, x443b:HUNGER).",
+   "note": "Build 42.21: x443a's four Base.TunaTinOpen at the anchor plus 0, 4, 8 and 12 game hours, then x443b's ring (also read: x443b-20261015-174712 `minute-ring-admin-{1,721}.json` `rows_list[*].HUNGER`) after a 0.28 h gap, with no tin in the drawn 24 h; x moved so the first tin (world age 2.5705) sits at 08:00 like the model's; its store was written to 3000 kcal first, which hunger does not read (#0501). The model matches every row within 0.0001 (VALIDATION x443a:HUNGER, x443b:HUNGER).",
    "points": [
     [
      0.7962145805358887,
@@ -10887,7 +10889,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "_G.NutritionRevamp.server.bus.lastSig.admin",
      "read": "the thousands digit (test_replay_live_energy.long_fast_levels)",
@@ -10909,6 +10911,262 @@
     },
     "kind": "kernel",
     "proof_run": "x405-20261013-155742",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "game hours from a fresh start",
+    "y": "moodle level (0-4)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "S1b",
+   "id": "S1b-m-kernel-m1",
+   "label": "Nutrition Revamp, simulated, one can at the first request",
+   "note": "The mod's code replaying M1's own run (x446): one Base.CannedBologneseOpen 3.95 h after first sight, then no food; level 1 16.84 h after first sight. x from start.json's rec.firstSeen; the replay runs on the ring's clock from the saved start, 1.05 h after first sight, so it is the line the measured dots beside it are graded against (VALIDATION x446:levels).",
+   "points": [
+    [
+     1.0481719970703125,
+     0
+    ],
+    [
+     1.5527820587158203,
+     0
+    ],
+    [
+     2.057485580444336,
+     0
+    ],
+    [
+     2.548886299133301,
+     0
+    ],
+    [
+     3.0538854598999023,
+     0
+    ],
+    [
+     3.5488805770874023,
+     0
+    ],
+    [
+     4.059078216552734,
+     0
+    ],
+    [
+     4.550644874572754,
+     0
+    ],
+    [
+     5.056126594543457,
+     0
+    ],
+    [
+     5.548160552978516,
+     0
+    ],
+    [
+     6.053503036499023,
+     0
+    ],
+    [
+     6.558069229125977,
+     0
+    ],
+    [
+     7.050167083740234,
+     0
+    ],
+    [
+     7.555850982666016,
+     0
+    ],
+    [
+     8.048185348510742,
+     0
+    ],
+    [
+     8.553577423095703,
+     0
+    ],
+    [
+     9.059560775756836,
+     0
+    ],
+    [
+     9.55174446105957,
+     0
+    ],
+    [
+     10.057403564453125,
+     0
+    ],
+    [
+     10.549800872802734,
+     0
+    ],
+    [
+     11.055490493774414,
+     0
+    ],
+    [
+     11.560495376586914,
+     0
+    ],
+    [
+     12.051883697509766,
+     0
+    ],
+    [
+     12.557111740112305,
+     0
+    ],
+    [
+     13.049463272094727,
+     0
+    ],
+    [
+     13.555217742919922,
+     0
+    ],
+    [
+     14.060779571533203,
+     0
+    ],
+    [
+     14.552257537841797,
+     0
+    ],
+    [
+     15.058038711547852,
+     0
+    ],
+    [
+     15.550390243530273,
+     0
+    ],
+    [
+     16.05583953857422,
+     0
+    ],
+    [
+     16.548023223876953,
+     0
+    ],
+    [
+     16.827438354492188,
+     0
+    ],
+    [
+     16.840789794921875,
+     1
+    ],
+    [
+     17.05363655090332,
+     1
+    ],
+    [
+     17.55951690673828,
+     1
+    ],
+    [
+     18.05174446105957,
+     1
+    ],
+    [
+     18.557401657104492,
+     1
+    ],
+    [
+     19.049514770507812,
+     1
+    ],
+    [
+     19.5550537109375,
+     1
+    ],
+    [
+     20.060375213623047,
+     1
+    ],
+    [
+     20.551916122436523,
+     1
+    ],
+    [
+     21.057186126708984,
+     1
+    ],
+    [
+     21.548871994018555,
+     1
+    ],
+    [
+     22.054306030273438,
+     1
+    ],
+    [
+     22.55950164794922,
+     1
+    ],
+    [
+     23.05086898803711,
+     1
+    ],
+    [
+     23.555967330932617,
+     1
+    ],
+    [
+     24.060760498046875,
+     1
+    ],
+    [
+     24.552932739257812,
+     1
+    ],
+    [
+     25.05832290649414,
+     1
+    ],
+    [
+     25.55005645751953,
+     1
+    ],
+    [
+     26.055217742919922,
+     1
+    ],
+    [
+     26.56058120727539,
+     1
+    ],
+    [
+     27.052858352661133,
+     1
+    ],
+    [
+     27.55789566040039,
+     1
+    ],
+    [
+     28.04886245727539,
+     1
+    ],
+    [
+     28.0823974609375,
+     1
+    ]
+   ],
+   "provenance": {
+    "commit": "57ccd0510a",
+    "inputs": {
+     "path": "_G.NutritionRevamp.server.bus.lastSig.admin",
+     "replay": "x446's own inputs at HEAD: its start.json, its events.json (one Base.CannedBologneseOpen at the first hunger request), its player.json, on its ring's own clock (replay_live.replay_live)",
+     "sleep_allowed": false
+    },
+    "kind": "kernel",
+    "proof_run": "x446-20261015-180608",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -12679,10 +12937,218 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00, no drink, 24 h",
+     "sleep_allowed": false
+    },
+    "kind": "kernel",
+    "proof_run": "x446-20261015-180608",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "game hours",
+    "y": "thirst (0-1)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "S1c",
+   "id": "S1c-m-kernel-m1",
+   "label": "Nutrition Revamp, simulated, one can at the first request",
+   "note": "The mod's code replaying M1's own run (x446): no drink, one Base.CannedBologneseOpen 3.95 h after first sight, whose water lowers THIRST for a while; x from start.json's rec.firstSeen, the replay from the saved start 1.05 h after it, to 24 h (VALIDATION x446:THIRST).",
+   "points": [
+    [
+     1.0481719970703125,
+     0.06248768519209391
+    ],
+    [
+     1.5527820587158203,
+     0.09254137198977275
+    ],
+    [
+     2.057485580444336,
+     0.12202869002274819
+    ],
+    [
+     2.548886299133301,
+     0.15034070820319057
+    ],
+    [
+     3.0538854598999023,
+     0.17902063436021665
+    ],
+    [
+     3.5488805770874023,
+     0.20657444976476547
+    ],
+    [
+     4.059078216552734,
+     0.08189149198823986
+    ],
+    [
+     4.550644874572754,
+     0.14695600153264032
+    ],
+    [
+     5.056126594543457,
+     0.2068412632263652
+    ],
+    [
+     5.548160552978516,
+     0.26108184548928415
+    ],
+    [
+     6.053503036499023,
+     0.3138878188575871
+    ],
+    [
+     6.558069229125977,
+     0.3613116740897123
+    ],
+    [
+     7.050167083740234,
+     0.4064681210047597
+    ],
+    [
+     7.555850982666016,
+     0.4483167355715363
+    ],
+    [
+     8.048185348510742,
+     0.4919420298216787
+    ],
+    [
+     8.553577423095703,
+     0.5393742005065936
+    ],
+    [
+     9.059560775756836,
+     0.5725991078023149
+    ],
+    [
+     9.55174446105957,
+     0.599229288816603
+    ],
+    [
+     10.057403564453125,
+     0.6238836025879807
+    ],
+    [
+     10.549800872802734,
+     0.6470293567561218
+    ],
+    [
+     11.055490493774414,
+     0.6701136690051036
+    ],
+    [
+     11.560495376586914,
+     0.6919239056042986
+    ],
+    [
+     12.051883697509766,
+     0.7136445081872814
+    ],
+    [
+     12.557111740112305,
+     0.734718719701531
+    ],
+    [
+     13.049463272094727,
+     0.7545936120959612
+    ],
+    [
+     13.555217742919922,
+     0.774316092888585
+    ],
+    [
+     14.060779571533203,
+     0.7928362229933967
+    ],
+    [
+     14.552257537841797,
+     0.8111075780037169
+    ],
+    [
+     15.058038711547852,
+     0.8282332849577996
+    ],
+    [
+     15.550390243530273,
+     0.83
+    ],
+    [
+     16.05583953857422,
+     0.83
+    ],
+    [
+     16.548023223876953,
+     0.83
+    ],
+    [
+     17.05363655090332,
+     0.83
+    ],
+    [
+     17.55951690673828,
+     0.83
+    ],
+    [
+     18.05174446105957,
+     0.83
+    ],
+    [
+     18.557401657104492,
+     0.83
+    ],
+    [
+     19.049514770507812,
+     0.83
+    ],
+    [
+     19.5550537109375,
+     0.83
+    ],
+    [
+     20.060375213623047,
+     0.83
+    ],
+    [
+     20.551916122436523,
+     0.83
+    ],
+    [
+     21.057186126708984,
+     0.83
+    ],
+    [
+     21.548871994018555,
+     0.83
+    ],
+    [
+     22.054306030273438,
+     0.83
+    ],
+    [
+     22.55950164794922,
+     0.83
+    ],
+    [
+     23.05086898803711,
+     0.83
+    ],
+    [
+     23.555967330932617,
+     0.83
+    ]
+   ],
+   "provenance": {
+    "commit": "57ccd0510a",
+    "inputs": {
+     "path": "THIRST",
+     "replay": "x446's own inputs at HEAD: its start.json, its events.json (one Base.CannedBologneseOpen at the first hunger request), its player.json, on its ring's own clock (replay_live.replay_live)",
      "sleep_allowed": false
     },
     "kind": "kernel",
@@ -15483,7 +15949,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "clock": "minute 0 is 00:00",
      "plate": [
@@ -17573,7 +18039,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "body": "the oracle's 70 kg man (MAN)",
      "plate": [
@@ -17675,7 +18141,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "depletions": [
       0.0,
@@ -17891,7 +18357,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "replay": "90 days, no food, the replay's water",
@@ -19143,7 +19609,7 @@
    "chart": "S2d",
    "id": "S2d-v-model-weight",
    "label": "Vanilla weight",
-   "note": "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the weight with it, until the hunger death at 2.62 game days ends the line (S2d-v-model-health). Below 35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never reaches it before the hunger death. Live, a starving character's store fell 0.68 kcal a game hour faster than the model's (x442): the idle burn's thermoregulator term, taken as 1 here (#0464).",
+   "note": "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the weight with it, until the hunger death at 2.62 game days ends the line (S2d-v-model-health). Below 35 kg the game clamps the weight and drains health (Nutrition.setWeight, T2.4); a fast never reaches it before the hunger death. Live, a starving character's store fell 0.68 kcal a game hour faster than the model's (x442): the one term the model leaves out that can raise the idle burn is the thermoregulator's energy multiplier, taken as 1 here (#0464, never below 1); the run read no thermal total, so that cause is unmeasured.",
    "points": [
     [
      0.0,
@@ -19453,7 +19919,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -19733,11 +20199,11 @@
     ],
     [
      57.97222222222222,
-     0.06697987737738709
+     0.06396152184880888
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -20503,7 +20969,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating through Base.Bread, Base.CannedBologneseOpen, Base.Burger, Base.Apple, Base.Orange, Base.TunaTinOpen, with the replay's water",
@@ -20614,7 +21080,7 @@
    "chart": "S3b",
    "id": "S3b-v-live-B",
    "label": "Vanilla boredom, measured",
-   "note": "x443a, then x443b's ring after a 0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game hours, standing idle; BOREDOM read 0.2481 to 100. The rise is the idle character's, not the food's: the game's Base.TunaTinOpen script carries no boredom or unhappiness change, and vanilla has no monotony term. The vanilla model has no mood, so the line is ungraded.",
+   "note": "x443a, then x443b's ring (also read: x443b-20261015-174712 `minute-ring-admin-{1,721}.json` `rows_list[*].BOREDOM`) after a 0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game hours, standing idle; BOREDOM read 0.2481 to 100. The rise is the idle character's, not the food's: the game's Base.TunaTinOpen script carries no boredom or unhappiness change, and vanilla has no monotony term. The vanilla model has no mood, so the line is ungraded.",
    "points": [
     [
      0.0007199247678120931,
@@ -20925,7 +21391,7 @@
    "chart": "S3b",
    "id": "S3b-v-live-U",
    "label": "Vanilla unhappiness, measured",
-   "note": "x443a, then x443b's ring after a 0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game hours, standing idle; UNHAPPINESS read 0 to 100. The rise is the idle character's, not the food's: the game's Base.TunaTinOpen script carries no boredom or unhappiness change, and vanilla has no monotony term. The vanilla model has no mood, so the line is ungraded.",
+   "note": "x443a, then x443b's ring (also read: x443b-20261015-174712 `minute-ring-admin-{1,721}.json` `rows_list[*].UNHAPPINESS`) after a 0.28 h gap (build 42.21): seven Base.TunaTinOpen over 36 game hours, standing idle; UNHAPPINESS read 0 to 100. The rise is the idle character's, not the food's: the game's Base.TunaTinOpen script carries no boredom or unhappiness change, and vanilla has no monotony term. The vanilla model has no mood, so the line is ungraded.",
    "points": [
     [
      0.0007199247678120931,
@@ -21404,7 +21870,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "orange": {
       "cal": 65.0,
@@ -22940,7 +23406,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -24436,7 +24902,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -25932,7 +26398,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -31061,7 +31527,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -33188,7 +33654,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -36105,7 +36571,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 5,
@@ -37609,7 +38075,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -38022,7 +38488,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 5,
      "path": "body.wroteL",
@@ -38433,7 +38899,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -38844,7 +39310,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -39257,7 +39723,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 9,
      "path": "body.wroteL",
@@ -39670,7 +40136,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "native_strength": 0,
      "path": "body.wroteL",
@@ -40251,7 +40717,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -40440,7 +40906,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -41086,7 +41552,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "day": 1,
      "path": "acute.caf",
@@ -41712,7 +42178,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "day": 14,
      "path": "acute.caf",
@@ -41754,7 +42220,7 @@
    "chart": "S6a",
    "id": "S6a-m-tolerance",
    "label": "Caffeine tolerance",
-   "note": "The same replay's tolerance at each day close: it relaxes toward the day's mean caffeine over 400 mg (K.acute.CAF_TOL_REF) with tau 7 days, reading 0.453 on day 14; a game choice on open rows (S0851, S1123), so no study is drawn.",
+   "note": "The same replay's tolerance at each day close: it relaxes, tau 7 days, toward the 7-day mean of the daily caffeine absorbed over 400 mg a day (K.acute.CAF_TOL_REF, CAF_MEAN_H), reading 0.453 on day 14; a game choice on open rows (S0851, S1123), so no study is drawn.",
    "points": [
     [
      0.0006944444444444445,
@@ -41818,7 +42284,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "acute.cafTol",
      "plate": [
@@ -42474,7 +42940,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "acute.bac",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -43087,7 +43553,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "acute.hang",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -43700,7 +44166,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -43733,7 +44199,7 @@
    "chart": "S6b",
    "id": "S6b-v-live",
    "label": "Vanilla intoxication, measured",
-   "note": "x445b (build 42.21, DayLength 4, sleep on): four 0.3 L beers back to back, not 20 minutes apart as the model's; x moved so the last read before the first sip (world age 2.4644) sits at 08:00. Each can peaked at 4.83, 6.40, 8.10, 9.95; the decay ran 45.36 a game hour against the model's 45.36 (VALIDATION x445b).",
+   "note": "x445b (build 42.21, DayLength 4, sleep on): four 0.3 L beers back to back, not 20 minutes apart as the model's; x moved so the last read before the first sip (world age 2.4644) sits at 08:00. INTOXICATION peaked at 4.83, 6.40, 8.10, 9.95 after cans 1 to 4 (each can's dose stacking on what was left of the last); the decay ran 45.36 a game hour against the model's 45.36 (VALIDATION x445b).",
    "points": [
     [
      1.002664566040039,
@@ -50098,7 +50564,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "acute.debtH",
      "plate": [
@@ -50481,7 +50947,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -50759,7 +51225,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51037,7 +51503,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51315,7 +51781,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -51361,7 +51827,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "bodies": [
       [
@@ -51453,7 +51919,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "acute.debtH",
      "read": "at each close's s_after",
@@ -51579,7 +52045,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "code": 2,
      "drain_per_minute": 0.00992063492063492,
@@ -51683,7 +52149,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -51758,7 +52224,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -52146,7 +52612,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "stomachFill",
      "replay": "x363's events.json from its start.json at HEAD",
@@ -52972,7 +53438,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "clock": "09:00",
      "preloads_kcal": [
@@ -53089,7 +53555,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal arm (x27_grade.row8)",
      "window": "world age 25 to 49"
@@ -53509,7 +53975,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "x343's events.json from its start.json at HEAD",
@@ -53710,7 +54176,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -54117,7 +54583,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00 at rest, no drink, the first 10 h",
@@ -54433,7 +54899,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "body": "the 80 kg reference man",
      "function": "test_sodium_balance.simulate(days=5, na_day=0)"
@@ -55498,7 +55964,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "function": "K.view.fullnessLevel(mass)",
      "grams": [
@@ -55596,7 +56062,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "classes": [
       [
@@ -55869,7 +56335,7 @@
     ]
    ],
    "provenance": {
-    "commit": "498bd4a553",
+    "commit": "57ccd0510a",
     "inputs": {
      "billed_met": [
       7.5
@@ -56909,6 +57375,7 @@
    },
    "proves": [
     "S1c-m-kernel",
+    "S1c-m-kernel-m1",
     "ST1-m-kernel"
    ],
    "quantity": [
@@ -56944,7 +57411,8 @@
     "level age (min)": 1
    },
    "proves": [
-    "S1b-m-kernel"
+    "S1b-m-kernel",
+    "S1b-m-kernel-m1"
    ],
    "quantity": [
     "level age (min)"
@@ -57461,7 +57929,7 @@
   },
   {
    "at_age": 38.16264343261719,
-   "cause": "the idle burn's thermoregulator term: updateCalories multiplies the idle and asleep burn by the thermoregulator's energy multiplier (#0187, #0455), which is 1 plus 0.05 and 0.10 times the squared primary and secondary totals on the cold side (#0464); the model takes it as 1, and a value 1.2 % above 1 accounts for the gap. The run read no thermal total, so the model is not fitted to it: the vanilla weight and store lines state it.",
+   "cause": "the idle burn's thermoregulator term: updateCalories multiplies the idle and asleep burn by the thermoregulator's energy multiplier (#0187, #0455), which is 1 plus 0.05 and 0.10 times the squared primary and secondary totals on the cold side (#0464); the model takes it as 1, and a value 1.2 % above 1 would account for the gap; unmeasured: the run read no thermal total, and x441 and x443a/b show the same sign at about a third of the rate. The model is not fitted to it: the vanilla weight and store lines state it as a candidate.",
    "draws": [],
    "key": "x442:calorie store",
    "kind": "vanilla",
@@ -57755,12 +58223,12 @@
    ],
    "key": "x445b:INTOXICATION decay a game hour",
    "kind": "vanilla",
-   "live": -45.35913254419683,
-   "miss": 0.0008674558031671609,
+   "live": -45.359711149302946,
+   "miss": 0.00028885069705353317,
    "model": -45.36,
-   "n": 10,
+   "n": 8,
    "quantity": "INTOXICATION decay a game hour",
-   "rel_miss": 1.912417091138004e-05,
+   "rel_miss": 6.368001244601665e-06,
    "run": "x445b-20261015-181249",
    "tolerance": [
     "abs",
@@ -57771,7 +58239,7 @@
   },
   {
    "at_age": 2.996976852416992,
-   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads.",
+   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak poll and to start between the run's last read before it and its first rising poll (inputs read off the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends only on the first sip and the dose, is the timing test.",
    "draws": [
     "S6b-v-live"
    ],
@@ -57799,7 +58267,7 @@
   },
   {
    "at_age": 2.4909887313842773,
-   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads.",
+   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak poll and to start between the run's last read before it and its first rising poll (inputs read off the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends only on the first sip and the dose, is the timing test.",
    "draws": [
     "S6b-v-live"
    ],
@@ -57812,7 +58280,7 @@
     4.790354595647677,
     4.897378731455598
    ],
-   "model_instant": 6.0,
+   "model_instant": 6.000000238418579,
    "n": 1,
    "quantity": "INTOXICATION peak, can 1",
    "rel_miss": 0.0,
@@ -57826,7 +58294,7 @@
   },
   {
    "at_age": 2.588648796081543,
-   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads.",
+   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak poll and to start between the run's last read before it and its first rising poll (inputs read off the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends only on the first sip and the dose, is the timing test.",
    "draws": [
     "S6b-v-live"
    ],
@@ -57839,7 +58307,7 @@
     6.3606410903063795,
     6.464775694457983
    ],
-   "model_instant": 6.0,
+   "model_instant": 7.550543766021729,
    "n": 1,
    "quantity": "INTOXICATION peak, can 2",
    "rel_miss": 0.0,
@@ -57853,7 +58321,7 @@
   },
   {
    "at_age": 2.683584213256836,
-   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads.",
+   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak poll and to start between the run's last read before it and its first rising poll (inputs read off the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends only on the first sip and the dose, is the timing test.",
    "draws": [
     "S6b-v-live"
    ],
@@ -57866,7 +58334,7 @@
     8.040704109281235,
     8.15455302893672
    ],
-   "model_instant": 6.0,
+   "model_instant": 9.203804998397827,
    "n": 1,
    "quantity": "INTOXICATION peak, can 3",
    "rel_miss": 0.0,
@@ -57880,7 +58348,7 @@
   },
   {
    "at_age": 2.7749929428100586,
-   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads.",
+   "cause": "the drink's spread: the drink action calls DrinkFluid a step at a time for the part not yet drunk (#0085, #2925), so the alcohol enters over the drink and the decay (#2922) runs from the first sip. The model now spreads a drink with a duration over it (VM16); with each can spread over its live span the zero and the peaks land on the live reads. Each can's drink is taken to end at its live peak poll and to start between the run's last read before it and its first rising poll (inputs read off the run, not a fitted constant); the peaks test the height at that time, and the zero, which depends only on the first sip and the dose, is the timing test.",
    "draws": [
     "S6b-v-live"
    ],
@@ -57893,7 +58361,7 @@
     9.907087353116557,
     10.02799153168041
    ],
-   "model_instant": 6.0,
+   "model_instant": 10.926647796630856,
    "n": 1,
    "quantity": "INTOXICATION peak, can 4",
    "rel_miss": 0.0,

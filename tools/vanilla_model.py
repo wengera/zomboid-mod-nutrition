@@ -218,7 +218,10 @@ FORMULAS = {
                     "0.05 alcohol a litre; it decays 0.0042 a multiplier unit, 0.504 x day-length minutes a game-hour "
                     "(45.36 at DayLength 4), floor 0; no upper clamp is modelled. A drink with a duration enters "
                     "evenly over it (the drink action's DrinkFluid a step for the part not yet drunk, #0085, #2925), "
-                    "so the decay runs from the first sip and a can's peak is its dose less the decay over the drink. "
+                    "so the decay runs from the first sip and a can's peak is its dose less the decay over the drink; "
+                    "evenly because the server's progress is linear in server time (Action.getProgress L94-L97, read "
+                    "2026-10-16 on 42.21; not minted); the peak at the drink's end and the zero do not depend on the "
+                    "profile, only on the dose, the duration and the first sip. "
                     "intoxication_gain, intoxication_decay_per_hour, drink_rates."},
     "JT1": {"claims": ["T2.1", "T2.2"],
             "doc": "The muscle traits' Strength XPBoosts from the 42.21 trait script (Weak -5, Feeble -2, Stout +2, "
