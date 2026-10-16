@@ -247,6 +247,7 @@ The adding method divides its argument only among the parts below full health, s
 The engine's own fatal move is a reduction large enough that the recompute reads exactly zero [#2348/C/C-only].
 The character's separate `health` field has its own setter, which refuses only an exact zero while invulnerable [#2350/C/C-only].
 Every nonzero drain term reports itself to Lua through `OnPlayerGetDamage`, so a mod can listen to the drain rather than poll it [#2357/C/C-only].
+A mod can let its own most severe states drain health behind an option, and in the worked example, this mod's `NR.DeficienciesCanKill`, true by default, drains at the fastest active rate among starvation at the worst protein-energy grade with the fat at its floor or a BMI under 12 (100 health in 72 h), severe hyponatraemia (100 in 6 h), severe dehydration at 10 % or more (100 in 12 h) and the iron lethal rung (100 in 24 h), beside the scurvy, beriberi and pellagra rows, and with the option off no state drains health [#3892/C/inference].
 
 Healing is a set of handles, not a rate.
 The regeneration constants have public setters per character, so a mod retunes the whole regeneration ladder for one character [#2354/C/C-only].
