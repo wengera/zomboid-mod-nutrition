@@ -7,7 +7,8 @@ was recomputed in Python doubles before it was written, the expression beside it
 formulas briefing's section I: I-A1 (stress 0.22 / 0.44 / 0.50), I-B1 / I-B1b (the fatigue offset), I-B2 / I-B2c /
 I-B2d (the accrual factors), I-B3 (chi_s through rRec), I-D1 (aimMul), I-D2 (night vision 14.0 / 28.0 / 3.0),
 I-E1 (panic 29 / 18), I-F1 (healMul 0.68 / 0.5 / 0.6256, Severity 0.84 / 0.36), I-F3 (coldMul 1.15 / 3.0 / 3.0 / 0.5 /
-2.53552 / 1.325), I-F4 (the bruise probability), I-H2 (the seven drains). The briefing's continuous cases (the IU
+2.53552 / 1.325), I-F4 (the bruise probability). The health drains are K.drain's since Plan 15 Task 4
+(test_kernel_drain.py). The briefing's continuous cases (the IU
 at 1.0714, caffeine at 107 mg on rNut) are taken at the band's lower edge, which is what the set composes (A2).
 """
 import math
@@ -75,7 +76,8 @@ def test_new_is_j1s_table(kh):
     assert e["key"] == {"ep": -1, "day": -1, "dials": 0, "b": {i: 0 for i in range(1, 13)}}
     assert (e["aimMul"], e["fOff"], e["solAddH"], e["solMul"], e["pe"], e["ea"], e["nvDays"]) == (1, 0, 0, 1, 1, 30, 0)
     assert e["own"] == {"nv": False, "ss": False}
-    assert (e["lethal"], e["intoxTarget"], e["tempTarget"], e["mAcc"], e["rRec"]) == (0, 0, 0, 1, 1)
+    assert (e["intoxTarget"], e["tempTarget"], e["mAcc"], e["rRec"]) == (0, 0, 1, 1)
+    assert "lethal" not in e and "drain" not in e                         # Plan 15 Task 4: K.drain owns the drains
     assert e["nightVision"] is False and e["shortSighted"] is False
     two = kh.K.effects.new()
     assert two.key.b != kh.K.effects.new().key.b                          # a fresh table each call
@@ -238,14 +240,13 @@ def test_compose_is_pure_and_counts_its_rebuilds(kh):
 
 def test_compose_leaves_the_machine_surfaces(kh):
     E = kh.K.effects.new()
-    E.drain = 0.1
     E.nightVision = True
     _compose(kh, E=E)
-    assert E.drain == 0.1 and E.nightVision is True
+    assert E.nightVision is True
 
 
 def test_i_a1_stress_and_its_severity(kh):
-    b = _b(kh, hang=1, dehyd=2)
+    b = _b(kh, hang=1, dehyd=6)                                           # Plan 15 Task 4: dehydration's stress from 4 %
     flags = {"bgroupMax": 4}
     assert _compose(kh, b=b, flags=flags).stressTarget == pytest.approx(0.22, abs=TOL)       # 0.06 + 0.10 + 0.06
     assert _compose(kh, b=b, flags=flags, sev=2).stressTarget == pytest.approx(0.44, abs=TOL)
@@ -386,7 +387,8 @@ def test_temperature_speed_fatigue_offset_and_short_sight(kh):
     assert e.tempOffset == pytest.approx(-0.4, abs=TOL)
     assert kh.K.effects.tempOffset(e) == e.tempOffset
     assert _compose(kh, b=_b(kh, dehyd=7)).tempHeat == pytest.approx(0.3, abs=TOL)
-    assert _compose(kh, b=_b(kh, dehyd=4)).tempHeat == pytest.approx(0.075, abs=TOL)
+    assert _compose(kh, b=_b(kh, dehyd=5)).tempHeat == pytest.approx(0.15, abs=TOL)
+    assert _compose(kh, b=_b(kh, dehyd=4)).tempHeat == 0                  # Plan 15 Task 4: heat intolerance from 3 %
     e = _compose(kh, b=_b(kh, bg=2, iu=22))
     assert e.speedMul == pytest.approx(0.90, abs=TOL)                     # min(0.92, 0.90)
     assert _compose(kh, b=_b(kh, bg=3, hypo=2, dehyd=7)).speedMul == pytest.approx(0.85, abs=TOL)
@@ -505,52 +507,6 @@ def test_ss_want(kh):
     assert s(4, 0.99) is False and s(3, 1) is False
 
 
-# --- the drains -----------------------------------------------------------------------------------------------
-
-DRAINS = [0.023148148148148147, 0.00992063492063492, 0.023148148148148147, 0.00496031746031746,
-          0.2777777777777778, 0.1388888888888889, 0.06944444444444445]
-
-
-def _drain(h, nut=None, dehyd=0, na=140, bmi=22, pe=1, bf=0.2, sex=1, kill=True):
-    E = h.K.effects.new()
-    d = h.K.effects.drain(E, nut if nut is not None else _nut(h), h.table({"dehydPct": dehyd, "naPlasma": na}),
-                          h.table({"bmi": bmi}), pe, bf, sex, kill)
-    return d, E.lethal, E.drain
-
-
-def test_i_h2_the_seven_drains(kh):
-    hours = [72, 168, 72, 336, 6, 12, 24]
-    for i, h in enumerate(hours):
-        assert DRAINS[i] == pytest.approx(100 / (h * 60), abs=1e-15), i  # 100 health in h game hours
-    assert [kh.K.effects.DRAIN_RATE[i] for i in range(1, 8)] == DRAINS
-    assert _drain(kh, pe=4, bf=0.04) == (DRAINS[0], 1, DRAINS[0])
-    assert _drain(kh, nut=_nut(kh, vitC={"g": 4, "ah": 720})) == (DRAINS[1], 2, DRAINS[1])
-    assert _drain(kh, nut=_nut(kh, thiamine={"g": 4, "ah": 168})) == (DRAINS[2], 3, DRAINS[2])
-    assert _drain(kh, nut=_nut(kh, niacin={"g": 4, "ah": 1440})) == (DRAINS[3], 4, DRAINS[3])
-    assert _drain(kh, na=111.9) == (DRAINS[4], 5, DRAINS[4])
-    assert _drain(kh, dehyd=10) == (DRAINS[5], 6, DRAINS[5])
-    assert _drain(kh, nut=_nut(kh, iron={"x": 3})) == (DRAINS[6], 7, DRAINS[6])
-
-
-def test_the_drain_gates_and_the_max(kh):
-    assert _drain(kh) == (0, 0, 0)
-    assert _drain(kh, pe=4, bf=0.05)[1] == 0                              # fat above the male floor
-    assert _drain(kh, pe=4, bf=0.09, sex=2)[1] == 1                       # under the female floor 0.10
-    assert _drain(kh, pe=4, bf=0.2, bmi=11.9)[1] == 1                     # BMI under 12
-    assert _drain(kh, pe=4, bf=0.2, bmi=0)[1] == 0                        # BMI unknown
-    assert _drain(kh, pe=3, bf=0.01)[1] == 0                              # only at pe 4
-    assert _drain(kh, nut=_nut(kh, vitC={"g": 4, "ah": 719.9}))[1] == 0
-    assert _drain(kh, nut=_nut(kh, vitC={"g": 3, "ah": 9999}))[1] == 0
-    assert _drain(kh, nut=_nut(kh, thiamine={"g": 4, "ah": 167}))[1] == 0
-    assert _drain(kh, nut=_nut(kh, niacin={"g": 4, "ah": 1439}))[1] == 0
-    assert _drain(kh, na=112)[1] == 0 and _drain(kh, dehyd=9.99)[1] == 0
-    assert _drain(kh, nut=_nut(kh, iron={"x": 2}))[1] == 0
-    both = _nut(kh, vitC={"g": 4, "ah": 800}, thiamine={"g": 4, "ah": 200}, iron={"x": 3})
-    assert _drain(kh, nut=both, na=100, dehyd=12, pe=4, bf=0.01)[:2] == (DRAINS[4], 5)   # max, not a sum
-    assert _drain(kh, nut=_nut(kh, thiamine={"g": 4, "ah": 200}), pe=4, bf=0.01)[:2] == (DRAINS[0], 1)  # a tie keeps the first
-    assert _drain(kh, nut=both, na=100, kill=False) == (0, 0, 0)          # DeficienciesCanKill off
-
-
 def test_intox_target(kh):
     t = kh.K.effects.intoxTarget
     assert t(0) == 0 and t(0.1) == pytest.approx(50, abs=TOL) and t(0.2) == 100 and t(0.35) == 100
@@ -579,8 +535,6 @@ def test_severity_scales_the_max_and_min_surfaces_t6_1(kh):
     assert _compose(kh, sev=2, **r1).foodSickTarget == 60                 # 30 x 2, under the 85 clamp
     assert _compose(kh, sev=2, nut=_nut(kh, iron={"x": 3})).foodSickTarget == 85
     assert _compose(kh, sev=2, **st).speedMul == 0.75                     # 1 - 2 x 0.15 = 0.70, the floor
-    d0 = _compose(kh, sev=0, **st).drain
-    assert _compose(kh, sev=2, **st).drain == d0                          # the machine surface is unscaled
 
 
 def test_the_exercise_credits_are_never_scaled_t6_2(kh):

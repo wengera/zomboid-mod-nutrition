@@ -2,9 +2,9 @@
 -- (NR_Kernel_Effects.lua, K.effects.compose) folds into record.effects, as NR.data.effects = { SURF, ROWS, ... }
 -- (formulas briefing A3-A4, B5, D3-D4, E3, F2, G, H1; T1-1).
 -- SURF names each surface's fold operator (mul | add | max | min | or), its identity and its clamp. A surface
--- marked machine = true is written by its own kernel function on the slow clock (nightVision by K.effects.nvMinute,
--- drain by K.effects.drain) and the composer never resets, scales or clamps it; sevMin on a boolean surface is the
--- Severity below which it reads false (Short Sighted).
+-- marked machine = true is written by its own kernel function on the slow clock (nightVision by K.effects.nvMinute)
+-- and the composer never resets, scales or clamps it; sevMin on a boolean surface is the Severity below which it reads
+-- false (Short Sighted). The health drains are not a surface: K.drain (NR_Kernel_Drain.lua, Plan 15 Task 4) owns them.
 -- ROWS is an array of { src, on, at, list }: on is grade (record.nutrients[src].g), rung (record.nutrients[src].x),
 -- band (the band named src in the twelve-band vector), flag (flags[src]; at nil matches true, a number or
 -- {lo, hi} matches a numeric flag), pe (the protein-energy grade) or ea (K.effects.eaBand of the closed-day energy
@@ -51,7 +51,6 @@ NR.data.effects = {
         speedMul = { op = "min", id = 1, lo = 0.75, hi = 1.0 }, -- the direct speed write; game choice floor (open S1176)
         fOffNut = { op = "add", id = 0, lo = 0, hi = 0.15 }, -- the nutritional fatigue offset; game choice cap so no state alone crosses Tired 1 (open S1132)
         bruise = { op = "max", id = 0, lo = 0, hi = 1 }, -- spontaneous-bruise probability per game minute; a probability, no row needed
-        drain = { op = "max", id = 0, lo = 0, hi = 1, machine = true }, -- health per game minute, K.effects.drain; game choice ceiling (open S1174)
         nightVision = { op = "or", id = false, machine = true }, -- K.effects.nvMinute (ruling 6)
         shortSighted = { op = "or", id = false, sevMin = 1 }, -- ruling 7: only at Severity 1 or more; game choice gate (open S1143)
     },
@@ -207,9 +206,12 @@ NR.data.effects = {
         { src = "bgroupMax", on = "flag", at = 4, list = { -- clinical, S0922
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0922", gc = true }, -- SMD 0.23 x band 0.25 = 0.0575, as 0.06; game choice convention (open S1144)
         } },
-        { src = "dehyd", on = "band", at = { 2, 8 }, list = { -- 1.5 % and above, S0098/S0099
+        -- Plan 15 Task 4 (spec section 3.3): the dehydration mood rows sit in the 4-6 % band, apathy and weariness at
+        -- about 4.2 % (S2248), so panic moved here from 1.5 %; a game choice of placement (spec section 10).
+        { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S2248 (weariness, apathy, impatience at about 4 %)
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0098", gc = true }, -- direction only, no effect size; game choice (open S1145)
             { ch = "stat", s = "panicTarget", v = 7, row = "S0098", gc = true }, -- tension/anxiety p = 0.029; 7, not 6: level 1 is > 6 #2369; game choice (open S1145)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2248", gc = true }, -- apathy at about 4.2 %; 21: UNHAPPY level 1 is > 20 #2369; game choice (open S1145)
         } },
         -- E3 panic and unhappiness from sleep loss (iuS band, iuSleepQ = band x 0.125): panic 14 x iuSleepQ capped 20
         -- (S0916 SMD 0.57-0.63 x 24 = 13.7-15.1; the cap a game choice, open S1147); unhappiness 25 x iuSleepQ / 1.5
@@ -326,8 +328,11 @@ NR.data.effects = {
             { ch = "trait", s = "shortSighted", v = 1, row = "S0143", gc = true }, -- the toggle at clinical; game choice (open S1143)
         } },
         -- D4 the direct speed write (min; computed and mirrored, unapplied until X47).
-        { src = "dehyd", on = "band", at = { 7, 8 }, list = { -- 6 % and above, the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
+        { src = "dehyd", on = "band", at = 7, list = { -- [6, 10) %, dizziness at about 5.8 % (S2248); the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
+        } },
+        { src = "dehyd", on = "band", at = 8, list = { -- 10 % and above, delirium at about 11 % (S2248): confusion and collapse (spec section 3.3)
+            { ch = "stat", s = "speedMul", v = 0.75, row = "S1176", gc = true }, -- the clamp's floor; game choice (open S1176)
         } },
         { src = "iu", on = "band", at = { 20, 25 }, list = { -- 2.0 IU and above, S0750 the unit's anchor
             { ch = "stat", s = "speedMul", v = 0.90, row = "S1176", gc = true }, -- game choice (open S1176)
@@ -335,16 +340,33 @@ NR.data.effects = {
         { src = "hypo", on = "band", at = { 2, 3 }, list = { -- below 120 mmol/L, S1047 (CNS symptoms)
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
+        -- Starvation in science's order (spec section 3.3, Plan 15 Task 4): the phase flag starve is K.drain.starvePhase of
+        -- the starved hours, 1 weakness from the drain's onset (1.5 d), 2 cold intolerance and slower healing from day 3,
+        -- 3 infection and mood from day 14; the phase days are a game-pacing choice (open S2247). While a fast is under
+        -- way and before phase 3 (starveEarly) the protein-energy and energy-availability rows are held off, so infection
+        -- and colds wait for day 14; at phase 3 they return (the pe grade is 4 by then, S0115's 10 days).
+        { src = "starve", on = "flag", at = { 1, 3 }, list = { -- weakness: endurance (S2239 difficulty getting up and moving)
+            { ch = "stat", s = "mNut", v = 1.25, row = "S2247", gc = true }, -- the anaemia row's size; game choice (open S2247)
+        } },
+        { src = "starve", on = "flag", at = 2, list = { -- slower healing from day 3 (S2246 exhaustion)
+            { ch = "body", s = "healMul", v = 0.80, row = "S2247", gc = true }, -- the pe 3 row's size; game choice (open S2247)
+        } },
+        { src = "starve", on = "flag", at = { 2, 3 }, list = { -- cold intolerance (S2238 hypothermia under 35.5 C, S2246 body temperature)
+            { ch = "stat", s = "tempOffset", v = -0.2, row = "S2247", gc = true }, -- the iron-anaemia row's size; game choice (open S2247)
+        } },
+        { src = "starve", on = "flag", at = 3, list = { -- mood from day 14 (S2239 apathy, S2245 depression)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2247", gc = true }, -- UNHAPPY level 1 is > 20 #2369; game choice (open S2247)
+        } },
         -- F2 healing (H_pe, H_c, H_zn), bleeding (vitamin C), infection (protein-energy), colds (C_c, C_e, C_s; C_d above).
-        { src = "pe", on = "pe", at = 2, list = { -- protein-energy marginal, S0951/S0954
+        { src = "pe", on = "pe", at = 2, unless = "starveEarly", list = { -- protein-energy marginal, S0951/S0954
             { ch = "body", s = "healMul", v = 0.92, row = "S1150", gc = true }, -- game choice (open S1150; PEM healing size open S0129)
             { ch = "body", s = "infectMul", v = 1.15, row = "S1154", gc = true }, -- game choice (open S1154)
         } },
-        { src = "pe", on = "pe", at = 3, list = { -- protein-energy depleted, S0951/S0954
+        { src = "pe", on = "pe", at = 3, unless = "starveEarly", list = { -- protein-energy depleted, S0951/S0954
             { ch = "body", s = "healMul", v = 0.80, row = "S1150", gc = true }, -- game choice (open S1150)
             { ch = "body", s = "infectMul", v = 1.55, row = "S1154", gc = true }, -- game choice (open S1154)
         } },
-        { src = "pe", on = "pe", at = 4, list = { -- protein-energy clinical, S0951/S0954/S0955
+        { src = "pe", on = "pe", at = 4, unless = "starveEarly", list = { -- protein-energy clinical, S0951/S0954/S0955
             { ch = "body", s = "healMul", v = 0.74, row = "S0951" }, -- 1/1.35, the closure ratio 60.9/45.2 of S0951
             { ch = "body", s = "infectMul", v = 2.30, row = "S0954" }, -- S0954 OR 2.31, as 2.30
         } },
@@ -367,13 +389,13 @@ NR.data.effects = {
         { src = "coldCredit", on = "flag", list = { -- replete vitamin C, at least 200 mg/d, exerting and cold-exposed, S0980
             { ch = "body", s = "coldMul", v = 0.50, row = "S0980", gc = true, bonus = true }, -- S0980 RR 0.48 taken as 0.50 (roughly halves); game choice (open S1155)
         } },
-        { src = "ea", on = "ea", at = 1, list = { -- energy availability [20, 30) kcal/kg LBM, S0691/S0990
+        { src = "ea", on = "ea", at = 1, unless = "starveEarly", list = { -- energy availability [20, 30) kcal/kg LBM, S0691/S0990
             { ch = "body", s = "coldMul", v = 1.3, row = "S1156", gc = true }, -- game choice rung (open S1156)
         } },
-        { src = "ea", on = "ea", at = 2, list = { -- [10, 20), S0990 (22 kcal/kg immune markers)
+        { src = "ea", on = "ea", at = 2, unless = "starveEarly", list = { -- [10, 20), S0990 (22 kcal/kg immune markers)
             { ch = "body", s = "coldMul", v = 2.2, row = "S0990", gc = true }, -- game choice rung (open S1156)
         } },
-        { src = "ea", on = "ea", at = 3, list = { -- below 10, S0991
+        { src = "ea", on = "ea", at = 3, unless = "starveEarly", list = { -- below 10, S0991
             { ch = "body", s = "coldMul", v = 3.0, row = "S0991", gc = true }, -- OR 3.8 the top, taken at the clamp; game choice (open S1156)
         } },
         { src = "debt", on = "band", at = 1, list = { -- debt [4, 8) h, S0993
@@ -383,12 +405,10 @@ NR.data.effects = {
             { ch = "body", s = "coldMul", v = 2.5, row = "S0993", gc = true }, -- under 6 h OR 4.24-4.50, damped; game choice (open S1157)
         } },
         -- G thermal: iron-deficiency anaemia (iron's clinical grade) and the exertion-gated dehydration heat side
-        -- +0.3 x clamp((d - 2)/2, 0, 1) at the band's lower edge (S1021 linear rise, no slope; 2 %/4 % the spec's knots).
+        -- +0.3 x clamp((d - 2)/2, 0, 1) at the band's lower edge (S1021 linear rise, no slope; 2 %/4 % the spec's knots),
+        -- from 3 %: heat intolerance comes with weakness at 3-4 % (spec section 3.3, Plan 15 Task 4; S2249).
         { src = "iron", on = "grade", at = 4, list = { -- iron clinical (anaemia), S1016
             { ch = "stat", s = "tempOffset", v = -0.2, row = "S1016" }, -- S1016: 36.0 vs 36.2 degrees C; iron-depleted non-anaemic equal controls
-        } },
-        { src = "dehyd", on = "band", at = 4, list = { -- [2.5, 3) %, S1021
-            { ch = "stat", s = "tempHeat", v = 0.075, row = "S1021", gc = true }, -- 0.3 x 0.5/2; game choice magnitude (open S1160)
         } },
         { src = "dehyd", on = "band", at = 5, list = { -- [3, 4) %, S1021
             { ch = "stat", s = "tempHeat", v = 0.15, row = "S1021", gc = true }, -- 0.3 x 1/2; game choice magnitude (open S1160)
@@ -459,7 +479,7 @@ NR.data.effects = {
         { src = "iron", on = "rung", at = { 2, 3 }, list = { -- acute 20 mg/kg, S0442/S1032
             { ch = "stat", s = "foodSickTarget", v = 55, row = "S1032", gc = true }, -- game choice (open S1165)
         } },
-        { src = "iron", on = "rung", at = 3, list = { -- acute 60 mg/kg, the lethal rung (its drain is K.effects.drain), S1033
+        { src = "iron", on = "rung", at = 3, list = { -- acute 60 mg/kg, the lethal rung (its drain is K.drain's), S1033
             { ch = "stat", s = "foodSickTarget", v = 85, row = "S1033", gc = true }, -- SICK 3, under 90 (#2356); game choice (open S1165)
         } },
         -- H1 hyponatraemia (K.fluids.hyponatGrade, S0102/S1047) and refeeding (S0114/S0117: no drain).

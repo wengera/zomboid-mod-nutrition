@@ -12,6 +12,7 @@ the live acceptance reads. The fixture restores NR.server.effects afterwards so 
 shared host run their Nutrients minute without an effects step.
 """
 import os
+import re
 
 import lupa.lua51 as lua51
 import pytest
@@ -128,6 +129,7 @@ function(cfg, record)
         end,
         ReduceGeneralHealth = function(s, v) cfg.log.reduce[#cfg.log.reduce + 1] = v end,
     }
+    if cfg.health ~= nil then bd.getOverallBodyHealth = function(s) return cfg.health end end
     local function setter(name)
         bd[name] = function(s, v) cfg.log.regen[#cfg.log.regen + 1] = { name = name, v = v } end
     end
@@ -135,6 +137,7 @@ function(cfg, record)
     setter("setReducedHealthAddition")
     setter("setSeverlyReducedHealthAddition")
     setter("setSleepingHealthAddition")
+    setter("setHealthFromFood")
     p.getBodyDamage = function(self) return bd end
     return p
 end
@@ -204,8 +207,10 @@ def record(h, ageH=100.0):
     return h.rt.eval(RECORD)(ageH)
 
 
-def player(h, rec, have=None, parts=None, cold=0.0, setPoint=None, asleep=False):
+def player(h, rec, have=None, parts=None, cold=0.0, setPoint=None, asleep=False, health=None):
     cfg = h.table(dict(asleep=asleep, cold=cold))
+    if health is not None:
+        cfg["health"] = health
     cfg["have"] = h.table(have or {})
     plist = h.rt.table()
     for i, f in enumerate(parts or []):
@@ -276,7 +281,7 @@ def test_a_fresh_record_composes_once_and_rebuilds_only_on_a_moved_key(eff_host)
     assert E["epoch"] == 3
     setopts(h, Severity=2.0)                                     # the dial snapshot moved
     minute(h, p, rec, ageH=100.0 + 5 / 60)
-    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 * 1000000 + 100 + 10 + 1
+    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 * 1000000 + 10 + 1      # no kill dial (Plan 15 Task 4)
     assert E["dirty"] is True
 
 
@@ -286,13 +291,13 @@ def test_the_flags_outside_the_key_fold_into_the_dials(eff_host):
     p, _ = player(h, rec, asleep=True)
     minute(h, p, rec)
     E = rec["effects"]
-    assert E["key"]["dials"] == 1000000000 + 111
+    assert E["key"]["dials"] == 1000000000 + 11
     rec["acute"]["boutVig"] = True                                # read while asleep
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert E["key"]["dials"] == 1000000000 + 100111 and E["epoch"] == 2
+    assert E["key"]["dials"] == 1000000000 + 100011 and E["epoch"] == 2
     awake, _ = player(h, rec)
     minute(h, awake, rec, ageH=100.0 + 2 / 60)                    # a latched boutVig awake reads false
-    assert E["key"]["dials"] == 1000000000 + 111 and E["epoch"] == 3
+    assert E["key"]["dials"] == 1000000000 + 11 and E["epoch"] == 3
 
 
 def test_a_non_finite_field_is_healed_and_counted(eff_host):
@@ -529,28 +534,72 @@ def test_the_regeneration_setters_take_heal_mul_at_first_sight_and_on_a_rebuild(
     assert len(lst(cfg["log"]["regen"])) == n
     EFF(h).forget("admin")                                       # a first sight: re-asserted (#3020)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert len(lst(cfg["log"]["regen"])) == n + 4
+    assert len(lst(cfg["log"]["regen"])) == n + 5                 # the four tiers and the food heal (#3897)
 
 
-def test_the_drain_runs_only_with_the_dial_and_zeroes_regeneration(eff_host):
+def _health(cfg):
+    return cfg["health"]
+
+
+def test_the_drain_takes_the_rate_to_the_floor_and_zeroes_regeneration_and_the_food_heal(eff_host):
+    # Plan 15 Task 4: the iron lethal rung drains 100 health a game day (100 over 24 h), first floor 50 at onset
     h = eff_host
     rec = record(h)
-    rec["nutrients"]["iron"]["x"] = 3                            # the iron lethal rung: 100 health in 24 h
-    p, cfg = player(h, rec)
-    setopts(h, DeficienciesCanKill=False)
-    minute(h, p, rec, dtM=1.0)
-    assert lst(cfg["log"]["reduce"]) == [] and rec["effects"]["drain"] == 0
-    assert _regen(cfg)["setStandardHealthAddition"] == 0.002
-    setopts(h, DeficienciesCanKill=True)
-    minute(h, p, rec, dtM=2.0, ageH=100.0 + 2 / 60)
-    rate = 100 / (24 * 60)
-    assert abs(rec["effects"]["drain"] - rate) < TOL and rec["effects"]["lethal"] == 7
-    assert len(lst(cfg["log"]["reduce"])) == 1 and abs(lst(cfg["log"]["reduce"])[0] - rate * 2) < TOL
-    got = lst(cfg["log"]["regen"])[-4:]
-    assert all(r["v"] == 0 for r in got)                         # x0 while a drain is active (ruling 13)
-    rec["nutrients"]["iron"]["x"] = 0                            # the drain stops: re-asserted at healMul
+    rec["nutrients"]["iron"]["x"] = 3
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec, dtM=2.0)
+    D = rec["drain"]
+    rate = 100 * 24 / 24                                          # health a game day
+    assert D["active"] is True and D["state"] == 7 and D["rate"] == rate
+    assert lst(cfg["log"]["reduce"]) == [pytest.approx(rate * 2 / 1440, abs=TOL)]
+    got = lst(cfg["log"]["regen"])[-5:]
+    assert all(r["v"] == 0 for r in got)                         # x0 while a drain state is active (ruling 13)
+    assert got[-1]["name"] == "setHealthFromFood"                # the food heal too (jar-checks Check 2)
+    rec["nutrients"]["iron"]["x"] = 0                            # the state ends: re-asserted at healMul, food heal back
     minute(h, p, rec, ageH=100.0 + 3 / 60)
-    assert lst(cfg["log"]["regen"])[-4]["v"] == 0.002
+    got = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])[-5:]}
+    assert got["setStandardHealthAddition"] == 0.002 and got["setHealthFromFood"] == 0.015   # #2354, #3897
+    assert rec["drain"]["active"] is False and rec["drain"]["targetFloor"] == 100
+
+
+def test_the_drain_never_takes_health_past_the_floor_and_holds_with_no_sawtooth(eff_host):
+    h = eff_host
+    rec = record(h)
+    rec["fluids"]["dehydPct"] = 8.25                             # dehydration: 50 at 6 %, 10 at 15 %: floor 40
+    p, cfg = player(h, rec, health=40.02)
+    minute(h, p, rec, dtM=1.0)
+    assert rec["drain"]["state"] == 6 and rec["drain"]["targetFloor"] == pytest.approx(40, abs=1e-12)
+    assert lst(cfg["log"]["reduce"]) == [pytest.approx(0.02, abs=1e-9)]   # min(rate x dt, health - floor)
+    assert 0.02 < 200 / 1440                                     # under the minute's rate: the floor bound it
+    n_regen = len(lst(cfg["log"]["regen"]))
+    cfg["health"] = rec["drain"]["targetFloor"]                  # at the floor: holding
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert len(lst(cfg["log"]["reduce"])) == 1                   # nothing taken at the floor
+    assert len(lst(cfg["log"]["regen"])) == n_regen              # regeneration stays zero: no re-write, no sawtooth
+    assert rec["drain"]["active"] is True
+
+
+def test_no_overall_health_read_takes_nothing(eff_host):
+    h = eff_host
+    rec = record(h)
+    rec["nutrients"]["iron"]["x"] = 3
+    p, cfg = player(h, rec)                                      # the stand-in answers no getOverallBodyHealth
+    minute(h, p, rec)
+    assert rec["drain"]["active"] is True and lst(cfg["log"]["reduce"]) == []
+
+
+def test_a_drain_state_change_marks_the_mirror_dirty(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec)
+    rec["effects"]["dirty"] = False
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert rec["effects"]["dirty"] is False                      # nothing moved
+    rec["drain"]["naH"] = 0
+    rec["fluids"]["naPlasma"] = 100.0                            # hyponatraemia grade 3: a new state, no band rebuild yet
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert rec["drain"]["state"] == 5 and rec["effects"]["dirty"] is True
 
 
 def test_a_dead_record_is_stepped_with_no_body_write(eff_host):
@@ -558,10 +607,10 @@ def test_a_dead_record_is_stepped_with_no_body_write(eff_host):
     rec = record(h)
     rec["nutrients"]["iron"]["x"] = 3
     rec["dead"] = True
-    p, cfg = player(h, rec)
+    p, cfg = player(h, rec, health=100.0)
     minute(h, p, rec)
     assert lst(cfg["log"]["reduce"]) == [] and lst(cfg["log"]["regen"]) == []
-    assert rec["effects"]["drain"] > 0
+    assert rec["drain"]["active"] is True
 
 
 # --- the per-part folds ----------------------------------------------------------------------------------
@@ -606,7 +655,7 @@ def test_the_bleeding_fold_divides_the_fall_by_bleed_mul(eff_host):
 def test_the_infection_fold_scales_the_rise_and_syncs(eff_host):
     h = eff_host
     rec = record(h)
-    rec["acute"]["starvedDays"] = 11.0                           # pe 4: infectMul 2.30 (S0954)
+    rec["acute"]["starvedDays"] = 14.0                           # pe 4: infectMul 2.30 (S0954); Plan 15 Task 4: from day 14
     p, cfg = player(h, rec, parts=[_part(), _part(woundInfectionLevel=1.0)])
     minute(h, p, rec)
     assert rec["effects"]["pe"] == 4 and abs(rec["effects"]["infectMul"] - 2.3) < TOL
@@ -683,18 +732,19 @@ def test_iron_or_riboflavin_depletion_halves_the_night_vision_clock(eff_host):
         assert abs((E["nvDays"] - d1) - (1 / 60) / 24) < 1e-12, nutrient
 
 
-def test_the_dial_key_separates_a_fractional_severity_from_the_kill_dial(eff_host):
+def test_the_dial_key_separates_a_fractional_severity_from_the_flag_terms(eff_host):
     h = eff_host
     rec = record(h)
     p, _ = player(h, rec)
     minute(h, p, rec)
     e0 = rec["effects"]["epoch"]
-    setopts(h, Severity=0.1, DeficienciesCanKill=False)
+    setopts(h, Severity=0.1)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     e1 = rec["effects"]["epoch"]
-    setopts(h, Severity=0.0, DeficienciesCanKill=True)
+    setopts(h, Severity=0.0)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
     assert rec["effects"]["epoch"] > e1 > e0
+    assert rec["effects"]["key"]["dials"] == 11                    # bonus and excess on; no kill dial (Plan 15 Task 4)
 
 
 # --- the closed-day composites ---------------------------------------------------------------------------
@@ -730,20 +780,58 @@ def _female_starved(h):
     return rec, p
 
 
-def test_the_drain_reads_the_fat_fraction_of_the_body_mass_with_the_labile_lean(eff_host):
-    # ruling 13-20: fm / (fm + lm + lx); 3.3 kg of fat over 78.3 kg sits above the male floor 0.04, over 83.3 below it
-    h = eff_host
-    rec, p = _female_starved(h)
+def _starving(h, starvedDays, fm=14.4, lm=65.6, inDay=0.0, ageH=100.0):
+    rec = record(h)
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec, ageH=ageH)
     body = rec["body"]
-    body["sex"] = 1
-    body["fm"] = 3.3
-    body["lm"] = 75.0
-    body["lx"] = 0.0
+    body["fm"] = fm
+    body["lm"] = lm
+    body["inDay"] = inDay
+    body["bornAge"] = -1000.0                                    # an old character: the starved hours are not capped by its age
+    rec["acute"]["starvedDays"] = starvedDays
+    return rec, p, cfg
+
+
+def test_starvation_starts_at_one_and_a_half_starved_days_and_sets_the_phase_flags(eff_host):
+    # Plan 15 Task 4: 1 closed starved day + 4 h of today reads 28 h (no state); 1 day + 12 h reads 36 h, the onset
+    h = eff_host
+    rec, p, cfg = _starving(h, 1)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert rec["effects"]["lethal"] == 0
-    body["lx"] = 5.0
+    D, E = rec["drain"], rec["effects"]
+    assert D["active"] is False and abs(D["starvedH"] - (24 + 4 + 1 / 60)) < 1e-9
+    assert E["key"]["dials"] == 1000000000 + 1000 + 11             # starveEarly: a closed starved day under way
+    minute(h, p, rec, ageH=96.0 + 12)
+    assert D["active"] is True and D["state"] == 1 and D["targetFloor"] == 50
+    assert abs(D["bmi0"] - 80 / 1.7 ** 2) < 1e-9                   # lm + fm over K.HEIGHT_M squared
+    assert E["key"]["dials"] == 1000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
+    assert E["mNut"] == pytest.approx(1.25, abs=TOL)
+    rec["acute"]["starvedDays"] = 14
+    minute(h, p, rec, ageH=96.0 + 12 + 1 / 60)
+    assert E["key"]["dials"] == 1000000000 + 300 + 11 and E["unhappyTarget"] == 21   # phase 3: mood, the pe rows back
+
+
+def test_eating_today_ends_the_starvation(eff_host):
+    h = eff_host
+    rec, p, cfg = _starving(h, 3, inDay=500.0)                    # 500 kcal over 80 kg = 6.25 kcal/kg, over the 5 limit
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert rec["drain"]["active"] is False and rec["drain"]["starvedH"] == 0
+    assert rec["drain"]["bmi0"] == 0
+
+
+def test_the_starvation_floor_falls_with_bmi_from_its_onset(eff_host):
+    h = eff_host
+    rec, p, cfg = _starving(h, 2)
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    D = rec["drain"]
+    bmi0 = D["bmi0"]
+    body = rec["body"]
+    body["fm"] = 12.5 * 1.7 ** 2 + (bmi0 - 12.5) / 2 * 1.7 ** 2 - body["lm"]   # halfway to the knee: floor 30
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert rec["effects"]["lethal"] == 1
+    assert D["targetFloor"] == pytest.approx(30, abs=1e-9)
+    body["fm"] = 12.0 * 1.7 ** 2 - body["lm"]                      # BMI 12, the death point: floor 0
+    minute(h, p, rec, ageH=100.0 + 3 / 60)
+    assert D["targetFloor"] == pytest.approx(0, abs=1e-9)
 
 
 def test_the_protein_grade_reads_the_mean_per_kg_of_the_body_mass(eff_host):
@@ -766,17 +854,18 @@ def test_the_protein_grade_reads_the_mean_per_kg_of_the_body_mass(eff_host):
     assert seen[0] != seen[1], seen
 
 
-def test_the_drain_floor_and_the_retinol_requirement_read_the_effective_sex(eff_host):
-    # Plan 13 Task 3: rec.R[sex] and K.effects.drain's BF_FLOOR[sex] index the effective sex, male unless NR.SexSpecific
+def test_the_retinol_requirement_reads_the_effective_sex_and_the_drain_none(eff_host):
+    # Plan 13 Task 3: rec.R[sex] indexes the effective sex, male unless NR.SexSpecific; Plan 15 Task 4: no drain
+    # input reads the sex (the old fat floor by sex is gone)
     h = eff_host
     rec, p = _female_starved(h)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     E = rec["effects"]
-    assert E["pe"] == 4 and E["lethal"] == 0 and E["drain"] == 0   # the male floor 0.04 is not reached
     nv_off = E["nvDays"]
+    floor_male = rec["drain"]["targetFloor"]
     setopts(h, SexSpecific=True)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert E["lethal"] == 1 and E["drain"] > 0                     # the female floor 0.10 is
+    assert rec["drain"]["targetFloor"] == floor_male
     setopts(h)
     rec2, p2 = _female_starved(h)
     setopts(h, SexSpecific=True)
@@ -875,6 +964,7 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
 def test_the_file_names_no_stat_write_and_no_poison():
     with open(EFFECTS, encoding="utf-8") as fh:
         src = fh.read()
-    for name in ("CharacterStat", ":set(", "setHealth", "AddGeneralHealth", "setInfectionGrowthRate",
-                 "POISON ="):
+    for name in ("CharacterStat", ":set(", "AddGeneralHealth", "setInfectionGrowthRate", "POISON ="):
         assert name not in src, name
+    # Plan 15 Task 4: the food heal setHealthFromFood is the one setHealth* the file names (jar-checks Check 2)
+    assert re.findall(r"setHealth\w*", src) == ["setHealthFromFood"]

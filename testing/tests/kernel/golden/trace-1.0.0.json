@@ -29,6 +29,8 @@
        "cold": 0.6000000000000002,
        "coldRise": 0.02,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -153,6 +155,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -279,6 +283,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -405,6 +411,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -531,6 +539,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -657,16 +667,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 4,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 2,
+       "red": 0,
+       "reduceCalls": 1,
+       "reduced": 0.13888888888888098,
+       "regenSets": 8,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -758,12 +770,15 @@
       "xpGrants": 1,
       "xpSets": 1
      },
-     "statSets": 119,
+     "statSets": 122,
      "written": {
-      "FATIGUE": 0.19692738314412556,
+      "FATIGUE": 0.29692738314412553,
       "HUNGER": 0.22397067679165572,
       "INTOXICATION": 0,
-      "THIRST": 0
+      "PANIC": 7,
+      "STRESS": 0.0029999999999998296,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 0.36666666666664582
      }
     }
    },
@@ -1106,13 +1121,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.48333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -1138,11 +1163,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -1999,13 +2023,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.48333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 80.956125000000171,
@@ -2031,11 +2065,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -2891,13 +2924,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.48333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -2923,11 +2966,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -3784,13 +3826,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.48333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 4,
       "exSeen": 172.80773004930572,
@@ -3816,11 +3868,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -4675,13 +4726,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.48333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -4707,11 +4768,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1.3,
       "mNut": 1,
       "nightVision": false,
@@ -5258,7 +5318,7 @@
       "gutCaf": 14.46594685680288,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -5326,7 +5386,7 @@
       "carbDay": 0.33681103778627097,
       "coldMult": 1,
       "dayIndex": 4,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -5567,18 +5627,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 0.48333333333333428,
+      "state": 6,
+      "targetFloor": 39.976171700409239
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
-      "dirty": false,
-      "drain": 0,
+      "dirty": true,
       "ea": 30,
-      "epoch": 1,
+      "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.019641650433680501,
-      "fOffNut": 0,
+      "fOff": 0.080358349566319501,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -5586,7 +5656,7 @@
       "key": {
        "b": {
         "1": 0,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -5596,23 +5666,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
-      "mAcc": 0.69999999999999996,
-      "mNut": 1,
+      "mAcc": 0.95199999999999996,
+      "mNut": 1.3600000000000001,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 0,
+      "panicTarget": 7,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.05,
@@ -5620,31 +5689,31 @@
       "shortSighted": false,
       "solAddH": 0,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1,
-      "dehydPct": 0,
+      "c": 1.1646097061520462,
+      "dehydPct": 8.2553613674079216,
       "k": 0.75127568122361243,
       "loss6h": 0.10763855938590558,
       "na": -0.1611111111111114,
-      "naPlasma": 140,
+      "naPlasma": 163.04535886128647,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": 4.2154612150892934
+      "thirstTarget": 1,
+      "viewPct": 8.1958830374661247,
+      "water": -5363.8332679419118
      },
      "kineticsAge": 119,
      "lastIntake": {
@@ -5669,7 +5738,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -6131,14 +6200,14 @@
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 9,
+     "marks": 10,
      "pushes": 9
     },
     "effects": {
      "bruises": 0,
      "closes": 0,
      "coldWrites": 0,
-     "drainMinutes": 0,
+     "drainMinutes": 1,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -6147,8 +6216,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 9,
-     "regenWrites": 9,
+     "rebuilds": 10,
+     "regenWrites": 10,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -6213,7 +6282,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 2,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -6287,6 +6356,8 @@
        "cold": 1.2000000000000006,
        "coldRise": 0.02,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -6411,6 +6482,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -6537,6 +6610,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -6663,6 +6738,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -6789,6 +6866,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -6915,16 +6994,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 4,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 2,
+       "red": 0,
+       "reduceCalls": 31,
+       "reduced": 4.3055555555555465,
+       "regenSets": 8,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -7016,12 +7097,15 @@
       "xpGrants": 1,
       "xpSets": 1
      },
-     "statSets": 239,
+     "statSets": 292,
      "written": {
-      "FATIGUE": 0.18201153634175826,
+      "FATIGUE": 0.28350667549596215,
       "HUNGER": 0.20323786352891735,
       "INTOXICATION": 0,
-      "THIRST": 0.0020147923181171867
+      "PANIC": 7,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 11.366666666666646
      }
     }
    },
@@ -7364,13 +7448,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.98333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.0249999999999999,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 2,
       "exSeen": 0,
@@ -7396,11 +7490,10 @@
         "9": 1
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -8257,13 +8350,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.98333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 168.73987500000018,
@@ -8289,11 +8392,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -9149,13 +9251,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.98333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -9181,11 +9293,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -10042,13 +10153,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.98333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 5,
       "exSeen": 351.57434734169072,
@@ -10074,11 +10195,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -10933,13 +11053,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.98333333333333428,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -10965,11 +11095,10 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
       "mAcc": 1.3,
       "mNut": 1,
       "nightVision": false,
@@ -11489,7 +11618,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.16925212764969094,
+      "S": 0.17074726680389482,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -11516,7 +11645,7 @@
       "gutCaf": 7.23297342840144,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -11584,7 +11713,7 @@
       "carbDay": 4.6104919380469047,
       "coldMult": 1,
       "dayIndex": 4,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -11631,7 +11760,7 @@
       },
       "pDay": 1.2539299148642387,
       "pPrevKg": 0.80000000000000004,
-      "rmod": 1.0386987735691089,
+      "rmod": 0.72708914149837622,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -11825,18 +11954,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 0.98333333333333428,
+      "state": 6,
+      "targetFloor": 39.842249707456055
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
-      "epoch": 1,
+      "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.033162603191743377,
-      "fOffNut": 0,
+      "fOff": 0.066837396808256622,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -11844,7 +11983,7 @@
       "key": {
        "b": {
         "1": 0,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -11854,23 +11993,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 4,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 4,
-      "lethal": 0,
-      "mAcc": 0.69999999999999996,
-      "mNut": 1,
+      "mAcc": 0.95199999999999996,
+      "mNut": 1.3600000000000001,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 0,
+      "panicTarget": 7,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.05,
@@ -11878,31 +12016,31 @@
       "shortSighted": false,
       "solAddH": 0,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0005639909479769,
-      "dehydPct": 0.032922319927045446,
+      "c": 1.1653089259369527,
+      "dehydPct": 8.2854938158223881,
       "k": 0.94380014263137135,
       "loss6h": 0.21021836076950928,
       "na": -0.32777777777777817,
-      "naPlasma": 140.07895873271676,
+      "naPlasma": 163.14324963117338,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0.0020147923181171867,
-      "viewPct": 0.0076735026634819599,
-      "water": -17.007578783607062
+      "thirstTarget": 1,
+      "viewPct": 8.2602449985588233,
+      "water": -5383.242193989553
      },
      "kineticsAge": 119.5,
      "lastIntake": {
@@ -11924,7 +12062,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -12379,21 +12517,21 @@
     }
    },
    "sent": {
-    "mirror": 17
+    "mirror": 18
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 11,
-     "pushes": 11
+     "marks": 12,
+     "pushes": 12
     },
     "effects": {
      "bruises": 0,
      "closes": 0,
      "coldWrites": 0,
-     "drainMinutes": 0,
+     "drainMinutes": 31,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -12402,8 +12540,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 11,
-     "regenWrites": 11,
+     "rebuilds": 12,
+     "regenWrites": 12,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -12468,7 +12606,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 2,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -12544,6 +12682,8 @@
        "cold": 1.8000000000000012,
        "coldRise": 0.02,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -12668,6 +12808,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -12796,6 +12938,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -12922,6 +13066,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -13048,6 +13194,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -13174,16 +13322,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 8,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 3,
+       "red": 0,
+       "reduceCalls": 61,
+       "reduced": 5.2971691404087533,
+       "regenSets": 12,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -13275,12 +13425,15 @@
       "xpGrants": 1,
       "xpSets": 1
      },
-     "statSets": 359,
+     "statSets": 439,
      "written": {
-      "FATIGUE": 0.14885311889876762,
+      "FATIGUE": 0.25011872686896952,
       "HUNGER": 0.19290125884740567,
       "INTOXICATION": 0,
-      "THIRST": 0
+      "PANIC": 7,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -13624,13 +13777,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.075,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 5,
       "exSeen": 0,
@@ -13656,11 +13819,10 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -14518,13 +14680,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 2,
       "exSeen": 0,
@@ -14550,11 +14722,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -15411,13 +15582,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": 3.0255941272547155,
       "epoch": 2,
       "exSeen": 0,
@@ -15443,11 +15624,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -16309,13 +16489,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 6,
       "exSeen": 0,
@@ -16341,11 +16531,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -17201,13 +17390,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -17233,11 +17432,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -17757,7 +17955,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.14326883295431678,
+      "S": 0.1445344409245187,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -17784,7 +17982,7 @@
       "gutCaf": 18.082433571003605,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -17852,7 +18050,7 @@
       "carbDay": 0,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -17900,7 +18098,7 @@
       },
       "pDay": 0,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.87826713518990962,
+      "rmod": 0.61478699463293673,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -18094,18 +18292,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 1.4833333333333343,
+      "state": 6,
+      "targetFloor": 39.702830859591245
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 2,
+      "epoch": 3,
       "exSeen": 0,
-      "fOff": -0.054415714055549187,
-      "fOffNut": 0,
+      "fOff": 0.045584285944450818,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -18113,7 +18321,7 @@
       "key": {
        "b": {
         "1": 0,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -18123,23 +18331,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 0,
+      "panicTarget": 7,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.05,
@@ -18147,31 +18354,31 @@
       "shortSighted": false,
       "solAddH": 0,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0011019182099772,
-      "dehydPct": 0.064288832853975519,
+      "c": 1.1660381276053153,
+      "dehydPct": 8.3168630565919699,
       "k": 1.1257032033593144,
       "loss6h": 0.3045853904839409,
       "na": -0.49444444444444535,
-      "naPlasma": 140.15426854939682,
+      "naPlasma": 163.24533786474416,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": -37.294808610172538
+      "thirstTarget": 1,
+      "viewPct": 8.1422553759655365,
+      "water": -5403.5294238161132
      },
      "kineticsAge": 120,
      "lastIntake": {
@@ -18196,7 +18403,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -18651,21 +18858,21 @@
     }
    },
    "sent": {
-    "mirror": 19
+    "mirror": 20
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 19,
-     "pushes": 13
+     "marks": 20,
+     "pushes": 14
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 0,
-     "drainMinutes": 0,
+     "drainMinutes": 61,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -18674,8 +18881,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 19,
-     "regenWrites": 19,
+     "rebuilds": 20,
+     "regenWrites": 20,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -18740,7 +18947,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 2,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -18816,6 +19023,8 @@
        "cold": 3.6000000000000028,
        "coldRise": 0.02,
        "coldSets": 30,
+       "food": 0.014999999999999999,
+       "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -18940,6 +19149,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -19068,6 +19279,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -19194,6 +19407,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 8,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -19320,6 +19535,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -19446,16 +19663,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 8,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 3,
+       "red": 0,
+       "reduceCalls": 91,
+       "reduced": 5.3988751587599477,
+       "regenSets": 12,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -19547,12 +19766,15 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 479,
+     "statSets": 559,
      "written": {
-      "FATIGUE": 0.17207799879390209,
+      "FATIGUE": 0.28134218188347954,
       "HUNGER": 0.20251179292852531,
       "INTOXICATION": 0,
-      "THIRST": 0
+      "PANIC": 7,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -19896,13 +20118,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.075,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 5,
       "exSeen": 0,
@@ -19928,11 +20160,10 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -20790,13 +21021,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 2,
       "exSeen": 81.237097549276257,
@@ -20822,11 +21063,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -21682,13 +21922,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.31666666666666288,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -21714,11 +21964,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -22557,13 +22806,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.0249999999999999,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 8,
       "exSeen": 178.53697564273284,
@@ -22589,11 +22848,10 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -23449,13 +23707,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -23481,11 +23749,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -24005,7 +24272,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.16602693828515436,
+      "S": 0.1752911213747318,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -24032,7 +24299,7 @@
       "gutCaf": 9.0412167855018044,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -24100,7 +24367,7 @@
       "carbDay": 6.9446960560986026,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -24148,7 +24415,7 @@
       },
       "pDay": 2.0489035816389496,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.8739220920646007,
+      "rmod": 0.61174546444522049,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -24342,18 +24609,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 1.9833333333333343,
+      "state": 6,
+      "targetFloor": 39.601124841240051
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 2,
+      "epoch": 3,
       "exSeen": 0,
-      "fOff": -0.067000310972298721,
-      "fOffNut": 0,
+      "fOff": 0.032999689027701284,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -24361,7 +24638,7 @@
       "key": {
        "b": {
         "1": 0,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -24371,23 +24648,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 0,
+      "panicTarget": 7,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.05,
@@ -24395,31 +24671,31 @@
       "shortSighted": false,
       "solAddH": 0.0068383067940408788,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0014947178323026,
-      "dehydPct": 0.087172686983006967,
+      "c": 1.166568661809374,
+      "dehydPct": 8.3397469107209883,
       "k": 1.3585474122102497,
       "loss6h": 0.39139716580483214,
       "na": -0.66111111111111098,
-      "naPlasma": 140.20926049652238,
+      "naPlasma": 163.31961265331236,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": -51.702333109111336
+      "thirstTarget": 1,
+      "viewPct": 8.2070602524874143,
+      "water": -5417.9369483150422
      },
      "kineticsAge": 120.5,
      "lastIntake": {
@@ -24444,7 +24720,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -24899,21 +25175,21 @@
     }
    },
    "sent": {
-    "mirror": 30
+    "mirror": 31
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 22,
-     "pushes": 23
+     "marks": 23,
+     "pushes": 24
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 30,
-     "drainMinutes": 0,
+     "drainMinutes": 91,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -24922,8 +25198,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 22,
-     "regenWrites": 22,
+     "rebuilds": 23,
+     "regenWrites": 23,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -24988,7 +25264,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 2,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -25065,6 +25341,8 @@
        "cold": 5.3999999999999737,
        "coldRise": 0.02,
        "coldSets": 60,
+       "food": 0.014999999999999999,
+       "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -25189,6 +25467,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -25317,6 +25597,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -25443,6 +25725,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 10,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -25544,12 +25828,11 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 606,
+     "statSets": 595,
      "written": {
       "FATIGUE": 0.37597398072827182,
       "HUNGER": 0.058368211824585986,
       "INTOXICATION": 0,
-      "STRESS": 0.033000000000000682,
       "THIRST": 0.35774057240192847
      }
     },
@@ -25570,6 +25853,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -25698,16 +25983,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 12,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 4,
+       "red": 0,
+       "reduceCalls": 100,
+       "reduced": 5.4318317988745459,
+       "regenSets": 16,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -25799,13 +26086,15 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 600,
+     "statSets": 680,
      "written": {
-      "FATIGUE": 0.18283819001881335,
+      "FATIGUE": 0.29959969233880934,
       "HUNGER": 0.1884608923108789,
       "INTOXICATION": 0,
-      "PANIC": 1.875,
-      "THIRST": 0
+      "PANIC": 8.875,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -26149,13 +26438,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.075,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 5,
       "exSeen": 0,
@@ -26181,11 +26480,10 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -27045,13 +27343,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 2,
       "exSeen": 162.47419509855263,
@@ -27077,11 +27385,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -27937,13 +28244,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 0.81666666666666288,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -27969,11 +28286,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -28812,13 +29128,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.4666666666666686,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.05,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 10,
       "exSeen": 351.12271876404202,
@@ -28844,11 +29170,10 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.5224999999999997,
       "mNut": 1.5224999999999997,
       "nightVision": false,
@@ -28866,7 +29191,7 @@
       "solAddH": 0,
       "solMul": 1,
       "speedMul": 1,
-      "stressTarget": 0.059999999999999998,
+      "stressTarget": 0,
       "tempAdj": 0,
       "tempHeat": 0,
       "tempOffset": 0,
@@ -29704,13 +30029,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -29736,11 +30071,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -30262,7 +30596,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.18818049999931052,
+      "S": 0.20494200231930648,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -30289,7 +30623,7 @@
       "gutCaf": 26.219528677955232,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -30357,7 +30691,7 @@
       "carbDay": 13.484381737314527,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -30405,7 +30739,7 @@
       },
       "pDay": 3.9297274279863044,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.86984048280454696,
+      "rmod": 0.60888833796318287,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -30599,18 +30933,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 2.4833333333333343,
+      "state": 6,
+      "targetFloor": 39.734218601152243
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 3,
+      "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.090195123722882894,
-      "fOffNut": 0,
+      "fOff": 0.0098048762771171111,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -30618,7 +30962,7 @@
       "key": {
        "b": {
         "1": 1,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -30628,23 +30972,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 1.875,
+      "panicTarget": 8.875,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.0123598130841123,
@@ -30652,31 +30995,31 @@
       "shortSighted": false,
       "solAddH": 0.040013331200240317,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0009806642557908,
-      "dehydPct": 0.057226591002779256,
+      "c": 1.1658564990194504,
+      "dehydPct": 8.3098008147407452,
       "k": 1.9333931872201,
       "loss6h": 0.47125859390229696,
       "na": -0.82777777777777661,
-      "naPlasma": 140.13729299581072,
+      "naPlasma": 163.21990986272306,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": -29.31432557488413
+      "thirstTarget": 1,
+      "viewPct": 8.0022654525508337,
+      "water": -5395.5489407808054
      },
      "kineticsAge": 121,
      "lastIntake": {
@@ -30701,7 +31044,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -31156,21 +31499,21 @@
     }
    },
    "sent": {
-    "mirror": 33
+    "mirror": 34
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 25,
-     "pushes": 26
+     "marks": 26,
+     "pushes": 27
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 60,
-     "drainMinutes": 0,
+     "drainMinutes": 100,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -31179,8 +31522,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 25,
-     "regenWrites": 25,
+     "rebuilds": 26,
+     "regenWrites": 26,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -31245,7 +31588,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 1,
+     "carryWrites": 2,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -31322,6 +31665,8 @@
        "cold": 7.1999999999999353,
        "coldRise": 0.02,
        "coldSets": 90,
+       "food": 0.014999999999999999,
+       "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -31446,6 +31791,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -31574,6 +31921,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -31700,6 +32049,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -31801,12 +32152,11 @@
       "xpGrants": 0,
       "xpSets": 0
      },
-     "statSets": 5,
+     "statSets": 4,
      "written": {
       "FATIGUE": 0.40652512216275305,
       "HUNGER": 0.063267144247627236,
       "INTOXICATION": 0,
-      "STRESS": 0,
       "THIRST": 0.43910594810605463
      }
     },
@@ -31827,6 +32177,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -31955,16 +32307,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 12,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 4,
+       "red": 0,
+       "reduceCalls": 100,
+       "reduced": 5.4318317988745459,
+       "regenSets": 16,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -32056,13 +32410,15 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 720,
+     "statSets": 800,
      "written": {
-      "FATIGUE": 0.20130955755372437,
+      "FATIGUE": 0.32509082116414778,
       "HUNGER": 0.20534990373874515,
       "INTOXICATION": 0,
-      "PANIC": 1.875,
-      "THIRST": 0
+      "PANIC": 8.875,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -32406,13 +32762,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.05,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 6,
       "exSeen": 0,
@@ -32438,11 +32804,10 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -33302,13 +33667,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 2,
       "exSeen": 243.711292647829,
@@ -33334,11 +33709,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -34194,13 +34568,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.3166666666666629,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -34226,11 +34610,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -35069,13 +35452,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.1000000000000001,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": true,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 11,
       "exSeen": 535.61092692819898,
@@ -35101,11 +35494,10 @@
         "9": 4
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.5224999999999997,
       "mNut": 1.5224999999999997,
       "nightVision": false,
@@ -35123,7 +35515,7 @@
       "solAddH": 0,
       "solMul": 1,
       "speedMul": 1,
-      "stressTarget": 0.059999999999999998,
+      "stressTarget": 0,
       "tempAdj": 0,
       "tempHeat": 0,
       "tempOffset": 0,
@@ -35952,13 +36344,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -35984,11 +36386,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -36510,7 +36911,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.20974557712187336,
+      "S": 0.23352684073229679,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -36537,7 +36938,7 @@
       "gutCaf": 13.10976433897762,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -36605,7 +37006,7 @@
       "carbDay": 19.591483115082617,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -36653,7 +37054,7 @@
       },
       "pDay": 5.6663806575076165,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.86600683036571979,
+      "rmod": 0.60620478125600386,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -36847,18 +37248,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 2.9833333333333343,
+      "state": 6,
+      "targetFloor": 39.940461938600549
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 3,
+      "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.10363842040309725,
-      "fOffNut": 0,
+      "fOff": -0.0036384204030972395,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -36866,7 +37277,7 @@
       "key": {
        "b": {
         "1": 1,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -36876,23 +37287,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 1.875,
+      "panicTarget": 8.875,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.0123598130841123,
@@ -36900,31 +37310,31 @@
       "shortSighted": false,
       "solAddH": 0.062106242587382746,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0001852837608871,
-      "dehydPct": 0.010821840076926515,
+      "c": 1.1647595664615789,
+      "dehydPct": 8.2633960638148771,
       "k": 2.6020488370754093,
       "loss6h": 0.54472613530657632,
       "na": -0.99444444444444224,
-      "naPlasma": 140.0259397265242,
+      "naPlasma": 163.06633930462104,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": 4.4459893347799424
+      "thirstTarget": 1,
+      "viewPct": 8.0718576261019805,
+      "water": -5361.7886258711324
      },
      "kineticsAge": 121.5,
      "lastIntake": {
@@ -36949,7 +37359,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -37404,21 +37814,21 @@
     }
    },
    "sent": {
-    "mirror": 35
+    "mirror": 36
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 27,
-     "pushes": 27
+     "marks": 28,
+     "pushes": 28
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 90,
-     "drainMinutes": 0,
+     "drainMinutes": 100,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -37427,8 +37837,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 27,
-     "regenWrites": 27,
+     "rebuilds": 28,
+     "regenWrites": 28,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -37493,7 +37903,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 2,
+     "carryWrites": 3,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -37570,6 +37980,8 @@
        "cold": 8.999999999999897,
        "coldRise": 0.02,
        "coldSets": 120,
+       "food": 0.014999999999999999,
+       "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -37694,6 +38106,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 3,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -37822,6 +38236,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -37948,6 +38364,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 3,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -38049,12 +38467,11 @@
       "xpGrants": 0,
       "xpSets": 0
      },
-     "statSets": 146,
+     "statSets": 124,
      "written": {
       "FATIGUE": 0.50481385043821969,
       "HUNGER": 0.068682251851877721,
       "INTOXICATION": 0,
-      "STRESS": 0.059999999999999998,
       "THIRST": 0.52573063569501222
      }
     },
@@ -38075,6 +38492,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -38203,16 +38622,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 12,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 4,
+       "red": 0,
+       "reduceCalls": 100,
+       "reduced": 5.4318317988745459,
+       "regenSets": 16,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -38304,13 +38725,15 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 840,
+     "statSets": 920,
      "written": {
-      "FATIGUE": 0.22625036946189583,
+      "FATIGUE": 0.35659653157336429,
       "HUNGER": 0.22120044644645018,
       "INTOXICATION": 0,
-      "PANIC": 1.875,
-      "THIRST": 0
+      "PANIC": 8.875,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -38654,13 +39077,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.05,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 6,
       "exSeen": 0,
@@ -38686,11 +39119,10 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -39550,13 +39982,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 3,
       "exSeen": 324.94839019710543,
@@ -39582,11 +40024,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -40442,13 +40883,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 1.8166666666666629,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -40474,11 +40925,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -41317,13 +41767,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.125,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 13,
       "exSeen": 714.1479025709325,
@@ -41349,11 +41809,10 @@
         "9": 5
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.6123333333333332,
       "mNut": 1.6123333333333332,
       "nightVision": false,
@@ -41371,7 +41830,7 @@
       "solAddH": 0,
       "solMul": 1,
       "speedMul": 1,
-      "stressTarget": 0.059999999999999998,
+      "stressTarget": 0,
       "tempAdj": 0,
       "tempHeat": 0,
       "tempOffset": 0,
@@ -42200,13 +42659,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.4833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -42232,11 +42701,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -42758,7 +43226,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.23073780208788996,
+      "S": 0.26108396419935842,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -42785,7 +43253,7 @@
       "gutCaf": 6.5548821694888106,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -42853,7 +43321,7 @@
       "carbDay": 25.25730663865507,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -42901,7 +43369,7 @@
       },
       "pDay": 7.2775493792074526,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.86240435658706871,
+      "rmod": 0.6036830496109481,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -43095,18 +43563,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 3.4833333333333343,
+      "state": 6,
+      "targetFloor": 40.112626765251967
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 3,
+      "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.10841048108012677,
-      "fOffNut": 0,
+      "fOff": -0.0084104810801267638,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -43114,7 +43592,7 @@
       "key": {
        "b": {
         "1": 1,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -43124,23 +43602,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 1.875,
+      "panicTarget": 8.875,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.0123598130841123,
@@ -43148,31 +43625,31 @@
       "shortSighted": false,
       "solAddH": 0.07054690158782316,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1,
-      "dehydPct": 0,
+      "c": 1.163844978754528,
+      "dehydPct": 8.2246589778183079,
       "k": 3.2057174958847381,
       "loss6h": 0.6123116990583567,
       "na": -1.1611111111111108,
-      "naPlasma": 140,
+      "naPlasma": 162.93829702563391,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": 14.604331319811623
+      "thirstTarget": 1,
+      "viewPct": 8.1407359312231033,
+      "water": -5333.4784012268583
      },
      "kineticsAge": 122,
      "lastIntake": {
@@ -43197,7 +43674,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -43652,21 +44129,21 @@
     }
    },
    "sent": {
-    "mirror": 40
+    "mirror": 41
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 30,
-     "pushes": 31
+     "marks": 31,
+     "pushes": 32
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 120,
-     "drainMinutes": 0,
+     "drainMinutes": 100,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -43675,8 +44152,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 30,
-     "regenWrites": 30,
+     "rebuilds": 31,
+     "regenWrites": 31,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -43741,7 +44218,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 3,
+     "carryWrites": 4,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,
@@ -43818,6 +44295,8 @@
        "cold": 10.799999999999859,
        "coldRise": 0.02,
        "coldSets": 150,
+       "food": 0.014999999999999999,
+       "foodSets": 7,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -43942,6 +44421,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -44070,6 +44551,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -44196,6 +44679,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -44297,13 +44782,11 @@
       "xpGrants": 0,
       "xpSets": 0
      },
-     "statSets": 267,
+     "statSets": 244,
      "written": {
       "FATIGUE": 0.55073861429281523,
       "HUNGER": 0.074450089984077941,
       "INTOXICATION": 0,
-      "STRESS": 0.059999999999999998,
-      "TEMPERATURE": 37.075000000000003,
       "THIRST": 0.61439107849987085
      }
     },
@@ -44324,6 +44807,8 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
+       "food": 0.014999999999999999,
+       "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
        "reduced": 0,
@@ -44452,16 +44937,18 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "red": 0.0012999999999999999,
-       "reduceCalls": 0,
-       "reduced": 0,
-       "regenSets": 12,
-       "sev": 0.00080000000000000004,
-       "slp": 0.02,
-       "std": 0.002
+       "food": 0,
+       "foodSets": 4,
+       "red": 0,
+       "reduceCalls": 100,
+       "reduced": 5.4318317988745459,
+       "regenSets": 16,
+       "sev": 0,
+       "slp": 0,
+       "std": 0
       },
-      "delta": 1,
-      "deltaWrites": 0,
+      "delta": 0.93999999999999995,
+      "deltaWrites": 1,
       "levelDowns": 0,
       "levelUps": 0,
       "parts": {
@@ -44553,13 +45040,15 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 960,
+     "statSets": 1040,
      "written": {
-      "FATIGUE": 0.25268969904715288,
+      "FATIGUE": 0.38916762928166193,
       "HUNGER": 0.23178419771188108,
       "INTOXICATION": 0,
-      "PANIC": 1.875,
-      "THIRST": 0
+      "PANIC": 8.875,
+      "STRESS": 0.059999999999999998,
+      "THIRST": 0.82999999999999996,
+      "UNHAPPINESS": 21
      }
     }
    },
@@ -44903,13 +45392,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.0249999999999999,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.0085356661760585,
       "epoch": 7,
       "exSeen": 0,
@@ -44935,11 +45434,10 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -45799,13 +46297,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.0249999999999999,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -1.7938677500064479,
       "epoch": 4,
       "exSeen": 406.18548774638185,
@@ -45831,11 +46339,10 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.3999999999999999,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -46691,13 +47198,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 2.3166666666666629,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 1,
       "dirty": false,
-      "drain": 0,
       "ea": 30,
       "epoch": 1,
       "exSeen": 0,
@@ -46723,11 +47240,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1,
       "mNut": 1,
       "nightVision": false,
@@ -47566,13 +48082,23 @@
       "wroteL": 9
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1.125,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": -7.9024683767423056,
       "epoch": 14,
       "exSeen": 892.68487821366602,
@@ -47598,11 +48124,10 @@
         "9": 5
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.694,
       "mNut": 1.694,
       "nightVision": false,
@@ -47620,11 +48145,11 @@
       "solAddH": 0,
       "solMul": 1,
       "speedMul": 1,
-      "stressTarget": 0.059999999999999998,
-      "tempAdj": 0.074999999999999997,
-      "tempHeat": 0.074999999999999997,
+      "stressTarget": 0,
+      "tempAdj": 0,
+      "tempHeat": 0,
       "tempOffset": 0,
-      "tempTarget": 37.075000000000003,
+      "tempTarget": 0,
       "unhappyTarget": 0
      },
      "firstSeen": 118.51666666666667,
@@ -48449,13 +48974,23 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": false,
+      "bmi0": 0,
+      "drainThisMinute": 0,
+      "feH": 0,
+      "naH": 0,
+      "rate": 0,
+      "starvedH": 3.9833333333333343,
+      "state": 0,
+      "targetFloor": 100
+     },
      "effects": {
       "aimMul": 1,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 2.526325104300946,
       "epoch": 2,
       "exSeen": 0,
@@ -48481,11 +49016,10 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
       "mAcc": 1.8199999999999998,
       "mNut": 1.3999999999999999,
       "nightVision": false,
@@ -49007,7 +49541,7 @@
     },
     "g6": {
      "acute": {
-      "S": 0.25117239207425102,
+      "S": 0.28765032230876009,
       "alc": 0,
       "alc7": 0,
       "alcDayG": 0,
@@ -49034,7 +49568,7 @@
       "gutCaf": 3.2774410847444053,
       "hang": 0,
       "hangH": 0,
-      "iu": 0,
+      "iu": 0.89000000000000001,
       "iuSleep": 0,
       "lastB1": 0,
       "lastB2": 0,
@@ -49102,7 +49636,7 @@
       "carbDay": 28.748074385182999,
       "coldMult": 1,
       "dayIndex": 5,
-      "delta": 1,
+      "delta": 0.93999999999999995,
       "eb7": {
        "1": 0,
        "2": 0,
@@ -49150,7 +49684,7 @@
       },
       "pDay": 8.2702057484934119,
       "pPrevKg": 0.053302466935335698,
-      "rmod": 0.85900446939949071,
+      "rmod": 0.60130312857964352,
       "sex": 1,
       "sig7": {
        "1": 0,
@@ -49344,18 +49878,28 @@
       "wroteL": 5
      },
      "dead": false,
+     "drain": {
+      "active": true,
+      "bmi0": 0,
+      "drainThisMinute": 0.13888888888888098,
+      "feH": 0,
+      "naH": 0,
+      "rate": 200,
+      "starvedH": 3.9833333333333343,
+      "state": 6,
+      "targetFloor": 40.114151769178555
+     },
      "effects": {
-      "aimMul": 1,
+      "aimMul": 1.2,
       "bleedMul": 1,
       "bruise": 0,
       "coldMul": 3,
       "dirty": false,
-      "drain": 0,
       "ea": 1.7057588561527586,
-      "epoch": 3,
+      "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.10934823692845252,
-      "fOffNut": 0,
+      "fOff": -0.0093482369284525191,
+      "fOffNut": 0.10000000000000001,
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
@@ -49363,7 +49907,7 @@
       "key": {
        "b": {
         "1": 1,
-        "10": 0,
+        "10": 7,
         "11": 0,
         "12": 0,
         "2": 0,
@@ -49373,23 +49917,22 @@
         "6": 0,
         "7": 0,
         "8": 0,
-        "9": 0
+        "9": 8
        },
        "day": 5,
-       "dials": 1000000111,
+       "dials": 1000000011,
        "ep": 0
       },
       "lastDay": 5,
-      "lethal": 0,
-      "mAcc": 0.97999999999999987,
-      "mNut": 1.3999999999999999,
+      "mAcc": 1.3327999999999998,
+      "mNut": 1.9039999999999999,
       "nightVision": false,
       "nvDays": 0,
       "own": {
        "nv": false,
        "ss": false
       },
-      "panicTarget": 1.875,
+      "panicTarget": 8.875,
       "pe": 1,
       "poisonTarget": 0,
       "rNut": 1.0123598130841123,
@@ -49397,31 +49940,31 @@
       "shortSighted": false,
       "solAddH": 0.072252893901668946,
       "solMul": 1,
-      "speedMul": 1,
-      "stressTarget": 0,
+      "speedMul": 0.84999999999999998,
+      "stressTarget": 0.059999999999999998,
       "tempAdj": 0,
-      "tempHeat": 0,
+      "tempHeat": 0.29999999999999999,
       "tempOffset": 0,
       "tempTarget": 0,
-      "unhappyTarget": 0
+      "unhappyTarget": 21
      },
      "firstSeen": 118.51666666666667,
      "fluids": {
       "autoDrop": 0,
-      "c": 1.0001822756180376,
-      "dehydPct": 0.010647393737608601,
+      "c": 1.1638308817440155,
+      "dehydPct": 8.2243158519348256,
       "k": 3.5436946529090267,
       "loss6h": 0.67448620960186523,
       "na": -1.3277777777777795,
-      "naPlasma": 140.02551858652527,
+      "naPlasma": 162.93632344416216,
       "naSweat": 20.883122552513157,
       "sweat6h": 0,
       "sweatActive": false,
       "sweatK": 0.82506508209047147,
       "sweatLmin": 0,
-      "thirstTarget": 0,
-      "viewPct": 0,
-      "water": 8.9045121901428139
+      "thirstTarget": 1,
+      "viewPct": 8.2066956710714472,
+      "water": -5332.031637335177
      },
      "kineticsAge": 122.5,
      "lastIntake": {
@@ -49446,7 +49989,7 @@
      },
      "moodLast": {
       "b": 0,
-      "u": 0
+      "u": 21
      },
      "nutrients": {
       "allReplete": true,
@@ -49901,21 +50444,21 @@
     }
    },
    "sent": {
-    "mirror": 43
+    "mirror": 44
    },
    "stats": {
     "bus.effects": {
      "bandMarks": 0,
      "deferred": 0,
      "failed": 0,
-     "marks": 33,
-     "pushes": 34
+     "marks": 34,
+     "pushes": 35
     },
     "effects": {
      "bruises": 0,
      "closes": 6,
      "coldWrites": 150,
-     "drainMinutes": 0,
+     "drainMinutes": 100,
      "errors": 0,
      "healed": 0,
      "infectSyncs": 0,
@@ -49924,8 +50467,8 @@
      "pushMissing": 0,
      "pushes": 0,
      "reasserts": 0,
-     "rebuilds": 33,
-     "regenWrites": 33,
+     "rebuilds": 34,
+     "regenWrites": 34,
      "skippedDead": 0,
      "traitAdds": 0,
      "traitRemoves": 0
@@ -49990,7 +50533,7 @@
     },
     "strength": {
      "badReads": 0,
-     "carryWrites": 3,
+     "carryWrites": 4,
      "failures": 0,
      "guarded": 0,
      "ladderFallbacks": 0,

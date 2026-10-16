@@ -8,7 +8,8 @@ in the env, and getTimestampMs stays absent (the bus's push gap is then the slow
 The stand-in player is server_host's PLAYER (untouched) under this file's decorator (DECORATE): a body-damage
 object whose thermoregulator answers a per-player metabolic rate (the class's engine MET times the engine's load
 factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
-catch-a-cold value and the regeneration and health setters, all counting; isAsleep (g6, minutes 40-90),
+catch-a-cold value and the regeneration, food-heal and health setters, all counting, and an overall-health read (100,
+or g6's 45, less the health taken plus the health added); isAsleep (g6, minutes 40-90),
 isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
 getMoodles, isFemale (g5), a trait collection (with getKnownTraits, and a descriptor with a profession: Plan 13
 Task 17, ruling 13-36), the Strength perk level, its XP and setPerkLevelDebug, LevelPerk,
@@ -30,7 +31,8 @@ scriptThirst). The dish and craft inputs instance through an instanceItem global
 IN.foodInfo run, a first-sight type each round: table, inferred and declared inputs). g3's minute-130 item answers
 NaN for its carbohydrates: Intake's num keeps it and the landing guard rejects the vector (intake.failures). g1's
 sleep debt set to DEBT_G1 at minute 20; g6's macro stores raised by an external writer at minute 45 (reconciled);
-Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.fluid, IN.land); g3 dies at minute
+Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.fluid, IN.land); g6 is set to an
+8.25 % water deficit at minute 30 on an overall health of 45, the dehydration drain state (Plan 15 Task 4); g3 dies at minute
 100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
 heal); g4 departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and M (g5, 140; P until Plan 11g Task 4, G until
@@ -92,6 +94,12 @@ STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's ea
 # K.acute.sleepMinute: no 24 h close falls in the trace's 4 h, so the writer's sleep factor (above 1 at half of
 # K.satiety.SLEEP_DEBT_FULL_H) is reached only this way
 DEBT_G1 = 1.0
+# Plan 15 Task 4: g6 stands in for a drain state. At minute 30 its water balance is set to an 8.25 % deficit of body
+# mass (the dehydration state, floor about 40 by the deficit, K.drain), and its body damage answers an overall health of
+# 45 less what the mod takes, so the drain reaches the floor inside the window and holds it.
+DEHYD_MINUTE_G6 = 30
+DEHYD_PCT_G6 = 8.25
+DEHYD_HEALTH_G6 = 45.0
 # minutes 80, 120, 140: the writer's satiety guards (W.satiety, W.satietyMeal, W.satietyDtH); 170: Kinetics' M guard (KIN.landMeal). A NaN S (g2), t (g4) and M (g5)
 # is healed in the step before any snapshot reads it (L is healed by Metabolism first, so no guard there). At 170
 # g1 gets an M of GUARD_M_G1 and one StatsDecrease read of GUARD_SD. Since Plan 11g Task 4 fix 1 (ruling T4-3) the read
@@ -231,7 +239,9 @@ NR_T.decorate = function(p, cfg)
     thermo.getFluidsMultiplier = function(s) return 1.0 end
     thermo.getSetPoint = function(s) return 37.0 end
     local bst = { std = 0.002, red = 0.0013, sev = 0.0008, slp = 0.02, regenSets = 0, reduced = 0,
-                  reduceCalls = 0, added = 0, cold = cfg.cold or 0, coldRise = cfg.coldRise or 0, coldSets = 0 }
+                  reduceCalls = 0, added = 0, cold = cfg.cold or 0, coldRise = cfg.coldRise or 0, coldSets = 0,
+                  food = 0.015, foodSets = 0 }
+    local health0 = cfg.health or 100
     st.body = bst
     local parts, byType = {}, {}
     for i, n in ipairs(NR_T.PARTS) do
@@ -253,6 +263,8 @@ NR_T.decorate = function(p, cfg)
     bd.setSeverlyReducedHealthAddition = function(s, v) s.st.sev = v; s.st.regenSets = s.st.regenSets + 1 end
     bd.setSleepingHealthAddition = function(s, v) s.st.slp = v; s.st.regenSets = s.st.regenSets + 1 end
     bd.ReduceGeneralHealth = function(s, v) s.st.reduced = s.st.reduced + v; s.st.reduceCalls = s.st.reduceCalls + 1 end
+    bd.setHealthFromFood = function(s, v) s.st.food = v; s.st.foodSets = s.st.foodSets + 1 end
+    bd.getOverallBodyHealth = function(s) return health0 - s.st.reduced + s.st.added end
     bd.AddGeneralHealth = function(s, v) s.st.added = s.st.added + v end
     NR_T.bodies[#NR_T.bodies + 1] = bd
     bd.parts = parts
@@ -511,7 +523,7 @@ PLAYER_CFG = {
     "g5": {"rate": 1.1, "inv": 6, "maxW": 8, "traits": ["NEEDS_MORE_SLEEP"], "female": True,
            "parts": {"LowerLeg_L": {"fracture": 30.0}}, "nicotine": NIC_START_G5},
     "g6": {"rate": 0.8, "inv": 6, "maxW": 8, "traits": ["NEEDS_LESS_SLEEP"], "asleep": [40, 90],
-           "parts": {"Hand_R": {"bite": 2.0}}},
+           "parts": {"Hand_R": {"bite": 2.0}}, "health": DEHYD_HEALTH_G6},
 }
 
 # The HUNGER, THIRST and FATIGUE each player's stats object starts at (Plan 11e Task 1, ruling 11e-3), distinct per
@@ -724,6 +736,10 @@ def run(host):
             players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_SMOKE
         if m == NIC_RERISE_MINUTE:
             players["g5"].sv.NICOTINE_WITHDRAWAL = NIC_RERISE
+        if m == DEHYD_MINUTE_G6:
+            rec = h.record("g6")
+            body = rec["body"]
+            rec["fluids"]["water"] = -DEHYD_PCT_G6 / 100.0 * (body["fm"] + body["lm"] + body["lx"]) * 1000.0
         if m == 45:
             nut = players["g6"].nut
             nut.cal = nut.cal + STORE_RAISE_G6[0]

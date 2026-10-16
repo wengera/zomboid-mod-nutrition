@@ -106,7 +106,7 @@ CROSS = (
         ("kept", ("solAddH", "solMul")),
         ("nutrients", ("mAcc", "rRec")),
         ("bus", ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
-                 "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
+                 "coldMul", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
                  "fOff", "mAcc", "rRec")),
         ("store", ("epoch",)),
     ])
@@ -128,7 +128,9 @@ CROSS = (
 # on the pipeline context, never on the record, so they have no rows.
 
 # The kernel function each producer calls near its step's end: the injection lands after it returns.
-NEAR_END = {"metabolism": "deficit.state", "nutrients": "acute.iu", "effects": "effects.drain", "kinetics": "stomach.fill"}
+# Plan 15 Task 4: the effects step's drain call (K.drain.step) moved before the flags, so its near-end call is the trait
+# rule K.effects.ssWant.
+NEAR_END = {"metabolism": "deficit.state", "nutrients": "acute.iu", "effects": "effects.ssWant", "kinetics": "stomach.fill"}
 
 # Every guarded (producer, sub-table, field), once.
 GUARDED = sorted({(p, s, f) for p, s, f, _ in CROSS}, key=lambda r: (r[0], r[1], str(r[2])))
@@ -143,7 +145,7 @@ WINDOW = [
     ("nutrients", "acute", "cafMean", "a store input only"),
     ("nutrients", "nutrients.vitC", "g", "Effects reads it through comparisons only (a rung literal by construction)"),
     ("nutrients", "nutrients.iron", "x", "Effects reads it through comparisons only (a rung literal by construction)"),
-    ("nutrients", "nutrients.thiamine", "ah", "Effects' drain compares it only (a finite sum by construction)"),
+    ("nutrients", "nutrients.thiamine", "ah", "K.drain reads it only at the clinical grade, and skips a non-finite floor (K.drain.consider)"),
     ("nutrients", "nutrients.vitC", "e24", "Effects' cold credit compares it only (finite inputs by the intake guard)"),
     ("nutrients", "nutrients.vitA", "g", "the mirror reads nutrients.<key>.g/.p/.x for every ORDER key (K.mirror.nutrients): "
      "one mirror carries the NaN and the client blanks it (K.view.fmt renders NaN as \"\"); guarding them would cost "
@@ -153,6 +155,7 @@ WINDOW = [
     ("nutrients", "body", "alcDay", "written by Nutrients after Metabolism's guard; only the store reads it, and a null "
      "on save loads 0, the heal's neutral"),
     ("effects", "effects", "nvDays", "a store input only; Effects reads it next minute after its heal"),
+    ("effects", "drain", "bmi0", "a store input only; K.drain.ensure heals it before the next minute's step reads it"),
 ]
 
 WRAP = r"""

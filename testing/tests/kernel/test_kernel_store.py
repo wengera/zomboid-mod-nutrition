@@ -26,8 +26,10 @@ DERIVED = {
     "fluids": {"dehydPct", "c", "naPlasma", "thirstTarget", "sweatLmin"},
     "effects": {"key", "mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget",
                 "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",
-                "fOffNut", "bruise", "drain", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
-                "lethal", "intoxTarget", "tempTarget", "mAcc", "rRec"},
+                "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
+                "intoxTarget", "tempTarget", "mAcc", "rRec"},
+    # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step)
+    "drain": {"active", "state", "targetFloor", "rate", "drainThisMinute", "starvedH"},
     "stomach": set(),
 }
 
@@ -346,6 +348,21 @@ def test_every_acute_fluids_effects_and_stomach_field_is_classified(host):
     assert classify(host, "effects", eff, DERIVED["effects"] | {"own"}) == []
     assert classify(host, "effects.own", eff["own"], set()) == []
     assert classify(host, "stomach", host.call("stomach.new"), DERIVED["stomach"]) == []
+    assert classify(host, "drain", host.call("drain.new"), DERIVED["drain"]) == []
+
+
+def test_a_stored_drain_keeps_its_clocks_and_drops_the_minutes_outputs(host):
+    # Plan 15 Task 4: starvation's onset BMI and the sodium and iron hours survive a save; the active state, its floor,
+    # rate and amount are the next minute's to recompute
+    raw = host.table({"username": "admin", "firstSeen": 1.0, "lastSeen": 2.0, "resets": 0, "dead": False,
+                      "drain": {"bmi0": 21.5, "naH": 1.5, "feH": 0.25, "active": True, "state": 1, "targetFloor": 30.0,
+                                "rate": 25, "drainThisMinute": 0.01, "starvedH": 40}})
+    d = host.py(S(host).load(raw, order(host), recs(host)))["drain"]
+    assert (d["bmi0"], d["naH"], d["feH"]) == (21.5, 1.5, 0.25)
+    assert (d["active"], d["state"], d["targetFloor"], d["rate"], d["drainThisMinute"], d["starvedH"]) == (
+        False, 0, 100, 0, 0, 0)
+    assert "drain" not in host.py(S(host).load(host.table({"username": "a"}), order(host), recs(host)))
+    assert host.py(S(host).inputsOnly(raw))["drain"] == {"bmi0": 21.5, "naH": 1.5, "feH": 0.25}
 
 
 def test_every_order_key_has_its_per_key_input_paths(host):

@@ -3,8 +3,9 @@
 -- The stomach fill. The pool_<key> keys are retired from the wire
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
 -- A record whose kinetics has not yet run reads its stomach's own fill, else empty, and zeros.
--- The 20 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
--- effects table, so a reader that acts on one must treat 0 as absent.
+-- The 18 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
+-- effects table, so a reader that acts on one must treat 0 as absent. The two drain_* keys (K.mirror.drain): the
+-- active drain state's code (0 none) and its floor (100 with none), K.drain's (Plan 15 Task 4).
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
@@ -30,6 +31,7 @@ function K.mirror.build(record, meta, order, energyLevel, P)
     K.mirror.body(m, record.body, P)
     m.body_energyLevel = energyLevel
     K.mirror.effects(m, record.effects)
+    K.mirror.drain(m, record.drain)
     return m
 end
 
@@ -138,7 +140,7 @@ end
 -- The effects set as effects_<name>; 0 (false for the two trait flags) when record.effects or a
 -- field is absent. Numeric reads only, a copy of what the effects adapter stamped.
 local EFFECT_NUMBERS = { "epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
-    "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "fOff", "mAcc", "rRec" }
+    "coldMul", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "fOff", "mAcc", "rRec" }
 
 function K.mirror.effects(m, eff)
     for i = 1, #EFFECT_NUMBERS do
@@ -155,6 +157,18 @@ function K.mirror.effects(m, eff)
         m.effects_nv = eff.own.nv == true
         m.effects_ss = eff.own.ss == true
     end
+end
+
+-- The drain pair: drain_state, the active state's code (K.drain's codes; 0 with none or no drain table), and
+-- drain_floor, its floor health (K.drain.NONE, 100, with none).
+function K.mirror.drain(m, D)
+    m.drain_state = 0
+    m.drain_floor = K.drain.NONE
+    if D == nil or D.active ~= true then
+        return
+    end
+    m.drain_state = D.state
+    m.drain_floor = D.targetFloor
 end
 
 -- The stomach pair. stomachFill, the physical fill (K.stomach.recordFill; the writer's fallback, the writer's F being W.satietyF),

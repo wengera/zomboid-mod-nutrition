@@ -33,10 +33,12 @@ CHANNELS = {"stat", "trait", "body", "event"}
 BANDS = ["caf", "wd", "bac", "alc", "hang", "bg", "iuS", "debt", "iu", "dehyd", "hypo", "ex"]
 BAND_MAX = {"caf": 16, "wd": 4, "bac": 1, "alc": 2, "hang": 1, "bg": 3, "iuS": 12, "debt": 2, "iu": 25,
             "dehyd": 8, "hypo": 3, "ex": 4}
-FLAGS = {"anaemia", "allReplete", "refeedEvent", "frozen", "bgroupMax", "coldCredit", "boutVig"}
+FLAGS = {"anaemia", "allReplete", "refeedEvent", "frozen", "bgroupMax", "coldCredit", "boutVig", "starve",
+         "starveEarly"}
+NUMERIC_FLAGS = {"bgroupMax": (3, 4), "starve": (1, 3)}     # a numeric flag's row range (Plan 15 Task 4: starve)
 SURFACES = {"mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget", "poisonTarget",
             "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul", "fOffNut",
-            "bruise", "drain", "nightVision", "shortSighted"}
+            "bruise", "nightVision", "shortSighted"}           # Plan 15 Task 4: no drain surface, K.drain owns it
 
 
 def _load(host, path):
@@ -116,12 +118,12 @@ def test_the_clamps_are_the_briefings(eh):
     assert lohi("healMul") == (0.5, 1.0) and lohi("bleedMul") == (1.0, 1.25) and lohi("infectMul") == (1.0, 2.3)
     assert lohi("coldMul") == (0.5, 3.0) and lohi("tempOffset") == (-0.5, 0.3) and lohi("tempHeat") == (0, 0.3)
     assert s["speedMul"]["op"] == "min" and lohi("speedMul") == (0.75, 1.0)
-    assert lohi("fOffNut") == (0, 0.15) and lohi("bruise") == (0, 1) and lohi("drain") == (0, 1)
+    assert lohi("fOffNut") == (0, 0.15) and lohi("bruise") == (0, 1)
 
 
 def test_the_machine_and_gated_surfaces(eh):
     s = _surf(eh)
-    assert {k for k, v in s.items() if v.get("machine")} == {"drain", "nightVision"}
+    assert {k for k, v in s.items() if v.get("machine")} == {"nightVision"}
     assert {k for k, v in s.items() if v.get("sevMin") is not None} == {"shortSighted"}
     assert s["shortSighted"]["sevMin"] == 1                              # ruling 7
 
@@ -149,13 +151,16 @@ def test_every_selector_is_in_the_engines_set_with_a_source_for_it(eh):
         else:
             assert src == on, r
         at = r.get("at")
-        if on == "flag" and src != "bgroupMax":
+        if on == "flag" and src not in NUMERIC_FLAGS:
             assert at is None, r                                         # a boolean flag matches true
             continue
         lo, hi = at if isinstance(at, tuple) else (at, at)
         assert isinstance(lo, int) and isinstance(hi, int) and lo <= hi, r
-        top = {"grade": 4, "rung": 3, "pe": 4, "ea": 3, "flag": 4}.get(on) or BAND_MAX[src]
-        bottom = {"grade": 2, "rung": 1, "pe": 2, "flag": 3}.get(on, 1)
+        if on == "flag":
+            bottom, top = NUMERIC_FLAGS[src]
+        else:
+            top = {"grade": 4, "rung": 3, "pe": 4, "ea": 3}.get(on) or BAND_MAX[src]
+            bottom = {"grade": 2, "rung": 1, "pe": 2}.get(on, 1)
         assert bottom <= lo and hi <= top, r                             # flat at and above replete: no row at identity
         assert r["list"], r
 
@@ -210,7 +215,9 @@ def test_the_rulings_the_table_encodes(eh):
     assert max(sick) < 90
     unless = {(r["src"], r["at"], r["unless"]) for r in _rows(eh) if r.get("unless")}
     assert unless == {("iron", 3, "anaemia"), ("ex", 1, "boutVig"), ("ex", 2, "boutVig"),
-                      ("ex", 3, "boutVig"), ("ex", 4, "boutVig")}
+                      ("ex", 3, "boutVig"), ("ex", 4, "boutVig"),
+                      ("pe", 2, "starveEarly"), ("pe", 3, "starveEarly"), ("pe", 4, "starveEarly"),
+                      ("ea", 1, "starveEarly"), ("ea", 2, "starveEarly"), ("ea", 3, "starveEarly")}
     trait = [(r["src"], r["at"], e["s"]) for r, e in entries if e["ch"] == "trait"]
     assert trait == [("vitA", 4, "shortSighted")]                        # D3
 
@@ -269,12 +276,15 @@ def test_the_fatigue_offset_and_the_heat_side_at_each_lower_edge(eh):
     for n, v in f.items():
         assert v == pytest.approx(0.06 + 0.04 * min(1, (DEHYD_EDGE[n] - 2) / 2), abs=1e-12), n
     heat = _band_values(eh, "dehyd", "tempHeat")
-    assert sorted(heat) == [4, 5, 6, 7, 8]                               # band 3 (2 %) is 0: no row
+    assert sorted(heat) == [5, 6, 7, 8]                                  # Plan 15 Task 4: heat intolerance from 3 %
     for n, v in heat.items():
         assert v == pytest.approx(0.3 * min(1, max(0, (DEHYD_EDGE[n] - 2) / 2)), abs=1e-12), n
-    assert _band_values(eh, "dehyd", "stressTarget") == {n: 0.06 for n in range(2, 9)}
-    assert _band_values(eh, "dehyd", "panicTarget") == {n: 7 for n in range(2, 9)}
-    assert _band_values(eh, "dehyd", "speedMul") == {7: 0.85, 8: 0.85}
+    # Plan 15 Task 4 (spec section 3.3): the mood rows in the 4-6 % band (S2248), panic moved there from 1.5 %; collapse at
+    # 10 % and above
+    assert _band_values(eh, "dehyd", "stressTarget") == {n: 0.06 for n in range(6, 9)}
+    assert _band_values(eh, "dehyd", "panicTarget") == {n: 7 for n in range(6, 9)}
+    assert _band_values(eh, "dehyd", "unhappyTarget") == {n: 21 for n in range(6, 9)}
+    assert _band_values(eh, "dehyd", "speedMul") == {7: 0.85, 8: 0.75}
 
 
 def test_the_caffeine_rows(eh):
@@ -342,6 +352,12 @@ def test_the_healing_cold_and_drain_free_magnitudes(eh):
     assert by[("hypo", "band", (2, 3))] == {"speedMul": 0.85}
     assert by[("hypo", "band", 2)] == {"foodSickTarget": 55} and by[("hypo", "band", 3)] == {"foodSickTarget": 85}
     assert by[("refeedEvent", "flag", None)] == {"foodSickTarget": 55}
+    # Plan 15 Task 4: starvation's phases, sized on the table's own rows (anaemia's mNut, pe 3's healMul, the anaemic
+    # tempOffset, UNHAPPY level 1)
+    assert by[("starve", "flag", (1, 3))] == {"mNut": 1.25}
+    assert by[("starve", "flag", 2)] == {"healMul": 0.80}
+    assert by[("starve", "flag", (2, 3))] == {"tempOffset": -0.2}
+    assert by[("starve", "flag", 3)] == {"unhappyTarget": 21}
 
 
 # --- the labelling rule as a tool check for this file -------------------------------------------------------

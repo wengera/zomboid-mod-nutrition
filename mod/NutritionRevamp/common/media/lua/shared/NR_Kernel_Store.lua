@@ -19,7 +19,7 @@
 -- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
 -- Pure: Lua tables in, Lua tables out, no Java. Slow-clock and join-time code with no fast region. This file
 -- sorts before NR_Kernel_Strength.lua, NR_Kernel_Vector.lua and NR_Kernel_View.lua and after the body,
--- acute, effects, fluids, nutrients and stomach kernels; every K.* reference outside K.store is at call time.
+-- acute, drain, effects, fluids, nutrients and stomach kernels; every K.* reference outside K.store is at call time.
 local K = NutritionRevamp.kernel
 K.store = {}
 
@@ -103,6 +103,10 @@ K.store.INPUTS = {
     -- by the first minute (the default key forces a compose): derived.
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
+    -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4): starvation's onset BMI, the floor's reference while the
+    -- state lasts, and the hours in the sodium and iron lethal states. The active state, its floor, rate and the
+    -- minute's amount are recomputed every minute: derived.
+    "drain.bmi0", "drain.naH", "drain.feH",
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.
@@ -255,6 +259,9 @@ function K.store.defaults(rec, raw, order, specific, P)
     end
     if type(raw.reconcile) == "table" then
         rec.reconcile = {}
+    end
+    if type(raw.drain) == "table" then
+        rec.drain = K.drain.new()
     end
     return rec
 end

@@ -93,7 +93,9 @@ K.fluids.OSM_MAX = 4 -- design-phase-v1 game choice (open row S1099: the osmotic
 K.fluids.HYPO_NA = 135 -- S0102
 K.fluids.HYPO_CAP = 0.09 -- game choice under #2770's 0.1 autoDrink trigger, so suppression stops drinking (open S1695)
 
--- The view's cap while NR.DeficienciesCanKill is off: under vanilla's level-4 drain (#0518/#0519).
+-- The view's cap under vanilla's level-4 drain (#0518/#0519), once read while the Plan 4 kill dial was off. Plan 15
+-- Task 4 removed the option, and with it thirstTarget's only reading; the constant is kept for Task 5's conditional
+-- caps (K.hybrid), whose thirstCap holds the same value.
 K.fluids.KILL_CAP = 0.83 -- game choice, ruling 8
 
 -- The hyponatraemia ladder, mmol/L: grade 1 below [1], 2 below [2], 3 below [3].
@@ -117,9 +119,6 @@ end
 
 -- The sweat EMAs' window, minutes.
 K.fluids.EMA_MIN = 360 -- game choice: the 6 h window
-
--- The deficit (per cent of body mass) Plan 5's severe-dehydration drain starts at.
-K.fluids.SEVERE_DEHYD_PCT = 10 -- design-phase-v1 game choice (open row S1101; S0103 open)
 
 -- A fresh record.fluids: euhydrated, at baseline sodium and potassium. lm is the caller's lean mass,
 -- accepted for the call shape and not stored (tbw0 is recomputed from body.lm); a nil draw takes the
@@ -245,13 +244,13 @@ function K.fluids.tVol(dehydPct)
     return K.interp(K.fluids.THIRST_KNOTS, dehydPct)
 end
 
--- The THIRST target: the volume and osmotic drives combined, then the hypotonic and the kill caps. defence (nil
+-- The THIRST target: the volume and osmotic drives combined, then the hypotonic cap. defence (nil
 -- reads 0) is the volume-defence weight K.fluids.defence: past the onset a volume-thirst term relaxes the hypotonic cap
 -- toward the uncapped thirst by that weight, so a salt-depleted body keeps replacing its
 -- volume and its plasma falls (S1729: volume held at the expense of the osmotic pressure; S1731: the subjects drank
 -- freely; S1724: volume depletion raises thirst); the weight riding the set point's ramp is a game choice, and the
 -- human cut-off of hypotonic thirst is open (S1695, S1736). Below the onset the weight is 0 and the cap holds.
-function K.fluids.thirstTarget(dehydPct, c, naPlasma, canKill, defence)
+function K.fluids.thirstTarget(dehydPct, c, naPlasma, defence)
     local F = K.fluids
     local tVol = F.tVol(dehydPct)
     local tOsm = F.OSM_GAIN * K.clamp((c - 1) / F.OSM_SLOPE, 0, F.OSM_MAX)
@@ -259,9 +258,6 @@ function K.fluids.thirstTarget(dehydPct, c, naPlasma, canKill, defence)
     if naPlasma < F.HYPO_NA then
         local capped = K.min(t, F.HYPO_CAP)
         t = capped + (defence or 0) * (t - capped)
-    end
-    if not canKill then
-        t = K.min(t, F.KILL_CAP)
     end
     return t
 end

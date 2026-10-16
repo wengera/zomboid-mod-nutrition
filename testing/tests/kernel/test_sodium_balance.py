@@ -167,7 +167,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         f.naPlasma = F.naPlasma(f.c)
         # Plan 11f Task 5b fix 1: the view's osmotic term counts the swallowed water too, as the server does; fix 2:
         # the hypotonic cap is relaxed by the volume-defence weight, as the server does
-        f.thirstTarget = F.thirstTarget(view, F.conc(f, lm, liquid), f.naPlasma, True, F.defence(f, w))
+        f.thirstTarget = F.thirstTarget(view, F.conc(f, lm, liquid), f.naPlasma, F.defence(f, w))
         p = f.naPlasma
         g = int(F.hyponatGrade(p))
         day["grade"] = max(day["grade"], g)
@@ -277,9 +277,8 @@ def test_the_hypotonic_cap_sits_under_the_autodrink_trigger(host):
     # #2770: autoDrink fires only above 0.1, so a cap at or above it never stops drinking (finding F-T5-1)
     F = host.K.fluids
     for dehyd in (0.5, 2, 4, 8):
-        for canKill in (True, False):
-            assert F.thirstTarget(dehyd, 1.0, 130.0, canKill) < AUTODRINK
-            assert F.thirstTarget(dehyd, 1.05, 134.9, canKill) < AUTODRINK
+        assert F.thirstTarget(dehyd, 1.0, 130.0) < AUTODRINK
+        assert F.thirstTarget(dehyd, 1.05, 134.9) < AUTODRINK
 
 
 def test_a_hypotonic_pool_reads_no_thirst_under_the_set_point():
@@ -302,7 +301,7 @@ def test_a_hypotonic_pool_reads_no_thirst_under_the_set_point():
                     hypo += 1
                     d = F.dehydPct(f, W, 0)
                     r = F.defence(f, W)
-                    t = F.thirstTarget(d, c, p, True, r)
+                    t = F.thirstTarget(d, c, p, r)
                     if na + k > -179.2:
                         assert d == 0, (na, k, water)
                         assert r == 0, (na, k, water)

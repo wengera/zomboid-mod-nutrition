@@ -719,26 +719,41 @@ def test_past_the_volume_defence_onset_the_server_relaxes_the_hypotonic_cap(nut_
     pending = 0.0
     if st is not None:
         pending = h.K.stomach.water(st)
-    want = F.thirstTarget(f["viewPct"], F.conc(f, body["lm"], pending), f["naPlasma"], True, r)
+    want = F.thirstTarget(f["viewPct"], F.conc(f, body["lm"], pending), f["naPlasma"], r)
     assert abs(f["thirstTarget"] - want) < 1e-9
     assert f["thirstTarget"] > 0.1
 
 
-def test_the_kill_cap_and_its_dial(nut_host):
+def test_no_dial_caps_the_thirst_target(nut_host):
+    # Plan 15 Task 4: the kill dial is removed, so a stale leaf of its old name changes nothing; the thirst target runs
+    # to 1 and the hybrid's thirstCap holds the view (Task 5 lifts it)
     h = nut_host
     p = player(h)
     record = fresh(h, p)
     f = record["fluids"]
     f["water"] = -0.08 * 80.0 * 1000                        # an 8 % deficit
-    h.rt.eval(READ)(h.table({"DeficienciesCanKill": False}))
+    O = h.rt.eval(READ)(h.table({"DeficienciesCanKill": False}))
     try:
+        assert O["deficienciesCanKill"] is None
         alone(h, p, record, 100.0 + 1 / 60)
         assert f["dehydPct"] > 8
-        assert abs(f["thirstTarget"] - 0.83) < TOL          # ruling 8: under vanilla's lethal level
+        assert abs(f["thirstTarget"] - 1.0) < TOL
     finally:
         h.rt.eval(READ)(h.table({}))
-    alone(h, p, record, 100.0 + 2 / 60)
-    assert abs(f["thirstTarget"] - 1.0) < TOL
+
+
+def test_the_removed_kill_dial_leaves_no_reader():
+    # Plan 15 Task 4 (spec section 1.3): no file of the mod names the option, its field or its translation key
+    root = os.path.join(REPO, "mod", "NutritionRevamp")
+    hits = []
+    for d, _, files in os.walk(root):
+        for name in files:
+            if name.endswith((".lua", ".txt", ".json", ".md", ".info")):
+                path = os.path.join(d, name)
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    if "eficienciesCanKill" in fh.read():
+                        hits.append(os.path.relpath(path, root))
+    assert hits == []
 
 
 def test_an_auto_drink_drop_lands_in_the_liquid_lane(nut_host):
@@ -1252,8 +1267,7 @@ def test_onset_speed_is_read_and_clamped(nut_host, v, want):
         h.rt.eval(READ)(h.table({}))
 
 
-@pytest.mark.parametrize("key, field", [("DeficienciesCanKill", "deficienciesCanKill"),
-                                        ("ExcessEffectsOn", "excessEffectsOn"), ("BalanceBonus", "balanceBonus")])
+@pytest.mark.parametrize("key, field", [("ExcessEffectsOn", "excessEffectsOn"), ("BalanceBonus", "balanceBonus")])
 def test_the_boolean_dials(nut_host, key, field):
     h = nut_host
     try:
@@ -1293,19 +1307,21 @@ def test_the_dial_reaches_the_slow_records(nut_host):
     assert fast["nutrients"]["vitC"]["p"] == slow["nutrients"]["vitC"]["p"]      # never dialled
 
 
-def test_the_option_file_and_translations_declare_the_four_dials():
+def test_the_option_file_and_translations_declare_the_three_dials():
     import json
     path = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
     with open(path, encoding="utf-8") as fh:
         src = fh.read()
     assert "option NR.OnsetSpeed\n{\n    type = double, min = 0.5, max = 30.0, default = 1.0," in src
-    for name in ("DeficienciesCanKill", "ExcessEffectsOn", "BalanceBonus"):
+    for name in ("ExcessEffectsOn", "BalanceBonus"):
         assert "option NR.%s\n{\n    type = boolean, default = true,\n    page = NutritionRevamp, translation = NR_%s,\n}" % (name, name) in src
+    assert "DeficienciesCanKill" not in src                 # Plan 15 Task 4: the kill dial is removed
     with open(os.path.join(SHARED, "Translate", "EN", "Sandbox.json"), encoding="utf-8") as fh:
         tr = json.load(fh)
-    for name in ("OnsetSpeed", "DeficienciesCanKill", "ExcessEffectsOn", "BalanceBonus"):
+    for name in ("OnsetSpeed", "ExcessEffectsOn", "BalanceBonus"):
         assert tr["Sandbox_NR_" + name]
         assert tr["Sandbox_NR_" + name + "_tooltip"]
+    assert not [k for k in tr if "DeficienciesCanKill" in k]
 
 
 def test_the_option_file_and_translations_declare_severity():

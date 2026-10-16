@@ -1,8 +1,8 @@
 -- NR_Server_Effects.lua -- the effects layer's slow adapter (Plan 5, spec § 4.5,
 -- 19, 22-23; T1-1, T1-3, T4-1, T6-1, T6-2): once per player per game minute it builds record.effects, the
 -- coefficient set the writer and the mirror read, and applies the slow channels itself -- the trait
--- toggles (Night Vision, Short Sighted), the four regeneration setters, the per-part wound, bleeding and
--- infection folds, the catchACold fold, the health drains and the spontaneous bruise.
+-- toggles (Night Vision, Short Sighted), the four regeneration setters and the food heal, the per-part wound,
+-- bleeding and infection folds, the catchACold fold, the health drain to its floor (K.drain) and the spontaneous bruise.
 --
 -- Order (made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
 -- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
@@ -12,12 +12,13 @@
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
 -- Per minute, under one pcall per player: ensure and heal record.effects; the day close (the protein-energy
--- grade and the closed day's energy availability); the twelve-band vector and the flags; the rebuild only
+-- grade and the closed day's energy availability); the drain states (K.drain.step: the active states, the floor, the
+-- rate and the starvation phase the flags read); the twelve-band vector and the flags; the rebuild only
 -- when the key moved (K.effects.changed: the nutrient epoch, the closed day, the dial snapshot or a band);
 -- the per-minute scalars (fOff, mAcc, rRec, solAddH, solMul, intoxTarget, tempTarget); the night-vision
--- machine and the four trait rules; the drain (kernel order: compose, nvMinute, drain); the regeneration
--- setters on a rebuild, a drain start or stop and at first sight (the constants are not saved, #3020); the
--- per-part folds and the cold fold; the bruise roll; the drain's ReduceGeneralHealth.
+-- machine and the four trait rules; the regeneration setters and the food heal on a rebuild, a drain state's start
+-- or stop and at first sight (none of the five is saved, #3020, #3897); the per-part folds and the cold fold; the
+-- bruise roll; the drain's ReduceGeneralHealth, never past the floor (Plan 15 Task 4; jar-checks Check 2).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only inside
 -- a function behind a nil check, so the file loads with no engine (testing/tests/kernel/test_effects_shape.py).
@@ -44,7 +45,9 @@ NR.server.effects = {
         "the HUNGER and THIRST views are capped under moodle level 4 always: the level-4 Hungry and Thirsty moodles never show",
         "a trait change is pushed to its owner only: other clients' copies of a player's traits stay stale until relog (#2603)",
         "tempTarget is applied uncalibrated: the equilibrium of the held target against the regulator is unmeasured (X81); at rest the core already sits about 0.45 °C under the set point (x161b), so a −0.2 target does not act at rest",
-        "the regeneration constants are not saved (#3020): re-asserted at every rebuild, at every drain start or stop and at first sight",
+        "the regeneration constants are not saved (#3020), nor is the food heal (#3897): re-asserted at every rebuild, at every drain state's start or stop and at first sight",
+        "the drain reads overall health once a minute while a drain state is active and takes at most health - floor; a body damage with no overall-health read takes nothing",
+        "between two minutes vanilla's own terms (a wound, the level-4 HUNGRY and THIRST drains until Plan 15 Task 5) can move health off the floor; the next minute's drain resumes from where they left it",
         "a natively held Night Vision or Short Sighted (held when the mod would add it) is never removed; Evolving Traits World's Cat Eyes composes (it grants, never removes)",
         "whether the regeneration tier scales awake regeneration is unmeasured (X80 open); healMul reaches the four setters with that stated",
         "the per-part folds rescale the engine's own change since the last minute: a wound timer or bleeding time the engine has run to 0 is passed through, so a wound's last fraction heals unscaled",
@@ -61,11 +64,16 @@ NR.server.effects = {
 local EFF = NR.server.effects
 
 -- The four regeneration constants' engine defaults (the BodyDamage constructor, #2354), scaled by healMul or
--- written 0 while a drain is active (S1174 open).
+-- written 0 while a drain state is active (S1174 open), draining or holding at its floor, so health holds there with
+-- no sawtooth (jar-checks Check 2).
 EFF.REGEN_STANDARD = 0.002 -- VANILLA #2354
 EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
 EFF.REGEN_SEVERE = 0.0008 -- VANILLA #2354
 EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
+-- The food heal, health per unit of the health-from-food timer: the constructor's 0.015 (#3897), written 0 while a drain
+-- state is active (it runs through any drain otherwise, jar-checks Check 2) and vanilla's again when none is; Plan 15
+-- Task 8 sets its size outside a drain.
+EFF.REGEN_FOOD = 0.015 -- VANILLA #3897
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
 EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
@@ -101,7 +109,7 @@ EFF.WOUNDS = {
 -- File-scope scratch tables, overwritten per call: no allocation per minute.
 EFF.b = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = false, refeedEvent = false,
-              frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false }
+              frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false, starve = 0, starveEarly = false }
 -- The heal reference, made once on first use.
 EFF.ref = nil
 -- The post-step guard: the per-minute scalars and the mirrored numbers something reads
@@ -110,7 +118,7 @@ EFF.ref = nil
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
-              "infectMul", "coldMul", "drain", "lethal" }
+              "infectMul", "coldMul" }
 EFF.snap = {}
 EFF.guarded = 0
 -- The options a load with no options file reads: one file-scope table, never written.
@@ -289,12 +297,14 @@ local function traits(player, record, body, E, nut, sev, dtD, ctx, sex)
     return changed
 end
 
--- The four regeneration setters at m x their defaults (#2354), index-first.
-local function regen(bd, m)
+-- The four regeneration setters at m x their defaults (#2354) and the food heal (#3897; 0 while a drain state is
+-- active), index-first.
+local function regen(bd, m, active)
     NR.call(bd, "setStandardHealthAddition", EFF.REGEN_STANDARD * m)
     NR.call(bd, "setReducedHealthAddition", EFF.REGEN_REDUCED * m)
     NR.call(bd, "setSeverlyReducedHealthAddition", EFF.REGEN_SEVERE * m)
     NR.call(bd, "setSleepingHealthAddition", EFF.REGEN_SLEEPING * m)
+    NR.call(bd, "setHealthFromFood", active and 0 or EFF.REGEN_FOOD)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
@@ -424,10 +434,8 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     if body == nil or nut == nil or fluids == nil or a == nil then return end
     if not finite(dtM) then dtM = 1 end
     if not finite(ageH) then ageH = nut.lastAgeH end
-    local w = body.fm + body.lm + body.lx
     local O = NR.server.options or EMPTY
     local sev = finite(O.severity) and O.severity or 1
-    local canKill = O.deficienciesCanKill ~= false
     local bonusOn = O.balanceBonus ~= false
     local excessOn = O.excessEffectsOn ~= false
     local sex = K.body.effSex(body.sex, O.sexSpecific)  -- the effective sex, read once per minute (NR.SexSpecific)
@@ -453,6 +461,12 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     end
     if finite(body.exKcalDay) then E.exSeen = body.exKcalDay end
 
+    -- the drain states (K.drain): the floor and rate this minute, and the starvation phase the flags read
+    local D = record.drain
+    local wasState = type(D) == "table" and D.active and D.state or 0
+    D = K.drain.step(record, dtM, ageH)
+    local phase = K.drain.starvePhase(D.starvedH)
+
     -- 2. the bands and the flags (file-scope scratch tables)
     local asleep = NR.read.asleep(ctx, player)
     K.effects.bands(EFF.b, a, fluids)
@@ -466,9 +480,11 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     F.bgroupMax = K.effects.bgroupMax(nut)
     F.coldCredit = K.effects.coldCredit(nut.vitC.g, nut.vitC.e24, body.band1Day or 0, body.band2Day or 0, a.coldH)
     F.boutVig = asleep and a.boutVig == true
+    F.starve = phase
+    F.starveEarly = D.starvedH >= 24 and phase < 3              -- a closed starved day under way, before day 14
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
-    local dials = math.floor(sev * 1000 + 0.5) * 1000000 + (canKill and 100 or 0) + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
-        + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0)
+    local dials = math.floor(sev * 1000 + 0.5) * 1000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
+        + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0)
 
     -- 3. the rebuild, only on a moved key
     local rebuilt = false
@@ -507,18 +523,18 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     -- 5. the traits (on a direct call for a dead record the night-vision machine runs; the writes do not)
     local changedTraits = traits(player, record, body, E, nut, sev, dtM / 1440, ctx, sex)
 
-    -- 6. the drain (kernel order: compose, nvMinute, drain)
-    local wasLethal = E.lethal
-    local d = K.effects.drain(E, nut, fluids, a, E.pe, w > 0 and body.fm / w or 0, sex, canKill)
+    -- 6. the drain state (stepped above, before the flags)
+    local nowState = D.active and D.state or 0
 
     if record.dead == true then
         EFF.stats.skippedDead = EFF.stats.skippedDead + 1
     elseif bd ~= nil then
-        -- 7. the regeneration setters: on a rebuild, a drain start or stop, a new healMul and at first sight
+        -- 7. the regeneration setters and the food heal: on a rebuild, a drain state's start or stop (keyed on the state
+        -- being active, draining or holding, not on the minute's amount: no sawtooth), a new healMul and at first sight
         local m = E.healMul
-        if d > 0 then m = 0 end
-        if rebuilt or L.regen == nil or L.regen ~= m or wasLethal ~= E.lethal then
-            regen(bd, m)
+        if D.active then m = 0 end
+        if rebuilt or L.regen == nil or L.regen ~= m or wasState ~= nowState then
+            regen(bd, m, D.active)
             L.regen = m
         end
         -- 8. the per-part folds and the cold fold
@@ -526,15 +542,19 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         coldFold(bd, L, E)
         -- 9. the bruise
         bruise(bd, L, E, dtM)
-        -- 10. the drain's health write
-        if d > 0 then
-            NR.call(bd, "ReduceGeneralHealth", d * dtM)
-            EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
+        -- 10. the drain's health write: min(rate x dtM, health - floor), never past the floor (ReduceGeneralHealth never
+        -- overshoots, #3898); overall health is read only while a state is active
+        if D.active then
+            local take = K.drain.take(D, num(bd, "getOverallBodyHealth", nil))
+            if take > 0 then
+                NR.call(bd, "ReduceGeneralHealth", take)
+                EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
+            end
         end
     end
 
-    -- 11. the mirror marked dirty when the set or a trait changed
-    if rebuilt or changedTraits then
+    -- 11. the mirror marked dirty when the set, a trait or the drain state changed
+    if rebuilt or changedTraits or wasState ~= nowState then
         E.dirty = true
         local bus = NR.server.bus
         if bus ~= nil and bus.markEffects ~= nil then bus.markEffects(username) end

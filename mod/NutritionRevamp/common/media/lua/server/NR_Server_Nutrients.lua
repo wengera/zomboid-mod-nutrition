@@ -444,7 +444,7 @@ local function step(username, player, record, ctx)
     -- relaxed by the volume-defence weight past the onset (K.fluids.defence).
     local cView = K.fluids.conc(f, body.lm, pendingG)
     local defence = K.fluids.defence(f, w)
-    f.thirstTarget = K.fluids.thirstTarget(f.viewPct, cView, f.naPlasma, O.deficienciesCanKill ~= false, defence)
+    f.thirstTarget = K.fluids.thirstTarget(f.viewPct, cView, f.naPlasma, defence)
     f.sweatActive = K.fluids.sweatActive(f)
 
     -- the acute states

@@ -6,7 +6,7 @@ stop the steps after it; registering a name again replaces its function; the con
 The Effects hand-off (the R0 reviews' M4): the golden trace cannot see a wrong body, dtM or ageH on the context, so
 a recorder around the Effects minute (what the step hands it) pins them here on golden_trace's decorated player: ctx.body is record.body, ctx.dtM is 30
 on the minute a player returns after 30 game minutes away, ctx.ageH is the world age, and a record forced lethal
-on that minute takes ReduceGeneralHealth == E.drain x 30.
+on that minute takes ReduceGeneralHealth == the drain's rate x 30 minutes (K.drain, Plan 15 Task 4).
 """
 import pytest
 
@@ -126,8 +126,8 @@ function(log)
         local before = bd.st.reduced
         orig(username, player, record, body, dtM, ageH)
         log[#log + 1] = { bodyIsRecord = rawequal(body, record.body), dtM = dtM, ageH = ageH, age = NR_T.age,
-                          reduced = bd.st.reduced - before, drain = record.effects.drain,
-                          lethal = record.effects.lethal }
+                          reduced = bd.st.reduced - before, drain = record.drain.drainThisMinute,
+                          state = record.drain.state, rate = record.drain.rate }
     end
 end
 """
@@ -167,9 +167,9 @@ def test_the_effects_step_reads_this_minutes_body_dtm_and_age_after_a_30_minute_
     assert e.bodyIsRecord is True
     assert abs(e.dtM - 30.0) < 1e-9
     assert e.ageH == start + 33 / 60.0 and e.ageH == e.age
-    assert e.lethal == 6 and e.drain > 0                # the dehydration rung
-    assert e.reduced == e.drain * e.dtM
-    assert abs(e.reduced - e.drain * 30) < 1e-9 * e.drain * 30
+    assert e.state == 6 and e.drain > 0                 # the dehydration state, its floor 0 past the death point
+    assert e.reduced == e.drain                         # the whole of rate x dtM: health is far above the floor
+    assert abs(e.drain - e.rate * 30 / 1440) < 1e-12 * e.rate
 
 
 def test_the_effects_step_is_skipped_when_nutrients_did_not_reach_its_end():
@@ -421,3 +421,62 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
     keys = [h.NR.read.KEYS[i] for i in range(1, len(h.NR.read.KEYS) + 1)]
     assert len(keys) == 8 and all(M.ctx[k] is None for k in keys)       # eFlags since Plan 15 Task 3 fix 1
     assert M.ctx.kept == 1                              # a step's own hand-off stays until the next run clears it
+
+
+# --- Rule 6: the drain-and-floor engine's engine calls (Plan 15 Task 4) ----------------------------------------------
+# Every method of golden_trace's decorated g1 and of every table one returns is counted over ten minutes, steady and with
+# a drain running (a 12 % water deficit: a drain at the build before, whose dehydration rung started at 10 %, and here,
+# whose dehydration state starts at 6 %). Read at 1398d765, the build before: 67 steady and 69 draining
+# (ReduceGeneralHealth). Here the steady minute is unchanged; a draining minute adds the overall-health read the floor
+# needs and one stat write (the 4-6 % band's apathy row writes UNHAPPINESS, Plan 15 Task 4's effect order).
+ENGINE_COUNT = r"""
+function(p, C)
+    local seen = {}
+    local function wrap(t)
+        if type(t) ~= "table" or seen[t] then return t end
+        seen[t] = true
+        local names = {}
+        for k, v in pairs(t) do
+            if type(v) == "function" then names[#names + 1] = k end
+        end
+        for i = 1, #names do
+            local k = names[i]
+            local f = t[k]
+            t[k] = function(...)
+                C.n = C.n + 1
+                C.by[k] = (C.by[k] or 0) + 1
+                return wrap(f(...))
+            end
+        end
+        return t
+    end
+    wrap(p)
+end
+"""
+HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
+ENGINE_CALLS = {"steady": 67, "drain": 71}
+
+
+@pytest.mark.parametrize("case", sorted(ENGINE_CALLS))
+def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
+    h = golden_trace.new_host()
+    C = h.rt.eval("{ n = 0, by = {} }")
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    h.rt.eval(ENGINE_COUNT)(g1, C)
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):
+        _minute(h, start + m / 60.0)
+    rec = h.record("g1")
+    if case == "drain":
+        b = rec["body"]
+        rec["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
+    _minute(h, start + 4 / 60.0)
+    base, health0 = C.n, C.by["getOverallBodyHealth"] or 0
+    n = 10
+    for m in range(5, 5 + n):
+        _minute(h, start + m / 60.0)
+    assert (C.n - base) / n == ENGINE_CALLS[case]
+    assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
+    assert rec["drain"]["active"] is (case == "drain")
+    assert ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2

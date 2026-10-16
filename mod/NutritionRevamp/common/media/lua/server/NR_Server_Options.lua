@@ -7,9 +7,11 @@ local K = NR.kernel
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
 -- The Plan 4 dials: onsetSpeed multiplies the rate of every slow deficiency record;
--- the HUNGER and THIRST views are capped under level 4 whatever the dial; deficienciesCanKill gates the mod's own drains; excessEffectsOn off
+-- the HUNGER and THIRST views are capped under level 4 whatever the dial; excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
--- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope.
+-- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope. No option gates the
+-- health drains: every lethal state drains to its floor and kills at its death point (Plan 15 Task 4, spec section 1.3).
+-- The Plan 4 kill dial is removed (the mod is unreleased, so no save reads it).
 -- The Plan 5 dial: severity, a double 0-3 (default 1), scales every penalty row of the effects table
 -- after the fold (NR_Server_Effects); the double branch clamps it.
 -- The Plan 7 option: visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers (default 2, T13-1), the level of
@@ -24,7 +26,7 @@ local K = NR.kernel
 -- The Plan 13 option: sexSpecific, a boolean (default false): off, every character reads the male values wherever the mod
 -- indexes by sex (K.body.effSex); the steps read it each minute through the options table, so it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
-                      nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
+                      nutritionOn = false, onsetSpeed = 1.0,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
                       recordKeepDays = 30, sexSpecific = false, strength = K.strength.params(nil) }
 local O = NR.server.options
@@ -37,13 +39,12 @@ local readLeaf = K.readLeaf -- the one clamp rule (ruling 13-32)
 function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
     local oldMode, oldLog, oldMirror = O.mode, O.logLevel, O.legacyMirror
-    local oldOnset, oldKill, oldExcess, oldBonus = O.onsetSpeed, O.deficienciesCanKill, O.excessEffectsOn, O.balanceBonus
+    local oldOnset, oldExcess, oldBonus = O.onsetSpeed, O.excessEffectsOn, O.balanceBonus
     local oldSeverity = O.severity
     O.mode = readLeaf(sv, "Mode", 1, 1, 2)
     O.logLevel = readLeaf(sv, "LogLevel", 2, 1, 3)
     O.legacyMirror = readLeaf(sv, "LegacyMirror", true)
     O.onsetSpeed = readLeaf(sv, "OnsetSpeed", 1.0, 0.5, 30, true)
-    O.deficienciesCanKill = readLeaf(sv, "DeficienciesCanKill", true)
     O.excessEffectsOn = readLeaf(sv, "ExcessEffectsOn", true)
     O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
@@ -74,11 +75,11 @@ function NR.server.readOptions(where)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed
-        or oldKill ~= O.deficienciesCanKill or oldExcess ~= O.excessEffectsOn or oldBonus ~= O.balanceBonus
+        or oldExcess ~= O.excessEffectsOn or oldBonus ~= O.balanceBonus
         or oldSeverity ~= O.severity then
         for i = 1, #O.changed do
             local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog, legacyMirror = oldMirror,
-                                                  onsetSpeed = oldOnset, deficienciesCanKill = oldKill,
+                                                  onsetSpeed = oldOnset,
                                                   excessEffectsOn = oldExcess, balanceBonus = oldBonus,
                                                   severity = oldSeverity }, O)
             if not ok then NR.log.say(2, "options: changed hook failed: " .. tostring(err)) end

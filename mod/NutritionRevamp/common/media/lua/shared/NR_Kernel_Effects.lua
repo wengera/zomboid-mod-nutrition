@@ -2,11 +2,12 @@
 -- the twelve-band vector and its change test, the protein-energy grade, the energy-availability band and accrual
 -- factor, the composer that folds the declarative table (NR_Data_Effects.lua, passed in as an argument -- the
 -- kernel never reads NR.data) into record.effects, the fatigue offset, the vanilla accrual and recovery factors,
--- the night-vision machine, Short Sighted, the health drains, the intoxication target and the vitamin C cold
--- credit. The model is the formulas briefing's sections A1-A4, B1, B3-B5, D1-D3, F1-F2, H2 and J1.
+-- the night-vision machine, Short Sighted, the intoxication target and the vitamin C cold credit. The model is the
+-- formulas briefing's sections A1-A4, B1, B3-B5, D1-D3, F1-F2 and J1; the health drains are K.drain's
+-- (NR_Kernel_Drain.lua, Plan 15 Task 4).
 -- The coefficient set is a pure function of (the nutrient grades and rungs, the band vector, the closed-day pe and
 -- ea, the flags, the dial snapshot) and is rebuilt only when K.effects.changed says the key moved; the
--- per-minute scalars (fOff, the night-vision machine, the drains, the intoxication target) bypass it.
+-- per-minute scalars (fOff, the night-vision machine, the intoxication target) bypass it.
 -- The band vector b is a Lua array of twelve integers at the indices K.effects.B names (caf, wd, bac, alc, hang,
 -- bg, iuS, debt, iu, dehyd, hypo, ex). The wd band carries round(4 x wd x cafTol): both withdrawal rows scale by
 -- wdQ x cafTol (A4), so banding the product keeps the set a function of the bands.
@@ -124,26 +125,6 @@ K.effects.NV_SLOW = 0.5 -- the rate under iron or riboflavin depletion, S0871 di
 K.effects.NV_REGRANT = 3 -- days after a lapse: game choice hysteresis (open S1142)
 K.effects.NV_ZINC = 3 -- zinc must stay under the depleted grade, S0872 / S0873 direction (open S0942)
 
--- The health drains (H2): health per game minute, indexed by the lethal code.
-K.effects.DRAIN_RATE = {
-    0.023148148148148147, -- 1 starvation: 100 in 72 h; game choice duration (open S1166)
-    0.00992063492063492, -- 2 terminal scurvy: 100 in 168 h (S0965 can be fatal); game choice (open S1168)
-    0.023148148148148147, -- 3 cardiac beriberi: 100 in 72 h (S0244 / S0245 rapid); game choice (open S1169)
-    0.00496031746031746, -- 4 pellagra: 100 in 336 h (S0272 if untreated, death); game choice (open S1170)
-    0.2777777777777778, -- 5 severe hyponatraemia: 100 in 6 h (S1047 respiratory failure); game choice (open S1171)
-    0.1388888888888889, -- 6 severe dehydration: 100 in 12 h; game choice (open S1172)
-    0.06944444444444445, -- 7 the iron lethal rung: 100 in 24 h (S1033); game choice (open S1173)
-}
--- The fat fraction at which starvation's reserves count as exhausted, by sex.
-K.effects.BF_FLOOR = {
-    0.04, -- male: game choice (open S1167)
-    0.10, -- female: game choice (open S1167)
-}
-K.effects.BMI_LETHAL = 12 -- kg/m2: S0112 direction (below 10 can be compatible with life); game choice (open S1166)
-K.effects.SCURVY_H = 720 -- 30 days at clinical vitamin C: game choice (open S1168)
-K.effects.BERIBERI_H = 168 -- 7 days at clinical thiamine: game choice (open S1169)
-K.effects.PELLAGRA_H = 1440 -- 60 days at clinical niacin: game choice (open S1170)
-
 -- The intoxication target: clamp(100 x bac / 0.20, 0, 100).
 K.effects.INTOX_FULL_BAC = 0.20 -- per cent: game choice map (open S1106)
 K.effects.INTOX_MAX = 100 -- the stat's range #2369
@@ -184,7 +165,6 @@ function K.effects.new()
         speedMul = 1,
         fOffNut = 0,
         bruise = 0,
-        drain = 0,
         nightVision = false,
         shortSighted = false,
         aimMul = 1,
@@ -195,7 +175,6 @@ function K.effects.new()
         ea = 30,
         nvDays = 0,
         own = { nv = false, ss = false },
-        lethal = 0,
         intoxTarget = 0,
         tempTarget = 0,
         mAcc = 1,
@@ -452,7 +431,7 @@ function K.effects.sevScale(op, v, sev, sevMin)
 end
 
 -- One surface's step of the composer: 1 resets it to its identity, 2 applies the Severity dial, 3 clamps it.
--- A machine surface (nightVision, drain) is left to its own function.
+-- A machine surface (nightVision) is left to its own function.
 function K.effects.surfaceStep(E, name, s, stage, sev)
     if s.machine then
         return E
@@ -473,7 +452,7 @@ end
 
 -- Compose record.effects from the table (A3's six steps): identity; the penalty fold (and the energy-availability
 -- accrual factor on mNut); the Severity scaling; the bonus fold; the clamp; aimMul from the iu band; epoch + 1.
--- The machine surfaces (nightVision, drain) are left to their own functions.
+-- The machine surface (nightVision) is left to its own function.
 function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     local S = T.SURF
     for name, s in pairs(S) do
@@ -573,52 +552,6 @@ end
 -- Short Sighted (D3): clinical vitamin A at Severity 1 or more.
 function K.effects.ssWant(vitAg, sev)
     return vitAg == 4 and sev >= 1
-end
-
--- The lethal pick: the larger rate wins (ties keep the earlier code).
-function K.effects.pick(d, code, c)
-    local r = K.effects.DRAIN_RATE[c]
-    if r > d then
-        return r, c
-    end
-    return d, code
-end
-
--- The health drain per game minute (H2): the max over the active rows, its code on E.lethal (1
--- starvation, 2 scurvy, 3 beriberi, 4 pellagra, 5 hyponatraemia, 6 dehydration, 7 the iron rung); 0 and code 0
--- when canKill is false. Stamps E.drain.
-function K.effects.drain(E, nut, fluids, acute, pe, bodyFatFrac, sex, canKill)
-    local A = K.effects
-    local d = 0
-    local code = 0
-    if canKill then
-        if pe == 4 then
-            if bodyFatFrac <= A.BF_FLOOR[sex] or (acute.bmi > 0 and acute.bmi < A.BMI_LETHAL) then
-                d, code = A.pick(d, code, 1)
-            end
-        end
-        if nut.vitC.g == 4 and nut.vitC.ah >= A.SCURVY_H then
-            d, code = A.pick(d, code, 2)
-        end
-        if nut.thiamine.g == 4 and nut.thiamine.ah >= A.BERIBERI_H then
-            d, code = A.pick(d, code, 3)
-        end
-        if nut.niacin.g == 4 and nut.niacin.ah >= A.PELLAGRA_H then
-            d, code = A.pick(d, code, 4)
-        end
-        if K.fluids.hyponatGrade(fluids.naPlasma) == 3 then
-            d, code = A.pick(d, code, 5)
-        end
-        if fluids.dehydPct >= K.fluids.SEVERE_DEHYD_PCT then
-            d, code = A.pick(d, code, 6)
-        end
-        if nut.iron.x == 3 then
-            d, code = A.pick(d, code, 7)
-        end
-    end
-    E.drain = d
-    E.lethal = code
-    return d
 end
 
 -- The INTOXICATION target: 100 x bac / 0.20, clamped to the stat's range.

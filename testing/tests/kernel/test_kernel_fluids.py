@@ -53,7 +53,8 @@ def test_constants(host):
     assert knots == [[0, 0], [1, 0.12], [2, 0.25], [4, 0.70], [6, 0.84], [8, 1.0]]
     assert (F.OSM_SLOPE, F.OSM_GAIN, F.OSM_MAX, F.HYPO_NA, F.HYPO_CAP, F.KILL_CAP) == (0.03, 0.25, 4, 135, 0.09, 0.83)
     assert list(host.py(F.HYPONAT).values()) == [135, 120, 112]
-    assert (F.SWEAT_ACTIVE_SHARE, F.EMA_MIN, F.SEVERE_DEHYD_PCT) == (0.5, 360, 10)
+    assert (F.SWEAT_ACTIVE_SHARE, F.EMA_MIN) == (0.5, 360)
+    assert F.SEVERE_DEHYD_PCT is None                   # Plan 15 Task 4: K.drain's dehydration state replaced the 10 % rung
 
 
 def test_new_state_shape(host):
@@ -110,28 +111,28 @@ def test_conc_denominator_guard(host):
 
 def test_thirst_knots(host):
     T = host.K.fluids.thirstTarget
-    assert _close(T(2, 1, 140, True), 0.25)
-    assert _close(T(1, 1, 140, True), 0.12)
-    assert _close(T(3, 1, 140, True), 0.475)  # 0.25 + 0.45*(3 - 2)/2
-    assert _close(T(0, 1, 140, True), 0.0)
-    assert _close(T(8, 1, 140, True), 1.0)
-    assert _close(T(9, 1, 140, True), 1.0)  # above the top knot
-    assert _close(T(7, 1, 140, True), 0.92)  # 0.84 + 0.16*(7 - 6)/2
+    assert _close(T(2, 1, 140), 0.25)
+    assert _close(T(1, 1, 140), 0.12)
+    assert _close(T(3, 1, 140), 0.475)  # 0.25 + 0.45*(3 - 2)/2
+    assert _close(T(0, 1, 140), 0.0)
+    assert _close(T(8, 1, 140), 1.0)
+    assert _close(T(9, 1, 140), 1.0)  # above the top knot
+    assert _close(T(7, 1, 140), 0.92)  # 0.84 + 0.16*(7 - 6)/2
 
 
 def test_thirst_osmotic_term(host):
     T = host.K.fluids.thirstTarget
-    assert _close(T(0, 1.03, 144.2, True), 0.25)  # 0.25*((1.03 - 1)/0.03) = 0.2500000000000002
-    assert _close(T(2, 1.03, 144.2, True), 0.4375)  # 1 - 0.75*0.75
-    assert _close(T(0, 1.20, 168, True), 1.0)  # tOsm clamped at 4 x 0.25, then min 1
+    assert _close(T(0, 1.03, 144.2), 0.25)  # 0.25*((1.03 - 1)/0.03) = 0.2500000000000002
+    assert _close(T(2, 1.03, 144.2), 0.4375)  # 1 - 0.75*0.75
+    assert _close(T(0, 1.20, 168), 1.0)  # tOsm clamped at 4 x 0.25, then min 1
 
 
 def test_thirst_caps(host):
     T = host.K.fluids.thirstTarget
-    assert _close(T(8, 1, 140, False), 0.83)  # the kill cap, ruling 8
-    assert _close(T(2, 1, 140, False), 0.25)  # under the kill cap: unchanged
-    assert _close(T(2, 1, 130, True), 0.09)  # hypotonic: capped under autoDrink's 0.1 trigger (#2770)
-    assert _close(T(0.5, 1, 130, True), 0.06)  # 0.12*0.5 is under the hypotonic cap
+    # Plan 15 Task 4: no kill cap here (the dial is removed): the hybrid's thirstCap holds the view, Task 5's to lift
+    assert _close(T(8, 1, 140), 1.0)
+    assert _close(T(2, 1, 130), 0.09)  # hypotonic: capped under autoDrink's 0.1 trigger (#2770)
+    assert _close(T(0.5, 1, 130), 0.06)  # 0.12*0.5 is under the hypotonic cap
 
 
 def test_basal_ten_hours_at_rest(host):
@@ -155,7 +156,7 @@ def test_basal_ten_hours_at_rest(host):
     assert _close(c, (p0 + f.na) / p0 * t0 / (t0 - 1.0144), 1e-9)
     assert _close(c, 1.0211332280044734, 1e-6)
     assert _close(F.naPlasma(c), 140 * c, 1e-9)
-    want = F.thirstTarget(1.2382380952380951, c, 140 * c, True)
+    want = F.thirstTarget(1.2382380952380951, c, 140 * c)
     tvol = 0.12 + 0.13 * 0.2382380952380951
     tosm = 0.25 * ((c - 1) / 0.03)
     assert _close(want, 1 - (1 - tvol) * (1 - tosm), 1e-9)
@@ -441,8 +442,8 @@ def test_the_volume_defence_relaxes_the_hypotonic_cap(host):
         f.na = na
         assert F.defence(f, 80) == 0, na
     for d in (0.5, 2, 4, 8):
-        assert _close(T(d, 1, 130, True, 0), min(T(d, 1, 140, True), 0.09))
-        assert _close(T(d, 1, 130, True), T(d, 1, 130, True, 0))  # nil reads 0
+        assert _close(T(d, 1, 130, 0), min(T(d, 1, 140), 0.09))
+        assert _close(T(d, 1, 130), T(d, 1, 130, 0))  # nil reads 0
     # past it: 1000 mmol leaves weu at -3109.395032863671 g, so (3109.395032863671 - 1280) / 1920
     f.na = -1000
     r = (3109.395032863671 - 1280) / 1920
@@ -450,11 +451,10 @@ def test_the_volume_defence_relaxes_the_hypotonic_cap(host):
     f.na = -5000
     assert 0.99999 < F.defence(f, 80) <= 1
     # the blend: the capped thirst plus r of what the cap removed; a full defence is ordinary thirst
-    assert _close(T(4, 1, 130, True, r), 0.09 + r * (0.70 - 0.09))
-    assert _close(T(4, 1, 130, True, 1), 0.70)
-    assert _close(T(0.5, 1, 130, True, 1), 0.06)  # under the cap the blend changes nothing
-    assert _close(T(8, 1, 130, False, 1), 0.83)  # the kill cap still applies after it
-    assert _close(T(2, 1, 140, True, 0.5), 0.25)  # a normal plasma ignores the weight
+    assert _close(T(4, 1, 130, r), 0.09 + r * (0.70 - 0.09))
+    assert _close(T(4, 1, 130, 1), 0.70)
+    assert _close(T(0.5, 1, 130, 1), 0.06)  # under the cap the blend changes nothing
+    assert _close(T(2, 1, 140, 0.5), 0.25)  # a normal plasma ignores the weight
 
 
 def test_sweat_sodium_adapts_to_a_sodium_deficit(host):

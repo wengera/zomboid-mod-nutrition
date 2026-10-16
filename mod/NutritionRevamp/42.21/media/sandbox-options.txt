@@ -29,12 +29,6 @@ option NR.OnsetSpeed
     page = NutritionRevamp, translation = NR_OnsetSpeed,
 }
 
-option NR.DeficienciesCanKill
-{
-    type = boolean, default = true,
-    page = NutritionRevamp, translation = NR_DeficienciesCanKill,
-}
-
 option NR.ExcessEffectsOn
 {
     type = boolean, default = true,
@@ -48,7 +42,7 @@ option NR.BalanceBonus
 }
 
 /* Severity scales every deficiency and excess penalty of the effects table after the
-   fold; 0 leaves only the health drains, which DeficienciesCanKill gates; 1.0 is the default. */
+   fold; 0 leaves only the health drains, which no option turns off; 1.0 is the default. */
 option NR.Severity
 {
     type = double, min = 0.0, max = 3.0, default = 1.0,

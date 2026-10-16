@@ -16,11 +16,12 @@ PLAN4_SCALARS = ("nutrients_epoch", "fluids_dehydPct", "fluids_naPlasma", "fluid
                  "acute_bac", "acute_g", "acute_bg", "acute_awakeH", "acute_debtH", "acute_iu", "acute_refeedRisk")
 PLAN4_ABSENT = {k: 0 for k in PLAN4_SCALARS}
 EFFECT_NUMBERS = ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
-                  "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
+                  "coldMul", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
                   "fOff", "mAcc", "rRec")
 PLAN5_ABSENT = {"effects_" + k: 0 for k in EFFECT_NUMBERS}
 PLAN5_ABSENT["effects_nv"] = False
 PLAN5_ABSENT["effects_ss"] = False
+DRAIN_ABSENT = {"drain_state": 0, "drain_floor": 100}           # Plan 15 Task 4: K.drain's pair, no state
 META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 
@@ -32,6 +33,7 @@ def test_mirror_is_flat_scalars_only(host):
     expect.update(BODY_ABSENT)
     expect.update(PLAN4_ABSENT)
     expect.update(PLAN5_ABSENT)
+    expect.update(DRAIN_ABSENT)
     assert m == expect
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
@@ -172,7 +174,7 @@ def test_mirror_of_a_pre_plan5_record_reads_zero_effects(host):
     m = host.py(host.call("mirror.build", rec(host), host.table(META)))
     for k, v in PLAN5_ABSENT.items():
         assert m[k] == v and type(m[k]) is type(v)
-    assert len([k for k in m if k.startswith("effects_")]) == 20
+    assert len([k for k in m if k.startswith("effects_")]) == 18          # Plan 15 Task 4: drain and lethal left
 
 
 def test_mirror_carries_the_effects_set(host):
@@ -184,6 +186,17 @@ def test_mirror_carries_the_effects_set(host):
     assert m["effects_nv"] is True and m["effects_ss"] is False
     assert sorted(k for k in m if k.startswith("effects_")) == sorted(PLAN5_ABSENT)
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
+
+
+def test_mirror_carries_the_active_drain_state_and_its_floor(host):
+    # Plan 15 Task 4: drain_state the active state's code and drain_floor its floor; 0 and 100 with none active
+    on = host.table({"active": True, "state": 6, "targetFloor": 41.5})
+    m = host.py(host.call("mirror.build", rec(host, drain=on), host.table(META)))
+    assert (m["drain_state"], m["drain_floor"]) == (6, 41.5)
+    off = host.table({"active": False, "state": 6, "targetFloor": 41.5})
+    m = host.py(host.call("mirror.build", rec(host, drain=off), host.table(META)))
+    assert (m["drain_state"], m["drain_floor"]) == (0, 100)
+    assert "effects_drain" not in m and "effects_lethal" not in m
 
 
 def test_mirror_effects_missing_fields_and_own_read_zero(host):
