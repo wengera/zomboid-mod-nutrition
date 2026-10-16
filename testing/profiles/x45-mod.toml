@@ -1,0 +1,34 @@
+# testing/profiles/x45-mod.toml - Plan 15 Task 2 (run x451): the live spike on vanilla's shared severe-moodle constant
+# BodyDamage.healthReductionFromSevereBadMoodles: set to 0 from server Lua, which drains it switches off, and whether a
+# reload keeps it (the plan's option B; jar-checks.md Check 3).
+# PZTestKit + the STAGED copy of mod/NutritionRevamp at af2a2d20 (release/plan15-x451, staged before the boot with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan15-x451`; release/ is gitignored; mod/ is
+# never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 1, sleep off (the fixture's false/false).
+# Fixture default, admin (-debug), build 42.21.0. The driver is testing/experiments/x451_capspike.py on
+# testing/experiments/x45_lib.py; it boots this profile twice on one run folder (the second a reuse boot for E).
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan15-x451), fixture default, admin (debug), Nutrition off, DayLength 1, sleep off, build 42.21.0 - x451, Plan 15 Task 2: the severe-moodle constant spike."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan15-x451/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game hour 37.5 s at speed 1
