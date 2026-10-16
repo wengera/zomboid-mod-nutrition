@@ -381,8 +381,10 @@ class References(_Base):
     def test_charts_js_ids_exist(self):
         listed = {i for c in self.data["charts"].values() for i in c["series"]}
         opts = self.js[self.js.index("var CHART_OPTS"):self.js.index("var SIDE_NAMES")]
+        pending_views = _pending_views(self.js)
+        self.assertLessEqual(pending_views, {"S6a-m-tolerance"}, "a pending view is a Task 8 carry, named here")
         for sid in set(re.findall(r'"((?:H|S)[A-Z0-9]*\d?[a-z]?-[a-z][\w-]*)"', opts)):
-            self.assertIn(sid, listed, sid)
+            self.assertIn(sid, listed | pending_views, sid)
         for cid in set(re.findall(r'^\s{4}"([A-Z]+\d[a-z]?)":', opts, re.M)):
             self.assertIn(cid, self.data["charts"], cid)
 
@@ -400,6 +402,27 @@ def _opts_block(js, cid):
     opts = js[js.index("var CHART_OPTS"):js.index("var SIDE_NAMES")]
     m = re.search(r'\n    "%s": \{(.*?)(?=\n    "[A-Z]+\d?[a-z]?\d?": |\n  \};)' % re.escape(cid), opts, re.S)
     return m.group(1) if m else None
+
+
+def _pending_views(js):
+    """Series ids charts.js draws as a view the data file does not hold yet (CHART_OPTS pendingViews)."""
+    opts = js[js.index("var CHART_OPTS"):js.index("var SIDE_NAMES")]
+    return {i for b in re.findall(r"pendingViews: \{([^}]*)\}", opts) for i in re.findall(r'"([^"]+)":', b)}
+
+
+def _views(block):
+    """(label, unit, yMin or None) for each facet of a CHART_OPTS block; one chart-level view when it has none."""
+    facets = re.findall(r'\{ label: "([^"]+)", series: \[[^\]]*\], unit: "([^"]+)"([^\n]*)', block or "")
+    if facets:
+        out = []
+        for label, unit, rest in facets:
+            m = re.search(r"yMin: (-?[0-9.]+)", rest)
+            if not m:
+                m = re.search(r"^      yMin: (-?[0-9.]+)", block, re.M)
+            out.append((label, unit, float(m.group(1)) if m else None))
+        return out
+    m = re.search(r"yMin: (-?[0-9.]+)", block or "")
+    return [(None, None, float(m.group(1)) if m else None)]
 
 
 class Scenarios(_Base):
@@ -464,9 +487,12 @@ class Scenarios(_Base):
             seen += 1
             with self.subTest(chart=cid):
                 ids = [re.findall(r'"([^"]+)"', f) for f in re.findall(r"series: \[([^\]]*)\]", block)]
-                self.assertEqual(sorted(i for f in ids for i in f), sorted(chart["series"]),
+                extra = [i for i in _pending_views(self.js) if i not in chart["series"] and i in block]
+                self.assertEqual(sorted(i for f in ids for i in f), sorted(chart["series"] + extra),
                                  "the facets show each of the chart's series exactly once")
                 for f in ids:
+                    if set(f) <= set(extra):
+                        continue
                     self.assertTrue([i for i in f if i in self.series], "a facet with no built series: %s" % f)
         self.assertGreaterEqual(seen, 10)
 
@@ -478,17 +504,71 @@ class Scenarios(_Base):
             self.assertIsNotNone(_opts_block(self.js, cid), cid)
 
     def test_endpoints_name_series_that_end_at_a_death(self):
-        opts = self.js[self.js.index("var CHART_OPTS"):self.js.index("var SIDE_NAMES")]
-        blocks = re.findall(r"endpoints: \{([^}]*)\}", opts)
-        self.assertGreaterEqual(len(blocks), 3)
-        for block in blocks:
-            for sid, label in re.findall(r'"([^"]+)": "([^"]+)"', block):
+        seen = 0
+        for cid, chart in self.data["charts"].items():
+            m = re.search(r"endpoints: \{([^}]*)\}", _opts_block(self.js, cid) or "")
+            if not m:
+                continue
+            for sid, label in re.findall(r'"([^"]+)": "([^"]+)"', m.group(1)):
+                seen += 1
                 with self.subTest(series=sid):
+                    self.assertIn(sid, chart["series"])
                     self.assertIn(sid, self.series)
                     self.assertTrue(label.startswith("Death: "), label)
                     note = self.series[sid].get("note", "") + " " + self.series[sid].get("label", "")
                     self.assertRegex(note, r"(?i)death|lethal|health is gone")
+                    # the cause the label names is the series' own (SD1's note names the drain, its chart the scurvy)
+                    self.assertIn(label[7:].lower(), (note + " " + chart["title"]).lower())
+                    lethal = re.search(r"(?i)lethal state is ([^(;.]+)", note)
+                    if lethal:
+                        self.assertIn(label[7:].lower(), lethal.group(1).lower(), "the note's own lethal state")
                     self.assertRegex(note, r"(?i)lines? ends?|ends the line|death \d|death at", "the line ends at the death")
+        self.assertGreaterEqual(seen, 5)
+
+    def test_level_health_and_unit_views_start_at_zero(self):
+        """A view of a Strength level, health or a 0-1 stat draws from zero (S3a's grade view, 1 to 4, is named)."""
+        unit_re = re.compile(r"(?i)strength level|health|\(0-1\)|0\u20131|\bhunger\b|\bthirst\b|moodle level")
+        checked = 0
+        for cid, chart in self.data["charts"].items():
+            if not SCENARIO_CHART.fullmatch(cid):
+                continue
+            for label, unit, ymin in _views(_opts_block(self.js, cid)):
+                text = unit or chart["y"]
+                if not unit_re.search(text) or (cid, label) == ("S3a", "Grade"):
+                    continue
+                checked += 1
+                with self.subTest(chart=cid, view=label):
+                    self.assertEqual(ymin, 0.0, "%s %s: %s" % (cid, label, text))
+        self.assertGreaterEqual(checked, 14)
+
+    PINNED = [
+        ("S2d-m-mass", "last.x|r0", "27"),
+        ("S4a-v-model-x1", "last.y|r0", "9"),
+        ("H3-v-model-x15", "x@y>=10|r0", "292"),
+        ("S5a-v-model-level", "y@x=Weak + Overweight|r0", "0"),
+        ("S5a-m-live-level", "y@x=Weak + Overweight|r0", "1"),
+        ("S4b-m-level", "x@y>=10|r1", None),
+    ]
+
+    def test_pinned_fills(self):
+        """Six fills the scenarios' claims rest on: on the page with this pick, and reading what the notes say."""
+        fills = set(self.page.fills)
+        for sid, pick, want in self.PINNED:
+            with self.subTest(fill=sid, pick=pick):
+                self.assertIn((sid, pick), fills)
+                value, text = evaluate_pick(self.series[sid]["points"], pick)
+                if want is not None:
+                    self.assertEqual(text, want)
+        # S4b: the year the body first reaches the top level, inside the chart and before its end
+        years, _ = evaluate_pick(self.series["S4b-m-level"]["points"], "x@y>=10")
+        self.assertTrue(0 < years < evaluate_pick(self.series["S4b-m-level"]["points"], "last.x")[0])
+        # S6b: the hangover starts after the blood alcohol is back to zero
+        self.assertIn(("S6b-m-hangover", "x@y>=1|r1"), fills)
+        bac = self.series["S6b-m-bac"]["points"]
+        peak = max(range(len(bac)), key=lambda i: bac[i][1])
+        cleared = next(p[0] for p in bac[peak:] if p[1] <= 0)
+        start, _ = evaluate_pick(self.series["S6b-m-hangover"]["points"], "x@y>=1")
+        self.assertGreaterEqual(start, cleared)
 
     def test_the_scenario_guard_catches_a_typed_number(self):
         p = PageParser()

@@ -270,6 +270,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
   height: 220px; display: grid; place-content: center; text-align: center; gap: 0.4rem; color: var(--ink-2);
   border: 1px dashed var(--rule-strong); background: repeating-linear-gradient(135deg, transparent 0 10px, var(--paper) 10px 11px);
 }
+.chart-placeholder[hidden] { display: none; }
 .ph-big { font-family: var(--font-display); font-weight: 800; font-stretch: 80%; font-size: 1.3rem; color: var(--ink); }
 [data-fill] { font-family: var(--font-data); font-weight: 700; font-size: 0.95em; white-space: nowrap; }
 .fill-pending { font-weight: 400; color: var(--ink-2); }
@@ -457,7 +458,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="scenarios-h">Scenarios</h2>
   </div>
   <div class="prose">
-    <p>Each situation below is played twice, once in vanilla and once with the mod, under the default server settings. The charts set the two side by side, and each entry ends with the systems to read next.</p>
+    <p>Each situation below sets vanilla beside the mod. Unless a chart says otherwise, the server runs its default settings. The charts set the two side by side, and each entry ends with the systems to read next.</p>
   </div>
   <ol class="scene-index">
     <li><a href="#s1">Your first day</a><span>Eating, the moodles and the panel.</span></li>
@@ -477,7 +478,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <div class="compare">
       <div class="side side-vanilla" data-scene="vanilla"><h3>Vanilla</h3>
         <p>Your hunger starts at nothing. Each tin takes its hunger value off at once, and hunger climbs back at a steady rate until the next one.</p>
-        <p>Skip your meals and the hunger moodle appears within a few hours, then climbs a level at a time. Thirst climbs at its own steady rate whatever you do.</p>
+        <p>Skip your meals and the hunger moodle appears within a few hours, then climbs a level at a time. Thirst climbs at its own steady rate while you are awake, whatever you eat.</p>
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
         <p>The mod writes your hunger every game minute from your body. A tin fills your stomach and your store of recent energy, so hunger dips after each meal and creeps back as the stomach empties. It never drops to nothing.</p>
@@ -510,8 +511,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </header>
     <div class="compare">
       <div class="side side-vanilla" data-scene="vanilla"><h3>Vanilla</h3>
-        <p>Hunger climbs at its steady rate whatever your body holds, and any food takes its hunger value off. A day and a half without food takes hunger to the top level, where it drains your health until you die.</p>
-        <p>In a live test a vanilla survivor whose hunger was already past halfway starved to death about a day and a half later, as the game's code predicts to within minutes.</p>
+        <p>Hunger climbs at its steady rate whatever your body holds, and any food takes its hunger value off. Hunger reaches the top level about <span data-fill="S1b-v-model" data-pick="x@y>=4|r0"></span> hours after your last meal, and there it drains your health until you die.</p>
+        <p>In a live test a vanilla survivor whose hunger was already past halfway starved to death about a day and a half later, when the game's code predicts.</p>
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
         <p>Your hunger follows your body. It rises through a missed day, and the next day you eat more than usual. It also grows as you lose fat. In Managed mode it stops below the top Hungry level, so hunger itself never kills.</p>
@@ -529,7 +530,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p class="chart-note">Vanilla's hunger ignores the fat you have lost. In the mod, a survivor who has lost <span data-fill="S2c-m-kernel" data-pick="last.x|r1"></span> kg of fat eats about <span data-fill="S2c-m-kernel" data-pick="last.y|r0"></span> kcal a day more when hunger asks. The study line puts the same loss at <span data-fill="S2c-study" data-pick="last.y|r0"></span> kcal.</p>
       </figure>
       <figure class="chart" data-chart="S2d">
-        <p class="chart-note">Vanilla starves to death <span data-fill="S2d-v-model-health" data-pick="last.x|mul:24|r0"></span> game hours after its last meal. With water and no food the mod's survivor lives for weeks. Its body mass falls from <span data-fill="S2d-m-mass" data-pick="first.y|r1"></span> kg to <span data-fill="S2d-m-mass" data-pick="last.y|r1"></span> kg, and beriberi, setting in during the fourth week, kills it by day <span data-fill="S2d-m-mass" data-pick="last.x|r0"></span>. Its hunger never reaches the top level. The dots are an older live vanilla run whose hunger was held still, so that survivor lived on. Use the buttons to switch between body mass and health.</p>
+        <p class="chart-note">Vanilla starves to death <span data-fill="S2d-v-model-health" data-pick="last.x|mul:24|r0"></span> game hours after its last meal. With water and no food the mod's survivor lives for weeks. Its body mass falls from <span data-fill="S2d-m-mass" data-pick="first.y|r1"></span> kg to <span data-fill="S2d-m-mass" data-pick="last.y|r1"></span> kg, and beriberi, turning deadly in the fourth week, kills it by day <span data-fill="S2d-m-mass" data-pick="last.x|r0"></span>. Its hunger never reaches the top level. The dots are an older live vanilla run whose hunger was held still, so that survivor lived on. The mod's health line is not drawn yet. Use the buttons to switch between the mod's body mass, vanilla's weight and vanilla's health.</p>
       </figure>
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-hunger">Hunger</a> <a href="#sys-body">The body</a> <a href="#sys-deficiency">Deficiency and excess</a> <a href="#options">Deficiencies can kill</a></p>
@@ -582,10 +583,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <div class="compare">
       <div class="side side-vanilla" data-scene="vanilla"><h3>Vanilla</h3>
         <p>Each set grants Strength experience, and protein in your stores multiplies it. At normal protein a year of training ends at level <span data-fill="S4a-v-model-x1" data-pick="last.y|r0"></span>. Only the game's protein bonus reaches level <span data-fill="H3-v-model-x15" data-pick="max.y|r0"></span>, on day <span data-fill="H3-v-model-x15" data-pick="x@y>=10|r0"></span>.</p>
-        <p>Stop training and rust takes experience back so slowly that the level holds through a year off. Read from the game's code, with no live check: a fresh character who never trains loses a level to rust around day <span data-fill="S5b-v-model-level" data-pick="x@y<5|r0"></span>.</p>
+        <p>Read from the game's code, with no live check: stop training and rust takes experience back so slowly that the level holds through a year off. A fresh character sits exactly on its level's line, so its first rust step, around day <span data-fill="S5b-v-model-level" data-pick="x@y<5|r0"></span>, costs it a level.</p>
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
-        <p>Your level reads your muscle. Training builds it only with plenty of protein and enough food, and ever more slowly toward a natural cap.</p>
+        <p>Your level reads your muscle. Training builds it fastest with plenty of protein and enough food, and ever more slowly toward a natural cap. With too little protein it builds less, and on too little food it slips back.</p>
         <p>Stop and your muscle fades back toward your body's set point. Train again and it returns faster than it first came.</p>
       </div>
     </div>
@@ -630,7 +631,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p class="chart-note">Left idle and fed when hungry, the Strong survivor's level drops from <span data-fill="S5b-m-strong-level" data-pick="first.y|r0"></span> to <span data-fill="S5b-m-strong-level" data-pick="last.y|r0"></span> by day <span data-fill="S5b-m-strong-level" data-pick="x@y<9|r0"></span> and holds there. Weak and no pick hold their levels. The Gaunt body regains weight, from <span data-fill="S5b-m-gaunt-weight" data-pick="first.y|r1"></span> kg to <span data-fill="S5b-m-gaunt-weight" data-pick="last.y|r1"></span> kg by day <span data-fill="S5b-m-gaunt-weight" data-pick="last.x|r0"></span>, while the Overfat body barely moves. Vanilla's untrained character loses a level to rust around day <span data-fill="S5b-v-model-level" data-pick="x@y<5|r0"></span>, a reading of the game's code.</p>
       </figure>
       <figure class="chart" data-chart="S5c">
-        <p class="chart-note">A Gaunt start begins with its hunger drive at <span data-fill="S5c-m-gaunt" data-pick="first.y|pct0"></span> percent of a normal body's, easing to <span data-fill="S5c-m-gaunt" data-pick="last.y|pct0"></span> percent by day <span data-fill="S5c-m-gaunt" data-pick="last.x|r0"></span> as its fat returns. The dots are the thin starts measured live at creation. Vanilla's hunger reads nothing of your body.</p>
+        <p class="chart-note">A Gaunt start begins with its hunger drive at <span data-fill="S5c-m-gaunt" data-pick="first.y|pct0"></span> percent of a normal body's, easing to <span data-fill="S5c-m-gaunt" data-pick="last.y|pct0"></span> percent by day <span data-fill="S5c-m-gaunt" data-pick="last.x|r0"></span> as its fat returns. The dots are the thin starts measured live at creation. Vanilla's hunger reads nothing of your body. Vanilla's line lies under the no-pick line.</p>
       </figure>
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-traits">Body traits and character creation</a> <a href="#sys-strength">Strength</a> <a href="#sys-body">The body</a> <a href="#sys-hunger">Hunger</a></p>
@@ -648,7 +649,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </header>
     <div class="compare">
       <div class="side side-vanilla" data-scene="vanilla"><h3>Vanilla</h3>
-        <p>A cup of coffee takes a fixed amount off your fatigue, the same on the first day as the hundredth, and it lasts only when the server has sleep on. A beer raises drunkenness by a set amount, and at the default day length it clears within minutes.</p>
+        <p>A cup of coffee takes a fixed amount off your fatigue, the same on the first day as the hundredth, and it lasts only when the server has sleep on. A beer raises drunkenness by an amount fixed by the drink, a little more when you are hungry. Read from the game's code, at the default day length it clears within minutes.</p>
         <p>Sleep has no debt and no effect on hunger.</p>
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
@@ -658,13 +659,13 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <div class="charts" data-scene="charts">
       <figure class="chart" data-chart="S6a">
-        <p class="chart-note">A cup at breakfast, lunch and mid-afternoon takes the mod's caffeine to <span data-fill="S6a-m-day1" data-pick="max.y|r0"></span> mg on the first day. By the second week it never falls below <span data-fill="S6a-m-day14" data-pick="min.y|r0"></span> mg and peaks at <span data-fill="S6a-m-day14" data-pick="max.y|r0"></span>. Vanilla takes <span data-fill="S6a-v-model" data-pick="first.y|abs|r3"></span> off fatigue a cup, every day.</p>
+        <p class="chart-note">A cup at breakfast, lunch and mid-afternoon takes the mod's caffeine to <span data-fill="S6a-m-day1" data-pick="max.y|r0"></span> mg on the first day. By the second week it never falls below <span data-fill="S6a-m-day14" data-pick="min.y|r0"></span> mg and peaks at <span data-fill="S6a-m-day14" data-pick="max.y|r0"></span>. Vanilla takes <span data-fill="S6a-v-model" data-pick="first.y|abs|r3"></span> off fatigue a cup, every day. The lines show the caffeine in your body, which builds up a little over the days. The tolerance that grows beside it and blunts each cup is not drawn yet.</p>
       </figure>
       <figure class="chart" data-chart="S6b">
-        <p class="chart-note">Each of vanilla's beers adds <span data-fill="S6b-v-model" data-pick="max.y|r0"></span> to drunkenness, and it is gone within minutes. In the mod blood alcohol peaks at <span data-fill="S6b-m-bac" data-pick="max.y|r3"></span> percent and drunkenness at <span data-fill="S6b-m-intox" data-pick="max.y|r0"></span>. A hangover starts at hour <span data-fill="S6b-m-hangover" data-pick="x@y>=1|r1"></span>, once the alcohol has cleared. A live session saw the hangover start where the mod's code put it. Use the buttons to switch between drunkenness, blood alcohol and the hangover.</p>
+        <p class="chart-note">In the game's code each of vanilla's beers adds <span data-fill="S6b-v-model" data-pick="max.y|r0"></span> to drunkenness, and it is gone within minutes. In the mod blood alcohol peaks at <span data-fill="S6b-m-bac" data-pick="max.y|r3"></span> percent and drunkenness at <span data-fill="S6b-m-intox" data-pick="max.y|r0"></span>. A hangover starts at hour <span data-fill="S6b-m-hangover" data-pick="x@y>=1|r1"></span>, once the alcohol has cleared. A live session saw the hangover start where the mod's code put it. Use the buttons to switch between drunkenness, blood alcohol and the hangover.</p>
       </figure>
       <figure class="chart" data-chart="S6c">
-        <p class="chart-note">With sleep on, one night cut short raises the mod's hunger by <span data-fill="S6c-m-kernel" data-pick="max.y|sub:1|pct0"></span> percent. The study found people ate <span data-fill="S6c-study" data-pick="first.y|sub:1|pct0"></span> percent more the next day. In the mod the extra hunger lasts for days, because the debt is repaid slowly. The dots are a live session's sleep debt, at most <span data-fill="S6c-m-live" data-pick="max.y|r1"></span> hours. Vanilla's hunger ignores sleep.</p>
+        <p class="chart-note">With sleep on, one night cut short raises the mod's hunger by <span data-fill="S6c-m-kernel" data-pick="max.y|sub:1|pct0"></span> percent. The study found people ate <span data-fill="S6c-study" data-pick="first.y|sub:1|pct0"></span> percent more the next day. In the mod the extra hunger lasts for days, because the debt is repaid slowly. The dots are two live sessions' sleep debt, on their own schedule of short nights, at most <span data-fill="S6c-m-live" data-pick="max.y|r1"></span> hours. Vanilla's hunger ignores sleep.</p>
       </figure>
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-acute">Caffeine, alcohol and sleep</a> <a href="#sys-hunger">Hunger</a> <a href="#options">The sleep options</a></p>

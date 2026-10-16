@@ -111,8 +111,10 @@
     "S2c": {},
     "S2d": {
       facets: [
-        { label: "Body mass", series: ["S2d-v-model-weight", "S2d-v-live-weight", "S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xMax: 90 },
-        { label: "Health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
+        { label: "Body mass", series: ["S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xMax: 30, xTitle: "game days (the first thirty)" },
+        { label: "Vanilla weight", series: ["S2d-v-model-weight", "S2d-v-live-weight"], unit: "kg", yMin: 0, xMin: 0, xMax: 4,
+          xTitle: "game days (the first four)" },
+        { label: "Vanilla health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
           xTitle: "game days (the first four)" }
       ],
       endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: beriberi" }
@@ -150,8 +152,11 @@
     "S6a": {
       facets: [
         { label: "Caffeine", series: ["S6a-m-day1", "S6a-m-day14"], unit: "caffeine, mg", yMin: 0 },
+        { label: "Tolerance", series: ["S6a-m-tolerance"], unit: "tolerance (0-1)", yMin: 0, yMax: 1 },
         { label: "Vanilla, fatigue per cup", series: ["S6a-v-model"], unit: "fatigue change", yMin: -0.05, yMax: 0 }
       ],
+      /* A view whose series the data file does not hold yet: it shows a placeholder and a pending chip. */
+      pendingViews: { "S6a-m-tolerance": "kernel" },
       xMin: 0, xMax: 24
     },
     "S6b": {
@@ -442,7 +447,7 @@
   }
 
   var popSeq = 0;
-  function badgeRow(chartId, present, pending) {
+  function badgeRow(chartId, present, pending, pendingKinds) {
     var row = h("div", { class: "badges", role: "list", "aria-label": "Sources" });
     var byBadge = {};
     present.forEach(function (s) { var b = badgeOf(s); (byBadge[b] = byBadge[b] || []).push(s); });
@@ -475,7 +480,9 @@
       row.appendChild(h("div", { class: "badge-wrap", role: "listitem" }, [
         h("span", { class: "badge badge-pending" }, [
           h("span", { class: "badge-dot", "aria-hidden": "true" }),
-          h("span", { text: BADGES[badgeOfPending(id)] + ": live reading coming" })
+          h("span", { text: pendingKinds && pendingKinds[id]
+            ? BADGES[pendingKinds[id]] + ": coming in a data update"
+            : BADGES[badgeOfPending(id)] + ": live reading coming" })
         ])
       ]));
     });
@@ -577,7 +584,15 @@
     if (state.chart) { state.chart.destroy(); state.chart = null; }
     var opts = state.opts;
     var list = state.present.filter(function (s) { return state.facetSeries ? state.facetSeries.indexOf(s.id) >= 0 : true; });
-    if (!list.length) return;
+    if (!list.length) {
+      /* A view whose series are all pending: a placeholder in place of the canvas. */
+      state.scroller.hidden = true;
+      state.empty.hidden = false;
+      state.legend.textContent = "";
+      return;
+    }
+    state.scroller.hidden = false;
+    state.empty.hidden = true;
     var isCat = !isNum(list[0].points[0][0]);
     var datasets = buildDatasets(state.chartId, list, isCat, opts);
     var labels = null;
@@ -672,6 +687,7 @@
 
   function renderLegend(state) {
     state.legend.textContent = "";
+    if (!state.chart) return;
     state.chart.data.datasets.forEach(function (ds, i) {
       var li = h("li", { class: "legend-item" + (state.chart.isDatasetVisible(i) ? "" : " is-off") },
         [legendSwatch(ds), h("span", { text: ds.label })]);
@@ -685,6 +701,11 @@
     var idx = seriesIndex(data);
     var present = [], pending = [];
     chart.series.forEach(function (id) { if (idx[id]) present.push(idx[id]); else pending.push(id); });
+    var optsEarly = CHART_OPTS[chartId] || {};
+    var pendingKinds = optsEarly.pendingViews || {};
+    (optsEarly.facets || []).forEach(function (f) {
+      f.series.forEach(function (id) { if (!idx[id] && pending.indexOf(id) < 0) pending.push(id); });
+    });
     var opts = CHART_OPTS[chartId] || {};
 
     var body = h("div", { class: "chart-body" });
@@ -699,7 +720,7 @@
         h("p", { class: "ph-big", text: "Live reading coming" }),
         h("p", { text: "This chart waits on a live session. It fills in when the run is recorded." })
       ]));
-      body.appendChild(badgeRow(chartId, present, pending));
+      body.appendChild(badgeRow(chartId, present, pending, pendingKinds));
       el.insertBefore(body, el.firstChild);
       return null;
     }
@@ -742,14 +763,21 @@
     if (controls.childNodes.length) body.appendChild(controls);
 
     var scroller = h("div", { class: "chart-scroll" });
+    state.scroller = scroller;
+    state.empty = h("div", { class: "chart-placeholder" }, [
+      h("p", { class: "ph-big", text: "Coming in a data update" }),
+      h("p", { text: "This view waits on a series the guide's data does not hold yet." })
+    ]);
+    state.empty.hidden = true;
     var frame = h("div", { class: "chart-frame" });
     state.canvas = h("canvas", { role: "img", "aria-label": chart.title });
     frame.appendChild(state.canvas);
     scroller.appendChild(frame);
     body.appendChild(scroller);
+    body.appendChild(state.empty);
     state.legend = h("ul", { class: "legend" });
     body.appendChild(state.legend);
-    body.appendChild(badgeRow(chartId, present, pending));
+    body.appendChild(badgeRow(chartId, present, pending, pendingKinds));
     el.insertBefore(body, el.firstChild);
 
     draw(state);
