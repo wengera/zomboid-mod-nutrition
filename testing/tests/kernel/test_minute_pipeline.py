@@ -419,7 +419,7 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
     p = h.rt.eval("{ isAsleep = function() return true end, getNutrition = function() return {} end }")
     M.run("a", p, h.rt.table(), 100.0)
     keys = [h.NR.read.KEYS[i] for i in range(1, len(h.NR.read.KEYS) + 1)]
-    assert len(keys) == 8 and all(M.ctx[k] is None for k in keys)       # eFlags since Plan 15 Task 3 fix 1
+    assert len(keys) == 9 and all(M.ctx[k] is None for k in keys)       # eFlags since Plan 15 Task 3 fix 1, eDayMin since Task 6
     assert M.ctx.kept == 1                              # a step's own hand-off stays until the next run clears it
 
 
@@ -433,6 +433,9 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
 # re-applies its other terms each minute: three moodle levels (SICK, BLEEDING, HEAVY_LOAD) a minute while the constant
 # is 0 (read at eb3ef7b2, the build before, with the same stand-in: 71); the constant itself is written only when its
 # wanted value changes, so neither case pays a write a steady minute.
+# Plan 15 Task 6 (Task 5's review L4): the re-applied terms also read the day length off the sandbox object, which the
+# player's count does not see; counted here on the sandbox stand-in (SANDBOX_DAY): one read a minute the constant was 0,
+# shared with Effects' heal toward a floor (NR.read.dayMin), none on a steady minute. The calibrated curve reads no Java.
 ENGINE_COUNT = r"""
 function(p, C)
     local seen = {}
@@ -457,8 +460,15 @@ function(p, C)
     wrap(p)
 end
 """
+SANDBOX_DAY = r"""
+function(C)
+    local so = NutritionRevamp.sandbox()
+    so.getDayLengthMinutes = function(s) C.day = C.day + 1; return 90 end
+end
+"""
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
 ENGINE_CALLS = {"steady": 67, "drain": 74}
+DAY_READS = {"steady": 0, "drain": 1}             # the sandbox's getDayLengthMinutes a player-minute (Task 6)
 TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
 
 
@@ -468,6 +478,8 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     C = h.rt.eval("{ n = 0, by = {} }")
     g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
     h.rt.eval(ENGINE_COUNT)(g1, C)
+    D = h.rt.eval("{ day = 0 }")
+    h.rt.eval(SANDBOX_DAY)(D)
     h.online(g1)
     start = golden_trace.START_AGE
     for m in range(1, 4):
@@ -477,13 +489,28 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
         b = rec["body"]
         rec["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
     _minute(h, start + 4 / 60.0)
-    base, health0 = C.n, C.by["getOverallBodyHealth"] or 0
+    base, health0, day0 = C.n, C.by["getOverallBodyHealth"] or 0, D.day
     n = 10
     for m in range(5, 5 + n):
         _minute(h, start + m / 60.0)
     assert (C.n - base) / n == ENGINE_CALLS[case]
+    assert (D.day - day0) / n == DAY_READS[case]
     assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
     assert rec["drain"]["active"] is (case == "drain")
     assert ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
     assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2
     assert (C.by["setHealthReductionFromSevereBadMoodles"] or 0) == (2 if case == "drain" else 1)   # first sight, then once at Parched
+
+
+def test_the_day_length_is_read_once_a_player_minute():
+    # Plan 15 Task 6 (Task 5's review L4): NR.read.dayMin keeps the minute's read on ctx, so Effects' heal and the
+    # writer's re-applied terms share one; with no ctx every call reads, and an unreadable sandbox reads the default
+    h = Host()
+    C = h.rt.eval("{ day = 0 }")
+    h.rt.eval("function(C) NutritionRevamp.so = { getDayLengthMinutes = function(s) C.day = C.day + 1; return 60 end } end")(C)
+    R = h.NR.read
+    ctx = h.rt.table()
+    assert R.dayMin(ctx, 90) == 60 and R.dayMin(ctx, 90) == 60 and C.day == 1
+    assert R.dayMin(None, 90) == 60 and C.day == 2
+    h.NR.so = h.rt.table()
+    assert R.dayMin(h.rt.table(), 90) == 90 and R.dayMin(None, 90) == 90

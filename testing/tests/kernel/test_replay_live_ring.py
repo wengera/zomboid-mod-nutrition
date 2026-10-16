@@ -243,7 +243,7 @@ def test_x260b_the_reconnects_online_first_sight_row_drains_with_no_lag():
     first = next(r for r in rows if r.get("on") is not False)
     assert first.get("norec") and not RL.offline_row(first)
     out, be = RL.replay_live(rows, [], start, paths=paths, user="admin", player=player, start_stats=stats, sleep_allowed=True,
-                             constants=RL.DEFICIT_11F)          # the ring's build's deficit drive (Plan 11g Task 7)
+                             constants=dict(RL.DEFICIT_11F, **RL.PRE_CURVE))          # the ring's build's deficit drive (Plan 11g Task 7) and its pre-curve writer (Plan 15 Task 6)
     by_s = {r["s"]: r for r in out}
     assert by_s[first["s"]].get("offline") is True             # replay row k is labelled with ring row k + 1's s:
     assert by_s[first["s"] + 1].get("offline") is None         # the first-sight minute is drained, not offline

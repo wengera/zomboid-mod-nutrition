@@ -83,7 +83,7 @@ def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
             events.append(e)
     assert n >= 1
     kw = dict(paths=rp, user="admin", player=rd("player"), start_stats=rd("start-stats"), sleep_allowed=False,
-              constants=RL.DEFICIT_11F)                          # the ring's build's deficit drive (Plan 11g Task 7)
+              constants=dict(RL.DEFICIT_11F, **RL.PRE_CURVE))                          # the ring's build's deficit drive (Plan 11g Task 7) and its pre-curve writer (Plan 15 Task 6)
     old, _ = RL.replay_live(ring, rd("events"), rd("start"), **kw)
     new, _ = RL.replay_live(ring, events, rd("start"), **kw)
     live = {r["s"]: r for r in ring}

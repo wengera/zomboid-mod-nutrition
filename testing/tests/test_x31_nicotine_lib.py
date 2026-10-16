@@ -52,7 +52,8 @@ def live_arm(n, edits, smoke_at=None, nic_max=None):
     ev = [{"minute": k, "kind": "stat", "stat": NW, "value": w_at(k, smoke_at=smoke_at)} for k in range(n)]
     for m, kind, value in edits:
         ev.append({"minute": m, "kind": "setpath", "path": "satiety.nicH", "value": value})
-    be = RL.ServerReplay(start=None, user="admin", sleep_allowed=False, hour_offset=7.0)
+    be = RL.ServerReplay(start=None, user="admin", sleep_allowed=False, hour_offset=7.0,
+                         constants=RL.PRE_CURVE)  # the pre-curve writer: the grade reads the model's own factors (Plan 15 Task 6)
     if nic_max is not None:
         be.K.satiety.NIC_MAX = nic_max
     rows = RL.run(be, ages, ev, PATHS, start_age=START)
@@ -67,7 +68,8 @@ def live_arm(n, edits, smoke_at=None, nic_max=None):
 
 
 def replay(ring, events, nic_max=None):
-    be = RL.ServerReplay(start=None, user="admin", sleep_allowed=False, hour_offset=7.0)
+    be = RL.ServerReplay(start=None, user="admin", sleep_allowed=False, hour_offset=7.0,
+                         constants=RL.PRE_CURVE)  # the pre-curve writer: the grade reads the model's own factors (Plan 15 Task 6)
     if nic_max is not None:
         be.K.satiety.NIC_MAX = nic_max
     return RL.run(be, [r["age"] for r in ring], events, PATHS, start_age=START, seqs=[r["s"] for r in ring],

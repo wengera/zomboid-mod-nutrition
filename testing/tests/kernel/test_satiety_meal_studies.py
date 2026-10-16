@@ -532,7 +532,7 @@ CLOCK_H = 8.0                   # the acute record's world age 0 is 08:00
 
 def writer_host():
     from .test_writer_shape import boot
-    return boot()
+    return boot(curve=True)          # the shipped writer: its oracles read the model's own value, record.satiety.hModel
 
 
 def request_written(wh, ageH):
@@ -544,7 +544,7 @@ def request_written(wh, ageH):
 
 
 def written_hunger(wh, a, ageH):
-    """The HUNGER the writer writes at world age ageH for a record whose acute table is the live record a, eaten at the
+    """The model's hunger (h_model) the writer composes at world age ageH for a record whose acute table is the live record a, eaten at the
     request (see above). A fresh player name each call, so each meal is its own hoist."""
     from .test_writer_shape import player, record
     wh.T.age = ageH + CLOCK_H
@@ -556,7 +556,7 @@ def written_hunger(wh, a, ageH):
     rec.satiety.M = wh.K.satiety.seedMeal(H_REQ / c, 0, 1)
     rec.satiety.S = 0
     wh.NR.server.writer.step(name, p, rec, None)
-    return p.st.sets.HUNGER
+    return rec.satiety.hModel        # h_model, before the calibrated curve (Plan 15 Task 6)
 
 
 def acute_night(host, a, ageH0, slept_h):
@@ -952,7 +952,7 @@ NIC_DAYS = 48                    # S1576's span
 
 
 def nicotine_written(wh, ageH, w, anchorH):
-    """The HUNGER the writer writes at world age ageH (0 = 08:00) for a fresh record eaten at the request, its player's
+    """The model's hunger (h_model) the writer composes at world age ageH (0 = 08:00) for a fresh record eaten at the request, its player's
     NICOTINE_WITHDRAWAL w and its anchor at world age anchorH (None: no anchor laid)."""
     from .test_writer_shape import player, record
     wh.T.age = ageH + CLOCK_H
@@ -966,7 +966,7 @@ def nicotine_written(wh, ageH, w, anchorH):
     if anchorH is not None:
         rec.satiety.nicH = anchorH + CLOCK_H
     wh.NR.server.writer.step(name, p, rec, None)
-    return p.st.sets.HUNGER
+    return rec.satiety.hModel        # h_model, before the calibrated curve (Plan 15 Task 6)
 
 
 def nicotine_ratio(wh, day):

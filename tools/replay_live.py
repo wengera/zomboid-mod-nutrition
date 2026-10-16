@@ -104,6 +104,10 @@ STUDY_SCRIPT = os.path.join(REPO, "testing", "experiments", "TKX_StudyFoods", "c
 
 STATS = ("HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITHDRAWAL")
 H_REQ = 0.25                          # the meal request, vanilla's HUNGRY level 2 (ruling 11c-17)
+# The satiety model's own hunger (Plan 15 Task 6): every row carries it under this key, the server backend's from
+# record.satiety.hModel (the writer's h_model, before the calibrated curve), the oracle backend's its composition. A
+# study oracle reads it, never the written HUNGER, which is the curve of it (K.hungerCurve).
+H_MODEL = "satiety.hModel"
 KCAL_PER_H = 650.0 / H_REQ            # the intake mapping (ruling 11c-31): kcal per unit of written hunger
 NEUTRAL_HOUR = 13.8333                # circadian(13:50) is 1.0 exactly: the factor held (the oracles' h0 None)
 # The feed: the stats the replay copies from each ring row into the stand-in before its drain. Only an exogenous input
@@ -599,7 +603,25 @@ def _replay_floor(rt, value):
     rt.execute(_FLOOR_LUA % (float(value), float(value)))
 
 
-REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor}
+# The writer before the calibrated hunger curve (Plan 15 Task 6): every live ring up to that build wrote the model's own
+# value, capped, as HUNGER, so "replay.HUNGER_CURVE_OFF" (any true value) sets the curve, its inverse and its unfed dip to the
+# identity on that replay's host and the ring's HUNGER is graded against the pipeline that produced it. Set on a replay
+# host only, never shipped; the dead zone and the fasting hold go with the curve, and the starving minimum's onset
+# (Plan 15 Task 5) was never reached by a recorded ring.
+_CURVE_OFF_LUA = ("local K = NutritionRevamp.kernel\n"
+                  "K.hungerCurve.write = function(h, state) return h end\n"
+                  "K.hungerCurve.inverse = function(H) return H end\n"
+                  "K.hungerCurve.dip = function(c) return 1 end\n")
+
+
+def _replay_curve_off(rt, value):
+    if value:
+        rt.execute(_CURVE_OFF_LUA)
+
+
+REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off}
+# The pre-curve writer, for a ring recorded before Plan 15 Task 6: merged into the ring's own constants.
+PRE_CURVE = {"replay.HUNGER_CURVE_OFF": 1}
 
 
 def set_constants(K, constants, rt=None):
@@ -915,6 +937,9 @@ class ServerReplay(_Backend):
             if v is not None:
                 out[n] = v
         r = self.record()
+        sat = r["satiety"] if r is not None else None
+        if sat is not None and isinstance(sat["hModel"], (int, float)):
+            out[H_MODEL] = sat["hModel"]
         for path in paths:
             if path in self.DERIVED:
                 body = r["body"] if r is not None else None
@@ -1018,6 +1043,7 @@ class OracleReplay(_Backend):
         out = {"on": True}
         if self.o.hunger is not None:
             out["HUNGER"] = self.o.hunger
+            out[H_MODEL] = self.o.hunger                    # the composition has no curve: its hunger is the model's
         for path in paths:
             if path in self.ALIAS:
                 out[path] = self.o[self.ALIAS[path]]

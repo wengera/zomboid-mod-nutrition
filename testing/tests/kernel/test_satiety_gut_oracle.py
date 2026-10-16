@@ -207,7 +207,7 @@ def karl_vas_rows(arm):
     one list per study day, in karl_vas's order: pre- and post-breakfast, pre- and post-exercise, pre- and post-lunch,
     pre- and post-dinner."""
     rows, days, am_dur = E.karl_rows(arm)
-    return [[rows[m]["HUNGER"] for m in E.karl_vas(d * 1440, am_dur)] for d in range(E.KARL_WARM, days)]
+    return [[rows[m][E.RL.H_MODEL] for m in E.karl_vas(d * 1440, am_dur)] for d in range(E.KARL_WARM, days)]
 
 
 def surplus_day(host):

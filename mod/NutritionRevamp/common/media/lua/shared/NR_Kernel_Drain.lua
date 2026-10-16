@@ -15,8 +15,8 @@
 -- and iron rungs' follow the record's own hours in the state (record.drain.naH, feH). The rates are per game day and
 -- independent of day length.
 -- record.drain holds the inputs a save keeps (bmi0, naH, feH; K.store.INPUTS) and the minute's derived outputs
--- (active, state, targetFloor, rate, drainThisMinute, starvedH, and the starving and dehydrated flags the writer's caps
--- read, K.hybrid.caps, Plan 15 Task 5). Pure: Lua tables in and out, no Java. Slow-clock code
+-- (active, state, targetFloor, rate, drainThisMinute, starvedH, and the starving, starveAcute and dehydrated flags the
+-- writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua tables in and out, no Java. Slow-clock code
 -- with no fast region; every K.acute / K.fluids / K.HEIGHT_M reference is at call time.
 local K = NutritionRevamp.kernel
 K.drain = {}
@@ -141,6 +141,7 @@ function K.drain.new()
         drainThisMinute = 0,
         starvedH = 0,
         starving = false,
+        starveAcute = false,
         dehydrated = false,
     }
 end
@@ -275,7 +276,9 @@ K.drain.IN = { lm = 0, fm = 0, bmi0 = 0, dehydPct = 0 }
 -- (the code whose floor is lowest), targetFloor (100 with none), rate (the fastest active, health per game day),
 -- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - floor),
 -- starvedH, and starving and dehydrated: whether the starvation and the dehydration states are active, whichever
--- floor wins (the writer lifts its HUNGER and THIRST caps on them, K.hybrid.caps). Returns record.drain.
+-- floor wins (the writer lifts its HUNGER and THIRST caps on them, K.hybrid.caps); starveAcute: whether starvation
+-- came by the acute onset (STARVE_ONSET_H starved hours), whose HUNGER minimum the chronic BMI onset does not take
+-- (Plan 15 Task 6, ruling I2). Returns record.drain.
 function K.drain.step(record, dtM, ageH)
     local D = K.drain.ensure(record)
     local body, nut, fl, a = record.body, record.nutrients, record.fluids, record.acute
@@ -286,6 +289,7 @@ function K.drain.step(record, dtM, ageH)
     D.drainThisMinute = 0
     D.starvedH = 0
     D.starving = false
+    D.starveAcute = false
     D.dehydrated = false
     if body == nil or nut == nil or fl == nil or a == nil then
         return D
@@ -298,7 +302,8 @@ function K.drain.step(record, dtM, ageH)
     inp.fm = body.fm
     inp.dehydPct = fl.dehydPct
     D.starvedH = K.drain.starvedH(a, body, ageH)
-    if D.starvedH >= K.drain.STARVE_ONSET_H or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC then
+    D.starveAcute = D.starvedH >= K.drain.STARVE_ONSET_H
+    if D.starveAcute or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC then
         if not (D.bmi0 > 0) then
             D.bmi0 = K.drain.bmi(body.lm, body.fm)
         end

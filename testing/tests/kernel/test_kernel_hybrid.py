@@ -45,7 +45,7 @@ def test_a_non_finite_hunger_or_fatigue_target_writes_neither(host):
     out = run(host, mode=1, hungerTarget=NAN, fOwned=True, fS=0.3)
     assert out.hunger is None and out.fatigue == pytest.approx(0.3)
     out = run(host, mode=1, hungerTarget=0.4, fOwned=True, fS=0.3, fOff=NAN)
-    assert out.fatigue is None and out.hunger == pytest.approx(0.4)
+    assert out.fatigue is None and out.hunger == pytest.approx(host.call("hungerCurve.map", 0.4))
 
 
 def test_the_sip_is_folded_into_the_thirst_write(host):
@@ -231,12 +231,13 @@ def test_the_caps_hold_under_level_4_with_no_crisis(host):
 
 def test_starvation_lifts_the_hunger_cap_and_holds_starving_above_level_4(host):
     c = host.call("hybrid.defaults")
-    assert host.call("hybrid.caps", host.table({"starving": True}), c) == (1, 0.71, 0.83)
+    assert host.call("hybrid.caps", host.table({"starving": True, "starveAcute": True}), c) == (1, 0.71, 0.83)
+    assert host.call("hybrid.caps", host.table({"starving": True}), c) == (1, 0, 0.83)   # the chronic onset (Task 6)
     assert c.starvingMin > host.K.hybrid.HUNGRY_4                               # vanilla's Starving shows (#0508's strict >)
-    out = run(host, mode=1, starving=True, hungerTarget=0.3)
+    out = run(host, mode=1, starving=True, starveAcute=True, hungerTarget=0.3)
     assert out.hunger == pytest.approx(0.71)                                     # held at least 0.71
-    out = run(host, mode=1, starving=True, hungerTarget=0.93)
-    assert out.hunger == pytest.approx(0.93)                                     # the model's own value above it, to 1
+    out = run(host, mode=1, starving=True, starveAcute=True, hungerTarget=0.93)
+    assert out.hunger == pytest.approx(host.call("hungerCurve.map", 0.93))       # the curve above it, to 1
     assert run(host, mode=1, starving=True, hungerTarget=1.4).hunger == 1
     assert run(host, mode=1, starving=False, hungerTarget=0.93).hunger == pytest.approx(0.69)
     assert run(host, mode=1, starving=True, hungerTarget=NAN).hunger is None    # a NaN target still writes nothing
@@ -248,7 +249,8 @@ def test_dehydration_lifts_the_thirst_cap(host):
     out = run(host, mode=1, dehydrated=True, thirst=0.8, thirstTarget=0.92)
     assert out.thirst == pytest.approx(0.92)
     assert run(host, mode=1, dehydrated=False, thirst=0.8, thirstTarget=0.92).thirst == pytest.approx(0.83)
-    out = run(host, mode=1, dehydrated=True, starving=True, hungerTarget=0.5, thirst=0.8, thirstTarget=0.95)
+    out = run(host, mode=1, dehydrated=True, starving=True, starveAcute=True, hungerTarget=0.5, thirst=0.8,
+              thirstTarget=0.95)
     assert (out.hunger, out.thirst) == (pytest.approx(0.71), pytest.approx(0.95))
     assert run(host, mode=2, dehydrated=True, starving=True, hungerTarget=0.9).hunger is None   # Overlay writes none
 

@@ -53,9 +53,10 @@ def setup(red=RED, health=100.0, mode=1):
     return h, p, C
 
 
-def starving(h, **over):
+def starving(h, acute=True, **over):
+    """A record in starvation: by the acute onset (36 starved hours) unless acute is false (the chronic BMI onset)."""
     rec = WS.record(h, **over)
-    rec.drain = h.rt.table_from({"starving": True, "dehydrated": False})
+    rec.drain = h.rt.table_from({"starving": True, "starveAcute": acute, "dehydrated": False})
     return rec
 
 
@@ -205,7 +206,7 @@ def test_heavy_load_is_its_expected_value_held_at_75_with_half_to_back_strain():
     assert len(reduced(p)) == 2                     # at 75: off
 
 
-@pytest.mark.parametrize("cond", ["asleep", "vehicle", "seated", "level2"])
+@pytest.mark.parametrize("cond", ["asleep", "vehicle", "seated", "sitting", "level2"])
 def test_heavy_load_waits_on_its_conditions(cond):
     h, p, C = setup()
     rec = starving(h)
@@ -217,6 +218,8 @@ def test_heavy_load_waits_on_its_conditions(cond):
         p.vehicle = h.rt.table()
     elif cond == "seated":
         p.thermo.target = 1.0                       # SeatedResting's MET (#2632)
+    elif cond == "sitting":                         # isSitting (L2386): on the ground, the thermo target kept at 2.0
+        p.isSitOnGround = h.rt.eval("function(s) return true end")
     else:
         p.levels.HEAVY_LOAD = 2
     WS.step(h, p, rec, 2)
@@ -231,9 +234,34 @@ def test_the_35_kg_floor_is_re_applied_as_one_set_weight_call():
               "t.getMultiplier = function(s) return 1.6 end; return t end end")()
     WS.step(h, p, rec, 2)
     assert reduced(p) == [pytest.approx(RED * 1.6)]       # the constant x the multiplier, per call (#3881)
-    rec.body.fm = 1.6                                      # 35.1 kg: over the floor
+    rec.body.fm = 1.5                                      # 35.0 kg exactly: setWeight's test is strict (L352)
     WS.step(h, p, rec, 3)
     assert len(reduced(p)) == 1
+    rec.body.fm = 1.6                                      # 35.1 kg: over the floor
+    WS.step(h, p, rec, 4)
+    assert len(reduced(p)) == 1
+
+
+def test_a_step_over_60_game_minutes_re_applies_60():
+    # Plan 15 Task 5 review L2: the multiplier units integrate at most the write's maxStepS, 60 game minutes
+    h, p, C = setup()
+    rec = starving(h)
+    WS.step(h, p, rec, 1)
+    p.levels.BLEEDING = 4
+    WS.step(h, p, rec, 121)
+    assert reduced(p) == [pytest.approx(RED * UNITS_MIN * 60)]
+
+
+def test_the_chronic_onset_lifts_the_cap_but_takes_no_starving_minimum():
+    # Plan 15 Task 6 (ruling I2): under the chronic BMI onset alone HUNGER follows the curve, so a severely underweight
+    # survivor who has just eaten does not read Starving; the acute onset holds 0.71
+    h, p, C = setup()
+    rec = starving(h, acute=False)
+    WS.step(h, p, rec, 1)
+    assert p.st.sets.HUNGER < 0.70 and sets(p) == [RED]
+    rec.drain.starveAcute = True
+    WS.step(h, p, rec, 2)
+    assert p.st.sets.HUNGER == pytest.approx(0.71) and sets(p) == [RED, 0]
 
 
 def test_every_term_together_is_one_health_call():

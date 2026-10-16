@@ -311,26 +311,20 @@ local function regen(bd, m, active)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
--- A moodle's level 0..4 off the moodles object, 0 when the type or the read is absent.
-local function moodleLevel(moodles, t)
-    if moodles == nil or t == nil then return 0 end
-    return K.clamp(math.floor(num(moodles, "getMoodleLevel", 0, t)), 0, 4)
-end
-
 -- The heal toward the floor (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
 -- and sleep (K.drain.regenAddition, #2721, #0515), scaled by healMul, times the multiplier units of a game minute at the
 -- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the floor and no more
 -- (K.drain.heal, #3898). Read only on a minute that heals.
-local function healToFloor(player, bd, D, E, health, asleep, dtM)
+local function healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
     local MT = MoodleType
     local moodles = obj(player, "getMoodles")
     local hl, tl, sl = 0, 0, 0
     if MT ~= nil then
-        hl = moodleLevel(moodles, MT.HUNGRY)
-        tl = moodleLevel(moodles, MT.THIRST)
-        sl = moodleLevel(moodles, MT.SICK)
+        hl = NR.read.moodleLevel(moodles, MT.HUNGRY)
+        tl = NR.read.moodleLevel(moodles, MT.THIRST)
+        sl = NR.read.moodleLevel(moodles, MT.SICK)
     end
-    local dayMin = num(NR.sandbox(), "getDayLengthMinutes", EFF.DAY_MINUTES)
+    local dayMin = NR.read.dayMin(ctx, EFF.DAY_MINUTES)
     local perMin = K.drain.regenAddition(hl, tl, sl, asleep) * E.healMul * K.drain.UNITS_PER_MIN * dayMin
     local y = K.drain.heal(D, health, perMin, dtM)
     if y > 0 then
@@ -585,7 +579,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
                 NR.call(bd, "ReduceGeneralHealth", take)
                 EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
             elseif health ~= nil and health < D.targetFloor - K.drain.HEAL_EPS then
-                healToFloor(player, bd, D, E, health, asleep, dtM)
+                healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
             end
         end
     end

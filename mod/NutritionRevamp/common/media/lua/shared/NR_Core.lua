@@ -233,6 +233,7 @@ local function readThermo(ctx, p, bd)
     return NR.obj(bd, "getThermoregulator")
 end
 local function readNutrition(p) return NR.obj(p, "getNutrition") end
+local function readDayMin() return NR.num(NR.sandbox(), "getDayLengthMinutes", nil) end
 
 function RD.ageH(ctx) return memo(ctx, "eAge", NR.worldAge) end
 function RD.hour(ctx, ageH) return memo(ctx, "eHour", readHour, ageH) end
@@ -242,6 +243,20 @@ function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end
 -- bd (optional) is the body damage the caller holds, so a call with no ctx reads it once.
 function RD.thermo(ctx, p, bd) return memo(ctx, "eThermo", readThermo, ctx, p, bd) end
 function RD.nutrition(ctx, p) return memo(ctx, "eNut", readNutrition, p) end
+-- The day length in real minutes (the sandbox's getDayLengthMinutes), dflt when unreadable: one read a player-minute,
+-- shared by Effects' heal toward a floor and the writer's re-applied severe terms (Plan 15 Task 6, Task 5's review L4).
+function RD.dayMin(ctx, dflt)
+    local v = memo(ctx, "eDayMin", readDayMin)
+    if v == nil then return dflt end
+    return v
+end
+
+-- A moodle's level 0..4 off a moodles object (getMoodles), 0 when the object, the type or the read is absent: one copy for
+-- Effects and the writer (Plan 15 Task 6, Task 5's review I5).
+function RD.moodleLevel(moodles, t)
+    if moodles == nil or t == nil then return 0 end
+    return NR.kernel.clamp(math.floor(NR.num(moodles, "getMoodleLevel", 0, t)), 0, 4)
+end
 
 -- One trait flag a player-minute (Plan 15 Task 3 fix 1): the first get of trait t is kept in the minute's flag table
 -- (ctx.eFlags, the one reused table RD.FLAGS, emptied when a minute first reads a flag), so Nutrients' sleep and thirst
@@ -270,7 +285,7 @@ end
 
 -- The context keys the reads above keep: the pipeline drops them at the end of each player's minute (MIN.run), so the
 -- shared context holds no player's Java objects between drains.
-RD.KEYS = { "eAge", "eHour", "eAsleep", "eTraits", "eBd", "eThermo", "eNut", "eFlags" }
+RD.KEYS = { "eAge", "eHour", "eAsleep", "eTraits", "eBd", "eThermo", "eNut", "eFlags", "eDayMin" }
 
 -- The trait-block push (#2099): sendSyncPlayerFields(player, 2), a Java global called with a dot (#2815), under one
 -- pcall, so a raise never skips the work after it in the caller's minute. Counted in stats.pushes, or in

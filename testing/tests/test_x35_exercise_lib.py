@@ -96,7 +96,8 @@ def synth(sets, walks, n=420, acute=True):
         ev.append({"s": i + 1, "kind": "activity", "raw": raw, "exercising": ex, "moving": mv})
 
     def run():
-        return RL.replay_live(clock, ev, start, paths=list(L.RING_RECORD), sleep_allowed=False, ring_activity=False)[0]
+        return RL.replay_live(clock, ev, start, paths=list(L.RING_RECORD), sleep_allowed=False, ring_activity=False,
+                              constants=RL.PRE_CURVE)[0]  # the pre-curve writer: the grade reads the model's own factors (Plan 15 Task 6)
     out = run() if acute else G.no_acute(run)
     by = {r["s"]: r for r in out}
     ring = []
@@ -195,7 +196,8 @@ def test_the_walk_leg_reads_the_cap_and_bites():
 def test_the_ring_activity_and_the_moving_events_reproduce_the_billing():
     ring, start = synth([(30, 90)], [(91, 140)], n=200)
     mv = [e for e in L.ring_moving_events(ring) if e["s"] > ring[0]["s"]]
-    out, be = RL.replay_live(ring, mv, start, paths=list(L.RING_RECORD), sleep_allowed=False)
+    out, be = RL.replay_live(ring, mv, start, paths=list(L.RING_RECORD), sleep_allowed=False,
+                             constants=RL.PRE_CURVE)  # the pre-curve writer: the grade reads the model's own factors (Plan 15 Task 6)
     assert be.ring_activity                                            # the tool took the rate and the flag itself
     by = {r["s"]: r for r in out}
     for r in ring[2:]:

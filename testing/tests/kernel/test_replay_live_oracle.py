@@ -58,7 +58,8 @@ def meal_events(events):
 
 
 def server_hunger(host, events, minutes, M0=None, h0=None):
-    """The written HUNGER per minute (index i is minute i + 1), as M.hunger reads it."""
+    """The model's own hunger per minute (index i is minute i + 1; RL.H_MODEL, the pre-curve value since Plan 15 Task
+    6), as M.hunger reads it."""
     if M0 is None:
         M0 = M.start_m(host, h0)
     a0 = 0.0 if h0 is None else h0
@@ -67,7 +68,7 @@ def server_hunger(host, events, minutes, M0=None, h0=None):
     rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=minutes, start_age=a0, steps=SATIETY_STEPS,
                             hold_hour=RL.NEUTRAL_HOUR if h0 is None else None)
     assert [r["age"] for r in rows] == RL.synthetic_ages(minutes, a0)
-    return [r["HUNGER"] for r in rows]
+    return [r[RL.H_MODEL] for r in rows]
 
 
 def test_the_neutral_hour_holds_the_circadian_factor_at_exactly_1(host):
@@ -239,7 +240,7 @@ def nicotine_written(host, ageH, w, anchorH):
     rec = {"username": "admin", "firstSeen": 0.0, "lastSeen": 0.0, "satiety": sat}
     rows, _ = RL.replay_arm([], start=rec, ages=[ageH + M.CLOCK_H], steps=("writer",),
                             stats={"NICOTINE_WITHDRAWAL": w})
-    return rows[0]["HUNGER"]
+    return rows[0][RL.H_MODEL]
 
 
 def test_the_nicotine_next_day_ratio(host):

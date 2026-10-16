@@ -31,7 +31,7 @@ def test_bench_writer_is_a_function(bench_host):
 
 def test_bench_writer_writes_a_steady_minute(bench_host):
     out = bench_host.G.NutritionRevamp.bench_writer()
-    assert out["hunger"] == pytest.approx(0.3)
+    assert out["hunger"] == pytest.approx(bench_host.G.NutritionRevamp.kernel.hungerCurve.map(0.3))   # h_model 0.3 through the curve (Plan 15 Task 6)
     assert out["fatigue"] == pytest.approx(0.37)
     assert out["panic"] == 10
     assert out["stress"] == pytest.approx(min(0.1, 0.05 + 5.0e-5 * 60))

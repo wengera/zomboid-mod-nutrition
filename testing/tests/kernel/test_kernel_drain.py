@@ -208,7 +208,7 @@ def test_the_starvation_phases(host, D):
 def test_a_fresh_drain_table_and_its_heal(host, D):
     assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "targetFloor": 100,
                                 "rate": 0, "drainThisMinute": 0, "starvedH": 0, "starving": False,
-                                "dehydrated": False}
+                                "starveAcute": False, "dehydrated": False}
     rec = host.table({})
     d = D.ensure(rec)
     assert host.rt.eval("rawequal")(rec.drain, d) and d.bmi0 == 0
@@ -261,19 +261,21 @@ def test_the_starving_and_dehydrated_flags_follow_their_states_whichever_floor_w
     d = D.step(record(host), 1.0, 100.0)
     assert (d.starving, d.dehydrated) == (False, False)
     d = D.step(record(host, starvedDays=1), 1.0, 108.0)
-    assert (d.starving, d.dehydrated) == (True, False)
+    assert (d.starving, d.starveAcute, d.dehydrated) == (True, True, False)   # the acute onset (Plan 15 Task 6)
     d = D.step(record(host, dehyd=4.0), 1.0, 100.0)
     assert (d.starving, d.dehydrated) == (False, True)
     assert D.step(record(host, dehyd=3.99), 1.0, 100.0).dehydrated is False
     d = D.step(record(host, starvedDays=1, dehyd=5.0, thiamine=(4, 800)), 1.0, 108.0)
     assert d.state == 3 and (d.starving, d.dehydrated) == (True, True)       # beriberi's floor wins; both flags hold
     chronic = record(host, fm=12.9 * H2 - 52.02, inDay=1000.0)
-    assert D.step(chronic, 1.0, 100.0).starving is True                       # the chronic-BMI onset counts too
+    d = D.step(chronic, 1.0, 100.0)
+    assert d.starving is True and d.starveAcute is False                     # the chronic-BMI onset counts too, not acute
     rec = record(host, dehyd=6.0)
     D.step(rec, 1.0, 100.0)
     rec.fluids.dehydPct = 1.0
     assert D.step(rec, 1.0, 100.0 + 1 / 60).dehydrated is False               # cleared with the state
-    assert D.step(host.table({"body": {}}), 1.0, 100.0).starving is False     # a record missing its sub-tables
+    d = D.step(host.table({"body": {}}), 1.0, 100.0)
+    assert d.starving is False and d.starveAcute is False                    # a record missing its sub-tables
 
 
 def test_the_onset_bmi_is_stamped_once_and_cleared_when_starvation_ends(host, D):

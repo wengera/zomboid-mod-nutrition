@@ -3,6 +3,7 @@
 -- sets HUNGER, THIRST and FATIGUE, the STRESS, UNHAPPINESS, BOREDOM and FOOD_SICKNESS floors, PANIC, TEMPERATURE and
 -- INTOXICATION once a player-minute, stepping by elapsed world age (#3371), after the minute's eats (#3383), with
 -- each auto-drink sip folded into the THIRST target (#3382). Mode 2 (Overlay) writes everything but the first three.
+-- HUNGER is the satiety model's h_model through the calibrated curve (K.hungerCurve.write, Plan 15 Task 6), then capped.
 -- Pure: inp, out and c are tables the adapter owns and reuses; an out field left nil means "no write".
 local K = NutritionRevamp.kernel
 K.hybrid = {}
@@ -16,13 +17,14 @@ function K.hybrid.defaults()
         moodRiseStress = 5.0e-5, moodRiseBored = 25 / 3600, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
         maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (the pipeline's clamp)
         liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
-        starvingMin = 0.71,              -- HUNGER at least this while starving, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; Task 6 calibrates the curve above it)
+        starvingMin = 0.71,              -- HUNGER at least this under starvation's acute onset, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
     }
 end
 
 function K.hybrid.input()
     return {
-        dtS = 0, mode = 1, asleep = false, starving = false, dehydrated = false, hunger = 0, hungerTarget = 0, thirst = 0, thirstTarget = nil,
+        dtS = 0, mode = 1, asleep = false, starving = false, starveAcute = false, dehydrated = false, hunger = 0,
+        hungerTarget = 0, fed = true, circ = 1, thirst = 0, thirstTarget = nil,
         lastThirst = nil, sipOK = true, fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0,
         stress = 0, stressTarget = 0, unhappy = 0, unhappyTarget = 0, lastUnhappyTarget = 0, foodSick = 0,
         foodSickTarget = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
@@ -57,7 +59,7 @@ function K.hybrid.write(inp, out, c)
         local hCap, hMin, tCap = K.hybrid.caps(inp, c)
         local h = inp.hungerTarget
         if h == h then
-            out.hunger = K.clamp(h, hMin, hCap)
+            out.hunger = K.clamp(K.hungerCurve.write(h, inp), hMin, hCap)
         end
         out.sip = K.hybrid.sip(inp.thirst, inp.lastThirst, inp.sipOK)
         local t = inp.thirstTarget
@@ -158,15 +160,18 @@ end
 
 -- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3): the caps lift at the crises, so vanilla's own
 -- Starving and Parched moodles show. state is any table with the drain flags (record.drain, or the writer's input,
--- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1 and holds it at least
--- starvingMin; dehydrated (K.drain's dehydration state active, a body-water deficit of 4 % or more) lifts THIRST's cap
+-- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1, and under the acute onset
+-- (starveAcute, 36 starved hours) holds it at least starvingMin; under the chronic BMI onset alone HUNGER follows the
+-- curve (ruling I2: the Starving moodle is appetite, the drain is the body); dehydrated (K.drain's dehydration state active, a body-water deficit of 4 % or more) lifts THIRST's cap
 -- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under 0.69 and
 -- THIRST under 0.83, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
 function K.hybrid.caps(state, c)
     local hCap, hMin, tCap = c.hungerCap, 0, c.thirstCap
     if state.starving == true then
         hCap = c.liftedCap
-        hMin = c.starvingMin
+        if state.starveAcute == true then
+            hMin = c.starvingMin
+        end
     end
     if state.dehydrated == true then
         tCap = c.liftedCap

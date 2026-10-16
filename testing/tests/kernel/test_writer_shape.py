@@ -4,6 +4,12 @@ seven rise rates saved then zeroed (0, never nil) at the server's OnGameBoot and
 THIRST and FATIGUE written once a minute in Mode 1 only; the auto-drink sip folded into the THIRST target and
 handed to the pool; the floors stepped by elapsed world age; the writer after the eats and the effects in ORDER;
 the boot warning beside Nutrition Makes Sense.
+
+Since Plan 15 Task 6 the HUNGER written is the satiety model's own value, h_model (record.satiety.hModel), through the
+calibrated curve (K.hungerCurve). This module tests the model's composition, so boot() takes the curve out by default
+(CURVE_OFF, the pre-curve writer: the curve and its inverse the identity), and the written HUNGER reads h_model capped;
+boot(curve=True) keeps the shipped curve, and the cases under "the calibrated curve" below check the two together. The
+curve's own cases are test_kernel_hunger_curve.py.
 """
 import math
 import os
@@ -51,8 +57,17 @@ RATES = ("HungerIncrease", "HungerIncreaseWhileAsleep", "HungerIncreaseWhenExerc
          "ThirstSleepingIncrease", "FatigueIncrease", "HungerIncreaseWhenWellFed")
 
 
-def boot(mode=1):
+# The pre-curve writer (tools/replay_live.py's PRE_CURVE, the same override): the model's own value is written, capped.
+CURVE_OFF = ("local K = NutritionRevamp.kernel\n"
+             "K.hungerCurve.write = function(h, state) return h end\n"
+             "K.hungerCurve.inverse = function(H) return H end\n"
+             "K.hungerCurve.dip = function(c) return 1 end\n")
+
+
+def boot(mode=1, curve=False):
     h = Host(extra_env=("NR_T = NR_T or {}\nNR_T.mode = %d\n" % mode) + ENV)
+    if not curve:
+        h.rt.execute(CURVE_OFF)
     h.fire("OnGameBoot")
     return h
 
@@ -453,12 +468,15 @@ def test_the_satiety_bulk_option_and_task_15s_writer_pieces_are_retired():
 LIMITATION_FOUR = (
     "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write "
     "overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x"
-    " the acute exercise factor x the sleep-debt factor x the nicotine factor, capped at 0.69 below starvation "
-    "(K.hybrid.caps): F is the stomach's "
+    " the acute exercise factor x the sleep-debt factor x the nicotine factor (the model's h_model), written through"
+    " the calibrated curve (K.hungerCurve: a satisfying meal reads about 0 and Peckish and Hungry return on vanilla's"
+    " cadence; unfed, the morning dip is taken out and HUNGER never falls; a level steps down only 0.02 under its "
+    "threshold) and capped at 0.69 below starvation (K.hybrid.caps): F is the stomach's "
     "fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the "
     "1100 g hard capacity, drunk liquid counting at 0.279 of its mass, and M the meal pool, the weighted kcal eaten, "
     "fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and "
-    "reads it, so displayed hunger never reaches 0 after a meal, and a vanilla HUNGER below the seed floor reads it "
+    "reads it, so h_model never reaches 0 after a meal, and a vanilla HUNGER (read back through the curve's "
+    "inverse) below the seed floor reads it "
     "on its first minute: hungerTarget(0.786, energy state), that is 0.214 x es, times the "
     "minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap MEAL_SEED_MAX);"
     " protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes "
@@ -476,7 +494,7 @@ LIMITATION_FOUR = (
     "the fullness "
     "ceiling, hungerTarget(0.5 F, energy state), that is (1 - 0.5 F) x es, times the minute's"
     " circadian, acute, sleep and nicotine factors, seeds an empty meal pool, so a fresh character's first written "
-    "HUNGER drops to that ceiling; short sleep raises hunger by a factor capped at the pooled size, whether a step or"
+    "HUNGER drops to that ceiling's curve value; short sleep raises hunger by a factor capped at the pooled size, whether a step or"
     " graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short "
     "night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly "
     "the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the"
@@ -1597,3 +1615,59 @@ def test_the_monotony_table_is_healed_at_first_sight_and_not_every_minute():
     q = player(h)                                            # a new object is first sight again
     step(h, q, rec, 2)
     assert h.NR.server.writer.stats.guarded == g0 + 1
+
+
+# --- the calibrated curve (Plan 15 Task 6): the written HUNGER is the curve of h_model, which the record keeps ------
+
+def test_the_written_hunger_is_the_curve_of_the_models_own_value():
+    h = boot(curve=True)
+    p = player(h)
+    rec = record(h)
+    step(h, p, rec, 1)
+    assert rec.satiety.hModel == pytest.approx(H1)                       # the model's composition, unchanged
+    assert p.st.sets.HUNGER == pytest.approx(h.K.hungerCurve.map(H1))    # written through the curve
+    hc = boot(curve=False)
+    pc = player(hc)
+    step(hc, pc, record(hc), 1)
+    assert pc.st.sets.HUNGER == pytest.approx(H1)                        # the pre-curve writer wrote h_model
+
+
+def test_the_seed_inverts_the_curve_so_a_fresh_record_writes_back_the_hunger_it_read():
+    # over the seed floor (the curve of 0.204, 0.163); 0.2 seeds an M under FED_M whose dip-free reseed would be fed, so
+    # it keeps the first seed and the fasting hold writes the dip-free curve, over the read by the dip at most
+    for read in (0.25, 0.31, 0.5):
+        h = boot(curve=True)
+        p = player(h)
+        p.st.v.HUNGER = read
+        rec = record(h)
+        rec.satiety = h.rt.table_from({"S": 0, "L": 0})
+        rec.stomachFill = 0.0
+        step(h, p, rec, 1)
+        assert p.st.sets.HUNGER == pytest.approx(read), read
+        assert h.NR.server.writer.input.fed is False                     # unfed: the seed kept the dip in h_model
+        assert rec.satiety.hModel == pytest.approx(h.K.hungerCurve.inverse(read) * 0.9540165460822252), read
+
+
+def test_the_fed_flag_and_the_circadian_factor_reach_the_curve():
+    h = boot(curve=True)
+    p = player(h)
+    rec = record(h)                                                      # M 6: fed (FED_M 3.8)
+    step(h, p, rec, 1)
+    inp = h.NR.server.writer.input
+    assert inp.fed is True and inp.circ == pytest.approx(0.9540165460822252)
+    rec.satiety.M = 1.0
+    step(h, p, rec, 2)
+    assert inp.fed is False
+
+
+def test_a_seed_between_fed_and_unfed_writes_no_less_than_the_hunger_it_read():
+    h = boot(curve=True)
+    p = player(h)
+    p.st.v.HUNGER = 0.2
+    rec = record(h)
+    rec.satiety = h.rt.table_from({"S": 0, "L": 0})
+    rec.stomachFill = 0.0
+    step(h, p, rec, 1)
+    C = h.K.hungerCurve
+    assert rec.satiety.M < C.FED_M and rec.satiety.hModel == pytest.approx(C.inverse(0.2))
+    assert 0.2 <= p.st.sets.HUNGER <= C.map(C.inverse(0.2) / 0.9540165460822252) + 1e-12

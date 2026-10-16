@@ -332,7 +332,8 @@ class RecordedSess(G.Sess):
 
     def replay(self, events):
         rows, _ = RL.replay_live(self.ring, events, self.start, paths=self.rpaths, user=L.USER, player=self.player,
-                                 start_stats=self.stats, sleep_allowed=False, constants=RL.GUT_11G)
+                                 start_stats=self.stats, sleep_allowed=False,
+                                 constants=dict(RL.GUT_11G, **RL.PRE_CURVE))   # and its pre-curve writer (Plan 15 Task 6)
         return rows
 
 

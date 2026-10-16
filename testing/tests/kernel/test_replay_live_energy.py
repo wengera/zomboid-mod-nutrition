@@ -154,7 +154,7 @@ def six_live_sum(n, gap):
     rows, _ = RL.replay_arm(ev, minutes=(M.SIX_WARM_DAYS + 2) * 1440, backend="server", **MAN)
     total = 0.0
     for r in rows[start:start + 1440]:            # in order, as the oracle's Lua sums
-        total = total + r["HUNGER"]
+        total = total + r[RL.H_MODEL]
     return total
 
 
@@ -167,7 +167,7 @@ def six_held_sum(n, gap):
     rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=1440, start_age=a0, steps=("kinetics", "writer"))
     total = 0.0
     for r in rows:
-        total = total + r["HUNGER"]
+        total = total + r[RL.H_MODEL]
     return total
 
 
@@ -353,7 +353,7 @@ def karl_rows(arm, vigorous=True, paths=()):
 def karl_k_arm(arm, vigorous=True):
     """(mean HUNGER at the VAS rows of the arm's study days, each study day's billed expenditure in MJ)."""
     rows, days, am_dur = karl_rows(arm, vigorous, ("body.eeDay",))
-    reads = [rows[m]["HUNGER"] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440, am_dur)]
+    reads = [rows[m][RL.H_MODEL] for d in range(KARL_WARM, days) for m in karl_vas(d * 1440, am_dur)]
     ee = [rows[d * 1440 + 1438]["body.eeDay"] / KCAL_PER_MJ for d in range(days)]   # the day's 1,440 steps
     return sum(reads) / len(reads), ee[KARL_WARM:]
 
@@ -441,7 +441,7 @@ def king_steady_server(host, bypass=None):
         ev.sort(key=lambda e: e["minute"])
         rows, _ = RL.replay_arm(ev, minutes=3 * day + 480, backend="server", start_age=8.0,
                                 player={"weight": KING_KG, "female": False}, rng="half")
-        late = [r["HUNGER"] for r in rows[2 * day + 180:2 * day + 480]]
+        late = [r[RL.H_MODEL] for r in rows[2 * day + 180:2 * day + 480]]
         return sum(late) / len(late)
 
     return bout, {"control": arm(0.0, False), "restriction": arm(cut, False), "exercise": arm(0.0, True)}

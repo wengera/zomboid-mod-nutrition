@@ -93,7 +93,7 @@ def karl_alt_mean(arm, alt):
     """The mean HUNGER at the VAS rows of the arm's study days under twin K's alternative `alt`."""
     ev, days, am_dur, player = karl_alt_events(arm, alt)
     rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, player=player, rng="half")
-    reads = [rows[m]["HUNGER"] for d in range(E.KARL_WARM, days) for m in E.karl_vas(d * 1440, am_dur)]
+    reads = [rows[m][RL.H_MODEL] for d in range(E.KARL_WARM, days) for m in E.karl_vas(d * 1440, am_dur)]
     return sum(reads) / len(reads)
 
 
