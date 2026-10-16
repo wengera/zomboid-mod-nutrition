@@ -19,11 +19,12 @@
   --rule: #c6cbc3;
   --rule-strong: #8a938b;
   --vanilla: #a8561a;
-  --vanilla-2: #d08d4f;
+  --vanilla-2: #b8733a;
   --mod: #1c6575;
-  --mod-2: #5d9fad;
+  --mod-2: #4a8a97;
   --study: #3a3f3b;
   --signal: #a8261d;
+  --shadow: rgba(0, 0, 0, 0.18);
   --font-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-data: "Courier Prime", "Courier New", Courier, monospace;
@@ -44,6 +45,7 @@
     --mod-2: #34828f;
     --study: #d3d8d2;
     --signal: #ee6f63;
+    --shadow: rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }
@@ -60,6 +62,7 @@
   --mod-2: #34828f;
   --study: #d3d8d2;
   --signal: #ee6f63;
+  --shadow: rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }
 
@@ -232,8 +235,8 @@ details.science code, .mono { font-family: var(--font-data); font-size: 0.9em; }
 .legend-item { display: inline-flex; align-items: center; gap: 0.4rem; }
 .legend-item.is-off { opacity: 0.4; text-decoration: line-through; }
 .chart-note { margin-top: 0.8rem; font-size: 0.95rem; max-width: var(--measure); }
-.badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; padding-top: 0.7rem; border-top: 1px dashed var(--rule); }
-.badge-wrap { position: relative; }
+.badges { position: relative; display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; padding-top: 0.7rem; border-top: 1px dashed var(--rule); }
+.badge-wrap { position: static; }
 .badge {
   display: inline-flex; align-items: center; gap: 0.4rem; font: 700 0.72rem/1 var(--font-data); letter-spacing: 0.03em;
   padding: 0.38rem 0.55rem; border: 1px solid var(--rule-strong); border-radius: 2px; background: var(--paper); color: var(--ink);
@@ -249,10 +252,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
 .badge-study .badge-dot { border-radius: 1px; transform: rotate(45deg); background: transparent; border: 2px solid var(--study); }
 .badge-pending { border-style: dashed; color: var(--ink-2); font-weight: 400; }
 .popover {
-  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
-  width: min(30rem, calc(100vw - 48px)); max-height: 22rem; overflow: auto;
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: auto;
+  width: min(30rem, 100%); max-height: 22rem; overflow: auto;
   background: var(--paper-2); color: var(--ink); border: 1px solid var(--ink); padding: 0.75rem 0.85rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); font-size: 0.85rem;
+  box-shadow: 0 8px 24px var(--shadow); font-size: 0.85rem;
 }
 .pop-head { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; margin-bottom: 0.5rem; }
 .prov-item + .prov-item { border-top: 1px solid var(--rule); margin-top: 0.6rem; padding-top: 0.6rem; }
@@ -394,7 +397,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <td>A heavily muscled survivor is no longer marked Overweight.</td></tr>
         <tr><th scope="row"><a href="#sys-nutrients">Nutrients</a></th>
           <td>Calories, carbohydrate, fat and protein.</td>
-          <td>Vitamins, minerals, fibre, essential fats, salt, potassium, caffeine and alcohol, each with a store and a daily need.</td>
+          <td>Vitamins, minerals, fibre, essential fats, salt and potassium, most with a store and a daily need, and caffeine and alcohol beside them.</td>
           <td>Living on one food catches up with you as a deficiency.</td></tr>
         <tr><th scope="row"><a href="#sys-nutrients">Foods</a></th>
           <td>Values set by hand, some of them far off.</td>
@@ -414,7 +417,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </figure>
 
     <figure class="chart" data-chart="H2">
-      <p class="chart-note">Each body is drawn from its own starting weight, because vanilla's default character and the mod's default body are built differently. On three small meals a day the idle vanilla character gains weight, from <span data-fill="H2-v-model" data-pick="first.y|r0"></span> kg to <span data-fill="H2-v-model" data-pick="last.y|r1"></span> kg. The mod's survivor loses weight, from <span data-fill="H2-m-total" data-pick="first.y|r1"></span> kg to <span data-fill="H2-m-total" data-pick="last.y|r1"></span> kg. Most of the loss is fat: <span data-fill="H2-m-fat" data-pick="delta.y|abs|r2"></span> kg of fat against <span data-fill="H2-m-lean" data-pick="delta.y|abs|r2"></span> kg of lean.</p>
+      <p class="chart-note">Each line starts from its own body's weight, because vanilla's default character and the mod's default body differ. Use the buttons above the chart to see the fat and lean lines on their own scale. On three small meals a day the idle vanilla character gains weight, from <span data-fill="H2-v-model" data-pick="first.y|r0"></span> kg to <span data-fill="H2-v-model" data-pick="last.y|r1"></span> kg. The mod's survivor loses weight, from <span data-fill="H2-m-total" data-pick="first.y|r1"></span> kg to <span data-fill="H2-m-total" data-pick="last.y|r1"></span> kg. Most of the loss is fat: <span data-fill="H2-m-fat" data-pick="delta.y|abs|r2"></span> kg of fat against <span data-fill="H2-m-lean" data-pick="delta.y|abs|r2"></span> kg of lean.</p>
     </figure>
 
     <figure class="chart" data-chart="H3">
@@ -461,10 +464,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="sys-nutrients-h">Nutrients and foods</h2>
     <div class="compare">
       <div class="side side-vanilla" data-block="vanilla"><h3>Vanilla</h3>
-        <p>Every food carries calories, carbohydrate, fat and protein. Nothing else is counted, and many values were set by hand.</p>
+        <p>Every food carries calories, carbohydrate, fat and protein. The game counts nothing else, and its developers set many values by hand.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>Each vanilla food is re-based on published food-composition data and carries a full nutrient table: the vitamins, the minerals, fibre, essential fats, sodium, potassium, caffeine and alcohol.</p>
+        <p>The mod re-bases each vanilla food on published food-composition data and gives it a full nutrient table: the vitamins, the minerals, fibre, essential fats, sodium, potassium, caffeine and alcohol.</p>
         <p>Your body keeps a store of each nutrient. It fills from food, empties at its own pace, and shows on the panel as a grade: Replete, Marginal, Depleted or Clinical. Cooked dishes and crafted food count their ingredients. Drinks count by what is in them. A food from another mod that the table does not know gets values estimated from its type and its calories.</p>
       </div>
     </div>
@@ -495,13 +498,13 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p>An eat applies the food's values the moment it finishes. Hunger drops by the food's hunger value at once.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>The server records every eat and drink made through the game's own actions. Food lands in a stomach that empties over the following hours before it is absorbed. Drinks leave quickly and a solid meal leaves slowly.</p>
+        <p>The server records every eat and drink made through the game's own actions. Food lands in a stomach that empties over the following hours before your body absorbs it. Drinks leave quickly and a solid meal leaves slowly.</p>
         <p>Some nutrients absorb better or worse with what else is in the meal. Fat-soluble vitamins absorb better with fat. Eat past a comfortable amount and the Overfull moodle rises. It warns you and never stops you eating.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SE1">
-        <p class="chart-note">A drink of water and then milk, measured live. The liquid in the stomach peaks at <span data-fill="SE1-m-live-liquid" data-pick="max.y|r0"></span> g, and the stomach's fill peaks at <span data-fill="SE1-m-live-fill" data-pick="max.y|pct0"></span> percent before it empties. The line is the mod's code replaying the same drinks.</p>
+        <p class="chart-note">A drink of water, then milk, then a solid meal, measured live. The liquid in the stomach peaks at <span data-fill="SE1-m-live-liquid" data-pick="max.y|r0"></span> g, and the stomach's fill peaks at <span data-fill="SE1-m-live-fill" data-pick="max.y|pct0"></span> percent of a comfortably full stomach before it empties. The line is the mod's code replaying the same drinks and meal.</p>
       </figure>
     </div>
     <div class="promises">
@@ -513,7 +516,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The stomach is a two-phase emptying model, liquid and solid, read live in x363 (#3702, #3668). Hunger is computed from the stomach and the energy pool, not from the item's HungerChange (#3614); vanilla couples the two (#0503).</p>
+      <p>The stomach is a two-phase emptying model, liquid and solid, read live in x363 (#3702, #3668). The mod computes hunger from the stomach and the energy pool and ignores the item's HungerChange (#3614); vanilla couples the two (#0503).</p>
       <p>The Overfull moodle reads the stomach's mass (#3623, #3778). Vanilla's own refusal at its fullness level stands (#0521, #2889).</p>
     </div></details>
   </section>
@@ -542,7 +545,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <div class="can" data-block="can"><h3>What can happen</h3>
         <ul>
           <li>You get hungrier as you lose fat.</li>
-          <li>A missed day makes you eat more the next day. In the mod's replay of a fast you eat <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent more on the day after.</li>
+          <li>A missed day makes you eat more the next day.</li>
           <li>A short night raises the next day's hunger. See <a href="#sys-acute">Caffeine, alcohol and sleep</a>.</li>
         </ul>
       </div>
@@ -556,7 +559,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <details class="science" data-block="science"><summary>The science</summary><div>
       <p>Managed mode caps the written HUNGER below the top moodle's threshold (#3123); live, HUNGER stayed at or under that cap on an empty stomach (#3074). Vanilla's top Hungry level is where its starvation drain runs (#0508, #0516).</p>
       <p>The meal-size curve is fitted to Callahan 2004's liquid preloads (S1247) and checked against Cummings 2004's intermeal intervals (S1248); x361 measured the live interval (#3700). Six against three meals is Ohkawara 2013 (S1608), which the mod does not reproduce.</p>
-      <p>The fat-loss drive follows Polidori 2016's rise in intake per kilogram lost (S1254); a thin start's hunger is #3874. The day after a fast follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read the next-day rise live (#3670). After a meal HUNGER does not return to zero (x361's nadir).</p>
+      <p>The fat-loss drive follows Polidori 2016's rise in intake per kilogram lost (S1254); a thin start's hunger is #3874. The day after a fast follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670); the current code's replay of a fast reads <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent. After a meal HUNGER does not return to zero (x361's nadir).</p>
     </div></details>
   </section>
 
@@ -590,7 +593,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
       <p>The thirst cap is the same Managed-mode cap as hunger's (#3123); live, THIRST stopped under the top level (#3103, #3011).</p>
-      <p>The sodium balance on a salt-free diet was read live over five days in x281 to x284: about <span data-fill="ST2-m-live-na" data-pick="last.y|r1"></span> mmol a day, plasma sodium held, no grade change (#3688). The plasma reading is not drawn: the mod's replay misses it by more than the run's tolerance.</p>
+      <p>The sodium balance on a salt-free diet was read live over five days in x281 to x284: a loss of about <span data-fill="ST2-m-live-na" data-pick="last.y|abs|r1"></span> mmol a day, plasma sodium held, no grade change (#3688). The plasma reading is not drawn: the mod's replay misses it by more than the run's tolerance.</p>
     </div></details>
   </section>
 
@@ -632,15 +635,15 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>Your body is fat, lean mass, and a small reserve of water and stored carbohydrate that a big day fills and a lean day spends first. Your resting burn, your activity, what you eat and how you train move them, and the lean side moves once a game day.</p>
-        <p>The total is written into the game's own weight.</p>
+        <p>The mod writes the total into the game's own weight.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SB1">
-        <p class="chart-note">Eating less than it burns, an untrained body loses <span data-fill="SB1-m-def-rest" data-pick="delta.y|abs|r1"></span> kg of lean mass over the chart. Trained, with plenty of protein, the same body gains <span data-fill="SB1-m-def-train" data-pick="delta.y|r1"></span> kg. Eating more than it burns, training adds <span data-fill="SB1-m-sur-train" data-pick="delta.y|r1"></span> kg against <span data-fill="SB1-m-sur-rest" data-pick="delta.y|r1"></span> kg idle.</p>
+        <p class="chart-note">Lean mass here counts the small water and carbohydrate reserve. Eating less than it burns, an untrained body loses <span data-fill="SB1-m-def-rest" data-pick="delta.y|abs|r1"></span> kg of lean mass over the chart. Trained, with plenty of protein, the same body gains <span data-fill="SB1-m-def-train" data-pick="delta.y|r1"></span> kg. Eating more than it burns, training adds <span data-fill="SB1-m-sur-train" data-pick="delta.y|r1"></span> kg against <span data-fill="SB1-m-sur-rest" data-pick="delta.y|r1"></span> kg idle.</p>
       </figure>
       <figure class="chart" data-chart="SB2">
-        <p class="chart-note">Vanilla gives the lean, heavy body the Overweight trait for its weight alone. The mod reads its fat, scaled by its muscle, and gives it no weight trait. The soft body is Overweight either way.</p>
+        <p class="chart-note">Vanilla gives the lean, heavy body the Overweight trait for its weight alone. The mod reads its fat, scaled by its muscle, and gives it no weight trait. The soft body gets a weight trait either way: Overweight in vanilla, Overfat in the mod.</p>
       </figure>
     </div>
     <div class="promises">
@@ -669,13 +672,13 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p>Calories burn at a rate set by what you are doing: asleep, idle, walking, running or sprinting, scaled by your weight. A timed action multiplies the idle rate, so every Fitness exercise costs the same.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>Energy use follows the game's activity level, priced from the published tables of what activities cost. Each Fitness exercise is billed at its own cost, so burpees cost far more than squats. Hard exercise leaves a short after-burn.</p>
+        <p>Energy use follows the game's activity level, priced from the published tables of what activities cost. The mod bills each Fitness exercise at its own cost, so burpees cost far more than squats. Hard exercise leaves a short after-burn.</p>
         <p>Muscle glycogen falls with hard work and a low-carbohydrate diet, and blood sugar falls with exhausting work or alcohol on an empty stomach.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SX1">
-        <p class="chart-note">At the same body weight, an hour of burpees costs <span data-fill="SX1-m-kernel" data-pick="y@x=burpees|r0"></span> kcal in the mod, where vanilla bills any Fitness exercise at <span data-fill="SX1-v-model" data-pick="y@x=Fitness|r0"></span>. Sleep costs <span data-fill="SX1-m-kernel" data-pick="y@x=asleep|r0"></span> kcal an hour in the mod against vanilla's <span data-fill="SX1-v-model" data-pick="y@x=asleep|r1"></span>. The dots are the bills a live session charged.</p>
+        <p class="chart-note">At the same body weight, an hour of burpees costs <span data-fill="SX1-m-kernel" data-pick="y@x=burpees|r0"></span> kcal in the mod, where vanilla bills any Fitness exercise at <span data-fill="SX1-v-model" data-pick="y@x=Fitness|r0"></span>. Sleep costs <span data-fill="SX1-m-kernel" data-pick="y@x=asleep|r0"></span> kcal an hour in the mod against vanilla's <span data-fill="SX1-v-model" data-pick="y@x=asleep|r1"></span>. The dots are the bills a live session charged. In play the mod bills running and sprinting as walking, because the game does not tell the server when you run (see <a href="#limitations">Known limitations</a>).</p>
       </figure>
       <figure class="chart" data-chart="SX2">
         <p class="chart-note">Hard exercise briefly blunts hunger in the mod. Right after a set of burpees hunger reads <span data-fill="SX2-m-kernel" data-pick="first.y|r2"></span>, then climbs back. Vanilla's hunger keeps rising at its idle pace.</p>
@@ -704,12 +707,12 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>Your Strength level reads your body: your lean mass, how trained your nerves are, and an innate strength set at creation. Experience no longer moves the level. It counts as your training, in hard sets a week.</p>
-        <p>Muscle grows only when training, protein and enough food act together, and ever more slowly toward a natural cap. Stop training and it fades after a grace period toward your body's set point. Muscle you lost comes back fast. The perk you see is written once a game day: it moves up at each whole level and down only once your body falls clearly below it.</p>
+        <p>Muscle grows only when training, protein and enough food act together, and ever more slowly toward a natural cap. Stop training and it fades after a grace period toward your body's set point. Muscle you lost comes back fast. The mod writes the perk you see once a game day: it moves up at each whole level and down only once your body falls clearly below it.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SS1">
-        <p class="chart-note">With no sets at all, vanilla's rust takes a year to cost a level, from <span data-fill="SS1-m-kernel" data-pick="y@x=0|r0"></span> to <span data-fill="SS1-v-model" data-pick="y@x=0|r0"></span>, while the mod's untrained body holds. At the most sets on the chart the mod's body reaches <span data-fill="SS1-m-kernel" data-pick="last.y|r1"></span> and vanilla's experience <span data-fill="SS1-v-model" data-pick="last.y|r0"></span>. Each extra set adds less in the mod.</p>
+        <p class="chart-note">With no sets at all, vanilla's rust takes a year to cost a level, from <span data-fill="H3-v-model-x1" data-pick="first.y|r0"></span> to <span data-fill="SS1-v-model" data-pick="y@x=0|r0"></span>, while the mod's untrained body holds. At the most sets on the chart the mod's body reaches <span data-fill="SS1-m-kernel" data-pick="last.y|r1"></span> and vanilla's experience <span data-fill="SS1-v-model" data-pick="last.y|r0"></span>. Each extra set adds less in the mod.</p>
       </figure>
     </div>
     <div class="promises">
@@ -724,8 +727,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>XP is the training signal and the level follows the body (#3851, #3871). The natural cap is Kouri 1995's fat-free mass index limit (S1915) as a level (#3853); FMI is the lean mass over height squared.</p>
-      <p>Detraining and regain follow Blocquiaux 2020 (S0618) and Psilander 2019 (S0078). Their arms were never closed live, so those lines carry the code's badge only. Vanilla's rust is one XP a step once its timer passes (#2151, #2155); its protein factor is #2112, and one push-up set to exhaustion is #3844.</p>
+      <p>XP is the training signal and the level follows the body (#3851, #3871). The natural cap is Kouri 1995's fat-free mass index limit (S1915) as a level (#3853); FFMI, the lean mass over height squared.</p>
+      <p>Detraining and regain follow Blocquiaux 2020 (S0618), where under eight weeks of retraining restored the trained strength. Psilander 2019 (S0078) found no retraining advantage in muscle size, so the fast regain is the mod's reading of S0618. Their arms were never closed live, so those lines carry the code's badge only. Vanilla's rust is one XP a step once its timer passes (#2151, #2155); its protein factor is #2112, and one push-up set to exhaustion is #3844.</p>
     </div></details>
   </section>
 
@@ -738,7 +741,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>The muscle traits keep their vanilla costs and start levels, built now from lean mass and an innate strength. Part of a muscle trait's head start is permanent, so an idle Strong survivor settles into the Stout range.</p>
-        <p>The weight traits become Overfat, Obese, Overly Lean and Gaunt, and they follow your body fat, scaled by your muscle. Emaciated is reached only in play. A fat trait starts you with more fat on the same lean. A thin trait starts you with less fat, hungry and with a slowed metabolism until you regain it.</p>
+        <p>The weight traits become Overfat, Obese, Overly Lean and Gaunt, and they follow your body fat, scaled by your muscle. You reach Emaciated only in play. A fat trait starts you with more fat on the same lean. A thin trait starts you with less fat, hungry and with a slowed metabolism until you regain it.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
@@ -806,10 +809,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="sys-acute-h">Caffeine, alcohol and sleep</h2>
     <div class="compare">
       <div class="side side-vanilla" data-block="vanilla"><h3>Vanilla</h3>
-        <p>Coffee lowers fatigue by a set amount per drink. Beer and other alcohol raise drunkenness, which fades over hours. Sleep simply resets fatigue.</p>
+        <p>Coffee lowers fatigue by a set amount per drink. Beer and other alcohol raise drunkenness, which fades over hours. Sleeping lowers fatigue, and there is no sleep debt. With the server's sleep options off, the game clears fatigue on its own.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>Caffeine is absorbed and cleared over hours, and a daily coffee drinker builds tolerance. Alcohol raises blood alcohol, which drives the game's drunkenness.</p>
+        <p>Your body absorbs and clears caffeine over hours, and a daily coffee drinker builds tolerance. Alcohol raises blood alcohol, which drives the game's drunkenness.</p>
         <p>When the server turns sleep on, short nights build a sleep debt that raises your hunger the next day, and long nights pay it back.</p>
       </div>
     </div>
@@ -848,7 +851,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SV1">
-        <p class="chart-note">The Overfull moodle appears at <span data-fill="SV1-m-kernel" data-pick="x@y>=1|r0"></span> g in the stomach and reaches its top level at <span data-fill="SV1-m-kernel" data-pick="x@y>=4|r0"></span> g. The dots are the levels a player's screen showed in a live run.</p>
+        <p class="chart-note">The Overfull moodle appears at about <span data-fill="SV1-m-kernel" data-pick="x@y>=1|r0"></span> g in the stomach and reaches its top level at <span data-fill="SV1-m-kernel" data-pick="x@y>=4|r0"></span> g. The dots are the levels a player's screen showed in a live run.</p>
       </figure>
     </div>
     <div class="promises">
@@ -898,7 +901,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <h2 id="compatibility-h">Compatibility</h2>
   </div>
   <ul class="plain-list">
-    <li><strong>Nutrition Makes Sense</strong> cannot run beside this mod. Both write hunger and body weight. The server warns at boot when both are loaded.</li>
+    <li><strong>Nutrition Makes Sense</strong> cannot run beside this mod. Both write hunger and body weight. The server warns at boot when you load both.</li>
     <li><strong>MoodleFramework</strong> is optional. When you have it, the mod's moodles use it. Without it the mod draws its own icon column.</li>
     <li><strong>BeyondTen</strong> works with it. Above the vanilla top level, the mod writes BeyondTen's Strength mastery from your body.</li>
     <li><strong>Mods that tweak hunger or thirst rates</strong> have no effect in Managed mode, because the mod writes those stats itself.</li>
@@ -915,14 +918,14 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
   </div>
   <ul class="plain-list">
     <li>Hunger never reaches zero after a meal.</li>
-    <li>The game does not tell the server when you run or sprint, so running is billed as walking.</li>
+    <li>The game does not tell the server when you run or sprint, so the mod bills running as walking.</li>
     <li>Time offline is not simulated. No sleep debt builds, a repeated food does not fade, and your body and Strength stay as you left them.</li>
     <li>The game itself still refuses an eat at the top level of its own fullness moodle.</li>
     <li>A trait the mod gives or takes reaches you at once, and other players see it after they reconnect.</li>
     <li>Vitamin D has no sunlight term, so its effects ship turned off.</li>
-    <li>Movement speed and aiming effects are computed but not applied, because the game resets them.</li>
+    <li>The mod computes movement speed and aiming effects, but the game resets them, so they do nothing.</li>
     <li>Your panel and moodles update with the next game minute.</li>
-    <li>The Strength perk is written once a game day, so it can read a little above your body's true level. The panel shows the true level.</li>
+    <li>The mod writes the Strength perk once a game day, so it can read a little above your body's true level. The panel shows the true level.</li>
   </ul>
 </section>
 
@@ -934,7 +937,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
   <div class="prose">
     <p>The studies this page cites in its science boxes. Every chart's own sources open from the chips under it.</p>
   </div>
-  <details class="science refs" open><summary>The studies</summary><div>
+  <details class="science refs"><summary>The studies</summary><div>
     <ol>
       <li><b>S0078</b> Psilander N et al 2019. J Appl Physiol 126:1636–1645. doi:10.1152/japplphysiol.00917.2018</li>
       <li><b>S0224, S0225</b> Padayatty SJ, Levine M 2016. Oral Dis 22:463–493. doi:10.1111/odi.12446</li>

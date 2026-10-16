@@ -33,15 +33,23 @@
     "kernel": "Simulated by the mod's code",
     "vanilla-live": "Vanilla, measured",
     "vanilla-model": "Vanilla, from the game's code",
-    "study": "Study"
+    "study": "Study",
+    "dataset": "The mod's food table"
   };
-  var BADGE_ORDER = ["live", "vanilla-live", "kernel", "vanilla-model", "study"];
+  var BADGE_ORDER = ["live", "vanilla-live", "kernel", "dataset", "vanilla-model", "study"];
+  var STUDY_STYLES = ["rectRot", "triangle", "rect"];
 
   /* Per-chart display choices. Every number still comes from data.json; this table only says how to draw. */
   var CHART_OPTS = {
-    "H1": { yMin: 0, yMax: 1 },
-    "H2": { yMin: 0, emphasis: { "H2-m-total": 0, "H2-m-lean": 1, "H2-m-fat": 2 } },
-    "H3": { yMin: 0, yMax: 10, stepped: ["H3-v-model-x1", "H3-v-model-x15", "H3-m-written"] },
+    "H1": { xMin: 0, xMax: 6, yMin: 0, yMax: 1 },
+    "H2": {
+      facets: [
+        { label: "Body mass", series: ["H2-v-model", "H2-v-live", "H2-m-total"], unit: "kg", yMin: 0 },
+        { label: "Fat and lean", series: ["H2-m-fat", "H2-m-lean"], unit: "kg" }
+      ],
+      emphasis: { "H2-m-lean": 0, "H2-m-fat": 1 }
+    },
+    "H3": { xMax: 365, yMin: 0, yMax: 10, stepped: ["H3-v-model-x1", "H3-v-model-x15", "H3-m-written"] },
     "H4": {
       facets: [
         { label: "Calories", series: ["H4-v-kcal", "H4-m-kcal"], unit: "kcal" },
@@ -63,31 +71,35 @@
         { label: "Stomach fill", series: ["SE1-m-live-fill", "SE1-m-kernel-fill"], unit: "fill (0-1)" },
         { label: "Liquid in the stomach", series: ["SE1-m-live-liquid"], unit: "g" }
       ],
-      yMin: 0
+      yMin: 0, xMax: 480
     },
     "SH1": { yMin: 0 },
     "SH2": { yMin: 0 },
     "ST1": { yMin: 0, yMax: 1 },
-    "ST2": {},
+    "ST2": { yMin: -10, yMax: 0, yTitle: "body sodium, mmol a day" },
     "SM1": { yMin: 0 },
     "SB1": {},
     "SB2": {
       yMin: -3, yMax: 2,
-      yNames: { "-3": "Emaciated", "-2": "Very Underweight", "-1": "Underweight", "0": "none", "1": "Overweight", "2": "Obese" }
+      yNames: { "-3": "Emaciated", "-2": "Very Underweight / Gaunt", "-1": "Underweight / Overly Lean", "0": "none", "1": "Overweight / Overfat", "2": "Obese" }
     },
     "SX1": { yMin: 0 },
     "SX2": { yMin: 0 },
-    "SS1": { yMin: 0, yMax: 10, stepped: ["SS1-v-model"] },
+    "SS1": { yMin: 0, yMax: 10 },
     "SD1": { yMin: 0, yMax: 100, endpoints: { "SD1-m-kernel": "Death: scurvy" } },
     "SD2": {
-      yMin: 0,
+      yMin: 0, yTitle: "days",
       xNames: {
         vitC: "vitamin C", thiamine: "thiamine", riboflavin: "riboflavin", niacin: "niacin", vitB6: "vitamin B6",
         folate: "folate", choline: "choline", vitD: "vitamin D", vitK: "vitamin K", zinc: "zinc",
         magnesium: "magnesium", iodine: "iodine", efa: "essential fats"
       }
     },
-    "SC1": { yMin: 0 },
+    "SC1": {
+      yMin: 0,
+      emphasis: { "SC1-m-live-booked": 1, "SC1-m-live-debt": 0, "SC1-m-kernel": 0 },
+      xNames: { N0: "night 1", N1: "night 2", N2: "night 3", N3: "night 4" }
+    },
     "SV1": { yMin: 0, yMax: 4, stepped: ["SV1-m-kernel"] }
   };
 
@@ -247,6 +259,12 @@
     return /-v-/.test(id) ? "vanilla-live" : "live";
   }
 
+  /* The mod's food-table values (provenance kind "dataset") take their own chip; the game's own item scripts keep
+     the "from the game's code" chip their series carries. */
+  function badgeOf(s) {
+    return s.provenance && s.provenance.kind === "dataset" && sideOf(s.id) === "mod" ? "dataset" : s.badge;
+  }
+
   function isMeasured(s) { return s.badge === "live" || s.badge === "vanilla-live"; }
 
   var DASHES = [[], [7, 4], [2, 3], [10, 3, 2, 3]];
@@ -258,7 +276,7 @@
     return { color: token(base), dash: DASHES[variant % DASHES.length], side: side };
   }
 
-  function fmtFull(v) { return typeof v === "number" ? String(v) : v; }
+  function fmtFull(v) { return typeof v === "number" ? String(Number(v.toPrecision(12))) : v; }
 
   function niceUnit(s) { return (s.units && s.units.y) || ""; }
 
@@ -338,16 +356,18 @@
   }
 
   var openPop = null;
-  function closePop() {
+  function closePop(returnFocus) {
     if (!openPop) return;
     openPop.pop.hidden = true;
     openPop.btn.setAttribute("aria-expanded", "false");
+    var btn = openPop.btn;
     openPop = null;
+    if (returnFocus) btn.focus();
   }
   if (typeof document !== "undefined") {
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePop(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePop(true); });
     document.addEventListener("click", function (e) {
-      if (openPop && !openPop.pop.contains(e.target) && !openPop.btn.contains(e.target)) closePop();
+      if (openPop && !openPop.pop.contains(e.target) && !openPop.btn.contains(e.target)) closePop(false);
     });
   }
 
@@ -355,27 +375,28 @@
   function badgeRow(chartId, present, pending) {
     var row = h("div", { class: "badges", role: "list", "aria-label": "Sources" });
     var byBadge = {};
-    present.forEach(function (s) { (byBadge[s.badge] = byBadge[s.badge] || []).push(s); });
+    present.forEach(function (s) { var b = badgeOf(s); (byBadge[b] = byBadge[b] || []).push(s); });
     BADGE_ORDER.forEach(function (b) {
       if (!byBadge[b]) return;
       var id = "pop-" + chartId + "-" + (++popSeq);
       var btn = h("button", { type: "button", class: "badge badge-" + b, "aria-expanded": "false", "aria-controls": id },
         [h("span", { class: "badge-dot", "aria-hidden": "true" }), h("span", { text: BADGES[b] })]);
-      var pop = h("div", { class: "popover", id: id, role: "dialog", "aria-label": BADGES[b] + " sources" });
+      var pop = h("div", { class: "popover", id: id, "aria-label": BADGES[b] + " sources" });
       pop.hidden = true;
       pop.appendChild(h("p", { class: "pop-head", text: BADGES[b] }));
       byBadge[b].forEach(function (s) { pop.appendChild(provenanceBlock(s)); });
       var close = h("button", { type: "button", class: "pop-close", text: "Close" });
-      close.addEventListener("click", closePop);
+      close.addEventListener("click", function () { closePop(true); });
       pop.appendChild(close);
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
         var wasOpen = openPop && openPop.pop === pop;
-        closePop();
+        closePop(false);
         if (!wasOpen) {
           pop.hidden = false;
           btn.setAttribute("aria-expanded", "true");
           openPop = { pop: pop, btn: btn };
+          close.focus();
         }
       });
       row.appendChild(h("div", { class: "badge-wrap", role: "listitem" }, [btn, pop]));
@@ -396,8 +417,13 @@
     var svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("width", "26"); svg.setAttribute("height", "12"); svg.setAttribute("aria-hidden", "true");
     if (ds._dots) {
-      var c = document.createElementNS(svgNS, ds._study ? "rect" : "circle");
-      if (ds._study) {
+      var shape = ds._study ? ds.pointStyle : "circle";
+      var c = document.createElementNS(svgNS, shape === "triangle" ? "polygon" : shape === "circle" ? "circle" : "rect");
+      if (shape === "triangle") {
+        c.setAttribute("points", "13,1 19,11 7,11");
+      } else if (shape === "rect") {
+        c.setAttribute("x", "8.5"); c.setAttribute("y", "1.5"); c.setAttribute("width", "9"); c.setAttribute("height", "9");
+      } else if (shape === "rectRot") {
         c.setAttribute("x", "8"); c.setAttribute("y", "1"); c.setAttribute("width", "10"); c.setAttribute("height", "10");
         c.setAttribute("transform", "rotate(45 13 6)");
       } else { c.setAttribute("cx", "13"); c.setAttribute("cy", "6"); c.setAttribute("r", "4.5"); }
@@ -424,12 +450,13 @@
   var live = [];
 
   function buildDatasets(chartId, list, isCat, opts) {
-    var counters = { vanilla: 0, mod: 0, study: 0 };
+    var counters = { vanilla: 0, mod: 0, study: 0, shape: 0 };
     var emph = opts.emphasis || {};
     var stepped = opts.stepped || [];
     return list.map(function (s) {
       var side = sideOf(s.id);
       var variant = emph.hasOwnProperty(s.id) ? emph[s.id] : counters[side]++;
+      var studyStyle = s.badge === "study" ? STUDY_STYLES[counters.shape++ % STUDY_STYLES.length] : null;
       var st = styleFor(s, variant);
       var dots = isMeasured(s) || s.badge === "study";
       var data = s.points.map(function (p) { return { x: p[0], y: p[1] }; });
@@ -452,7 +479,7 @@
         ds.showLine = false;
         ds.pointRadius = s.badge === "study" ? 6 : 4.5;
         ds.pointHoverRadius = ds.pointRadius + 2;
-        ds.pointStyle = s.badge === "study" ? "rectRot" : "circle";
+        ds.pointStyle = studyStyle || "circle";
         ds.pointBackgroundColor = s.badge === "study" ? "transparent" : st.color;
         ds.pointBorderColor = s.badge === "study" ? st.color : token("--paper");
         ds.pointBorderWidth = s.badge === "study" ? 2 : 1.5;
@@ -490,6 +517,8 @@
     }
     var grid = token("--rule"), ink2 = token("--ink-2"), dataFont = token("--font-data");
     var yNames = opts.yNames, xNames = opts.xNames;
+    var f = state.facet || {};
+    function pickOpt(k) { return f.hasOwnProperty(k) ? f[k] : opts[k]; }
     var config = {
       type: "line",
       data: { labels: labels || undefined, datasets: datasets },
@@ -505,16 +534,17 @@
             title: axisTitle(state.chart_x)
           } : {
             type: "linear", grid: { color: grid, lineWidth: 0.6 }, border: { color: grid },
+            min: pickOpt("xMin"), max: pickOpt("xMax"),
             ticks: { color: ink2, font: { family: dataFont, size: 11 }, maxTicksLimit: 8 },
             title: axisTitle(state.chart_x)
           },
           y: {
             type: "linear", grid: { color: grid, lineWidth: 0.6 }, border: { display: false },
-            min: opts.yMin, max: opts.yMax,
+            min: pickOpt("yMin"), max: pickOpt("yMax"),
             ticks: { color: ink2, font: { family: dataFont, size: 11 }, maxTicksLimit: 7,
               stepSize: yNames ? 1 : undefined,
               callback: function (v) { return yNames ? (yNames[String(v)] || "") : Number(v).toLocaleString("en-US", { maximumFractionDigits: 3 }); } },
-            title: axisTitle(state.facetUnit || state.chart_y)
+            title: axisTitle(f.unit || opts.yTitle || state.chart_y)
           }
         },
         plugins: {
@@ -557,6 +587,19 @@
     state.chart.update(state.reduced ? "none" : undefined);
   }
 
+  /* The vanilla/mod choice is one setting for the whole page: a click on any chart's toggle moves every chart. */
+  function setSideEverywhere(k) {
+    writeSide(k);
+    live.forEach(function (st) {
+      if (!st.sideGroup) return;
+      st.side = k;
+      st.sideGroup.querySelectorAll("button").forEach(function (x) {
+        x.setAttribute("aria-pressed", String(x.classList.contains("seg-" + k)));
+      });
+      applySide(st); renderLegend(st);
+    });
+  }
+
   function renderLegend(state) {
     state.legend.textContent = "";
     state.chart.data.datasets.forEach(function (ds, i) {
@@ -593,7 +636,7 @@
 
     var state = {
       chartId: chartId, opts: opts, present: present, side: readSide(), chart: null,
-      chart_x: chart.x, chart_y: chart.y, facetSeries: null, facetUnit: null,
+      chart_x: chart.x, chart_y: chart.y, facetSeries: null, facet: null,
       reduced: root.matchMedia ? root.matchMedia("(prefers-reduced-motion: reduce)").matches : false
     };
     var controls = h("div", { class: "chart-controls" });
@@ -604,13 +647,10 @@
       var grp = h("div", { class: "seg", role: "group", "aria-label": "Show" });
       ["both", "vanilla", "mod"].forEach(function (k) {
         var b = h("button", { type: "button", class: "seg-btn seg-" + k, "aria-pressed": String(state.side === k), text: SIDE_NAMES[k] });
-        b.addEventListener("click", function () {
-          state.side = k; writeSide(k);
-          grp.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-          applySide(state); renderLegend(state);
-        });
+        b.addEventListener("click", function () { setSideEverywhere(k); });
         grp.appendChild(b);
       });
+      state.sideGroup = grp;
       controls.appendChild(grp);
     } else {
       state.side = "both";
@@ -620,13 +660,13 @@
       opts.facets.forEach(function (f, i) {
         var b = h("button", { type: "button", class: "seg-btn", "aria-pressed": String(i === 0), text: f.label });
         b.addEventListener("click", function () {
-          state.facetSeries = f.series; state.facetUnit = f.unit;
+          state.facetSeries = f.series; state.facet = f;
           tabs.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
           draw(state);
         });
         tabs.appendChild(b);
       });
-      state.facetSeries = opts.facets[0].series; state.facetUnit = opts.facets[0].unit;
+      state.facetSeries = opts.facets[0].series; state.facet = opts.facets[0];
       controls.appendChild(tabs);
     }
     if (controls.childNodes.length) body.appendChild(controls);

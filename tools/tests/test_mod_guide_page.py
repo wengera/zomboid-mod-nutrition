@@ -4,7 +4,9 @@ against docs/mod-guide/data.json.
 The page is checked headless, by parsing its HTML:
 - every chart id and every series id it references exists in data.json, and every data-fill's pick resolves;
 - no digit run in the prose outside a fill target or a <details> box (ALLOWED_DIGITS lists the exceptions);
-- no plain-language-forbidden term outside a <details> box (spec section 4.2);
+- no plain-language-forbidden term outside a <details> box (spec section 4.2), in the page's own text and in the
+  chart titles, axis strings and series labels data.json renders on it; a series' note and provenance show only in
+  its source popover, whose run ids, claim ids and S-ids are its job, and are exempt;
 - the artifact page contract: no document wrapper, the title first, the three :root token blocks, Chart.js from
   cdnjs at a pinned version before the inline scripts, charts.js and data.json loaded relatively;
 - each system section's block order, the scenario anchors Task 10 fills, and the references list.
@@ -24,6 +26,8 @@ GUIDE = os.path.join(REPO, "docs", "mod-guide")
 INDEX = os.path.join(GUIDE, "index.html")
 CHARTS_JS = os.path.join(GUIDE, "charts.js")
 DATA = os.path.join(GUIDE, "data.json")
+sys.path.insert(0, os.path.join(REPO, "tools"))
+from mod_guide_series import PENDING_LIVE  # noqa: E402
 
 # Prose text that may carry a digit outside a fill target or a <details> box: a heading that names a level
 # ("Strength 10") or a list's own numbering. Each entry is an exact text run.
@@ -351,6 +355,11 @@ class References(_Base):
                 value, text = evaluate_pick(self.series[sid]["points"], pick)
                 self.assertTrue(text)
 
+    def test_missing_series_are_only_pending_live(self):
+        for cid in set(self.page.charts):
+            missing = [i for i in self.data["charts"][cid]["series"] if i not in self.series]
+            self.assertTrue(set(missing) <= set(PENDING_LIVE), (cid, missing))
+
     def test_charts_js_ids_exist(self):
         listed = {i for c in self.data["charts"].values() for i in c["series"]}
         opts = self.js[self.js.index("var CHART_OPTS"):self.js.index("var SIDE_NAMES")]
@@ -379,6 +388,16 @@ class PlainLanguage(_Base):
             with self.subTest(term=name):
                 self.assertIsNone(re.search(pat, text), "%s outside a science box: %r" % (
                     name, (re.search(pat, text) or [None])[0]))
+
+    def test_rendered_chart_text_is_plain(self):
+        for cid in set(self.page.charts):
+            chart = self.data["charts"][cid]
+            texts = [chart["title"], chart["x"], chart["y"]]
+            texts += [self.series[i]["label"] for i in chart["series"] if i in self.series]
+            for text in texts:
+                for pat, name in FORBIDDEN:
+                    with self.subTest(chart=cid, term=name):
+                        self.assertIsNone(re.search(pat, text), "%s in %s: %r" % (name, cid, text))
 
     def test_aria_labels_are_plain(self):
         for pat, name in FORBIDDEN:
@@ -421,10 +440,22 @@ class PageContract(_Base):
         self.assertEqual(colours(explicit.group(1)), light)
         for block in (media.group(1), explicit.group(1)):
             self.assertIn("color-scheme: dark", block)
+        def values(block):
+            return dict(re.findall(r"(--[\w-]+):\s*([^;]+);", block))
+        self.assertEqual(values(media.group(1)), values(explicit.group(1)))
+        self.assertEqual(set(values(media.group(1))), set(values(bare.group(1))) - {
+            k for k in values(bare.group(1)) if k.startswith("--font") or k in ("--measure", "--wide")})
         self.assertRegex(css, r"body \{[^}]*background: var\(--paper\)")
-        # no literal colour outside the token blocks, but the popover's shadow
+        # no literal colour outside the token blocks
         rest = css.replace(bare.group(0), "").replace(media.group(0), "").replace(explicit.group(0), "")
-        self.assertEqual(re.findall(r"#[0-9a-fA-F]{3,6}\b", rest), [])
+        self.assertEqual(re.findall(r"#[0-9a-fA-F]{3,6}\b|rgba?\(|hsla?\(", rest), [])
+
+    def test_popover_is_anchored_to_the_chip_row(self):
+        css = self.html[self.html.index("<style>"):self.html.index("</style>")]
+        wrap = re.search(r"\.badge-wrap \{([^}]*)\}", css).group(1)
+        self.assertNotIn("position: relative", wrap)
+        self.assertRegex(re.search(r"\.badges \{([^}]*)\}", css).group(1), r"position: relative")
+        self.assertRegex(re.search(r"\.popover \{([^}]*)\}", css).group(1), r"width: min\(30rem, 100%\)")
 
     def test_scripts(self):
         srcs = [s for s, _ in self.page.scripts]
@@ -472,8 +503,8 @@ class Structure(_Base):
     def test_science_boxes_start_closed(self):
         sci = [d for d in self.page.details if "science" in d.get("class", "") and "refs" not in d.get("class", "")]
         self.assertEqual(len(sci), len(SYSTEMS))
-        for d in sci:
-            self.assertNotIn("open", d)
+        for d in self.page.details:
+            self.assertNotIn("open", d, "every <details>, the references included, starts closed")
 
     def test_scenario_anchors_and_back_matter(self):
         for a in SCENARIO_ANCHORS + BACK_MATTER + ["glance", "scenarios"]:
