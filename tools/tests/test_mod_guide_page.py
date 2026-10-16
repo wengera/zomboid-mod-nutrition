@@ -9,7 +9,10 @@ The page is checked headless, by parsing its HTML:
   its source popover, whose run ids, claim ids and S-ids are its job, and are exempt;
 - the artifact page contract: no document wrapper, the title first, the three :root token blocks, Chart.js from
   cdnjs at a pinned version before the inline scripts, charts.js and data.json loaded relatively;
-- each system section's block order, the scenario anchors Task 10 fills, and the references list.
+- each system section's block order, the scenario anchors, and the references list;
+- the six scenarios (Task 10): each draws its own charts S<n><x> from data.json, sets vanilla beside the mod in a
+  fixed block order, links into the systems sections, and keeps the digit and plain-language rules; every facet in
+  charts.js shows only its chart's own series, the facets together covering every series the chart lists.
 
 The pick grammar is defined in charts.js's header comment. `evaluate_pick` below mirrors charts.js's evalPick; the
 grammar cases assert both the selector set charts.js accepts and the values the mirror computes.
@@ -50,6 +53,8 @@ SYSTEMS = [
 ]
 BLOCK_ORDER = ["vanilla", "mod", "charts", "can", "no-longer", "science"]
 SCENARIO_ANCHORS = ["s1", "s2", "s3", "s4", "s5", "s6"]
+SCENE_ORDER = ["vanilla", "mod", "charts", "links", "science"]
+SCENARIO_CHART = re.compile(r"S(\d)[a-z]")
 BACK_MATTER = ["options", "compatibility", "limitations", "references"]
 
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
@@ -192,6 +197,10 @@ class PageParser(HTMLParser):
         self.fills = []          # (series, pick)
         self.charts = []
         self.blocks = {}         # system id -> [block names in order]
+        self.scene_blocks = {}   # scenario id -> [data-scene names in order]
+        self.chart_owner = {}    # chart id -> the scenario or system section it sits in
+        self.scene_hrefs = {}    # scenario id -> [hrefs]
+        self.scene_prose = {}    # scenario id -> [(text, in_details, in_fill)]
         self.details = []        # attrs of each <details>
         self.hrefs = []
         self.scripts = []        # (src or None, inline text)
@@ -201,6 +210,12 @@ class PageParser(HTMLParser):
 
     def _inside(self, pred):
         return any(pred(t, a) for t, a in self.stack)
+
+    def _section(self, id_re):
+        for t, sa in reversed(self.stack):
+            if t == "section" and re.fullmatch(id_re, sa.get("id", "")):
+                return sa["id"]
+        return None
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -217,6 +232,12 @@ class PageParser(HTMLParser):
             self.fills.append((a["data-fill"], a.get("data-pick", "last.y")))
         if "data-chart" in a:
             self.charts.append(a["data-chart"])
+            self.chart_owner[a["data-chart"]] = self._section(r"s\d|sys-[\w-]+") or self._section(r"[\w-]+")
+        scene = self._section(r"s\d")
+        if scene and "data-scene" in a:
+            self.scene_blocks.setdefault(scene, []).append(a["data-scene"])
+        if scene and tag == "a" and "href" in a:
+            self.scene_hrefs.setdefault(scene, []).append(a["href"])
         if "data-block" in a:
             sysid = None
             for t, sa in reversed(self.stack):
@@ -258,6 +279,9 @@ class PageParser(HTMLParser):
         in_fill = self._inside(lambda t, a: "data-fill" in a)
         in_heading = self._inside(lambda t, a: t in ("h1", "h2", "h3", "h4", "li"))
         self.prose.append((data, in_details, in_fill, in_heading))
+        scene = self._section(r"s\d")
+        if scene:
+            self.scene_prose.setdefault(scene, []).append((data, in_details, in_fill))
 
 
 def _read(path):
@@ -337,14 +361,8 @@ class References(_Base):
         for cid in self.page.charts:
             self.assertIn(cid, self.data["charts"], cid)
 
-    def test_this_page_draws_no_scenario_chart(self):
-        for cid in self.page.charts:
-            self.assertFalse(re.fullmatch(r"S\d[a-z]", cid), "%s is Task 10's" % cid)
-
     def test_charts_drawn(self):
-        want = {"H1", "H2", "H3", "H4"} | {c for c, v in self.data["charts"].items()
-                                           if not re.fullmatch(r"S\d[a-z]", c) and v["section"] != "At a glance"}
-        self.assertEqual(set(self.page.charts), want)
+        self.assertEqual(set(self.page.charts), set(self.data["charts"]), "every chart in data.json is drawn")
         self.assertEqual(len(self.page.charts), len(set(self.page.charts)))
 
     def test_every_fill_resolves(self):
@@ -375,6 +393,109 @@ class References(_Base):
             if href.startswith("#"):
                 self.assertIn(href[1:], ids, href)
                 self.assertRegex(href[1:], r"^[A-Za-z0-9._~-]+$")
+
+
+def _opts_block(js, cid):
+    """The text of one chart's entry in charts.js's CHART_OPTS, or None."""
+    opts = js[js.index("var CHART_OPTS"):js.index("var SIDE_NAMES")]
+    m = re.search(r'\n    "%s": \{(.*?)(?=\n    "[A-Z]+\d?[a-z]?\d?": |\n  \};)' % re.escape(cid), opts, re.S)
+    return m.group(1) if m else None
+
+
+class Scenarios(_Base):
+    def scenario_charts(self):
+        return sorted(c for c in self.data["charts"] if SCENARIO_CHART.fullmatch(c))
+
+    def test_every_scenario_chart_appears_in_its_scenario(self):
+        charts = self.scenario_charts()
+        self.assertEqual(len(charts), 19)
+        for cid in charts:
+            with self.subTest(chart=cid):
+                self.assertIn(cid, self.page.charts)
+                self.assertEqual(self.page.chart_owner[cid], "s" + SCENARIO_CHART.fullmatch(cid).group(1))
+
+    def test_scenario_sections_and_block_order(self):
+        self.assertEqual(sorted(self.page.scene_blocks), SCENARIO_ANCHORS)
+        for sid in SCENARIO_ANCHORS:
+            with self.subTest(scenario=sid):
+                self.assertEqual(self.page.scene_blocks[sid], SCENE_ORDER)
+                self.assertIn(sid + "-h", self.page.ids)
+
+    def test_scenarios_link_into_the_systems(self):
+        ids = set(self.page.ids)
+        for sid in SCENARIO_ANCHORS:
+            with self.subTest(scenario=sid):
+                hrefs = self.page.scene_hrefs.get(sid, [])
+                self.assertGreaterEqual(len([h for h in hrefs if h.startswith("#sys-")]), 2)
+                for h in hrefs:
+                    self.assertTrue(h.startswith("#"), h)
+                    self.assertIn(h[1:], ids, h)
+
+    def test_scenario_index_links_every_scenario(self):
+        for sid in SCENARIO_ANCHORS:
+            self.assertIn("#" + sid, self.page.hrefs)
+
+    def test_scenario_text_keeps_the_digit_and_plain_language_rules(self):
+        for sid in SCENARIO_ANCHORS:
+            with self.subTest(scenario=sid):
+                prose = self.page.scene_prose[sid]
+                visible = [t for t, in_details, in_fill in prose if not in_details and not in_fill]
+                self.assertTrue(visible)
+                self.assertEqual([t for t in visible if re.search(r"\d", t)], [])
+                text = "\n".join(visible)
+                for pat, name in FORBIDDEN:
+                    self.assertIsNone(re.search(pat, text), "%s in %s" % (name, sid))
+                self.assertEqual([t for t, d, f in prose if f], [], "fill targets are written empty")
+
+    def test_scenario_fills_draw_on_built_series(self):
+        html = self.html[self.html.index('id="s1"'):self.html.index('id="systems"')]
+        fills = re.findall(r'data-fill="([^"]+)"', html)
+        self.assertGreaterEqual(len(fills), 60)
+        for sid in fills:
+            self.assertIn(sid, self.series, sid)
+            self.assertNotIn(sid, PENDING_LIVE, "a pending series cannot fill a number: %s" % sid)
+
+    def test_facets_cover_their_chart(self):
+        seen = 0
+        for cid, chart in self.data["charts"].items():
+            block = _opts_block(self.js, cid)
+            if not block or "facets" not in block:
+                continue
+            seen += 1
+            with self.subTest(chart=cid):
+                ids = [re.findall(r'"([^"]+)"', f) for f in re.findall(r"series: \[([^\]]*)\]", block)]
+                self.assertEqual(sorted(i for f in ids for i in f), sorted(chart["series"]),
+                                 "the facets show each of the chart's series exactly once")
+                for f in ids:
+                    self.assertTrue([i for i in f if i in self.series], "a facet with no built series: %s" % f)
+        self.assertGreaterEqual(seen, 10)
+
+    def test_facet_reader_finds_every_chart(self):
+        opts = self.js[self.js.index("var CHART_OPTS"):self.js.index("var SIDE_NAMES")]
+        keys = re.findall(r'^\s{4}"([A-Z]+\d?[a-z]?\d?)":', opts, re.M)
+        self.assertGreaterEqual(len(keys), 30)
+        for cid in keys:
+            self.assertIsNotNone(_opts_block(self.js, cid), cid)
+
+    def test_endpoints_name_series_that_end_at_a_death(self):
+        opts = self.js[self.js.index("var CHART_OPTS"):self.js.index("var SIDE_NAMES")]
+        blocks = re.findall(r"endpoints: \{([^}]*)\}", opts)
+        self.assertGreaterEqual(len(blocks), 3)
+        for block in blocks:
+            for sid, label in re.findall(r'"([^"]+)": "([^"]+)"', block):
+                with self.subTest(series=sid):
+                    self.assertIn(sid, self.series)
+                    self.assertTrue(label.startswith("Death: "), label)
+                    note = self.series[sid].get("note", "") + " " + self.series[sid].get("label", "")
+                    self.assertRegex(note, r"(?i)death|lethal|health is gone")
+                    self.assertRegex(note, r"(?i)lines? ends?|ends the line|death \d|death at", "the line ends at the death")
+
+    def test_the_scenario_guard_catches_a_typed_number(self):
+        p = PageParser()
+        p.feed('<section id="s2"><p>Vanilla dies at 63 hours <span data-fill="S2d-m-mass"></span></p>'
+               '<details><p>VM10 at 34.84 h</p></details></section>')
+        visible = [t for t, d, f in p.scene_prose["s2"] if not d and not f]
+        self.assertEqual([t for t in visible if re.search(r"\d", t)], ["Vanilla dies at 63 hours "])
 
 
 class PlainLanguage(_Base):
@@ -502,7 +623,7 @@ class Structure(_Base):
 
     def test_science_boxes_start_closed(self):
         sci = [d for d in self.page.details if "science" in d.get("class", "") and "refs" not in d.get("class", "")]
-        self.assertEqual(len(sci), len(SYSTEMS))
+        self.assertEqual(len(sci), len(SYSTEMS) + len(SCENARIO_ANCHORS))
         for d in self.page.details:
             self.assertNotIn("open", d, "every <details>, the references included, starts closed")
 

@@ -100,7 +100,77 @@
       emphasis: { "SC1-m-live-booked": 1, "SC1-m-live-debt": 0, "SC1-m-kernel": 0 },
       xNames: { N0: "night 1", N1: "night 2", N2: "night 3", N3: "night 4" }
     },
-    "SV1": { yMin: 0, yMax: 4, stepped: ["SV1-m-kernel"] }
+    "SV1": { yMin: 0, yMax: 4, stepped: ["SV1-m-kernel"] },
+
+    /* The scenarios (Task 10). A facet may carry its own x and y bounds, xTitle and yNames. */
+    "S1a": { xMin: 0, xMax: 24, yMin: 0 },
+    "S1b": { xMin: 0, xMax: 36, yMin: 0, yMax: 4, stepped: ["S1b-v-model", "S1b-m-kernel"] },
+    "S1c": { xMin: 0, xMax: 24, yMin: 0, yMax: 1 },
+    "S2a": { xMin: -12, xMax: 60, yMin: 0, yMax: 1 },
+    "S2b": { yMin: 0 },
+    "S2c": {},
+    "S2d": {
+      facets: [
+        { label: "Body mass", series: ["S2d-v-model-weight", "S2d-v-live-weight", "S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xMax: 90 },
+        { label: "Health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
+          xTitle: "game days (the first four)" }
+      ],
+      endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: beriberi" }
+    },
+    "S3a": {
+      facets: [
+        { label: "Vitamin C store", series: ["S3a-m-pool", "S3a-study-0224", "S3a-study-0225"], unit: "store (0-1)", yMin: 0, yMax: 1, xMin: 0 },
+        { label: "Grade", series: ["S3a-m-grade"], unit: "grade", yMin: 1, yMax: 4, xMin: 0,
+          yNames: { "1": "Replete", "2": "Marginal", "3": "Depleted", "4": "Clinical" } }
+      ],
+      stepped: ["S3a-m-grade"],
+      endpoints: { "S3a-m-pool": "Death: beriberi", "S3a-m-grade": "Death: beriberi" }
+    },
+    "S3b": { xMin: 0, yMin: 0 },
+    "S3c": { xMin: 40, xMax: 80, yMin: 0, yMax: 1 },
+    "S4a": { xMin: 0, xMax: 365, yMin: 0, yMax: 10, stepped: ["S4a-v-model-x1", "S4a-v-model-x07"] },
+    "S4b": { xMin: 0, xMax: 10, yMin: 0, yMax: 12, stepped: ["S4b-v-model"] },
+    "S4c": { xMin: 0, xMax: 910, yMin: 0, yMax: 10, stepped: ["S4c-v-model"] },
+    "S5a": {
+      facets: [
+        { label: "Body mass", series: ["S5a-m-live-weight", "S5a-v-model-weight"], unit: "kg", yMin: 0 },
+        { label: "Fat and lean", series: ["S5a-m-live-lean", "S5a-m-live-fat"], unit: "kg", yMin: 0 },
+        { label: "Strength", series: ["S5a-m-live-level", "S5a-v-model-level"], unit: "Strength level", yMin: 0, yMax: 10 }
+      ]
+    },
+    "S5b": {
+      facets: [
+        { label: "Strength", series: ["S5b-m-strong-level", "S5b-m-weak-level", "S5b-m-none-level", "S5b-v-model-level"], unit: "Strength level", yMin: 0, yMax: 10 },
+        { label: "Body mass", series: ["S5b-m-gaunt-weight", "S5b-m-overfat-weight", "S5b-m-none-weight"], unit: "kg", yMin: 0 }
+      ],
+      xMin: 0, xMax: 90,
+      stepped: ["S5b-m-strong-level", "S5b-m-weak-level", "S5b-m-none-level", "S5b-v-model-level"]
+    },
+    "S5c": { xMin: 0, xMax: 30, yMin: 0 },
+    "S6a": {
+      facets: [
+        { label: "Caffeine", series: ["S6a-m-day1", "S6a-m-day14"], unit: "caffeine, mg", yMin: 0 },
+        { label: "Vanilla, fatigue per cup", series: ["S6a-v-model"], unit: "fatigue change", yMin: -0.05, yMax: 0 }
+      ],
+      xMin: 0, xMax: 24
+    },
+    "S6b": {
+      facets: [
+        { label: "Drunkenness", series: ["S6b-v-model", "S6b-v-live", "S6b-m-intox"], unit: "intoxication (0-100)", yMin: 0 },
+        { label: "Blood alcohol", series: ["S6b-m-bac"], unit: "blood alcohol, %", yMin: 0 },
+        { label: "Hangover", series: ["S6b-m-hangover"], unit: "hangover (off or on)", yMin: 0, yMax: 1,
+          yNames: { "0": "off", "1": "on" } }
+      ],
+      xMin: 0, xMax: 24,
+      stepped: ["S6b-m-hangover"]
+    },
+    "S6c": {
+      facets: [
+        { label: "Hunger", series: ["S6c-m-kernel", "S6c-v-model", "S6c-study"], unit: "hunger factor", yMin: 0 },
+        { label: "Sleep debt", series: ["S6c-m-live"], unit: "sleep debt, hours", yMin: 0 }
+      ],
+      xMin: 0, xMax: 4
+    }
   };
 
   var SIDE_NAMES = { both: "Both", vanilla: "Vanilla", mod: "This mod" };
@@ -516,9 +586,9 @@
       list.forEach(function (s) { s.points.forEach(function (p) { if (labels.indexOf(p[0]) < 0) labels.push(p[0]); }); });
     }
     var grid = token("--rule"), ink2 = token("--ink-2"), dataFont = token("--font-data");
-    var yNames = opts.yNames, xNames = opts.xNames;
     var f = state.facet || {};
     function pickOpt(k) { return f.hasOwnProperty(k) ? f[k] : opts[k]; }
+    var yNames = pickOpt("yNames"), xNames = opts.xNames;
     var config = {
       type: "line",
       data: { labels: labels || undefined, datasets: datasets },
@@ -536,7 +606,7 @@
             type: "linear", grid: { color: grid, lineWidth: 0.6 }, border: { color: grid },
             min: pickOpt("xMin"), max: pickOpt("xMax"),
             ticks: { color: ink2, font: { family: dataFont, size: 11 }, maxTicksLimit: 8 },
-            title: axisTitle(state.chart_x)
+            title: axisTitle(pickOpt("xTitle") || state.chart_x)
           },
           y: {
             type: "linear", grid: { color: grid, lineWidth: 0.6 }, border: { display: false },
