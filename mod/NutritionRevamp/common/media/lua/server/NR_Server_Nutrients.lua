@@ -37,7 +37,7 @@ NR.server.nutrients = {
     sleepDisabled = false,
     limitations = {
         "the one-minute lag: Metabolism's rmod reads the previous minute's nutrient, fluid and acute stamps",
-        "metabolic water is omitted (the water AI, S0088, is read as basal turnover above S1688's minimum losses)",
+        "metabolic water is omitted: the basal loss is the net figure, 2000 g/day at the no-trait body's lean mass and 32 g/day a kg of lean mass either side (S2218, S2220; the anchor and the total are game choices inside S1688's net range), sex-neutral; High Thirst (x1.5), Low Thirst (x0.5) and StatsDecrease scale it and never the sweat",
         "retained sodium carries its water isotonically (S1683): sodium stored without water at high sustained intakes (S1673, S1677) is not modelled, and a sodium deficit contracts the set point isotonically only to 8 % of ECF (0.20 L/kg, S1714; S1717, S1722's volume threshold applied to ECF, a game choice), then ever less to a bound of 20 % (S1729, McCance's plateau by eye); past the onset the same ramp relaxes the hypotonic thirst cap (S1729, S1731, S1724; riding the ramp is a game choice, the human cut-off open, S1695, S1736), so the lost water is drunk back and the pool dilutes, and only water not yet replaced reads as dehydration",
         "sweat sodium adapts to a sodium deficit, not to heat exposure alone: the drawn concentration falls linearly with the deficit to 0.325 of itself at 331 mmol (S1747, S1751, S1752, S1750; the line and its zero anchor are game choices, the dose-response open, S1770) and never under 10 mmol/L (S0518, S1758); a replete, acclimatising worker keeps the drawn concentration here although S1755, S1739 and S1743 fall without a known deficit, no gland lag is stored (S1748, S1773), and repletion restores it along the same line (S1771 open)",
         "respiratory water loss is 0 beyond basal (S1052 open)",
@@ -149,6 +149,26 @@ local function needFactor(player, ctx)
         if okL and less == true then return NUT.NEED_LESS end
     end
     return 1
+end
+
+-- The basal water loss's scale (K.fluids.basalG's traitScale): High Thirst x1.5 or Low Thirst x0.5
+-- (K.fluids.thirstTrait; game choices, spec section 3.4) times the sandbox's StatsDecrease multiplier, which scales
+-- vanilla's thirst rate the same way (#2765); sweat is never scaled. Rule 6: the trait set is the pipeline's shared
+-- read (needFactor's), and the multiplier is Kinetics' read on ctx.sd, else read here and handed on for the writer.
+local function basalScale(player, ctx)
+    local high, low = false, false
+    local T = CharacterTrait
+    if T ~= nil then
+        local traits = NR.read.traits(ctx, player)
+        high = T.HIGH_THIRST ~= nil and NR.flag(traits, "get", T.HIGH_THIRST)
+        low = not high and T.LOW_THIRST ~= nil and NR.flag(traits, "get", T.LOW_THIRST)
+    end
+    local sd = ctx ~= nil and ctx.sd or nil
+    if sd == nil then
+        sd = num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
+        if ctx ~= nil then ctx.sd = sd end
+    end
+    return K.fluids.thirstTrait(high, low) * sd
 end
 
 -- The heal (NR.healTable): every numeric field of the three sub-tables finite, else its fresh value. A field with no
@@ -393,7 +413,8 @@ local function step(username, player, record, ctx)
     if not finite(coldMult) then coldMult = 1 end
     K.fluids.intake(f, absorbed)
     local fctx = NUT.fctx
-    fctx.sex = sex
+    fctx.lm = body.lm
+    fctx.basalScale = basalScale(player, ctx)
     fctx.met = met
     fctx.thermoFluids = num(NR.read.thermo(ctx, player), "getFluidsMultiplier", 1)
     fctx.coldMult = coldMult

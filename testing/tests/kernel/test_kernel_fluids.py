@@ -4,8 +4,9 @@ NR_Kernel_Fluids.lua is a kernel file (its name is NR_Kernel*), so the session `
 through its glob and already has NutritionRevamp.kernel.fluids. Every expectation below was recomputed in
 Python doubles from the file's constants before it was written (the expression sits in the comment beside
 it): total body water 0.73 x lean mass (open S1091); the osmotic reference 140 mmol/L, the midpoint of
-S1045's 135-145 normal range; the Edelman form (open S1092); basal turnover = the water AI 3700/2700 g/d
-(S0088; open S1093); sweat 1.0 L/h x clamp((MET - 3)/5, 0, 1.5) x thermoFluids x sweatK (S0090/S0091; open
+S1045's 135-145 normal range; the Edelman form (open S1092); the basal net loss 2000 + 32 x (lm - 52.02) g/d,
+sex-neutral, x High Thirst 1.5 / Low Thirst 0.5 x StatsDecrease on basal only (Plan 15 Task 3: S1688, S2218,
+S2220; the anchor and the total game choices); sweat 1.0 L/h x clamp((MET - 3)/5, 0, 1.5) x thermoFluids x sweatK (S0090/S0091; open
 S1094); cold diuresis 0.1 L/h (open S1053); alcohol diuresis 4 g/g x (1 - 0.45 clamp(d/2, 0, 1)) (S0521-
 S0523; the 2 % knee open S1095); the clearance of water above the set point at 672 g/h (S1685); the sodium
 tau 33.8 h (S1670) and the potassium tau 24 h (open S1097); the obligatory sodium loss 8 mmol/d (S1665); the
@@ -17,6 +18,8 @@ T1-1's thirst view over the pool plus the stomach's pending water.
 import pytest
 
 TOL = 1e-9
+# The file's reference man's basal net loss, g/d: 2000 + 32 x (65.6 - 52.02) (Plan 15 Task 3; was the AI 3700)
+BASAL = 2000 + 32 * (65.6 - 52.02)
 
 
 def _close(a, b, tol=TOL):
@@ -28,7 +31,7 @@ def _new(host, lm=65.6, sweatK=1.0, naSweat=37.0):
 
 
 def _ctx(host, **kw):
-    c = dict(sex=1, met=1.0, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0)
+    c = dict(lm=65.6, met=1.0, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0)
     c.update(kw)
     return host.table(c)
 
@@ -36,7 +39,8 @@ def _ctx(host, **kw):
 def test_constants(host):
     F = host.K.fluids
     assert (F.TBW_PER_LM, F.OSM_REF) == (0.73, 140)
-    assert list(host.py(F.AI).values()) == [3700, 2700]
+    assert F.AI is None                                        # Plan 15 Task 3: the sex-indexed AI is gone
+    assert (F.BASAL_G, F.BASAL_G_PER_LM, F.HIGH_THIRST, F.LOW_THIRST) == (2000, 32, 1.5, 0.5)
     assert (F.SWEAT_LH, F.SWEAT_MET_LO, F.SWEAT_MET_HI, F.SWEAT_CAP) == (1.0, 3, 8, 1.5)
     assert list(host.py(F.SWEATK_RANGE).values()) == [0.5, 1.5]
     assert F.NA_SWEAT_MEAN == 37
@@ -131,40 +135,88 @@ def test_thirst_caps(host):
 
 
 def test_basal_ten_hours_at_rest(host):
-    # -3700*600/1440 = -1541.6666666666506 g of water
+    # -BASAL*600/1440 = -2434.56*600/1440 = -1014.4 g of water (Plan 15 Task 3; -1541.67 under the AI 3700)
     F = host.K.fluids
     f = _new(host)
     ctx = _ctx(host)
     for _ in range(600):
         assert F.losses(f, ctx, 1) == 0
-    assert _close(f.water, -1541.6666666666506, 1e-6)
+    assert _close(f.water, -1014.4, 1e-6)
     # Plan 11f Task 5b: the basal loss carries S1665's obligatory 8 mmol/d, not ruling T11-3's isotonic 0.65 share
     # (336.7 mmol/d, finding F-T5-1): -8*600/1440 = -3.3333333333333335
     assert _close(f.na, -3.3333333333333335, 1e-9) and _close(f.k, 0)
     # the deficit against the set point weu = 1000/140 * na = -23.80952380952381 g:
-    # 100*(1541.6666666666667 - 23.80952380952381)/1000/80 = 1.8973214285714284
+    # 100*(1014.4 - 23.80952380952381)/1000/80 = 1.2382380952380951
     assert _close(F.weu(f, 80), 1000 / 140 * -3.3333333333333335, 1e-9)
-    assert _close(F.dehydPct(f, 80), 1.8973214285714284, 1e-8)
+    assert _close(F.dehydPct(f, 80), 1.2382380952380951, 1e-8)
     c = F.conc(f, 65.6)
     p0 = 140 * 0.73 * 65.6
     t0 = 0.73 * 65.6
-    assert _close(c, (p0 + f.na) / p0 * t0 / (t0 - 1.5416666666666506), 1e-9)
-    assert _close(c, 1.0327503177422985, 1e-6)
+    assert _close(c, (p0 + f.na) / p0 * t0 / (t0 - 1.0144), 1e-9)
+    assert _close(c, 1.0211332280044734, 1e-6)
     assert _close(F.naPlasma(c), 140 * c, 1e-9)
-    want = F.thirstTarget(1.8973214285714284, c, 140 * c, True)
-    tvol = 0.12 + 0.13 * 0.8973214285714284
+    want = F.thirstTarget(1.2382380952380951, c, 140 * c, True)
+    tvol = 0.12 + 0.13 * 0.2382380952380951
     tosm = 0.25 * ((c - 1) / 0.03)
     assert _close(want, 1 - (1 - tvol) * (1 - tosm), 1e-9)
-    # T11-3's motive re-priced: 10 h dry at rest reads 0.445 (it read 0.314 under the 0.65 share); reported against
-    # Thompson 1986's osmotic thirst slope (S1689), never tuned
-    assert _close(want, 0.4449842570965634, 1e-6)
-    assert _close(F.dehydPct(f, 80, 0), 1.8973214285714284, 1e-8)
-    # ruling T1-1: the thirst view reads the pool plus 1 L still in the stomach: 100*0.5178571/80
-    assert _close(F.dehydPct(f, 80, 1000), 0.6473214285714286, 1e-8)
+    # T11-3's motive re-priced: 10 h dry at rest reads 0.300 (0.445 under the AI 3700, Plan 15 Task 3; 0.314 under the
+    # 0.65 share); reported against Thompson 1986's osmotic thirst slope (S1689), never tuned
+    assert _close(want, 0.3004936560955709, 1e-6)
+    assert _close(F.dehydPct(f, 80, 0), 1.2382380952380951, 1e-8)
+    # ruling T1-1: the thirst view reads the pool plus 0.5 L still in the stomach: 100*0.4905905/80
+    assert _close(F.dehydPct(f, 80, 500), 0.6132380952380951, 1e-8)
     assert _close(F.dehydPct(f, 80, 5000), 0.0)  # a net surplus reads 0
-    f2 = _new(host)
-    F.losses(f2, _ctx(host, sex=2), 1440)
-    assert _close(f2.water, -2700)  # the female AI over a day
+
+
+def test_basal_g_by_lean_mass(host):
+    # Plan 15 Task 3: (2000 + 32 x (lm - 52.02)) x traitScale g/day, the anchor K.strength.averageLean()
+    F = host.K.fluids
+    assert _close(host.K.strength.averageLean(), 52.02, 1e-9)
+    assert _close(F.basalG(host.K.strength.averageLean(), 1), 2000)          # the default body
+    assert _close(F.basalG(52.02, 1), 2000, 1e-9)
+    assert _close(F.basalG(40, 1), 1615.36, 1e-9)                            # 2000 + 32 x -12.02
+    assert _close(F.basalG(65.6, 1), 2434.56, 1e-9)                          # 2000 + 32 x 13.58
+    assert _close(F.basalG(52.02, 1.5), 3000, 1e-9)                          # High Thirst x1.5
+    assert _close(F.basalG(52.02, 0.5), 1000, 1e-9)                          # Low Thirst x0.5
+    assert _close(F.basalG(52.02, 1.5 * 2.0), 6000, 1e-9)                    # High Thirst at StatsDecrease 2.0
+    assert F.basalG(-20, 1) == 0                                             # floored at 0
+    assert F.basalG(52.02, -1) == 0                                          # never a gain, whatever the scale
+
+
+def test_thirst_trait_scale(host):
+    T = host.K.fluids.thirstTrait
+    assert T(False, False) == 1
+    assert T(True, False) == 1.5
+    assert T(False, True) == 0.5
+    assert T(True, True) == 1.5                                              # High Thirst wins (never both in vanilla)
+
+
+def test_basal_reads_lean_mass_and_scale_never_the_sex(host):
+    F = host.K.fluids
+    f = _new(host)
+    F.losses(f, _ctx(host, lm=40.0), 1440)
+    assert _close(f.water, -1615.36, 1e-6)                                   # a day at lm 40
+    a, b = _new(host), _new(host)
+    F.losses(a, _ctx(host, sex=1), 1440)
+    F.losses(b, _ctx(host, sex=2), 1440)
+    assert a.water == b.water and _close(a.water, -BASAL, 1e-6)              # no sex index is read
+    hi = _new(host)
+    F.losses(hi, _ctx(host, basalScale=1.5), 1440)
+    assert _close(hi.water, -1.5 * BASAL, 1e-6)                              # High Thirst x1.5
+
+
+def test_the_trait_scale_leaves_the_sweat_alone(host):
+    # met 8 for 60 minutes: the sweat is 1 L whatever the scale; only the basal term moves
+    F = host.K.fluids
+    plain, hi = _new(host), _new(host)
+    L0 = L1 = 0.0
+    for _ in range(60):
+        L0 += F.losses(plain, _ctx(host, met=8.0), 1)
+        L1 += F.losses(hi, _ctx(host, met=8.0, basalScale=1.5), 1)
+    assert _close(L0, 1.0, 1e-9) and _close(L1, 1.0, 1e-9)
+    assert _close(plain.sweat6h, hi.sweat6h)
+    assert _close(plain.water + 1000 + BASAL / 24, 0, 1e-6)                  # sweat 1000 g on top of basal
+    assert _close(hi.water + 1000 + 1.5 * BASAL / 24, 0, 1e-6)              # basal x1.5, sweat unchanged
 
 
 def test_sweat_sodium_draw(host):
@@ -185,13 +237,13 @@ def test_sweat_rate(host):
 
 
 def test_sweat_losses_one_minute(host):
-    # met 8: 1.0 L/h -> 1/60 L this minute; water -(1000/60 + 3700/1440); na -(1/60)*37; k -(1/60)*5
+    # met 8: 1.0 L/h -> 1/60 L this minute; water -(1000/60 + BASAL/1440); na -(1/60)*37; k -(1/60)*5
     F = host.K.fluids
     f = _new(host)
     L = F.losses(f, _ctx(host, met=8.0), 1)
     assert _close(L, 1 / 60)
     assert _close(f.sweatLmin, 1 / 60)
-    assert _close(f.water, -(1000 / 60 + 3700 / 1440))
+    assert _close(f.water, -(1000 / 60 + BASAL / 1440))
     # sweat sodium plus S1665's obligatory loss; the obligatory loss is charged first, so the sweat reads the deficit it
     # leaves (Plan 11f Task 5b fix 3): 37 x (1 - 0.675 x (8/1440)/331)
     assert _close(f.na, -(1 / 60) * 37 * (1 - 0.675 * (8 / 1440) / 331) - 8 / 1440)
@@ -203,7 +255,7 @@ def test_cold_diuresis(host):
     F = host.K.fluids
     f = _new(host)
     F.losses(f, _ctx(host, coldMult=2.0), 1)
-    assert _close(f.water, -(1.6666666666666667 + 3700 / 1440))
+    assert _close(f.water, -(1.6666666666666667 + BASAL / 1440))
 
 
 def test_alcohol_diuresis(host):
@@ -211,10 +263,10 @@ def test_alcohol_diuresis(host):
     F = host.K.fluids
     f = _new(host)
     F.losses(f, _ctx(host, ethanolAbsG=31.6), 1)
-    assert _close(-f.water - 3700 / 1440, 126.4)
+    assert _close(-f.water - BASAL / 1440, 126.4)
     f = _new(host)
     F.losses(f, _ctx(host, ethanolAbsG=31.6, dehydPct=2.0), 1)
-    assert _close(-f.water - 3700 / 1440, 69.52000000000001)
+    assert _close(-f.water - BASAL / 1440, 69.52000000000001)
     assert _close(69.52000000000001 / 126.4, 0.55)
 
 
@@ -273,21 +325,22 @@ def test_hyponat_grade(host):
 
 
 def test_sweat_active(host):
-    # 360 rested minutes: sweat6h 0, loss6h 1.6255130210771078 -> inactive; then 60 minutes at met 8:
-    # sweat6h 2.56190934683809, loss6h 4.332518372093135, share 0.5913210578263226 > 0.5 -> active
+    # 360 rested minutes: sweat6h 0, loss6h 1.069569994754995 -> inactive; then 60 minutes at met 8:
+    # sweat6h 2.56190934683809, loss6h 3.726950943736716, share 0.6874008768866349 > 0.5 -> active (Plan 15 Task 3's
+    # basal BASAL/1440 a minute; 1.6255, 4.3325 and 0.5913 under the AI 3700)
     F = host.K.fluids
     f = _new(host)
     assert F.sweatActive(f) is False  # no loss yet: loss6h 0
     rest = _ctx(host)
     for _ in range(360):
         F.losses(f, rest, 1)
-    assert _close(f.sweat6h, 0.0) and _close(f.loss6h, 1.6255130210771078, 1e-9)
+    assert _close(f.sweat6h, 0.0) and _close(f.loss6h, 1.069569994754995, 1e-9)
     assert F.sweatActive(f) is False
     work = _ctx(host, met=8.0)
     for _ in range(60):
         F.losses(f, work, 1)
     assert _close(f.sweat6h, 2.56190934683809, 1e-9)
-    assert _close(f.loss6h, 4.332518372093135, 1e-9)
+    assert _close(f.loss6h, 3.726950943736716, 1e-9)
     assert F.sweatActive(f) is True
 
 
@@ -296,7 +349,7 @@ def test_ema_alpha_capped_on_a_long_step(host):
     F = host.K.fluids
     f = _new(host)
     F.losses(f, _ctx(host), 720)
-    assert _close(f.loss6h, 3700 / 1440)
+    assert _close(f.loss6h, BASAL / 1440)
     assert _close(f.sweat6h, 0.0)
 
 

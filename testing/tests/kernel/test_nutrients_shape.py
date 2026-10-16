@@ -481,6 +481,9 @@ def test_a_day_index_jump_closes_one_refeeding_day(nut_host):
 
 
 # --- the fluids ---------------------------------------------------------------------------------------
+# The no-trait body's basal net loss, g/day: its lean mass is K.strength.averageLean(), the anchor, so 2000 exactly
+# (Plan 15 Task 3: 2000 + 32 x (lm - 52.02); the AI 3700 before)
+BASAL = 2000
 
 def test_one_litre_of_water_lands_then_clears(nut_host):
     h = nut_host
@@ -489,12 +492,114 @@ def test_one_litre_of_water_lands_then_clears(nut_host):
     alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, water=1000.0)))
     assert KIN(h).lastAbsorbed is None                      # the handoff rides the context (Plan 10 R2)
     f = record["fluids"]
-    w1 = 1000.0 - 3700 / 1440 - 672 / 60                    # landed, the basal minute, the clearance minute (S1685)
+    w1 = 1000.0 - BASAL / 1440 - 672 / 60                   # landed, the basal minute, the clearance minute (S1685)
     assert abs(f["water"] - w1) < 1e-6
     for i in range(2, 62):
         alone(h, p, record, 100.0 + i / 60)
     assert f["water"] < w1 - 300                            # an hour's clearance at 672 g/h
     assert f["dehydPct"] == 0 and f["viewPct"] == 0
+
+
+# Plan 15 Task 3: High Thirst x1.5 and Low Thirst x0.5 (game choices, spec section 3.4) and the sandbox's StatsDecrease
+# multiplier scale the basal loss; one minute with no intake, read as the water lost less the basal sodium's nothing.
+THIRST_TRAITS = r"""
+function(on)
+    if on then
+        CharacterTrait.HIGH_THIRST = "HIGH_THIRST"
+        CharacterTrait.LOW_THIRST = "LOW_THIRST"
+    else
+        CharacterTrait.HIGH_THIRST = nil
+        CharacterTrait.LOW_THIRST = nil
+    end
+end
+"""
+
+
+def _basal_minute(h, traits, pipe=None):
+    p = player(h, traits=traits)
+    record = fresh(h, p)
+    w0 = record["fluids"]["water"]
+    alone(h, p, record, 100.0 + 1 / 60, pipe)
+    return w0 - record["fluids"]["water"], record
+
+
+@pytest.mark.parametrize("traits,scale", [({}, 1.0), ({"HIGH_THIRST": True}, 1.5), ({"LOW_THIRST": True}, 0.5)])
+def test_the_thirst_traits_scale_the_basal_loss(nut_host, traits, scale):
+    h = nut_host
+    h.rt.eval(THIRST_TRAITS)(True)
+    try:
+        lost, record = _basal_minute(h, traits)
+    finally:
+        h.rt.eval(THIRST_TRAITS)(False)
+    assert abs(lost - scale * BASAL / 1440) < 1e-9, (traits, lost)
+    assert NUT(h).fctx.basalScale == scale
+    assert NUT(h).fctx.lm == record["body"]["lm"]
+
+
+def test_the_stats_decrease_multiplier_scales_the_basal_loss(nut_host):
+    # Kinetics' read on ctx.sd is taken; with none on the context the sandbox is read here and handed on for the writer
+    h = nut_host
+    h.rt.eval(THIRST_TRAITS)(True)
+    try:
+        pipe = h.rt.table()
+        pipe.sd = 2.0
+        lost, _ = _basal_minute(h, {"HIGH_THIRST": True}, pipe)
+        assert abs(lost - 3.0 * BASAL / 1440) < 1e-9                       # x1.5 x 2.0
+        h.G.NutritionRevamp.so = h.table({"getStatsDecreaseMultiplier": h.rt.eval("function(s) return 0.65 end")})
+        pipe = h.rt.table()
+        lost, _ = _basal_minute(h, {}, pipe)
+        assert abs(lost - 0.65 * BASAL / 1440) < 1e-9
+        assert pipe.sd == 0.65                                             # handed on (the writer's W.readEngine reads it)
+    finally:
+        h.G.NutritionRevamp.so = None
+        h.rt.eval(THIRST_TRAITS)(False)
+
+
+def test_the_thirst_traits_leave_the_sweat_alone(nut_host):
+    # a working minute: the sweat litres are the same with and without High Thirst; only the basal term differs
+    h = nut_host
+    h.rt.eval(THIRST_TRAITS)(True)
+    try:
+        out = {}
+        for name, traits in (("plain", {}), ("high", {"HIGH_THIRST": True})):
+            p = player(h, traits=traits, rate=6.0)
+            record = fresh(h, p)
+            record["body"].met = 8.0
+            w0 = record["fluids"]["water"]
+            alone(h, p, record, 100.0 + 1 / 60)
+            out[name] = (w0 - record["fluids"]["water"], record["fluids"]["sweatLmin"])
+    finally:
+        h.rt.eval(THIRST_TRAITS)(False)
+    assert out["plain"][1] == out["high"][1] and out["plain"][1] > 0
+    assert abs((out["high"][0] - out["plain"][0]) - 0.5 * BASAL / 1440) < 1e-9
+
+
+# Rule 6: the Java calls of a steady Nutrients minute on the pipeline's context (test_metabolism_shape's JAVA_COUNT
+# counts every method of the player stand-in and of every table one returns, and getGameTime). Read at c4d9349e,
+# before Plan 15 Task 3: 11 for a player with no thirst trait and for one with High Thirst. The task adds the trait
+# reads on the shared trait set: 2 gets (HIGH_THIRST, then LOW_THIRST only when High Thirst is not held).
+HEAD_NUT_JAVA_CALLS = 11   # read at c4d9349e
+
+
+@pytest.mark.parametrize("traits,added", [({}, 2), ({"HIGH_THIRST": True}, 1), ({"LOW_THIRST": True}, 2)])
+def test_a_nutrients_minute_adds_only_the_thirst_trait_reads(nut_host, traits, added):
+    from .test_metabolism_shape import JAVA_COUNT
+    h = nut_host
+    h.rt.eval(THIRST_TRAITS)(True)
+    p = player(h, traits=traits)
+    KIN(h).forget("admin")
+    C = h.rt.eval("{ n = 0 }")
+    h.rt.eval(JAVA_COUNT)(p, C)
+    try:
+        record = fresh(h, p)
+        alone(h, p, record, 100.0 + 1 / 60, h.rt.table())
+        n0 = C.n
+        alone(h, p, record, 100.0 + 2 / 60, h.rt.table())
+        got = C.n - n0
+    finally:
+        h.G.getGameTime = C.restore
+        h.rt.eval(THIRST_TRAITS)(False)
+    assert got == HEAD_NUT_JAVA_CALLS + added, (traits, got)
 
 
 def test_the_nutrients_minute_reads_the_body_mass_with_the_labile_lean(nut_host):
@@ -509,7 +614,7 @@ def test_the_nutrients_minute_reads_the_body_mass_with_the_labile_lean(nut_host)
     f = record["fluids"]
     w = body["fm"] + body["lm"] + body["lx"]
     assert body["lx"] == 4.0
-    assert abs(f["dehydPct"] - 100 * (3700 * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
+    assert abs(f["dehydPct"] - 100 * (BASAL * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
 
 
 def test_ten_hours_at_rest(nut_host):
@@ -522,16 +627,19 @@ def test_ten_hours_at_rest(nut_host):
     w = body["fm"] + body["lm"] + body["lx"]
     base = h.K.body.create(None, None, h.K.strength.DEFAULTS, 1)   # first sight: the no-trait body (Plan 13 Task 12)
     assert abs(w - (base.fm + base.lm)) < 1e-6
-    assert abs(f["water"] + 3700 * 600 / 1440) < 1e-6
-    # the deficit against the set point weu = 1000/140 x na: 100 x (1541.67 - 23.81) / 1000 / w (1.8973 at 80 kg)
-    assert abs(f["dehydPct"] - 100 * (3700 * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
+    assert abs(body["lm"] - h.K.strength.averageLean()) < 1e-9     # the anchor's body: BASAL is 2000 exactly
+    assert abs(f["water"] + BASAL * 600 / 1440) < 1e-6
+    # the deficit against the set point weu = 1000/140 x na: 100 x (833.33 - 23.81) / 1000 / w
+    assert abs(f["dehydPct"] - 100 * (BASAL * 600 / 1440 - 1000 / 140 * 8 * 600 / 1440) / 1000 / w) < 1e-6
     # the basal sodium: S1665's obligatory 8 mmol/d over 10 h = -3.33 mmol (Plan 11f Task 5b; T11-3's 0.65 share gone)
     assert abs(f["na"] + 8 * 600 / 1440) < 1e-6
     want, c = expected_thirst(f["dehydPct"], body["lm"], f["water"], f["na"])
     assert abs(f["c"] - c) < 1e-9
     assert abs(f["naPlasma"] - 140 * c) < 1e-6
     assert abs(f["thirstTarget"] - want) < 1e-9
-    # the volume term alone is the plan's 0.24; the osmotic term of a solute-free basal loss adds to it
+    # the volume term alone reads 0.152 (Plan 15 Task 3's basal; the plan's 0.24 under the AI 3700); the osmotic term
+    # of a solute-free basal loss adds to it, to 0.306 (0.2405 stays a floor)
+    assert f["thirstTarget"] > h.K.fluids.tVol(f["dehydPct"]) + 0.1
     assert f["thirstTarget"] > 0.2405
     assert f["sweatActive"] is False
 
@@ -543,12 +651,12 @@ def test_the_thirst_view_reads_the_stomach_pending_water(nut_host):
     for i in range(1, 11):
         chain(h, p, record, 100.0 + i)
     before = record["fluids"]["thirstTarget"]
-    record["stomach"]["buffer"]["water"] = 1000.0
+    record["stomach"]["buffer"]["water"] = 500.0          # under the 10 h deficit (about 810 g at BASAL; Plan 15 Task 3)
     alone(h, p, record, 110.0 + 1 / 60)
     f = record["fluids"]
     w = record["body"]["fm"] + record["body"]["lm"] + record["body"]["lx"]
-    assert f["viewPct"] < f["dehydPct"]                     # ruling T1-1: the view counts the pending litre
-    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / w) < 1e-6
+    assert f["viewPct"] < f["dehydPct"]                     # ruling T1-1: the view counts the pending half litre
+    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 0.5 / w) < 1e-6
     assert f["thirstTarget"] < before
 
 
@@ -559,11 +667,11 @@ def test_the_thirst_view_reads_the_liquid_lanes_water_too(nut_host):
     for i in range(1, 11):
         chain(h, p, record, 100.0 + i)
     before = record["fluids"]["thirstTarget"]
-    record["stomach"]["liquid"] = 1000.0
+    record["stomach"]["liquid"] = 500.0                   # under the 10 h deficit (Plan 15 Task 3)
     alone(h, p, record, 110.0 + 1 / 60)
     f = record["fluids"]
     w = record["body"]["fm"] + record["body"]["lm"] + record["body"]["lx"]
-    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 1.0 / w) < 1e-6   # ruling T1-1, both lanes' water
+    assert abs(f["dehydPct"] - f["viewPct"] - 100 * 0.5 / w) < 1e-6   # ruling T1-1, both lanes' water
     assert f["thirstTarget"] < before
 
 
@@ -1035,26 +1143,27 @@ def test_choline_takes_the_female_rate(nut_host):
 
 
 def test_a_female_record_reads_the_male_values_unless_sex_specific_is_on(nut_host):
-    # Plan 13 Task 3: the requirement map (ctx.sex), the choline factor, Widmark r and the fluids AI index by the effective sex
+    # Plan 13 Task 3: the requirement map (ctx.sex), the choline factor and Widmark r index by the effective sex; the
+    # fluids read no sex since Plan 15 Task 3 (fctx.sex is gone: the basal loss scales by lean mass)
     h = nut_host
     assert h.G.NutritionRevamp.server.options.sexSpecific is False
     fem = player(h, female=True)
     record = fresh(h, fem)
     assert record["body"]["sex"] == 2                              # the record keeps the engine's value
     alone(h, fem, record, 100.0 + 1 / 60)
-    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1 and NUT(h).kMul.choline == 1
+    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex is None and NUT(h).kMul.choline == 1
     male = player(h)
     mrec = fresh(h, male)
     alone(h, male, mrec, 100.0 + 1 / 60)
-    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1 and NUT(h).kMul.choline == 1
+    assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex is None and NUT(h).kMul.choline == 1
     for sub in ("nutrients", "fluids", "acute"):                    # spec section 13: every sex-indexed output equals a male's
         assert h.py(record[sub]) == h.py(mrec[sub]), sub
     h.rt.eval(READ)(h.table({"SexSpecific": True}))
     try:
         alone(h, fem, record, 100.0 + 2 / 60)
-        assert NUT(h).ctx.sex == 2 and NUT(h).fctx.sex == 2 and NUT(h).kMul.choline == 0.57
+        assert NUT(h).ctx.sex == 2 and NUT(h).fctx.sex is None and NUT(h).kMul.choline == 0.57
         alone(h, male, mrec, 100.0 + 2 / 60)
-        assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex == 1
+        assert NUT(h).ctx.sex == 1 and NUT(h).fctx.sex is None
     finally:
         h.rt.eval(READ)(h.table({}))
     assert h.G.NutritionRevamp.server.options.sexSpecific is False

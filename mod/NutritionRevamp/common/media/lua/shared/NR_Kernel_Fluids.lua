@@ -7,8 +7,8 @@
 -- body water (open row S1092), with 1.0 = OSM_REF mmol/L. Metabolic water is omitted (stated). Caffeine
 -- diuresis is 0 for a habitual drinker (S0528/S0529) and respiratory loss is 0 beyond basal (open S1052);
 -- neither has code. The sweat EMAs take each step's per-minute sample, so a step of dtM minutes moves them
--- as one sample with alpha = dtM/360 (capped at 1); dtM is always > 0. Sex is indexed 1 male, 2 female
--- (Plan 3's K.body convention). Vanilla's autoDrink and ISTakeWaterAction size every sip from
+-- as one sample with alpha = dtM/360 (capped at 1); dtM is always > 0. No term reads the sex (Plan 15 Task 3:
+-- the basal loss scales by lean mass). Vanilla's autoDrink and ISTakeWaterAction size every sip from
 -- THIRST, so the thirst VIEW reads the pool plus the stomach's still-unabsorbed water (the extraG of dehydPct
 -- and, of conc, which the adapter passes) and THIRST falls at the drink; f.dehydPct and
 -- f.c are the pool-only calls (extraG 0). thirstTarget is a pure function of the scalars it is given.
@@ -23,11 +23,15 @@ K.fluids.TBW_PER_LM = 0.73 -- S1706: 72.7 +/- 3.2 % of lean body mass (Peronnet 
 -- The osmotic reference, mmol/L: the plasma-sodium index 1.0.
 K.fluids.OSM_REF = 140 -- midpoint of S1045's 135-145 normal range
 
--- The basal water turnover (urine plus insensible loss at rest), g/day, indexed by sex.
-K.fluids.AI = {
-    3700, -- male: the total-water AI, S0088, as basal turnover: a game choice above S1688's minimum losses
-    2700, -- female: the total-water AI, S0088, as basal turnover: a game choice above S1688's minimum losses
-}
+-- The basal net water loss (urine, skin, breath and faeces, net of the metabolic water the model omits), g/day:
+-- BASAL_G at the reference lean mass K.strength.averageLean() (52.02 kg, the no-trait body), BASAL_G_PER_LM a kg
+-- of lean mass either side. Sex-neutral: S2218's fat-free-mass form has no sex term (Plan 15 Task 3).
+K.fluids.BASAL_G = 2000 -- game choice (spec section 3.4) inside S1688's net 1050-3100 mL/d, built from S1686, S1687, S1688, S2220, S2222
+K.fluids.BASAL_G_PER_LM = 32 -- S2218's 37.34 mL of turnover per kg fat-free mass x S2220's 85 % drink-and-food share, 31.74 rounded (derived)
+
+-- The thirst traits' scale on the basal loss alone, never on sweat (spec section 3.4: vanilla's thirst rate x2 and x0.5, #2765).
+K.fluids.HIGH_THIRST = 1.5 -- game choice (spec section 3.4) inside the decision's x1.5-2 for High Thirst
+K.fluids.LOW_THIRST = 0.5 -- game choice (spec section 3.4): Low Thirst at vanilla's x0.5
 
 -- Sweat: SWEAT_LH L/h at SWEAT_MET_HI, from zero at SWEAT_MET_LO, capped at SWEAT_CAP x the scale.
 K.fluids.SWEAT_LH = 1.0 -- S0090 (1.28-1.51 L/h hard work), S0091 modulators; design-phase-v1 (open row S1094)
@@ -162,14 +166,34 @@ function K.fluids.sweatLh(met, thermoFluids, sweatK)
     return F.SWEAT_LH * x * thermoFluids * sweatK
 end
 
+-- The basal net water loss, g/day, at lean mass lm kg, times traitScale (K.fluids.thirstTrait times the sandbox's
+-- StatsDecrease multiplier: the caller's), floored at 0, so no lean mass or scale makes it a gain. The anchor reads
+-- K.strength.averageLean at call time (game choice, spec section 3.4: the default body loses exactly BASAL_G).
+function K.fluids.basalG(lm, traitScale)
+    local F = K.fluids
+    local g = F.BASAL_G + F.BASAL_G_PER_LM * (lm - K.strength.averageLean())
+    return K.max(g * traitScale, 0)
+end
+
+-- The thirst traits' scale: High Thirst wins over Low Thirst (vanilla never grants both), 1 with neither.
+function K.fluids.thirstTrait(high, low)
+    if high then
+        return K.fluids.HIGH_THIRST
+    end
+    if low then
+        return K.fluids.LOW_THIRST
+    end
+    return 1
+end
+
 -- The step's losses: basal, sweat (with its sodium and potassium), cold and alcohol diuresis; caffeine
 -- diuresis 0 (S0528/S0529: habitual intake loses no fluid beyond the volume drunk); respiratory 0 beyond
--- basal (open row S1052). ctx = { sex, met, thermoFluids, coldMult, ethanolAbsG (this step's absorbed
--- ethanol g), dehydPct (the pool-only deficit) }. Updates the 6 h sweat and loss EMAs and returns the
+-- basal (open row S1052). ctx = { lm (lean kg), basalScale (K.fluids.basalG's traitScale; nil reads 1), met,
+-- thermoFluids, coldMult, ethanolAbsG (this step's absorbed ethanol g), dehydPct (the pool-only deficit) }. Updates the 6 h sweat and loss EMAs and returns the
 -- step's sweat litres (also stored as f.sweatLmin).
 function K.fluids.losses(f, ctx, dtM)
     local F = K.fluids
-    local basalG = F.AI[ctx.sex] / 1440 * dtM
+    local basalG = F.basalG(ctx.lm, ctx.basalScale or 1) / 1440 * dtM
     local sweatL = F.sweatLh(ctx.met, ctx.thermoFluids, f.sweatK) * dtM / 60
     local sweatG = sweatL * 1000
     local coldG = F.COLD_DIURESIS_LH * K.clamp(ctx.coldMult - 1, 0, 1) * 1000 / 60 * dtM

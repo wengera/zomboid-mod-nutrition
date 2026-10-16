@@ -20,7 +20,8 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
 - drinking to thirst drinks what people drink (Plan 11f Task 5b fix 1, ruling 5b-2): about 2.0-3.0 L/d of beverages
   for a sedentary man in a temperate climate and about 1.6-2.2 L/d for a woman (a derivation from S1707's ad libitum
   balance studies, S1708's fluid share and food water, S1709's deuterium turnover and S1710's loss per MJ; the women's
-  bottom rests on three subjects);
+  bottom rests on three subjects); since Plan 15 Task 3's basal net loss by lean mass both read under their bands,
+  a named non-reproduction (DRINK_NAMED);
 - the volume defence (Plan 11f Task 5b fix 1, review finding 1): a sodium deficit contracts the set point isotonically
   up to 8 % of ECF (0.20 L/kg, S1714; the 8-10 % volume threshold of S1717 and S1722 applied to ECF, a game choice),
   then ever less, bounded by 20 % (S1729, McCance's plateau read by eye). Past the onset a volume-thirst term relaxes
@@ -77,7 +78,7 @@ MEALS = (8 * 60, 13 * 60, 19 * 60)
 WAKE, SLEEP = 7 * 60, 23 * 60
 WORK, WORK_MET = 9 * 60, 8         # the heat-work arm's shift starts at 09:00 at MET 8 (1 L/h of sweat at sweatK 1)
 K_DIET = 70.0                       # mmol/d of potassium on the two salted diets (about 2.7 g, a mixed diet)
-# the reference bodies: sex, lean kg, body kg, food water g/d (S1708: food gives 0.7 L/d to men and 0.5 L/d to women).
+# the reference bodies: sex (read by no basal term since Plan 15 Task 3), lean kg, body kg, food water g/d (S1708: food gives 0.7 L/d to men and 0.5 L/d to women).
 # The man is the file's 80 kg reference; the woman is a 65 kg body at K.body.BF_FEMALE's 0.28 band (lean 46.8 kg), the
 # test's own choice.
 BODIES = {"man": (1, 65.6, 80.0, 700.0), "woman": (2, 46.8, 65.0, 500.0)}
@@ -105,7 +106,7 @@ def simulate(days, na_day, k_day=0.0, meals=True, na_day_after=None, switch_day=
         food_g = 0.0
     f = F.new(lm, 1.0, 37.0)
     f.na = na0                       # a balance carried in (Plan 11f Task 5b fix 3: the driver arm)
-    ctx = h.table(dict(sex=sex, met=1.3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
+    ctx = h.table(dict(lm=lm, met=1.3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
     ab = h.table(dict(water=0.0, sodium=0.0, potassium=0.0))
     liquid = 0.0                     # the liquid lane, g
     lane = 1 - 0.5 ** (1 / float(h.K.stomach.WATER_HALF_MIN))
@@ -245,17 +246,28 @@ def test_a_salted_diet_reaches_urinary_balance_with_plasma_held(na_day):
         assert 138 <= d["p_end"] <= 142, (na_day, d["p_end"])    # S1678: plasma defended by water
 
 
+# Plan 15 Task 3's named non-reproduction: the drinking-volume oracle's readings under the basal net loss by lean mass
+# (2000 + 32 x (lm - 52.02) g/d, S1688, S2218, S2220), each below its band. The band is what people drink, AI-level
+# turnover with ordinary sweating and generous drinking (S1707, S1709); the new basal is the minimum net loss of a
+# sedentary body that does not sweat (water-report.md section 1), so drinking to thirst now drinks basal less food
+# water: the man 2434.56 - 700 = 1.73 L/d, the woman 1832.96 - 500 = 1.33 L/d (by construction). Under the AI 3700/2700
+# they sat at their bands' tops (about 3.0 and 2.2). Pinned at the reading so a change is noticed, and asserted still
+# under its band so a reading that comes back inside is promoted to a target; not re-fitted (Task 3 amendment 4).
+DRINK_NAMED = {"man": 1.7593624653224822, "woman": 1.3436481768045616}   # miss under the band: 0.241 and 0.256 L/d
+
+
 @pytest.mark.parametrize("body,band", [("man", (2.0, 3.0)), ("woman", (1.6, 2.2))])
 def test_drinking_to_thirst_drinks_what_people_drink(body, band):
     # the drinking-volume oracle (a derivation, 07-thirst-volume.md section 8): days 4-10, after the salted diet's set
-    # point has filled; "about" reads 5 % on the band's top. At steady state the drinks are the basal turnover (S0088 as
-    # turnover, a game choice) less S1708's food water, so the level holds by construction: the man sits at the band's
-    # top and the woman at hers. What the oracle tests is the absence of over-drinking (Plan 11f Task 5b fix 1, ruling
+    # point has filled; "about" reads 5 % on the band's top. At steady state the drinks are the basal net loss (Plan 15
+    # Task 3) less S1708's food water, so the level holds by construction, and both bodies now read under their bands
+    # (DRINK_NAMED). What the oracle still tests is the absence of over-drinking (Plan 11f Task 5b fix 1, ruling
     # 5b-2): drinks above the turnover, cleared unused. The simulation passes the liquid lane's water only (its food
     # water is absorbed with the meal), so the server's solid-buffer term is not exercised here
     days, _ = simulate(10, 120.0, K_DIET, body=body, food=True)
     drunk = sum(d["drunk"] for d in days[3:]) / 7
-    assert band[0] <= drunk <= band[1] * 1.05, (body, [round(d["drunk"], 2) for d in days])
+    assert abs(drunk - DRINK_NAMED[body]) < 1e-6, (body, drunk, [round(d["drunk"], 2) for d in days])
+    assert drunk < band[0], (body, drunk, "inside its band now: promote it to a target")
     # the excess the uncounted swallowed water drove (ruling 5b-2) is gone: little of what is drunk is cleared unused
     cleared = sum(d["cleared_g"] for d in days[3:]) / 7 / 1000
     assert cleared < 0.1 * drunk, (body, cleared, drunk)
@@ -374,7 +386,7 @@ def test_heat_work_on_plain_water_holds_the_volume_and_dilutes_the_pool():
 
 def test_onset_a_slow_depletion_loses_water_with_sodium_until_the_volume_defence():
     # Plan 11f Task 5b fix 2 (review finding 2, candidate C-12): the obligatory loss alone (S1665's 8 mmol/d, no sweat,
-    # no dietary sodium or potassium) over 30 days, water evenly at 4 L/d (above the 3.7 L/d turnover; the kidney
+    # no dietary sodium or potassium) over 30 days, water evenly at 4 L/d (above the 2.43 L/d basal, Plan 15 Task 3; the kidney
     # clears the rest), so the onset is crossed gradually, about 57 g of isotonic contraction a day. Read a day apart
     days, hourly = simulate(30, 0.0, 0.0, False, water_load=(4000.0 / 24, 30 * DAY))
     iso = 1000 / 140                                            # S1683: g of water per mmol, isotonic
@@ -472,7 +484,7 @@ def test_onset_the_sweat_sodium_fall_is_detectable_within_hours_of_a_deficit():
     h = _shared()
     F = h.K.fluids
     f = F.new(LM, 1.0, 37.0)
-    ctx = h.table(dict(sex=1, met=3 + 5 / 3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
+    ctx = h.table(dict(lm=LM, met=3 + 5 / 3, thermoFluids=1.0, coldMult=1.0, ethanolAbsG=0.0, dehydPct=0.0))
     assert abs(F.sweatLh(ctx.met, 1.0, 1.0) * 24 * 37 - 296) < 1e-9
     onset = None
     for m in range(2 * DAY):
