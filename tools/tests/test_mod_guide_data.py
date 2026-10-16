@@ -530,6 +530,41 @@ class Cli(Fixture):
             fh.write(text.replace("\n", "\r\n"))
         self.assertEqual(self.run_cli(["--check"], _defs())[0], 0)
 
+    def test_the_rebuild_marker_skips_check_and_removing_it_restores_check(self):
+        # Plan 15 ruling: with the marker present an out-of-date data file passes --check with a SKIPPED line; with
+        # it removed the same file fails, as before
+        self.run_cli(["--write"], _defs())
+        p = os.path.join(self.root, "docs", "mod-guide", "data.json")
+        with open(p, encoding="utf-8") as fh:
+            text = fh.read()
+        with open(p, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text.replace("0.30000000000000004", "0.3", 1))
+        marker = os.path.join(self.root, *g.PENDING_REL.split("/"))
+        with open(marker, "w", encoding="utf-8") as fh:
+            fh.write("Plan X: rebuilt later\n")
+        self.assertEqual(g.rebuild_pending(self.root), "Plan X: rebuilt later")
+        code, msg = self.run_cli(["--check"], _defs())
+        self.assertEqual(code, 0, msg)
+        self.assertIn("SKIPPED", msg)
+        self.assertIn("REBUILD_PENDING", msg)
+        self.assertIn("Plan X: rebuilt later", msg)
+        os.remove(marker)
+        self.assertIsNone(g.rebuild_pending(self.root))
+        code, msg = self.run_cli(["--check"], _defs())
+        self.assertEqual(code, 1)
+        self.assertIn("out of date", msg)
+
+    def test_the_rebuild_marker_never_skips_write_or_another_path(self):
+        marker = os.path.join(self.root, *g.PENDING_REL.split("/"))
+        os.makedirs(os.path.dirname(marker), exist_ok=True)
+        with open(marker, "w", encoding="utf-8") as fh:
+            fh.write("")
+        self.assertEqual(g.rebuild_pending(self.root), g.PENDING_REL)        # an empty marker reads its own path
+        self.assertEqual(self.run_cli(["--write"], _defs())[0], 0)
+        out = os.path.join(self.root, "elsewhere.json")
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            self.assertEqual(g.main(["--check"], self.root, _defs(), CHARTS3, [], out=out), 1)   # missing: checked
+
     def test_invalid_series_exits_2(self):
         bad = [lambda: {"id": "s0"}]
         self.assertEqual(self.run_cli(["--write"], bad)[0], 2)
@@ -637,6 +672,31 @@ class CoverageGate(Fixture):
             self.assertEqual(g.main(["--check"], self.root, _defs(), CHARTS2, [], pending=("p0",), out=out), 0)
         self.assertIn("p0", err.getvalue())
         self.assertFalse(os.path.exists(os.path.join(self.root, "docs", "mod-guide", "data.json")))
+
+
+class RebuildSkip(unittest.TestCase):
+    """tools/tests/conftest.py's skip (Plan 15 ruling): a named or `kh`-taking test of a module with MOD_BUILD_TESTS."""
+
+    def item(self, name, fixtures=(), names=("test_a",)):
+        import types
+        marks = []
+        mod = types.SimpleNamespace(MOD_BUILD_TESTS=names) if names is not None else types.SimpleNamespace()
+        it = types.SimpleNamespace(module=mod, originalname=name, name=name, fixturenames=fixtures,
+                                   add_marker=marks.append)
+        return it, marks
+
+    def test_named_and_kh_tests_skip_and_others_run(self):
+        import conftest
+        it, marks = self.item("test_a")
+        self.assertTrue(conftest.mod_build_skip(it, "why"))
+        self.assertIn("REBUILD_PENDING: why", str(marks[0]))
+        it, marks = self.item("test_b", fixtures=("kh",))
+        self.assertTrue(conftest.mod_build_skip(it, "why"))
+        it, marks = self.item("test_b")
+        self.assertFalse(conftest.mod_build_skip(it, "why"))
+        self.assertEqual(marks, [])
+        it, marks = self.item("test_a", fixtures=("kh",), names=None)                # a module that names none
+        self.assertFalse(conftest.mod_build_skip(it, "why"))
 
 
 class RealRepo(unittest.TestCase):
