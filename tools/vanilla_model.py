@@ -28,7 +28,10 @@ Event kinds:
   eat       hunger_change (stat units, e.g. -0.24) or hunger_script (script units, e.g. -24); calories, carbs,
             lipids, proteins; fraction (1.0); state fresh|cooked|burnt|stale|rotten (fresh); cooked (False,
             the timer doubling, also implied by state cooked); thirst_change (stat units, 0).
-  drink     litres; fluid water|coffee|beer, or the per-litre values thirst_per_l, fatigue_per_l, alcohol_per_l.
+  drink     litres; fluid water|coffee|beer, or the per-litre values thirst_per_l, fatigue_per_l, alcohol_per_l;
+            duration_min (0): above 0 the dose enters evenly over [t_h, t_h + duration_min], as the drink action
+            calls DrinkFluid once a step for the part not yet drunk (#0085, #2925), so INTOXICATION decays from the
+            first sip; 0 adds it all at t_h.
   exercise  mode pushups: reps (60), xp_per_rep (6), duration_min (0, the set's time under the Fitness action);
             mode walking|running|sprinting|swing|action: duration_min, and calories_modifier for an action.
   sleep     duration_h.
@@ -210,11 +213,13 @@ FORMULAS = {
              "doc": "Coffee: FATIGUE += fatigueChange x litres, Coffee -10 a litre / 100 = -0.1 a litre; the value "
                     "holds only with sleep allowed and needed, otherwise FATIGUE stays at its reset. The model does "
                     "not accumulate awake fatigue (#2270's term is not modelled). fatigue_change."},
-    "VM16": {"claims": ["#2923", "#2926", "#2919", "#2922", "#2918", "#2950", "#2951"],
+    "VM16": {"claims": ["#2923", "#2926", "#2919", "#2922", "#2918", "#2950", "#2951", "#0085", "#2925"],
              "doc": "Intoxication: a drink adds 400 x alcohol x (1.1 above 0.8 HUNGER, 1.25 above 0.6 up to 0.8), Beer "
                     "0.05 alcohol a litre; it decays 0.0042 a multiplier unit, 0.504 x day-length minutes a game-hour "
-                    "(45.36 at DayLength 4), floor 0; no upper clamp is modelled. intoxication_gain, "
-                    "intoxication_decay_per_hour."},
+                    "(45.36 at DayLength 4), floor 0; no upper clamp is modelled. A drink with a duration enters "
+                    "evenly over it (the drink action's DrinkFluid a step for the part not yet drunk, #0085, #2925), "
+                    "so the decay runs from the first sip and a can's peak is its dose less the decay over the drink. "
+                    "intoxication_gain, intoxication_decay_per_hour, drink_rates."},
     "JT1": {"claims": ["T2.1", "T2.2"],
             "doc": "The muscle traits' Strength XPBoosts from the 42.21 trait script (Weak -5, Feeble -2, Stout +2, "
                    "Strong +4) and applyTraits' arithmetic (seed 5, add, clamp [0, 10]): vanilla start levels Weak 0, "
@@ -499,6 +504,22 @@ def intoxication_gain(alcohol, hunger):
     return DRUNK_INCREASE * alcohol * f
 
 
+def drink_values(e):
+    """The per-litre values of a drink event: its fluid's, overridden by the event's own."""
+    vals = dict(FLUIDS.get(e.get("fluid", "water"), {}))
+    vals.update({k: e[k] for k in ("thirst_per_l", "fatigue_per_l", "alcohol_per_l") if k in e})
+    return vals
+
+
+def drink_rates(e, hunger):
+    """VM16/#0085: a spread drink's thirst, fatigue and intoxication added a game-second, its litres even over its
+    duration; the intoxication's hunger factor read at the segment's start."""
+    vals = drink_values(e)
+    lps = e["litres"] / (e["duration_min"] * 60.0)
+    return (vals.get("thirst_per_l", 0.0) * lps, fatigue_change(lps, vals.get("fatigue_per_l", 0.0)),
+            intoxication_gain(vals.get("alcohol_per_l", 0.0) * lps, hunger))
+
+
 def intoxication_decay_per_hour(day_length_min=90.0):
     """VM16 (#2922): 0.0042 a multiplier unit."""
     return DRUNK_REDUCTION * multiplier_units_per_hour(day_length_min)
@@ -512,11 +533,13 @@ MOVING_MODES = ("walking", "running", "sprinting")
 
 
 def _intervals(events):
-    """Sleep and timed activity intervals as (start_s, end_s, kind, event)."""
+    """Sleep, timed activity and spread drink intervals as (start_s, end_s, kind, event)."""
     out = []
     for e in events:
         t0 = e["t_h"] * S_PER_H
-        if e["kind"] == "sleep":
+        if e["kind"] == "drink" and e.get("duration_min", 0.0) > 0:
+            out.append((t0, t0 + e["duration_min"] * 60.0, "drink", e))
+        elif e["kind"] == "sleep":
             out.append((t0, t0 + e["duration_h"] * S_PER_H, "sleep", e))
         elif e["kind"] == "exercise":
             dur = e.get("duration_min", 0.0) * 60.0
@@ -533,6 +556,8 @@ def _activity(t, intervals):
             continue
         if kind == "sleep":
             asleep = True
+            continue
+        if kind == "drink":
             continue
         mode = e.get("mode", "pushups")
         if mode in MOVING_MODES:
@@ -611,8 +636,18 @@ def simulate(scenario):
         s["carbs"] = clamp(s["carbs"] - CARB_DRAIN * seconds, MACRO_MIN, MACRO_MAX)
         s["lipids"] = clamp(s["lipids"] - LIPID_DRAIN * seconds, MACRO_MIN, MACRO_MAX)
         s["proteins"] = clamp(s["proteins"] - PROTEIN_DRAIN * seconds, MACRO_MIN, MACRO_MAX)
+        # spread drinks (VM16, #0085): the dose a game-second against the decay, exact for constant rates
+        add_t = add_f = add_i = 0.0
+        for t0, t1, kind, e in intervals:
+            if kind == "drink" and t0 <= t < t1:
+                rt, rf, ri = drink_rates(e, s["hunger"])
+                add_t, add_f, add_i = add_t + rt, add_f + rf, add_i + ri
+        if add_t:
+            s["thirst"] = clamp(s["thirst"] + add_t * seconds, 0.0, 1.0)
+        if add_f and sleep_allowed:
+            s["fatigue"] = clamp(s["fatigue"] + add_f * seconds, 0.0, 1.0)
         # intoxication (VM16)
-        s["intoxication"] = max(0.0, s["intoxication"] - DRUNK_REDUCTION * units_per_s * seconds)
+        s["intoxication"] = max(0.0, s["intoxication"] + (add_i - DRUNK_REDUCTION * units_per_s) * seconds)
 
     def apply(e, t):
         nonlocal rust_timer
@@ -630,10 +665,11 @@ def simulate(scenario):
                 s[key] = clamp(s[key] + e.get(src, 0.0) * f, MACRO_MIN, MACRO_MAX)
             cooked = e.get("cooked", state == "cooked")
             s["food_timer"] = food_timer_fill(s["food_timer"], s["hunger"], hc, f, cooked)
+        elif kind == "drink" and e.get("duration_min", 0.0) > 0:
+            pass                                        # spread over its interval in advance()
         elif kind == "drink":
             litres = e["litres"]
-            vals = dict(FLUIDS.get(e.get("fluid", "water"), {}))
-            vals.update({k: e[k] for k in ("thirst_per_l", "fatigue_per_l", "alcohol_per_l") if k in e})
+            vals = drink_values(e)
             s["thirst"] = clamp(s["thirst"] + vals.get("thirst_per_l", 0.0) * litres, 0.0, 1.0)
             if sleep_allowed:
                 s["fatigue"] = clamp(s["fatigue"] + fatigue_change(litres, vals.get("fatigue_per_l", 0.0)), 0.0, 1.0)

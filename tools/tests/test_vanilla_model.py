@@ -551,6 +551,29 @@ def test_vm16_simulated_beer():
     assert _at(out, "intoxication", 1.0) == 0.0
 
 
+def test_vm16_spread_beer_0085():
+    # a 0.3 L beer drunk over 1.5 game minutes: the 6 enters evenly and the decay runs from the first sip, so the
+    # peak at the drink's end is 6 less 45.36 x the duration, and the zero comes 6 / 45.36 h after the first sip
+    ev = [{"t_h": 0.1, "kind": "drink", "fluid": "beer", "litres": 0.3, "duration_min": 1.5}]
+    out = vm.simulate({"hours": 0.5, "dt_min": 0.05, "start": {"hunger": 0.0}, "events": ev})
+    dur = 1.5 / 60
+    assert _at(out, "intoxication", 0.1 + dur) == pytest.approx(6 - 45.36 * dur, rel=1e-9)
+    assert _at(out, "intoxication", 0.1 + dur / 2) == pytest.approx((6 / dur - 45.36) * dur / 2, rel=1e-9)
+    assert _at(out, "intoxication", 0.1 + dur + 0.05) == pytest.approx(6 - 45.36 * (dur + 0.05), rel=1e-9)
+    zero = next(t for t, v in out["intoxication"] if t > 0.1 and v == 0.0)
+    assert zero == pytest.approx(0.1 + 6 / 45.36, abs=0.05 / 60 + 1e-9)
+    # the instant drink is unchanged, and a spread water drink lowers thirst by the same total
+    inst = vm.simulate({"hours": 0.5, "dt_min": 0.05, "start": {"hunger": 0.0},
+                        "events": [dict(ev[0], duration_min=0)]})
+    assert _at(inst, "intoxication", 0.1) == pytest.approx(6)
+    w = vm.simulate({"hours": 0.2, "dt_min": 0.05, "start": {"thirst": 0.5},
+                     "events": [{"t_h": 0.0, "kind": "drink", "fluid": "water", "litres": 0.4, "duration_min": 3}]})
+    w0 = vm.simulate({"hours": 0.2, "dt_min": 0.05, "start": {"thirst": 0.5},
+                      "events": [{"t_h": 0.0, "kind": "drink", "fluid": "water", "litres": 0.4}]})
+    assert _at(w, "thirst", 0.2) == pytest.approx(_at(w0, "thirst", 0.2), abs=1e-12)
+    assert "#0085" in vm.FORMULAS["VM16"]["claims"] and "#2925" in vm.FORMULAS["VM16"]["claims"]
+
+
 # ---- boundary probes (each threshold within 10 % on both sides) ------------------------------------------------------
 def test_vm5_threshold_edges_0508_0509():
     assert [vm.moodle_level(x, vm.HUNGRY_THRESHOLDS) for x in (0.14, 0.16, 0.24, 0.26, 0.44, 0.46, 0.69, 0.71)] == \

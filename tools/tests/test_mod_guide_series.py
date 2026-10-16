@@ -127,26 +127,29 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 147
+    assert len(mapped) == 148
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
-    assert len(built) == 127 and len(S.PENDING_LIVE) == 12 and len(S.DROPPED) == 8
+    assert len(built) == 140 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 8
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
 
-def test_pending_ids_are_the_vanilla_live_gaps_but_the_existing_run():
+def test_no_id_is_pending_and_every_vanilla_live_series_is_built():
     vl = {i for c in S.MAP_CHARTS.values() for i in c["series"] if "-v-live" in i}
-    assert set(S.PENDING_LIVE) == (vl - {"S2d-v-live-weight"}) | {"S1b-m-live", "S1c-m-live"}   # those two for M1
+    assert S.PENDING_LIVE == () and vl <= set(SER) and {"S1b-m-live", "S1c-m-live"} <= set(SER)
+    assert all(SER[i]["badge"] == "vanilla-live" for i in vl)
 
 
-def test_n2_the_x364_admissions_stay_recorded_and_superseded_by_m1():
+def test_n2_the_x364_admissions_stay_recorded_and_m1_draws_their_series():
     for key in ("x364:THIRST", "x364:levels"):
         v = next(v for v in ADM if v["key"] == key)
-        assert v["admitted"] and v["superseded_by"] == "M1 (x446)"
-        assert set(v["draws"]) <= set(S.PENDING_LIVE)
+        assert v["admitted"] and v["superseded_by"] == "M1 (x446)" and v["draws"] == []
     assert all("superseded_by" not in v for v in ADM if v["key"] not in ("x364:THIRST", "x364:levels"))
+    for key, sid in (("x446:THIRST", "S1c-m-live"), ("x446:levels", "S1b-m-live")):
+        v = next(v for v in ADM if v["key"] == key)
+        assert v["admitted"] and v["draws"] == [sid] and v["run"] == S.RUN["x446"]
     assert "not the line drawn here" in SER["S1c-m-kernel"]["note"]
 
 
@@ -1235,3 +1238,213 @@ def _(kh, sid):
     rows, _ = arm(ev, 181)
     assert pt(sid, 30.0) == rows[179]["HUNGER"]
     return [30.0]
+
+
+# ======================================================================================================================
+# Task 8: the vanilla-live series and M1's (x441-x446), re-derived off the raw artifact JSON; Task 7's validation
+# ======================================================================================================================
+
+LATE.update({"H1-v-live": 0.01, "H2-v-live": 1.34, "S1a-v-live": 13.0, "S1b-v-live": 34.9, "S1b-m-live": 16.8,
+             "S1c-v-live": 6.2, "S1c-m-live": 4.0, "S2a-v-live": 35.0, "S2d-v-live-health": 2.6,
+             "S3b-v-live-U": 1.34, "S3b-v-live-B": 1.34, "S6b-v-live": 1.33, "S6a-m-tolerance": 1.0})
+VAL = [v for v in DATA["validation"] if v.get("kind") == "vanilla"]
+VREC = {v["key"]: v for v in VAL}
+
+
+def ring_rows(run_key, pages):
+    """The run's ring rows, de-duplicated by s across its pages, read here off the page files."""
+    out = {}
+    for p in pages:
+        for r in art(run_key, "minute-ring-admin-%d.json" % p, "rows_list"):
+            out.setdefault(r["s"], r)
+    return [out[k] for k in sorted(out)]
+
+
+def row_at(rows, age):
+    return min(rows, key=lambda r: abs(r["age"] - age))
+
+
+def k_hours(h):
+    """Game hours from HUNGER 0 to h, awake idle (VM1's exact solution, written here)."""
+    return -math.log(1.0 - h) / K_IDLE / 3600.0
+
+
+@check("H1-v-live")
+def _(kh, sid):
+    t0 = art("x441", "meal.json", "eats")[0]["landed_age"]
+    rows = ring_rows("x441", (1,))
+    x, y = SER[sid]["points"][-1]
+    assert y == row_at(rows, t0 + x)["HUNGER"] and 5.9 < x <= 6.0
+    return [x]
+
+
+@check("H2-v-live")
+def _(kh, sid):
+    anchor = art("x443a", "tuna-a.json", "checks", "X", "anchor")
+    last = art("x443b", "tuna-b.json", "reads", "nutrition")[-1]
+    first = art("x443a", "tuna-a.json", "reads", "nutrition")[0]
+    assert SER[sid]["points"][-1] == [(last["age"] - anchor) / 24.0, last["weight"]]
+    assert len(SER[sid]["points"]) == 38 and SER[sid]["points"][0][1] == first["weight"]
+    return [SER[sid]["points"][-1][0]]
+
+
+@check("S1a-v-live")
+def _(kh, sid):
+    t0 = art("x443a", "tuna-a.json", "eats")[0]["landed_age"]
+    rows = ring_rows("x443a", (1, 721)) + ring_rows("x443b", (1, 721))
+    x, y = SER[sid]["points"][-1]
+    assert y == row_at(rows, t0 + x - 1.0)["HUNGER"] and x > 23.9
+    return [x]
+
+
+def x442_start():
+    w = art("x442", "starve.json", "writes")[0]["ages"][1]
+    h = next(r["HUNGER"] for r in ring_rows("x442", (1, 721, 1441, 2161)) if r["age"] >= w)
+    return w, h
+
+
+@check("S1b-v-live")
+def _(kh, sid):
+    w, h = x442_start()
+    rows = ring_rows("x442", (1, 721, 1441, 2161))
+    first4 = next(r["age"] for r in rows if r["age"] >= w and r["HUNGER"] > 0.70)
+    x4 = first4 - w + k_hours(h)
+    assert pt(sid, x4) == 4 and min(p[0] for p in SER[sid]["points"] if p[1] == 4) == pytest.approx(x4)
+    assert max(p[1] for p in SER[sid]["points"] if p[0] < x4 - 1e-9) == 3
+    return [x4, max(xs_of(sid))]
+
+
+@check("S1b-m-live")
+def _(kh, sid):
+    fs = art("x446", "start.json", "rec", "firstSeen")
+    rows = ring_rows("x446", (1, 721, 1441))
+    lv = [(r["age"], int(r[S.SIG] // 1000) % 10) for r in rows if isinstance(r.get(S.SIG), (int, float))]
+    up = next(a for a, l in lv if l == 1)
+    assert min(p[0] for p in SER[sid]["points"] if p[1] == 1) == pytest.approx(up - fs)
+    assert pt(sid, up - fs - 0.5) == 0 and SER[sid]["points"][-1][1] == lv[-1][1]
+    return [up - fs, SER[sid]["points"][-1][0]]
+
+
+@check("S1c-v-live")
+def _(kh, sid):
+    mi = art("x441", "meal.json", "model_inputs")
+    w = mi["a0"] + next(e["t_h"] for e in mi["scenario"]["events"] if e["label"] == "A_set")
+    rows = ring_rows("x441", (1,))
+    x, y = SER[sid]["points"][-1]
+    assert y == row_at(rows, w + x)["THIRST"] and x > 8.0
+    assert y == pytest.approx(8.0e-6 * x * 3600, abs=0.003)            # linear at VM5's rate, written here
+    return [x]
+
+
+@check("S1c-m-live")
+def _(kh, sid):
+    fs = art("x446", "start.json", "rec", "firstSeen")
+    rows = ring_rows("x446", (1, 721, 1441))
+    x, y = SER[sid]["points"][-1]
+    assert y == row_at(rows, fs + x)["THIRST"] and 23.5 < x <= 24.0
+    return [x]
+
+
+@check("S2a-v-live")
+def _(kh, sid):
+    w, h = x442_start()
+    rows = ring_rows("x442", (1, 721, 1441, 2161))
+    a1 = next(r["age"] for r in rows if r["age"] >= w)                 # the first row, whose HUNGER is h
+    x0, y0 = SER[sid]["points"][0]
+    assert y0 == h and pt("S2a-v-model", x0) == pytest.approx(h, abs=0.003)   # placed on the model's fast
+    x, y = SER[sid]["points"][-1]
+    assert y == row_at(rows, a1 + x - x0)["HUNGER"] and 35.5 < x <= 36.0
+    return [x]
+
+
+@check("S2d-v-live-health")
+def _(kh, sid):
+    w, h = x442_start()
+    hp = [r for r in art("x442", "starve.json", "reads", "health") if r["age"] >= w]
+    dead = next(r for r in hp if r["overall"] <= 0)
+    x, y = SER[sid]["points"][-1]
+    assert x == pytest.approx((dead["age"] - w + k_hours(h)) / 24.0) and y == 0
+    assert x == pytest.approx(max(xs_of("S2d-v-model-health")), abs=0.01)   # the model's death
+    return [x]
+
+
+@check("S3b-v-live-U", "S3b-v-live-B")
+def _(kh, sid):
+    field = "UNHAPPINESS" if sid.endswith("U") else "BOREDOM"
+    t0 = art("x443a", "tuna-a.json", "eats")[0]["landed_age"]
+    last = ring_rows("x443b", (1, 721))[-1]
+    assert SER[sid]["points"][-1] == [(last["age"] - t0) / 24.0, last[field]]
+    return [SER[sid]["points"][-1][0]]
+
+
+@check("S6b-v-live")
+def _(kh, sid):
+    t0 = art("x445b", "beers.json", "drinks")[0]["before"]["worldAge"]
+    polls = art("x445b", "beers.json", "checks", "B", "polls")
+    assert SER[sid]["points"] == [[p["age"] - t0 + 1.0, p["intox"]] for p in polls]
+    return [SER[sid]["points"][-1][0]]
+
+
+@check("S6a-m-tolerance")
+def _(kh, sid):
+    ev = [{"minute": d * 1440 + m, "kind": "drink", "fluid": "Coffee", "litres": 0.25} for d in range(2)
+          for m in (60, 300, 540)] + [plate(d * 1440 + m, "request") for d in range(2) for m in (60, 360, 780)]
+    rows, _ = arm(ev + water(2), 2 * 1440, ("acute.cafTol",))
+    assert [2.0, rows[-1]["acute.cafTol"]] in SER[sid]["points"]
+    assert rows[-1]["acute.cafTol"] > pt(sid, 1.0) > 0 and SER[sid]["points"][0][1] == 0
+    return [2.0]
+
+
+def test_s3a_lines_end_at_the_death():
+    v = VIAB["j_s3a"]
+    for sid in ("S3a-m-pool", "S3a-m-grade"):
+        assert max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0)
+        assert SER[sid]["points"][-1][1] == SER[sid]["points"][-2][1]
+
+
+# ---- Task 7: the vanilla model against the vanilla runs -------------------------------------------------------------
+
+def test_every_vanilla_run_and_quantity_is_validated_within_its_tolerance():
+    runs = {v["run"] for v in VAL}
+    assert runs == {S.RUN[k] for k in ("x441", "x442", "x443a", "x443b", "x444", "x445", "x445b")}
+    for v in VAL:
+        assert {"key", "run", "quantity", "model", "live", "miss", "rel_miss", "tolerance", "tolerance_source",
+                "within"} <= set(v), v["key"]
+        assert v["tolerance_source"].startswith(("the run's own", "named here")), v["key"]
+        assert v["within"], v["key"]
+        if v["tolerance"][0] == "abs":
+            assert abs(v["miss"]) <= v["tolerance"][1] + 1e-12, v["key"]
+    assert len(VAL) == 32
+
+
+def test_each_vanilla_live_series_but_the_mood_names_its_validation():
+    for sid in [i for i, s in SER.items() if s["badge"] == "vanilla-live"]:
+        if sid.startswith("S3b") or sid == "S2d-v-live-weight":
+            continue                                   # no vanilla mood model; the 42.20.4 control
+        assert any(sid in v["draws"] for v in VAL), sid
+
+
+def test_a_vanilla_miss_outside_its_tolerance_fails_the_build(monkeypatch):
+    bad = [dict(v, within=False) if v["key"] == "x441:HUNGER arm A" else v for v in VAL]
+    monkeypatch.setattr(S, "vanilla_records", lambda: bad)
+    with pytest.raises(D.ProvenanceError, match="x441:HUNGER arm A"):
+        S.vcheck("H1-v-live")
+
+
+def test_the_beer_zero_lands_on_the_spread_model_and_not_the_instant_one():
+    # the decay runs from the first sip (#0085, #2922): with no zero between the cans, the zero is the first sip plus
+    # the whole dose over the decay rate, written here (4 cans x 400 x 0.05 x 0.3, factor 1 at HUNGER near 0)
+    d = art("x445b", "beers.json", "drinks")
+    v = VREC["x445b:INTOXICATION zero (game h)"]
+    assert v["model_bracket"][0] == pytest.approx(d[0]["before"]["worldAge"] + 24.0 / 45.36, abs=1e-3)
+    assert abs(v["miss"]) < 0.005 < abs(v["miss_instant"])
+    for i in range(1, 5):
+        p = VREC["x445b:INTOXICATION peak, can %d" % i]
+        assert p["model_bracket"][0] <= p["live"] <= p["model_bracket"][1]
+    assert "#0085" in VM.FORMULAS["VM16"]["claims"]
+
+
+def test_the_calorie_gap_is_the_unmodelled_thermoregulator_term():
+    v = VREC["x442:calorie store"]
+    assert v["miss"] < 0 and v["within"] and "#0464" in v["cause"]
+    assert "#0464" in SER["H2-v-model"]["note"] and "#0464" in SER["S2d-v-model-weight"]["note"]
