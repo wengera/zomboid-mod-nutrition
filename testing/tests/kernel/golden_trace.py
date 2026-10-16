@@ -95,8 +95,9 @@ STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's ea
 # K.satiety.SLEEP_DEBT_FULL_H) is reached only this way
 DEBT_G1 = 1.0
 # Plan 15 Task 4: g6 stands in for a drain state. At minute 30 its water balance is set to an 8.25 % deficit of body
-# mass (the dehydration state, floor about 40 by the deficit, K.drain), and its body damage answers an overall health of
-# 45 less what the mod takes, so the drain reaches the floor inside the window and holds it.
+# mass (the dehydration state, floor about 34.5 by the deficit since fix 1's 4 % onset, K.drain), and its body damage
+# answers an overall health of 45 less what the mod takes plus what it adds, so the drain reaches the floor inside the
+# window, and the heal toward it (fix 1) follows the floor up as the deficit eases.
 DEHYD_MINUTE_G6 = 30
 DEHYD_PCT_G6 = 8.25
 DEHYD_HEALTH_G6 = 45.0

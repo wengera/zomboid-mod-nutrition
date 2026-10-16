@@ -6,6 +6,9 @@
 -- With no state active there is no floor (vanilla regeneration and the food heal resume; NR_Server_Effects).
 -- The codes (the panel and the mirror read them): 1 starvation, 2 scurvy, 3 wet beriberi, 4 pellagra, 5 severe
 -- hyponatraemia, 6 dehydration, 7 the iron lethal rung.
+-- While a state is active and health sits under its floor (a wound, vanilla's own terms, a floor that rose as a deficit
+-- eased), K.drain.heal returns vanilla's own regeneration toward the floor, never above it (Plan 15 Task 4 fix 1, the
+-- controller's ruling L2), so wounds still mend during a long deficiency.
 -- The clocks: starvation's floor follows BMI (lm + fm over K.HEIGHT_M squared) from its onset BMI, so a heavier
 -- body, whose BMI falls more slowly for the same loss, lives longer (S2235's direction); dehydration's follows the
 -- body-water deficit; the three deficiencies' follow the hours at the clinical grade (nutrients.<key>.ah); the sodium
@@ -33,11 +36,13 @@ K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every
 K.drain.NONE = 100 -- health: the floor read with no state active (full health), no row needed
 
 -- Starvation: onset at 1.5 starved days on the starved-day counter (K.acute.LOW_KCAL_KG days, today's hours counted
--- while today's intake is still under the low-day limit), near vanilla's Starving moodle; the floor by BMI,
+-- while today's intake is still under the low-day limit), near vanilla's Starving moodle, or at a BMI under 13 whatever
+-- the day's intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the floor by BMI,
 -- 10 + 40 x clamp((BMI - 12.5) / (BMI0 - 12.5), 0, 1) above 12.5, then linear to 0 at BMI 12.
 K.drain.STARVE_ONSET_H = 36 -- starved hours: game choice (spec section 10: each floor's curve), vanilla's pace
 K.drain.BMI_KNEE = 12.5 -- kg/m2, the floor reaches 10 here: game choice inside S2234's 12-13 (spec section 10)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
+K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (spec section 10: each floor's curve)
 K.drain.STARVE_RATE = 25 -- health per game day, 50 in about 2 days from onset: game choice (spec section 10)
 -- The starvation effect phases (spec section 3.3), starved hours: weakness from onset, cold intolerance and slower
 -- healing from about day 3, infection and mood from about day 14; a game-pacing choice (spec section 3.3; the day
@@ -48,14 +53,15 @@ K.drain.STARVE_PHASE_H = {
     336, -- phase 3, infection and mood: day 14, game choice (open S2247)
 }
 
--- Dehydration: onset at the Parched band, the floor by body-water deficit (per cent of body mass): 50 at 6 %, linear to
--- 10 at 15 %, then to 0 at the death point 17 %.
+-- Dehydration: onset at 4 %, where weariness and apathy begin, the floor by body-water deficit (per cent of body mass):
+-- 50 at 4 %, linear to 10 at 15 %, then to 0 at the death point 17 % (Plan 15 Task 4 fix 1, ruling M1: on the water
+-- base's 3 % a day at rest, 4 % comes at about 32 h and the first floor of 50 at about 38 h, near vanilla's pace).
 K.drain.DEHYD_KNOTS = {
-    { 6, 50 }, -- the onset at 6 %, the Parched band: game choice (spec section 10); S2248 dizziness at about 6 %
-    { 15, 10 }, -- the final stage from 15 %: game choice (spec section 10); S2248 painful urination at about 14.5 %
-    { 17, 0 }, -- the death point 17 %: game choice inside 15-19 % (spec section 10); S2248 anuria at about 19 %
+    { 4, 50 }, -- the onset at about 4 %, weariness and apathy (S2248 4.2 %; the research's drain start): game choice (spec section 10: each floor's curve)
+    { 15, 10 }, -- the final stage from 15 %: game choice (spec section 10: each floor's curve); S2248 painful urination at about 14.5 %
+    { 17, 0 }, -- the death point 17 %: game choice inside 15-19 % (spec section 10: dehydration's 17 % death point); S2248 anuria at about 19 %
 }
-K.drain.DEHYD_RATE = 200 -- health per game day, 50 in about 6 h from onset: game choice (spec section 10)
+K.drain.DEHYD_RATE = 200 -- health per game day, 50 in about 6 h from onset: game choice (spec section 10: each floor's drain rate)
 
 -- The deficiencies: onset at the clinical grade (4); the floor by hours at that grade: 50 for the first 3 days, linear
 -- to 10 two days before death, then to 0 at the death point.
@@ -286,7 +292,7 @@ function K.drain.step(record, dtM, ageH)
     inp.fm = body.fm
     inp.dehydPct = fl.dehydPct
     D.starvedH = K.drain.starvedH(a, body, ageH)
-    if D.starvedH >= K.drain.STARVE_ONSET_H then
+    if D.starvedH >= K.drain.STARVE_ONSET_H or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC then
         if not (D.bmi0 > 0) then
             D.bmi0 = K.drain.bmi(body.lm, body.fm)
         end
@@ -324,4 +330,56 @@ function K.drain.take(D, health)
         return 0
     end
     return K.clamp(health - D.targetFloor, 0, D.drainThisMinute)
+end
+
+-- Healing toward the floor (Plan 15 Task 4 fix 1, ruling L2): vanilla's regeneration tier (#0514, #2721, #2353) and its
+-- additions per multiplier unit (#2354); asleep, the sleeping addition, which HUNGRY or THIRST at level 4 zeroes (#0515).
+K.drain.REGEN = {
+    0.002, -- tier 0, the standard addition: VANILLA #2354
+    0.0013, -- tier 1, the reduced addition (a HUNGRY, SICK or THIRST level 2): VANILLA #2354
+    0.0008, -- tier 2, the severely reduced addition (a level 3, or SICK 4): VANILLA #2354
+    0, -- tier 3, HUNGRY or THIRST at level 4: VANILLA #0514
+}
+K.drain.REGEN_SLEEPING = 0.02 -- VANILLA #2354
+-- Multiplier units a game minute per real minute of day length: a game hour sums 120 x the day length's minutes (#2922).
+K.drain.UNITS_PER_MIN = 2 -- 120 / 60, #2922
+-- AddGeneralHealth(y) with all 17 parts below 100 raises overall health by y x 5.05 / 17 (#3898).
+K.drain.PART_SPREAD = 17 / 5.05 -- #3898
+K.drain.HEAL_EPS = 0.01 -- health: under the floor by less than this is at it, no row needed
+
+-- Vanilla's regeneration addition per multiplier unit for the HUNGRY, THIRST and SICK moodle levels and sleep (#0514,
+-- #2353, #0515): asleep the sleeping addition, 0 at HUNGRY or THIRST 4; awake a level 2 drops to the reduced tier, a 3
+-- (or SICK 4) to the severely reduced, HUNGRY or THIRST 4 to none.
+function K.drain.regenAddition(hungerLvl, thirstLvl, sickLvl, asleep)
+    local starving = hungerLvl >= 4 or thirstLvl >= 4
+    if asleep then
+        if starving then
+            return 0
+        end
+        return K.drain.REGEN_SLEEPING
+    end
+    local tier = 0
+    if K.max(hungerLvl, K.max(thirstLvl, sickLvl)) >= 3 then
+        tier = 2
+    elseif K.max(hungerLvl, K.max(thirstLvl, sickLvl)) >= 2 then
+        tier = 1
+    end
+    if starving then
+        tier = 3
+    end
+    return K.drain.REGEN[tier + 1]
+end
+
+-- The AddGeneralHealth argument that heals health toward the active floor over dtM game minutes at y a game minute
+-- (vanilla's addition x the units a game minute), never past the floor: 0 with no state, an unknown health or health at
+-- the floor (within HEAL_EPS).
+function K.drain.heal(D, health, yPerMin, dtM)
+    if not D.active or not K.finite(health) or not K.finite(yPerMin) then
+        return 0
+    end
+    local gap = D.targetFloor - health
+    if gap <= K.drain.HEAL_EPS then
+        return 0
+    end
+    return K.clamp(yPerMin * dtM, 0, gap * K.drain.PART_SPREAD)
 end

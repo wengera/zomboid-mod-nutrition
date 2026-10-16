@@ -66,7 +66,7 @@ end
 PLAYER = r"""
 function(cfg, record)
     local p = { cfg = cfg }
-    cfg.log = { adds = {}, removes = {}, regen = {}, reduce = {}, parts = {}, cold = {}, gets = 0 }
+    cfg.log = { adds = {}, removes = {}, regen = {}, reduce = {}, add = {}, parts = {}, cold = {}, gets = 0 }
     local coll = {
         get = function(s, t) return cfg.have[t] == true end,
         add = function(s, t)
@@ -127,7 +127,14 @@ function(cfg, record)
             cfg.log.cold[#cfg.log.cold + 1] = v
             cfg.cold = v
         end,
-        ReduceGeneralHealth = function(s, v) cfg.log.reduce[#cfg.log.reduce + 1] = v end,
+        ReduceGeneralHealth = function(s, v)
+            cfg.log.reduce[#cfg.log.reduce + 1] = v
+            if cfg.health ~= nil then cfg.health = cfg.health - v end
+        end,
+        AddGeneralHealth = function(s, v)
+            cfg.log.add[#cfg.log.add + 1] = v
+            if cfg.health ~= nil then cfg.health = cfg.health + v * 5.05 / 17 end   -- every part below 100 (#3898)
+        end,
     }
     if cfg.health ~= nil then bd.getOverallBodyHealth = function(s) return cfg.health end end
     local function setter(name)
@@ -565,7 +572,7 @@ def test_the_drain_takes_the_rate_to_the_floor_and_zeroes_regeneration_and_the_f
 def test_the_drain_never_takes_health_past_the_floor_and_holds_with_no_sawtooth(eff_host):
     h = eff_host
     rec = record(h)
-    rec["fluids"]["dehydPct"] = 8.25                             # dehydration: 50 at 6 %, 10 at 15 %: floor 40
+    rec["fluids"]["dehydPct"] = 6.75                             # dehydration: 50 at 4 %, 10 at 15 %: floor 40
     p, cfg = player(h, rec, health=40.02)
     minute(h, p, rec, dtM=1.0)
     assert rec["drain"]["state"] == 6 and rec["drain"]["targetFloor"] == pytest.approx(40, abs=1e-12)
@@ -589,17 +596,21 @@ def test_no_overall_health_read_takes_nothing(eff_host):
 
 
 def test_a_drain_state_change_marks_the_mirror_dirty(eff_host):
+    # fix 1 (review L1): the winner changes with no rebuild, so only the drain-state clause can mark the mirror
     h = eff_host
     rec = record(h)
-    p, cfg = player(h, rec, health=100.0)
+    rec["fluids"]["dehydPct"] = 5.5                              # dehydration floor 50 - 40 x 1.5 / 11 = 44.55
+    rec["nutrients"]["vitC"]["g"] = 4
+    rec["nutrients"]["vitC"]["ah"] = 327.0                       # scurvy floor 50 - 40 x 255 / 2040 = 45
+    p, cfg = player(h, rec, health=44.0)
     minute(h, p, rec)
+    assert rec["drain"]["state"] == 6
     rec["effects"]["dirty"] = False
+    rebuilds = EFF(h).stats.rebuilds
+    rec["nutrients"]["vitC"]["ah"] = 378.0                       # scurvy floor 44: under dehydration's
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert rec["effects"]["dirty"] is False                      # nothing moved
-    rec["drain"]["naH"] = 0
-    rec["fluids"]["naPlasma"] = 100.0                            # hyponatraemia grade 3: a new state, no band rebuild yet
-    minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert rec["drain"]["state"] == 5 and rec["effects"]["dirty"] is True
+    assert rec["drain"]["state"] == 2 and rec["effects"]["dirty"] is True
+    assert EFF(h).stats.rebuilds == rebuilds                     # no rebuild marked it
 
 
 def test_a_dead_record_is_stepped_with_no_body_write(eff_host):
@@ -964,7 +975,62 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
 def test_the_file_names_no_stat_write_and_no_poison():
     with open(EFFECTS, encoding="utf-8") as fh:
         src = fh.read()
-    for name in ("CharacterStat", ":set(", "AddGeneralHealth", "setInfectionGrowthRate", "POISON ="):
+    # fix 1 (ruling L2): AddGeneralHealth is named once, the heal toward the floor
+    assert src.count('"AddGeneralHealth"') == 1
+    for name in ("CharacterStat", ":set(", "setInfectionGrowthRate", "POISON ="):
         assert name not in src, name
     # Plan 15 Task 4: the food heal setHealthFromFood is the one setHealth* the file names (jar-checks Check 2)
     assert re.findall(r"setHealth\w*", src) == ["setHealthFromFood"]
+
+# --- fix 1: the low-BMI hold (M4) and healing toward the floor (L2) ------------------------------------------------
+
+def test_a_fast_keeps_the_penalties_of_a_body_already_under_normal_bmi(eff_host):
+    # review M4: the starveEarly hold lifts the pe and ea rows for a body of normal BMI only (S0115)
+    h = eff_host
+    for bmi, heal, infect in ((15.0, 0.74, 2.30), (22.0, 1.0, 1.0)):
+        rec, p, cfg = _starving(h, 1)
+        rec["acute"]["bmi"] = bmi
+        rec["body"]["dayIndex"] = 5                              # a day close: the pe grade reads the BMI
+        minute(h, p, rec, ageH=100.0 + 1 / 60)                   # 28 starved hours: a closed starved day under way
+        E = rec["effects"]
+        if bmi < 18.5:
+            assert E["pe"] == 4 and E["key"]["dials"] % 10000 < 1000, bmi   # no starveEarly
+        else:
+            assert E["key"]["dials"] % 10000 >= 1000, bmi                     # starveEarly holds the rows off
+        assert E["healMul"] == pytest.approx(heal, abs=TOL) and E["infectMul"] == pytest.approx(infect, abs=TOL), bmi
+
+
+def test_health_under_the_floor_heals_toward_it_at_vanillas_pace_and_never_above(eff_host):
+    # ruling L2: a wound left health at 20 under clinical scurvy's floor 50; vanilla's standard addition 0.002 a
+    # multiplier unit x 2 units a game minute per day-length minute (60, no sandbox read) = 0.24 a game minute, scaled by
+    # scurvy's healMul 0.5 (S0958), through AddGeneralHealth, until the floor; never above it, and no drain under it
+    h = eff_host
+    rec = record(h)
+    rec["nutrients"]["vitC"]["g"] = 4
+    p, cfg = player(h, rec, health=20.0)
+    minute(h, p, rec)
+    assert rec["effects"]["healMul"] == 0.5
+    assert lst(cfg["log"]["add"]) == [pytest.approx(0.002 * 0.5 * 2 * 60, abs=TOL)]
+    assert lst(cfg["log"]["reduce"]) == []
+    for m in range(1, 2000):
+        minute(h, p, rec, ageH=100.0 + m / 60)
+        assert cfg["health"] <= rec["drain"]["targetFloor"] + 1e-9
+    assert cfg["health"] == pytest.approx(rec["drain"]["targetFloor"], abs=0.011)
+    n = len(lst(cfg["log"]["add"]))
+    assert 600 < n < 2000 and EFF(h).stats.healMinutes >= n
+    regen = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])}
+    assert regen["setStandardHealthAddition"] == 0 and regen["setHealthFromFood"] == 0   # vanilla's own stays off
+
+
+def test_the_heal_reads_the_day_length_and_sleep(eff_host):
+    h = eff_host
+    h.rt.execute("NR_SAVED_SO = getSandboxOptions; getSandboxOptions = function() return "
+                 "{ getDayLengthMinutes = function(s) return 90 end } end; NutritionRevamp.so = nil")
+    try:
+        rec = record(h)
+        rec["nutrients"]["vitC"]["g"] = 4
+        p, cfg = player(h, rec, health=20.0, asleep=True)
+        minute(h, p, rec)
+        assert lst(cfg["log"]["add"]) == [pytest.approx(0.02 * 0.5 * 2 * 90, abs=TOL)]   # the sleeping addition, #2354
+    finally:
+        h.rt.execute("getSandboxOptions = NR_SAVED_SO; NR_SAVED_SO = nil; NutritionRevamp.so = nil")

@@ -29,7 +29,7 @@ local K = NR.kernel
 NR.server.effects = {
     stats = { minutes = 0, errors = 0, healed = 0, rebuilds = 0, closes = 0, traitAdds = 0, traitRemoves = 0,
               reasserts = 0, pushes = 0, pushMissing = 0, regenWrites = 0, partWrites = 0, infectSyncs = 0,
-              coldWrites = 0, drainMinutes = 0, bruises = 0, skippedDead = 0 },
+              coldWrites = 0, drainMinutes = 0, healMinutes = 0, bruises = 0, skippedDead = 0 },
     lastError = nil,
     lastHealed = nil,
     wired = false,
@@ -48,6 +48,7 @@ NR.server.effects = {
         "the regeneration constants are not saved (#3020), nor is the food heal (#3897): re-asserted at every rebuild, at every drain state's start or stop and at first sight",
         "the drain reads overall health once a minute while a drain state is active and takes at most health - floor; a body damage with no overall-health read takes nothing",
         "between two minutes vanilla's own terms (a wound, the level-4 HUNGRY and THIRST drains until Plan 15 Task 5) can move health off the floor; the next minute's drain resumes from where they left it",
+        "under an active floor, health heals toward it at vanilla's regeneration pace (its tier from the HUNGRY, THIRST and SICK levels and sleep, the server's day length) through AddGeneralHealth, spread as with every part damaged (5.05 / 17, #3898): with few parts damaged the step can land a little off the floor, and the next minute's drain or heal corrects it",
         "a natively held Night Vision or Short Sighted (held when the mod would add it) is never removed; Evolving Traits World's Cat Eyes composes (it grants, never removes)",
         "whether the regeneration tier scales awake regeneration is unmeasured (X80 open); healMul reaches the four setters with that stated",
         "the per-part folds rescale the engine's own change since the last minute: a wound timer or bleeding time the engine has run to 0 is passed through, so a wound's last fraction heals unscaled",
@@ -74,6 +75,8 @@ EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- state is active (it runs through any drain otherwise, jar-checks Check 2) and vanilla's again when none is; Plan 15
 -- Task 8 sets its size outside a drain.
 EFF.REGEN_FOOD = 0.015 -- VANILLA #3897
+-- The day length in real minutes a server with no readable sandbox heals at: the 60-minute day (#0518's mapping).
+EFF.DAY_MINUTES = 60 -- VANILLA #0518
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
 EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
@@ -308,6 +311,34 @@ local function regen(bd, m, active)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
+-- A moodle's level 0..4 off the moodles object, 0 when the type or the read is absent.
+local function moodleLevel(moodles, t)
+    if moodles == nil or t == nil then return 0 end
+    return K.clamp(math.floor(num(moodles, "getMoodleLevel", 0, t)), 0, 4)
+end
+
+-- The heal toward the floor (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
+-- and sleep (K.drain.regenAddition, #0514, #0515), scaled by healMul, times the multiplier units of a game minute at the
+-- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the floor and no more
+-- (K.drain.heal, #3898). Read only on a minute that heals.
+local function healToFloor(player, bd, D, E, health, asleep, dtM)
+    local MT = MoodleType
+    local moodles = obj(player, "getMoodles")
+    local hl, tl, sl = 0, 0, 0
+    if MT ~= nil then
+        hl = moodleLevel(moodles, MT.HUNGRY)
+        tl = moodleLevel(moodles, MT.THIRST)
+        sl = moodleLevel(moodles, MT.SICK)
+    end
+    local dayMin = num(NR.sandbox(), "getDayLengthMinutes", EFF.DAY_MINUTES)
+    local perMin = K.drain.regenAddition(hl, tl, sl, asleep) * E.healMul * K.drain.UNITS_PER_MIN * dayMin
+    local y = K.drain.heal(D, health, perMin, dtM)
+    if y > 0 then
+        NR.call(bd, "AddGeneralHealth", y)
+        EFF.stats.healMinutes = EFF.stats.healMinutes + 1
+    end
+end
+
 -- A wound timer's fold (F3): a fall since the last minute is scaled by healMul; a timer the engine
 -- ran to 0 is passed through. Returns the value now on the part.
 local function foldWound(part, last, getter, setter, healMul)
@@ -481,7 +512,9 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     F.coldCredit = K.effects.coldCredit(nut.vitC.g, nut.vitC.e24, body.band1Day or 0, body.band2Day or 0, a.coldH)
     F.boutVig = asleep and a.boutVig == true
     F.starve = phase
-    F.starveEarly = D.starvedH >= 24 and phase < 3              -- a closed starved day under way, before day 14
+    -- a closed starved day under way, before day 14; the hold applies to a body of normal BMI only: a grade the BMI
+    -- already set stays (S0115; Plan 15 Task 4 fix 1, review M4)
+    F.starveEarly = D.starvedH >= 24 and phase < 3 and not (finite(a.bmi) and a.bmi > 0 and a.bmi < K.effects.PE_BMI_OK)
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
     local dials = math.floor(sev * 1000 + 0.5) * 1000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
         + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0)
@@ -543,12 +576,16 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         -- 9. the bruise
         bruise(bd, L, E, dtM)
         -- 10. the drain's health write: min(rate x dtM, health - floor), never past the floor (ReduceGeneralHealth never
-        -- overshoots, #3898); overall health is read only while a state is active
+        -- overshoots, #3898); overall health is read only while a state is active. Under the floor, vanilla's own
+        -- regeneration heals toward it, never above (fix 1, ruling L2): only one side acts in a minute, so no sawtooth.
         if D.active then
-            local take = K.drain.take(D, num(bd, "getOverallBodyHealth", nil))
+            local health = num(bd, "getOverallBodyHealth", nil)
+            local take = K.drain.take(D, health)
             if take > 0 then
                 NR.call(bd, "ReduceGeneralHealth", take)
                 EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
+            elseif health ~= nil and health < D.targetFloor - K.drain.HEAL_EPS then
+                healToFloor(player, bd, D, E, health, asleep, dtM)
             end
         end
     end

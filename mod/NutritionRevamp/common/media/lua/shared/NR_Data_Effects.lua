@@ -207,11 +207,11 @@ NR.data.effects = {
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0922", gc = true }, -- SMD 0.23 x band 0.25 = 0.0575, as 0.06; game choice convention (open S1144)
         } },
         -- Plan 15 Task 4 (spec section 3.3): the dehydration mood rows sit in the 4-6 % band, apathy and weariness at
-        -- about 4.2 % (S2248), so panic moved here from 1.5 %; a game choice of placement (spec section 10).
+        -- about 4.2 % (S2248), so panic moved here from 1.5 %; the placement is science's order (spec section 3.3).
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S2248 (weariness, apathy, impatience at about 4 %)
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0098", gc = true }, -- direction only, no effect size; game choice (open S1145)
             { ch = "stat", s = "panicTarget", v = 7, row = "S0098", gc = true }, -- tension/anxiety p = 0.029; 7, not 6: level 1 is > 6 #2369; game choice (open S1145)
-            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2248", gc = true }, -- apathy at about 4.2 %; 21: UNHAPPY level 1 is > 20 #2369; game choice (open S1145)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2248", gc = true }, -- apathy at about 4.2 %; 21: UNHAPPY level 1 is > 20 #2369; game choice (open S1145; spec section 3.3: vanilla-sized effects)
         } },
         -- E3 panic and unhappiness from sleep loss (iuS band, iuSleepQ = band x 0.125): panic 14 x iuSleepQ capped 20
         -- (S0916 SMD 0.57-0.63 x 24 = 13.7-15.1; the cap a game choice, open S1147); unhappiness 25 x iuSleepQ / 1.5
@@ -332,7 +332,7 @@ NR.data.effects = {
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
         { src = "dehyd", on = "band", at = 8, list = { -- 10 % and above, delirium at about 11 % (S2248): confusion and collapse (spec section 3.3)
-            { ch = "stat", s = "speedMul", v = 0.75, row = "S1176", gc = true }, -- the clamp's floor; game choice (open S1176)
+            { ch = "stat", s = "speedMul", v = 0.75, row = "S1176", gc = true }, -- the clamp's floor; game choice (open S1176; spec section 3.3: vanilla-sized effects)
         } },
         { src = "iu", on = "band", at = { 20, 25 }, list = { -- 2.0 IU and above, S0750 the unit's anchor
             { ch = "stat", s = "speedMul", v = 0.90, row = "S1176", gc = true }, -- game choice (open S1176)
@@ -346,16 +346,16 @@ NR.data.effects = {
         -- way and before phase 3 (starveEarly) the protein-energy and energy-availability rows are held off, so infection
         -- and colds wait for day 14; at phase 3 they return (the pe grade is 4 by then, S0115's 10 days).
         { src = "starve", on = "flag", at = { 1, 3 }, list = { -- weakness: endurance (S2239 difficulty getting up and moving)
-            { ch = "stat", s = "mNut", v = 1.25, row = "S2247", gc = true }, -- the anaemia row's size; game choice (open S2247)
+            { ch = "stat", s = "mNut", v = 1.25, row = "S2247", gc = true }, -- the anaemia row's size; game choice (open S2247; spec section 3.3: the phase bands)
         } },
         { src = "starve", on = "flag", at = 2, list = { -- slower healing from day 3 (S2246 exhaustion)
-            { ch = "body", s = "healMul", v = 0.80, row = "S2247", gc = true }, -- the pe 3 row's size; game choice (open S2247)
+            { ch = "body", s = "healMul", v = 0.80, row = "S2247", gc = true }, -- the pe 3 row's size; game choice (open S2247; spec section 3.3: the phase bands)
         } },
         { src = "starve", on = "flag", at = { 2, 3 }, list = { -- cold intolerance (S2238 hypothermia under 35.5 C, S2246 body temperature)
-            { ch = "stat", s = "tempOffset", v = -0.2, row = "S2247", gc = true }, -- the iron-anaemia row's size; game choice (open S2247)
+            { ch = "stat", s = "tempOffset", v = -0.2, row = "S2247", gc = true }, -- the iron-anaemia row's size; game choice (open S2247; spec section 3.3: the phase bands)
         } },
         { src = "starve", on = "flag", at = 3, list = { -- mood from day 14 (S2239 apathy, S2245 depression)
-            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2247", gc = true }, -- UNHAPPY level 1 is > 20 #2369; game choice (open S2247)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2247", gc = true }, -- UNHAPPY level 1 is > 20 #2369; game choice (open S2247; spec section 3.3: the phase bands)
         } },
         -- F2 healing (H_pe, H_c, H_zn), bleeding (vitamin C), infection (protein-energy), colds (C_c, C_e, C_s; C_d above).
         { src = "pe", on = "pe", at = 2, unless = "starveEarly", list = { -- protein-energy marginal, S0951/S0954

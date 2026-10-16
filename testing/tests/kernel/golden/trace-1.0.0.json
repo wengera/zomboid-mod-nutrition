@@ -5636,7 +5636,7 @@
       "rate": 200,
       "starvedH": 0.48333333333333428,
       "state": 6,
-      "targetFloor": 39.976171700409239
+      "targetFloor": 34.525958663971196
      },
      "effects": {
       "aimMul": 1.2,
@@ -6209,6 +6209,7 @@
      "coldWrites": 0,
      "drainMinutes": 1,
      "errors": 0,
+     "healMinutes": 0,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 174,
@@ -11963,7 +11964,7 @@
       "rate": 200,
       "starvedH": 0.98333333333333428,
       "state": 6,
-      "targetFloor": 39.842249707456055
+      "targetFloor": 34.416386124282226
      },
      "effects": {
       "aimMul": 1.2,
@@ -12533,6 +12534,7 @@
      "coldWrites": 0,
      "drainMinutes": 31,
      "errors": 0,
+     "healMinutes": 0,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 354,
@@ -13326,7 +13328,7 @@
        "foodSets": 3,
        "red": 0,
        "reduceCalls": 61,
-       "reduced": 5.2971691404087533,
+       "reduced": 8.4722222222222179,
        "regenSets": 12,
        "sev": 0,
        "slp": 0,
@@ -18301,7 +18303,7 @@
       "rate": 200,
       "starvedH": 1.4833333333333343,
       "state": 6,
-      "targetFloor": 39.702830859591245
+      "targetFloor": 34.302316157847386
      },
      "effects": {
       "aimMul": 1.2,
@@ -18874,6 +18876,7 @@
      "coldWrites": 0,
      "drainMinutes": 61,
      "errors": 0,
+     "healMinutes": 0,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 534,
@@ -19667,7 +19670,7 @@
        "foodSets": 3,
        "red": 0,
        "reduceCalls": 91,
-       "reduced": 5.3988751587599477,
+       "reduced": 10.780897857167234,
        "regenSets": 12,
        "sev": 0,
        "slp": 0,
@@ -24618,7 +24621,7 @@
       "rate": 200,
       "starvedH": 1.9833333333333343,
       "state": 6,
-      "targetFloor": 39.601124841240051
+      "targetFloor": 34.219102142832767
      },
      "effects": {
       "aimMul": 1.2,
@@ -25191,6 +25194,7 @@
      "coldWrites": 30,
      "drainMinutes": 91,
      "errors": 0,
+     "healMinutes": 0,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 712,
@@ -25979,15 +25983,15 @@
      },
      "st": {
       "body": {
-       "added": 0,
+       "added": 0.30570568497235134,
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
        "food": 0,
        "foodSets": 4,
        "red": 0,
-       "reduceCalls": 100,
-       "reduced": 5.4318317988745459,
+       "reduceCalls": 107,
+       "reduced": 10.977708647665972,
        "regenSets": 16,
        "sev": 0,
        "slp": 0,
@@ -30942,7 +30946,7 @@
       "rate": 200,
       "starvedH": 2.4833333333333343,
       "state": 6,
-      "targetFloor": 39.734218601152243
+      "targetFloor": 34.327997037306382
      },
      "effects": {
       "aimMul": 1.2,
@@ -31513,8 +31517,9 @@
      "bruises": 0,
      "closes": 6,
      "coldWrites": 60,
-     "drainMinutes": 100,
+     "drainMinutes": 107,
      "errors": 0,
+     "healMinutes": 7,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 891,
@@ -32303,15 +32308,15 @@
      },
      "st": {
       "body": {
-       "added": 0,
+       "added": 0.68548810434933072,
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
        "food": 0,
        "foodSets": 4,
        "red": 0,
-       "reduceCalls": 100,
-       "reduced": 5.4318317988745459,
+       "reduceCalls": 117,
+       "reduced": 11.188746518221615,
        "regenSets": 16,
        "sev": 0,
        "slp": 0,
@@ -37257,7 +37262,7 @@
       "rate": 200,
       "starvedH": 2.9833333333333343,
       "state": 6,
-      "targetFloor": 39.940461938600549
+      "targetFloor": 34.496741586127719
      },
      "effects": {
       "aimMul": 1.2,
@@ -37828,8 +37833,9 @@
      "bruises": 0,
      "closes": 6,
      "coldWrites": 90,
-     "drainMinutes": 100,
+     "drainMinutes": 117,
      "errors": 0,
+     "healMinutes": 17,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1042,
@@ -38618,15 +38624,15 @@
      },
      "st": {
       "body": {
-       "added": 0,
+       "added": 1.0337232116216108,
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
        "food": 0,
        "foodSets": 4,
        "red": 0,
-       "reduceCalls": 100,
-       "reduced": 5.4318317988745459,
+       "reduceCalls": 125,
+       "reduced": 11.396119494597281,
        "regenSets": 16,
        "sev": 0,
        "slp": 0,
@@ -43572,7 +43578,7 @@
       "rate": 200,
       "starvedH": 3.4833333333333343,
       "state": 6,
-      "targetFloor": 40.112626765251967
+      "targetFloor": 34.637603717024334
      },
      "effects": {
       "aimMul": 1.2,
@@ -44143,8 +44149,9 @@
      "bruises": 0,
      "closes": 6,
      "coldWrites": 120,
-     "drainMinutes": 100,
+     "drainMinutes": 125,
      "errors": 0,
+     "healMinutes": 25,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1222,
@@ -44933,15 +44940,15 @@
      },
      "st": {
       "body": {
-       "added": 0,
+       "added": 1.116365393091213,
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
        "food": 0,
        "foodSets": 4,
        "red": 0,
-       "reduceCalls": 100,
-       "reduced": 5.4318317988745459,
+       "reduceCalls": 137,
+       "reduced": 11.477513945581494,
        "regenSets": 16,
        "sev": 0,
        "slp": 0,
@@ -49887,7 +49894,7 @@
       "rate": 200,
       "starvedH": 3.9833333333333343,
       "state": 6,
-      "targetFloor": 40.114151769178555
+      "targetFloor": 34.638851447509722
      },
      "effects": {
       "aimMul": 1.2,
@@ -50458,8 +50465,9 @@
      "bruises": 0,
      "closes": 6,
      "coldWrites": 150,
-     "drainMinutes": 100,
+     "drainMinutes": 137,
      "errors": 0,
+     "healMinutes": 27,
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1402,
