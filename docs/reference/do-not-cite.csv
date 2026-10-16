@@ -22218,3 +22218,10 @@ x447-regrade-20261015,verdicts.M2r_acute.debtH,as_predicted,"Trivial: acute.debt
 x447-20261015-181709,replay.fields,the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`x447-regrade-20261015` `replay.fields`
 x447-regrade-20261015,verdicts.REP.observed.run_fields,a copy of the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
 x447-regrade-20261015,verdicts.REP.observed.rebuilt_fields,the rebuilt run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
+x451-20261016-131617,session,the driver's text,Written before the run; not a reading.,
+x451-20261016-131617,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x451-20261016-131617,constants,the lib's constants,The driver's settings; not a reading.,
+x451-20261016-131617,memory,host free memory rows,"Host state, not a game reading.",
+x451-20261016-131617,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`readings` and `windows`
+x451-20261016-131617,verdicts.LW_B.observed.slope_per_s,0.0,"The driver's assumed slope for B (health held), not a reading.",`windows.B`
+x451-20261016-131617,readings.const_writes[*].set.value,nil,"The setter's void return; the reading is the getter's.",`readings.const_writes[*].get.value`
