@@ -8116,9 +8116,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:bread-white",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "kcal-implied (T4-5); french bread; the family 532|99|6.66|17.7 is shared with Base.Bread, which maps to 174924 at spread 1.002; spread 1.67 here; retention FLOUR/MEAL,REHEATED (an already-baked loaf warmed); phytate: bread-white (S1199)",
+   "notes": "kcal-implied (T4-5); french bread; the family 532|99|6.66|17.7 is shared with Base.Bread, which maps to 174924 at spread 1.002; spread 1.67 here; retention FLOUR/MEAL,REHEATED (an already-baked loaf warmed); phytate: bread-white (S1199); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 52.0,
@@ -8198,7 +8198,7 @@
     "proteins": 17.7,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -14617,9 +14617,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:bread-roll-white",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "a sealed pack of hamburger buns (CantEat, opens into buns); the macros imply 6 x 44 g rolls by energy; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.16, and no FDC portion names this item's unit within 0.67-1.5x of it); phytate: bread-white (S1199)",
+   "notes": "a sealed pack of hamburger buns (CantEat, opens into buns); the macros imply 6 x 44 g rolls by energy; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.16, and no FDC portion names this item's unit within 0.67-1.5x of it); phytate: bread-white (S1199); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 144.0,
@@ -14699,7 +14699,7 @@
     "proteins": 23.6,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -14721,9 +14721,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:bread-roll-white",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "kcal-implied (T4-5); the family 177|33|2.22|5.9 is shared with Base.BreadSlices (174924); spread 1.16, the roll (44 g) is 1.44x off; phytate: bread-white (S1199)",
+   "notes": "kcal-implied (T4-5); the family 177|33|2.22|5.9 is shared with Base.BreadSlices (174924); spread 1.16, the roll (44 g) is 1.44x off; phytate: bread-white (S1199); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 144.0,
@@ -14803,7 +14803,7 @@
     "proteins": 5.9,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -14825,9 +14825,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:bread-roll-white",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "a sealed pack of hotdog buns; leaves the 532|99|6.66|17.7 family's 172675 (bread) for SR's hamburger/hotdog roll entry; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.16, and no FDC portion names this item's unit within 0.67-1.5x of it); phytate: bread-white (S1199)",
+   "notes": "a sealed pack of hotdog buns; leaves the 532|99|6.66|17.7 family's 172675 (bread) for SR's hamburger/hotdog roll entry; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.16, and no FDC portion names this item's unit within 0.67-1.5x of it); phytate: bread-white (S1199); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 144.0,
@@ -14907,7 +14907,7 @@
     "proteins": 17.7,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -14929,9 +14929,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:bread-roll-white",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "kcal-implied (T4-5); the family 177|33|2.22|5.9 is shared with Base.BreadSlices (174924); spread 1.16, the roll (44 g) is 1.44x off; phytate: bread-white (S1199)",
+   "notes": "kcal-implied (T4-5); the family 177|33|2.22|5.9 is shared with Base.BreadSlices (174924); spread 1.16, the roll (44 g) is 1.44x off; phytate: bread-white (S1199); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 144.0,
@@ -15011,7 +15011,7 @@
     "proteins": 5.9,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -21500,9 +21500,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:pineapple-canned",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 0.9314,
    "no_nutrition_reason": null,
-   "notes": "commercial can (CannedFood); pineapple in heavy syrup, solids and liquids; family's lipids/proteins are vanilla defects, kcal kept; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 68.07, and no FDC portion names this item's unit within 0.67-1.5x of it)",
+   "notes": "commercial can (CannedFood); pineapple in heavy syrup, solids and liquids; family's lipids/proteins are vanilla defects, kcal kept; portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 68.07, and no FDC portion names this item's unit within 0.67-1.5x of it); volume: the cup names every cut (Plan 15 Task 7 fix 1)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 14.0,
@@ -21582,7 +21582,7 @@
     "proteins": 10.0,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:1"
   },
   {
    "basis": "per_item",
@@ -21604,9 +21604,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:pineapple-canned",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 0.9314,
    "no_nutrition_reason": null,
-   "notes": "kcal-implied (T4-5); vanilla family 250|0|24|10 is a placeholder; heavy-syrup pineapple; sealed twin in manufactured-1; phytate 0 by the zero:fruit family (plan ruling 9: fruit placed at zero; not a Schlemmer Table 1 row)",
+   "notes": "kcal-implied (T4-5); vanilla family 250|0|24|10 is a placeholder; heavy-syrup pineapple; sealed twin in manufactured-1; phytate 0 by the zero:fruit family (plan ruling 9: fruit placed at zero; not a Schlemmer Table 1 row); volume: the cup names every cut (Plan 15 Task 7 fix 1)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 14.0,
@@ -21686,7 +21686,7 @@
     "proteins": 10.0,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:1"
   },
   {
    "basis": "per_item",
@@ -33300,9 +33300,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:crackers-butter",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 3.8159,
    "no_nutrition_reason": null,
-   "notes": "crackers; standard snack-type (butter-type) crackers match the vanilla fat better than saltines; the 70|12|6|1 family splits with graham crackers and cat treats; portion fdc_portion:1 = '5.0 crackers' 16.0 g (the item's unit; the kcal-implied mass is 13.7 g)",
+   "notes": "crackers; standard snack-type (butter-type) crackers match the vanilla fat better than saltines; the 70|12|6|1 family splits with graham crackers and cat treats; portion fdc_portion:1 = '5.0 crackers' 16.0 g (the item's unit; the kcal-implied mass is 13.7 g); volume: family judgement (Plan 15 Task 7 fix 1): the same product low in salt, 175058, cup bite size = 62 g",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 120.0,
@@ -33382,7 +33382,7 @@
     "proteins": 1.0,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:175058:2"
   },
   {
    "basis": "per_item",
@@ -33820,9 +33820,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:chips-potato",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.9585,
    "no_nutrition_reason": null,
-   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it)",
+   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it); volume: family judgement (Plan 15 Task 7 fix 1): potato chips, restructured, baked, 169046, cup = 34 g; plain chips 169677 carry no volume measure",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 21.0,
@@ -33902,7 +33902,7 @@
     "proteins": 4.5,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:169046:1"
   },
   {
    "basis": "per_item",
@@ -33924,9 +33924,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:chips-potato",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.9585,
    "no_nutrition_reason": null,
-   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it)",
+   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it); volume: family judgement (Plan 15 Task 7 fix 1): potato chips, restructured, baked, 169046, cup = 34 g; plain chips 169677 carry no volume measure",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 21.0,
@@ -34006,7 +34006,7 @@
     "proteins": 4.5,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:169046:1"
   },
   {
    "basis": "per_item",
@@ -34028,9 +34028,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:chips-potato",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.9585,
    "no_nutrition_reason": null,
-   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it)",
+   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it); volume: family judgement (Plan 15 Task 7 fix 1): potato chips, restructured, baked, 169046, cup = 34 g; plain chips 169677 carry no volume measure",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 21.0,
@@ -34110,7 +34110,7 @@
     "proteins": 4.5,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:169046:1"
   },
   {
    "basis": "per_item",
@@ -34132,9 +34132,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": "iodine:chips-potato",
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.9585,
    "no_nutrition_reason": null,
-   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it)",
+   "notes": "the brief's hard case: one FDC row for all four chips, the flavour is cosmetic; FDC's bags (28 g, 227 g) are not this bag, the kcal-implied mass (kcal, carbs and lipids agree at 132-135 g; protein is vanilla's outlier); portion judgement: the kcal-implied mass (vanilla energy kept; the four macros disagree, spread 1.92, and no FDC portion names this item's unit within 0.67-1.5x of it); volume: family judgement (Plan 15 Task 7 fix 1): potato chips, restructured, baked, 169046, cup = 34 g; plain chips 169677 carry no volume measure",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 21.0,
@@ -34214,7 +34214,7 @@
     "proteins": 4.5,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:169046:1"
   },
   {
    "basis": "per_item",
@@ -34340,9 +34340,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "butter croissant, FDC's small one nearest the kcal-implied mass; portion fdc_portion:3 = '1.0 croissant, small' 42.0 g (the item's unit; the kcal-implied mass is 44.3 g)",
+   "notes": "butter croissant, FDC's small one nearest the kcal-implied mass; portion fdc_portion:3 = '1.0 croissant, small' 42.0 g (the item's unit; the kcal-implied mass is 44.3 g); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 37.0,
@@ -34422,7 +34422,7 @@
     "proteins": 4.0,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "per_item",
@@ -47161,9 +47161,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.5773,
+   "ml_per_g": 1.0286,
    "no_nutrition_reason": null,
-   "notes": "no guacamole entry in SR Legacy; raw avocado (its main ingredient) stands in; judgement 113.8 g: the vanilla macros disagree (spread 9.81); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)",
+   "notes": "no guacamole entry in SR Legacy; raw avocado (its main ingredient) stands in; judgement 113.8 g: the vanilla macros disagree (spread 9.81); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); volume: pureed, the dish as served (the avoid rule passed over it; Plan 15 Task 7 fix 1)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 12.0,
@@ -47243,7 +47243,7 @@
     "proteins": 4.6,
     "thirst": null
    },
-   "volume_source": "fdc_portion:1"
+   "volume_source": "fdc_portion:2"
   },
   {
    "basis": "per_item",
@@ -50606,9 +50606,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.7923,
+   "ml_per_g": 1.0,
    "no_nutrition_reason": null,
-   "notes": "melted: same composition",
+   "notes": "melted: same composition; volume: melted, its overrun gone (judgement; Plan 15 Task 7 fix 1)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 128.0,
@@ -50688,7 +50688,7 @@
     "proteins": 26.0,
     "thirst": null
    },
-   "volume_source": "fdc_portion:1"
+   "volume_source": "none"
   },
   {
    "basis": "per_item",
@@ -61100,9 +61100,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 2.9208,
+   "ml_per_g": 1.0111,
    "no_nutrition_reason": null,
-   "notes": "a bowl of oats and water from MakeBowlOfOatmeal (a fifth of OatsRaw), uncooked as made; the dry-oats entry keeps the oats' own vector; kcal-implied 79.2 g, the 1 cup portion (81 g) names it; retention 352 OATMEAL,REG/QUICK,COOKED; base and result of the Oatmeal evolved recipe, mapped as food; portion modifier: 1.0 cup; phytate: oats-rolled (S1208); the fresh PhyFoodComp rolled-oats median replaces the dry Schlemmer oat value as the better basis",
+   "notes": "a bowl of oats and water from MakeBowlOfOatmeal (a fifth of OatsRaw), uncooked as made; the dry-oats entry keeps the oats' own vector; kcal-implied 79.2 g, the 1 cup portion (81 g) names it; retention 352 OATMEAL,REG/QUICK,COOKED; base and result of the Oatmeal evolved recipe, mapped as food; portion modifier: 1.0 cup; phytate: oats-rolled (S1208); the fresh PhyFoodComp rolled-oats median replaces the dry Schlemmer oat value as the better basis; volume: the cooked id 173905 (Cereals, oats, regular and quick, unenriched, cooked with water), 1 cup = 234 g (a bowl eaten cooked, as the pot rice and pasta; Plan 15 Task 7 fix 1)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 52.0,
@@ -61182,7 +61182,7 @@
     "proteins": 15.0,
     "thirst": null
    },
-   "volume_source": "fdc_portion:1"
+   "volume_source": "fdc_portion:173905:1"
   },
   {
    "basis": "per_item",
@@ -62769,9 +62769,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 6.7597,
    "no_nutrition_reason": null,
-   "notes": "pain au chocolat is croissant dough with chocolate: the butter croissant stands for it; judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (102.0 g)",
+   "notes": "pain au chocolat is croissant dough with chocolate: the butter croissant stands for it; judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (102.0 g); volume: family judgement (Plan 15 Task 7 fix 1): white bread cubes, 174924, cup cubes = 35 g: a soft roll, a French loaf or a laminated pastry is at least as aerated as sliced white (errs low for the pastry)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 37.0,
@@ -62851,7 +62851,7 @@
     "proteins": 6.9,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:174924:4"
   },
   {
    "basis": "none",
@@ -87894,9 +87894,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 9.0995,
    "no_nutrition_reason": null,
-   "notes": "the vanilla macros are internally impossible (Atwater 538 kcal against 420); judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (84.5 g)",
+   "notes": "the vanilla macros are internally impossible (Atwater 538 kcal against 420); judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (84.5 g); volume: family judgement (Plan 15 Task 7 fix 1): tortilla chips, white corn, 168116, cup = 26 g",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 104.0,
@@ -87976,7 +87976,7 @@
     "proteins": 2.5,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:168116:1"
   },
   {
    "basis": "per_item",
@@ -87998,9 +87998,9 @@
    "fdc_source": "sr_legacy",
    "iodine_ref": null,
    "kind": "food",
-   "ml_per_g": 1.0,
+   "ml_per_g": 9.0995,
    "no_nutrition_reason": null,
-   "notes": "baked tortilla chips as SR's light chips baked with less oil; the vanilla macros are internally impossible (120 kcal with 0 g carbs); judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (25.8 g); already baked, so no retention code; phytate: maize (S1195); a maize product taking the maize grain family - a judgement",
+   "notes": "baked tortilla chips as SR's light chips baked with less oil; the vanilla macros are internally impossible (120 kcal with 0 g carbs); judgement: the kcal-implied mass (the vanilla energy kept as the portion oracle; no FDC portion within 20 %) (25.8 g); already baked, so no retention code; phytate: maize (S1195); a maize product taking the maize grain family - a judgement; volume: family judgement (Plan 15 Task 7 fix 1): tortilla chips, white corn, 168116, cup = 26 g",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 159.0,
@@ -88080,7 +88080,7 @@
     "proteins": 6.0,
     "thirst": null
    },
-   "volume_source": "none"
+   "volume_source": "fdc_portion:168116:1"
   },
   {
    "basis": "none",
@@ -94752,9 +94752,9 @@
     "raw": 218
    },
    "by_volume_source": {
-    "fdc_portion": 261,
+    "fdc_portion": 276,
     "fluid": 47,
-    "none": 261
+    "none": 246
    },
    "cook_retention_set": 184,
    "cookable_without_code": 33,
@@ -94843,7 +94843,7 @@
     "counts": {
      "cookable_without_code": 33,
      "defective_retention_rows": 24,
-     "foods": 352,
+     "foods": 356,
      "insect_rows": 10,
      "iodine_rows": 46,
      "missing_nutrients": {
@@ -94857,7 +94857,7 @@
       "ethanol": 38,
       "fibre": 8,
       "folate": 7,
-      "iodine": 352,
+      "iodine": 356,
       "iron": 1,
       "lipids": 0,
       "magnesium": 1,

@@ -5348,6 +5348,189 @@
     }
    ]
   },
+  "168116": {
+   "data_type": "sr_legacy_food",
+   "description": "Snacks, tortilla chips, unsalted, white corn",
+   "food_category": "Snacks",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 174.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 503.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 65.32,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 37.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 18.1,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 9.956,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 5.3,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 10.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 2.32,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 23.36,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 146.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 1.262,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 215.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 7.79,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.1,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 6.7,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 15.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.015,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.36,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.213,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 3.53,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 0.7,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 2.09,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 2.46,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 1.0,
+     "gram_weight": 26.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup",
+     "seq_num": 1
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 28.0,
+     "measure_unit": "undetermined",
+     "modifier": "bag, single serving",
+     "seq_num": 2
+    },
+    {
+     "amount": 10.0,
+     "gram_weight": 18.0,
+     "measure_unit": "undetermined",
+     "modifier": "chips",
+     "seq_num": 3
+    }
+   ]
+  },
   "168137": {
    "data_type": "sr_legacy_food",
    "description": "Snacks, tortilla chips, light (baked with less oil)",
@@ -11216,6 +11399,182 @@
      "measure_unit": "undetermined",
      "modifier": "cup",
      "seq_num": 1
+    }
+   ]
+  },
+  "169046": {
+   "data_type": "sr_legacy_food",
+   "description": "Snacks, potato chips, white, restructured, baked",
+   "food_category": "Snacks",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 125.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 469.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 71.4,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 0.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 31.6,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 4.234,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 4.8,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 0.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 0.8,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 18.2,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 43.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 4.09,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 721.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 5.0,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.07,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 8.1,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 536.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.34,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.0,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.51,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 2.18,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 7.2,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 1.4,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 0.45,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 1.0,
+     "gram_weight": 34.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup",
+     "seq_num": 1
+    },
+    {
+     "amount": 10.0,
+     "gram_weight": 12.0,
+     "measure_unit": "undetermined",
+     "modifier": "chips",
+     "seq_num": 2
     }
    ]
   },
@@ -50365,6 +50724,189 @@
     }
    ]
   },
+  "173905": {
+   "data_type": "sr_legacy_food",
+   "description": "Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt",
+   "food_category": "Breakfast Cereals",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 9.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 71.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 12.0,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 0.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 7.4,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 0.559,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 1.7,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 6.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 0.9,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 1.52,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 27.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 0.225,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 70.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 2.54,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.016,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 5.4,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 4.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.076,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.0,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.005,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 0.08,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 0.3,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 83.61,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 1.0,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 1.0,
+     "gram_weight": 234.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup",
+     "seq_num": 1
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 14.6,
+     "measure_unit": "undetermined",
+     "modifier": "tbsp",
+     "seq_num": 2
+    },
+    {
+     "amount": 0.75,
+     "gram_weight": 175.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup",
+     "seq_num": 3
+    }
+   ]
+  },
   "173911": {
    "data_type": "sr_legacy_food",
    "description": "Cereals ready-to-eat, POST, Shredded Wheat, original spoon-size",
@@ -61739,6 +62281,210 @@
     }
    ]
   },
+  "175058": {
+   "data_type": "sr_legacy_food",
+   "description": "Crackers, standard snack-type, regular, low salt",
+   "food_category": "Baked Products",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 120.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 502.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 61.0,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 0.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 13.8,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 9.52,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 1.6,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 142.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 3.6,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 25.3,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 27.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 4.048,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 355.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 7.4,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.342,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 6.6,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 216.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.408,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.0,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.053,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 2.03,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 6.3,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 3.5,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 0.68,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 0.5,
+     "gram_weight": 14.2,
+     "measure_unit": "undetermined",
+     "modifier": "oz",
+     "seq_num": 1
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 62.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup, bite size",
+     "seq_num": 2
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 72.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup, crushed",
+     "seq_num": 3
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 4.0,
+     "measure_unit": "undetermined",
+     "modifier": "cracker, rectangular",
+     "seq_num": 4
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 3.0,
+     "measure_unit": "undetermined",
+     "modifier": "cracker, oval",
+     "seq_num": 5
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 3.0,
+     "measure_unit": "undetermined",
+     "modifier": "cracker, round",
+     "seq_num": 6
+    }
+   ]
+  },
   "175098": {
    "data_type": "sr_legacy_food",
    "description": "Alcoholic beverage, liqueur, coffee with cream, 34 proof",
@@ -64287,7 +65033,7 @@
   "counts": {
    "cookable_without_code": 33,
    "defective_retention_rows": 24,
-   "foods": 352,
+   "foods": 356,
    "insect_rows": 10,
    "iodine_rows": 46,
    "missing_nutrients": {
@@ -64554,6 +65300,7 @@
      167993,
      167995,
      168088,
+     168116,
      168137,
      168148,
      168155,
@@ -64587,6 +65334,7 @@
      168894,
      168932,
      168998,
+     169046,
      169094,
      169097,
      169100,
@@ -64803,6 +65551,7 @@
      173855,
      173864,
      173904,
+     173905,
      173911,
      173933,
      173941,
@@ -64865,6 +65614,7 @@
      175011,
      175024,
      175039,
+     175058,
      175098,
      175099,
      175112,

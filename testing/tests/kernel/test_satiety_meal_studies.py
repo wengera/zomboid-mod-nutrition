@@ -102,7 +102,7 @@ function(events, minutes, M0, h0, mult)
                 if e.kind == "drink" then
                     K.stomach.ingestLiquid(st, v)
                 else
-                    K.stomach.ingest(st, v)
+                    K.stomach.ingest(st, v, e.ml)
                 end
                 pool.M = K.satiety.mealFeed(pool.M, v)
             end
@@ -181,8 +181,8 @@ def lua_events(host, events):
     t = host.rt.table()
     for minute, items in events.items():
         lst = host.rt.table()
-        for i, (kind, vec) in enumerate(items, 1):
-            lst[i] = host.table({"kind": kind, "vec": vec})
+        for i, (kind, vec, *ml) in enumerate(items, 1):   # an optional third item: the food's mL/g (Plan 15 Task 7)
+            lst[i] = host.table(dict({"kind": kind, "vec": vec}, **({"ml": ml[0]} if ml else {})))
         t[minute] = lst
     return t
 

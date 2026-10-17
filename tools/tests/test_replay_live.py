@@ -341,6 +341,24 @@ class TestEngineOrder(unittest.TestCase):
             RL.run(FakeBackend(), [1.0, 2.0], [{"minute": 5, "kind": "eat"}], start_age=0.9)
 
 
+class LandVecVolumeTest(unittest.TestCase):
+    """Plan 15 Task 7 fix 1 (review F6): a food-lane landVec with a fullType brings that type's plate volume, as the
+    server's eat does (IN.volumeOf); a liquid-lane landVec brings none."""
+
+    def test_a_mapped_solid_lands_its_volume_excess_and_a_drink_none(self):
+        be = RL.ServerReplay()
+        vec = be.NR.data.nutrients.get("Base.Popcorn")
+        w = be.K.stomach.massOf(vec)
+        be.R.landVec("admin", vec, None, "Base.Popcorn", None)
+        rec = be.R.record("admin")
+        self.assertAlmostEqual(rec.stomach.volX, (29.9478 - 1) * w, places=9)
+        drink = be.K.vector.add(be.K.vector.new(), be.NR.data.fluids.get("Water"), 0.25)
+        be.R.landVec("admin", drink, "liquid", "Base.Popcorn", None)
+        self.assertAlmostEqual(rec.stomach.volX, (29.9478 - 1) * w, places=9)
+        be.R.landVec("admin", be.NR.data.nutrients.get("Base.Steak"), None, None, None)      # no type: no volume
+        self.assertAlmostEqual(rec.stomach.volX, (29.9478 - 1) * w, places=9)
+
+
 if __name__ == "__main__":
     unittest.main()
 

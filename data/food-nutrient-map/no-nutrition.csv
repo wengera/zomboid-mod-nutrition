@@ -198,7 +198,7 @@ Base.Gravy,Gravy,food,79.0|5.0|6.0|2.0,171564,sr_legacy,"Gravy, beef, canned, re
 Base.GravyMix,Gravy Mix,drainable,,,,,,,,,,,,,,,not_food,
 Base.GreenOnions,Green Onions,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,,,spice_only,
 Base.Grenadine,Grenadine,fluid_container,2780.0|670.0|0.0|0.0,,,,,,,,,,,,,,fluid_sourced,
-Base.Guacamole,Guacamole,food,182.0|2.0|16.6|4.6,171705,sr_legacy,"Avocados, raw, all commercial varieties",proxy,113.8,judgement,1.5773,fdc_portion:1,,prepared,,0,zero:fruit,,no guacamole entry in SR Legacy; raw avocado (its main ingredient) stands in; judgement 113.8 g: the vanilla macros disagree (spread 9.81); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.Guacamole,Guacamole,food,182.0|2.0|16.6|4.6,171705,sr_legacy,"Avocados, raw, all commercial varieties",proxy,113.8,judgement,1.0286,fdc_portion:2,,prepared,,0,zero:fruit,,"no guacamole entry in SR Legacy; raw avocado (its main ingredient) stands in; judgement 113.8 g: the vanilla macros disagree (spread 9.81); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); volume: pureed, the dish as served (the avoid rule passed over it; Plan 15 Task 7 fix 1)"
 Base.GunPowder,Gunpowder,drainable,,,,,,,,,,,,,,,not_food,
 Base.HairDyeCommon,Bottle of Hair Dye,fluid_container,,,,,,,,,,,,,,,fluid_sourced,
 Base.HairDyeRare,Bottle of Hair Dye,fluid_container,,,,,,,,,,,,,,,fluid_sourced,

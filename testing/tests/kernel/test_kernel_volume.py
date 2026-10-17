@@ -203,3 +203,36 @@ def test_the_intake_lands_an_eat_with_its_items_volume():
     drink = K.vector.add(K.vector.new(), h.NR.data.fluids.get("Water"), 0.25)
     IN.land(record, "v", drink, "liquid")
     assert record.stomach.volX == pytest.approx(28.9478 * w, rel=1e-12)
+
+
+# --- Plan 15 Task 7 fix 1: the volume oracles (gut_oracles.py, review F1) --------------------------------------------
+
+from . import gut_oracles as G  # noqa: E402
+
+VOLUME_ORACLES = ("nguyen_popcorn_below_chips", "osterholt_null")
+
+
+def _volume_readings(h, beta):
+    return at_beta(h, beta, lambda: {"volume": G.volume_snacks(h)})
+
+
+def test_the_volume_oracles_hold_at_the_shipped_beta(host):
+    got = G.check(_volume_readings(host, host.K.satiety.BETA), *VOLUME_ORACLES)
+    assert got["nguyen_popcorn_below_chips"] == pytest.approx(-0.005392, abs=1e-6)   # S2209: popcorn 0.2143, chips 0.2197
+    assert got["osterholt_null"] == pytest.approx(0.002815, abs=1e-6)                # S1484: inside +/- 0.0096
+
+
+def test_nguyens_sign_fails_without_the_volume_term(host):
+    # the stability check: at BETA = 0 the chips' larger meal pool wins, so the oracle reads the volume term itself
+    r = _volume_readings(host, 0)
+    o = G.BY_NAME["nguyen_popcorn_below_chips"]
+    assert o.pick(r) == pytest.approx(0.000960, abs=1e-6)
+    assert o.miss(o.pick(r)) > 0
+    assert G.BY_NAME["osterholt_null"].miss(G.BY_NAME["osterholt_null"].pick(r)) == 0     # the null holds at 0 too
+
+
+def test_osterholts_null_fails_at_ten_times_beta(host):
+    r = _volume_readings(host, 10 * host.K.satiety.BETA)
+    o = G.BY_NAME["osterholt_null"]
+    assert o.pick(r) == pytest.approx(-0.011792, abs=1e-6)
+    assert o.miss(o.pick(r)) > 0

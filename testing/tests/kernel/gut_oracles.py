@@ -414,3 +414,73 @@ def check_karl_shape(r):
         for i, (m, s) in enumerate(zip(r[key], STUDY["karl_" + key])):
             inside = abs(m - s) <= tol
             assert inside != (i in KARL_SHAPE_NAMED[key]), (key, i, m, s, tol)
+
+
+# --- Plan 15 Task 7 fix 1: the volume oracles (K.satiety.BETA, the satiety mass's volume excess) --------------------
+# Appended so no line above moves. Both replay the meal studies' minute loop (M.replay) with each snack's mL/g passed to
+# K.stomach.ingest, from the studies' own volumes, so they test BETA apart from the generated data column.
+#   S2209 (Nguyen 2012): 6 cups of air-popped popcorn (27 g, 1419.5 mL: 52.57 mL/g) against 1 cup of plain chips (28 g,
+#     236.6 mL: 8.45 mL/g), each with 200 mL of water, from the request; the popcorn arm reads less hunger 30 min on
+#     (the study: less hunger after 6 cups of popcorn than after every other condition). A sign oracle, its scale
+#     VAS_DETECT (a DESIGN CHOICE). The macros are SR Legacy's per 100 g (167959 air-popped popcorn, 169677 plain salted
+#     chips), read at the study's grams; the study's arms differ in energy too (100 against 150 kcal), so the chips'
+#     larger M is what the popcorn's volume has to beat. Its stability check (test_kernel_volume.py): at BETA = 0 the
+#     sign fails, so the oracle reads the volume term and nothing else.
+#   S1484 (Osterholt 2007): the aerated snack eaten to equal fullness, 46.2 g at 12.67 mL/g against 58.5 g at 5.70
+#     mL/g (263 against 333 kcal, 5.7 kcal/g); hunger and fullness did not differ, so |airy - dense| at 30 min within
+#     OSTERHOLT_BAND, half of VAS_DETECT (a DESIGN CHOICE: tight enough that BETA x 10 fails it, -0.0118 at 0.5, where
+#     the full VAS_DETECT the registry's other nulls read let it through); its scale VAS_DETECT. The snack's
+#     shares are ASSUMED (no row gives them): 6 % protein, 40 % carbohydrate, 54 % fat by energy, which is 5.7 kcal/g
+#     with no water.
+
+NGUYEN_POPCORN_100G = {"calories": 387.0, "proteins": 12.94, "carbs": 77.78, "lipids": 4.54, "fibre": 14.5,
+                       "water": 3.32}     # S2212: SR Legacy 167959, Snacks, popcorn, air-popped
+NGUYEN_CHIPS_100G = {"calories": 532.0, "proteins": 6.39, "carbs": 53.83, "lipids": 33.98, "fibre": 3.1,
+                     "water": 1.86}       # S2212: SR Legacy 169677, Snacks, potato chips, plain, salted
+CUP_ML = 236.588
+NGUYEN = {"popcorn_g": 27.0, "popcorn_ml": 6 * CUP_ML, "chips_g": 28.0, "chips_ml": CUP_ML, "water": 200.0,
+          "read_min": 30}                 # S2209: the arms' weights and cups; 200 mL of water a DESIGN CHOICE
+OSTERHOLT = {"airy_kcal": 263.0, "airy_g": 46.2, "airy_ml_g": 12.67, "dense_kcal": 333.0, "dense_g": 58.5,
+             "dense_ml_g": 5.70, "read_min": 30}   # S1484
+OSTERHOLT_SHARES = (0.06, 0.40, 0.54)     # ASSUMED protein, carbohydrate, fat shares of energy (5.7 kcal/g, no water)
+OSTERHOLT_BAND = VAS_DETECT / 2          # a DESIGN CHOICE (above)
+
+
+def _at(per100, grams):
+    return {k: v * grams / 100.0 for k, v in per100.items()}
+
+
+def _snack_at(kcal, grams, shares):
+    p, c, f = shares
+    v = {"calories": kcal, "proteins": kcal * p / 4, "carbs": kcal * c / 4, "lipids": kcal * f / 9}
+    v["water"] = max(0.0, grams - (v["proteins"] + v["carbs"] + v["lipids"]))
+    return v
+
+
+def volume_snacks(host):
+    """{"nguyen": {"popcorn6", "chips"}, "osterholt": {"airy", "dense"}}: the hunger 30 min after each arm."""
+    n = NGUYEN
+    t = n["read_min"] - 1
+    water = ("drink", {"water": n["water"]})
+    pop = ("food", _at(NGUYEN_POPCORN_100G, n["popcorn_g"]), n["popcorn_ml"] / n["popcorn_g"])
+    chips = ("food", _at(NGUYEN_CHIPS_100G, n["chips_g"]), n["chips_ml"] / n["chips_g"])
+    o = OSTERHOLT
+    airy = ("food", _snack_at(o["airy_kcal"], o["airy_g"], OSTERHOLT_SHARES), o["airy_ml_g"])
+    dense = ("food", _snack_at(o["dense_kcal"], o["dense_g"], OSTERHOLT_SHARES), o["dense_ml_g"])
+    return {"nguyen": {"popcorn6": M.hunger(host, {0: [pop, water]}, n["read_min"])[t],
+                       "chips": M.hunger(host, {0: [chips, water]}, n["read_min"])[t]},
+            "osterholt": {"airy": M.hunger(host, {0: [airy]}, o["read_min"])[o["read_min"] - 1],
+                          "dense": M.hunger(host, {0: [dense]}, o["read_min"])[o["read_min"] - 1]}}
+
+
+GROUPS["volume"] = volume_snacks
+ORACLES += [
+    Oracle("nguyen_popcorn_below_chips", "volume",
+           lambda r: r["volume"]["nguyen"]["popcorn6"] - r["volume"]["nguyen"]["chips"], 0.0, hi=0.0,
+           scale=VAS_DETECT, kind="one-sided", row="S2209", tol="popcorn6 - chips <= 0 at 30 min"),
+    Oracle("osterholt_null", "volume",
+           lambda r: r["volume"]["osterholt"]["airy"] - r["volume"]["osterholt"]["dense"], 0.0, lo=-OSTERHOLT_BAND,
+           hi=OSTERHOLT_BAND, scale=VAS_DETECT, row="S1484", tol="+/- VAS_DETECT / 2 (a DESIGN CHOICE)"),
+]
+assert len({o.name for o in ORACLES}) == len(ORACLES)
+BY_NAME = {o.name: o for o in ORACLES}

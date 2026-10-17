@@ -2555,6 +2555,25 @@ class RealVolumeTest(unittest.TestCase):
         for name in ("WaterPotRice", "WaterPotForgedRice", "WaterSaucepanRice", "WaterSaucepanRiceCopper", "RicePot"):
             self.assertEqual(self.vol("Base." + name), (1.4974, "fdc_portion:168878:1"), name)
         self.assertEqual(self.vol("Base.Pasta"), (2.5999, "fdc_portion:1"))    # the dry packet stays dry
+        self.assertEqual(self.vol("Base.Oatmeal"), (1.0111, "fdc_portion:173905:1"))   # the bowl is eaten cooked (fix 1)
+        self.assertEqual(self.vol("Base.OatsRaw"), (2.9208, "fdc_portion:1"))
+
+    def test_the_family_judgements_and_the_fix_1_cells(self):
+        for name in ("BunsHamburger", "BunsHamburger_single", "BunsHotdog", "BunsHotdog_single", "Baguette",
+                     "Croissant", "Painauchocolat"):
+            self.assertEqual(self.vol("Base." + name), (6.7597, "fdc_portion:174924:4"), name)
+            self.assertIn("volume: family judgement", self.by_id["Base." + name]["notes"], name)
+        for name in ("Crisps", "Crisps2", "Crisps3", "Crisps4"):
+            self.assertEqual(self.vol("Base." + name), (6.9585, "fdc_portion:169046:1"), name)
+        for name in ("TortillaChips", "TortillaChipsBaked"):
+            self.assertEqual(self.vol("Base." + name), (9.0995, "fdc_portion:168116:1"), name)
+        self.assertEqual(self.vol("Base.Crackers"), (3.8159, "fdc_portion:175058:2"))
+        self.assertEqual(self.vol("Base.Guacamole"), (1.0286, "fdc_portion:2"))         # pureed, as served
+        self.assertEqual(self.vol("Base.CannedPineapple"), (0.9314, "fdc_portion:1"))
+        self.assertEqual(self.vol("Base.CannedPineappleOpen"), (0.9314, "fdc_portion:1"))
+        self.assertEqual(self.vol("Base.IcecreamMelted"), (1.0, "none"))                # melted: no overrun
+        for name in ("BagelPlain", "GrahamCrackers", "CookiesSugar", "BreadDough", "Hotdog"):  # kept by weight
+            self.assertEqual(self.vol("Base." + name), (1.0, "none"), name)
 
 
 if __name__ == "__main__":
