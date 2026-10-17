@@ -22240,3 +22240,11 @@ x453-20261017-072518,memory,host free memory rows,"Host state, not a game readin
 x453-20261017-072518,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x453-20261017-072518,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x453-20261017-072518,verdicts.OF_REACH,falsified,"The session's eat cycle (about 7 game minutes) outlasted the prediction's 3, so the stomach never reached Overfull 4; not a reading of the bridge.",`checks.X.eats`
+x454-20261017-073220,session,the driver's text,Written before the run; not a reading.,
+x454-20261017-073220,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x454-20261017-073220,constants,the lib's constants,The driver's settings; not a reading.,
+x454-20261017-073220,memory,host free memory rows,"Host state, not a game reading.",
+x454-20261017-073220,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x454-20261017-073220,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x454-20261017-073220,verdicts.ONSET,falsified,"Falsified on the row-before clause: the ring's flag shows one row after the minute that set it; the rows are the reading.",`minute-ring-admin-1.json` rows 25-28
+x454-20261017-073220,verdicts.PAIRS_hungry,falsified,"One client read a fraction of a second ahead of the server reads inside the window's slack; not a reading of the sync.",`verdicts.PAIRS_hungry.observed.mismatches`
