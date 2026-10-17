@@ -358,7 +358,7 @@ end
 -- The dehydration row at Bands: the body-water deficit in per cent of body mass to one decimal, only above DEHYD_SHOW
 -- (a figure that is not a finite number shows nothing). Vanilla's thirst moodle, reaching Parched, is the signal
 -- (decisions item 10e); this row is its figure.
-K.view.DEHYD_SHOW = 1 -- per cent: shown only above it (Plan 15 Task 9 amendments section 5); game choice (spec section 4's dehydration line; not yet a spec section 10 item, carried to Task 14), under the 1.5 % the effects table's first dehydration band starts at (S0098)
+K.view.DEHYD_SHOW = 1 -- per cent: shown only above it (Plan 15 Task 9 amendments section 5); game choice (spec section 4's dehydration line; spec section 10: display), under the 1.5 % the effects table's first dehydration band starts at (S0098)
 function K.view.dehydRow(rows, pct)
     if not K.finite(pct) or pct <= K.view.DEHYD_SHOW then
         return
@@ -621,7 +621,7 @@ end
 -- FILL_MIN_H "... under half an hour", at FILL_CAP_H or more "... more than FILL_CAP_H h". Per whole item (fix 1, L3). The row's
 -- sep is the separator the client joins its label and text with. Nothing for an hours or a kcal that is not a finite
 -- number.
-K.view.FILL_MIN_H = 0.5 -- game choice (spec section 4's tooltip line, decisions item 4; not yet a spec section 10 item, carried to Task 14): the shown half-hour step; under it the item reads under half an hour
+K.view.FILL_MIN_H = 0.5 -- game choice (spec section 4's tooltip line, decisions item 4; spec section 10: display): the shown half-hour step; under it the item reads under half an hour
 K.view.FILL_CAP_H = 24 -- the replay's horizon in game hours (tools/food_fills.py CAP_H), no row needed
 
 function K.view.fillRow(out, hours, kcal)

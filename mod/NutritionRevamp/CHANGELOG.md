@@ -18,6 +18,25 @@ The first release, for game build 42.21 and newer (`versionMin=42.21`, no maximu
 - **Records:** each player's record kept in files under the server's cache folder, written at most once a real minute and after each eat, drink or respawn, and pruned after `NR.RecordKeepDays` real days offline; a player's time offline is skipped, not simulated: no sleep debt, monotony fade or nicotine-quit progress builds while away; no record day closes while a player is away, so the body, training and Strength stand still.
 - **Self-report:** one line on each side at boot, and a boot warning when Nutrition Makes Sense is also loaded.
 
+### Game feel (since 2026-10-13, before the first upload)
+
+The mod now plays alongside the game's own rhythm: hunger and thirst follow vanilla's pace and moodles, and the deadly states take health as damage to a floor instead of a hidden clock.
+
+- **Hunger on vanilla's rhythm:** a satisfying meal reads as fed, and Peckish and Hungry come back on about vanilla's schedule through the day; a hunger level steps down only once hunger is a little under its threshold, so a moodle no longer flickers.
+- **Starving and Parched show again:** in Managed mode the top Hungry and Thirsty moodles appear when the body truly starts to starve (about thirty hours without food, near vanilla's time) or reaches a 4 % body-water deficit (about 32 hours without water at rest). While they show, the game's own starvation and thirst health loss is off for that player, and the mod puts back the game's other health losses that share that setting (sickness, bleeding, heavy load, weight under 35 kg).
+- **Health drains to a floor, not a death clock:** starvation, dehydration, clinical scurvy, beriberi and pellagra, very low blood sodium and an iron overdose each drain health at their own pace to a floor, first half health, that deepens only as the state worsens and reaches zero at the state's real death point: starvation at a BMI of 12 (about two months with water), dehydration at a 17 % deficit (under a week), beriberi about five weeks after it turns clinical, scurvy after 90 days and pellagra after 180. Floors stay above the level where the game wakes a sleeper until the last stage. While a drain runs, regeneration and the food heal pause and wounds still mend toward the floor. The `NR.DeficienciesCanKill` option is gone: the drains always run.
+- **Snacks and starvation:** eating 600 kcal or less over the last three to four days keeps a starving body Starving between meals, and only a real meal or snack of about 200 kcal or more ends the state; a floret an hour no longer does.
+- **Starvation in phases:** weakness first, then cold intolerance and slower healing from about day 3, then infections and low mood from about day 14.
+- **Water by body size:** basic water loss is about 2 litres a day for the average body and more for a bigger one. High Thirst raises it by half and Low Thirst halves it; the game's stat-speed option scales it too.
+- **Thiamine:** beriberi now turns clinical after about six weeks with none eaten.
+- **Fullness by weight and volume:** an airy food fills a little more than its weight alone; drinks count at their own weight in the stomach.
+- **Overfull has teeth:** the third step slows the body like a heavy load; at the fourth the character feels queasy and the game's own refusal stops the next eat until the stomach empties (water stays allowed). No vomiting.
+- **Well Fed:** a satisfying meal shows vanilla's Well Fed for about half an hour with a gentle heal, at every day length.
+- **The interface:** the Energy and Hydration moodles are gone; the Deficiency moodle reads only nutrients whose shortage has an effect; a new option hides the first level of the Stimulant, Sleep and Excess moodles; the panel adds a line for each health-draining state, a weight trend (losing, steady or gaining) and the dehydration per cent; the food tooltip now opens with about how long a whole one fills you, in place of vanilla's hunger line; monotony's mood floor no longer flickers at its edge.
+- **Coffee, beer and hangovers:** a new option, `NR.StimulantRealism`, Game (the default) or Realistic. Game: a cup eases fatigue about twice as much as vanilla's, four beers within an hour reach about vanilla's first Drunk level, and the hangover is mild and short. Realistic keeps the stronger pharmacological sizes. Timing follows the science in both.
+- **A fresh start:** a new character eats a fresh plate of ordinary food before the mod's first minute, so its first hunger reads like the game's own spawn.
+- **Overlay:** vanilla's own starvation and thirst deaths run there as in the base game; the mod's starvation and dehydration drains do not, and its other drains still do.
+
 ### Compatibility
 
 The full table is `COMPATIBILITY.md`. In short:

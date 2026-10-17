@@ -98,7 +98,7 @@ NR.client.tooltip = {
     INSET = 8, -- the text's left inset inside the band
     BG = { r = 0, g = 0, b = 0, a = 0.8 }, -- the frame's fill when the panel carries no backgroundColor
     BORDER = { r = 0.4, g = 0.4, b = 0.4, a = 1 }, -- the frame's border when the panel carries no borderColor
-    FILL_TOL = 0.10, -- the share the item's whole-item kcal may differ from the fill table's before the fill line is left out; game choice (spec section 4's tooltip line; not yet a spec section 10 item, carried to Task 14)
+    FILL_TOL = 0.10, -- the share the item's whole-item kcal may differ from the fill table's before the fill line is left out; game choice (spec section 4's tooltip line; spec section 10: display)
     pending = nil, -- the tag set T.hide added the hide tag to, until T.unhide takes it off
 }
 local T = NR.client.tooltip
