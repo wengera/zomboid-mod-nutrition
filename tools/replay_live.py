@@ -377,14 +377,17 @@ function NR_R.eatItem(user, spec)
     NR_R.record(user)
     return IN.readAfterAndLand(b)
 end
--- a vector landed as the intake lands one (IN.land), monotony booked for a food lane's type (IN.atEat)
+-- a vector landed as the intake lands one (IN.land), monotony booked for a food lane's type (IN.atEat); a food lane's
+-- type also brings its plate volume (IN.volumeOf, Plan 15 Task 7), as the server's eat does
 function NR_R.landVec(user, src, lane, fullType, foodType)
     local NR = NutritionRevamp
     local K = NR.kernel
     local rec = NR_R.record(user)
     local v = K.vector.new()
     for k, x in pairs(src) do v[k] = x end
-    NR.server.intake.land(rec, user, v, lane)
+    local ml = nil
+    if lane ~= "liquid" and fullType ~= nil then ml = NR.server.intake.volumeOf(fullType) end
+    NR.server.intake.land(rec, user, v, lane, ml)
     if lane ~= "liquid" and fullType ~= nil then
         NR.server.intake.atEat(rec, { fullType = fullType, foodType = foodType, char = NR_T.chars[user],
                                       username = user }, v.calories)

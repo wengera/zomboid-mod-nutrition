@@ -68,13 +68,19 @@ function K.stomach.new()
     local stomach = {}
     stomach.buffer = K.vector.new()
     stomach.liquid = 0
+    stomach.volX = 0
     return stomach
 end
 
--- A food into the solid buffer, its water with it (a food's water stays with the food, spec § 3.1); returns the
+-- A food into the solid buffer, its water with it (a food's water stays with the food, spec § 3.1). mlPerG is the
+-- food's plate volume per gram (NR.data.volume.get; nil adds nothing, as 1.0): its volume excess (mlPerG - 1) x the
+-- vector's mass joins stomach.volX, grams the satiety mass weighs at K.satiety.BETA (Plan 15 Task 7). Returns the
 -- stomach.
-function K.stomach.ingest(stomach, vector)
+function K.stomach.ingest(stomach, vector, mlPerG)
     K.vector.add(stomach.buffer, vector, 1)
+    if mlPerG ~= nil then
+        stomach.volX = stomach.volX + (mlPerG - 1) * K.stomach.massOf(vector)
+    end
     return stomach
 end
 
@@ -252,7 +258,8 @@ end
 
 -- Empty both lanes over dtH game hours: the solid fraction of every buffered key and the liquid lane's share of its
 -- water move out as a fresh vector (the liquid's share added to its water); the buffer and the lane keep the rest.
--- The solid lane's energy before the step sets both fractions.
+-- The solid lane's energy before the step sets both fractions. The volume excess stomach.volX leaves at the solid
+-- fraction, with the solids it rode in on (Plan 15 Task 7).
 function K.stomach.drain(stomach, dtH)
     local dtM = dtH * 60
     local energy = stomach.buffer.calories
@@ -267,15 +274,17 @@ function K.stomach.drain(stomach, dtH)
     local liquid = stomach.liquid
     local lw = liquid * fl
     stomach.liquid = liquid - lw
+    stomach.volX = stomach.volX * (1 - f)
     emptied.water = emptied.water + lw
     return emptied
 end
 
--- The hunger-relevant mass (structure D): the solid lane's mass plus K.satiety.LIQUID_WEIGHT x the
+-- The hunger-relevant mass (structure D): the solid lane's mass plus K.satiety.BETA x its volume excess (stomach.volX,
+-- Plan 15 Task 7: an airy food fills a little more than its weight) plus K.satiety.LIQUID_WEIGHT x the
 -- liquid lane, drunk liquid counting at LIQUID_WEIGHT (S1231's null for water drunk alongside; S1233's drink volumes). The
--- satiety reads it alone, inside K.stomach.fullnessMass (the writer's F, W.satietyF: it plus the protein term); the physical fill (K.stomach.fill) and the soft cap read K.stomach.mass, both lanes whole (S1250).
+-- satiety reads it alone, inside K.stomach.fullnessMass (the writer's F, W.satietyF: it plus the protein term); the physical fill (K.stomach.fill) and the soft cap read K.stomach.mass, both lanes whole (S1250), never volX (ruling T6c-1).
 function K.stomach.satietyMass(stomach)
-    return K.stomach.massOf(stomach.buffer) + K.satiety.LIQUID_WEIGHT * stomach.liquid
+    return K.stomach.massOf(stomach.buffer) + K.satiety.BETA * stomach.volX + K.satiety.LIQUID_WEIGHT * stomach.liquid
 end
 
 -- The fill a reader takes from a record (the mirror; the gates read recordFoodFill):

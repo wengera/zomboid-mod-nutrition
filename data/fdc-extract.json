@@ -10543,6 +10543,175 @@
     }
    ]
   },
+  "168878": {
+   "data_type": "sr_legacy_food",
+   "description": "Rice, white, long-grain, regular, enriched, cooked",
+   "food_category": "Cereal Grains and Pasta",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 10.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 130.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 28.17,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 0.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 2.1,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 0.075,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 0.4,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 97.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 1.2,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 0.28,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 12.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 1.476,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 35.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 2.69,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.013,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 7.5,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 1.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.163,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.0,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.093,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 0.04,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 0.0,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 68.44,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 0.49,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 1.0,
+     "gram_weight": 158.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup",
+     "seq_num": 1
+    }
+   ]
+  },
   "168894": {
    "data_type": "sr_legacy_food",
    "description": "Wheat flour, white, all-purpose, enriched, bleached",
@@ -17353,6 +17522,231 @@
      "measure_unit": "undetermined",
      "modifier": "cup lasagna",
      "seq_num": 8
+    }
+   ]
+  },
+  "169737": {
+   "data_type": "sr_legacy_food",
+   "description": "Pasta, cooked, enriched, without added salt",
+   "food_category": "Cereal Grains and Pasta",
+   "nutrients": {
+    "caffeine": {
+     "amount": 0.0,
+     "nutrient_id": 1057,
+     "unit": "MG"
+    },
+    "calcium": {
+     "amount": 7.0,
+     "nutrient_id": 1087,
+     "unit": "MG"
+    },
+    "calories": {
+     "amount": 158.0,
+     "nutrient_id": 1008,
+     "unit": "KCAL"
+    },
+    "carbs": {
+     "amount": 30.86,
+     "nutrient_id": 1005,
+     "unit": "G"
+    },
+    "carotene": {
+     "amount": 0.0,
+     "nutrient_id": 1107,
+     "unit": "UG"
+    },
+    "choline": {
+     "amount": 6.4,
+     "nutrient_id": 1180,
+     "unit": "MG"
+    },
+    "efa": {
+     "amount": 0.319,
+     "nutrient_id": [
+      1269,
+      1270
+     ],
+     "unit": "G"
+    },
+    "ethanol": {
+     "amount": 0.0,
+     "nutrient_id": 1018,
+     "unit": "G"
+    },
+    "fibre": {
+     "amount": 1.8,
+     "nutrient_id": 1079,
+     "unit": "G"
+    },
+    "folate": {
+     "amount": 119.0,
+     "nutrient_id": 1190,
+     "unit": "UG"
+    },
+    "iodine": {
+     "amount": null,
+     "nutrient_id": 1100,
+     "unit": "UG"
+    },
+    "iron": {
+     "amount": 1.28,
+     "nutrient_id": 1089,
+     "unit": "MG"
+    },
+    "lipids": {
+     "amount": 0.93,
+     "nutrient_id": 1004,
+     "unit": "G"
+    },
+    "magnesium": {
+     "amount": 18.0,
+     "nutrient_id": 1090,
+     "unit": "MG"
+    },
+    "niacin": {
+     "amount": 1.689,
+     "nutrient_id": 1167,
+     "unit": "MG"
+    },
+    "potassium": {
+     "amount": 44.0,
+     "nutrient_id": 1092,
+     "unit": "MG"
+    },
+    "proteins": {
+     "amount": 5.8,
+     "nutrient_id": 1003,
+     "unit": "G"
+    },
+    "retinol": {
+     "amount": 0.0,
+     "nutrient_id": 1105,
+     "unit": "UG"
+    },
+    "riboflavin": {
+     "amount": 0.136,
+     "nutrient_id": 1166,
+     "unit": "MG"
+    },
+    "selenium": {
+     "amount": 26.4,
+     "nutrient_id": 1103,
+     "unit": "UG"
+    },
+    "sodium": {
+     "amount": 1.0,
+     "nutrient_id": 1093,
+     "unit": "MG"
+    },
+    "thiamine": {
+     "amount": 0.274,
+     "nutrient_id": 1165,
+     "unit": "MG"
+    },
+    "vitB12": {
+     "amount": 0.0,
+     "nutrient_id": 1178,
+     "unit": "UG"
+    },
+    "vitB6": {
+     "amount": 0.049,
+     "nutrient_id": 1175,
+     "unit": "MG"
+    },
+    "vitC": {
+     "amount": 0.0,
+     "nutrient_id": 1162,
+     "unit": "MG"
+    },
+    "vitD": {
+     "amount": 0.0,
+     "nutrient_id": 1114,
+     "unit": "UG"
+    },
+    "vitE": {
+     "amount": 0.06,
+     "nutrient_id": 1109,
+     "unit": "MG"
+    },
+    "vitK": {
+     "amount": 0.0,
+     "nutrient_id": 1185,
+     "unit": "UG"
+    },
+    "water": {
+     "amount": 62.13,
+     "nutrient_id": 1051,
+     "unit": "G"
+    },
+    "zinc": {
+     "amount": 0.51,
+     "nutrient_id": 1095,
+     "unit": "MG"
+    }
+   },
+   "portions": [
+    {
+     "amount": 1.0,
+     "gram_weight": 124.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup spaghetti not packed",
+     "seq_num": 1
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 151.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup spaghetti packed",
+     "seq_num": 2
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 120.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup elbows not packed",
+     "seq_num": 3
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 132.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup elbows packed",
+     "seq_num": 4
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 107.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup penne",
+     "seq_num": 5
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 107.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup farfalle",
+     "seq_num": 6
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 107.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup rotini",
+     "seq_num": 7
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 105.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup shells",
+     "seq_num": 8
+    },
+    {
+     "amount": 1.0,
+     "gram_weight": 116.0,
+     "measure_unit": "undetermined",
+     "modifier": "cup lasagne",
+     "seq_num": 9
     }
    ]
   },
@@ -63893,7 +64287,7 @@
   "counts": {
    "cookable_without_code": 33,
    "defective_retention_rows": 24,
-   "foods": 350,
+   "foods": 352,
    "insect_rows": 10,
    "iodine_rows": 46,
    "missing_nutrients": {
@@ -64189,6 +64583,7 @@
      168820,
      168833,
      168877,
+     168878,
      168894,
      168932,
      168998,
@@ -64226,6 +64621,7 @@
      169670,
      169677,
      169736,
+     169737,
      169742,
      169765,
      169773,
@@ -64844,7 +65240,7 @@
     ]
    }
   },
-  "generated": "2026-10-08",
+  "generated": "2026-10-17",
   "jar_hash": "4a0e9546ec",
   "sources": [
    {

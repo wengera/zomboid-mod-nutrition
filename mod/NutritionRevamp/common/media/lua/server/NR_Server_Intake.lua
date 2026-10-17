@@ -205,7 +205,7 @@ end
 -- lands the water in the liquid lane, anything else lands as food -- and the meal pool M is fed with it.
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
-function IN.land(record, username, vec, lane)
+function IN.land(record, username, vec, lane, mlPerG)
     IN.landed[username] = true                     -- the writer's sip fold skips this minute (Plan 11 ruling 7)
     if NR.server.store ~= nil and NR.server.store.mark ~= nil then NR.server.store.mark(username) end -- saved at the next store step (ruling T20-1)
     IN.addIngested(username, vec)
@@ -225,7 +225,7 @@ function IN.land(record, username, vec, lane)
     if lane == "liquid" then
         K.stomach.ingestLiquid(record.stomach, vec)
     else
-        K.stomach.ingest(record.stomach, vec)
+        K.stomach.ingest(record.stomach, vec, mlPerG)
     end
     IN.feed(record, vec)
     return vec
@@ -476,7 +476,7 @@ function IN.readAfterAndLand(b)
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
-    IN.land(record, b.username, vec)
+    IN.land(record, b.username, vec, nil, IN.volumeOf(b.fullType))
     IN.atEat(record, b, vec.calories)                      -- monotony (Plan 11e, rulings 11e-1, T3-3): mood, never hunger
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred }
@@ -910,3 +910,13 @@ function IN.monotony(record, b, kcal)
 end
 
 IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart; an eat counts as its landed kcal over a 400 kcal meal-sized portion, at most one, so an eat with no energy books nothing and a small snack counts a sliver of a meal; drinks and world water book no monotony; monotony is a self-releasing floor, not an add at the eat: the writer holds UNHAPPINESS and BOREDOM up to the most repeated type's level once a minute, a game choice anchored on vanilla's stale item and capped at 30, so a one-food diet alone shows the level-1 Unhappy and Bored moodles and stays under Bored level 2, where a staple (FoodType Bread, Rice or Pasta, or a named potato, oat, bread or plain-pasta type) holds a quarter of it, so a repeat shows at the next minute and rises at the floor's rate; as the counts decay the floor fades to 0 with no step at the 7-day window, a fall under 0.05 held to the next write, and its release lowers the stat by the target's fall even when another source also raised it; vanilla resets BOREDOM while PANIC above 5, the mod's own dehydration panic floor included, so monotony's BOREDOM floor is wiped while the character panics"
+
+-- Plan 15 Task 7: the eaten item's plate volume per gram (NR.data.volume, the SR Legacy household measures, S2212),
+-- which K.stomach.ingest turns into the satiety mass's volume excess; 1.0 (no excess) for a type with no entry, a
+-- type that is not a string or no volume table. One Lua table read per eat, no Java call.
+function IN.volumeOf(fullType)
+    if type(fullType) ~= "string" or NR.data == nil or NR.data.volume == nil then return 1.0 end
+    return NR.data.volume.get(fullType)
+end
+
+IN.limitations[#IN.limitations + 1] = "a food fills by its weight plus 0.05 of its plate volume beyond its weight (a game choice), the volume being the eaten item's own type's household measure: an evolved dish reads its base type's whatever went into it, a food with no measure in the source (bread rolls, buns, crisps, crackers, most meat) or one the item pass does not map fills by weight alone, and drinks, world water and the reconcile path add no volume"

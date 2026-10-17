@@ -33,9 +33,9 @@ K.store.INPUTS = {
     -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
     "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1); nicH: the world age at the last minute the server's NICOTINE_WITHDRAWAL read 0 or fell, the nicotine fade's anchor (Plan 11e, ruling T2-A)
     -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
-    -- solid buffer (ingest and ingestLiquid add, drain empties), the absorbed pool (toPool accumulates; a diagnostic
-    -- no step reads back, kept because it cannot be rebuilt)
-    "kineticsAge", "stomach.liquid", "stomach.buffer.*", "pool.*",
+    -- solid buffer (ingest and ingestLiquid add, drain empties), the buffer's volume excess volX (ingest adds, drain
+    -- empties), the absorbed pool (toPool accumulates; a diagnostic no step reads back, kept because it cannot be rebuilt)
+    "kineticsAge", "stomach.liquid", "stomach.volX", "stomach.buffer.*", "pool.*",
     -- nutrients, per key (K.nutrients.minute, K.interact.two): the pools p and p2; the grade g, which the
     -- next minute reads as gradeHyst's previous grade, and gl, the grade it left; ah, the hours at the grade
     -- (the scurvy, beriberi and pellagra onsets read g == 4 with ah, so a dropped g would re-zero them); the

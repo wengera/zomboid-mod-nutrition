@@ -27,6 +27,8 @@ never on the display name (231 of the 1 005 item records share a name).
 | `confidence` | `exact`, `close`, `proxy`, `guess` (the rubric in the Plan 6 briefing § C) |
 | `portion_grams` | the mass the item's numbers describe; never derived from `Weight` |
 | `portion_source` | `vanilla_implied`, `fdc_portion:<seq_num>`, `judgement` (ruling 4) |
+| `ml_per_g` | the plate volume per gram (mL/g) the satiety mass reads (Plan 15 Task 7); set on every row with an `fdc_id`, read off `volume_source`'s portion at four decimals (the build refuses a cell that disagrees); `1.0` on `fluid` and `none`; a value below 1.0 stays as read |
+| `volume_source` | `fdc_portion:<seq_num>` (the row's own id's household measure), `fdc_portion:<fdc_id>:<seq_num>` (another SR Legacy id's: a state match such as the pot pasta and rice reading the cooked ids 169737 and 168878, or a family judgement its note labels), `fluid` (a fluid record) or `none` (no volume measure); `--fill-volume` writes the empty cells (the first plain cup, never crumbs, crushed or packed), never a filled one |
 | `cook_retention_code` | a `Retn_Code` of `NutrientRetention.csv`; only on an `IsCookable` record |
 | `state_baseline` | `raw`, `cooked`, `canned`, `dried`, `frozen`, `prepared` — the state as spawned (ruling 5) |
 | `iodine_ref` | the row of `data/iodine-db-r4.csv` the food's iodine comes from (ruling 8) |

@@ -349,9 +349,9 @@ REPO = os.path.dirname(TOOLS)
 DATASET_JSON = os.path.join(REPO, "data", "food-items.json")
 MAP_DIR = os.path.join(REPO, "data", "food-nutrient-map")
 
-MAP_COLUMNS = ("pz_id", "pz_display", "pz_kind", "family", "fdc_id", "fdc_source", "fdc_description",
-               "confidence", "portion_grams", "portion_source", "cook_retention_code", "state_baseline",
-               "iodine_ref", "phytate_mg_100g", "phytate_source", "no_nutrition_reason", "notes")
+MAP_COLUMNS = ("pz_id", "pz_display", "pz_kind", "family", "fdc_id", "fdc_source", "fdc_description", "confidence",
+               "portion_grams", "portion_source", "ml_per_g", "volume_source", "cook_retention_code", "state_baseline",
+               "iodine_ref", "phytate_mg_100g", "phytate_source", "no_nutrition_reason", "notes")   # volume: Plan 15 T7
 MAP_PARTS = ("produce", "grains-legumes", "meat-fish-egg-dairy", "manufactured", "fluids", "no-nutrition")
 
 FDC_SOURCES = ("sr_legacy", "foundation", "iodine_db_r4", "literature", "derived", "composite")
@@ -617,6 +617,7 @@ def _row_violations(row, record, allow_unfilled):
         out.append("%s %s: portion_grams %r is not a positive number" % (where, pz_id, row["portion_grams"]))
     if row["phytate_mg_100g"] and not _is_number(row["phytate_mg_100g"]):
         out.append("%s %s: phytate_mg_100g %r is not a number >= 0" % (where, pz_id, row["phytate_mg_100g"]))
+    out += volume_violations(row)
     return out
 
 
@@ -1135,7 +1136,7 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
     if unsupported:
         raise ExtractRefused("fdc_source %s: the extract resolves only %s"
                              % (", ".join(unsupported), ", ".join(EXTRACT_SOURCES)))
-    sr_ids = sorted({int(fid) for r in mapped for fid in _sr_ids_of(r)})
+    sr_ids = sorted({int(fid) for r in mapped for fid in _sr_ids_of(r) + volume_ids(r)})   # the volume ids: T7
     codes = sorted({int(r["cook_retention_code"]) for r in rows if r["cook_retention_code"]})
     iodine_keys = sorted({ref[len(IODINE_PREFIX):] for r in rows for ref in ref_cells(r, "iodine_ref")})
     families = sorted({src[len(prefix):] for r in rows for src in ref_cells(r, "phytate_source")
@@ -1296,10 +1297,10 @@ REBASE_BANDS = ((None, 0.5, "<0.5"), (0.5, 0.8, "0.5-0.8"), (0.8, 0.95, "0.8-0.9
 VANILLA_FIELDS = (("calories", "calories"), ("carbohydrates", "carbohydrates"), ("lipids", "lipids"),
                   ("proteins", "proteins"), ("hunger", "hunger_change"), ("thirst", "thirst_change"))
 RECORD_STRINGS = ("family", "fdc_id", "fdc_source", "fdc_description", "confidence", "state_baseline",
-                  "portion_source", "iodine_ref", "phytate_source", "no_nutrition_reason", "notes")
+                  "portion_source", "volume_source", "iodine_ref", "phytate_source", "no_nutrition_reason", "notes")
 CSV_HEAD = ("pz_id", "kind", "basis", "family", "fdc_id", "fdc_source", "fdc_description", "confidence",
-            "state_baseline", "cook_retention_code", "portion_grams", "portion_source", "iodine_ref",
-            "phytate_source", "no_nutrition_reason")
+            "state_baseline", "cook_retention_code", "portion_grams", "portion_source", "ml_per_g", "volume_source",
+            "iodine_ref", "phytate_source", "no_nutrition_reason")
 CSV_CHECKS = ("atwater_ratio", "atwater_outlier", "energy_vs_fdc_ratio", "proximate_sum", "fibre_le_carb",
               "retention_le_100", "out_of_range", "check_notes")
 CSV_COLUMNS = (CSV_HEAD + tuple("vanilla_" + name for name, _col in VANILLA_FIELDS) + KEYS
@@ -1493,6 +1494,7 @@ def build_record(row, record, extract):
         out[col] = row[col] or None
     out["cook_retention_code"] = int(row["cook_retention_code"]) if row["cook_retention_code"] else None
     out["portion_grams"] = float(row["portion_grams"]) if row["portion_grams"] else None
+    out["ml_per_g"] = float(row["ml_per_g"]) if row["ml_per_g"] else None
     out["vanilla"] = {name: record.get(col) for name, col in VANILLA_FIELDS}
     notes = []
     if not row["fdc_id"]:
@@ -1604,6 +1606,7 @@ def build_counts(records, rows, check_counts, dataset_ids):
         "by_state_baseline": _tally(r["state_baseline"] for r in mapped),
         "by_reason": _tally(r["no_nutrition_reason"] for r in records),
         "by_portion_source": portion,
+        "by_volume_source": _tally((r["volume_source"] or "").split(":")[0] for r in mapped),
         "cook_retention_set": sum(1 for r in records if r["cook_retention_code"] is not None),
         "cookable_without_code": check_counts["cookable_without_code"],
         "atwater_checked": sum(1 for r in mapped if r["checks"]["atwater_ratio"] is not None),
@@ -1665,6 +1668,9 @@ def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
     if stale:
         raise BuildRefused("the extract does not hold %d citation(s) (re-run --build-extract): %s"
                            % (len(stale), "; ".join(stale[:5])))
+    volume = volume_refusals(rows, extract)
+    if volume:
+        raise BuildRefused("the volume cells do not check (%d): %s" % (len(volume), "; ".join(volume[:5])))
     with open(dataset_path, encoding="utf-8") as handle:
         dataset = json.load(handle)
     records = load_dataset(dataset_path)
@@ -1878,7 +1884,7 @@ def emit_lua(data):
     text += "}\n\n-- Per-litre fluid vectors (data/food-nutrients.json `per_litre`).\nlocal FLUIDS = {\n"
     text += "".join(_lua_entry(r["pz_id"], r["per_litre"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"])) + "\n"
                     for r in fluids)
-    text += "}\n\n" + LUA_LOADERS
+    text += "}\n\n" + LUA_LOADERS + emit_volume(data)
     text += "\n-- %d items, %d fluids, %d keys\n" % (len(items), len(fluids), len(KEYS))
     return text
 
@@ -2129,6 +2135,8 @@ def main(argv=None):
                         help="every generated file against a fresh build and emission; exit 1 on a difference")
     parser.add_argument("--write", action="store_true",
                         help="regenerate everything: --build, then every emitter")
+    parser.add_argument("--fill-volume", action="store_true",
+                        help="write the empty ml_per_g and volume_source cells of the mapping from the extract")
     args = parser.parse_args(argv)
     if args.check:
         try:
@@ -2166,6 +2174,13 @@ def main(argv=None):
                 write_text(INFER_PATH, text)
                 print("%s (%d bytes)" % (INFER_PATH, len(text.encode("utf-8"))))
         except EmitRefused as refused:
+            print("REFUSED " + str(refused), file=sys.stderr)
+            return 1
+        return 0
+    if args.fill_volume:
+        try:
+            fill_volume(args.map_dir, args.extract)
+        except ExtractRefused as refused:
             print("REFUSED " + str(refused), file=sys.stderr)
             return 1
         return 0
@@ -2223,6 +2238,209 @@ def check_sr_legacy_descriptions(rows, records):
 
 
 MAP_REF_CHECKS.append(check_sr_legacy_descriptions)
+
+
+# ---- volume ----
+#
+# Plan 15 Task 7: each mapped food's plate volume per gram, `ml_per_g`, from the SR Legacy household measures
+# (food_portion.csv, S2212), which the satiety mass reads at a small weight (K.satiety.BETA; the physical stomach stays
+# on mass). Two mapping cells carry it, `ml_per_g` and `volume_source`:
+#   fdc_portion:<seq_num>           the row's own fdc_id's portion of that seq_num;
+#   fdc_portion:<fdc_id>:<seq_num>  another SR Legacy id's portion: a state match (the pot and pan pasta and rice read
+#                                   the cooked ids 169737 and 168878) or a labelled family judgement (its note says so);
+#   fluid                           a fluid record (per litre, drunk into the liquid lane): 1.0;
+#   none                            no volume measure the parse accepts: 1.0.
+# The parse (the volume report's section 4): `measure_unit_id` is 9999 ("undetermined") on every row, so the unit lives
+# in the modifier text; a count written before the unit multiplies it (`serving 8 fl oz` at 237 g is 8 fl oz, 0.998
+# mL/g, not 0.125), `amount` multiplies as well, and a modifier naming a yield, a prepared or a packaged form is refused
+# (its grams are not the measure's). The fill prefers the first plain cup as served: a measure whose modifier says
+# crumbs, crushed, ground, grated, pureed, mashed, melted, powder or packed (`not packed` is plain) is passed over, then
+# the first plain measure in another unit. A value below 1.0 (bolognese, 0.962) stays as read. The build re-reads every
+# fdc_portion cell from the extract and refuses a cell that disagrees at four decimals; `--fill-volume` writes the empty
+# cells, never a filled one.
+
+VOLUME_UNIT_ML = (("fl oz", 29.5735), ("cup", 236.588), ("tablespoon", 14.7868), ("tbsp", 14.7868),
+                  ("teaspoon", 4.92892), ("tsp", 4.92892), ("ml", 1.0), ("liter", 1000.0), ("litre", 1000.0),
+                  ("pint", 473.176), ("quart", 946.353), ("gallon", 3785.41))   # US customary, mL
+VOLUME_UNIT_RE = re.compile(r"(?:(\d+(?:\.\d+)?(?:/\d+)?)\s*)?\b(fl oz|cups?|tbsp|tablespoons?|tsp|teaspoons?|ml|"
+                            r"liters?|litres?|pints?|quarts?|gallons?)\b")
+VOLUME_REFUSE_RE = re.compile(r"yield|prepared|package|makes")
+VOLUME_AVOID_RE = re.compile(r"crumb|crush|ground|grated|pureed|mashed|melted|powder|(?<!not )\bpacked")
+VOLUME_CUP_RE = re.compile(r"\bcups?\b")
+VOLUME_SOURCES = ("fluid", "none")                                      # plus the two fdc_portion forms
+VOLUME_FDC_RE = re.compile(r"^fdc_portion:(?:(\d+):)?(\d+)$")
+VOLUME_DECIMALS = 4
+
+
+def portion_ml(portion):
+    """The millilitres a food_portion row measures (`amount` x the count before the unit x the unit's mL), or None
+    when its modifier names no volume unit or a refused form."""
+    text = (portion.get("modifier") or "").lower()
+    if VOLUME_REFUSE_RE.search(text):
+        return None
+    hit = VOLUME_UNIT_RE.search(text)
+    if not hit:
+        return None
+    count, unit = hit.group(1), hit.group(2)
+    n = 1.0
+    if count:
+        num, _sep, den = count.partition("/")
+        n = float(num) / float(den) if den else float(num)
+    unit_ml = [ml for name, ml in VOLUME_UNIT_ML if unit.startswith(name)][0]
+    return (portion.get("amount") or 0.0) * n * unit_ml
+
+
+def portion_ml_per_g(portion):
+    """mL per gram of a portion row at VOLUME_DECIMALS, or None (no volume, or no gram weight)."""
+    ml, grams = portion_ml(portion), portion.get("gram_weight")
+    if ml is None or not grams:
+        return None
+    return round(ml / grams, VOLUME_DECIMALS)
+
+
+def preferred_volume(portions):
+    """`(seq_num, ml_per_g)` of the portion the fill takes: the first plain cup, else the first plain measure in
+    another unit, an avoided form (VOLUME_AVOID_RE) never; None when there is none."""
+    plain = [p for p in portions if portion_ml_per_g(p) is not None
+             and not VOLUME_AVOID_RE.search((p.get("modifier") or "").lower())]
+    cups = [p for p in plain if VOLUME_CUP_RE.search(p["modifier"].lower())]
+    for p in cups + plain:
+        return p["seq_num"], portion_ml_per_g(p)
+    return None
+
+
+def volume_ref(row):
+    """`(fdc_id, seq_num)` an fdc_portion volume_source names (the row's own fdc_id when it names none), or None."""
+    match = VOLUME_FDC_RE.match(row.get("volume_source") or "")
+    if not match:
+        return None
+    return (match.group(1) or row["fdc_id"]), int(match.group(2))
+
+
+def volume_ids(row):
+    """The SR Legacy ids a row's volume_source cites beyond its own fdc_id (the extract carries their portions)."""
+    ref = volume_ref(row)
+    return [ref[0]] if ref is not None and ref[0] != row["fdc_id"] else []
+
+
+def volume_violations(row):
+    """The volume cells' own rules: only on a mapped row, ml_per_g never without its source (a source alone awaits
+    --fill-volume; the build refuses it), the grammar, a positive number, 1.0 on `fluid` and `none`, and `fluid` on a
+    fluid record and nowhere else."""
+    where, pz_id, ml, src = _where(row), row["pz_id"], row["ml_per_g"], row["volume_source"]
+    if not ml and not src:
+        return []
+    out = []
+    if not row["fdc_id"]:
+        out.append("%s %s: volume cells on a row with no fdc_id" % (where, pz_id))
+    if ml and not src:
+        out.append("%s %s: ml_per_g without volume_source" % (where, pz_id))   # a source alone awaits --fill-volume
+    if src and src not in VOLUME_SOURCES and not VOLUME_FDC_RE.match(src):
+        out.append("%s %s: volume_source %r is not in the enum" % (where, pz_id, src))
+    if ml and not _is_number(ml, positive=True):
+        out.append("%s %s: ml_per_g %r is not a positive number" % (where, pz_id, ml))
+    elif ml and src in VOLUME_SOURCES and float(ml) != 1.0:
+        out.append("%s %s: volume_source %s reads 1.0, not %s" % (where, pz_id, src, ml))
+    if src and (src == "fluid") != (row["pz_kind"] == "fluid"):
+        out.append("%s %s: volume_source fluid is a fluid record's, and a fluid record's only" % (where, pz_id))
+    return out
+
+
+def volume_refusals(rows, extract):
+    """The build's volume refusals: a mapped row without its volume cells, and an fdc_portion cell the extract does not
+    hold, that does not parse as a volume or that reads another value at VOLUME_DECIMALS."""
+    out = []
+    for r in rows:
+        if not r["fdc_id"]:
+            continue
+        if not r["ml_per_g"] or not r["volume_source"]:
+            out.append("%s %s: an fdc_id without ml_per_g and volume_source" % (_where(r), r["pz_id"]))
+            continue
+        ref = volume_ref(r)
+        if ref is None:
+            continue
+        got = _portion_volume(extract, ref)
+        if got is None:
+            out.append("%s %s: volume_source %s names no volume portion in the extract"
+                       % (_where(r), r["pz_id"], r["volume_source"]))
+        elif abs(got - float(r["ml_per_g"])) > 0.5 * 10 ** -VOLUME_DECIMALS:
+            out.append("%s %s: ml_per_g %s, the portion reads %s" % (_where(r), r["pz_id"], r["ml_per_g"], got))
+    return out
+
+
+def _portion_volume(extract, ref):
+    """ml_per_g of the extract's portion `ref` (fdc_id, seq_num), or None."""
+    food = extract["foods"].get(ref[0]) or {}
+    for p in food.get("portions", []):
+        if p["seq_num"] == ref[1]:
+            return portion_ml_per_g(p)
+    return None
+
+
+def fill_volume(map_dir=MAP_DIR, extract_path=EXTRACT_JSON, out=None):
+    """--fill-volume: write the empty volume cells of every mapped row from the extract and return
+    `{volume_source kind: rows filled}`. A row whose volume_source is set and ml_per_g empty takes that portion's
+    value; a fluid record takes `fluid`; an SR Legacy row the preferred portion; any other row `none`. A filled
+    ml_per_g is never overwritten. Each part keeps its row order and the mapping's CSV form."""
+    out = sys.stdout if out is None else out
+    extract = _load_json(extract_path)
+    filled = {}
+    for name in sorted(n for n in os.listdir(map_dir) if n.endswith(".csv")):
+        path = os.path.join(map_dir, name)
+        with open(path, encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        for r in rows:
+            if not r["fdc_id"] or r["ml_per_g"]:
+                continue
+            ref = volume_ref(r)
+            if ref is not None:
+                got = _portion_volume(extract, ref)
+                if got is None:
+                    raise ExtractRefused("%s: volume_source %s names no volume portion in the extract (re-run "
+                                         "--build-extract)" % (r["pz_id"], r["volume_source"]))
+                r["ml_per_g"] = food_scan._cell(got)
+            elif r["pz_kind"] == "fluid":
+                r["ml_per_g"], r["volume_source"] = "1.0", "fluid"
+            else:
+                pick = None
+                if r["fdc_source"] == "sr_legacy":
+                    pick = preferred_volume((extract["foods"].get(r["fdc_id"]) or {}).get("portions", []))
+                if pick is None:
+                    r["ml_per_g"], r["volume_source"] = "1.0", "none"
+                else:
+                    r["ml_per_g"], r["volume_source"] = food_scan._cell(pick[1]), "fdc_portion:%d" % pick[0]
+            kind = r["volume_source"].split(":")[0]
+            filled[kind] = filled.get(kind, 0) + 1
+        with open(path, "w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=MAP_COLUMNS, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+            writer.writeheader()
+            for r in rows:
+                writer.writerow(r)
+    print(json.dumps(filled, sort_keys=True), file=out)
+    return filled
+
+
+LUA_VOLUME = r'''
+-- The plate volume per gram the satiety mass reads (K.stomach.ingest's mlPerG, K.satiety.BETA): 1.0 for a type with
+-- no entry (no volume measure, a fluid, no mapping).
+function NR.data.volume.get(fullType)
+    return VOLUME[fullType] or 1.0
+end
+'''
+
+
+def emit_volume(data):
+    """The volume block of NR_Data_Nutrients.lua: every item entry whose ml_per_g is not 1.0, in id order."""
+    items, _fluids = lua_entries(data)
+    lines = ["", "-- Plate volume per gram (data/food-nutrients.json `ml_per_g`, the SR Legacy household measures; Plan 15 "
+             "Task 7):", "-- the entries that are not 1.0. A reader goes through NR.data.volume.get.",
+             "NR.data.volume = {}", "local VOLUME = {"]
+    for r in items:
+        ml = r.get("ml_per_g")
+        if ml is not None and ml != 1.0:
+            lines.append('    ["%s"] = %s,  -- %s' % (r["pz_id"], lua_number(ml), r["volume_source"]))
+    lines.append("}")
+    return "\n".join(lines) + "\n" + LUA_VOLUME
 
 
 if __name__ == "__main__":

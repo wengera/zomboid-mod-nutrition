@@ -14,5 +14,6 @@ def test_the_trait_constants_are_vanillas(host):
 
 def test_task_15s_pieces_are_retired(host):
     S = host.K.satiety
-    for name in ("R0", "LO", "HI", "BETA", "defaults", "rate", "step", "relief", "bulkFactor", "add", "seed"):
+    # BETA left the list in Plan 15 Task 7: the name is the volume excess's weight now (test_kernel_volume.py)
+    for name in ("R0", "LO", "HI", "defaults", "rate", "step", "relief", "bulkFactor", "add", "seed"):
         assert S[name] is None, name

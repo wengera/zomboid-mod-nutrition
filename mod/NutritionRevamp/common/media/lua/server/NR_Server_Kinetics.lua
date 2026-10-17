@@ -35,7 +35,7 @@ local KIN = NR.server.kinetics
 -- reason: an infinite gram key clamps the fill (the physical fill and the writer's fallback; the writer's F is W.satietyF) to 1, which is finite, so the fill alone
 -- does not catch it, and that key never drains. A non-finite micronutrient would also spread into the pool and the
 -- nutrients every minute. The cost is about 2.3 us per player-minute, per minute and never per tick.
-KIN.GUARD = { "liquid" }
+KIN.GUARD = { "liquid", "volX" } -- volX: the satiety mass's volume excess (Plan 15 Task 7)
 
 local function nonFinite(stomach)
     for i = 1, #KIN.GUARD do
@@ -75,7 +75,7 @@ function KIN.malformed(stomach, username)
                 break
             end
         end
-        if type(stomach.liquid) ~= "number" then
+        if type(stomach.liquid) ~= "number" or type(stomach.volX) ~= "number" then
             bad = true
         end
     end

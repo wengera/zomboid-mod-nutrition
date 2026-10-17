@@ -1150,7 +1150,8 @@ class RealExtractTest(unittest.TestCase):
         self.assertEqual(set(self.extract["foods"]),
                          {r["fdc_id"] for r in rows if r["fdc_source"] == "sr_legacy"}
                          | {part.split(":")[0] for r in rows if r["fdc_source"] == "composite"
-                            for part in r["fdc_id"].split("+")})
+                            for part in r["fdc_id"].split("+")}
+                         | {fid for r in rows for fid in fn.volume_ids(r)})     # Plan 15 Task 7: the volume ids
         self.assertEqual(set(self.extract["retention"]), {r["cook_retention_code"] for r in rows if r["cook_retention_code"]})
         self.assertEqual(set(self.extract["iodine"]), {x[len("iodine:"):] for r in rows for x in refs(r, "iodine_ref")})
         self.assertEqual(set(self.extract["phytate"]),
@@ -1191,7 +1192,8 @@ BUILD_DATA = {"meta": {"build": "42.20.4", "generated": "2026-09-10"},
 # the record keys every output record carries (the per-basis block apart)
 RECORD_KEYS = {"pz_id", "kind", "basis", "family", "fdc_id", "fdc_source", "fdc_description", "confidence",
                "state_baseline", "cook_retention_code", "portion_grams", "portion_source", "iodine_ref",
-               "phytate_source", "no_nutrition_reason", "notes", "per_100g", "vanilla", "checks"}
+               "phytate_source", "no_nutrition_reason", "notes", "per_100g", "vanilla", "checks",
+               "ml_per_g", "volume_source"}
 CHECK_KEYS = {"atwater_ratio", "atwater_outlier", "energy_vs_fdc_ratio", "proximate_sum", "fibre_le_carb",
               "retention_le_100", "out_of_range", "notes"}
 
@@ -1292,6 +1294,7 @@ class BuildFixture(ExtractFixture):
                   notes="a synthetic stand-in for the sugar entry")
         self.edit("fluids", "Water", no_nutrition_reason="not_food")
         fn.build_extract(self.map, self.dataset, self.out, out=io.StringIO())
+        fn.fill_volume(self.map, self.out, out=io.StringIO())     # Plan 15 Task 7: every mapped row's volume cells
         empty = os.path.join(self.tmp, "empty-fdc")     # tools/.fdc/ as a fresh clone has it: empty
         os.makedirs(empty)
         patcher = mock.patch.dict(fn.REF_SOURCES, {
@@ -2385,6 +2388,173 @@ class RealCompositeTest(unittest.TestCase):
             else:
                 self.assertIsNone(dog["per_item"][key], key)
         self.assertEqual(dog["per_item"]["calories"], round(bun["per_item"]["calories"] + wiener["per_item"]["calories"], 6))
+
+
+# Plan 15 Task 7: the volume column (ml_per_g, volume_source) from the SR Legacy household measures (S2212).
+
+def _portion(modifier, grams, amount=1.0, seq=1):
+    return {"seq_num": seq, "amount": amount, "modifier": modifier, "gram_weight": grams, "measure_unit": "undetermined"}
+
+
+class VolumeParseTest(unittest.TestCase):
+    """The parse pitfalls of the volume report's section 4."""
+
+    def test_a_count_before_the_unit_multiplies_it(self):
+        # the water row: `serving 8 fl oz` at 237 g is 8 fl oz, not 1 (0.125 mL/g is the naive misread)
+        self.assertEqual(fn.portion_ml_per_g(_portion("serving 8 fl oz", 237.0)), round(8 * 29.5735 / 237, 4))
+        self.assertAlmostEqual(fn.portion_ml_per_g(_portion("serving 8 fl oz", 237.0)), 0.9983, places=4)
+        self.assertEqual(fn.portion_ml_per_g(_portion("serving 1/2 cup", 66.0)), round(0.5 * 236.588 / 66, 4))
+        self.assertEqual(fn.portion_ml_per_g(_portion("jigger 1.5 fl oz", 42.0)), round(1.5 * 29.5735 / 42, 4))
+        self.assertEqual(fn.portion_ml_per_g(_portion("can or bottle (12 fl oz)", 355.0)),
+                         round(12 * 29.5735 / 355, 4))
+
+    def test_fl_oz_is_a_volume_and_oz_is_not(self):
+        self.assertEqual(fn.portion_ml_per_g(_portion("fl oz", 29.6)), round(29.5735 / 29.6, 4))
+        self.assertIsNone(fn.portion_ml_per_g(_portion("oz", 28.35)))
+        self.assertIsNone(fn.portion_ml_per_g(_portion("cupcake", 40.0)))
+        self.assertIsNone(fn.portion_ml_per_g(_portion("slice", 29.0)))
+
+    def test_amount_multiplies_and_a_bracketed_count_is_not_the_cups(self):
+        self.assertEqual(fn.portion_ml_per_g(_portion("cup, chopped", 78.0, amount=0.5)), round(0.5 * 236.588 / 78, 4))
+        self.assertEqual(fn.portion_ml_per_g(_portion('cup (1" cubes)', 116.0)), round(236.588 / 116, 4))
+        self.assertEqual(fn.portion_ml_per_g(_portion("cup (4.86 large eggs)", 243.0)), round(236.588 / 243, 4))
+        self.assertEqual(fn.portion_ml_per_g(_portion("liter", 1000.0)), 1.0)
+
+    def test_a_yield_a_prepared_or_a_packaged_form_is_refused(self):
+        for modifier in ("serving (makes about 1 cup prepared)", "pint as purchased, yields", "package 6 oz 1 cup"):
+            self.assertIsNone(fn.portion_ml_per_g(_portion(modifier, 100.0)), modifier)
+
+    def test_crumbs_and_crushed_lose_to_cubes(self):
+        bread = [_portion("slice", 29.0, seq=1), _portion("cup, crumbs", 45.0, seq=3), _portion("cup, cubes", 35.0, seq=4)]
+        self.assertEqual(fn.preferred_volume(bread), (4, 6.7597))
+        crackers = [_portion("cracker", 3.0, seq=1), _portion("cup crushed", 52.0, seq=5)]
+        self.assertIsNone(fn.preferred_volume(crackers))
+        # `not packed` is the plain cup; `packed` is passed over
+        pasta = [_portion("cup spaghetti packed", 151.0, seq=2), _portion("cup spaghetti not packed", 124.0, seq=1)]
+        self.assertEqual(fn.preferred_volume(pasta), (1, 1.908))
+        sugar = [_portion("tsp unpacked", 2.88, seq=1), _portion("cup packed", 220.0, seq=2),
+                 _portion("cup unpacked", 145.0, seq=3)]
+        self.assertEqual(fn.preferred_volume(sugar), (3, round(236.588 / 145, 4)))
+
+    def test_a_cup_wins_over_an_earlier_spoon(self):
+        self.assertEqual(fn.preferred_volume([_portion("tbsp", 16.0, seq=1), _portion("cup", 258.0, seq=2)]),
+                         (2, round(236.588 / 258, 4)))
+        self.assertEqual(fn.preferred_volume([_portion("tbsp", 16.0, seq=1)]), (1, round(14.7868 / 16, 4)))
+
+
+class VolumeCellTest(MapDir):
+    """The volume cells' own rules in check_map."""
+
+    def mapped(self, **cells):
+        base = dict(fdc_id="1", fdc_source="sr_legacy", confidence="exact", portion_grams="182",
+                    portion_source="vanilla_implied", state_baseline="raw")
+        base.update(cells)
+        self.edit("produce", "Base.Apple", **base)
+        return self.check()
+
+    def test_a_good_row_checks_clean(self):
+        for ml, src in (("2.1705", "fdc_portion:2"), ("1.908", "fdc_portion:169737:1"), ("1.0", "none")):
+            self.assertEqual(self.mapped(ml_per_g=ml, volume_source=src)["violations"], [], src)
+
+    def test_a_source_alone_awaits_the_fill(self):
+        self.assertEqual(self.mapped(volume_source="fdc_portion:169737:1")["violations"], [])
+
+    def test_the_rules(self):
+        for cells, word in ((dict(ml_per_g="2.0"), "without volume_source"),
+                            (dict(ml_per_g="2.0", volume_source="cup"), "not in the enum"),
+                            (dict(ml_per_g="-1", volume_source="fdc_portion:2"), "not a positive number"),
+                            (dict(ml_per_g="1.5", volume_source="none"), "reads 1.0"),
+                            (dict(ml_per_g="1.0", volume_source="fluid"), "fluid record")):
+            violations = self.mapped(**cells)["violations"]
+            self.assertTrue(any(word in v for v in violations), (cells, violations))
+
+    def test_volume_cells_need_an_fdc_id(self):
+        self.edit("produce", "Base.Apple", ml_per_g="1.0", volume_source="none")
+        self.assertTrue(any("no fdc_id" in v for v in self.check()["violations"]))
+
+
+class VolumeBuildTest(BuildFixture):
+    """The build carries the cells, re-reads every fdc_portion cell from the extract and emits the Lua block."""
+
+    def test_the_fill_takes_the_apple_cup_and_never_overwrites(self):
+        apple = [r for r in self.part("produce") if r["pz_id"] == "Base.Apple"][0]
+        self.assertEqual((apple["ml_per_g"], apple["volume_source"]), ("2.1705", "fdc_portion:2"))
+        self.edit("produce", "Base.Apple", ml_per_g="2.1705", volume_source="fdc_portion:2", notes="kept")
+        self.assertEqual(fn.fill_volume(self.map, self.out, out=io.StringIO()), {})
+        beer = [r for r in self.part("fluids") if r["pz_id"] == "Beer"][0]
+        self.assertEqual((beer["ml_per_g"], beer["volume_source"]), ("1.0", "fluid"))
+
+    def test_the_record_carries_the_cells(self):
+        result = self.run_build()
+        apple, beer = self.rec(result, "Base.Apple"), self.rec(result, "Beer")
+        self.assertEqual((apple["ml_per_g"], apple["volume_source"]), (2.1705, "fdc_portion:2"))
+        self.assertEqual((beer["ml_per_g"], beer["volume_source"]), (1.0, "fluid"))
+        self.assertEqual(result["meta"]["counts"]["by_volume_source"]["fdc_portion"], 1)
+
+    def test_a_cell_off_its_portion_refuses(self):
+        self.edit("produce", "Base.Apple", ml_per_g="2.5")
+        with self.assertRaises(fn.BuildRefused) as caught:
+            self.run_build()
+        self.assertIn("the portion reads 2.1705", str(caught.exception))
+
+    def test_a_portion_with_no_volume_refuses(self):
+        self.edit("produce", "Base.Apple", volume_source="fdc_portion:4")    # `medium (3" dia)`
+        with self.assertRaises(fn.BuildRefused) as caught:
+            self.run_build()
+        self.assertIn("names no volume portion", str(caught.exception))
+
+    def test_a_mapped_row_without_its_cells_refuses(self):
+        self.edit("produce", "Base.Apple", ml_per_g="", volume_source="")
+        with self.assertRaises(fn.BuildRefused) as caught:
+            self.run_build()
+        self.assertIn("without ml_per_g and volume_source", str(caught.exception))
+
+    def test_the_lua_block_lists_only_what_is_not_one(self):
+        text = fn.emit_lua(self.run_build())
+        self.assertIn('    ["Base.Apple"] = 2.1705,  -- fdc_portion:2\n', text)
+        self.assertNotIn('["Beer"] = 1.0', text)
+        self.assertIn("function NR.data.volume.get(fullType)\n    return VOLUME[fullType] or 1.0\nend\n", text)
+        self.assertTrue(text.endswith(" keys\n"))
+
+
+class RealVolumeTest(unittest.TestCase):
+    """The committed mapping and output: the worked examples' foods and the state match."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(fn.NUTRIENTS_JSON, encoding="utf-8") as handle:
+            result = json.load(handle)
+        cls.by_id = {r["pz_id"]: r for r in result["items"] + result["fluids"]}
+
+    def vol(self, pz_id):
+        r = self.by_id[pz_id]
+        return r["ml_per_g"], r["volume_source"]
+
+    def test_every_mapped_record_has_its_cells_and_every_fluid_reads_one(self):
+        for r in self.by_id.values():
+            if r["fdc_id"]:
+                self.assertIsNotNone(r["ml_per_g"], r["pz_id"])
+                self.assertGreater(r["ml_per_g"], 0, r["pz_id"])
+                self.assertEqual(r["kind"] == "fluid", r["volume_source"] == "fluid", r["pz_id"])
+            else:
+                self.assertIsNone(r["ml_per_g"], r["pz_id"])
+
+    def test_the_worked_examples(self):
+        self.assertEqual(self.vol("Base.Bread"), (6.7597, "fdc_portion:4"))           # cup, cubes (not crumbs)
+        self.assertEqual(self.vol("Base.BreadSlices"), (6.7597, "fdc_portion:4"))
+        self.assertEqual(self.vol("Base.Popcorn"), (29.9478, "fdc_portion:1"))
+        self.assertEqual(self.vol("Base.Broccoli"), (2.5999, "fdc_portion:1"))          # 1 cup chopped = 91 g
+        self.assertEqual(self.vol("Base.CannedBroccoli"), (1.5166, "fdc_portion:1"))
+        self.assertEqual(self.vol("Base.CannedBolognese"), (0.9617, "fdc_portion:1"))   # below 1.0, as read
+        self.assertEqual(self.vol("Water"), (1.0, "fluid"))
+
+    def test_the_pots_read_the_cooked_ids(self):
+        for name in ("WaterPotPasta", "WaterPotForgedPasta", "WaterSaucepanPasta", "WaterSaucepanPastaCopper",
+                     "PastaPot", "PastaPotForged", "PastaPan", "PastaPanCopper"):
+            self.assertEqual(self.vol("Base." + name), (1.908, "fdc_portion:169737:1"), name)
+        for name in ("WaterPotRice", "WaterPotForgedRice", "WaterSaucepanRice", "WaterSaucepanRiceCopper", "RicePot"):
+            self.assertEqual(self.vol("Base." + name), (1.4974, "fdc_portion:168878:1"), name)
+        self.assertEqual(self.vol("Base.Pasta"), (2.5999, "fdc_portion:1"))    # the dry packet stays dry
 
 
 if __name__ == "__main__":
