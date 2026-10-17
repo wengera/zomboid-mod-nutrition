@@ -22285,3 +22285,15 @@ x453b-20261017-080807,memory,host free memory rows,"Host state, not a game readi
 x453b-20261017-080807,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x453b-20261017-080807,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x453b-20261017-080807,verdicts.OF_REFUSE.verdict,falsified,"The harness queues the eat whatever isValidStart answers; the verdict is not a reading of the menu's refusal.",`checks.X.refusal`
+x452b-20261017-153935,session,the driver's text,Written before the run; not a reading.,
+x452b-20261017-153935,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x452b-20261017-153935,constants,the lib's constants,The driver's settings and the prerun's bands; not a reading.,
+x452b-20261017-153935,constants_x45i,x45i_lib's constants,"The driver's settings, the bands and the prerun's readings; not a reading.",
+x452b-20261017-153935,prerun_x45i,x45i_lib's PRERUN_B,The prerun's replay readings written before the run; not a live reading.,
+x452b-20261017-153935,memory,host free memory rows,"Host state, not a game reading.",
+x452b-20261017-153935,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x452b-20261017-153935,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762); each row's `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x452b-20261017-153935,verdicts.REPLAY_THIRST.verdict,falsified,"Its over-rows mix two auto-drink rows (s 284 and 1424, live THIRST 0) with a slow drift that x452's review read as the unmodelled cold diuresis (inference); not a grade of the thirst kernel.",`verdicts.REPLAY_THIRST.observed.findings`
+x452b-20261017-153935,verdicts.CAD_FEEL_P.verdict,falsified,"The bands were the prerun's replay of a fresh record at HUNGER 0.2 that lands no seed plate, where the live first sight landed one (the ring's first row: satiety.M 491.83, stomachFill 0.4426); the HEAD replay of the run's own inputs holds HUNGER within 0.000403. Not a reading of the mod's cadence.",`verdicts.CAD_FEEL_P.observed.windows[*].ret`
+x452b-20261017-153935,verdicts.CAD_FEEL_H.verdict,falsified,As CAD_FEEL_P: the band's replay landed no seed plate; not a reading of the mod's cadence.,`verdicts.CAD_FEEL_H.observed.windows[*].ret`
+x452b-20261017-153935,checks.T9.after.counters,0,"No tooltip was drawn: the hide is unmeasured, not absent.",`checks.T9.why`
