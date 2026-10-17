@@ -59,7 +59,7 @@ K.store.INPUTS = {
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
     -- day's stamps held until the next close (inDayClosed, pPrevKg)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
-    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.inDay2", "body.inDay3", "body.pPrevKg",
+    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.inDay2", "body.inDay3", "body.recentDays", "body.pPrevKg",
     -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
     "body.eb7.*", "body.mass7.*", "body.p7.*", "body.bandWeek.*",
     -- body, the trailing-24 h window (K.body.trailTo, trailAdd): its age and the six hourly rings.

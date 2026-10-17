@@ -502,7 +502,7 @@ function NR_O.minute(o, ageH, dtM)
         o.L = K.deficit.exerciseLag(o.L, body.exKcalDay - ex0, dtM / 60)
         if o.wdaySeeded == nil then body.wday = math.floor(ageH / 24); o.wdaySeeded = true end   -- the ring's first age
         if K.body.calendar(body, ageH, dtM > 60) == 1 then   -- the mod's record calendar (ruling 13-5)
-            body.inDayClosed = body.inDay
+            K.drain.closeDay(body)                          -- the mod's day close (NR_Server_Metabolism)
             K.partition.closeDay(body)
         end
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))

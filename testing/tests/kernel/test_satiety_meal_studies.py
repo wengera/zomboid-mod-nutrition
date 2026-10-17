@@ -768,7 +768,7 @@ function(plan, days, logs, H_REQ, KCAL_PER_H, LOWCARB_G)
         K.energy.minute(body, met, true, 1, 1)
         L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
         if K.body.calendar(body, ageH, false) == 1 then
-            body.inDayClosed = body.inDay
+            K.drain.closeDay(body)
             K.partition.closeDay(body)
         end
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))
@@ -1059,7 +1059,7 @@ function(plan, days, start)
         K.energy.minute(body, met, true, 1, 1)
         L = K.deficit.exerciseLag(L, body.exKcalDay - ex0, 1 / 60)
         if K.body.calendar(body, ageH, false) == 1 then
-            body.inDayClosed = body.inDay
+            K.drain.closeDay(body)
             K.partition.closeDay(body)
         end
         local ee24 = K.max(K.body.trail24(body.trail, "ee"), K.energy.ree(body.lm))

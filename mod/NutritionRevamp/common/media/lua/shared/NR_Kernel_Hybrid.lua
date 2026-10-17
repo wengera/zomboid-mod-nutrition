@@ -59,7 +59,7 @@ function K.hybrid.write(inp, out, c)
         local hCap, hMin, tCap = K.hybrid.caps(inp, c)
         local h = inp.hungerTarget
         if h == h then
-            out.hunger = K.clamp(K.hungerCurve.write(h, inp), hMin, hCap)
+            out.hunger = K.clamp(K.hungerCurve.write(h, inp, hCap), hMin, hCap)
         end
         out.sip = K.hybrid.sip(inp.thirst, inp.lastThirst, inp.sipOK)
         local t = inp.thirstTarget

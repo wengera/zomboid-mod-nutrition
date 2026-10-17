@@ -254,7 +254,7 @@ def test_a_meal_inside_the_acute_state_ends_it_and_the_cap_returns():
 
 # ---- Plan 15 Task 6 fix 2: refeeding clears Starving, and an offline gap is not a fast -----------------------------
 
-@pytest.mark.parametrize("kcal", [500.0, 700.0, 1300.0])
+@pytest.mark.parametrize("kcal", [500.0, 600.0, 650.0, 690.0, 700.0, 1300.0])
 def test_a_meal_after_a_120_h_fast_clears_the_starving_minimum_at_once(kcal):
     import fit_hunger_curve as F
     b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
@@ -286,3 +286,65 @@ def test_a_199_h_logout_after_the_pool_empties_is_not_a_fast():
     assert max(r["drain.starvedH"] for r in after) < 9.0                 # 6 h before, at most an hour's clamp and one back
     assert all(be.K.drain.starvePhase(r["drain.starvedH"]) == 0 for r in after)
     assert all(r["HUNGER"] < 0.69 for r in after)
+
+
+# ---- Plan 15 Task 6 fix 3: the snack diet's tolerance, and a refeed of 601-690 kcal ---------------------------------
+
+def test_the_end_of_the_starving_minimum_re_seeds_hunger_from_the_curve(host):
+    # the last HUNGER over this minute's cap (the starving minimum or a lifted cap just ended) is not held
+    h = host.call("hungerCurve.inverse", 0.30)
+    st = host.table({"hunger": 0.71, "fed": False, "circ": 1.0})
+    assert host.call("hungerCurve.write", h, st) == pytest.approx(0.71)       # no cap given: the fasting hold
+    assert host.call("hungerCurve.write", h, st, 0.69) == pytest.approx(0.30)  # over the cap: re-seeded
+    assert host.call("hungerCurve.write", h, st, 1.0) == pytest.approx(0.71)  # under a lifted cap: held
+
+
+def refeed(kcal, hours):
+    import fit_hunger_curve as F
+    b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
+    m = b + 120 * 60
+    ev = [e for e in F.fast_events() if e["kind"] != "autodrop"] + F.water(12)
+    rows, be = F.replay(ev + [F.meal(m, kcal)], m + int(hours * 60))
+    return rows, be, m
+
+
+@pytest.mark.parametrize("kcal", [650.0, 690.0])
+def test_a_601_to_690_kcal_refeed_holds_starving_off_and_hunger_follows_the_curve(kcal):
+    # re-review N2: the meal counts in full from its eat (the stomach's calories), so Starving does not return while it
+    # is absorbed, and HUNGER, re-seeded from the curve as the minimum ends, rises with the curve rather than parking
+    rows, be, m = refeed(kcal, 24)
+    after = rows[m:]
+    assert all(not r["drain.starveAcute"] for r in after)
+    hs = [r["HUNGER"] for r in after]
+    assert max(hs) < 0.69 and hs[-1] > hs[6 * 60] > hs[60]                   # the curve's rise, never the cap
+    m1 = [r["satiety.hModel"] for r in after]
+    C = be.K.hungerCurve
+    assert all(abs(H - C.map(x)) < 0.15 for H, x in zip(hs[::60], m1[::60]))  # the curve of h_model (dip and hold aside)
+
+
+def test_a_600_kcal_refeed_is_low_and_starving_returns_only_as_the_pool_empties():
+    # 600 is the fallback's boundary (600 or less): the meal is low, so Starving returns once the pool is unfed again,
+    # never during its fed spell
+    rows, be, m = refeed(600.0, 8)
+    fed_m = be.K.hungerCurve.FED_M
+    back = next(i for i in range(m, len(rows)) if rows[i]["drain.starveAcute"])
+    assert all(r["satiety.M"] >= fed_m for r in rows[m:back]) and rows[back]["satiety.M"] < fed_m
+
+
+def test_a_200_kcal_snack_every_33_h_holds_the_fallback_through_the_pipeline():
+    # re-review N1: three absorbed snacks overshoot 600 by float rounding; the tolerance keeps every unfed hour acute
+    import fit_hunger_curve as F
+    n = 14 * F.DAY
+    ev = [F.meal(k * 33 * 60 + 30, 200.0) for k in range(0, n // (33 * 60) + 1) if k * 33 * 60 + 30 < n] + F.water(14)
+    rows, be = F.replay(ev, n)
+    fed_m = be.K.hungerCurve.FED_M
+    unfed = [i for i in range(96 * 60, n) if rows[i]["satiety.M"] < fed_m]
+    assert len(unfed) > 8000 and all(rows[i]["drain.starveAcute"] for i in unfed)
+
+
+def test_the_writer_re_seeds_hunger_when_the_starving_state_ends_unfed(host):
+    inv = lambda H: host.call("hungerCurve.inverse", H)      # noqa: E731
+    out = run(host, mode=1, hunger=0.71, hungerTarget=inv(0.3), fed=False, starving=False)
+    assert out.hunger == pytest.approx(0.3)                              # not parked at the 0.69 cap
+    out = run(host, mode=1, hunger=0.71, hungerTarget=inv(0.3), fed=False, starving=True)
+    assert out.hunger == pytest.approx(0.71)                             # still starving (chronic): the hold stands

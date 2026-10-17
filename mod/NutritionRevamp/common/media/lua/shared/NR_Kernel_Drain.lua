@@ -40,10 +40,12 @@ K.drain.NONE = 100 -- health: the floor read with no state active (full health),
 -- Starvation: the acute onset (Plan 15 Task 6 fixes 1 and 2) at STARVE_ONSET_H unfed hours (K.drain.unfedH: the hours
 -- since the meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts, never
 -- offline), or, while the pool is under FED_M, the recent intake at RECENT_MIN_KCAL or less (K.drain.recentKcal: today
--- and the three closed record days, a starvation diet of snacks); or the
+-- and the three closed record days with what is still in the stomach, a starvation diet of snacks); or the
 -- chronic onset at a BMI under 13 whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
 -- floor by BMI, 10 + 40 x clamp((BMI - 12.5) / (BMI0 - 12.5), 0, 1) above 12.5, then linear to 0 at BMI 12.
 K.drain.STARVE_ONSET_H = 30 -- unfed hours (the meal pool under K.hungerCurve.FED_M), counted continuously: game choice (spec section 10: each floor's curve), set so the onset coincides with the calibrated curve reaching its 0.69 cap, 29.9-30.3 h after the pool empties for 200-1,300 kcal meals, so Starving shows 33.6-35.1 h after the meal (vanilla 34.55 h)
+K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over 600)
+K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
 K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed today and over the three closed record days (72-96 h): game choice (spec section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
 K.drain.BMI_KNEE = 12.5 -- kg/m2, the floor reaches 10 here: game choice inside S2234's 12-13 (spec section 10)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
@@ -200,24 +202,39 @@ function K.drain.unfedH(D, sat, ageH)
     return K.max(0, ageH - D.fedAgeH)
 end
 
--- The recent intake (Plan 15 Task 6 fix 2): the kcal absorbed today (body.inDay) and over the three closed record days
--- (body.inDayClosed, inDay2 and inDay3, rotated at the day close, K.drain.closeDay), a window of 72-96 h that the record
--- calendar keeps, so an offline gap neither counts nor shifts it. nil while any of the four is not a number: a fresh
--- body has seen fewer than three closes (a loaded one's closed day reads the resting expenditure, K.store.closeDefault).
-function K.drain.recentKcal(body)
+-- The recent intake (Plan 15 Task 6 fixes 2 and 3): the kcal absorbed today (body.inDay) and over the three closed
+-- record days (body.inDayClosed, inDay2 and inDay3, rotated at the day close, K.drain.closeDay), a window of 72-96 h
+-- that the record calendar keeps, so an offline gap neither counts nor shifts it, plus the kcal eaten and still in the
+-- stomach (stomach.buffer.calories, solid and liquid), so a meal counts in full from its eat and not only as it is
+-- absorbed. nil until the body has seen RECENT_DAYS closes (body.recentDays, counted by closeDay; a loaded body's
+-- defaulted closed day, K.store.closeDefault, is never counted) or while a day is not a number.
+function K.drain.recentKcal(body, stomach)
+    local n = body.recentDays
+    if not K.finite(n) or n < K.drain.RECENT_DAYS then
+        return nil
+    end
     local a, b, c, d = body.inDay, body.inDayClosed, body.inDay2, body.inDay3
     if not (K.finite(a) and K.finite(b) and K.finite(c) and K.finite(d)) then
         return nil
     end
-    return a + b + c + d
+    local eaten = 0
+    if type(stomach) == "table" and type(stomach.buffer) == "table" and K.finite(stomach.buffer.calories) then
+        eaten = K.max(0, stomach.buffer.calories)
+    end
+    return a + b + c + d + eaten
 end
 
--- The record day's close (NR_Server_Metabolism's): the closed days move down one, the closing day's absorbed kcal into
--- inDayClosed.
+-- The record day's close (NR_Server_Metabolism's, and the replays'): the closed days move down one, the closing day's
+-- absorbed kcal into inDayClosed, and the closes seen (body.recentDays) count up to RECENT_DAYS.
 function K.drain.closeDay(body)
     body.inDay3 = body.inDay2
     body.inDay2 = body.inDayClosed
     body.inDayClosed = body.inDay
+    local n = body.recentDays
+    if not K.finite(n) then
+        n = 0
+    end
+    body.recentDays = K.min(K.drain.RECENT_DAYS, n + 1)
 end
 
 -- The starvation effect phase 0..3 of starved hours (K.drain.STARVE_PHASE_H).
@@ -328,8 +345,8 @@ function K.drain.step(record, dtM, ageH)
     inp.fm = body.fm
     inp.dehydPct = fl.dehydPct
     local unfed = K.drain.unfedH(D, record.satiety, ageH)
-    D.recentKcal = K.drain.recentKcal(body)
-    local low = D.recentKcal ~= nil and D.recentKcal <= K.drain.RECENT_MIN_KCAL
+    D.recentKcal = K.drain.recentKcal(body, record.stomach)
+    local low = D.recentKcal ~= nil and D.recentKcal <= K.drain.RECENT_MIN_KCAL + K.drain.RECENT_TOL
     local sat = record.satiety
     local fedNow = type(sat) == "table" and K.finite(sat.M) and sat.M >= K.hungerCurve.FED_M
     D.starveAcute = unfed >= K.drain.STARVE_ONSET_H or (low and not fedNow)

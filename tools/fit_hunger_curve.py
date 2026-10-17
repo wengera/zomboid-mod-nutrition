@@ -154,6 +154,9 @@ def stage(trace, knots, C, h0):
     for r in trace:
         h = r["satiety.hModel"]
         fed = r["satiety.M"] >= C["FED_M"]
+        cap = 1.0 if r.get("drain.starving") else CAP
+        if prev > cap:                                   # a lifted cap or the starving minimum just ended: re-seeded
+            prev = 0.0
         if not fed:
             c = circadian(C, r["age"])
             x = h / c if 0 < c < 1 else h

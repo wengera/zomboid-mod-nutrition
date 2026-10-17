@@ -476,6 +476,7 @@ def days_record(h, today, closed, at=100.0):
     rec = record(h, unfed=0.0, at=at)
     rec.body.inDay = today
     rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = closed
+    rec.body.recentDays = 3
     return rec
 
 
@@ -483,11 +484,42 @@ def test_the_recent_intake_is_today_and_three_closed_days(host, D):
     assert D.RECENT_MIN_KCAL == 600
     rec = days_record(host, 50.0, (100.0, 200.0, 250.0))
     assert D.recentKcal(rec.body) == 600.0
-    rec.body.inDay3 = None                                                     # fewer than three closes seen
+    stomach = host.table({"buffer": {"calories": 90.0}})
+    assert D.recentKcal(rec.body, stomach) == 690.0                            # eaten, still in the stomach (fix 3)
+    rec.body.recentDays = 2                                                    # fewer than three closes seen
+    assert D.recentKcal(rec.body) is None
+    rec.body.recentDays = 3
+    rec.body.inDay3 = None
     assert D.recentKcal(rec.body) is None
     body = host.table({"inDay": 7.0, "inDayClosed": 1.0, "inDay2": 2.0, "inDay3": 3.0})
     D.closeDay(body)
-    assert (body.inDayClosed, body.inDay2, body.inDay3) == (7.0, 1.0, 2.0)
+    assert (body.inDayClosed, body.inDay2, body.inDay3, body.recentDays) == (7.0, 1.0, 2.0, 1)
+    D.closeDay(body)
+    D.closeDay(body)
+    D.closeDay(body)
+    assert body.recentDays == 3                                                # counted up to RECENT_DAYS
+
+
+def test_600_kcal_counts_as_low_within_the_tolerance(host, D):
+    rec = days_record(host, 0.0, (200.0, 200.0, 200.0000000030673))            # three absorbed snacks, as live
+    rec.satiety.M = 0.0
+    assert D.step(rec, 1.0, 100.0).starveAcute is True
+    rec.body.inDay3 = 200.00001
+    assert D.step(rec, 1.0, 100.0 + 1 / 60).starveAcute is False
+
+
+def test_a_body_loaded_before_its_third_close_counts_no_phantom_day(host, D):
+    # re-review L2: K.store.closeDefault reads a loaded body's missing closed day as the resting expenditure; that
+    # value rotates down, but the window waits for three closes the body itself made
+    rec = days_record(host, 0.0, (None, None, None))
+    rec.body.recentDays = None
+    host.K.store.closeDefault(rec)
+    assert rec.body.inDayClosed > 1000                                         # the default resting day
+    for _ in range(2):
+        D.closeDay(rec.body)
+        assert D.recentKcal(rec.body) is None
+    D.closeDay(rec.body)
+    assert D.recentKcal(rec.body) == 0.0                                       # the default has rotated out
 
 
 def test_low_recent_intake_holds_the_acute_state_only_while_unfed(host, D):
@@ -543,6 +575,7 @@ def test_an_offline_gap_neither_counts_as_unfed_nor_moves_the_window(host, D):
     # Plan 15 Task 6 fix 2 (re-review H1): a 199 h logout 5 h after the pool emptied comes back 5 h unfed
     rec = record(host, unfed=5.0, at=100.0)
     rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = 2000.0, 2000.0, 2000.0
+    rec.body.recentDays = 3
     rec.acute = host.K.acute.new(90.0)
     rec.acute.lastFedAgeH, rec.acute.lastVigAgeH = 95.0, 95.0                  # the adapter lays these
     host.K.acute.skipRecord(rec, 199.0, 100.0)
@@ -568,3 +601,5 @@ def test_the_clocks_survive_a_restart(host, D):
     rec.body.inDay2, rec.body.inDay3 = 1.0, 2.0
     body = host.py(host.K.store.inputsOnly(rec))["body"]
     assert body["inDay2"] == 1.0 and body["inDay3"] == 2.0
+    rec.body.recentDays = 3
+    assert host.py(host.K.store.inputsOnly(rec))["body"]["recentDays"] == 3

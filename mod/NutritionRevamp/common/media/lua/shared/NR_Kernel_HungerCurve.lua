@@ -98,9 +98,14 @@ end
 -- last write unless an eat moved it), whether the character is fed (state.fed, the meal pool at FED_M or more) and the
 -- minute's circadian factor (state.circ, the factor h carries). Unfed, the circadian dip (a factor under 1) is taken out
 -- of h (dip) and H never falls under the last HUNGER (item 10a: a fast never lowers the moodle, a stated bend); fed,
--- the curve and the dead zone.
-function K.hungerCurve.write(h, state)
+-- the curve and the dead zone. cap (optional) is the minute's HUNGER cap (K.hybrid.caps): a last HUNGER above it was
+-- written under a lifted cap or the starving minimum that has just ended, so it is not held (Plan 15 Task 6 fix 3): the
+-- curve re-seeds HUNGER, which may fall, rather than the hold parking it at the cap.
+function K.hungerCurve.write(h, state, cap)
     local prev = state.hunger
+    if cap ~= nil and prev > cap then
+        prev = 0
+    end
     if not state.fed then
         return K.max(K.hungerCurve.map(h / K.hungerCurve.dip(state.circ)), prev)
     end
