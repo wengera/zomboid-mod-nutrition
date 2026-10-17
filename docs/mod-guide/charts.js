@@ -75,6 +75,12 @@
     },
     "SH1": { yMin: 0 },
     "SH2": { yMin: 0 },
+    "SH3": {
+      facets: [
+        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel", "SH3-m-live"], unit: "game hours until Peckish", yMin: 0 },
+        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry", "SH3-m-live-hungry"], unit: "game hours until Hungry", yMin: 0 }
+      ]
+    },
     "ST1": { yMin: 0, yMax: 1 },
     "ST2": { yMin: -10, yMax: 0, yTitle: "body sodium, mmol a day" },
     "SM1": { yMin: 0 },
@@ -111,13 +117,16 @@
     "S2c": {},
     "S2d": {
       facets: [
-        { label: "Body mass", series: ["S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xMax: 30, xTitle: "game days (the first thirty)" },
+        { label: "Health", series: ["S2d-m-drain"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, with water" },
+        { label: "Without water", series: ["S2d-m-dry"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food and no water" },
+        { label: "Body mass", series: ["S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xTitle: "game days, with water" },
         { label: "Vanilla weight", series: ["S2d-v-model-weight", "S2d-v-live-weight"], unit: "kg", yMin: 0, xMin: 0, xMax: 4,
           xTitle: "game days (the first four)" },
         { label: "Vanilla health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
           xTitle: "game days (the first four)" }
       ],
-      endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: beriberi" }
+      endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: starvation",
+                   "S2d-m-drain": "Death: starvation", "S2d-m-dry": "Death: dehydration" }
     },
     "S3a": {
       facets: [
@@ -126,7 +135,7 @@
           yNames: { "1": "Replete", "2": "Marginal", "3": "Depleted", "4": "Clinical" } }
       ],
       stepped: ["S3a-m-grade"],
-      endpoints: { "S3a-m-pool": "Death: beriberi", "S3a-m-grade": "Death: beriberi" }
+      endpoints: { "S3a-m-pool": "Death: scurvy", "S3a-m-grade": "Death: scurvy" }
     },
     "S3b": { xMin: 0, yMin: 0 },
     "S3c": { xMin: 40, xMax: 80, yMin: 0, yMax: 1 },
@@ -153,13 +162,13 @@
       facets: [
         { label: "Caffeine", series: ["S6a-m-day1", "S6a-m-day14"], unit: "caffeine, mg", yMin: 0 },
         { label: "Tolerance", series: ["S6a-m-tolerance"], unit: "tolerance (0-1)", yMin: 0, yMax: 1, xMin: 0, xMax: 14, xTitle: "game days" },
-        { label: "Vanilla, fatigue per cup", series: ["S6a-v-model"], unit: "fatigue change", yMin: -0.05, yMax: 0 }
+        { label: "Fatigue relief", series: ["S6a-m-offset", "S6a-m-offset-real", "S6a-v-model"], unit: "fatigue change", yMin: -0.16, yMax: 0 }
       ],
       xMin: 0, xMax: 24
     },
     "S6b": {
       facets: [
-        { label: "Drunkenness", series: ["S6b-v-model", "S6b-v-live", "S6b-m-intox"], unit: "intoxication (0-100)", yMin: 0 },
+        { label: "Drunkenness", series: ["S6b-v-model", "S6b-v-live", "S6b-m-intox", "S6b-m-intox-real"], unit: "intoxication (0-100)", yMin: 0 },
         { label: "Blood alcohol", series: ["S6b-m-bac"], unit: "blood alcohol, %", yMin: 0 },
         { label: "Hangover", series: ["S6b-m-hangover"], unit: "hangover (off or on)", yMin: 0, yMax: 1,
           yNames: { "0": "off", "1": "on" } }

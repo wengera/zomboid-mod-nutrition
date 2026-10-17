@@ -82,6 +82,10 @@ def science_value(sid):
 WATER_MIN = (60, 180, 300, 420, 540, 660, 780, 900)
 
 
+# the fresh start the S1a, S1b and S2d replays take, HUNGER 0 before the first drain (vanilla's start), written here
+FRESH = {"minute": 0, "kind": "stat", "stat": "HUNGER", "value": 0.0}
+
+
 def water(days, offset=0):
     return [{"minute": d * 1440 + m + offset, "kind": "autodrop", "g": 500.0} for d in range(days) for m in WATER_MIN]
 
@@ -122,61 +126,56 @@ def kh():
     return S.KHost()
 
 
-# The tests that compare the current mod build with the committed guide data (Plan 15 ruling): a re-derivation, an
-# admission or a death against data.json, or the data's provenance against mod/'s last commit. While
-# docs/mod-guide/REBUILD_PENDING exists, tools/tests/conftest.py skips them with the marker's reason; every other test,
-# the mod-build checks that do not read data.json included, keeps running.
-MOD_BUILD_TESTS = (
-    "test_each_series_is_non_empty_and_its_provenance_resolves",
-    "test_each_series_value_is_rederived",
-    "test_r1_a_fresh_fast_on_the_map_s_old_water_dies_of_dehydration",
-    "test_r2_the_admission_grades_what_a_run_draws",
-    "test_r2_the_level_changes_of_x364_within_the_named_bound",
-    "test_s3a_lines_end_at_the_death",
-    # Plan 15 Task 9: the admissions it reads replay x446's levels off the bus signature's energy digit, which Task 9
-    # removed with the energy class, so x446:levels' pinned admission moves until Task 13 rebuilds the guide
-    "test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_proves_it",
-)
-
-
 # ---- the whole file ---------------------------------------------------------------------------------------------------
 
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 150
+    assert len(mapped) == 158
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
-    assert len(built) == 142 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 8
+    assert len(built) == 148 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 10
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
 
 def test_no_id_is_pending_and_every_vanilla_live_series_is_built():
     vl = {i for c in S.MAP_CHARTS.values() for i in c["series"] if "-v-live" in i}
-    assert S.PENDING_LIVE == () and vl <= set(SER) and {"S1b-m-live", "S1c-m-live"} <= set(SER)
+    assert S.PENDING_LIVE == () and vl <= set(SER) and {"SH3-m-live", "SH3-m-live-hungry", "SV1-m-live-b"} <= set(SER)
     assert all(SER[i]["badge"] == "vanilla-live" for i in vl)
 
 
-def test_n2_the_x364_admissions_stay_recorded_and_m1_draws_their_series():
-    for key in ("x364:THIRST", "x364:levels"):
-        v = next(v for v in ADM if v["key"] == key)
-        assert v["admitted"] and v["superseded_by"] == "M1 (x446)" and v["draws"] == []
-    assert all("superseded_by" not in v for v in ADM if v["key"] not in ("x364:THIRST", "x364:levels"))
-    for key, sid in (("x446:THIRST", "S1c-m-live"), ("x446:levels", "S1b-m-live")):
-        v = next(v for v in ADM if v["key"] == key)
-        assert v["admitted"] and v["draws"] == [sid] and v["run"] == S.RUN["x446"]
-        assert sid.replace("live", "kernel-m1") in v["proves"]
-    assert "not the line drawn here" in SER["S1c-m-kernel"]["note"]
+def test_plan15_the_older_rings_fail_at_head_and_x452_proves_the_hunger_lines():
+    # Plan 15 Task 13: the calibrated writer (Task 6) and the water base (Task 3) move the older rings, which prove no
+    # kernel line; x452, run on the mod's tree at this build, passes and proves the hunger lines
+    adm = {v["key"]: v for v in ADM}
+    for key in ("x361:HUNGER", "x364:HUNGER", "x446:THIRST", "x342:mood"):
+        assert not adm[key]["admitted"], key
+    for key in ("x361:HUNGER", "x364:HUNGER", "x446:THIRST"):
+        assert adm[key]["proves"] == [], key
+    x452 = adm["x452:HUNGER"]
+    assert x452["admitted"] and x452["run"] == S.RUN["x452"] and x452["max_miss"]["HUNGER"] < 0.002
+    assert {"H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"} <= set(x452["proves"])
+    for sid in ("H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"):
+        assert SER[sid]["provenance"]["proof_run"] == S.RUN["x452"], sid
+    for sid in ("SH1-m-live", "S1c-m-live", "SD1-m-live"):
+        assert sid in S.DROPPED and sid not in SER, sid
+    assert not {"x364:levels", "x446:levels", "x405:HUNGER", "x362:HUNGER", "x364:THIRST"} & set(adm)
 
 
-def test_n1_the_orange_s_thiamine_averts_the_beriberi_death():
-    # S3a (tuna alone) reaches thiamine grade 4 and dies of cardiac beriberi; with the orange S3c stays below grade 4
-    assert VIAB["j_s3a"]["thiamine_g_max"] == 4 and VIAB["j_s3a"]["lethal"][1] == 3
-    assert VIAB["j_s3c"]["thiamine_g_max"] < 4 and VIAB["j_s3c"]["lethal"] is None
-    orange, tuna = (_food_rec(pz)["per_item"]["thiamine"] for pz in ("Base.Orange", "Base.TunaTinOpen"))
-    assert orange > tuna and ("%.3f mg against a tuna tin's %.3f" % (orange, tuna)) in SER["S3c-m-pool"]["note"]
+def test_s3a_dies_of_scurvy_and_the_orange_ends_its_drain(kh):
+    # Plan 15 Task 4b: tuna alone turns vitamin C Clinical near day 40 and scurvy kills at clinical + SCURVY_DEATH_H;
+    # thiamine reaches Clinical only after (day 134); with the orange (S3c) the scurvy drain opens and then closes
+    a, c = VIAB["j_s3a"], VIAB["j_s3c"]
+    death_h = float(kh.K.drain.SCURVY_DEATH_H)
+    assert a["drain"][1] == 2 and a["death"][1] == 2 and a["death_name"] == "scurvy"
+    assert a["death_age"] - a["drain"][0] == pytest.approx(death_h, abs=2 / 60.0)
+    assert 129.5 < a["death_age"] / 24.0 < 130.5
+    assert c["drain"][1] == 2 and c["death"] is None                  # the floor deepens slowly after its 72 h hold
+    assert float(kh.K.drain.SLEEP_FLOOR) < c["min_health"] <= float(kh.K.drain.FIRST_FLOOR)
+    assert c["thiamine_g_max"] < 4
+    assert "scurvy" in SER["S3a-m-pool"]["note"] and "fatal state is scurvy" in SER["S3a-m-pool"]["note"]
 
 
 def test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_proves_it():
@@ -190,8 +189,8 @@ def test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_pr
         assert says == bool(bad and not good), sid
         named += says
     assert named >= 4
-    assert SER["S1b-m-kernel"]["provenance"]["proof_run"] == S.RUN["x446"]
-    assert S.proof_note("S1b-m-kernel") == "" and S.proofs_passing("S1b-m-kernel") == ["x446:levels"]
+    assert SER["S1b-m-kernel"]["provenance"]["proof_run"] == S.RUN["x454"]
+    assert S.proof_note("H1-m-kernel") == "" and S.proofs_passing("H1-m-kernel") == ["x452:HUNGER"]
 
 
 def test_task_11_the_hangover_proof_and_h1_s_pre_eat_point():
@@ -238,25 +237,34 @@ def test_r1_every_replay_series_names_a_job_with_a_recorded_viability():
 @pytest.mark.parametrize("sid", sorted(S.SERIES_JOB))
 def test_r1_each_replay_series_is_alive_and_hydrated_over_its_window(sid):
     v = VIAB[S.SERIES_JOB[sid]]
-    if v["lethal"] is None:
+    if v["drain"] is not None:                       # a drain (damage to a floor) the series names
+        assert v["series_drain"] in (True, "allowed") or v["series_death"] in (True, "allowed"), sid
+    if v["death"] is None:
         if not v["thirst_scenario"]:
             assert v["max_dehydPct"] <= S.DEHYD_BOUND, sid
         return
-    # a death: named in the note, the series ends at it, and the dehydration bound holds to its onset
+    # a death: named in the note, the series ends at it, and the dehydration bound holds to it
     assert v["series_death"] in (True, "allowed"), sid
-    assert v["dmax_to_onset"] <= S.DEHYD_BOUND, sid
+    if not v["thirst_scenario"]:
+        assert v["dmax_to_death"] <= S.DEHYD_BOUND, sid
     assert max(xs_of(sid)) <= v["death_age"] / 24.0 + 1e-9, sid
-    assert "lethal code %d" % v["lethal"][1] in SER[sid]["note"], sid
+    assert "fatal state is %s" % v["death_name"] in SER[sid]["note"], sid
 
 
-def test_r1_the_guard_refuses_a_lethal_or_a_dry_replay():
-    alive = {"max_dehydPct": 1.0, "lethal": None, "death_age": None}
+def test_r1_the_guard_refuses_a_death_an_unnamed_drain_or_a_dry_replay():
+    alive = {"max_dehydPct": 1.0, "dmax_to_death": 1.0, "drain": None, "death": None, "death_age": None}
     S.assert_viable("ok", alive)
     with pytest.raises(D.ProvenanceError, match="dehydration"):
-        S.assert_viable("dry", dict(alive, max_dehydPct=S.DEHYD_BOUND + 0.01))
-    S.assert_viable("thirst", dict(alive, max_dehydPct=9.0), thirst=True)
-    dead = {"max_dehydPct": 6.0, "dmax_to_onset": 1.0, "lethal": (100.0, 3), "death_age": 172.0}
-    with pytest.raises(D.ProvenanceError, match="lethal code 3"):
+        S.assert_viable("dry", dict(alive, max_dehydPct=S.DEHYD_BOUND + 0.01, dmax_to_death=S.DEHYD_BOUND + 0.01))
+    S.assert_viable("thirst", dict(alive, max_dehydPct=9.0, dmax_to_death=9.0), thirst=True)
+    hurt = dict(alive, drain=[30.0, 1])
+    with pytest.raises(D.ProvenanceError, match="opens drain state 1"):
+        S.assert_viable("hurt", hurt)
+    S.assert_viable("hurt", hurt, drain=True)
+    with pytest.raises(D.ProvenanceError, match="names a drain"):
+        S.assert_viable("named", alive, drain=True)
+    dead = dict(alive, max_dehydPct=6.0, drain=[100.0, 3], death=[172.0, 3], death_age=172.0)
+    with pytest.raises(D.ProvenanceError, match="drained by state 3"):
         S.assert_viable("dead", dead)
     S.assert_viable("named", dead, death=True)
     with pytest.raises(D.ProvenanceError, match="names a death"):
@@ -264,14 +272,17 @@ def test_r1_the_guard_refuses_a_lethal_or_a_dry_replay():
     assert S.until_death([[1.0, 5], [7.0, 6], [8.0, 7]], dead) == [[1.0, 5], [7.0, 6]]
 
 
-def test_r1_a_fresh_fast_on_the_map_s_old_water_dies_of_dehydration(kh):
-    # the review's C-1 finding reproduced: 600 g at 08, 12, 16 and 20 reaches lethal code 6 within six days
-    ev = [{"minute": d * 1440 + m, "kind": "autodrop", "g": 600.0} for d in range(6) for m in (60, 300, 540, 780)]
-    rows, be = arm(ev, 6 * 1440, ("fluids.dehydPct", "effects.lethal"))
-    v = S.viability(rows, be.K)
-    assert v["lethal"] is not None and v["lethal"][1] == 6
-    with pytest.raises(D.ProvenanceError):
-        S.assert_viable("old water", v)
+def health_arm(events, minutes, paths=()):
+    """A fresh-record server replay (the display defaults) whose rows carry the stand-in's overall health, written here
+    as test_kernel_drain's fast-death test reads it: 100 less ReduceGeneralHealth plus AddGeneralHealth at the game's
+    5.05 / 17 spread (#3898)."""
+    be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
+    be.rt.execute("for _, bd in ipairs(NR_T.bodies) do bd.AddGeneralHealth = function(s, v) "
+                  "s.st.added = s.st.added + v * 5.05 / 17 end end")
+    ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])
+    rows = RL.run(be, RL.synthetic_ages(minutes), ev, list(paths) + ["drain.state"], start_age=0.0)
+    body = be.p.st.body
+    return rows, be, 100.0 - float(body.reduced) + float(body.added)
 
 
 # ---- R-2: admission per drawn quantity -----------------------------------------------------------------------------
@@ -291,24 +302,25 @@ def test_r2_every_drawn_live_series_is_admitted_and_every_dropped_one_is_not():
     for sid in live:
         recs = [v for v in ADM if sid in v["draws"]]
         assert recs, "%s is drawn by no admission" % sid
-        if sid.startswith("S3b-m-live"):                                # drawn per run: days 0-4 from x341, x342
-            assert all(v["admitted"] for v in recs if v["run"] in (S.RUN["x341"], S.RUN["x342"]))
+        if sid.startswith("S3b-m-live"):                                # drawn per run: days 0-1 from x341 alone
+            assert all(v["admitted"] for v in recs if v["run"] == S.RUN["x341"])
+            assert not any(v["admitted"] for v in recs if v["run"] in (S.RUN["x342"], S.RUN["x343"]))
         else:
             assert all(v["admitted"] for v in recs), sid
-    for sid in set(S.DROPPED) - {"ST1-m-live", "S2d-m-drain"}:
+    for sid in set(S.DROPPED) - {"ST1-m-live"}:
         assert any(sid in v["draws"] and not v["admitted"] for v in ADM), sid
 
 
 def test_r2_the_admission_grades_what_a_run_draws():
-    rec, _ = S.admission("x361", False, dict(S.HUNGER_TOL))
+    rec, _ = S.admission("x452", False, dict(S.HUNGER_TOL))
     assert rec["admitted"] and rec["max_miss"]["HUNGER"] < 0.002
-    stored = next(v for v in ADM if v["key"] == "x361:HUNGER")
+    stored = next(v for v in ADM if v["key"] == "x452:HUNGER")
     assert stored["max_miss"]["HUNGER"] == rec["max_miss"]["HUNGER"]
-    rec, _ = S.admission("x364", False, dict(S.HUNGER_TOL))
-    assert not rec["admitted"] and rec["max_miss"]["HUNGER"] > 0.002
-    rec, _ = S.admission("x364", False, {"THIRST": ("abs", 0.002)})
-    assert rec["admitted"] and rec["max_miss"]["THIRST"] < 0.002            # the stat S1c-m-live draws
-    rec, _ = S.admission("x361", False, {"HUNGER": ("abs", 1e-6)})
+    rec, _ = S.admission("x361", False, dict(S.HUNGER_TOL))
+    assert not rec["admitted"] and rec["max_miss"]["HUNGER"] > 0.002     # an earlier writer's ring (Plan 15 Task 6)
+    rec, _ = S.admission("x446", False, {"THIRST": ("abs", 0.002)})
+    assert not rec["admitted"] and rec["max_miss"]["THIRST"] > 0.002     # the earlier water base (Plan 15 Task 3)
+    rec, _ = S.admission("x452", False, {"HUNGER": ("abs", 1e-6)})
     assert not rec["admitted"]
 
 
@@ -316,12 +328,6 @@ def test_r2_a_flipped_admission_fails_the_build(monkeypatch):
     monkeypatch.setitem(S.ADMISSION_EXPECT, "x37g:met", False)
     with pytest.raises(D.ProvenanceError, match="re-rule"):
         S.adm("x37g:met")
-
-
-def test_r2_the_level_changes_of_x364_within_the_named_bound():
-    rec = S.admission_levels("x364", False)
-    assert rec["admitted"] and rec["n"]["level age (min)"] == 2
-    assert rec["max_miss"]["level age (min)"] <= S.LEVEL_TOL_MIN
 
 
 # ---- R-4: deaths and qualitative findings ----------------------------------------------------------------------------
@@ -336,6 +342,7 @@ def test_r4_the_vanilla_fast_lines_end_at_the_model_s_death():
         assert max(xs_of(sid)) == pytest.approx(death / 24.0)
     assert SER["S2d-v-model-health"]["points"][-1][1] == 0.0
     assert SER["S2d-v-model-health"]["units"]["x"] == SER["S2d-m-mass"]["units"]["x"] == "game days"
+    assert SER["S2d-m-drain"]["units"]["x"] == SER["S2d-m-dry"]["units"]["x"] == "game days"
 
 
 QUALITATIVE = ("S4c-study-0078", "S3c-study")
@@ -471,6 +478,7 @@ LATE = {
     "S5c-m-gaunt": 2.0, "S5c-m-none": 2.0, "S6a-m-day1": 9.0, "S6a-m-day14": 9.0, "S6b-m-bac": 2.0,
     "S6b-m-intox": 2.0, "S6b-m-hangover": 2.0, "S6c-m-kernel": 2.0, "SX2-m-kernel": 0.0, "S4c-m-kernel": 730.0,
     "S2d-v-model-weight": 0.0, "S4c-v-model": 730.0, "S2a-v-model": 36.0, "S1a-v-model": 13.0,
+    "S2d-m-drain": 1.0, "S2d-m-dry": 1.0, "S6a-m-offset": 9.0, "S6a-m-offset-real": 9.0, "S6b-m-intox-real": 2.0,
 }
 
 
@@ -717,10 +725,11 @@ def _(kh, sid):
 
 @check("S3b-m-live-U", "S3b-m-live-B")
 def _(kh, sid):
+    # Plan 15 Task 13: x342 and x343 fail at HEAD (the mood floor's dead zone), so the days drawn are x341's, 0 and 1
     leaf = "server_U" if sid.endswith("U") else "moodLast_b"
     days = art("x34r", "rows.json", "row13", "days", "days")
-    assert [p[1] for p in SER[sid]["points"]] == [days[str(d)][leaf] for d in range(5)]
-    assert {days[str(d)]["session"] for d in range(5)} == {"x341", "x342"}
+    assert [p[1] for p in SER[sid]["points"]] == [days[str(d)][leaf] for d in range(2)]
+    assert {days[str(d)]["session"] for d in range(2)} == {"x341"} and days["2"]["session"] == "x342"
     return xs_of(sid)
 
 
@@ -766,29 +775,10 @@ def _(kh, sid):
     return xs_of(sid)
 
 
-@check("SH1-m-live")
-def _(kh, sid):
-    r = art("x36g", "grade.json", "sessions", "x361", "readings", "readings")
-    assert SER[sid]["points"] == [[650.0, r["C650_request_vs_anchor"]["live_min"]],
-                                  [400.0, r["C400_held_vs_180"]["live_min"]]]
-    return xs_of(sid)
-
-
 @check("ST2-m-live-na")
 def _(kh, sid):
     by = art("x28g", "rows.json", "sodium", "by_day")
     assert [p[1] for p in SER[sid]["points"]] == [by[str(d)]["na_change_per_24h"] for d in range(1, 6)]
-    return xs_of(sid)
-
-
-@check("SD1-m-live")
-def _(kh, sid):
-    b = art("x161b", "body.json")
-    h0, h1 = b["health_reads"][53]["overall"], b["health_reads"][70]["overall"]
-    rate = b["summaries"]["I"]["health"]["per_game_h"]
-    (x0, y0), (x1, y1) = SER[sid]["points"]
-    assert (y0, y1) == (h0, h1)                                           # I-6: the measured span alone
-    assert (x1 - x0) * 24.0 == pytest.approx((h0 - h1) / -rate)
     return xs_of(sid)
 
 
@@ -1000,16 +990,29 @@ def _(kh, sid):
 @check("SV1-m-kernel")
 def _(kh, sid):
     assert pt(sid, 1000) == kh.K.view.fullnessLevel(1000.0)
-    assert max(xs_of(sid)) >= max(xs_of("SV1-m-live"))                   # m-3: the range covers the live rows
+    assert max(xs_of(sid)) >= max(xs_of("SV1-m-live") + xs_of("SV1-m-live-b"))   # m-3: the range covers the live rows
     return [1000]
+
+
+@check("SV1-m-live-b")
+def _(kh, sid):
+    o = art("x453b", "overfull.json", "verdicts", "OF_REACH", "observed")
+    assert SER[sid]["points"] == [[m, lv] for m, lv in zip(o["post_mass"], o["post_levels"])] == [[1108, 4]]
+    assert kh.K.view.fullnessLevel(1108.0) == 4
+    return xs_of(sid)
 
 
 @check("SD1-m-kernel")
 def _(kh, sid):
-    d, code = S.scurvy_drain(kh)
-    assert code == 2 and d == pytest.approx(1 / 100.8)                  # #3106: 0.00992063 a game minute
-    assert pt(sid, 1.0) == pytest.approx(100 - d * 1440)
-    return [1.0]
+    # Plan 15 Task 4: 50 / 3 health a game day to the first floor 50 (day 3), held 72 h, 10 two days before the
+    # death point, 0 at 2160 game hours (day 90), written here
+    assert pt(sid, 1.0) == pytest.approx(100 - 50 / 3, abs=1e-9)
+    assert pt(sid, 3.0) == pytest.approx(50.0, abs=1e-9)                # the floor's 72 h hold ends as the drain arrives
+    assert pt(sid, 5.0) == pytest.approx(50 + (10 - 50) * (120 - 72) / (2112 - 72), abs=1e-9)
+    assert pt(sid, 88.0) == pytest.approx(10.0, abs=1e-9)
+    assert pt(sid, 46.0) == pytest.approx(50 + (10 - 50) * (46 * 24 - 72) / (2112 - 72), abs=1e-9)
+    assert SER[sid]["points"][-1] == [90.0, 0.0]
+    return [1.0, 46.0, 90.0]
 
 
 @check("SD2-m-marginal", "SD2-m-clinical")
@@ -1062,16 +1065,23 @@ def _(kh, sid):
 
 @check("S1a-m-kernel")
 def _(kh, sid):
-    rows, _ = arm([eat(m, "Base.TunaTinOpen") for m in (60, 300, 540, 780)] + water(1), 1440)
+    rows, _ = arm([FRESH] + [eat(m, "Base.TunaTinOpen") for m in (60, 300, 540, 780)] + water(1), 1440)
     assert pt(sid, 70 / 60.0) == rows[69]["HUNGER"] and pt(sid, 24.0) == rows[1439]["HUNGER"]
     return [70 / 60.0, 24.0]
 
 
 @check("S1b-m-kernel")
 def _(kh, sid):
-    rows, _ = arm(water(2), 36 * 60, (S.SIG,))
-    assert pt(sid, 36.0) == int(rows[-1][S.SIG] // 1000) % 10
-    return [36.0]
+    # the game's Hungry level of the written HUNGER (#0508, strictly over 0.15, 0.25, 0.45, 0.70), written here
+    rows, _ = arm([FRESH] + water(2), 36 * 60)
+
+    def level(h):
+        return sum(h > t for t in (0.15, 0.25, 0.45, 0.70))
+    assert pt(sid, 36.0) == level(rows[-1]["HUNGER"]) == 4
+    four = next(r["age"] for r in rows if level(r["HUNGER"]) == 4)
+    assert min(p[0] for p in SER[sid]["points"] if p[1] == 4) == pytest.approx(four)
+    assert max(p[1] for p in SER[sid]["points"] if p[0] < four - 1e-9) == 3
+    return [four, 36.0]
 
 
 @check("S1c-m-kernel", "ST1-m-kernel")
@@ -1133,13 +1143,37 @@ def _(kh, sid):
 
 @check("S2d-m-mass")
 def _(kh, sid):
-    rows, _ = arm(water(3), 3 * 1440, ("body.fm", "body.lm", "body.lx"))
+    rows, _ = arm([FRESH] + water(3), 3 * 1440, ("body.fm", "body.lm", "body.lx"))
     r = rows[-1]
     assert pt(sid, 3.0) == r["body.fm"] + r["body.lm"] + r["body.lx"]
     v = VIAB["j_s2d"]
-    assert v["lethal"][1] == 3 and max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0)
-    assert v["death_age"] - v["lethal"][0] == pytest.approx(100.0 / float(kh.K.effects.DRAIN_RATE[3]) / 60.0)
+    assert v["death"][1] == 1 and max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0)
+    # the death point is BMI 12 (S2234) on lm + fm; the drawn mass adds the small labile lean lx, so the last day
+    # close's mass over the mod's height squared sits just under or at it
+    bmi = SER[sid]["points"][-2][1] / float(kh.K.HEIGHT_M) ** 2
+    assert 11.9 < bmi < 12.1
     return [3.0, max(xs_of(sid))]
+
+
+@check("S2d-m-drain")
+def _(kh, sid):
+    # three days of the fast with water: the onset at 30 unfed hours, then 25 health a game day toward the floor 50
+    _, _, health = health_arm([FRESH] + water(3), 3 * 1440)
+    assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
+    onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
+    assert health == pytest.approx(100 - 25 * (72 - onset) / 24, abs=0.05)
+    v = VIAB["j_s2d"]
+    assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0] and v["death_name"] == "starvation"
+    return [3.0, v["death_age"] / 24.0]
+
+
+@check("S2d-m-dry")
+def _(kh, sid):
+    _, _, health = health_arm([FRESH], 3 * 1440)
+    assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
+    v = VIAB["j_s2d_dry"]
+    assert v["death_name"] == "dehydration" and SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0]
+    return [3.0, v["death_age"] / 24.0]
 
 
 @check("S3a-m-pool", "S3a-m-grade", "S3c-m-pool")
@@ -1217,13 +1251,96 @@ def _(kh, sid):
     return [16.0, 24.0]
 
 
-@check("S6b-m-bac", "S6b-m-intox", "S6b-m-hangover")
+def stim_arm(events, minutes, paths, mode):
+    """A fresh-record server replay under NR.StimulantRealism `mode` (1 Game, 2 Realistic), the sandbox the options
+    poll reads each minute, written here as test_stimulant_realism's server replay sets it."""
+    be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
+    be.rt.execute("SandboxVars = { NR = { StimulantRealism = %d } }" % mode)
+    ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])
+    rows = RL.run(be, RL.synthetic_ages(minutes), ev, list(paths), start_age=0.0)
+    assert int(be.K.acute.C.MODE) == mode
+    return rows
+
+
+@check("S6b-m-bac", "S6b-m-intox", "S6b-m-hangover", "S6b-m-intox-real")
 def _(kh, sid):
     ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in (60, 80, 100, 120)] + water(1)
-    rows, _ = arm(ev, 1440, ("acute.bac", "effects.intoxTarget", "acute.hang"))
-    path = {"bac": "acute.bac", "intox": "effects.intoxTarget", "hangover": "acute.hang"}[sid.split("-")[-1]]
+    mode = 2 if sid.endswith("real") else 1
+    rows = stim_arm(ev, 1440, ("acute.bac", "effects.intoxTarget", "acute.hang"), mode)
+    path = {"bac": "acute.bac", "intox": "effects.intoxTarget", "hangover": "acute.hang",
+            "real": "effects.intoxTarget"}[sid.split("-")[-1]]
     assert pt(sid, 190 / 60.0) == rows[189][path] and pt(sid, 600 / 60.0) == rows[599][path]
+    if sid.startswith("S6b-m-intox"):                                     # #3921: Game about 20, Realistic about 31
+        want = 31.27 if mode == 2 else 20.17
+        assert max(p[1] for p in SER[sid]["points"]) == pytest.approx(want, abs=0.05)   # 10-minute points
     return [190 / 60.0, 10.0]
+
+
+@check("S6a-m-offset", "S6a-m-offset-real")
+def _(kh, sid):
+    ev = [{"minute": m, "kind": "drink", "fluid": "Coffee", "litres": 0.25} for m in (60, 300, 540)]
+    ev += [plate(m, "request") for m in (60, 360, 780)] + water(1)
+    mode = 2 if sid.endswith("real") else 1
+    rows = stim_arm(ev, 1440, ("effects.fOff",), mode)
+    assert pt(sid, 10.0) == rows[599]["effects.fOff"]
+    peak = min(p[1] for p in SER[sid]["points"])
+    if mode == 1:                                                         # Game: about twice vanilla's -0.025 a cup
+        assert -0.07 < peak < -0.04                                       # three cups a day stack a little
+    else:
+        assert peak < -0.12
+    return [10.0]
+
+
+SH3_LABELS = ("lunch", "dinner", "breakfast")
+
+
+def x452_windows():
+    d = art("x452", "day.json", "verdicts")
+    return d["CAD_FEEL_P"]["observed"]["windows"], d["CAD_FEEL_H"]["observed"]["windows"]
+
+
+@check("SH3-m-live", "SH3-m-live-hungry")
+def _(kh, sid):
+    p, h = x452_windows()
+    if sid.endswith("hungry"):
+        assert SER[sid]["points"] == [["dinner", h[0]["ret"]]] and h[0]["label"] == "dinner"
+    else:
+        assert SER[sid]["points"] == [[w["label"], w["ret"]] for w in p] and tuple(w["label"] for w in p) == SH3_LABELS
+    return xs_of(sid)
+
+
+@check("SH3-m-kernel", "SH3-m-kernel-hungry")
+def _(kh, sid):
+    # the HEAD replay of x452's own inputs (replay_live itself), read here: hours from each can's landing row to the
+    # first row over 0.15 (or 0.25), inside the meal's window
+    _, kept = S.admission("x452", False, dict(S.HUNGER_TOL), keep=("HUNGER",))
+    pts = sorted((v[0], v[1]) for v in kept.values() if v[0] is not None)
+    p, _ = x452_windows()
+    ages = [w["meal_age"] for w in p]
+    ends = ages[1:] + [pts[-1][0]]
+
+    def ret(a0, a1, thr):
+        return next(a - a0 for a, v in pts if a0 < a <= a1 and v > thr)
+    if sid.endswith("hungry"):
+        assert SER[sid]["points"] == [["dinner", ret(ages[1], ends[1], 0.25)]]
+    else:
+        assert SER[sid]["points"] == [[lab, ret(a, e, 0.15)] for lab, a, e in zip(SH3_LABELS, ages, ends)]
+        for (_, k), w in zip(SER[sid]["points"], p):                       # the replay lands each live return
+            assert abs(k - w["ret"]) <= 0.05
+    return xs_of(sid)
+
+
+@check("SH3-v-model", "SH3-v-model-hungry")
+def _(kh, sid):
+    # the vanilla model on the same meals, the can's -24 and the banana's script HungerChange taken off at once,
+    # from the ring's HUNGER before lunch: by hand, hunger rises k (1 - H) once the timer has run out
+    p, _ = x452_windows()
+    pts = SER[sid]["points"]
+    assert [x for x, _ in pts] == (["lunch", "dinner", "breakfast"] if sid == "SH3-v-model" else ["dinner"])
+    assert all(2.0 < y < 12.0 for _, y in pts)
+    if sid == "SH3-v-model":
+        assert pts[0][1] > pt("SH3-m-live", "lunch")                      # vanilla holds the lunch longer
+    return xs_of(sid)
 
 
 @check("S6c-m-kernel")
@@ -1289,8 +1406,8 @@ def _(kh, sid):
 # Task 8: the vanilla-live series and M1's (x441-x446), re-derived off the raw artifact JSON; Task 7's validation
 # ======================================================================================================================
 
-LATE.update({"S1b-m-kernel-m1": 16.8, "S1c-m-kernel-m1": 4.0, "H1-v-live": 0.01, "H2-v-live": 1.34, "S1a-v-live": 13.0, "S1b-v-live": 34.9, "S1b-m-live": 16.8,
-             "S1c-v-live": 6.2, "S1c-m-live": 4.0, "S2a-v-live": 35.0, "S2d-v-live-health": 2.6,
+LATE.update({"H1-v-live": 0.01, "H2-v-live": 1.34, "S1a-v-live": 13.0, "S1b-v-live": 34.9,
+             "S1c-v-live": 6.2, "S2a-v-live": 35.0, "S2d-v-live-health": 2.6,
              "S3b-v-live-U": 1.34, "S3b-v-live-B": 1.34, "S6b-v-live": 1.33, "S6a-m-tolerance": 1.0})
 VAL = [v for v in DATA["validation"] if v.get("kind") == "vanilla"]
 VREC = {v["key"]: v for v in VAL}
@@ -1361,17 +1478,6 @@ def _(kh, sid):
     return [x4, max(xs_of(sid))]
 
 
-@check("S1b-m-live")
-def _(kh, sid):
-    fs = art("x446", "start.json", "rec", "firstSeen")
-    rows = ring_rows("x446", (1, 721, 1441))
-    lv = [(r["age"], int(r[S.SIG] // 1000) % 10) for r in rows if isinstance(r.get(S.SIG), (int, float))]
-    up = next(a for a, l in lv if l == 1)
-    assert min(p[0] for p in SER[sid]["points"] if p[1] == 1) == pytest.approx(up - fs)
-    assert pt(sid, up - fs - 0.5) == 0 and SER[sid]["points"][-1][1] == lv[-1][1]
-    return [up - fs, SER[sid]["points"][-1][0]]
-
-
 @check("S1c-v-live")
 def _(kh, sid):
     mi = art("x441", "meal.json", "model_inputs")
@@ -1380,15 +1486,6 @@ def _(kh, sid):
     x, y = SER[sid]["points"][-1]
     assert y == row_at(rows, w + x)["THIRST"] and x > 8.0
     assert y == pytest.approx(8.0e-6 * x * 3600, abs=0.003)            # linear at VM5's rate, written here
-    return [x]
-
-
-@check("S1c-m-live")
-def _(kh, sid):
-    fs = art("x446", "start.json", "rec", "firstSeen")
-    rows = ring_rows("x446", (1, 721, 1441))
-    x, y = SER[sid]["points"][-1]
-    assert y == row_at(rows, fs + x)["THIRST"] and 23.5 < x <= 24.0
     return [x]
 
 
@@ -1442,13 +1539,16 @@ def _(kh, sid):
     return [2.0]
 
 
-def test_s3a_lines_end_at_the_death():
+def test_s3a_lines_end_at_the_death(kh):
+    # tuna carries no vitamin C, so the pool decays exp(-k t) to the death (S3a-m-pool's check), and the death is the
+    # clinical onset plus SCURVY_DEATH_H (Plan 15 Task 4): the lines end there, the pool's last point exp(-k t) at it
     v = VIAB["j_s3a"]
-    k = round(v["death_age"] * 60) - 1                                  # row k ends at (k + 1) / 60
-    ev = [eat(d * 1440 + m, "Base.TunaTinOpen") for d in range(60) for m in (60, 300, 540, 780)] + water(60)
-    rows, _ = arm(ev, k + 1, ("nutrients.vitC.p", "nutrients.vitC.g"))
-    for sid, path in (("S3a-m-pool", "nutrients.vitC.p"), ("S3a-m-grade", "nutrients.vitC.g")):
-        assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), rows[k][path]]
+    k = float(kh.NR.data.records.REC.vitC.k)
+    for sid in ("S3a-m-pool", "S3a-m-grade"):
+        assert SER[sid]["points"][-1][0] == pytest.approx(v["death_age"] / 24.0)
+    t = v["death_age"] / 24.0
+    assert SER["S3a-m-pool"]["points"][-1][1] == pytest.approx(math.exp(-k * (t - 1 / 1440.0)), rel=1e-6)
+    assert SER["S3a-m-grade"]["points"][-1][1] == 4
     assert SER["S3a-m-pool"]["points"][-1][1] < SER["S3a-m-pool"]["points"][-2][1]
 
 
@@ -1526,38 +1626,3 @@ def test_the_calorie_gap_is_the_unmodelled_thermoregulator_term():
         assert ("fell %.2f kcal a game hour faster" % gap) in SER[sid]["note"], sid
     assert "unmeasured" in v["cause"] and "would account" in v["cause"]
     assert "#0464" in SER["H2-v-model"]["note"] and "#0464" in SER["S2d-v-model-weight"]["note"]
-
-
-@check("S1b-m-kernel-m1", "S1c-m-kernel-m1")
-def _(kh, sid):
-    # I1: the HEAD replay of x446's own inputs, run here through replay_live itself, read past the eat and the change
-    d = os.path.join(ART, S.RUN["x446"])
-    import glob
-    pages = sorted(glob.glob(os.path.join(d, "minute-ring-admin-*.json")), key=lambda p: int(re.findall(r"-(\d+)\.json$", p)[0]))
-    ring, paths = RL.load_ring(pages)
-    ring = [r for r in ring if r.get("age") is not None]
-    with open(os.path.join(d, "events.json"), encoding="utf-8") as fh:
-        ev = json.load(fh)
-    loads = {}
-    for name in ("start.json", "player.json", "start-stats.json"):
-        with open(os.path.join(d, name), encoding="utf-8") as fh:
-            loads[name] = json.load(fh)
-    rows, _ = RL.replay_live(ring, ev, loads["start.json"], paths=paths, user="admin", player=loads["player.json"],
-                             start_stats=loads["start-stats.json"], sleep_allowed=False)
-    fs = art("x446", "start.json", "rec", "firstSeen")
-    eat_age = art("x446", "fast.json", "checks", "X", "eat", "ring_age")
-    first = next(r["age"] for r in rows if isinstance(r.get("THIRST"), (int, float)))
-    assert SER[sid]["points"][0][0] == pytest.approx(first - fs)        # the replay from the saved start
-    if sid.startswith("S1b"):
-        sig = S.SIG
-        lv = [(r["age"], int(r[sig] // 1000) % 10) for r in rows if isinstance(r.get(sig), (int, float))]
-        up = next(a for a, l in lv if l == 1)
-        assert min(p[0] for p in SER[sid]["points"] if p[1] == 1) == pytest.approx(up - fs)
-        assert up > eat_age and SER[sid]["points"][-1] == [pytest.approx(lv[-1][0] - fs), lv[-1][1]]
-        return [up - fs, SER[sid]["points"][-1][0]]
-    th = [(r["age"], r["THIRST"]) for r in rows if isinstance(r.get("THIRST"), (int, float))]
-    x, y = SER[sid]["points"][-1]
-    assert [x, y] in [[a - fs, t] for a, t in th] and 23.0 < x <= 24.0
-    past = [p for p in SER[sid]["points"] if p[0] > eat_age - fs + 0.5][0]          # a point past the eat
-    assert past in [[a - fs, t] for a, t in th]
-    return [past[0], x]

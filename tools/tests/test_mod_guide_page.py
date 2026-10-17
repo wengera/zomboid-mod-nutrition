@@ -580,6 +580,11 @@ class Scenarios(_Base):
         # M8, M10, M11, M12 and the FFMI fragment
         r"the week is a game choice", r"Push-ups alone", r"a food with no calories no longer fills you",
         r"Vitamin C, water, caffeine, alcohol and sleep are never sped up", r"; FFMI, the lean mass",
+        # Plan 15 Task 13: the caps lift at the mod's own crises, the Energy and Hydration moodles are gone, starvation
+        # and the deficiencies drain to floors with no off switch, Overfull's top level refuses the menu's eat
+        r"Energy moodle (?:shows|reaches)", r"Managed(?:-mode)? cap", r"beriberi kills", r"never blocks an eat",
+        r"NR\.DeficienciesCanKill", r"when the server lets deficiencies kill", r"Hydration \(Slightly dry",
+        r"hunger itself never kills", r"never reach(?:es)? the top (?:Hungry|Thirsty)", r"Hunger never reaches zero",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -594,7 +599,7 @@ class Scenarios(_Base):
         self.assertEqual(self.series["S6b-m-hangover"]["provenance"]["proof_run"], "x447-regrade-20261015")
 
     PINNED = [
-        ("S2d-m-mass", "last.x|r0", "27"),
+        ("S2d-m-drain", "last.x|r0", "62"),
         ("S4a-v-model-x1", "last.y|r0", "9"),
         ("H3-v-model-x15", "x@y>=10|r0", "292"),
         ("S5a-v-model-level", "y@x=Weak + Overweight|r0", "0"),

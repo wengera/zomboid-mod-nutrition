@@ -530,36 +530,7 @@ class Cli(Fixture):
             fh.write(text.replace("\n", "\r\n"))
         self.assertEqual(self.run_cli(["--check"], _defs())[0], 0)
 
-    def test_the_rebuild_marker_skips_check_and_removing_it_restores_check(self):
-        # Plan 15 ruling: with the marker present an out-of-date data file passes --check with a SKIPPED line; with
-        # it removed the same file fails, as before
-        self.run_cli(["--write"], _defs())
-        p = os.path.join(self.root, "docs", "mod-guide", "data.json")
-        with open(p, encoding="utf-8") as fh:
-            text = fh.read()
-        with open(p, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(text.replace("0.30000000000000004", "0.3", 1))
-        marker = os.path.join(self.root, *g.PENDING_REL.split("/"))
-        with open(marker, "w", encoding="utf-8") as fh:
-            fh.write("Plan X: rebuilt later\n")
-        self.assertEqual(g.rebuild_pending(self.root), "Plan X: rebuilt later")
-        code, msg = self.run_cli(["--check"], _defs())
-        self.assertEqual(code, 0, msg)
-        self.assertIn("SKIPPED", msg)
-        self.assertIn("REBUILD_PENDING", msg)
-        self.assertIn("Plan X: rebuilt later", msg)
-        os.remove(marker)
-        self.assertIsNone(g.rebuild_pending(self.root))
-        code, msg = self.run_cli(["--check"], _defs())
-        self.assertEqual(code, 1)
-        self.assertIn("out of date", msg)
-
-    def test_the_rebuild_marker_never_skips_write_or_another_path(self):
-        marker = os.path.join(self.root, *g.PENDING_REL.split("/"))
-        os.makedirs(os.path.dirname(marker), exist_ok=True)
-        with open(marker, "w", encoding="utf-8") as fh:
-            fh.write("")
-        self.assertEqual(g.rebuild_pending(self.root), g.PENDING_REL)        # an empty marker reads its own path
+    def test_check_of_another_path_reads_that_path(self):
         self.assertEqual(self.run_cli(["--write"], _defs())[0], 0)
         out = os.path.join(self.root, "elsewhere.json")
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
@@ -674,46 +645,17 @@ class CoverageGate(Fixture):
         self.assertFalse(os.path.exists(os.path.join(self.root, "docs", "mod-guide", "data.json")))
 
 
-class RebuildSkip(unittest.TestCase):
-    """tools/tests/conftest.py's skip (Plan 15 ruling): a named test of a module with MOD_BUILD_TESTS."""
-
-    def item(self, name, fixtures=(), names=("test_a",)):
-        import types
-        marks = []
-        mod = types.SimpleNamespace(MOD_BUILD_TESTS=names) if names is not None else types.SimpleNamespace()
-        it = types.SimpleNamespace(module=mod, originalname=name, name=name, fixturenames=fixtures,
-                                   add_marker=marks.append)
-        return it, marks
-
-    def test_named_tests_skip_and_others_run(self):
-        import conftest
-        it, marks = self.item("test_a")
-        self.assertTrue(conftest.mod_build_skip(it, "why"))
-        self.assertIn("REBUILD_PENDING: why", str(marks[0]))
-        it, marks = self.item("test_b", fixtures=("kh",))                       # an unnamed kh test runs
-        self.assertFalse(conftest.mod_build_skip(it, "why"))
-        self.assertEqual(marks, [])
-        it, marks = self.item("test_b")
-        self.assertFalse(conftest.mod_build_skip(it, "why"))
-        self.assertEqual(marks, [])
-        it, marks = self.item("test_a", fixtures=("kh",), names=None)                # a module that names none
-        self.assertFalse(conftest.mod_build_skip(it, "why"))
-
-
 class RealRepo(unittest.TestCase):
-    def test_the_rebuild_marker_does_not_outlive_its_task(self):
-        # Plan 15 ruling (c): the marker names Plan 15 Task 13; once the ledger records that task complete, it must be gone
-        ledger = os.path.join(g.REPO, ".superpowers", "sdd", "2026-10-16-plan-15-game-feel", "progress.md")
-        if g.rebuild_pending() is None or not os.path.isfile(ledger):
-            self.skipTest("no marker, or no ledger on this machine")
-        with open(ledger, encoding="utf-8") as fh:
-            done = any(line.strip() == "Task 13: complete" for line in fh)
-        self.assertFalse(done, "docs/mod-guide/REBUILD_PENDING outlived Plan 15 Task 13")
+    def test_no_rebuild_marker_is_left(self):
+        # Plan 15 Task 13 rebuilt the guide and removed the marker with its skip: nothing reads the file any more, so a
+        # marker left behind would claim a suspension that no longer exists
+        self.assertFalse(os.path.exists(os.path.join(REPO, "docs", "mod-guide", "REBUILD_PENDING")))
+        self.assertFalse(hasattr(g, "rebuild_pending"))
 
     def test_the_charts_and_the_committed_data_file(self):
         import mod_guide_series as S
-        self.assertEqual(len(S.MAP_CHARTS), 39)
-        self.assertEqual(sum(len(c["series"]) for c in S.MAP_CHARTS.values()), 150)
+        self.assertEqual(len(S.MAP_CHARTS), 40)                                   # Plan 15 Task 13: SH3
+        self.assertEqual(sum(len(c["series"]) for c in S.MAP_CHARTS.values()), 158)
         for cid, c in S.CHARTS.items():
             self.assertEqual(set(c), {"section", "title", "x", "y", "series"}, cid)
         with open(os.path.join(REPO, *g.OUT_REL.split("/")), encoding="utf-8") as fh:

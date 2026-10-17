@@ -44,28 +44,11 @@ alternatives, and several keys in one cell separated by commas. A `*` row is a w
 (`n = 1`, "everything measured here, as a population"), not a key path, and is not matched, as in
 `claims_check`'s rule; and each run guide's wildcard sentences (CLAUDE.md § 4 item 11, the wall-clock leaves)
 are a review check, not this guard's job.
-
-The rebuild marker (Plan 15 ruling): while `docs/mod-guide/REBUILD_PENDING` exists, a plan has ruled that the guide's
-data is rebuilt in one later task and that mod changes until then move it. `--check` of the committed data file then
-prints a SKIPPED line naming the marker and its text and exits 0, and `tools/tests/conftest.py` skips the guide tests
-that compare the current mod build with the committed data (`MOD_BUILD_TESTS` in each test module). Removing the
-marker restores both. `--write`, and a `--check` of another path (`out`), never read it.
 """
 import argparse, csv, json, math, os, re, subprocess, sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OUT_REL = "docs/mod-guide/data.json"
-PENDING_REL = "docs/mod-guide/REBUILD_PENDING"
-
-
-def rebuild_pending(root=REPO):
-    """The rebuild marker's text (stripped; the marker's path when it is empty), or None when it is absent."""
-    p = os.path.join(root, *PENDING_REL.split("/"))
-    if not os.path.isfile(p):
-        return None
-    with open(p, encoding="utf-8") as fh:
-        text = fh.read().strip()
-    return text or PENDING_REL
 DNC_REL = "docs/reference/do-not-cite.csv"
 ALIASES_REL = "docs/reference/run-aliases.csv"
 CLAIMS_REL = "docs/reference/claims.tsv"
@@ -723,11 +706,6 @@ def main(argv=None, root=REPO, series_defs=None, charts=None, validation=None, p
     g.add_argument("--check", action="store_true", help="fail when docs/mod-guide/data.json is out of date")
     g.add_argument("--write", action="store_true", help="regenerate docs/mod-guide/data.json")
     args = ap.parse_args(argv)
-    if args.check and out is None:
-        reason = rebuild_pending(root)
-        if reason is not None:
-            print("SKIPPED: %s --check: %s exists: %s" % (OUT_REL, PENDING_REL, reason))
-            return 0
     try:
         text = dumps(build(series_defs, root, charts, validation, pending=pending))
     except ProvenanceError as e:
