@@ -22248,3 +22248,11 @@ x454-20261017-073220,steps,the driver steps: every raw bus reply,"Raw replies an
 x454-20261017-073220,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x454-20261017-073220,verdicts.ONSET,falsified,"Falsified on the row-before clause: the ring's flag shows one row after the minute that set it; the rows are the reading.",`minute-ring-admin-1.json` rows 25-28
 x454-20261017-073220,verdicts.PAIRS_hungry,falsified,"One client read a fraction of a second ahead of the server reads inside the window's slack; not a reading of the sync.",`verdicts.PAIRS_hungry.observed.mismatches`
+x455-20261017-073633,session,the driver's text,Written before the run; not a reading.,
+x455-20261017-073633,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x455-20261017-073633,constants,the lib's constants,The driver's settings; not a reading.,
+x455-20261017-073633,memory,host free memory rows,"Host state, not a game reading.",
+x455-20261017-073633,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x455-20261017-073633,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x455-20261017-073633,verdicts.ONSET,falsified,"Falsified on the row-before clause: the ring's flag shows one row after the minute that set it; the rows are the reading.",`minute-ring-admin-1.json` rows 57-59
+x455-20261017-073633,verdicts.N_BLEED.observed.predicted_per_gh,35.66311058183672,"The driver's prediction from x451's wound term and the whole constant, not vanilla's measured rate.",`verdicts.N_BLEED.observed.rate_per_gh`
