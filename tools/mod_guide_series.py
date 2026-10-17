@@ -2711,7 +2711,7 @@ def s_sh3():
                "landing row (%.4f); each can and banana take their script HungerChange off at once and fill the food "
                "timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry "
                "after dinner at %.2f h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the "
-               "curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3944), from the evening's "
+               "curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3953), from the evening's "
                "circadian rise in hunger (S1273), a stated bend." % (h0, van[1][1])),
         series("SH3-m-kernel", "Nutrition Revamp, simulated: Peckish", "meal", "game hours", "kernel",
                [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x452"),

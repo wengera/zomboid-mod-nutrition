@@ -58060,7 +58060,7 @@
    "chart": "SH3",
    "id": "SH3-v-model",
    "label": "Vanilla, from the game's code: Peckish",
-   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3944), from the evening's circadian rise in hunger (S1273), a stated bend.",
+   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3953), from the evening's circadian rise in hunger (S1273), a stated bend.",
    "points": [
     [
      "lunch",
