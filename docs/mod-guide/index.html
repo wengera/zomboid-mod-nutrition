@@ -398,7 +398,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <tbody>
         <tr><th scope="row"><a href="#sys-hunger">Hunger</a></th>
           <td>Each food carries a hunger value. Eating subtracts it, and hunger climbs at a steady rate between meals.</td>
-          <td>Hunger comes from your body: how full your stomach is, the energy you ate recently, and how much fat you have lost. The game's own Hungry moodles show it, paced like vanilla's.</td>
+          <td>Hunger comes from your body: how full your stomach is, the energy you ate recently, and how much fat you have lost. The game's own Hungry moodles show it, paced close to vanilla's, with Peckish back a little sooner.</td>
           <td>A satisfying meal empties the hunger bar and Peckish comes back a few hours later. A food's hunger value no longer counts: its weight, a little of its bulk and its calories do.</td></tr>
         <tr><th scope="row"><a href="#sys-thirst">Thirst</a></th>
           <td>Thirst rises at a steady rate and a drink takes it down.</td>
@@ -426,8 +426,8 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <td>Tinned tuna is a protein food, and a burger's bun has carbohydrate in it.</td></tr>
         <tr><th scope="row"><a href="#sys-deficiency">Death by hunger, thirst or deficiency</a></th>
           <td>Hunger or thirst at their top moodle drain your health until you die.</td>
-          <td>Starving, going without water and the severe deficiencies damage your health down to a floor, at the game's own pace. The floor sinks as your body gives way and reaches zero only when a real body would die.</td>
-          <td>A day without food costs you health, not your life. Weeks without food, days without water or months of untreated scurvy still kill. Eat or drink and the damage stops.</td></tr>
+          <td>Starving, going without water and the severe deficiencies damage your health down to a floor, half your health, within days of the crisis. The floor sinks as your body gives way and reaches zero only when a real body would die.</td>
+          <td>A day without food costs you health, not your life. Weeks without food, days without water or months of untreated scurvy still kill. A real meal stops starvation's damage, and drinking enough water stops dehydration's.</td></tr>
       </tbody>
     </table>
   </div>
@@ -499,7 +499,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div>
     <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-hunger">Hunger</a> <a href="#sys-eating">Eating and the stomach</a> <a href="#sys-thirst">Thirst and salt</a> <a href="#sys-screen">What you see on screen</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
-      <p>The vanilla lines are the game's own rates run forward (VM1, VM3 to VM5): thirst rises linearly and hunger at a rate that eases as it climbs (#0476, #0474), and a food subtracts its HungerChange (#0006). The moodles cross at the times of #0492 to #0495, at the thresholds of #0508. The mod's lines are its code replaying a fresh no-trait body from 07:00. It writes HUNGER as a calibrated curve of its model's hunger (#3904), holds it under Starving until its starvation state opens after thirty unfed hours (#3902, #3906), and leaves hunger and thirst to the game's own moodles (#3916). The hunger lines' proof run is x452, the same writer live (#3933); x454 showed Starving within three game minutes of the state opening (#3937). Thirst follows the body-water deficit (#3908) on a water loss set by lean mass (#3909), measured live in x457 (#3942).</p>
+      <p>The vanilla lines are the game's own rates run forward (VM1, VM3 to VM5): thirst rises linearly and hunger at a rate that eases as it climbs (#0476, #0474), and a food subtracts its HungerChange (#0006). The moodles cross at the times of #0492 to #0495, at the thresholds of #0508. The mod's lines are its code replaying a fresh no-trait body from HUNGER 0 at 07:00, as vanilla's start. An empty stomach cannot write so low a hunger, so a fresh character whose HUNGER sits under what its meal pool alone can show eats a real plate of the guide's foods before its first minute, sized so that minute reads back the HUNGER it spawned with (at most one plate, a third of a day's food, a game choice; the chart's own size is in its source), and it then turns Peckish on the meal cadence. It writes HUNGER as a calibrated curve of its model's hunger (#3904), holds it under Starving until its starvation state opens after thirty unfed hours (#3902, #3906), and leaves hunger and thirst to the game's own moodles (#3916). The hunger lines' proof run is x452, the same writer live (#3933); x454 showed Starving within three game minutes of the state opening (#3937). Thirst follows the body-water deficit (#3908) on a water loss set by lean mass (#3909), measured live in x457 (#3942).</p>
       <p>The measured lines are the vanilla sessions x441, x442 and x443 on 42.21 (#3882, #3883, #3884). The mod's earlier fresh-body session, x446, ran the old writer and water base, and its replay at this build no longer matches it, so its dots are not drawn.</p>
     </div></details>
   </section>
@@ -517,12 +517,12 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-scene="mod"><h3>This mod</h3>
         <p>Your hunger follows your body. It rises through a missed day, and the next day you eat more than usual. It also grows as you lose fat.</p>
-        <p>Once your stomach has been empty for more than a day, you start to starve. The game's own Starving moodle shows, and your health drains to a floor at about the pace of vanilla's starvation. The floor then sinks only as your body wastes away, and it reaches zero when your body is as thin as a real starving body can survive: with water, about two months. Without water you dry out far sooner, in under a week. Eat or drink and the damage stops. After a long spell of starving, the mod marks you at refeeding risk.</p>
+        <p>Once your stomach has been empty for more than a day, you start to starve. The game's own Starving moodle shows. A real body's appetite fades after the first days of a fast, but the moodle stays on screen so the danger stays in sight. Your health drains to a first floor, half your health, about two days later. Vanilla's faster drain kills about a day after its Starving shows. The floor then sinks only as your body wastes away, and it reaches zero when your body is as thin as a real starving body can survive: with water, about two months. Without water you dry out far sooner, in under a week. A real meal stops the damage. After days on almost nothing a snack stops it only for a few hours, and a body starved thinner than a BMI of thirteen goes on starving until it puts weight back on. Without water, the damage stops once you have drunk enough to bring your body water back above the danger line. After a long spell of starving, the mod marks you at refeeding risk.</p>
       </div>
     </div>
     <div class="charts" data-scene="charts">
       <figure class="chart" data-chart="S2a">
-        <p class="chart-note">Through the fast vanilla's hunger climbs to <span data-fill="S2a-v-model" data-pick="max.y|r2"></span>, its top level. The mod's peaks at <span data-fill="S2a-m-kernel" data-pick="max.y|r2"></span> as the fast ends, just past the Starving line: a whole day without food starts the survivor starving shortly before its next breakfast, which costs it a little health. The meals after it bring hunger back down and end the damage.</p>
+        <p class="chart-note">Through the fast vanilla's hunger climbs to <span data-fill="S2a-v-model" data-pick="max.y|r2"></span>, its top level. The mod's peaks at <span data-fill="S2a-m-kernel" data-pick="max.y|r2"></span> as the fast ends, just past the Starving line: a whole day without food starts the survivor starving shortly before its next breakfast, which costs it a little health. Vanilla's hunger crosses its own Starving line in the last hour of the same fast, where its faster drain runs until breakfast. The meals after it bring hunger back down and end the damage.</p>
       </figure>
       <figure class="chart" data-chart="S2b">
         <p class="chart-note">The day after the fast, the mod's survivor eats <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent more than one who never fasted, and about as usual the day after that. The two studies found <span data-fill="S2b-study-1613" data-pick="y@x=day 2|sub:1|pct0"></span> percent and <span data-fill="S2b-study-1614" data-pick="y@x=day 2|sub:1|pct0"></span> percent more on the first day.</p>
@@ -538,7 +538,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <details class="science" data-scene="science"><summary>The science</summary><div>
       <p>Vanilla's starvation is VM10: hunger from 0 reaches the top level at 34.84 h, then health drains at the DayLength 4 rate (#0518) with no regeneration (#2353, #2354). The live session x442 started a vanilla survivor at HUNGER 0.60 with thirst held at 0, and its death and every graded quantity matched the model run from its own start (#3882).</p>
       <p>The mod holds HUNGER under the top level until its starvation state opens, after thirty unfed hours on its own clock (#3902), then lifts the cap and switches the game's own level-4 drain off for that player while re-applying the other drains the same constant carries (#3906, #3907, #3923). The mod's hunger after a missed day follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670) on an earlier build. Hunger rising with fat lost follows Polidori 2016 (S1254); a thin start's hunger is #3874.</p>
-      <p>The long fast is the mod's code replaying its no-trait body with water every two hours and no food (proof x434, #3869). Health drains to a floor at the state's own rate and the floor reaches zero at the state's death point (#3901, #3922): for starvation, a BMI of 12 (S2234), so a heavier body lives longer. While any drain runs, regeneration and the food heal are held off, so health rests at the floor (#3903). Live, x454 drained health to the first floor at the predicted rate and held it there (#3937, #3938); a bleed and sickness still hurt while starving (#3939); without water, x456 opened the dehydration state at a four per cent deficit and drained to its floor (#3940, #3941). Dehydration's death point, a seventeen per cent body-water deficit, is a game choice inside the evidence's fifteen to nineteen. Recovery after eating has no live reading yet. The refeeding risk state is #3875 and #2987; the refeeding event itself has no reading and is not promised. The vanilla weight dots are a 42.20.4 control run whose hunger was pinned (#0500).</p>
+      <p>The long fast is the mod's code replaying its no-trait body from HUNGER 0 with water every two hours and no food (proof x434, #3869). Health drains to a floor at the state's own rate and the floor reaches zero at the state's death point (#3901, #3922): for starvation, a BMI of 12 (S2234), so a heavier body lives longer. While any drain runs, regeneration and the food heal are held off, so health rests at the floor (#3903). Live, x454 drained health to the first floor at the predicted rate and held it there (#3937, #3938); a bleed and sickness still hurt while starving (#3939); without water, x456 opened the dehydration state at a four per cent deficit and drained to its floor (#3940, #3941). Dehydration's death point, a seventeen per cent body-water deficit, is a game choice inside the evidence's fifteen to nineteen. In x454 a can ended the starvation state on the next ring row and health rose after it, a reading the run did not grade (#3938). The state stays open at any intake under a BMI of 13, and re-opens after a meal while the last three to four days brought 600 kcal or less (#3902); dehydration's ends below its four per cent onset (#3901). The refeeding risk state is #3875 and #2987; the refeeding event itself has no reading and is not promised. The vanilla weight dots are a 42.20.4 control run whose hunger was pinned (#0500). A real fast's hunger fades after the first days (S2239); the mod keeps Starving on screen, a stated bend.</p>
     </div></details>
   </section>
 
@@ -764,7 +764,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>In the default Managed mode the mod works out your hunger every game minute from your body. Three things drive it: how full your stomach is, with protein filling more and drinks less; a pool of recently eaten energy that fades over a few hours; and a deficit drive from the last day's energy balance and the fat you have lost. The time of day, recent hard exercise, sleep debt and nicotine withdrawal nudge it too.</p>
-        <p>It shows that hunger on the game's own Hungry moodles, through a scale set to vanilla's rhythm: a satisfying meal reads near empty, Peckish comes back a few hours later and Hungry later still. Hunger rises a little in the evening, so dinner wears off sooner than breakfast. Starving shows only once you have gone more than a day with an empty stomach, about when vanilla's would.</p>
+        <p>It shows that hunger on the game's own Hungry moodles, through a scale fitted to vanilla's rhythm: a satisfying meal reads near empty, Peckish comes back a few hours later and Hungry later still. Hunger rises a little in the evening, so dinner wears off sooner than breakfast. Starving shows only once you have gone more than a day with an empty stomach, about when vanilla's would. While you go without food your hunger never dips in the morning as a fasting body's does, so the warning only grows.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
@@ -772,7 +772,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p class="chart-note">A bigger meal holds hunger off longer. Replaying a feeding study, the mod holds hunger off for <span data-fill="SH1-m-kernel" data-pick="first.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="first.x|r0"></span> kcal drink and <span data-fill="SH1-m-kernel" data-pick="last.y|r0"></span> minutes after a <span data-fill="SH1-m-kernel" data-pick="last.x|r0"></span> kcal one. This chart reads the mod's own measure of hunger, before it is scaled onto the moodles; the next chart shows the moodles a real day of meals brings.</p>
       </figure>
       <figure class="chart" data-chart="SH3">
-        <p class="chart-note">Measured live on a day of a can of bolognese and a banana at each meal, Peckish came back <span data-fill="SH3-m-live" data-pick="y@x=lunch|r1"></span> hours after lunch, <span data-fill="SH3-m-live" data-pick="y@x=dinner|r1"></span> after dinner and <span data-fill="SH3-m-live" data-pick="y@x=breakfast|r1"></span> after breakfast, and Hungry <span data-fill="SH3-m-live-hungry" data-pick="y@x=dinner|r1"></span> hours after dinner. The mod's code replaying that day lands on every reading. Vanilla's code puts Peckish back <span data-fill="SH3-v-model" data-pick="y@x=lunch|r1"></span> hours after the same lunch, later than the mod does, a difference the mod states as a bend from vanilla. Use the buttons to switch between Peckish and Hungry.</p>
+        <p class="chart-note">Measured live on a day of a can of bolognese and a banana at each meal, Peckish came back <span data-fill="SH3-m-live" data-pick="y@x=lunch|r1"></span> hours after lunch, <span data-fill="SH3-m-live" data-pick="y@x=dinner|r1"></span> after dinner and <span data-fill="SH3-m-live" data-pick="y@x=breakfast|r1"></span> after breakfast, and Hungry <span data-fill="SH3-m-live-hungry" data-pick="y@x=dinner|r1"></span> hours after dinner. The mod's code replaying that day lands on every reading. Vanilla's code, at the default day length, puts Peckish back <span data-fill="SH3-v-model" data-pick="y@x=lunch|r1"></span> hours after the same lunch, later than the mod does, a bend the mod's curve fit kept. Use the buttons to switch between Peckish and Hungry.</p>
       </figure>
       <figure class="chart" data-chart="SH2">
         <p class="chart-note">Splitting the same food into more, smaller meals barely changes the mod's hunger over a day. Six meals read <span data-fill="SH2-m-kernel" data-pick="y@x=six meals|pct0"></span> percent of three meals. The study behind the chart found that six meals left people hungrier, so here the mod and the study disagree.</p>
@@ -784,7 +784,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <li>You get hungrier as you lose fat.</li>
           <li>A missed day makes you eat more the next day.</li>
           <li>A short night raises the next day's hunger. See <a href="#sys-acute">Caffeine, alcohol and sleep</a>.</li>
-          <li>Starving shows once you have gone more than a day with an empty stomach, and it damages your health down to a floor until you eat. See <a href="#s2">Skipping meals and starving</a>.</li>
+          <li>Starving shows once you have gone more than a day with an empty stomach, and it damages your health down to a floor until you eat a real meal. See <a href="#s2">Skipping meals and starving</a>.</li>
         </ul>
       </div>
       <div class="gone" data-block="no-longer"><h3>What no longer happens</h3>
@@ -795,7 +795,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The mod keeps its model's hunger as h_model, the value the study comparisons read, and writes HUNGER as a monotone curve of it calibrated on vanilla's cadence (#3904, #3905); the curve's knots were fitted on each meal's return to Peckish (#3943, #3944). It holds HUNGER under the top level until its starvation state opens, then lifts the cap and switches vanilla's own drain off for that player (#3906, #3923). Vanilla's top Hungry level is where its starvation drain runs (#0508, #0516). x452 measured the cadence live on this build (#3933). The evening rise is the circadian rhythm of hunger (S1273); in the curve's fit, on three meals a day, dinner wore off soonest (#3944), a bend from vanilla stated here.</p>
+      <p>The mod keeps its model's hunger as h_model, the value the study comparisons read, and writes HUNGER as a monotone curve of it calibrated on vanilla's cadence (#3904, #3905); the curve's knots were fitted on each meal's return to Peckish (#3943, #3944). It holds HUNGER under the top level until its starvation state opens, then lifts the cap and switches vanilla's own drain off for that player (#3906, #3923). Vanilla's top Hungry level is where its starvation drain runs (#0508, #0516). x452 measured the cadence live on this build (#3933). The evening rise is the circadian rhythm of hunger (S1273); in the curve's fit, on three meals a day, dinner wore off soonest (#3944), a bend from vanilla stated here. While the meal pool is unfed the morning circadian dip is taken out, so HUNGER never falls during a fast (#3904), a stated bend.</p>
       <p>The meal-size curve is fitted to Callahan 2004's liquid preloads (S1247) and checked against Cummings 2004's intermeal intervals (S1248); x361 measured the live interval on an earlier build (#3700); the meal-size chart reads the model's own hunger, before the curve. Six against three meals is Ohkawara 2013 (S1608), which the mod does not reproduce.</p>
       <p>The fat-loss drive follows Polidori 2016's rise in intake per kilogram lost (S1254); a thin start's hunger is #3874. The day after a fast follows Johnstone 2002 (S1613) and Clayton 2016 (S1614); x27 read a rise of about a fifth live (#3670); the current code's replay of a fast reads <span data-fill="S2b-m-kernel" data-pick="y@x=day 2|sub:1|pct0"></span> percent. After a meal HUNGER reads near empty: the replay of a can of bolognese bottoms out at <span data-fill="H1-m-kernel" data-pick="min.y|r2"></span>, and x452's meals read at most a few thousandths on landing (#3933).</p>
     </div></details>
@@ -810,7 +810,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>Your body keeps a water pool with sodium and potassium. Water leaves through basic turnover, which grows with your lean mass, and through sweat, and you sweat more with work and heat. Salt changes how much water you hold. The High Thirst trait makes the turnover larger and Low Thirst smaller.</p>
-        <p>Thirst follows the water your body lacks, and water still in your stomach already eases it. Parched, the top Thirsty level, shows when dehydration turns dangerous, and from then on it damages your health down to a floor until you drink. The panel shows how dehydrated you are.</p>
+        <p>Thirst follows the water your body lacks, and water still in your stomach already eases it. Parched, the top Thirsty level, shows when dehydration turns dangerous, and from then on it damages your health down to a floor until you have drunk enough to bring your body water back above that line. The panel shows how dehydrated you are.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
@@ -837,7 +837,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The basal water loss is 2000 + 32 × (lean mass − 52.02) g a day, the same for either sex (#3909, S2216); High Thirst and Low Thirst scale that turnover alone, read live in x457 (#3942). Thirst sits on the body-water deficit, Parched at the four per cent onset of the dehydration state (#3908, #3940), whose drain runs to a floor that reaches zero at a seventeen per cent deficit (#3901, #3941). While it does, the game's own thirst drain is switched off for that player and its other terms re-applied (#3906, #3923). The replay of a live day holds hunger but not yet thirst, which drifts with an unmodelled cold term (#3947).</p>
+      <p>The basal water loss is 2000 + 32 × (lean mass − 52.02) g a day, the same for either sex (#3909, S2216); High Thirst and Low Thirst scale that turnover alone, read live in x457 (#3942). Thirst sits on the body-water deficit, Parched at the four per cent onset of the dehydration state (#3908, #3940), whose drain runs to a floor that reaches zero at a seventeen per cent deficit (#3901, #3941). While it does, the game's own thirst drain is switched off for that player and its other terms re-applied (#3906, #3923). The replay of a live day holds hunger but not yet thirst, which drifts on a cold term the replay does not yet carry, the live review's reading of an open row (#3947).</p>
       <p>x281 to x284 read the sodium balance on a salt-free diet live over five days: a loss of about <span data-fill="ST2-m-live-na" data-pick="last.y|abs|r1"></span> mmol a day, plasma sodium held, no grade change (#3688). The plasma reading is not drawn: the mod's replay misses it by more than the run's tolerance.</p>
     </div></details>
   </section>
@@ -894,7 +894,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <div class="promises">
       <div class="can" data-block="can"><h3>What can happen</h3>
         <ul>
-          <li>A total fast damages your health from the day you start starving, and kills you only when your body is as thin as a real body can survive, so a heavier survivor lasts longer.</li>
+          <li>A fast on water alone damages your health from the day you start starving, and kills you only when your body is as thin as a real body can survive, so a heavier survivor lasts longer.</li>
           <li>Long starvation puts you at refeeding risk.</li>
         </ul>
       </div>
@@ -1017,7 +1017,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>Each nutrient store steps down through Replete, Marginal, Depleted and Clinical, and rises to an excess level above its upper limit. Each step brings its own effects: fatigue, low mood, sickness, slower healing, heavier bleeding, faster wound infection, colds, body temperature and bruising.</p>
-        <p>A clinical vitamin A deficiency makes you Short Sighted. A long, well-stocked vitamin A and zinc intake grants Night Vision. The deficiencies that kill a real body, scurvy, beriberi and pellagra, damage your health from the day they turn Clinical, down to a floor that sinks over the weeks or months a real body would last, and kill you at the end if you never treat them. Treat one and the damage stops.</p>
+        <p>A clinical vitamin A deficiency makes you Short Sighted. A long, well-stocked vitamin A and zinc intake grants Night Vision. The deficiencies that kill a real body, scurvy, beriberi and pellagra, damage your health from the day they turn Clinical, down to a floor that sinks over the weeks or months a real body would last, and kill you at the end if you never treat them. Treat one and the damage stops once its store climbs out of Clinical.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
@@ -1095,12 +1095,12 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
         <p>A panel on the <span class="mono">;</span> key, which you can rebind. What it shows depends on the server's visibility setting: Symptoms, Bands or Numbers. A survivor with the Nutritionist trait always sees Numbers. A Nutrition tab in the character window shows the same rows. The panel also names any damage you are taking, such as weakened by starvation, shows whether your weight is losing, steady or gaining, and shows how dehydrated you are.</p>
         <p>Each food's tooltip says about how long a whole one fills you and how many calories it carries, in place of vanilla's hunger line, and a band under it lists its values.</p>
-        <p>Your hunger and thirst show on the game's own Hungry and Thirsty moodles. The mod adds five of its own: Deficiency (Marginal to Clinical), shown only for the nutrients whose shortage does something to you, Excess (Elevated to Excessive), Stimulant (Alert to Overdosed), Sleep (Short on sleep to Collapsing) and Overfull (Pleasantly overfull to Painfully stuffed). A tick in the mod's client options hides the mildest level of Stimulant, Sleep and Excess.</p>
+        <p>Your hunger and thirst show on the game's own Hungry and Thirsty moodles. The mod adds five of its own: Deficiency (Marginal to Clinical), shown only for the nutrients whose shortage does something to you, Excess (Elevated to Excessive), Stimulant (Alert to Overdosed), Sleep (Short on sleep to Collapsing) and Overfull (Pleasantly overfull to Painfully stuffed). Untick an option in the mod's client options to hide the mildest level of Stimulant, Sleep and Excess.</p>
       </div>
     </div>
     <div class="charts" data-block="charts">
       <figure class="chart" data-chart="SV1">
-        <p class="chart-note">The Overfull moodle appears at about <span data-fill="SV1-m-kernel" data-pick="x@y>=1|r0"></span> g in the stomach and reaches its top level at <span data-fill="SV1-m-kernel" data-pick="x@y>=4|r0"></span> g. Its third level tires you sooner, and its top level brings nausea and greys out eating. The dots are the levels a player's screen showed in live runs, one of them on this build.</p>
+        <p class="chart-note">The Overfull moodle appears at about <span data-fill="SV1-m-kernel" data-pick="x@y>=1|r0"></span> g in the stomach and reaches its top level at <span data-fill="SV1-m-kernel" data-pick="x@y>=4|r0"></span> g. Its third level tires you sooner, and its top level brings nausea and greys out eating. The dots are live readings: the levels a player's screen showed in an earlier run, and, on this build, the level the server's stomach mass gave after the broccoli that tipped it over.</p>
       </figure>
     </div>
     <div class="promises">
@@ -1174,7 +1174,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
   <ul class="plain-list">
     <li>The game does not tell the server when you run or sprint, so the mod bills running as walking.</li>
     <li>Time offline is not simulated. No sleep debt builds, a repeated food does not fade, and your body and Strength stay as you left them.</li>
-    <li>At the top Overfull level the menus refuse an eat, but an eat queued some other way, by another mod or a script, still lands.</li>
+    <li>At the top Overfull level the menus refuse an eat, but an eat queued some other way, by another mod or a script, can still land.</li>
     <li>The tooltip's hiding of vanilla's hunger line has not been seen in a live game yet.</li>
     <li>Well Fed lasts a fixed number of game hours, matched to vanilla's at the default day length. Vanilla's changes with the server's day length, lasting more game hours on shorter days.</li>
     <li>A trait the mod gives or takes reaches you at once, and other players see it after they reconnect.</li>
@@ -1218,6 +1218,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <li><b>S2215</b> Rolls BJ, Meengs JS, Roe LS 2014. J Acad Nutr Diet 114:1411–1416. doi:10.1016/j.jand.2014.01.014</li>
       <li><b>S2216</b> Yamada Y et al 2022. Science 378:909–915. doi:10.1126/science.abm8668</li>
       <li><b>S2234</b> Speakman JR, Westerterp KR 2013. Dis Model Mech 6:236–251. doi:10.1242/dmm.010009</li>
+      <li><b>S2239</b> Gétaz L et al 2012. Swiss Med Wkly 142:w13675. doi:10.4414/smw.2012.13675</li>
       <li><b>S2255</b> Watson JT et al 2011. PLoS One 6:e28345. doi:10.1371/journal.pone.0028345</li>
     </ol>
     <p>The S-ids are rows of the repository's science register, <code>docs/reference/science.tsv</code>; the #-ids are rows of its claims register, <code>docs/reference/claims.tsv</code>.</p>

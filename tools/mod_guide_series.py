@@ -1084,11 +1084,12 @@ def j_s1b():
     level of the written
     HUNGER every 10 minutes, with each step's own minute (the level the minute's HUNGER reads) kept."""
     rows, be = server_run([FRESH] + autodrops(2), 36 * 60)
+    seed = be.NR.server.writer.lastSeedKcal
     lv = [(k, r["age"], hungry_level(r["HUNGER"])) for k, r in enumerate(rows)]
     steps = [(a, l) for (_, a, l), (_, _, p) in zip(lv[1:], lv) if l != p]
     pts = [[a, l] for k, a, l in lv if k == 0 or k % 10 == 9] + [[a, l] for a, l in steps]
     return _done(rows, be, {"points": sorted(pts), "steps": [[a, l] for a, l in steps],
-                            "first": lv[0][2]})
+                            "first": lv[0][2], "seed_kcal": None if seed is None else float(seed)})
 
 
 @job
@@ -1246,6 +1247,8 @@ def _grades(days, ev):
     rows, be = server_run(ev, days * DAY_MIN, paths, sparse=[p for p in paths if p not in dense])
     ends = day_ends(days)
     out = {"vitC_p": pick(rows, ends, "nutrients.vitC.p"), "vitC_g": pick(rows, ends, "nutrients.vitC.g")}
+    gs = [(r["age"], r.get("nutrients.vitC.g")) for r in rows]
+    out["vitC_g_steps"] = [[a, g] for (a, g), (_, p) in zip(gs[1:], gs) if g != p]   # the grade read every row
     first2 = {}
     for k in keys:
         for _, age, g in pick(rows, ends, "nutrients.%s.g" % k):
@@ -1988,12 +1991,15 @@ def s_s1b():
                        "read": "vanilla's Hungry level of the written HUNGER (#0508)",
                        "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x454"),
                "The game's own Hungry moodle read off the HUNGER the mod writes (the mod's Energy moodle is gone), a "
-               "fresh HEAD record from HUNGER 0 at 07:00 as vanilla's line starts (the mod seeds its meal pool from "
-               "the HUNGER it finds, #3913), so it starts at level %d. The levels step at %s game hours; level 4, "
+               "fresh HEAD record from HUNGER 0 at 07:00 as vanilla's line starts: the mod seeds its meal pool from "
+               "the HUNGER it finds (#3913), and an empty stomach cannot write so low a hunger, so the writer lands "
+               "its seed plate first, the curve fit's plate of the guide's foods sized to the least kcal whose first "
+               "write is within the dead zone of it (W.seedPlate, Plan 15 Task 13 fix 1): here %.1f kcal. It starts at "
+               "level %d. The levels step at %s game hours; level 4, "
                "Starving, comes at %.2f h, when the starvation state opens after %g hours with the meal pool empty "
                "(K.drain.STARVE_ONSET_H) and the hunger cap lifts. The live x454, its unfed clock set near the onset, "
                "showed Starving within 3 game minutes of the state opening (#3937)."
-               % (k["first"], ", ".join("%.2f" % a for a, _ in k["steps"]), v["drain"][0], onset)),
+               % (k["seed_kcal"], k["first"], ", ".join("%.2f" % a for a, _ in k["steps"]), v["drain"][0], onset)),
     ]
 
 
@@ -2289,7 +2295,8 @@ def s_s3a():
                "Proof x151r (the Plan 4 build, OnsetSpeed 30: G11); vitamin C is never scaled by OnsetSpeed. The "
                "first other records to reach grade 2 on this diet: %s. %s" % (others, death_note(v, k["floor_age"]))),
         series("S3a-m-grade", "Vitamin C grade", DAYS, "grade (1 replete - 4 clinical)", "kernel",
-               to_death([[a / 24.0, g] for _, a, g in k["vitC_g"]], v, k["at_death"]["vitC_g"]),
+               to_death(sorted([[a / 24.0, g] for _, a, g in k["vitC_g"]]
+                               + [[a / 24.0, g] for a, g in k["vitC_g_steps"]]), v, k["at_death"]["vitC_g"]),
                kernel(dict(inp, path="nutrients.vitC.g"), "x151r"), death_note(v, k["floor_age"])),
         series("S3a-study-0224", "Padayatty 2016: one self-experimenter", DAYS, "vitamin C store (0-1)", "study",
                [[161.0, VITC_CLINICAL]], study("S0224"),
@@ -2693,7 +2700,8 @@ def s_sh3():
     return [
         series("SH3-v-model", "Vanilla, from the game's code: Peckish", "meal", "game hours", "vanilla-model",
                [[m, p] for m, (p, _) in zip(SH3_MEALS, van) if p is not None], vmodel("VM1", "VM3", "VM4"),
-               "The vanilla model on the same meals at the run's own meal times, from the ring's HUNGER at lunch's "
+               "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at "
+               "the run's own meal times, from the ring's HUNGER at lunch's "
                "landing row (%.4f); each can and banana take their script HungerChange off at once and fill the food "
                "timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry "
                "after dinner at %.2f h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the "
