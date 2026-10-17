@@ -249,11 +249,12 @@ Each side recomputes its own moodles from its own copy of the stats, so a moodle
 |---|---|---|---|---|---|---|
 | `HUNGRY` | `HUNGER` on `[0,1]` | 0.15 | 0.25 | 0.45 | 0.70 | [#0508/M/n=1] |
 | `THIRST` | `THIRST` on `[0,1]` | 0.12 | 0.25 | 0.70 | 0.84 | [#0509/M/n=1] |
-| `ENDURANCE` | endurance, inverted, minimum 0.75 | 0.5 | 0.25 | 0.10 | 0 | [#0510/C/C-only] |
-| `HEAVY_LOAD` | the carry ratio | 1.0 | 1.25 | 1.5 | 1.75 | [#0510/C/C-only] |
+| `ENDURANCE` | endurance, downward: each level at or under its threshold, level 0 above 0.75 | 0.75 | 0.5 | 0.25 | 0.10 | [T12.26/C/C-only] |
+| `HEAVY_LOAD` | the carry ratio, upward: level 1 above 1.0, levels 2 to 4 from their thresholds | 1.0 | 1.25 | 1.5 | 1.75 | [T12.26/C/C-only] |
 | `FOOD_EATEN` | `BodyDamage.healthFromFoodTimer`, not a stat | 0 | 1600 | 3200 | 4800 | [#0511/M/n=1] |
 
-Both hunger thresholds and both thirst thresholds read back correctly from probes either side of every level, and a timer of 197 597 read back as level 4; the endurance and heavy-load rows are read from the code only [#0508/M/n=1, #0509/M/n=1, #0510/C/C-only, #0511/M/n=1].
+Both hunger thresholds and both thirst thresholds read back correctly from probes either side of every level, and a timer of 197 597 read back as level 4; the endurance and heavy-load rows are read from the code only [#0508/M/n=1, #0509/M/n=1, T12.26, #0511/M/n=1].
+The moodle threshold table carries ENDURANCE as 0.75, 0.5, 0.25, 0.10 and 0 and HEAVY_LOAD as 0, 1.0, 1.25, 1.5 and 1.75, and `Moodle.Update` reads ENDURANCE downward, level 0 while the stat is above 0.75, 1 while above 0.5, 2 above 0.25, 3 above 0.10 and 4 at 0.10 or under, so level 1 spans 0.5 < endurance <= 0.75, and HEAVY_LOAD upward on the carried weight over the maximum, level 1 above 1.0, 2 from 1.25, 3 from 1.5 and 4 from 1.75, each left as it stands while overall health is 0. [T12.26/C/C-only]
 The 1600 that separates the first two food-eaten levels is the standard health-from-food time [#0511/M/n=1].
 With THIRST written on the server by a mod handler the THIRST moodle read the same level on both sides at every paired read, at the levels the thresholds give, up to level 4 at 1 [#2971/M/n=1].
 
@@ -318,6 +319,7 @@ One correction belongs here rather than there: `setIncWeightLot(true)` fires on 
 The session that read the flag exercised the 700 side only, at carbohydrates 800, so the double arm was never entered and a probe at 500 would measure it directly [#1491/C/C-only].
 
 Below 35 kg the weight goes no lower: `updateWeight` calls `setWeight` on every server update, and `setWeight` clamps a weight under 35 kg to 35, takes the severe-moodle health constant times the game-time multiplier off overall health and fires the damage event with `LOWWEIGHT`, so a character the loss branch presses on the floor loses about 178.2 health a game hour at DayLength 4 [#3881/C/C-only].
+With the `Nutrition` sandbox option off, vanilla's per-update `setWeight` call never runs: `Nutrition.update` returns at its first statement while the option is false, before its last call, `updateWeight`, the method that calls `setWeight` with the new weight, so the 35 kg floor's health term fires only on a `setWeight` call made outside that update, such as a mod's own. [T12.25/C/C-only]
 
 <a id="weight-traits"></a>
 ### What a weight band does

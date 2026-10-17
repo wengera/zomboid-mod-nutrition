@@ -118,6 +118,7 @@ The severe-moodle constant sits beside them [#2355/C/C-only].
 It is the single constant every severe-moodle health-loss term is built from, so one write scales all six terms together [#2355/C/C-only].
 The food heal, the 1600 standard health-from-food time and the severe-moodle constant are not saved either: each is set only by the constructor and its own setter, and no save or load body names it, so a value a mod writes is gone after a reload [#3897/C/inference].
 The standard time is read only through its getter, by `Moodle.Update`, and the severe-moodle constant only by `BodyDamage` and `Nutrition` [#3897/C/inference].
+The severe-moodle constant is not saved: in run x451 the constant written to 0.00419999985024333 read 0.016499999910593033 after the server's quit and a reuse boot of the same save, the character the saved one by its modData marker and its health, 69.2044677734375 before and 69.29570007324219 after. [T12.32/M/n=1]
 
 <a id="severe-drain"></a>
 ### The severe-moodle drain
@@ -134,6 +135,7 @@ The drain is six terms summed into one total, which `ReduceGeneralHealth` applie
 | `HEAVY_LOAD` above level 2, not in a vehicle, not asleep, not sitting on the ground or on furniture, metabolic target not `SeatedResting`, not a fast-forwarding server, health above 75, and a one-in-ten roll per thirtieth of a second | `red / ((5 − level) / 10) × mult`, half of it also added as back-muscle strain |
 
 The two sickness arms are exclusive, so at most one of them contributes on a tick [#2356/C/C-only].
+The heavy-load term's roll succeeds one tick in ten whatever the frame rate: `Rand.PerThirtiethOfASecond(10)` draws `RandStandard.Next(0, 10 x f)` and succeeds when the draw is under `f`, the thirty-frames multiplier, and `RandAbstract.Next(float, float)` returns `min + nextFloat() x (max - min)`, a uniform draw, so the term, the constant over `(5 - level) / 10` times the multiplier on a success, costs in expectation the constant over `(5 - level)` per multiplier unit. [T12.24/C/inference] Vanilla's shared severe-moodle constant is per player and, written to 0 from server Lua, stops the HUNGRY-4, THIRST-4, SICK-4 and under-35 kg health terms: in run x451, with HUNGER held at 0.800000011920929 and THIRST at 0.8999999761581421, health fell 3.5656904628358954 a game hour at the constant's 0.016499999910593033 under HUNGRY 4 and THIRST 4; with it at 0 health read 96.87430572509766 at both reads over 0.4429056655750898 game hours with no HUNGRY or THIRST damage tag, and held again under SICK 4 with no SICK tag; and five setWeight calls under the weight floor cost 0.39505350364156366 beyond the drain with the constant on and 0.0 at 0. [T12.30/M/n=1] The per-part bleeding damage runs with the severe-moodle constant at 0 and the constant's BLEEDING-4 term adds to it: in run x451, with four parts bleeding at BLEEDING 4 and the constant at 0, health fell 5.963110742769263 a game hour with the BLEEDING tag counting 500 and no HUNGRY, THIRST or SICK tag, and with the constant restored under HUNGRY 4, THIRST 4, SICK 4 and BLEEDING 4 it fell 67.41010440917394 a game hour, 61.44699366640468 over the constant-0 rate, the BLEEDING tag counting 455 against 91 each for HUNGRY, THIRST and SICK. [T12.31/M/n=1]
 The hunger and thirst terms' per-unit sizes and their cost per game-hour are stated at [body-and-weight.md#moodles](body-and-weight.md#moodles) [#0516] [#0518/C/arith.].
 The poison drain of [#poison-infection](#poison-infection) joins the same total before the call [#2358/C/C-only].
 
@@ -244,7 +246,7 @@ What a player sees of them is the moodle each stat feeds, and `MoodleStat` fixes
 | `SICK` | 0–1 | 0.25 | 0.50 | 0.75 | 0.90 |
 | `DRUNK` | 0–100 | 10 | 30 | 50 | 70 |
 
-The hunger, thirst, endurance and heavy-load thresholds are stated at [body-and-weight.md#moodles](body-and-weight.md#moodles) [#0508/M/n=1] [#0509/M/n=1] [#0510/C/C-only].
+The hunger, thirst, endurance and heavy-load thresholds are stated at [body-and-weight.md#moodles](body-and-weight.md#moodles) [#0508/M/n=1] [#0509/M/n=1] [T12.26/C/C-only].
 The comparison operator and evaluation order inside `Moodle.Update` were re-read for hunger and thirst only, so the mood rows above are the registered values and not a measured firing point [#2369/C/C-only].
 The SICK moodle's input was read as well: on a character whose health is not 0, `Moodle.Update` divides the apparent infection level, the largest of FOOD_SICKNESS, ZOMBIE_FEVER and ZOMBIE_INFECTION, by 100, adds SICKNESS straight onto it unscaled and passes each SICK threshold by a strict greater-than, so a FOOD_SICKNESS on its 0 to 100 scale is read against the 0 to 1 ladder as a hundredth [#3130/C/C-only].
 

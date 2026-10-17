@@ -268,7 +268,7 @@ What the pre-release build's takeover handler did with that sleep is a reading o
 ### What the moodles do with the two stats
 
 The `TIRED` moodle fires above 0.6, 0.7, 0.8 and 0.9 on fatigue, on a strict greater-than with the last match winning, and is skipped when body health is exactly zero [#2279/C/C-only].
-The `ENDURANCE` moodle is inverted, firing as the stat falls, and its thresholds are carried on the body page's threshold table [#0510/C/C-only].
+The `ENDURANCE` moodle reads downward, firing as the stat falls: level 1 while it is above 0.5 and at most 0.75, and its thresholds are carried on the body page's threshold table [T12.26/C/C-only].
 
 A `TIRED` level multiplies stomp power by 0.5, 0.2, 0.1 and 0.05 at levels 1 to 4, the same ladder the `ENDURANCE` moodle applies immediately before it, so a tired and winded character's stomps compound the two cuts [#2280/C/C-only].
 Each `TIRED` level and each `ENDURANCE` level adds a firearm to-hit penalty of 2.5 by default, the two keys being `CombatConfig` entries ranged 0 to 10, and the whole moodle penalty sum is scaled by the firearm-moodle sandbox multiplier [#2281/C/C-only].

@@ -117,7 +117,8 @@ The flags are in the order of the pipeline:
 - `--implied-portion <pz_id|all>` prints each macro's implied mass, their spread and the portion verdict; `--fdc <id>` joins on another FDC id than the row's.
 - `--build-extract` writes `data/fdc-extract.json` from the mapping, the FDC files and the side tables, and refuses unless the mapping checks clean; `--extract` names another path.
 - `--build` writes `data/food-nutrients.json` and `.csv` from the dataset, the mapping, the extract and the side tables and from no FDC zip, and refuses unless the mapping checks clean and the extract holds every citation; `--out-json` and `--out-csv` move the outputs.
-- `--emit-lua`, `--emit-scripts` and `--emit-infer` write `NR_Data_Nutrients.lua`, `NR_ItemPass_Food.txt` and `NR_Data_Infer.lua` from the JSON and the dataset.
+- `--emit-lua`, `--emit-scripts` and `--emit-infer` write `NR_Data_Nutrients.lua`, `NR_ItemPass_Food.txt` and `NR_Data_Infer.lua` from the JSON and the dataset, the first with the plate-volume table of every type whose `ml_per_g` is not 1.0.
+- `--fill-volume` writes the mapping's empty `ml_per_g` and `volume_source` cells from the extract's household measures and never overwrites a filled cell; `--check-map` holds the two cells to their forms, and `--build` refuses a mapped row without them or a measure the extract does not hold or reads differently.
 - `--check` and `--write` are the gate and its remedy, below; `--map-dir` and `--dataset` point every flag at another mapping directory or dataset.
 
 The module's functions are the interface a test or a later tool imports: the FDC readers (`load_nutrients`, `load_food_nutrients`, `load_portions`, `load_retention`), the mapping (`seed_map`, `read_map`, `check_map`, `implied_portion`), the extract (`build_extract`), the record builder (`build`, `build_record`, `record_checks`) and the emitters (`emit_lua`, `emit_scripts`, `emit_infer`).
@@ -126,6 +127,12 @@ The mapping directory's README states the curation rules, and [the datasets page
 `--check` is the gate that holds the generated files in sync: it rebuilds the JSON and the CSV in a scratch directory, emits the three mod files from the JSON, compares each with its file on disk and exits 1 naming the first differing line, and `--write` runs `--build` then every emitter [#3176/C/C-only].
 A generated file is therefore never edited by hand, and a commit touching the mapping, the extract, the dataset outputs, a generated mod file or the tool runs `--check` first ([item-pass.md](../areas/item-pass.md#rules)).
 The generated script file is a `/* */` header and LF text with no date, so a rebuild on another day leaves its hash, and the script checksum gate with it, unchanged.
+
+<a id="food-fills"></a>
+## `food_fills.py` — the tooltip's fill table
+
+`python tools/food_fills.py --check` and `--write`, exactly one of them, replay every mapped food type alone through the shared kernel the server runs, from the default body at energy balance at a neutral hour, the item eaten at Peckish after the guide's 667 kcal plate, and write or check the client's generated fill table `NR_Data_Fills.lua`, each type's hours until h_model is back over the Peckish h_model, held at 24, and its kcal, leaving out an evolved recipe's result type; `--check` exits 1 when the file differs from a fresh replay. [T12.45/C/C-only]
+It composes the kernel functions the server runs rather than the whole server replay, which runs too slowly for every food, so the hours are the item's own and not the clock's, and the generated file is never edited by hand.
 
 <a id="fdc-fetch"></a>
 ## `fdc_fetch.py` — the source fetcher
@@ -136,7 +143,7 @@ The generated script file is a `/* */` header and LF text with no date, so a reb
 <a id="icon-gen"></a>
 ## `icon_gen.py` — the moodle icon generator
 
-`python tools/icon_gen.py --out <dir>` writes the seven 32 x 32 RGBA class icons the mod's moodles load, `energy.png`, `hydration.png`, `deficiency.png`, `excess.png`, `stimulant.png`, `sleep.png` and `overfull.png`, into the directory it is given, and `python tools/icon_gen.py --check <dir>` compares each file there with the generator's output by sha256 and exits `1` on a missing or different file [#3242/C/C-only].
+`python tools/icon_gen.py --out <dir>` writes the five 32 x 32 RGBA class icons the mod's moodles load, `deficiency.png`, `excess.png`, `stimulant.png`, `sleep.png` and `overfull.png`, into the directory it is given, and `python tools/icon_gen.py --check <dir>` compares each file there with the generator's output by sha256 and exits `1` on a missing or different file [#3242/C/C-only].
 The pixels are deterministic, drawn from a fixed palette and a glyph table by integer arithmetic, and the PNG is written by hand through `zlib` at level 9 with no ancillary chunk, so the bytes are the same on every run of one zlib implementation; a different zlib may emit other bytes for the same pixels, which is why the committed test compares the inflated pixels and the `--check` pins the maintainer's bytes [#3242/C/C-only].
 The committed copies it checks sit under the mod's `common/media/ui/NutritionRevamp/`.
 
@@ -248,10 +255,11 @@ A new driver imports it; a driver that has run is frozen and never does. Its off
 <a id="fit-tools"></a>
 ## The fit tools
 
-The two fit tools set the worked example's fitted constants against the oracle registries under `testing/tests/kernel/`; each fit's compact file is committed under `testing/artifacts/` with its row in [the artifacts register](artifacts.md), and the full `fit.json` it projects stays in the gitignored `testing/runs/`.
+The three fit tools set the worked example's fitted constants, the first two against the oracle registries under `testing/tests/kernel/` and the third against `tools/vanilla_model.py`'s cadence; each fit's compact file is committed under `testing/artifacts/` with its row in [the artifacts register](artifacts.md), and a full `fit.json`, where the tool writes one, stays in the gitignored `testing/runs/`.
 
 - `python tools/fit_gut_satiety.py --out <dir> [--grid <spec>] [--jobs N]` fits the worked example's satiety constants against every oracle of `testing/tests/kernel/gut_oracles.py`: it scores each point of a grid of named kernel constants, then refines one constant at a time by a step factor, keeping a move that lowers the loss and taking the factor's square root after a round with none, each candidate on a fresh Lua host with Karl 2021's server-path twin patched alike and no tracked file written, and writes `fit.json` with every candidate and the chosen point beside the committed `fit-compact.json`, which `--compact <fit.json>` rebuilds from a full file. [#3717/C/C-only]
 - `python tools/fit_deficit_drive.py --out <dir> [--grid <spec>] [--jobs N]` fits the worked example's deficit drive on the server path against `testing/tests/kernel/deficit_oracles.py`: a candidate is feasible when every constraint holds, the fit maximises the smallest scored margin among the feasible, a candidate within 0.001 of the best that lies nearer the shipped constants is preferred, and it writes `fit.json` and `fit-compact.json` as the satiety fit tool does; a spec naming only `deficit.FAT_GAIN` runs its fat mode, which scores each candidate on S1254's oracles alone, ranks it by the intake rise per kg of fat lost, and reads every other oracle as a constraint once at the start point and once at the chosen one, and `--fat` runs that mode at the shipped gain. [#3718/C/C-only]
+- `python tools/fit_hunger_curve.py [--out <dir>]` fits the calibrated hunger curve's knots: it replays the mod's server pipeline once per scenario, three 667 kcal meals a day and a fast after one, keeps each minute's h_model, meal pool, hour and starvation flags, scores candidate knots on a Python mirror of the curve stage against tools/vanilla_model.py's cadence by a scan of each knot over its bounds and a coordinate refinement, replays the chosen knots on the Lua kernel and requires the mirror to reproduce the written HUNGER within 1e-9 at every minute, and writes `fit-compact.json` with the chosen point, every target's value and miss, the stability checks and the Peckish knot's profile, writing no tracked file. [T12.46/C/C-only]
 
 <a id="conventions"></a>
 ## Conventions
