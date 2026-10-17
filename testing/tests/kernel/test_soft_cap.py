@@ -4,7 +4,7 @@ K.view.fullnessLevel(massG) reads 0..4 off K.satiety.discomfort over the stomach
 K.stomach.CAPACITY_MAX_G) and its full scale (1100 g, K.stomach.CAPACITY_HARD_G), in thirds of the 0-100 scale (a
 labelled game choice on ruling 11c-8's inferences, S1250 and S1253). The mirror carries the stomach's whole mass,
 both lanes, rounded to 1 g, as m.stomachMass, because the fill F (stomachFill) clamps at 1 at 730 g and so cannot
-place a level above it. K.view.moodleClasses adds the seventh class, overfull, to the six K.view.classes reads. The
+place a level above it. K.view.moodleClasses adds the fifth class, overfull, to the four K.view.classes reads. The
 writer never writes CharacterStat.DISCOMFORT: a once-a-minute floor blinks every 2.5 s and vanishes asleep (ruling
 11c-25), so the cap is shown and never blocks an eat.
 """
@@ -130,14 +130,14 @@ def test_the_mirror_grows_by_one_number(host):
 
 # --- the classes the moodles read -----------------------------------------------------------------------------
 
-SIX = ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"]
+FOUR = ["deficiency", "excess", "stimulant", "sleep"]   # Plan 15 Task 9: the energy and hydration classes removed
 
 
-def test_moodle_classes_are_the_six_and_overfull(host):
-    assert host.py(V(host).moodleClasses(None)) == dict({c: 0 for c in SIX}, overfull=0)
+def test_moodle_classes_are_the_four_and_overfull(host):
+    assert host.py(V(host).moodleClasses(None)) == dict({c: 0 for c in FOUR}, overfull=0)
     c = host.py(V(host).moodleClasses(host.table({"acute_debtH": 13, "stomachMass": 1000})))
     assert c["sleep"] == 3 and c["overfull"] == 3
-    assert host.py(V(host).classes(host.table({"stomachMass": 1000}))) == {c: 0 for c in SIX}  # the panel's six
+    assert host.py(V(host).classes(host.table({"stomachMass": 1000}))) == {c: 0 for c in FOUR}  # the panel's four
 
 
 def test_overfull_reads_the_mass_never_the_fill(host):

@@ -1,6 +1,6 @@
 -- NR_Kernel_View.lua -- the interface's row model: the client's stored
 -- mirror (the flat scalar table of NR_Kernel_Mirror.lua) in, at one of three visibility levels, and an array of
--- rows out; the six symptom classes the moodles show; the tooltip lines of one food's resolved vector
+-- rows out; the four symptom classes the moodles show; the tooltip lines of one food's resolved vector
 -- (K.vector.resolve). Pure: no engine global, no getText -- every label is a translation KEY and every text is
 -- a KEY (isKey true: the class, band and grade words) or a formatted string, resolved by the client files.
 -- One statement per line (the coverage gate is line-granular). This file sorts after NR_Kernel.lua,
@@ -9,33 +9,18 @@
 -- visibility level the row belongs to (1 Symptoms, 2 Bands, 3 Numbers). Labels: a class row UI_NR_Class_<cls>; a
 -- grade row UI_NR_Row_<nutrient>; every other row UI_NR_Row_<mirror key without the nut_ prefix> (vitC_p,
 -- vitC_x, body_weight, acute_caf ...); a tooltip line UI_NR_Tip_Source_<source> or UI_NR_Row_<vector key>.
--- Texts: UI_NR_Class_<cls>_<0-4> (deficiency and excess stop at 3), UI_NR_Band_<band or none>, UI_NR_Grade_<1-4>, UI_NR_Tip_Rich, UI_NR_Tip_Low.
+-- Texts: UI_NR_Class_<cls>_<0-4> (deficiency and excess stop at 3), UI_NR_Band_<band or none>, UI_NR_Grade_<1-4>, UI_NR_Tip_Rich, UI_NR_Tip_Low,
+-- UI_NR_Drain_<state name> (a drain row), UI_NR_Trend_<word> (the weight trend), UI_NR_Tip_Fills* (the tooltip's fill line).
 local K = NutritionRevamp.kernel
 K.view = {}
 
--- The six symptom classes, closed, in display order.
-K.view.CLASSES = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep" }
+-- The four symptom classes, closed, in display order. The Energy and Hydration classes are removed (Plan 15 Task 9;
+-- spec section 4, items 1 and 10e): vanilla's calibrated hunger moodle, reaching Starving, and its thirst moodle,
+-- reaching Parched, are the signals; the internal energy state stays (record.body.energyState), and the panel shows the
+-- drain state, the weight trend and the dehydration per cent instead.
+K.view.CLASSES = { "deficiency", "excess", "stimulant", "sleep" }
 
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
--- energy: the K.deficit.state scalar (0.5..2.0, 1 neutral; Plan 3 -- deficit and fat depletion raise it
--- (the glycogen term retired), surplus lowers it; the mirror's 0 is a record with no body yet). The map: below 1.10 (neutral,
--- surplus or absent) 0; 1.10 1; 1.25 2; 1.40 3; 1.55 4. At rest es = 1 + 0.2456 + the fat term (K.deficit.fatTerm, the low-fat ramp since Plan 13 Task 10c) once a fast plateaus (eb24h about -1,950 kcal; the 3,970.55 kcal span). A level once reached is held until es falls ENERGY_BAND under its bound (K.view.energyLevel).
-K.view.ENERGY_AT = {
-    1.10, -- gc: game choice, Plan 11d (ruling 9d-2): level 1, a 794 kcal trailing-24 h deficit alone (0.5 x 794/3970.55 since Plan 11g Task 7; 620 kcal at 3100, 1500 at 7500): on the server path a sedentary fast reaches it about 18 h after the last meal (two missed meals; 17 h at 3100)
-    1.25, -- gc: game choice, Plan 11d (ruling 9d-2): level 2; the resting fast's plateau, 1.2456 at the 3,970.55 kcal span (Plan 11g Task 7; 1.315 at 3100), sits 0.0044 under it, so a body reaches it from fat depletion about 0.1041 under the low-fat ramp at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 0.1051 at Task 10c's 0.524404, 0.0089 under the linear term, 52 h for a 70 kg man, who now stays at level 1 through a six-day fast) or from the plateau alone (74 kg: 29.6 h; 100 kg: 27.2 h on the server path), held once reached (ruling T7-2)
-    1.40, -- gc: game choice, Plan 11d (ruling 9d-2): level 3, fat depletion about 0.2422 at rest under the low-fat ramp at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 0.2767 at Task 10c's 0.524404, 0.309 under the linear term; 0.17 at 3100, 0.54 at 7500); 1.50 before
-    1.55, -- gc: game choice, Plan 11d (ruling 9d-2): level 4, fat depletion about 0.3803 at rest under the low-fat ramp at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 0.4483 at Task 10c's 0.524404, 0.609 under the linear term; 0.47 at 3100, 0.84 at 7500); 1.75 before, unreachable at rest
-}
-
--- hydration: fluids_dehydPct (per cent of body mass) on the Plan 4 thirst ladder, K.fluids.THIRST_KNOTS -- the
--- vanilla thirst moodle levels 1-4 (#0509); the test pins these to the knots.
-K.view.HYDRATION_AT = {
-    1, -- gc: moodle level 1 at 1 % (Plan 4 ruling 8; open row S1098)
-    2, -- level 2 on the 2 % performance threshold, S0092
-    3, -- gc: level 3 at 3 % (Plan 15 Task 5, spec section 3.1; open row S1098)
-    4, -- gc: level 4, Parched, at the 4 % dehydration onset (Plan 15 Task 5, spec section 3.1; open row S1098)
-}
-
 -- stimulant: acute_caf, the caffeine in the body in mg (K.acute.caffeine).
 K.view.STIMULANT_AT = {
     50, -- gc: level 1, half a cup's worth on board; rests on S0899 (the rested effect) and S0900
@@ -138,34 +123,43 @@ function K.view.rung(v, at)
     return n
 end
 
--- The six class levels of a mirror m (nil reads all zero); the energy level is the one the server holds
--- (K.view.mirrorEnergy). m is a Lua-shaped table (the client's stored copy), so pairs
--- is allowed; the deficiency and excess scans read every nut_<key>_g and nut_<key>_x it carries.
-function K.view.classes(m)
-    local c = { energy = 0, hydration = 0, deficiency = 0, excess = 0, stimulant = 0, sleep = 0 }
+-- The four class levels of a mirror m (nil reads all zero). m is a Lua-shaped table (the client's stored copy), so
+-- pairs is allowed; the excess scan reads every nut_<key>_x it carries, the deficiency scan only the nut_<key>_g of a key
+-- in def, the set of nutrients whose grade drives an effect (K.view.deficiencyKeys; nil reads none).
+function K.view.classes(m, def)
+    local c = { deficiency = 0, excess = 0, stimulant = 0, sleep = 0 }
     if m == nil then
         return c
     end
-    c.energy = K.view.mirrorEnergy(m)
-    c.hydration = K.view.rung(m.fluids_dehydPct, K.view.HYDRATION_AT)
     c.stimulant = K.view.rung(m.acute_caf, K.view.STIMULANT_AT)
     c.sleep = K.view.rung(m.acute_debtH, K.view.SLEEP_AT)
     for k, v in pairs(m) do
-        K.view.scan(c, k, v)
+        K.view.scan(c, k, v, def)
     end
     return c
 end
 
--- The live class rungs as one integer: a change in any of energy,
--- hydration, stimulant or sleep moves it, and the Overfull level (massG, the mirror's stomachMass) is its fifth
--- digit. Deficiency and excess move with the nutrient epoch, which already marks a push. nil reads 0. lastEnergy, the
--- energy digit of the player's last signature (K.view.signatureEnergy), holds the energy level.
-function K.view.pushSignature(energyState, dehydPct, caf, debtH, massG, lastEnergy)
-    local e = K.view.energyLevel(energyState or 0, lastEnergy)
-    local hy = K.view.rung(dehydPct or 0, K.view.HYDRATION_AT)
+-- The live state that marks a push, as one integer (Plan 15 Task 9): the sleep rung (units), the stimulant rung (tens),
+-- the Overfull level (hundreds; massG, the mirror's stomachMass), the whole dehydration per cent (thousands, 0-9:
+-- K.view.dehydDigit, the panel's figure), the weight trend word (ten-thousands, K.view.trendIndex 0-2) and the active
+-- drain set (from the hundred-thousands, K.drain's mask 0-127), so a new drain line, trend word or per cent reaches
+-- the panel at the next slow minute. Deficiency and excess move with the nutrient epoch, which already marks a push.
+-- nil reads 0 (the trend 1, steady).
+function K.view.pushSignature(dehydPct, caf, debtH, massG, drainMask, trend)
     local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
     local sl = K.view.rung(debtH or 0, K.view.SLEEP_AT)
-    return K.view.fullnessLevel(massG) * 10000 + e * 1000 + hy * 100 + s * 10 + sl
+    local o = K.view.fullnessLevel(massG)
+    local d = K.view.digit(dehydPct, 9)
+    local t = K.view.digit(trend or 1, 2)
+    return K.view.digit(drainMask, 127) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
+end
+
+-- A whole number from v, floored and clamped 0..hi; anything that is not a finite number reads 0.
+function K.view.digit(v, hi)
+    if not K.finite(v) then
+        return 0
+    end
+    return K.clamp(math.floor(v), 0, hi)
 end
 
 -- A player's push phase inside the gap (rule #3498): a rolling hash of the username modulo the gap,
@@ -174,13 +168,15 @@ function K.view.pushOffset(username, gapMs)
     return K.nameHash(username) % gapMs
 end
 
--- One mirror entry into the deficiency and excess classes: a numeric nut_<key>_g raises deficiency to g - 1, a
--- numeric nut_<key>_x raises excess to x, each capped at RUNG_MAX; anything else is skipped.
-function K.view.scan(c, k, v)
+-- One mirror entry into the deficiency and excess classes: a numeric nut_<key>_g of a key in def (nil reads none)
+-- raises deficiency to g - 1, a numeric nut_<key>_x raises excess to x, each capped at RUNG_MAX; anything else is
+-- skipped.
+function K.view.scan(c, k, v, def)
     if type(v) ~= "number" or type(k) ~= "string" then
         return
     end
-    if string.match(k, "^nut_.+_g$") ~= nil then
+    local key = string.match(k, "^nut_(.+)_g$")
+    if key ~= nil and def ~= nil and def[key] == true then
         c.deficiency = K.max(c.deficiency, K.clamp(v - 1, 0, K.view.RUNG_MAX))
     end
     if string.match(k, "^nut_.+_x$") ~= nil then
@@ -209,18 +205,20 @@ end
 -- The row model: m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
 -- are listed (nil: none; K.view.gradedOrder gives the graded ones), fat the client's body-fat state { female, last }
 -- (nil reads a man with no word held; K.view.fatRow), ungraded the keys with no grade whose excess still raises the
--- Excess class (nil: none; K.view.ungradedOrder). Every level: the six class rows; Bands and up:
--- the body block (band word, weight, body-fat word, energy word), the hydration word, each graded key's grade word (a key the
--- engine has not graded yet, g < 1, has no grade row) and every listed key's excess word while its rung is above 0;
--- Numbers: the fat and lean mass, each graded key's pool percentage and excess rung, an ungraded key's rung while above
--- 0, and the caffeine, alcohol and sleep-debt figures. The energy level is the server's (K.view.classes).
-function K.view.rows(m, level, order, fat, ungraded)
+-- Excess class (nil: none; K.view.ungradedOrder), def the deficiency key set (K.view.classes). Every level: the four
+-- class rows, then one line per active drain state (K.view.drainRows); Bands and up: the body block (band word, weight,
+-- weight-trend word, body-fat word, Strength), the dehydration per cent above DEHYD_SHOW, each graded key's grade word
+-- (a key the engine has not graded yet, g < 1, has no grade row: the panel lists every graded key, whether or not its
+-- grade drives an effect) and every listed key's excess word while its rung is above 0; Numbers: the fat and lean mass
+-- and the trend in kg a day, each graded key's pool percentage and excess rung, an ungraded key's rung while above 0,
+-- and the caffeine, alcohol and sleep-debt figures.
+function K.view.rows(m, level, order, fat, ungraded, def)
     local mm = m
     if mm == nil then
         mm = {}
     end
     local lv = K.view.clampLevel(level)
-    local c = K.view.classes(mm)
+    local c = K.view.classes(mm, def)
     local rows = {}
     for i = 1, #K.view.CLASSES do
         local cls = K.view.CLASSES[i]
@@ -228,19 +226,21 @@ function K.view.rows(m, level, order, fat, ungraded)
         r.cls = cls
         r.n = c[cls]
     end
+    K.view.drainRows(rows, mm.drain_mask)
     if lv < 2 then
         return rows
     end
     K.view.push(rows, "body_band", "UI_NR_Row_body_band", K.view.bandKey("UI_NR_Band_", mm.body_band), 2, true)
     K.view.push(rows, "body_weight", "UI_NR_Row_body_weight", K.view.unitText(mm.body_weight, 1, "kg"), 2, false)
+    K.view.trendRow(rows, mm)
     K.view.fatRow(rows, mm, fat)
     K.view.levelRow(rows, mm)
-    K.view.push(rows, "body_energyState", "UI_NR_Row_body_energyState", "UI_NR_Class_energy_" .. K.view.fmt(c.energy, 0), 2, true)
     if lv >= 3 then
         K.view.push(rows, "body_fm", "UI_NR_Row_body_fm", K.view.unitText(mm.body_fm, 1, "kg"), 3, false)
         K.view.push(rows, "body_lm", "UI_NR_Row_body_lm", K.view.unitText(mm.body_lm, 1, "kg"), 3, false)
+        K.view.push(rows, "body_trendKg", "UI_NR_Row_body_trendKg", K.view.unitText(mm.body_trend, 2, "kg/day"), 3, false)
     end
-    K.view.push(rows, "fluids_dehydPct", "UI_NR_Row_fluids_dehydPct", "UI_NR_Class_hydration_" .. K.view.fmt(c.hydration, 0), 2, true)
+    K.view.dehydRow(rows, mm.fluids_dehydPct)
     if order ~= nil then
         for i = 1, #order do
             K.view.nutrientRows(rows, mm, order[i], lv)
@@ -294,6 +294,134 @@ function K.view.excessRow(rows, m, key, lv, always)
         r.cls = "excess"
         r.n = n
     end
+end
+
+-- --- the panel's signal lines (Plan 15 Task 9; spec section 4) -------------------------------------------------------
+-- The drain lines: one row per active drain state, in code order, its label UI_NR_Row_drain and its text the state's
+-- plain words, UI_NR_Drain_<name> (K.drain.states[code].name: "weakened by starvation", "suffering from dehydration",
+-- "scurvy" ...), amber like a raised class. mask is the mirror's drain_mask (K.drain's set of active codes, code c the
+-- bit 2^(c - 1)); a mask that is not a finite number reads none. Pushed at level 1: the drain is the body's damage
+-- signal the removed Energy moodle carried (decisions item 1), so every visibility level shows it.
+function K.view.drainRows(rows, mask)
+    if not K.finite(mask) or mask <= 0 then
+        return
+    end
+    -- K.drain.states is a kernel-built Lua array, so # is its length
+    for code = 1, #K.drain.states do
+        if K.view.hasBit(mask, code) then
+            local name = K.drain.states[code].name
+            local r = K.view.push(rows, "drain_" .. name, "UI_NR_Row_drain", "UI_NR_Drain_" .. name, 1, true)
+            r.cls = "drain"
+            r.n = 1
+        end
+    end
+end
+
+-- Whether drain code c's bit, 2^(c - 1), is set in mask (Lua 5.1 has no bit operators).
+function K.view.hasBit(mask, c)
+    return math.floor(mask / 2 ^ (c - 1)) % 2 == 1
+end
+
+-- The weight trend: the server's 7-day body-mass slope (the mirror's body_trend, K.body.trend over the closed-day ring
+-- body.mass7, kg a day) as a word at Bands and up, "losing", "steady" or "gaining", or No data while the mirror carries
+-- no body.
+K.view.TREND_KG_DAY = 0.05 -- kg a day: game choice (spec section 4's weight trend; not yet a spec section 10 item, carried to Task 14): about 385 kcal a day at 7,700 kcal per kg, 1.5 kg a month, under the 3.5-6 kg a month active survival loses (decisions item 6), so that loss reads losing and a slope inside +-0.35 kg a week reads steady
+K.view.TREND_WORDS = { "steady", "gaining" }
+K.view.TREND_WORDS[0] = "losing"
+
+-- The trend word's index of a slope in kg a day: 0 losing (under -TREND_KG_DAY), 2 gaining (over +TREND_KG_DAY), else 1
+-- steady; a slope that is not a finite number reads 1. Strict, so a slope on the threshold reads steady.
+function K.view.trendIndex(kgPerDay)
+    if not K.finite(kgPerDay) then
+        return 1
+    end
+    if kgPerDay < -K.view.TREND_KG_DAY then
+        return 0
+    end
+    if kgPerDay > K.view.TREND_KG_DAY then
+        return 2
+    end
+    return 1
+end
+
+-- The trend row at Bands: its word key UI_NR_Trend_<word>, or No data with no body (a body_weight that is not a positive
+-- number or a body_trend that is not a finite number).
+function K.view.trendRow(rows, m)
+    local text = K.view.NO_DATA
+    if K.finite(m.body_trend) and K.finite(m.body_weight) and m.body_weight > 0 then
+        text = "UI_NR_Trend_" .. K.view.TREND_WORDS[K.view.trendIndex(m.body_trend)]
+    end
+    K.view.push(rows, "body_trend", "UI_NR_Row_body_trend", text, 2, true)
+end
+
+-- The dehydration row at Bands: the body-water deficit in per cent of body mass to one decimal, only above DEHYD_SHOW
+-- (a figure that is not a finite number shows nothing). Vanilla's thirst moodle, reaching Parched, is the signal
+-- (decisions item 10e); this row is its figure.
+K.view.DEHYD_SHOW = 1 -- per cent: shown only above it (Plan 15 Task 9 amendments section 5); game choice (spec section 4's dehydration line; not yet a spec section 10 item, carried to Task 14), under the 1.5 % the effects table's first dehydration band starts at (S0098)
+function K.view.dehydRow(rows, pct)
+    if not K.finite(pct) or pct <= K.view.DEHYD_SHOW then
+        return
+    end
+    K.view.push(rows, "fluids_dehydPct", "UI_NR_Row_fluids_dehydPct", K.view.unitText(pct, 1, "%"), 2, false)
+end
+
+-- --- the Deficiency moodle's nutrients (Plan 15 Task 9; spec section 4, item 8) ------------------------------------
+-- The nutrients whose grade drives an effect: the Deficiency moodle and its class row read these alone (the panel's
+-- grade rows still list every graded nutrient). Built from the tables at load, never a hand list (the test keeps the
+-- set in step with them): every effects row on a nutrient's grade (on = "grade", whose src is the nutrient key), left
+-- out while its gate names a table flag that is false (VITD_EFFECTS); the members of the two grade aggregates the rows
+-- read as flags, bgroupMax (K.effects.BGROUP) and anaemia (K.nutrients.ANAEMIA, with vitamin B12 through BGROUP); and
+-- the nutrients of the drain engine's clinical onsets (K.drain.NUTRIENT). effects is NR.data.effects ({ ROWS, ... });
+-- nil reads the onsets alone. Returns a set { [key] = true }.
+function K.view.deficiencyKeys(effects)
+    local out = {}
+    for _, key in pairs(K.drain.NUTRIENT) do
+        out[key] = true
+    end
+    if effects == nil or type(effects.ROWS) ~= "table" then
+        return out
+    end
+    -- ROWS is the data file's Lua array, so # is its length
+    for i = 1, #effects.ROWS do
+        K.view.deficiencyRow(out, effects, effects.ROWS[i])
+    end
+    return out
+end
+
+-- One effects row into the deficiency set (the loop body, kept apart so the line-granular coverage gate sees each
+-- outcome): a gated row whose table flag is false adds nothing; a grade row adds its src; a flag row on a grade
+-- aggregate adds every member.
+function K.view.deficiencyRow(out, effects, row)
+    if row.gated ~= nil and effects[row.gated] == false then
+        return
+    end
+    if row.on == "grade" then
+        out[row.src] = true
+        return
+    end
+    local members = K.view.aggregateOf(row)
+    if members == nil then
+        return
+    end
+    -- an aggregate's members are a kernel-built Lua array, so # is its length
+    for i = 1, #members do
+        out[members[i]] = true
+    end
+end
+
+-- The members of the grade aggregate a flag row reads (bgroupMax: K.effects.BGROUP; anaemia: K.nutrients.ANAEMIA), or
+-- nil for any other row.
+function K.view.aggregateOf(row)
+    if row.on ~= "flag" then
+        return nil
+    end
+    if row.src == "bgroupMax" then
+        return K.effects.BGROUP
+    end
+    if row.src == "anaemia" then
+        return K.nutrients.ANAEMIA
+    end
+    return nil
 end
 
 -- The ORDER keys of a records table ({ ORDER, REC }, NR.data.records) whose kind is graded (not in
@@ -435,14 +563,19 @@ function K.view.pickLines(out, vector, R, keys, picked, rich, word)
 end
 
 -- The tooltip lines of one food: vector and source from K.vector.resolve, level 1..3, keys the keys
--- considered (nil: K.vector.KEYS), data { R = K.view.requirements(...), UNITS = NR.data.UNITS } or nil. Symptoms:
--- the source line alone; Bands: the four macros as amounts, then up to three rich-in and three low keys; Numbers:
--- every non-zero key of keys with its amount and unit. A nil vector (the source "missing") is the source line alone.
+-- considered (nil: K.vector.KEYS), data { R = K.view.requirements(...), UNITS = NR.data.UNITS, fillH = the item's
+-- fill hours (NR.data.fills.get) or nil } or nil. Every level: the fill line first when data.fillH is a number and the
+-- vector carries its calories (K.view.fillRow; it stands in for vanilla's hunger line, which the client hides), then
+-- the source line; Bands: the four macros as amounts, then up to three rich-in and three low keys; Numbers: every
+-- non-zero key of keys with its amount and unit. A nil vector (the source "missing") is the source line alone.
 function K.view.tooltip(vector, source, level, keys, data)
     local out = {}
     local src = source
     if type(src) ~= "string" then
         src = "missing"
+    end
+    if vector ~= nil and data ~= nil then
+        K.view.fillRow(out, data.fillH, vector.calories)
     end
     K.view.push(out, "source", "UI_NR_Tip_Source_" .. src, "", 1, false)
     local lv = K.view.clampLevel(level)
@@ -479,13 +612,47 @@ function K.view.tooltip(vector, source, level, keys, data)
     return out
 end
 
+-- The fill line (Plan 15 Task 9; decisions item 4): "Fills you for about N h, K kcal" in place of vanilla's hunger
+-- line, N the hours a precomputed replay of the item alone holds h_model under Peckish (tools/food_fills.py, the
+-- generated NR_Data_Fills.lua; never a per-frame or per-hover simulation), shown to the nearest half hour; under
+-- FILL_MIN_H "Fills you for under half an hour", at FILL_CAP_H or more "Fills you for more than FILL_CAP_H h". The row's
+-- sep is the separator the client joins its label and text with. Nothing for an hours or a kcal that is not a finite
+-- number.
+K.view.FILL_MIN_H = 0.5 -- game choice (spec section 4's tooltip line, decisions item 4; not yet a spec section 10 item, carried to Task 14): the shown half-hour step; under it the item reads under half an hour
+K.view.FILL_CAP_H = 24 -- the replay's horizon in game hours (tools/food_fills.py CAP_H), no row needed
+
+function K.view.fillRow(out, hours, kcal)
+    if not K.finite(hours) or not K.finite(kcal) then
+        return
+    end
+    local cal = K.view.fmt(kcal, 0) .. " kcal"
+    local r = nil
+    if hours < K.view.FILL_MIN_H then
+        r = K.view.push(out, "fill", "UI_NR_Tip_FillsUnder", cal, 1, false)
+        r.sep = ", "
+        return
+    end
+    local label = "UI_NR_Tip_Fills"
+    local h = math.floor(hours / K.view.FILL_MIN_H + 0.5) * K.view.FILL_MIN_H
+    if hours >= K.view.FILL_CAP_H then
+        label = "UI_NR_Tip_FillsOver"
+        h = K.view.FILL_CAP_H
+    end
+    local digits = 1
+    if h == math.floor(h) then
+        digits = 0
+    end
+    r = K.view.push(out, "fill", label, K.view.fmt(h, digits) .. " h, " .. cal, 1, false)
+    r.sep = " "
+end
+
 -- The moodle value map: a class level onto MoodleFramework's 0..1 value, which
 -- the framework reads against eight thresholds (MF_ISMoodle.lua getLevel :127). A symptom is a BAD moodle, so the
 -- map runs down the framework's bad side: neutral is the framework's own stored default, 0.5 (MF_ISMoodle.lua :75),
 -- where the moodle leaves the UI manager; each class's top level reaches 0.0, so a four-level class steps 0.125 a
 -- level down and deficiency and excess (top rung 3) step one sixth.
 K.view.MOODLE_NEUTRAL = 0.5 -- gc: the framework's default stored value (MF_ISMoodle.lua:75), neutral under its thresholds
-K.view.MOODLE_LEVELS = 4 -- the class ladders' top level (ENERGY_AT, HYDRATION_AT, STIMULANT_AT, SLEEP_AT)
+K.view.MOODLE_LEVELS = 4 -- the class ladders' top level (STIMULANT_AT, SLEEP_AT, and Overfull's four levels)
 
 -- A class's top level: RUNG_MAX for deficiency and excess, else MOODLE_LEVELS.
 function K.view.moodleTop(cls)
@@ -520,8 +687,8 @@ function K.view.moodleThreshold(k, cls)
     return K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * (k - 0.5) / top
 end
 
--- The soft cap shown as the mod's own Overfull moodle, a seventh moodle class beside
--- the six (the panel's class rows stay the six of K.view.CLASSES). Its level reads the stomach's whole mass, both
+-- The soft cap shown as the mod's own Overfull moodle, a fifth moodle class beside
+-- the four (the panel's class rows stay the four of K.view.CLASSES). Its level reads the stomach's whole mass, both
 -- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
 -- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
 -- At level 4 the server refuses eating through vanilla's food timer (K.view.foodTimer, Plan 15 Task 8).
@@ -629,10 +796,10 @@ function K.view.timerBand(t)
     return 0
 end
 
--- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads (the server's energy level),
+-- The moodle classes of a mirror m (nil reads all zero): the four K.view.classes reads (def its deficiency set),
 -- plus overfull from the mirror's stomachMass (a mirror without it reads 0).
-function K.view.moodleClasses(m)
-    local c = K.view.classes(m)
+function K.view.moodleClasses(m, def)
+    local c = K.view.classes(m, def)
     c.overfull = 0
     if m == nil then
         return c
@@ -641,46 +808,18 @@ function K.view.moodleClasses(m)
     return c
 end
 
--- --- the energy class's hysteresis (one holder, fix 2) -----------
--- A resting fast's energy state plateaus where the body's expenditure puts it (es 1.1904, 1.2117, 1.2481 and 1.2897
--- at 48 h for the 50 and 60 kg women and the 70 and 100 kg men on the server path, test_replay_live_energy's
--- test_a_sedentary_fast_never_steps_an_energy_level_down) and then drifts on a slow daily sawtooth (the largest fall
--- under its running peak from 24 h on 0.00234, the 70 kg man, in the same test), so a plain rung flickers for the body
--- whose plateau sits at a bound: the 70 kg man's 1.2456, 0.0044 under level 2, crossed 1.25 at 52, 66.3 and 76 h.
--- A threshold move only moves the flicker to another body; a level once reached is held instead, until the state
--- falls ENERGY_BAND under that level's bound. The server alone holds it: it keys its push on the held level (the last
--- signature's energy digit), every mirror carries that digit as body_energyLevel and the client shows it
--- (K.view.mirrorEnergy), so no new state is stored and a change of the held level marks a push like any class change.
-K.view.ENERGY_BAND = 0.035 -- gc: game choice, Plan 11g Task 7 fix 1 (ruling T7-2), re-ruled at Plan 13 Task 10c fix 1: the fall under a reached level's bound that steps the energy class down, about 278 kcal of trailing deficit at the 3,970.55 kcal span; under Plan 13 Task 10c's low-fat ramp es falls slowly after a resting fast's plateau until the fat depletion passes FAT_DEP_LO (about 364 h), and at the old 0.01 men from 72.56 kg stepped 2 to 1 late in day 6 and 73 to 82 kg men by day 15 (the Task 10c review's sweep: both sexes, 50 to 120 kg at 1 kg and 72.00 to 73.10 kg men at 0.02 kg, over resting fasts up to 20 days); the deepest fall under a held bound is 0.0307 (the 72.55 kg man), so 0.031 is the floor and 0.035 holds every body with a margin (test_replay_live_energy's test_a_long_sedentary_fast_never_steps_an_energy_level_down); a 600 kcal meal lowers es by about 0.075 as it empties into the trailing window, so a meal still steps the level down as it is absorbed, and a snack under about 280 kcal no longer does
+-- The level-1 hide option (Plan 15 Task 9; spec section 4, item 10d): the client's own option hides level 1 of the
+-- Stimulant, Sleep and Excess moodles, the three whose first level is a mild state the player need not act on; the
+-- panel's class rows always show the level.
+K.view.HIDE_ONE = { stimulant = true, sleep = true, excess = true }
 
--- The energy class of a state: its rung on ENERGY_AT, or last (the level held before) while the state stays within
--- ENERGY_BAND under last's bound; never above the rung of the state plus the band. A non-number state reads its rung
--- (0); a last that is not a number, NaN included, reads none.
-function K.view.energyLevel(energyState, last)
-    local n = K.view.rung(energyState, K.view.ENERGY_AT)
-    if type(energyState) ~= "number" or type(last) ~= "number" or not (last > n) then
-        return n
+-- The level a moodle shows for class cls at level n: 0 while hideOne is true, n is 1 and the class is one of HIDE_ONE,
+-- else n.
+function K.view.shownLevel(cls, n, hideOne)
+    if hideOne == true and n == 1 and K.view.HIDE_ONE[cls] == true then
+        return 0
     end
-    return K.min(last, K.view.rung(energyState + K.view.ENERGY_BAND, K.view.ENERGY_AT))
-end
-
--- The energy class of a mirror m: its body_energyLevel, the level the server holds, when that is a whole
--- number from 0 to #ENERGY_AT; else (a mirror sent before the player's first flush, or a malformed field) the plain
--- rung of its body_energyState.
-function K.view.mirrorEnergy(m)
-    local v = m.body_energyLevel
-    if type(v) == "number" and v >= 0 and v <= #K.view.ENERGY_AT and math.floor(v) == v then
-        return v
-    end
-    return K.view.rung(m.body_energyState, K.view.ENERGY_AT)
-end
-
--- The energy digit of a push signature (K.view.pushSignature), nil when sig is not a number.
-function K.view.signatureEnergy(sig)
-    if type(sig) ~= "number" then
-        return nil
-    end
-    return math.floor(sig / 1000) % 10
+    return n
 end
 
 -- --- the Body fat row (Bands and up): the fat fraction as a sex-specific word, with a hold --------------------------

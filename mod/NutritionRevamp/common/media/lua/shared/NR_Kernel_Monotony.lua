@@ -203,6 +203,33 @@ function K.monotony.target(m, ageH)
     return u, K.min(K.monotony.BORED_MAX, u)
 end
 
+-- The mood floor's dead zone (Plan 15 Task 9; spec section 4, item 10c), hysteresis as the hunger curve's (item 10b,
+-- K.hungerCurve.hold): when the last target, prev, stood over a moodle threshold and the target has fallen to it or
+-- under it by less than DEAD_ZONE x that threshold, the target is held HOLD_EPS over the threshold (never over prev),
+-- so the moodle steps down only past the zone; a rise is never held. The thresholds are the level steps the floors can
+-- reach (#2369): UNHAPPY 20 and 45 (the UNHAPPINESS target stops at 59, under 60), BORED 25 (the BOREDOM target stops at
+-- BORED_MAX 49, under 50).
+K.monotony.DEAD_ZONE = 0.02 -- game choice (spec section 10: the dead-zone width; item 10c): a share of the threshold, 0.4 at UNHAPPY 20, 0.5 at BORED 25
+K.monotony.HOLD_EPS = 0.01 -- game choice (spec section 10: the dead-zone width): mood points a held target sits over its threshold, far under a moodle step and over float noise
+K.monotony.UNHAPPY_AT = { 20, 45 } -- VANILLA #2369 (UNHAPPY levels 1 and 2)
+K.monotony.BORED_AT = { 25 } -- VANILLA #2369 (BORED level 1)
+
+-- A target v held over the threshold of at (an ascending list) it has just fallen within the dead zone under, from the
+-- last target prev; v otherwise. A prev or v that is not a finite number returns v.
+function K.monotony.hold(v, prev, at)
+    if not K.finite(v) or not K.finite(prev) then
+        return v
+    end
+    -- at is one of this file's Lua arrays, so # is its length
+    for i = 1, #at do
+        local t = at[i]
+        if prev > t and v <= t and v > t - K.monotony.DEAD_ZONE * t then
+            return K.min(prev, t + K.monotony.HOLD_EPS)
+        end
+    end
+    return v
+end
+
 -- The count of an entry past the window, dt hours after its last eat: its decayed count while
 -- above one portion, else 0. Its level, SLOPE x max(0, n - 1), falls to 0 continuously as n reaches one portion, so the
 -- window no longer drops the floor in one minute; the entry is pruned only after (K.monotony.addGone).

@@ -1,4 +1,4 @@
-"""icon_gen.py (Plan 7 Task 9; Plan 11c Task 7 adds overfull): the seven class icons are valid, deterministic and
+"""icon_gen.py (Plan 7 Task 9; Plan 11c Task 7 adds overfull): the five class icons are valid, deterministic and
 match the committed files."""
 import hashlib
 import os
@@ -42,7 +42,7 @@ class IconGenTests(unittest.TestCase):
 
     def test_glyphs_distinct(self):
         seen = set(hashlib.sha256(d).hexdigest() for d in icon_gen.generate().values())
-        self.assertEqual(len(seen), 7)
+        self.assertEqual(len(seen), 5)
         self.assertEqual(icon_gen.CLASSES[-1], "overfull")
 
     def test_committed_files_match(self):
@@ -75,7 +75,7 @@ class IconGenTests(unittest.TestCase):
                 f.write(b"x")
             r = subprocess.run([sys.executable, CLI, "--check", d], capture_output=True, text=True)
             self.assertEqual(r.returncode, 1)
-            os.remove(os.path.join(d, "energy.png"))
+            os.remove(os.path.join(d, "deficiency.png"))
             r = subprocess.run([sys.executable, CLI, "--check", d], capture_output=True, text=True)
             self.assertEqual(r.returncode, 1)
             self.assertIn("MISSING", r.stdout)

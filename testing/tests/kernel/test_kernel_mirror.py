@@ -8,7 +8,7 @@ def rec(host, **kw):
 
 
 BODY_ABSENT = {"body_" + k: 0 for k in ("fm", "lm", "weight", "energyState", "tac", "rmod", "delta", "ebDay",
-                                          "eeDay", "inDay")}
+                                          "eeDay", "inDay", "trend")}
 BODY_ABSENT["body_band"] = ""
 
 
@@ -21,7 +21,7 @@ EFFECT_NUMBERS = ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "h
 PLAN5_ABSENT = {"effects_" + k: 0 for k in EFFECT_NUMBERS}
 PLAN5_ABSENT["effects_nv"] = False
 PLAN5_ABSENT["effects_ss"] = False
-DRAIN_ABSENT = {"drain_state": 0, "drain_floor": 100}           # Plan 15 Task 4: K.drain's pair, no state
+DRAIN_ABSENT = {"drain_state": 0, "drain_floor": 100, "drain_mask": 0}   # Plan 15 Tasks 4 and 9: K.drain's keys, no state
 META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 
@@ -38,14 +38,21 @@ def test_mirror_is_flat_scalars_only(host):
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
 
-def test_mirror_carries_the_held_energy_level_only_when_given(host):
-    # Plan 11g Task 7 fix 2 (ruling T7-7): body_energyLevel, the bus's held level (its last signature's energy digit),
-    # is the build's fourth argument; with none the key is absent and the client reads the rung of body_energyState
+def test_mirror_carries_the_weeks_mass_slope_as_the_trend(host):
+    # Plan 15 Task 9: body_trend, K.body.trend over the closed-day ring mass7 against today's body mass (kg a day);
+    # 0 with no body, no ring, or a ring whose oldest slot is not a finite number; the energy level key is gone
     meta = host.table(META)
-    m = host.py(host.call("mirror.build", rec(host), meta, None, 2))
-    assert m["body_energyLevel"] == 2
-    assert "body_energyLevel" not in host.py(host.call("mirror.build", rec(host), meta, None, None))
-    assert "body_energyLevel" not in host.py(host.call("mirror.build", rec(host), meta))
+    body = {"fm": 20.0, "lm": 59.0, "lx": 1.0, "band": "normal", "energyState": 1.0, "tac": 1, "rmod": 1,
+            "ebDay": 0, "eeDay": 0, "inDay": 0}
+    m = host.py(host.call("mirror.build", rec(host, body=host.table(dict(body, mass7={1: 81.4, 7: 80.2}))), meta))
+    assert abs(m["body_trend"] - (80.0 - 81.4) / 7) < 1e-12 and "body_energyLevel" not in m
+    for ring in (None, {}, {1: float("nan")}, {1: "x"}):
+        f = dict(body) if ring is None else dict(body, mass7=ring)
+        m = host.py(host.call("mirror.build", rec(host, body=host.table(f)), meta))
+        assert m["body_trend"] == 0, ring
+    assert host.py(host.call("mirror.build", rec(host), meta))["body_trend"] == 0
+    f = dict(body, fm=float("inf"), mass7={1: 81.4})                  # a slope that is not finite reads 0
+    assert host.py(host.call("mirror.build", rec(host, body=host.table(f)), meta))["body_trend"] == 0
 
 
 def test_mirror_copies_rather_than_aliases_the_record(host):
@@ -190,12 +197,14 @@ def test_mirror_carries_the_effects_set(host):
 
 def test_mirror_carries_the_active_drain_state_and_its_floor(host):
     # Plan 15 Task 4: drain_state the active state's code and drain_floor its floor; 0 and 100 with none active
-    on = host.table({"active": True, "state": 6, "targetFloor": 41.5})
+    on = host.table({"active": True, "state": 6, "targetFloor": 41.5, "mask": 33})
     m = host.py(host.call("mirror.build", rec(host, drain=on), host.table(META)))
-    assert (m["drain_state"], m["drain_floor"]) == (6, 41.5)
-    off = host.table({"active": False, "state": 6, "targetFloor": 41.5})
+    assert (m["drain_state"], m["drain_floor"], m["drain_mask"]) == (6, 41.5, 33)   # Plan 15 Task 9: every active state
+    off = host.table({"active": False, "state": 6, "targetFloor": 41.5, "mask": 33})
     m = host.py(host.call("mirror.build", rec(host, drain=off), host.table(META)))
-    assert (m["drain_state"], m["drain_floor"]) == (0, 100)
+    assert (m["drain_state"], m["drain_floor"], m["drain_mask"]) == (0, 100, 0)
+    junk = host.table({"active": True, "state": 6, "targetFloor": 41.5, "mask": "x"})
+    assert host.py(host.call("mirror.build", rec(host, drain=junk), host.table(META)))["drain_mask"] == 0
     assert "effects_drain" not in m and "effects_lethal" not in m
 
 
@@ -244,7 +253,7 @@ def _level_mirror(host, P=None, **over):
          "ebDay": 0.0, "eeDay": 0.0, "inDay": 0.0, "N0": 1.1, "T": 0.9, "S": 12.0}
     f.update(over)
     meta = host.table({"mode": 1, "version": "v", "build": "b"})
-    return host.py(host.call("mirror.build", rec(host, body=host.table(f)), meta, None, None, P))
+    return host.py(host.call("mirror.build", rec(host, body=host.table(f)), meta, None, P))
 
 
 def test_mirror_level_reads_the_passed_strength_table_not_the_defaults(host):

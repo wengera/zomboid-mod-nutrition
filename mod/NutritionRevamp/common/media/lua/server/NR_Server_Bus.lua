@@ -29,7 +29,7 @@ NR.server.bus = {
         "the push rides the player's next slow minute: a change made in one game minute reaches the client with the next one's flush",
         "with no getTimestampMs the gap is the slow minute itself",
         "a mirror request is answered at most once per player per 5 s of server wall clock; a denied request is counted and dropped",
-        "a class change (energy, hydration, stimulant or sleep rung) or an Overfull level change marks a push at the next slow minute, inside the push gap",
+        "a change of the stimulant or sleep rung, the Overfull level, the whole dehydration per cent, the weight-trend word or the set of active drain states marks a push at the next slow minute, inside the push gap",
         "each player's first push waits a per-player offset inside the 60 s gap, so pushes first made together spread over the gap",
     },
 }
@@ -44,7 +44,7 @@ local nowMs = NR.nowMs
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end
     if sendServerCommand == nil then return false end
-    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER, K.view.signatureEnergy(B.lastSig[record.username]), NR.strengthP())
+    local okB, m = pcall(K.mirror.build, record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER, NR.strengthP())
     if not okB then
         B.build.failed = B.build.failed + 1
         NR.log.say(2, "bus: mirror build failed for " .. tostring(record.username) .. ": " .. tostring(m))
@@ -87,8 +87,10 @@ end
 function B.flushEffects(username, player, record)
     if username == nil or record == nil then return false end
     if not NR.isServer() then return false end
-    local body, fl, ac = record.body, record.fluids, record.acute
-    local sig = K.view.pushSignature(body and body.energyState, fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record), K.view.signatureEnergy(B.lastSig[username]))
+    local body, fl, ac, D = record.body, record.fluids, record.acute, record.drain
+    local trend = nil
+    if body ~= nil then trend = K.view.trendIndex(K.mirror.trend(body, body.fm + body.lm + body.lx)) end
+    local sig = K.view.pushSignature(fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record), D and D.active and D.mask, trend)
     if B.lastSig[username] ~= nil and B.lastSig[username] ~= sig then B.effects.dirty[username] = true end
     B.lastSig[username] = sig
     local E = record.effects
@@ -148,5 +150,3 @@ function B.markBand(username)
     B.markEffects(username)
 end
 
--- The energy class's hysteresis; fix 2: the server is its one holder.
-B.limitations[#B.limitations + 1] = "the energy class holds a reached level until the energy state falls K.view.ENERGY_BAND (0.01) under its bound, held on the server alone off the player's last signature; every mirror carries that level as body_energyLevel and the client shows it; the level starts unheld at first sight (the bus forgets the signature, so a mirror sent before the player's first flush carries none and the client reads the plain rung of the mirrored state), a state inside the band under a bound then reads the level below until it rises past the bound again, and a mirror answered on request carries the level of the last flush beside the state of the moment"

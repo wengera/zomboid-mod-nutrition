@@ -15,7 +15,7 @@
 -- and iron rungs' follow the record's own hours in the state (record.drain.naH, feH). The rates are per game day and
 -- independent of day length.
 -- record.drain holds the inputs a save keeps (bmi0, naH, feH, and starvation's clocks fedAgeH and acuteH;
--- K.store.INPUTS) and the minute's derived outputs (active, state, targetFloor, rate, drainThisMinute, starvedH (the
+-- K.store.INPUTS) and the minute's derived outputs (active, state, mask, targetFloor, rate, drainThisMinute, starvedH (the
 -- starvation clock: the unfed hours, or the onset plus the hours in the acute state), recentKcal, and the starving,
 -- starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua tables in and out, no Java. Slow-clock code
 -- with no fast region; every K.acute / K.fluids / K.HEIGHT_M reference is at call time.
@@ -143,6 +143,7 @@ function K.drain.new()
         feH = 0,
         active = false,
         state = 0,
+        mask = 0,
         targetFloor = K.drain.NONE,
         rate = 0,
         drainThisMinute = 0,
@@ -284,13 +285,15 @@ function K.drain.rate(state)
 end
 
 -- One state's candidacy: when active, a floor under the best so far wins the state (a tie keeps the earlier code) and a
--- faster rate wins the rate. A floor that is not a finite number (a clock the record's heal has not reached yet) leaves
--- the state out for the minute.
+-- faster rate wins the rate; the code's bit, 2^(code - 1), joins the mask of active states (the panel's drain lines,
+-- Plan 15 Task 9; each code is considered at most once a step). A floor that is not a finite number (a clock the
+-- record's heal has not reached yet) leaves the state out for the minute.
 function K.drain.consider(D, code, tH, inp)
     local f = K.drain.floor(code, tH, inp)
     if not K.finite(f) then
         return
     end
+    D.mask = D.mask + 2 ^ (code - 1)
     if not D.active or f < D.targetFloor then
         D.targetFloor = f
         D.state = code
@@ -312,7 +315,7 @@ K.drain.IN = { lm = 0, fm = 0, bmi0 = 0, dehydPct = 0 }
 
 -- One minute of dtM game minutes at world age ageH (nil reads record.nutrients.lastAgeH): every state's onset test, the
 -- clocks the record keeps (the onset BMI, the sodium and iron hours) and the outputs on record.drain: active, state
--- (the code whose floor is lowest), targetFloor (100 with none), rate (the fastest active, health per game day),
+-- (the code whose floor is lowest), mask (every active code's bit, 2^(code - 1)), targetFloor (100 with none), rate (the fastest active, health per game day),
 -- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - floor),
 -- starvedH (the starvation clock: the unfed hours, K.drain.unfedH; while the acute state holds, at least the onset plus
 -- its hours, acuteH), recentKcal (K.drain.recentKcal), and starving and
@@ -327,6 +330,7 @@ function K.drain.step(record, dtM, ageH)
     local body, nut, fl, a = record.body, record.nutrients, record.fluids, record.acute
     D.active = false
     D.state = 0
+    D.mask = 0
     D.targetFloor = K.drain.NONE
     D.rate = 0
     D.drainThisMinute = 0

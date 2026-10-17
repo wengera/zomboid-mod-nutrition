@@ -133,6 +133,9 @@ MOD_BUILD_TESTS = (
     "test_r2_the_admission_grades_what_a_run_draws",
     "test_r2_the_level_changes_of_x364_within_the_named_bound",
     "test_s3a_lines_end_at_the_death",
+    # Plan 15 Task 9: the admissions it reads replay x446's levels off the bus signature's energy digit, which Task 9
+    # removed with the energy class, so x446:levels' pinned admission moves until Task 13 rebuilds the guide
+    "test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_proves_it",
 )
 
 

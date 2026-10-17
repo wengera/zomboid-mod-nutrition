@@ -372,7 +372,7 @@ def test_frames_rebuild_once_and_draw_the_cached_rows():
     ui = G(rt).NR_T.ui
     assert ui.prerenders == 2 and ui.renders == 2
     assert P(rt).stats.renders == 2
-    assert ui.draws == 12 and ui.rights == 12         # the six class rows, twice
+    assert ui.draws == 8 and ui.rights == 8           # the four class rows, twice
     fire(rt, "OnServerCommand", "'NutritionRevamp', 'mirror', { fluids_dehydPct = 2 }")
     frame(rt, p)
     assert v.stats.rebuilds == n + 2
@@ -403,8 +403,8 @@ def test_the_height_follows_the_rows_and_is_capped_at_the_screen():
     p = inst(rt)
     frame(rt, p)
     v = G(rt).NutritionRevamp.client.view
-    assert len(v.rows) == 6
-    assert p.height == 16 + 4 + 6 * 15 + 4 and p.width == 280      # the six class rows: no cap reached
+    assert len(v.rows) == 4
+    assert p.height == 16 + 4 + 4 * 15 + 4 and p.width == 280      # the four class rows: no cap reached
     assert v.stats.overflowRows == 0
     big_mirror(rt)
     rt.execute("getPlayerScreenHeight = function(n) return 300 end")

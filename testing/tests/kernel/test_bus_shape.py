@@ -51,7 +51,7 @@ def test_a_class_change_marks_the_player_for_a_push():
         h.T.age = h.T.age + 1 / 60
         h.minute(); h.tick(25)
     n0 = B.effects.stats.pushes
-    h.record("a").body.energyState = 1.8                # across the first energy rung
+    h.record("a").acute.caf = 600.0                     # across the stimulant rungs (Plan 15 Task 9: no energy class)
     h.T.now = h.T.now + 60001
     h.T.age = h.T.age + 1 / 60
     h.minute(); h.tick(25)
@@ -116,20 +116,23 @@ def test_a_level_that_changes_every_five_seconds_pushes_at_most_once_per_gap():
     assert B.effects.stats.deferred > d0
 
 
-def test_the_bus_holds_a_reached_energy_level_inside_the_band():
-    # Plan 11g Task 7 fix 1 (ruling T7-2): the flush reads the last signature's energy digit as the level held, so a
-    # state that falls under a bound by less than K.view.ENERGY_BAND keeps the level (and pushes nothing for it)
+def test_a_new_drain_state_and_trend_word_mark_a_push():
+    # Plan 15 Task 9: the signature carries the set of active drain states (from the hundred-thousands) and the weight
+    # trend word (the ten-thousands), so a new drain line or trend word reaches the panel at the next flush
     h = Host(extra_env=SEND)
     online(h)
     B = h.NR.server.bus
     _settle(h)
-    seen = []
-    band = h.K.view.ENERGY_BAND
-    for es in (1.26, 1.245, 1.25 - band + 0.0005, 1.25 - band - 0.0005, 1.245):   # the bus is first in ORDER, so it reads the state set here
-        h.record("a").body.energyState = es
-        h.minute(); h.tick(25)
-        seen.append(h.K.view.signatureEnergy(B.lastSig["a"]))
-    assert seen == [2, 2, 2, 1, 1]
+    r = h.record("a")
+    assert (B.lastSig["a"] // 10000) % 10 == 1                       # a fresh ring holds the creation mass: steady
+    r.drain.active = True                                            # the bus is first in ORDER: it reads this state
+    r.drain.mask = 33
+    h.minute(); h.tick(25)
+    assert B.lastSig["a"] // 100000 == 33 and B.effects.dirty["a"] is True
+    r.drain.active = False
+    r.body.mass7[1] = r.body.fm + r.body.lm + r.body.lx + 7 * 0.2    # 0.2 kg a day lost over the week
+    h.minute(); h.tick(25)
+    assert (B.lastSig["a"] // 10000) % 10 == 0 and B.lastSig["a"] // 100000 == 0
 
 
 MIRRORS = r"""
@@ -139,37 +142,25 @@ sendServerCommand = function(p, module, cmd, m) NR_T.mirrors[#NR_T.mirrors + 1] 
 """
 
 
-def test_every_mirror_carries_the_level_the_server_holds():
-    # Plan 11g Task 7 fix 2 (ruling T7-7): each mirror sent carries body_energyLevel, the energy digit of the
-    # player's last signature, so the client shows the server's held level; with no signature yet (first sight,
-    # before the first flush) the field is absent and the client reads the rung
+def test_every_mirror_carries_the_drain_set_and_the_trend_and_no_energy_level():
+    # Plan 15 Task 9: the energy class is gone, so no mirror carries body_energyLevel; each carries drain_mask (the
+    # active drain states) and body_trend (the 7-day mass slope, kg a day) for the panel's lines
     h = Host(extra_env=SEND + MIRRORS)
     p = online(h)
     B = h.NR.server.bus
     _settle(h)
     last = lambda: h.T.mirrors[len(h.T.mirrors)]
-    seen = []
-    band = h.K.view.ENERGY_BAND
-    for es in (1.26, 1.245, 1.25 - band + 0.0005, 1.25 - band - 0.0005, 1.2498):
-        h.record("a").body.energyState = es
-        h.minute(); h.tick(25)
-        assert B.sendMirror(p, h.record("a")) is True
-        assert last().body_energyLevel == h.K.view.signatureEnergy(B.lastSig["a"])
-        seen.append(last().body_energyLevel)
-    assert seen == [2, 2, 2, 1, 1]
-    n0 = len(h.T.mirrors)
-    for _ in range(3):                                   # a flush that pushes carries the level it just keyed on
-        h.record("a").body.energyState = 1.26
-        h.T.now = h.T.now + 60001
-        h.T.age = h.T.age + 1 / 60
-        h.minute(); h.tick(25)
-    assert len(h.T.mirrors) > n0 and last().body_energyLevel == 2
-    B.forgetEffects("a", p, h.record("a"))               # first sight: no signature, no field
-    assert B.sendMirror(p, h.record("a")) is True
-    assert last().body_energyLevel is None and type(last().body_energyState) is float
+    r = h.record("a")
+    assert B.sendMirror(p, r) is True
+    assert last().body_energyLevel is None and last().drain_mask == 0 and last().body_trend == 0
+    r.drain.active = True
+    r.drain.mask = 4
+    r.body.mass7[1] = r.body.fm + r.body.lm + r.body.lx - 7 * 0.1
+    assert B.sendMirror(p, r) is True
+    assert last().drain_mask == 4 and abs(last().body_trend - 0.1) < 1e-9
 
 
-def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
+def test_the_signatures_hundreds_digit_is_the_level_of_the_mirrors_stomach_mass():
     h = Host(extra_env=SEND)
     online(h)
     B = h.NR.server.bus
@@ -180,7 +171,7 @@ def test_the_signatures_fifth_digit_is_the_level_of_the_mirrors_stomach_mass():
     h.minute(); h.tick(25)
     mass = h.K.mirror.stomachMass(r)
     assert h.K.view.fullnessLevel(mass) == 4
-    assert B.lastSig["a"] // 10000 == 4
+    assert (B.lastSig["a"] // 100) % 10 == 4
 
 
 def test_the_mirror_reports_the_running_mode_not_the_polled_option():

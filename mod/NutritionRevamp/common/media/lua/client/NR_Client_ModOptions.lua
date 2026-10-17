@@ -1,6 +1,7 @@
 -- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page: the panel keybind
--- (togglePanel), the tooltip-lines tick and the moodles tick; the loader the mod calls once itself; the three
--- accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through.
+-- (togglePanel), the tooltip-lines tick, the moodles tick and the level-1 moodles tick (Plan 15 Task 9, item 10d: off
+-- hides level 1 of the Stimulant, Sleep and Excess moodles; a client setting, so each player chooses); the loader the
+-- mod calls once itself; the four accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through.
 --
 --
 -- The page exists at FILE SCOPE (#2520: a row added after the main screen is built is not a known key until the
@@ -92,6 +93,7 @@ local function createPage()
     addRow(page, "addKeyBind", "togglePanel", text("UI_NR_Toggle", "Toggle the nutrition panel"), defaultKey(), nil)
     addRow(page, "addTickBox", "tooltipLines", text("UI_NR_TooltipLines", "Nutrition lines on food tooltips"), true, nil)
     addRow(page, "addTickBox", "moodles", text("UI_NR_Moodles", "Nutrition moodles"), true, nil)
+    addRow(page, "addTickBox", "moodleLevelOne", text("UI_NR_MoodleLevelOne", "Show level 1 of the Stimulant, Sleep and Excess moodles"), true, nil)
     return page
 end
 
@@ -140,6 +142,13 @@ function MO.moodles()
     return true
 end
 
+-- Whether level 1 of the Stimulant, Sleep and Excess moodles shows: the tick's value when it is a boolean, else true.
+function MO.moodleLevelOne()
+    local v = value("moodleLevelOne")
+    if type(v) == "boolean" then return v end
+    return true
+end
+
 -- PZAPI.ModOptions:load() once per Lua state, after the page exists (#2519), inside a pcall. true when this call
 -- loaded; false when it had already run, there is no page, or the API is absent.
 function MO.loadOnce()
@@ -167,6 +176,7 @@ function MO.attach()
     o.key = m.key
     o.tooltipLines = m.tooltipLines
     o.moodles = m.moodles
+    o.moodleLevelOne = m.moodleLevelOne
     o.loadOnce = m.loadOnce
     o.page = NR_ClientModOptions_Page
 end

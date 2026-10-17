@@ -610,3 +610,75 @@ def test_a_real_reentry_from_inside_the_original_calls_the_saved_original_only()
     assert rt.globals().NR_T.renders == 2                       # the inner call ran the saved original only
     assert len(draws(rt, "rect")) == 1                          # the outer draws the one band; the inner none
     assert T(rt).stats.draws == 1 and T(rt).depth == 0
+
+
+# --- the fill line and vanilla's hunger line (Plan 15 Task 9; decisions item 4) -------------------------------------
+
+FILLS = r"""
+NutritionRevamp.data.fills = {}
+function NutritionRevamp.data.fills.get(ft)
+    if ft == "Base.Apple" then return 1.23, 95 end
+    if ft == "Base.Cabbage" then return 0.2, 30 end
+    return nil
+end
+function NutritionRevamp.data.fills.types() return { "Base.Apple", "Base.Cabbage" } end
+ItemTag = { HIDE_HUNGER_CHANGE = "hhc" }
+NR_T.tags = {}
+local function tagset(ft)
+    local s = { set = {} }
+    function s.contains(self, t) return self.set[t] == true end
+    function s.add(self, t) self.set[t] = true; return true end
+    function s.remove(self, t) self.set[t] = nil; return true end
+    NR_T.tags[ft] = s
+    return s
+end
+tagset("Base.Apple")
+tagset("Base.Cabbage").set.hhc = true          -- vanilla's own tag (the canned vegetables carry it)
+ScriptManager = { instance = { getItem = function(self, ft)
+    local s = NR_T.tags[ft]
+    if s == nil then return nil end
+    return { getTags = function() return s end }
+end } }
+"""
+
+
+def test_the_fill_line_leads_the_band_while_the_items_kcal_is_the_tables():
+    rt = rt_with()
+    rt.execute(FILLS)
+    lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple')"))
+    assert seq(lines) == ["Fills you for about 1 h, 95 kcal", "Per whole item (table)"]
+    T(rt).invalidate()
+    lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { cal = 200 })"))   # another dish's macros: no fill line
+    assert seq(lines) == ["Per whole item (table)"]
+    T(rt).invalidate()
+    lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { cal = 104 })"))   # inside 10 % and 1 kcal
+    assert seq(lines)[0] == "Fills you for about 1 h, 104 kcal"
+    assert T(rt).sameKcal(95, None) is False and T(rt).sameKcal(None, 95) is False
+
+
+def test_the_hunger_line_hide_follows_the_option_and_takes_back_only_its_own_tags():
+    rt = rt_with(view=True)
+    rt.execute(FILLS)
+    g = rt.globals().NR_T
+    render(rt, "NR_T.food('Base.Apple')")
+    assert g.tags["Base.Apple"].set.hhc is True and T(rt).hidden is True and T(rt).stats.hidden == 1
+    assert T(rt).added["Base.Apple"] is True and T(rt).added["Base.Cabbage"] is None   # it had the tag already
+    render(rt, "NR_T.food('Base.Apple')")
+    assert T(rt).stats.hidden == 1                                  # one walk per change of the option
+    rt.execute("NutritionRevamp.client.options = { tooltipLines = function() return false end }")
+    render(rt, "NR_T.food('Base.Apple')")
+    assert g.tags["Base.Apple"].set.hhc is None and g.tags["Base.Cabbage"].set.hhc is True
+    assert T(rt).hidden is False and T(rt).stats.shown == 1
+
+
+def test_an_open_breaker_brings_the_hunger_line_back_and_no_engine_hides_nothing():
+    rt = rt_with(view=True)
+    rt.execute(FILLS)
+    render(rt, "NR_T.food('Base.Apple')")
+    assert rt.globals().NR_T.tags["Base.Apple"].set.hhc is True
+    rt.execute("NutritionRevamp.client.tooltip.linesFor = function() error('boom') end")
+    for _ in range(10):
+        render(rt, "NR_T.food('Base.Apple')")
+    assert T(rt).broken is True and rt.globals().NR_T.tags["Base.Apple"].set.hhc is None
+    bare = rt_with(engine=False)
+    assert T(bare).syncHide(True) is False and T(bare).hidden is True and T(bare).stats.hidden == 0

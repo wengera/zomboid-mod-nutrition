@@ -359,6 +359,8 @@ end
 -- remembered). The remembered targets live on record.moodLast, so a reconnect's new hoist still releases the fall. A
 -- record.monotony the heal finds corrupt is reset and counted in guarded; the heal runs at the hoist's first sight (the
 -- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood any more (NR_Server_Intake IN.monotony books only).
+-- Each composed target passes the dead zone (K.monotony.hold, Plan 15 Task 9, item 10c) against its remembered target,
+-- so a floor falling through a moodle threshold holds just over it until it is DEAD_ZONE of the threshold under.
 W.UNHAPPY_HI = 59 -- the fallback for the effects surface's cap (NR_Data_Effects.lua SURF.unhappyTarget.hi, #2369)
 
 function W.unhappyHi()
@@ -385,9 +387,9 @@ function W.monotony(h, record, inp, E, ageH)
     h.monoSeen = true
     local eu = E.unhappyTarget
     if not NR.finite(eu) then eu = 0 end
-    inp.unhappyTarget = K.min(eu + u, W.unhappyHi())
-    inp.boredTarget = b
     inp.lastBoredTarget = W.moodTarget(record, "b")
+    inp.unhappyTarget = K.monotony.hold(K.min(eu + u, W.unhappyHi()), W.moodTarget(record, "u"), K.monotony.UNHAPPY_AT)   -- the dead zone (Plan 15 Task 9)
+    inp.boredTarget = K.monotony.hold(b, inp.lastBoredTarget, K.monotony.BORED_AT)
     inp.bored = get(h, CharacterStat.BOREDOM) or 0
 end
 

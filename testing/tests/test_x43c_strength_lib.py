@@ -13,10 +13,19 @@ nargs, r1}; lua.callm {ok, side, path, method, nargs, r1}; health.reduce {ok, si
 parts}; creation.picks {ok, armed, picks}; trait.def {ok, side, trait, field, cost, free, xpBoosts, xpBoostsRead,
 exclusive, granted, label, description}; witness.chain {ok, value, hops}; time.snapshot {worldAge, hour, minutes, mult,
 trueMult, wall}; time.multiplier a string; players a list of usernames or {}.
+
+The kernel the lib's mirrors and sessions read is the shared folder of a git archive of PIN (CLAUDE.md section 5: a
+grade or replay script broken at HEAD by a later mod change is never patched, it runs on a git archive of a build it
+holds at): Plan 15 Task 9 removed the energy class (K.view.ENERGY_AT) the lib's energy rung and its client-level read
+mirror, and PIN is the last build that carries it, the build these tests last passed on.
 """
+import io
 import math
 import os
+import subprocess
 import sys
+import tarfile
+import tempfile
 
 import pytest
 
@@ -30,13 +39,26 @@ import x43c_strength_lib as L         # noqa: E402
 import xlib as X                      # noqa: E402
 
 REPO = L.REPO
-SHARED = T.SHARED
 GAME_DIR = T.GAME_DIR
+PIN = "7c8725b3"          # Plan 15 Task 8 fix 1, the last build with K.view.ENERGY_AT (Plan 15 Task 9 removed it)
+_PINNED = {}
+
+
+def pinned_shared():
+    """The shared Lua folder of a git archive of PIN, extracted once per session into a temporary folder."""
+    if "dir" not in _PINNED:
+        d = tempfile.mkdtemp(prefix="x43c-kernel-")
+        data = subprocess.run(["git", "-C", REPO, "archive", PIN, "mod/NutritionRevamp/common/media/lua/shared"],
+                              capture_output=True, check=True).stdout
+        with tarfile.open(fileobj=io.BytesIO(data)) as tf:
+            tf.extractall(d, filter="data")
+        _PINNED["dir"] = os.path.join(d, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+    return _PINNED["dir"]
 
 
 @pytest.fixture(scope="module")
 def kern():
-    return L.Kernel(SHARED)
+    return L.Kernel(pinned_shared())
 
 
 # vanilla's definitions as the server answers them since Task 10c (ruling 13-46's thin pairs removed)
@@ -559,7 +581,7 @@ def run_session(kern, task, flags=None, hour=8.0):
     if user != "admin":
         clients["admin"] = T.FakeClient("admin")
     xs = X.Xs(out, node=lambda side: side, clients=clients, ask=w.ask, budget_s=1e9, clock=w.clock, sleep=w.sleep)
-    S = L.Sess(xs, user=user, cli="client" if user == "admin" else "client:bob", game_dir=GAME_DIR, shared_dir=SHARED)
+    S = L.Sess(xs, user=user, cli="client" if user == "admin" else "client:bob", game_dir=GAME_DIR, shared_dir=pinned_shared())
     S.run_dir = "."
     body = {"35": S.t35_body, "36": S.t36_body}[task]
     S.body_run(body())

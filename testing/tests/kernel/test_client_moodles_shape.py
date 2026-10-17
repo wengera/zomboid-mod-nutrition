@@ -7,7 +7,7 @@ widget mirrors the live file's setThresholds (:155-174), getGoodBadNeutral (:120
 addedToUIManager flag (:102-109), an ISUIElement with derive/new and the members the column calls, getTexture,
 getPlayerScreenLeft/Top/Width. The kernel loads in this runtime of its own, so the session host's coverage gate is
 untouched. A stub proves the wiring, the guards, the value map and the option gate, never the engine: whether the
-framework draws the six moodles and the column renders live is x183's (Task 11 arm F).
+framework draws the moodles and the column renders live is x183's (Task 11 arm F).
 """
 import glob
 import os
@@ -25,7 +25,7 @@ RECORDS = os.path.join(SHARED, "NR_Data_Records.lua")
 MODOPTIONS = os.path.join(CLIENT, "NR_Client_ModOptions.lua")
 MOODLES = os.path.join(CLIENT, "NR_Client_Moodles.lua")
 VIEW = os.path.join(CLIENT, "NR_Client_View.lua")
-CLASSES = ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep", "overfull"]  # Plan 11c Task 7: overfull
+CLASSES = ["deficiency", "excess", "stimulant", "sleep", "overfull"]  # Plan 11c Task 7: overfull; Plan 15 Task 9: no energy or hydration
 
 ENV = r"""
 NR_T = { adds = {}, printed = 0, textures = false, texCalls = 0,
@@ -287,7 +287,7 @@ def test_the_column_sits_at_the_fixed_inset_and_joins_the_ui_manager_only_with_a
     create(rt)
     col = M(rt).column
     assert col is not None and G(rt).NR_Client_MoodleColumn.Type == "NR_Client_MoodleColumn"
-    assert (col.x, col.y, col.width, col.height) == (1280 - 96, 240, 40, 7 * 44)
+    assert (col.x, col.y, col.width, col.height) == (1280 - 96, 240, 40, 5 * 44)
     assert col.onUI is False and G(rt).NR_T.ui.adds == 0     # every level 0: off the UI manager, no strip
     assert M(rt).probe("deficiency") == (0, False, "own")
     M(rt).apply(classes(rt, deficiency=1))
@@ -316,16 +316,16 @@ def test_the_column_suspends_on_death_until_the_next_apply():
     boot(rt)
     create(rt)
     m = M(rt)
-    m.apply(classes(rt, energy=2, deficiency=3))
+    m.apply(classes(rt, stimulant=2, deficiency=3))
     m.column.render(m.column)
     assert m.lastDrawn == 2
     fire(rt, "OnPlayerDeath", "NR_T.player")
-    assert m.levels.energy == 0 and m.levels.deficiency == 0
+    assert m.levels.stimulant == 0 and m.levels.deficiency == 0
     assert m.column.onUI is False                          # nothing to draw: off the UI manager
     m.column.render(m.column)
     assert m.lastDrawn == 0
     assert m.stats.errors == 0
-    m.apply(classes(rt, energy=1))
+    m.apply(classes(rt, stimulant=1))
     assert m.column.onUI is True
     m.column.render(m.column)
     assert m.lastDrawn == 1
@@ -376,10 +376,10 @@ def test_apply_sets_the_levels_and_the_render_counts_and_draws_rects_with_no_tex
     boot(rt)
     create(rt)
     m = M(rt)
-    sets0 = m.stats.sets                     # the create's own re-apply counted seven
-    m.apply(classes(rt, energy=2, deficiency=3))
-    assert m.levels.energy == 2 and m.levels.deficiency == 3 and m.levels.sleep == 0
-    assert sets0 == 7 and m.stats.sets == 14
+    sets0 = m.stats.sets                     # the create's own re-apply counted five
+    m.apply(classes(rt, stimulant=2, deficiency=3))
+    assert m.levels.stimulant == 2 and m.levels.deficiency == 3 and m.levels.sleep == 0
+    assert sets0 == 5 and m.stats.sets == 10
     m.column.render(m.column)
     ui = G(rt).NR_T.ui
     assert m.stats.renders == 1
@@ -395,7 +395,7 @@ def test_the_render_draws_textures_when_they_load():
     create(rt)
     assert G(rt).NR_T.lastTexPath.startswith("media/ui/NutritionRevamp/")
     m = M(rt)
-    m.apply(classes(rt, hydration=4))
+    m.apply(classes(rt, sleep=4))
     m.column.render(m.column)
     ui = G(rt).NR_T.ui
     assert ui.texs == 1 and ui.rects == 4
@@ -406,7 +406,7 @@ def test_the_own_column_loads_the_overfull_icon_and_draws_it_alone_as_one_textur
     boot(rt)
     create(rt)
     m = M(rt)
-    assert G(rt).NR_T.lastTexPath == "media/ui/NutritionRevamp/overfull.png"   # the seventh class loads last
+    assert G(rt).NR_T.lastTexPath == "media/ui/NutritionRevamp/overfull.png"   # the fifth class loads last
     assert m.column.textures.overfull is not None
     assert m.column.textures.overfull.path == "media/ui/NutritionRevamp/overfull.png"
     m.apply(classes(rt, overfull=3))
@@ -458,22 +458,22 @@ def test_apply_skips_a_non_table():
 
 # ------------------------------------------------------------------------------------------- the framework route
 
-def test_the_route_is_framework_with_mf_and_seven_moodles_are_created():
+def test_the_route_is_framework_with_mf_and_five_moodles_are_created():
     rt = rt_env(mf=True)
     boot(rt)
     m = M(rt)
     assert m.route == "framework"
-    assert m.stats.created == 7 and G(rt).NR_T.mf.creates == 7
+    assert m.stats.created == 5 and G(rt).NR_T.mf.creates == 5
     create(rt)                                 # the framework's builders run first, then the mod's handler
-    assert G(rt).NR_T.mf.builds == 7
-    assert m.stats.got == 7 and m.stats.errors == 0
+    assert G(rt).NR_T.mf.builds == 5
+    assert m.stats.got == 5 and m.stats.errors == 0
     for c in CLASSES:
         assert rt.eval("rawequal")(m.handles[c], handle(rt, c))
     assert m.column is None
 
 
 @pytest.mark.parametrize("cls,bads", [
-    ("energy", (0.4375, 0.3125, 0.1875, 0.0625)),
+    ("stimulant", (0.4375, 0.3125, 0.1875, 0.0625)),
     ("sleep", (0.4375, 0.3125, 0.1875, 0.0625)),
     ("overfull", (0.4375, 0.3125, 0.1875, 0.0625)),
     ("deficiency", (0.5 - 0.5 * 0.5 / 3, 0.5 - 0.5 * 1.5 / 3, 0.5 - 0.5 * 2.5 / 3, -100000)),
@@ -508,29 +508,51 @@ def test_apply_sets_each_value_and_the_framework_level_equals_the_class_level(rt
         assert m.probe(cls) == (lv, lv > 0, "framework")
 
 
-def test_apply_sets_seven_values_per_call(rt_mf):
+def test_apply_sets_five_values_per_call(rt_mf):
     m = M(rt_mf)
     sets0 = m.stats.sets
-    m.apply(classes(rt_mf, energy=1, hydration=2, deficiency=3, excess=1, stimulant=4, sleep=2, overfull=1))
-    assert m.stats.sets == sets0 + 7
+    m.apply(classes(rt_mf, deficiency=3, excess=1, stimulant=4, sleep=2, overfull=1))
+    assert m.stats.sets == sets0 + 5
     vals = {c: handle(rt_mf, c).value for c in CLASSES}
-    assert vals == pytest.approx({"energy": 0.375, "hydration": 0.25, "deficiency": 0.0, "excess": 0.5 - 0.5 / 3,
+    assert vals == pytest.approx({"deficiency": 0.0, "excess": 0.5 - 0.5 / 3,
                                   "stimulant": 0.0, "sleep": 0.25, "overfull": 0.375})
+
+
+def level_one(rt, shown):
+    rt.execute("NutritionRevamp.client.modOptions.moodleLevelOne = function() return %s end" % ("true" if shown else "false"))
+
+
+@pytest.mark.parametrize("cls", ["stimulant", "sleep", "excess"])
+def test_the_level_one_option_hides_level_one_of_three_moodles(rt_mf, cls):
+    # Plan 15 Task 9 (item 10d): the client option off shows nothing for a Stimulant, Sleep or Excess moodle at level 1,
+    # level 2 and up as before, and Deficiency and Overfull at level 1 still show; on (the default) shows level 1
+    m = M(rt_mf)
+    h = handle(rt_mf, cls)
+    level_one(rt_mf, False)
+    m.apply(classes(rt_mf, **{cls: 1, "deficiency": 1, "overfull": 1}))
+    assert h.value == 0.5 and h.getLevel(h) == 0 and m.levels[cls] == 0
+    assert handle(rt_mf, "deficiency").getLevel(handle(rt_mf, "deficiency")) == 1
+    assert handle(rt_mf, "overfull").getLevel(handle(rt_mf, "overfull")) == 1
+    m.apply(classes(rt_mf, **{cls: 2}))
+    assert h.getLevel(h) == 2
+    level_one(rt_mf, True)
+    m.apply(classes(rt_mf, **{cls: 1}))
+    assert h.getLevel(h) == 1
 
 
 def test_the_option_off_neutralises_every_framework_value(rt_mf):
     m = M(rt_mf)
-    m.apply(classes(rt_mf, energy=4, deficiency=3))
-    assert handle(rt_mf, "energy").addedToUIManager is True
+    m.apply(classes(rt_mf, stimulant=4, deficiency=3))
+    assert handle(rt_mf, "stimulant").addedToUIManager is True
     option(rt_mf, False)
-    m.apply(classes(rt_mf, energy=4, deficiency=3))
+    m.apply(classes(rt_mf, stimulant=4, deficiency=3))
     for c in CLASSES:
         h = handle(rt_mf, c)
         assert h.value == 0.5 and h.getLevel(h) == 0 and h.addedToUIManager is not True
-    assert m.levels.energy == 4                # the levels are kept, so the option back on restores them
+    assert m.levels.stimulant == 4             # the levels are kept, so the option back on restores them
     option(rt_mf, True)
     m.apply(m.levels)
-    assert handle(rt_mf, "energy").value == 0.0
+    assert handle(rt_mf, "stimulant").value == 0.0
 
 
 def test_the_last_levels_are_set_again_on_create(rt_mf):
@@ -555,10 +577,10 @@ def test_the_pictures_are_the_mods_icons_when_they_load_and_untouched_otherwise(
 
 
 def test_the_titles_and_descriptions_are_the_mods_keys(rt_mf):
-    h = handle(rt_mf, "energy")
+    h = handle(rt_mf, "sleep")
     # the stub getText answers the key itself, so NR.client.text falls back to the key's tail
-    assert h.titles["2:1"] == "energy lvl1" and h.titles["2:4"] == "energy lvl4"
-    assert h.descs["2:2"] == "Class energy 2"
+    assert h.titles["2:1"] == "sleep lvl1" and h.titles["2:4"] == "sleep lvl4"
+    assert h.descs["2:2"] == "Class sleep 2"
 
 
 def test_a_nil_handle_is_counted_and_skipped():
@@ -567,19 +589,19 @@ def test_a_nil_handle_is_counted_and_skipped():
     G(rt).NR_T.mf.nilGet = True
     create(rt)
     m = M(rt)
-    assert m.stats.got == 0 and m.stats.errors == 7
-    assert m.stats.skips == 7                  # the create's own re-apply found no handle
-    m.apply(classes(rt, energy=1))
-    assert m.stats.skips == 14 and m.stats.sets == 0
-    assert m.probe("energy") == (0, False, "framework")
+    assert m.stats.got == 0 and m.stats.errors == 5
+    assert m.stats.skips == 5                  # the create's own re-apply found no handle
+    m.apply(classes(rt, stimulant=1))
+    assert m.stats.skips == 10 and m.stats.sets == 0
+    assert m.probe("stimulant") == (0, False, "framework")
 
 
 def test_a_raising_set_value_is_counted_not_propagated(rt_mf):
     m = M(rt_mf)
     errors0 = m.stats.errors
     G(rt_mf).NR_T.mf.raiseSet = True
-    m.apply(classes(rt_mf, energy=1))
-    assert m.stats.errors == errors0 + 7
+    m.apply(classes(rt_mf, stimulant=1))
+    assert m.stats.errors == errors0 + 5
 
 
 # ------------------------------------------------------------------------------------------- the view drives it
@@ -601,7 +623,7 @@ def test_overfull_is_created_thresholded_iconed_and_translated():
     boot(rt)
     create(rt)
     m = M(rt)
-    assert m.classes[7] == "overfull" and len(m.classes) == 7
+    assert m.classes[5] == "overfull" and len(m.classes) == 5
     h = handle(rt, "overfull")
     assert h is not None and rt.eval("rawequal")(m.handles.overfull, h)
     assert [h.th.bad1, h.th.bad2, h.th.bad3, h.th.bad4] == pytest.approx([0.4375, 0.3125, 0.1875, 0.0625])
@@ -669,9 +691,9 @@ def test_a_split_screen_players_death_keeps_player_zeros_moodles():
     boot(rt)
     create(rt)
     m = M(rt)
-    m.apply(classes(rt, energy=2, deficiency=3))
+    m.apply(classes(rt, stimulant=2, deficiency=3))
     rt.execute("NR_T.other = { getPlayerNum = function(self) return 1 end }")
     fire(rt, "OnPlayerDeath", "NR_T.other")
-    assert m.levels.energy == 2 and m.levels.deficiency == 3
+    assert m.levels.stimulant == 2 and m.levels.deficiency == 3
     fire(rt, "OnPlayerDeath", "NR_T.player")
-    assert m.levels.energy == 0
+    assert m.levels.stimulant == 0

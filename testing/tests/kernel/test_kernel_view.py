@@ -18,7 +18,14 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 LUA = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 SHARED = os.path.join(LUA, "shared")
 SANDBOX = os.path.join(REPO, "mod", "NutritionRevamp", "42.21", "media", "sandbox-options.txt")
-CLASSES = ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"]
+EFFECTS_LUA = os.path.join(SHARED, "NR_Data_Effects.lua")
+CLASSES = ["deficiency", "excess", "stimulant", "sleep"]
+# Plan 15 Task 9: the nutrients whose grade drives an effect (the Deficiency moodle's set), pinned so a change to the
+# effects table, the two grade aggregates or the drain onsets is reviewed here
+EFFECT_NUTRIENTS = {"iron", "vitA", "vitC", "zinc", "thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12",
+                    "copper"}
+# the flag rows' sources that read no nutrient grade (a new aggregate over grades must join K.view.aggregateOf)
+NON_GRADE_FLAGS = {"overfull", "refeedEvent", "coldCredit", "starve", "allReplete", "boutVig"}
 
 
 def V(h):
@@ -35,6 +42,19 @@ def rows_of(h, t):
 
 def arr(h, items):
     return h.rt.table(*items)
+
+
+def effects(h):
+    """NR.data.effects loaded into the host once (NR_Data_Effects.lua, the table the client hands deficiencyKeys)."""
+    nr = h.G.NutritionRevamp
+    if nr.data is None or nr.data.effects is None:
+        with open(EFFECTS_LUA, encoding="utf-8") as fh:
+            h.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@NR_Data_Effects.lua")()
+    return h.G.NutritionRevamp.data.effects
+
+
+def defset(h):
+    return V(h).deficiencyKeys(effects(h))
 
 
 # --- the level constants and the visibility level (ruling 3: max(option, trait), clamped 1..3) ---------
@@ -88,7 +108,7 @@ def test_rung(host):
     assert V(host).rung(None, at) == 0 and V(host).rung("5", at) == 0 and V(host).rung(float("nan"), at) == 0
 
 
-# --- classes (ruling 5): six classes, each 0-4 -------------------------------------------------------
+# --- classes (ruling 5; Plan 15 Task 9): four classes, each 0-4 ----------------------------------------------
 
 def test_classes_of_nil_and_an_empty_mirror_are_all_zero(host):
     assert host.py(V(host).classes(None)) == {c: 0 for c in CLASSES}
@@ -99,22 +119,42 @@ def test_class_names_in_order(host):
     assert lst(V(host).CLASSES) == CLASSES
 
 
-@pytest.mark.parametrize("es,want", [(0, 0), (0.5, 0), (1.0, 0), (1.09, 0), (1.1, 1), (1.3, 2), (1.4, 3),
-                                     (1.54, 3), (1.55, 4), (2.0, 4)])
-def test_energy_map(host, es, want):
-    # the K.deficit.state scalar (0.5..2.0, 1 neutral; the mirror's 0 = no body yet) onto 0-4
-    assert V(host).classes(host.table({"body_energyState": es}))["energy"] == want
+@pytest.mark.parametrize("kg,want", [(-0.2, 0), (-0.0501, 0), (-0.05, 1), (0.0, 1), (0.05, 1), (0.0501, 2), (0.3, 2),
+                                     (None, 1), (float("nan"), 1), ("x", 1)])
+def test_the_trend_word(host, kg, want):
+    # Plan 15 Task 9: the 7-day slope onto losing (0), steady (1) or gaining (2), strict at the threshold
+    assert V(host).trendIndex(kg) == want
 
 
-@pytest.mark.parametrize("pct,want", [(0, 0), (0.9, 0), (1, 1), (2, 2), (2.9, 2), (3, 3), (3.9, 3), (4, 4), (12, 4)])
-def test_hydration_follows_the_thirst_knots(host, pct, want):
-    assert V(host).classes(host.table({"fluids_dehydPct": pct}))["hydration"] == want
+@pytest.mark.parametrize("pct,shown", [(0, None), (0.9, None), (1, None), (1.04, "1.0 %"), (2.26, "2.3 %"),
+                                       (4, "4.0 %"), (12, "12.0 %"), (float("nan"), None), ("3", None)])
+def test_the_dehydration_row_shows_above_one_per_cent(host, pct, shown):
+    rows = rows_of(host, V(host).rows(host.table({"fluids_dehydPct": pct}), 2, None))
+    row = next((r for r in rows if r["key"] == "fluids_dehydPct"), None)
+    if shown is None:
+        assert row is None
+    else:
+        assert row == {"key": "fluids_dehydPct", "label": "UI_NR_Row_fluids_dehydPct", "text": shown, "level": 2,
+                       "isKey": False}
 
 
-def test_hydration_thresholds_are_the_fluids_kernels_moodle_knots(host):
-    # K.fluids.THIRST_KNOTS rows 2-5 are the vanilla thirst moodle levels 1-4 (#0509): the class sits on them
-    knots = [host.py(k) for k in lst(host.K.fluids.THIRST_KNOTS)]
-    assert lst(V(host).HYDRATION_AT) == [knots[i][1] for i in range(1, 5)]
+def test_the_deficiency_set_is_the_effects_tables_grade_readers(host):
+    # Plan 15 Task 9 (item 8): the set is built from the tables (K.view.deficiencyKeys), and an independent read of the
+    # data file's text finds the same grade rows; a new grade row, a new aggregate over grades or a new drain onset
+    # moves the pinned set and fails here until it is reviewed
+    import re
+    text = open(EFFECTS_LUA, encoding="utf-8").read()
+    gated_off = {g for g, v in re.findall(r"^\s*(\w+) = (true|false),", text, re.M) if v == "false"}
+    rows = re.findall(r'\{ src = "(\w+)", on = "(\w+)"([^\n]*)', text)
+    grade = {src for src, on, rest in rows if on == "grade"
+             and not any('gated = "%s"' % g in rest for g in gated_off)}
+    flags = {src for src, on, _ in rows if on == "flag"}
+    assert flags - {"bgroupMax", "anaemia"} <= NON_GRADE_FLAGS, flags
+    want = grade | set(lst(host.K.effects.BGROUP)) | set(lst(host.K.nutrients.ANAEMIA)) | set(host.py(host.K.drain.NUTRIENT).values())
+    got = {k for k, v in host.py(defset(host)).items() if v is True}
+    assert got == want == EFFECT_NUTRIENTS
+    assert "vitD" not in got and "biotin" not in got and "iodine" not in got   # gated off, or no effect row
+    assert set(host.py(V(host).deficiencyKeys(None)).keys()) == {"vitC", "thiamine", "niacin"}   # the drain onsets alone
 
 
 @pytest.mark.parametrize("caf,want", [(0, 0), (49, 0), (50, 1), (150, 2), (300, 3), (499, 3), (500, 4)])
@@ -128,15 +168,16 @@ def test_sleep(host, debt, want):
 
 
 def test_deficiency_is_the_worst_grade_less_one_and_excess_the_highest_rung(host):
-    m = host.table({"nut_vitC_g": 1, "nut_iron_g": 3, "nut_zinc_g": 2, "nut_folate_g": 0,
+    m = host.table({"nut_vitC_g": 1, "nut_iron_g": 3, "nut_zinc_g": 2, "nut_folate_g": 0, "nut_biotin_g": 4,
                     "nut_vitC_x": 0, "nut_iron_x": 2, "nut_zinc_x": 1, "nut_vitC_p": 0.2,
                     "nutrients_epoch": 9, "nut_bad_g": "x", "nut_bad_x": "x"})
-    c = host.py(V(host).classes(m))
-    assert c["deficiency"] == 2 and c["excess"] == 2
+    c = host.py(V(host).classes(m, defset(host)))
+    assert c["deficiency"] == 2 and c["excess"] == 2         # biotin's clinical grade drives no effect: not counted
+    assert host.py(V(host).classes(m))["deficiency"] == 0     # no set: no nutrient raises the class
 
 
 def test_deficiency_and_excess_are_capped_at_three(host):
-    c = host.py(V(host).classes(host.table({"nut_vitC_g": 9, "nut_iron_x": 7})))
+    c = host.py(V(host).classes(host.table({"nut_vitC_g": 9, "nut_iron_x": 7}), defset(host)))
     assert c["deficiency"] == 3 and c["excess"] == 3
 
 
@@ -148,36 +189,34 @@ def test_all_replete_is_deficiency_zero(host):
 
 # --- rows (ruling 2) ---------------------------------------------------------------------------------
 
-MIRROR = {"body_band": "normal", "body_weight": 78.04, "body_energyState": 1.3, "body_fm": 14.26,
+MIRROR = {"body_band": "normal", "body_weight": 78.04, "body_trend": -0.06, "body_fm": 14.26,
           "body_lm": 63.79, "fluids_dehydPct": 2.5, "acute_caf": 160.0, "acute_bac": 0.0125, "acute_debtH": 6.5,
           "nut_vitC_g": 3, "nut_vitC_p": 0.3126, "nut_vitC_x": 0, "nut_iron_g": 1, "nut_iron_p": 1.0,
           "nut_iron_x": 2, "nut_zinc_g": 0, "nut_zinc_p": 0, "nut_zinc_x": 0}
 
 
-def test_rows_at_symptoms_are_the_six_class_rows_only(host):
-    rows = rows_of(host, V(host).rows(host.table(MIRROR), 1, arr(host, ["vitC", "iron"])))
+def test_rows_at_symptoms_are_the_four_class_rows_only(host):
+    rows = rows_of(host, V(host).rows(host.table(MIRROR), 1, arr(host, ["vitC", "iron"]), None, None, defset(host)))
     assert [r["cls"] for r in rows] == CLASSES
-    assert rows[0] == {"key": "energy", "label": "UI_NR_Class_energy", "text": "UI_NR_Class_energy_2",
-                       "level": 1, "cls": "energy", "n": 2, "isKey": True}
-    assert rows[1]["text"] == "UI_NR_Class_hydration_2"
-    assert rows[2]["text"] == "UI_NR_Class_deficiency_2"
-    assert rows[3]["text"] == "UI_NR_Class_excess_2"
-    assert rows[4]["text"] == "UI_NR_Class_stimulant_2"
-    assert rows[5]["text"] == "UI_NR_Class_sleep_2"
+    assert rows[0] == {"key": "deficiency", "label": "UI_NR_Class_deficiency", "text": "UI_NR_Class_deficiency_2",
+                       "level": 1, "cls": "deficiency", "n": 2, "isKey": True}
+    assert rows[1]["text"] == "UI_NR_Class_excess_2"
+    assert rows[2]["text"] == "UI_NR_Class_stimulant_2"
+    assert rows[3]["text"] == "UI_NR_Class_sleep_2"
 
 
 def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 2, arr(host, ["vitC", "iron", "zinc"])))
-    extra = rows[6:]
-    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_fat", "body_level", "body_energyState",
+    extra = rows[4:]
+    assert [r["key"] for r in extra] == ["body_band", "body_weight", "body_trend", "body_fat", "body_level",
                                         "fluids_dehydPct", "nut_vitC_g", "nut_iron_g", "nut_iron_x"]   # zinc not yet graded: no row
     by = {r["key"]: r for r in extra}
     assert by["body_band"]["text"] == "UI_NR_Band_normal" and by["body_band"]["isKey"] is True
     assert by["body_weight"]["text"] == "78.0 kg" and by["body_weight"]["isKey"] is False
     assert by["body_fat"]["text"] == "UI_NR_FatBand_healthy" and by["body_fat"]["isKey"] is True   # 14.26 / 78.04 = 18.3 %, a man
     assert by["body_fat"]["label"] == "UI_NR_Row_body_fat" and by["body_fat"]["level"] == 2 and by["body_fat"]["fatBand"] == 2
-    assert by["body_energyState"]["text"] == "UI_NR_Class_energy_2"
-    assert by["fluids_dehydPct"]["text"] == "UI_NR_Class_hydration_2"
+    assert by["body_trend"]["text"] == "UI_NR_Trend_losing" and by["body_trend"]["isKey"] is True
+    assert by["fluids_dehydPct"]["text"] == "2.5 %"
     assert by["nut_vitC_g"] == {"key": "nut_vitC_g", "label": "UI_NR_Row_vitC", "text": "UI_NR_Grade_3",
                                 "level": 2, "isKey": True}
     # an excess rung above 0 is named at Bands by its class word (vitamin C's 0 is not)
@@ -189,12 +228,13 @@ def test_rows_at_bands_add_the_body_fluids_and_grade_words(host):
 
 def test_rows_at_numbers_add_the_figures(host):
     rows = rows_of(host, V(host).rows(host.table(MIRROR), 3, arr(host, ["vitC", "iron"])))
-    keys = [r["key"] for r in rows[6:]]
-    assert keys == ["body_band", "body_weight", "body_fat", "body_level", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
+    keys = [r["key"] for r in rows[4:]]
+    assert keys == ["body_band", "body_weight", "body_trend", "body_fat", "body_level", "body_fm", "body_lm", "body_trendKg", "fluids_dehydPct",
                     "nut_vitC_g", "nut_vitC_p", "nut_vitC_x", "nut_iron_g", "nut_iron_p", "nut_iron_x",
                     "acute_caf", "acute_bac", "acute_debtH"]
     by = {r["key"]: r for r in rows}
     assert by["body_fm"]["text"] == "14.3 kg" and by["body_lm"]["text"] == "63.8 kg"
+    assert by["body_trendKg"]["text"] == "-0.06 kg/day" and by["body_trendKg"]["level"] == 3
     assert by["nut_vitC_p"]["text"] == "31.3 %" and by["nut_vitC_p"]["label"] == "UI_NR_Row_vitC_p"
     assert by["nut_iron_x"]["text"] == "2" and by["nut_iron_x"]["label"] == "UI_NR_Row_iron_x"
     assert by["acute_caf"]["text"] == "160 mg" and by["acute_bac"]["text"] == "0.013 %"
@@ -250,7 +290,7 @@ def test_rows_of_an_absent_body_read_the_band_none(host):
 
 
 def test_rows_with_a_nil_level_read_symptoms(host):
-    assert len(lst(V(host).rows(host.table(MIRROR), None, None))) == 6
+    assert len(lst(V(host).rows(host.table(MIRROR), None, None))) == 4
 
 
 # --- the graded order and the per-key requirements a client hands the kernel ---------------------------
@@ -327,7 +367,7 @@ def test_the_fat_row_sits_at_bands_and_numbers_and_not_at_symptoms(host):
         keys = [r["key"] for r in rows_of(host, V(host).rows(host.table(MIRROR), lv, None))]
         assert ("body_fat" in keys) is want, lv
     keys = [r["key"] for r in rows_of(host, V(host).rows(host.table(MIRROR), 2, None))]
-    assert keys.index("body_fat") == keys.index("body_weight") + 1
+    assert keys.index("body_fat") == keys.index("body_trend") + 1 == keys.index("body_weight") + 2
 
 
 def test_the_band_key_and_the_held_rung_helpers(host):
@@ -578,7 +618,7 @@ def test_the_default_options_carry_visibility_mode():
 
 # --- the moodle value map (Plan 7 Task 8, ruling 10): a class level onto MoodleFramework's 0..1 value ---------
 
-@pytest.mark.parametrize("cls", ["energy", "hydration", "stimulant", "sleep"])
+@pytest.mark.parametrize("cls", ["overfull", None, "stimulant", "sleep"])
 @pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.375), (2, 0.25), (3, 0.125), (4, 0.0)])
 def test_moodle_value_four_level_classes(host, cls, lv, want):
     assert V(host).moodleValue(lv, cls) == pytest.approx(want)
@@ -592,20 +632,20 @@ def test_moodle_value_three_rung_classes_reach_the_top_at_three(host, cls, lv, w
 
 @pytest.mark.parametrize("lv,want", [(None, 0.5), ("2", 0.5), (float("nan"), 0.5), (-3, 0.5), (9, 0.0), (2.7, 0.25)])
 def test_moodle_value_reads_junk_as_neutral_and_clamps(host, lv, want):
-    assert V(host).moodleValue(lv, "energy") == pytest.approx(want)
+    assert V(host).moodleValue(lv, "sleep") == pytest.approx(want)
 
 
 def test_moodle_value_with_no_class_uses_the_four_level_map(host):
     assert V(host).moodleValue(2, None) == pytest.approx(0.25)
 
 
-@pytest.mark.parametrize("cls,top", [("energy", 4), ("sleep", 4), ("deficiency", 3), ("excess", 3)])
+@pytest.mark.parametrize("cls,top", [("overfull", 4), ("sleep", 4), ("deficiency", 3), ("excess", 3)])
 def test_moodle_top(host, cls, top):
     assert V(host).moodleTop(cls) == top
 
 
 @pytest.mark.parametrize("cls,want", [
-    ("energy", [0.4375, 0.3125, 0.1875, 0.0625]),
+    ("stimulant", [0.4375, 0.3125, 0.1875, 0.0625]),
     ("deficiency", [0.41667, 0.25, 0.08333, None]),
 ])
 def test_moodle_thresholds_are_the_bad_side_table(host, cls, want):
@@ -617,7 +657,7 @@ def test_moodle_thresholds_are_the_bad_side_table(host, cls, want):
             assert g == pytest.approx(w, abs=1e-5)
 
 
-@pytest.mark.parametrize("cls", ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"])
+@pytest.mark.parametrize("cls", ["overfull", None, "deficiency", "excess", "stimulant", "sleep"])
 def test_moodle_thresholds_sit_between_the_values(host, cls):
     v = V(host)
     top = v.moodleTop(cls)
@@ -631,25 +671,27 @@ def test_moodle_thresholds_sit_between_the_values(host, cls):
 
 
 def test_the_push_signature_moves_with_any_live_class(host):
-    s0 = host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0)
-    assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0) == s0
-    for args in ((1.6, 0.0, 0.0, 0.0), (1.0, 5.0, 0.0, 0.0), (1.0, 0.0, 400.0, 0.0), (1.0, 0.0, 0.0, 30.0)):
+    s0 = host.call("view.pushSignature", 0.5, 0.0, 0.0, 0.0)
+    assert host.call("view.pushSignature", 0.5, 0.0, 0.0, 0.0) == s0
+    for args in ((1.0, 0.0, 0.0, 0.0), (0.5, 50.0, 0.0, 0.0), (0.5, 0.0, 2.0, 0.0), (0.5, 0.0, 0.0, 731.0)):
         assert host.call("view.pushSignature", *args) != s0, args
+    assert host.call("view.pushSignature", 0.9, 49.0, 1.9, 730.0) == s0     # inside every step: no push
 
 
 def test_the_push_signature_moves_across_each_overfull_band_edge(host):
     for lo, hi in ((730, 731), (853, 854), (976, 977), (1099, 1100)):
-        assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, lo) != host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, hi), (lo, hi)
+        assert host.call("view.pushSignature", 1.0, 0.0, 0.0, lo) != host.call("view.pushSignature", 1.0, 0.0, 0.0, hi), (lo, hi)
 
 
 def test_the_push_signature_is_equal_within_an_overfull_band(host):
-    assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, 731) == host.call("view.pushSignature", 1.0, 0.0, 0.0, 0.0, 850)
+    assert host.call("view.pushSignature", 1.0, 0.0, 0.0, 731) == host.call("view.pushSignature", 1.0, 0.0, 0.0, 850)
 
 
-def test_a_nil_mass_reads_zero_and_the_four_argument_call_is_unchanged(host):
+def test_a_nil_mask_and_trend_read_none_and_steady(host):
     old = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0)
-    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, None) == old
-    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 0) == old
+    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, None, None) == old
+    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 0, 1) == old
+    assert host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, False, float("nan")) != old   # a NaN trend reads 0
 
 
 def test_the_push_signature_reads_nil_as_zero(host):
@@ -664,85 +706,76 @@ def test_the_push_offset_is_inside_the_gap_and_differs_by_name(host):
     assert host.call("view.pushOffset", "", 60000) == 0
 
 
-# --- the energy ladder reachable at rest (Plan 11d Task 9d fix, ruling 9d-2; re-read at Plan 11g Task 7's span) -------
-# eb24h is a trailing 24 h balance, so a sedentary fast plateaus at about -1,950 kcal (the 36 h fast's reading) and,
-# since the deficit drive's refit on the deficit studies alone (Plan 11g Task 7: BALANCE_SPAN_KCAL 3970.55; 3100 in
-# Plan 11f Task 2c fix 1, 3300 in its Task 2c, 7500 before), es = 1 + 0.5 x 1950 / 3970.55 + the fat term = 1.2456 +
-# FAT_GAIN x clamp((fatDep - 0.10) / 0.60, 0, 1) since Plan 13 Task 10c's low-fat ramp (0.5 x fatDep before). Level 1
-# comes from a 794 kcal trailing deficit (on the server path about 18 h after the last meal; 620 kcal at the 3,100 kcal
-# span, 1,500 at 7,500), level 2 not from the plateau alone (1.2456 sits 0.0044 under 1.25) but from fat depletion
-# 0.1041 (0.1051 at FAT_GAIN 0.524404, 0.0089 under the linear term), levels 3 and 4 from fat depletion 0.2422 and
-# 0.3803 at FAT_GAIN 0.651709 (Plan 13 Task 10c fix 2; 0.2767 and 0.4483 at 0.524404, 0.309 and 0.609 before). Each is reached 0.005 past its stated value and not 0.005 short of it (level 1: 0.005 of
-# es, 40 kcal). A reached level is held until es falls ENERGY_BAND
-# under its bound (Plan 11g Task 7 fix 1, ruling T7-2; ENERGY_BAND 0.035 since Plan 13 Task 10c fix 1), so the slow daily sawtooth of a
-# resting fast's es (its largest fall under the running peak 0.01124 for the 70 kg man, pinned in test_a_sedentary_fast_never_steps_an_energy_level_down,
-# and the deepest under a held bound 0.03055 for the 72.6 kg man over 16 days, in test_a_long_sedentary_fast_never_steps_an_energy_level_down) never steps a level back down; the server holds the level
-# and the mirror carries it to the client (ruling T7-7).
+# --- the panel's signal lines, the hide option and the fill line (Plan 15 Task 9; spec section 4) ----------------------
 
-def test_a_resting_character_reaches_every_energy_level(host):
-    E = host.K.deficit
-    level = lambda es: V(host).classes(host.table({"body_energyState": es}))["energy"]
-    assert level(E.state(-754.0, 0)) == 0 and level(E.state(-834.0, 0)) == 1
-    assert level(E.state(-1950.0, 0)) == 1                      # the plateau alone: es 1.2456, under level 2's 1.25
-    for want, dep in ((2, 0.1041), (3, 0.2422), (4, 0.3803)):
-        assert level(E.state(-1950.0, dep + 0.005)) == want, (want, dep)
-        assert level(E.state(-1950.0, dep - 0.005)) == want - 1, (want, dep)
+def test_drain_rows_list_each_active_state_in_code_order(host):
+    names = [host.K.drain.states[i].name for i in range(1, len(host.K.drain.states) + 1)]
+    for lv in (1, 2, 3):
+        rows = rows_of(host, V(host).rows(host.table({"drain_mask": 2 ** 0 + 2 ** 2 + 2 ** 6}), lv, None))
+        drains = [r for r in rows if r["key"].startswith("drain_")]
+        assert [r["key"] for r in drains] == ["drain_" + names[0], "drain_" + names[2], "drain_" + names[6]]
+        assert drains[0] == {"key": "drain_starvation", "label": "UI_NR_Row_drain", "text": "UI_NR_Drain_starvation",
+                             "level": 1, "isKey": True, "cls": "drain", "n": 1}
+        assert [r["key"] for r in rows[:4]] == CLASSES and rows[4]["key"] == "drain_starvation"
+    for junk in (0, None, float("nan"), "3", -1):
+        rows = rows_of(host, V(host).rows(host.table({"drain_mask": junk}), 1, None))
+        assert [r["key"] for r in rows] == CLASSES, junk
 
 
-def test_the_energy_ladder_is_the_ruling_9d_2_game_choice(host):
-    assert lst(V(host).ENERGY_AT) == [1.10, 1.25, 1.40, 1.55]
+def test_the_trend_threshold_is_the_labelled_game_choice(host):
+    assert V(host).TREND_KG_DAY == 0.05
+    rows = rows_of(host, V(host).rows(host.table({"body_weight": 70.0, "body_trend": 0.07}), 2, None))
+    assert {r["key"]: r for r in rows}["body_trend"]["text"] == "UI_NR_Trend_gaining"
+    for m in ({"body_trend": 0.07}, {"body_weight": 70.0}, {"body_weight": 0, "body_trend": 0.07}):
+        rows = rows_of(host, V(host).rows(host.table(m), 2, None))
+        assert {r["key"]: r for r in rows}["body_trend"]["text"] == "UI_NR_Band_none", m
 
 
-# --- the energy class's hysteresis (Plan 11g Task 7 fix 1, ruling T7-2) -------------------------------------------------
-
-def test_the_energy_band_is_the_ruling_t7_2_game_choice(host):
-    assert V(host).ENERGY_BAND == 0.035                                    # re-ruled at Plan 13 Task 10c fix 1
-
-
-def test_an_energy_level_is_held_until_the_state_falls_the_band_under_its_bound(host):
-    lv = lambda es, last=None: host.call("view.energyLevel", es, last)
-    b = V(host).ENERGY_BAND
-    assert lv(1.26) == 2 and lv(1.245) == 1 and lv(1.245, 1) == 1          # no last, or a lower one: the plain rung
-    assert lv(1.245, 2) == 2 and lv(1.25 - b + 0.0001, 2) == 2             # inside the band under 1.25: held
-    assert lv(1.25 - b - 0.0001, 2) == 1 and lv(1.0, 4) == 0               # past the band: down to the plain rung
-    assert lv(1.40 - b + 0.0001, 3) == 3 and lv(1.40 - b - 0.0001, 3) == 2 # each level's own bound
-    assert lv(1.5, 1) == 3 and lv(1.6, 0) == 4                             # a rise is never held back
-    assert lv(1.245, 4) == 2                                               # a held level is never above the band's rung
-    assert lv(None, 2) == 0 and lv(float("nan"), 2) == 0 and lv("x", 2) == 0
-    assert lv(1.245, "x") == 1 and lv(1.245, float("nan")) == 1             # a junk last reads none
-
-
-def test_the_classes_rows_and_moodles_show_the_mirrors_held_energy_level(host):
-    # ruling T7-7: the mirror's body_energyLevel, the level the server holds (its last signature's energy digit), is
-    # the energy class the client shows; a mirror without one (before the player's first flush) or with a malformed
-    # one reads the plain rung of the mirrored es
+def test_the_hide_option_hides_level_one_of_three_moodles(host):
     v = V(host)
-    cls = lambda m: v.classes(host.table(m))["energy"]
-    assert cls({"body_energyState": 1.2498, "body_energyLevel": 2}) == 2      # case A: es under 1.25, the server holds 2
-    assert cls({"body_energyState": 1.2502, "body_energyLevel": 1}) == 1      # case B: es over 1.25, the server reads 1
-    assert cls({"body_energyState": 1.2498}) == 1 and cls({"body_energyState": 1.2502}) == 2   # no field: the rung
-    for junk in ("2", True, 1.5, -1, 5, float("nan"), float("inf")):
-        assert cls({"body_energyState": 1.2502, "body_energyLevel": junk}) == 2, junk
-    assert cls({"body_energyLevel": 0}) == 0 and cls({"body_energyLevel": 4}) == 4 and cls({}) == 0
-    m = host.table({"body_energyState": 1.2498, "body_energyLevel": 2})
-    assert v.moodleClasses(m)["energy"] == 2
-    row = lambda rows, key: next(rows[i] for i in range(1, len(rows) + 1) if rows[i].key == key)
-    assert row(v.rows(m, 1, None), "energy").n == 2
-    assert row(v.rows(m, 2, None), "body_energyState").text == "UI_NR_Class_energy_2"
+    for cls in ("stimulant", "sleep", "excess"):
+        assert v.shownLevel(cls, 1, True) == 0 and v.shownLevel(cls, 2, True) == 2 and v.shownLevel(cls, 1, False) == 1
+    for cls in ("deficiency", "overfull"):
+        assert v.shownLevel(cls, 1, True) == 1
+    assert v.shownLevel("sleep", 0, True) == 0 and v.shownLevel("sleep", 1, None) == 1
 
 
-def test_the_push_signature_holds_the_energy_digit_on_the_last_signature(host):
-    sig = lambda es, lastE=None: host.call("view.pushSignature", es, 0.0, 0.0, 0.0, 0, lastE)
-    b = V(host).ENERGY_BAND
-    assert host.call("view.signatureEnergy", sig(1.26)) == 2
-    assert host.call("view.signatureEnergy", sig(1.245)) == 1
-    assert host.call("view.signatureEnergy", sig(1.245, 2)) == 2
-    assert host.call("view.signatureEnergy", sig(1.25 - b + 0.0005, 2)) == 2
-    assert host.call("view.signatureEnergy", sig(1.25 - b - 0.0005, 2)) == 1
-    assert sig(1.245, None) == host.call("view.pushSignature", 1.245, 0.0, 0.0, 0.0, 0)   # the five-argument call is unchanged
-    s = host.call("view.pushSignature", 1.6, 5.0, 400.0, 30.0, 1100)
-    assert host.call("view.signatureEnergy", s) == 4
-    assert host.call("view.signatureEnergy", None) is None and host.call("view.signatureEnergy", "x") is None
+@pytest.mark.parametrize("hours,kcal,label,text,sep", [
+    (0.03, 16.7, "UI_NR_Tip_FillsUnder", "17 kcal", ", "),
+    (0.49, 100.0, "UI_NR_Tip_FillsUnder", "100 kcal", ", "),
+    (0.5, 100.0, "UI_NR_Tip_Fills", "0.5 h, 100 kcal", " "),
+    (1.23, 94.59, "UI_NR_Tip_Fills", "1 h, 95 kcal", " "),
+    (3.65, 540.0, "UI_NR_Tip_Fills", "3.5 h, 540 kcal", " "),
+    (3.76, 540.0, "UI_NR_Tip_Fills", "4 h, 540 kcal", " "),
+    (24.0, 3000.0, "UI_NR_Tip_FillsOver", "24 h, 3000 kcal", " "),
+])
+def test_the_fill_row_rounds_to_the_half_hour_and_names_the_kcal(host, hours, kcal, label, text, sep):
+    out = host.rt.table()
+    V(host).fillRow(out, hours, kcal)
+    assert rows_of(host, out) == [{"key": "fill", "label": label, "text": text, "level": 1, "isKey": False, "sep": sep}]
+
+
+def test_the_tooltip_puts_the_fill_line_first_at_every_level(host):
+    vec = host.table({"calories": 540.0, "carbs": 60.0, "lipids": 20.0, "proteins": 30.0})
+    for lv in (1, 2, 3):
+        rows = rows_of(host, V(host).tooltip(vec, "table", lv, arr(host, []), host.table({"fillH": 3.65})))
+        assert rows[0]["key"] == "fill" and rows[0]["text"] == "3.5 h, 540 kcal" and rows[1]["key"] == "source"
+    for data in (None, {}, {"fillH": float("nan")}):
+        rows = rows_of(host, V(host).tooltip(vec, "table", 1, None, None if data is None else host.table(data)))
+        assert [r["key"] for r in rows] == ["source"], data
+    rows = rows_of(host, V(host).tooltip(None, "missing", 2, None, host.table({"fillH": 3.0})))
+    assert [r["key"] for r in rows] == ["source"]
+
+
+def test_the_push_signature_moves_with_the_drain_set_the_trend_and_the_dehydration_digit(host):
+    sig = lambda *a: host.call("view.pushSignature", *a)
+    s0 = sig(0.0, 0.0, 0.0, 0, 0, 1)
+    assert sig(0.0, 0.0, 0.0, 0, 1, 1) != s0 and sig(0.0, 0.0, 0.0, 0, 32, 1) != sig(0.0, 0.0, 0.0, 0, 1, 1)
+    assert sig(0.0, 0.0, 0.0, 0, 0, 0) != s0 and sig(0.0, 0.0, 0.0, 0, 0, 2) != s0
+    assert sig(1.0, 0.0, 0.0, 0, 0, 1) != s0 and sig(1.9, 0.0, 0.0, 0, 0, 1) == sig(1.0, 0.0, 0.0, 0, 0, 1)
+    assert sig(9.0, 0.0, 0.0, 0, 0, 1) == sig(15.0, 0.0, 0.0, 0, 0, 1)           # the digit stops at 9
+    assert sig(0.0, 500.0, 24.0, 1100, 127, 2) == 127 * 100000 + 2 * 10000 + 0 * 1000 + 4 * 100 + 4 * 10 + 4
+    assert sig(0.0, 0.0, 0.0, 0, 200, 7) == sig(0.0, 0.0, 0.0, 0, 127, 2)          # each digit clamped
 
 
 # --- the Strength row (Plan 13 Task 18, ruling 13-19) ----------------------------------------------------------

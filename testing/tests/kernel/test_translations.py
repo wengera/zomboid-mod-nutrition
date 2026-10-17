@@ -20,7 +20,7 @@ CLIENT = os.path.join(LUA, "client")
 VANILLA = os.path.join("D:\\", "SteamLibrary", "steamapps", "common", "ProjectZomboid", "media", "lua", "shared",
                        "Translate", "EN")
 FILES = ["UI.json", "IG_UI.json", "Moodles.json"]
-CLASSES = ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"]
+CLASSES = ["deficiency", "excess", "stimulant", "sleep"]   # Plan 15 Task 9: no energy or hydration class
 
 
 def _pairs(pairs):
@@ -106,9 +106,18 @@ def constructed():
                 out.add("UI_NR_Row_" + k + suffix)
     for k in vector_keys():
         out.add("UI_NR_Row_" + k)
-    for k in ("body_band", "body_weight", "body_energyState", "body_fm", "body_lm", "fluids_dehydPct",
-              "acute_caf", "acute_bac", "acute_debtH"):
+    for k in ("body_band", "body_weight", "body_trend", "body_trendKg", "body_fm", "body_lm", "fluids_dehydPct",
+              "acute_caf", "acute_bac", "acute_debtH", "drain"):
         out.add("UI_NR_Row_" + k)
+    # Plan 15 Task 9: a drain line per K.drain state name, the trend words and the tooltip's fill lines
+    drain = re.findall(r'\{ name = "(\w+)"', read(os.path.join(LUA, "shared", "NR_Kernel_Drain.lua")))
+    assert len(drain) == 7
+    for name in drain:
+        out.add("UI_NR_Drain_" + name)
+    for w in ("losing", "steady", "gaining"):
+        out.add("UI_NR_Trend_" + w)
+    for k in ("Fills", "FillsUnder", "FillsOver"):
+        out.add("UI_NR_Tip_" + k)
     for b in bands() + ["none"]:
         out.add("UI_NR_Band_" + b)
     for g in range(1, 5):
@@ -174,7 +183,7 @@ def test_constructed_keys_exist():
             assert "Moodles_NR_%s_lvl%d" % (c, n) in moo
     for n in range(1, 5):
         assert "Moodles_NR_overfull_lvl%d" % n in moo
-    assert len(moo) == 26
+    assert len(moo) == 18                               # 3 + 3 + 4 + 4 + 4 (Plan 15 Task 9: energy and hydration removed)
     # the client's own prefix concatenations are the ones constructed above
     assert any(pre and key == "Moodles_NR_" for _, key, pre in literals())
     assert any(pre and key == "UI_NR_Class_" for _, key, pre in literals())

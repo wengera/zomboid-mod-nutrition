@@ -695,33 +695,25 @@ def test_karl_2021_over_twin_k_five_billings_the_fit_ranks_by(host):
     assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.531, k
 
 
-# --- the energy moodle over a resting fast (Plan 11g Task 7 fix 1, ruling T7-2) ----------------------------------------
+# --- a resting fast's energy state and drain line (Plan 15 Task 9; the energy moodle is removed) -----------------------
 
-FAST_SIG = "_G.NutritionRevamp.server.bus.lastSig.admin"      # the bus's signature, the level the push is keyed on
+FAST_MASK = "drain.mask"      # K.drain's set of active states, the panel's drain lines (the mirror's drain_mask)
 
 
 def long_fast_levels(player, fast_days=6):
     """A sedentary fast on the server path: the warm maintenance days and protocol day 0's three meals, then nothing
-    for fast_days days. Returns (the bus's energy level, the plain rung of es, es) at each minute from the last meal."""
+    for fast_days days. Returns (whether starvation's drain line shows, es) at each minute from the last meal."""
     plan = M.warm()
     plan.update(M.meals_of(0, "maint"))
     last = max(plan)
     days = M.FAST_WARM_DAYS + 1 + fast_days
     ev = sleep_events(days) + [{"minute": m, "kind": "meal", "size": k} for m, k in sorted(plan.items())]
     ev.sort(key=lambda e: e["minute"])
-    rows, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", paths=("body.energyState", FAST_SIG),
+    rows, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", paths=("body.energyState", FAST_MASK),
                              player=player, rng="half", sex_specific=True)
-    at = [be.K.view.ENERGY_AT[i] for i in range(1, 5)]
-    bus = [int(r[FAST_SIG] // 1000) % 10 for r in rows[last:]]
+    starving = [int(r.get(FAST_MASK) or 0) % 2 == 1 for r in rows[last:]]
     es = [r["body.energyState"] for r in rows[last:]]
-    plain = [sum(1 for a in at if e >= a) for e in es]
-    return bus, plain, es
-
-
-def deepest_held_fall(bus, es):
-    """The deepest es under the bound of a level the bus holds (0 when no level is held under its bound)."""
-    at = (1.10, 1.25, 1.40, 1.55)
-    return max([at[b - 1] - e for b, e in zip(bus, es) if b >= 1] + [0.0])
+    return starving, es
 
 
 def largest_drawdown(es, after_min=1440):
@@ -742,56 +734,29 @@ def level_changes(levels):
     return out
 
 
-def test_a_sedentary_fast_never_steps_an_energy_level_down(host):
-    # ruling T7-2: the energy moodle never flickers in a resting fast. The plain rung did: the 70 kg man's es plateaus
-    # at 1.2456, 0.0044 under level 2's 1.25, and its slow daily sawtooth (its largest fall under the running peak from
-    # 24 h on 0.00234, pinned below) crossed 1.25 at 52.0 h, back at 67.6 h and again at 76.0 h. The bus now holds a
-    # reached level until es falls ENERGY_BAND (0.01) under its bound (K.view.energyLevel, a game choice), and the
-    # mirror carries that held level to the client (ruling T7-7), so over six days of fasting no body steps a level
-    # down; the deepest es under a held level's bound is the man's 0.00092. Level 1 stays about 18 h after the last
-    # meal (ruling 9d-2: 18.1 h for the man, 17 h at the 3,100 kcal span); level 2 comes at 52.0 h for the man and from
-    # the plateau alone at 27.1 h for the 100 kg man, and the 50 and 60 kg women stay at level 1 (es 1.201 and 1.223 at
-    # six days). A threshold move instead (ENERGY_AT[2] under the man's plateau) was rejected: a plateau sits wherever a
-    # body's expenditure puts it (es 1.1904, 1.2118, 1.2482 and 1.2901 at 48 h for the 50 and 60 kg women and the 70
-    # and 100 kg men, pinned below), so a bound inside that range meets some body's sawtooth. Under Plan 13 Task 12's lean partition at the day close the plain rung
-    # steps back at 66.3 h (67.6 before), the man's deepest fall under a held bound reads 0.00105 (0.00092), and es at
-    # 48 h and six days 1.2117 and 1.2229, 1.2481 and 1.2562, 1.2897 and 1.3049 for the 60 kg woman and the 70 and
-    # 100 kg men. Plan 13 Task 10c's low-fat ramp: a six-day fast depletes under FAT_DEP_LO (0.10), so the fat term
-    # no longer lifts es and es now falls slowly after its plateau as adaptive thermogenesis lowers the deficit. The
-    # 70 kg man stays at level 1 (es 1.2438 at 48 h, 1.234 at six days); the flicker the band removes is now the 74 kg
-    # man's (the plain rung back at 63.2 h), whose deepest fall under a held bound is 0.008; the largest fall under
-    # es's running peak is the 70 kg man's 0.01124, above the old ENERGY_BAND 0.01, and a 73 kg man held level 2 by
-    # 0.00003 (0.00997 under its bound; a reading, not pinned). Task 10c fix 1: men from 72.56 kg stepped 2 to 1 late in
-    # day 6 at 0.01 (the 72.6 kg man, pinned here, falls 0.01076 under the bound), so ENERGY_BAND is 0.035 (the long
-    # fast's deepest fall, test_a_long_sedentary_fast_never_steps_an_energy_level_down)
-    want = {(50.0, True): [(1, 19.4)], (60.0, True): [(1, 18.8)], (70.0, False): [(1, 18.2)],
-            (72.6, False): [(1, 18.1), (2, 30.6)], (74.0, False): [(1, 18.1), (2, 29.6)],
-            (100.0, False): [(1, 17.7), (2, 27.2)]}
-    got = {}
-    for (w, female), changes in want.items():
-        bus, plain, es = long_fast_levels({"weight": w, "female": female})
-        assert all(b >= a for a, b in zip(bus, bus[1:])), (w, female, level_changes(bus))
-        assert level_changes(bus) == changes, (w, female, level_changes(bus))
-        if w == 74.0:
-            assert level_changes(plain) == [(1, 18.1), (2, 29.6), (1, 63.2)]   # the flicker the band removes
-        got[(w, female)] = (round(deepest_held_fall(bus, es), 5), round(largest_drawdown(es), 5),
-                            round(es[48 * 60], 4), round(es[-1], 4))
-    # per body: the deepest es under a held level's bound, the largest fall under es's running peak from 24 h on, and
-    # es at 48 h and at six days, ENERGY_BAND's evidence (its label cites these)
-    assert got == {(50.0, True): (0.0, 0.00844, 1.1864, 1.1792), (60.0, True): (0.0, 0.00769, 1.2078, 1.2011),
-                   (70.0, False): (0.0, 0.01124, 1.2438, 1.234), (72.6, False): (0.01076, 0.01087, 1.2487, 1.2392),
-                   (74.0, False): (0.008, 0.01065, 1.2513, 1.242),
-                   (100.0, False): (0.0, 0.00295, 1.286, 1.2833)}, got
+def test_a_sedentary_fasts_energy_state_and_starvation_line(host):
+    # Plan 15 Task 9: the energy moodle and its held level are gone (spec section 4, item 1); the internal energy state
+    # stays as the deficit drive's input, so its path over a resting fast stays pinned (the readings the Plan 13 Task
+    # 10c ramp and the Plan 11g band rested on: es at 48 h and at six days, and the largest fall under its running peak
+    # from 24 h on), and the panel's starvation line (the mirror's drain_mask, K.drain's acute onset at 30 unfed hours)
+    # comes on once for every body and stays on through the fast
+    bodies = [(50.0, True), (60.0, True), (70.0, False), (72.6, False), (74.0, False), (100.0, False)]
+    got, lines = {}, {}
+    for w, female in bodies:
+        starving, es = long_fast_levels({"weight": w, "female": female})
+        lines[(w, female)] = level_changes(starving)
+        got[(w, female)] = (round(largest_drawdown(es), 5), round(es[48 * 60], 4), round(es[-1], 4))
+    assert got == {(50.0, True): (0.00844, 1.1864, 1.1792), (60.0, True): (0.00769, 1.2078, 1.2011),
+                   (70.0, False): (0.01124, 1.2438, 1.234), (72.6, False): (0.01087, 1.2487, 1.2392),
+                   (74.0, False): (0.01065, 1.2513, 1.242), (100.0, False): (0.00295, 1.286, 1.2833)}, got
+    assert lines == {(50.0, True): [(True, 34.2)], (60.0, True): [(True, 34.3)], (70.0, False): [(True, 34.5)],
+                     (72.6, False): [(True, 34.5)], (74.0, False): [(True, 34.5)],
+                     (100.0, False): [(True, 34.6)]}, lines   # vanilla's Starving at 34.55 h (Plan 15 Task 6)
 
 
-def test_a_long_sedentary_fast_never_steps_an_energy_level_down(host):
-    # Plan 13 Task 10c fix 1 (ruling T7-2, ENERGY_BAND re-ruled to 0.035): under the low-fat ramp es keeps falling
-    # after a resting fast's plateau until the fat depletion passes FAT_DEP_LO (about 364 h), so the band must hold a
-    # long fast's deepest fall, not six days'. The 72.6 kg man just reaches level 2 (es peaks at 1.25011) and by day 16
-    # his es sits 0.03055 under its bound; at the old band 0.01 he stepped 2 to 1 late in day 6 (the Task 10c review's
-    # sweep: 0.0307 at 72.55 kg was the deepest over 20-day fasts, so 0.031 is the floor)
-    bus, plain, es = long_fast_levels({"weight": 72.6, "female": False}, fast_days=16)
-    assert all(b >= a for a, b in zip(bus, bus[1:])), level_changes(bus)
-    assert level_changes(bus) == [(1, 18.1), (2, 30.6)], level_changes(bus)
-    assert level_changes(plain) == [(1, 18.1), (2, 30.6), (1, 32.9)]       # the step-down the band holds
-    assert (round(deepest_held_fall(bus, es), 5), round(max(es), 5)) == (0.03055, 1.25011)
+def test_a_long_sedentary_fast_keeps_the_starvation_line(host):
+    # Plan 15 Task 9: over a 16-day resting fast the starvation line, once on, never goes off, and es peaks where the
+    # Plan 13 Task 10c fix 1 reading put it (1.25011 for the 72.6 kg man)
+    starving, es = long_fast_levels({"weight": 72.6, "female": False}, fast_days=16)
+    assert level_changes(starving) == [(True, 34.5)], level_changes(starving)
+    assert round(max(es), 5) == 1.25011

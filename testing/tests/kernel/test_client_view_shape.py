@@ -20,6 +20,7 @@ SHARED = os.path.join(LUA, "shared")
 CLIENT = os.path.join(LUA, "client")
 CORE = os.path.join(SHARED, "NR_Core.lua")
 RECORDS = os.path.join(SHARED, "NR_Data_Records.lua")
+EFFECTS = os.path.join(SHARED, "NR_Data_Effects.lua")
 MIRROR = os.path.join(CLIENT, "NR_Client_Mirror.lua")
 MODOPTIONS = os.path.join(CLIENT, "NR_Client_ModOptions.lua")
 OPTIONS = os.path.join(CLIENT, "NR_Client_Options.lua")
@@ -96,6 +97,7 @@ def _kernel(rt):
     for path in sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
         _load(rt, path)
     _load(rt, RECORDS)
+    _load(rt, EFFECTS)
 
 
 def _clients(rt):
@@ -146,13 +148,14 @@ def test_the_files_load_with_no_engine():
     assert V(rt).readTrait(None) is False
     assert V(rt).readOption() == 2            # no SandboxVars: the default, Bands (ruling T13-1)
     assert V(rt).lineHeight("small") == 14
-    assert V(rt).refresh(False) is True       # an empty mirror still builds the six class rows
+    assert V(rt).refresh(False) is True       # an empty mirror still builds the four class rows
     assert V(rt).level == 2                    # the default before any read, Bands (ruling T13-1)
     rows = V(rt).rows
-    assert len(rows) > 6 and all(rows[i].cls is not None for i in range(1, 7))   # the classes, then the Bands rows
+    assert len(rows) > 4 and all(rows[i].cls is not None for i in range(1, 5))   # the classes, then the Bands rows
+    assert rows[5].cls is None
 
 
-def test_the_files_load_with_the_stand_ins_and_the_page_has_three_rows():
+def test_the_files_load_with_the_stand_ins_and_the_page_has_four_rows():
     rt = rt_env()
     g = G(rt)
     page = g.NR_ClientModOptions_Page
@@ -160,6 +163,12 @@ def test_the_files_load_with_the_stand_ins_and_the_page_has_three_rows():
     assert g.NR_T.creates == 1
     assert page.dict.togglePanel.key == 39
     assert page.dict.tooltipLines.value is True and page.dict.moodles.value is True
+    # Plan 15 Task 9 (item 10d): the level-1 tick, on by default, read through its accessor and attached to the options
+    assert page.dict.moodleLevelOne.value is True and NRC(rt).modOptions.moodleLevelOne() is True
+    page.dict.moodleLevelOne.value = False
+    assert NRC(rt).modOptions.moodleLevelOne() is False and NRC(rt).options.moodleLevelOne() is False
+    page.dict.moodleLevelOne.value = "x"
+    assert NRC(rt).modOptions.moodleLevelOne() is True                 # a non-boolean reads the default
 
 
 def test_a_reload_creates_no_second_page_and_adds_no_second_listener():
@@ -241,7 +250,7 @@ def test_text_returns_the_fallback_on_a_miss_and_the_string_on_a_hit():
     assert t("UI_NR_PanelTitle", "Nutrition") == "Nutrition"          # getText answers the key: a miss
     G(rt).NR_T.texts["UI_NR_PanelTitle"] = "Nutrition panel"
     assert t("UI_NR_PanelTitle", "Nutrition") == "Nutrition panel"
-    assert t("UI_NR_Class_energy_2", None) == "Class energy 2"         # no fallback: the key's tail
+    assert t("UI_NR_Class_sleep_2", None) == "Class sleep 2"           # no fallback: the key's tail
     assert t("UI_NR_Row_vitC_p", "UI_NR_Row_vitC_p") == "vitC p"       # the key as its own fallback: the tail
     G(rt).NR_T.textRaises = True
     assert t("UI_NR_PanelTitle", "Nutrition") == "Nutrition"
@@ -383,7 +392,7 @@ def test_refresh_rebuilds_only_when_received_or_level_moved():
     assert v.refresh(False) is True
     assert v.refresh(False) is False          # two refreshes, one rebuild
     assert v.stats.rebuilds == 1
-    receive(rt, "{ fluids_dehydPct = 3 }")    # the mirror handler calls onMirror, which refreshes
+    receive(rt, "{ acute_debtH = 13 }")       # the mirror handler calls onMirror, which refreshes
     assert v.stats.rebuilds == 2
     assert v.refresh(False) is False
     v.level = 2                                 # a level move alone
@@ -393,32 +402,32 @@ def test_refresh_rebuilds_only_when_received_or_level_moved():
 
 def test_the_mirror_handler_calls_onMirror_once_per_arrival():
     rt = rt_env()
-    receive(rt, "{ fluids_dehydPct = 3.5 }")
+    receive(rt, "{ acute_debtH = 13 }")
     v = V(rt)
     assert v.stats.rebuilds == 1 and v.lastReceived == 1
-    assert v.classes.hydration == 3
-    receive(rt, "{ fluids_dehydPct = 0 }")
-    assert v.stats.rebuilds == 2 and v.classes.hydration == 0
+    assert v.classes.sleep == 3
+    receive(rt, "{ acute_debtH = 0 }")
+    assert v.stats.rebuilds == 2 and v.classes.sleep == 0
 
 
-def test_the_view_shows_the_servers_held_energy_level():
-    # Plan 11g Task 7 fix 2 (ruling T7-7): the moodle and the class row show the mirror's body_energyLevel, the
-    # server's held level, whatever the client built before; a mirror without it or with a malformed one reads the
-    # plain rung of the mirrored es
+def test_the_view_reads_deficiency_off_the_effect_nutrients_and_shows_the_drain_lines():
+    # Plan 15 Task 9: the view builds the deficiency set once from NR.data.effects (K.view.deficiencyKeys), so a
+    # clinical vitamin D (gated off) or biotin (no effect row) raises no Deficiency moodle while vitamin C does, and every
+    # grade still has its panel row; the mirror's drain_mask lists each active drain state at every level
     rt = rt_env()
+    rt.execute("SandboxVars.NR.VisibilityMode = 1")
     v = V(rt)
-    got = []
-    for m in ("{ body_energyState = 1.2498, body_energyLevel = 2 }",      # case A: a fresh client, the server holds 2
-              "{ body_energyState = 1.26, body_energyLevel = 2 }",
-              "{ body_energyState = 1.2498, body_energyLevel = 1 }",      # case B: shown 2 before, the server reads 1
-              "{ body_energyState = 1.2502, body_energyLevel = 1 }",
-              "{ body_energyState = 1.2498 }",                            # no held level: the rung
-              "{ body_energyState = 1.2502, body_energyLevel = 'x' }",    # malformed: the rung
-              "{ body_energyState = 1.2502, body_energyLevel = 1.5 }"):
-        receive(rt, m)
-        row = next(v.rows[i] for i in range(1, len(v.rows) + 1) if v.rows[i].key == "energy")
-        got.append((v.classes.energy, row.n))
-    assert got == [(2, 2), (2, 2), (1, 1), (1, 1), (1, 1), (2, 2), (2, 2)]
+    receive(rt, "{ nut_vitD_g = 4, nut_biotin_g = 4, drain_mask = 33 }")   # 33 = starvation (1) + dehydration (32)
+    d = v["def"]
+    assert v.classes.deficiency == 0 and d["vitC"] is True and d["vitD"] is None and d["biotin"] is None
+    keys = [v.rows[i].key for i in range(1, len(v.rows) + 1)]
+    assert keys == ["deficiency", "excess", "stimulant", "sleep", "drain_starvation", "drain_dehydration"]
+    assert _row(v, "drain_starvation").text == "UI_NR_Drain_starvation" and _row(v, "drain_starvation").n == 1
+    receive(rt, "{ nut_vitC_g = 3, nut_vitD_g = 4 }")
+    assert v.classes.deficiency == 2
+    rt.execute("SandboxVars.NR.VisibilityMode = 2")
+    receive(rt, "{ nut_vitD_g = 4 }")
+    assert _row(v, "nut_vitD_g").text == "UI_NR_Grade_4" and v.classes.deficiency == 0
 
 
 def test_the_grade_rows_use_the_graded_order_never_the_raw_order():
@@ -456,29 +465,29 @@ def test_a_death_clears_the_view_so_a_respawn_shows_nothing_of_the_dead_characte
     rt.execute("""
         NR_T.heard = {}
         local L = NutritionRevamp.client.view.listeners
-        L[#L + 1] = function(classes) NR_T.heard[#NR_T.heard + 1] = classes.hydration end
+        L[#L + 1] = function(classes) NR_T.heard[#NR_T.heard + 1] = classes.sleep end
     """)
-    receive(rt, "{ fluids_dehydPct = 7, body_weight = 61.5, body_fm = 9, body_band = 'under' }")
+    receive(rt, "{ acute_debtH = 30, body_weight = 61.5, body_fm = 9, body_band = 'under' }")
     v = V(rt)
-    assert v.classes.hydration == 4 and _row(v, "body_weight").text == "61.5 kg" and v.fatBand is not None
+    assert v.classes.sleep == 4 and _row(v, "body_weight").text == "61.5 kg" and v.fatBand is not None
     received = NRC(rt).received
     fire(rt, "OnPlayerDeath", "NR_T.player")
     assert NRC(rt).mirror is None and NRC(rt).received == received   # no arrival counted: the death forces the rebuild
-    assert v.classes.hydration == 0 and _row(v, "body_weight").text == "" and v.fatBand is None
+    assert v.classes.sleep == 0 and _row(v, "body_weight").text == "" and v.fatBand is None
     assert list(G(rt).NR_T.heard.values()) == [4, 0]           # the listeners (the moodles) heard the clear
     fire(rt, "OnCreatePlayer", "0, NR_T.player")               # the respawn: still nothing of the dead body
     v.refresh(False)
-    assert v.classes.hydration == 0 and NRC(rt).mirror is None
-    receive(rt, "{ fluids_dehydPct = 1 }")                     # the new character's first push
-    assert v.classes.hydration == 1 and v.stats.errors == 0
+    assert v.classes.sleep == 0 and NRC(rt).mirror is None
+    receive(rt, "{ acute_debtH = 2 }")                         # the new character's first push
+    assert v.classes.sleep == 1 and v.stats.errors == 0
 
 
 def test_a_split_screen_players_death_keeps_player_zeros_view():
     rt = rt_env()
-    receive(rt, "{ fluids_dehydPct = 7 }")
+    receive(rt, "{ acute_debtH = 30 }")
     rt.execute("NR_T.other = { getPlayerNum = function(self) return 1 end }")
     fire(rt, "OnPlayerDeath", "NR_T.other")
-    assert NRC(rt).mirror is not None and V(rt).classes.hydration == 4
+    assert NRC(rt).mirror is not None and V(rt).classes.sleep == 4
 
 
 def test_a_reload_adds_no_second_mirror_or_death_handler():
@@ -499,10 +508,10 @@ def test_the_listeners_are_called_after_each_rebuild_and_a_raising_one_is_caught
     rt.execute("""
         NR_T.heard = 0
         local L = NutritionRevamp.client.view.listeners
-        L[#L + 1] = function(classes, rows, level) NR_T.heard = NR_T.heard + 1; NR_T.lastHyd = classes.hydration end
+        L[#L + 1] = function(classes, rows, level) NR_T.heard = NR_T.heard + 1; NR_T.lastHyd = classes.sleep end
         L[#L + 1] = function() error('listener boom') end
     """)
-    receive(rt, "{ fluids_dehydPct = 7 }")
+    receive(rt, "{ acute_debtH = 30 }")
     assert G(rt).NR_T.heard == 1 and G(rt).NR_T.lastHyd == 4
     assert V(rt).stats.listenerErrors == 1
     V(rt).refresh(False)
@@ -544,20 +553,20 @@ NR_T.el = {
 def test_draw_paints_each_rows_resolved_label_and_text_and_returns_the_next_y():
     rt = rt_env()
     rt.execute(DRAW_EL)
-    G(rt).NR_T.texts["UI_NR_Class_energy"] = "Energy"
-    G(rt).NR_T.texts["UI_NR_Class_energy_0"] = "fine"
+    G(rt).NR_T.texts["UI_NR_Class_deficiency"] = "Deficiency"
+    G(rt).NR_T.texts["UI_NR_Class_deficiency_0"] = "fine"
     v = V(rt)
-    v.level = 1                                # Symptoms: the six class rows alone
+    v.level = 1                                # Symptoms: the four class rows alone (no drain is active)
     v.refresh(True)
     y = v.draw(G(rt).NR_T.el, v.rows, 8, 20, 264, None)
     g = G(rt).NR_T
-    assert len(g.left) == 6 and len(g.right) == 6
-    assert g.left[1].s == "Energy" and g.right[1].s == "fine"
+    assert len(g.left) == 4 and len(g.right) == 4
+    assert g.left[1].s == "Deficiency" and g.right[1].s == "fine"
     assert g.right[1].x == 272 and g.left[2].y == 35
     assert g.left[1].f == "small"
-    assert g.left[2].s == "Class hydration"            # a label miss reads the key's tail, never the raw key
-    assert g.right[2].s == "Class hydration 0"         # a text-key miss falls back to the key's tail
-    assert y == 20 + 6 * 15
+    assert g.left[2].s == "Class excess"               # a label miss reads the key's tail, never the raw key
+    assert g.right[2].s == "Class excess 0"            # a text-key miss falls back to the key's tail
+    assert y == 20 + 4 * 15
 
 
 def test_draw_resolves_no_text_per_frame():

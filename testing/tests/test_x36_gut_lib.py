@@ -299,7 +299,14 @@ def test_the_energy_pair_reads_both_sides_in_the_same_second(tmp_path, monkeypat
 def test_the_grade_reads_the_drivers_documents():
     assert set(G.DOCS) == {"x361", "x362", "x363", "x364"} and set(G.GRADERS) == set(G.DOCS)
     assert G.MEAL650_MIN == (240.0, 300.0) and G.BREAKFAST_HOLD_MIN == 180.0 and G.LEVEL1 == 1.10
-    assert float(K().view.ENERGY_AT[1]) == G.LEVEL1
+    # the energy ladder's level 1 at the last build that carried it (Plan 15 Task 9 removed the energy class; the grade
+    # is frozen with its run, CLAUDE.md section 5, so it is read off a pinned commit, never HEAD)
+    import re
+    import subprocess
+    old = subprocess.run(["git", "-C", RL.REPO, "show", "7c8725b3:mod/NutritionRevamp/common/media/lua/shared/NR_Kernel_View.lua"],
+                         capture_output=True, text=True, check=True).stdout
+    first = re.search(r"K\.view\.ENERGY_AT = \{\s*([0-9.]+),", old).group(1)
+    assert float(first) == G.LEVEL1
 
 
 def test_the_regrade_reads_the_written_row_after_each_meal():

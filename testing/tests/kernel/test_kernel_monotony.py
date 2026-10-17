@@ -554,3 +554,42 @@ def test_an_unhealed_non_table_entry_reads_level_zero_and_does_not_raise(host):
     m = host.rt.eval("{ t = { ['Base.A'] = 3, ['Base.B'] = 'x' } }")
     assert M(host).level(3, AGE) == 0
     assert tgt(host, m, AGE) == (0, 0)
+
+
+# --- the mood floor's dead zone (Plan 15 Task 9; spec section 4, item 10c) ------------------------------------------
+
+def test_the_dead_zone_constants_name_their_game_choice_and_thresholds(host):
+    m = M(host)
+    assert (m.DEAD_ZONE, m.HOLD_EPS) == (0.02, 0.01)
+    assert [m.UNHAPPY_AT[i] for i in (1, 2)] == [20, 45] and [m.BORED_AT[1]] == [25]
+    with open(KERNEL, encoding="utf-8") as fh:
+        src = fh.read()
+    for name in ("DEAD_ZONE", "HOLD_EPS"):
+        line = re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0)
+        assert "game choice (spec section 10: the dead-zone width" in line, name
+    for name in ("UNHAPPY_AT", "BORED_AT"):
+        assert "#2369" in re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0), name
+
+
+@pytest.mark.parametrize("v,prev,want", [
+    (19.8, 20.5, 20.01),     # fallen under UNHAPPY 20 by 0.2, inside 0.02 x 20 = 0.4: held just over it
+    (20.0, 25.0, 20.01),     # onto the threshold (the moodle is strict >): held
+    (19.61, 20.5, 20.01),
+    (19.6, 20.5, 19.6),      # at the zone's edge: released
+    (19.0, 20.5, 19.0),      # past the zone: the fall stands
+    (19.8, 20.005, 20.005),  # never held above the last target
+    (44.5, 46.0, 45.01),     # the level-2 step (zone 0.9)
+    (21.0, 19.0, 21.0),      # a rise is never held
+    (19.8, 19.9, 19.8),      # the last target was not over the threshold
+    (10.0, 30.0, 10.0),
+])
+def test_a_fall_inside_the_dead_zone_holds_over_the_threshold(host, v, prev, want):
+    assert M(host).hold(v, prev, M(host).UNHAPPY_AT) == pytest.approx(want)
+
+
+def test_the_boredom_threshold_and_junk(host):
+    m = M(host)
+    assert m.hold(24.6, 26.0, m.BORED_AT) == pytest.approx(25.01) and m.hold(24.5, 26.0, m.BORED_AT) == 24.5
+    for v, prev in ((float("nan"), 21.0), (19.8, float("nan")), (19.8, None), (None, 21.0)):
+        got = m.hold(v, prev, m.UNHAPPY_AT)
+        assert got == v or (got != got and v != v), (v, prev)   # v returned as it is

@@ -105,12 +105,12 @@ Each player's record is kept in files under the server's cache directory, in the
 ## What players see
 
 - **The panel.** The `;` key opens a movable, collapsible panel; players can rebind the key on the mod's options page. The rows depend on `NR.VisibilityMode`:
-  - **Symptoms:** six words for energy, hydration, deficiency, excess, stimulant and sleep.
-  - **Bands:** also the body-fat band (Emaciated, Gaunt, Overly lean, Normal, Overfat or Obese), the weight, a **Body fat** word (Very lean, Lean, Healthy, High or Very high, with cut points by sex; a shown word holds until the fat share leaves its band by half a percentage point), the energy state, the **Strength** level to one decimal (the body's true level; the Strength perk follows it with a quarter-level hold, see Strength), hydration, and a grade for each tracked nutrient (Replete, Marginal, Depleted or Clinical).
+  - **Symptoms:** four words for deficiency, excess, stimulant and sleep, and a line for each health-draining state (Weakened by starvation, Suffering from dehydration, Scurvy, Beriberi, Pellagra, Dangerously low sodium or Iron poisoning).
+  - **Bands:** also the body-fat band (Emaciated, Gaunt, Overly lean, Normal, Overfat or Obese), the weight, a **Body fat** word (Very lean, Lean, Healthy, High or Very high, with cut points by sex; a shown word holds until the fat share leaves its band by half a percentage point), a **Weight trend** word (Losing, Steady or Gaining: the last seven days' change in body mass, steady within 0.05 kg a day), the **Strength** level to one decimal (the body's true level; the Strength perk follows it with a quarter-level hold, see Strength), the dehydration in per cent of body mass once it passes 1 %, and a grade for each tracked nutrient (Replete, Marginal, Depleted or Clinical).
   - **Numbers:** also fat and lean mass, each nutrient's store and excess level, caffeine in the body, blood alcohol and sleep debt.
 - **The character tab.** A Nutrition tab in the character info window shows the same rows.
-- **The food tooltip.** A band below each food's tooltip says where its values come from. At Bands it lists the four macros and the nutrients the item is rich or low in; at Numbers it lists every nutrient. The band shows the values of a whole item. A player can turn the band off on the options page.
-- **The moodles.** Seven moodles: Energy (Peckish to Starving), Hydration (Slightly dry to Severely dehydrated), Deficiency (Marginal to Clinical), Excess (Elevated to Excessive), Stimulant (Alert to Overdosed), Sleep (Short on sleep to Collapsing) and Overfull (Pleasantly overfull to Painfully stuffed). With MoodleFramework they are drawn through it; without it, in the mod's own icon column. A player can turn them off on the options page. Vanilla's own hunger and thirst moodles still show.
+- **The food tooltip.** A band below each food's tooltip first says about how long the food fills you and its kcal, in place of vanilla's hunger line: the hours a food eaten alone, when Peckish, keeps the Peckish moodle off for an average body, to the nearest half hour. A dish made from a recipe keeps vanilla's hunger line. The band then says where its values come from. At Bands it lists the four macros and the nutrients the item is rich or low in; at Numbers it lists every nutrient. The band shows the values of a whole item. A player can turn the band off on the options page.
+- **The moodles.** Five moodles: Deficiency (Marginal to Clinical; it reads only the nutrients whose shortage has an effect, while the panel grades every nutrient), Excess (Elevated to Excessive), Stimulant (Alert to Overdosed), Sleep (Short on sleep to Collapsing) and Overfull (Pleasantly overfull to Painfully stuffed). With MoodleFramework they are drawn through it; without it, in the mod's own icon column. A player can turn them off on the options page, or hide only the first level of Stimulant, Sleep and Excess. Hunger and thirst show through vanilla's own moodles.
 
 ## What the mod models
 
@@ -150,7 +150,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - On a generous diet, hunger dips less after meals than in the overfeeding study the model was checked against.
 - Every Fitness set counts as hard resistance work for the brief hunger dip, whatever the exercise.
 - Nicotine withdrawal's rise in hunger rests on one small trial and fades over 26 weeks. A smoker who keeps smoking sees the rise between smokes. A character first seen already in withdrawal shows none until the next smoke.
-- A new character, or one who just respawned, reads as if they had eaten evenly the day before. They reach the first energy moodle after several hours without food.
+- A new character, or one who just respawned, reads as if they had eaten evenly the day before. They reach vanilla's Peckish moodle after several hours without food.
 - An eat in a new record's very first minute does not count toward the meal pool.
 - An eat another mod makes without the game's eat action counts a minute late and as calories and macros only. A drink another mod makes outside the game's drink actions is not seen.
 - When the mod first sees a character, it reads the character's current low hunger as a meal already eaten, up to a cap; a hunger above what the stomach's fullness allows drops to that level at once.
@@ -220,7 +220,6 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 
 **The interface and sync**
 - Updates reach the player's panel and moodles with the next game minute, at most once a minute of real time.
-- The energy moodle holds a reached level until the energy state falls a little below its bound. The hold starts afresh when the player is first seen after a join or a server start, and a panel opened between updates can show the last update's level beside the current state.
 - A player's request for fresh values is answered at most once every five seconds.
 
 **Managed mode**

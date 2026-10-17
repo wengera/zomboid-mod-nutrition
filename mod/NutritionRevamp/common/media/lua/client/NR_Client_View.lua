@@ -1,7 +1,7 @@
 -- NR_Client_View.lua -- the client's one row cache and the draw helper every surface shares (Plan 7 Task 5,
 -- rulings 3, 5 and 16): the visibility level (max of the server option NR.VisibilityMode and a Nutritionist
--- trait), the row model K.view.rows builds from the stored mirror, the seven moodle class levels
--- K.view.moodleClasses reads (the six classes and overfull), and view.draw, which paints a row list
+-- trait), the row model K.view.rows builds from the stored mirror, the five moodle class levels
+-- K.view.moodleClasses reads (the four classes and overfull), and view.draw, which paints a row list
 -- onto any ISUIElement.
 --
 -- The mirror is read at the push cadence, never the frame cadence (#2692): refresh() makes the one per-frame test
@@ -16,7 +16,9 @@
 -- The grade rows list K.view.gradedOrder(NR.data.records), never the raw ORDER (the ungraded kinds would list a
 -- replete grade and pool figures); cached on view.order at the first rebuild that has the records. The ungraded kinds
 -- (K.view.ungradedOrder, cached on view.ungraded beside it) list only an excess row, while their rung is above 0, so
--- an Excess class an ungraded nutrient raises (selenium, vitamin E) is named.
+-- an Excess class an ungraded nutrient raises (selenium, vitamin E) is named. The Deficiency class reads only the
+-- nutrients whose grade drives an effect, K.view.deficiencyKeys(NR.data.effects), cached on view.def beside them
+-- (Plan 15 Task 9, item 8).
 --
 -- view.listeners is an array of functions, each called as fn(classes, rows, level) under its own pcall after every
 -- rebuild (Task 8 appends the moodles' hook). A file that loads before this one (NR_Client_Moodles sorts first) may
@@ -40,6 +42,7 @@ NR.client.view = {
     classes = nil,
     order = nil,
     ungraded = nil,
+    def = nil,
     lastReceived = -1,
     lastLevel = -1,
     listeners = {},
@@ -129,8 +132,11 @@ local function rebuild(received)
         V.order = K.view.gradedOrder(nr.data.records)
         V.ungraded = K.view.ungradedOrder(nr.data.records)
     end
+    if V.def == nil then
+        V.def = K.view.deficiencyKeys(nr.data and nr.data.effects)
+    end
     local m = nr.client.mirror
-    local rows = K.view.rows(m, V.level, V.order, { female = V.female, last = V.fatBand }, V.ungraded)
+    local rows = K.view.rows(m, V.level, V.order, { female = V.female, last = V.fatBand }, V.ungraded, V.def)
     V.fatBand = nil
     for i = 1, #rows do
         if rows[i].key == "body_fat" then V.fatBand = rows[i].fatBand end
@@ -138,7 +144,7 @@ local function rebuild(received)
     resolveRows(rows)
     V.rows = rows
     V.lh = nil -- the font metrics are read again at the next draw, once per rebuild (V.metrics)
-    V.classes = K.view.moodleClasses(m)
+    V.classes = K.view.moodleClasses(m, V.def)
     V.lastReceived = received
     V.lastLevel = V.level
     V.stats.rebuilds = V.stats.rebuilds + 1

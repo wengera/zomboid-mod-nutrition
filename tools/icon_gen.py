@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""icon_gen.py -- the seven moodle class icons of the nutrition mod (Plan 7 Task 9; 11c Task 7: overfull).
+"""icon_gen.py -- the five moodle class icons of the nutrition mod (Plan 7 Task 9; 11c Task 7: overfull; Plan 15
+Task 9 removed the energy and hydration icons with their moodles).
 
-    python tools/icon_gen.py --out <dir>      write energy.png, hydration.png, deficiency.png, excess.png,
-                                              stimulant.png, sleep.png, overfull.png into <dir> (made if absent)
+    python tools/icon_gen.py --out <dir>      write deficiency.png, excess.png, stimulant.png, sleep.png,
+                                              overfull.png into <dir> (made if absent)
     python tools/icon_gen.py --check <dir>    compare the sha256 of each file in <dir> with the generator's
                                               output; exit 1 on a missing or different file, else 0
 
-Each icon is 32 x 32 RGBA: a fixed class colour (energy amber, hydration blue, deficiency red, excess purple,
-stimulant yellow, sleep indigo, overfull orange) and one glyph per class (a filled circle, a drop, a down-arrow,
-an up-arrow, a bolt, a crescent, a wide belly) on a transparent ground, drawn by integer arithmetic on the doubled pixel centre (dx = 2x - 31,
+Each icon is 32 x 32 RGBA: a fixed class colour (deficiency red, excess purple, stimulant yellow, sleep indigo,
+overfull orange) and one glyph per class (a down-arrow, an up-arrow, a bolt, a crescent, a wide belly) on a transparent ground, drawn by integer arithmetic on the doubled pixel centre (dx = 2x - 31,
 dy = 2y - 31, so there is no float and no rounding). The PNG is written by hand: signature, IHDR, one IDAT of
 filter-0 scanlines through zlib level 9, IEND, no ancillary chunk, so the bytes are the same on every run (the
 sha256 pin holds for one zlib implementation; a different zlib may emit other bytes for the same pixels).
@@ -27,14 +27,12 @@ import zlib
 
 SIZE = 32
 PALETTE = {
-    "energy": (245, 166, 35),
-    "hydration": (52, 152, 219),
     "deficiency": (214, 48, 49),
     "excess": (142, 68, 173),
     "stimulant": (241, 196, 15),
     "sleep": (63, 81, 181),
 }
-CLASSES = ("energy", "hydration", "deficiency", "excess", "stimulant", "sleep", "overfull")
+CLASSES = ("deficiency", "excess", "stimulant", "sleep", "overfull")
 BOLT = ((18, 3), (8, 18), (15, 18), (12, 29), (24, 13), (17, 13), (21, 3))
 
 
@@ -52,18 +50,6 @@ def inside(poly, px, py):
             if (y2 - y1 > 0 and lhs < rhs) or (y2 - y1 < 0 and lhs > rhs):
                 hit = not hit
     return hit
-
-
-def circle(x, y):
-    dx, dy = 2 * x - 31, 2 * y - 31
-    return dx * dx + dy * dy <= 20 * 20
-
-
-def drop(x, y):
-    dx, dy = 2 * x - 31, 2 * y - 31
-    if 4 <= y <= 18 and 12 * abs(dx) <= 16 * (y - 4):
-        return True
-    return dx * dx + (2 * y - 40) ** 2 <= 18 * 18
 
 
 def down_arrow(x, y):
@@ -87,8 +73,7 @@ def crescent(x, y):
 
 
 GLYPH = {
-    "energy": circle, "hydration": drop, "deficiency": down_arrow,
-    "excess": up_arrow, "stimulant": bolt, "sleep": crescent,
+    "deficiency": down_arrow, "excess": up_arrow, "stimulant": bolt, "sleep": crescent,
 }
 
 
@@ -148,7 +133,7 @@ def main(argv=None):
     return 1 if bad else 0
 
 
-# Plan 11c Task 7 (ruling 11c-25): the seventh class, overfull, the soft cap shown; appended so no line above moves.
+# Plan 11c Task 7 (ruling 11c-25): the fifth class (seventh before Plan 15 Task 9), overfull, the soft cap shown; appended so no line above moves.
 def belly(x, y):
     """A wide ellipse, 28 x 20 px, with a transparent navel at its centre: the stomach past comfortable."""
     dx, dy = 2 * x - 31, 2 * y - 31

@@ -202,7 +202,7 @@ def test_the_starvation_phases(host, D):
 # --- the step -----------------------------------------------------------------------------------------------------
 
 def test_a_fresh_drain_table_and_its_heal(host, D):
-    assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "targetFloor": 100,
+    assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "mask": 0, "targetFloor": 100,
                                 "rate": 0, "drainThisMinute": 0, "starvedH": 0, "acuteH": 0, "starving": False,
                                 "starveAcute": False, "dehydrated": False}
     rec = host.table({})

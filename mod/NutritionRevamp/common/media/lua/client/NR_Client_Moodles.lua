@@ -1,5 +1,6 @@
--- NR_Client_Moodles.lua -- the six symptom-class moodles and the seventh,
--- overfull, the soft cap shown (the stomach's whole mass past 730 g in four levels
+-- NR_Client_Moodles.lua -- the four symptom-class moodles (deficiency, excess, stimulant, sleep; the Energy and
+-- Hydration moodles are removed, Plan 15 Task 9: vanilla's calibrated hunger and thirst moodles are the signals) and
+-- the fifth, overfull, the soft cap shown (the stomach's whole mass past 730 g in four levels
 -- to 1100 g, K.view.fullnessLevel over the mirror's stomachMass; shown; at level 4 the server's food-timer bridge refuses eating, Plan 15 Task 8; never vanilla's DISCOMFORT):
 -- through MoodleFramework when it is installed, else the mod's own icon column at a FIXED inset of the player's
 -- viewport. Optional, detected and never required (spec § 4.9); no moodle type goes through the vanilla registry (#1140).
@@ -33,7 +34,7 @@
 -- unreachable (nil, MF.TooLargeValue, :156-164). setThresholds takes (bad4, bad3, bad2, bad1, good1..good4) at
 -- :155, so the bad side is passed bad4 first. A class at level 0 sets 0.5: neutral, off the UI manager. The bad-side
 -- draw is unmeasured: x181 read the good side only (#3192); x183m's arm F is the first bad-side reading.
--- Every set is repeated for the seven after each player creation, because the framework's value
+-- Every set is repeated for the five after each player creation, because the framework's value
 -- store is keyed by the character object and starts fresh (#2538).
 -- The icon route: the framework's own default is a name lookup, media/ui/<size>/NR_<class>.png then
 -- media/ui/NR_<class>.png (:432-437, :595); this file instead hands it the mod's one icon,
@@ -47,7 +48,7 @@
 -- the boot handler) that zeros the kept levels and takes the column off the UI manager until the next apply.
 --
 -- The own route (no framework): one NR_Client_MoodleColumn (an ISUIElement) for player 0 -- the mirror is the local
--- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 7 * 44: a FIXED
+-- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 5 * 44: a FIXED
 -- inset, NEVER anchored to the vanilla stack (MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
@@ -57,11 +58,13 @@
 --
 -- The driver: NR.client.view.listeners (NR_Client_View.lua's V.listeners) calls fn(classes, rows, level) after every
 -- view rebuild -- on each mirror arrival and when a surface refreshes -- and the hook here calls apply(classes), the
--- classes being K.view.moodleClasses (the six and overfull). This
+-- classes being K.view.moodleClasses (the four and overfull). This
 -- file sorts before _View, so it creates NR.client.view = { listeners = {} } when absent and View carries the array
 -- over. The moodles option (NR.client.modOptions.moodles(), default true) is read on each apply: off sets every
 -- framework value neutral and takes the column off the UI manager; on restores both (the column only when a level
--- is above 0).
+-- is above 0). The level-1 option (NR.client.modOptions.moodleLevelOne(), default true, Plan 15 Task 9, item 10d) is
+-- read on each apply too: off, a Stimulant, Sleep or Excess moodle at level 1 shows nothing (K.view.shownLevel); the
+-- panel's class rows keep the level.
 --
 -- Shape (the client-file discipline): the sentinel NR_ClientMoodles_Installed is a global of its own holding
 -- the boot, create, death, resolution and listener closures, each looking NutritionRevamp.client.moodles up per call; the side test is
@@ -72,16 +75,16 @@
 -- 1238-1270 at the 32 px moodle size (x181); at 48 px the vanilla stack reaches 1222 and overlaps by 2 px, at 64 px
 -- more, and a repositioner mod that moves the stack left may overlap it (the page states this beside the caveat).
 -- Cadence: apply once per view rebuild (at most one push a minute plus requests); the column's render per frame
--- draws at most 7 icons and 28 pips from cached fields.
+-- draws at most 5 icons and 20 pips from cached fields.
 local NR = NutritionRevamp
 
 NR_ClientMoodles_Installed = NR_ClientMoodles_Installed or {}
 
 NR.client.moodles = {
     route = "none",
-    classes = { "energy", "hydration", "deficiency", "excess", "stimulant", "sleep", "overfull" },
+    classes = { "deficiency", "excess", "stimulant", "sleep", "overfull" },
     stats = { sets = 0, skips = 0, renders = 0, errors = 0, created = 0, got = 0, columns = 0 },
-    levels = { energy = 0, hydration = 0, deficiency = 0, excess = 0, stimulant = 0, sleep = 0, overfull = 0 },
+    levels = { deficiency = 0, excess = 0, stimulant = 0, sleep = 0, overfull = 0 },
     handles = {},
     column = nil,
     cls = nil,
@@ -107,8 +110,6 @@ local PIP_STEP = 8 -- px
 local PIP_Y = 36 -- px below the slot's top
 local SCREEN_W = 1280 -- px, the viewport width when getPlayerScreenWidth is absent or raises
 local COLOURS = { -- r, g, b of a class's rect when its icon is nil
-    energy = { 0.90, 0.60, 0.20 },
-    hydration = { 0.25, 0.55, 0.95 },
     deficiency = { 0.85, 0.25, 0.25 },
     excess = { 0.75, 0.35, 0.85 },
     stimulant = { 0.95, 0.85, 0.25 },
@@ -184,6 +185,16 @@ function MOODLES.isEnabled()
     local m = NutritionRevamp.client.modOptions
     if m == nil or m.moodles == nil then return true end
     local ok, v = pcall(m.moodles)
+    if ok and v == false then return false end
+    return true
+end
+
+-- Whether level 1 of the Stimulant, Sleep and Excess moodles shows: NR.client.modOptions.moodleLevelOne() read per
+-- call, true (shown, the default) when absent or raising.
+function MOODLES.levelOneShown()
+    local m = NutritionRevamp.client.modOptions
+    if m == nil or m.moodleLevelOne == nil then return true end
+    local ok, v = pcall(m.moodleLevelOne)
     if ok and v == false then return false end
     return true
 end
@@ -265,7 +276,7 @@ function MOODLES.onResolutionChange()
 end
 
 -- The own route's column for playerNum: the old one (a respawn) leaves the UI manager first; the new one sits at
--- the fixed inset, loads the seven icons once, and joins the UI manager when the option is on.
+-- the fixed inset, loads the five icons once, and joins the UI manager when the option is on.
 function MOODLES.buildColumn(playerNum)
     local M = NutritionRevamp.client.moodles
     local cls = M.cls
@@ -312,7 +323,7 @@ function MOODLES.configure(h, c)
     end
 end
 
--- OnGameBoot: the route, and on the framework route the seven moodles created; then the OnCreatePlayer handler is
+-- OnGameBoot: the route, and on the framework route the five moodles created; then the OnCreatePlayer handler is
 -- added (after the framework's builders, which createMoodle has just added).
 function MOODLES.onGameBoot()
     local M = NutritionRevamp.client.moodles
@@ -361,7 +372,7 @@ function MOODLES.onPlayerDeath(player)
     if M.route == "own" then showColumn(M.column, false) end
 end
 
--- OnCreatePlayer (player 0 only; the mirror is the local player's): the framework's seven handles kept and configured,
+-- OnCreatePlayer (player 0 only; the mirror is the local player's): the framework's five handles kept and configured,
 -- or the own column built; then the last known levels are set again (the view's classes when it has them).
 function MOODLES.onCreatePlayer(playerNum, player)
     local nr = NutritionRevamp
@@ -400,8 +411,9 @@ function MOODLES.onCreatePlayer(playerNum, player)
     M.apply(last)
 end
 
--- The view listener's body: per class the level kept, then the framework value set (neutral when the option is off)
--- or the column shown or hidden. stats.sets counts each class written, stats.skips a missing handle or a non-table.
+-- The view listener's body: per class the level kept (K.view.shownLevel under the level-1 option), then the framework
+-- value set (neutral when the option is off) or the column shown or hidden. stats.sets counts each class written,
+-- stats.skips a missing handle or a non-table.
 function MOODLES.apply(classes)
     local M = NutritionRevamp.client.moodles
     if type(classes) ~= "table" then
@@ -410,11 +422,13 @@ function MOODLES.apply(classes)
     end
     local on = M.isEnabled()
     M.enabled = on
+    local hideOne = not M.levelOneShown()
     local V = kview()
     for i = 1, #M.classes do
         local c = M.classes[i]
         local lv = classes[c]
         if type(lv) ~= "number" then lv = 0 end
+        if V ~= nil then lv = V.shownLevel(c, lv, hideOne) end
         M.levels[c] = lv
         if M.route == "framework" then
             local h = M.handles[c]

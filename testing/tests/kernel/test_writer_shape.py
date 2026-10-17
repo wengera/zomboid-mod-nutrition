@@ -1475,6 +1475,25 @@ def test_a_staple_record_targets_a_quarter():
     assert t <= p.st.v.UNHAPPINESS < t + eps and t <= p.st.v.BOREDOM < t + eps
 
 
+def test_the_unhappiness_floor_holds_over_its_threshold_inside_the_dead_zone():
+    # Plan 15 Task 9 (item 10c): a composed UNHAPPINESS target falling through the level-1 step 20 by less than
+    # 0.02 x 20 is held 0.01 over it (K.monotony.hold against the remembered target), so the Unhappy moodle does not
+    # blink; past the zone the target falls and the stat is lowered by the fall
+    h = boot()
+    p = player(h)
+    rec = record(h)
+    rec.effects.unhappyTarget = 20.5
+    p.st.v.UNHAPPINESS = 20.5
+    step(h, p, rec, 0)
+    assert rec.moodLast.u == pytest.approx(20.5)
+    rec.effects.unhappyTarget = 19.8
+    step(h, p, rec, 1)
+    assert rec.moodLast.u == pytest.approx(20.01)
+    rec.effects.unhappyTarget = 19.0
+    step(h, p, rec, 2)
+    assert rec.moodLast.u == pytest.approx(19.0)
+
+
 def test_no_monotony_writes_no_boredom():
     h = boot()
     p = player(h)

@@ -1,12 +1,4 @@
 {
-    "Moodles_NR_energy_lvl1": "Peckish",
-    "Moodles_NR_energy_lvl2": "Hungry",
-    "Moodles_NR_energy_lvl3": "Very hungry",
-    "Moodles_NR_energy_lvl4": "Starving",
-    "Moodles_NR_hydration_lvl1": "Slightly dry",
-    "Moodles_NR_hydration_lvl2": "Thirsty",
-    "Moodles_NR_hydration_lvl3": "Dehydrated",
-    "Moodles_NR_hydration_lvl4": "Severely dehydrated",
     "Moodles_NR_deficiency_lvl1": "Marginal",
     "Moodles_NR_deficiency_lvl2": "Depleted",
     "Moodles_NR_deficiency_lvl3": "Clinical",

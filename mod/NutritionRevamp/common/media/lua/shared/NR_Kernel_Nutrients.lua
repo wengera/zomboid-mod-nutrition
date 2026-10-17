@@ -293,19 +293,15 @@ function K.nutrients.allRepleteOf(state, records)
     return true
 end
 
--- The anaemia aggregate (A8): iron, folate, B6 or copper clinical, or B12's functional p2 below 1.
+-- The anaemia aggregate (A8): any of ANAEMIA clinical, or B12's functional p2 below 1. The Deficiency moodle reads
+-- the same list (K.view.deficiencyKeys), so a member added here shows there.
+K.nutrients.ANAEMIA = { "iron", "folate", "vitB6", "copper" } -- the clinical grades that make the aggregate (A8), no row needed: the keys
 function K.nutrients.anaemic(state)
-    if K.nutrients.gradeOf(state, "iron") == 4 then
-        return true
-    end
-    if K.nutrients.gradeOf(state, "folate") == 4 then
-        return true
-    end
-    if K.nutrients.gradeOf(state, "vitB6") == 4 then
-        return true
-    end
-    if K.nutrients.gradeOf(state, "copper") == 4 then
-        return true
+    -- ANAEMIA is this file's Lua array, so # is its length
+    for i = 1, #K.nutrients.ANAEMIA do
+        if K.nutrients.gradeOf(state, K.nutrients.ANAEMIA[i]) == 4 then
+            return true
+        end
     end
     local b12 = state.vitB12
     if b12 ~= nil then

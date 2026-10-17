@@ -4,17 +4,16 @@
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
 -- A record whose kinetics has not yet run reads its stomach's own fill, else empty, and zeros.
 -- The 18 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
--- effects table, so a reader that acts on one must treat 0 as absent. The two drain_* keys (K.mirror.drain): the
--- active drain state's code (0 none) and its floor (100 with none), K.drain's (Plan 15 Task 4).
+-- effects table, so a reader that acts on one must treat 0 as absent. The three drain_* keys (K.mirror.drain): the
+-- active drain state's code (0 none), its floor (100 with none), K.drain's (Plan 15 Task 4), and the set of every
+-- active state (drain_mask, Plan 15 Task 9: the panel's drain lines).
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
 -- record: the stored inputs; meta: { mode, version, build }; order: the nutrient keys to carry as nut_<key>_g
--- (the adapter passes NR.data.records.ORDER; nil carries none); energyLevel: the energy class the bus holds (its last
--- signature's energy digit, K.view.signatureEnergy), carried as body_energyLevel,
--- absent when nil; P the strength table the body_level reads (the server's options, nil reads K.strength.DEFAULTS).
--- Returns a new flat table.
-function K.mirror.build(record, meta, order, energyLevel, P)
+-- (the adapter passes NR.data.records.ORDER; nil carries none); P the strength table the body_level reads (the server's
+-- options, nil reads K.strength.DEFAULTS). Returns a new flat table.
+function K.mirror.build(record, meta, order, P)
     local m = {}
     m.username = record.username
     m.firstSeen = record.firstSeen
@@ -29,7 +28,6 @@ function K.mirror.build(record, meta, order, energyLevel, P)
     K.mirror.fluids(m, record.fluids)
     K.mirror.acute(m, record.acute)
     K.mirror.body(m, record.body, P)
-    m.body_energyLevel = energyLevel
     K.mirror.effects(m, record.effects)
     K.mirror.drain(m, record.drain)
     return m
@@ -39,6 +37,7 @@ end
 -- mass fm + lm + lx (ruling 13-20); body_delta reads 0 until the Strength minute first writes the carry.
 -- body_level (the true Strength level, K.strength.level at P) and body_sets (the closed week's S) are ruling 13-19's;
 -- body_level is absent, never NaN, when the body is absent or its lm, N0 or T is not finite (the view reads No data).
+-- body_trend is the 7-day mass slope in kg a day (K.mirror.trend), the panel's weight-trend word (Plan 15 Task 9).
 
 function K.mirror.body(m, body, P)
     m.body_fm = 0
@@ -52,6 +51,7 @@ function K.mirror.body(m, body, P)
     m.body_ebDay = 0
     m.body_eeDay = 0
     m.body_inDay = 0
+    m.body_trend = 0
     if body == nil then
         return
     end
@@ -66,6 +66,7 @@ function K.mirror.body(m, body, P)
     m.body_ebDay = body.ebDay
     m.body_eeDay = body.eeDay
     m.body_inDay = body.inDay
+    m.body_trend = K.mirror.trend(body, m.body_weight)
     if K.finite(body.S) then
         m.body_sets = body.S
     end
@@ -75,6 +76,21 @@ function K.mirror.body(m, body, P)
             m.body_level = level
         end
     end
+end
+
+-- The 7-day trend of the body mass w in kg a day, K.body.trend over the closed-day ring body.mass7 (slot 1 seven
+-- closes ago; a fresh ring holds the creation mass, so a new body reads 0); 0 when the ring or its oldest slot, or the
+-- slope, is not a finite number.
+function K.mirror.trend(body, w)
+    local ring = body.mass7
+    if type(ring) ~= "table" or not K.finite(ring[1]) then
+        return 0
+    end
+    local t = K.body.trend(ring, w)
+    if not K.finite(t) then
+        return 0
+    end
+    return t
 end
 
 -- Nut_<key>_g for each key of order, and the epoch; 0 when the sub-table or a key is absent.
@@ -159,16 +175,21 @@ function K.mirror.effects(m, eff)
     end
 end
 
--- The drain pair: drain_state, the active state's code (K.drain's codes; 0 with none or no drain table), and
--- drain_floor, its floor health (K.drain.NONE, 100, with none).
+-- The drain keys: drain_state, the active state's code (K.drain's codes; 0 with none or no drain table),
+-- drain_floor, its floor health (K.drain.NONE, 100, with none), and drain_mask, every active code's bit (0 with none, or
+-- with a mask that is not a number).
 function K.mirror.drain(m, D)
     m.drain_state = 0
     m.drain_floor = K.drain.NONE
+    m.drain_mask = 0
     if D == nil or D.active ~= true then
         return
     end
     m.drain_state = D.state
     m.drain_floor = D.targetFloor
+    if type(D.mask) == "number" then
+        m.drain_mask = D.mask
+    end
 end
 
 -- The stomach pair. stomachFill, the physical fill (K.stomach.recordFill; the writer's fallback, the writer's F being W.satietyF),
