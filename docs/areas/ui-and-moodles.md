@@ -351,6 +351,7 @@ Not covered: the vanilla food tooltip's layout beyond its gates; the character s
 - That a mod's translation file at a vanilla relative path costs vanilla nothing is unverified, and its owner states it with its bound ([#1340/M/n=1/unverified], [mod-anatomy.md#open](../platform/mod-anatomy.md#open)).
 - That the text route cannot reach the item-name table on either side is unverified for want of an in-run positive control, and its owner states it with its bound ([#0845/M/n=2/unverified], [mod-anatomy.md#open](../platform/mod-anatomy.md#open)).
 - The design must decide whether its numbers stay inside the display bands the torn-down viewer hard-codes, because those bands go wrong silently on a re-based scale [#1514, #1522].
+- Whether the tooltip's per-draw hide of vanilla's hunger line, and the band below or above the engine's box, land on screen is unmeasured: the harness cannot hover, so no run has drawn a food tooltip ([#3920/C/inference], [open-questions.md#decisions](open-questions.md#decisions)).
 
 ## See also
 

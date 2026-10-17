@@ -46,7 +46,7 @@ The study tests and oracles read h_model before the curve. A dead zone at each m
 - **The refusal is vanilla's own.** Each minute the mod writes vanilla's food timer (`setHealthFromFoodTimer`) from its own fullness:
   - 1–3200 shows Well Fed;
   - above 3200 at Overfull 4 greys out eating in every vanilla path, including the server's open-and-eat craft (jar-checks Check 1).
-- A vomit chance at Overfull 4 is to be designed in the plan.
+- No vomit: vanilla has no vomit path the server can drive (Plan 15 Task 8); Overfull 4 is nausea and the refusal.
 
 ### 2.4 Well Fed (item 3)
 - Well Fed shows from the timer above after a satisfying meal.
@@ -70,6 +70,8 @@ The study tests and oracles read h_model before the curve. A dead zone at each m
   - weight under 35 kg.
 - **It re-writes the constant after every load.**
 - **A live run proves** that bleeding and sickness still hurt while starving.
+- **Overlay (Mode 2) is vanilla's here (Plan 15 close, ruling M2):** vanilla owns hunger and thirst, so its own level-4 hunger and thirst drains, and their deaths, run as in the base game, and the mod's starvation and dehydration drain states do not run. The deficiency, sodium and iron drains still do, and the starvation clock and its effect phases still run.
+- **The fresh-record seed plate also lands in Overlay** (Plan 15 Task 13 fix 1, I2): its kcal, nutrients and stomach mass count, though no first hunger write is made there. The writer's Overlay limitation line names both.
 
 ### 3.2 The drain-and-floor model
 **Drain:** each state drains overall health through `ReduceGeneralHealth`. That spreads evenly with no wound and never overshoots (jar-checks Check 2). The rate is per game day, independent of day length.
@@ -82,7 +84,7 @@ The study tests and oracles read h_model before the curve. A dead zone at each m
 | State | First signs (science) | Vanilla-paced first floor | Death point (science) |
 |---|---|---|---|
 | Starvation | days 0–3: hunger; days 3–14: weakness, dizziness, apathy (S2231–S2262) | about 50 health by about day 2.5–4 | **BMI ≈ 12** (S2231–S2262; Speakman 12, ≤ 13) |
-| Dehydration | 2 % thirst; 2–4 % performance; 4–6 % weary, apathetic, dizzy (about 4.2 % and 5.8 %, S2248); about 11 % delirium | about 50 by about 35 h | **about 17 % body-water deficit**, a game choice inside 15–19 % (about 5–7 days at rest) |
+| Dehydration | 2 % thirst; 2–4 % performance; 4–6 % weary, apathetic, dizzy (about 4.2 % and 5.8 %, S2248); about 11 % delirium | from the 4 % onset (about 32 h at rest), about 50 by about 38 h (ruling M1) | **about 17 % body-water deficit**, a game choice inside 15–19 % (about 5–7 days at rest) |
 | Wet beriberi | clinical after weeks on a thiamine-poor diet | vanilla-paced from clinical | about 5 weeks after clinical (an inference, S2255; S1169 open) |
 | Scurvy | clinical at about 30–40 days | vanilla-paced from clinical | a game choice of months (S1168 open) |
 | Pellagra | clinical at about 50–60 days | vanilla-paced from clinical | months to years (S1170 open) |
@@ -159,6 +161,9 @@ The other lethal states (sodium, iron) keep their current conditions under the s
 7. The guide and docs.
 
 ## 10. Game choices the plan sets (labelled in code)
+The plan's design list, then every game choice the tasks made, each labelled "game choice" in its code comment.
+
+**The design list:**
 - the curve's knots;
 - the dead-zone width;
 - the Overfull 3 penalty size;
@@ -167,3 +172,61 @@ The other lethal states (sodium, iron) keep their current conditions under the s
 - dehydration's 17 % death point;
 - scurvy's and pellagra's death times;
 - the stimulant game sizes.
+
+**Water (Task 3, § 3.4):**
+- the water anchor `LM_REF` 52.02 kg, the no-trait lean mass;
+- the trait multipliers on basal loss: High Thirst ×1.5 (inside the decision's ×1.5–2) and Low Thirst ×0.5.
+
+**Thiamine (Task 4b):** the clinical onset at 42 days with none eaten (ruling M2), inside S2255's one to three months.
+
+**Thirst and hunger caps (Task 5, § 3.1):**
+- the thirst knots 1/2/3/4 % → 0.12/0.25/0.45/0.84, with 0.45 at 3 % for the osmotic term and Parched on the 4 % onset;
+- the 0.71 starving minimum, over HUNGRY level 4's strict 0.70, under the acute onset only (ruling I2).
+
+**The hunger curve (Tasks 6 and 6c, § 2.1):**
+- the knots, with X[3] at 0.210312 (Task 6c's re-fit on every meal's Peckish return);
+- the dead zone 0.02 and the hold offset `HOLD_EPS` 0.001;
+- the fed threshold `FED_M` 3.80654 weighted kcal (the meal pool's request level, `MEAL_REQ`);
+- the per-meal compromise and its weights (breakfast 0.5, lunch and dinner 1, the breakfast carry-over halved);
+- dinner's return 23 % short of vanilla's, from the evening circadian rise, a stated bend;
+- the 21 % hungry share, a stated bend;
+- Well Fed fixed in game hours (the meal pool at `WELL_FED_M` or more), while vanilla's food timer scales with the day length.
+
+**The starvation onset (Task 6 fixes, § 3.2):**
+- the acute onset after 30 unfed hours (`STARVE_ONSET_H`), on the continuous unfed clock;
+- the fallback: the intake absorbed today and over the three closed record days, with what is still in the stomach, at or under 600 kcal (`RECENT_MIN_KCAL`), read over the record's day buckets after three day closes;
+- the meal spell `SUSPEND_M` 236.44 weighted kcal, the pool a 200 kcal mixed snack lands (Plan 15 close, H1): only a fed spell that reached it suspends the fallback or, inside the state, resets the unfed clock, so an hourly floret no longer keeps a starving body out of the state. A floret diet begun from a fed body with no fast first stays out of the acute onset (its intake is over the fallback's 600) until the chronic onset at BMI 13 catches it, a stated limit;
+- `BMI_CHRONIC` 13, the chronic onset whatever the intake (ruling M3), inside S2234's 12–13;
+- the starvation phase hours 30, 72 and 336 (S2247 open).
+
+**The floors and rates (Tasks 4 and 4b, § 3.2):**
+- the first floor 50 and the knee `BMI_KNEE` 12.5;
+- `DEF_HOLD_H` 72 (three days at the first floor) and `DEF_FINAL_H` 48 (the last two days, 10 to 0);
+- the rates a game day: starvation 25, dehydration 200, the deficiencies 50/3; sodium 400 and iron 100 (100 over their 6 h and 24 h);
+- the death times: scurvy 90 days, pellagra 180 days, sodium 6 h and iron 24 h after onset, the last 2 h from 10 to 0 (`ACUTE_FINAL_H`).
+
+**Volume (Task 7, § 2.2):** β 0.05 and the family judgements.
+
+**The food-timer bridge and Overfull (Task 8, §§ 2.3–2.4):**
+- Well Fed at M ≥ 435 (`WELL_FED_M`);
+- the timer band values by day length (`K.view.timerValues`: each held through its minute's drain, never under the 90-minute values);
+- the endurance cap 0.73 at Overfull 3 and 4, sized by `capAt`, with `END_FLOOR` 0.51 just above level 1's 0.5;
+- Endurance level 1's costs, which the cap brings: Heavy Load level 1's base-speed cut and the 0.07 combat cut (#2313, #2324);
+- the food heal 0.0087 × 90 / dayMin per multiplier unit while Well Fed (`REGEN_FOOD`), 0 at Overfull 4 and under a drain;
+- FOOD_SICKNESS 30 at Overfull 4 (nausea as SICK 1).
+
+**Display (Task 9, § 4):**
+- `DEHYD_SHOW` 1 %, the panel's dehydration line;
+- `FILL_MIN_H` 0.5 h, the tooltip's fill step;
+- `FILL_TOL` 0.10, the kcal share within which the fill line shows;
+- the weight trend read off `K.body.flags`.
+
+**Stimulants (Task 10, § 5):**
+- the S6b schedule behind the 20/31 peaks;
+- "a held cup";
+- the 0.05 % hangover threshold;
+- the hangover unhappiness 21/42.
+
+**The fresh-record seed plate (Task 13 fix 1):** the plate of the guide's foods sized to the least kcal whose first write is within the dead zone of the spawn HUNGER, at most one 667 kcal plate. It also lands in Overlay (I2), and the writer's limitation line names it.
+
+**Measurement (Task 13 F14):** the food-economy bend, about 3.75 cans a day against vanilla's 2.3, is the decisions' estimate. No register row carries it, so no page states it as a number; about 2,000 kcal a day is about 3.7 of vanilla's 540 kcal cans.

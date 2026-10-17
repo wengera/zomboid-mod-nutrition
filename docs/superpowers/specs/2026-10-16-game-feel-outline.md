@@ -89,7 +89,7 @@ Status: outline. Angus decided every item in the 2026-10-16 game-feel review. Th
 
 ## Research passes (science register harvests, before minting)
 - **The starvation timeline:** hunger strikers, the Minnesota study, deaths at about 45–75 days, the phase order of effects.
-- **Minimum water turnover** and the food-water share. The register holds only the adequate intake (S1688).
+- **Minimum water turnover** and the food-water share. The register holds the adequate intake (S0088) and the minimum daily losses (S1688), but no turnover row.
 - **β:** volume against fullness at matched calories.
 - **Later:** vitamin K deficiency onset and effects (item 8).
 
