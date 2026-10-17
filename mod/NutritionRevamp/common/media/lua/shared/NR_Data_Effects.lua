@@ -8,7 +8,8 @@
 -- ROWS is an array of { src, on, at, list }: on is grade (record.nutrients[src].g), rung (record.nutrients[src].x),
 -- band (the band named src in the twelve-band vector), flag (flags[src]; at nil matches true, a number or
 -- {lo, hi} matches a numeric flag), pe (the protein-energy grade) or ea (K.effects.eaBand of the closed-day energy
--- availability); at is an integer or an inclusive {lo, hi}. A row may carry gated (VITD_EFFECTS: folded only when
+-- availability); at is an integer or an inclusive {lo, hi}. A row may carry stim (1 Game, 2 Realistic: folded only
+-- under that NR.StimulantRealism set, Plan 15 Task 10), gated (VITD_EFFECTS: folded only when
 -- the composer's vitdOn is true; BalanceBonus: only when bonusOn is true) and unless (a flag name: the row is
 -- skipped while that flag is true -- the "replaces" of the briefing). Each entry is { ch, s, v, row } with ch the
 -- spec section 4.5 channel, s a surface, v its magnitude and row the science row it rests on; gc = true marks a
@@ -100,9 +101,15 @@ NR.data.effects = {
             { ch = "stat", s = "mNut", v = 1.20, row = "S0805", gc = true }, -- 1 + 0.20 x 1; game choice 0.20 (open S1122)
             { ch = "stat", s = "unhappyTarget", v = 10.0, row = "S0803", gc = true }, -- 10 x 1; game choice 10 (open S1145)
         } },
-        { src = "hang", on = "band", at = 1, list = { -- the hangover flag, S0814/S0817/S0930
+        -- The hangover: one row per stimulant set (stim, K.acute.STIM; Plan 15 Task 10). Realistic (2) is the Plan 14
+        -- row; Game (1, the default) halves each size, the mild hangover of spec section 5.
+        { src = "hang", on = "band", at = 1, stim = 2, list = { -- the hangover flag, S0814/S0817/S0930
             { ch = "stat", s = "mNut", v = 1.15, row = "S0814", gc = true }, -- S0814 g 0.66 / S0817 g 0.47 via lambda; game choice (open S1127)
             { ch = "stat", s = "stressTarget", v = 0.10, row = "S0930", gc = true }, -- direction only, no pooled size (open S0943); game choice magnitude (open S1145)
+        } },
+        { src = "hang", on = "band", at = 1, stim = 1, list = { -- the hangover flag, Game: half each realistic size, S0814/S0817/S0930
+            { ch = "stat", s = "mNut", v = 1.075, row = "S0814", gc = true }, -- 1 + 0.15 / 2; game choice (spec section 10, item 9; open S1127)
+            { ch = "stat", s = "stressTarget", v = 0.05, row = "S0930", gc = true }, -- 0.10 / 2; game choice (spec section 10, item 9; open S1145)
         } },
         -- A4 sleep recovery (rNut) and E3 panic from caffeine on board, by the 50 mg band (C = 50 x band).
         -- rNut: 1 - 0.15 x satC, satC = clamp((C - 32.1) / (107 - 32.1), 0, 1), the 32.1 mg zero = 0.3 x 107 (S0797 x S0793,

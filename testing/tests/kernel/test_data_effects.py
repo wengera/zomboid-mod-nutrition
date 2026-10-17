@@ -181,7 +181,8 @@ def test_every_entry_has_a_channel_a_surface_a_number_and_a_row(eh):
         assert e.get("gc") in (None, True), e
         assert set(e) <= {"ch", "s", "v", "row", "gc", "bonus"}, e
     for r in _rows(eh):
-        assert set(r) <= {"src", "on", "at", "list", "gated", "unless"}, r
+        assert set(r) <= {"src", "on", "at", "list", "gated", "unless", "stim"}, r
+        assert r.get("stim") in (None, 1, 2), r                          # NR.StimulantRealism: 1 Game, 2 Realistic
 
 
 def test_the_vitamin_d_rows_are_the_two_gated_rows(eh):
@@ -326,6 +327,8 @@ def test_the_exercise_and_withdrawal_rows(eh):
 def test_the_healing_cold_and_drain_free_magnitudes(eh):
     by = {}
     for r, e in _entries(eh):
+        if r.get("stim") == 1:                                           # the Game hangover row, checked below
+            continue
         by.setdefault((r["src"], r["on"], r.get("at")), {})[e["s"]] = e["v"]
     assert [by[("pe", "pe", n)]["healMul"] for n in (2, 3, 4)] == [0.92, 0.80, 0.74]
     assert [by[("pe", "pe", n)]["infectMul"] for n in (2, 3, 4)] == [1.15, 1.55, 2.30]
@@ -342,7 +345,11 @@ def test_the_healing_cold_and_drain_free_magnitudes(eh):
     assert by[("iron", "grade", 4)]["tempOffset"] == -0.2                 # S1016
     assert by[("iron", "grade", 3)]["mNut"] == 1.11
     assert by[("anaemia", "flag", None)]["mNut"] == 1.25
-    assert by[("hang", "band", 1)] == {"mNut": 1.15, "stressTarget": 0.10}
+    assert by[("hang", "band", 1)] == {"mNut": 1.15, "stressTarget": 0.10}  # Realistic (stim 2)
+    game = {e["s"]: e["v"] for r, e in _entries(eh) if r.get("stim") == 1}
+    assert game == {"mNut": pytest.approx(1 + 0.15 / 2, abs=1e-12), "stressTarget": pytest.approx(0.10 / 2, abs=1e-12)}  # Game (stim 1): half each size
+    stims = [(r["src"], r["on"], r["at"], r["stim"]) for r in _rows(eh) if r.get("stim") is not None]
+    assert sorted(stims) == [("hang", "band", 1, 1), ("hang", "band", 1, 2)]   # only the hangover differs by set
     assert [by[("alc", "band", n)]["rNut"] for n in (1, 2)] == [0.90, 0.80]
     assert by[("boutVig", "flag", None)]["rNut"] == 0.95
     assert [by[("bgroupMax", "flag", n)]["stressTarget"] for n in (3, 4)] == [0.03, 0.06]

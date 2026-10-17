@@ -117,7 +117,7 @@ EFF.WOUNDS = {
 EFF.b = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = false, refeedEvent = false,
               frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false, starve = 0, starveEarly = false,
-              overfull = 0 }
+              overfull = 0, stim = 1 }
 -- The heal reference, made once on first use.
 EFF.ref = nil
 -- The post-step guard: the per-minute scalars and the mirrored numbers something reads
@@ -519,9 +519,12 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     if F.overfull < 3 then
         F.overfull = 0
     end
+    -- the active stimulant set (NR.StimulantRealism, K.acute.useStimulants; Plan 15 Task 10): the hangover rows' set
+    F.stim = K.acute.C.MODE
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
     local dials = math.floor(sev * 1000 + 0.5) * 10000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
         + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0) + F.overfull * 1000000
+        + (F.stim - 1) * 100000000000                   -- Realistic above the Severity term (at most 3e10): a switch rebuilds
 
     -- 3. the rebuild, only on a moved key
     local rebuilt = false

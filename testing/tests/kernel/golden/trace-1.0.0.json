@@ -796,7 +796,7 @@
      },
      "statSets": 122,
      "written": {
-      "FATIGUE": 0.29692738314412553,
+      "FATIGUE": 0.30983475342911559,
       "HUNGER": 0.18105890449522807,
       "INTOXICATION": 0,
       "PANIC": 7,
@@ -5728,7 +5728,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": 0.080358349566319501,
+      "fOff": 0.093265719851309548,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -6557,7 +6557,7 @@
      "written": {
       "FATIGUE": 0.26516666457541099,
       "HUNGER": 0.16943982983012848,
-      "INTOXICATION": 4.6319676184474545,
+      "INTOXICATION": 2.9883662054499709,
       "THIRST": 0
      }
     },
@@ -7083,7 +7083,7 @@
      },
      "statSets": 239,
      "written": {
-      "FATIGUE": 0.2479179275677037,
+      "FATIGUE": 0.26374775364550224,
       "HUNGER": 0.17429786279761897,
       "INTOXICATION": 0,
       "THIRST": 0
@@ -7215,7 +7215,7 @@
      },
      "statSets": 292,
      "written": {
-      "FATIGUE": 0.28350667549596215,
+      "FATIGUE": 0.30529924330767921,
       "HUNGER": 0.162103189512153,
       "INTOXICATION": 0,
       "PANIC": 7,
@@ -7597,7 +7597,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 4.6319676184474545,
+      "intoxTarget": 2.9883662054499709,
       "key": {
        "b": {
         "1": 0,
@@ -11236,7 +11236,7 @@
       "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
-      "fOff": -0.024088865770562948,
+      "fOff": -0.0082590396927644406,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -12147,7 +12147,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": 0.066837396808256622,
+      "fOff": 0.088629964619973703,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -12975,7 +12975,7 @@
      "written": {
       "FATIGUE": 0.30095743345428944,
       "HUNGER": 0.15830256309642698,
-      "INTOXICATION": 11.261730896241673,
+      "INTOXICATION": 7.2656328362849507,
       "THIRST": 0
      }
     },
@@ -13503,7 +13503,7 @@
      },
      "statSets": 359,
      "written": {
-      "FATIGUE": 0.25649401662219617,
+      "FATIGUE": 0.29378217480642316,
       "HUNGER": 0.17705071322243271,
       "INTOXICATION": 0,
       "THIRST": 0
@@ -13635,7 +13635,7 @@
      },
      "statSets": 439,
      "written": {
-      "FATIGUE": 0.25011872686896952,
+      "FATIGUE": 0.28587762467690186,
       "HUNGER": 0.15265257951762803,
       "INTOXICATION": 0,
       "PANIC": 7,
@@ -14019,7 +14019,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 11.261730896241673,
+      "intoxTarget": 7.2656328362849507,
       "key": {
        "b": {
         "1": 0,
@@ -17670,7 +17670,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.056742849410780158,
+      "fOff": -0.019454691226553199,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -18583,7 +18583,7 @@
       "enduranceCap": 1,
       "epoch": 3,
       "exSeen": 0,
-      "fOff": 0.045584285944450818,
+      "fOff": 0.081343183752383141,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -19414,7 +19414,7 @@
      "written": {
       "FATIGUE": 0.34340244521846142,
       "HUNGER": 0.17316608473477324,
-      "INTOXICATION": 12.7015954982263,
+      "INTOXICATION": 8.1945777407911624,
       "THIRST": 0
      }
     },
@@ -19942,7 +19942,7 @@
      },
      "statSets": 479,
      "written": {
-      "FATIGUE": 0.29433220324456322,
+      "FATIGUE": 0.33926507032221054,
       "HUNGER": 0.17424638942763615,
       "INTOXICATION": 0,
       "THIRST": 0
@@ -20074,7 +20074,7 @@
      },
      "statSets": 559,
      "written": {
-      "FATIGUE": 0.28134218188347954,
+      "FATIGUE": 0.32537095766527585,
       "HUNGER": 0.16143935353465169,
       "INTOXICATION": 0,
       "PANIC": 7,
@@ -20458,7 +20458,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 12.7015954982263,
+      "intoxTarget": 8.1945777407911624,
       "key": {
        "b": {
         "1": 0,
@@ -24084,7 +24084,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.068376102074680714,
+      "fOff": -0.02344323499703339,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -24997,7 +24997,7 @@
       "enduranceCap": 1,
       "epoch": 3,
       "exSeen": 0,
-      "fOff": 0.032999689027701284,
+      "fOff": 0.077028464809497585,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -25829,7 +25829,7 @@
      "written": {
       "FATIGUE": 0.38346671892199946,
       "HUNGER": 0.15422657350285304,
-      "INTOXICATION": 11.546527799218611,
+      "INTOXICATION": 7.4493727736894266,
       "THIRST": 0
      }
     },
@@ -26358,7 +26358,7 @@
      "statSets": 612,
      "written": {
       "BOREDOM": 2.2901872265603704,
-      "FATIGUE": 0.33744910698607311,
+      "FATIGUE": 0.3845691943249987,
       "HUNGER": 0.15349642801377655,
       "INTOXICATION": 0,
       "THIRST": 0.0072662360320449038,
@@ -26491,7 +26491,7 @@
      },
      "statSets": 680,
      "written": {
-      "FATIGUE": 0.29959969233880934,
+      "FATIGUE": 0.35887077364241809,
       "HUNGER": 0.14751756824335305,
       "INTOXICATION": 0,
       "PANIC": 8.875,
@@ -26875,7 +26875,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 11.546527799218611,
+      "intoxTarget": 7.4493727736894266,
       "key": {
        "b": {
         "1": 0,
@@ -30503,7 +30503,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.071704480733147599,
+      "fOff": -0.024584393394222033,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -31418,7 +31418,7 @@
       "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
-      "fOff": 0.0098048762771171111,
+      "fOff": 0.069075957580725877,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -32250,7 +32250,7 @@
      "written": {
       "FATIGUE": 0.42028090164238729,
       "HUNGER": 0,
-      "INTOXICATION": 9.0939939497147577,
+      "INTOXICATION": 5.8670928707837149,
       "THIRST": 0
      }
     },
@@ -32779,7 +32779,7 @@
      "statSets": 734,
      "written": {
       "BOREDOM": 2.2448755008708141,
-      "FATIGUE": 0.38112929218090275,
+      "FATIGUE": 0.42800205855845658,
       "HUNGER": 0.16993391719747603,
       "INTOXICATION": 0,
       "THIRST": 0.039097216951742064,
@@ -32912,7 +32912,7 @@
      },
      "statSets": 800,
      "written": {
-      "FATIGUE": 0.32509082116414778,
+      "FATIGUE": 0.39319606885761171,
       "HUNGER": 0.16403419770399555,
       "INTOXICATION": 0,
       "PANIC": 8.875,
@@ -33296,7 +33296,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 9.0939939497147577,
+      "intoxTarget": 5.8670928707837149,
       "key": {
        "b": {
         "1": 0,
@@ -36915,7 +36915,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.071328122748451434,
+      "fOff": -0.024455356370897633,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -37830,7 +37830,7 @@
       "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.0036384204030972395,
+      "fOff": 0.064466827290366666,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -38662,7 +38662,7 @@
      "written": {
       "FATIGUE": 0.45515895048907756,
       "HUNGER": 0,
-      "INTOXICATION": 5.9927270249628251,
+      "INTOXICATION": 3.8662754999760161,
       "THIRST": 0
      }
     },
@@ -39191,7 +39191,7 @@
      "statSets": 854,
      "written": {
       "BOREDOM": 2.2448755008708141,
-      "FATIGUE": 0.42329103641481203,
+      "FATIGUE": 0.4687877103262208,
       "HUNGER": 0.17704788101772939,
       "INTOXICATION": 0,
       "THIRST": 0.069045464193282946,
@@ -39324,7 +39324,7 @@
      },
      "statSets": 920,
      "written": {
-      "FATIGUE": 0.35659653157336429,
+      "FATIGUE": 0.42783770485459049,
       "HUNGER": 0.17852612246532587,
       "INTOXICATION": 0,
       "PANIC": 8.875,
@@ -39708,7 +39708,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 5.9927270249628251,
+      "intoxTarget": 3.8662754999760161,
       "key": {
        "b": {
         "1": 0,
@@ -43327,7 +43327,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.069234068995622053,
+      "fOff": -0.023737395084213273,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -44242,7 +44242,7 @@
       "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.0084104810801267638,
+      "fOff": 0.062830692201099408,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -45074,7 +45074,7 @@
      "written": {
       "FATIGUE": 0.48725254034781329,
       "HUNGER": 0,
-      "INTOXICATION": 2.5670935625868618,
+      "INTOXICATION": 1.6561893952173303,
       "THIRST": 0
      }
     },
@@ -45603,7 +45603,7 @@
      "statSets": 976,
      "written": {
       "BOREDOM": 2.1946628643257884,
-      "FATIGUE": 0.46292567865026613,
+      "FATIGUE": 0.50653377837084701,
       "HUNGER": 0.18380168016050957,
       "INTOXICATION": 0,
       "THIRST": 0.097279017180486704,
@@ -45736,7 +45736,7 @@
      },
      "statSets": 1040,
      "written": {
-      "FATIGUE": 0.38916762928166193,
+      "FATIGUE": 0.46102504212035933,
       "HUNGER": 0.18820269505086271,
       "INTOXICATION": 0,
       "PANIC": 8.875,
@@ -46120,7 +46120,7 @@
       "foodSickTarget": 0,
       "healMul": 1,
       "infectMul": 1,
-      "intoxTarget": 2.5670935625868618,
+      "intoxTarget": 1.6561893952173303,
       "key": {
        "b": {
         "1": 0,
@@ -49739,7 +49739,7 @@
       "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
-      "fOff": -0.066360151748710017,
+      "fOff": -0.022752052028129143,
       "fOffNut": 0,
       "foodSickStep": 0,
       "foodSickTarget": 0,
@@ -50654,7 +50654,7 @@
       "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
-      "fOff": -0.0093482369284525191,
+      "fOff": 0.062509175910244852,
       "fOffNut": 0.10000000000000001,
       "foodSickStep": 0,
       "foodSickTarget": 0,

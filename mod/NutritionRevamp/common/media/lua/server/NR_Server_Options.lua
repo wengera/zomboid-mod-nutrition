@@ -25,10 +25,14 @@ local K = NR.kernel
 -- level 1 with the three values read. It fires no changed hook: the steps read O.strength each time.
 -- The Plan 13 option: sexSpecific, a boolean (default false): off, every character reads the male values wherever the mod
 -- indexes by sex (K.body.effSex); the steps read it each minute through the options table, so it fires no changed hook.
+-- The Plan 15 option: stimulantRealism, an enum 1 Game (the default), 2 Realistic: the stimulant sizes (spec section 5).
+-- A read that finds the kernel's active set on another value selects it once (K.acute.useStimulants), so the next step reads
+-- it and no step branches on the option; the effects rebuild key carries the set (NR_Server_Effects), so the hangover
+-- rows follow at the next minute. It fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30, sexSpecific = false, strength = K.strength.params(nil) }
+                      recordKeepDays = 30, sexSpecific = false, stimulantRealism = 1, strength = K.strength.params(nil) }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
@@ -51,6 +55,10 @@ function NR.server.readOptions(where)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
     O.sexSpecific = readLeaf(sv, "SexSpecific", false)
+    O.stimulantRealism = readLeaf(sv, "StimulantRealism", 1, 1, 2)
+    if O.stimulantRealism ~= K.acute.C.MODE then
+        K.acute.useStimulants(O.stimulantRealism)
+    end
     if sv ~= nil then
         local rows = K.strength.OPTIONS
         local raw = O.strengthRaw

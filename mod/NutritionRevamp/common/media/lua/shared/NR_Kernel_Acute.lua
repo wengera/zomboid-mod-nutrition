@@ -55,7 +55,48 @@ K.acute.WIDMARK_R = {
 }
 K.acute.BETA = 0.015 -- per cent BAC per hour: design-phase-v1 game choice (open row S1105: the elimination rate beta)
 K.acute.HANG_PEAK = 0.05 -- per cent BAC: game choice, the S0893 0.05 % unit point (hangover direction S0854 open)
-K.acute.HANG_H = 6 -- hours at a 0.05 % peak, scaled by peak/0.05: design-phase-v1 game choice (open row S0854: hangover duration)
+
+-- The stimulant sizes (Plan 15 Task 10, spec section 5): NR.StimulantRealism (1 Game, the default; 2 Realistic)
+-- selects the active set K.acute.C once, when the server's options read sees the value change
+-- (K.acute.useStimulants), never per call; K.effects.fOff, K.effects.intoxTarget and K.acute.alcohol read C. Realistic
+-- is the pharmacological strengths the mod shipped through Plan 14. Game overrides sizes only -- a cup's fatigue
+-- offset, the intoxication per drink and the hangover's tail -- so every timing stays the science of both sets:
+-- caffeine absorption, clearance, tolerance and withdrawal; alcohol absorption, the Widmark clearance and the
+-- hangover's start at clearance. The hangover's effect sizes are the effects table's two hang rows, tagged stim 1 and
+-- 2 (NR_Data_Effects.lua).
+K.acute.STIM_REALISTIC = {
+    MODE = 2, -- no row needed: the option's value
+    CAF_OFF_MAX = 0.35, -- game choice sized on S0900 vs S0750 (open S1124)
+    INTOX_FULL_BAC = 0.20, -- per cent: game choice map (open S1106)
+    HANG_H = 6, -- hours at a 0.05 % peak, scaled by peak/0.05: design-phase-v1 game choice (open row S0854: hangover duration)
+}
+-- The Game overrides, keyed by constant name; a key left out reads the realistic value.
+K.acute.STIM_GAME_OVERRIDES = {
+    MODE = 1, -- no row needed: the option's value
+    CAF_OFF_MAX = 0.12, -- game choice (spec section 10, item 9; open S1124): a 107 mg cup holds 0.12 x 107/257 = 0.0500, 2x vanilla's 0.025 a cup
+    INTOX_FULL_BAC = 0.31, -- game choice (spec section 10, item 9; open S1106): 0.20 x 31/20, so four beers peak at about 20 where Realistic peaks at 31
+    HANG_H = 3, -- game choice (spec section 10, item 9; open S0854): the mild hangover's tail after clearance, half the realistic 6
+}
+-- The two sets by option value: Game is the realistic set with the overrides laid over it.
+K.acute.STIM = { {}, K.acute.STIM_REALISTIC }
+for name, v in pairs(K.acute.STIM_REALISTIC) do
+    K.acute.STIM[1][name] = v
+end
+for name, v in pairs(K.acute.STIM_GAME_OVERRIDES) do
+    K.acute.STIM[1][name] = v
+end
+K.acute.C = K.acute.STIM[1]
+
+-- Select the active stimulant set for the option value mode (1 Game, 2 Realistic; anything else reads Game, the
+-- default). Returns the set.
+function K.acute.useStimulants(mode)
+    local set = K.acute.STIM[mode]
+    if set == nil then
+        set = K.acute.STIM[1]
+    end
+    K.acute.C = set
+    return set
+end
 
 -- The alcohol impairment knots {BAC %, IU}: the unit at 0.05 % (S0893), the driving bands (S0905).
 K.acute.IU_ALC_KNOTS = {
@@ -267,7 +308,7 @@ end
 
 -- One alcohol step: the absorbed ethanol g lands, the Widmark zero-order elimination beta x r x w x 10
 -- g/h drains it, BAC = load / (10 r w) per cent. The peak is tracked while BAC > 0; when BAC returns to 0
--- after a peak of at least 0.05 % the hangover starts for HANG_H x peak/0.05 hours and counts down; a
+-- after a peak of at least 0.05 % the hangover starts for C.HANG_H x peak/0.05 hours (the active stimulant set) and counts down; a
 -- sub-threshold peak clears. Drinking again during a hangover ends it and starts a fresh episode at the
 -- new BAC (game choice).
 function K.acute.alcohol(a, ethanolAbsG, w, sex, dtH)
@@ -291,7 +332,7 @@ function K.acute.alcohol(a, ethanolAbsG, w, sex, dtH)
         end
     elseif a.alcPeak >= A.HANG_PEAK then
         a.hang = 1
-        a.hangH = A.HANG_H * a.alcPeak / A.HANG_PEAK
+        a.hangH = A.C.HANG_H * a.alcPeak / A.HANG_PEAK
     else
         a.alcPeak = 0
     end

@@ -74,6 +74,15 @@ option NR.SexSpecific
     page = NutritionRevamp, translation = NR_SexSpecific,
 }
 
+/* StimulantRealism sets the stimulant sizes: 1 Game, the default (a cup's fatigue relief about twice vanilla's,
+   intoxication about vanilla's per beer, a mild hangover), 2 Realistic (the pharmacological strengths). Absorption,
+   clearance, tolerance, withdrawal and the hangover's start follow the science in both. */
+option NR.StimulantRealism
+{
+    type = enum, numValues = 2, default = 1,
+    page = NutritionRevamp, translation = NR_StimulantRealism, valueTranslation = NR_StimulantRealismValues,
+}
+
 /* The Plan 13 strength model: each option scales one constant of K.strength.DEFAULTS and its declared default is
    that constant (a test binds them). Out of range, a double clamps and an integer reads its default. */
 

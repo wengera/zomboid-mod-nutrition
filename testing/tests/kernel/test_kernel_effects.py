@@ -13,6 +13,7 @@ at 1.0714, caffeine at 107 mg on rNut) are taken at the band's lower edge, which
 """
 import math
 import os
+from contextlib import contextmanager
 
 import pytest
 
@@ -66,6 +67,17 @@ def _compose(h, nut=None, b=None, pe=1, ea=30, flags=None, sev=1, bonus=False, v
 
 def _py(h, E):
     return h.py(E)
+
+
+@contextmanager
+def _stim(h, mode):
+    # NR.StimulantRealism's active set for the block (1 Game, 2 Realistic), the session's set restored after
+    old = h.K.acute.C.MODE
+    h.K.acute.useStimulants(mode)
+    try:
+        yield h.K.acute.C
+    finally:
+        h.K.acute.useStimulants(old)
 
 
 # --- constants and the fresh record -------------------------------------------------------------------------
@@ -247,11 +259,12 @@ def test_compose_leaves_the_machine_surfaces(kh):
 
 def test_i_a1_stress_and_its_severity(kh):
     b = _b(kh, hang=1, dehyd=6)                                           # Plan 15 Task 4: dehydration's stress from 4 %
-    flags = {"bgroupMax": 4}
+    flags = {"bgroupMax": 4, "stim": 2}                                   # Realistic: the 0.10 hangover row
     assert _compose(kh, b=b, flags=flags).stressTarget == pytest.approx(0.22, abs=TOL)       # 0.06 + 0.10 + 0.06
     assert _compose(kh, b=b, flags=flags, sev=2).stressTarget == pytest.approx(0.44, abs=TOL)
     assert _compose(kh, b=b, flags=flags, sev=3).stressTarget == 0.50                         # 0.66 clamped
-    assert _compose(kh, b=b, flags={"bgroupMax": 3}).stressTarget == pytest.approx(0.19, abs=TOL)
+    assert _compose(kh, b=b, flags={"bgroupMax": 3, "stim": 2}).stressTarget == pytest.approx(0.19, abs=TOL)
+    assert _compose(kh, b=b, flags={"bgroupMax": 4}).stressTarget == pytest.approx(0.17, abs=TOL)  # Game: 0.06 + 0.05 + 0.06
     assert _compose(kh, b=_b(kh, bac=1)).stressTarget == 0                                    # never during
 
 
@@ -280,8 +293,10 @@ def test_i_b2_the_accrual_product(kh):
     # anaemia replaces the depleted-iron row (unless): 1.25, not 1.25 x 1.11
     e = _compose(kh, nut=nut, flags={"anaemia": True})
     assert e.mNut == pytest.approx(1.25, abs=TOL)
-    e = _compose(kh, b=_b(kh, wd=4, hang=1))
+    e = _compose(kh, b=_b(kh, wd=4, hang=1), flags={"stim": 2})          # Realistic's hangover row
     assert e.mNut == pytest.approx(1.2 * 1.15, abs=TOL)
+    e = _compose(kh, b=_b(kh, wd=4, hang=1))                              # Game's
+    assert e.mNut == pytest.approx(1.2 * 1.075, abs=TOL)
     e = _compose(kh, b=_b(kh, dehyd=8), ea=0, nut=nut, flags={"anaemia": True}, sev=3)
     assert e.mNut == 2.0                                                  # clamped
 
@@ -413,13 +428,18 @@ def test_bgroup_max(kh):
 
 def test_i_b1_the_fatigue_offset(kh):
     f = kh.K.effects.fOff
-    circ1 = 0.12 * math.cos(2 * math.pi * (1 - 4) / 24)                  # 0.08485281374238571
-    assert 0.5 + circ1 + f(6, 107, 0, 0) == pytest.approx(0.4691329693844091, abs=TOL)
-    assert f(0, 107, 1, 0) == pytest.approx(-0.05828793774319066, abs=TOL)
-    assert f(0, 200, 0, 0) == pytest.approx(-0.2, abs=TOL)
-    assert f(0, 400, 0, 0) == pytest.approx(-0.2545454545454545, abs=TOL)
-    assert f(0, 400, 1, 0) == pytest.approx(-0.10181818181818181, abs=TOL)
-    assert f(40, 0, 0, 0.15) == pytest.approx(0.25, abs=TOL)              # the debt term caps at 0.10
+    with _stim(kh, 2):                                                    # Realistic: the Plan 14 CAF_OFF_MAX 0.35
+        circ1 = 0.12 * math.cos(2 * math.pi * (1 - 4) / 24)              # 0.08485281374238571
+        assert 0.5 + circ1 + f(6, 107, 0, 0) == pytest.approx(0.4691329693844091, abs=TOL)
+        assert f(0, 107, 1, 0) == pytest.approx(-0.05828793774319066, abs=TOL)
+        assert f(0, 200, 0, 0) == pytest.approx(-0.2, abs=TOL)
+        assert f(0, 400, 0, 0) == pytest.approx(-0.2545454545454545, abs=TOL)
+        assert f(0, 400, 1, 0) == pytest.approx(-0.10181818181818181, abs=TOL)
+        assert f(40, 0, 0, 0.15) == pytest.approx(0.25, abs=TOL)          # the debt term caps at 0.10
+    with _stim(kh, 1):                                                    # Game: CAF_OFF_MAX 0.12
+        assert f(0, 107, 0, 0) == pytest.approx(-0.12 * 107 / 257, abs=TOL)             # -0.04996
+        assert f(0, 400, 1, 0) == pytest.approx(-0.12 * 400 / 550 * 0.4, abs=TOL)       # tolerance blunts the same 60 %
+        assert f(40, 0, 0, 0.15) == pytest.approx(0.25, abs=TOL)          # no caffeine: the sets agree
 
 
 def test_sat_c(kh):
@@ -509,9 +529,25 @@ def test_ss_want(kh):
 
 def test_intox_target(kh):
     t = kh.K.effects.intoxTarget
-    assert t(0) == 0 and t(0.1) == pytest.approx(50, abs=TOL) and t(0.2) == 100 and t(0.35) == 100
-    assert t(-0.01) == 0
-    assert t(0.02) == pytest.approx(10, abs=TOL)                          # the Drunk moodle's first step at 0.02 %
+    with _stim(kh, 2):                                                    # Realistic: full at 0.20 %
+        assert t(0) == 0 and t(0.1) == pytest.approx(50, abs=TOL) and t(0.2) == 100 and t(0.35) == 100
+        assert t(-0.01) == 0
+        assert t(0.02) == pytest.approx(10, abs=TOL)                      # the Drunk moodle's first step at 0.02 %
+    with _stim(kh, 1):                                                    # Game: full at 0.31 %
+        assert t(0) == 0 and t(0.1) == pytest.approx(100 * 0.1 / 0.31, abs=TOL) and t(0.31) == 100 and t(0.35) == 100
+        assert t(-0.01) == 0
+
+
+def test_the_hangover_rows_follow_the_stimulant_set(kh):
+    b = _b(kh, hang=1)
+    real = _compose(kh, b=b, flags={"stim": 2})
+    game = _compose(kh, b=b, flags={"stim": 1})
+    default = _compose(kh, b=b)                                           # no stim flag reads Game, the default
+    assert (real.mNut, real.stressTarget) == (1.15, 0.10)                 # the Plan 14 row
+    assert (game.mNut, game.stressTarget) == (1.075, 0.05)                # half of each realistic size
+    assert (default.mNut, default.stressTarget) == (1.075, 0.05)
+    none = _compose(kh, b=_b(kh), flags={"stim": 2})
+    assert (none.mNut, none.stressTarget) == (1, 0)                       # no hangover: neither row folds
 
 
 def test_the_cold_credit_gate(kh):

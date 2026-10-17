@@ -100,10 +100,10 @@ K.effects.AIM_K = 0.25 -- game choice (open S1134)
 K.effects.AIM_LO = 0.90 -- game choice (open S1135); unreachable, the IU never falls below 0
 K.effects.AIM_HI = 1.60 -- game choice (open S1135)
 
--- The fatigue offset (B1): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut.
+-- The fatigue offset (B1): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut; the caffeine offset's
+-- ceiling CAF_OFF_MAX is the active stimulant set's (K.acute.C, Plan 15 Task 10).
 K.effects.DEBT_K = 0.005 -- per debt hour: game choice, debt under-felt (S0742 direction; open S1131)
 K.effects.DEBT_F_MAX = 0.10 -- game choice: 20 h of debt (open S1131)
-K.effects.CAF_OFF_MAX = 0.35 -- game choice sized on S0900 vs S0750 (open S1124)
 K.effects.CAF_EC50 = 150 -- mg: game choice (open S1124)
 K.effects.CAF_TOL_BLUNT = 0.6 -- S0807 direction (tolerance to subjective effects); game choice (open S1125)
 
@@ -125,8 +125,8 @@ K.effects.NV_SLOW = 0.5 -- the rate under iron or riboflavin depletion, S0871 di
 K.effects.NV_REGRANT = 3 -- days after a lapse: game choice hysteresis (open S1142)
 K.effects.NV_ZINC = 3 -- zinc must stay under the depleted grade, S0872 / S0873 direction (open S0942)
 
--- The intoxication target: clamp(100 x bac / 0.20, 0, 100).
-K.effects.INTOX_FULL_BAC = 0.20 -- per cent: game choice map (open S1106)
+-- The intoxication target: clamp(100 x bac / INTOX_FULL_BAC, 0, 100), the full BAC the active stimulant set's
+-- (K.acute.C: 0.20 % Realistic, 0.31 % Game; Plan 15 Task 10).
 K.effects.INTOX_MAX = 100 -- the stat's range #2369
 
 -- The vitamin C cold credit's gates (F2): replete, at least 200 mg/d, exerting, cold-exposed.
@@ -354,8 +354,12 @@ function K.effects.atMatch(v, at)
 end
 
 -- Whether a row folds: its gate on (VITD_EFFECTS -> vitdOn, BalanceBonus -> bonusOn, any other -> off), its
--- unless flag not true, its selector matching.
+-- unless flag not true, its stimulant set (stim, Plan 15 Task 10) the flags' stim (nil reads 1, Game, the option's
+-- default), its selector matching.
 function K.effects.active(row, nut, b, pe, ea, flags, bonusOn, vitdOn)
+    if row.stim ~= nil and row.stim ~= (flags.stim or 1) then
+        return false
+    end
     local g = row.gated
     if g == "VITD_EFFECTS" and not vitdOn then
         return false
@@ -507,11 +511,11 @@ function K.effects.coldCredit(vitCg, vitCe24, band1Day, band2Day, coldH)
 end
 
 -- The fatigue offset the writer adds to S + circ (B1): the felt debt, less caffeine's offset blunted by
--- tolerance, plus the nutritional offset.
+-- tolerance, plus the nutritional offset. The offset's ceiling is the active stimulant set's (K.acute.C).
 function K.effects.fOff(debtH, caf, cafTol, fOffNut)
     local E = K.effects
     local debt = K.min(E.DEBT_K * debtH, E.DEBT_F_MAX)
-    local cafOff = E.CAF_OFF_MAX * caf / (caf + E.CAF_EC50) * (1 - E.CAF_TOL_BLUNT * cafTol)
+    local cafOff = K.acute.C.CAF_OFF_MAX * caf / (caf + E.CAF_EC50) * (1 - E.CAF_TOL_BLUNT * cafTol)
     return debt - cafOff + fOffNut
 end
 
@@ -563,10 +567,10 @@ function K.effects.ssWant(vitAg, sev)
     return vitAg == 4 and sev >= 1
 end
 
--- The INTOXICATION target: 100 x bac / 0.20, clamped to the stat's range.
+-- The INTOXICATION target: 100 x bac / the active stimulant set's INTOX_FULL_BAC, clamped to the stat's range.
 function K.effects.intoxTarget(bac)
     local E = K.effects
-    return K.clamp(E.INTOX_MAX * bac / E.INTOX_FULL_BAC, 0, E.INTOX_MAX)
+    return K.clamp(E.INTOX_MAX * bac / K.acute.C.INTOX_FULL_BAC, 0, E.INTOX_MAX)
 end
 
 -- The temperature offset the writer targets (G): the composed surface.

@@ -18,6 +18,8 @@ S1116/S1117). Two briefing hand values were corrected in doubles: the slow-metab
 0.777985 (not 0.7777). Time is game hours throughout (ruling T5-1).
 """
 import math
+from contextlib import contextmanager
+
 import pytest
 
 TOL = 1e-9
@@ -36,13 +38,26 @@ def _list(host, t):
     return list(host.py(t).values())
 
 
+@contextmanager
+def _stim(host, mode):
+    # NR.StimulantRealism's active set for the block (1 Game, 2 Realistic), the session's set restored after
+    old = host.K.acute.C.MODE
+    host.K.acute.useStimulants(mode)
+    try:
+        yield host.K.acute.C
+    finally:
+        host.K.acute.useStimulants(old)
+
+
 def test_constants(host):
     A = host.K.acute
     assert (A.CAF_ABSORB, A.CAF_THALF_H, A.CAF_THALF_SLOW_H, A.CAF_SLOW_SHARE) == (1.0, 5.0, 9.7, 0.5)
     assert (A.CAF_MEAN_H, A.CAF_TOL_REF, A.CAF_TOL_TAU_H, A.CAF_WD_TOL, A.CAF_WD_LOW_MG) == (168, 400, 168, 0.25, 10.7)
     assert (A.CAF_WD_ONSET_H, A.CAF_WD_PEAK_H, A.CAF_WD_END_H, A.CAF_EFFECT_MGKG) == (12, 36, 120, 3)
     assert _list(host, A.WIDMARK_R) == [0.68, 0.55]
-    assert (A.BETA, A.HANG_PEAK, A.HANG_H, A.IU_ALC_CAP) == (0.015, 0.05, 6, 2.0)
+    assert (A.BETA, A.HANG_PEAK, A.IU_ALC_CAP) == (0.015, 0.05, 2.0)
+    assert A.HANG_H is None                                                 # in the stimulant sets (Plan 15 Task 10)
+    assert A.STIM_REALISTIC.HANG_H == 6 and A.STIM_GAME_OVERRIDES.HANG_H == 3
     assert [_list(host, k) for k in _list(host, A.IU_ALC_KNOTS)] == [[0, 0], [0.03, 0.30], [0.05, 1.00], [0.08, 1.60]]
     assert (A.GLYC_REF, A.GLYC_HIGH, A.GLYC_LOW, A.GLYC_PIVOT, A.GLYC_SPAN, A.GLYC_TAU_H, A.GLYC_MAX) == (462, 102, 253, 3, 3, 24, 600)
     assert (A.USE_WORK, A.USE_MET_LO, A.USE_MET_SPAN, A.USE_MAX, A.USE_SHIVER) == (51.5, 3, 4.5, 1.6, 52)
@@ -294,16 +309,31 @@ def test_widmark_female(host):
 
 def test_hangover_starts_counts_down_and_ends(host):
     A = host.K.acute
-    a = _new(host)
-    A.alcohol(a, 31.6, 80, 1, 0)  # peak 0.0580882
-    A.alcohol(a, 0, 80, 1, 10)  # 31.6 - 81.6 -> 0: bac 0, and the hangover starts on that step
-    assert a.alc == 0 and a.bac == 0
-    assert a.hang == 1
-    assert _close(a.hangH, 6 * 0.05808823529411765 / 0.05)  # 6.97059 h
-    A.alcohol(a, 0, 80, 1, 6)
-    assert a.hang == 1 and _close(a.hangH, 6 * 0.05808823529411765 / 0.05 - 6)
-    A.alcohol(a, 0, 80, 1, 1)
-    assert a.hang == 0 and a.hangH == 0 and a.alcPeak == 0
+    with _stim(host, 2):                                    # Realistic: the Plan 14 hangover, HANG_H 6
+        a = _new(host)
+        A.alcohol(a, 31.6, 80, 1, 0)  # peak 0.0580882
+        A.alcohol(a, 0, 80, 1, 10)  # 31.6 - 81.6 -> 0: bac 0, and the hangover starts on that step
+        assert a.alc == 0 and a.bac == 0
+        assert a.hang == 1
+        assert _close(a.hangH, 6 * 0.05808823529411765 / 0.05)  # 6.97059 h
+        A.alcohol(a, 0, 80, 1, 6)
+        assert a.hang == 1 and _close(a.hangH, 6 * 0.05808823529411765 / 0.05 - 6)
+        A.alcohol(a, 0, 80, 1, 1)
+        assert a.hang == 0 and a.hangH == 0 and a.alcPeak == 0
+
+
+def test_hangover_game_tail_is_half(host):
+    A = host.K.acute
+    with _stim(host, 1):                                    # Game, the default: HANG_H 3
+        a = _new(host)
+        A.alcohol(a, 31.6, 80, 1, 0)
+        A.alcohol(a, 0, 80, 1, 10)                          # the hangover starts at the same step as Realistic's
+        assert a.hang == 1
+        assert _close(a.hangH, 3 * 0.05808823529411765 / 0.05)  # 3.48529 h
+        A.alcohol(a, 0, 80, 1, 3)
+        assert a.hang == 1 and _close(a.hangH, 3 * 0.05808823529411765 / 0.05 - 3)
+        A.alcohol(a, 0, 80, 1, 1)
+        assert a.hang == 0 and a.hangH == 0 and a.alcPeak == 0
 
 
 def test_hangover_sub_threshold_peak_clears(host):

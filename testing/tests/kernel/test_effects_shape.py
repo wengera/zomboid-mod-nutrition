@@ -340,6 +340,7 @@ def test_a_raise_inside_the_step_is_kept_and_counted(eff_host):
 
 def test_the_minute_scalars_are_stamped(eff_host):
     h = eff_host
+    setopts(h, StimulantRealism=2)                               # Realistic: the Plan 14 sizes
     rec = record(h)
     a = rec["acute"]
     a["caf"] = 107.0
@@ -357,6 +358,39 @@ def test_the_minute_scalars_are_stamped(eff_host):
     assert E["mAcc"] == h.K.clamp(E["mNut"], 0.2, 5.0)            # no writer reads: the engine part reads 1
     assert E["rRec"] == h.K.clamp(E["rNut"], 0.25, 2.0)
     assert E["tempTarget"] == 0                                  # no set point and no offset
+
+
+def _stim_minute(h, rec, p):
+    minute(h, p, rec)
+    E = rec["effects"]
+    return E["fOff"] - E["fOffNut"], E["intoxTarget"], E["mNut"], E["stressTarget"]
+
+
+def test_switching_the_stimulant_option_takes_effect_on_the_next_read(eff_host):
+    # one record in a hangover with caffeine and alcohol on board, read under Game, then Realistic, then Game again:
+    # each options read selects the set, and the next minute's scalars and hangover rows follow it (the set is in the
+    # rebuild key, so the hangover rows rebuild with no band change)
+    h = eff_host
+    rec = record(h)
+    a = rec["acute"]
+    a["caf"] = 107.0
+    a["bac"] = 0.05
+    a["hang"] = 1
+    p, _ = player(h, rec)
+    assert h.K.acute.C.MODE == 1 and h.G.NutritionRevamp.server.options.stimulantRealism == 1   # the default, Game
+    caf_g, intox_g, m_g, s_g = _stim_minute(h, rec, p)
+    assert caf_g == pytest.approx(-0.12 * 107 / 257, abs=TOL) and intox_g == pytest.approx(100 * 0.05 / 0.31, abs=TOL)
+    assert (m_g, s_g) == (pytest.approx(1.075, abs=TOL), pytest.approx(0.05, abs=TOL))
+    rebuilds = EFF(h).stats.rebuilds
+    setopts(h, StimulantRealism=2)
+    assert h.K.acute.C.MODE == 2 and h.G.NutritionRevamp.server.options.stimulantRealism == 2
+    caf_r, intox_r, m_r, s_r = _stim_minute(h, rec, p)
+    assert EFF(h).stats.rebuilds == rebuilds + 1                 # the set moved the key
+    assert caf_r == pytest.approx(-0.35 * 107 / 257, abs=TOL) and intox_r == pytest.approx(25.0, abs=TOL)
+    assert (m_r, s_r) == (pytest.approx(1.15, abs=TOL), pytest.approx(0.10, abs=TOL))
+    setopts(h, StimulantRealism=7)                               # out of range: the default, Game
+    assert h.K.acute.C.MODE == 1
+    assert _stim_minute(h, rec, p)[:2] == (pytest.approx(caf_g, abs=TOL), pytest.approx(intox_g, abs=TOL))
 
 
 def test_the_vigorous_and_alcohol_sleep_onset_terms(eff_host):
