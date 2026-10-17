@@ -1653,7 +1653,7 @@ def s_h1():
                        "request_minute": k["request_minute"], "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x452b"),
                "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it "
-               "writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. Proof x452b, "
+               "writes is the calibrated curve of its model's hunger (#3952), so a meal reads near empty. Proof x452b, "
                "the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER)."
                + proof_note("H1-m-kernel")),
     ]
@@ -2639,7 +2639,7 @@ def s_sh1():
                list(zip(kc, k)), kernel({"replay": "test_satiety_meal_studies.callahan()",
                                          "preloads_kcal": list(kc), "clock": "09:00"}, "x452b"),
                "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value "
-               "the study oracles read; the game is shown its calibrated curve of it (#3904), whose cadence SH3 draws. "
+               "the study oracles read; the game is shown its calibrated curve of it (#3952), whose cadence SH3 draws. "
                "x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). "
                + proof_note("SH1-m-kernel")),
         series("SH1-study-1247", "Callahan 2004", "meal kcal", "minutes to the hunger request", "study",

@@ -473,7 +473,7 @@
    "chart": "H1",
    "id": "H1-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. Proof x452b, the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER).",
+   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3952), so a meal reads near empty. Proof x452b, the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER).",
    "points": [
     [
      0.0,
@@ -57846,7 +57846,7 @@
    "chart": "SH1",
    "id": "SH1-m-kernel",
    "label": "Nutrition Revamp, simulated",
-   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3904), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). ",
+   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3952), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). ",
    "points": [
     [
      190.0,

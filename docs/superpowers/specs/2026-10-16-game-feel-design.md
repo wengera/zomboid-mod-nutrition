@@ -47,6 +47,7 @@ The study tests and oracles read h_model before the curve. A dead zone at each m
   - 1–3200 shows Well Fed;
   - above 3200 at Overfull 4 greys out eating in every vanilla path, including the server's open-and-eat craft (jar-checks Check 1).
 - No vomit: vanilla has no vomit path the server can drive (Plan 15 Task 8); Overfull 4 is nausea and the refusal.
+- A drink lands whole in its minute, so 500 g drunk right after a 667 kcal plate still holds Overfull 4 for about 5 min (Task 14b; it was 23).
 
 ### 2.4 Well Fed (item 3)
 - Well Fed shows from the timer above after a satisfying meal.
@@ -184,7 +185,8 @@ The plan's design list, then every game choice the tasks made, each labelled "ga
 - the 0.71 starving minimum, over HUNGRY level 4's strict 0.70, under the acute onset only (ruling I2).
 
 **The hunger curve (Tasks 6 and 6c, § 2.1):**
-- the knots, with X[3] at 0.210312 (Task 6c's re-fit on every meal's Peckish return);
+- the knots 0.099, 0.214688, 0.299375, 0.42875 and 0.734688 (Task 14b's re-fit on the new liquid lane, fit-hunger-curve-20261017c; Task 6c's foot 0.097 and X[3] 0.210312 before);
+- **The liquid lane (Task 14b, § 2.2):** drunk water is slowed only by the drink's own kcal (`stomach.liqKcal`; S2265–S2277, science, not a game choice); the report's 0.02 min per plate kcal hedge, a game choice, is declined.
 - the dead zone 0.02 and the hold offset `HOLD_EPS` 0.001;
 - the fed threshold `FED_M` 3.80654 weighted kcal (the meal pool's request level, `MEAL_REQ`);
 - the per-meal compromise and its weights (breakfast 0.5, lunch and dinner 1, the breakfast carry-over halved);
