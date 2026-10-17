@@ -18,8 +18,9 @@ K.hungerCurve = {}
 -- Plan 15 Task 6c), loss 0.577 against 0.694 for the Task 6 knots (fit-hunger-curve-20261017b); no knot sits at its
 -- search bound; each line names its reading and its x0.95 and x1.05 readings. No curve of h_model meets vanilla's
 -- three-can breakfast (Peckish 1.17 h, a can short of the night's rise) and its lunch and dinner (4.25 h, 5.00 h) at
--- once: the meal pool resets h_model by the meal, with no carry-over of the hunger before it, and the circadian factor
--- (S1273, peak 19:50) wears dinner off first; the Peckish knot is the compromise the fit's weights choose.
+-- once: a satisfying meal resets the meal pool, so h_model keeps no additive residual of the earlier hunger (the hunger
+-- before carries only through the gut fill and the deficit drive), and the circadian factor (S1273, peak 19:50) wears
+-- dinner off first; the Peckish knot is the compromise the fit's weights choose.
 K.hungerCurve.X = {
     0, -- the curve's foot: no row needed
     0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days (0.0968 after the evening meal, rounded up), so such a meal reads 0 and a 400 kcal one 0.039

@@ -1685,11 +1685,11 @@ def test_the_fed_flag_and_the_circadian_factor_reach_the_curve():
 def test_a_seed_between_fed_and_unfed_writes_no_less_than_the_hunger_it_read():
     h = boot(curve=True)
     p = player(h)
-    p.st.v.HUNGER = 0.19                                                 # in the band (0.2 before Task 6c moved X[3])
+    p.st.v.HUNGER = 0.1875                                               # the band's middle, 0.185-0.19 (0.2 before Task 6c)
     rec = record(h)
     rec.satiety = h.rt.table_from({"S": 0, "L": 0})
     rec.stomachFill = 0.0
     step(h, p, rec, 1)
     C = h.K.hungerCurve
-    assert rec.satiety.M < C.FED_M and rec.satiety.hModel == pytest.approx(C.inverse(0.19))
-    assert 0.19 < p.st.sets.HUNGER <= C.map(C.inverse(0.19) / 0.9540165460822252) + 1e-12
+    assert rec.satiety.M < C.FED_M and rec.satiety.hModel == pytest.approx(C.inverse(0.1875))
+    assert 0.1875 < p.st.sets.HUNGER <= C.map(C.inverse(0.1875) / 0.9540165460822252) + 1e-12

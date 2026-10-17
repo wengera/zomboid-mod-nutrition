@@ -43,12 +43,16 @@ the highest of the three-meal days' lowest h_model after a meal, rounded up to 0
 
 The weights (Task 6c): vanilla's breakfast can (0.24) does not cover the night's rise (to 0.356), so vanilla carries
 0.116 of hunger past breakfast and reads Peckish 1.17 h after it; that carry-over is also most of vanilla's level-1
-share (4.3 of its 6.1 h). The satiety model has no such carry-over: the meal pool sets h_model after a 667 kcal meal
-by the meal, not by the hunger before it (0.089 after breakfast, 0.076 after lunch, 0.097 after dinner), so no curve
-of h_model meets the breakfast's 1.17 h and the satisfying meals' 4.25-5.00 h at once (Task 6c's finding). Nor can it
+share (4.3 of its 6.1 h). The satiety model keeps no additive residual of the earlier hunger: a satisfying meal resets
+the meal pool, so h_model after a 667 kcal meal is set by the meal (0.084 after breakfast, 0.076 after lunch, 0.097
+after dinner, the guide's water), and the hunger before carries only through the gut fill and the deficit drive
+(skipping breakfast brings lunch's Peckish about 1 h earlier, Task 6c review); so no curve of h_model meets the
+breakfast's 1.17 h and the satisfying meals' 4.25-5.00 h at once (Task 6c's finding). Nor can it
 make dinner outlast lunch, as vanilla's does (its dinner can lands on the floor and fills the Well Fed timer, which
 holds hunger): the circadian factor (S1273, peak 19:50) and dinner's higher floor lift h_model after dinner, so dinner
-wears off first. The terms that read the carry-over, breakfast and the shares, weigh W_CARRY; the others weigh 1.
+wears off first. The terms that read vanilla's residual, breakfast and the level-1 share, weigh W_CARRY; the level-2
+share takes the same weight so the two shares stay one group (it reads 0.031 across the Peckish knot's basin, so it
+moves no knot but X[4]); the others weigh 1.
 
 The search: a scan of each of the other four knots (X[3] to X[6]) in turn over its BOUNDS at SCAN_STEP, the others held
 (the loss is piecewise constant in whole minutes and has more than one valley), then a coordinate refinement from the

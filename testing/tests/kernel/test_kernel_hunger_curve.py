@@ -217,6 +217,26 @@ def test_the_fit_scores_each_meal_on_both_water_schedules():
     assert F.read(F.shipped(be.K), traces, C, V2)["loss"] > r["loss"] + 0.1
 
 
+def test_the_two_water_schedules_differ_and_the_weights_are_the_artifacts():
+    # Task 6c review F3: the shifted schedule is a real second replay (dinner 3.98 h on the guide water, 3.70 h an hour
+    # later), and the weights and the shift are the ones fit-hunger-curve-20261017b was fitted with
+    import json
+    import fit_hunger_curve as F
+    rows, _ = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
+    rows_s, _ = F.replay(F.three_events(F.WATER_SHIFT), F.DAYS_THREE * F.DAY)
+    guide = F.meal_returns(H(rows))["dinner"][1][0]
+    shifted = F.meal_returns(H(rows_s))["dinner"][1][0]
+    assert (round(guide, 2), round(shifted, 2)) == (3.98, 3.7)
+    with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261017b", "fit-compact.json"),
+              encoding="utf-8") as fh:
+        art = json.load(fh)
+    w = art["search"]["weights"]
+    assert w["meals"] == dict(zip(F.MEALS, F.W_MEAL)) and w["meals"]["breakfast"] == F.W_CARRY
+    assert w["shares"] == F.W_SHARE == F.W_CARRY and w["others"] == 1.0
+    assert art["scenarios"]["WATER_SHIFT"] == F.WATER_SHIFT
+    assert F.W_CARRY == 0.5 and F.WATER_SHIFT == 60
+
+
 def test_a_meal_that_never_reaches_peckish_before_the_next_reads_censored():
     import fit_hunger_curve as F
     H = [0.0] * (F.DAYS_THREE * F.DAY)
