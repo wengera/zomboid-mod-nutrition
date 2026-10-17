@@ -1,0 +1,405 @@
+[
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "lunch_bol",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 144
+ },
+ {
+  "cal": 105.11000061035156,
+  "carb": 26.969999313354492,
+  "foodType": "Fruits",
+  "fullType": "Base.Banana",
+  "hunger": -0.16,
+  "kind": "eat",
+  "label": "lunch_ban",
+  "lip": 0.38999998569488525,
+  "pro": 1.2899999618530273,
+  "s": 156
+ },
+ {
+  "age": 8.052234649658203,
+  "autoDrop": 0.10456679734835161,
+  "g": 209.13359469670323,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 284
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.017543859649122806,
+  "s": 293
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 294
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 295
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 296
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 297
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.043859649122807015,
+  "s": 298
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.02631578947368421,
+  "s": 299
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 300
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 301
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.02631578947368421,
+  "s": 302
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 303
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 304
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 305
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 306
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink1",
+  "litres": 0.03508771929824561,
+  "s": 307
+ },
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "dinner_bol",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 504
+ },
+ {
+  "cal": 105.11000061035156,
+  "carb": 26.969999313354492,
+  "foodType": "Fruits",
+  "fullType": "Base.Banana",
+  "hunger": -0.16,
+  "kind": "eat",
+  "label": "dinner_ban",
+  "lip": 0.38999998569488525,
+  "pro": 1.2899999618530273,
+  "s": 516
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 655
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.03968253968253968,
+  "s": 656
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 657
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 658
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.03968253968253968,
+  "s": 659
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 660
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 661
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.03968253968253968,
+  "s": 662
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 663
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 664
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.03968253968253968,
+  "s": 665
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.031746031746031744,
+  "s": 666
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.023809523809523808,
+  "s": 667
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.03968253968253968,
+  "s": 668
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink2",
+  "litres": 0.023809523809523808,
+  "s": 669
+ },
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "breakfast_bol",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 1281
+ },
+ {
+  "cal": 105.11000061035156,
+  "carb": 26.969999313354492,
+  "foodType": "Fruits",
+  "fullType": "Base.Banana",
+  "hunger": -0.16,
+  "kind": "eat",
+  "label": "breakfast_ban",
+  "lip": 0.38999998569488525,
+  "pro": 1.2899999618530273,
+  "s": 1292
+ },
+ {
+  "age": 27.051685333251953,
+  "autoDrop": 0.18941989150782268,
+  "g": 378.83978301564537,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 1424
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.015873015873015872,
+  "s": 1431
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1432
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1433
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1434
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1435
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.023809523809523808,
+  "s": 1436
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1437
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1438
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1439
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1440
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1441
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1442
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.031746031746031744,
+  "s": 1443
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1444
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "X_drink3",
+  "litres": 0.03968253968253968,
+  "s": 1445
+ }
+]

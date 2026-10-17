@@ -22225,3 +22225,11 @@ x451-20261016-131617,memory,host free memory rows,"Host state, not a game readin
 x451-20261016-131617,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`readings` and `windows`
 x451-20261016-131617,verdicts.LW_B.observed.slope_per_s,0.0,"The driver's assumed slope for B (health held), not a reading.",`windows.B`
 x451-20261016-131617,readings.const_writes[*].set.value,nil,"The setter's void return; the reading is the getter's.",`readings.const_writes[*].get.value`
+x452-20261017-071527,session,the driver's text,Written before the run; not a reading.,
+x452-20261017-071527,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x452-20261017-071527,constants,the lib's constants,The driver's settings and the prerun's bands; not a reading.,
+x452-20261017-071527,memory,host free memory rows,"Host state, not a game reading.",
+x452-20261017-071527,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
+x452-20261017-071527,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762); each row's `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
+x452-20261017-071527,verdicts.REPLAY_THIRST,falsified,"Its over-rows mix two auto-drink placements (the sip row and the replay's autodrop one row later) with a 0.002-0.004 drift; not a grade of the thirst kernel.",`verdicts.REPLAY_THIRST.observed.findings`
+x452-20261017-071527,checks.T9.after.counters,0,"No tooltip was drawn: the hide is unmeasured, not absent.",`checks.T9.why`
