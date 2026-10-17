@@ -49,7 +49,7 @@ def test_the_knots_are_monotone_and_each_level_knot_is_a_vanilla_threshold(host)
 def test_the_fitted_knots(host):
     # tools/fit_hunger_curve.py's chosen point (the foot by its rule, the rest by the search), pinned
     X, _ = knots(host)
-    assert X[1:6] == [0.097, 0.210312, 0.299375, 0.42875, 0.734688]     # X[3] 0.19 before Task 6c
+    assert X[1:6] == [0.099, 0.214688, 0.299375, 0.42875, 0.734688]     # X[3] 0.19 before Task 6c; 0.097, 0.210312 before Task 14b's re-fit
     assert host.K.hungerCurve.FED_M == host.K.satiety.MEAL_REQ
 
 
@@ -168,8 +168,8 @@ def test_the_readings_are_pinned(fit):
     F = fit["F"]
     s1, s2 = F.shares(H(fit["three"]))
     ret = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
-    assert (round(s1, 4), round(s2, 4)) == (0.2115, 0.0312)                 # (0.3576, 0.0312) before Task 6c
-    assert [round(t, 2) for t in ret] == [4.33, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1; t1 3.78 before 6c
+    assert (round(s1, 4), round(s2, 4)) == (0.2302, 0.0312)                 # (0.3576, 0.0312) before Task 6c; (0.2115, 0.0312) before Task 14b
+    assert [round(t, 2) for t in ret] == [4.37, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1; t1 3.78 before 6c, 4.33 before 14b
 
 
 # ---- Plan 15 Task 6c: every meal's return to Peckish -----------------------------------------------------------------
@@ -187,7 +187,7 @@ def test_each_meal_returns_to_peckish_nearer_vanilla_than_the_task_6_curve(fit):
     F = fit["F"]
     mr = F.meal_returns(H(fit["three"]))
     got = {k: [round(t, 2) for t, _ in v] for k, v in mr.items()}
-    assert got == {"breakfast": [4.33] * 3, "lunch": [4.15] * 3, "dinner": [3.98] * 3}   # the guide's water
+    assert got == {"breakfast": [4.37] * 3, "lunch": [3.98] * 3, "dinner": [3.83] * 3}   # the guide's water (Task 14b's re-fit on the liquid lane slowed only by drink-borne kcal; 4.33, 4.15 and 3.98 before)
     assert not any(c for v in mr.values() for _, c in v)
     # before Task 6c (X[3] 0.19): breakfast 3.78, lunch 3.28 and dinner 2.93 h, against vanilla's 4.25 and 5.0 h
     assert got["lunch"][0] > 3.28 + 0.5 and got["dinner"][0] > 2.93 + 0.5
@@ -218,16 +218,17 @@ def test_the_fit_scores_each_meal_on_both_water_schedules():
 
 
 def test_the_two_water_schedules_differ_and_the_weights_are_the_artifacts():
-    # Task 6c review F3: the shifted schedule is a real second replay (dinner 3.98 h on the guide water, 3.70 h an hour
-    # later), and the weights and the shift are the ones fit-hunger-curve-20261017b was fitted with
+    # Task 6c review F3: the shifted schedule is a real second replay (dinner 3.83 h on the guide water, 3.53 h an hour
+    # later, since Task 14b's re-fit), and the weights and the shift are the ones fit-hunger-curve-20261017c was fitted
+    # with (Task 6c's, unchanged)
     import json
     import fit_hunger_curve as F
     rows, _ = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
     rows_s, _ = F.replay(F.three_events(F.WATER_SHIFT), F.DAYS_THREE * F.DAY)
     guide = F.meal_returns(H(rows))["dinner"][1][0]
     shifted = F.meal_returns(H(rows_s))["dinner"][1][0]
-    assert (round(guide, 2), round(shifted, 2)) == (3.98, 3.7)
-    with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261017b", "fit-compact.json"),
+    assert (round(guide, 2), round(shifted, 2)) == (3.83, 3.53)
+    with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261017c", "fit-compact.json"),
               encoding="utf-8") as fh:
         art = json.load(fh)
     w = art["search"]["weights"]
