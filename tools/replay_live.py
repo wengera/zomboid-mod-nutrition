@@ -622,9 +622,24 @@ def _replay_curve_off(rt, value):
         rt.execute(_CURVE_OFF_LUA)
 
 
-REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off}
-# The pre-curve writer, for a ring recorded before Plan 15 Task 6: merged into the ring's own constants.
-PRE_CURVE = {"replay.HUNGER_CURVE_OFF": 1}
+# The writer before the seed plate (Plan 15 Task 13 fix 1): a fresh record whose vanilla HUNGER was under the empty
+# stomach's floor seeded its meal pool at the cap and landed no meal, so "replay.SEED_PLATE_OFF" (any true value) makes
+# W.seedPlate land nothing on that replay's host and a ring recorded before the fix is graded against its own pipeline.
+_SEED_PLATE_OFF_LUA = "NutritionRevamp.server.writer.seedPlate = function(h, record, inp, F) return F end"
+
+
+def _replay_seed_plate_off(rt, value):
+    if value:
+        rt.execute(_SEED_PLATE_OFF_LUA)
+
+
+REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off,
+               "replay.SEED_PLATE_OFF": _replay_seed_plate_off}
+# The writer before the seed plate, for a ring recorded before Plan 15 Task 13 fix 1 (x452-x457 and x453b, a97fec05).
+PRE_PLATE = {"replay.SEED_PLATE_OFF": 1}
+# The pre-curve writer, for a ring recorded before Plan 15 Task 6 (so before the seed plate too): merged into the ring's
+# own constants.
+PRE_CURVE = dict({"replay.HUNGER_CURVE_OFF": 1}, **PRE_PLATE)
 
 
 def set_constants(K, constants, rt=None):

@@ -18,12 +18,12 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.writer = {
     h = {}, inp = {}, saved = nil, zeroed = false, mode = 1, wired = false,
-    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, guarded = 0, nms = false, dry = 0 },
+    stats = { writes = 0, failures = 0, sips = 0, skipped = 0, seeded = 0, guarded = 0, nms = false, dry = 0, seedPlates = 0, seedShort = 0 },
     limitations = {
         "the mode (NR.Mode) is read once at the server's OnGameBoot; a change takes effect at the next restart (no mod route re-runs ZomboidGlobals.Load, #3365)",
         "with the rates zeroed, a writer outage stops hunger, thirst and fatigue rather than falling back to vanilla",
         "other mods reading ZomboidGlobals' hunger, thirst and fatigue rise rates read 0; NutritionRevamp.vanillaRate(key) answers the values saved before zeroing",
-        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x the acute exercise factor x the sleep-debt factor x the nicotine factor (the model's h_model), written through the calibrated curve (K.hungerCurve: a satisfying meal reads about 0 and Peckish and Hungry return on vanilla's cadence; unfed, the morning dip is taken out and HUNGER never falls; at the minute the meal pool empties in the morning, HUNGER steps up by the circadian dip (under 0.01); a level steps down only 0.02 under its threshold) and capped at 0.69 below starvation (K.hybrid.caps): F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the 1100 g hard capacity, drunk liquid counting at 0.279 of its mass, and M the meal pool, the weighted kcal eaten, fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and reads it, so h_model never reaches 0 after a meal, and a vanilla HUNGER (read back through the curve's inverse) below the seed floor reads it on its first minute: hungerTarget(0.786, energy state), that is 0.214 x es, times the minute's circadian, acute, sleep and nicotine factors (an empty stomach's read at the seed's cap MEAL_SEED_MAX); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and M through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat in a fresh record's first minute, before the writer has seeded M, is not fed into M (it shows only through the HUNGER the seed reads); the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g, and at its level 4 the food-timer bridge holds vanilla's FOOD_EATEN timer at its level 3, so vanilla's own refusal greys the eat menu and the double-click eat (a drink with no food value, and an action another mod starts on the server, are not refused, #3599) (W.foodTimer); fibre sates only through its mass, and carbohydrate, sugar and starch take one weight per kcal (the evidence is mixed or absent), and fat and protein take fitted weights per kcal (0.879 and 2.50 times carbohydrate's, game choices of the fit); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.5 F, energy state), that is (1 - 0.5 F) x es, times the minute's circadian, acute, sleep and nicotine factors, seeds an empty meal pool, so a fresh character's first written HUNGER drops to that ceiling's curve value; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect; glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.19 to 1.29 by body size (1.2456 for the 70 kg man) from about 36 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion; heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect and eating rate are neutral; an airy food sates by its weight plus 0.05 of its plate volume beyond its weight (a game choice; the physical fill and the Overfull moodle stay on mass); injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a character first seen in withdrawal reads none until a smoke; the deficit drive is fitted on the deficit studies alone, Karl 2021's well-fed arm held inside its band by the meal pool and the stomach's fill past 730 g rather than by the gut hormones the paper credits, so its post-meal troughs stay shallower than the study's; every Fitness set minute is vigorous resistance work for the acute term from the server's exercise flag, whatever the exercise and its billed MET (a light stretch and burpees alike)",
+        "HUNGER, THIRST and FATIGUE are written once a game minute; an eat or a drink shows at once and the next write overwrites it with the satiety target, hungerTarget(sated(F, mealRead(M)), energyState) x the circadian factor x the acute exercise factor x the sleep-debt factor x the nicotine factor (the model's h_model), written through the calibrated curve (K.hungerCurve: a satisfying meal reads about 0 and Peckish and Hungry return on vanilla's cadence; unfed, the morning dip is taken out and HUNGER never falls; at the minute the meal pool empties in the morning, HUNGER steps up by the circadian dip (under 0.01); a level steps down only 0.02 under its threshold) and capped at 0.69 below starvation (K.hybrid.caps): F is the stomach's fullness mass (its satiety mass plus the protein term) over its 730 g comfortable maximum, counted on to the 1100 g hard capacity, drunk liquid counting at 0.279 of its mass, and M the meal pool, the weighted kcal eaten, fed in full at the eat and cleared on game time asleep or awake by the kinetics step while the writer seeds and reads it, so h_model never reaches 0 after a meal, and a fresh record's first minute writes the vanilla HUNGER it finds (read back through the curve's inverse); a vanilla HUNGER under what the meal pool alone can write on an empty stomach (the curve of hungerTarget(0.786, energy state) times the minute's factors, the seed's cap MEAL_SEED_MAX) lands a real meal before that minute, the curve fit's plate of the guide's foods sized to the least kcal whose first write is within the dead zone of it, at most one 667 kcal plate, its kcal and nutrients counted like any meal (W.seedPlate); protein fills the satiety fullness while it is in the stomach (a fitted game choice); an eat another mod makes through a direct Eat call reaches the stomach and M through the reconcile path a minute late and as its macros only (no water or fibre mass), and a drink another mod makes through a direct DrinkFluid call outside the intake's wraps is not seen; an eat in a fresh record's first minute, before the writer has seeded M, is not fed into M (it shows only through the HUNGER the seed reads); the exercise share of the energy deficit enters hunger through a lag of weeks, so a regular exerciser who eats to balance reads lower hunger for weeks; heavy work the model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels to 1100 g, and at its level 4 the food-timer bridge holds vanilla's FOOD_EATEN timer at its level 3, so vanilla's own refusal greys the eat menu and the double-click eat (a drink with no food value, and an action another mod starts on the server, are not refused, #3599) (W.foodTimer); fibre sates only through its mass, and carbohydrate, sugar and starch take one weight per kcal (the evidence is mixed or absent), and fat and protein take fitted weights per kcal (0.879 and 2.50 times carbohydrate's, game choices of the fit); a vanilla HUNGER above the fullness ceiling, hungerTarget(0.5 F, energy state), that is (1 - 0.5 F) x es, times the minute's circadian, acute, sleep and nicotine factors, seeds an empty meal pool, so a fresh character's first written HUNGER drops to that ceiling's curve value; short sleep raises hunger by a factor capped at the pooled size, whether a step or graded is unsettled; the sleep factor steps at the acute record's 24 h window close, not at waking, so a short night that straddles the close reaches hunger in two steps a day apart; after a short night, nights of exactly the need repay nothing, so the rise holds until a longer night repays half its excess; right at a bout's end the acute term reads deeper than the pooled immediate-post effect; glycogen depletion no longer raises hunger, and a trailing-24 h deficit is bounded by the day's expenditure, so a sedentary fast plateaus at es about 1.19 to 1.29 by body size (1.2456 for the 70 kg man) from about 36 h, the balance term's cap is reached only by very heavy work, and higher energy states come from fat depletion; heat's lowering of intake is not modelled (cold reaches hunger through its expenditure); sugary drinks, ketosis, alcohol's aperitif effect and eating rate are neutral; an airy food sates by its weight plus 0.05 of its plate volume beyond its weight (a game choice; the physical fill and the Overfull moodle stay on mass); injury adds no expenditure; nicotine withdrawal raises hunger by a factor anchored on one small trial, fading over 26 weeks; a smoker who keeps smoking reads the rise between smokes, unfaded, and a character first seen in withdrawal reads none until a smoke; the deficit drive is fitted on the deficit studies alone, Karl 2021's well-fed arm held inside its band by the meal pool and the stomach's fill past 730 g rather than by the gut hormones the paper credits, so its post-meal troughs stay shallower than the study's; every Fitness set minute is vigorous resistance work for the acute term from the server's exercise flag, whatever the exercise and its billed MET (a light stretch and burpees alike)",
         "PANIC is written once a game minute and vanilla decays it between writes, up to 1.2556 under its floor at DayLength 1 (#3400); vanilla's panic rise between writes is unread",
         "TEMPERATURE is written once a game minute on the adjustment's far side (held within 0.04 C, #3393)",
         "an auto-drink sip in a minute when the intake also landed an eat or a drink is missed once and caught at the next minute",
@@ -100,7 +100,7 @@ function W.hoist(username, p)
     if stats == nil or CharacterStat == nil then return nil end
     local h = { p = p, stats = stats, moodles = NR.obj(p, "getMoodles"), bd = NR.obj(p, "getBodyDamage"),
                 traits = NR.obj(p, "getCharacterTraits"), ageH = nil, lastThirst = nil, lastEnd = nil,
-                monoSeen = false, swipe = nil, fresh = true }  -- fresh: no step yet, W.satietyDtH reads the stamp
+                monoSeen = false, swipe = nil, fresh = true, username = username }  -- fresh: no step yet, W.satietyDtH reads the stamp
     h.thermo = NR.obj(h.bd, "getThermoregulator")
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
         local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: vigorous work for the acute term
@@ -311,6 +311,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local circ = K.satiety.circadian(NR.read.hour(ctx, ageH))
     local factor = circ * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
     factor = W.satietyFactor(factor, record)
+    if s.M == nil then F = W.seedPlate(h, record, inp, F, es, factor, circ) end -- a fresh record (Plan 15 Task 13 fix 1)
     W.satietyMeal(s, inp, F, es, factor, circ)
     inp.hungerTarget = K.satiety.target(F, s.M, es) * factor
     inp.circ = circ
@@ -707,4 +708,83 @@ function W.foodTimer(h, player, record, inp, ctx)
     else
         W.timerStats.pushMissing = W.timerStats.pushMissing + 1
     end
+end
+-- The seed plate (Plan 15 Task 13 fix 1, the controller's ruling, option (a)): on an empty stomach the meal pool alone
+-- cannot write a HUNGER under the curve of hungerTarget(0.786, energy state) times the minute's factors (mealRead is
+-- nearly flat in M, so the seed caps at K.satiety.MEAL_SEED_MAX and a fresh spawn at HUNGER 0 would write about 0.13),
+-- so a fresh record (satiety.M absent) whose vanilla HUNGER sits more than the dead zone under that floor lands a real
+-- meal first, as if the survivor ate before the first morning: the curve fit's plate (tools/fit_hunger_curve.py
+-- PLATE, the guide's foods, their whole vectors from the mod's table summed and scaled) through the intake's own landing
+-- (IN.land: the stomach, the meal pool, the day's intake), sized by bisection to the least kcal whose first write is
+-- within K.hungerCurve.DEAD_ZONE of the vanilla HUNGER, at most W.SEED_PLATE_MAX; a record seen before never takes one.
+-- Once per fresh record, so no per-minute cost.
+W.SEED_PLATE = {
+    "Base.CannedBologneseOpen", -- the curve fit's plate (tools/fit_hunger_curve.py PLATE): game choice (spec section 10: the curve's knots)
+    "Base.Bread", -- the fit's plate: game choice (spec section 10: the curve's knots)
+    "Base.Apple", -- the fit's plate: game choice (spec section 10: the curve's knots)
+    "Base.Orange", -- the fit's plate: game choice (spec section 10: the curve's knots)
+    "Base.Burger", -- the fit's plate: game choice (spec section 10: the curve's knots)
+    "Base.TunaTinOpen", -- the fit's plate: game choice (spec section 10: the curve's knots)
+}
+W.SEED_PLATE_MAX = 667 -- kcal, one fit meal (tools/fit_hunger_curve.py MEAL_KCAL, a third of 2,000 kcal): game choice (spec section 10: the curve's knots)
+W.SEED_PLATE_STEPS = 24 -- bisection steps on the kcal (under 1e-4 kcal), no row needed
+
+-- The seed plate at kcal: (its vector, scaled from the foods' whole vectors summed, and its mass-weighted plate volume
+-- per gram, IN.volumeOf of each food).
+function W.seedPlateVector(kcal)
+    local tot = K.vector.new()
+    local mass = 0
+    local volX = 0
+    for i = 1, #W.SEED_PLATE do
+        local ft = W.SEED_PLATE[i]
+        local t = NR.data.nutrients.get(ft)
+        if t ~= nil then
+            local v = K.vector.add(K.vector.new(), t, 1)
+            local m = K.stomach.massOf(v)
+            K.vector.add(tot, v, 1)
+            mass = mass + m
+            volX = volX + (NR.server.intake.volumeOf(ft) - 1) * m
+        end
+    end
+    local f = 0
+    if tot.calories > 0 then f = kcal / tot.calories end
+    local ml = 1
+    if mass > 0 then ml = 1 + volX / mass end
+    return K.vector.add(K.vector.new(), tot, f), ml
+end
+
+-- The HUNGER a fresh record's first minute writes with the seed plate of kcal in its empty stomach.
+function W.seedPlateWrite(kcal, inp, es, factor, circ)
+    local v, ml = W.seedPlateVector(kcal)
+    local st = K.stomach.new()
+    K.stomach.ingest(st, v, ml)
+    local M = K.satiety.mealFeed(0, v)
+    local hm = K.satiety.target(K.satiety.fullness(st), M, es) * factor
+    return K.hungerCurve.write(hm, { hunger = inp.hunger, fed = M >= K.hungerCurve.FED_M, circ = circ })
+end
+
+-- The seed plate's landing (see W.SEED_PLATE): returns the fullness to read this minute, F unchanged when no plate
+-- lands. A plate W.SEED_PLATE_MAX cannot bring within the dead zone lands at that size and is counted in seedShort.
+function W.seedPlate(h, record, inp, F, es, factor, circ)
+    local DZ = K.hungerCurve.DEAD_ZONE
+    local floor = K.hungerCurve.write(K.satiety.target(F, K.satiety.MEAL_SEED_MAX, es) * factor,
+        { hunger = inp.hunger, fed = true, circ = circ })
+    if inp.hunger + DZ >= floor or type(record.stomach) ~= "table" or NR.server.intake == nil then return F end
+    local want = inp.hunger + DZ
+    local hi = W.SEED_PLATE_MAX
+    if W.seedPlateWrite(hi, inp, es, factor, circ) > want then
+        W.stats.seedShort = W.stats.seedShort + 1
+    else
+        local lo = 0
+        for _ = 1, W.SEED_PLATE_STEPS do
+            local mid = (lo + hi) / 2
+            if W.seedPlateWrite(mid, inp, es, factor, circ) <= want then hi = mid else lo = mid end
+        end
+    end
+    local v, ml = W.seedPlateVector(hi)
+    record.satiety.M = 0
+    NR.server.intake.land(record, h.username, v, nil, ml)
+    W.stats.seedPlates = W.stats.seedPlates + 1
+    W.lastSeedKcal = hi
+    return W.satietyF(record)
 end
