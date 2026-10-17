@@ -1,0 +1,3399 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 52.249,
+   "wall_after": 52.502,
+   "epoch_ms_before": 1792238940089,
+   "epoch_ms_after": 1792238940342,
+   "took": 0.253,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength NutritionRevamp.version SandboxVars.NR.Severity SandboxVars.StatsDecrease NutritionRevamp.server.nutrients.sleepDisabled",
+   "phase": "S",
+   "wall_before": 52.502,
+   "wall_after": 53.269,
+   "epoch_ms_before": 1792238940342,
+   "epoch_ms_after": 1792238941109,
+   "took": 0.767,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 1,
+     "NutritionRevamp.version": "1.0.0",
+     "SandboxVars.NR.Severity": 1,
+     "SandboxVars.StatsDecrease": 3,
+     "NutritionRevamp.server.nutrients.sleepDisabled": true
+    }
+   }
+  },
+  {
+   "step": "S_clock",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 53.269,
+   "wall_after": 53.781,
+   "epoch_ms_before": 1792238941109,
+   "epoch_ms_after": 1792238941621,
+   "took": 0.512,
+   "ack": {
+    "worldAge": 3.1126174926757812,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.540383815765381,
+    "trueMult": 1,
+    "wall": 1792238941369
+   }
+  },
+  {
+   "step": "S_nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 53.781,
+   "wall_after": 54.54,
+   "epoch_ms_before": 1792238941621,
+   "epoch_ms_after": 1792238942380,
+   "took": 0.759,
+   "ack": {
+    "calories": -6.641728401184082,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.13544873893260956,
+    "thirst": 0.0027335684280842543,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "S_stats_all",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 54.54,
+   "wall_after": 55.047,
+   "epoch_ms_before": 1792238942380,
+   "epoch_ms_after": 1792238942887,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.008610228076577187,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.13571719825267792,
+     "Idleness": 0.07624365389347076,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.95968246459961,
+     "Thirst": 0.0033183186315000057,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792238942872,
+    "user": "admin",
+    "worldAge": 3.1510915756225586,
+    "mult": 4.660974979400635
+   }
+  },
+  {
+   "step": "S_probe",
+   "side": "server",
+   "cmd": "autodrink.probe",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 55.047,
+   "wall_after": 55.557,
+   "epoch_ms_before": 1792238942887,
+   "epoch_ms_after": 1792238943397,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "containers": 0,
+    "thirst": 0.0038245846517384052,
+    "autoDrink": true
+   }
+  },
+  {
+   "step": "S_const",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin getBodyDamage.getHealthReductionFromSevereBadMoodles",
+   "phase": "S",
+   "wall_before": 55.557,
+   "wall_after": 55.809,
+   "epoch_ms_before": 1792238943397,
+   "epoch_ms_after": 1792238943649,
+   "took": 0.252,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "0.016499999910593033"
+   }
+  },
+  {
+   "step": "S_health",
+   "side": "server",
+   "cmd": "health.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 56.571,
+   "wall_after": 57.074,
+   "epoch_ms_before": 1792238944411,
+   "epoch_ms_after": 1792238944914,
+   "took": 0.503,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "overall": 100,
+    "health": 100,
+    "parts": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   }
+  },
+  {
+   "step": "H_h1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin stomach.buffer.water stomach.buffer.proteins stomach.buffer.carbs stomach.buffer.lipids stomach.buffer.fibre stomach.buffer.calories stomach.liquid stomach.volX stomachFill satiety.M effects.enduranceCap effects.foodSickStep drain.active firstSeen body.sex body.fm body.lm body.lx",
+   "phase": "H",
+   "wall_before": 58.356,
+   "wall_after": 58.864,
+   "epoch_ms_before": 1792238946196,
+   "epoch_ms_after": 1792238946703,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 18,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "stomach.buffer.water": 0,
+     "stomach.buffer.proteins": 0,
+     "stomach.buffer.carbs": 0,
+     "stomach.buffer.lipids": 0,
+     "stomach.buffer.fibre": 0,
+     "stomach.buffer.calories": 0,
+     "stomach.liquid": 0,
+     "stomach.volX": 0,
+     "stomachFill": 0,
+     "satiety.M": 929.3288559827245,
+     "effects.enduranceCap": 1,
+     "effects.foodSickStep": 0,
+     "drain.active": false,
+     "firstSeen": 3.0340576171875,
+     "body.sex": 1,
+     "body.fm": 13.004999999999999,
+     "body.lm": 52.019999999999996,
+     "body.lx": 0
+    }
+   }
+  },
+  {
+   "step": "H_h1g",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.intake.stats.eats NutritionRevamp.server.intake.stats.landed NutritionRevamp.server.writer.h.admin.ft NutritionRevamp.server.writer.stats.writes",
+   "phase": "H",
+   "wall_before": 58.864,
+   "wall_after": 59.622,
+   "epoch_ms_before": 1792238946703,
+   "epoch_ms_after": 1792238947462,
+   "took": 0.758,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.writer.h.admin.ft": 1000,
+     "NutritionRevamp.server.writer.stats.writes": 14
+    }
+   }
+  },
+  {
+   "step": "H_ring",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start stomach.buffer.water stomach.buffer.proteins stomach.buffer.carbs stomach.buffer.lipids stomach.buffer.fibre stomach.buffer.calories stomach.liquid stomach.volX stomachFill satiety.M effects.enduranceCap effects.foodSickStep drain.active _G.NutritionRevamp.server.intake.stats.eats _G.NutritionRevamp.server.intake.stats.landed _G.NutritionRevamp.server.writer.h.admin.ft _G.NutritionRevamp.server.writer.stats.writes",
+   "phase": "H",
+   "wall_before": 59.622,
+   "wall_after": 60.383,
+   "epoch_ms_before": 1792238947462,
+   "epoch_ms_after": 1792238948223,
+   "took": 0.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "stomach.buffer.water",
+     "stomach.buffer.proteins",
+     "stomach.buffer.carbs",
+     "stomach.buffer.lipids",
+     "stomach.buffer.fibre",
+     "stomach.buffer.calories",
+     "stomach.liquid",
+     "stomach.volX",
+     "stomachFill",
+     "satiety.M",
+     "effects.enduranceCap",
+     "effects.foodSickStep",
+     "drain.active",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed",
+     "_G.NutritionRevamp.server.writer.h.admin.ft",
+     "_G.NutritionRevamp.server.writer.stats.writes"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 17,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "stomach.buffer.water": 0,
+      "stomach.buffer.proteins": 0,
+      "stomach.buffer.carbs": 0,
+      "stomach.buffer.lipids": 0,
+      "stomach.buffer.fibre": 0,
+      "stomach.buffer.calories": 0,
+      "stomach.liquid": 0,
+      "stomach.volX": 0,
+      "stomachFill": 0,
+      "satiety.M": 894.9272781983636,
+      "effects.enduranceCap": 1,
+      "effects.foodSickStep": 0,
+      "drain.active": false,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0,
+      "_G.NutritionRevamp.server.writer.h.admin.ft": 1000,
+      "_G.NutritionRevamp.server.writer.stats.writes": 15
+     }
+    }
+   }
+  },
+  {
+   "step": "F_broc_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Broccoli",
+   "phase": "F",
+   "wall_before": 60.385,
+   "wall_after": 60.887,
+   "epoch_ms_before": 1792238948224,
+   "epoch_ms_after": 1792238948727,
+   "took": 0.502,
+   "ack": "no item Base.Broccoli in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "F_broc_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Broccoli\" 3",
+   "phase": "F",
+   "wall_before": 60.888,
+   "wall_after": 60.911,
+   "epoch_ms_before": 1792238948727,
+   "epoch_ms_after": 1792238948751,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "F_broc_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Broccoli",
+   "phase": "F",
+   "wall_before": 63.411,
+   "wall_after": 63.671,
+   "epoch_ms_before": 1792238951251,
+   "epoch_ms_after": 1792238951511,
+   "took": 0.26,
+   "ack": {
+    "fullType": "Base.Broccoli",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.09000000357627869,
+    "baseHunger": -0.09000000357627869,
+    "calories": 11.020000457763672,
+    "carbs": 2.1500000953674316,
+    "lipids": 0.11999999731779099,
+    "proteins": 0.9100000262260437,
+    "id": 943441560,
+    "uses": 0.09000000357627869,
+    "fresh": true,
+    "offAge": 4,
+    "offAgeMax": 6,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.03999999910593033,
+    "hungerChange": -0.09000000357627869,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 3.375788688659668
+   }
+  },
+  {
+   "step": "SEED_slow",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "0.05",
+   "phase": "SEED",
+   "wall_before": 63.674,
+   "wall_after": 63.934,
+   "epoch_ms_before": 1792238951514,
+   "epoch_ms_after": 1792238951774,
+   "took": 0.26,
+   "ack": "mult=0.05000000074505806 eff=0.2390730381011963",
+   "ack_shape": "str"
+  },
+  {
+   "step": "SEED_slow_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "SEED",
+   "wall_before": 63.934,
+   "wall_after": 65.7,
+   "epoch_ms_before": 1792238951774,
+   "epoch_ms_after": 1792238953540,
+   "took": 1.766,
+   "ack": {
+    "worldAge": 3.3860321044921875,
+    "hour": 10,
+    "minutes": 23,
+    "mult": 0.23973040282726288,
+    "trueMult": 0.05000000074505806,
+    "wall": 1792238953366
+   }
+  },
+  {
+   "step": "SEED_kcal",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin stomach.buffer.calories 2000.000",
+   "phase": "SEED",
+   "wall_before": 69.72,
+   "wall_after": 71.736,
+   "epoch_ms_before": 1792238957560,
+   "epoch_ms_after": 1792238959576,
+   "took": 2.016,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "stomach.buffer.calories",
+    "key": "calories",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 2000
+   }
+  },
+  {
+   "step": "SEED_water",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin stomach.buffer.water 1085.000",
+   "phase": "SEED",
+   "wall_before": 73.747,
+   "wall_after": 75.762,
+   "epoch_ms_before": 1792238961587,
+   "epoch_ms_after": 1792238963602,
+   "took": 2.015,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "stomach.buffer.water",
+    "key": "water",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 0,
+    "afterType": "number",
+    "after": 1085
+   }
+  },
+  {
+   "step": "X_eat0_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.Broccoli 1",
+   "phase": "X",
+   "wall_before": 93.647,
+   "wall_after": 93.907,
+   "epoch_ms_before": 1792238981487,
+   "epoch_ms_after": 1792238981747,
+   "took": 0.26,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 943441560,
+    "itemBefore": {
+     "fullType": "Base.Broccoli",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.09000000357627869,
+     "baseHunger": -0.09000000357627869,
+     "calories": 11.020000457763672,
+     "carbs": 2.1500000953674316,
+     "lipids": 0.11999999731779099,
+     "proteins": 0.9100000262260437,
+     "id": 943441560,
+     "uses": 0.09000000357627869,
+     "fresh": true,
+     "offAge": 4,
+     "offAgeMax": 6,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.03999999910593033,
+     "hungerChange": -0.09000000357627869,
+     "isCookable": true,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.00049781799316,
+    "moodleFoodEaten": 2,
+    "before": {
+     "calories": -18.076766967773438,
+     "carbs": -300,
+     "lipids": -70,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "X_ref_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.Broccoli 1",
+   "phase": "X",
+   "wall_before": 121.607,
+   "wall_after": 121.871,
+   "epoch_ms_before": 1792239009446,
+   "epoch_ms_after": 1792239009711,
+   "took": 0.264,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 413855315,
+    "itemBefore": {
+     "fullType": "Base.Broccoli",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.09000000357627869,
+     "baseHunger": -0.09000000357627869,
+     "calories": 11.020000457763672,
+     "carbs": 2.1500000953674316,
+     "lipids": 0.11999999731779099,
+     "proteins": 0.9100000262260437,
+     "id": 413855315,
+     "uses": 0.09000000357627869,
+     "fresh": true,
+     "offAge": 4,
+     "offAgeMax": 6,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.03999999910593033,
+     "hungerChange": -0.09000000357627869,
+     "isCookable": true,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": false,
+    "maxTime": 232.00060844421387,
+    "moodleFoodEaten": 3,
+    "before": {
+     "calories": -8.233943939208984,
+     "carbs": -299.9865417480469,
+     "lipids": -69.99925231933594,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "X_ref_cancel",
+   "side": "client",
+   "cmd": "action.cancel",
+   "args": "",
+   "phase": "X",
+   "wall_before": 135.646,
+   "wall_after": 135.905,
+   "epoch_ms_before": 1792239023486,
+   "epoch_ms_after": 1792239023744,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "started": false,
+    "before": 0,
+    "adding": false,
+    "stopped": true,
+    "javaBefore": 0,
+    "cleared": true,
+    "after": 0,
+    "javaAfter": 0
+   }
+  },
+  {
+   "step": "C_cancel",
+   "side": "client",
+   "cmd": "action.cancel",
+   "args": "",
+   "phase": "C",
+   "wall_before": 159.619,
+   "wall_after": 159.88,
+   "epoch_ms_before": 1792239047459,
+   "epoch_ms_after": 1792239047720,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "started": false,
+    "before": 0,
+    "adding": false,
+    "stopped": true,
+    "javaBefore": 0,
+    "cleared": true,
+    "after": 0,
+    "javaAfter": 0
+   }
+  },
+  {
+   "step": "C_restore",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "C",
+   "wall_before": 159.88,
+   "wall_after": 159.904,
+   "epoch_ms_before": 1792239047720,
+   "epoch_ms_after": 1792239047744,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 159.904,
+   "wall_after": 160.163,
+   "epoch_ms_before": 1792239047744,
+   "epoch_ms_after": 1792239048003,
+   "took": 0.259,
+   "ack": {
+    "worldAge": 3.5170230865478516,
+    "hour": 10,
+    "minutes": 31,
+    "mult": 4.798121929168701,
+    "trueMult": 1,
+    "wall": 1792239047865
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 160.163,
+   "wall_after": 160.921,
+   "epoch_ms_before": 1792239048003,
+   "epoch_ms_after": 1792239048760,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 3.5356807708740234,
+    "hour": 10,
+    "minutes": 32,
+    "mult": 4.789834499359131,
+    "trueMult": 1,
+    "wall": 1792239048568
+   }
+  },
+  {
+   "step": "R_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "R",
+   "wall_before": 160.926,
+   "wall_after": 161.436,
+   "epoch_ms_before": 1792239048766,
+   "epoch_ms_after": 1792239049276,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 16,
+    "skipped": 0,
+    "next": 17,
+    "more": false,
+    "oldest": 1,
+    "newest": 16,
+    "recorded": 16,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 16,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "R_ring_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "R",
+   "wall_before": 161.446,
+   "wall_after": 161.703,
+   "epoch_ms_before": 1792239049286,
+   "epoch_ms_after": 1792239049543,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 17,
+    "overwritten": 0,
+    "errors": 0
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 52.249,
+   "end": 58.355
+  },
+  "H": {
+   "start": 58.356,
+   "end": 60.383
+  },
+  "F": {
+   "start": 60.385,
+   "end": 63.671
+  },
+  "SEED": {
+   "start": 63.674,
+   "end": 79.542
+  },
+  "X": {
+   "start": 79.545,
+   "end": 159.617
+  },
+  "C": {
+   "start": 159.619,
+   "end": 160.921
+  },
+  "R": {
+   "start": 160.926,
+   "end": 161.703
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "H1": {
+   "phase": "H1",
+   "predicted": "every ring path resolved",
+   "falsifier": "a ring path unresolved at the start",
+   "observed": {
+    "missing": {},
+    "ring_ok": true
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "RING": {
+   "phase": "RING",
+   "predicted": "every page read, errors 0",
+   "falsifier": "a ring page unread or a ring error",
+   "observed": {
+    "pages": 1,
+    "errors": [
+     0
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": "no mod error line, admin not parked",
+   "falsifier": "a mod error line in the server log, or admin parked in the debugger",
+   "observed": {
+    "mod_error": [],
+    "admin_lua_error": false
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "OF_REACH": {
+   "phase": "OF_REACH",
+   "predicted": "the broccoli lands from Overfull 3 and the trigger read shows Overfull 4",
+   "falsifier": "Overfull 4 never reached by the broccoli eats",
+   "observed": {
+    "landed": 1,
+    "pre_levels": [
+     3
+    ],
+    "post_levels": [
+     4
+    ],
+    "post_mass": [
+     1108
+    ],
+    "from_below": true,
+    "reached": true
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "OF_REFUSE": {
+   "phase": "OF_REFUSE",
+   "predicted": "validStart false, no landing in 8 s, the stomach no heavier (still Overfull 4 at the attempt)",
+   "falsifier": "the eat at Overfull 4 valid on the client, landed, or the stomach heavier",
+   "observed": {
+    "ref": {
+     "pre_level": 4,
+     "mass0": 1108,
+     "timer0": 4379.65625,
+     "settled": false,
+     "food_eaten0": 3,
+     "level_at_attempt": 4,
+     "mass_at_attempt": 1104,
+     "queued": true,
+     "spawned": "found",
+     "validStart": false,
+     "moodleFoodEaten": 3,
+     "maxTime": 232.00060844421387,
+     "landed": true,
+     "mass1": 1134
+    },
+    "mass_tol": 10.0
+   },
+   "verdict": "falsified",
+   "wall": 171.672
+  },
+  "OF_EARLY": {
+   "phase": "OF_EARLY",
+   "predicted": "the eat at Overfull 3 not refused",
+   "falsifier": "an eat refused below Overfull 4",
+   "observed": {
+    "early": [],
+    "tried": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "OF_TIMER": {
+   "phase": "OF_TIMER",
+   "predicted": "timer > 3200 on every settled bracketed Overfull 4 read",
+   "falsifier": "the food timer not above 3200 at Overfull 4, or above it below 4",
+   "observed": {
+    "settled": 2,
+    "four": 2,
+    "straddled": 0,
+    "bad": []
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "OF_NAUSEA": {
+   "phase": "OF_NAUSEA",
+   "predicted": "FOOD_SICKNESS >= 29.5 and SICK >= 1 at the trigger read",
+   "falsifier": "FOOD_SICKNESS under 30 or no SICK at Overfull 4",
+   "observed": {
+    "hold": {
+     "tag": "X_trig",
+     "mass": 1108,
+     "level": 4,
+     "age": 3.4446678161621094,
+     "timer": 4379.65625,
+     "endurance": 0.7307562232017517,
+     "end_moodle": 1,
+     "food_eaten": 3,
+     "since_gm": 0.6777191162109375,
+     "settled": false,
+     "settled2": false,
+     "level_after": 4,
+     "level_bracket": 4,
+     "food_sick": 29.954774856567383,
+     "sick": 1
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "OF_ENDURANCE": {
+   "phase": "OF_ENDURANCE",
+   "predicted": "ENDURANCE <= 0.735 and the endurance moodle >= 1 at Overfull 3-4",
+   "falsifier": "ENDURANCE over the cap at Overfull 3 or more",
+   "observed": {
+    "reads": 2,
+    "severity": 1,
+    "bad": [],
+    "max_endurance": 0.7302578687667847
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  },
+  "PAIRS_foodEaten": {
+   "phase": "PAIRS_foodEaten",
+   "predicted": "every client level a server level of the push window (slack 0.8 s), a transition read",
+   "falsifier": "a client FOOD_EATEN no server read had",
+   "observed": {
+    "key": "foodEaten",
+    "client_reads": 5,
+    "nonzero": true,
+    "transitions": 1,
+    "mismatches": [],
+    "n_bad": 0,
+    "pair_slack_s": 0.8
+   },
+   "verdict": "as_predicted",
+   "wall": 171.672
+  }
+ },
+ "readings": {},
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "RCON additem Base.Broccoli x3"
+  ]
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "sandbox": {
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 1,
+    "NutritionRevamp.version": "1.0.0",
+    "SandboxVars.NR.Severity": 1,
+    "SandboxVars.StatsDecrease": 3,
+    "NutritionRevamp.server.nutrients.sleepDisabled": true
+   },
+   "clock": {
+    "worldAge": 3.1126174926757812,
+    "hour": 10,
+    "minutes": 6,
+    "mult": 4.540383815765381,
+    "trueMult": 1,
+    "wall": 53.269,
+    "wall_after": 53.781
+   },
+   "nutrition": {
+    "calories": -6.641728401184082,
+    "carbs": -300,
+    "lipids": -70,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.13544873893260956,
+    "thirst": 0.0027335684280842543,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "wall": 53.781,
+    "wall_after": 54.54,
+    "side": "server"
+   },
+   "stats_all": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.008610228076577187,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.13571719825267792,
+     "Idleness": 0.07624365389347076,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.95968246459961,
+     "Thirst": 0.0033183186315000057,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 54.54,
+    "user": "admin",
+    "worldAge": 3.1510915756225586,
+    "mult": 4.660974979400635,
+    "wall_after": 55.047
+   },
+   "probe": {
+    "ok": true,
+    "side": "server",
+    "containers": 0,
+    "thirst": 0.0038245846517384052,
+    "autoDrink": true,
+    "wall": 55.047,
+    "wall_after": 55.557
+   },
+   "const": {
+    "ok": true,
+    "hops": 2,
+    "value": "0.016499999910593033",
+    "wall": 55.557,
+    "wall_after": 55.809,
+    "side": "server"
+   },
+   "health": 100,
+   "pair": {
+    "tag": "S_pair",
+    "s0": {
+     "hunger": 0.13670127093791962,
+     "thirst": 0.005448473151773214,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 971.4938354492188,
+     "worldAge": 3.216672897338867,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.074,
+     "wall_after": 57.584,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0.13646230101585388,
+     "thirst": 0.004933082032948732,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 981.06298828125,
+     "worldAge": 3.2188148498535156,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.584,
+     "wall_after": 57.844,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0.13694146275520325,
+     "thirst": 0.0059652915224432945,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 966.6981811523438,
+     "worldAge": 3.2351741790771484,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.844,
+     "wall_after": 58.355,
+     "side": "server",
+     "raw": null
+    }
+   }
+  },
+  "H": {
+   "ring_paths": [
+    "stomach.buffer.water",
+    "stomach.buffer.proteins",
+    "stomach.buffer.carbs",
+    "stomach.buffer.lipids",
+    "stomach.buffer.fibre",
+    "stomach.buffer.calories",
+    "stomach.liquid",
+    "stomach.volX",
+    "stomachFill",
+    "satiety.M",
+    "effects.enduranceCap",
+    "effects.foodSickStep",
+    "drain.active",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.writer.h.admin.ft",
+    "_G.NutritionRevamp.server.writer.stats.writes"
+   ],
+   "h1_record": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 18,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "stomach.buffer.water": 0,
+     "stomach.buffer.proteins": 0,
+     "stomach.buffer.carbs": 0,
+     "stomach.buffer.lipids": 0,
+     "stomach.buffer.fibre": 0,
+     "stomach.buffer.calories": 0,
+     "stomach.liquid": 0,
+     "stomach.volX": 0,
+     "stomachFill": 0,
+     "satiety.M": 929.3288559827245,
+     "effects.enduranceCap": 1,
+     "effects.foodSickStep": 0,
+     "drain.active": false,
+     "firstSeen": 3.0340576171875,
+     "body.sex": 1,
+     "body.fm": 13.004999999999999,
+     "body.lm": 52.019999999999996,
+     "body.lx": 0
+    },
+    "wall": 58.356,
+    "wall_after": 58.864
+   },
+   "h1_globals": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 4,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.intake.stats.eats": 0,
+     "NutritionRevamp.server.intake.stats.landed": 0,
+     "NutritionRevamp.server.writer.h.admin.ft": 1000,
+     "NutritionRevamp.server.writer.stats.writes": 14
+    },
+    "wall": 58.864,
+    "wall_after": 59.622
+   },
+   "ring_start": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "stomach.buffer.water",
+     "stomach.buffer.proteins",
+     "stomach.buffer.carbs",
+     "stomach.buffer.lipids",
+     "stomach.buffer.fibre",
+     "stomach.buffer.calories",
+     "stomach.liquid",
+     "stomach.volX",
+     "stomachFill",
+     "satiety.M",
+     "effects.enduranceCap",
+     "effects.foodSickStep",
+     "drain.active",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed",
+     "_G.NutritionRevamp.server.writer.h.admin.ft",
+     "_G.NutritionRevamp.server.writer.stats.writes"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 17,
+     "missing": {},
+     "types": {},
+     "tables": {},
+     "values": {
+      "stomach.buffer.water": 0,
+      "stomach.buffer.proteins": 0,
+      "stomach.buffer.carbs": 0,
+      "stomach.buffer.lipids": 0,
+      "stomach.buffer.fibre": 0,
+      "stomach.buffer.calories": 0,
+      "stomach.liquid": 0,
+      "stomach.volX": 0,
+      "stomachFill": 0,
+      "satiety.M": 894.9272781983636,
+      "effects.enduranceCap": 1,
+      "effects.foodSickStep": 0,
+      "drain.active": false,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0,
+      "_G.NutritionRevamp.server.writer.h.admin.ft": 1000,
+      "_G.NutritionRevamp.server.writer.stats.writes": 15
+     }
+    },
+    "wall": 59.622,
+    "wall_after": 60.383
+   }
+  },
+  "F": {
+   "broccoli": {
+    "type": "Base.Broccoli",
+    "n": 3,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.Broccoli in admin's inventory",
+     "wall": 60.385
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 943441560,
+     "fullType": "Base.Broccoli",
+     "hungChange": -0.09000000357627869,
+     "hungerChange": -0.09000000357627869,
+     "baseHunger": -0.09000000357627869,
+     "calories": 11.020000457763672,
+     "uses": 0.09000000357627869,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 63.411
+    },
+    "leftover_before": false,
+    "confirmed": true
+   }
+  },
+  "SEED": {
+   "slow": {
+    "want": 0.05,
+    "reply": "mult=0.05000000074505806 eff=0.2390730381011963",
+    "trueMult": 0.05000000074505806,
+    "age": 3.3860321044921875,
+    "tag": "SEED_slow",
+    "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+    "ok": true
+   },
+   "before": {
+    "mass": 0,
+    "level": 0,
+    "values": {
+     "stomach.buffer.water": 0,
+     "stomach.buffer.proteins": 0,
+     "stomach.buffer.carbs": 0,
+     "stomach.buffer.lipids": 0,
+     "stomach.buffer.fibre": 0,
+     "stomach.buffer.calories": 0,
+     "stomach.liquid": 0
+    },
+    "age": 3.3913583755493164
+   },
+   "calories": {
+    "tag": "SEED_kcal",
+    "path": "stomach.buffer.calories",
+    "value": "2000.000",
+    "age": 3.3966856002807617,
+    "reply": {
+     "ok": true,
+     "before": 0,
+     "after": 2000,
+     "error": null
+    }
+   },
+   "water": {
+    "tag": "SEED_water",
+    "path": "stomach.buffer.water",
+    "value": "1085.000",
+    "age": 3.400019645690918,
+    "reply": {
+     "ok": true,
+     "before": 0,
+     "after": 1085,
+     "error": null
+    }
+   },
+   "after": {
+    "mass": 1082,
+    "level": 3,
+    "values": {
+     "stomach.buffer.water": 1081.6984295850284,
+     "stomach.buffer.proteins": 0,
+     "stomach.buffer.carbs": 0,
+     "stomach.buffer.lipids": 0,
+     "stomach.buffer.fibre": 0,
+     "stomach.buffer.calories": 1993.914155917103,
+     "stomach.liquid": 0
+    },
+    "age": 3.4046850204467773
+   }
+  },
+  "X": {
+   "eats": [
+    {
+     "label": "X_eat0",
+     "food": "Base.Broccoli",
+     "landed": true,
+     "before": {
+      "eats": 0,
+      "landed": 0,
+      "sips": 0
+     },
+     "age0": 3.4233665466308594,
+     "queued": true,
+     "spawned": "found",
+     "itemId": 943441560,
+     "validStart": true,
+     "maxTime": 232.00049781799316,
+     "moodleFoodEaten": 2,
+     "error": null,
+     "raw": null,
+     "after": {
+      "eats": 1,
+      "landed": 1,
+      "sips": 0
+     },
+     "eats_after": 1,
+     "landed_age": 3.4333724975585938,
+     "pre_level": 3,
+     "pre_mass": 1082,
+     "post_level": 4,
+     "post_mass": 1108
+    }
+   ],
+   "reads": [
+    {
+     "tag": "X_pre0",
+     "mass": 1082,
+     "level": 3,
+     "age": 3.4153623580932617,
+     "timer": 2772.423828125,
+     "endurance": 0.7310273051261902,
+     "end_moodle": 1,
+     "food_eaten": 2,
+     "since_gm": 0.920562744140625,
+     "settled": false,
+     "settled2": false,
+     "level_after": 3,
+     "level_bracket": 3
+    },
+    {
+     "tag": "X_trig",
+     "mass": 1108,
+     "level": 4,
+     "age": 3.4446678161621094,
+     "timer": 4379.65625,
+     "endurance": 0.7307562232017517,
+     "end_moodle": 1,
+     "food_eaten": 3,
+     "since_gm": 0.6777191162109375,
+     "settled": false,
+     "settled2": false,
+     "level_after": 4,
+     "level_bracket": 4,
+     "food_sick": 29.954774856567383,
+     "sick": 1
+    },
+    {
+     "tag": "X_hold0",
+     "mass": 1134,
+     "level": 4,
+     "age": 3.487307548522949,
+     "timer": 4393.06787109375,
+     "endurance": 0.7302578687667847,
+     "end_moodle": 1,
+     "food_eaten": 3,
+     "since_gm": 3.236103057861328,
+     "settled": true,
+     "settled2": true,
+     "level_after": 4,
+     "level_bracket": 4
+    },
+    {
+     "tag": "X_hold",
+     "mass": 1130,
+     "level": 4,
+     "age": 3.503298759460449,
+     "timer": 4394.24951171875,
+     "endurance": 0.7302138805389404,
+     "end_moodle": 1,
+     "food_eaten": 3,
+     "since_gm": 4.195575714111328,
+     "settled": true,
+     "settled2": true,
+     "level_after": 4,
+     "level_bracket": 4
+    }
+   ],
+   "timer_polls": [
+    {
+     "age": 3.434037208557129,
+     "timer": 4398.80419921875,
+     "wall": 101.197,
+     "foodEaten": 3
+    }
+   ],
+   "timer_poll": {
+    "done": true,
+    "polls": 1
+   },
+   "trigger": {
+    "tag": "X_trig",
+    "mass": 1108,
+    "level": 4,
+    "age": 3.4446678161621094,
+    "timer": 4379.65625,
+    "endurance": 0.7307562232017517,
+    "end_moodle": 1,
+    "food_eaten": 3,
+    "since_gm": 0.6777191162109375,
+    "settled": false,
+    "settled2": false,
+    "level_after": 4,
+    "level_bracket": 4,
+    "food_sick": 29.954774856567383,
+    "sick": 1
+   },
+   "trigger_pair": {
+    "tag": "X_trig_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.730883002281189,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4376.2744140625,
+     "worldAge": 3.4633188247680664,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.371,
+     "wall_after": 123.631,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7308117151260376,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 4378.19091796875,
+     "worldAge": 3.609628677368164,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.631,
+     "wall_after": 123.889,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7310613989830017,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4371.482421875,
+     "worldAge": 3.4659852981567383,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.889,
+     "wall_after": 125.65,
+     "side": "server",
+     "raw": null
+    }
+   },
+   "refusal": {
+    "pre_level": 4,
+    "mass0": 1108,
+    "timer0": 4379.65625,
+    "settled": false,
+    "food_eaten0": 3,
+    "level_at_attempt": 4,
+    "mass_at_attempt": 1104,
+    "queued": true,
+    "spawned": "found",
+    "validStart": false,
+    "moodleFoodEaten": 3,
+    "maxTime": 232.00060844421387,
+    "landed": true,
+    "mass1": 1134
+   },
+   "cancel": {
+    "ok": true,
+    "started": false,
+    "before": 0,
+    "adding": false,
+    "stopped": true,
+    "javaBefore": 0,
+    "cleared": true,
+    "after": 0,
+    "javaAfter": 0,
+    "wall": 135.646,
+    "wall_after": 135.905,
+    "side": "client"
+   },
+   "hold": {
+    "tag": "X_hold0",
+    "mass": 1134,
+    "level": 4,
+    "age": 3.487307548522949,
+    "timer": 4393.06787109375,
+    "endurance": 0.7302578687667847,
+    "end_moodle": 1,
+    "food_eaten": 3,
+    "since_gm": 3.236103057861328,
+    "settled": true,
+    "settled2": true,
+    "level_after": 4,
+    "level_bracket": 4
+   }
+  },
+  "cancel_end": {
+   "ok": true,
+   "started": false,
+   "before": 0,
+   "adding": false,
+   "stopped": true,
+   "javaBefore": 0,
+   "cleared": true,
+   "after": 0,
+   "javaAfter": 0,
+   "wall": 159.619,
+   "wall_after": 159.88,
+   "side": "client"
+  },
+  "restore": {
+   "restore_to": 1,
+   "set": {
+    "want": 1,
+    "rcon_ok": true,
+    "trueMult": 1,
+    "mult": 4.798121929168701,
+    "age": 3.5170230865478516,
+    "wall": 159.904,
+    "tag": "C_restore",
+    "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+    "ok": true
+   },
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "trueMult_after": 1,
+   "ok": true
+  },
+  "R": {
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "from": 1,
+      "rows": 16,
+      "skipped": 0,
+      "next": 17,
+      "more": false,
+      "oldest": 1,
+      "newest": 16,
+      "recorded": 16,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "result": "minute-ring-admin-1"
+     },
+     "doc_rows": 16,
+     "file": "minute-ring-admin-1.json"
+    }
+   ],
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 17,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 161.446,
+    "wall_after": 161.703
+   }
+  },
+  "pairs": [
+   {
+    "tag": "S_pair",
+    "s0": {
+     "hunger": 0.13670127093791962,
+     "thirst": 0.005448473151773214,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 971.4938354492188,
+     "worldAge": 3.216672897338867,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.074,
+     "wall_after": 57.584,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0.13646230101585388,
+     "thirst": 0.004933082032948732,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 981.06298828125,
+     "worldAge": 3.2188148498535156,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.584,
+     "wall_after": 57.844,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0.13694146275520325,
+     "thirst": 0.0059652915224432945,
+     "endurance": 1,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 966.6981811523438,
+     "worldAge": 3.2351741790771484,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 1,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 57.844,
+     "wall_after": 58.355,
+     "side": "server",
+     "raw": null
+    }
+   },
+   {
+    "tag": "X_pre0_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7308487296104431,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 2777.218505859375,
+     "worldAge": 3.41269588470459,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 2,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 83.573,
+     "wall_after": 85.586,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7307772040367126,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 2779.137451171875,
+     "worldAge": 3.611736297607422,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 2,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 85.587,
+     "wall_after": 85.843,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7310273051261902,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 2772.423828125,
+     "worldAge": 3.4153623580932617,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 2,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 85.843,
+     "wall_after": 87.604,
+     "side": "server",
+     "raw": null
+    }
+   },
+   {
+    "tag": "X_trig_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7305780053138733,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4384.447265625,
+     "worldAge": 3.4420061111450195,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 105.728,
+     "wall_after": 107.742,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7305958271026611,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 4383.96728515625,
+     "worldAge": 3.452181816101074,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 107.742,
+     "wall_after": 108.252,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7307562232017517,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4379.65625,
+     "worldAge": 3.4446678161621094,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 108.252,
+     "wall_after": 109.766,
+     "side": "server",
+     "raw": null
+    }
+   },
+   {
+    "tag": "X_trig_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.730883002281189,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4376.2744140625,
+     "worldAge": 3.4633188247680664,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.371,
+     "wall_after": 123.631,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7308117151260376,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 4378.19091796875,
+     "worldAge": 3.609628677368164,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.631,
+     "wall_after": 123.889,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7310613989830017,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4371.482421875,
+     "worldAge": 3.4659852981567383,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 123.889,
+     "wall_after": 125.65,
+     "side": "server",
+     "raw": null
+    }
+   },
+   {
+    "tag": "X_hold0_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7300800681114197,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4397.8505859375,
+     "worldAge": 3.4846506118774414,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 138.68,
+     "wall_after": 139.692,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7300090193748474,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 4399.75830078125,
+     "worldAge": 3.524564743041992,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 139.692,
+     "wall_after": 139.953,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7302578687667847,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4393.06787109375,
+     "worldAge": 3.487307548522949,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 139.953,
+     "wall_after": 141.717,
+     "side": "server",
+     "raw": null
+    }
+   },
+   {
+    "tag": "X_hold_pair",
+    "s0": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.730035662651062,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4399.041015625,
+     "worldAge": 3.500636100769043,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 151.283,
+     "wall_after": 151.542,
+     "side": "server",
+     "raw": null
+    },
+    "c": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7310788631439209,
+     "fatigue": 0,
+     "weight": 65.0250015258789,
+     "foodTimer": 4371.01708984375,
+     "worldAge": 3.591207504272461,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 151.542,
+     "wall_after": 151.801,
+     "side": "client",
+     "raw": null
+    },
+    "s1": {
+     "hunger": 0,
+     "thirst": 0,
+     "endurance": 0.7302138805389404,
+     "fatigue": 0,
+     "weight": 65.02499999999999,
+     "foodTimer": 4394.24951171875,
+     "worldAge": 3.503298759460449,
+     "asleep": false,
+     "moving": false,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 3,
+      "heavyLoad": 0,
+      "endurance": 1
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "wall": 151.801,
+     "wall_after": 153.568,
+     "side": "server",
+     "raw": null
+    }
+   }
+  ]
+ },
+ "speeds": [
+  {
+   "want": 0.05,
+   "reply": "mult=0.05000000074505806 eff=0.2390730381011963",
+   "trueMult": 0.05000000074505806,
+   "age": 3.3860321044921875,
+   "tag": "SEED_slow",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "ok": true
+  },
+  {
+   "want": 1,
+   "rcon_ok": true,
+   "trueMult": 1,
+   "mult": 4.798121929168701,
+   "age": 3.5170230865478516,
+   "wall": 159.904,
+   "tag": "C_restore",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "ok": true
+  }
+ ],
+ "sets": [
+  {
+   "tag": "SEED_kcal",
+   "path": "stomach.buffer.calories",
+   "value": "2000.000",
+   "age": 3.3966856002807617,
+   "reply": {
+    "ok": true,
+    "before": 0,
+    "after": 2000,
+    "error": null
+   }
+  },
+  {
+   "tag": "SEED_water",
+   "path": "stomach.buffer.water",
+   "value": "1085.000",
+   "age": 3.400019645690918,
+   "reply": {
+    "ok": true,
+    "before": 0,
+    "after": 1085,
+    "error": null
+   }
+  }
+ ],
+ "constants_x45h": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "LIB_FILE": "x45h_lib.py",
+  "SLOW_MULT_B": 0.05,
+  "SEED_G_B": 1085.0,
+  "SEED_MIN_G": 1070.0,
+  "SPAWN_B": 3,
+  "TIMER_POLL_S": 0.5,
+  "TIMER_CAP_S": 60.0,
+  "HOLD_GM_B": 3.5,
+  "PAIR_SLACK_B": 0.8
+ },
+ "lib_x45h": "x45h_lib.py",
+ "run_id": "x453b-20261017-080807",
+ "session_key": "x453b",
+ "session": "Plan 15 Task 11 x453b: one broccoli from a stomach seeded at 1085 g at a 0.05 multiplier, the refusal timer, a refused eat, the nausea and the endurance ceiling at Overfull 4; one boot of x45g-mod",
+ "driver": "x453b_overfull.py",
+ "lib": "x45h_lib.py",
+ "user": "admin",
+ "profile": {
+  "name": "x45g-mod",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x45g-mod.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp copy (release/plan15-x45g), fixture default, admin (debug), Nutrition off, DayLength 1, sleep off, build 42.21.0 - x452-x457, Plan 15 Task 11: the game-feel sessions.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\plan15-x45g\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "key": true,
+  "prefix": true,
+  "profile": true,
+  "driver_file": true,
+  "no_prior_artifact": true,
+  "profile_checks": {
+   "named_profile": true,
+   "header_names_file": true,
+   "fixture_default": true,
+   "one_admin_client": true,
+   "sleep_off": true,
+   "mods_staged": true,
+   "nutrition_false": true,
+   "day_length": true,
+   "verify_version": true
+  },
+  "harness_markers": true,
+  "harness_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"minute.ring\", function(": true,
+    "TK.register(\"stats.get\", function(": true,
+    "TK.register(\"stats.all\", function(": true,
+    "TK.register(\"stats.setany\", function(": true,
+    "TK.register(\"health.get\", function(": true,
+    "TK.register(\"health.reduce\", function(": true,
+    "TK.register(\"moodle.level\", function(": true,
+    "TK.register(\"witness.chain\", function(": true,
+    "TK.register(\"record.set\", function(": true,
+    "TK.register(\"trait.set\", function(": true,
+    "TK.register(\"bodypart.set\", function(": true,
+    "TK.register(\"item.get\", function(": true,
+    "TK.register(\"autodrink.probe\", function(": true,
+    "TK.register(\"nutrition.get\", function(": true,
+    "TK.register(\"time.multiplier\", function(": true,
+    "TK.register(\"players\", function(": true,
+    "TK.register(\"fluid.fill\", function(": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"eat.action\", function(": true,
+    "TK.register(\"drink.action\", function(": true,
+    "TK.register(\"witness.chain\", function(": true,
+    "TK.register(\"action.cancel\", function(": true
+   },
+   "PZTestKit_Client_Body.lua": {
+    "TK.register(\"stats.get\", function(": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"time.snapshot\", function(": true,
+    "TK.register(\"lua.read\", function(": true,
+    "TK.register(\"lua.global\", function(": true,
+    "TK.register(\"lua.call\", function(": true
+   }
+  }
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "commit": "457c7adc",
+ "harness_lua_commit": "9e9f2b06",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "457c7adc",
+ "model_commit": "82538401",
+ "replay_tool_commit": "94b62363",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "constants": {
+  "HERE": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments",
+  "SRV": "server",
+  "CLI": "client",
+  "LIB_FILE": "x45h_lib.py",
+  "NR": "NutritionRevamp",
+  "USER": "admin",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "PROFILE": "x45g-mod",
+  "STAGE_OUT": "release/plan15-x45g",
+  "STAGE_ROOT": "release/plan15-x45g/NutritionRevamp",
+  "STAGE_MOD": "release/plan15-x45g/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "a97fec05",
+  "STAGED_CORE": "common/media/lua/shared/NR_Core.lua",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "MIN_FREE_GB": 12.0,
+  "MOD_DAY_LENGTH": 1,
+  "DAY_MIN": 15.0,
+  "SESSIONS": {
+   "x452": {
+    "driver": "x452_day.py",
+    "artifact": "day.json"
+   },
+   "x453": {
+    "driver": "x453_overfull.py",
+    "artifact": "overfull.json"
+   },
+   "x454": {
+    "driver": "x454_starve.py",
+    "artifact": "starve.json"
+   },
+   "x455": {
+    "driver": "x455_bleed.py",
+    "artifact": "bleed.json"
+   },
+   "x456": {
+    "driver": "x456_water.py",
+    "artifact": "water.json"
+   },
+   "x457": {
+    "driver": "x457_thirst.py",
+    "artifact": "thirst.json"
+   },
+   "x453b": {
+    "driver": "x453b_overfull.py",
+    "artifact": "overfull.json"
+   }
+  },
+  "HOUR_OFFSET": 7.0,
+  "SPEED_FAST": 5,
+  "SLOW_MULT": 0.2,
+  "LEAD_H": 0.05,
+  "POLL_S": 0.25,
+  "EAT_CAP_S": 30.0,
+  "SPEED_UNIT": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+  "HUNGRY_AT": [
+   0.15,
+   0.25,
+   0.45,
+   0.7
+  ],
+  "THIRST_4": 0.84,
+  "HUNGER_CAP": 0.69,
+  "THIRST_CAP": 0.83,
+  "STARVING_MIN": 0.71,
+  "CAP_EPS": 1e-06,
+  "FED_M": 3.80654,
+  "WELL_FED_M": 435.0,
+  "TIMER_REFUSE": 3200.0,
+  "CAPACITY_MAX_G": 730.0,
+  "CAPACITY_HARD_G": 1100.0,
+  "OVERFULL_AT": [
+   33.333333333333336,
+   66.66666666666667,
+   100.0
+  ],
+  "END_CAP": 0.73,
+  "SEVERITY_MIN": 0.5,
+  "FOOD_SICK_STEP": 30.0,
+  "CONST_DEFAULT": 0.0165,
+  "M_H": 1800.0,
+  "WOUND_X451": 5.963110742769263,
+  "STARVE_ONSET_H": 30.0,
+  "STARVE_RATE": 25.0,
+  "FIRST_FLOOR": 50.0,
+  "DEHYD_ONSET_PCT": 4.0,
+  "DEHYD_RATE": 200.0,
+  "BASAL_G": 2000.0,
+  "BASAL_G_PER_LM": 32.0,
+  "AVG_LEAN": 52.02,
+  "WATER_PER_MMOL": 7.142857142857143,
+  "BASAL_NA": 8.0,
+  "COLD_DIURESIS_LH": 0.1,
+  "TRAIT_SCALE": {
+   "BASE": 1.0,
+   "HIGH": 1.5,
+   "OFF": 1.0,
+   "LOW": 0.5
+  },
+  "STATS_DECREASE_ONE": 3,
+  "SPEC_H": 35.0,
+  "BOLOGNESE": "Base.CannedBologneseOpen",
+  "BANANA": "Base.Banana",
+  "BROCCOLI": "Base.Broccoli",
+  "FOODS": {
+   "Base.CannedBologneseOpen": {
+    "cal": 540.0,
+    "carb": 61.83,
+    "lip": 22.19,
+    "pro": 23.6,
+    "hunger_script": -24.0,
+    "foodType": "Meat"
+   },
+   "Base.Banana": {
+    "cal": 105.11,
+    "carb": 26.97,
+    "lip": 0.39,
+    "pro": 1.29,
+    "hunger_script": -16.0,
+    "foodType": "Fruits"
+   },
+   "Base.Broccoli": {
+    "cal": 11.02,
+    "carb": 2.15,
+    "lip": 0.12,
+    "pro": 0.91,
+    "hunger_script": -9.0,
+    "foodType": "Vegetables"
+   }
+  },
+  "VANILLA_EAT": {
+   "Base.CannedBologneseOpen": [
+    -0.24,
+    540.0
+   ],
+   "Base.Banana": [
+    -0.16,
+    105.0
+   ]
+  },
+  "DRINKS": [
+   "Base.WaterBottle",
+   "Base.Canteen",
+   "Base.Sportsbottle"
+  ],
+  "DRINK_FLUID": "Water",
+  "DRINK_L": 0.5,
+  "DRINK_AFTER_H": 2.5,
+  "DRINK_CAP_S": 40.0,
+  "EAT_CAN_GM": 9,
+  "EAT_BAN_GM": 16,
+  "FAST_SKIP_GH": 0.35,
+  "SETTLE_POLLS": 3,
+  "EATS_G": "_G.NutritionRevamp.server.intake.stats.eats",
+  "LANDED_G": "_G.NutritionRevamp.server.intake.stats.landed",
+  "SIPS_G": "_G.NutritionRevamp.server.intake.stats.sips",
+  "INTAKE_PATHS": [
+   "NutritionRevamp.server.intake.stats.eats",
+   "NutritionRevamp.server.intake.stats.landed",
+   "NutritionRevamp.server.intake.stats.sips"
+  ],
+  "RED_G": "_G.NutritionRevamp.server.writer.h.admin.red",
+  "FT_G": "_G.NutritionRevamp.server.writer.h.admin.ft",
+  "WRITES_G": "_G.NutritionRevamp.server.writer.stats.writes",
+  "REAPPLIED_G": "_G.NutritionRevamp.server.writer.severeStats.reapplied",
+  "SCALE_PATH": "NutritionRevamp.server.nutrients.fctx.basalScale",
+  "SCALE_G": "_G.NutritionRevamp.server.nutrients.fctx.basalScale",
+  "FLUSH_PATHS": [
+   "NutritionRevamp.server.players.online.admin",
+   "NutritionRevamp.server.store.file.lastWrite.admin"
+  ],
+  "STOMACH_PATHS": [
+   "stomach.buffer.water",
+   "stomach.buffer.proteins",
+   "stomach.buffer.carbs",
+   "stomach.buffer.lipids",
+   "stomach.buffer.fibre",
+   "stomach.buffer.calories",
+   "stomach.liquid"
+  ],
+  "DRAIN_PATHS": [
+   "drain.active",
+   "drain.state",
+   "drain.targetFloor",
+   "drain.rate"
+  ],
+  "RING": {
+   "x452": [
+    "satiety.M",
+    "satiety.S",
+    "satiety.L",
+    "satiety.t",
+    "satiety.hModel",
+    "stomachFill",
+    "stomach.liquid",
+    "body.energyState",
+    "body.met",
+    "body.fm",
+    "body.lm",
+    "body.inDay",
+    "body.eeDay",
+    "kineticsAge",
+    "fluids.water",
+    "fluids.na",
+    "fluids.naPlasma",
+    "fluids.autoDrop",
+    "fluids.thirstTarget",
+    "fluids.dehydPct",
+    "drain.active",
+    "drain.dehydrated",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.intake.stats.sips",
+    "_G.NutritionRevamp.server.writer.stats.writes",
+    "_G.NutritionRevamp.server.writer.h.admin.ft",
+    "_G.NutritionRevamp.server.writer.h.admin.red"
+   ],
+   "x453": [
+    "stomach.buffer.water",
+    "stomach.buffer.proteins",
+    "stomach.buffer.carbs",
+    "stomach.buffer.lipids",
+    "stomach.buffer.fibre",
+    "stomach.buffer.calories",
+    "stomach.liquid",
+    "stomach.volX",
+    "stomachFill",
+    "satiety.M",
+    "effects.enduranceCap",
+    "effects.foodSickStep",
+    "drain.active",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.writer.h.admin.ft",
+    "_G.NutritionRevamp.server.writer.stats.writes"
+   ],
+   "x454": [
+    "satiety.M",
+    "drain.fedAgeH",
+    "drain.starvedH",
+    "drain.acuteH",
+    "drain.starveAcute",
+    "drain.starving",
+    "drain.bmi0",
+    "drain.drainThisMinute",
+    "drain.active",
+    "drain.state",
+    "drain.targetFloor",
+    "drain.rate",
+    "body.fm",
+    "body.lm",
+    "stomachFill",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.writer.h.admin.red",
+    "_G.NutritionRevamp.server.writer.severeStats.reapplied",
+    "_G.NutritionRevamp.server.writer.h.admin.ft"
+   ],
+   "x455": [
+    "satiety.M",
+    "drain.fedAgeH",
+    "drain.starvedH",
+    "drain.starveAcute",
+    "drain.starving",
+    "drain.active",
+    "drain.state",
+    "drain.targetFloor",
+    "drain.rate",
+    "effects.foodSickTarget",
+    "_G.NutritionRevamp.server.intake.stats.eats",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.writer.h.admin.red",
+    "_G.NutritionRevamp.server.writer.severeStats.reapplied"
+   ],
+   "x456": [
+    "fluids.water",
+    "fluids.dehydPct",
+    "fluids.thirstTarget",
+    "fluids.na",
+    "fluids.k",
+    "fluids.sweatLmin",
+    "fluids.autoDrop",
+    "drain.dehydrated",
+    "drain.active",
+    "drain.state",
+    "drain.targetFloor",
+    "drain.rate",
+    "body.fm",
+    "body.lm",
+    "body.lx",
+    "body.met",
+    "body.coldMult",
+    "stomach.liquid",
+    "stomach.buffer.water",
+    "_G.NutritionRevamp.server.writer.h.admin.red",
+    "_G.NutritionRevamp.server.writer.severeStats.reapplied",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.intake.stats.sips",
+    "_G.NutritionRevamp.server.nutrients.fctx.basalScale"
+   ],
+   "x457": [
+    "fluids.water",
+    "fluids.dehydPct",
+    "fluids.sweatLmin",
+    "fluids.autoDrop",
+    "body.lm",
+    "body.met",
+    "body.coldMult",
+    "stomach.liquid",
+    "stomach.buffer.water",
+    "_G.NutritionRevamp.server.nutrients.fctx.basalScale",
+    "_G.NutritionRevamp.server.intake.stats.landed",
+    "_G.NutritionRevamp.server.intake.stats.sips"
+   ]
+  },
+  "H1_EXTRA": [
+   "firstSeen",
+   "body.sex",
+   "body.fm",
+   "body.lm",
+   "body.lx"
+  ],
+  "STATS_KEYS": [
+   "hunger",
+   "thirst",
+   "endurance",
+   "fatigue",
+   "weight",
+   "foodTimer",
+   "worldAge",
+   "asleep",
+   "moving"
+  ],
+  "STAT_NAMES": {
+   "HUNGER": "Hunger",
+   "THIRST": "Thirst",
+   "FATIGUE": "Fatigue",
+   "BOREDOM": "Boredom",
+   "UNHAPPINESS": "Unhappiness",
+   "NICOTINE_WITHDRAWAL": "NicotineWithdrawal"
+  },
+  "PUSH_S": 1.2,
+  "TRANSITION_S": 3.0,
+  "PAIR_SLACK_S": 0.3,
+  "PAIR_MIN": 5,
+  "REPLAY_TOL": {
+   "HUNGER": [
+    "abs",
+    0.002
+   ],
+   "body.energyState": [
+    "abs",
+    0.005
+   ],
+   "THIRST": [
+    "abs",
+    0.002
+   ]
+  },
+  "SAVE_CAP_S": 60.0,
+  "LUNCH_HOUR": 12.5,
+  "MIN_LEAD_H": 0.1,
+  "DINNER_GAP_H": 6.0,
+  "BREAKFAST_GAP_H": 13.0,
+  "TAIL_H": 5.0,
+  "MEAL": [
+   "Base.CannedBologneseOpen",
+   "Base.Banana"
+  ],
+  "WF_WATCH1_GH": 0.65,
+  "WF_WATCH_GH": 0.1,
+  "PAIR_EVERY_S": 1.5,
+  "FAST_PAIR_EVERY_S": 4.0,
+  "EAT0_TOL": 0.02,
+  "EAT0_ROWS": 3,
+  "CAD_P_TARGETS": {
+   "lunch": 3.533,
+   "dinner": 3.583,
+   "breakfast": 4.033
+  },
+  "CAD_P_TOL": 0.5,
+  "CAD_H_TARGET": 9.55,
+  "CAD_H_TOL": 0.75,
+  "WF_SHOW_GM": 3.0,
+  "WF_END_TOL_GM": 2.0,
+  "SPAWN_BANANAS": 4,
+  "T9_ITEM": "Base.Banana",
+  "SPAWN_N": 12,
+  "SEED_G": 960.0,
+  "SEED_KCAL": 2000.0,
+  "MAX_EATS": 10,
+  "SETTLE_GM": 1.5,
+  "SETTLE_WALL_S": 1.5,
+  "REFUSE_WAIT_S": 8.0,
+  "REFUSE_MASS_TOL": 10.0,
+  "HOLD_GM": 3.0,
+  "NAUSEA_TOL": 0.5,
+  "END_TOL": 0.005,
+  "ONSET_LEAD_H": 0.25,
+  "ONSET_CAP_S": 45.0,
+  "ONSET_TOL_H": 0.05,
+  "ONSET_SHOW_GM": 3.0,
+  "HEALTH_SEED": 55.0,
+  "DRAIN_CAP_GH": 9.0,
+  "FLOOR_HOLD_GH": 1.5,
+  "FLOOR_TOL": 0.3,
+  "FLOOR_REACH": 0.2,
+  "DRAIN_TOL_REL": 0.15,
+  "DRAIN_MIN_GH": 1.0,
+  "POINT_EVERY_S": 0.5,
+  "RECOVER_GH": 2.0,
+  "RECOVER_MIN": 0.5,
+  "RECOVER_SHOW_GM": 2.0,
+  "WIN_S": 10.0,
+  "SETTLE_S": 1.5,
+  "BLEED_PARTS": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "BLEED_TIME": 5.0,
+  "FOOD_SICK_W": 95.0,
+  "N_TOL_REL": 0.25,
+  "REGEN_STANDARD": 0.002,
+  "BLEED_WEIGHT": 0.6,
+  "PARTS": 17,
+  "S_TOL_REL": 0.15,
+  "SICK_TOL_REL": 0.2,
+  "DEHYD_SEED_PCT": 3.8,
+  "DEHYD_CAP_GH": 4.0,
+  "DEHYD_NEAR_PCT": 3.97,
+  "DEHYD_FLOOR_TOL": 0.5,
+  "BASAL_TOL_REL": 0.03,
+  "PACE_TOL_H": 1.0,
+  "STOMACH_EMPTY_G": 1.0,
+  "WIN_GH": 3.0,
+  "ARM_SETTLE_GM": 3.0,
+  "LOSS_TOL_REL": 0.03,
+  "RATIO_TOL": {
+   "HIGH": 0.05,
+   "OFF": 0.03,
+   "LOW": 0.03
+  },
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Client_Body.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client_Body.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(",
+    "TK.register(\"stats.get\", function(",
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"stats.setany\", function(",
+    "TK.register(\"health.get\", function(",
+    "TK.register(\"health.reduce\", function(",
+    "TK.register(\"moodle.level\", function(",
+    "TK.register(\"witness.chain\", function(",
+    "TK.register(\"record.set\", function(",
+    "TK.register(\"trait.set\", function(",
+    "TK.register(\"bodypart.set\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"autodrink.probe\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"time.multiplier\", function(",
+    "TK.register(\"players\", function(",
+    "TK.register(\"fluid.fill\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"eat.action\", function(",
+    "TK.register(\"drink.action\", function(",
+    "TK.register(\"witness.chain\", function(",
+    "TK.register(\"action.cancel\", function("
+   ],
+   "PZTestKit_Client_Body.lua": [
+    "TK.register(\"stats.get\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"lua.global\", function(",
+    "TK.register(\"lua.call\", function("
+   ]
+  },
+  "ECHO_RX": "PZTK: ",
+  "NEVER_RX": "(?!x)x",
+  "LOG_RX": "NutritionRevamp|NR_|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil",
+  "HYDRATED_END_TOL_H": 0.1
+ },
+ "predictions": {
+  "OF_REACH": "the broccoli lands from Overfull 3 and the trigger read shows Overfull 4",
+  "OF_REFUSE": "validStart false, no landing in 8 s, the stomach no heavier (still Overfull 4 at the attempt)",
+  "OF_EARLY": "the eat at Overfull 3 not refused",
+  "OF_TIMER": "timer > 3200 on every settled bracketed Overfull 4 read",
+  "OF_NAUSEA": "FOOD_SICKNESS >= 29.5 and SICK >= 1 at the trigger read",
+  "OF_ENDURANCE": "ENDURANCE <= 0.735 and the endurance moodle >= 1 at Overfull 3-4",
+  "PAIRS_foodEaten": "every client level a server level of the push window (slack 0.8 s), a transition read",
+  "H1": "every ring path resolved",
+  "RING": "every page read, errors 0",
+  "Z": "no mod error line, admin not parked"
+ },
+ "meta": {
+  "budget_s": 360.0,
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client_Body.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client_Body.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "manifest_gate": {
+  "commit": "a97fec05",
+  "staged_manifest": "release/plan15-x45g/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/plan15-x45g/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "commit_full": "a97fec05659bd28064c0e57b12b891d1b854d5b2",
+  "mod_commit": "a97fec05",
+  "staged_manifest_sha256": "d925b18bfa6c3cb1990105a3517abe1492a249bcf6a967a34a0271876f341bdf",
+  "files": 77,
+  "staged_equals_commit": true,
+  "staged_tree_equals_commit": true,
+  "staged_version": "1.0.0",
+  "ok": true,
+  "verify_rows_match": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.374,
+   "free_gb": 16.21
+  },
+  {
+   "tag": "ready",
+   "wall": 52.248,
+   "free_gb": 2.75
+  },
+  {
+   "tag": "after",
+   "wall": 171.675,
+   "free_gb": 16.43
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 1.799,
+ "server_started_wall": 16.228,
+ "session_ready_wall": 50.96,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 16.2,
+   "phase": "server_started"
+  },
+  {
+   "t": 16.3,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 51.0,
+   "phase": "client_ready",
+   "took": 34.4,
+   "user": "admin"
+  },
+  {
+   "t": 51.0,
+   "phase": "session_ready"
+  },
+  {
+   "t": 51.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 52.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 60.9,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Broccoli\" 3",
+   "ok": true
+  },
+  {
+   "t": 159.9,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 163.9,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 171.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "H1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "RING",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_REACH",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_REFUSE",
+   "verdict": "falsified"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_EARLY",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_TIMER",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_NAUSEA",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "OF_ENDURANCE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 171.7,
+   "phase": "verdict",
+   "name": "PAIRS_foodEaten",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "spawns": [
+  {
+   "type": "Base.Broccoli",
+   "n": 3,
+   "before": {
+    "id": null,
+    "fullType": null,
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": null,
+    "age": null,
+    "error": null,
+    "raw": "no item Base.Broccoli in admin's inventory",
+    "wall": 60.385
+   },
+   "additem": {
+    "ok": true,
+    "reply": ""
+   },
+   "after": {
+    "id": 943441560,
+    "fullType": "Base.Broccoli",
+    "hungChange": -0.09000000357627869,
+    "hungerChange": -0.09000000357627869,
+    "baseHunger": -0.09000000357627869,
+    "calories": 11.020000457763672,
+    "uses": 0.09000000357627869,
+    "age": 0,
+    "error": null,
+    "raw": null,
+    "wall": 63.411
+   },
+   "leftover_before": false,
+   "confirmed": true
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 32.4,
+   "ready": 34.4
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|NR_|LuaError|STACK TRACE|lua error|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,581,633,974> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:2,581,633,977> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:2,581,633,977> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:2,581,633,977> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:2,581,633,978> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,581,642,965> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,581,642,965> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,581,642,973> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,581,642,973> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,581,642,973> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:2,581,642,973> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:2,581,643,069> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,581,646,129> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:2,581,646,129> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+   "LOG  : Lua          f:0 st:2,581,646,129> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=15 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:2,581,646,132> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:327 st:2,581,680,153> [NutritionRevamp] players: first sight of admin",
+   "LOG  : Lua          f:1450 st:2,581,792,423> [NutritionRevamp] players: admin left"
+  ],
+  "server_echo_excluded": 10,
+  "mod_error": [],
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x453b-20261017-080807\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "ring_rows": 16,
+ "verdict_summary": {
+  "H1": "as_predicted",
+  "RING": "as_predicted",
+  "Z": "as_predicted",
+  "OF_REACH": "as_predicted",
+  "OF_REFUSE": "falsified",
+  "OF_EARLY": "as_predicted",
+  "OF_TIMER": "as_predicted",
+  "OF_NAUSEA": "as_predicted",
+  "OF_ENDURANCE": "as_predicted",
+  "PAIRS_foodEaten": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json",
+  "minute-ring-admin-1.json"
+ ],
+ "wall_seconds": 171.7
+}

@@ -22277,3 +22277,10 @@ x455-20261017-073633,verdicts.S_BLEED.observed.starve_per_gh,1.0416666666666667,
 x455-20261017-073633,verdicts.S_BLEED.observed.tol_per_gh,4.454999975860119,"The driver's tolerance, not a reading.",`checks.windows.N` and `checks.windows.SB`
 x455-regrade-20261017,verdicts.SB_ABS.observed.predicted_per_gh,36.70477724850338,"The prediction's arithmetic, not a reading.",`verdicts.SB_ABS.observed.rate_per_gh`
 x455-regrade-20261017,verdicts.SB_ABS.observed.terms,the prediction's terms,"The prediction's arithmetic (x451's wound term transferred, an inference), not readings of x455.",`verdicts.SB_ABS.observed.rate_per_gh`
+x453b-20261017-080807,session,the driver's text,Written before the run; not a reading.,
+x453b-20261017-080807,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x453b-20261017-080807,constants,the frozen lib's constants,The driver's settings; not a reading.,`constants_x45h`
+x453b-20261017-080807,memory,host free memory rows,"Host state, not a game reading.",
+x453b-20261017-080807,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x453b-20261017-080807,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x453b-20261017-080807,verdicts.OF_REFUSE.verdict,falsified,"The harness queues the eat whatever isValidStart answers; the verdict is not a reading of the menu's refusal.",`checks.X.refusal`
