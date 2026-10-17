@@ -89,6 +89,8 @@ RUN = {
     # Plan 15 Task 11: the game-feel sessions, on the staged copy of mod/ at a97fec05 (the mod's tree at this build)
     "x452": "x452-20261017-071527", "x453b": "x453b-20261017-080807", "x454": "x454-20261017-073220",
     "x455": "x455-20261017-073633", "x456": "x456-20261017-074015", "x457": "x457-20261017-074403",
+    # Plan 15 Task 14b: x452's day on the staged copy of mod/ at 390636fe (the liquid lane and the curve's re-fit)
+    "x452b": "x452b-20261017-153935",
 }
 
 MAP_CHARTS = {
@@ -238,16 +240,13 @@ DROPPED = {
     "ST2-m-live-plasma": "G8: the HEAD replays of x281-x284 hold the sodium balance exactly but miss plasma sodium by "
                          "up to 1.44 mmol/L against 0.01",
     "SH1-m-live": "G8: x361's HEAD replay misses its HUNGER by 0.088 against 0.002 (the calibrated hunger writer, "
-                  "Plan 15 Task 6); x452b is to measure the hunger cadence on this build (SH3)",
+                  "Plan 15 Task 6); x452b measures the hunger cadence on this build (SH3)",
     # Plan 15 Task 14b: the liquid lane slowed only by drink-borne kcal and the hunger curve's re-fit
     "SE1-m-live-liquid": "G8: x363's HEAD replay misses its liquid lane by 2.50 g against 2.0 (and its fill by 0.0034 "
                          "against 0.002): the run's water emptied beside its meal at the old lane's pace, slowed by "
                          "the meal's kcal (Plan 15 Task 14b)",
     "SE1-m-live-fill": "G8: x363's HEAD replay misses its fill by 0.0034 against 0.002 (the liquid lane slowed only by "
                        "drink-borne kcal, Plan 15 Task 14b)",
-    "SH3-m-live": "G8: superseded by x452b pending: x452's HEAD replay misses its HUNGER by 0.021 against 0.002 (the "
-                  "liquid lane slowed only by drink-borne kcal and the hunger curve's re-fit, Plan 15 Task 14b)",
-    "SH3-m-live-hungry": "G8: superseded by x452b pending (SH3-m-live)",
     "S1c-m-live": "G8: x446's HEAD replay misses its THIRST by 0.33 against 0.002 (the water base by lean mass, Plan 15 "
                   "Task 3)",
     "SD1-m-live": "G8: x161b read the Plan 5 scurvy drain, 100 health over 168 game hours; Plan 15 Task 4's engine "
@@ -634,6 +633,7 @@ SRC_SODIUM = "named here, a game choice (x28 graded no sodium bound): 1e-6 mmol,
 SRC_PLASMA = "named here, a game choice (x28 graded no plasma bound): 0.01 mmol/L, the precision #3688 states it to"
 SRC_M1 = "the run's own: x44_guide_lib.REPLAY_TOL (THIRST 0.002), its M1_replay_THIRST grade's bound"
 SRC_X452 = "the run's own: x45g_lib's replay tolerance (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
+SRC_X452B = "the run's own: x45g_lib's replay tolerance (HUNGER 0.002) under x45i_lib, its REPLAY_HUNGER grade's bound"
 
 # (key, run, sleep_allowed, tolerance, its source, the live series it admits, the kernel series it proves, pinned)
 ADMISSIONS = (
@@ -645,9 +645,10 @@ ADMISSIONS = (
      ["SE1-m-live-liquid", "SE1-m-live-fill"], ["SE1-m-kernel-fill"], False),    # False since Plan 15 Task 14b
     ("x364:HUNGER", "x364", False, HUNGER_TOL, SRC_DEFAULT, ["S2a-m-live"], [], False),
     ("x446:THIRST", "x446", False, {"THIRST": ("abs", 0.002)}, SRC_M1, ["S1c-m-live"], [], False),
-    ("x452:HUNGER", "x452", False, HUNGER_TOL, SRC_X452, ["SH3-m-live", "SH3-m-live-hungry"],
-     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"],
-     False),    # False since Plan 15 Task 14b: superseded by x452b pending
+    # Plan 15 Task 14b: x452 ran the old liquid lane and fails at HEAD; x452b, its day on this build, proves the lines
+    ("x452:HUNGER", "x452", False, HUNGER_TOL, SRC_X452, [], [], False),
+    ("x452b:HUNGER", "x452b", False, HUNGER_TOL, SRC_X452B, ["SH3-m-live", "SH3-m-live-hungry"],
+     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"], True),
     ("x271:HUNGER", "x271", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x272:HUNGER", "x272", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x276:HUNGER", "x276", False, HUNGER_TOL, SRC_DEFAULT, ["SH2-m-live"], ["SH2-m-kernel"], False),
@@ -748,7 +749,8 @@ def j_adm_x36():
 
 @job
 def j_adm_x44():
-    return _jobs_of({"x446:THIRST", "x452:HUNGER"}, {"x452:HUNGER": ("HUNGER",)})
+    return _jobs_of({"x446:THIRST", "x452:HUNGER", "x452b:HUNGER"}, {"x452:HUNGER": ("HUNGER",),
+                                                                      "x452b:HUNGER": ("HUNGER",)})
 
 
 @job
@@ -775,7 +777,7 @@ def j_adm_x34():
 ADM_JOB = {}
 for _a in ADMISSIONS:
     _r = _a[1]
-    ADM_JOB[_a[0]] = ("j_adm_x44" if _r in ("x446", "x452") else
+    ADM_JOB[_a[0]] = ("j_adm_x44" if _r in ("x446", "x452", "x452b") else
                       "j_adm_x36" if _r in ("x361", "x363", "x364") else
                       "j_adm_x27" if _r in ("x271", "x272", "x276") else
                       "j_adm_x28" if _r.startswith("x28") else
@@ -1569,7 +1571,7 @@ def s_inputs(schedule, **kw):
 # ---- the vanilla-live and M1 series' reads (Task 8) ---------------------------------------------------------------------
 
 RING_PAGES = {"x441": "1", "x442": "1,721,1441,2161", "x443a": "1,721", "x443b": "1,721", "x446": "1,721,1441",
-              "x452": "1,721,1441"}
+              "x452": "1,721,1441", "x452b": "1,721,1441"}
 
 
 def ring_file(run):
@@ -1649,9 +1651,10 @@ def s_h1():
                kernel({"replay": "fresh record from 07:00 with the replay's water, no food until the written HUNGER "
                                  "first reaches 0.25, then a whole Base.CannedBologneseOpen",
                        "request_minute": k["request_minute"], "water": [AUTODROP_G, list(AUTODROP_MIN)],
-                       "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x452"),
+                       "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x452b"),
                "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it "
-               "writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. "
+               "writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. Proof x452b, "
+               "the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER)."
                + proof_note("H1-m-kernel")),
     ]
 
@@ -1961,7 +1964,7 @@ def s_s1a():
                "kernel", k["points"],
                kernel({"start": FRESH, "replay": "fresh record from HUNGER 0 at 07:00, a whole Base.TunaTinOpen at 08, 12, 16, 20 and the "
                                  "replay's water", "eat": eat(0, "Base.TunaTinOpen"),
-                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x452"),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x452b"),
                proof_note("S1a-m-kernel") or None),
     ]
 
@@ -2096,7 +2099,7 @@ def s_s2a():
                HUNGER, "kernel", k["points"],
                kernel({"replay": "test_replay_live_oracle.fast_plans() fast arm on the default body, its meals plates",
                        "plate": list(PLATE), "water": [AUTODROP_G, "every 2 h, 09:00-23:00"], "clock": "minute 0 is 00:00",
-                       "sleep_allowed": False}, "x452"),
+                       "sleep_allowed": False}, "x452b"),
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
                "been empty for %g hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains "
@@ -2634,7 +2637,7 @@ def s_sh1():
     return [
         series("SH1-m-kernel", "Nutrition Revamp, simulated", "meal kcal", "minutes to the hunger request", "kernel",
                list(zip(kc, k)), kernel({"replay": "test_satiety_meal_studies.callahan()",
-                                         "preloads_kcal": list(kc), "clock": "09:00"}, "x452"),
+                                         "preloads_kcal": list(kc), "clock": "09:00"}, "x452b"),
                "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value "
                "the study oracles read; the game is shown its calibrated curve of it (#3904), whose cadence SH3 draws. "
                "x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). "
@@ -2682,26 +2685,29 @@ def sh3_vanilla(meal_ages, h0, tail_h=12.0):
 
 
 def s_sh3():
-    """SH3: x452's three-meal day (Plan 15 Task 11): each meal's return to Peckish and dinner's to Hungry, measured live,
-    in the HEAD replay of the run's own inputs, and in the vanilla model on the same meals."""
-    rec = adm("x452:HUNGER")
+    """SH3: x452b's three-meal day (Plan 15 Task 14b; x452's, Task 11, on the build that slows the liquid lane only by
+    drink-borne kcal and carries the curve's re-fit): each meal's return to Peckish and dinner's to Hungry, measured
+    live, in the HEAD replay of the run's own inputs, and in the vanilla model on the same meals."""
+    rec = adm("x452b:HUNGER")
     f = "day.json"
-    ages = read("x452", f, "verdicts.CAD_FEEL_P.observed.windows[*].meal_age")
-    labels = read("x452", f, "verdicts.CAD_FEEL_P.observed.windows[*].label")
+    ages = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].meal_age")
+    labels = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].label")
+    live_p = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].ret")
+    live_h = read("x452b", f, "verdicts.CAD_FEEL_H.observed.windows[*].ret")
     if tuple(labels) != SH3_MEALS:
-        raise D.ProvenanceError("x452's windows are %r, not %r" % (labels, SH3_MEALS))
-    rows = adm_rows("x452:HUNGER")
+        raise D.ProvenanceError("x452b's windows are %r, not %r" % (labels, SH3_MEALS))
+    rows = adm_rows("x452b:HUNGER")
     pts = sorted((v[0], v[1]) for v in rows.values() if v[0] is not None)
     end = pts[-1][0]
     ends = list(ages[1:]) + [end]
     ker = [(first_over(pts, a, e, PECKISH), first_over(pts, a, e, HUNGRY_T)) for a, e in zip(ages, ends)]
-    h0 = [v for _, a, v in ring_read("x452", "HUNGER") if a <= ages[0]][-1]
+    h0 = [v for _, a, v in ring_read("x452b", "HUNGER") if a <= ages[0]][-1]
     van = sh3_vanilla(list(ages), h0)
-    inp = {"replay": "x452's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)",
+    inp = {"replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)",
            "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
            "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 "
                    "(Hungry), inside the meal's window"}
-    common = ("Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452, the "
+    common = ("Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the "
               "mod at this build, DayLength 1, sleep off).")
     return [
         series("SH3-v-model", "Vanilla, from the game's code: Peckish", "meal", "game hours", "vanilla-model",
@@ -2714,17 +2720,23 @@ def s_sh3():
                "curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3953), from the evening's "
                "circadian rise in hunger (S1273), a stated bend." % (h0, van[1][1])),
         series("SH3-m-kernel", "Nutrition Revamp, simulated: Peckish", "meal", "game hours", "kernel",
-               [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x452"),
-               "The HEAD replay of x452's own inputs, which misses the run's HUNGER by up to %.2g since the liquid lane "
-               "read only drink-borne kcal (Plan 15 Task 14b; x452's live returns are dropped, superseded by x452b "
-               "pending). %s %s" % (rec["max_miss"]["HUNGER"], common, proof_note("SH3-m-kernel"))),
+               [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x452b"),
+               "The HEAD replay of x452b's own inputs, which reproduces the run's HUNGER within %.2g (VALIDATION "
+               "x452b:HUNGER). %s" % (rec["max_miss"]["HUNGER"], common)),
+        series("SH3-m-live", "Nutrition Revamp, measured: Peckish", "meal", "game hours", "live",
+               list(zip(SH3_MEALS, live_p)),
+               artifact("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].ret"),
+               "x452b's Peckish returns, read off the ring's HUNGER from each can's landing row. %s" % common),
         series("SH3-v-model-hungry", "Vanilla, from the game's code: Hungry", "meal", "game hours", "vanilla-model",
                [["dinner", van[1][1]]], vmodel("VM1", "VM3", "VM4"),
                "Dinner's return to Hungry (HUNGER over 0.25) in the same vanilla model run (SH3-v-model)."),
         series("SH3-m-kernel-hungry", "Nutrition Revamp, simulated: Hungry", "meal", "game hours", "kernel",
-               [["dinner", ker[1][1]]], kernel(dict(inp, meal="dinner, to the next morning's breakfast"), "x452"),
-               "Dinner's return to Hungry in the HEAD replay of x452 (SH3-m-kernel); the lunch and breakfast windows "
-               "end before Hungry. " + proof_note("SH3-m-kernel-hungry")),
+               [["dinner", ker[1][1]]], kernel(dict(inp, meal="dinner, to the next morning's breakfast"), "x452b"),
+               "Dinner's return to Hungry in the HEAD replay of x452b (SH3-m-kernel); the lunch and breakfast windows "
+               "end before Hungry."),
+        series("SH3-m-live-hungry", "Nutrition Revamp, measured: Hungry", "meal", "game hours", "live",
+               [["dinner", live_h[0]]], artifact("x452b", f, "verdicts.CAD_FEEL_H.observed.windows[*].ret"),
+               "x452b's dinner, Hungry %.2f game hours after the can. %s" % (live_h[0], common)),
     ]
 
 

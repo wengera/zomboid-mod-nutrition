@@ -374,8 +374,10 @@
    "series": [
     "SH3-v-model",
     "SH3-m-kernel",
+    "SH3-m-live",
     "SH3-v-model-hungry",
-    "SH3-m-kernel-hungry"
+    "SH3-m-kernel-hungry",
+    "SH3-m-live-hungry"
    ],
    "title": "When hunger comes back after a meal",
    "x": "meal (lunch, dinner, breakfast)",
@@ -471,7 +473,7 @@
    "chart": "H1",
    "id": "H1-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
+   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3904), so a meal reads near empty. Proof x452b, the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER).",
    "points": [
     [
      0.0,
@@ -658,7 +660,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -8205,7 +8207,6 @@
    "chart": "S1a",
    "id": "S1a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
    "points": [
     [
      0.016666666666666666,
@@ -8825,7 +8826,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -13436,7 +13437,7 @@
    "chart": "S2a",
    "id": "S2a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
+   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
    "points": [
     [
      -12.0,
@@ -15191,7 +15192,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -57845,7 +57846,7 @@
    "chart": "SH1",
    "id": "SH1-m-kernel",
    "label": "Nutrition Revamp, simulated",
-   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3904), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
+   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3904), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). ",
    "points": [
     [
      190.0,
@@ -57872,7 +57873,7 @@
      "replay": "test_satiety_meal_studies.callahan()"
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -57995,19 +57996,19 @@
    "chart": "SH3",
    "id": "SH3-m-kernel",
    "label": "Nutrition Revamp, simulated: Peckish",
-   "note": "The HEAD replay of x452's own inputs, which misses the run's HUNGER by up to 0.017 since the liquid lane read only drink-borne kcal (Plan 15 Task 14b; x452's live returns are dropped, superseded by x452b pending). Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452, the mod at this build, DayLength 1, sleep off). Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
+   "note": "The HEAD replay of x452b's own inputs, which reproduces the run's HUNGER within 0.0004 (VALIDATION x452b:HUNGER). Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the mod at this build, DayLength 1, sleep off).",
    "points": [
     [
      "lunch",
-     3.4524946212768555
+     4.422138214111328
     ],
     [
      "dinner",
-     3.4957523345947266
+     4.181554794311523
     ],
     [
      "breakfast",
-     4.0408172607421875
+     4.25560188293457
     ]
    ],
    "provenance": {
@@ -58015,10 +58016,10 @@
     "inputs": {
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
-     "replay": "x452's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
+     "replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -58031,11 +58032,11 @@
    "chart": "SH3",
    "id": "SH3-m-kernel-hungry",
    "label": "Nutrition Revamp, simulated: Hungry",
-   "note": "Dinner's return to Hungry in the HEAD replay of x452 (SH3-m-kernel); the lunch and breakfast windows end before Hungry. Its proof run fails the admission test at HEAD (VALIDATION x452:HUNGER); no passing proof run exists for it.",
+   "note": "Dinner's return to Hungry in the HEAD replay of x452b (SH3-m-kernel); the lunch and breakfast windows end before Hungry.",
    "points": [
     [
      "dinner",
-     9.474517822265625
+     11.087471008300781
     ]
    ],
    "provenance": {
@@ -58044,11 +58045,65 @@
      "meal": "dinner, to the next morning's breakfast",
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
-     "replay": "x452's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
+     "replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
     },
     "kind": "kernel",
-    "proof_run": "x452-20261017-071527",
+    "proof_run": "x452b-20261017-153935",
     "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "meal",
+    "y": "game hours"
+   }
+  },
+  {
+   "badge": "live",
+   "chart": "SH3",
+   "id": "SH3-m-live",
+   "label": "Nutrition Revamp, measured: Peckish",
+   "note": "x452b's Peckish returns, read off the ring's HUNGER from each can's landing row. Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the mod at this build, DayLength 1, sleep off).",
+   "points": [
+    [
+     "lunch",
+     4.422138214111328
+    ],
+    [
+     "dinner",
+     4.181554794311523
+    ],
+    [
+     "breakfast",
+     4.25560188293457
+    ]
+   ],
+   "provenance": {
+    "file": "day.json",
+    "kind": "artifact",
+    "path": "verdicts.CAD_FEEL_P.observed.windows[*].ret",
+    "run": "x452b-20261017-153935"
+   },
+   "units": {
+    "x": "meal",
+    "y": "game hours"
+   }
+  },
+  {
+   "badge": "live",
+   "chart": "SH3",
+   "id": "SH3-m-live-hungry",
+   "label": "Nutrition Revamp, measured: Hungry",
+   "note": "x452b's dinner, Hungry 11.10 game hours after the can. Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the mod at this build, DayLength 1, sleep off).",
+   "points": [
+    [
+     "dinner",
+     11.10073471069336
+    ]
+   ],
+   "provenance": {
+    "file": "day.json",
+    "kind": "artifact",
+    "path": "verdicts.CAD_FEEL_H.observed.windows[*].ret",
+    "run": "x452b-20261017-153935"
    },
    "units": {
     "x": "meal",
@@ -58068,11 +58123,11 @@
     ],
     [
      "dinner",
-     5.199955177307128
+     5.199067306518554
     ],
     [
      "breakfast",
-     4.898884137471516
+     4.900087738037108
     ]
    ],
    "provenance": {
@@ -58123,7 +58178,7 @@
    "points": [
     [
      "dinner",
-     8.816621843973795
+     8.815733973185221
     ]
    ],
    "provenance": {
@@ -61847,10 +61902,7 @@
   },
   {
    "admitted": false,
-   "draws": [
-    "SH3-m-live",
-    "SH3-m-live-hungry"
-   ],
+   "draws": [],
    "key": "x452:HUNGER",
    "kind": "admission",
    "max_miss": {
@@ -61858,6 +61910,33 @@
    },
    "n": {
     "HUNGER": 1477
+   },
+   "proves": [],
+   "quantity": [
+    "HUNGER"
+   ],
+   "run": "x452-20261017-071527",
+   "tolerance": {
+    "HUNGER": [
+     "abs",
+     0.002
+    ]
+   },
+   "tolerance_source": "the run's own: x45g_lib's replay tolerance (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
+  },
+  {
+   "admitted": true,
+   "draws": [
+    "SH3-m-live",
+    "SH3-m-live-hungry"
+   ],
+   "key": "x452b:HUNGER",
+   "kind": "admission",
+   "max_miss": {
+    "HUNGER": 0.0004027312580432499
+   },
+   "n": {
+    "HUNGER": 1442
    },
    "proves": [
     "H1-m-kernel",
@@ -61870,14 +61949,14 @@
    "quantity": [
     "HUNGER"
    ],
-   "run": "x452-20261017-071527",
+   "run": "x452b-20261017-153935",
    "tolerance": {
     "HUNGER": [
      "abs",
      0.002
     ]
    },
-   "tolerance_source": "the run's own: x45g_lib's replay tolerance (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
+   "tolerance_source": "the run's own: x45g_lib's replay tolerance (HUNGER 0.002) under x45i_lib, its REPLAY_HUNGER grade's bound"
   },
   {
    "admitted": true,
