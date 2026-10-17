@@ -10,7 +10,8 @@ seed). So the fit runs the mod's server pipeline (tools/replay_live.py ServerRep
 record at 07:00, sleep off, the guide's water: 500 g every 2 h from 08:00 to 22:00) once per scenario, keeps each
 minute's h_model, M, hour and starvation flags, and scores candidate knots on a Python mirror of the curve stage
 (stage()). The chosen knots are then set on the Lua kernel and replayed for real, and the mirror must reproduce the
-written HUNGER within 1e-9 at every minute (verify()).
+written HUNGER within 1e-9 at every minute (verify()). The Task 6 knots (PREVIOUS) are read beside the chosen
+point.
 
 The scenarios (meals of PLATE, the guide's foods, sized to MEAL_KCAL, a third of 2,000 kcal):
 - three: three meals a day at 07:30, 12:30 and 18:30 for DAYS_THREE days; read on days 1 to 3, waking hours 07:00 to
@@ -44,17 +45,19 @@ The weights (Task 6c): vanilla's breakfast can (0.24) does not cover the night's
 0.116 of hunger past breakfast and reads Peckish 1.17 h after it; that carry-over is also most of vanilla's level-1
 share (4.3 of its 6.1 h). The satiety model has no such carry-over: the meal pool sets h_model after a 667 kcal meal
 by the meal, not by the hunger before it (0.089 after breakfast, 0.076 after lunch, 0.097 after dinner), so no curve
-of h_model meets the breakfast's 1.17 h and the satisfying meals' 4.25-5.00 h at once (Task 6c's finding). The terms
-that read the carry-over, breakfast and the shares, weigh W_CARRY; the others weigh 1.
+of h_model meets the breakfast's 1.17 h and the satisfying meals' 4.25-5.00 h at once (Task 6c's finding). Nor can it
+make dinner outlast lunch, as vanilla's does (its dinner can lands on the floor and fills the Well Fed timer, which
+holds hunger): the circadian factor (S1273, peak 19:50) and dinner's higher floor lift h_model after dinner, so dinner
+wears off first. The terms that read the carry-over, breakfast and the shares, weigh W_CARRY; the others weigh 1.
 
 The search: a scan of each of the other four knots (X[3] to X[6]) in turn over its BOUNDS at SCAN_STEP, the others held
 (the loss is piecewise constant in whole minutes and has more than one valley), then a coordinate refinement from the
 scan's point, each knot moved by its step up and down and kept when the loss falls, the step halved after a round with
 no move, until the step is under 1e-4; a knot is kept strictly inside (its neighbours, BOUNDS). The Peckish knot's
 profile (profile(), PROFILE_STEP) records the loss, each meal's return, the shares and the fast's Peckish return across
-its bounds. The stability check (CLAUDE.md section 6, fits): each knot at
-x0.95 and x1.05 with the loss and every target (each meal's return included), and a meal-size sweep (200 to 1,300 kcal at the fast's breakfast) with
-its deepest HUNGER and its return to levels 1 and 2. A knot at or within one step of its bound is reported. Nothing
+its bounds. The stability check (CLAUDE.md section 6, fits): each knot at x0.95 and x1.05 with the loss and every
+target (each meal's return included), and a meal-size sweep (200 to 1,300 kcal at the fast's breakfast) with its
+deepest HUNGER and its return to levels 1 and 2. A knot at or within one step of its bound is reported. Nothing
 here writes a tracked file: --out writes fit-compact.json (the chosen point, every target's value and miss, the
 stability readings, the search spec, the scenarios and the HEAD commit) into a gitignored folder (testing/runs/ by
 default); the committed artifact is that file copied byte-identical (testing/artifacts/fit-hunger-curve-<date>/): the
@@ -96,6 +99,7 @@ VANILLA_START = 0.25
 SWEEP_KCAL = (200.0, 400.0, 667.0, 1000.0, 1300.0)
 Y = (0.0, 0.0, 0.15, 0.25, 0.45, 0.70, 1.0)
 START = (0.105, 0.225, 0.275, 0.38, 0.63)
+PREVIOUS = (0.097, 0.19, 0.299375, 0.42875, 0.734688)   # the Task 6 knots (fit-hunger-curve-20261016), read beside
 MEALS = ("breakfast", "lunch", "dinner")
 W_CARRY = 0.5                          # Task 6c: the terms that read vanilla's breakfast carry-over (the docstring)
 W_MEAL = (W_CARRY, 1.0, 1.0)           # breakfast, lunch, dinner
@@ -458,7 +462,8 @@ def fit():
                           "VANILLA_START": VANILLA_START},
             "vanilla": V, "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
             "chosen": list(best), "reading": r, "atBound": at_bound(best), "shipped": list(shipped(be.K)),
-            "shippedReading": read(shipped(be.K), traces, C, V), "verify": verify(best, C),
+            "shippedReading": read(shipped(be.K), traces, C, V), "previous": list(PREVIOUS),
+            "previousReading": read(PREVIOUS, traces, C, V), "verify": verify(best, C),
             "stability": stability(best, traces, C, V), "profile": profile(best, traces, C, V)}
 
 
@@ -473,6 +478,7 @@ def main(argv=None):
     print(json.dumps({k: res[k] for k in ("chosen", "atBound", "verify", "candidates")}))
     print("reading", json.dumps(res["reading"]))
     print("shipped", res["shipped"], json.dumps(res["shippedReading"]))
+    print("previous", res["previous"], json.dumps(res["previousReading"]))
     print("vanilla", json.dumps(res["vanilla"]))
     for s in res["stability"]["knots"]:
         print("knot", json.dumps(s))
