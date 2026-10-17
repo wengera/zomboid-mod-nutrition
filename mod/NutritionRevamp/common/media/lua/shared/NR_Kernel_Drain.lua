@@ -350,8 +350,11 @@ K.drain.IN = { lm = 0, fm = 0, bmi0 = 0, dehydPct = 0 }
 -- (STARVE_ONSET_H unfed hours, or, while the pool is unfed, the recent intake at or under RECENT_MIN_KCAL; the clock
 -- acuteH and the onset BMI are held through a fed spell while the recent intake stays that low, so a snack does not
 -- reset the phases or the floor, Plan 15 Task 6 fix 2), whose HUNGER minimum the chronic BMI
--- onset does not take (Plan 15 Task 6, ruling I2). Returns record.drain.
-function K.drain.step(record, dtM, ageH)
+-- onset does not take (Plan 15 Task 6, ruling I2). overlay (Mode 2, Overlay: vanilla owns HUNGER and THIRST and its
+-- own level-4 drains and deaths) leaves the starvation and dehydration states out, starving and dehydrated false, while
+-- the starvation clock (starvedH, starveAcute, the effect phases) and the deficiency, sodium and iron states still run
+-- (Plan 15 close, ruling M2). Returns record.drain.
+function K.drain.step(record, dtM, ageH, overlay)
     local D = K.drain.ensure(record)
     local body, nut, fl, a = record.body, record.nutrients, record.fluids, record.acute
     D.active = false
@@ -397,7 +400,8 @@ function K.drain.step(record, dtM, ageH)
             D.acuteH = 0
         end
     end
-    if D.starveAcute or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC then
+    local starve = D.starveAcute or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC
+    if starve and not overlay then
         if not (D.bmi0 > 0) then
             D.bmi0 = K.drain.bmi(body.lm, body.fm)
         end
@@ -416,7 +420,7 @@ function K.drain.step(record, dtM, ageH)
     else
         D.naH = 0
     end
-    if fl.dehydPct >= K.drain.states[K.drain.DEHYD].onset then
+    if fl.dehydPct >= K.drain.states[K.drain.DEHYD].onset and not overlay then
         K.drain.consider(D, K.drain.DEHYD, 0, inp)
         D.dehydrated = true
     end

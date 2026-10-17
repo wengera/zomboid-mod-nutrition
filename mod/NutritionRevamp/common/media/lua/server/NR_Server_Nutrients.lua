@@ -276,7 +276,8 @@ local function closeDay(record, body, w, ageH)
     a.alcDayG = 0
     local mg = n.magnesium
     local mgDepleted = mg ~= nil and mg.g >= NUT.MG_DEPLETED_GRADE
-    K.acute.refeedDay(a, kcalPerKg, w, ageH, false, mgDepleted, a.alc7 > NUT.ALC_HISTORY_GKG)
+    local partial = finite(body.bornAge) and ageH - body.bornAge < 24   -- the character's first, partial day
+    K.acute.refeedDay(a, kcalPerKg, w, ageH, false, mgDepleted, a.alc7 > NUT.ALC_HISTORY_GKG, partial)
     K.acute.refeedEvent(a, kcalPerKg, roll(0.5))
     n.lastDayIndex = body.dayIndex
     NUT.stats.days = NUT.stats.days + 1

@@ -79,8 +79,12 @@ EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- 30 minutes at the 90-minute day), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour while Well
 -- Fed, against vanilla's 162 while its timer runs at the 90-minute day. 0 at Overfull 4 too: the refusal never heals.
 EFF.REGEN_FOOD = 0.0087 -- game choice (spec section 10: the gentle Well Fed heal), vanilla's per-can heal over the mod's Well Fed spell
--- The fallback for an unreadable sandbox: the day length in real minutes the heal assumes, vanilla's 90-minute default day (#2922).
-EFF.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
+-- Whether the server runs Mode 2 (Overlay: NR_Server_Writer's mode, read at boot), where vanilla owns HUNGER and THIRST and
+-- its own level-4 drains, so the starvation and dehydration drain states do not run (Plan 15 close, ruling M2).
+function EFF.overlay()
+    local Wr = NR.server.writer
+    return Wr ~= nil and Wr.mode == 2
+end
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
 EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
@@ -328,7 +332,7 @@ local function healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
         tl = NR.read.moodleLevel(moodles, MT.THIRST)
         sl = NR.read.moodleLevel(moodles, MT.SICK)
     end
-    local dayMin = NR.read.dayMin(ctx, EFF.DAY_MINUTES)
+    local dayMin = NR.read.dayMin(ctx, K.drain.DAY_MINUTES)
     local perMin = K.drain.regenAddition(hl, tl, sl, asleep) * E.healMul * K.drain.UNITS_PER_MIN * dayMin
     local y = K.drain.heal(D, health, perMin, dtM)
     if y > 0 then
@@ -493,7 +497,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     -- the drain states (K.drain): the floor and rate this minute, and the starvation phase the flags read
     local D = record.drain
     local wasState = type(D) == "table" and D.active and D.state or 0
-    D = K.drain.step(record, dtM, ageH)
+    D = K.drain.step(record, dtM, ageH, EFF.overlay())
     local phase = K.drain.starvePhase(D.starvedH)
 
     -- 2. the bands and the flags (file-scope scratch tables)
@@ -578,9 +582,9 @@ local function step(username, player, record, body, dtM, ageH, ctx)
             -- length, read only here, on a rebuild, a state change, a new healMul or a first sight (review I2)
             local foodHeal = 0
             if not D.active and F.overfull < K.view.REFUSE_AT then
-                local dayMin = NR.read.dayMin(ctx, EFF.DAY_MINUTES)
-                if not (dayMin > 0) then dayMin = EFF.DAY_MINUTES end
-                foodHeal = EFF.REGEN_FOOD * EFF.DAY_MINUTES / dayMin
+                local dayMin = NR.read.dayMin(ctx, K.drain.DAY_MINUTES)
+                if not (dayMin > 0) then dayMin = K.drain.DAY_MINUTES end
+                foodHeal = EFF.REGEN_FOOD * K.drain.DAY_MINUTES / dayMin
             end
             regen(bd, m, foodHeal)
             L.regen = m

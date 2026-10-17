@@ -342,7 +342,7 @@ NR.data.effects = {
             { ch = "trait", s = "shortSighted", v = 1, row = "S0143", gc = true }, -- the toggle at clinical; game choice (open S1143)
         } },
         -- D4 the direct speed write (min; computed and mirrored, unapplied until X47).
-        { src = "dehyd", on = "band", at = 7, list = { -- [6, 10) %, dizziness at about 5.8 % (S2248); the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
+        { src = "dehyd", on = "band", at = 7, list = { -- [6, 10) %, dizziness at about 5.8 % (S2248); game choice (open S1098)
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
         { src = "dehyd", on = "band", at = 8, list = { -- 10 % and above, delirium at about 11 % (S2248): confusion and collapse (spec section 3.3)

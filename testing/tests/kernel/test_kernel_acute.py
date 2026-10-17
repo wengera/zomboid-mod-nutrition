@@ -1086,3 +1086,15 @@ def test_skip_record_leaves_absent_or_unreadable_monotony_and_nicotine(host):
 def test_bmi_reads_the_shared_height(host):
     assert host.K.HEIGHT_M == 1.70
     assert host.K.acute.HEIGHT_M is None
+
+
+def test_refeed_a_partial_first_day_is_never_low(host):
+    # Plan 15 close (Task 4's carry): a new character's first close covers under 24 h; it does not count as starved
+    A = host.K.acute
+    a = _new(host)
+    A.refeedDay(a, 0, 70, 24.0, False, False, False, True)
+    assert a.starvedDays == 0 and a.lowDay is False
+    A.refeedDay(a, 0, 70, 48.0, False, False, False, False)
+    assert a.starvedDays == 1 and a.lowDay is True
+    A.refeedDay(a, 0, 70, 72.0, False, False, False)                # no flag: a whole day
+    assert a.starvedDays == 2

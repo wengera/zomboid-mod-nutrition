@@ -67,7 +67,7 @@ K.effects.DEHYD_EDGES = {
     2.5, -- game choice curve knot (open S1121)
     3, -- game choice curve knot (open S1121)
     4, -- S0895 / S0706 / S0707 (the 4 % line)
-    6, -- the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
+    6, -- dizziness at about 5.8 % (S2248); game choice (open S1098)
     10, -- severe dehydration (open S1101)
 }
 K.effects.EX_STEP = 7.5 -- minutes of exEma: a quarter of EX_FULL 30, game choice (open S1148)
@@ -269,6 +269,9 @@ end
 
 -- The protein-energy grade 1..4 at the day close (F1): the worse of the energy side (BMI, 0 =
 -- unknown; starved days) and the protein side (the 7-day mean g/kg/d; nil or negative = unknown, grade 1).
+-- starvedDays is the acute record's calendar count of low-intake days (K.acute.refeedDay), S0115's days of little or no
+-- intake, kept apart from the drain's continuous unfed clock (K.drain.unfedH, which a nibble resets): the two can
+-- disagree by up to a day at a fast's start (Plan 15 close, L4).
 function K.effects.peGrade(bmi, starvedDays, p7meanGkg)
     local E = K.effects
     local e = 1

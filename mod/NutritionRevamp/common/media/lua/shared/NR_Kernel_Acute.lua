@@ -620,10 +620,15 @@ end
 -- close left the risk high (refeedDayN 0; the low-day predecessor is a game choice so that a thin but
 -- fed character does not cycle windows); the starvation count, the 90-day mass maximum, BMI (stored on
 -- a.bmi for refeedEvent) and the 90-day loss update; the risk recomputes outside a window (S0115): high
--- (2) on any high criterion, 2 on two moderate ones, 1 on one, else 0.
-function K.acute.refeedDay(a, kcalPerKg, w, ageH, kDepleted, mgDepleted, alcoholHistory)
+-- (2) on any high criterion, 2 on two moderate ones, 1 on one, else 0. partial: the closed day is the character's
+-- first, partial day (under 24 h since its birth), which is never a low day, so a new character does not start one
+-- starved day in (Plan 15 close; the drain's unfed clock caps by age the same way). starvedDays counts calendar days
+-- of little or no intake, S0115's criterion as written ("little or no intake for more than 5 / 10 days"), not the
+-- drain's unfed hours (K.drain.unfedH), which a nibble resets: the two clocks answer different questions and can
+-- disagree by up to a day at a fast's start (Plan 15 close, L4).
+function K.acute.refeedDay(a, kcalPerKg, w, ageH, kDepleted, mgDepleted, alcoholHistory, partial)
     local A = K.acute
-    local low = kcalPerKg < A.LOW_KCAL_KG
+    local low = kcalPerKg < A.LOW_KCAL_KG and partial ~= true
     if not low and a.lowDay and a.refeedRisk == 2 and a.refeedDayN < 0 then
         a.refeedDayN = 0
     end

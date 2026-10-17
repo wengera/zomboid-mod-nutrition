@@ -876,6 +876,28 @@ def test_eating_ends_the_starvation(eff_host):
     assert rec["drain"]["bmi0"] == 0
 
 
+def test_overlay_runs_no_starvation_or_dehydration_drain(eff_host):
+    # Plan 15 close, ruling M2: in Mode 2 vanilla owns HUNGER and THIRST and its own level-4 drains, so the mod's
+    # starvation and dehydration states do not run (the starvation clock and the deficiency states still do)
+    h = eff_host
+    NR = h.rt.eval("NutritionRevamp")
+    saved = NR.server.writer
+    NR.server.writer = h.rt.eval("{ mode = 2 }")
+    try:
+        rec, p, cfg = _starving(h, 40)
+        rec["fluids"]["dehydPct"] = 8.0
+        minute(h, p, rec, ageH=100.0 + 1 / 60)
+        D = rec["drain"]
+        assert D["active"] is False and D["starving"] is False and D["dehydrated"] is False
+        assert D["starveAcute"] is True and D["starvedH"] >= 40                  # the clock and its phases run on
+        NR.server.writer.mode = 1
+        rec["satiety"]["M"] = 0.0
+        minute(h, p, rec, ageH=100.0 + 2 / 60)
+        assert rec["drain"]["active"] is True and rec["drain"]["starving"] is True
+    finally:
+        NR.server.writer = saved
+
+
 def test_the_starvation_floor_falls_with_bmi_from_its_onset(eff_host):
     h = eff_host
     rec, p, cfg = _starving(h, 48)

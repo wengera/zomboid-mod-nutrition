@@ -158,7 +158,7 @@ function K.satiety.sated(F, Mn)
 end
 
 -- The hunger target before the factors: K.deficit.hungerTarget(sated(F, mealRead(M)), energyState). The writer multiplies
--- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH) and caps it at 0.69 below starvation (K.hybrid.caps); the replays read it.
+-- it by circadian(hour) x acuteFactor(S) x nicotineFactor x sleepFactor(debtH), writes it through the calibrated curve (K.hungerCurve.write) and caps it (K.hybrid.caps); the replays read it.
 function K.satiety.target(F, M, energyState)
     return K.deficit.hungerTarget(K.satiety.sated(F, K.satiety.mealRead(M)), energyState)
 end
@@ -199,7 +199,7 @@ end
 -- The circadian, acute, sleep and nicotine factors on hunger.
 -- The circadian factor on hunger at hourOfDay (0-24, the game clock): 1 + CIRCADIAN_A x
 -- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices; Scheer's model is additive). The writer applies
--- min(0.69, hungerTarget(Z, es) x circadian(h) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor(w, d)), awake and asleep.
+-- keeps hungerTarget(Z, es) x circadian(h) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor(w, d) as h_model and writes it through K.hungerCurve under K.hybrid.caps, awake and asleep.
 function K.satiety.circadian(hourOfDay)
     return 1 + K.satiety.CIRCADIAN_A * math.cos(6.283185307179586 * (hourOfDay - K.satiety.CIRCADIAN_PEAK_H) / 24)
 end

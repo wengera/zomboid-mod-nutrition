@@ -91,6 +91,8 @@ Every Strength option is read through one clamp: a number outside its range take
 - A rate tweak from another mod has no effect, because the mod's model sets those stats. A mod that sets the rates again after the mod's start handler brings vanilla's drift back between the minute writes, and the next write takes it back.
 
 **Overlay.** Vanilla's rates and its hunger, thirst and fatigue stand. The mod still tracks nutrients, the body and the stomach, and writes its effects: mood and sickness floors, panic, body temperature and intoxication. Drinking that the game does on its own (auto-drink) is not captured in Overlay.
+- Starving and dying of thirst are vanilla's in Overlay: vanilla's own level-4 hunger and thirst health drains, and their deaths, run as in the base game. The mod's starvation and dehydration drains do not run there. Its scurvy, beriberi, pellagra, sodium and iron drains still do.
+- A new character still eats the fresh start's plate in Overlay. Its calories, nutrients and stomach weight count, though vanilla's hunger is left as the game set it.
 
 The self-report says which mode is running and whether the rates were zeroed.
 

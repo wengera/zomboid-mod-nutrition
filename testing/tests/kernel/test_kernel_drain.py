@@ -664,3 +664,15 @@ def test_a_floret_every_hour_after_a_3_day_fast_keeps_the_state_through_the_pipe
     assert max(r["drain.recentKcal"] for r in after) > 600                     # over the fallback's window
     share = sum(1 for r in after if r["drain.starving"] and r["drain.active"]) / len(after)
     assert share >= 0.9
+
+
+# --- Plan 15 close, ruling M2: Overlay runs no starvation or dehydration state ------------------------------------
+
+def test_overlay_leaves_out_starvation_and_dehydration_and_keeps_the_rest(host, D):
+    rec = record(host, unfed=40.0, dehyd=8.0, vitC=(4, 10.0))
+    d = D.step(rec, 1.0, 100.0, True)
+    assert d.starving is False and d.dehydrated is False                       # vanilla owns them in Mode 2
+    assert d.starveAcute is True and d.starvedH >= 40 and d.bmi0 == 0           # the clock runs, no onset BMI
+    assert d.active is True and d.state == D.SCURVY and d.mask == 2             # the deficiency drain still runs
+    d = D.step(rec, 1.0, 100.0 + 1 / 60, False)
+    assert d.starving is True and d.dehydrated is True and d.mask == 1 + 2 + 32
