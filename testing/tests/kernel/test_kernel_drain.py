@@ -204,7 +204,7 @@ def test_the_starvation_phases(host, D):
 def test_a_fresh_drain_table_and_its_heal(host, D):
     assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "mask": 0, "targetFloor": 100,
                                 "rate": 0, "drainThisMinute": 0, "starvedH": 0, "acuteH": 0, "starving": False,
-                                "starveAcute": False, "dehydrated": False}
+                                "starveAcute": False, "dehydrated": False, "spell": False}
     rec = host.table({})
     d = D.ensure(rec)
     assert host.rt.eval("rawequal")(rec.drain, d) and d.bmi0 == 0
@@ -284,7 +284,7 @@ def test_the_onset_bmi_is_stamped_once_and_cleared_when_starvation_ends(host, D)
     D.step(rec, 1.0, 100.0 + 1 / 60)
     assert d.bmi0 == pytest.approx(62.02 / H2, abs=TOL)                       # held while the state lasts
     assert d.targetFloor < 50
-    rec.satiety.M = 10.0                                                      # a meal ends it (the pool fed)
+    rec.satiety.M = 400.0                                                     # a meal ends it (a meal spell, H1)
     D.step(rec, 1.0, 100.0 + 2 / 60)
     assert d.active is False and d.bmi0 == 0
 
@@ -466,8 +466,11 @@ def test_the_acute_clock_runs_on_through_a_snack_inside_the_state(host, D):
     for m in range(60):
         d = D.step(rec, 1.0, 100.0 + m / 60)
     assert d.starveAcute is True and d.acuteH == pytest.approx(1.0, abs=1e-9)
-    rec.satiety.M = 10.0                                                       # a snack: the pool fed
+    rec.satiety.M = 10.0                                                       # a floret: fed, but no meal spell (H1)
     d = D.step(rec, 1.0, 101.0)
+    assert d.starveAcute is True and d.spell is False and d.starvedH > 40    # the unfed clock runs on
+    rec.satiety.M = 400.0                                                      # a 200 kcal snack's pool or more
+    d = D.step(rec, 1.0, 101.0 + 1 / 60)
     assert d.starveAcute is False and d.acuteH == 0 and d.starvedH == 0       # no recent window yet: the state ends
 
 
@@ -527,7 +530,10 @@ def test_low_recent_intake_holds_the_acute_state_only_while_unfed(host, D):
     rec.satiety.M = 0.0
     d = D.step(rec, 1.0, 100.0)
     assert d.starveAcute is True and d.recentKcal == 600.0                    # 600 or less, unfed: acute
-    rec.satiety.M = 10.0                                                       # a snack: the pool fed
+    rec.satiety.M = 10.0                                                       # a floret: no meal spell (H1)
+    d = D.step(rec, 1.0, 100.0 + 0.5 / 60)
+    assert d.starveAcute is True                                               # the fallback holds
+    rec.satiety.M = 400.0                                                      # a snack: a meal spell
     d = D.step(rec, 1.0, 100.0 + 1 / 60)
     assert d.starveAcute is False and d.starving is False                      # the moodle minimum lifts at once
     assert d.acuteH > 0 and d.bmi0 > 0                                         # the clock and the onset BMI wait
@@ -535,7 +541,7 @@ def test_low_recent_intake_holds_the_acute_state_only_while_unfed(host, D):
     d = D.step(rec, 1.0, 100.0 + 2 / 60)
     assert d.starveAcute is True and d.starvedH >= 30                          # back, the phases not reset
     rec.body.inDayClosed = 201.0                                               # over 600: the fallback clears
-    rec.satiety.M = 10.0
+    rec.satiety.M = 400.0
     d = D.step(rec, 1.0, 100.0 + 3 / 60)
     assert d.starveAcute is False and d.acuteH == 0 and d.bmi0 == 0
 
@@ -596,10 +602,65 @@ def test_the_clocks_survive_a_restart(host, D):
     rec = record(host, unfed=40.0)
     D.step(rec, 1.0, 100.0)
     saved = host.py(host.K.store.inputsOnly(rec))["drain"]                     # what a save keeps
-    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH"}
+    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "spell"}
     assert saved["fedAgeH"] == 60.0
     rec.body.inDay2, rec.body.inDay3 = 1.0, 2.0
     body = host.py(host.K.store.inputsOnly(rec))["body"]
     assert body["inDay2"] == 1.0 and body["inDay3"] == 2.0
     rec.body.recentDays = 3
     assert host.py(host.K.store.inputsOnly(rec))["body"]["recentDays"] == 3
+
+
+# --- Plan 15 close, H1: only a meal spell suspends the fallback or ends the state ---------------------------------
+
+def test_the_meal_spell_opens_at_suspend_m_and_closes_under_fed_m(host, D):
+    assert D.SUSPEND_M == 236.44
+    d = host.table({"spell": False})
+    D.spellStep(d, D.SUSPEND_M - 1e-6)
+    assert d.spell is False and D.mealFed(d, 200.0) is False                   # fed, but not a meal spell
+    D.spellStep(d, D.SUSPEND_M)
+    assert d.spell is True and D.mealFed(d, D.SUSPEND_M) is True
+    D.spellStep(d, host.K.hungerCurve.FED_M)                                   # held down to FED_M
+    assert d.spell is True and D.mealFed(d, host.K.hungerCurve.FED_M) is True
+    D.spellStep(d, host.K.hungerCurve.FED_M * 0.999)
+    assert d.spell is False
+    D.spellStep(d, float("nan"))
+    assert d.spell is False and D.mealFed(d, float("nan")) is False
+
+
+def test_a_200_kcal_mixed_snack_lands_suspend_m(host, D):
+    v = host.table({"proteins": 200 * 0.15 / 4, "carbs": 200 * 0.5 / 4, "lipids": 200 * 0.35 / 9, "calories": 200.0})
+    assert host.K.satiety.weigh(v) == pytest.approx(D.SUSPEND_M, abs=0.005)
+
+
+def test_a_corrupt_spell_heals_to_false(host, D):
+    rec = record(host, unfed=5.0)
+    rec.drain.spell = 3
+    D.ensure(rec)
+    assert rec.drain.spell is False
+
+
+def test_a_floret_every_hour_after_a_3_day_fast_keeps_the_state_through_the_pipeline():
+    # close-review H1: one Base.Broccoli (11.02 kcal) an hour holds the pool at FED_M or more for about 70 min, so with
+    # the curve's fed threshold as the suspension the state never ran; the intake (264 kcal a day) is over the
+    # fallback's window, so only the meal spell keeps the state the fast opened
+    import os
+    import sys
+    tools = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                         "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import fit_hunger_curve as F
+    import replay_live as RL
+    day = F.DAY
+    n = 10 * day
+    ev = F.water(10) + [{"minute": m, "kind": "meal", "size": 11.02, "plate": ["Base.Broccoli"]}
+                        for m in range(3 * day, n, 60)]
+    be = RL.ServerReplay(hour_offset=F.HOUR_OFFSET, rng="half", sleep_allowed=False)
+    rows = RL.run(be, RL.synthetic_ages(n), sorted(ev, key=lambda e: e["minute"]),
+                  list(F.PATHS) + ["drain.active", "drain.recentKcal"], start_age=0.0)
+    after = rows[3 * day:8 * day]                                              # days 3-7 (the controller's ruling)
+    assert max(r["satiety.M"] for r in after) >= be.K.hungerCurve.FED_M        # each floret feeds the curve
+    assert max(r["drain.recentKcal"] for r in after) > 600                     # over the fallback's window
+    share = sum(1 for r in after if r["drain.starving"] and r["drain.active"]) / len(after)
+    assert share >= 0.9

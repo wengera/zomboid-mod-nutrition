@@ -50,6 +50,7 @@ K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed or still in the stomach today and
 K.drain.BMI_KNEE = 12.5 -- kg/m2, the floor reaches 10 here: game choice inside S2234's 12-13 (spec section 10)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
 K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (spec section 10: each floor's curve)
+K.drain.SUSPEND_M = 236.44 -- weighted kcal, the meal pool a 200 kcal mixed snack lands (15/50/35 % of energy, 236.44 under the fitted weights, K.satiety.weigh): game choice (spec section 10: each floor's curve): only a meal spell (the pool reached SUSPEND_M and has not yet fallen under K.hungerCurve.FED_M, K.drain.mealFed) suspends the fallback or, inside the state, resets the unfed clock, so a floret an hour (11 kcal, the pool at FED_M for about 70 min) no longer ends or holds off a starving body's state, while a 200 kcal snack or a refeed meal still does for its whole fed spell (Plan 15 close, H1)
 K.drain.STARVE_RATE = 25 -- health per game day, 50 in about 2 days from onset: game choice (spec section 10)
 -- The starvation effect phases (spec section 3.3), on the starvation clock (starvedH: the unfed hours, then the onset
 -- plus the hours in the acute state): weakness from onset, cold intolerance and slower healing from about day 3,
@@ -152,6 +153,7 @@ function K.drain.new()
         starving = false,
         starveAcute = false,
         dehydrated = false,
+        spell = false,
     }
 end
 
@@ -177,6 +179,9 @@ function K.drain.ensure(record)
     if D.fedAgeH ~= nil and not K.finite(D.fedAgeH) then
         D.fedAgeH = nil
     end
+    if type(D.spell) ~= "boolean" then
+        D.spell = false
+    end
     return D
 end
 
@@ -185,8 +190,25 @@ function K.drain.bmi(lm, fm)
     return (lm + fm) / (K.HEIGHT_M * K.HEIGHT_M)
 end
 
--- The hours since the meal pool was last fed (record.satiety.M at K.hungerCurve.FED_M or more), counted continuously
--- across days, sleep and restarts (record.drain.fedAgeH, a stored input, moved past an offline gap by
+-- The meal spell (Plan 15 close, H1): record.drain.spell, a stored input, set while the pool M is at
+-- K.drain.SUSPEND_M or more and held until M falls under K.hungerCurve.FED_M, so a snack-sized pool or more opens a fed
+-- spell that lasts as long as the curve's own, and a floret's pool, which never reaches SUSPEND_M, opens none. Updated
+-- once a minute by K.drain.spellStep.
+function K.drain.spellStep(D, M)
+    if not K.finite(M) or M < K.hungerCurve.FED_M then
+        D.spell = false
+    elseif M >= K.drain.SUSPEND_M then
+        D.spell = true
+    end
+end
+
+-- Whether the pool M is fed by a meal spell: at FED_M or more with the spell open.
+function K.drain.mealFed(D, M)
+    return K.finite(M) and M >= K.hungerCurve.FED_M and D.spell == true
+end
+
+-- The hours since the meal pool was last fed (record.satiety.M at K.hungerCurve.FED_M or more; inside the acute state,
+-- acuteH over 0, only a meal spell, K.drain.mealFed), counted continuously across days, sleep and restarts (record.drain.fedAgeH, a stored input, moved past an offline gap by
 -- K.acute.skipRecord): a fed minute, a record seen for the first time (no stamp), a pool not yet seeded or a stamp
 -- ahead of the minute stamps the world age and reads 0.
 function K.drain.unfedH(D, sat, ageH)
@@ -197,7 +219,11 @@ function K.drain.unfedH(D, sat, ageH)
     if type(sat) == "table" then
         M = sat.M
     end
-    if not K.finite(D.fedAgeH) or D.fedAgeH > ageH or not K.finite(M) or M >= K.hungerCurve.FED_M then
+    local fed = K.finite(M) and M >= K.hungerCurve.FED_M
+    if K.finite(D.acuteH) and D.acuteH > 0 then
+        fed = K.drain.mealFed(D, M)                         -- inside the state only a meal spell is fed (H1)
+    end
+    if not K.finite(D.fedAgeH) or D.fedAgeH > ageH or not K.finite(M) or fed then
         D.fedAgeH = ageH
     end
     return K.max(0, ageH - D.fedAgeH)
@@ -348,11 +374,16 @@ function K.drain.step(record, dtM, ageH)
     inp.lm = body.lm
     inp.fm = body.fm
     inp.dehydPct = fl.dehydPct
-    local unfed = K.drain.unfedH(D, record.satiety, ageH)
+    local sat = record.satiety
+    local M = nil
+    if type(sat) == "table" then
+        M = sat.M
+    end
+    K.drain.spellStep(D, M)
+    local unfed = K.drain.unfedH(D, sat, ageH)
     D.recentKcal = K.drain.recentKcal(body, record.stomach)
     local low = D.recentKcal ~= nil and D.recentKcal <= K.drain.RECENT_MIN_KCAL + K.drain.RECENT_TOL
-    local sat = record.satiety
-    local fedNow = type(sat) == "table" and K.finite(sat.M) and sat.M >= K.hungerCurve.FED_M
+    local fedNow = K.drain.mealFed(D, M)
     D.starveAcute = unfed >= K.drain.STARVE_ONSET_H or (low and not fedNow)
     local held = false
     if D.starveAcute then

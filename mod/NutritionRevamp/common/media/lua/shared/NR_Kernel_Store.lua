@@ -108,6 +108,7 @@ K.store.INPUTS = {
     -- 2): the world age the meal pool was last fed and the hours in the acute state, so a restart mid-fast keeps the
     -- count. The active state, the active set (mask), its floor, rate, the minute's amount, starvedH and recentKcal are recomputed: derived.
     "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH",
+    "drain.spell", -- the meal spell (K.drain.spellStep, Plan 15 close H1): a refeed's fed spell survives a restart
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.

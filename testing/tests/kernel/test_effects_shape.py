@@ -870,7 +870,7 @@ def test_eating_ends_the_starvation(eff_host):
     rec, p, cfg = _starving(h, 40)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     assert rec["drain"]["active"] is True and rec["drain"]["bmi0"] > 0
-    rec["satiety"]["M"] = 10.0                                    # a meal: the pool fed (no 72 h window seen yet)
+    rec["satiety"]["M"] = 400.0                                   # a meal: a meal spell (no 72 h window seen yet; H1)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
     assert rec["drain"]["active"] is False and rec["drain"]["starvedH"] == 0
     assert rec["drain"]["bmi0"] == 0
