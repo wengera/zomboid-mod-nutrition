@@ -14,12 +14,16 @@ K.hungerCurve = {}
 -- second knot ends the flat foot, so a meal that takes h_model under it reads 0. Every X is a game choice (spec section
 -- 10: the curve's knots), fitted by tools/fit_hunger_curve.py on the server replay (the default body, three 667 kcal
 -- meals a day at 07:30, 12:30 and 18:30 with the guide's water, sleep off) against vanilla's cadence
--- (tools/vanilla_model.py: a can that takes HUNGER to 0.01, and three cans a day), loss 0.0897 against 0.562 for
--- the starting knots; no knot sits at its search bound; each line names its reading and its x0.95 and x1.05 readings.
+-- (tools/vanilla_model.py: a can that takes HUNGER to 0.01, and three cans a day with each meal's return to Peckish,
+-- Plan 15 Task 6c), loss 0.577 against 0.694 for the Task 6 knots (fit-hunger-curve-20261017b); no knot sits at its
+-- search bound; each line names its reading and its x0.95 and x1.05 readings. No curve of h_model meets vanilla's
+-- three-can breakfast (Peckish 1.17 h, a can short of the night's rise) and its lunch and dinner (4.25 h, 5.00 h) at
+-- once: the meal pool resets h_model by the meal, with no carry-over of the hunger before it, and the circadian factor
+-- (S1273, peak 19:50) wears dinner off first; the Peckish knot is the compromise the fit's weights choose.
 K.hungerCurve.X = {
     0, -- the curve's foot: no row needed
-    0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days (0.0968 after the evening meal, rounded up), so such a meal reads 0 and a 400 kcal one 0.047
-    0.19, -- game choice (spec section 10: the curve's knots), fitted: Peckish shows above it, 3.8 h after a 667 kcal meal (vanilla 4.4 h); 36 % of waking hours at level 1 or more on three such meals a day (vanilla 38 %); at x0.95 and x1.05 3.5 h and 4.0 h, 42 % and 28 %
+    0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days (0.0968 after the evening meal, rounded up), so such a meal reads 0 and a 400 kcal one 0.039
+    0.210312, -- game choice (spec section 10: the curve's knots), fitted (Plan 15 Task 6c): Peckish shows above it, 4.3 h after the fast's 667 kcal breakfast (vanilla 4.4 h); on three such meals a day 4.4 h after breakfast, 4.05 h after lunch and 3.8 h after dinner (vanilla 1.2 h, 4.25 h and 5.0 h), 21 % of waking hours at level 1 or more (vanilla 38 %); at x0.95 and x1.05 lunch 3.8 h and 4.3 h, dinner 3.3 h and 4.1 h, 4.0 h and 4.8 h after the fast's breakfast
     0.299375, -- game choice (spec section 10: the curve's knots), fitted: Hungry shows above it, 8.0 h after the meal (vanilla 8.0 h); 3.1 % of waking hours at level 2 or more (vanilla 4.4 %); at x0.95 and x1.05 7.4 h and 9.1 h
     0.42875, -- game choice (spec section 10: the curve's knots), fitted: Very Hungry shows above it, 17.0 h after the meal (vanilla 17.0 h); at x0.95 and x1.05 14.4 h and 19.9 h
     0.734688, -- game choice (spec section 10: the curve's knots), fitted: the cap 0.69 comes at 34.5 h (vanilla's Starving at 34.5 h), and Starving shows at the acute starvation onset (K.hybrid.caps); at x0.95 and x1.05 33.2 h and 37.2 h

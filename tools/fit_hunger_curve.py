@@ -1,4 +1,4 @@
-"""The calibrated hunger curve's fit (Plan 15 Task 6; spec docs/superpowers/specs/2026-10-16-game-feel-design.md
+"""The calibrated hunger curve's fit (Plan 15 Tasks 6 and 6c; spec docs/superpowers/specs/2026-10-16-game-feel-design.md
 section 2.1).
 
     python tools/fit_hunger_curve.py [--out <dir>]
@@ -18,12 +18,20 @@ The scenarios (meals of PLATE, the guide's foods, sized to MEAL_KCAL, a third of
 - fast: two such days, then breakfast at 07:30 on day 2 and nothing more for 60 h; read from that breakfast.
 The vanilla side (tools/vanilla_model.py, DayLength 4, StatsDecrease 3): the three-meal days with a can of bolognese
 (hunger -0.24, 540 kcal) at each meal from a hunger of 0.25, the review's 38 % of waking hours at level 1 or more and
-4.5 % at level 2 or more (game-feel review Q3); and the cadence after a meal that takes HUNGER to its floor (one can at
-a hunger of 0.25, which leaves 0.01 under the food timer): each level's return in hours.
+4.5 % at level 2 or more (game-feel review Q3), and each meal's return to Peckish on days 1 to 3 (Task 6c: breakfast
+1.17 h, lunch 4.25 h, dinner 5.00 h); and the cadence after a meal that takes HUNGER to its floor (one can at a hunger
+of 0.25, which leaves 0.01 under the food timer): each level's return in hours.
 
 The loss, each miss squared and summed (each target's tolerance is the size it is divided by):
 - the deepest post-meal HUNGER of the three-meal days over 0.02 (MIN_AFTER), in units of 0.02;
-- the waking shares at level 1 and level 2, relative to vanilla's (level 2 against at least 0.05);
+- the waking shares at level 1 and level 2, relative to vanilla's (level 2 against at least 0.05), each times W_SHARE;
+- each meal's return to Peckish on the three-meal days 1 to 3 (Task 6c): the mean over the days of the log ratio to
+  vanilla's return after the same meal, times its W_MEAL; a meal whose HUNGER never passes 0.15 before the next meal
+  reads the hours to that meal (censored, named in `censored`). Each return is the mean of two replays, the guide's
+  water and the same water WATER_SHIFT minutes later (three_events(shift)): a drink of water lowers h_model, so on one
+  water schedule a meal's return jumps by up to 0.6 h where the Peckish knot crosses the top of a drink's dip (dinner's
+  last drink at 22:00: at X[3] 0.205 dinner reads 3.35 h, at 0.21 3.98 h), and the loss's minimum sat on that edge;
+  a return that does not hang on when the last drink fell reads both schedules (Task 6c);
 - the hours to levels 1, 2 and 3 after the fast's breakfast, and to the 0.69 cap, as log ratios to vanilla's; these
   read the curve's own climb (the starvation flags off, curve_only()), and Starving as written (the acute onset, 30
   unfed hours, K.drain.STARVE_ONSET_H) is reported beside them.
@@ -32,10 +40,20 @@ The foot: X[2], the flat foot's end, is no searched knot (no loss term moves whi
 the highest of the three-meal days' lowest h_model after a meal, rounded up to 0.001 (foot()), so a 667 kcal meal reads
 0 and anything less sating reads above it.
 
-The search: a coordinate refinement from START (the foot set) over the other four knots (X[3] to X[6]), each moved by
-its step up and down and kept when the loss falls, the step halved after a round with no move, until the step is under 1e-4; a
-knot is kept strictly inside (its neighbours, BOUNDS). The stability check (CLAUDE.md section 6, fits): each knot at
-x0.95 and x1.05 with the loss and every target, and a meal-size sweep (200 to 1,300 kcal at the fast's breakfast) with
+The weights (Task 6c): vanilla's breakfast can (0.24) does not cover the night's rise (to 0.356), so vanilla carries
+0.116 of hunger past breakfast and reads Peckish 1.17 h after it; that carry-over is also most of vanilla's level-1
+share (4.3 of its 6.1 h). The satiety model has no such carry-over: the meal pool sets h_model after a 667 kcal meal
+by the meal, not by the hunger before it (0.089 after breakfast, 0.076 after lunch, 0.097 after dinner), so no curve
+of h_model meets the breakfast's 1.17 h and the satisfying meals' 4.25-5.00 h at once (Task 6c's finding). The terms
+that read the carry-over, breakfast and the shares, weigh W_CARRY; the others weigh 1.
+
+The search: a scan of each of the other four knots (X[3] to X[6]) in turn over its BOUNDS at SCAN_STEP, the others held
+(the loss is piecewise constant in whole minutes and has more than one valley), then a coordinate refinement from the
+scan's point, each knot moved by its step up and down and kept when the loss falls, the step halved after a round with
+no move, until the step is under 1e-4; a knot is kept strictly inside (its neighbours, BOUNDS). The Peckish knot's
+profile (profile(), PROFILE_STEP) records the loss, each meal's return, the shares and the fast's Peckish return across
+its bounds. The stability check (CLAUDE.md section 6, fits): each knot at
+x0.95 and x1.05 with the loss and every target (each meal's return included), and a meal-size sweep (200 to 1,300 kcal at the fast's breakfast) with
 its deepest HUNGER and its return to levels 1 and 2. A knot at or within one step of its bound is reported. Nothing
 here writes a tracked file: --out writes fit-compact.json (the chosen point, every target's value and miss, the
 stability readings, the search spec, the scenarios and the HEAD commit) into a gitignored folder (testing/runs/ by
@@ -78,6 +96,13 @@ VANILLA_START = 0.25
 SWEEP_KCAL = (200.0, 400.0, 667.0, 1000.0, 1300.0)
 Y = (0.0, 0.0, 0.15, 0.25, 0.45, 0.70, 1.0)
 START = (0.105, 0.225, 0.275, 0.38, 0.63)
+MEALS = ("breakfast", "lunch", "dinner")
+W_CARRY = 0.5                          # Task 6c: the terms that read vanilla's breakfast carry-over (the docstring)
+W_MEAL = (W_CARRY, 1.0, 1.0)           # breakfast, lunch, dinner
+W_SHARE = W_CARRY                      # the level-1 and level-2 shares
+SCAN_STEP = 0.0025
+WATER_SHIFT = 60                       # Task 6c: the meal returns also read on the water an hour later (the docstring)
+PROFILE_STEP = 0.005
 BOUNDS = ((0.02, 0.30), (0.10, 0.45), (0.12, 0.55), (0.20, 0.65), (0.40, 0.95))
 STEP0 = 0.02
 STEP_MIN = 1e-4
@@ -86,16 +111,16 @@ PATHS = ("satiety.hModel", "satiety.M", "drain.starving", "drain.starveAcute")
 
 # ---- the scenarios -------------------------------------------------------------------------------------------------
 
-def water(days):
-    return [{"minute": d * DAY + m, "kind": "autodrop", "g": WATER_G} for d in range(days) for m in WATER_MIN]
+def water(days, shift=0):
+    return [{"minute": d * DAY + m + shift, "kind": "autodrop", "g": WATER_G} for d in range(days) for m in WATER_MIN]
 
 
 def meal(minute, kcal):
     return {"minute": minute, "kind": "meal", "size": kcal, "plate": list(PLATE)}
 
 
-def three_events():
-    return [meal(d * DAY + m, MEAL_KCAL) for d in range(DAYS_THREE) for m in MEAL_MIN] + water(DAYS_THREE)
+def three_events(shift=0):
+    return [meal(d * DAY + m, MEAL_KCAL) for d in range(DAYS_THREE) for m in MEAL_MIN] + water(DAYS_THREE, shift)
 
 
 def fast_minutes():
@@ -213,12 +238,31 @@ def returns(H, start):
     return out
 
 
+def meal_returns(H, days=range(1, DAYS_THREE)):
+    """Each meal's hours to the first HUNGER over 0.15 after it, on each of the days: {meal: [(hours, censored)]}. A
+    meal whose HUNGER does not pass 0.15 before the next meal reads the hours to that meal, censored."""
+    out = {}
+    for j, name in enumerate(MEALS):
+        vals = []
+        for d in days:
+            b = d * DAY + MEAL_MIN[j]
+            e = d * DAY + (MEAL_MIN[j + 1] if j + 1 < len(MEAL_MIN) else DAY + MEAL_MIN[0])
+            e = min(e, len(H))
+            k = next((i for i in range(b, e) if H[i] > THRESHOLDS[0]), None)
+            vals.append(((e - b) / 60.0, True) if k is None else ((k - b) / 60.0, False))
+        out[name] = vals
+    return out
+
+
 def vanilla():
     """vanilla_model's three-can day shares and the fast's returns (levels 1-4, hours after the breakfast can)."""
     ev = [dict(VANILLA_CAN, t_h=d * 24 + m / 60.0, kind="eat") for d in range(DAYS_THREE) for m in MEAL_MIN]
     out = VM.simulate({"hours": DAYS_THREE * 24, "dt_min": 1, "start": {"hunger": VANILLA_START}, "events": ev})
     H = [v for _, v in out["hunger"]][1:]
     s1, s2 = shares(H)
+    meals = meal_returns([v for _, v in out["hunger"]])     # index = minute: the eat lands on its own minute
+    assert not any(c for v in meals.values() for _, c in v)
+    meals = {k: [t for t, _ in v] for k, v in meals.items()}
     ev = [dict(VANILLA_CAN, t_h=0.0, kind="eat")]
     out = VM.simulate({"hours": FAST_H, "dt_min": 1, "start": {"hunger": VANILLA_START}, "events": ev})
     F = [v for _, v in out["hunger"]]
@@ -226,7 +270,7 @@ def vanilla():
     for t in THRESHOLDS:
         k = next(i for i in range(len(F)) if F[i] > t)
         ret.append(k / 60.0)
-    return {"share1": s1, "share2": s2, "returns": ret, "after": min(F[:AFTER_MIN])}
+    return {"share1": s1, "share2": s2, "returns": ret, "after": min(F[:AFTER_MIN]), "meals": meals}
 
 
 def read(knots, traces, C, V):
@@ -238,10 +282,19 @@ def read(knots, traces, C, V):
     s1, s2 = shares(H3)
     b = FED_DAYS * DAY + MEAL_MIN[0]
     ret = returns(HC, b)[:4] + returns(HF, b)[4:]      # the curve's own climb, then Starving as written
-    r = {"deepest": deepest(H3, meals), "share1": s1, "share2": s2, "returns": ret}
+    mr = meal_returns(H3)
+    ms = meal_returns(stage(three["shifted"], knots, C, three["h0"]))
+    r = {"deepest": deepest(H3, meals), "share1": s1, "share2": s2, "returns": ret,
+         "meals": {k: [(a + b) / 2.0 for (a, _), (b, _) in zip(v, ms[k])] for k, v in mr.items()},
+         "mealsByWater": {"guide": {k: [t for t, _ in v] for k, v in mr.items()},
+                          "shifted": {k: [t for t, _ in v] for k, v in ms.items()}},
+         "censored": sorted(k for k in MEALS if any(c for _, c in mr[k] + ms[k]))}
     miss = {"deepest": max(0.0, r["deepest"] - MIN_AFTER) / MIN_AFTER,
-            "share1": (s1 - V["share1"]) / V["share1"],
-            "share2": (s2 - V["share2"]) / max(V["share2"], 0.05)}
+            "share1": W_SHARE * (s1 - V["share1"]) / V["share1"],
+            "share2": W_SHARE * (s2 - V["share2"]) / max(V["share2"], 0.05)}
+    for j, name in enumerate(MEALS):
+        logs = [math.log(t / v) for t, v in zip(r["meals"][name], V["meals"][name])]
+        miss[name] = W_MEAL[j] * sum(logs) / len(logs)
     for i, name in enumerate(("t1", "t2", "t3", "tcap")):
         t = ret[i]
         miss[name] = 10.0 if t is None else math.log(t / V["returns"][i])
@@ -269,11 +322,25 @@ def foot(trace3):
     return math.ceil(low * 1000.0) / 1000.0
 
 
+def grid(lo, hi, step):
+    n = int(round((hi - lo) / step))
+    return [round(lo + i * step, 6) for i in range(n + 1)]
+
+
 def search(traces, C, V, start=START):
     best = tuple(start)
     best_r = read(best, traces, C, V)
-    step = STEP0
     tried = 1
+    for i in range(1, len(best)):                          # the scan: each knot over its bounds, the others held
+        for x in grid(BOUNDS[i][0], BOUNDS[i][1], SCAN_STEP):
+            cand = tuple(x if j == i else best[j] for j in range(len(best)))
+            if not ordered(cand) or not inside(cand):
+                continue
+            r = read(cand, traces, C, V)
+            tried += 1
+            if r["loss"] < best_r["loss"] - 1e-12:
+                best, best_r = cand, r
+    step = STEP0
     while step >= STEP_MIN:
         moved = False
         for i in range(1, len(best)):                      # the foot (X[2]) is foot()'s, not searched
@@ -308,7 +375,8 @@ def trace(rows, be):
 def verify(knots, C):
     """The chosen knots replayed for real: the mirror on the run's own trace reproduces its written HUNGER."""
     worst = 0.0
-    for events, n in ((three_events(), DAYS_THREE * DAY), (fast_events(), fast_minutes())):
+    for events, n in ((three_events(), DAYS_THREE * DAY), (three_events(WATER_SHIFT), DAYS_THREE * DAY),
+                      (fast_events(), fast_minutes())):
         rows, be = replay(events, n, knots)
         t = trace(rows, be)
         H = stage(t["rows"][1:], knots, C, rows[0]["HUNGER"])
@@ -328,7 +396,8 @@ def stability(best, traces, C, V):
                 continue
             r = read(cand, traces, C, V)
             out["knots"].append({"knot": i + 2, "factor": f, "loss": r["loss"], "deepest": r["deepest"],
-                                 "share1": r["share1"], "share2": r["share2"], "returns": r["returns"]})
+                                 "share1": r["share1"], "share2": r["share2"], "returns": r["returns"],
+                                 "meals": r["meals"]})
     b = FED_DAYS * DAY + MEAL_MIN[0]
     for kcal in SWEEP_KCAL:
         rows, be = replay(fast_events(kcal), fast_minutes())
@@ -338,6 +407,20 @@ def stability(best, traces, C, V):
         out["sweep"].append({"kcal": kcal, "before": H[b - 1], "lowest": min(H[b:b + AFTER_MIN]),
                              "hModelLowest": min(r["satiety.hModel"] for r in rows[b:b + AFTER_MIN]),
                              "t1": ret[0], "t2": ret[1]})
+    return out
+
+
+def profile(best, traces, C, V):
+    """The Peckish knot (X[3]) across its bounds at PROFILE_STEP, the others at the chosen point: the loss, each meal's
+    return on day 2, the shares and the fast's Peckish return."""
+    out = []
+    for x in grid(BOUNDS[1][0], BOUNDS[1][1], PROFILE_STEP):
+        cand = (best[0], x) + tuple(best[2:])
+        if not ordered(cand):
+            continue
+        r = read(cand, traces, C, V)
+        out.append({"x3": x, "loss": r["loss"], "meals": [r["meals"][m][1] for m in MEALS],
+                    "share1": r["share1"], "share2": r["share2"], "t1": r["returns"][0]})
     return out
 
 
@@ -354,7 +437,8 @@ def at_bound(best):
 def fit():
     rows3, be = replay(three_events(), DAYS_THREE * DAY)
     C = constants(be.K)
-    traces = {"three": {"rows": trace(rows3, be)["rows"], "h0": 0.2}}
+    rows3s, _ = replay(three_events(WATER_SHIFT), DAYS_THREE * DAY)
+    traces = {"three": {"rows": trace(rows3, be)["rows"], "shifted": trace(rows3s, be)["rows"], "h0": 0.2}}
     rowsf, _ = replay(fast_events(), fast_minutes())
     rf = trace(rowsf, be)["rows"]
     traces["fast"] = {"rows": rf, "curve": curve_only(rf), "h0": 0.2}
@@ -362,17 +446,20 @@ def fit():
     x0 = foot(traces["three"])
     best, r, tried = search(traces, C, V, (x0,) + tuple(START[1:]))
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True).stdout.strip()
-    return {"head": head, "search": {"method": "coordinate", "step0": STEP0, "stepMin": STEP_MIN, "bounds": "BOUNDS",
-                                     "foot": "foot(): not searched"},
+    return {"head": head, "search": {"method": "scan, then coordinate", "scanStep": SCAN_STEP, "step0": STEP0,
+                                     "stepMin": STEP_MIN, "bounds": "BOUNDS", "foot": "foot(): not searched",
+                                     "weights": {"meals": dict(zip(MEALS, W_MEAL)), "shares": W_SHARE,
+                                                 "others": 1.0}},
             "scenarios": {"MEAL_MIN": list(MEAL_MIN), "MEAL_KCAL": MEAL_KCAL, "PLATE": list(PLATE),
-                          "WATER_MIN": list(WATER_MIN), "WATER_G": WATER_G, "DAYS_THREE": DAYS_THREE,
+                          "WATER_MIN": list(WATER_MIN), "WATER_G": WATER_G, "WATER_SHIFT": WATER_SHIFT,
+                          "DAYS_THREE": DAYS_THREE,
                           "FED_DAYS": FED_DAYS, "FAST_H": FAST_H, "HOUR_OFFSET": HOUR_OFFSET,
                           "SWEEP_KCAL": list(SWEEP_KCAL), "VANILLA_CAN": dict(VANILLA_CAN),
                           "VANILLA_START": VANILLA_START},
             "vanilla": V, "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
             "chosen": list(best), "reading": r, "atBound": at_bound(best), "shipped": list(shipped(be.K)),
             "shippedReading": read(shipped(be.K), traces, C, V), "verify": verify(best, C),
-            "stability": stability(best, traces, C, V)}
+            "stability": stability(best, traces, C, V), "profile": profile(best, traces, C, V)}
 
 
 def main(argv=None):
@@ -391,6 +478,8 @@ def main(argv=None):
         print("knot", json.dumps(s))
     for s in res["stability"]["sweep"]:
         print("sweep", json.dumps(s))
+    for s in res["profile"]:
+        print("profile", json.dumps(s))
     return 0
 
 

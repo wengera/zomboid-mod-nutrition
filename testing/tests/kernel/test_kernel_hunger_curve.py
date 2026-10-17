@@ -49,7 +49,7 @@ def test_the_knots_are_monotone_and_each_level_knot_is_a_vanilla_threshold(host)
 def test_the_fitted_knots(host):
     # tools/fit_hunger_curve.py's chosen point (the foot by its rule, the rest by the search), pinned
     X, _ = knots(host)
-    assert X[1:6] == [0.097, 0.19, 0.299375, 0.42875, 0.734688]
+    assert X[1:6] == [0.097, 0.210312, 0.299375, 0.42875, 0.734688]     # X[3] 0.19 before Task 6c
     assert host.K.hungerCurve.FED_M == host.K.satiety.MEAL_REQ
 
 
@@ -153,9 +153,11 @@ def test_a_satisfying_meal_reads_0_and_the_levels_return_on_vanillas_cadence(fit
     meals = [d * F.DAY + m for d in range(1, F.DAYS_THREE) for m in F.MEAL_MIN]
     assert F.deepest(H(fit["three"]), meals) <= 0.02
     s1, s2 = F.shares(H(fit["three"]))
-    assert 0.30 <= s1 <= 0.45 and s2 <= 0.08                    # vanilla 0.379 and 0.044 (the review's 38 %)
+    # vanilla 0.379 and 0.044 (the review's 38 %); Task 6c trades the level-1 share (0.358 before) for each meal's
+    # return: vanilla's share is mostly its breakfast can's carry-over, which the satiety model has none of
+    assert 0.18 <= s1 <= 0.30 and s2 <= 0.08
     t1, t2, t3, tcap, t4 = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
-    assert 3.5 <= t1 <= 4.5                                     # Peckish about 4 h after (vanilla 4.4 h)
+    assert 4.0 <= t1 <= 4.8                                     # Peckish about 4 h after (vanilla 4.4 h; 3.78 before 6c)
     assert 6.0 <= t2 <= 8.5                                     # Hungry 6-8 h after (vanilla 8.0 h)
     assert 15.0 <= t3 <= 19.0                                   # Very Hungry (vanilla 17.0 h)
     assert 33.0 <= tcap <= 36.0                                 # the cap, as vanilla's Starving (34.5 h)
@@ -166,8 +168,60 @@ def test_the_readings_are_pinned(fit):
     F = fit["F"]
     s1, s2 = F.shares(H(fit["three"]))
     ret = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
-    assert (round(s1, 4), round(s2, 4)) == (0.3576, 0.0312)
-    assert [round(t, 2) for t in ret] == [3.78, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1
+    assert (round(s1, 4), round(s2, 4)) == (0.2115, 0.0312)                 # (0.3576, 0.0312) before Task 6c
+    assert [round(t, 2) for t in ret] == [4.33, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1; t1 3.78 before 6c
+
+
+# ---- Plan 15 Task 6c: every meal's return to Peckish -----------------------------------------------------------------
+
+def test_vanillas_three_can_day_returns_each_meal_to_peckish():
+    # tools/vanilla_model.py at DayLength 4: the breakfast can (0.24) is short of the night's rise, so it carries hunger
+    # and returns at 1.17 h; lunch carries 0.016 (4.25 h); dinner lands on the floor and the Well Fed pause holds it (5 h)
+    import fit_hunger_curve as F
+    V = F.vanilla()
+    assert {k: [round(t, 2) for t in v] for k, v in V["meals"].items()} == {
+        "breakfast": [1.17] * 3, "lunch": [4.25] * 3, "dinner": [5.0] * 3}
+
+
+def test_each_meal_returns_to_peckish_nearer_vanilla_than_the_task_6_curve(fit):
+    F = fit["F"]
+    mr = F.meal_returns(H(fit["three"]))
+    got = {k: [round(t, 2) for t, _ in v] for k, v in mr.items()}
+    assert got == {"breakfast": [4.33] * 3, "lunch": [4.15] * 3, "dinner": [3.98] * 3}   # the guide's water
+    assert not any(c for v in mr.values() for _, c in v)
+    # before Task 6c (X[3] 0.19): breakfast 3.78, lunch 3.28 and dinner 2.93 h, against vanilla's 4.25 and 5.0 h
+    assert got["lunch"][0] > 3.28 + 0.5 and got["dinner"][0] > 2.93 + 0.5
+    assert 3.8 <= got["lunch"][0] <= 4.7 and 3.5 <= got["dinner"][0] <= 5.0
+
+
+def test_the_fit_scores_each_meal_on_both_water_schedules():
+    # the loss carries the three meal terms (Task 6c), each the mean log ratio over days 1-3 of the two water
+    # schedules' mean return; a mutated meal reading moves the loss
+    import fit_hunger_curve as F
+    rows3, be = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
+    rows3s, _ = F.replay(F.three_events(F.WATER_SHIFT), F.DAYS_THREE * F.DAY)
+    rowsf, _ = F.replay(F.fast_events(), F.fast_minutes())
+    rf = F.trace(rowsf, be)["rows"]
+    traces = {"three": {"rows": F.trace(rows3, be)["rows"], "shifted": F.trace(rows3s, be)["rows"], "h0": 0.2},
+              "fast": {"rows": rf, "curve": F.curve_only(rf), "h0": 0.2}}
+    C, V = F.constants(be.K), F.vanilla()
+    r = F.read(F.shipped(be.K), traces, C, V)
+    assert set(F.MEALS) <= set(r["miss"])
+    for j, m in enumerate(F.MEALS):
+        a, b = r["mealsByWater"]["guide"][m], r["mealsByWater"]["shifted"][m]
+        assert r["meals"][m] == [pytest.approx((x + y) / 2) for x, y in zip(a, b)]
+        logs = [math.log(t / v) for t, v in zip(r["meals"][m], V["meals"][m])]
+        assert r["miss"][m] == pytest.approx(F.W_MEAL[j] * sum(logs) / len(logs))
+    assert r["loss"] == pytest.approx(sum(v * v for v in r["miss"].values()))
+    V2 = dict(V, meals=dict(V["meals"], dinner=[10.0] * 3))
+    assert F.read(F.shipped(be.K), traces, C, V2)["loss"] > r["loss"] + 0.1
+
+
+def test_a_meal_that_never_reaches_peckish_before_the_next_reads_censored():
+    import fit_hunger_curve as F
+    H = [0.0] * (F.DAYS_THREE * F.DAY)
+    mr = F.meal_returns(H)
+    assert mr["breakfast"][0] == (5.0, True) and mr["lunch"][0] == (6.0, True) and mr["dinner"][0] == (13.0, True)
 
 
 def test_a_fast_never_lowers_hunger(fit):
