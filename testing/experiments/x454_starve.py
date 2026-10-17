@@ -19,7 +19,10 @@ PREDICTIONS (named before the run; K.drain and K.hybrid at 718d4296):
   DRAIN_RATE      health falls at 25 a game day (1.042 a game hour) within 15 % above the floor.
   FLOOR_HOLD      health holds within 0.3 of the ring's targetFloor (50 at the onset BMI) for 1.5 game hours.
   RECOVER         after the can, starveAcute false within 2 game minutes of the landing, the constant back to 0.0165,
-                  health up by 1.0 or more over 2 game hours and never 0.3 under the landing's.
+                  health up by 0.5 or more over 2 game hours and never 0.3 under the landing's. Basis (review
+                  L2): the Well Fed food heal, about 28 a game hour while the meal pool holds 435 or more and no drain
+                  is active, or vanilla's regeneration alone, 0.43-1.07 a game hour (0.86 over 2 game h at HUNGRY or
+                  THIRST 3); the levels and satiety.M at the eat are recorded.
   PAIRS_hungry    every client HUNGRY level a server level of the push window.
   H1, RING, Z     as x452.
 
@@ -50,8 +53,8 @@ PRED = {
     "CONST": "0.0165 before the onset, 0 after it until the eat",
     "DRAIN_RATE": "25 a game day within 15 %",
     "FLOOR_HOLD": "within 0.3 of the ring's floor for 1.5 game h",
-    "RECOVER": "starveAcute false within 2 game minutes, the constant 0.0165, health +1.0 over 2 game h",
-    "PAIRS_hungry": "every client level a server level of the push window",
+    "RECOVER": "starveAcute false within 2 game minutes, the constant 0.0165, health +0.5 over 2 game h",
+    "PAIRS_hungry": "every client level a server level of the push window, a transition read",
     "H1": "every ring path resolved", "RING": "every page read, errors 0", "Z": "no mod error line, admin not parked",
 }
 

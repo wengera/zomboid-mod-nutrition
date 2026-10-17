@@ -14,7 +14,9 @@ PREDICTIONS (named before the run; red = 0.0165, M_H = 1800 at DayLength 1, x451
   ONSET, CONST  as x454 (no eat: the constant 0 on every read after the onset).
   N_BLEED       the bleed drains red x M_H + 5.963 = 35.66 a game hour within 25 %, BLEEDING 4 at both ends.
   S_BLEED       starving, the constant 0 at both ends, the same bleed drains N's rate plus the starvation drain (1.042)
-                within 15 % of red x M_H (4.46 a game hour), and the writer's re-applied counter rose.
+                within 15 % of red x M_H (4.46 a game hour), and the writer's re-applied counter rose. N's rate
+                carries vanilla's regeneration on the four bleeding parts, at most 0.002 x 1800 x 0.6 / 17 = 0.127 a
+                game hour (review L1), recorded as bias_bound_per_gh.
   S_SICK        starving, SICK 4 drains red x M_H + 1.042 = 30.74 a game hour within 20 %, the constant 0 at both ends.
   H1, RING, Z   as x452.
 

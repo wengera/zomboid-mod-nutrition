@@ -125,6 +125,7 @@ class World:
         self.pending = []
         self.meal_age = None
         self.forced_unfed = False
+        self.fills = {}
         self.hist = []
         self.scale = 1.0
         self.rec = {"firstSeen": 3.2, "kineticsAge": 3.2, "stomachFill": 0.0,
@@ -210,6 +211,8 @@ class World:
         self.scale = 1.0 if "trait_ignored" in f else (1.5 if "HighThirst" in self.traits else
                                                        (0.5 if "LowThirst" in self.traits else 1.0))
         loss = L.basal_g_day(R["body"]["lm"], self.scale) / 1440.0 * (2.0 if "loss_x2" in f else 1.0)
+        if "dry" in f:
+            loss *= 4.0
         fl["water"] -= loss
         fl["na"] -= L.BASAL_NA / 1440.0
         weu = L.WATER_PER_MMOL * (fl["na"] + fl["k"])
@@ -372,10 +375,19 @@ class World:
         for k, v in FOOD_MASS[full].items():
             b[k] += v
         b["calories"] += L.FOODS[full]["cal"]
+        self.rec["fluids"]["water"] += FOOD_MASS[full]["water"]
         self.rec["satiety"]["M"] += L.FOODS[full]["cal"] * 1.2
         self.forced_unfed = False
         self.meal_age = self.age
         self.hunger = 0.1 if "eat_hunger" in self.f else 0.0
+
+    def drink_done(self, full):
+        lit = self.fills.get(full, 0.0)
+        self.inv[full] -= 1
+        self.fills[full] = 0.0
+        self.sips += 2
+        self.rec["fluids"]["water"] += lit * 1000.0
+        self.rec["stomach"]["liquid"] += 0.0
 
     # -- RCON and the bus
     def rcon(self, cmd):
@@ -483,7 +495,24 @@ class World:
             n = self.inv.get(a[1], 0)
             return {"fullType": a[1], "id": 1000 + n, "uses": 1} if n else f"no item {a[1]} in admin's inventory"
         if cmd == "autodrink.probe":
-            return {"ok": True, "side": "server", "thirst": self.thirst, "autoDrink": True, "containers": 0}
+            out = {"ok": True, "side": "server", "thirst": self.thirst, "autoDrink": True, "item": None,
+                   "litres": None, "fluid": None, "containers": sum(1 for v in self.fills.values() if v > 0)}
+            for full, lit in self.fills.items():
+                if self.inv.get(full) and lit > 0:
+                    out.update({"item": full, "litres": lit, "fluid": "Water"})
+                    break
+            return out
+        if cmd == "fluid.fill":
+            refused = "fill_refused" in self.f
+            if not refused:
+                self.fills[a[1]] = float(a[3])
+            return {"ok": not refused, "side": "server", "fullType": a[1], "id": 3000, "spawned": False,
+                    "requested": float(a[3]), "litres": 0.0 if refused else float(a[3]),
+                    "fluid": None if refused else a[2], "capacity": 1.0}
+        if cmd == "drink.action":
+            self.pending.append((self.t + 3.0, lambda fl=a[0]: self.drink_done(fl)))
+            return {"queued": True, "percentage": 1.0, "spawned": "found" if self.inv.get(a[0]) else "client",
+                    "itemId": 8, "filledRatioBefore": 1.0, "before": {}}
         if cmd == "nutrition.get":
             return {"calories": 1000.0, "carbs": 100.0, "lipids": 40.0, "proteins": 60.0, "weight": 65.0,
                     "hunger": self.hunger, "thirst": self.thirst, "statsApi": True, "incWeight": False,
@@ -523,8 +552,14 @@ class World:
         return {"error": f"fake: unknown {cmd}"}
 
 
-def run_session(key, tmp_path, monkeypatch, flags=(), budget=1e9, replay=None):
+FAKE_BANDS = {"lunch": 3.8, "dinner": 3.8, "breakfast": 3.8}       # the fake's cadence (HUNGER_AFTER)
+
+
+def run_session(key, tmp_path, monkeypatch, flags=(), budget=1e9, replay=None, bands=True):
     d = str(tmp_path)
+    if bands:
+        monkeypatch.setattr(L, "CAD_P_TARGETS", dict(FAKE_BANDS))
+        monkeypatch.setattr(L, "CAD_H_TARGET", 8.0)
     w = World(d, flags)
     out = fresh_out()
     xs = X.Xs(out, node=lambda side: side, clients={"admin": FakeClient("admin")}, ask=w.ask, budget_s=budget,
@@ -558,13 +593,13 @@ def test_session_as_predicted(key, tmp_path, monkeypatch):
     assert v and all(x == "as_predicted" for x in v.values()), bad(v, out)
     assert out["checks"]["restore"]["ok"] is True and w.speed == 1.0          # the start's speed restored
     assert len(out["checks"]["H"]["ring_paths"]) <= 32
-    names = {"x452": {"EAT0", "CAD_FEEL_P", "CAD_FEEL_H", "WF_SHOW", "WF_SPAN", "WF_VS_VANILLA", "PAIRS_foodEaten",
+    names = {"x452": {"HYDRATED", "EAT0", "CAD_FEEL_P", "CAD_FEEL_H", "WF_SHOW", "WF_SPAN", "PAIRS_foodEaten",
                       "PAIRS_hungry", "REPLAY_HUNGER", "REPLAY_THIRST", "REPLAY_body.energyState"},
              "x453": {"OF_REACH", "OF_REFUSE", "OF_EARLY", "OF_TIMER", "OF_NAUSEA", "OF_ENDURANCE", "PAIRS_foodEaten"},
              "x454": {"ONSET", "STARVING_SHOWN", "CONST", "DRAIN_RATE", "FLOOR_HOLD", "RECOVER", "PAIRS_hungry"},
              "x455": {"ONSET", "CONST", "N_BLEED", "S_BLEED", "S_SICK"},
              "x456": {"DEHYD_ONSET", "PARCHED_SHOWN", "CONST", "DEHYD_DRAIN", "DEHYD_FLOOR", "BASAL", "DEHYD_PACE",
-                      "DEHYD_SPEC", "P_SICK", "PAIRS_thirst"},
+                      "P_SICK", "PAIRS_thirst"},
              "x457": {"SCALE", "LOSS_BASE", "LOSS_HIGH", "LOSS_OFF", "LOSS_LOW", "RATIO_HIGH", "RATIO_OFF",
                       "RATIO_LOW", "TRAITS"}}[key] | {"H1", "RING", "Z"}
     assert set(v) == names, set(v) ^ names
@@ -583,6 +618,13 @@ def test_x452_records_the_schedule_and_the_t9_reads(tmp_path, monkeypatch):
     assert os.path.isfile(os.path.join(str(tmp_path), "start.json"))
     van = out["checks"]["vanilla_cadence"]
     assert len(van["day90"]) == 3 and len(van["profile"]) == 3
+    wf = out["checks"]["wf_vs_vanilla"]
+    assert len(wf) == 3 and all(r["mod_h"] is not None and "vanilla_90_h" in r for r in wf)
+    assert "WF_VS_VANILLA" not in out["verdicts"]
+    dr = out["checks"]["X"]["drinks"]
+    assert [d["container"] for d in dr] == list(L.DRINKS) and all(d["fill_ok"] and d["landed"] for d in dr)
+    assert all(abs(d["drunk"] - L.DRINK_L) < 1e-9 for d in dr)
+    assert "probe" in t9["after"] and "optionOn" in t9["after"]
 
 
 def test_x453_seeds_slows_and_refuses(tmp_path, monkeypatch):
@@ -590,7 +632,9 @@ def test_x453_seeds_slows_and_refuses(tmp_path, monkeypatch):
     seed = out["checks"]["SEED"]
     assert seed["slow"]["ok"] and abs(seed["after"]["mass"] - L.SEED_G) <= 2
     ref = out["checks"]["X"]["refusal"]
-    assert ref["validStart"] is False and ref["landed"] is False
+    assert ref["validStart"] is False and ref["landed"] is False and ref["level_at_attempt"] == 4
+    trig = out["checks"]["X"]["trigger"]
+    assert trig["level"] == 4 and trig["food_sick"] >= 29.5 and out["verdicts"]["OF_NAUSEA"]["observed"]["hold"] is trig
     assert 3 <= len(out["checks"]["X"]["eats"]) <= L.MAX_EATS
 
 
@@ -610,7 +654,7 @@ def test_x454_sets_the_clock_and_the_health(tmp_path, monkeypatch):
     ("x452", "fast_hunger", {"CAD_FEEL_P", "CAD_FEEL_H"}),
     ("x452", "timer_off", {"WF_SHOW"}),
     ("x452", "wf_long", {"WF_SPAN"}),
-    ("x452", "wf_slow", {"WF_VS_VANILLA"}),
+    ("x452", "dry", {"HYDRATED"}),
     ("x452", "client_stale", {"PAIRS_foodEaten", "PAIRS_hungry"}),
     ("x453", "no_refuse", {"OF_REFUSE", "OF_TIMER"}),
     ("x453", "refuse_lands", {"OF_REFUSE"}),
@@ -653,6 +697,33 @@ def test_x452_a_replay_over_the_tolerance_falsifies(tmp_path, monkeypatch):
     assert v["REPLAY_body.energyState"] == "unmeasured"
 
 
+def test_x452_cadence_unnamed_is_unmeasured_and_refused_at_preboot(tmp_path, monkeypatch):
+    v, out, _, _ = run_session("x452", tmp_path, monkeypatch, bands=False)
+    assert v["CAD_FEEL_P"] == "unmeasured" and v["CAD_FEEL_H"] == "unmeasured"
+    assert L.predictions_named() is False
+    checks, ok = L.preboot("x452", L.PROFILE, "x452", "x452_day.py")
+    assert ok is False and checks["cadence_bands_named"] is False
+
+
+def test_x452_a_dehydrated_row_ends_the_graded_rows(tmp_path, monkeypatch):
+    v, out, _, _ = run_session("x452", tmp_path, monkeypatch, flags=("dry",))
+    assert v["HYDRATED"] == "falsified"
+    assert any("excluded (review H2)" in n["note"] for n in out["notes"])
+
+
+def test_x452_a_refused_fill_leaves_the_replay(tmp_path, monkeypatch):
+    seen = {}
+    real = L.replay_events
+
+    def spy(rows, eats, start_age, drinks=()):
+        seen["drinks"] = list(drinks)
+        return real(rows, eats, start_age, drinks)
+    monkeypatch.setattr(L, "replay_events", spy)
+    v, out, _, S = run_session("x452", tmp_path, monkeypatch, flags=("fill_refused",))
+    assert S.drinks and not any(d["fill_ok"] for d in S.drinks) and seen["drinks"] == []
+    assert any("fill gate" in n["note"] for n in out["notes"])
+
+
 def test_the_budget_stops_the_scenario_and_keeps_the_closing_phases(tmp_path, monkeypatch):
     v, out, w, _ = run_session("x454", tmp_path, monkeypatch, budget=40.0)
     assert out.get("budget_stop") and "C" in out["phase_walls"] and "R" in out["phase_walls"]
@@ -679,6 +750,9 @@ def test_grade_pairs():
     assert L.grade_pairs(_pairs([0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]), "foodEaten")[0] == "falsified"
     assert L.grade_pairs(_pairs([0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]), "foodEaten")[0] == "unmeasured"
     assert L.grade_pairs(_pairs([1, 1], [1, 1]), "foodEaten")[0] == "unmeasured"
+    steady = _pairs([1] * 8, [1] * 8, dt=5.0)                              # no level change: a stale client passes it
+    r = L.grade_pairs(steady, "foodEaten")
+    assert r[0] == "unmeasured" and r[1]["transitions"] == 0
     lag = _pairs([0, 1, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1], dt=1.0)           # the client one push behind
     assert L.grade_pairs(lag, "foodEaten")[0] == "as_predicted"
 
@@ -700,6 +774,21 @@ def test_grade_return():
     assert L.grade_return([{"ret": None, "span": 6}], 3.8, 1.0)[0] == "falsified"
     assert L.grade_return([{"ret": None, "span": 4}], 3.8, 1.0)[0] == "unmeasured"
     assert L.grade_return([], 3.8, 1.0)[0] == "unmeasured"
+    assert L.grade_return([{"ret": 3.5, "span": 6, "target": None}], 3.8, 1.0)[0] == "unmeasured"
+    assert L.grade_return([{"ret": 3.5, "span": 6, "target": 2.7}], None, 0.5)[0] == "falsified"
+    assert L.grade_return([{"ret": 3.5, "span": 6, "target": 3.3}], None, 0.5)[0] == "as_predicted"
+
+
+def test_grade_hydrated_and_the_cut():
+    rows = [{"s": i, "fluids.dehydPct": 1.0 + i * 0.1, "drain.dehydrated": False} for i in range(20)]
+    assert L.grade_hydrated(rows)[0] == "as_predicted"
+    hot = [dict(r, **{"fluids.dehydPct": 4.0}) if r["s"] == 15 else r for r in rows]
+    assert L.grade_hydrated(hot)[0] == "falsified"
+    on = [dict(r, **{"drain.dehydrated": r["s"] >= 12}) for r in rows]
+    assert L.grade_hydrated(on)[0] == "falsified"
+    kept, cut = L.hydrated_rows(on)
+    assert len(kept) == 12 and cut == 8 and L.hydrated_rows(rows) == (rows, 0)
+    assert L.grade_hydrated([{"s": 1}])[0] == "unmeasured"
 
 
 def test_first_return_and_counts_row():
@@ -742,10 +831,12 @@ def test_grade_wf_span():
     assert L.grade_wf_span(None, on + off, rows, 7.0)[0] == "unmeasured"
 
 
-def test_grade_wf_vs_vanilla():
-    assert L.grade_wf_vs_vanilla([0.47, 0.47], [{"well_fed_h": 1.2}, {"well_fed_h": 2.9}])[0] == "as_predicted"
-    assert L.grade_wf_vs_vanilla([1.5, 0.47], [{"well_fed_h": 1.2}, {"well_fed_h": 2.9}])[0] == "falsified"
-    assert L.grade_wf_vs_vanilla([None], [{"well_fed_h": 1.2}])[0] == "unmeasured"
+def test_wf_vs_vanilla_is_a_reading():
+    r = L.wf_vs_vanilla([0.47, None], {"day90": [{"well_fed_h": 0.2}, {"well_fed_h": 0.48}],
+                                       "profile": [{"well_fed_h": 1.17}]})
+    assert r == [{"meal": 0, "mod_h": 0.47, "vanilla_90_h": 0.2, "vanilla_profile_h": 1.17},
+                 {"meal": 1, "mod_h": None, "vanilla_90_h": 0.48, "vanilla_profile_h": None}]
+    assert not hasattr(L, "grade_wf_vs_vanilla")
 
 
 def test_vanilla_meals_reads_a_cadence():
@@ -767,12 +858,14 @@ def test_grade_of_reach_refuse_early():
     assert L.grade_of_reach(eats)[0] == "as_predicted"
     assert L.grade_of_reach(eats[:1])[0] == "falsified"
     assert L.grade_of_reach([{"landed": False}])[0] == "unmeasured"
-    ref = {"pre_level": 4, "validStart": False, "landed": False, "mass0": 1102, "mass1": 1100}
+    ref = {"pre_level": 4, "level_at_attempt": 4, "validStart": False, "landed": False, "mass0": 1102, "mass1": 1100}
     assert L.grade_of_refuse(ref)[0] == "as_predicted"
     assert L.grade_of_refuse(dict(ref, validStart=True))[0] == "falsified"
     assert L.grade_of_refuse(dict(ref, landed=True))[0] == "falsified"
     assert L.grade_of_refuse(dict(ref, mass1=1140))[0] == "falsified"
     assert L.grade_of_refuse(dict(ref, pre_level=3))[0] == "unmeasured"
+    left = L.grade_of_refuse(dict(ref, level_at_attempt=3, validStart=True))
+    assert left[0] == "unmeasured" and "left Overfull 4" in left[1]["why"]
     assert L.grade_of_refuse(None)[0] == "unmeasured"
     assert L.grade_of_early(eats)[0] == "as_predicted"
     assert L.grade_of_early([dict(eats[0], validStart=False)])[0] == "falsified"
@@ -846,6 +939,11 @@ def test_grade_drain_rate():
     assert L.grade_drain_rate(_drain_points(25.0), 50.0, 55.0, 25.0)[0] == "as_predicted"
     assert L.grade_drain_rate(_drain_points(50.0), 50.0, 55.0, 25.0)[0] == "falsified"
     assert L.grade_drain_rate(_drain_points(25.0)[:3], 50.0, 55.0, 25.0)[0] == "unmeasured"
+    deep = _drain_points(200.0, h0=100.0, floor=47.0, hours=8.0)          # the hold's points a little under a later floor
+    a_reach = next(p["age"] for p in deep if p["overall"] <= 47.0 + L.FLOOR_REACH)
+    held = [dict(p, overall=p["overall"] - 0.4 * max(0.0, p["age"] - a_reach)) for p in deep]
+    cut = L.grade_drain_rate(held, 46.4, 100.0, 200.0, a_reach)
+    assert cut[0] == "as_predicted" and abs(cut[1]["rel_err"]) < 1e-6
 
 
 def test_grade_floor_hold():
@@ -886,7 +984,8 @@ def test_grade_n_s_bleed_and_sick():
     assert L.grade_n_bleed(_win(n * 0.5), red)[0] == "falsified"
     assert L.grade_n_bleed(_win(n, lv=3), red)[0] == "unmeasured"
     s = 25.0 / 24.0
-    assert L.grade_s_bleed(_win(n + s), _win(n), red, s, 5)[0] == "as_predicted"
+    ok_ = L.grade_s_bleed(_win(n + s), _win(n), red, s, 5)
+    assert ok_[0] == "as_predicted" and abs(ok_[1]["bias_bound_per_gh"] - 0.002 * 1800 * 0.6 / 17) < 1e-12
     assert L.grade_s_bleed(_win(n - red * L.M_H), _win(n), red, s, 5)[0] == "falsified"   # no re-applied term
     assert L.grade_s_bleed(_win(n + s, k=(0.0165, 0.0165)), _win(n), red, s, 5)[0] == "falsified"
     assert L.grade_s_bleed(_win(n + s), _win(n), red, s, 0)[0] == "falsified"
@@ -950,9 +1049,12 @@ def test_dehyd_pace_and_grades():
     pct_gh = grow / (10.0 * w)
     p = L.dehyd_pace(w, lm, pct_gh, 6.0, 50.0, 100.0)
     assert abs(p["live_h"] - p["kernel_h"]) < 1e-6 and abs(p["kernel_h"] - 38.13) < 0.05
-    assert L.grade_pace(p)[0] == "as_predicted" and L.grade_spec(p)[0] == "as_predicted"
+    assert L.grade_pace(p)[0] == "as_predicted"
+    sp = L.dehyd_spec(p)
+    assert abs(sp["kernel_gap_h"] - (p["kernel_h"] - 35.0)) < 1e-9 and sp["spec_h"] == 35.0
+    assert L.dehyd_spec({})["live_gap_h"] is None and not hasattr(L, "grade_spec")
     fast = L.dehyd_pace(w, lm, pct_gh * 2.0, 6.0, 50.0, 100.0)
-    assert L.grade_pace(fast)[0] == "falsified" and L.grade_spec(fast)[0] == "falsified"
+    assert L.grade_pace(fast)[0] == "falsified"
     assert L.grade_pace(L.dehyd_pace(w, lm, None, 6.0, 50.0))[0] == "unmeasured"
     half = L.dehyd_pace(w, lm, pct_gh, 3.0, 50.0, 75.0)                   # half the drain from half the height
     assert abs(half["live_h"] - p["live_h"]) < 1e-6
@@ -1072,7 +1174,9 @@ def test_the_pinned_commit_is_the_mod_trees_last():
 
 
 @pytest.mark.parametrize("key", list(L.SESSIONS))
-def test_preboot_passes_on_the_repository(key):
+def test_preboot_passes_on_the_repository(key, monkeypatch):
+    monkeypatch.setattr(L, "CAD_P_TARGETS", dict(FAKE_BANDS))
+    monkeypatch.setattr(L, "CAD_H_TARGET", 8.0)
     if any(d.startswith(key + "-") for d in os.listdir(os.path.join(REPO, "testing", "artifacts"))):
         pytest.skip("the session has run; its committed artifact is the evidence "
                     "(test_preboot_refuses_a_committed_artifact covers the refusal)")
@@ -1128,7 +1232,7 @@ def test_every_prediction_names_a_grade_the_session_makes(key, tmp_path, monkeyp
     mod = importlib.import_module(L.SESSIONS[key]["driver"][:-3])
     v, out, _, _ = run_session(key, tmp_path, monkeypatch)
     assert set(mod.PRED) == set(v), set(mod.PRED) ^ set(v)
-    assert mod.BUDGET_S <= 480.0
+    assert mod.BUDGET_S <= 500.0                                       # plus about 60 s of closing: under 10 min
 
 
 def test_restore_falls_back_to_time_multiplier(tmp_path, monkeypatch):

@@ -27,9 +27,11 @@ stomach near SEED_G (x453). health.reduce takes health to HEALTH_SEED once starv
 floor in minutes (x454). Each set is recorded with its reply (before, after) and its world age.
 
 THE SESSIONS (each under 10 wall minutes; PREDICTIONS sit in each driver):
-  x452 day      S, H (the ring), W (the store's next save: start.json), F (the foods; the T9 tag read), X (lunch at the
+  x452 day      S, H (the ring), W (the store's next save: start.json), F (the foods; the T9 reads), X (lunch at the
                 next 12:30, dinner 6 h later, breakfast 13 h after that, 5 h after it; each meal a
-                CannedBologneseOpen and a Banana, 645 kcal; server and client stats.get pairs throughout), C, R, T (the T9 read after), Z.
+                CannedBologneseOpen and a Banana, 645 kcal; DRINK_L of water DRINK_AFTER_H after each meal, a fresh
+                container type each (DRINKS); server and client stats.get pairs throughout), C, R, T (the T9 reads
+                after), Z.
   x453 overfull S, H, F (Broccoli x SPAWN_N), SEED (the slow clock, the stomach to SEED_G), X (one Broccoli at a time
                 until Overfull 4, then one more eat attempted; the hold reads), C (the clock; action.cancel), R, Z.
   x454 starve   S, H, F (a CannedBologneseOpen), A (the onset), B (health to HEALTH_SEED, the drain to the floor and
@@ -43,26 +45,31 @@ THE SESSIONS (each under 10 wall minutes; PREDICTIONS sit in each driver):
 THE GRADES (pure; each has a failing case in testing/tests/test_x45g_lib.py; a grade on no valid sample is unmeasured,
 never as_predicted; every tolerance is named below, before any run):
   x452  EAT0          the ring's HUNGER at and after each meal's landing minute (EAT0_ROWS rows) at most EAT0_TOL.
-        CAD_FEEL_P    each meal's Peckish return (HUNGER over 0.15, the ring) within CAD_P_TOL h of CAD_P_TARGET (the
-                      curve's fitted 3.8 h against vanilla's 4.4 h, tools/fit_hunger_curve.py); vanilla_model's returns
-                      for the same cans at the same ages are recorded beside it.
-        CAD_FEEL_H    the dinner's Hungry return (over 0.25) within CAD_H_TOL h of CAD_H_TARGET (8.0, vanilla 8.0).
+        HYDRATED      every ring row not dehydrated and under DEHYD_ONSET_PCT (CLAUDE.md s5); x452's other grades
+                      read only the rows before a first dehydrated row (hydrated_rows), noted.
+        CAD_FEEL_P    each meal's Peckish return (HUNGER over 0.15, the ring) within CAD_P_TOL h of its band
+                      CAD_P_TARGETS[meal], the HEAD replay of exactly this schedule (review M1; named after Task 6c's
+                      re-fit, preboot refuses while any is None); vanilla_model's returns are recorded beside it.
+        CAD_FEEL_H    the dinner's Hungry return (over 0.25) within CAD_H_TOL h of CAD_H_TARGET, named the same way.
         REPLAY_*      the HEAD kernel replay (tools/replay_live.replay_live, ServerReplay) of the ring from start.json
-                      with the eats, under REPLAY_TOL (x446's).
+                      with the eats and the fill-gated drinks, under REPLAY_TOL (x446's).
         WF_SHOW       the server's FOOD_EATEN at 1 or more within WF_SHOW_GM game minutes of each meal's landing.
         WF_SPAN       the lunch's Well Fed end (the server reads) brackets the ring's satiety.M fall under WELL_FED_M
                       within WF_END_TOL_GM.
-        WF_VS_VANILLA each meal's Well Fed span (the ring's M at WELL_FED_M or more) no longer than vanilla_model's
-                      Well Fed span for the same meals at the profile's day length (the design: inside vanilla's).
         PAIRS         every client FOOD_EATEN and HUNGRY level equals a server level read within PUSH_S before it (the
-                      1 Hz push) or the last one before that window; PAIR_MIN pairs, one at least at a level over 0.
+                      1 Hz push) or the last one before that window; PAIR_MIN pairs, one at a level over 0, and one
+                      transition (a read the stale client can fail, review L4).
+        (reading)     checks.wf_vs_vanilla: each meal's Well Fed span beside vanilla_model's at 90 and 15 minutes
+                      (review M2: vanilla's scales as 1 / day length, the mod's does not; never a grade).
   x453  OF_REACH      Broccoli eaten from Overfull 3 or less lands until the stomach reads Overfull 4.
-        OF_REFUSE     at Overfull 4 the next eat is refused: validStart false on the client, no landing in
-                      REFUSE_WAIT_S, the stomach not heavier by REFUSE_MASS_TOL.
+        OF_REFUSE     at Overfull 4 (still 4 on the read just before the attempt, else unmeasured) the next eat is
+                      refused: validStart false on the client, no landing in REFUSE_WAIT_S, the stomach not heavier
+                      by REFUSE_MASS_TOL.
         OF_EARLY      no eat refused below Overfull 4.
         OF_TIMER      the server's food timer above 3200 (FOOD_EATEN 3, #0511) on every settled Overfull 4 read, at or
                       under 3200 on every settled read below 4.
-        OF_NAUSEA     FOOD_SICKNESS at least FOOD_SICK_STEP - NAUSEA_TOL and SICK at 1 or more at the hold's first read.
+        OF_NAUSEA     FOOD_SICKNESS at least FOOD_SICK_STEP - NAUSEA_TOL and SICK at 1 or more at the trigger read,
+                      the first settled read at Overfull 4 (review M4); the hold's reads are kept as readings.
         OF_ENDURANCE  ENDURANCE at most END_CAP + END_TOL and the endurance moodle at 1 or more on the settled reads at
                       Overfull 3 or more (unmeasured when NR.Severity is under 0.5, where the slowing is off).
         PAIRS         FOOD_EATEN, as x452.
@@ -70,10 +77,12 @@ never as_predicted; every tolerance is named below, before any run):
                       it or the next row, and at most HUNGER_CAP + CAP_EPS on every row between the set and it.
         STARVING_SHOWN the server's HUNGRY at 4 on its first read ONSET_SHOW_GM after the onset row.
         CONST         the severe-moodle constant read 0 after the onset and the start's value before it.
-        DRAIN_RATE    the health slope above the floor within DRAIN_TOL_REL of STARVE_RATE a game day.
+        DRAIN_RATE    the health slope above the floor, before its reach, within DRAIN_TOL_REL of STARVE_RATE a day.
         FLOOR_HOLD    health within FLOOR_TOL of the ring's targetFloor over FLOOR_HOLD_GH after reaching it.
         RECOVER       after the can: starveAcute false within RECOVER_SHOW_GM, the constant back to the start's value,
-                      health up by RECOVER_MIN over RECOVER_GH and never under the landing's by more than FLOOR_TOL.
+                      health up by RECOVER_MIN over RECOVER_GH and never under the landing's by more than FLOOR_TOL
+                      (review L2: the food heal, about 28 a game hour while M >= 435, or vanilla's regeneration alone,
+                      0.43-1.07 a game hour, either clears it).
         PAIRS         HUNGRY, as x452.
   x455  ONSET, CONST  as x454.
         N_BLEED       the bleed's drain, not starving, within N_TOL_REL of x451's wound term plus red x M_H.
@@ -85,13 +94,12 @@ never as_predicted; every tolerance is named below, before any run):
                       most THIRST_CAP + CAP_EPS before it.
         PARCHED_SHOWN the server's THIRST moodle at 4 on its first read ONSET_SHOW_GM after the onset row.
         CONST         as x454 (the onset is dehydration's).
-        DEHYD_DRAIN   the health slope above the floor within DRAIN_TOL_REL of DEHYD_RATE a game day.
+        DEHYD_DRAIN   the health slope above the floor, before its reach, within DRAIN_TOL_REL of DEHYD_RATE a day.
         DEHYD_FLOOR   health within DEHYD_FLOOR_TOL of the ring's targetFloor over FLOOR_HOLD_GH after reaching it.
         BASAL         the ring's fluids.water loss within BASAL_TOL_REL of basalG(lm) / 24 a game hour.
         DEHYD_PACE    the live first-floor hour without water (the ring's dehydPct rise to 4 %, then the live drain)
                       within PACE_TOL_H of the kernel arithmetic for the live body (dehyd_pace).
-        DEHYD_SPEC    the same live hour within SPEC_TOL_H of the spec's SPEC_H ("about 35 h").
-        P_SICK        Parched, SICK 4 drains at red x M_H within SICK_TOL_REL (vanilla's own damage, under the floor).
+        (reading)     checks.dehyd_spec: the live and the kernel hours beside the spec's SPEC_H (review M3).
         PAIRS         THIRST, as x452.
   x457  SCALE         the server's applied basal scale (NutritionRevamp.server.nutrients.fctx.basalScale, NR.read.trait)
                       reads 1, 1.5, 1 and 0.5 times the start's in BASE, HIGH, OFF and LOW, and BASE reads 1 at the
@@ -209,6 +217,17 @@ FOODS = {
                "foodType": "Vegetables"},
 }
 VANILLA_EAT = {BOLOGNESE: (-0.24, 540.0), BANANA: (-0.16, 105.0)}   # food.txt HungerChange / 100 and Calories
+# x452's water (review H2): one fresh prefilled-water container TYPE a drink (normal.txt: WaterBottle 1.0 L, Canteen 0.9 L,
+# Sportsbottle 1.0 L, each Fluids Water:1.0 and no sealed tag), spawned by RCON at its drink so auto-drink has no window,
+# the server copy filled to DRINK_L of Water (fluid.fill), drink.action <type> 1 on the client: x44_guide_lib's route
+# (x446, x447). Each drink sits DRINK_AFTER_H after a meal, when the solid lane has emptied enough that the drink keeps
+# the stomach under Overfull 3 (a 668 g meal plus 0.5 L at once would read Overfull 4).
+DRINKS = ("Base.WaterBottle", "Base.Canteen", "Base.Sportsbottle")
+DRINK_FLUID = "Water"
+DRINK_L = 0.5
+DRINK_AFTER_H = 2.5
+DRINK_CAP_S = 40.0
+SETTLE_POLLS = 3
 
 # ---- the record and global paths -------------------------------------------------------------------------------------
 EATS_G = "_G.NutritionRevamp.server.intake.stats.eats"
@@ -230,7 +249,7 @@ RING = {
     "x452": ("satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.hModel", "stomachFill", "stomach.liquid",
              "body.energyState", "body.met", "body.fm", "body.lm", "body.inDay", "body.eeDay", "kineticsAge",
              "fluids.water", "fluids.na", "fluids.naPlasma", "fluids.autoDrop", "fluids.thirstTarget",
-             "fluids.dehydPct", "drain.active", EATS_G, LANDED_G, SIPS_G, WRITES_G, FT_G, RED_G),
+             "fluids.dehydPct", "drain.active", "drain.dehydrated", EATS_G, LANDED_G, SIPS_G, WRITES_G, FT_G, RED_G),
     "x453": STOMACH_PATHS + ("stomach.volX", "stomachFill", "satiety.M", "effects.enduranceCap",
                              "effects.foodSickStep", "drain.active", EATS_G, LANDED_G, FT_G, WRITES_G),
     "x454": ("satiety.M", "drain.fedAgeH", "drain.starvedH", "drain.acuteH", "drain.starveAcute", "drain.starving",
@@ -252,10 +271,11 @@ STAT_NAMES = {"HUNGER": "Hunger", "THIRST": "Thirst", "FATIGUE": "Fatigue", "BOR
 
 # ---- the tolerances and the scenario sizes (named before any run) ----------------------------------------------------
 PUSH_S = 1.2                             # the 1 Hz stats packet plus a fifth of a second
+TRANSITION_S = 3.0                       # review L4: a client read within this long after a server level change
 PAIR_SLACK_S = 0.3
 PAIR_MIN = 5
 REPLAY_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005), "THIRST": ("abs", 0.002)}   # x446's
-SAVE_CAP_S = 70.0
+SAVE_CAP_S = 60.0
 # x452
 LUNCH_HOUR = 12.5
 MIN_LEAD_H = 0.1
@@ -269,10 +289,13 @@ PAIR_EVERY_S = 1.5
 FAST_PAIR_EVERY_S = 4.0
 EAT0_TOL = 0.02
 EAT0_ROWS = 3                            # the landing minute's row and the next two (the next minute's write)
-CAD_P_TARGET = 3.8
-CAD_P_TOL = 1.0
-CAD_H_TARGET = 8.0
-CAD_H_TOL = 1.5
+# The cadence bands (review M1, the controller's ruling): each meal's Peckish return and the dinner's Hungry return
+# graded against the HEAD replay of exactly this session's schedule (the foods, the drinks, the minutes), one band a
+# meal. None until Task 6c's re-fit lands and the replay is re-derived: preboot refuses a boot while any is None.
+CAD_P_TARGETS = {"lunch": None, "dinner": None, "breakfast": None}
+CAD_P_TOL = 0.5
+CAD_H_TARGET = None
+CAD_H_TOL = 0.75
 WF_SHOW_GM = 3.0
 WF_END_TOL_GM = 2.0
 SPAWN_BANANAS = 4                        # three eaten, one left for the T9 read after
@@ -303,7 +326,7 @@ DRAIN_TOL_REL = 0.15
 DRAIN_MIN_GH = 1.0                       # the drain slope needs this span of game hours
 POINT_EVERY_S = 0.5
 RECOVER_GH = 2.0
-RECOVER_MIN = 1.0
+RECOVER_MIN = 0.5                        # review L2: the regeneration floor alone gives about 0.86 over 2 game h
 RECOVER_SHOW_GM = 2.0
 WIN_S = 10.0
 SETTLE_S = 1.5
@@ -311,6 +334,9 @@ BLEED_PARTS = (0, 1, 2, 3)               # x451's: Hand_L, Hand_R, ForeArm_L, Fo
 BLEED_TIME = 5.0
 FOOD_SICK_W = 95.0                       # SICK 4 above 0.90 on the hundredth scale (#3130)
 N_TOL_REL = 0.25
+REGEN_STANDARD = 0.002                   # VANILLA #2354, the standard addition a multiplier unit
+BLEED_WEIGHT = 0.6                       # the four bleeding parts' share (hands 0.1 + 0.1, forearms 0.2 + 0.2; review L1)
+PARTS = 17                               # AddGeneralHealth adds y / 17 to each part below 100 (#3898)
 S_TOL_REL = 0.15
 SICK_TOL_REL = 0.20
 # x456
@@ -320,7 +346,6 @@ DEHYD_NEAR_PCT = 3.97                    # the clock drops to speed 1 here, so t
 DEHYD_FLOOR_TOL = 0.5
 BASAL_TOL_REL = 0.03
 PACE_TOL_H = 1.0
-SPEC_TOL_H = 4.0
 STOMACH_EMPTY_G = 1.0
 # x457
 WIN_GH = 3.0
@@ -337,9 +362,9 @@ HARNESS_MARKERS = {
     "PZTestKit_Server.lua": tuple(f'TK.register("{c}", function(' for c in (
         "minute.ring", "stats.get", "stats.all", "stats.setany", "health.get", "health.reduce", "moodle.level",
         "witness.chain", "record.set", "trait.set", "bodypart.set", "item.get", "autodrink.probe", "nutrition.get",
-        "time.multiplier", "players")),
+        "time.multiplier", "players", "fluid.fill")),
     "PZTestKit_Client.lua": tuple(f'TK.register("{c}", function(' for c in (
-        "eat.action", "witness.chain", "action.cancel")),
+        "eat.action", "drink.action", "witness.chain", "action.cancel")),
     "PZTestKit_Client_Body.lua": tuple(f'TK.register("{c}", function(' for c in ("stats.get",)),
     "PZTestKit_Core.lua": tuple(f'TK.register("{c}", function(' for c in ("time.snapshot", "lua.read", "lua.global",
                                                                          "lua.call")),
@@ -505,8 +530,9 @@ def day_plan(a):
 def grade_pairs(pairs, key):
     """Every client level of `key` (a stats.get moodles key) in the set the server read within PUSH_S before the client
     read (to PAIR_SLACK_S after it), plus the last server level before that window; a client read with no server read
-    before the window is not graded. pairs: [{s0, c, s1}] of kept stats.get rows. Needs PAIR_MIN graded client reads
-    and one at a level over 0."""
+    before the window is not graded. pairs: [{s0, c, s1}] of kept stats.get rows. Needs PAIR_MIN graded client reads,
+    one at a level over 0, and one transition (review L4): a read whose window holds a server level other than the one
+    before it, or within TRANSITION_S after a server level change, the only read a stale client can fail."""
     srv = []
     for p in pairs:
         for k in ("s0", "s1"):
@@ -514,7 +540,8 @@ def grade_pairs(pairs, key):
             if t is not None and lv is not None:
                 srv.append((t, lv))
     srv.sort()
-    bad, n, nonzero = [], 0, False
+    changes = [srv[i][0] for i in range(1, len(srv)) if srv[i][1] != srv[i - 1][1]]
+    bad, n, nonzero, trans = [], 0, False, 0
     for p in pairs:
         t, lv = mid(p.get("c") or {}), num(g(p, "c", "moodles", key))
         if t is None or lv is None:
@@ -523,14 +550,18 @@ def grade_pairs(pairs, key):
         if not before:
             continue                     # no server read before the push window: the client's state unknown
         n += 1
-        allowed = {s for ts, s in srv if t - PUSH_S <= ts <= t + PAIR_SLACK_S}
+        inwin = {s for ts, s in srv if t - PUSH_S <= ts <= t + PAIR_SLACK_S}
+        allowed = set(inwin)
         allowed.add(before[-1])
+        if any(s != before[-1] for s in inwin) or any(0 <= t - tc <= TRANSITION_S for tc in changes):
+            trans += 1                   # a read near a level change: the one a stale client fails
         if lv > 0:
             nonzero = True
         if lv not in allowed:
             bad.append({"tag": p.get("tag"), "client": lv, "allowed": sorted(allowed), "wall": t})
-    obs = {"key": key, "client_reads": n, "nonzero": nonzero, "mismatches": bad[:20], "n_bad": len(bad)}
-    if n < PAIR_MIN or not nonzero:
+    obs = {"key": key, "client_reads": n, "nonzero": nonzero, "transitions": trans, "mismatches": bad[:20],
+           "n_bad": len(bad)}
+    if n < PAIR_MIN or not nonzero or trans == 0:
         return "unmeasured", obs
     return ("as_predicted" if not bad else "falsified"), obs
 
@@ -559,13 +590,20 @@ def grade_eat0(meals, rows):
 
 
 def grade_return(windows, target, tol):
-    """CAD_FEEL_P and CAD_FEEL_H: windows [{label, ret (hours or None), span (hours the window covered)}]. A window with
-    no return whose span covers target + tol is a miss (falsified); one whose span does not is unmeasured; a return
-    outside target +/- tol is falsified."""
+    """CAD_FEEL_P and CAD_FEEL_H: windows [{label, ret (hours or None), span (hours the window covered), target (this
+    window's band centre, else `target`)}]. A window with no target is unmeasured; one with no return whose span covers
+    target + tol is a miss (falsified); one whose span does not is unmeasured; a return outside target +/- tol is
+    falsified."""
     obs, measured, bad = [], 0, False
     for w in windows:
         ret, span = w.get("ret"), w.get("span")
         row = dict(w)
+        target = w.get("target", target)
+        row["target"] = target
+        if target is None:
+            row["verdict"] = "no band named"
+            obs.append(row)
+            continue
         if ret is None:
             if span is not None and span >= target + tol:
                 row["verdict"] = "no return inside the band"
@@ -582,10 +620,31 @@ def grade_return(windows, target, tol):
             else:
                 row["verdict"] = "inside"
         obs.append(row)
-    res = {"windows": obs, "target_h": target, "tol_h": tol}
+    res = {"windows": obs, "tol_h": tol}
     if not measured:
         return "unmeasured", res
     return ("falsified" if bad else "as_predicted"), res
+
+
+def grade_hydrated(rows):
+    """HYDRATED (review H2; CLAUDE.md s5: a multi-day run asserts its character stays hydrated): every ring row has
+    drain.dehydrated false and fluids.dehydPct under DEHYD_ONSET_PCT; unmeasured with no dehydPct on the ring."""
+    pcts = [num(r.get("fluids.dehydPct")) for r in rows if num(r.get("fluids.dehydPct")) is not None]
+    on = [r.get("s") for r in rows if is_true(r.get("drain.dehydrated"))]
+    obs = {"rows": len(pcts), "max_pct": max(pcts) if pcts else None, "start_pct": pcts[0] if pcts else None,
+           "dehydrated_rows": on[:10]}
+    if not pcts:
+        return "unmeasured", obs
+    return ("as_predicted" if not on and max(pcts) < DEHYD_ONSET_PCT else "falsified"), obs
+
+
+def hydrated_rows(rows):
+    """The ring's rows before its first drain.dehydrated row (review H2: the onset writes the constant and the food
+    timer, so later rows are excluded from x452's grades); (rows, the excluded count)."""
+    for i, r in enumerate(rows):
+        if is_true(r.get("drain.dehydrated")):
+            return rows[:i], len(rows) - i
+    return rows, 0
 
 
 def grade_replay_field(diff, field):
@@ -695,21 +754,16 @@ def vanilla_meals(meal_ages, h0, day_length_min, hours):
     return res
 
 
-def grade_wf_vs_vanilla(spans, vanilla):
-    """WF_VS_VANILLA: each meal's ring Well Fed span no longer than vanilla_model's for the same meal at the profile's
-    day length. spans [hours or None], vanilla [{well_fed_h}]."""
-    obs, n, bad = [], 0, False
+def wf_vs_vanilla(spans, van):
+    """A reading, never a grade (review M2, the controller's ruling: the mod's Well Fed span is fixed in game hours and
+    matched at the default 90-minute day; vanilla's scales as 1 / day length, an engine artifact kept as a stated
+    bend): each meal's ring span beside vanilla_model's at the 90-minute and the profile's day."""
+    out = []
     for i, s in enumerate(spans):
-        v = (vanilla[i] if i < len(vanilla) else {}).get("well_fed_h")
-        row = {"meal": i, "mod_h": s, "vanilla_h": v}
-        if s is not None and v is not None:
-            n += 1
-            row["inside"] = s <= v
-            bad = bad or not row["inside"]
-        obs.append(row)
-    if not n:
-        return "unmeasured", {"meals": obs}
-    return ("falsified" if bad else "as_predicted"), {"meals": obs}
+        out.append({"meal": i, "mod_h": s,
+                    "vanilla_90_h": ((van.get("day90") or [])[i:i + 1] or [{}])[0].get("well_fed_h"),
+                    "vanilla_profile_h": ((van.get("profile") or [])[i:i + 1] or [{}])[0].get("well_fed_h")})
+    return out
 
 
 def grade_of_reach(eats):
@@ -726,9 +780,12 @@ def grade_of_reach(eats):
 
 
 def grade_of_refuse(ref):
-    """OF_REFUSE: the attempt at a settled Overfull 4: validStart false, no landing, the stomach not heavier."""
+    """OF_REFUSE: the attempt at a settled Overfull 4, still at 4 on the read just before it (review M4): validStart
+    false, no landing, the stomach not heavier."""
     if not ref or ref.get("pre_level") != 4:
         return "unmeasured", {"ref": ref, "why": "no attempt at Overfull 4"}
+    if ref.get("level_at_attempt") != 4:
+        return "unmeasured", {"ref": ref, "why": "the stomach left Overfull 4 before the attempt"}
     m0, m1 = num(ref.get("mass0")), num(ref.get("mass1"))
     ok = (ref.get("validStart") is False and not ref.get("landed")
           and m0 is not None and m1 is not None and m1 <= m0 + REFUSE_MASS_TOL)
@@ -756,8 +813,8 @@ def grade_of_timer(reads):
 
 
 def grade_of_nausea(hold):
-    """OF_NAUSEA: the hold's first read (Overfull 4 settled): FOOD_SICKNESS at least FOOD_SICK_STEP - NAUSEA_TOL and
-    SICK at 1 or more."""
+    """OF_NAUSEA: the trigger read (the first settled read at Overfull 4, review M4: "at once"): FOOD_SICKNESS at least
+    FOOD_SICK_STEP - NAUSEA_TOL and SICK at 1 or more."""
     if not hold or hold.get("level") != 4:
         return "unmeasured", {"hold": hold}
     fs, sick = num(hold.get("food_sick")), num(hold.get("sick"))
@@ -839,11 +896,12 @@ def grade_const(reads, a_on, a_off, red0):
     return ("as_predicted" if ok else "falsified"), obs
 
 
-def grade_drain_rate(points, floor, top, rate_day):
+def grade_drain_rate(points, floor, top, rate_day, a_max=None):
     """DRAIN_RATE / DEHYD_DRAIN: the least-squares health slope over the points strictly between floor + 0.5 and
-    top - 0.3, spanning DRAIN_MIN_GH, within DRAIN_TOL_REL of rate_day / 24 a game hour."""
+    top - 0.3 and (review L3) before a_max, the floor's reach, spanning DRAIN_MIN_GH, within DRAIN_TOL_REL of
+    rate_day / 24 a game hour."""
     pts = [(p["age"], p["overall"]) for p in points if p.get("age") is not None and p.get("overall") is not None
-           and floor + 0.5 < p["overall"] < top - 0.3]
+           and floor + 0.5 < p["overall"] < top - 0.3 and (a_max is None or p["age"] < a_max)]
     obs = {"n": len(pts), "floor": floor, "top": top, "predicted_per_gh": rate_day / 24.0}
     if len(pts) < 4 or pts[-1][0] - pts[0][0] < DRAIN_MIN_GH:
         return "unmeasured", obs
@@ -927,7 +985,9 @@ def grade_s_bleed(ws, wn, red0, starve_gh, reapplied_delta):
     rs, rn = window_rate(ws), window_rate(wn)
     lv = level_at_ends(ws, "BLEEDING")
     c = (const_of(ws.get("k0")), const_of(ws.get("k1")))
-    obs = {"S": rs, "N": rn, "levels": lv, "const": c, "starve_per_gh": starve_gh, "reapplied_delta": reapplied_delta}
+    obs = {"S": rs, "N": rn, "levels": lv, "const": c, "starve_per_gh": starve_gh, "reapplied_delta": reapplied_delta,
+           "bias_bound_per_gh": REGEN_STANDARD * M_H * BLEED_WEIGHT / PARTS,
+           "parts_N_h0": g(wn, "h0", "parts")}
     if lv != (4, 4) or rs["rate_per_gh"] is None or rn["rate_per_gh"] is None or red0 is None or None in c:
         return "unmeasured", obs
     obs["excess_per_gh"] = rs["rate_per_gh"] - rn["rate_per_gh"] - starve_gh
@@ -1036,12 +1096,12 @@ def grade_pace(p):
     return ("as_predicted" if abs(p["live_h"] - p["kernel_h"]) <= PACE_TOL_H else "falsified"), p
 
 
-def grade_spec(p):
-    """DEHYD_SPEC: the live first-floor hour within SPEC_TOL_H of SPEC_H."""
-    if p.get("live_h") is None:
-        return "unmeasured", p
-    return ("as_predicted" if abs(p["live_h"] - SPEC_H) <= SPEC_TOL_H else "falsified"), dict(p, spec_h=SPEC_H,
-                                                                                             tol_h=SPEC_TOL_H)
+def dehyd_spec(p):
+    """A reading, never a grade (review M3: graded, it would re-read DEHYD_PACE's hour against a band drawn round the
+    kernel's): the live and the kernel first-floor hours beside the spec's SPEC_H and each one's gap to it."""
+    return {"live_h": p.get("live_h"), "kernel_h": p.get("kernel_h"), "spec_h": SPEC_H,
+            "live_gap_h": None if p.get("live_h") is None else p["live_h"] - SPEC_H,
+            "kernel_gap_h": None if p.get("kernel_h") is None else p["kernel_h"] - SPEC_H}
 
 
 def grade_scale(arms, stats_decrease):
@@ -1120,11 +1180,12 @@ def mod_eat_event(full, s, label=None):
             "hunger": RL.float32(f["hunger_script"]) / 100.0, "foodType": f["foodType"], "label": label}
 
 
-def build_events(rows, eats):
-    """x44's: each landed eat keyed (in queue order) to the first ring row whose intake eats count rose."""
+def build_events(rows, eats, drinks=()):
+    """x44's: each landed eat keyed (in queue order) to the first ring row whose intake eats count rose; a drink's
+    litres split over the ring rows whose sips rose inside [age0, age1 + 0.1]."""
     events, notes = [], []
     queue = [e for e in eats if e.get("landed")]
-    qi, prev = 0, None
+    qi, prev, sip_rows = 0, None, []
     for r in rows:
         if prev is not None:
             a, b = num(prev.get(EATS_G)), num(r.get(EATS_G))
@@ -1136,9 +1197,27 @@ def build_events(rows, eats):
                         qi += 1
                     else:
                         notes.append(f"eats rose at s {r['s']} with no queued eat left")
+            a, b = num(prev.get(SIPS_G)), num(r.get(SIPS_G))
+            if a is not None and b is not None and b > a:
+                sip_rows.append((r, b - a))
         prev = r
     if qi < len(queue):
         notes.append(f"{len(queue) - qi} landed eat(s) never seen in the ring")
+    for d in drinks:
+        if num(d.get("drunk")) is None or d["drunk"] <= 0:
+            notes.append(f"drink {d.get('label')}: no litres drunk read; no event")
+            continue
+        mine = [(r, n) for r, n in sip_rows if num(r.get("age")) is not None and num(d.get("age0")) is not None
+                and num(d.get("age1")) is not None and d["age0"] - 1e-9 <= r["age"] <= d["age1"] + 0.1]
+        tot = sum(n for _, n in mine)
+        if tot <= 0:
+            notes.append(f"drink {d.get('label')}: no sip rows in the ring")
+            continue
+        d["ring_s"] = [r["s"] for r, _ in mine]
+        for r, n in mine:
+            events.append({"s": r["s"], "kind": "drink", "fluid": d["fluid"], "litres": d["drunk"] * n / tot,
+                           "label": d.get("label")})
+    events.sort(key=lambda e: e["s"])
     return events, notes
 
 
@@ -1165,8 +1244,8 @@ def ring_moving_events(rows):
     return out
 
 
-def replay_events(rows, eats, start_age):
-    events0, notes = build_events(rows, eats)
+def replay_events(rows, eats, start_age, drinks=()):
+    events0, notes = build_events(rows, eats, drinks)
     drops, moves = autodrop_events(rows), ring_moving_events(rows)
     first = next((r for r in rows if num(r.get("age")) is not None
                   and (start_age is None or r["age"] > start_age + 1e-9)), None)
@@ -1218,6 +1297,11 @@ def profile_doc_checks(name, doc, text=""):
             "verify_version": sum(1 for v in ver if v.get("args") == f"{NR}.version") >= 2}
 
 
+def predictions_named():
+    """x452's cadence bands all named (review M1): no boot on a band still None."""
+    return CAD_H_TARGET is not None and all(v is not None for v in CAD_P_TARGETS.values())
+
+
 def preboot(key, profile_name, prefix, driver_file, repo=REPO):
     """The driver's prefix, profile and file name its session (CLAUDE.md s5); no artifact of the prefix committed; the
     profile's TOML; the harness markers in the repository. Returns (checks, ok)."""
@@ -1225,6 +1309,8 @@ def preboot(key, profile_name, prefix, driver_file, repo=REPO):
     c = {"key": key in SESSIONS, "prefix": prefix == key, "profile": profile_name == PROFILE,
          "driver_file": os.path.basename(driver_file) == g(SESSIONS, key, "driver")}
     c["no_prior_artifact"] = not glob.glob(os.path.join(repo, "testing", "artifacts", prefix + "-*"))
+    if key == "x452":
+        c["cadence_bands_named"] = predictions_named()
     try:
         with open(os.path.join(repo, "testing", "profiles", profile_name + ".toml"), encoding="utf-8") as fh:
             text = fh.read()
@@ -1302,6 +1388,7 @@ class Sess:
         self.points = []
         self.consts = []                     # (age, value) of every constant read after S
         self.sets = self.out.setdefault("sets", [])
+        self.drinks = []
         self.red0 = None
 
     # -- plumbing
@@ -1558,6 +1645,51 @@ class Sess:
         row["landed_age"] = self.age(label + "_landed_t")
         return row
 
+    def drink(self, container, label):
+        """x44's m_drink and fill_gate: the container spawned now (RCON, prefilled), its server copy filled to DRINK_L of
+        DRINK_FLUID, autodrink.probe before (the fill gate: the probe's first container is this one, with the fluid),
+        drink.action <container> 1, the intake sips polled until they stop rising for SETTLE_POLLS polls after a rise,
+        the litres drunk off autodrink.probe after."""
+        row = {"label": label, "container": container, "fluid": DRINK_FLUID, "litres": DRINK_L, "drunk": None}
+        self.drinks.append(row)
+        row["spawn"] = self.spawn(container, 1, label + "_spawn")
+        row["fill"] = self.k(label + "_fill", SRV, "fluid.fill", f"{USER} {container} {DRINK_FLUID} {DRINK_L}")
+        row["probe_before"] = self.k(label + "_probe0", SRV, "autodrink.probe", USER)
+        fill, pb = row["fill"], row["probe_before"]
+        want = DRINK_FLUID.lower()
+        row["fill_ok"] = (fill.get("ok") is True and str(fill.get("fluid", "")).lower() == want
+                          and pb.get("item") == container and str(pb.get("fluid", "")).lower() == want)
+        if not row["fill_ok"]:
+            self.xs.note(f"drink {label}: fill gate failed (fill {fill.get('ok')}/{fill.get('fluid')}, "
+                         f"probe {pb.get('item')}/{pb.get('fluid')})")
+        b = self.intake(label + "_before")
+        row["age0"] = self.age(label + "_age0")
+        q = self.k(label + "_drink", CLI, "drink.action", f"{container} 1")
+        row["queued"] = {k: q.get(k) for k in ("queued", "percentage", "spawned", "itemId", "filledRatioBefore")}
+        self.xs.spawned_stop(q, label)
+        st = {"last": b.get("sips"), "still": 0, "rose": False}
+
+        def fn():
+            a = self.intake(label + "_poll")
+            v = a.get("sips")
+            if v is not None and st["last"] is not None and v > st["last"]:
+                st["rose"], st["still"] = True, 0
+            elif st["rose"]:
+                st["still"] += 1
+            st["last"] = v
+            return st["rose"] and st["still"] >= SETTLE_POLLS, a
+        self.poll(label + "_sips", fn, DRINK_CAP_S)
+        row["landed"] = st["rose"]
+        row["age1"] = self.age(label + "_age1")
+        row["probe_after"] = self.k(label + "_probe1", SRV, "autodrink.probe", USER)
+        l0 = num(g(row, "fill", "litres"))
+        l1 = num(g(row, "probe_after", "litres")) if g(row, "probe_after", "item") == container else 0.0
+        row["drunk"] = (l0 - l1) if (l0 is not None and l1 is not None) else None
+        if not st["rose"]:
+            self.xs.note(f"drink {label}: sips never rose")
+        self.D.setdefault("X", {}).setdefault("drinks", []).append(row)
+        return row
+
     # ======================================================== the shared phases
     def phase_S(self):
         P = self.D["S"] = {}
@@ -1641,7 +1773,10 @@ class Sess:
              "hideTag": self.k(tag + "_hidetag", CLI, "lua.call", "NutritionRevamp.client.tooltip.hideTag"),
              "counters": vals(self.lread(tag + "_ctr", CLI, "_G", ("NutritionRevamp.client.tooltip.stats.hidden",
                                                                     "NutritionRevamp.client.tooltip.stats.shown",
-                                                                    "NutritionRevamp.client.tooltip.stats.draws")))}
+                                                                    "NutritionRevamp.client.tooltip.stats.draws"))),
+             # review L5: the band's entry live (T.probe, test-only: line count and source) and the option it gates on
+             "probe": self.k(tag + "_probe", CLI, "lua.call", f"NutritionRevamp.client.tooltip.probe {T9_ITEM}"),
+             "optionOn": self.k(tag + "_opt", CLI, "lua.call", "NutritionRevamp.client.tooltip.optionOn")}
         v = str(g(r, "tags", "value") or "")
         r["hide_tag_in_set"] = "hide_hunger_change" in v.lower()
         return r
@@ -1675,12 +1810,17 @@ class Sess:
         plan = P["plan"] = day_plan(a)
         if not plan["lunch_at_1230"]:
             self.xs.note(f"X: X started past 12:30 - {MIN_LEAD_H} h; lunch at {plan['lunch']:.3f}")
-        for name, at, watch in (("lunch", plan["lunch"], WF_WATCH1_GH), ("dinner", plan["dinner"], WF_WATCH_GH),
-                                ("breakfast", plan["breakfast"], WF_WATCH_GH)):
+        acts = []
+        for i, (name, watch) in enumerate((("lunch", WF_WATCH1_GH), ("dinner", WF_WATCH_GH),
+                                           ("breakfast", WF_WATCH_GH))):
+            acts.append((plan[name], name, lambda n=name, w=watch: self.meal(n, w)))
+            acts.append((plan[name] + DRINK_AFTER_H, f"drink{i + 1}",
+                         lambda c=DRINKS[i], i=i: self.drink(c, f"X_drink{i + 1}")))
+        for at, name, fn in sorted(acts, key=lambda x: x[0]):
             self.run_until(at - LEAD_H, SPEED_FAST, f"X_{name}_fast", every_s=FAST_PAIR_EVERY_S,
                            fn=lambda x, n=name: self.pair(f"X_{n}_pre"))
             self.run_until(at, 1, f"X_{name}_one")
-            self.meal(name, watch)
+            fn()
         P["reached"] = self.run_until(plan["end"], SPEED_FAST, "X_tail", every_s=FAST_PAIR_EVERY_S,
                                       fn=lambda x: self.pair("X_tail"))
 
@@ -1750,8 +1890,12 @@ class Sess:
             self.sleep_until(t_wall)
         if pre is None or pre["level"] != 4:
             return
+        P["trigger"] = dict(pre, food_sick=self.food_sick("X_trig_fs"),
+                            sick=num(self.moodle("X_trig_sick", "SICK").get("level")))
         ref = {"pre_level": pre["level"], "mass0": pre["mass"], "timer0": pre["timer"], "settled": pre["settled"],
                "food_eaten0": pre["food_eaten"]}
+        st0 = self.stomach("X_ref_st0")
+        ref["level_at_attempt"], ref["mass_at_attempt"] = st0["level"], st0["mass"]
         b = self.intake("X_ref_before")
         q = self.k("X_ref_eat", CLI, "eat.action", f"{BROCCOLI} 1")
         ref.update({k: q.get(k) for k in ("queued", "spawned", "validStart", "moodleFoodEaten", "maxTime")})
@@ -1834,7 +1978,7 @@ class Sess:
         a = e.get("landed_age") or self.age("E_a") or 0.0
         self.sleep_until(self.xs.clock() + 2.0)
         P["const"] = self.constant("E_const")
-        P["drain"] = self.rec("E_drain", ("drain.starveAcute", "drain.active"), log=True)
+        P["drain"] = self.rec("E_drain", ("drain.starveAcute", "drain.active", "satiety.M"), log=True)
         self.run_until(a + RECOVER_GH, SPEED_FAST, "E_rec", every_s=POINT_EVERY_S,
                        fn=lambda x: self.health_point("E_pt"))
         P["end_pair"] = self.pair("E_end_pair")
@@ -2026,6 +2170,10 @@ class Sess:
         self.out["verdict_summary"] = {k: v.get("verdict") for k, v in self.out["verdicts"].items()}
 
     def grade_x452(self, rows):
+        self._g("HYDRATED", grade_hydrated(rows), "a ring row dehydrated or at 4 % deficit or more")
+        rows, cut = hydrated_rows(rows)
+        if cut:
+            self.xs.note(f"grades: {cut} ring row(s) from the first dehydrated row on are excluded (review H2)")
         meals = g(self.D, "X", "meals") or []
         self._g("EAT0", grade_eat0(meals, rows), f"HUNGER over {EAT0_TOL} on a meal's landing row or the next two")
         plan = g(self.D, "X", "plan") or {}
@@ -2041,10 +2189,10 @@ class Sess:
             if a0 is None or a1 is None:
                 continue
             wins_p.append({"label": m.get("label"), "meal_age": a0, "ret": first_return(rows, a0, a1, HUNGRY_AT[0]),
-                           "span": a1 - a0})
+                           "span": a1 - a0, "target": CAD_P_TARGETS.get(m.get("label"))})
             if m.get("label") == "dinner":
                 wins_h.append({"label": "dinner", "meal_age": a0, "ret": first_return(rows, a0, a1, HUNGRY_AT[1]),
-                               "span": a1 - a0})
+                               "span": a1 - a0, "target": CAD_H_TARGET})
             e = ring_wf_end(rows, a0, a1)
             spans.append(None if e is None else e - a0)
         meal_ages = [w["meal_age"] for w in wins_p]
@@ -2059,19 +2207,19 @@ class Sess:
             except Exception as e:                                       # noqa: BLE001 - recorded, not a grade
                 van = {"error": f"{type(e).__name__}: {e}"}
         self.D["vanilla_cadence"] = van
-        v, obs = grade_return(wins_p, CAD_P_TARGET, CAD_P_TOL)
+        v, obs = grade_return(wins_p, None, CAD_P_TOL)
         obs["vanilla"] = van
-        self.xs.grade("CAD_FEEL_P", v, obs, f"a meal's Peckish return off {CAD_P_TARGET} h by more than {CAD_P_TOL} h")
-        v, obs = grade_return(wins_h, CAD_H_TARGET, CAD_H_TOL)
+        self.xs.grade("CAD_FEEL_P", v, obs,
+                      f"a meal's Peckish return off its HEAD-replay band by more than {CAD_P_TOL} h")
+        v, obs = grade_return(wins_h, None, CAD_H_TOL)
         obs["vanilla"] = van
         self.xs.grade("CAD_FEEL_H", v, obs,
-                      f"the dinner's Hungry return off {CAD_H_TARGET} h by more than {CAD_H_TOL} h")
+                      f"the dinner's Hungry return off its HEAD-replay band by more than {CAD_H_TOL} h")
         self._g("WF_SHOW", grade_wf_show(meals, self.pairs), f"no FOOD_EATEN within {WF_SHOW_GM} game minutes")
         lunch = meals[0] if meals else None
         self._g("WF_SPAN", grade_wf_span(lunch, self.pairs, rows, ends[0] if ends else None),
                 "the server's Well Fed end off the ring's M fall")
-        self._g("WF_VS_VANILLA", grade_wf_vs_vanilla(spans, van.get("profile") or []),
-                "a meal's Well Fed span longer than vanilla's for the same meal at the profile's day length")
+        self.D["wf_vs_vanilla"] = wf_vs_vanilla(spans, van)
         self._g("PAIRS_foodEaten", grade_pairs(self.pairs, "foodEaten"), "a client FOOD_EATEN no server read had")
         self._g("PAIRS_hungry", grade_pairs(self.pairs, "hungry"), "a client HUNGRY no server read had")
         self.grade_replay(rows)
@@ -2087,7 +2235,10 @@ class Sess:
         with open(start_path, encoding="utf-8") as fh:
             start = json.load(fh)
         start_stats = g(self.D, "W", "start_stats") or {}
-        events, book = replay_events(rows, self.eats, num(g(self.D, "W", "start_age")))
+        drinks = [d for d in self.drinks if d.get("fill_ok")]
+        if len(drinks) < len(self.drinks):
+            xs.note(f"{len(self.drinks) - len(drinks)} drink(s) failed the fill gate and leave the replay")
+        events, book = replay_events(rows, self.eats, num(g(self.D, "W", "start_age")), drinks)
         nut = g(self.D, "S", "nutrition") or {}
         sex = g(self.D, "H", "h1_record", "values", "body.sex")
         player = {"female": sex == 2, "weight": num(nut.get("weight")) or 80.0,
@@ -2130,7 +2281,7 @@ class Sess:
                 "the eat at Overfull 4 valid on the client, landed, or the stomach heavier")
         self._g("OF_EARLY", grade_of_early(eats), "an eat refused below Overfull 4")
         self._g("OF_TIMER", grade_of_timer(reads), "the food timer not above 3200 at Overfull 4, or above it below 4")
-        self._g("OF_NAUSEA", grade_of_nausea(X_.get("hold")), "FOOD_SICKNESS under 30 or no SICK at Overfull 4")
+        self._g("OF_NAUSEA", grade_of_nausea(X_.get("trigger")), "FOOD_SICKNESS under 30 or no SICK at Overfull 4")
         self._g("OF_ENDURANCE", grade_of_endurance(reads, sev), "ENDURANCE over the cap at Overfull 3 or more")
         self._g("PAIRS_foodEaten", grade_pairs(self.pairs, "foodEaten"), "a client FOOD_EATEN no server read had")
 
@@ -2155,7 +2306,7 @@ class Sess:
         bpts = [p for p in self.points if p.get("phase") == "B"]
         fl = floor_at(rows, b_end) if b_end is not None else None
         self._g("DRAIN_RATE", grade_drain_rate(bpts, fl if fl is not None else FIRST_FLOOR, HEALTH_SEED,
-                                               STARVE_RATE),
+                                               STARVE_RATE, num(g(self.D, "B", "reached_age"))),
                 f"the drain off {STARVE_RATE} a game day by more than {DRAIN_TOL_REL:.0%}")
         self._g("FLOOR_HOLD", grade_floor_hold(bpts, rows, FLOOR_TOL, b_end), "health off the floor during the hold")
         E = self.D.get("E") or {}
@@ -2198,7 +2349,8 @@ class Sess:
         b_end = num(self.D.get("B_end_age"))
         bpts = [p for p in self.points if p.get("phase") in ("A", "B")]
         fl = floor_at(rows, b_end) if b_end is not None else None
-        self._g("DEHYD_DRAIN", grade_drain_rate(bpts, fl if fl is not None else FIRST_FLOOR, 100.0, DEHYD_RATE),
+        self._g("DEHYD_DRAIN", grade_drain_rate(bpts, fl if fl is not None else FIRST_FLOOR, 100.0, DEHYD_RATE,
+                                                num(g(self.D, "B", "reached_age"))),
                 f"the drain off {DEHYD_RATE} a game day by more than {DRAIN_TOL_REL:.0%}")
         self._g("DEHYD_FLOOR", grade_floor_hold(bpts, rows, DEHYD_FLOOR_TOL, b_end),
                 "health off the floor during the hold")
@@ -2214,7 +2366,7 @@ class Sess:
                        h_on if h_on is not None else 100.0)
         self.D["pace"] = p
         self._g("DEHYD_PACE", grade_pace(p), f"the live first-floor hour off the kernel's by more than {PACE_TOL_H} h")
-        self._g("DEHYD_SPEC", grade_spec(p), f"the live first-floor hour off {SPEC_H} h by more than {SPEC_TOL_H} h")
+        self.D["dehyd_spec"] = dehyd_spec(p)
         self._g("P_SICK", grade_sick((self.D.get("windows") or {}).get("P") or {}, self.red0, 0.0),
                 "Parched, SICK 4's drain off red x M_H, or the constant not 0")
         self._g("PAIRS_thirst", grade_pairs(self.pairs, "thirst"), "a client THIRST level no server read had")

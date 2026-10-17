@@ -18,12 +18,14 @@ PREDICTIONS (named before the run; the default body, lm 52.02 and fm 13.0 kg, x4
                  cap lifted), at most 0.83 before it.
   PARCHED_SHOWN  the server's THIRST moodle 4 on its last read within 3 game minutes after the onset row.
   CONST          0.0165 before the onset, 0 after it.
-  DEHYD_DRAIN    200 a game day (8.33 a game hour) within 15 % above the floor.
+  DEHYD_DRAIN    200 a game day (8.33 a game hour) within 15 % above the floor, before its reach.
   DEHYD_FLOOR    within 0.5 of the ring's targetFloor (50 at 4 %, 40 / 11 lower per further per cent) for 1.5 game h.
   BASAL          the ring's water loss 2000 + 32 (lm - 52.02) g a day (83.3 g a game hour at lm 52.02) within 3 %.
-  DEHYD_PACE     the live first-floor hour without water within 1.0 h of the kernel's: 4 % of 65.0 kg over
-                 (2000 - 57.1) g a day is 32.1 h, plus 6.0 h of drain: 38.1 h.
-  DEHYD_SPEC     the same within 4 h of the spec's 35 h (38.1 h predicted: inside, 0.9 h from the edge).
+  DEHYD_PACE     the live first-floor hour without water within 1.0 h of the kernel's, which tracks the floor as it
+                 deepens (about 0.45 a game hour past 4 %): 4 % of 65.0 kg over (2000 - 57.1) g a day is 32.1 h, plus
+                 about 6.35 h of drain to a floor near 47.1: about 38.47 h (38.1 h to a floor of 50).
+  Reading, not a grade (review M3): checks.dehyd_spec, the live and the kernel hours beside the spec's "about 35 h"
+                 (the kernel +3.5 h, 10 %).
   P_SICK         Parched at the floor, SICK 4 drains red x M_H = 29.7 a game hour within 20 % (no floor heal at
                  THIRST 4), the constant 0 at both ends.
   PAIRS_thirst   every client THIRST level a server level of the push window.
@@ -57,10 +59,9 @@ PRED = {
     "DEHYD_DRAIN": "200 a game day within 15 %",
     "DEHYD_FLOOR": "within 0.5 of the ring's floor for 1.5 game h",
     "BASAL": "2000 + 32 (lm - 52.02) g a day within 3 %",
-    "DEHYD_PACE": "the live first-floor hour within 1.0 h of the kernel's (38.1 h at the default body)",
-    "DEHYD_SPEC": "the live first-floor hour within 4 h of 35 h",
+    "DEHYD_PACE": "the live first-floor hour within 1.0 h of the kernel's (about 38.47 h at the default body)",
     "P_SICK": "29.7 a game hour within 20 %, the constant 0",
-    "PAIRS_thirst": "every client level a server level of the push window",
+    "PAIRS_thirst": "every client level a server level of the push window, a transition read",
     "H1": "every ring path resolved", "RING": "every page read, errors 0", "Z": "no mod error line, admin not parked",
 }
 
