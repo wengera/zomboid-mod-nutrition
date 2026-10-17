@@ -22268,6 +22268,7 @@ x457-20261017-074403,constants,the lib's constants,The driver's settings; not a 
 x457-20261017-074403,memory,host free memory rows,"Host state, not a game reading.",
 x457-20261017-074403,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x457-20261017-074403,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x455-20261017-073633,verdicts.N_BLEED.observed.predicted_per_gh,35.66311058183672,"The driver's prediction from x451's wound term and the whole constant, not vanilla's measured rate.",`verdicts.N_BLEED.observed.rate_per_gh`
 x455-20261017-073633,verdicts.N_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
 x455-20261017-073633,verdicts.N_BLEED.observed.rel_err,-0.7043519559486223,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
 x455-20261017-073633,verdicts.S_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
