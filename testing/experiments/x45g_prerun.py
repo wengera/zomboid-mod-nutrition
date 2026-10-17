@@ -61,22 +61,33 @@ def first(rows, a0, a1, fn):
     return None
 
 
-def x452():
-    meals = {"lunch": 330, "dinner": 690, "breakfast": 1470}
+X452_MEALS = {"lunch": 330, "dinner": 690, "breakfast": 1470}
+
+
+def x452_events():
+    """x452's events as the driver lands them (re-review R1): the can EAT_CAN_GM and the banana EAT_BAN_GM game minutes
+    after each meal's planned minute (x446's eat, x45g_lib), the water DRINK_AFTER_H after the planned minute."""
     ev = []
-    for name, m in meals.items():
-        k = k_of(m / 60.0)
-        ev += [eat(L.BOLOGNESE, k, name), eat(L.BANANA, k, name)]
-        ev.append({"minute": k_of((m + 150) / 60.0), "kind": "drink", "fluid": L.DRINK_FLUID, "litres": L.DRINK_L,
-                   "label": name + "-drink"})
+    for name, m in X452_MEALS.items():
+        ev += [eat(L.BOLOGNESE, k_of((m + L.EAT_CAN_GM) / 60.0), name),
+               eat(L.BANANA, k_of((m + L.EAT_BAN_GM) / 60.0), name)]
+        ev.append({"minute": k_of((m + L.DRINK_AFTER_H * 60.0) / 60.0), "kind": "drink", "fluid": L.DRINK_FLUID,
+                   "litres": L.DRINK_L, "label": name + "-drink"})
+    return ev
+
+
+def x452():
+    meals = X452_MEALS
+    ev = x452_events()
     end = (meals["breakfast"] + 300) / 60.0
     rows, _ = run(ev, k_of(end) + 2, ("satiety.M", "fluids.dehydPct", "drain.dehydrated") + L.STOMACH_PATHS)
-    out = {"meals": {}, "schedule_minutes": meals, "drink_after_min": 150, "start_age": START_AGE}
+    out = {"meals": {}, "schedule_minutes": meals, "drink_after_min": 150, "start_age": START_AGE,
+           "eat_can_gm": L.EAT_CAN_GM, "eat_ban_gm": L.EAT_BAN_GM}
     names = list(meals)
     for i, name in enumerate(names):
-        a0 = meals[name] / 60.0
+        k = k_of((meals[name] + L.EAT_BAN_GM) / 60.0)        # the banana's minute: grade_x452 measures from it
+        a0 = START_AGE + (k + 1) / 60.0
         a1 = meals[names[i + 1]] / 60.0 if i + 1 < len(names) else end
-        k = k_of(a0)
         h = [rows[j]["HUNGER"] for j in range(k, k + L.EAT0_ROWS)]
         pk = first(rows, a0, a1, lambda r: r["HUNGER"] > L.HUNGRY_AT[0])
         hu = first(rows, a0, a1, lambda r: r["HUNGER"] > L.HUNGRY_AT[1])

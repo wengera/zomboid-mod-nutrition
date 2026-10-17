@@ -755,6 +755,10 @@ def test_grade_pairs():
     steady = _pairs([1] * 8, [1] * 8, dt=5.0)                              # no level change: a stale client passes it
     r = L.grade_pairs(steady, "foodEaten")
     assert r[0] == "unmeasured" and r[1]["transitions"] == 0
+    close = _pairs([0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1], dt=5.0)         # re-review R4: each read within PUSH_S of
+    for p in close:                                                         # its change, or long after: none counts
+        p["c"]["wall"] = p["s0"]["wall"] + 0.1
+    assert L.grade_pairs(close, "foodEaten")[1]["transitions"] == 0
     lag = _pairs([0, 1, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1], dt=1.0)           # the client one push behind
     assert L.grade_pairs(lag, "foodEaten")[0] == "as_predicted"
 
@@ -788,6 +792,9 @@ def test_grade_hydrated_and_the_cut():
     assert L.grade_hydrated(hot)[0] == "falsified"
     on = [dict(r, **{"drain.dehydrated": r["s"] >= 12}) for r in rows]
     assert L.grade_hydrated(on)[0] == "falsified"
+    short = [dict(r, age=10.0 + r["s"] / 60.0) for r in rows]
+    assert L.grade_hydrated(short, 10.0 + 19 / 60.0)[0] == "as_predicted"
+    assert L.grade_hydrated(short, 12.0)[0] == "unmeasured"                 # re-review R2: a truncated ring
     kept, cut = L.hydrated_rows(on)
     assert len(kept) == 12 and cut == 8 and L.hydrated_rows(rows) == (rows, 0)
     assert L.grade_hydrated([{"s": 1}])[0] == "unmeasured"
@@ -874,12 +881,19 @@ def test_grade_of_reach_refuse_early():
     assert L.grade_of_early([])[0] == "unmeasured"
 
 
+def test_refusing():
+    assert L.refusing({"timer": 4400}) and not L.refusing({"timer": 2800}) and not L.refusing({})
+
+
 def test_grade_of_timer_nausea_endurance():
     reads = [{"settled": True, "level": 2, "timer": 0}, {"settled": True, "level": 4, "timer": 4400}]
     assert L.grade_of_timer(reads)[0] == "as_predicted"
     assert L.grade_of_timer([dict(reads[1], timer=1000)])[0] == "falsified"
     assert L.grade_of_timer([reads[0], {"settled": True, "level": 3, "timer": 4400}, reads[1]])[0] == "falsified"
     assert L.grade_of_timer(reads[:1])[0] == "unmeasured"
+    straddle = dict(reads[1], timer=2800, level_bracket=None)                # a writer minute between the two reads
+    assert L.grade_of_timer([reads[0], reads[1], straddle])[0] == "as_predicted"
+    assert L.grade_of_timer([reads[0], dict(straddle, level_bracket=4)])[0] == "falsified"
     assert L.grade_of_timer([dict(reads[1], timer=1000, settled=False)])[0] == "unmeasured"
     hold = {"level": 4, "food_sick": 30.0, "sick": 1}
     assert L.grade_of_nausea(hold)[0] == "as_predicted"
@@ -1245,10 +1259,35 @@ def test_restore_falls_back_to_time_multiplier(tmp_path, monkeypatch):
 
 def test_the_cadence_bands_are_named_from_the_prerun():
     assert L.predictions_named() is True
-    assert L.CAD_P_TARGETS == {"lunch": 3.683, "dinner": 3.700, "breakfast": 4.183} and L.CAD_H_TARGET == 9.683
+    assert L.CAD_P_TARGETS == {"lunch": 3.533, "dinner": 3.583, "breakfast": 4.033} and L.CAD_H_TARGET == 9.550
 
 
 def test_prerun_schedule_keys_mirror_the_drivers():
     import x45g_prerun as P
     assert P.k_of(P.START_AGE + 1 / 60.0) == 0 and P.k_of(330 / 60.0) == 149
     assert P.SET_AGE > P.START_AGE
+
+
+def test_prerun_x452_eats_as_the_driver_eats():
+    """Re-review R1: per meal the can, then the banana EAT_BAN_GM - EAT_CAN_GM game minutes later, from the planned
+    minute + EAT_CAN_GM; the drink at the planned minute + DRINK_AFTER_H; the meals in the driver's order."""
+    import x45g_prerun as P
+    ev = P.x452_events()
+    eats = [e for e in ev if e["kind"] == "eat"]
+    assert [e["fullType"] for e in eats] == [L.BOLOGNESE, L.BANANA] * 3
+    assert [e["label"] for e in eats[::2]] == ["lunch", "dinner", "breakfast"] == list(P.X452_MEALS)
+    for i, (name, m) in enumerate(P.X452_MEALS.items()):
+        can, ban = eats[2 * i], eats[2 * i + 1]
+        assert can["minute"] == P.k_of((m + L.EAT_CAN_GM) / 60.0) and ban["minute"] == P.k_of((m + L.EAT_BAN_GM) / 60.0)
+        assert ban["minute"] - can["minute"] == L.EAT_BAN_GM - L.EAT_CAN_GM > 0
+        d = [e for e in ev if e["kind"] == "drink" and e["label"] == name + "-drink"]
+        assert len(d) == 1 and d[0]["minute"] == P.k_of((m + 60 * L.DRINK_AFTER_H) / 60.0)
+    assert (L.EAT_CAN_GM, L.EAT_BAN_GM) == (9, 16)
+
+
+def test_x452_records_each_start_offset(tmp_path, monkeypatch):
+    v, out, _, _ = run_session("x452", tmp_path, monkeypatch)
+    meals, drinks = out["checks"]["X"]["meals"], out["checks"]["X"]["drinks"]
+    assert all(m["start_offset_gm"] is not None and m["planned_age"] is not None for m in meals)
+    assert all(d["start_offset_gm"] is not None for d in drinks)
+    assert all(-0.5 <= m["start_offset_gm"] <= 6.0 for m in meals)            # the drop lands before the planned minute

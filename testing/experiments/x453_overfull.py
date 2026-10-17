@@ -10,9 +10,13 @@ THE SESSION: S, H (the ring), F (12 Base.Broccoli by RCON), SEED (the true multi
 so a networked eat, which ends in real time (#3766), costs about a game minute of emptying; record.set
 stomach.buffer.water to bring the stomach to 960 g (Overfull 2) and stomach.buffer.calories to 2000 kcal, so the solid
 lane empties at about 0.31 % a game minute, K.stomach.solidFraction), X (one broccoli at a time, each eat after a read
-settled 1.5 game minutes and 1.5 wall s past the last landing, until a read shows Overfull 4; then one more eat
+settled 1.5 game minutes and 1.5 wall s past the last landing, until a read shows Overfull 4 with the server's
+refusal timer above 3200 (a read at 4 without it waits one writer minute, then eats again if back under 4); then one
+more eat
 attempted (the stomach read again just before it), its validStart read and its landing waited 8 s;
-action.cancel; the hold's reads for 3 game minutes, kept as readings),
+a pair 1.5 s into the wait, the read a stale client fails; action.cancel; the hold's reads for 3 game minutes, kept
+as readings; each read brackets its stats.get with two stomach reads, and the timer and endurance grades skip a read a
+writer minute fell inside),
 C (action.cancel; the clock restored from S's read), R.
 
 PREDICTIONS (named before the run): a broccoli adds 32.95 g (NR_Data_Nutrients.lua: water 28.93, carbs 2.15, protein
