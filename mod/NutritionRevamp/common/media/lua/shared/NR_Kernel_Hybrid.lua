@@ -27,7 +27,7 @@ function K.hybrid.input()
         hungerTarget = 0, fed = true, circ = 1, thirst = 0, thirstTarget = nil,
         lastThirst = nil, sipOK = true, fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0,
         stress = 0, stressTarget = 0, unhappy = 0, unhappyTarget = 0, lastUnhappyTarget = 0, foodSick = 0,
-        foodSickTarget = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
+        foodSickTarget = 0, foodSickStep = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
         endurance = 1, lastEndurance = nil, rmod = 1, endCap = 1, bored = 0, boredTarget = 0, lastBoredTarget = 0,
     }
 end
@@ -85,6 +85,10 @@ function K.hybrid.write(inp, out, c)
     if inp.foodSickTarget > 0 and inp.foodSick < inp.foodSickTarget then
         out.foodSick = K.min(inp.foodSickTarget, inp.foodSick + c.moodRiseSick * s)
     end
+    -- a FOOD_SICKNESS level raised at once, not at the floor's pace (Plan 15 Task 8 fix 1: the Overfull 4 nausea)
+    if inp.foodSickStep > 0 and (out.foodSick or inp.foodSick) < inp.foodSickStep then
+        out.foodSick = inp.foodSickStep
+    end
     out.panic = nil
     if inp.panicTarget > 0 and inp.panic < inp.panicTarget then
         out.panic = inp.panicTarget
@@ -113,6 +117,21 @@ end
 -- ENDURANCE at or under it. e is the value this write already chose (nil for none), e1 the value read; a cap of 1 or
 -- more, or NaN, holds nothing. Returns the value to write, or nil for no write: a minute
 -- already at or under the cap writes nothing more.
+K.hybrid.END_EDGE = 0.75 -- VANILLA MoodleStat.<clinit> @10-@25 L10: ENDURANCE level 0 above 0.75
+K.hybrid.END_FLOOR = 0.51 -- game choice (spec section 10: the Overfull 3 penalty size): just above level 1's 0.5 floor
+K.hybrid.END_REGEN_UNIT = 0.0000930 / 3 * 1.8 * 1.6 -- VANILLA #2258 at Very Fast regeneration and Fitness 10, the worst case
+
+-- The ceiling at a day length of dayMin real minutes (Plan 15 Task 8 fix 1): room under the level-0 edge for one game
+-- minute of the worst standing regeneration (2 x dayMin multiplier units, #2922), never under END_FLOOR nor above cap;
+-- a cap of 1 or more (or NaN) is returned as it is.
+function K.hybrid.capAt(cap, dayMin)
+    if not (cap < 1) then
+        return cap
+    end
+    local room = K.hybrid.END_EDGE - K.hybrid.END_REGEN_UNIT * K.drain.UNITS_PER_MIN * dayMin
+    return K.min(cap, K.max(K.hybrid.END_FLOOR, room))
+end
+
 function K.hybrid.endCap(e, e1, cap)
     if not (cap < 1) then
         return e

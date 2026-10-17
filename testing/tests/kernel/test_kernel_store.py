@@ -27,7 +27,7 @@ DERIVED = {
     "effects": {"key", "mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget",
                 "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",
                 "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
-                "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap"},   # enduranceCap: Plan 15 Task 8
+                "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap", "foodSickStep"},   # Plan 15 Task 8
     # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step)
     "drain": {"active", "state", "targetFloor", "rate", "drainThisMinute", "starvedH", "starving", "starveAcute",
               "dehydrated"},

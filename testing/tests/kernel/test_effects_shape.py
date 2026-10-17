@@ -1095,29 +1095,65 @@ def _stomach(h, rec, grams):
 def test_overfull_3_holds_the_endurance_ceiling_and_4_adds_nausea(eff_host):
     h = eff_host
     rec = record(h)
-    p, _ = player(h, rec)
+    p, cfg = player(h, rec)
     minute(h, p, rec)
     E = rec["effects"]
-    assert E["enduranceCap"] == 1 and E["foodSickTarget"] == 0 and E["key"]["dials"] % 10000000 < 1000000
-    _stomach(h, rec, 1000)                                        # Overfull 3 (from about 977 g): a rebuild on the level
+    assert E["enduranceCap"] == 1 and E["foodSickStep"] == 0 and E["key"]["dials"] % 10000000 < 1000000
+    _stomach(h, rec, 900)                                         # Overfull 2 carries no row: no rebuild (fix 1, review L4)
     e0 = E["epoch"]
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert E["epoch"] == e0 + 1 and E["enduranceCap"] == 0.73 and E["foodSickTarget"] == 0
-    assert (E["key"]["dials"] // 1000000) % 10 == 3
-    _stomach(h, rec, 1100)                                        # Overfull 4, the hard capacity: nausea too
+    assert E["epoch"] == e0 and (E["key"]["dials"] // 1000000) % 10 == 0
+    _stomach(h, rec, 1000)                                        # Overfull 3 (from about 977 g): a rebuild on the level
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert E["enduranceCap"] == 0.73 and E["foodSickTarget"] == 30
-    _stomach(h, rec, 900)                                         # Overfull 2: neither
+    assert E["epoch"] == e0 + 1 and E["enduranceCap"] == 0.73 and E["foodSickStep"] == 0
+    assert (E["key"]["dials"] // 1000000) % 10 == 3
+    _stomach(h, rec, 1100)                                        # Overfull 4, the hard capacity: nausea at once too
     minute(h, p, rec, ageH=100.0 + 3 / 60)
-    assert E["enduranceCap"] == 1 and E["foodSickTarget"] == 0
+    assert E["enduranceCap"] == 0.73 and E["foodSickStep"] == 30 and E["foodSickTarget"] == 0
+    _stomach(h, rec, 900)                                         # back to Overfull 2: neither
+    minute(h, p, rec, ageH=100.0 + 4 / 60)
+    assert E["enduranceCap"] == 1 and E["foodSickStep"] == 0
 
 
-def test_the_overfull_rows_take_the_severity_dial(eff_host):
+@pytest.mark.parametrize("sev,cap,step", [(0.4, 1, 12), (0.5, 0.73, 15), (1.0, 0.73, 30), (2.0, 0.73, 60)])
+def test_the_overfull_slowing_is_on_or_off_by_severity_and_the_nausea_scales(eff_host, sev, cap, step):
+    # fix 1 (review L3): the min surface with a sevMin is v at Severity 0.5 or more and 1 below, never partial
     h = eff_host
-    setopts(h, Severity=0.5)
+    setopts(h, Severity=sev)
     rec = record(h)
     _stomach(h, rec, 1100)
     p, _ = player(h, rec)
     minute(h, p, rec)
     E = rec["effects"]
-    assert abs(E["enduranceCap"] - (1 - 0.27 * 0.5)) < TOL and abs(E["foodSickTarget"] - 15) < TOL
+    assert abs(E["enduranceCap"] - cap) < TOL and abs(E["foodSickStep"] - step) < TOL
+
+
+def test_the_refusal_never_heals_and_leaving_it_restores_the_heal(eff_host):
+    # fix 1 (review M1): Overfull 4 with no meal (a litre of water) holds the timer above 0; the food heal is 0 there
+    h = eff_host
+    rec = record(h)
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec)
+    assert _food(cfg) == [0.0087]
+    _stomach(h, rec, 1150)
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert _food(cfg) == [0.0087, 0]
+    _stomach(h, rec, 1000)
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert _food(cfg) == [0.0087, 0, 0.0087]
+
+
+@pytest.mark.parametrize("day,food", [(15, 0.0522), (90, 0.0087), (1440, 0.000544)])
+def test_the_food_heal_scales_by_90_over_the_day_length(eff_host, day, food):
+    # fix 1 (review I2): per multiplier unit, so a Well Fed spell heals the same health at every day length
+    h = eff_host
+    h.rt.execute("NR_SAVED_SO = getSandboxOptions; getSandboxOptions = function() return "
+                 "{ getDayLengthMinutes = function(s) return %d end } end; NutritionRevamp.so = nil" % day)
+    try:
+        rec = record(h)
+        p, cfg = player(h, rec, health=100.0)
+        minute(h, p, rec)
+        assert _food(cfg) == [pytest.approx(food, rel=1e-3)]
+        assert _food(cfg)[0] * 2 * day * 30 == pytest.approx(0.0087 * 180 * 30)   # 47.0 health per 0.50 h spell
+    finally:
+        h.rt.execute("getSandboxOptions = NR_SAVED_SO; NR_SAVED_SO = nil; NutritionRevamp.so = nil")

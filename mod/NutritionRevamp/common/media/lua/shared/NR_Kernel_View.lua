@@ -569,11 +569,12 @@ end
 -- The mod owns vanilla's health-from-food timer, which alone drives the FOOD_EATEN moodle (Well Fed) against 0, 1600,
 -- 3200 and 4800 (#0511) and every vanilla eat and drink refusal at its level 3 (jar-checks Check 1c): the server writes
 -- it each minute from the mod's own state and the client's copy follows in the 1 Hz stats packet (#3896). Vanilla
--- drains it by one unit per multiplier unit, 180 a game minute at the 90-minute day (#2385, #2922), so each written
--- value sits inside its band with that minute's drain to spare.
-K.view.TIMER_WELL_FED = 1000 -- game choice (spec section 10: the Well Fed mapping): FOOD_EATEN level 1 (over 0, #0511), 820 after one minute's drain at the 90-minute day; holds the level through the minute for days under 500 real minutes
-K.view.TIMER_WELL_FED_2 = 2800 -- game choice (spec section 10: the Well Fed mapping): level 2 (over 1600, #0511), 2620 after one minute's drain; holds through the minute for days under 600 real minutes
-K.view.TIMER_FULL = 4400 -- game choice (spec section 2.3): level 3 (over 3200, #0511), vanilla's refusal; 4220 after one minute's drain, under level 4's 4800; not 3300, which the drain takes under 3200 in 34 game seconds
+-- drains it by one unit per multiplier unit, 2 x dayMin a game minute (180 at the 90-minute day; #2385, #2922), so each
+-- written value is sized from the day length (K.view.timerValues) to keep its band until the next write.
+K.view.TIMER_WELL_FED = 1000 -- game choice (spec section 10: the Well Fed mapping): FOOD_EATEN level 1 (over 0, #0511) at the 90-minute day, the floor of K.view.timerValues
+K.view.TIMER_WELL_FED_2 = 2800 -- game choice (spec section 10: the Well Fed mapping): level 2 (over 1600, #0511) at the 90-minute day, the floor of K.view.timerValues
+K.view.TIMER_FULL = 4400 -- game choice (spec section 2.3): level 3 (over 3200, #0511), vanilla's refusal, at the 90-minute day, the floor of K.view.timerValues; not 3300, which the drain takes under 3200 in 34 game seconds
+K.view.HOLD_MIN = 2 -- game choice (spec section 10: the Well Fed mapping): the game minutes a written value must survive, S0-1's quantized 1.6 rounded up
 -- The meal pool M (weighted kcal, K.satiety) at or above which the character reads sated after a satisfying meal.
 K.view.WELL_FED_M = 435 -- game choice (spec section 10: the Well Fed mapping): a 667 kcal mixed meal (15/50/35 % of energy, 788.5 weighted kcal) clears to it in 0.50 game hours at MEAL_HALF_LIFE_H, inside vanilla's Well Fed after a whole can (3120 units, 17 game minutes raw, 35 heated, at the 90-minute day; #0054, #0530); a 400 kcal meal 0.07 h; a 200 kcal snack never
 K.view.WELL_FED_2_AT = 2 -- game choice (spec section 10: the Well Fed mapping): Well Fed level 2 from Overfull 2, a large meal
@@ -582,10 +583,12 @@ K.view.REFUSE_AT = 4 -- spec section 2.3: Overfull 4, the 1100 g hard capacity, 
 -- The timer the bridge writes for an Overfull level, a meal pool M and whether a drain state is active: TIMER_FULL at
 -- Overfull 4, whatever else holds (the stomach is full, starving or not); 0 while a drain is active (a starving body is
 -- not Well Fed); TIMER_WELL_FED_2 while sated at Overfull 2 or 3, TIMER_WELL_FED while sated below it; else 0. An M that
--- is not a number at least WELL_FED_M (NaN included) reads unsated.
-function K.view.foodTimer(level, M, draining)
+-- is not a number at least WELL_FED_M (NaN included) reads unsated. Each value is K.view.timerValues(dayMin)'s; a nil
+-- dayMin reads the 90-minute day (K.drain.DAY_MINUTES), so a caller may test the target against 0 before reading the day.
+function K.view.foodTimer(level, M, draining, dayMin)
+    local wf1, wf2, full = K.view.timerValues(dayMin or K.drain.DAY_MINUTES)
     if level >= K.view.REFUSE_AT then
-        return K.view.TIMER_FULL
+        return full
     end
     if draining then
         return 0
@@ -594,9 +597,21 @@ function K.view.foodTimer(level, M, draining)
         return 0
     end
     if level >= K.view.WELL_FED_2_AT then
-        return K.view.TIMER_WELL_FED_2
+        return wf2
     end
-    return K.view.TIMER_WELL_FED
+    return wf1
+end
+
+-- The three written values at a day length of dayMin real minutes: each keeps its band through HOLD_MIN game minutes of
+-- vanilla's drain (2 x dayMin units a game minute, #2385, #2922), never below the 90-minute values; the Well Fed values
+-- stop at their band's top (1600, 3200), where a day over 800 real minutes can no longer hold a level for a whole minute
+-- with one write; the refusal has no top (level 4, above 4800, refuses alike).
+function K.view.timerValues(dayMin)
+    local d = K.drain.UNITS_PER_MIN * dayMin * K.view.HOLD_MIN
+    local wf1 = K.min(1600, K.max(K.view.TIMER_WELL_FED, d + 1))
+    local wf2 = K.min(3200, K.max(K.view.TIMER_WELL_FED_2, 1600 + d + 1))
+    local full = K.max(K.view.TIMER_FULL, 3200 + d + 1)
+    return wf1, wf2, full
 end
 
 -- The FOOD_EATEN band of a timer value, the bands the push is keyed on (#0511, strict greater-than, #0507): 0 at or

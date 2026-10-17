@@ -164,6 +164,7 @@ function K.effects.new()
         tempHeat = 0,
         speedMul = 1,
         enduranceCap = 1,
+        foodSickStep = 0,
         fOffNut = 0,
         bruise = 0,
         nightVision = false,
@@ -410,7 +411,8 @@ function K.effects.foldRows(E, T, nut, b, pe, ea, flags, bonusOn, vitdOn, bonusP
 end
 
 -- The Severity dial on one folded surface: mul 1 + (v - 1) x sev, add v x sev, a boolean with
--- sevMin false below it; a max surface (identity 0) v x sev, a min surface (identity 1) 1 - (1 - v) x sev; the
+-- sevMin false below it; a max surface (identity 0) v x sev, a min surface (identity 1) 1 - (1 - v) x sev, or, with a
+-- sevMin, v at or above it and 1 below (an on/off effect, never partial: the Overfull slowing, Plan 15 Task 8 fix 1); the
 -- machine surfaces untouched (surfaceStep skips them).
 function K.effects.sevScale(op, v, sev, sevMin)
     if op == "mul" then
@@ -421,6 +423,12 @@ function K.effects.sevScale(op, v, sev, sevMin)
     end
     if op == "max" then
         return v * sev
+    end
+    if op == "min" and sevMin ~= nil then
+        if sev < sevMin then
+            return 1
+        end
+        return v
     end
     if op == "min" then
         return 1 - (1 - v) * sev

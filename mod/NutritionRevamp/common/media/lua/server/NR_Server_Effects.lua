@@ -74,9 +74,10 @@ EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- The food heal, health per multiplier unit while the health-from-food timer is above 0 (#2385; the constructor's 0.015,
 -- #3897), written 0 while a drain state is active (it runs through any drain otherwise, jar-checks Check 2). Outside a
 -- drain the timer is the writer's food-timer bridge (K.view.foodTimer), held above 0 while Well Fed, so the heal runs
--- for the whole Well Fed spell, not one fill: 0.0087 gives a 667 kcal meal's 0.50 h spell 47.0 health at the 90-minute
--- day (0.0087 x 180 units x 30 minutes), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour
--- while Well Fed at that day, against vanilla's 162 while its timer runs.
+-- for the whole Well Fed spell, not one fill: 0.0087 per multiplier unit at the 90-minute day, scaled by 90 / dayMin
+-- (Plan 15 Task 8 fix 1), gives a 667 kcal meal's 0.50 h spell 47.0 health at every day length (0.0087 x 180 units x
+-- 30 minutes at the 90-minute day), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour while Well
+-- Fed, against vanilla's 162 while its timer runs at the 90-minute day. 0 at Overfull 4 too: the refusal never heals.
 EFF.REGEN_FOOD = 0.0087 -- game choice (spec section 10: the gentle Well Fed heal), vanilla's per-can heal over the mod's Well Fed spell
 -- The fallback for an unreadable sandbox: the day length in real minutes the heal assumes, vanilla's 90-minute default day (#2922).
 EFF.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
@@ -125,7 +126,7 @@ EFF.ref = nil
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
-              "infectMul", "coldMul", "enduranceCap" }
+              "infectMul", "coldMul", "enduranceCap", "foodSickStep" }
 EFF.snap = {}
 EFF.guarded = 0
 -- The options a load with no options file reads: one file-scope table, never written.
@@ -304,14 +305,13 @@ local function traits(player, record, body, E, nut, sev, dtD, ctx, sex)
     return changed
 end
 
--- The four regeneration setters at m x their defaults (#2354) and the food heal (#3897; 0 while a drain state is
--- active), index-first.
-local function regen(bd, m, active)
+-- The four regeneration setters at m x their defaults (#2354) and the food heal foodHeal (#3897), index-first.
+local function regen(bd, m, foodHeal)
     NR.call(bd, "setStandardHealthAddition", EFF.REGEN_STANDARD * m)
     NR.call(bd, "setReducedHealthAddition", EFF.REGEN_REDUCED * m)
     NR.call(bd, "setSeverlyReducedHealthAddition", EFF.REGEN_SEVERE * m)
     NR.call(bd, "setSleepingHealthAddition", EFF.REGEN_SLEEPING * m)
-    NR.call(bd, "setHealthFromFood", active and 0 or EFF.REGEN_FOOD)
+    NR.call(bd, "setHealthFromFood", foodHeal)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
@@ -515,6 +515,10 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     F.starveEarly = D.starvedH >= 24 and phase < 3 and not (finite(a.bmi) and a.bmi > 0 and a.bmi < K.effects.PE_BMI_OK)
     -- the Overfull level of the stomach's whole mass, the client moodle's own number (Plan 15 Task 8)
     F.overfull = K.view.overfullOf(record)
+    -- only levels 3 and 4 carry rows (and the heal's refusal gate), so 1 and 2 never move the key (fix 1, review L4)
+    if F.overfull < 3 then
+        F.overfull = 0
+    end
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
     local dials = math.floor(sev * 1000 + 0.5) * 10000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
         + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0) + F.overfull * 1000000
@@ -567,7 +571,15 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         local m = E.healMul
         if D.active then m = 0 end
         if rebuilt or L.regen == nil or L.regen ~= m or wasState ~= nowState then
-            regen(bd, m, D.active)
+            -- the food heal: 0 under a drain or refusing at Overfull 4 (fix 1, review M1); else REGEN_FOOD scaled to the day
+            -- length, read only here, on a rebuild, a state change, a new healMul or a first sight (review I2)
+            local foodHeal = 0
+            if not D.active and F.overfull < K.view.REFUSE_AT then
+                local dayMin = NR.read.dayMin(ctx, EFF.DAY_MINUTES)
+                if not (dayMin > 0) then dayMin = EFF.DAY_MINUTES end
+                foodHeal = EFF.REGEN_FOOD * EFF.DAY_MINUTES / dayMin
+            end
+            regen(bd, m, foodHeal)
             L.regen = m
         end
         -- 8. the per-part folds and the cold fold

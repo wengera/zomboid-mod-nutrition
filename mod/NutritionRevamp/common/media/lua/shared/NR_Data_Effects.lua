@@ -26,7 +26,8 @@
 -- Additions beyond the briefing's SURF list, each named by its own A-section: bruise (F4's per-minute purpura
 -- probability, A3's own example entry), tempHeat (G's dehydration heat side, applied by the adapter only while
 -- exerting, met >= 3, so the set stays a pure function of its trigger), foodSickTarget (T1-1), enduranceCap (Plan 15
--- Task 8: the ENDURANCE ceiling of the Overfull slowing, which the writer holds).
+-- Task 8: the ENDURANCE ceiling of the Overfull slowing, which the writer holds), foodSickStep (Task 8 fix 1: a
+-- FOOD_SICKNESS level the writer raises at once).
 local NR = NutritionRevamp
 NR.data = NR.data or {}
 
@@ -50,7 +51,8 @@ NR.data.effects = {
         tempOffset = { op = "add", id = 0, lo = -0.5, hi = 0.3 }, -- core target offset, degrees C; game choice clamp around the -0.2 falls (S1016, open S1161) and the +0.3 rise (open S1160)
         tempHeat = { op = "add", id = 0, lo = 0, hi = 0.3 }, -- the exertion-gated heat side, degrees C; game choice magnitude (open S1160)
         speedMul = { op = "min", id = 1, lo = 0.75, hi = 1.0 }, -- the direct speed write; game choice floor (open S1176)
-        enduranceCap = { op = "min", id = 1, lo = 0.73, hi = 1.0 }, -- the ENDURANCE ceiling the writer holds (Plan 15 Task 8); game choice floor at the Overfull row's value (open S1176)
+        enduranceCap = { op = "min", id = 1, lo = 0.73, hi = 1.0, sevMin = 0.5 }, -- the ENDURANCE ceiling the writer holds (Plan 15 Task 8); game choice floor at the Overfull row's value, and on at Severity 0.5 or more, off below, never partial (open S1176)
+        foodSickStep = { op = "max", id = 0, lo = 0, hi = 85 }, -- a FOOD_SICKNESS level raised at once, not at the floor's pace (Plan 15 Task 8 fix); game choice (open S1165)
         fOffNut = { op = "add", id = 0, lo = 0, hi = 0.15 }, -- the nutritional fatigue offset; game choice cap so no state alone crosses Tired 1 (open S1132)
         bruise = { op = "max", id = 0, lo = 0, hi = 1 }, -- spontaneous-bruise probability per game minute; a probability, no row needed
         nightVision = { op = "or", id = false, machine = true }, -- K.effects.nvMinute (ruling 6)
@@ -499,12 +501,13 @@ NR.data.effects = {
         -- Level 3 slows the body by one vanilla moodle level: ENDURANCE held at or under 0.73 shows the Endurance moodle's
         -- level 1 (above 0.5 and at most 0.75, Moodle.Update read on 42.21), whose base-speed cut is Heavy Load level 1's
         -- 0.15 of 0.8 (#2313) and whose combat cut is 0.07 (#2324), the one route to a player's speed (#2711). Level 4 adds
-        -- nausea, FOOD_SICKNESS 30 (SICK 1, #3130, #2369); its refusal is vanilla's timer (K.view.foodTimer).
+        -- nausea, FOOD_SICKNESS raised at once to 30 (SICK 1, #3130, #2369; foodSickStep); its refusal is vanilla's timer
+-- (K.view.foodTimer).
         { src = "overfull", on = "flag", at = { 3, 4 }, list = { -- Bloated and Painfully stuffed, S1253 the scale's top
             { ch = "stat", s = "enduranceCap", v = 0.73, row = "S1253", gc = true }, -- 0.75 less the standing regeneration of about 0.0056 a game minute at the 90-minute day (#2258), so the level holds between writes; game choice (open S1176; spec section 10: the Overfull 3 penalty size)
         } },
         { src = "overfull", on = "flag", at = 4, list = { -- maximal discomfort at the hard capacity, S1253
-            { ch = "stat", s = "foodSickTarget", v = 30, row = "S1253", gc = true }, -- nausea as SICK 1, the UL rung's size; game choice (open S1165)
+            { ch = "stat", s = "foodSickStep", v = 30, row = "S1253", gc = true }, -- nausea as SICK 1 at once, the UL rung's size; vanilla's own decay (about 2.7 an hour, #3084) then lets it linger about 1.8 game hours; game choice (open S1165)
         } },
     },
 }

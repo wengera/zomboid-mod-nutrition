@@ -127,9 +127,9 @@ def record(h, **over):
     return r
 
 
-def step(h, p, rec, minute, name="a"):
+def step(h, p, rec, minute, name="a", ctx=None):
     h.T.age = 100.0 + minute / 60
-    h.NR.server.writer.step(name, p, rec, None)
+    h.NR.server.writer.step(name, p, rec, ctx)
 
 
 def test_boot_saves_then_zeroes_the_seven_rates_to_zero_never_nil():
@@ -489,7 +489,8 @@ LIMITATION_FOUR = (
     " model does not class as vigorous (neither the swing state nor the heavy-work band) overshoots the hunger rise "
     "of a heavy labour deficit (S1325); past 730 g in the stomach the mod's own Overfull moodle rises in four levels "
     "to 1100 g, and at its level 4 the food-timer bridge holds vanilla's FOOD_EATEN timer at its level 3, so "
-    "vanilla's own refusal stops the next eat (W.foodTimer); fibre sates only through its mass, and carbohydrate, sugar and starch take one "
+    "vanilla's own refusal greys the eat menu and the double-click eat (a drink with no food value, and an action "
+    "another mod starts on the server, are not refused, #3599) (W.foodTimer); fibre sates only through its mass, and carbohydrate, sugar and starch take one "
     "weight per kcal (the evidence is mixed or absent), and fat and protein take fitted "
     "weights per kcal (0.879 and 2.50 times carbohydrate's, game choices of the fit); a vanilla HUNGER above "
     "the fullness "
@@ -517,7 +518,7 @@ LIMITATION_FOUR = (
 
 def test_limitation_four_names_the_overwrite_and_the_meal_pool():
     lim = list(Host().NR.server.writer.limitations.values())
-    assert len(lim) == 14                                  # the self-report prints the count: 14 since Plan 15 Task 5 (option B's line; 13 since Plan 11g Task 8, MC-29, ruling T8-1)
+    assert len(lim) == 15                                  # the self-report prints the count: 15 since Plan 15 Task 8 fix 1 (the long-day line; 14 since Task 5, option B's; 13 since Plan 11g Task 8, MC-29, ruling T8-1)
     assert lim[3] == LIMITATION_FOUR
 
 

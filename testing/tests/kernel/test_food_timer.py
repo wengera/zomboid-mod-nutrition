@@ -46,7 +46,8 @@ def test_the_constants_sit_inside_their_bands_with_a_minutes_drain_to_spare(host
     assert host.K.satiety.MEAL_HALF_LIFE_H == HALF_LIFE_H
     assert 0 < WF1 - UNITS_MIN and WF1 <= 1600                          # level 1 through the minute (#0511)
     assert 1600 < WF2 - UNITS_MIN and WF2 <= 3200                       # level 2
-    assert 3200 < FULL - UNITS_MIN and FULL <= 4800                     # level 3, the refusal, never 4
+    assert 3200 < FULL - UNITS_MIN and FULL <= 4800                     # level 3, the refusal, at the 90-minute day
+    assert tuple(v.timerValues(90)) == (WF1, WF2, FULL)
     assert 3300 - UNITS_MIN * 34 / 60 < 3200                           # why not 3300: the drain takes it under in 34 s
 
 
@@ -313,3 +314,108 @@ def test_the_ceiling_caps_the_asleep_regeneration_too():
 def test_the_hybrid_endurance_ceiling(host, e, e1, cap, want):
     got = host.K.hybrid.endCap(e, e1, cap)
     assert got == want
+
+
+# --- fix 1: the day-length-sized values (review I1), the immediate nausea (I3), the sized ceiling (L1) -----------------
+
+DAYS = [15, 30, 60, 90, 120, 360, 600, 780, 1380, 1440]   # the sandbox's DayLength options (SandboxOptions.getDayLengthMinutes)
+
+
+@pytest.mark.parametrize("day", DAYS)
+def test_each_value_holds_its_band_through_a_quantized_minute_at_every_day(host, day):
+    wf1, wf2, full = V(host).timerValues(day)
+    drop = 2 * day * 1.6                                               # S0-1's 1.6-minute quantized minute
+    assert full - drop > 3200                                          # the refusal holds at every day length
+    assert wf1 <= 1600 and wf2 <= 3200
+    if drop < 1600 - 1:
+        assert wf1 - drop > 0 and wf2 - drop > 1600
+    assert wf1 >= WF1 and wf2 >= WF2 and full >= FULL                  # never below the 90-minute values
+
+
+def test_the_values_at_the_three_named_days(host):
+    v = V(host)
+    assert tuple(v.timerValues(15)) == (WF1, WF2, FULL)                # DayLength 1
+    assert tuple(v.timerValues(90)) == (WF1, WF2, FULL)                # DayLength 4
+    assert tuple(v.timerValues(1440)) == (1600, 3200, 8961)            # Real-time
+    assert v.foodTimer(4, 0.0, False, 1440) == 8961 and v.foodTimer(0, 788.5, False, 1440) == 1600
+    assert v.foodTimer(4, 0.0, False) == FULL                           # nil reads the 90-minute day
+
+
+DAY_STUB = r"""
+function(C, day)
+    NutritionRevamp.so = { getDayLengthMinutes = function(s) C.day = C.day + 1; return day end }
+end
+"""
+
+
+def day_setup(day):
+    h, p, C = setup()
+    D = h.rt.eval("{ day = 0 }")
+    h.rt.eval(DAY_STUB)(D, day)
+    return h, p, C, D
+
+
+def test_a_real_time_day_writes_the_sized_refusal():
+    h, p, C, D = day_setup(1440)
+    rec = WS.record(h)
+    fill(h, rec, 1100)
+    WS.step(h, p, rec, 1, ctx=h.rt.table())
+    assert writes(p) == [8961]
+
+
+def test_an_unfed_minute_reads_no_day_and_a_sated_one_shares_one_read():
+    h, p, C, D = day_setup(90)
+    rec = WS.record(h)
+    WS.step(h, p, rec, 1, ctx=h.rt.table())
+    for m in range(2, 6):
+        WS.step(h, p, rec, m, ctx=h.rt.table())
+    assert D.day == 0                                                   # unfed: no day read (Rule 6)
+    rec.satiety.M = 788.5
+    ctx = h.rt.table()
+    h.NR.read.dayMin(ctx, 90)                                           # Effects' read, already memoised in the minute
+    WS.step(h, p, rec, 6, ctx=ctx)
+    assert writes(p)[-1] == WF1 and D.day == 1                          # one getDayLengthMinutes in the whole minute
+
+
+def test_overfull_4s_nausea_is_written_at_once():
+    # fix 1 (review I3): at the floor's pace SICK 1 needed about 67 game minutes; the step writes 30 in the minute
+    h, p, C = setup()
+    rec = WS.record(h)
+    rec.effects.foodSickStep = 30
+    WS.step(h, p, rec, 1)
+    assert p.st.sets.FOOD_SICKNESS == 30
+    p.st.sets.FOOD_SICKNESS = None
+    p.st.v.FOOD_SICKNESS = 40                                           # already above it: no write
+    WS.step(h, p, rec, 2)
+    assert p.st.sets.FOOD_SICKNESS is None
+
+
+def test_the_ceiling_is_sized_from_the_day_and_read_only_under_1():
+    h, p, C, D = day_setup(1440)
+    rec = WS.record(h)
+    WS.step(h, p, rec, 1, ctx=h.rt.table())
+    assert D.day == 0                                                   # cap 1: no day read
+    rec.effects.enduranceCap = 0.73
+    WS.step(h, p, rec, 2, ctx=h.rt.table())
+    assert p.st.sets.ENDURANCE == 0.51 and D.day == 1
+
+
+@pytest.mark.parametrize("cap,day,want", [(0.73, 90, 0.73), (0.73, 1440, 0.51), (1, 1440, 1), (1, 90, 1)])
+def test_the_hybrid_ceiling_at_a_day_length(host, cap, day, want):
+    assert host.K.hybrid.capAt(cap, day) == want
+
+
+def test_the_hybrid_ceiling_shrinks_past_the_90_minute_day(host):
+    got = host.K.hybrid.capAt(0.73, 120)
+    assert 0.5 < got < 0.73
+    assert host.K.hybrid.capAt(float("nan"), 90) != host.K.hybrid.capAt(float("nan"), 90)   # NaN passes through
+
+
+@pytest.mark.parametrize("sick,target,step,want", [(0, 0, 30, 30), (40, 0, 30, None), (10, 85, 30, 30),
+                                                   (0, 0, 0, None)])
+def test_the_hybrid_write_raises_food_sickness_to_the_step_at_once(host, sick, target, step, want):
+    K = host.K
+    inp, out, c = K.hybrid.input(), K.hybrid.output(), K.hybrid.defaults()
+    inp.dtS, inp.foodSick, inp.foodSickTarget, inp.foodSickStep = 60, sick, target, step
+    K.hybrid.write(inp, out, c)
+    assert out.foodSick == want

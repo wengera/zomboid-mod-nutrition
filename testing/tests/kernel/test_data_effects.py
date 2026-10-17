@@ -38,7 +38,7 @@ FLAGS = {"anaemia", "allReplete", "refeedEvent", "frozen", "bgroupMax", "coldCre
 NUMERIC_FLAGS = {"bgroupMax": (3, 4), "starve": (1, 3), "overfull": (3, 4)}  # a numeric flag's row range (Plan 15 Task 4: starve; Task 8: overfull)
 SURFACES = {"mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget", "poisonTarget",
             "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul", "fOffNut",
-            "bruise", "nightVision", "shortSighted", "enduranceCap"}  # Plan 15 Task 4: no drain surface, K.drain owns it; Task 8: enduranceCap
+            "bruise", "nightVision", "shortSighted", "enduranceCap", "foodSickStep"}  # Plan 15 Task 4: no drain surface, K.drain owns it; Task 8: enduranceCap, foodSickStep
 
 
 def _load(host, path):
@@ -124,8 +124,9 @@ def test_the_clamps_are_the_briefings(eh):
 def test_the_machine_and_gated_surfaces(eh):
     s = _surf(eh)
     assert {k for k, v in s.items() if v.get("machine")} == {"nightVision"}
-    assert {k for k, v in s.items() if v.get("sevMin") is not None} == {"shortSighted"}
+    assert {k for k, v in s.items() if v.get("sevMin") is not None} == {"shortSighted", "enduranceCap"}
     assert s["shortSighted"]["sevMin"] == 1                              # ruling 7
+    assert s["enduranceCap"]["sevMin"] == 0.5                            # Plan 15 Task 8 fix 1 (review L3): on or off, never partial
 
 
 def test_the_constants(eh):
@@ -419,9 +420,10 @@ def test_the_banner_says_not_a_kernel_file():
 def test_the_overfull_rows_slow_at_level_3_and_sicken_at_level_4(eh):
     # Plan 15 Task 8 (spec section 2.3): Overfull 3 and 4 hold ENDURANCE at or under 0.73, the Endurance moodle's level 1
     # (above 0.5, at most 0.75), the base-speed cut of Heavy Load level 1 (#2313); Overfull 4 adds nausea, FOOD_SICKNESS 30
+    # raised at once (foodSickStep, fix 1: at the floor's pace it needed about 67 minutes at Overfull 4)
     rows = [r for r in _rows(eh) if r["src"] == "overfull"]
     got = {(r["on"], r["at"]): {e["s"]: e["v"] for e in r["list"]} for r in rows}
-    assert got == {("flag", (3, 4)): {"enduranceCap": 0.73}, ("flag", 4): {"foodSickTarget": 30}}
+    assert got == {("flag", (3, 4)): {"enduranceCap": 0.73}, ("flag", 4): {"foodSickStep": 30}}
     surf = _surf(eh)["enduranceCap"]
     assert surf["op"] == "min" and surf["id"] == 1 and surf["lo"] == 0.73 and surf["hi"] == 1.0
     assert 0.5 < 0.73 <= 0.75 - 0.0056                                   # level 1, with a minute's standing regeneration to spare

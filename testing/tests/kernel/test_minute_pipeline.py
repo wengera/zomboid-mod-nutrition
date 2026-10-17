@@ -439,7 +439,8 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
 # Plan 15 Task 8 (the food-timer bridge): g1's seeded meal pool (912 weighted kcal) reads sated, so the steady minute
 # writes the health-from-food timer once (vanilla drains it between writes); an unfed minute (the pool set to 1 weighted
 # kcal) writes it only on the change to 0 and then makes no call, and a draining minute holds it at 0 with none. Read
-# at 56a25b9d, the build before, with the same stand-in: 67 steady, 67 unfed, 74 draining.
+# at 56a25b9d, the build before, with the same stand-in: 67 steady, 67 unfed, 74 draining. Fix 1 (review I1): the sated
+# minute sizes its value from the day length, one shared sandbox read (none unfed, the drain's one shared).
 ENGINE_COUNT = r"""
 function(p, C)
     local seen = {}
@@ -472,7 +473,7 @@ end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
 ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 74}
-DAY_READS = {"steady": 0, "unfed": 0, "drain": 1}  # the sandbox's getDayLengthMinutes a player-minute (Task 6)
+DAY_READS = {"steady": 1, "unfed": 0, "drain": 1}  # the sandbox's getDayLengthMinutes a player-minute (Task 6; steady: the sated bridge's, Task 8 fix 1)
 TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
 TASK7_ENGINE_CALLS = {"steady": 67, "unfed": 67, "drain": 74}   # read at 56a25b9d (Plan 15 Task 7), before the bridge
 TIMER_WRITES = {"steady": 1, "unfed": 0, "drain": 0}             # setHealthFromFoodTimer a player-minute (Task 8)
