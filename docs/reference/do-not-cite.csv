@@ -22231,7 +22231,7 @@ x452-20261017-071527,constants,the lib's constants,The driver's settings and the
 x452-20261017-071527,memory,host free memory rows,"Host state, not a game reading.",
 x452-20261017-071527,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x452-20261017-071527,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762); each row's `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
-x452-20261017-071527,verdicts.REPLAY_THIRST,falsified,"Its over-rows mix two auto-drink placements (the sip row and the replay's autodrop one row later) with a 0.002-0.004 drift; not a grade of the thirst kernel.",`verdicts.REPLAY_THIRST.observed.findings`
+x452-20261017-071527,verdicts.REPLAY_THIRST.verdict,falsified,"Its over-rows mix two auto-drink placements (the sip row and the replay's autodrop one row later) with the unmodelled cold diuresis (0.32-0.41 g a game hour, inference); not a grade of the thirst kernel.",`verdicts.REPLAY_THIRST.observed.findings`
 x452-20261017-071527,checks.T9.after.counters,0,"No tooltip was drawn: the hide is unmeasured, not absent.",`checks.T9.why`
 x453-20261017-072518,session,the driver's text,Written before the run; not a reading.,
 x453-20261017-072518,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
@@ -22246,26 +22246,34 @@ x454-20261017-073220,constants,the lib's constants,The driver's settings; not a 
 x454-20261017-073220,memory,host free memory rows,"Host state, not a game reading.",
 x454-20261017-073220,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x454-20261017-073220,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
-x454-20261017-073220,verdicts.ONSET,falsified,"Falsified on the row-before clause: the ring's flag shows one row after the minute that set it; the rows are the reading.",`minute-ring-admin-1.json` rows 25-28
-x454-20261017-073220,verdicts.PAIRS_hungry,falsified,"One client read a fraction of a second ahead of the server reads inside the window's slack; not a reading of the sync.",`verdicts.PAIRS_hungry.observed.mismatches`
+x454-20261017-073220,verdicts.ONSET.verdict,falsified,"Graded on ring ages, one row ahead of the record; on the record's drain.starvedH the onset grades as predicted.",`minute-ring-admin-1.json` rows' `drain.starvedH`; `x45g-onset-regrade-20261017`
+x454-20261017-073220,verdicts.PAIRS_hungry.verdict,falsified,"One client read at the new level ahead of the last server read before it, the pair's own later server read outside the 0.3 s slack; not a reading of the sync.",`verdicts.PAIRS_hungry.observed.mismatches`
 x455-20261017-073633,session,the driver's text,Written before the run; not a reading.,
 x455-20261017-073633,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x455-20261017-073633,constants,the lib's constants,The driver's settings; not a reading.,
 x455-20261017-073633,memory,host free memory rows,"Host state, not a game reading.",
 x455-20261017-073633,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x455-20261017-073633,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
-x455-20261017-073633,verdicts.ONSET,falsified,"Falsified on the row-before clause: the ring's flag shows one row after the minute that set it; the rows are the reading.",`minute-ring-admin-1.json` rows 57-59
-x455-20261017-073633,verdicts.N_BLEED.observed.predicted_per_gh,35.66311058183672,"The driver's prediction from x451's wound term and the whole constant, not vanilla's measured rate.",`verdicts.N_BLEED.observed.rate_per_gh`
+x455-20261017-073633,verdicts.ONSET.verdict,falsified,"Graded on ring ages, one row ahead of the record; on the record's drain.starvedH the onset grades as predicted.",`minute-ring-admin-1.json` rows' `drain.starvedH`; `x45g-onset-regrade-20261017`
 x456-20261017-074015,session,the driver's text,Written before the run; not a reading.,
 x456-20261017-074015,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x456-20261017-074015,constants,the lib's constants,The driver's settings; not a reading.,
 x456-20261017-074015,memory,host free memory rows,"Host state, not a game reading.",
 x456-20261017-074015,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x456-20261017-074015,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
-x456-20261017-074015,verdicts.PAIRS_thirst,falsified,"One client read a fraction of a second ahead of the server reads inside the window's slack; not a reading of the sync.",`verdicts.PAIRS_thirst.observed.mismatches`
+x456-20261017-074015,verdicts.PAIRS_thirst.verdict,falsified,"One client read at the new level ahead of the last server read before it, the pair's own later server read outside the 0.3 s slack; not a reading of the sync.",`verdicts.PAIRS_thirst.observed.mismatches`
 x457-20261017-074403,session,the driver's text,Written before the run; not a reading.,
 x457-20261017-074403,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x457-20261017-074403,constants,the lib's constants,The driver's settings; not a reading.,
 x457-20261017-074403,memory,host free memory rows,"Host state, not a game reading.",
 x457-20261017-074403,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x457-20261017-074403,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x455-20261017-073633,verdicts.N_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.N_BLEED.observed.rel_err,-0.7043519559486223,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.excess_per_gh,24.895102185147667,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.bias_bound_per_gh,0.12705882352941178,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.starve_per_gh,1.0416666666666667,"The driver's 25 / 24, not a reading.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.tol_per_gh,4.454999975860119,"The driver's tolerance, not a reading.",`checks.windows.N` and `checks.windows.SB`
+x455-regrade-20261017,verdicts.SB_ABS.observed.predicted_per_gh,36.70477724850338,"The prediction's arithmetic, not a reading.",`verdicts.SB_ABS.observed.rate_per_gh`
+x455-regrade-20261017,verdicts.SB_ABS.observed.terms,the prediction's terms,"The prediction's arithmetic (x451's wound term transferred, an inference), not readings of x455.",`verdicts.SB_ABS.observed.rate_per_gh`

@@ -1,0 +1,50 @@
+{
+ "kind": "derived artifact (analysis, not a live run)",
+ "readings": {
+  "N": {
+   "foodEaten": [
+    1,
+    1
+   ],
+   "foodTimer": [
+    971.3041381835938,
+    971.2598876953125
+   ],
+   "note": "the bleed and wound net of vanilla's food heal; not vanilla's bleed term",
+   "rate_per_gh": 10.543728888308017,
+   "well_fed": true
+  }
+ },
+ "script": "testing/experiments/x455_regrade.py",
+ "source": "testing/artifacts/x455-20261017-073633/bleed.json",
+ "source_sha256": "1a4fe5125eb372422f0bb740e5ced85833c3ee8c0b183ce0fc88551d25958306",
+ "verdicts": {
+  "SB_ABS": {
+   "falsifier": "SB's rate off wound + red0 x M_H + starvation by more than 15%",
+   "observed": {
+    "SB_foodTimer": [
+     0.0,
+     0.0
+    ],
+    "const": [
+     0.0,
+     0.0
+    ],
+    "levels": [
+     4,
+     4
+    ],
+    "predicted_per_gh": 36.70477724850338,
+    "rate_per_gh": 36.48049774012235,
+    "red0": 0.016499999910593033,
+    "rel_err": -0.006110362878994875,
+    "terms": {
+     "bleed4": 29.69999983906746,
+     "starve": 1.0416666666666667,
+     "wound_x451": 5.963110742769263
+    }
+   },
+   "verdict": "as_predicted"
+  }
+ }
+}

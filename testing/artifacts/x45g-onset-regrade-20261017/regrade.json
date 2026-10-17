@@ -1,0 +1,50 @@
+{
+ "kind": "derived artifact (analysis, not a live run)",
+ "runs": {
+  "x454": {
+   "lag_identity": {
+    "max_abs_diff_h": 0.0,
+    "rows": 15
+   },
+   "observed": {
+    "hunger_at": [
+     1.0,
+     1.0
+    ],
+    "onset_age": 3.768526077270508,
+    "onset_s": 28,
+    "pre_max": 0.6899999976158142,
+    "prev_s": 27,
+    "starvedH": 30.01843356921387,
+    "starvedH_prev": 29.99979877307129
+   },
+   "run": "x454-20261017-073220",
+   "set_age": 3.4681711196899414,
+   "source_sha256": "c9855918869658fd903fdf57e126917b9fd6679dadba0f728b5fd3d34977c353",
+   "verdict": "as_predicted"
+  },
+  "x455": {
+   "lag_identity": {
+    "max_abs_diff_h": 0.0,
+    "rows": 15
+   },
+   "observed": {
+    "hunger_at": [
+     1.0,
+     1.0
+    ],
+    "onset_age": 4.234647750854492,
+    "onset_s": 59,
+    "pre_max": 0.6899999976158142,
+    "prev_s": 58,
+    "starvedH": 30.007595150146486,
+    "starvedH_prev": 29.988985149536134
+   },
+   "run": "x455-20261017-073633",
+   "set_age": 3.9504642486572266,
+   "source_sha256": "1a4fe5125eb372422f0bb740e5ced85833c3ee8c0b183ce0fc88551d25958306",
+   "verdict": "as_predicted"
+  }
+ },
+ "script": "testing/experiments/x45g_onset_regrade.py"
+}
