@@ -22263,3 +22263,9 @@ x456-20261017-074015,memory,host free memory rows,"Host state, not a game readin
 x456-20261017-074015,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
 x456-20261017-074015,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x456-20261017-074015,verdicts.PAIRS_thirst,falsified,"One client read a fraction of a second ahead of the server reads inside the window's slack; not a reading of the sync.",`verdicts.PAIRS_thirst.observed.mismatches`
+x457-20261017-074403,session,the driver's text,Written before the run; not a reading.,
+x457-20261017-074403,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x457-20261017-074403,constants,the lib's constants,The driver's settings; not a reading.,
+x457-20261017-074403,memory,host free memory rows,"Host state, not a game reading.",
+x457-20261017-074403,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x457-20261017-074403,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
