@@ -3,7 +3,7 @@ stomach seeded near the hard capacity stops at Overfull 4 with a refused eat; th
 endurance ceiling at Overfull 3-4; the client's FOOD_EATEN against the server's.
 
 One boot of profile x45g-mod (fixture default, admin -debug, PZTestKit and the STAGED copy release/plan15-x45g of
-mod/NutritionRevamp at 718d4296, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
+mod/NutritionRevamp at a97fec05, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
 x452's. The engine is testing/experiments/x45g_lib.py. Written BEFORE the boot and never edited after the run.
 
 THE SESSION: S, H (the ring), F (12 Base.Broccoli by RCON), SEED (the true multiplier to 0.2 through time.multiplier,
@@ -16,7 +16,9 @@ action.cancel; the hold's reads for 3 game minutes, kept as readings),
 C (action.cancel; the clock restored from S's read), R.
 
 PREDICTIONS (named before the run): a broccoli adds 32.95 g (NR_Data_Nutrients.lua: water 28.93, carbs 2.15, protein
-0.91, fat 0.12, fibre 0.84); about 3 g a game minute empties; so about 6 eats take 960 g past 1100 g.
+0.91, fat 0.12, fibre 0.84); about 3 g a game minute empties. The HEAD replay at a97fec05 (`python
+testing/experiments/x45g_prerun.py x453`: the seed at age 4.2 reading 957 g, a broccoli every 3 game minutes) reaches
+Overfull 4 on the 7th eat, at 1108 g.
   OF_REACH      eats land from Overfull 2-3 until a read shows Overfull 4.
   OF_REFUSE     the eat at Overfull 4 (still 4 just before it, else unmeasured): validStart false on the client, no
                 landing in 8 s, the stomach no heavier.
@@ -51,7 +53,7 @@ assert _ME.startswith(PREFIX + "_"), f"PREFIX {PREFIX} does not match the driver
 SESSION = ("Plan 15 Task 11 x453: raw broccoli eaten from a stomach seeded at 960 g until Overfull 4, then a refused "
            "eat; the timer, the nausea and the endurance ceiling; one boot of " + PROFILE)
 PRED = {
-    "OF_REACH": "eats land from Overfull 2-3 until a read shows Overfull 4 (about 6 eats)",
+    "OF_REACH": "eats land from Overfull 2-3 until a read shows Overfull 4 (replay: the 7th eat, 1108 g)",
     "OF_REFUSE": "validStart false, no landing in 8 s, the stomach no heavier (still Overfull 4 at the attempt)",
     "OF_EARLY": "no eat refused below Overfull 4",
     "OF_TIMER": "timer > 3200 at settled Overfull 4, <= 3200 below",

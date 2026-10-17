@@ -3,7 +3,7 @@ Thirst, read as the basal scale the server applies (NR.read.trait, NutritionReva
 as the ring's water loss in four arms.
 
 One boot of profile x45g-mod (fixture default, admin -debug, PZTestKit and the STAGED copy release/plan15-x45g of
-mod/NutritionRevamp at 718d4296, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
+mod/NutritionRevamp at a97fec05, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
 x452's. The engine is testing/experiments/x45g_lib.py. Written BEFORE the boot and never edited after the run.
 
 THE SESSION: S, H (the ring), then four arms at speed 5, each the trait change (trait.set on the server), 3 game minutes
@@ -13,8 +13,10 @@ stomach is empty and the fixture's admin carries no fluid container, so the loss
 are read on the ring: both stomach lanes under 1 g, no sweat, no landing or sip; a cold diuresis the ring's
 coldMult carries is added to the prediction).
 
-PREDICTIONS (named before the run; K.fluids.basalG and thirstTrait at 718d4296; the fixture's StatsDecrease 3, a
-multiplier of 1):
+PREDICTIONS (named before the run; K.fluids.basalG and thirstTrait at a97fec05; the fixture's StatsDecrease 3, a
+multiplier of 1; the HEAD replay of the four arms, `python testing/experiments/x45g_prerun.py x457`, with the two thirst
+traits added to its host's CharacterTrait: the applied scale 1, 1.5, 1 and 0.5, the losses 83.341, 124.992, 83.326 and
+41.667 g a game hour, the ratios 1.4998, 0.9998 and 0.5000):
   SCALE        the applied scale reads 1.0, 1.5, 1.0 and 0.5 in BASE, HIGH, OFF and LOW (Task 3's NR.read.trait check).
   LOSS_<arm>   each arm's loss within 3 % of basalG(lm) x scale / 24: 83.3, 125.0, 83.3 and 41.7 g a game hour at lm
                52.02.

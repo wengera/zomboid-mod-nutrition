@@ -4,7 +4,7 @@ first floor and holds, the first floor's hour without water against the kernel's
 loss against 2000 + 32 (lm - 52.02) g a day, and SICK 4 still draining while Parched.
 
 One boot of profile x45g-mod (fixture default, admin -debug, PZTestKit and the STAGED copy release/plan15-x45g of
-mod/NutritionRevamp at 718d4296, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
+mod/NutritionRevamp at a97fec05, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
 x452's. The engine is testing/experiments/x45g_lib.py. Written BEFORE the boot and never edited after the run.
 
 THE SESSION: S (the auto-drink probe: the fixture's admin carries no fluid container, x446), H (the ring), A (at speed
@@ -13,7 +13,11 @@ then speed 1 with pairs until 3 game minutes past the onset; the health at the o
 health point every 0.5 s, until 1.5 game h past the floor), P (FOOD_SICKNESS 95 for one 10 s window at speed 1, then 0),
 C, R.
 
-PREDICTIONS (named before the run; the default body, lm 52.02 and fm 13.0 kg, x446's ring; lx 0 at first sight):
+PREDICTIONS (named before the run; the default body, lm 52.02 and fm 13.0 kg, x446's ring; lx 0 at first sight; the
+HEAD replay of this schedule at a97fec05, `python testing/experiments/x45g_prerun.py x456`: w 65.025 kg, the set at age
+4.2 to 3.80 %, the onset 1.62 game h later at 4.0013 % with THIRST 0.938 (at most 0.83 before), dehydPct rising
+0.1245 % and water falling 83.333 g a game hour, the floor reached 6.35 game h after the onset at 47.12, the first-floor
+hour 38.48 h):
   DEHYD_ONSET    the ring's first dehydrated row at 4.0 % (the row before under), THIRST over 0.84 there or next (the
                  cap lifted), at most 0.83 before it.
   PARCHED_SHOWN  the server's THIRST moodle 4 on its last read within 3 game minutes after the onset row.

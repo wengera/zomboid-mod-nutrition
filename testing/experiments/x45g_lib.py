@@ -147,7 +147,7 @@ PROFILE = "x45g-mod"
 STAGE_OUT = "release/plan15-x45g"
 STAGE_ROOT = STAGE_OUT + "/NutritionRevamp"
 STAGE_MOD = STAGE_ROOT + "/Contents/mods/NutritionRevamp"
-STAGED_FROM = "718d4296"                 # the commit the staged copy is made from (mod/ last touched at 718d4296)
+STAGED_FROM = "a97fec05"                 # the commit the staged copy is made from (mod/ last touched at a97fec05)
 STAGED_CORE = "common/media/lua/shared/NR_Core.lua"
 MANIFEST_NAME = "MANIFEST.json"
 MIN_FREE_GB = 12.0
@@ -291,10 +291,11 @@ EAT0_TOL = 0.02
 EAT0_ROWS = 3                            # the landing minute's row and the next two (the next minute's write)
 # The cadence bands (review M1, the controller's ruling): each meal's Peckish return and the dinner's Hungry return
 # graded against the HEAD replay of exactly this session's schedule (the foods, the drinks, the minutes), one band a
-# meal. None until Task 6c's re-fit lands and the replay is re-derived: preboot refuses a boot while any is None.
-CAD_P_TARGETS = {"lunch": None, "dinner": None, "breakfast": None}
+# meal (preboot refuses a boot while any is None). Read off testing/experiments/x45g_prerun.py x452 at a97fec05 (Task 6c's
+# re-fit): the schedule's minutes 330, 690 and 1470 from 07:00, a can and a banana each, 0.5 L of water 150 minutes after.
+CAD_P_TARGETS = {"lunch": 3.683, "dinner": 3.700, "breakfast": 4.183}
 CAD_P_TOL = 0.5
-CAD_H_TARGET = None
+CAD_H_TARGET = 9.683
 CAD_H_TOL = 0.75
 WF_SHOW_GM = 3.0
 WF_END_TOL_GM = 2.0

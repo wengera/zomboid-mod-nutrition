@@ -1,5 +1,5 @@
 # testing/profiles/x45g-mod.toml - Plan 15 Task 11 (runs x452-x457): the game-feel changes live, one boot per session.
-# PZTestKit + the STAGED copy of mod/NutritionRevamp at 718d4296 (release/plan15-x45g, staged before the boot with
+# PZTestKit + the STAGED copy of mod/NutritionRevamp at a97fec05 (release/plan15-x45g, staged before the boot with
 # `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan15-x45g`; release/ is gitignored; mod/ is
 # never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 1, sleep off (the fixture's false/false; the
 # hunger curve's fit is sleep off). Fixture default, admin (-debug), build 42.21.0. The drivers are

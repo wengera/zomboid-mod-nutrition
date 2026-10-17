@@ -698,6 +698,8 @@ def test_x452_a_replay_over_the_tolerance_falsifies(tmp_path, monkeypatch):
 
 
 def test_x452_cadence_unnamed_is_unmeasured_and_refused_at_preboot(tmp_path, monkeypatch):
+    monkeypatch.setattr(L, "CAD_P_TARGETS", {"lunch": None, "dinner": None, "breakfast": None})
+    monkeypatch.setattr(L, "CAD_H_TARGET", None)
     v, out, _, _ = run_session("x452", tmp_path, monkeypatch, bands=False)
     assert v["CAD_FEEL_P"] == "unmeasured" and v["CAD_FEEL_H"] == "unmeasured"
     assert L.predictions_named() is False
@@ -1239,3 +1241,14 @@ def test_restore_falls_back_to_time_multiplier(tmp_path, monkeypatch):
     v, out, w, _ = run_session("x453", tmp_path, monkeypatch, flags=("rcon_inert",))
     r = out["checks"]["restore"]
     assert r["set"]["ok"] is False and "set_mult" in r and r["ok"] is True and w.speed == 1.0
+
+
+def test_the_cadence_bands_are_named_from_the_prerun():
+    assert L.predictions_named() is True
+    assert L.CAD_P_TARGETS == {"lunch": 3.683, "dinner": 3.700, "breakfast": 4.183} and L.CAD_H_TARGET == 9.683
+
+
+def test_prerun_schedule_keys_mirror_the_drivers():
+    import x45g_prerun as P
+    assert P.k_of(P.START_AGE + 1 / 60.0) == 0 and P.k_of(330 / 60.0) == 149
+    assert P.SET_AGE > P.START_AGE

@@ -17,20 +17,24 @@ through x44's drink route, a fresh prefilled container type each (WaterBottle, C
 filled with Water, drink.action, the sips polled; the lunch watched 0.65 game h at speed 1, the others 0.1; speed 5
 between; server-client stats.get pairs throughout), C, R, T (the T9 reads after); x45g_lib's docstring.
 
-PREDICTIONS (named before the run). PENDING (review H1, the controller's ruling): every cadence number is re-derived from
-the HEAD replay of exactly this schedule (the foods, the drinks, the minutes 330, 690 and 1470 from 07:00) after Task 6c's
-curve re-fit lands, written into x45g_lib.CAD_P_TARGETS and CAD_H_TARGET and here; preboot refuses a boot until then.
-  HYDRATED       every ring row under 4 % deficit, none dehydrated (the start's fluids.dehydPct, read at H1, recorded).
-  EAT0           HUNGER at most 0.02 on each meal's landing row and the next two.
-  CAD_FEEL_P     each meal's Peckish return within 0.5 h of its HEAD-replay band (pending). Recorded beside it,
+PREDICTIONS (named before the run; review H1): the HEAD replay of exactly this schedule at a97fec05, Task 6c's re-fit
+(`python testing/experiments/x45g_prerun.py x452`: tools/replay_live.ServerReplay, a fresh record seen at age 3.0 with
+HUNGER 0.2, sleep off; the meals at minutes 330, 690 and 1470 from 07:00, a can and a banana each, 0.5 L of Water 150
+minutes after each), in x45g_lib.CAD_P_TARGETS and CAD_H_TARGET:
+  HYDRATED       every ring row under 4 % deficit, none dehydrated (replay: at most 1.451 %, THIRST at most 0.267, the
+                 stomach at most 789 g, Overfull 1; the start's fluids.dehydPct, read at H1, recorded).
+  EAT0           HUNGER at most 0.02 on each meal's landing row and the next two (replay 0 after each meal).
+  CAD_FEEL_P     each meal's Peckish return within 0.5 h of its band: lunch 3.683, dinner 3.700, breakfast 4.183 h
+                 (the dinner's depends on when the character last drank, review F8: the live drinks follow this
+                 schedule). Recorded beside it,
                  vanilla_model's returns for the same cans: 4.9, 5.2 and 4.9 h at the 90-minute day; at the profile's
                  15-minute day dinner 7.6 h, lunch 5.87 h at a pre-lunch HUNGER of 0.3 (else past its window), and
                  breakfast past its tail (review L7).
-  CAD_FEEL_H     the dinner's Hungry return within 0.75 h of its HEAD-replay band (pending; vanilla 8.82 h at 90 min).
+  CAD_FEEL_H     the dinner's Hungry return within 0.75 h of 9.683 h (vanilla 8.82 h at the 90-minute day).
   REPLAY_*       the HEAD replay of the ring within x446's tolerances: HUNGER 0.002, body.energyState 0.005,
                  THIRST 0.002 on every graded row.
   WF_SHOW        FOOD_EATEN 1 or more within 3 game minutes of each landing.
-  WF_SPAN        the lunch's Well Fed ends with the ring's satiety.M under 435, within 2 game minutes.
+  WF_SPAN        the lunch's Well Fed ends with the ring's satiety.M under 435, within 2 game minutes (replay 0.467 h).
   PAIRS_*        every client FOOD_EATEN and HUNGRY level a server level of the push window, with a transition read.
   H1, RING, Z    every ring path resolved, every page read with errors 0, no mod error line and admin not parked.
   Readings, not grades: checks.wf_vs_vanilla (review M2), checks.T9 (the hide unmeasured; T.probe and optionOn read).
@@ -61,15 +65,15 @@ SESSION = ("Plan 15 Task 11 x452: a three-meal day (lunch, dinner, breakfast; a 
            "0.5 L of water 2.5 h after each) on the calibrated hunger writer and the Well Fed bridge; one boot of "
            + PROFILE)
 PRED = {
-    "HYDRATED": "every ring row under 4 % deficit, none dehydrated",
+    "HYDRATED": "every ring row under 4 % deficit, none dehydrated (replay at most 1.451 %)",
     "EAT0": "HUNGER <= 0.02 on each meal's landing row and the next two",
-    "CAD_FEEL_P": "each Peckish return within 0.5 h of its HEAD-replay band (pending Task 6c)",
-    "CAD_FEEL_H": "the dinner's Hungry return within 0.75 h of its HEAD-replay band (pending Task 6c)",
+    "CAD_FEEL_P": "each Peckish return within 0.5 h of its HEAD-replay band: lunch 3.683, dinner 3.700, breakfast 4.183 h",
+    "CAD_FEEL_H": "the dinner's Hungry return within 0.75 h of 9.683 h",
     "REPLAY_HUNGER": "within 0.002 of the HEAD replay on every graded row",
     "REPLAY_body.energyState": "within 0.005 of the HEAD replay on every graded row",
     "REPLAY_THIRST": "within 0.002 of the HEAD replay on every graded row",
     "WF_SHOW": "FOOD_EATEN >= 1 within 3 game minutes of each landing",
-    "WF_SPAN": "the lunch's Well Fed end at the ring's M < 435 within 2 game minutes",
+    "WF_SPAN": "the lunch's Well Fed end at the ring's M < 435 within 2 game minutes (replay 0.467 h)",
     "PAIRS_foodEaten": "every client level a server level of the push window, a transition read",
     "PAIRS_hungry": "every client level a server level of the push window, a transition read",
     "H1": "every ring path resolved", "RING": "every page read, errors 0", "Z": "no mod error line, admin not parked",

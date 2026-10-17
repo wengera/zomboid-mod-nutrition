@@ -2,7 +2,7 @@
 constant at 0, a four-part bleed and SICK 4 still drain health at vanilla's rates, re-applied by the writer.
 
 One boot of profile x45g-mod (fixture default, admin -debug, PZTestKit and the STAGED copy release/plan15-x45g of
-mod/NutritionRevamp at 718d4296, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
+mod/NutritionRevamp at a97fec05, Nutrition false, DayLength 1, sleep off), build 42.21.0, the staged copy checked as
 x452's. The engine is testing/experiments/x45g_lib.py. Written BEFORE the boot and never edited after the run.
 
 THE SESSION: S, H (the ring), N (not starving, the constant 0.0165: four parts bleeding, bodypart.set bleedingTime 5 and
@@ -10,7 +10,9 @@ bleeding true on parts 0-3 as x451's C2; one 10 s window at speed 1, x451's wind
 the bleed cleared), A (the onset as x454's), SB (the same bleed, starving), SS (FOOD_SICKNESS 95, SICK 4, starving),
 K (the bleed and the sickness cleared), C, R.
 
-PREDICTIONS (named before the run; red = 0.0165, M_H = 1800 at DayLength 1, x451's wound term 5.963 a game hour):
+PREDICTIONS (named before the run; red = 0.0165, M_H = 1800 at DayLength 1, x451's wound term 5.963 a game hour; the
+onset as x454's HEAD replay, `python testing/experiments/x45g_prerun.py x455`: 0.25 game h after the set, at 30.0
+unfed hours, HUNGER 0.69 before and 1.0 at it):
   ONSET, CONST  as x454 (no eat: the constant 0 on every read after the onset).
   N_BLEED       the bleed drains red x M_H + 5.963 = 35.66 a game hour within 25 %, BLEEDING 4 at both ends.
   S_BLEED       starving, the constant 0 at both ends, the same bleed drains N's rate plus the starvation drain (1.042)
