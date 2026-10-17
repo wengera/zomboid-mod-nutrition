@@ -37,14 +37,14 @@ end
 -- mass fm + lm + lx (ruling 13-20); body_delta reads 0 until the Strength minute first writes the carry.
 -- body_level (the true Strength level, K.strength.level at P) and body_sets (the closed week's S) are ruling 13-19's;
 -- body_level is absent, never NaN, when the body is absent or its lm, N0 or T is not finite (the view reads No data).
--- body_trend is the 7-day mass slope in kg a day (K.mirror.trend), the panel's weight-trend word (Plan 15 Task 9).
+-- body_trend is the 7-day mass slope in kg a day (K.mirror.trend), the panel's weight-trend word (Plan 15 Task 9). The
+-- energy state is not mirrored: no client surface reads it since the energy moodle went (Task 9 fix 1, review I1).
 
 function K.mirror.body(m, body, P)
     m.body_fm = 0
     m.body_lm = 0
     m.body_weight = 0
     m.body_band = ""
-    m.body_energyState = 0
     m.body_tac = 0
     m.body_rmod = 0
     m.body_delta = 0
@@ -59,7 +59,6 @@ function K.mirror.body(m, body, P)
     m.body_lm = body.lm
     m.body_weight = body.fm + body.lm + body.lx
     m.body_band = body.band
-    m.body_energyState = body.energyState
     m.body_tac = body.tac
     m.body_rmod = body.rmod
     m.body_delta = body.delta or 0

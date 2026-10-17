@@ -171,7 +171,7 @@
     "UI_NR_Trend_losing": "Losing",
     "UI_NR_Trend_steady": "Steady",
     "UI_NR_Trend_gaining": "Gaining",
-    "UI_NR_Tip_Fills": "Fills you for about",
-    "UI_NR_Tip_FillsUnder": "Fills you for under half an hour",
-    "UI_NR_Tip_FillsOver": "Fills you for more than"
+    "UI_NR_Tip_Fills": "A whole one fills you for about",
+    "UI_NR_Tip_FillsUnder": "A whole one fills you for under half an hour",
+    "UI_NR_Tip_FillsOver": "A whole one fills you for more than"
 }

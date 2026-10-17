@@ -171,6 +171,23 @@ def test_the_files_load_with_the_stand_ins_and_the_page_has_four_rows():
     assert NRC(rt).modOptions.moodleLevelOne() is True                 # a non-boolean reads the default
 
 
+def test_applying_the_options_re_applies_the_moodles_at_once():
+    # Plan 15 Task 9 fix 1 (review L6): the page's apply re-applies the moodles from the view's last classes, after the
+    # original apply; with no moodles or no classes it does nothing
+    rt = rt_env()
+    g = G(rt)
+    page = g.NR_ClientModOptions_Page
+    rt.execute("NR_T.applied = 0; NutritionRevamp.client.moodles = { apply = function(c) NR_T.applied = NR_T.applied + 1; NR_T.cls = c end }")
+    page.apply(page)
+    assert g.NR_T.applied == 0                                          # no view rebuild yet: no classes
+    receive(rt, "{ acute_debtH = 2 }")
+    page.apply(page)
+    assert g.NR_T.applied == 1 and g.NR_T.cls.sleep == 1 and rt.eval("rawequal")(g.NR_T.cls, V(rt).classes)
+    rt.execute("NutritionRevamp.client.moodles = nil")
+    page.apply(page)
+    assert g.NR_T.applied == 1 and NRC(rt).modOptions.onApply() is False
+
+
 def test_a_reload_creates_no_second_page_and_adds_no_second_listener():
     rt = rt_env()
     _load(rt, CORE)

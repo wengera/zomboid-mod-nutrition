@@ -323,22 +323,23 @@ function K.view.hasBit(mask, c)
 end
 
 -- The weight trend: the server's 7-day body-mass slope (the mirror's body_trend, K.body.trend over the closed-day ring
--- body.mass7, kg a day) as a word at Bands and up, "losing", "steady" or "gaining", or No data while the mirror carries
--- no body.
-K.view.TREND_KG_DAY = 0.05 -- kg a day: game choice (spec section 4's weight trend; not yet a spec section 10 item, carried to Task 14): about 385 kcal a day at 7,700 kcal per kg, 1.5 kg a month, under the 3.5-6 kg a month active survival loses (decisions item 6), so that loss reads losing and a slope inside +-0.35 kg a week reads steady
+-- body.mass7, kg a day) as a word at Bands, "losing", "steady" or "gaining", or No data while the mirror carries no body.
+-- The word reads K.body.flags, the direction flags this mod sets vanilla's weight arrows from (NR_Server_Weight, ruling
+-- 17), so the panel and the character screen's arrows never disagree (Plan 15 Task 9 fix 1, review M2): one threshold.
 K.view.TREND_WORDS = { "steady", "gaining" }
 K.view.TREND_WORDS[0] = "losing"
 
--- The trend word's index of a slope in kg a day: 0 losing (under -TREND_KG_DAY), 2 gaining (over +TREND_KG_DAY), else 1
--- steady; a slope that is not a finite number reads 1. Strict, so a slope on the threshold reads steady.
+-- The trend word's index of a slope in kg a day: 0 losing (K.body.flags' decreasing), 2 gaining (its increasing), else
+-- 1 steady; a slope that is not a finite number reads 1.
 function K.view.trendIndex(kgPerDay)
     if not K.finite(kgPerDay) then
         return 1
     end
-    if kgPerDay < -K.view.TREND_KG_DAY then
+    local inc, _, dec = K.body.flags(kgPerDay)
+    if dec then
         return 0
     end
-    if kgPerDay > K.view.TREND_KG_DAY then
+    if inc then
         return 2
     end
     return 1
@@ -368,8 +369,10 @@ end
 -- --- the Deficiency moodle's nutrients (Plan 15 Task 9; spec section 4, item 8) ------------------------------------
 -- The nutrients whose grade drives an effect: the Deficiency moodle and its class row read these alone (the panel's
 -- grade rows still list every graded nutrient). Built from the tables at load, never a hand list (the test keeps the
--- set in step with them): every effects row on a nutrient's grade (on = "grade", whose src is the nutrient key), left
--- out while its gate names a table flag that is false (VITD_EFFECTS); the members of the two grade aggregates the rows
+-- set in step with them): every effects row on a nutrient's grade (on = "grade", whose src is the nutrient key), a gated
+-- row only while its gate names a table flag that is true (fix 1, review L2: the composer folds a gated row only when its
+-- gate holds, K.effects.active, so a gate the table does not set true, VITD_EFFECTS or a sandbox gate, never counts);
+-- the members of the two grade aggregates the rows
 -- read as flags, bgroupMax (K.effects.BGROUP) and anaemia (K.nutrients.ANAEMIA, with vitamin B12 through BGROUP); and
 -- the nutrients of the drain engine's clinical onsets (K.drain.NUTRIENT). effects is NR.data.effects ({ ROWS, ... });
 -- nil reads the onsets alone. Returns a set { [key] = true }.
@@ -389,10 +392,10 @@ function K.view.deficiencyKeys(effects)
 end
 
 -- One effects row into the deficiency set (the loop body, kept apart so the line-granular coverage gate sees each
--- outcome): a gated row whose table flag is false adds nothing; a grade row adds its src; a flag row on a grade
+-- outcome): a gated row whose table flag is not true adds nothing; a grade row adds its src; a flag row on a grade
 -- aggregate adds every member.
 function K.view.deficiencyRow(out, effects, row)
-    if row.gated ~= nil and effects[row.gated] == false then
+    if row.gated ~= nil and effects[row.gated] ~= true then
         return
     end
     if row.on == "grade" then
@@ -612,10 +615,10 @@ function K.view.tooltip(vector, source, level, keys, data)
     return out
 end
 
--- The fill line (Plan 15 Task 9; decisions item 4): "Fills you for about N h, K kcal" in place of vanilla's hunger
+-- The fill line (Plan 15 Task 9; decisions item 4): "A whole one fills you for about N h, K kcal" in place of vanilla's hunger
 -- line, N the hours a precomputed replay of the item alone holds h_model under Peckish (tools/food_fills.py, the
 -- generated NR_Data_Fills.lua; never a per-frame or per-hover simulation), shown to the nearest half hour; under
--- FILL_MIN_H "Fills you for under half an hour", at FILL_CAP_H or more "Fills you for more than FILL_CAP_H h". The row's
+-- FILL_MIN_H "... under half an hour", at FILL_CAP_H or more "... more than FILL_CAP_H h". Per whole item (fix 1, L3). The row's
 -- sep is the separator the client joins its label and text with. Nothing for an hours or a kcal that is not a finite
 -- number.
 K.view.FILL_MIN_H = 0.5 -- game choice (spec section 4's tooltip line, decisions item 4; not yet a spec section 10 item, carried to Task 14): the shown half-hour step; under it the item reads under half an hour

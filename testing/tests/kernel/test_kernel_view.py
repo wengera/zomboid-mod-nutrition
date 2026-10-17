@@ -119,10 +119,11 @@ def test_class_names_in_order(host):
     assert lst(V(host).CLASSES) == CLASSES
 
 
-@pytest.mark.parametrize("kg,want", [(-0.2, 0), (-0.0501, 0), (-0.05, 1), (0.0, 1), (0.05, 1), (0.0501, 2), (0.3, 2),
+@pytest.mark.parametrize("kg,want", [(-0.2, 0), (-0.0201, 0), (-0.02, 1), (0.0, 1), (0.02, 1), (0.0201, 2), (0.3, 2),
                                      (None, 1), (float("nan"), 1), ("x", 1)])
 def test_the_trend_word(host, kg, want):
-    # Plan 15 Task 9: the 7-day slope onto losing (0), steady (1) or gaining (2), strict at the threshold
+    # Plan 15 Task 9 fix 1 (review M2): the 7-day slope onto losing (0), steady (1) or gaining (2) by K.body.flags, the
+    # flags vanilla's weight arrows read (ruling 17), strict at the threshold
     assert V(host).trendIndex(kg) == want
 
 
@@ -144,10 +145,11 @@ def test_the_deficiency_set_is_the_effects_tables_grade_readers(host):
     # moves the pinned set and fails here until it is reviewed
     import re
     text = open(EFFECTS_LUA, encoding="utf-8").read()
-    gated_off = {g for g, v in re.findall(r"^\s*(\w+) = (true|false),", text, re.M) if v == "false"}
+    gated_on = {g for g, v in re.findall(r"^\s*(\w+) = (true|false),", text, re.M) if v == "true"}
     rows = re.findall(r'\{ src = "(\w+)", on = "(\w+)"([^\n]*)', text)
+    gates = {src + rest: re.search(r'gated = "(\w+)"', rest) for src, on, rest in rows}
     grade = {src for src, on, rest in rows if on == "grade"
-             and not any('gated = "%s"' % g in rest for g in gated_off)}
+             and (gates[src + rest] is None or gates[src + rest].group(1) in gated_on)}   # fix 1 (L2): a gate counts only when true
     flags = {src for src, on, _ in rows if on == "flag"}
     assert flags - {"bgroupMax", "anaemia"} <= NON_GRADE_FLAGS, flags
     want = grade | set(lst(host.K.effects.BGROUP)) | set(lst(host.K.nutrients.ANAEMIA)) | set(host.py(host.K.drain.NUTRIENT).values())
@@ -722,8 +724,12 @@ def test_drain_rows_list_each_active_state_in_code_order(host):
         assert [r["key"] for r in rows] == CLASSES, junk
 
 
-def test_the_trend_threshold_is_the_labelled_game_choice(host):
-    assert V(host).TREND_KG_DAY == 0.05
+def test_the_trend_word_agrees_with_vanillas_weight_arrows(host):
+    # one threshold: the word is gaining exactly when K.body.flags raises increasing, losing exactly when decreasing
+    for kg in (-0.5, -0.03, -0.02, -0.019, 0.0, 0.019, 0.02, 0.021, 0.11, 0.5):
+        inc, _, dec = host.K.body.flags(kg)
+        assert V(host).trendIndex(kg) == (2 if inc else 0 if dec else 1), kg
+    assert V(host).TREND_KG_DAY is None
     rows = rows_of(host, V(host).rows(host.table({"body_weight": 70.0, "body_trend": 0.07}), 2, None))
     assert {r["key"]: r for r in rows}["body_trend"]["text"] == "UI_NR_Trend_gaining"
     for m in ({"body_trend": 0.07}, {"body_weight": 70.0}, {"body_weight": 0, "body_trend": 0.07}):

@@ -44,9 +44,10 @@
 --    getBaseHunger / getHungChange (both non-zero, the ratio >= 1) back to the whole item; a never-eaten item
 --    reads ratio 1. The inferred vector is built from those whole-item macros too.
 --  * Never a thirst: a cooked food's thirst reads halved on a client (#1147); the band carries none.
---  * The fill line first (Plan 15 Task 9, decisions item 4): "Fills you for about N h, K kcal" from the generated fill
+--  * The fill line first (Plan 15 Task 9, decisions item 4): "A whole one fills you for about N h, K kcal" (per whole
+--    item, like the band: never what is left of a part-eaten one, nor capped at the Overfull 4 refusal) from the generated fill
 --    table (NR.data.fills, tools/food_fills.py: a replay of the item alone, precomputed per item type, never per frame or
---    per hover), in place of vanilla's hunger line, which T.syncHide hides; shown only while the item's whole-item kcal
+--    per hover), in place of vanilla's hunger line, which T.hide hides around that draw; shown only while the item's whole-item kcal
 --    is the table's within FILL_TOL (an evolved dish's or another mod's macros are not the replayed item's), and never for
 --    an evolved recipe's result type, which the table leaves out.
 --  * The cache key is fullType|declared|level|sex plus the four whole-item macros (after the rescale, each
@@ -98,8 +99,7 @@ NR.client.tooltip = {
     BG = { r = 0, g = 0, b = 0, a = 0.8 }, -- the frame's fill when the panel carries no backgroundColor
     BORDER = { r = 0.4, g = 0.4, b = 0.4, a = 1 }, -- the frame's border when the panel carries no borderColor
     FILL_TOL = 0.10, -- the share the item's whole-item kcal may differ from the fill table's before the fill line is left out; game choice (spec section 4's tooltip line; not yet a spec section 10 item, carried to Task 14)
-    hidden = false, -- whether T.syncHide last hid vanilla's hunger line
-    added = {}, -- the full types whose script item T.syncHide gave the hide tag (it removes exactly these)
+    pending = nil, -- the tag set T.hide added the hide tag to, until T.unhide takes it off
 }
 local T = NR.client.tooltip
 
@@ -126,9 +126,9 @@ function T.fallback(key)
     if row ~= nil then return row end
     if key == "UI_NR_Tip_Rich" then return "rich" end
     if key == "UI_NR_Tip_Low" then return "low" end
-    if key == "UI_NR_Tip_Fills" then return "Fills you for about" end
-    if key == "UI_NR_Tip_FillsUnder" then return "Fills you for under half an hour" end
-    if key == "UI_NR_Tip_FillsOver" then return "Fills you for more than" end
+    if key == "UI_NR_Tip_Fills" then return "A whole one fills you for about" end
+    if key == "UI_NR_Tip_FillsUnder" then return "A whole one fills you for under half an hour" end
+    if key == "UI_NR_Tip_FillsOver" then return "A whole one fills you for more than" end
     return key
 end
 
@@ -266,39 +266,21 @@ function T.fillOf(fullType, kcal)
     return h
 end
 
--- Vanilla's hunger line (Plan 15 Task 9): Food.DoTooltip draws it only while getHungerChange is not 0 and the item has
--- no ItemTag.HIDE_HUNGER_CHANGE (jar Food.DoTooltip @67-@83 L1391-L1393 on 42.21), and an item reads its script item's
--- tags (InventoryItem.hasTag @0-@5 L2841 reads scriptItem's Item.hasTag; Item.itemTags is a java.util.HashSet built in
--- Item.<init> @102-@110 L122 and returned by Item.getTags @0-@4 L777). The tag's jar readers are Food.DoTooltip and the
--- generator class generation/ItemFoodScriptGenerator only (a jar-wide grep of HIDE_HUNGER_CHANGE), and no media/lua
--- file reads it, so the tag changes the tooltip alone. While the band is on (the tooltipLines option, the breaker
--- closed) T.syncHide adds the tag to the script item of every type the fill table carries that lacks it, remembering
--- which it added; off, it removes exactly those, so vanilla's own tagged foods (the canned vegetables) keep theirs. The
--- client's script items are its own, so no other player's tooltip changes. UNMEASURED: the harness cannot hover, and
--- the HashSet add from Lua rests on java.util.HashSet and ItemTag being exposed classes (LuaManager$Exposer.exposeAll),
--- not on a booted reading. Cost: one compare per call while the state holds; the walk over the table's types once per
--- change of the option.
-function T.syncHide(on)
-    if on == T.hidden then return false end
-    T.hidden = on
-    local tag = T.hideTag()
-    if tag == nil then return false end
-    if on then
-        local nr = NutritionRevamp
-        local fills = nr.data and nr.data.fills
-        if fills == nil or type(fills.types) ~= "function" then return false end
-        local list = fills.types()
-        for i = 1, #list do
-            T.hideOne(list[i], tag)
-        end
-    else
-        for fullType, _ in pairs(T.added) do
-            T.showOne(fullType, tag)
-        end
-        T.added = {}
-    end
-    return true
-end
+-- Vanilla's hunger line (Plan 15 Task 9 and its fix 1): Food.DoTooltip draws it only while getHungerChange is not 0
+-- and the item has no ItemTag.HIDE_HUNGER_CHANGE (jar Food.DoTooltip @67-@83 L1391-L1393 on 42.21), and an item reads
+-- its script item's tags (InventoryItem.hasTag @0-@5 L2841 reads scriptItem's Item.hasTag; Item.itemTags is a
+-- java.util.HashSet built in Item.<init> @102-@110 L122 and returned by Item.getTags @0-@4 L777, which
+-- InventoryItem.getTags hands on). The tag's jar readers are Food.DoTooltip and the generator class
+-- generation/ItemFoodScriptGenerator only (a jar-wide grep of HIDE_HUNGER_CHANGE), and no media/lua file reads it. The
+-- wrapper hides the line around the one draw that shows the fill line in its place: when the hovered item's entry
+-- carries a fill row and the band is on, T.hide adds the tag to the item's set just before the original draws, if the
+-- set lacks it, and T.unhide takes it off right after (and at the next render, through the stale-depth reset, if the
+-- original raised), so the set never keeps the tag past the draw, a food whose own kcal is not the table's keeps
+-- vanilla's line, and vanilla's own tagged foods (the canned vegetables) are never touched. The pattern of
+-- NutritionMakesSense's overlay (workshop 3690404044), which adds the tag only when absent and removes only its own,
+-- so the two compose. The client's script items are its own. UNMEASURED: the harness cannot hover, and the set's add
+-- from Lua rests on java.util.HashSet and ItemTag being exposed classes (LuaManager$Exposer.exposeAll). Cost: at most
+-- four Java calls a frame while a food tooltip with a fill line is up, client-side.
 
 -- ItemTag.HIDE_HUNGER_CHANGE behind a nil check, or nil.
 function T.hideTag()
@@ -308,30 +290,26 @@ function T.hideTag()
     return nil
 end
 
--- The tag set of a type's script item (ScriptManager.instance:getItem(fullType):getTags()), or nil.
-function T.scriptTags(fullType)
-    if ScriptManager == nil then return nil end
-    local ok, sm = pcall(function() return ScriptManager.instance end)
-    if not ok or sm == nil then return nil end
-    return read(read(sm, "getItem", fullType), "getTags")
-end
-
--- The hide tag added to one type's script item when it lacks it, the type remembered.
-function T.hideOne(fullType, tag)
-    local tags = T.scriptTags(fullType)
-    if tags == nil or read(tags, "contains", tag) == true then return end
+-- The hide tag added to an item's tag set when the set reads it absent; the set kept on T.pending for T.unhide.
+-- true when it added.
+function T.hide(item)
+    local tag = T.hideTag()
+    if tag == nil then return false end
+    local tags = read(item, "getTags")
+    if tags == nil or read(tags, "contains", tag) ~= false then return false end
     local ok, present = pcall(NR.call, tags, "add", tag)
-    if ok and present then
-        T.added[fullType] = true
-        T.stats.hidden = T.stats.hidden + 1
-    end
+    if not (ok and present) then return false end
+    T.pending = tags
+    T.stats.hidden = T.stats.hidden + 1
+    return true
 end
 
--- The hide tag taken back off one type's script item.
-function T.showOne(fullType, tag)
-    local tags = T.scriptTags(fullType)
+-- The tag T.hide added taken back off (nothing when none is pending); the remove's Java call alone is guarded.
+function T.unhide()
+    local tags = T.pending
+    T.pending = nil
     if tags == nil then return end
-    local ok, present = pcall(NR.call, tags, "remove", tag)
+    local ok, present = pcall(NR.call, tags, "remove", T.hideTag())
     if ok and present then T.stats.shown = T.stats.shown + 1 end
 end
 
@@ -422,14 +400,13 @@ function T.build(item, fullType, declared, level, sex, macros)
         lines[i] = T.lineOf(rows[i])
     end
     lines.width = T.widthOf(lines)
+    lines.fill = rows[1] ~= nil and rows[1].key == "fill" -- the fill row leads when there is one (K.view.tooltip)
     T.stats.builds = T.stats.builds + 1
     return { lines = lines, source = source }
 end
 
--- The band's lines for an item (the wrapper's per-frame call, before the original draws, so the hunger line's hide
--- follows the option in the same frame), or nil.
+-- The band's lines for an item (the wrapper's per-frame call), or nil; lines.fill says the band leads with the fill line.
 function T.linesFor(item)
-    T.syncHide(T.optionOn())
     local entry = T.entryFor(item)
     if entry == nil then return nil end
     return entry.lines
@@ -545,7 +522,6 @@ function T.failed(err)
     if T.fails >= T.BREAK_AT and not T.broken then
         T.broken = true
         T.stats.breaks = T.stats.breaks + 1
-        pcall(T.syncHide, false) -- the band is off, so vanilla's hunger line comes back
         print("[NutritionRevamp] tooltip: " .. tostring(T.fails) .. " failures in a row; the band is off until a reload: " .. T.lastError)
     end
 end
@@ -574,6 +550,7 @@ local function makeWrapper(original)
             end
             t.depth = 0
             t.stats.stale = t.stats.stale + 1
+            t.unhide() -- a raising original left its tag: taken off before this draw
         end
         t.depth = 1
         t.depthAt = now
@@ -589,7 +566,11 @@ local function makeWrapper(original)
         end
         t.depth = 2
         t.depthAt = t.now()
+        if lines ~= nil and lines.fill == true and t.optionOn() then
+            pcall(t.hide, self.item) -- vanilla's hunger line off for this draw only (the fill line stands in)
+        end
         original(self)
+        t.unhide()
         if lines ~= nil and t.after ~= nil then t.after(self, lines) end
         t.depth = 0
     end

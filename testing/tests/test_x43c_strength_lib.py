@@ -19,9 +19,11 @@ grade or replay script broken at HEAD by a later mod change is never patched, it
 holds at): Plan 15 Task 9 removed the energy class (K.view.ENERGY_AT) the lib's energy rung and its client-level read
 mirror, and PIN is the last build that carries it, the build these tests last passed on.
 """
+import atexit
 import io
 import math
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -48,6 +50,7 @@ def pinned_shared():
     """The shared Lua folder of a git archive of PIN, extracted once per session into a temporary folder."""
     if "dir" not in _PINNED:
         d = tempfile.mkdtemp(prefix="x43c-kernel-")
+        atexit.register(shutil.rmtree, d, True)            # removed at the session's end (fix 1, review L7)
         data = subprocess.run(["git", "-C", REPO, "archive", PIN, "mod/NutritionRevamp/common/media/lua/shared"],
                               capture_output=True, check=True).stdout
         with tarfile.open(fileobj=io.BytesIO(data)) as tf:

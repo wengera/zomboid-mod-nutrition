@@ -612,73 +612,94 @@ def test_a_real_reentry_from_inside_the_original_calls_the_saved_original_only()
     assert T(rt).stats.draws == 1 and T(rt).depth == 0
 
 
-# --- the fill line and vanilla's hunger line (Plan 15 Task 9; decisions item 4) -------------------------------------
+# --- the fill line and vanilla's hunger line (Plan 15 Task 9 and its fix 1; decisions item 4) -----------------------
 
 FILLS = r"""
 NutritionRevamp.data.fills = {}
 function NutritionRevamp.data.fills.get(ft)
     if ft == "Base.Apple" then return 1.23, 95 end
-    if ft == "Base.Cabbage" then return 0.2, 30 end
+    if ft == "Base.Cabbage" then return 0.2, 95 end
     return nil
 end
-function NutritionRevamp.data.fills.types() return { "Base.Apple", "Base.Cabbage" } end
 ItemTag = { HIDE_HUNGER_CHANGE = "hhc" }
 NR_T.tags = {}
-local function tagset(ft)
-    local s = { set = {} }
+NR_T.log = {}
+function NR_T.tagset(ft)
+    local s = NR_T.tags[ft]
+    if s ~= nil then return s end
+    s = { set = {}, ft = ft }
     function s.contains(self, t) return self.set[t] == true end
-    function s.add(self, t) self.set[t] = true; return true end
-    function s.remove(self, t) self.set[t] = nil; return true end
+    function s.add(self, t) self.set[t] = true; NR_T.log[#NR_T.log + 1] = "add " .. self.ft .. " " .. NR_T.renders; return true end
+    function s.remove(self, t) self.set[t] = nil; NR_T.log[#NR_T.log + 1] = "remove " .. self.ft .. " " .. NR_T.renders; return true end
     NR_T.tags[ft] = s
     return s
 end
-tagset("Base.Apple")
-tagset("Base.Cabbage").set.hhc = true          -- vanilla's own tag (the canned vegetables carry it)
-ScriptManager = { instance = { getItem = function(self, ft)
-    local s = NR_T.tags[ft]
-    if s == nil then return nil end
-    return { getTags = function() return s end }
-end } }
+NR_T.tagset("Base.Cabbage").set.hhc = true     -- vanilla's own tag (the canned vegetables carry it)
+local food = NR_T.food
+function NR_T.food(ft, o)
+    local it = food(ft, o)
+    it.getTags = function(s) return NR_T.tagset(ft) end
+    return it
+end
 """
+
+
+def log(rt):
+    return seq(rt.globals().NR_T.log)
 
 
 def test_the_fill_line_leads_the_band_while_the_items_kcal_is_the_tables():
     rt = rt_with()
     rt.execute(FILLS)
     lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple')"))
-    assert seq(lines) == ["Fills you for about 1 h, 95 kcal", "Per whole item (table)"]
+    assert seq(lines) == ["A whole one fills you for about 1 h, 95 kcal", "Per whole item (table)"] and lines.fill is True
     T(rt).invalidate()
     lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { cal = 200 })"))   # another dish's macros: no fill line
-    assert seq(lines) == ["Per whole item (table)"]
+    assert seq(lines) == ["Per whole item (table)"] and lines.fill is False
     T(rt).invalidate()
     lines = T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { cal = 104 })"))   # inside 10 % and 1 kcal
-    assert seq(lines)[0] == "Fills you for about 1 h, 104 kcal"
+    assert seq(lines)[0] == "A whole one fills you for about 1 h, 104 kcal"
     assert T(rt).sameKcal(95, None) is False and T(rt).sameKcal(None, 95) is False
 
 
-def test_the_hunger_line_hide_follows_the_option_and_takes_back_only_its_own_tags():
+def test_the_hunger_line_is_hidden_around_the_one_draw_that_shows_the_fill_line():
+    # fix 1 (review M1): the tag is added just before the original draws and taken off right after, only for an item
+    # whose entry leads with the fill line; the set never keeps it past the draw
     rt = rt_with(view=True)
     rt.execute(FILLS)
     g = rt.globals().NR_T
     render(rt, "NR_T.food('Base.Apple')")
-    assert g.tags["Base.Apple"].set.hhc is True and T(rt).hidden is True and T(rt).stats.hidden == 1
-    assert T(rt).added["Base.Apple"] is True and T(rt).added["Base.Cabbage"] is None   # it had the tag already
+    assert log(rt) == ["add Base.Apple 0", "remove Base.Apple 1"] and g.tags["Base.Apple"].set.hhc is None
     render(rt, "NR_T.food('Base.Apple')")
-    assert T(rt).stats.hidden == 1                                  # one walk per change of the option
+    assert log(rt)[2:] == ["add Base.Apple 1", "remove Base.Apple 2"]
+    assert T(rt).stats.hidden == 2 and T(rt).stats.shown == 2 and T(rt).pending is None
+    render(rt, "NR_T.food('Base.Apple', { cal = 200 })")                  # kcal not the table's: vanilla's line shows
+    render(rt, "NR_T.food('Base.Orange')")                                # no fill entry
+    assert len(log(rt)) == 4
     rt.execute("NutritionRevamp.client.options = { tooltipLines = function() return false end }")
-    render(rt, "NR_T.food('Base.Apple')")
-    assert g.tags["Base.Apple"].set.hhc is None and g.tags["Base.Cabbage"].set.hhc is True
-    assert T(rt).hidden is False and T(rt).stats.shown == 1
+    render(rt, "NR_T.food('Base.Apple')")                                 # the band off: vanilla's line shows
+    assert len(log(rt)) == 4
 
 
-def test_an_open_breaker_brings_the_hunger_line_back_and_no_engine_hides_nothing():
+def test_vanillas_own_tag_is_never_touched_and_a_raising_draw_is_cleaned_at_the_next_render():
     rt = rt_with(view=True)
     rt.execute(FILLS)
-    render(rt, "NR_T.food('Base.Apple')")
-    assert rt.globals().NR_T.tags["Base.Apple"].set.hhc is True
-    rt.execute("NutritionRevamp.client.tooltip.linesFor = function() error('boom') end")
-    for _ in range(10):
-        render(rt, "NR_T.food('Base.Apple')")
-    assert T(rt).broken is True and rt.globals().NR_T.tags["Base.Apple"].set.hhc is None
+    g = rt.globals().NR_T
+    render(rt, "NR_T.food('Base.Cabbage')")                               # pre-tagged: no add, no remove
+    assert log(rt) == [] and g.tags["Base.Cabbage"].set.hhc is True
+    # an original that raises after the tag went on (the panel refuses its height): the next render's stale-depth reset
+    # takes the tag off before it draws
+    rt.execute("""NR_T.badPanel = function(item)
+        local p = NR_T.panel(item)
+        return setmetatable({}, { __index = p, __newindex = function(t, k, v)
+            if k == "height" then error("draw boom") end
+            rawset(p, k, v)
+        end })
+    end""")
+    ok = rt.eval("function() local p = NR_T.badPanel(NR_T.food('Base.Apple')); return pcall(ISToolTipInv.render, p) end")()
+    assert ok[0] is False if isinstance(ok, tuple) else ok is False
+    assert g.tags["Base.Apple"].set.hhc is True and T(rt).pending is not None
+    render(rt, "NR_T.food('Base.Orange')")                                # no clock: the depth is stale at once
+    assert g.tags["Base.Apple"].set.hhc is None and T(rt).pending is None and T(rt).stats.stale == 1
     bare = rt_with(engine=False)
-    assert T(bare).syncHide(True) is False and T(bare).hidden is True and T(bare).stats.hidden == 0
+    assert T(bare).hide(None) is False and T(bare).pending is None

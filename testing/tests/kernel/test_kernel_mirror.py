@@ -7,7 +7,7 @@ def rec(host, **kw):
     return host.table(r)
 
 
-BODY_ABSENT = {"body_" + k: 0 for k in ("fm", "lm", "weight", "energyState", "tac", "rmod", "delta", "ebDay",
+BODY_ABSENT = {"body_" + k: 0 for k in ("fm", "lm", "weight", "tac", "rmod", "delta", "ebDay",
                                           "eeDay", "inDay", "trend")}
 BODY_ABSENT["body_band"] = ""
 
@@ -163,7 +163,7 @@ def test_mirror_body_scalars_from_a_present_body(host):
                        "N0": 1.1, "T": 0.9, "S": 9.5})
     m = host.py(host.call("mirror.build", rec(host, body=body), host.table({"mode": 1, "version": "v", "build": "b"})))
     assert m["body_fm"] == 20.0 and m["body_lm"] == 59.0 and m["body_weight"] == 80.0   # fm + lm + lx (ruling 13-20)
-    assert m["body_band"] == "normal" and m["body_energyState"] == 1.25 and m["body_tac"] == 0.9
+    assert m["body_band"] == "normal" and "body_energyState" not in m and m["body_tac"] == 0.9   # not mirrored (Task 9 fix 1)
     assert "body_dmod" not in m and m["body_rmod"] == 0.8 and m["body_delta"] == 2
     assert m["body_ebDay"] == -300.0 and m["body_eeDay"] == 2400.0 and m["body_inDay"] == 2100.0
     # ruling 13-19: the old Strength keys go; the true level and the closed week's sets take their place

@@ -40,7 +40,7 @@ local NR = NutritionRevamp
 -- The translation lookup. key's string from getText, or on a miss -- getText absent, raising, answering
 -- nil, a non-string or the key itself -- the fallback; when the fallback is nil or the key itself, the key's TAIL:
 -- the key with UI_NR_ (or IGUI_NR_ / Moodles_NR_) and a leading Row_ stripped and every _ read as a space, so a
--- surface is readable before the translation files ship (UI_NR_Class_energy_2 reads "Class energy 2").
+-- surface is readable before the translation files ship (UI_NR_Class_sleep_2 reads "Class sleep 2").
 -- Defined defensively (only when absent) so whichever client file loads first may call it.
 NR.client.tail = NR.client.tail or function(key)
     if type(key) ~= "string" then return tostring(key) end
@@ -94,6 +94,17 @@ local function createPage()
     addRow(page, "addTickBox", "tooltipLines", text("UI_NR_TooltipLines", "Nutrition lines on food tooltips"), true, nil)
     addRow(page, "addTickBox", "moodles", text("UI_NR_Moodles", "Nutrition moodles"), true, nil)
     addRow(page, "addTickBox", "moodleLevelOne", text("UI_NR_MoodleLevelOne", "Show level 1 of the Stimulant, Sleep and Excess moodles"), true, nil)
+    -- Plan 15 Task 9 fix 1 (review L6): the page's apply (PZAPI's Options:apply, ModOptions.lua:21, called when the
+    -- player applies the options) runs the original first, then re-applies the moodles from the view's last classes,
+    -- so the moodles and level-1 ticks take effect at once rather than at the next push
+    local base = page.apply
+    page.apply = function(self, ...)
+        if base ~= nil then base(self, ...) end
+        local nr = NutritionRevamp
+        if nr ~= nil and nr.client ~= nil and nr.client.modOptions ~= nil then
+            pcall(nr.client.modOptions.onApply)
+        end
+    end
     return page
 end
 
@@ -146,6 +157,16 @@ end
 function MO.moodleLevelOne()
     local v = value("moodleLevelOne")
     if type(v) == "boolean" then return v end
+    return true
+end
+
+-- The options applied: the moodles re-applied from the view's last classes (each looked up per call; nothing when
+-- either is absent). true when it applied.
+function MO.onApply()
+    local nr = NutritionRevamp
+    local m, v = nr.client.moodles, nr.client.view
+    if m == nil or type(m.apply) ~= "function" or v == nil or type(v.classes) ~= "table" then return false end
+    m.apply(v.classes)
     return true
 end
 
