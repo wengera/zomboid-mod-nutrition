@@ -24,7 +24,9 @@ a hunger of 0.25, which leaves 0.01 under the food timer): each level's return i
 The loss, each miss squared and summed (each target's tolerance is the size it is divided by):
 - the deepest post-meal HUNGER of the three-meal days over 0.02 (MIN_AFTER), in units of 0.02;
 - the waking shares at level 1 and level 2, relative to vanilla's (level 2 against at least 0.05);
-- the hours to levels 1, 2 and 3 after the fast's breakfast, and to the 0.69 cap, as log ratios to vanilla's.
+- the hours to levels 1, 2 and 3 after the fast's breakfast, and to the 0.69 cap, as log ratios to vanilla's; these
+  read the curve's own climb (the starvation flags off, curve_only()), and Starving as written (the acute onset, 30
+  unfed hours, K.drain.STARVE_ONSET_H) is reported beside them.
 
 The foot: X[2], the flat foot's end, is no searched knot (no loss term moves while every satisfying meal reads 0): it is
 the highest of the three-meal days' lowest h_model after a meal, rounded up to 0.001 (foot()), so a 667 kcal meal reads
@@ -36,12 +38,15 @@ knot is kept strictly inside (its neighbours, BOUNDS). The stability check (CLAU
 x0.95 and x1.05 with the loss and every target, and a meal-size sweep (200 to 1,300 kcal at the fast's breakfast) with
 its deepest HUNGER and its return to levels 1 and 2. A knot at or within one step of its bound is reported. Nothing
 here writes a tracked file: --out writes fit-compact.json (the chosen point, every target's value and miss, the
-stability readings) into a gitignored folder (testing/runs/ by default).
+stability readings, the search spec, the scenarios and the HEAD commit) into a gitignored folder (testing/runs/ by
+default); the committed artifact is that file copied byte-identical (testing/artifacts/fit-hunger-curve-<date>/): the
+compact file is the whole output, so no sha256 of a larger fit.json is kept.
 """
 import argparse
 import json
 import math
 import os
+import subprocess
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -201,7 +206,7 @@ def returns(H, start):
     k = next((i for i in range(start, len(H)) if H[i] >= CAP - 1e-9), None)
     out.append(None if k is None else (k - start) / 60.0)
     k = next((i for i in range(start, len(H)) if H[i] > THRESHOLDS[3]), None)
-    out.append(None if k is None else (k - start) / 60.0)     # Starving: reported, not scored (the starving onset)
+    out.append(None if k is None else (k - start) / 60.0)     # Starving: reported, not scored (the acute onset, 30 unfed hours)
     return out
 
 
@@ -225,10 +230,11 @@ def read(knots, traces, C, V):
     three, fast = traces["three"], traces["fast"]
     H3 = stage(three["rows"], knots, C, three["h0"])
     HF = stage(fast["rows"], knots, C, fast["h0"])
+    HC = stage(fast["curve"], knots, C, fast["h0"])
     meals = [d * DAY + m for d in range(1, DAYS_THREE) for m in MEAL_MIN]
     s1, s2 = shares(H3)
     b = FED_DAYS * DAY + MEAL_MIN[0]
-    ret = returns(HF, b)
+    ret = returns(HC, b)[:4] + returns(HF, b)[4:]      # the curve's own climb, then Starving as written
     r = {"deepest": deepest(H3, meals), "share1": s1, "share2": s2, "returns": ret}
     miss = {"deepest": max(0.0, r["deepest"] - MIN_AFTER) / MIN_AFTER,
             "share1": (s1 - V["share1"]) / V["share1"],
@@ -281,6 +287,12 @@ def search(traces, C, V, start=START):
         if not moved:
             step = step / 2
     return best, best_r, tried
+
+
+def curve_only(rows):
+    """The trace with the starvation flags off: the curve's own climb to the cap, which the knots set (the acute onset's
+    0.71 minimum, Plan 15 Task 6 fix 1, would otherwise lift H to the cap at the onset whatever the top knot)."""
+    return [dict(r, **{"drain.starving": False, "drain.starveAcute": False}) for r in rows]
 
 
 def trace(rows, be):
@@ -341,11 +353,20 @@ def fit():
     C = constants(be.K)
     traces = {"three": {"rows": trace(rows3, be)["rows"], "h0": 0.2}}
     rowsf, _ = replay(fast_events(), fast_minutes())
-    traces["fast"] = {"rows": trace(rowsf, be)["rows"], "h0": 0.2}
+    rf = trace(rowsf, be)["rows"]
+    traces["fast"] = {"rows": rf, "curve": curve_only(rf), "h0": 0.2}
     V = vanilla()
     x0 = foot(traces["three"])
     best, r, tried = search(traces, C, V, (x0,) + tuple(START[1:]))
-    return {"vanilla": V, "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True).stdout.strip()
+    return {"head": head, "search": {"method": "coordinate", "step0": STEP0, "stepMin": STEP_MIN, "bounds": "BOUNDS",
+                                     "foot": "foot(): not searched"},
+            "scenarios": {"MEAL_MIN": list(MEAL_MIN), "MEAL_KCAL": MEAL_KCAL, "PLATE": list(PLATE),
+                          "WATER_MIN": list(WATER_MIN), "WATER_G": WATER_G, "DAYS_THREE": DAYS_THREE,
+                          "FED_DAYS": FED_DAYS, "FAST_H": FAST_H, "HOUR_OFFSET": HOUR_OFFSET,
+                          "SWEEP_KCAL": list(SWEEP_KCAL), "VANILLA_CAN": dict(VANILLA_CAN),
+                          "VANILLA_START": VANILLA_START},
+            "vanilla": V, "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
             "chosen": list(best), "reading": r, "atBound": at_bound(best), "shipped": list(shipped(be.K)),
             "shippedReading": read(shipped(be.K), traces, C, V), "verify": verify(best, C),
             "stability": stability(best, traces, C, V)}

@@ -18,7 +18,7 @@ K.hungerCurve = {}
 -- the starting knots; no knot sits at its search bound; each line names its reading and its x0.95 and x1.05 readings.
 K.hungerCurve.X = {
     0, -- the curve's foot: no row needed
-    0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days (0.0969 after the evening meal, rounded up), so such a meal reads 0 and a 400 kcal one 0.047
+    0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days (0.0968 after the evening meal, rounded up), so such a meal reads 0 and a 400 kcal one 0.047
     0.19, -- game choice (spec section 10: the curve's knots), fitted: Peckish shows above it, 3.8 h after a 667 kcal meal (vanilla 4.4 h); 36 % of waking hours at level 1 or more on three such meals a day (vanilla 38 %); at x0.95 and x1.05 3.5 h and 4.0 h, 42 % and 28 %
     0.299375, -- game choice (spec section 10: the curve's knots), fitted: Hungry shows above it, 8.0 h after the meal (vanilla 8.0 h); 3.1 % of waking hours at level 2 or more (vanilla 4.4 %); at x0.95 and x1.05 7.4 h and 9.1 h
     0.42875, -- game choice (spec section 10: the curve's knots), fitted: Very Hungry shows above it, 17.0 h after the meal (vanilla 17.0 h); at x0.95 and x1.05 14.4 h and 19.9 h

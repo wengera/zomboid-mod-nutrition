@@ -506,7 +506,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     F.coldCredit = K.effects.coldCredit(nut.vitC.g, nut.vitC.e24, body.band1Day or 0, body.band2Day or 0, a.coldH)
     F.boutVig = asleep and a.boutVig == true
     F.starve = phase
-    -- a closed starved day under way, before day 14; the hold applies to a body of normal BMI only: a grade the BMI
+    -- 24 unfed hours or more on the starvation clock (K.drain.unfedH), before day 14; the hold applies to a body of normal BMI only: a grade the BMI
     -- already set stays (S0115; Plan 15 Task 4 fix 1, review M4)
     F.starveEarly = D.starvedH >= 24 and phase < 3 and not (finite(a.bmi) and a.bmi > 0 and a.bmi < K.effects.PE_BMI_OK)
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag

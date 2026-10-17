@@ -159,7 +159,7 @@ def test_a_satisfying_meal_reads_0_and_the_levels_return_on_vanillas_cadence(fit
     assert 6.0 <= t2 <= 8.5                                     # Hungry 6-8 h after (vanilla 8.0 h)
     assert 15.0 <= t3 <= 19.0                                   # Very Hungry (vanilla 17.0 h)
     assert 33.0 <= tcap <= 36.0                                 # the cap, as vanilla's Starving (34.5 h)
-    assert t4 is not None and t4 > tcap                         # Starving at the acute onset (Task 5's lift)
+    assert t4 is not None and 0 <= t4 - tcap <= 0.5             # Starving at the acute onset, as the cap comes (fix 1)
 
 
 def test_the_readings_are_pinned(fit):
@@ -167,7 +167,7 @@ def test_the_readings_are_pinned(fit):
     s1, s2 = F.shares(H(fit["three"]))
     ret = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
     assert (round(s1, 4), round(s2, 4)) == (0.3576, 0.0312)
-    assert [round(t, 2) for t in ret] == [3.78, 8.03, 17.02, 34.48, 59.48]
+    assert [round(t, 2) for t in ret] == [3.78, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1
 
 
 def test_a_fast_never_lowers_hunger(fit):
@@ -215,3 +215,38 @@ def test_the_oracles_read_the_models_own_value(fit):
     m = F.DAY + F.MEAL_MIN[0] + 30
     assert rows[m]["HUNGER"] == 0 and rows[m]["satiety.hModel"] > 0.05
     assert all(not math.isnan(r["satiety.hModel"]) for r in rows)
+
+
+# ---- Plan 15 Task 6 fix 1: the acute onset at vanilla's time (30 unfed hours) --------------------------------------
+
+def starving_times(F, rows):
+    b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
+    t_cap = next((i - b) / 60.0 for i in range(b, len(rows)) if rows[i]["HUNGER"] >= 0.69 - 1e-9)
+    t_starv = next((i - b) / 60.0 for i in range(b, len(rows)) if rows[i]["HUNGER"] > 0.70)
+    t_acute = next((i - b) / 60.0 for i in range(b, len(rows)) if rows[i]["drain.starveAcute"])
+    return t_cap, t_starv, t_acute
+
+
+def test_starving_shows_at_vanillas_time_as_the_curve_reaches_its_cap(fit):
+    t_cap, t_starv, t_acute = starving_times(fit["F"], fit["fast"])
+    assert abs(t_starv - 34.5) <= 2 and abs(t_acute - 34.5) <= 2          # vanilla's Starving at 34.55 h
+    assert 0 <= t_starv - t_cap <= 0.5                                    # H is never parked at 0.69 for long
+    assert t_starv == t_acute
+
+
+@pytest.mark.parametrize("kcal", [200.0, 1300.0])
+def test_starving_follows_the_cap_after_a_small_or_a_large_last_meal(kcal):
+    import fit_hunger_curve as F
+    rows, _ = F.replay(F.fast_events(kcal), F.fast_minutes())
+    t_cap, t_starv, t_acute = starving_times(F, rows)
+    assert abs(t_starv - t_cap) <= 0.5 and t_starv == t_acute
+
+
+def test_a_meal_inside_the_acute_state_ends_it_and_the_cap_returns():
+    import fit_hunger_curve as F
+    b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
+    m = b + 38 * 60                                                       # 38 h after the breakfast: acute since about 34.6 h
+    rows, _ = F.replay(F.fast_events() + [F.meal(m, F.MEAL_KCAL)], m + 30)
+    assert rows[m - 1]["drain.starveAcute"] is True and rows[m - 1]["HUNGER"] > 0.70
+    assert rows[m]["drain.starveAcute"] is False and rows[m]["drain.starving"] is False
+    assert rows[m]["HUNGER"] <= 0.69

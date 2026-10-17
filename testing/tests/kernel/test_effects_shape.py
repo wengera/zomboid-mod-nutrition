@@ -791,48 +791,56 @@ def _female_starved(h):
     return rec, p
 
 
-def _starving(h, starvedDays, fm=14.4, lm=65.6, inDay=0.0, ageH=100.0):
+def _starving(h, unfedH, fm=14.4, lm=65.6, ageH=100.0):
+    """A record whose meal pool was last fed unfedH game hours before the next minute (ageH + 1 / 60): the pool empty
+    and drain.fedAgeH stamped there (Plan 15 Task 6 fix 1: the acute onset counts unfed hours)."""
     rec = record(h)
     p, cfg = player(h, rec, health=100.0)
     minute(h, p, rec, ageH=ageH)
     body = rec["body"]
     body["fm"] = fm
     body["lm"] = lm
-    body["inDay"] = inDay
-    body["bornAge"] = -1000.0                                    # an old character: the starved hours are not capped by its age
-    rec["acute"]["starvedDays"] = starvedDays
+    if rec["satiety"] is None:                                   # this host runs no writer: the pool laid here
+        rec["satiety"] = h.rt.table()
+    rec["satiety"]["M"] = 0.0
+    rec["drain"]["fedAgeH"] = ageH + 1 / 60 - unfedH
     return rec, p, cfg
 
 
-def test_starvation_starts_at_one_and_a_half_starved_days_and_sets_the_phase_flags(eff_host):
-    # Plan 15 Task 4: 1 closed starved day + 4 h of today reads 28 h (no state); 1 day + 12 h reads 36 h, the onset
+def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
+    # Plan 15 Task 6 fix 1: 28 unfed hours (no state, the early hold from 24); 30 h, the onset
     h = eff_host
-    rec, p, cfg = _starving(h, 1)
+    rec, p, cfg = _starving(h, 28)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     D, E = rec["drain"], rec["effects"]
-    assert D["active"] is False and abs(D["starvedH"] - (24 + 4 + 1 / 60)) < 1e-9
-    assert E["key"]["dials"] == 1000000000 + 1000 + 11             # starveEarly: a closed starved day under way
-    minute(h, p, rec, ageH=96.0 + 12)
+    assert D["active"] is False and abs(D["starvedH"] - 28) < 1e-9
+    assert E["key"]["dials"] == 1000000000 + 1000 + 11             # starveEarly: 24 unfed hours or more
+    rec["satiety"]["M"] = 0.0
+    minute(h, p, rec, ageH=102.0 + 1 / 60)
     assert D["active"] is True and D["state"] == 1 and D["targetFloor"] == 50
     assert abs(D["bmi0"] - 80 / 1.7 ** 2) < 1e-9                   # lm + fm over K.HEIGHT_M squared
     assert E["key"]["dials"] == 1000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
     assert E["mNut"] == pytest.approx(1.25, abs=TOL)
-    rec["acute"]["starvedDays"] = 14
-    minute(h, p, rec, ageH=96.0 + 12 + 1 / 60)
+    rec["satiety"]["M"] = 0.0
+    rec["drain"]["fedAgeH"] = 102.0 + 2 / 60 - 336                 # 14 days unfed
+    minute(h, p, rec, ageH=102.0 + 2 / 60)
     assert E["key"]["dials"] == 1000000000 + 300 + 11 and E["unhappyTarget"] == 21   # phase 3: mood, the pe rows back
 
 
-def test_eating_today_ends_the_starvation(eff_host):
+def test_eating_ends_the_starvation(eff_host):
     h = eff_host
-    rec, p, cfg = _starving(h, 3, inDay=500.0)                    # 500 kcal over 80 kg = 6.25 kcal/kg, over the 5 limit
+    rec, p, cfg = _starving(h, 40)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert rec["drain"]["active"] is True and rec["drain"]["bmi0"] > 0
+    rec["satiety"]["M"] = 10.0                                    # a meal: the pool fed (no 72 h window seen yet)
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
     assert rec["drain"]["active"] is False and rec["drain"]["starvedH"] == 0
     assert rec["drain"]["bmi0"] == 0
 
 
 def test_the_starvation_floor_falls_with_bmi_from_its_onset(eff_host):
     h = eff_host
-    rec, p, cfg = _starving(h, 2)
+    rec, p, cfg = _starving(h, 48)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     D = rec["drain"]
     bmi0 = D["bmi0"]
@@ -988,10 +996,10 @@ def test_a_fast_keeps_the_penalties_of_a_body_already_under_normal_bmi(eff_host)
     # review M4: the starveEarly hold lifts the pe and ea rows for a body of normal BMI only (S0115)
     h = eff_host
     for bmi, heal, infect in ((15.0, 0.74, 2.30), (22.0, 1.0, 1.0)):
-        rec, p, cfg = _starving(h, 1)
+        rec, p, cfg = _starving(h, 28)
         rec["acute"]["bmi"] = bmi
         rec["body"]["dayIndex"] = 5                              # a day close: the pe grade reads the BMI
-        minute(h, p, rec, ageH=100.0 + 1 / 60)                   # 28 starved hours: a closed starved day under way
+        minute(h, p, rec, ageH=100.0 + 1 / 60)                   # 28 unfed hours: the early hold
         E = rec["effects"]
         if bmi < 18.5:
             assert E["pe"] == 4 and E["key"]["dials"] % 10000 < 1000, bmi   # no starveEarly

@@ -26,15 +26,29 @@ def floor(h, code, t=0.0, lm=52.02, fm=10.0, bmi0=22.0, dehyd=0.0):
     return h.K.drain.floor(code, t, h.table({"lm": lm, "fm": fm, "bmi0": bmi0, "dehydPct": dehyd}))
 
 
-def record(h, starvedDays=0, inDay=0.0, wday=4, lm=52.02, fm=10.0, lx=0.0, dehyd=0.0, na=140.0, vitC=(1, 0),
-           thiamine=(1, 0), niacin=(1, 0), iron=0, lastAgeH=100.0):
-    return h.table({
+def record(h, unfed=None, inDay=0.0, wday=4, lm=52.02, fm=10.0, lx=0.0, dehyd=0.0, na=140.0, vitC=(1, 0),
+           thiamine=(1, 0), niacin=(1, 0), iron=0, lastAgeH=100.0, at=100.0):
+    """A record at world age `at`: fed (the meal pool at 10) unless `unfed` hours ago its pool was last fed (M 0 and
+    drain.fedAgeH at - unfed, Plan 15 Task 6 fix 1)."""
+    t = {
         "body": {"lm": lm, "fm": fm, "lx": lx, "inDay": inDay, "wday": wday},
         "nutrients": {"vitC": {"g": vitC[0], "ah": vitC[1]}, "thiamine": {"g": thiamine[0], "ah": thiamine[1]},
                       "niacin": {"g": niacin[0], "ah": niacin[1]}, "iron": {"x": iron}, "lastAgeH": lastAgeH},
         "fluids": {"dehydPct": dehyd, "naPlasma": na},
-        "acute": {"starvedDays": starvedDays},
-    })
+        "acute": {"starvedDays": 0},
+        "satiety": {"M": 10.0},
+    }
+    if unfed is not None:
+        t["satiety"]["M"] = 0.0
+        t["drain"] = {"fedAgeH": at - unfed}
+    rec = h.table(t)
+    if unfed is not None:
+        h.K.drain.ensure(rec)                       # the rest of the fresh table laid around the stamp
+        for k, v in h.py(h.K.drain.new()).items():
+            if k != "k72" and rec.drain[k] is None:
+                rec.drain[k] = v
+        rec.drain.k72 = h.K.drain.newK72()
+    return rec
 
 
 # --- the states -------------------------------------------------------------------------------------------------
@@ -46,7 +60,7 @@ def test_the_seven_states_and_their_death_points(host, D):
     assert all(S[i]["firstFloor"] == 50 for i in range(1, 8))
     assert [S[i]["death"] for i in range(1, 8)] == [12, 2160, 840, 4320, 6, 17, 24]
     assert [S[i]["clock"] for i in range(1, 8)] == ["bmi", "time", "time", "time", "time", "deficit", "time"]
-    assert [S[i]["onset"] for i in range(1, 8)] == [36, 4, 4, 4, 3, 4, 3]       # fix 1 (M1): dehydration at 4 %
+    assert [S[i]["onset"] for i in range(1, 8)] == [30, 4, 4, 4, 3, 4, 3]       # Task 4 fix 1: dehydration at 4 %; Task 6 fix 1: 30 unfed hours
     assert (D.STARVATION, D.SCURVY, D.BERIBERI, D.PELLAGRA, D.HYPONAT, D.DEHYD, D.IRON, D.N) == (1, 2, 3, 4, 5, 6, 7, 7)
     assert D.BMI_DEATH == 12 and D.BERIBERI_DEATH_H == 35 * 24                 # S2234; S2255 five weeks
     assert D.SCURVY_DEATH_H == 90 * 24 and D.PELLAGRA_DEATH_H == 180 * 24      # the named game choices
@@ -175,31 +189,14 @@ def test_a_heavier_body_reaches_the_bmi_death_point_later(host, D):
     assert heavy - lean == pytest.approx(20.0 / 0.3, abs=1.5)               # the extra 20 kg at 0.3 kg a day
 
 
-# --- the starved hours and the phases ----------------------------------------------------------------------------
-
-def test_the_starved_hours(host, D):
-    a = lambda n: host.table({"starvedDays": n})
-    b = lambda inDay=0.0, wday=4, lm=52.02, fm=10.0: host.table({"lm": lm, "fm": fm, "lx": 0.0, "inDay": inDay,
-                                                                  "wday": wday})
-    assert D.starvedH(a(0), b(), 100.0) == 4                                  # today's hours with nothing eaten
-    assert D.starvedH(a(1), b(), 108.0) == 36                                 # a closed starved day and 12 h
-    assert D.starvedH(a(2), b(), 130.0) == 72                                 # today clamped at 24 h
-    assert D.starvedH(a(2), b(), 90.0) == 48                                  # and at 0 h
-    assert D.starvedH(a(3), b(inDay=62.02 * 5), 100.0) == 0                   # 5 kcal/kg eaten today: over
-    assert D.starvedH(a(3), b(inDay=62.02 * 5 - 1), 100.0) == 76              # just under the limit
-    assert D.starvedH(a(float("nan")), b(), 100.0) == 4                       # a non-finite count reads 0
-    assert D.starvedH(a(1), b(wday=float("nan")), 100.0) == 24                # no clock: no hours today
-    assert D.starvedH(a(1), b(), None) == 24
-    assert D.starvedH(a(5), b(lm=0.0, fm=0.0), 100.0) == 0                    # no body mass: none
-    born = host.table({"lm": 52.02, "fm": 10.0, "lx": 0.0, "inDay": 0.0, "wday": 4, "bornAge": 94.5})
-    assert D.starvedH(a(1), born, 100.0) == 5.5                               # never more than the character's age
-    assert D.starvedH(a(1), born, 90.0) == 0                                  # an age before the birth reads 0
-
+# --- the unfed hours, the trailing 72 h and the phases (Plan 15 Task 6 fix 1) -------------------------------------
+# test_the_starved_hours, of the calendar-day counter K.drain.starvedH, is deleted with the function it tested (fix 1:
+# the acute onset counts unfed hours continuously); the count is reset by name.
 
 def test_the_starvation_phases(host, D):
     p = D.starvePhase
-    assert [p(0), p(35.9), p(36), p(71.9), p(72), p(335.9), p(336), p(5000)] == [0, 0, 1, 1, 2, 2, 3, 3]
-    assert host.py(D.STARVE_PHASE_H) == {1: 36, 2: 72, 3: 336}
+    assert [p(0), p(29.9), p(30), p(71.9), p(72), p(335.9), p(336), p(5000)] == [0, 0, 1, 1, 2, 2, 3, 3]
+    assert host.py(D.STARVE_PHASE_H) == {1: 30, 2: 72, 3: 336}
     assert D.STARVE_ONSET_H == D.STARVE_PHASE_H[1]                            # weakness from the drain's onset
 
 
@@ -207,21 +204,24 @@ def test_the_starvation_phases(host, D):
 
 def test_a_fresh_drain_table_and_its_heal(host, D):
     assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "targetFloor": 100,
-                                "rate": 0, "drainThisMinute": 0, "starvedH": 0, "starving": False,
-                                "starveAcute": False, "dehydrated": False}
+                                "rate": 0, "drainThisMinute": 0, "starvedH": 0, "acuteH": 0,
+                                "k72": {i: 0 for i in range(1, 73)}, "starving": False, "starveAcute": False,
+                                "dehydrated": False}
     rec = host.table({})
     d = D.ensure(rec)
     assert host.rt.eval("rawequal")(rec.drain, d) and d.bmi0 == 0
     d.bmi0, d.naH, d.feH = float("nan"), float("inf"), "x"
+    d.acuteH, d.fedAgeH, d.k72h = -1.0, float("nan"), float("inf")
     D.ensure(rec)
-    assert (d.bmi0, d.naH, d.feH) == (0, 0, 0)
+    assert (d.bmi0, d.naH, d.feH, d.acuteH) == (0, 0, 0, 0)
+    assert d.fedAgeH is None and d.k72h is None and d.k72since is None    # a non-finite stamp heals to first sight
 
 
 def test_a_record_with_no_state_reads_no_floor(host, D):
     rec = record(host)
     d = D.step(rec, 1.0, 100.0)
     assert (d.active, d.state, d.targetFloor, d.rate, d.drainThisMinute) == (False, 0, 100, 0, 0)
-    assert d.starvedH == 4
+    assert d.starvedH == 0 and d.fedAgeH == 100.0                             # fed: the stamp at the minute
     assert D.take(d, 80.0) == 0
     bare = host.table({"body": {}})
     assert D.step(bare, 1.0, 100.0).active is False                         # a record missing its sub-tables
@@ -229,7 +229,7 @@ def test_a_record_with_no_state_reads_no_floor(host, D):
 
 def test_each_state_starts_at_its_onset(host, D):
     cases = [
-        (dict(starvedDays=1), 108.0, 1), (dict(vitC=(4, 0)), 100.0, 2), (dict(thiamine=(4, 10)), 100.0, 3),
+        (dict(unfed=30.0), 100.0, 1), (dict(vitC=(4, 0)), 100.0, 2), (dict(thiamine=(4, 10)), 100.0, 3),
         (dict(niacin=(4, 10)), 100.0, 4), (dict(na=111.9), 100.0, 5), (dict(dehyd=4.0), 100.0, 6),
         (dict(iron=3), 100.0, 7),
     ]
@@ -238,7 +238,7 @@ def test_each_state_starts_at_its_onset(host, D):
         assert d.active is True and d.state == code, kw
         assert d.rate == D.rate(code)
         assert d.drainThisMinute == pytest.approx(D.rate(code) / 1440, abs=TOL)
-    under = [(dict(starvedDays=1), 107.9), (dict(vitC=(3, 9999)), 100.0), (dict(thiamine=(3, 9999)), 100.0),
+    under = [(dict(unfed=29.99), 100.0), (dict(vitC=(3, 9999)), 100.0), (dict(thiamine=(3, 9999)), 100.0),
              (dict(niacin=(3, 9999)), 100.0), (dict(na=112.0), 100.0), (dict(dehyd=3.99), 100.0), (dict(iron=2), 100.0)]
     for kw, age in under:
         assert D.step(record(host, **kw), 1.0, age).active is False, kw
@@ -260,12 +260,12 @@ def test_the_starving_and_dehydrated_flags_follow_their_states_whichever_floor_w
     # own state's onset, not the winning code
     d = D.step(record(host), 1.0, 100.0)
     assert (d.starving, d.dehydrated) == (False, False)
-    d = D.step(record(host, starvedDays=1), 1.0, 108.0)
+    d = D.step(record(host, unfed=30.0), 1.0, 100.0)
     assert (d.starving, d.starveAcute, d.dehydrated) == (True, True, False)   # the acute onset (Plan 15 Task 6)
     d = D.step(record(host, dehyd=4.0), 1.0, 100.0)
     assert (d.starving, d.dehydrated) == (False, True)
     assert D.step(record(host, dehyd=3.99), 1.0, 100.0).dehydrated is False
-    d = D.step(record(host, starvedDays=1, dehyd=5.0, thiamine=(4, 800)), 1.0, 108.0)
+    d = D.step(record(host, unfed=30.0, dehyd=5.0, thiamine=(4, 800)), 1.0, 100.0)
     assert d.state == 3 and (d.starving, d.dehydrated) == (True, True)       # beriberi's floor wins; both flags hold
     chronic = record(host, fm=12.9 * H2 - 52.02, inDay=1000.0)
     d = D.step(chronic, 1.0, 100.0)
@@ -279,14 +279,14 @@ def test_the_starving_and_dehydrated_flags_follow_their_states_whichever_floor_w
 
 
 def test_the_onset_bmi_is_stamped_once_and_cleared_when_starvation_ends(host, D):
-    rec = record(host, starvedDays=2)
+    rec = record(host, unfed=48.0)
     d = D.step(rec, 1.0, 100.0)
     assert d.bmi0 == pytest.approx(62.02 / H2, abs=TOL) and d.targetFloor == pytest.approx(50, abs=1e-9)
     rec.body.fm = 5.0
     D.step(rec, 1.0, 100.0 + 1 / 60)
     assert d.bmi0 == pytest.approx(62.02 / H2, abs=TOL)                       # held while the state lasts
     assert d.targetFloor < 50
-    rec.body.inDay = 1000.0                                                   # a meal today ends it
+    rec.satiety.M = 10.0                                                      # a meal ends it (the pool fed)
     D.step(rec, 1.0, 100.0 + 2 / 60)
     assert d.active is False and d.bmi0 == 0
 
@@ -305,7 +305,7 @@ def test_the_sodium_and_iron_hours_accumulate_and_reset(host, D):
 
 
 def test_the_world_age_defaults_to_the_nutrients_clock(host, D):
-    rec = record(host, starvedDays=1, lastAgeH=108.0)
+    rec = record(host, unfed=36.0, lastAgeH=100.0)
     assert D.step(rec, 1.0, None).starvedH == 36
     assert rec.drain.active is True
 
@@ -423,3 +423,145 @@ def test_a_water_only_fast_kills_the_default_body_by_starvation_and_a_90_kg_body
     assert state == death_state
     assert day == pytest.approx(death_day, abs=0.1)
     assert clinical[0] == pytest.approx(42, abs=0.01)    # both bodies: clinical at day 42 with none eaten
+
+
+# --- Plan 15 Task 6 fix 1: the unfed hours and the trailing 72 h -----------------------------------------------------
+
+def test_the_unfed_hours_count_across_a_record_day_with_no_reset(host, D):
+    rec = record(host, unfed=0.0, at=23.5, wday=0)
+    assert D.step(rec, 1.0, 23.5).starvedH == 0
+    rec.body.wday = 1                                                          # the record day closes at 24
+    d = D.step(rec, 1.0, 24.5)
+    assert d.starvedH == pytest.approx(1.0, abs=TOL) and d.fedAgeH == 23.5
+    rec.body.inDay = 10000.0                                                   # the day's intake no longer matters
+    assert D.step(rec, 1.0, 26.0).starvedH == pytest.approx(2.5, abs=TOL)
+
+
+def test_a_pool_at_fed_m_stamps_and_reads_0(host, D):
+    rec = record(host, unfed=20.0)
+    rec.satiety.M = host.K.hungerCurve.FED_M
+    d = D.step(rec, 1.0, 100.0)
+    assert d.starvedH == 0 and d.fedAgeH == 100.0
+    rec.satiety.M = host.K.hungerCurve.FED_M * 0.999
+    assert D.step(rec, 1.0, 101.0).starvedH == pytest.approx(1.0, abs=TOL)
+
+
+def test_the_acute_onset_at_30_unfed_hours(host, D):
+    assert D.STARVE_ONSET_H == 30
+    assert D.step(record(host, unfed=29.99), 1.0, 100.0).starveAcute is False
+    assert D.step(record(host, unfed=30.0), 1.0, 100.0).starveAcute is True
+
+
+def test_first_sight_and_an_unseeded_pool_stamp_and_read_0(host, D):
+    rec = record(host)
+    rec.satiety = None
+    d = D.step(rec, 1.0, 100.0)
+    assert d.starvedH == 0 and d.fedAgeH == 100.0
+    rec.satiety = host.table({})                                               # M not seeded yet
+    assert D.step(rec, 1.0, 140.0).starvedH == 0
+    assert D.unfedH(host.table({}), None, None) == 0                           # no clock: none
+    assert D.unfedH(host.table({"fedAgeH": float("nan")}), host.table({"M": 0}), 50.0) == 0   # a bad stamp: first sight
+
+
+def test_the_acute_clock_runs_on_through_a_snack_inside_the_state(host, D):
+    rec = record(host, unfed=40.0)
+    for m in range(60):
+        d = D.step(rec, 1.0, 100.0 + m / 60)
+    assert d.starveAcute is True and d.acuteH == pytest.approx(1.0, abs=1e-9)
+    rec.satiety.M = 10.0                                                       # a snack: the pool fed
+    d = D.step(rec, 1.0, 101.0)
+    assert d.starveAcute is False and d.acuteH == 0 and d.starvedH == 0       # no 72 h window yet: the state ends
+
+
+def kcal72_record(h, at):
+    rec = record(h, unfed=0.0, at=at)
+    rec.body.trail = h.K.body.newTrail(at)
+    return rec
+
+
+def eat_into_trail(h, rec, kcal, at):
+    h.K.body.trailTo(rec.body.trail, at)
+    h.K.body.trailAdd(rec.body.trail, "kcal", kcal)
+
+
+def test_the_trailing_72_h_window_counts_absorbed_kcal(host, D):
+    t0 = 1000.0
+    rec = kcal72_record(host, t0)
+    eat_into_trail(host, rec, 300.0, t0)
+    assert D.step(rec, 1.0, t0).kcal72 is None                                 # under 72 h seen
+    a = t0
+    for hour in range(1, 73):
+        a = t0 + hour
+        host.K.body.trailTo(rec.body.trail, a)
+        d = D.step(rec, 60.0, a)
+        if hour == 30:
+            eat_into_trail(host, rec, 250.0, a)
+    assert d.kcal72 == pytest.approx(250.0, abs=1e-9)                           # the first 300 is past 72 h
+    host.K.body.trailTo(rec.body.trail, a + 43)
+    assert D.step(rec, 60.0, a + 43).kcal72 == pytest.approx(0, abs=1e-9)     # the 250 has left the window too
+
+
+def test_a_200_kcal_snack_every_33_h_still_enters_the_acute_state(host, D):
+    # the controller's ruling on the review's weak spot: a snack resets the unfed clock, but the trailing 72 h intake
+    # at or under K72_MIN_KCAL (600, about 200 kcal a day; a window holds up to three snacks, 600) holds the acute onset
+    assert D.K72_MIN_KCAL == 600
+    t0 = 1000.0
+    rec = kcal72_record(host, t0)
+    acute = []
+    for hour in range(0, 24 * 8):
+        a = t0 + hour
+        host.K.body.trailTo(rec.body.trail, a)
+        if hour % 33 == 0:
+            eat_into_trail(host, rec, 200.0, a)
+            rec.satiety.M = 10.0
+        else:
+            rec.satiety.M = 0.0
+        d = D.step(rec, 60.0, a)
+        acute.append(d.starveAcute)
+        if hour >= 72:
+            assert d.kcal72 <= 600
+    assert all(acute[72:]) and d.starving is True
+    assert d.starvedH >= 30 + (24 * 8 - 1 - 72) - 1e-9                          # the clock ran on through the snacks
+
+
+def test_the_window_survives_a_restart(host, D):
+    t0 = 1000.0
+    rec = kcal72_record(host, t0)
+    for hour in range(0, 80):
+        host.K.body.trailTo(rec.body.trail, t0 + hour)
+        if hour == 70:
+            eat_into_trail(host, rec, 400.0, t0 + hour)
+        D.step(rec, 60.0, t0 + hour)
+    want = rec.drain.kcal72
+    assert want == pytest.approx(400.0, abs=1e-9)
+    saved = host.py(host.K.store.inputsOnly(rec))["drain"]                     # what a save keeps
+    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "k72", "k72h", "k72since"}
+    assert len(saved["k72"]) == 72 and sum(saved["k72"].values()) == pytest.approx(400.0, abs=1e-9)
+    rec.drain.k72s = None                                                      # derived: rebuilt after a load
+    assert D.kcal72(rec.drain, rec.body.trail) == pytest.approx(400.0, abs=1e-9)
+
+
+def test_the_window_over_600_kcal_leaves_the_acute_onset_to_the_unfed_hours(host, D):
+    t0 = 1000.0
+    rec = kcal72_record(host, t0)
+    for hour in range(0, 80):
+        host.K.body.trailTo(rec.body.trail, t0 + hour)
+        rec.satiety.M = 0.0
+        if hour == 60:
+            eat_into_trail(host, rec, 601.0, t0 + hour)
+            rec.satiety.M = 10.0                                               # the meal fed the pool: 19 unfed h by 79
+        d = D.step(rec, 60.0, t0 + hour)
+    assert d.kcal72 == pytest.approx(601.0, abs=1e-9) and d.starveAcute is False
+
+
+def test_a_non_finite_slot_restarts_the_window(host, D):
+    t0 = 1000.0
+    rec = kcal72_record(host, t0)
+    for hour in range(0, 3):
+        host.K.body.trailTo(rec.body.trail, t0 + hour)
+        D.step(rec, 60.0, t0 + hour)
+    rec.drain.k72[(int(t0) + 1) % 72 + 1] = float("nan")
+    rec.drain.k72s = None
+    assert D.kcal72(rec.drain, rec.body.trail) is None
+    assert rec.drain.k72since is None and rec.drain.k72h is None               # restarted: first sight again
+    assert D.kcal72(rec.drain, None) is None                                  # an unreadable trail

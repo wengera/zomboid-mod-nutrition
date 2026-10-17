@@ -104,9 +104,12 @@ K.store.INPUTS = {
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
     -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4): starvation's onset BMI, the floor's reference while the
-    -- state lasts, and the hours in the sodium and iron lethal states. The active state, its floor, rate and the
-    -- minute's amount are recomputed every minute: derived.
-    "drain.bmi0", "drain.naH", "drain.feH",
+    -- state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15 Task 6 fix 1): the
+    -- world age the meal pool was last fed, the hours in the acute state, and the trailing-72 h window (its hourly ring,
+    -- the last hour copied and the age it started), so a restart mid-fast keeps the count. The active state, its floor,
+    -- rate, the minute's amount, starvedH, kcal72 and the window's closed sum are recomputed: derived.
+    "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH", "drain.k72.*", "drain.k72h",
+    "drain.k72since",
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.

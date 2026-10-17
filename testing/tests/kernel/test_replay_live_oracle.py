@@ -204,7 +204,7 @@ def six_sum(n, gap, hold):
     rows, _ = RL.replay_arm(ev, minutes=(M.SIX_WARM_DAYS + 2) * 1440, backend="oracle", hold_es=hold)
     total = 0.0
     for r in rows[start:start + 1440]:            # in order, as the oracle's Lua sums (Python's sum() compensates)
-        total = total + r["HUNGER"]
+        total = total + r[RL.H_MODEL]
     return total
 
 

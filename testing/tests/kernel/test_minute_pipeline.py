@@ -514,3 +514,12 @@ def test_the_day_length_is_read_once_a_player_minute():
     assert R.dayMin(None, 90) == 60 and C.day == 2
     h.NR.so = h.rt.table()
     assert R.dayMin(h.rt.table(), 90) == 90 and R.dayMin(None, 90) == 90
+
+
+def test_a_moodle_level_is_floored_and_clamped_to_0_4():
+    # Plan 15 Task 6 fix 1 (review L2): NR.read.moodleLevel, the one copy Effects and the writer read
+    h = Host()
+    R = h.NR.read
+    m = h.rt.eval("function(v) return { getMoodleLevel = function(s, t) return v end } end")
+    assert [R.moodleLevel(m(v), "T") for v in (5, -1, 2.7)] == [4, 0, 2]
+    assert R.moodleLevel(None, "T") == 0 and R.moodleLevel(m(3), None) == 0

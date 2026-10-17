@@ -341,7 +341,7 @@ NR.data.effects = {
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
         -- Starvation in science's order (spec section 3.3, Plan 15 Task 4): the phase flag starve is K.drain.starvePhase of
-        -- the starved hours, 1 weakness from the drain's onset (1.5 d), 2 cold intolerance and slower healing from day 3,
+        -- the starvation clock (K.drain's starvedH, unfed hours), 1 weakness from the drain's onset (30 h), 2 cold intolerance and slower healing from day 3,
         -- 3 infection and mood from day 14; the phase days are a game-pacing choice (open S2247). While a fast is under
         -- way and before phase 3 (starveEarly) the protein-energy and energy-availability rows are held off, so infection
         -- and colds wait for day 14; at phase 3 they return (the pe grade is 4 by then, S0115's 10 days).
