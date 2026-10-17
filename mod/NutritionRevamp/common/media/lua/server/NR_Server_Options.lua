@@ -28,7 +28,7 @@ local K = NR.kernel
 -- The Plan 15 option: stimulantRealism, an enum 1 Game (the default), 2 Realistic: the stimulant sizes (spec section 5).
 -- A read that finds the kernel's active set on another value selects it once (K.acute.useStimulants), so the next step reads
 -- it and no step branches on the option; the effects rebuild key carries the set (NR_Server_Effects), so the hangover
--- rows follow at the next minute. It fires no changed hook.
+-- rows follow at the next minute; a hangover already counting down keeps the length its set gave it. It fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,

@@ -208,3 +208,63 @@ def test_one_beer_an_hour_peaks_lower_and_leaves_no_hangover():
     assert g["intox"] == pytest.approx(12.38, abs=0.01) and r["intox"] == pytest.approx(19.19, abs=0.01)
     assert g["bac"] == r["bac"] < 0.05 and g["hang0"] is None and r["hang0"] is None
     assert g["sober"] == r["sober"]
+
+
+# --- fix 1: the hangover's unhappiness and the whole acute record's timing --------------------------------------------
+
+def test_a_game_hangover_shows_unhappy_level_1_and_its_floor_goes_after():
+    # the guide's S6b under Game: the hangover (8.15 to 11.90 h) carries the 21 floor, so UNHAPPINESS passes the
+    # Unhappy level-1 step (> 20, #2369); once the hangover ends the floor is 0 and the stat is released
+    be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
+    be.rt.execute("SandboxVars = { NR = { StimulantRealism = 1 } }")
+    ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in GUIDE_BEERS]
+    ev += [{"minute": m, "kind": "autodrop", "g": 500.0} for m in (30, 300, 600, 900)]
+    ev.sort(key=lambda e: e["minute"])
+    rows = RL.run(be, RL.synthetic_ages(1440), ev, ["acute.hang", "effects.unhappyTarget"], start_age=0.0,
+                  dtms=[1.0] * 1440)
+    hang = [k for k, r in enumerate(rows) if r.get("acute.hang") == 1]
+    assert hang and hang == list(range(hang[0], hang[-1] + 1))
+    assert all(rows[k]["effects.unhappyTarget"] == 21 for k in hang[1:])     # the set rebuilds the minute after the start
+    assert max(rows[k]["UNHAPPINESS"] for k in hang) > 20                     # Unhappy level 1
+    assert all((r.get("UNHAPPINESS") or 0) == 0 for r in rows[:hang[0]])      # none before the hangover
+    after = rows[hang[-1] + 2:]
+    assert after and all(r["effects.unhappyTarget"] == 0 for r in after)
+    assert all((r.get("UNHAPPINESS") or 0) <= 20 for r in after)
+
+
+DAY = 1440
+CUP_MIN = (8 * 60, 12 * 60, 16 * 60)     # three cups a day: 321 mg a day takes tolerance past the withdrawal gate
+CUP_DAYS = 10                            # then three days without, so the withdrawal runs
+BEER_AT = 9 * DAY + 20 * 60              # one dose on day 10 at 20:00
+BEER_G = 38.0                            # alcPeak 0.0527 % at 65 kg: just over the 0.05 % hangover threshold
+ACUTE_FIELDS = ("gutCaf", "caf", "cafMean", "cafTol", "cafLowH", "wd", "gutAlc", "alc", "bac")
+
+
+def _acute_days(host, mode, w=65.0):
+    A = host.K.acute
+    rows = []
+    with _stim(host, mode):
+        a = A.new(0)
+        for m in range((CUP_DAYS + 3) * DAY):
+            if m < CUP_DAYS * DAY and m % DAY in CUP_MIN:
+                a.gutCaf = a.gutCaf + CUP_MG
+            if m == BEER_AT:
+                a.gutAlc = a.gutAlc + BEER_G
+            alc, caf = A.absorbGut(a, MIN)
+            A.caffeine(a, caf, w, MIN)
+            A.alcohol(a, alc, w, 1, MIN)
+            rows.append(tuple(a[f] for f in ACUTE_FIELDS) + (a.alcPeak, a.hang))
+    return rows
+
+
+def test_the_whole_acute_record_runs_on_the_same_clock_in_both_sets(host):
+    game, real = _acute_days(host, 1), _acute_days(host, 2)
+    n = len(ACUTE_FIELDS)
+    assert max(r[n] for r in real) == pytest.approx(0.0527, abs=0.0005)        # the peak sits in (0.0505, 0.054)
+    assert 0.0505 < max(r[n] for r in real) < 0.054
+    assert max(r[5] for r in real) > 0.5 and max(r[3] for r in real) > 0.25    # tolerance built, withdrawal ran
+    for m in range(len(game)):
+        assert game[m][:n] == real[m][:n], m                                    # every kinetic field, every minute
+    start = [next(m for m, r in enumerate(x) if r[n + 1] == 1) for x in (game, real)]
+    assert start[0] == start[1]                                                 # the hangover starts on one clock
+    assert [r[n:] for r in game[:start[0] + 1]] == [r[n:] for r in real[:start[1] + 1]]   # peak and flag, until then

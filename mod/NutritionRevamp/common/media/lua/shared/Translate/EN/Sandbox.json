@@ -29,7 +29,7 @@
     "Sandbox_NR_SexSpecific": "Sex-specific values",
     "Sandbox_NR_SexSpecific_tooltip": "Off: every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, alcohol, iron, calcium). On: a female character uses the female values.",
     "Sandbox_NR_StimulantRealism": "Coffee and alcohol strength",
-    "Sandbox_NR_StimulantRealism_tooltip": "Game, the default: a cup of coffee eases fatigue about twice as much as vanilla's, each beer adds about as much intoxication as vanilla's but it builds up over an evening, and a hangover is mild and short. Realistic: the full pharmacological strengths, about three times the coffee effect, about half again the intoxication and a longer, heavier hangover. In both, caffeine and alcohol take as long to absorb and wear off as in real life, and caffeine tolerance and withdrawal work the same.",
+    "Sandbox_NR_StimulantRealism_tooltip": "Game, the default: a cup of coffee eases fatigue about twice as much as vanilla's, four beers drunk within an hour peak at about vanilla's first Drunk level, and the effect builds and fades over hours, and a hangover is mild and short. Realistic: the full pharmacological strengths, about three times the coffee effect, about half again the intoxication and a longer, heavier hangover. In both, caffeine and alcohol take as long to absorb and wear off as in real life, and caffeine tolerance and withdrawal work the same.",
     "Sandbox_NR_StimulantRealismValues_option1": "Game",
     "Sandbox_NR_StimulantRealismValues_option2": "Realistic",
     "Sandbox_NR_StrengthTimeScale": "Strength biology clock",

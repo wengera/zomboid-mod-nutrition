@@ -543,11 +543,11 @@ def test_the_hangover_rows_follow_the_stimulant_set(kh):
     real = _compose(kh, b=b, flags={"stim": 2})
     game = _compose(kh, b=b, flags={"stim": 1})
     default = _compose(kh, b=b)                                           # no stim flag reads Game, the default
-    assert (real.mNut, real.stressTarget) == (1.15, 0.10)                 # the Plan 14 row
-    assert (game.mNut, game.stressTarget) == (1.075, 0.05)                # half of each realistic size
-    assert (default.mNut, default.stressTarget) == (1.075, 0.05)
+    assert (real.mNut, real.stressTarget, real.unhappyTarget) == (1.15, 0.10, 42)   # the Plan 14 row, and fix 1's 42
+    assert (game.mNut, game.stressTarget, game.unhappyTarget) == (1.075, 0.05, 21)  # half of each realistic size
+    assert (default.mNut, default.stressTarget, default.unhappyTarget) == (1.075, 0.05, 21)
     none = _compose(kh, b=_b(kh), flags={"stim": 2})
-    assert (none.mNut, none.stressTarget) == (1, 0)                       # no hangover: neither row folds
+    assert (none.mNut, none.stressTarget, none.unhappyTarget) == (1, 0, 0)  # no hangover: neither row folds
 
 
 def test_the_cold_credit_gate(kh):

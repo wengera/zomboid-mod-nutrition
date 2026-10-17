@@ -363,7 +363,7 @@ def test_the_minute_scalars_are_stamped(eff_host):
 def _stim_minute(h, rec, p):
     minute(h, p, rec)
     E = rec["effects"]
-    return E["fOff"] - E["fOffNut"], E["intoxTarget"], E["mNut"], E["stressTarget"]
+    return E["fOff"] - E["fOffNut"], E["intoxTarget"], E["mNut"], E["stressTarget"], E["unhappyTarget"]
 
 
 def test_switching_the_stimulant_option_takes_effect_on_the_next_read(eff_host):
@@ -378,19 +378,23 @@ def test_switching_the_stimulant_option_takes_effect_on_the_next_read(eff_host):
     a["hang"] = 1
     p, _ = player(h, rec)
     assert h.K.acute.C.MODE == 1 and h.G.NutritionRevamp.server.options.stimulantRealism == 1   # the default, Game
-    caf_g, intox_g, m_g, s_g = _stim_minute(h, rec, p)
+    caf_g, intox_g, m_g, s_g, u_g = _stim_minute(h, rec, p)
+    assert u_g == 21                                             # the Game hangover's unhappiness floor (fix 1)
     assert caf_g == pytest.approx(-0.12 * 107 / 257, abs=TOL) and intox_g == pytest.approx(100 * 0.05 / 0.31, abs=TOL)
     assert (m_g, s_g) == (pytest.approx(1.075, abs=TOL), pytest.approx(0.05, abs=TOL))
     rebuilds = EFF(h).stats.rebuilds
     setopts(h, StimulantRealism=2)
     assert h.K.acute.C.MODE == 2 and h.G.NutritionRevamp.server.options.stimulantRealism == 2
-    caf_r, intox_r, m_r, s_r = _stim_minute(h, rec, p)
+    caf_r, intox_r, m_r, s_r, u_r = _stim_minute(h, rec, p)
+    assert u_r == 42
     assert EFF(h).stats.rebuilds == rebuilds + 1                 # the set moved the key
     assert caf_r == pytest.approx(-0.35 * 107 / 257, abs=TOL) and intox_r == pytest.approx(25.0, abs=TOL)
     assert (m_r, s_r) == (pytest.approx(1.15, abs=TOL), pytest.approx(0.10, abs=TOL))
     setopts(h, StimulantRealism=7)                               # out of range: the default, Game
     assert h.K.acute.C.MODE == 1
     assert _stim_minute(h, rec, p)[:2] == (pytest.approx(caf_g, abs=TOL), pytest.approx(intox_g, abs=TOL))
+    rec["acute"]["hang"] = 0
+    assert _stim_minute(h, rec, p)[4] == 0                       # the hangover over: the floor goes with the band
 
 
 def test_the_vigorous_and_alcohol_sleep_onset_terms(eff_host):

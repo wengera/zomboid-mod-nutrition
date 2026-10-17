@@ -345,9 +345,11 @@ def test_the_healing_cold_and_drain_free_magnitudes(eh):
     assert by[("iron", "grade", 4)]["tempOffset"] == -0.2                 # S1016
     assert by[("iron", "grade", 3)]["mNut"] == 1.11
     assert by[("anaemia", "flag", None)]["mNut"] == 1.25
-    assert by[("hang", "band", 1)] == {"mNut": 1.15, "stressTarget": 0.10}  # Realistic (stim 2)
+    assert by[("hang", "band", 1)] == {"mNut": 1.15, "stressTarget": 0.10, "unhappyTarget": 42}  # Realistic (stim 2)
     game = {e["s"]: e["v"] for r, e in _entries(eh) if r.get("stim") == 1}
-    assert game == {"mNut": pytest.approx(1 + 0.15 / 2, abs=1e-12), "stressTarget": pytest.approx(0.10 / 2, abs=1e-12)}  # Game (stim 1): half each size
+    assert game == {"mNut": pytest.approx(1 + 0.15 / 2, abs=1e-12), "stressTarget": pytest.approx(0.10 / 2, abs=1e-12),
+                    "unhappyTarget": 42 / 2}                             # Game (stim 1): half each size
+    assert game["unhappyTarget"] > 20 and by[("hang", "band", 1)]["unhappyTarget"] < 45   # UNHAPPY 1 (> 20), under 2 (45) #2369
     stims = [(r["src"], r["on"], r["at"], r["stim"]) for r in _rows(eh) if r.get("stim") is not None]
     assert sorted(stims) == [("hang", "band", 1, 1), ("hang", "band", 1, 2)]   # only the hangover differs by set
     assert [by[("alc", "band", n)]["rNut"] for n in (1, 2)] == [0.90, 0.80]
