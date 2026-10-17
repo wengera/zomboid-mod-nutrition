@@ -19,7 +19,14 @@ THE SESSION (x452b, profile x45g-mod, the staged copy release/plan15-x45g re-sta
 (x45g_lib's docstring): lunch at the next 12:30, dinner 6 h later, breakfast 13 h after that, each a can of bolognese and
 a banana eaten at speed 1 with no foodtimer.set, 0.5 L of water 2.5 h after each meal through x44's drink route.
 
-THE GRADES are x452's (x45g_lib.Sess.grade_x452), against this lib's bands.
+THE GRADES are x452's (x45g_lib.Sess.grade_x452), against this lib's bands, with the live review's two fixes x45h_lib
+carried for x453b (pre-run edit, the x452b driver review B1): every pair saved under checks.pairs (F4), and both PAIRS
+grades at PAIR_SLACK_B (0.8 s) of server reads after the client read (F3), the frozen slack restored after the grade.
+The frozen lib's own commit is recorded as lib_x45g_commit (review L1).
+
+READING GUIDE (for the write-up's wildcard sentence): checks.pairs holds the pair reads behind WF_SHOW, WF_SPAN and both
+PAIRS grades; verdicts.PAIRS_foodEaten.observed.pair_slack_s and verdicts.PAIRS_hungry.observed.pair_slack_s (0.8) are
+driver settings, like the predicted/target/tol keys, and are never cited as readings.
 
 FROZEN WITH ITS FIRST RUN: once x452b has run, this file is never edited (CLAUDE.md s5).
 """
@@ -42,6 +49,7 @@ STAGED_FROM_B = "390636fe"                # mod/'s last commit: the liquid lane 
 # lunch 3.533, dinner 3.583, breakfast 4.033 and Hungry 9.550 on a97fec05
 CAD_P_TARGETS_B = {"lunch": 3.483, "dinner": 3.533, "breakfast": 4.083}
 CAD_H_TARGET_B = 9.550
+PAIR_SLACK_B = 0.8                       # the live review's F3, as x45h_lib (x453b)
 PRERUN_B = {"max_dehydPct": 1.452, "dehydrated_rows": 0, "max_THIRST": 0.2667, "max_stomach_g": 790, "max_overfull": 1,
             "well_fed_h": 0.367, "eat0_max": 0}
 CONSTANTS = {k: v for k, v in dict(globals()).items() if k.isupper() and isinstance(v, (int, float, str))}
@@ -61,6 +69,30 @@ class Sess(G.Sess):
         self.out["constants_x45i"] = dict(CONSTANTS)
         self.out["prerun_x45i"] = dict(PRERUN_B)
         self.out["lib_x45i"] = LIB_FILE
+        self.out["lib_x45g_commit"] = lib_commit("testing/experiments/x45g_lib.py")             # review L1
+
+    def grade_x452(self, rows):
+        """x452's grade with every pair saved (F4) and both PAIRS grades at PAIR_SLACK_B (F3), the slack restored."""
+        self.D["pairs"] = list(self.pairs)
+        saved = G.PAIR_SLACK_S
+        G.PAIR_SLACK_S = PAIR_SLACK_B
+        try:
+            super().grade_x452(rows)
+            for name in ("PAIRS_foodEaten", "PAIRS_hungry"):
+                v = self.out["verdicts"].get(name)
+                if v is not None:
+                    v.setdefault("observed", {})["pair_slack_s"] = PAIR_SLACK_B
+        finally:
+            G.PAIR_SLACK_S = saved
+
+
+def lib_commit(path, repo=G.REPO):
+    """A file's last commit, short; None when git cannot answer."""
+    try:
+        p = subprocess.run(["git", "log", "-1", "--format=%h", "--", path], cwd=repo, capture_output=True, text=True)
+    except OSError:
+        return None
+    return p.stdout.strip() or None
 
 
 def mod_head(repo=G.REPO):

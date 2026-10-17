@@ -153,3 +153,51 @@ def test_preboot_refuses_bands_not_installed_or_a_stale_pin(monkeypatch):
     monkeypatch.setattr(I, "mod_head", lambda repo=None: "a97fec05")
     checks, ok = I.preboot("x452b", G.PROFILE, "x452b", "x452b_day.py")
     assert ok is False and checks["staged_from_is_mod_head"] is False
+
+
+# ---- the x452b driver review B1 (pre-run edit): the pairs saved (F4) and the PAIRS slack at 0.8 s (F3) ----------------
+
+def _row(t, lv):
+    return {"wall": t, "wall_after": t, "moodles": {"foodEaten": lv, "hungry": lv}}
+
+
+def _pair(t0, c, t1, l0, lc, l1):
+    return {"s0": _row(t0, l0), "c": _row(c, lc), "s1": _row(t1, l1)}
+
+
+# five steady reads, a transition, and a client read at 2 whose only server read at 2 comes 0.6 s after it
+SLACK_PAIRS = ([_pair(t - 0.1, t, t + 0.1, 0, 0, 0) for t in (2, 4, 6, 8)]
+               + [_pair(20.0, 22.0, 22.1, 1, 1, 1), _pair(25.9, 26.0, 26.1, 1, 1, 1), _pair(29.9, 30.0, 30.6, 1, 2, 2)])
+
+
+def test_the_pairs_are_saved_and_both_pairs_verdicts_carry_the_slack(tmp_path, monkeypatch):
+    v, out, w, S = run_b(tmp_path, monkeypatch)
+    assert out["checks"]["pairs"] and len(out["checks"]["pairs"]) == len(S.pairs)
+    for name in ("PAIRS_foodEaten", "PAIRS_hungry"):
+        assert out["verdicts"][name]["observed"]["pair_slack_s"] == I.PAIR_SLACK_B == 0.8
+    assert G.PAIR_SLACK_S == 0.3                                                 # restored after the grade
+    assert out["lib_x45g_commit"] and out["lib_x45g_commit"] == I.lib_commit("testing/experiments/x45g_lib.py")
+
+
+def test_the_slack_is_restored_when_the_grade_raises(tmp_path, monkeypatch):
+    v, out, w, S = run_b(tmp_path, monkeypatch)
+
+    def boom(self, rows):
+        assert G.PAIR_SLACK_S == I.PAIR_SLACK_B
+        raise RuntimeError("x")
+    monkeypatch.setattr(I.Sess.__bases__[0], "grade_x452", boom)               # the frozen class (G.Sess is I.Sess here)
+    with pytest.raises(RuntimeError):
+        S.grade_x452([])
+    assert G.PAIR_SLACK_S == 0.3
+
+
+def test_a_pair_passes_only_at_the_wider_slack(tmp_path, monkeypatch):
+    real = G.grade_pairs
+    assert real(SLACK_PAIRS, "foodEaten")[0] == "falsified"                      # the frozen 0.3 s
+    monkeypatch.setattr(G, "PAIR_SLACK_S", 0.8)
+    assert real(SLACK_PAIRS, "foodEaten")[0] == "as_predicted"
+    monkeypatch.setattr(G, "PAIR_SLACK_S", 0.3)
+    monkeypatch.setattr(G, "grade_pairs", lambda pairs, key: real(SLACK_PAIRS, key))
+    v, out, _, _ = run_b(tmp_path, monkeypatch)                                  # through I.Sess.grade_x452
+    assert v["PAIRS_foodEaten"] == "as_predicted" and v["PAIRS_hungry"] == "as_predicted"
+    assert G.PAIR_SLACK_S == 0.3
