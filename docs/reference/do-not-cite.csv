@@ -22233,3 +22233,10 @@ x452-20261017-071527,steps,the driver steps: every raw bus reply,"Raw replies an
 x452-20261017-071527,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762); each row's `trueMult` and `ok` are the reading.",`speeds[*].trueMult`
 x452-20261017-071527,verdicts.REPLAY_THIRST,falsified,"Its over-rows mix two auto-drink placements (the sip row and the replay's autodrop one row later) with a 0.002-0.004 drift; not a grade of the thirst kernel.",`verdicts.REPLAY_THIRST.observed.findings`
 x452-20261017-071527,checks.T9.after.counters,0,"No tooltip was drawn: the hide is unmeasured, not absent.",`checks.T9.why`
+x453-20261017-072518,session,the driver's text,Written before the run; not a reading.,
+x453-20261017-072518,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x453-20261017-072518,constants,the lib's constants,The driver's settings; not a reading.,
+x453-20261017-072518,memory,host free memory rows,"Host state, not a game reading.",
+x453-20261017-072518,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x453-20261017-072518,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
+x453-20261017-072518,verdicts.OF_REACH,falsified,"The session's eat cycle (about 7 game minutes) outlasted the prediction's 3, so the stomach never reached Overfull 4; not a reading of the bridge.",`checks.X.eats`
