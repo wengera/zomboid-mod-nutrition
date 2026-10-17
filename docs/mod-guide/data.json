@@ -13439,7 +13439,7 @@
    "chart": "S2a",
    "id": "S2a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3902): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
+   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
    "points": [
     [
      -12.0,
@@ -17253,7 +17253,7 @@
    "chart": "S2b",
    "id": "S2b-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (1.53 health, #3902).",
+   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (1.53 health, #3948).",
    "points": [
     [
      "day 2",
