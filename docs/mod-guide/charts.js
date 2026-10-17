@@ -66,19 +66,13 @@
         { label: "Sodium", series: ["SN1-m-sodium"], unit: "mg" }
       ]
     },
-    "SE1": {
-      facets: [
-        { label: "Stomach fill", series: ["SE1-m-live-fill", "SE1-m-kernel-fill"], unit: "fill (0-1)" },
-        { label: "Liquid in the stomach", series: ["SE1-m-live-liquid"], unit: "g" }
-      ],
-      yMin: 0, xMax: 480
-    },
+    "SE1": { yMin: 0, xMax: 480 },
     "SH1": { yMin: 0 },
     "SH2": { yMin: 0 },
     "SH3": {
       facets: [
-        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel", "SH3-m-live"], unit: "game hours until Peckish", yMin: 0 },
-        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry", "SH3-m-live-hungry"], unit: "game hours until Hungry", yMin: 0 }
+        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel"], unit: "game hours until Peckish", yMin: 0 },
+        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry"], unit: "game hours until Hungry", yMin: 0 }
       ]
     },
     "ST1": { yMin: 0, yMax: 1 },
