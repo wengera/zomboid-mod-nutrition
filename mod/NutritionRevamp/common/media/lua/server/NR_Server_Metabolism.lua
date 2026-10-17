@@ -303,7 +303,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     local m1, hard = K.training.weekMinutes(body)
     K.aerobic.tacDay(body, m1, hard, K.aerobic.G_IRON[ironGrade], K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), K.aerobic.gSleep(debtH), 1, immobilised)
     body.pPrevKg = pPerKg
-    body.inDayClosed = body.inDay                        -- the closing day's absorbed kcal, for NR_Server_Nutrients' refeeding close
+    K.drain.closeDay(body)                               -- the closing day's absorbed kcal into inDayClosed, for NR_Server_Nutrients' refeeding close, and the two before it down one (the drain's recent intake)
     K.partition.closeDay(body)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1

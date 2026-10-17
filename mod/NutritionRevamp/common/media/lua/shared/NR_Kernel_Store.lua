@@ -59,7 +59,7 @@ K.store.INPUTS = {
     -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
     -- day's stamps held until the next close (inDayClosed, pPrevKg)
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
-    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.pPrevKg",
+    "body.lipDay", "body.alcDay", "body.inDayClosed", "body.inDay2", "body.inDay3", "body.pPrevKg",
     -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
     "body.eb7.*", "body.mass7.*", "body.p7.*", "body.bandWeek.*",
     -- body, the trailing-24 h window (K.body.trailTo, trailAdd): its age and the six hourly rings.
@@ -104,12 +104,10 @@ K.store.INPUTS = {
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
     -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4): starvation's onset BMI, the floor's reference while the
-    -- state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15 Task 6 fix 1): the
-    -- world age the meal pool was last fed, the hours in the acute state, and the trailing-72 h window (its hourly ring,
-    -- the last hour copied and the age it started), so a restart mid-fast keeps the count. The active state, its floor,
-    -- rate, the minute's amount, starvedH, kcal72 and the window's closed sum are recomputed: derived.
-    "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH", "drain.k72.*", "drain.k72h",
-    "drain.k72since",
+    -- state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15 Task 6 fixes 1 and
+    -- 2): the world age the meal pool was last fed and the hours in the acute state, so a restart mid-fast keeps the
+    -- count. The active state, its floor, rate, the minute's amount, starvedH and recentKcal are recomputed: derived.
+    "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH",
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.

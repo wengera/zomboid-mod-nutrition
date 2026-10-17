@@ -328,6 +328,7 @@ def test_every_body_field_is_classified(host):
 def test_the_adapter_body_fields_are_classified(host):
     # NR_Server_Metabolism stamps met and coldMult every minute (derived) and inDayClosed / pPrevKg at a close
     assert S(host).isInput("body.inDayClosed") and S(host).isInput("body.pPrevKg")
+    assert S(host).isInput("body.inDay2") and S(host).isInput("body.inDay3")   # the drain's recent intake (Plan 15 Task 6 fix 2)
     assert not S(host).isInput("body.met") and not S(host).isInput("body.coldMult")
 
 

@@ -45,9 +45,8 @@ def record(h, unfed=None, inDay=0.0, wday=4, lm=52.02, fm=10.0, lx=0.0, dehyd=0.
     if unfed is not None:
         h.K.drain.ensure(rec)                       # the rest of the fresh table laid around the stamp
         for k, v in h.py(h.K.drain.new()).items():
-            if k != "k72" and rec.drain[k] is None:
+            if rec.drain[k] is None:
                 rec.drain[k] = v
-        rec.drain.k72 = h.K.drain.newK72()
     return rec
 
 
@@ -204,17 +203,16 @@ def test_the_starvation_phases(host, D):
 
 def test_a_fresh_drain_table_and_its_heal(host, D):
     assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "active": False, "state": 0, "targetFloor": 100,
-                                "rate": 0, "drainThisMinute": 0, "starvedH": 0, "acuteH": 0,
-                                "k72": {i: 0 for i in range(1, 73)}, "starving": False, "starveAcute": False,
-                                "dehydrated": False}
+                                "rate": 0, "drainThisMinute": 0, "starvedH": 0, "acuteH": 0, "starving": False,
+                                "starveAcute": False, "dehydrated": False}
     rec = host.table({})
     d = D.ensure(rec)
     assert host.rt.eval("rawequal")(rec.drain, d) and d.bmi0 == 0
     d.bmi0, d.naH, d.feH = float("nan"), float("inf"), "x"
-    d.acuteH, d.fedAgeH, d.k72h = -1.0, float("nan"), float("inf")
+    d.acuteH, d.fedAgeH = -1.0, float("nan")
     D.ensure(rec)
     assert (d.bmi0, d.naH, d.feH, d.acuteH) == (0, 0, 0, 0)
-    assert d.fedAgeH is None and d.k72h is None and d.k72since is None    # a non-finite stamp heals to first sight
+    assert d.fedAgeH is None                                                 # a non-finite stamp heals to first sight
 
 
 def test_a_record_with_no_state_reads_no_floor(host, D):
@@ -470,98 +468,103 @@ def test_the_acute_clock_runs_on_through_a_snack_inside_the_state(host, D):
     assert d.starveAcute is True and d.acuteH == pytest.approx(1.0, abs=1e-9)
     rec.satiety.M = 10.0                                                       # a snack: the pool fed
     d = D.step(rec, 1.0, 101.0)
-    assert d.starveAcute is False and d.acuteH == 0 and d.starvedH == 0       # no 72 h window yet: the state ends
+    assert d.starveAcute is False and d.acuteH == 0 and d.starvedH == 0       # no recent window yet: the state ends
 
 
-def kcal72_record(h, at):
+def days_record(h, today, closed, at=100.0):
+    """A record with the recent intake laid: today's absorbed kcal and the three closed days (newest first)."""
     rec = record(h, unfed=0.0, at=at)
-    rec.body.trail = h.K.body.newTrail(at)
+    rec.body.inDay = today
+    rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = closed
     return rec
 
 
-def eat_into_trail(h, rec, kcal, at):
-    h.K.body.trailTo(rec.body.trail, at)
-    h.K.body.trailAdd(rec.body.trail, "kcal", kcal)
+def test_the_recent_intake_is_today_and_three_closed_days(host, D):
+    assert D.RECENT_MIN_KCAL == 600
+    rec = days_record(host, 50.0, (100.0, 200.0, 250.0))
+    assert D.recentKcal(rec.body) == 600.0
+    rec.body.inDay3 = None                                                     # fewer than three closes seen
+    assert D.recentKcal(rec.body) is None
+    body = host.table({"inDay": 7.0, "inDayClosed": 1.0, "inDay2": 2.0, "inDay3": 3.0})
+    D.closeDay(body)
+    assert (body.inDayClosed, body.inDay2, body.inDay3) == (7.0, 1.0, 2.0)
 
 
-def test_the_trailing_72_h_window_counts_absorbed_kcal(host, D):
-    t0 = 1000.0
-    rec = kcal72_record(host, t0)
-    eat_into_trail(host, rec, 300.0, t0)
-    assert D.step(rec, 1.0, t0).kcal72 is None                                 # under 72 h seen
-    a = t0
-    for hour in range(1, 73):
-        a = t0 + hour
-        host.K.body.trailTo(rec.body.trail, a)
-        d = D.step(rec, 60.0, a)
-        if hour == 30:
-            eat_into_trail(host, rec, 250.0, a)
-    assert d.kcal72 == pytest.approx(250.0, abs=1e-9)                           # the first 300 is past 72 h
-    host.K.body.trailTo(rec.body.trail, a + 43)
-    assert D.step(rec, 60.0, a + 43).kcal72 == pytest.approx(0, abs=1e-9)     # the 250 has left the window too
+def test_low_recent_intake_holds_the_acute_state_only_while_unfed(host, D):
+    rec = days_record(host, 0.0, (200.0, 200.0, 200.0))
+    rec.satiety.M = 0.0
+    d = D.step(rec, 1.0, 100.0)
+    assert d.starveAcute is True and d.recentKcal == 600.0                    # 600 or less, unfed: acute
+    rec.satiety.M = 10.0                                                       # a snack: the pool fed
+    d = D.step(rec, 1.0, 100.0 + 1 / 60)
+    assert d.starveAcute is False and d.starving is False                      # the moodle minimum lifts at once
+    assert d.acuteH > 0 and d.bmi0 > 0                                         # the clock and the onset BMI wait
+    rec.satiety.M = 0.0
+    d = D.step(rec, 1.0, 100.0 + 2 / 60)
+    assert d.starveAcute is True and d.starvedH >= 30                          # back, the phases not reset
+    rec.body.inDayClosed = 201.0                                               # over 600: the fallback clears
+    rec.satiety.M = 10.0
+    d = D.step(rec, 1.0, 100.0 + 3 / 60)
+    assert d.starveAcute is False and d.acuteH == 0 and d.bmi0 == 0
 
 
 def test_a_200_kcal_snack_every_33_h_still_enters_the_acute_state(host, D):
-    # the controller's ruling on the review's weak spot: a snack resets the unfed clock, but the trailing 72 h intake
-    # at or under K72_MIN_KCAL (600, about 200 kcal a day; a window holds up to three snacks, 600) holds the acute onset
-    assert D.K72_MIN_KCAL == 600
-    t0 = 1000.0
-    rec = kcal72_record(host, t0)
-    acute = []
-    for hour in range(0, 24 * 8):
-        a = t0 + hour
-        host.K.body.trailTo(rec.body.trail, a)
+    # the controller's rulings on the review's weak spot: a snack resets the unfed clock, but today and the three closed
+    # record days holding 600 kcal or less (about 200 kcal a day; up to three such snacks, 600) hold the acute onset
+    # whenever the pool is unfed again; a fed spell after each snack lifts it for its few hours only
+    rec = days_record(host, 0.0, (None, None, None))
+    rec.body.inDayClosed = None
+    acute, unfed_hours, fed_hours = [], 0, 0
+    M = 0.0
+    for hour in range(0, 24 * 10):
+        a = 100.0 + hour
+        if hour > 0 and hour % 24 == 0:
+            D.closeDay(rec.body)
+            rec.body.inDay = 0.0
         if hour % 33 == 0:
-            eat_into_trail(host, rec, 200.0, a)
-            rec.satiety.M = 10.0
-        else:
-            rec.satiety.M = 0.0
+            rec.body.inDay = rec.body.inDay + 200.0
+            M = 400.0
+        rec.satiety.M = M
         d = D.step(rec, 60.0, a)
-        acute.append(d.starveAcute)
-        if hour >= 72:
-            assert d.kcal72 <= 600
-    assert all(acute[72:]) and d.starving is True
-    assert d.starvedH >= 30 + (24 * 8 - 1 - 72) - 1e-9                          # the clock ran on through the snacks
+        M = M * 0.5 ** (1 / 0.583749)                                          # the pool clears (MEAL_HALF_LIFE_H)
+        if hour >= 96:
+            assert d.recentKcal <= 600
+            if rec.satiety.M < host.K.hungerCurve.FED_M:
+                unfed_hours += 1
+                acute.append(d.starveAcute)
+            else:
+                fed_hours += 1
+                assert d.starveAcute is False
+    assert all(acute) and len(acute) > 100 and fed_hours > 0
+    assert d.bmi0 > 0                                                          # the onset BMI held through the snacks
 
 
-def test_the_window_survives_a_restart(host, D):
-    t0 = 1000.0
-    rec = kcal72_record(host, t0)
-    for hour in range(0, 80):
-        host.K.body.trailTo(rec.body.trail, t0 + hour)
-        if hour == 70:
-            eat_into_trail(host, rec, 400.0, t0 + hour)
-        D.step(rec, 60.0, t0 + hour)
-    want = rec.drain.kcal72
-    assert want == pytest.approx(400.0, abs=1e-9)
+def test_an_offline_gap_neither_counts_as_unfed_nor_moves_the_window(host, D):
+    # Plan 15 Task 6 fix 2 (re-review H1): a 199 h logout 5 h after the pool emptied comes back 5 h unfed
+    rec = record(host, unfed=5.0, at=100.0)
+    rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = 2000.0, 2000.0, 2000.0
+    rec.acute = host.K.acute.new(90.0)
+    rec.acute.lastFedAgeH, rec.acute.lastVigAgeH = 95.0, 95.0                  # the adapter lays these
+    host.K.acute.skipRecord(rec, 199.0, 100.0)
+    d = D.step(rec, 1.0, 300.0)
+    assert d.starvedH == pytest.approx(6.0, abs=1e-9) and d.starveAcute is False
+    assert D.starvePhase(d.starvedH) == 0
+    assert d.recentKcal == 6000.0                                              # the record days did not move
+
+
+def test_a_stamp_ahead_of_the_clock_heals_to_the_minute(host, D):
+    rec = record(host, unfed=0.0, at=500.0)
+    rec.satiety.M = 0.0
+    d = D.step(rec, 1.0, 100.0)
+    assert d.fedAgeH == 100.0 and d.starvedH == 0
+
+
+def test_the_clocks_survive_a_restart(host, D):
+    rec = record(host, unfed=40.0)
+    D.step(rec, 1.0, 100.0)
     saved = host.py(host.K.store.inputsOnly(rec))["drain"]                     # what a save keeps
-    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "k72", "k72h", "k72since"}
-    assert len(saved["k72"]) == 72 and sum(saved["k72"].values()) == pytest.approx(400.0, abs=1e-9)
-    rec.drain.k72s = None                                                      # derived: rebuilt after a load
-    assert D.kcal72(rec.drain, rec.body.trail) == pytest.approx(400.0, abs=1e-9)
-
-
-def test_the_window_over_600_kcal_leaves_the_acute_onset_to_the_unfed_hours(host, D):
-    t0 = 1000.0
-    rec = kcal72_record(host, t0)
-    for hour in range(0, 80):
-        host.K.body.trailTo(rec.body.trail, t0 + hour)
-        rec.satiety.M = 0.0
-        if hour == 60:
-            eat_into_trail(host, rec, 601.0, t0 + hour)
-            rec.satiety.M = 10.0                                               # the meal fed the pool: 19 unfed h by 79
-        d = D.step(rec, 60.0, t0 + hour)
-    assert d.kcal72 == pytest.approx(601.0, abs=1e-9) and d.starveAcute is False
-
-
-def test_a_non_finite_slot_restarts_the_window(host, D):
-    t0 = 1000.0
-    rec = kcal72_record(host, t0)
-    for hour in range(0, 3):
-        host.K.body.trailTo(rec.body.trail, t0 + hour)
-        D.step(rec, 60.0, t0 + hour)
-    rec.drain.k72[(int(t0) + 1) % 72 + 1] = float("nan")
-    rec.drain.k72s = None
-    assert D.kcal72(rec.drain, rec.body.trail) is None
-    assert rec.drain.k72since is None and rec.drain.k72h is None               # restarted: first sight again
-    assert D.kcal72(rec.drain, None) is None                                  # an unreadable trail
+    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH"}
+    assert saved["fedAgeH"] == 60.0
+    rec.body.inDay2, rec.body.inDay3 = 1.0, 2.0
+    body = host.py(host.K.store.inputsOnly(rec))["body"]
+    assert body["inDay2"] == 1.0 and body["inDay3"] == 2.0

@@ -481,8 +481,8 @@ function K.acute.skip(a, gapH, fromH)
 end
 
 -- The record's one offline skip (the adapter's call when its capped step from fromH leaves gapH game hours
--- unintegrated): the acute anchors (K.acute.skip), and every monotony stamp (K.monotony.skip) and the writer's nicotine
--- anchor satiety.nicH laid by fromH, move forward by the gap, so no world-age clock the mod reads counts the time
+-- unintegrated): the acute anchors (K.acute.skip), and every monotony stamp (K.monotony.skip), the writer's nicotine
+-- anchor satiety.nicH and the drain's unfed stamp drain.fedAgeH laid by fromH, move forward by the gap, so no world-age clock the mod reads counts the time
 -- offline: an absence neither fades a repeated food nor counts toward a quit. A stamp laid after fromH was laid at the
 -- return (an eat before the first step back) and stays. A nicH that is absent or not a finite number is left for the
 -- writer's own heal. Returns the record.
@@ -492,6 +492,10 @@ function K.acute.skipRecord(record, gapH, fromH)
     local s = record.satiety
     if type(s) == "table" and K.finite(s.nicH) and s.nicH <= fromH then
         s.nicH = s.nicH + gapH
+    end
+    local D = record.drain
+    if type(D) == "table" and K.finite(D.fedAgeH) and D.fedAgeH <= fromH then
+        D.fedAgeH = D.fedAgeH + gapH                    -- the unfed clock (K.drain.unfedH), as lastFedAgeH (Plan 15 Task 6 fix 2)
     end
     return record
 end

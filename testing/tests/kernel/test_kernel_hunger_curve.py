@@ -250,3 +250,39 @@ def test_a_meal_inside_the_acute_state_ends_it_and_the_cap_returns():
     assert rows[m - 1]["drain.starveAcute"] is True and rows[m - 1]["HUNGER"] > 0.70
     assert rows[m]["drain.starveAcute"] is False and rows[m]["drain.starving"] is False
     assert rows[m]["HUNGER"] <= 0.69
+
+
+# ---- Plan 15 Task 6 fix 2: refeeding clears Starving, and an offline gap is not a fast -----------------------------
+
+@pytest.mark.parametrize("kcal", [500.0, 700.0, 1300.0])
+def test_a_meal_after_a_120_h_fast_clears_the_starving_minimum_at_once(kcal):
+    import fit_hunger_curve as F
+    b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
+    m = b + 120 * 60
+    ev = [e for e in F.fast_events() if e["kind"] != "autodrop"] + F.water(10)
+    rows, be = F.replay(ev + [F.meal(m, kcal)], m + 240)
+    fed_m = be.K.hungerCurve.FED_M
+    assert rows[m - 1]["drain.starveAcute"] is True and rows[m - 1]["HUNGER"] > 0.70
+    fed = [r for r in rows[m:] if r["satiety.M"] >= fed_m]
+    assert fed and all(not r["drain.starveAcute"] and r["HUNGER"] < 0.70 for r in fed)
+    assert rows[m]["HUNGER"] < 0.15                                       # the curve again, at once
+    if kcal >= 700:
+        assert rows[m + 30]["HUNGER"] < 0.15
+
+
+def test_a_199_h_logout_after_the_pool_empties_is_not_a_fast():
+    import fit_hunger_curve as F
+    import replay_live as RL
+    b = F.FED_DAYS * F.DAY + F.MEAL_MIN[0]
+    leave = b + 6 * 60                                                    # the pool empty since about 4.6 h
+    back = leave + 199 * 60
+    n = back + 60
+    be = RL.ServerReplay(hour_offset=F.HOUR_OFFSET, rng="half", sleep_allowed=False)
+    ev = sorted((e for e in F.fast_events() + F.water(12) if e["minute"] < leave), key=lambda e: e["minute"])
+    rows = RL.run(be, RL.synthetic_ages(n), ev, list(F.PATHS) + ["drain.starvedH"], start_age=0.0,
+                  offline=set(range(leave, back)))
+    after = [r for r in rows[back:] if not r.get("offline")]
+    assert after and all(not r["drain.starveAcute"] for r in after)
+    assert max(r["drain.starvedH"] for r in after) < 9.0                 # 6 h before, at most an hour's clamp and one back
+    assert all(be.K.drain.starvePhase(r["drain.starvedH"]) == 0 for r in after)
+    assert all(r["HUNGER"] < 0.69 for r in after)

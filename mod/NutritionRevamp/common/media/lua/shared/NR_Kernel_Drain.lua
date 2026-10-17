@@ -14,9 +14,9 @@
 -- body-water deficit; the three deficiencies' follow the hours at the clinical grade (nutrients.<key>.ah); the sodium
 -- and iron rungs' follow the record's own hours in the state (record.drain.naH, feH). The rates are per game day and
 -- independent of day length.
--- record.drain holds the inputs a save keeps (bmi0, naH, feH, and starvation's clocks fedAgeH, acuteH, k72, k72h and
--- k72since; K.store.INPUTS) and the minute's derived outputs (active, state, targetFloor, rate, drainThisMinute, starvedH
--- (the starvation clock: the unfed hours, or the onset plus the hours in the acute state), kcal72, and the starving,
+-- record.drain holds the inputs a save keeps (bmi0, naH, feH, and starvation's clocks fedAgeH and acuteH;
+-- K.store.INPUTS) and the minute's derived outputs (active, state, targetFloor, rate, drainThisMinute, starvedH (the
+-- starvation clock: the unfed hours, or the onset plus the hours in the acute state), recentKcal, and the starving,
 -- starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua tables in and out, no Java. Slow-clock code
 -- with no fast region; every K.acute / K.fluids / K.HEIGHT_M reference is at call time.
 local K = NutritionRevamp.kernel
@@ -37,14 +37,14 @@ K.drain.FIRST_FLOOR = 50 -- health: the vanilla-paced first floor; game choice (
 K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900); the final stage starts here
 K.drain.NONE = 100 -- health: the floor read with no state active (full health), no row needed
 
--- Starvation: the acute onset (Plan 15 Task 6 fix 1) at STARVE_ONSET_H unfed hours (K.drain.unfedH: the hours since the
--- meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts), or while the trailing
--- 72 h intake is K72_MIN_KCAL or less once 72 h have been seen (K.drain.kcal72: a starvation diet of snacks); or the
+-- Starvation: the acute onset (Plan 15 Task 6 fixes 1 and 2) at STARVE_ONSET_H unfed hours (K.drain.unfedH: the hours
+-- since the meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts, never
+-- offline), or, while the pool is under FED_M, the recent intake at RECENT_MIN_KCAL or less (K.drain.recentKcal: today
+-- and the three closed record days, a starvation diet of snacks); or the
 -- chronic onset at a BMI under 13 whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
 -- floor by BMI, 10 + 40 x clamp((BMI - 12.5) / (BMI0 - 12.5), 0, 1) above 12.5, then linear to 0 at BMI 12.
 K.drain.STARVE_ONSET_H = 30 -- unfed hours (the meal pool under K.hungerCurve.FED_M), counted continuously: game choice (spec section 10: each floor's curve), set so the onset coincides with the calibrated curve reaching its 0.69 cap, 29.9-30.3 h after the pool empties for 200-1,300 kcal meals, so Starving shows 33.6-35.1 h after the meal (vanilla 34.55 h)
-K.drain.K72_MIN_KCAL = 600 -- kcal absorbed over the trailing 72 h: game choice (spec section 10: each floor's curve; the controller's Task 6 fix 1 ruling), about 200 kcal a day, at or under which the acute onset holds whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: a 72 h window can hold three of a 200 kcal snack every 33 h, exactly 600)
-K.drain.K72_N = 72 -- hours: the trailing window's hourly ring, no row needed
+K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed today and over the three closed record days (72-96 h): game choice (spec section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
 K.drain.BMI_KNEE = 12.5 -- kg/m2, the floor reaches 10 here: game choice inside S2234's 12-13 (spec section 10)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
 K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (spec section 10: each floor's curve)
@@ -146,21 +146,10 @@ function K.drain.new()
         drainThisMinute = 0,
         starvedH = 0,
         acuteH = 0,
-        k72 = K.drain.newK72(),
-        kcal72 = nil,
         starving = false,
         starveAcute = false,
         dehydrated = false,
     }
-end
-
--- A fresh trailing-72 h ring: K72_N hourly slots, every one 0.
-function K.drain.newK72()
-    local r = {}
-    for i = 1, K.drain.K72_N do
-        r[i] = 0
-    end
-    return r
 end
 
 -- record.drain, laid when absent; a stored input that is not a finite number heals to 0.
@@ -185,19 +174,7 @@ function K.drain.ensure(record)
     if D.fedAgeH ~= nil and not K.finite(D.fedAgeH) then
         D.fedAgeH = nil
     end
-    if type(D.k72) ~= "table" or (D.k72h ~= nil and not K.finite(D.k72h))
-            or (D.k72since ~= nil and not K.finite(D.k72since)) then
-        K.drain.resetK72(D)
-    end
     return D
-end
-
--- The trailing-72 h window restarted: every slot 0, no hour copied, no hours seen.
-function K.drain.resetK72(D)
-    D.k72 = K.drain.newK72()
-    D.k72h = nil
-    D.k72since = nil
-    D.k72s = nil
 end
 
 -- The BMI of lm + fm at K.HEIGHT_M.
@@ -206,8 +183,9 @@ function K.drain.bmi(lm, fm)
 end
 
 -- The hours since the meal pool was last fed (record.satiety.M at K.hungerCurve.FED_M or more), counted continuously
--- across days, sleep and restarts (record.drain.fedAgeH, a stored input): a fed minute, a record seen for the first
--- time (no stamp), or a pool not yet seeded stamps the world age and reads 0.
+-- across days, sleep and restarts (record.drain.fedAgeH, a stored input, moved past an offline gap by
+-- K.acute.skipRecord): a fed minute, a record seen for the first time (no stamp), a pool not yet seeded or a stamp
+-- ahead of the minute stamps the world age and reads 0.
 function K.drain.unfedH(D, sat, ageH)
     if not K.finite(ageH) then
         return 0
@@ -216,56 +194,30 @@ function K.drain.unfedH(D, sat, ageH)
     if type(sat) == "table" then
         M = sat.M
     end
-    if not K.finite(D.fedAgeH) or not K.finite(M) or M >= K.hungerCurve.FED_M then
+    if not K.finite(D.fedAgeH) or D.fedAgeH > ageH or not K.finite(M) or M >= K.hungerCurve.FED_M then
         D.fedAgeH = ageH
     end
     return K.max(0, ageH - D.fedAgeH)
 end
 
--- The kcal absorbed over the trailing 72 h (the current hour and the 71 closed before it), from the body's
--- trailing-24 h window (K.body.trail, its kcal ring): as each hour closes it is copied into record.drain.k72, an
--- hourly ring of K72_N slots (hour h in slot h % K72_N + 1; record.drain.k72h, the last hour copied), and an hour the
--- body's window no longer holds (a gap past 24 h) reads 0. The closed sum (k72s, derived) is rebuilt once an hour, and
--- a non-finite one restarts the window. Returns the sum, or nil while the window has seen less than K72_N hours
--- (k72since, the trail age the window started at) or the trail is unreadable.
-function K.drain.kcal72(D, trail)
-    if type(trail) ~= "table" or not K.finite(trail.at) or type(trail.kcal) ~= "table" then
+-- The recent intake (Plan 15 Task 6 fix 2): the kcal absorbed today (body.inDay) and over the three closed record days
+-- (body.inDayClosed, inDay2 and inDay3, rotated at the day close, K.drain.closeDay), a window of 72-96 h that the record
+-- calendar keeps, so an offline gap neither counts nor shifts it. nil while any of the four is not a number: a fresh
+-- body has seen fewer than three closes (a loaded one's closed day reads the resting expenditure, K.store.closeDefault).
+function K.drain.recentKcal(body)
+    local a, b, c, d = body.inDay, body.inDayClosed, body.inDay2, body.inDay3
+    if not (K.finite(a) and K.finite(b) and K.finite(c) and K.finite(d)) then
         return nil
     end
-    local H = math.floor(trail.at)
-    local N = K.drain.K72_N
-    if D.k72since == nil then
-        D.k72since = trail.at
-        D.k72h = H - 1
-        D.k72s = nil
-    end
-    local ring = D.k72
-    if H - 1 > D.k72h then
-        for h = K.max(D.k72h + 1, H - N), H - 1 do
-            local v = 0
-            if h >= H - (K.body.TRAIL_N - 1) then
-                v = trail.kcal[K.body.trailSlot(h)]
-            end
-            ring[h % N + 1] = v
-        end
-        D.k72h = H - 1
-        D.k72s = nil
-    end
-    if D.k72s == nil then
-        local sum = 0
-        for h = H - N + 1, H - 1 do
-            sum = sum + ring[h % N + 1]
-        end
-        if not K.finite(sum) then
-            K.drain.resetK72(D)
-            return nil
-        end
-        D.k72s = sum
-    end
-    if trail.at - D.k72since < N then
-        return nil
-    end
-    return D.k72s + trail.kcal[K.body.trailSlot(H)]
+    return a + b + c + d
+end
+
+-- The record day's close (NR_Server_Metabolism's): the closed days move down one, the closing day's absorbed kcal into
+-- inDayClosed.
+function K.drain.closeDay(body)
+    body.inDay3 = body.inDay2
+    body.inDay2 = body.inDayClosed
+    body.inDayClosed = body.inDay
 end
 
 -- The starvation effect phase 0..3 of starved hours (K.drain.STARVE_PHASE_H).
@@ -346,10 +298,12 @@ K.drain.IN = { lm = 0, fm = 0, bmi0 = 0, dehydPct = 0 }
 -- (the code whose floor is lowest), targetFloor (100 with none), rate (the fastest active, health per game day),
 -- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - floor),
 -- starvedH (the starvation clock: the unfed hours, K.drain.unfedH; while the acute state holds, at least the onset plus
--- its hours, acuteH, so a snack inside it never resets the effect phases), kcal72 (K.drain.kcal72), and starving and
+-- its hours, acuteH), recentKcal (K.drain.recentKcal), and starving and
 -- dehydrated: whether the starvation and the dehydration states are active, whichever floor wins (the writer lifts its
 -- HUNGER and THIRST caps on them, K.hybrid.caps); starveAcute: whether starvation came by the acute onset
--- (STARVE_ONSET_H unfed hours, or the trailing 72 h intake at or under K72_MIN_KCAL), whose HUNGER minimum the chronic BMI
+-- (STARVE_ONSET_H unfed hours, or, while the pool is unfed, the recent intake at or under RECENT_MIN_KCAL; the clock
+-- acuteH and the onset BMI are held through a fed spell while the recent intake stays that low, so a snack does not
+-- reset the phases or the floor, Plan 15 Task 6 fix 2), whose HUNGER minimum the chronic BMI
 -- onset does not take (Plan 15 Task 6, ruling I2). Returns record.drain.
 function K.drain.step(record, dtM, ageH)
     local D = K.drain.ensure(record)
@@ -374,14 +328,22 @@ function K.drain.step(record, dtM, ageH)
     inp.fm = body.fm
     inp.dehydPct = fl.dehydPct
     local unfed = K.drain.unfedH(D, record.satiety, ageH)
-    D.kcal72 = K.drain.kcal72(D, body.trail)
-    D.starveAcute = unfed >= K.drain.STARVE_ONSET_H or (D.kcal72 ~= nil and D.kcal72 <= K.drain.K72_MIN_KCAL)
+    D.recentKcal = K.drain.recentKcal(body)
+    local low = D.recentKcal ~= nil and D.recentKcal <= K.drain.RECENT_MIN_KCAL
+    local sat = record.satiety
+    local fedNow = type(sat) == "table" and K.finite(sat.M) and sat.M >= K.hungerCurve.FED_M
+    D.starveAcute = unfed >= K.drain.STARVE_ONSET_H or (low and not fedNow)
+    local held = false
     if D.starveAcute then
         D.starvedH = K.max(unfed, K.drain.STARVE_ONSET_H + D.acuteH)
         D.acuteH = D.acuteH + K.clamp(dtM, 0, 60) / 60
     else
-        D.acuteH = 0
         D.starvedH = unfed
+        if low and D.acuteH > 0 then
+            held = true                                    -- a snack's fed spell: the clock and the onset BMI wait
+        else
+            D.acuteH = 0
+        end
     end
     if D.starveAcute or K.drain.bmi(body.lm, body.fm) < K.drain.BMI_CHRONIC then
         if not (D.bmi0 > 0) then
@@ -390,7 +352,7 @@ function K.drain.step(record, dtM, ageH)
         inp.bmi0 = D.bmi0
         K.drain.consider(D, K.drain.STARVATION, 0, inp)
         D.starving = true
-    else
+    elseif not held then
         D.bmi0 = 0
     end
     K.drain.deficiency(D, K.drain.SCURVY, nut, inp)

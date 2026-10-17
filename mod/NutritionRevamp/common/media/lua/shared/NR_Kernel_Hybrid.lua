@@ -161,7 +161,7 @@ end
 -- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3): the caps lift at the crises, so vanilla's own
 -- Starving and Parched moodles show. state is any table with the drain flags (record.drain, or the writer's input,
 -- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1, and under the acute onset
--- (starveAcute: 30 unfed hours, or the trailing 72 h intake at 600 kcal or less) holds it at least starvingMin; under the chronic BMI onset alone HUNGER follows the
+-- (starveAcute: 30 unfed hours, or, while the pool is unfed, the recent intake at 600 kcal or less) holds it at least starvingMin; under the chronic BMI onset alone HUNGER follows the
 -- curve (ruling I2: the Starving moodle is appetite, the drain is the body); dehydrated (K.drain's dehydration state active, a body-water deficit of 4 % or more) lifts THIRST's cap
 -- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under 0.69 and
 -- THIRST under 0.83, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
