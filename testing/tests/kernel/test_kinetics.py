@@ -378,7 +378,7 @@ def test_a_failed_clock_read_never_creates_a_record():
 
 def test_the_guard_list_names_the_liquid_lane(kin_host):
     h = kin_host
-    assert list(KIN(h).GUARD.values()) == ["liquid", "volX"]     # volX: Plan 15 Task 7
+    assert list(KIN(h).GUARD.values()) == ["liquid", "volX", "liqKcal"]     # volX: Plan 15 Task 7; liqKcal: Task 14b
 
 
 @pytest.mark.parametrize("key", [

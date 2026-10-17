@@ -3,7 +3,7 @@
 -- its other keys, its energy among them, in the buffer (ingestLiquid). The slow clock empties both
 -- lanes per step (drain): the solid lane's energy at a zero-order rate rising with the energy it holds, every other
 -- key in the same proportion, never faster than water; the liquid lane first-order at a half-time that grows with the
--- solid lane's energy. Absorption applies per-nutrient bioavailability and the phytate/vitamin-C iron interaction
+-- energy that came in as drink (stomach.liqKcal), never with a plate's. Absorption applies per-nutrient bioavailability and the phytate/vitamin-C iron interaction
 -- (absorb); the absorbed vector accumulates into the pool (toPool). The unabsorbed remainder is discarded.
 -- Run x151r (#2981): the factor reads the meal in the stomach, not the share emptied this
 -- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
@@ -62,13 +62,14 @@ K.stomach.FAT_SOLUBLE.vitK = true
 -- 32 %), so D absorbs at VITD_FAT_FREE + (1 - VITD_FAT_FREE) x fatFactor, 0.772 with no fat at all.
 K.stomach.VITD_FAT_FREE = 0.76 -- S0198 (+32 % with a fat-containing meal; 1/1.32 = 0.76, derived)
 
--- A fresh stomach: an all-zero solid buffer and an empty liquid lane (spec § 4: a record with no
+-- A fresh stomach: an all-zero solid buffer, an empty liquid lane and no drink-borne energy (spec § 4: a record with no
 -- stomach starts empty).
 function K.stomach.new()
     local stomach = {}
     stomach.buffer = K.vector.new()
     stomach.liquid = 0
     stomach.volX = 0
+    stomach.liqKcal = 0
     return stomach
 end
 
@@ -184,11 +185,14 @@ end
 -- Plan 2 code; the first-order pieces it replaced retired in Task 6. The solid lane (stomach.buffer)
 -- empties energy at a zero-order rate that rises with the energy it holds, every other key leaving in the same
 -- proportion, never faster than water; the liquid lane (stomach.liquid, grams of drunk water) half-empties in
--- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal in the solid lane. K.stomach.new lays both lanes.
+-- WATER_HALF_MIN plus LIQUID_PER_KCAL per kcal of drink-borne energy in the solid lane (Plan 15 Task 14b: stomach.liqKcal,
+-- the energy ingestLiquid sent there, at most the lane's own). Water drunk with or after a solid meal separates from it
+-- and empties at about its fasting pace, a half-time of about 5-15 min (S2265, S2267, S2269, S1246); only energy carried
+-- in the drink itself slows it (S1234, S2265, S2274). K.stomach.new lays both lanes and the counter.
 K.stomach.RATE_BASE = 1.25 -- S0131 (labelled inference, ruling 11c-4): kcal/min at no load, fitted so the rate reads Hunt 1985's overall 2.5 kcal/min at its mean load; liquid carbohydrate meals applied to solids
 K.stomach.RATE_PER_KCAL = 0.0025 -- S0131 (labelled inference, ruling 11c-4): per min, the rise with load (+0.72 kcal/min for +300 kcal of volume, +0.62 for +240 kcal of density: 0.0024 and 0.0026 per kcal)
 K.stomach.WATER_HALF_MIN = 13 -- S1245 (Mudie 2014: 240 mL of water half-empties in 13 +/- 1 min, fasted); the fastest either lane empties
-K.stomach.LIQUID_PER_KCAL = 0.12 -- S1234 over S1245 (labelled inference, ruling 11c-5): min of liquid half-time per kcal in the solid lane, fitted to Camps 2016's thin 100 and 500 kcal shakes (26.5 and 69.5 min) over water's 13 min
+K.stomach.LIQUID_PER_KCAL = 0.12 -- S1234 over S1245 (labelled inference, ruling 11c-5): min of liquid half-time per kcal of drink-borne energy in the solid lane (Plan 15 Task 14b), fitted to Camps 2016's thin 100 and 500 kcal shakes (26.5 and 69.5 min) over water's 13 min
 K.stomach.CAPACITY_MAX_G = 730 -- S1250 (labelled inference, ruling 11c-8): the soft cap, 734 mL of water to maximum fullness; S1251's slow nutrient drinks (937-1048 mL) bound it above
 K.stomach.CAPACITY_HARD_G = 1100 -- S1253 (labelled inference): the soft cap's full scale, a balloon at maximal discomfort in lean subjects (1100 mL, n = 4)
 
@@ -208,12 +212,14 @@ function K.stomach.water(stomach)
 end
 
 -- A drink: its water into the liquid lane, every other key (its energy among them) into the solid
--- buffer, whose own water is kept bit for bit. The vector is not changed. Returns the stomach.
+-- buffer, whose own water is kept bit for bit; its energy also joins stomach.liqKcal, the drink-borne energy that
+-- slows the liquid lane (Plan 15 Task 14b). The vector is not changed. Returns the stomach.
 function K.stomach.ingestLiquid(stomach, vector)
     local own = stomach.buffer.water
     K.vector.add(stomach.buffer, vector, 1)
     stomach.buffer.water = own
     stomach.liquid = stomach.liquid + (vector.water or 0)
+    stomach.liqKcal = stomach.liqKcal + (vector.calories or 0)
     return stomach
 end
 
@@ -230,7 +236,7 @@ function K.stomach.waterFraction(dtM, halfMin)
     return 1 - math.exp(-0.6931471805599453 * dtM / halfMin)
 end
 
--- The liquid lane's half-time with E kcal in the solid lane.
+-- The liquid lane's half-time with E kcal of drink-borne energy in the solid lane (a plate's energy does not slow it).
 function K.stomach.liquidHalfMin(energy)
     return K.stomach.WATER_HALF_MIN + K.stomach.LIQUID_PER_KCAL * K.max(energy, 0)
 end
@@ -258,13 +264,17 @@ end
 
 -- Empty both lanes over dtH game hours: the solid fraction of every buffered key and the liquid lane's share of its
 -- water move out as a fresh vector (the liquid's share added to its water); the buffer and the lane keep the rest.
--- The solid lane's energy before the step sets both fractions. The volume excess stomach.volX leaves at the solid
--- fraction, with the solids it rode in on (Plan 15 Task 7).
+-- The solid lane's energy before the step sets the solid fraction; the drink-borne share of it, stomach.liqKcal capped
+-- at the lane's energy, sets the liquid lane's (Plan 15 Task 14b), and leaves at the solid fraction with the energy it
+-- rode in on; a NaN counter reads as the lane's energy (K.min answers its second argument) and heals on the step, and
+-- an infinite one reaches Kinetics' guard (KIN.GUARD). The volume excess stomach.volX leaves at the solid fraction too,
+-- with the solids it rode in on (Plan 15 Task 7).
 function K.stomach.drain(stomach, dtH)
     local dtM = dtH * 60
     local energy = stomach.buffer.calories
     local f = K.stomach.solidFraction(energy, dtM)
-    local fl = K.stomach.waterFraction(dtM, K.stomach.liquidHalfMin(energy))
+    local liqE = K.min(stomach.liqKcal, energy)
+    local fl = K.stomach.waterFraction(dtM, K.stomach.liquidHalfMin(liqE))
     local emptied = K.vector.add(K.vector.new(), stomach.buffer, f)
     local keys = K.vector.KEYS
     for i = 1, #keys do
@@ -275,6 +285,7 @@ function K.stomach.drain(stomach, dtH)
     local lw = liquid * fl
     stomach.liquid = liquid - lw
     stomach.volX = stomach.volX * (1 - f)
+    stomach.liqKcal = liqE * (1 - f)
     emptied.water = emptied.water + lw
     return emptied
 end

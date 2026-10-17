@@ -11,6 +11,7 @@ import sys
 
 import pytest
 
+from . import at_build
 from .server_host import REPO
 
 sys.path.insert(0, os.path.join(REPO, "tools"))
@@ -62,46 +63,14 @@ def test_autodrop_refuses_a_bad_mass():
             replay([ev])
 
 
-def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance():
+def test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance(tmp_path):
+    # Plan 15 Task 14b: x332's ring ran the old liquid lane (slowed by the solid lane's whole kcal), so its replay
+    # readings (0.04, 0.0465 HUNGER; the liquid order; the 0.7972 fill) hold on the build before that change and are
+    # re-run there, frozen, never re-pinned at HEAD (CLAUDE.md § 5)
     if not os.path.isdir(X332):
         pytest.skip("the artifact is not in this tree")
-
-    def rd(name):
-        with open(os.path.join(X332, name + ".json"), encoding="utf-8") as fh:
-            return json.load(fh)
-
-    pages = sorted(glob.glob(os.path.join(X332, "minute-ring-admin-*.json")),
-                   key=lambda f: int(f.rsplit("-", 1)[1].split(".")[0]))
-    ring, rp = RL.load_ring(pages)
-    events = []
-    n = 0
-    for e in rd("events"):
-        if e.get("label") == "autodrop":
-            events.append({"s": e["s"], "kind": "autodrop", "g": e["vec"]["water"], "label": "autodrop"})
-            n += 1
-        else:
-            events.append(e)
-    assert n >= 1
-    kw = dict(paths=rp, user="admin", player=rd("player"), start_stats=rd("start-stats"), sleep_allowed=False,
-              constants=dict(RL.DEFICIT_11F, **RL.PRE_CURVE))                          # the ring's build's deficit drive (Plan 11g Task 7) and its pre-curve writer (Plan 15 Task 6)
-    old, _ = RL.replay_live(ring, rd("events"), rd("start"), **kw)
-    new, _ = RL.replay_live(ring, events, rd("start"), **kw)
-    live = {r["s"]: r for r in ring}
-
-    def worst(rows, f="HUNGER"):
-        d = [abs(r[f] - live[r["s"]][f]) for r in rows
-             if 1033 <= r["s"] <= 1049 and not r.get("between") and not r.get("suspect") and not r.get("offline")
-             and r.get(f) is not None and live.get(r["s"], {}).get(f) is not None]
-        return max(d)
-    # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer loaded,
-    # so the replay seeds M from HUNGER), and HUNGER no longer replays within DEFAULT_TOL: on the P model the drink
-    # event ran ahead (0.00495, over the tolerance) and the autodrop event held it (0.00055 measured with a setpath
-    # stand-in; this test at 0f14044f). The order is read off the liquid lane, which the satiety model does not enter;
-    # HUNGER's fidelity under M is tested on x361's ring (testing/tests/test_x36_gut_lib.py::test_the_x361_ring_replays_within_the_default_tolerances, Plan 11g Task 8)
-    assert worst(old, "stomach.liquid") > 50.0                     # the drink event runs a minute ahead: 73 g
-    assert worst(new, "stomach.liquid") < 1e-9                     # the autodrop lands where the mod lands it
-    # stomachFill reads both lanes whole since Plan 11g Task 6c fix 1 (ruling T6c-1; it weighed the liquid lane at
-    # LIQUID_WEIGHT before): the ring's fill was taken at 0.2, so the autodrop's fill now reads well over the ring's, a
-    # reading (0.2184 at Task 6c's LIQUID_WEIGHT 0.0151, 0.022 at Task 6's 0.181)
-    assert worst(old, "stomachFill") > 0.2 and round(worst(new, "stomachFill"), 4) == 0.7972
-    assert (round(worst(old), 4), round(worst(new), 4)) == (0.04, 0.0465)   # the P ring against the refit M (Plan 11g Task 6c fix 2): readings (0.0322, 0.0343 under fix 1's refit; 0.1123, 0.1119 under Task 6c's fit; 0.149, 0.1504 under the gut stage's fit; 0.0514, 0.0536 under its provisional constants), at DEFICIT_11F, the ring's deficit drive (Plan 11g Task 7)
+    code, out = at_build.run(tmp_path, at_build.PRE_LIQUID_LANE,
+                             "testing/tests/kernel/test_replay_live_autodrop.py::"
+                             "test_x332_hunger_over_the_dry_canteen_refill_is_within_tolerance",
+                             ("testing/artifacts/x332-20261011-141601",))
+    assert code == 0 and " passed" in out, out

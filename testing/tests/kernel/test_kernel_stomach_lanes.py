@@ -1,7 +1,8 @@
 """The stomach's two lanes (Plan 11c Task 2; spec § 5a rulings 11c-4, 11c-5 and 11c-8): fill by mass, a solid lane
 that empties energy at a zero-order rate rising with the buffered energy (S0131, a labelled inference for solids),
-never faster than water's half-time (S1245), and a liquid lane of drunk water whose half-time grows with the solid
-lane's energy (S1234 over S1245, a labelled inference). Hand-computed from the constants."""
+never faster than water's half-time (S1245), and a liquid lane of drunk water whose half-time grows with the
+drink-borne energy in the solid lane (S1234 over S1245, a labelled inference; Plan 15 Task 14b: a plate's energy no
+longer slows it, S2265, S2267, S2269). Hand-computed from the constants."""
 import math
 import os
 import re
@@ -92,19 +93,23 @@ def test_no_time_empties_nothing(host):
     assert host.K.stomach.waterFraction(-5, 13) == 0
 
 
-def test_the_liquid_half_time_grows_with_the_solid_energy(host):
+def test_the_liquid_half_time_grows_with_the_drink_borne_energy(host):
+    # Plan 15 Task 14b: the argument is the drink-borne kcal (stomach.liqKcal capped at the lane's), no longer the
+    # solid lane's whole energy; the function and its numbers are unchanged
     assert host.K.stomach.liquidHalfMin(0) == 13
     assert host.K.stomach.liquidHalfMin(500) == pytest.approx(73)
     assert host.K.stomach.liquidHalfMin(-3) == 13
 
 
 def test_drain_moves_the_solid_share_of_every_key_and_the_liquids_share_of_water(host):
+    # Plan 15 Task 14b: plain water beside a 650 kcal plate carries no energy, so its lane half-empties in water's
+    # 13 min (S2265, S2267, S2269), where the old rule read 13 + 0.12 x 650 = 91 min off the plate's kcal
     st = host.K.stomach["new"]()
     host.K.stomach.ingest(st, _vec(host, calories=650, proteins=24.375, carbs=81.25, lipids=25.0, fibre=6, water=300,
                                    iron=4))
     host.K.stomach.ingestLiquid(st, _vec(host, water=250))
     f = _closed(650, 30)
-    fl = 1 - math.exp(-LN2 * 30 / (13 + 0.12 * 650))
+    fl = 1 - math.exp(-LN2 * 30 / 13)
     em = host.K.stomach.drain(st, 0.5)
     assert em.calories == pytest.approx(650 * f) and em.iron == pytest.approx(4 * f)
     assert em.water == pytest.approx(300 * f + 250 * fl)

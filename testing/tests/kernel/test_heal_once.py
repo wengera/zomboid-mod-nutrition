@@ -117,8 +117,9 @@ CROSS = (
     # Plan 11d Task 5 fix (ruling T5-2): the writer reads both lanes for its satiety F (W.satietyF, K.stomach.fullnessMass).
     # Plan 15 Task 7: the solid lane's volume excess volX, which the writer's satiety F reads (K.stomach.satietyMass,
     # W.bufferFinite) and the store saves; the physical mass the nutrients and the bus read never takes it.
+    # Plan 15 Task 14b: the drink-borne energy liqKcal, which the next minute's drain reads and the store saves.
     + _rows("kinetics", "stomach", [("nutrients", ("liquid",)), ("bus", ("liquid",)), ("writer", ("liquid", "volX")),
-                                    ("store", ("liquid", "volX"))])
+                                    ("store", ("liquid", "volX", "liqKcal"))])
     + _rows("kinetics", "stomach.buffer", [
         ("nutrients", ("water",)),
         ("bus", ("water", "proteins", "carbs", "lipids", "fibre")),

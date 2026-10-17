@@ -35,7 +35,7 @@ local KIN = NR.server.kinetics
 -- reason: an infinite gram key clamps the fill (the physical fill and the writer's fallback; the writer's F is W.satietyF) to 1, which is finite, so the fill alone
 -- does not catch it, and that key never drains. A non-finite micronutrient would also spread into the pool and the
 -- nutrients every minute. The cost is about 2.3 us per player-minute, per minute and never per tick.
-KIN.GUARD = { "liquid", "volX" } -- volX: the satiety mass's volume excess (Plan 15 Task 7)
+KIN.GUARD = { "liquid", "volX", "liqKcal" } -- volX: the satiety mass's volume excess (Plan 15 Task 7); liqKcal: the drink-borne energy (Task 14b)
 
 local function nonFinite(stomach)
     for i = 1, #KIN.GUARD do
@@ -61,7 +61,7 @@ end
 -- The buffer check the step runs before the meal context and the drain, which raise on a
 -- buffer key that is nil or a string (K.stomach.drain multiplies every key), so the heal below the fill never ran and
 -- the stomach stayed malformed while the writer's F read failed. A stomach that is not a table, a buffer that is not
--- one, a buffer key (K.vector.KEYS) or a liquid lane that is not a number (an absent lane included) counts a
+-- one, a buffer key (K.vector.KEYS), a liquid lane, volX or liqKcal that is not a number (an absent one included) counts a
 -- failure, is logged and answers true: the step resets the stomach empty on the minute it is found and keeps the pool.
 -- A NaN or infinite number does not raise and stays with the heal below the fill (nonFinite).
 function KIN.malformed(stomach, username)
@@ -75,7 +75,7 @@ function KIN.malformed(stomach, username)
                 break
             end
         end
-        if type(stomach.liquid) ~= "number" or type(stomach.volX) ~= "number" then
+        if type(stomach.liquid) ~= "number" or type(stomach.volX) ~= "number" or type(stomach.liqKcal) ~= "number" then
             bad = true
         end
     end

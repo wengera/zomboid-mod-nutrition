@@ -218,7 +218,9 @@ def _volume_readings(h, beta):
 
 def test_the_volume_oracles_hold_at_the_shipped_beta(host):
     got = G.check(_volume_readings(host, host.K.satiety.BETA), *VOLUME_ORACLES)
-    assert got["nguyen_popcorn_below_chips"] == pytest.approx(-0.005392, abs=1e-6)   # S2209: popcorn 0.2143, chips 0.2197
+    # Plan 15 Task 14b: each arm's 200 mL of water now leaves at water's half-time beside the snack (the liquid lane
+    # reads drink-borne kcal only), so both arms read hungrier and the gap widens from -0.005392 to -0.006049
+    assert got["nguyen_popcorn_below_chips"] == pytest.approx(-0.006049, abs=1e-6)   # S2209: the popcorn arm below
     assert got["osterholt_null"] == pytest.approx(0.002815, abs=1e-6)                # S1484: inside +/- 0.0096
 
 
@@ -226,7 +228,7 @@ def test_nguyens_sign_fails_without_the_volume_term(host):
     # the stability check: at BETA = 0 the chips' larger meal pool wins, so the oracle reads the volume term itself
     r = _volume_readings(host, 0)
     o = G.BY_NAME["nguyen_popcorn_below_chips"]
-    assert o.pick(r) == pytest.approx(0.000960, abs=1e-6)
+    assert o.pick(r) == pytest.approx(0.000304, abs=1e-6)       # 0.000960 before Plan 15 Task 14b's liquid lane
     assert o.miss(o.pick(r)) > 0
     assert G.BY_NAME["osterholt_null"].miss(G.BY_NAME["osterholt_null"].pick(r)) == 0     # the null holds at 0 too
 
