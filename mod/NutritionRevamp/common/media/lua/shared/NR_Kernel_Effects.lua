@@ -163,6 +163,7 @@ function K.effects.new()
         tempOffset = 0,
         tempHeat = 0,
         speedMul = 1,
+        enduranceCap = 1,
         fOffNut = 0,
         bruise = 0,
         nightVision = false,

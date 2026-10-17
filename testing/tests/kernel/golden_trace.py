@@ -243,7 +243,7 @@ NR_T.decorate = function(p, cfg)
     thermo.getSetPoint = function(s) return 37.0 end
     local bst = { std = 0.002, red = 0.0013, sev = 0.0008, slp = 0.02, regenSets = 0, reduced = 0,
                   reduceCalls = 0, added = 0, cold = cfg.cold or 0, coldRise = cfg.coldRise or 0, coldSets = 0,
-                  food = 0.015, foodSets = 0, sbm = 0.0165, sbmSets = 0 }
+                  food = 0.015, foodSets = 0, sbm = 0.0165, sbmSets = 0, timer = 0, timerSets = 0 }
     local health0 = cfg.health or 100
     st.body = bst
     local parts, byType = {}, {}
@@ -272,6 +272,8 @@ NR_T.decorate = function(p, cfg)
     -- Plan 15 Task 5 (option B): the severe-moodle constant, the constructor's 0.0165 (#0516), its setter counting
     bd.getHealthReductionFromSevereBadMoodles = function(s) return s.st.sbm end
     bd.setHealthReductionFromSevereBadMoodles = function(s, v) s.st.sbm = v; s.st.sbmSets = s.st.sbmSets + 1 end
+    -- Plan 15 Task 8 (the food-timer bridge): the health-from-food timer's setter, counting
+    bd.setHealthFromFoodTimer = function(s, v) s.st.timer = v; s.st.timerSets = s.st.timerSets + 1 end
     NR_T.bodies[#NR_T.bodies + 1] = bd
     bd.parts = parts
     p.getBodyDamage = function(s) return bd end

@@ -71,10 +71,13 @@ EFF.REGEN_STANDARD = 0.002 -- VANILLA #2354
 EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
 EFF.REGEN_SEVERE = 0.0008 -- VANILLA #2354
 EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
--- The food heal, health per unit of the health-from-food timer: the constructor's 0.015 (#3897), written 0 while a drain
--- state is active (it runs through any drain otherwise, jar-checks Check 2) and vanilla's again when none is; Plan 15
--- Task 8 sets its size outside a drain.
-EFF.REGEN_FOOD = 0.015 -- VANILLA #3897
+-- The food heal, health per multiplier unit while the health-from-food timer is above 0 (#2385; the constructor's 0.015,
+-- #3897), written 0 while a drain state is active (it runs through any drain otherwise, jar-checks Check 2). Outside a
+-- drain the timer is the writer's food-timer bridge (K.view.foodTimer), held above 0 while Well Fed, so the heal runs
+-- for the whole Well Fed spell, not one fill: 0.0087 gives a 667 kcal meal's 0.50 h spell 47.0 health at the 90-minute
+-- day (0.0087 x 180 units x 30 minutes), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour
+-- while Well Fed at that day, against vanilla's 162 while its timer runs.
+EFF.REGEN_FOOD = 0.0087 -- game choice (spec section 10: the gentle Well Fed heal), vanilla's per-can heal over the mod's Well Fed spell
 -- The fallback for an unreadable sandbox: the day length in real minutes the heal assumes, vanilla's 90-minute default day (#2922).
 EFF.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
@@ -112,7 +115,8 @@ EFF.WOUNDS = {
 -- File-scope scratch tables, overwritten per call: no allocation per minute.
 EFF.b = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 EFF.flags = { anaemia = false, allReplete = false, vitDClinical = false, hang = false, refeedEvent = false,
-              frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false, starve = 0, starveEarly = false }
+              frozen = false, bgroupMax = 1, coldCredit = false, boutVig = false, starve = 0, starveEarly = false,
+              overfull = 0 }
 -- The heal reference, made once on first use.
 EFF.ref = nil
 -- The post-step guard: the per-minute scalars and the mirrored numbers something reads
@@ -121,7 +125,7 @@ EFF.ref = nil
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
-              "infectMul", "coldMul" }
+              "infectMul", "coldMul", "enduranceCap" }
 EFF.snap = {}
 EFF.guarded = 0
 -- The options a load with no options file reads: one file-scope table, never written.
@@ -509,9 +513,11 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     -- 24 unfed hours or more on the starvation clock (K.drain.unfedH), before day 14; the hold applies to a body of normal BMI only: a grade the BMI
     -- already set stays (S0115; Plan 15 Task 4 fix 1, review M4)
     F.starveEarly = D.starvedH >= 24 and phase < 3 and not (finite(a.bmi) and a.bmi > 0 and a.bmi < K.effects.PE_BMI_OK)
+    -- the Overfull level of the stomach's whole mass, the client moodle's own number (Plan 15 Task 8)
+    F.overfull = K.view.overfullOf(record)
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
-    local dials = math.floor(sev * 1000 + 0.5) * 1000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
-        + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0)
+    local dials = math.floor(sev * 1000 + 0.5) * 10000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
+        + (F.starveEarly and 1000 or 0) + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0) + F.overfull * 1000000
 
     -- 3. the rebuild, only on a moved key
     local rebuilt = false

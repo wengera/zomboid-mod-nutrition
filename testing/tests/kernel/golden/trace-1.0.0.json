@@ -29,7 +29,7 @@
        "cold": 0.6000000000000002,
        "coldRise": 0.02,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -39,7 +39,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 30
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -157,7 +159,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -167,7 +169,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 2
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -287,7 +291,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -297,7 +301,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 30
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -417,7 +423,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -427,7 +433,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 2
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -547,7 +555,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -557,7 +565,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 2
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -687,7 +697,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 30
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -1156,6 +1168,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -1180,7 +1193,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -2065,6 +2078,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 80.956125000000171,
       "fOff": 0,
@@ -2089,7 +2103,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -2973,6 +2987,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -2997,7 +3012,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -3882,6 +3897,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 172.80773004930572,
       "fOff": 0,
@@ -3906,7 +3922,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -4789,6 +4805,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -4813,7 +4830,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -5697,6 +5714,7 @@
       "coldMul": 1,
       "dirty": true,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": 0.080358349566319501,
@@ -5721,7 +5739,7 @@
         "9": 8
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -6380,7 +6398,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 1,
+     "g2:8": 1,
+     "g3:8": 1,
+     "g4:8": 1,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -6411,7 +6436,7 @@
        "cold": 1.2000000000000006,
        "coldRise": 0.02,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -6421,7 +6446,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 60
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -6539,7 +6566,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -6549,7 +6576,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 3
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -6669,7 +6698,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -6679,7 +6708,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 60
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -6799,7 +6830,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -6809,7 +6840,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 2
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -6929,7 +6962,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -6939,7 +6972,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 3
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -7069,7 +7104,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 31
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -7538,6 +7575,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -7562,7 +7600,7 @@
         "9": 1
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -8447,6 +8485,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 168.73987500000018,
       "fOff": 0,
@@ -8471,7 +8510,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -9355,6 +9394,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -9379,7 +9419,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -10264,6 +10304,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 5,
       "exSeen": 351.57434734169072,
       "fOff": 0,
@@ -10288,7 +10329,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -11171,6 +11212,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": -0.024088865770562948,
@@ -11195,7 +11237,7 @@
         "9": 0
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -12079,6 +12121,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": 0.066837396808256622,
@@ -12103,7 +12146,7 @@
         "9": 8
        },
        "day": 4,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 4,
@@ -12759,7 +12802,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 1,
+     "g2:8": 1,
+     "g3:8": 1,
+     "g4:8": 1,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -12792,7 +12842,7 @@
        "cold": 1.8000000000000012,
        "coldRise": 0.02,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -12802,7 +12852,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 77
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -12920,7 +12972,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -12930,7 +12982,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 4
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -13052,7 +13106,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -13062,7 +13116,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 87
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -13182,7 +13238,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -13192,7 +13248,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 3
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -13312,7 +13370,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -13322,7 +13380,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 4
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -13452,7 +13512,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 32
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -13923,6 +13985,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 5,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -13947,7 +14010,7 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -14834,6 +14897,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": 0,
@@ -14858,7 +14922,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -15744,6 +15808,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": 3.0255941272547155,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": 0,
@@ -15768,7 +15833,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -16659,6 +16724,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 6,
       "exSeen": 0,
       "fOff": 0,
@@ -16683,7 +16749,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -17568,6 +17634,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.056742849410780158,
@@ -17592,7 +17659,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -18478,6 +18545,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 3,
       "exSeen": 0,
       "fOff": 0.045584285944450818,
@@ -18502,7 +18570,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -19161,7 +19229,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 2,
+     "g2:8": 1,
+     "g3:8": 3,
+     "g4:8": 1,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -19194,7 +19269,7 @@
        "cold": 3.6000000000000028,
        "coldRise": 0.02,
        "coldSets": 30,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -19204,7 +19279,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 77
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -19322,7 +19399,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -19332,7 +19409,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 4
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -19454,7 +19533,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -19464,7 +19543,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 20
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -19584,7 +19665,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 8,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -19594,7 +19675,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 3
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -19714,7 +19797,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -19724,7 +19807,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 4
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -19854,7 +19939,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 32
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -20325,6 +20412,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 5,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -20349,7 +20437,7 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -21236,6 +21324,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 81.237097549276257,
       "fOff": 0,
@@ -21260,7 +21349,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -22144,6 +22233,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -22168,7 +22258,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -23036,6 +23126,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 8,
       "exSeen": 178.53697564273284,
       "fOff": 0,
@@ -23060,7 +23151,7 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -23945,6 +24036,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.068376102074680714,
@@ -23969,7 +24061,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -24855,6 +24947,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 3,
       "exSeen": 0,
       "fOff": 0.032999689027701284,
@@ -24879,7 +24972,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -25538,7 +25631,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 2,
+     "g2:8": 1,
+     "g3:8": 5,
+     "g4:8": 1,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -25572,7 +25672,7 @@
        "cold": 5.3999999999999737,
        "coldRise": 0.02,
        "coldSets": 60,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 5,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -25582,7 +25682,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 78
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -25700,7 +25802,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -25710,7 +25812,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -25832,7 +25936,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -25842,7 +25946,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 50
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -25962,7 +26068,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 10,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -25972,7 +26078,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 11
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -26092,7 +26200,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -26102,7 +26210,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -26234,7 +26344,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 33
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -26705,6 +26817,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 5,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -26729,7 +26842,7 @@
         "9": 3
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -27618,6 +27731,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 162.47419509855263,
       "fOff": 0,
@@ -27642,7 +27756,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -28526,6 +28640,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -28550,7 +28665,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -29418,6 +29533,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 10,
       "exSeen": 351.12271876404202,
       "fOff": 0,
@@ -29442,7 +29558,7 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -30327,6 +30443,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.071704480733147599,
@@ -30351,7 +30468,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -31239,6 +31356,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
       "fOff": 0.0098048762771171111,
@@ -31263,7 +31381,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -31922,7 +32040,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 2,
+     "g2:8": 1,
+     "g3:8": 5,
+     "g4:8": 3,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -31956,7 +32081,7 @@
        "cold": 7.1999999999999353,
        "coldRise": 0.02,
        "coldSets": 90,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -31966,7 +32091,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 89
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -32084,7 +32211,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -32094,7 +32221,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -32216,7 +32345,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -32226,7 +32355,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 52
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -32346,7 +32477,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -32356,7 +32487,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 1
       },
       "delta": 1.5,
       "deltaWrites": 1,
@@ -32476,7 +32609,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -32486,7 +32619,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -32618,7 +32753,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 33
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -33089,6 +33226,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 6,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -33113,7 +33251,7 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -34002,6 +34140,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 243.711292647829,
       "fOff": 0,
@@ -34026,7 +34165,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -34910,6 +35049,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -34934,7 +35074,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -35802,6 +35942,7 @@
       "coldMul": 3,
       "dirty": true,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 11,
       "exSeen": 535.61092692819898,
       "fOff": 0,
@@ -35826,7 +35967,7 @@
         "9": 4
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -36702,6 +36843,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.071328122748451434,
@@ -36726,7 +36868,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -37614,6 +37756,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
       "fOff": -0.0036384204030972395,
@@ -37638,7 +37781,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -38297,7 +38440,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 3,
+     "g2:8": 1,
+     "g3:8": 6,
+     "g4:8": 4,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -38331,7 +38481,7 @@
        "cold": 8.999999999999897,
        "coldRise": 0.02,
        "coldSets": 120,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 6,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -38341,7 +38491,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 119
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -38459,7 +38611,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 3,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -38469,7 +38621,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -38591,7 +38745,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -38601,7 +38755,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 52
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -38721,7 +38877,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 3,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -38731,7 +38887,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 1
       },
       "delta": 1.4324999999999999,
       "deltaWrites": 2,
@@ -38851,7 +39009,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -38861,7 +39019,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -38993,7 +39153,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 33
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -39464,6 +39626,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 6,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -39488,7 +39651,7 @@
         "9": 2
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -40377,6 +40540,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 3,
       "exSeen": 324.94839019710543,
       "fOff": 0,
@@ -40401,7 +40565,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -41285,6 +41449,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -41309,7 +41474,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -42177,6 +42342,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 13,
       "exSeen": 714.1479025709325,
       "fOff": 0.059999999999999998,
@@ -42201,7 +42367,7 @@
         "9": 5
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -43077,6 +43243,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.069234068995622053,
@@ -43101,7 +43268,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -43989,6 +44156,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
       "fOff": -0.0084104810801267638,
@@ -44013,7 +44181,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -44672,7 +44840,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 3,
+     "g2:8": 1,
+     "g3:8": 6,
+     "g4:8": 4,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   },
   {
@@ -44706,7 +44881,7 @@
        "cold": 10.799999999999859,
        "coldRise": 0.02,
        "coldSets": 150,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 7,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -44716,7 +44891,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 1000,
+       "timerSets": 149
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -44834,7 +45011,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -44844,7 +45021,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -44966,7 +45145,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 1,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -44976,7 +45155,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 52
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -45096,7 +45277,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 4,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -45106,7 +45287,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 1
       },
       "delta": 1.4324999999999999,
       "deltaWrites": 2,
@@ -45226,7 +45409,7 @@
        "cold": 0,
        "coldRise": 0,
        "coldSets": 0,
-       "food": 0.014999999999999999,
+       "food": 0.0086999999999999994,
        "foodSets": 2,
        "red": 0.0012999999999999999,
        "reduceCalls": 0,
@@ -45236,7 +45419,9 @@
        "sbmSets": 1,
        "sev": 0.00080000000000000004,
        "slp": 0.02,
-       "std": 0.002
+       "std": 0.002,
+       "timer": 0,
+       "timerSets": 5
       },
       "delta": 1,
       "deltaWrites": 0,
@@ -45368,7 +45553,9 @@
        "sbmSets": 2,
        "sev": 0,
        "slp": 0,
-       "std": 0
+       "std": 0,
+       "timer": 0,
+       "timerSets": 33
       },
       "delta": 0.93999999999999995,
       "deltaWrites": 1,
@@ -45839,6 +46026,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.0085356661760585,
+      "enduranceCap": 1,
       "epoch": 7,
       "exSeen": 0,
       "fOff": 0.0050000000000000001,
@@ -45863,7 +46051,7 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -46752,6 +46940,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -1.7938677500064479,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 406.18548774638185,
       "fOff": 0,
@@ -46776,7 +46965,7 @@
         "9": 1
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -47660,6 +47849,7 @@
       "coldMul": 1,
       "dirty": false,
       "ea": 30,
+      "enduranceCap": 1,
       "epoch": 1,
       "exSeen": 0,
       "fOff": 0,
@@ -47684,7 +47874,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -48552,6 +48742,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": -7.9024683767423056,
+      "enduranceCap": 1,
       "epoch": 14,
       "exSeen": 892.68487821366602,
       "fOff": 0.070000000000000007,
@@ -48576,7 +48767,7 @@
         "9": 5
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -49452,6 +49643,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 2.526325104300946,
+      "enduranceCap": 1,
       "epoch": 2,
       "exSeen": 0,
       "fOff": -0.066360151748710017,
@@ -49476,7 +49668,7 @@
         "9": 0
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -50364,6 +50556,7 @@
       "coldMul": 3,
       "dirty": false,
       "ea": 1.7057588561527586,
+      "enduranceCap": 1,
       "epoch": 4,
       "exSeen": 0,
       "fOff": -0.0093482369284525191,
@@ -50388,7 +50581,7 @@
         "9": 8
        },
        "day": 5,
-       "dials": 1000000011,
+       "dials": 10000000011,
        "ep": 0
       },
       "lastDay": 5,
@@ -51047,7 +51240,14 @@
    },
    "syncs": {
     "parts": {},
-    "players": {}
+    "players": {
+     "g1:8": 3,
+     "g2:8": 1,
+     "g3:8": 6,
+     "g4:8": 4,
+     "g5:8": 1,
+     "g6:8": 2
+    }
    }
   }
  ]

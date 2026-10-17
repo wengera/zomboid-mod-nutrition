@@ -436,6 +436,10 @@ def test_the_engine_reads_leave_the_context_at_the_end_of_the_minute():
 # Plan 15 Task 6 (Task 5's review L4): the re-applied terms also read the day length off the sandbox object, which the
 # player's count does not see; counted here on the sandbox stand-in (SANDBOX_DAY): one read a minute the constant was 0,
 # shared with Effects' heal toward a floor (NR.read.dayMin), none on a steady minute. The calibrated curve reads no Java.
+# Plan 15 Task 8 (the food-timer bridge): g1's seeded meal pool (912 weighted kcal) reads sated, so the steady minute
+# writes the health-from-food timer once (vanilla drains it between writes); an unfed minute (the pool set to 1 weighted
+# kcal) writes it only on the change to 0 and then makes no call, and a draining minute holds it at 0 with none. Read
+# at 56a25b9d, the build before, with the same stand-in: 67 steady, 67 unfed, 74 draining.
 ENGINE_COUNT = r"""
 function(p, C)
     local seen = {}
@@ -467,9 +471,11 @@ function(C)
 end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
-ENGINE_CALLS = {"steady": 67, "drain": 74}
-DAY_READS = {"steady": 0, "drain": 1}             # the sandbox's getDayLengthMinutes a player-minute (Task 6)
+ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 74}
+DAY_READS = {"steady": 0, "unfed": 0, "drain": 1}  # the sandbox's getDayLengthMinutes a player-minute (Task 6)
 TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
+TASK7_ENGINE_CALLS = {"steady": 67, "unfed": 67, "drain": 74}   # read at 56a25b9d (Plan 15 Task 7), before the bridge
+TIMER_WRITES = {"steady": 1, "unfed": 0, "drain": 0}             # setHealthFromFoodTimer a player-minute (Task 8)
 
 
 @pytest.mark.parametrize("case", sorted(ENGINE_CALLS))
@@ -488,8 +494,11 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     if case == "drain":
         b = rec["body"]
         rec["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
+    if case == "unfed":
+        rec["satiety"]["M"] = 1.0
     _minute(h, start + 4 / 60.0)
     base, health0, day0 = C.n, C.by["getOverallBodyHealth"] or 0, D.day
+    timer0 = C.by["setHealthFromFoodTimer"] or 0
     n = 10
     for m in range(5, 5 + n):
         _minute(h, start + m / 60.0)
@@ -497,8 +506,11 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     assert (D.day - day0) / n == DAY_READS[case]
     assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
     assert rec["drain"]["active"] is (case == "drain")
-    assert ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
-    assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2
+    assert ((C.by["setHealthFromFoodTimer"] or 0) - timer0) / n == TIMER_WRITES[case]
+    assert ENGINE_CALLS[case] == TASK7_ENGINE_CALLS[case] + TIMER_WRITES[case]
+    if case in TASK4_ENGINE_CALLS:
+        assert TASK7_ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
+        assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2
     assert (C.by["setHealthReductionFromSevereBadMoodles"] or 0) == (2 if case == "drain" else 1)   # first sight, then once at Parched
 
 

@@ -34,11 +34,11 @@ BANDS = ["caf", "wd", "bac", "alc", "hang", "bg", "iuS", "debt", "iu", "dehyd", 
 BAND_MAX = {"caf": 16, "wd": 4, "bac": 1, "alc": 2, "hang": 1, "bg": 3, "iuS": 12, "debt": 2, "iu": 25,
             "dehyd": 8, "hypo": 3, "ex": 4}
 FLAGS = {"anaemia", "allReplete", "refeedEvent", "frozen", "bgroupMax", "coldCredit", "boutVig", "starve",
-         "starveEarly"}
-NUMERIC_FLAGS = {"bgroupMax": (3, 4), "starve": (1, 3)}     # a numeric flag's row range (Plan 15 Task 4: starve)
+         "starveEarly", "overfull"}
+NUMERIC_FLAGS = {"bgroupMax": (3, 4), "starve": (1, 3), "overfull": (3, 4)}  # a numeric flag's row range (Plan 15 Task 4: starve; Task 8: overfull)
 SURFACES = {"mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget", "poisonTarget",
             "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul", "fOffNut",
-            "bruise", "nightVision", "shortSighted"}           # Plan 15 Task 4: no drain surface, K.drain owns it
+            "bruise", "nightVision", "shortSighted", "enduranceCap"}  # Plan 15 Task 4: no drain surface, K.drain owns it; Task 8: enduranceCap
 
 
 def _load(host, path):
@@ -415,3 +415,13 @@ def test_science_check_scan_is_clean():
 
 def test_the_banner_says_not_a_kernel_file():
     assert _lines()[0].startswith("-- NR_Data_Effects.lua -- not a kernel file")
+
+def test_the_overfull_rows_slow_at_level_3_and_sicken_at_level_4(eh):
+    # Plan 15 Task 8 (spec section 2.3): Overfull 3 and 4 hold ENDURANCE at or under 0.73, the Endurance moodle's level 1
+    # (above 0.5, at most 0.75), the base-speed cut of Heavy Load level 1 (#2313); Overfull 4 adds nausea, FOOD_SICKNESS 30
+    rows = [r for r in _rows(eh) if r["src"] == "overfull"]
+    got = {(r["on"], r["at"]): {e["s"]: e["v"] for e in r["list"]} for r in rows}
+    assert got == {("flag", (3, 4)): {"enduranceCap": 0.73}, ("flag", 4): {"foodSickTarget": 30}}
+    surf = _surf(eh)["enduranceCap"]
+    assert surf["op"] == "min" and surf["id"] == 1 and surf["lo"] == 0.73 and surf["hi"] == 1.0
+    assert 0.5 < 0.73 <= 0.75 - 0.0056                                   # level 1, with a minute's standing regeneration to spare

@@ -288,7 +288,7 @@ def test_a_fresh_record_composes_once_and_rebuilds_only_on_a_moved_key(eff_host)
     assert E["epoch"] == 3
     setopts(h, Severity=2.0)                                     # the dial snapshot moved
     minute(h, p, rec, ageH=100.0 + 5 / 60)
-    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 * 1000000 + 10 + 1      # no kill dial (Plan 15 Task 4)
+    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 * 10000000 + 10 + 1     # no kill dial (Plan 15 Task 4); the Severity term x 10^7 since Task 8
     assert E["dirty"] is True
 
 
@@ -298,13 +298,13 @@ def test_the_flags_outside_the_key_fold_into_the_dials(eff_host):
     p, _ = player(h, rec, asleep=True)
     minute(h, p, rec)
     E = rec["effects"]
-    assert E["key"]["dials"] == 1000000000 + 11
+    assert E["key"]["dials"] == 10000000000 + 11
     rec["acute"]["boutVig"] = True                                # read while asleep
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert E["key"]["dials"] == 1000000000 + 100011 and E["epoch"] == 2
+    assert E["key"]["dials"] == 10000000000 + 100011 and E["epoch"] == 2
     awake, _ = player(h, rec)
     minute(h, awake, rec, ageH=100.0 + 2 / 60)                    # a latched boutVig awake reads false
-    assert E["key"]["dials"] == 1000000000 + 11 and E["epoch"] == 3
+    assert E["key"]["dials"] == 10000000000 + 11 and E["epoch"] == 3
 
 
 def test_a_non_finite_field_is_healed_and_counted(eff_host):
@@ -565,7 +565,7 @@ def test_the_drain_takes_the_rate_to_the_floor_and_zeroes_regeneration_and_the_f
     rec["nutrients"]["iron"]["x"] = 0                            # the state ends: re-asserted at healMul, food heal back
     minute(h, p, rec, ageH=100.0 + 3 / 60)
     got = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])[-5:]}
-    assert got["setStandardHealthAddition"] == 0.002 and got["setHealthFromFood"] == 0.015   # #2354, #3897
+    assert got["setStandardHealthAddition"] == 0.002 and got["setHealthFromFood"] == 0.0087  # #2354; the gentle heal (Plan 15 Task 8)
     assert rec["drain"]["active"] is False and rec["drain"]["targetFloor"] == 100
 
 
@@ -814,17 +814,17 @@ def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     D, E = rec["drain"], rec["effects"]
     assert D["active"] is False and abs(D["starvedH"] - 28) < 1e-9
-    assert E["key"]["dials"] == 1000000000 + 1000 + 11             # starveEarly: 24 unfed hours or more
+    assert E["key"]["dials"] == 10000000000 + 1000 + 11             # starveEarly: 24 unfed hours or more
     rec["satiety"]["M"] = 0.0
     minute(h, p, rec, ageH=102.0 + 1 / 60)
     assert D["active"] is True and D["state"] == 1 and D["targetFloor"] == 50
     assert abs(D["bmi0"] - 80 / 1.7 ** 2) < 1e-9                   # lm + fm over K.HEIGHT_M squared
-    assert E["key"]["dials"] == 1000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
+    assert E["key"]["dials"] == 10000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
     assert E["mNut"] == pytest.approx(1.25, abs=TOL)
     rec["satiety"]["M"] = 0.0
     rec["drain"]["fedAgeH"] = 102.0 + 2 / 60 - 336                 # 14 days unfed
     minute(h, p, rec, ageH=102.0 + 2 / 60)
-    assert E["key"]["dials"] == 1000000000 + 300 + 11 and E["unhappyTarget"] == 21   # phase 3: mood, the pe rows back
+    assert E["key"]["dials"] == 10000000000 + 300 + 11 and E["unhappyTarget"] == 21   # phase 3: mood, the pe rows back
 
 
 def test_eating_ends_the_starvation(eff_host):
@@ -1042,3 +1042,82 @@ def test_the_heal_reads_the_day_length_and_sleep(eff_host):
         assert lst(cfg["log"]["add"]) == [pytest.approx(0.02 * 0.5 * 2 * 90, abs=TOL)]   # the sleeping addition, #2354
     finally:
         h.rt.execute("getSandboxOptions = NR_SAVED_SO; NR_SAVED_SO = nil; NutritionRevamp.so = nil")
+
+
+# --- the food heal and the Overfull rows (Plan 15 Task 8; spec sections 2.3 and 2.4) ----------------------------------
+
+def _food(cfg):
+    return [r["v"] for r in lst(cfg["log"]["regen"]) if r["name"] == "setHealthFromFood"]
+
+
+def test_the_food_heal_is_the_gentle_game_choice_and_0_under_a_drain(eff_host):
+    # 0.0087 health per multiplier unit while the bridge holds the timer above 0: a 667 kcal meal's 0.50 h Well Fed spell
+    # is 0.0087 x 180 x 30 = 47.0 health at the 90-minute day, a raw can's 0.015 x 3120 = 46.8 in vanilla (#0054)
+    h = eff_host
+    assert EFF(h).REGEN_FOOD == 0.0087
+    assert abs(0.0087 * 180 * 30 - 0.015 * 3120) < 0.5
+    rec = record(h)
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec)
+    assert _food(cfg) == [0.0087]                                 # first sight: written (not saved, #3897)
+    rec["nutrients"]["iron"]["x"] = 3                             # a drain state starts: the heal goes to 0
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert _food(cfg) == [0.0087, 0]
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert _food(cfg) == [0.0087, 0]                              # held: no write while the state holds
+
+
+def test_the_food_heal_is_written_again_at_first_sight_after_a_load(eff_host):
+    # a reload returns the constructor's 0.015 (#3897, jar-checks J1.5): Players' onFirstSight forgets the memory, so the
+    # next minute writes the heal again, 0 when the reloaded record's drain is active
+    h = eff_host
+    rec = record(h)
+    p, cfg = player(h, rec, health=100.0)
+    minute(h, p, rec)
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert _food(cfg) == [0.0087]
+    EFF(h).forget("admin")
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert _food(cfg) == [0.0087, 0.0087]
+    rec["nutrients"]["iron"]["x"] = 3
+    minute(h, p, rec, ageH=100.0 + 3 / 60)
+    EFF(h).forget("admin")
+    minute(h, p, rec, ageH=100.0 + 4 / 60)
+    assert _food(cfg) == [0.0087, 0.0087, 0, 0]
+
+
+def _stomach(h, rec, grams):
+    st = h.K.stomach.new()
+    st["buffer"]["water"] = grams
+    rec["stomach"] = st
+
+
+def test_overfull_3_holds_the_endurance_ceiling_and_4_adds_nausea(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    E = rec["effects"]
+    assert E["enduranceCap"] == 1 and E["foodSickTarget"] == 0 and E["key"]["dials"] % 10000000 < 1000000
+    _stomach(h, rec, 1000)                                        # Overfull 3 (from about 977 g): a rebuild on the level
+    e0 = E["epoch"]
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert E["epoch"] == e0 + 1 and E["enduranceCap"] == 0.73 and E["foodSickTarget"] == 0
+    assert (E["key"]["dials"] // 1000000) % 10 == 3
+    _stomach(h, rec, 1100)                                        # Overfull 4, the hard capacity: nausea too
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert E["enduranceCap"] == 0.73 and E["foodSickTarget"] == 30
+    _stomach(h, rec, 900)                                         # Overfull 2: neither
+    minute(h, p, rec, ageH=100.0 + 3 / 60)
+    assert E["enduranceCap"] == 1 and E["foodSickTarget"] == 0
+
+
+def test_the_overfull_rows_take_the_severity_dial(eff_host):
+    h = eff_host
+    setopts(h, Severity=0.5)
+    rec = record(h)
+    _stomach(h, rec, 1100)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    E = rec["effects"]
+    assert abs(E["enduranceCap"] - (1 - 0.27 * 0.5)) < TOL and abs(E["foodSickTarget"] - 15) < TOL

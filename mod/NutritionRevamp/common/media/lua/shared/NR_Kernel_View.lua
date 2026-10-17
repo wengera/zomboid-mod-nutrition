@@ -524,7 +524,7 @@ end
 -- the six (the panel's class rows stay the six of K.view.CLASSES). Its level reads the stomach's whole mass, both
 -- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
 -- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
--- The moodle is shown and never blocks an eat.
+-- At level 4 the server refuses eating through vanilla's food timer (K.view.foodTimer, Plan 15 Task 8).
 K.view.OVERFULL_AT = {
     100 / 3, -- gc: level 2 from a third of the way to the full scale (about 853 g); a game choice on ruling 11c-8's inferences, S1250 and S1253
     200 / 3, -- gc: level 3 from two thirds (about 977 g); a game choice on S1250 and S1253
@@ -543,6 +543,75 @@ function K.view.fullnessLevel(massG)
         return 0
     end
     return 1 + K.view.rung(d, K.view.OVERFULL_AT)
+end
+
+-- The Overfull level of a record's stomach (Plan 15 Task 8): K.view.fullnessLevel over the mirror's rounded stomachMass
+-- (K.mirror.stomachMass), the very number the client's Overfull moodle reads, so the server's refusal and Overfull
+-- effects change level with the moodle the player sees. A record with no stomach, or a solid buffer with a mass key
+-- that is not a number (malformed: Kinetics heals it on its own minute), reads 0, so neither the writer nor the effects
+-- step raises on it.
+K.view.MASS_KEYS = { "water", "proteins", "carbs", "lipids", "fibre" } -- K.stomach.massOf's keys, no row needed
+function K.view.overfullOf(record)
+    local s = record.stomach
+    if s == nil or type(s.buffer) ~= "table" then
+        return 0
+    end
+    -- MASS_KEYS is this file's Lua array, so # is its length
+    for i = 1, #K.view.MASS_KEYS do
+        if type(s.buffer[K.view.MASS_KEYS[i]]) ~= "number" then
+            return 0
+        end
+    end
+    return K.view.fullnessLevel(K.mirror.stomachMass(record))
+end
+
+-- --- the food-timer bridge (Plan 15 Task 8; spec sections 2.3 and 2.4; jar-checks Check 1) ---------
+-- The mod owns vanilla's health-from-food timer, which alone drives the FOOD_EATEN moodle (Well Fed) against 0, 1600,
+-- 3200 and 4800 (#0511) and every vanilla eat and drink refusal at its level 3 (jar-checks Check 1c): the server writes
+-- it each minute from the mod's own state and the client's copy follows in the 1 Hz stats packet (#3896). Vanilla
+-- drains it by one unit per multiplier unit, 180 a game minute at the 90-minute day (#2385, #2922), so each written
+-- value sits inside its band with that minute's drain to spare.
+K.view.TIMER_WELL_FED = 1000 -- game choice (spec section 10: the Well Fed mapping): FOOD_EATEN level 1 (over 0, #0511), 820 after one minute's drain at the 90-minute day; holds the level through the minute for days under 500 real minutes
+K.view.TIMER_WELL_FED_2 = 2800 -- game choice (spec section 10: the Well Fed mapping): level 2 (over 1600, #0511), 2620 after one minute's drain; holds through the minute for days under 600 real minutes
+K.view.TIMER_FULL = 4400 -- game choice (spec section 2.3): level 3 (over 3200, #0511), vanilla's refusal; 4220 after one minute's drain, under level 4's 4800; not 3300, which the drain takes under 3200 in 34 game seconds
+-- The meal pool M (weighted kcal, K.satiety) at or above which the character reads sated after a satisfying meal.
+K.view.WELL_FED_M = 435 -- game choice (spec section 10: the Well Fed mapping): a 667 kcal mixed meal (15/50/35 % of energy, 788.5 weighted kcal) clears to it in 0.50 game hours at MEAL_HALF_LIFE_H, inside vanilla's Well Fed after a whole can (3120 units, 17 game minutes raw, 35 heated, at the 90-minute day; #0054, #0530); a 400 kcal meal 0.07 h; a 200 kcal snack never
+K.view.WELL_FED_2_AT = 2 -- game choice (spec section 10: the Well Fed mapping): Well Fed level 2 from Overfull 2, a large meal
+K.view.REFUSE_AT = 4 -- spec section 2.3: Overfull 4, the 1100 g hard capacity, refuses eating
+
+-- The timer the bridge writes for an Overfull level, a meal pool M and whether a drain state is active: TIMER_FULL at
+-- Overfull 4, whatever else holds (the stomach is full, starving or not); 0 while a drain is active (a starving body is
+-- not Well Fed); TIMER_WELL_FED_2 while sated at Overfull 2 or 3, TIMER_WELL_FED while sated below it; else 0. An M that
+-- is not a number at least WELL_FED_M (NaN included) reads unsated.
+function K.view.foodTimer(level, M, draining)
+    if level >= K.view.REFUSE_AT then
+        return K.view.TIMER_FULL
+    end
+    if draining then
+        return 0
+    end
+    if not (type(M) == "number" and M >= K.view.WELL_FED_M) then
+        return 0
+    end
+    if level >= K.view.WELL_FED_2_AT then
+        return K.view.TIMER_WELL_FED_2
+    end
+    return K.view.TIMER_WELL_FED
+end
+
+-- The FOOD_EATEN band of a timer value, the bands the push is keyed on (#0511, strict greater-than, #0507): 0 at or
+-- under 0, 1 to 1600, 2 to 3200, 3 above (the refusal; level 4 above 4800 refuses alike).
+function K.view.timerBand(t)
+    if t > 3200 then
+        return 3
+    end
+    if t > 1600 then
+        return 2
+    end
+    if t > 0 then
+        return 1
+    end
+    return 0
 end
 
 -- The moodle classes of a mirror m (nil reads all zero): the six K.view.classes reads (the server's energy level),

@@ -28,7 +28,7 @@ function K.hybrid.input()
         lastThirst = nil, sipOK = true, fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0,
         stress = 0, stressTarget = 0, unhappy = 0, unhappyTarget = 0, lastUnhappyTarget = 0, foodSick = 0,
         foodSickTarget = 0, panic = 0, panicTarget = 0, temp = 0, tempTarget = 0, tempAdj = 0, intoxTarget = nil,
-        endurance = 1, lastEndurance = nil, rmod = 1, bored = 0, boredTarget = 0, lastBoredTarget = 0,
+        endurance = 1, lastEndurance = nil, rmod = 1, endCap = 1, bored = 0, boredTarget = 0, lastBoredTarget = 0,
     }
 end
 
@@ -106,6 +106,22 @@ function K.hybrid.write(inp, out, c)
     if inp.asleep and e0 ~= nil and inp.endurance > e0 and inp.rmod == inp.rmod then
         out.endurance = K.clamp(e0 + (inp.endurance - e0) * inp.rmod, 0, 1)
     end
+    out.endurance = K.hybrid.endCap(out.endurance, inp.endurance, inp.endCap)
+end
+
+-- The ENDURANCE ceiling (Plan 15 Task 8): the effects' enduranceCap (the Overfull slowing, NR_Data_Effects.lua) holds
+-- ENDURANCE at or under it. e is the value this write already chose (nil for none), e1 the value read; a cap of 1 or
+-- more, or NaN, holds nothing. Returns the value to write, or nil for no write: a minute
+-- already at or under the cap writes nothing more.
+function K.hybrid.endCap(e, e1, cap)
+    if not (cap < 1) then
+        return e
+    end
+    local v = e or e1
+    if v > cap then
+        return cap
+    end
+    return e
 end
 
 -- The UNHAPPINESS and BOREDOM floors share one rule, moved here from write().

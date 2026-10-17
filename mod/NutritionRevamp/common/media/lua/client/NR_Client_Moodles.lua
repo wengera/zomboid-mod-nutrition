@@ -1,6 +1,6 @@
 -- NR_Client_Moodles.lua -- the six symptom-class moodles and the seventh,
 -- overfull, the soft cap shown (the stomach's whole mass past 730 g in four levels
--- to 1100 g, K.view.fullnessLevel over the mirror's stomachMass; shown, never a block, never vanilla's DISCOMFORT):
+-- to 1100 g, K.view.fullnessLevel over the mirror's stomachMass; shown; at level 4 the server's food-timer bridge refuses eating, Plan 15 Task 8; never vanilla's DISCOMFORT):
 -- through MoodleFramework when it is installed, else the mod's own icon column at a FIXED inset of the player's
 -- viewport. Optional, detected and never required (spec § 4.9); no moodle type goes through the vanilla registry (#1140).
 --
