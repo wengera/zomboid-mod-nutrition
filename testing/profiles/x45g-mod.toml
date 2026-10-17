@@ -1,0 +1,33 @@
+# testing/profiles/x45g-mod.toml - Plan 15 Task 11 (runs x452-x457): the game-feel changes live, one boot per session.
+# PZTestKit + the STAGED copy of mod/NutritionRevamp at 718d4296 (release/plan15-x45g, staged before the boot with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan15-x45g`; release/ is gitignored; mod/ is
+# never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 1, sleep off (the fixture's false/false; the
+# hunger curve's fit is sleep off). Fixture default, admin (-debug), build 42.21.0. The drivers are
+# testing/experiments/x452_day.py to x457_thirst.py on testing/experiments/x45g_lib.py (x45-mod.toml and x45_lib.py
+# are x451's, frozen with it).
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan15-x45g), fixture default, admin (debug), Nutrition off, DayLength 1, sleep off, build 42.21.0 - x452-x457, Plan 15 Task 11: the game-feel sessions."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan15-x45g/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game hour 37.5 s at speed 1
