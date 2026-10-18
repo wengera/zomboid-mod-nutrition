@@ -162,7 +162,9 @@ def test_plan15_the_older_rings_fail_at_head_and_x452b_proves_the_hunger_lines()
     # Plan 16 Task 4: x452b ran sleep off under the world clock's hunger rhythm, which a sleep-off server no longer has,
     # so it fails at HEAD too (0.023 against 0.002) and its lines name no passing proof run
     x452b = adm["x452b:HUNGER"]
-    assert not x452b["admitted"] and x452b["run"] == S.RUN["x452b"] and 0.02 < x452b["max_miss"]["HUNGER"] < 0.03
+    # Plan 16 Task 4b: the curve re-fit on both sleep settings moves the HEAD replay nearer the run (0.0184), still
+    # far over the 0.002 tolerance
+    assert not x452b["admitted"] and x452b["run"] == S.RUN["x452b"] and 0.015 < x452b["max_miss"]["HUNGER"] < 0.03
     assert {"H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"} <= set(x452b["proves"])
     for sid in ("H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"):
         assert SER[sid]["provenance"]["proof_run"] == S.RUN["x452b"], sid
