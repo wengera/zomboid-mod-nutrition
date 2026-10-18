@@ -1,17 +1,19 @@
 -- NR_Kernel_Partition.lua -- the body model's daily partition (spec section 5.1; the oracle's exact day, ruling 13-2):
 -- once per game day K.strength.day moves fat, lean F (body.lm) and the labile lean lx by the sign of the day's
 -- energy balance through the two lean arms below: a surplus pays growth first and splits the rest by Forbes' lean share
--- into lx and fat; a deficit is paid by fat up to Alpert's ceiling and by lean under the training and protein
--- protection, lx paying the lean loss first. An immobilised day (a leg fracture or splint) follows the logarithmic
--- disuse curve instead (the adapter's day close, ruling 13-13). The day close rotates the seven-day rings and zeroes
--- the day accumulators.
+-- into lx and fat; a deficit splits by Forbes' lean share under the training and protein protection, lx paying the
+-- lean loss first, with no fat ceiling (Plan 16 Task 5; S2278-S2283). An immobilised day (a leg fracture or splint)
+-- follows the logarithmic disuse curve instead (the adapter's day close, ruling 13-13). The day close rotates the
+-- seven-day rings and zeroes the day accumulators.
 -- Pure: numbers and Lua tables in, numbers, booleans and Lua tables out, no Java. Slow-clock code with
 -- no fast region, so math.log and the bounded numeric `for` over the kernel's own tables are allowed.
 -- This file sorts after NR_Kernel.lua, and every K.clamp / K.min / K.max reference is at call time.
 local K = NutritionRevamp.kernel
 K.partition = {}
 
--- The fat store's maximum energy transfer rate, kcal per kg fat per day.
+-- The fat store's maximum energy transfer rate, kcal per kg fat per day: the disuse arm's alone. The deficit arm
+-- reads no ceiling (Plan 16 Task 5): 69 is the Minnesota men's own fat flux under a moderate deficit (arithmetic on
+-- S2287), and measured fasts draw fat faster (S1910, S2282). The disuse arm keeps it, out of that task's scope.
 K.partition.FAT_CEIL_KCAL = 69 -- S0056: 290 ± 25 kJ/kg fat/d
 
 -- The tissue energy densities, kcal per kg.
@@ -55,9 +57,10 @@ end
 
 -- The deficit arm (E < 0), returning dF, dX, dM (kg), dF the partition's own lean change (growth not in
 -- it): the lean weight share forbes(fm) * prot, prot = 1 - wT * T - wP * the protein ramp over pdef_lo ..
--- pdef_hi, clamped to [prot_floor, 1]; fat pays the rest up to Alpert's ceiling and the overflow splits by
--- prot (lean pays prot of it, fat the spared rest). lx pays the lean loss first and F the remainder; what
--- is left of lx decays on x_tau_d days; fat funds the day's growth (recomposition).
+-- pdef_hi, clamped to [prot_floor, 1], splits the whole deficit and fat pays the rest, with no ceiling (Plan 16
+-- Task 5, the science pass's form (a)): in a water-only fast the share gives about 13 % of the energy from lean at
+-- 20 % fat and about 6 % at 37 % (S2278, S2282, S2283; S1056), so fat can reach its floor. lx pays the lean loss
+-- first and F the remainder; what is left of lx decays on x_tau_d days; fat funds the day's growth (recomposition).
 function K.partition.deficitLean(body, grow, S, p, E, P, ts)
     local RL = K.partition.RHO_LEAN
     local RF = K.partition.RHO_FAT
@@ -67,12 +70,6 @@ function K.partition.deficitLean(body, grow, S, p, E, P, ts)
     local dW = -E / (share * RL + (1 - share) * RF)
     local leanLoss = share * dW
     local fatLoss = (1 - share) * dW
-    local cap = K.partition.FAT_CEIL_KCAL * body.fm / RF
-    if fatLoss > cap then
-        local over = (fatLoss - cap) * RF
-        fatLoss = cap + over * (1 - prot) / RF
-        leanLoss = leanLoss + over * prot / RL
-    end
     local fromX = K.min(body.lx, leanLoss)
     local dX = -fromX - (body.lx - fromX) / P.x_tau_d
     local dM = -fatLoss - grow / ts * RL / RF

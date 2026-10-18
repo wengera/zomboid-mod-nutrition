@@ -11,9 +11,9 @@ import pytest
 
 TOL = 1e-12
 H2 = 1.70 * 1.70
-FAST_DEATHS = {                       # water-only fasts (dtM 1) at Plan 15 Task 4b: (body weight kg, days, death day, state)
-    "default": (None, 63, 61.91, 1),  # starvation at BMI 12 (K.drain.STARVATION); thiamine clinical only at day 42
-    "90 kg": (90.0, 78, 77.00, 3),    # wet beriberi (K.drain.BERIBERI): clinical at day 42 + 840 h, before BMI 12 (~day 120)
+FAST_DEATHS = {                       # water-only fasts (dtM 1), Plan 16 Task 5: (body weight kg, days, death day, state)
+    "default": (None, 79, 77.00, 3),  # wet beriberi since Plan 16 Task 5 (no deficit ceiling): was starvation at BMI 12, day 61.91
+    "90 kg": (90.0, 79, 77.00, 3),    # wet beriberi (K.drain.BERIBERI): clinical at day 42 + 840 h, before BMI 12
 }
 
 
@@ -378,11 +378,12 @@ def test_the_heal_reaches_the_floor_and_never_passes_it(host, D):
 
 
 @pytest.mark.parametrize("body", sorted(FAST_DEATHS))
-def test_a_water_only_fast_kills_the_default_body_by_starvation_and_a_90_kg_body_by_beriberi(host, body):
+def test_a_water_only_fast_kills_the_default_body_and_a_90_kg_body_by_beriberi(host, body):
     """End to end (the Task 4 review's M2, Plan 15 Task 4b): the whole server pipeline (tools/replay_live.replay_arm),
-    water only (0.5 L every 6 h), until health reaches 0. Thiamine reaches the clinical grade at day 42 with none
-    eaten, so wet beriberi kills at about day 77 (42 + 840 h): after the default body's BMI-12 death (day 61.9), before
-    the 90 kg body's (about day 120)."""
+    water only (1 L every 6 h, the guide's 4 L a day), until health reaches 0. Thiamine reaches the clinical grade at
+    day 42 with none eaten, so wet beriberi kills at about day 77 (42 + 840 h). Plan 16 Task 5 (the deficit arm without
+    the fat ceiling) keeps the lean, so neither body reaches BMI 12 first, and the 90 kg body's larger lean water need
+    outran the old ration of 0.5 L every 6 h (a dehydration death at day 30.2): the ration rose to 4 L a day."""
     import os
     import sys
     tools = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
@@ -392,7 +393,7 @@ def test_a_water_only_fast_kills_the_default_body_by_starvation_and_a_90_kg_body
     import replay_live as RL
     weight, days, death_day, death_state = FAST_DEATHS[body]
     dtM = 1.0
-    events = [{"minute": int(k * 360 / dtM), "kind": "drink", "fluid": "Water", "litres": 0.5} for k in range(days * 4)]
+    events = [{"minute": int(k * 360 / dtM), "kind": "drink", "fluid": "Water", "litres": 1.0} for k in range(days * 4)]
     paths = ["drain.state", "drain.targetFloor", "nutrients.thiamine.g"]
     deaths = []
     clinical = []

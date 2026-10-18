@@ -57,9 +57,11 @@ DEHYD_BOUND = 3.0                     # % body mass: the viability guard's bound
 #                                       mild, inside the mod's dehydration fatigue bands (+0.06 at 2 %, +0.08 at 3 %,
 #                                       NR_Data_Effects B5) and far under its 10 % lethal line. The fed replays read 1.2
 #                                       to 1.8 %, the oracle arms 2.0 to 2.45; a fast's peak is the overnight dry window
-#                                       (22:00 to 08:00) and creeps as the body shrinks (2.13 % by day 3, 2.7 % by day
-#                                       24; 12 L a day lowers it only 0.2), so 3 % holds a fast to its death. A guard,
-#                                       not a claim: the guide never calls these characters fully hydrated
+#                                       (22:00 to 08:00) and creeps as the body shrinks, on the lean-scaled water base
+#                                       (Plan 15) and the Forbes partition (Plan 16 Task 5): the default body's reads
+#                                       1.07 % on day 3, 1.16 % on day 24 and 1.42 % at its death on day 77, so 3 %
+#                                       holds a fast to its death. A guard, not a claim: the guide never calls these
+#                                       characters fully hydrated
 # the plate the mod-side scenarios eat (rule R-1, review C-1): the guide's foods and an orange, whole vectors from the
 # mod's table (replay_live's meal `plate`), so every meal carries real vitamins and minerals in their proportions
 PLATE = ("Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen")

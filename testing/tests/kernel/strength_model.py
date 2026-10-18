@@ -7,7 +7,8 @@ POINT_T (DEFAULT updated with compact_T.json's "chosen") is appended, and Body.d
 on, the four forms the spec states and the fit did not run apply: detraining integrated exactly over the day; the
 labile lean decaying on every day with no surplus left after growth; growth's energy charged at grow / ts (ruling
 13-3); and the biology clock P['ts'] (default 1.0) scaling growth, regain, detraining and the peak decay and dividing
-the grace days. Task 11c (Task 11 review I-2) adds a fifth: the regain integrated exactly over the day.
+the grace days. Task 11c (Task 11 review I-2) adds a fifth: the regain integrated exactly over the day. Plan 16
+Task 5 adds a sixth: the deficit arm reads no fat ceiling (Alpert's 69 kcal/kg/d stays in the fit's step only).
 """
 # Proposed lean-mass Strength model with the two partitions (review of the 2026-10-14 spec).
 # Daily step. Muscle lean F (the level), labile lean X (water, glycogen, organ: weight, not level), fat M.
@@ -205,7 +206,9 @@ class Body:
             leanLoss = share * dW
             fatLoss = (1 - share) * dW
             cap = FAT_CEIL * self.M / RHO_F
-            if fatLoss > cap:
+            # Plan 16 Task 5: the exact mode (the kernel's forms) drops the ceiling from the deficit arm, so the
+            # Forbes share times the protection splits the whole deficit (S2278-S2283); the fit's step keeps it
+            if fatLoss > cap and not exact:
                 # the existing K.partition overflow: lean pays the overflow times the protection, fat pays the spared share beyond the ceiling
                 over = (fatLoss - cap) * RHO_F
                 fatLoss = cap + over * (1 - prot) / RHO_F

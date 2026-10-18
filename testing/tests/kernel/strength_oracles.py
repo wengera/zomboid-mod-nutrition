@@ -2,7 +2,8 @@
 
 Copied on 2026-10-14 from docs/superpowers/research/2026-10-14-strength-redesign/refit/oracles.py (tracked at
 5987ac7a; sha256 685257b96e18a07035d8722bcfdf56019f1f374207668711268b78b78ccec22e), byte for byte except the model
-import, which reads the tracked strength_model. score(P) re-scores any parameter table; with P['exact'] true it
+import, which reads the tracked strength_model, and the two Mettler rows' weight and source (Plan 16 Task 5: report
+only). score(P) re-scores any parameter table; with P['exact'] true it
 scores ruling 13-2's exact forms, which test_strength_oracle.py pins.
 """
 # Oracle registry: each cited human reading the model must reproduce, with its row, value and band.
@@ -542,8 +543,13 @@ REGISTRY = [
     ("helms23_high719_over_maint", o_helms23_ratio, 0.80, 1.60, "S2062/S2063 Helms 2023 HIGH (+719 kcal/d reported): no MT difference", 1),
     ("garthe13_lean_ratio", o_garthe13_lean_ratio, 0.80, 1.35, "S1.30 Garthe 2013: LBM gain not different", 1),
     ("garthe13_fat_diff", o_garthe13_fat_diff, 0.80, 2.50, "S1.30 Garthe 2013: FM +15 % vs +3 %", 1),
-    ("mettler_lp_share", o_mettler_lp, 0.35, 0.70, "Mettler 2010 (PMID 19927027) 1.0 g/kg: 1.6 of 3.0 kg lean", 1),
-    ("mettler_hp_share", o_mettler_hp, 0.05, 0.35, "Mettler 2010 2.3 g/kg: 0.3 of 1.5 kg lean", 1),
+    # Plan 16 Task 5 (controller ruling): report only, two named non-reproductions. The deficit arm now follows
+    # Forbes (S1056, S2278-S2288); the old Alpert ceiling sent the overflow above 69 kcal/kg fat/d to lean, which is
+    # what met these bands at 12 kg fat and -1200 kcal/d. Mettler's 14-day DXA lean includes the early glycogen and
+    # its water, a reserve the model's lean (F + X, X already the labile water, glycogen and organ) does not carry
+    # apart, so no DXA-equivalent reading exists; the protection weights are not re-fitted.
+    ("mettler_lp_share", o_mettler_lp, 0.35, 0.70, "Mettler 2010 (PMID 19927027) 1.0 g/kg: 1.6 of 3.0 kg lean (report)", 0),
+    ("mettler_hp_share", o_mettler_hp, 0.05, 0.35, "Mettler 2010 2.3 g/kg: 0.3 of 1.5 kg lean (report)", 0),
     ("quarter_rule_share", o_quarter_rule, 0.15, 0.35, "Heymsfield 2014 (PMID 24447775); S0072 Weinheimer", 1),
     ("pasiakos_0.8_minus_1.6", o_pasiakos_diff, 0.10, 0.50, "Pasiakos 2013 (PMID 23739654) direction (abstract)", 1),
     ("bray_15pct_lean", o_bray_15, 1.50, 3.50, "S0605 Bray 2012: lean +2.87 kg at 15 % protein", 1),

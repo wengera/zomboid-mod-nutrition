@@ -34,7 +34,7 @@ K.strength.DEFAULTS = {
     full_drop = 0.5, -- fit point T, flat; S2069, S2068, S1946, S2062, S2064
     a_nov = 6.0, -- fit point T; S0064
     trained_need = 0.0, -- evidence default (1 = Angus's premise)
-    forbes_c = 10.4, -- kg; S0054, S0055 (S1056 open)
+    forbes_c = 10.4, -- kg; S0054, S0055, S1056 (Chow and Hall's Forbes coefficient, settled)
     wT = 0.35, -- fit point T; S0072, S1997, S0609
     S_def = 10.0, -- sets/wk; fit point T (H.47)
     wP = 0.6, -- fit point T; S0599

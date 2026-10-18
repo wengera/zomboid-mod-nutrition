@@ -54,7 +54,10 @@ def test_exact_detraining_halves_in_its_half_life():
 # The exact-mode re-score (ruling 13-2, ts = 1) of every registry oracle at point T, pinned so a later kernel or
 # oracle change that moves one is named. Against the record only rantila_kept_frac and rantila_block2_over_1 moved.
 # Task 11c (regain integrated exactly, Task 11 review I-2) moved buechel26_contest_ffm only, by 7.5e-7: a weight-0
-# report oracle outside its band under the record and still outside it; the total did not move.
+# report oracle outside its band under the record and still outside it; the total did not move. Plan 16 Task 5 (the
+# deficit arm without Alpert's ceiling) moved seven: garthe11_fast_lean, pasiakos and chk4 inside their bands, the
+# report-only buechel26 and roth23 still outside theirs, and both Mettler shares out of their bands, which the
+# controller's ruling made report only (strength_oracles.py); the weighted total did not move.
 EXACT_TOTAL = 0.5281803643283429
 EXACT_PINS = {
     'year1_kg_20sets': 7.556450473517981,
@@ -68,17 +71,17 @@ EXACT_PINS = {
     'longland_lp_lean': -0.4212890038820234,
     'longland_hp_fat': -3.6595194196119643,
     'garthe11_slow_lean': 0.2753374222817513,
-    'garthe11_fast_lean': -0.15637476335611922,
+    'garthe11_fast_lean': -0.04433432933299741,  # Plan 16 Task 5 (no deficit ceiling): was -0.15637476335611922
     'mk_minus500_lean': -0.20754013114804337,
     'trained_maint_8wk': 0.4070969717299633,
     'trained_maint_premise': 0.4070969717299633,
     'helms23_high719_over_maint': 1.3278647632358014,
     'garthe13_lean_ratio': 1.0661433036295154,
     'garthe13_fat_diff': 3.3242176760555857,
-    'mettler_lp_share': 0.56921909092098,
-    'mettler_hp_share': 0.18229532621015493,
+    'mettler_lp_share': 0.24066195679209607,  # Plan 16 Task 5: was 0.56921909092098; report only, out of its band
+    'mettler_hp_share': 0.0347015680866988,  # Plan 16 Task 5: was 0.18229532621015493; report only, out of its band
     'quarter_rule_share': 0.22456898837071676,
-    'pasiakos_0.8_minus_1.6': 0.16236486696560648,
+    'pasiakos_0.8_minus_1.6': 0.2555406025158306,  # Plan 16 Task 5: was 0.16236486696560648
     'bray_15pct_lean': 2.406793930650174,
     'bray_5pct_lean': 0.0,
     'bray_muscle_no_signal': 0.0,
@@ -110,11 +113,11 @@ EXACT_PINS = {
     'chk2_s09_surplus_over_bal': 1.800885682691589,
     'chk2_s09_surplus_dF_pct': 0.06881465424098386,
     'chk2_s09_surplus_fat_share': 0.9737739607933508,
-    'chk4_s09_contest_minus500': -1.3205987075961332,
+    'chk4_s09_contest_minus500': -0.2666653123043403,  # Plan 16 Task 5: was -1.3205987075961332
     'deg_surplus_2pct_s09': 0.007505486325641186,
     'deg_fbal_status': 0.03359525461830324,
-    'buechel26_contest_ffm': -0.563547266810744,  # Task 11c (exact regain): was -0.5635465188507567
-    'roth23_minus30pct_lean': -0.26987869282115895,
+    'buechel26_contest_ffm': -0.3796933184718938,  # Plan 16 Task 5: was -0.563547266810744 (Task 11c: -0.5635465188507567)
+    'roth23_minus30pct_lean': -0.0753223916043595,  # Plan 16 Task 5: was -0.26987869282115895
 }
 
 
@@ -283,3 +286,17 @@ def test_euler_regain_fails_the_peak_bound():
     gates = sm.fp(P, 2.0) * sm.fe(P, 260.0, s, 2.0, 2600.0)
     euler = math.log(2) / P["regain_hl_wk"] * (b.Pk - b.F) * min(1.0, G) * gates / 7.0 * 30.0
     assert b.F + euler > b.Pk
+
+
+# ---------------------------------------------------------------- Plan 16 Task 5: the named non-reproductions
+@pytest.mark.parametrize("name", ["mettler_lp_share", "mettler_hp_share"])
+def test_the_mettler_shares_are_named_non_reproductions(name):
+    # report only since the deficit arm dropped the fat ceiling (the controller's ruling): pinned at their readings
+    # (test_exact_mode_pins) and asserted still outside their bands, so one that comes back inside fails and is
+    # promoted back to a weighted target
+    _, rows = so.score(dict(sm.POINT_T, exact=True, ts=1.0), True)
+    row = {r[0]: r for r in rows}[name]
+    _, value, lo, hi, miss, weight, _ = row
+    assert weight == 0
+    assert not (lo <= value <= hi) and miss > 0
+    assert abs(value - EXACT_PINS[name]) < 1e-9
