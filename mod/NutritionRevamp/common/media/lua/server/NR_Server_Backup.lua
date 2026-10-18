@@ -1,41 +1,48 @@
 -- NR_Server_Backup.lua -- the record's backup on the character (Plan 16 Task 3, spec section 1.4): a copy of the
 -- player's stored record kept in the character's own modData, so a lost or corrupt store file, or a store file left
--- ahead of a world a hard kill rolled back, restores from what the world saved with the character (NR_Server_Store's
--- load rule, S.pick). The store's file stays the authoritative copy; this one is read only by that rule.
+-- ahead of a world a hard kill rolled back, restores from the copy saved with the character (NR_Server_Store's load
+-- rule, S.pick). The engine writes the character, its modData with it, to players.db on its own cadence, apart from
+-- the world save: every 180 real seconds for each connected player, at a disconnect, at a trade, at creation and at a
+-- world save, each row committed at once (ServerPlayerDB; Task 3 review section 3). So after a hard kill the copy
+-- matches the character's restored inventory and stats, and it is usually ahead of the rolled-back world clock: that is
+-- its normal state, not a fault, and K.resume.resume moves it back onto the clock. The store's file stays the
+-- authoritative copy; this one is read only by that rule.
 --
 -- The copy: modData key NutritionRevamp.backup = { n, parts, sum, age }. parts holds the store slot's own text (the
 -- one K.json document F.save writes: { gen, rec = K.store.inputsOnly, done = true }, so there is no second format and
--- no second encode) cut into n strings of at most BK.PART characters: the engine saves a modData string, and sends a
--- command's, with a 16-bit length (GameWindow$StringUTF.save @20-@27 L1419-L1420 on the 42.21 jar, `i2s` before
--- putShort), so one longer string would be cut. age is the world age the store step ran at; sum is BK.sum of the text
--- and age.
+-- no second encode) cut into n strings of at most BK.PART characters: the engine saves a modData string with a signed
+-- 16-bit count of its UTF-8 bytes (GameWindow$StringUTF.save @20-@27 L1419-L1420, `i2s` before putShort; the load
+-- reads getShort and a count of 0 or less as empty, StringUTF.load @0-@11 L1426-L1428), so a string over 32767 bytes
+-- is lost; 8000 characters are at most 24000 bytes. age is the world age the store step ran at; sum is BK.sum of the
+-- text and age.
 --
 -- The write (BK.write): only from F.save, so at the store's save cadence (at most once a real minute a player, and
 -- after an eat, a drink or a respawn's reset), never per minute; a departure's flush has no player and writes none.
--- The same table is sent to the owning client (command "backup"), whose NR_Client_Mirror lays it in its own player's
--- modData: a client's transmitModData replaces the server's whole table (#1042, #1151), so the client must hold the
--- copy too or any other mod's transmit would wipe it.
+-- The copy is never sent to the client (Plan 16 Task 3 fix 1, ruling M1: it would multiply the mod's server-to-client
+-- traffic 3.5-5.5 times). The risk window that leaves: a client's transmitModData replaces the server's whole player
+-- table (#1042, #1151), so another mod's transmit wipes the copy until the next save (at most S.SAVE_GAP_MS while the
+-- player is online); an engine player save taken inside that window holds no copy, and only a later restore from that
+-- save (a lost store or a hard kill) would miss it.
 --
 -- The read (BK.read): a copy is rejected, counted by reason in BK.stats.rejected and logged at level 2, when it is
--- absent or not a table (a wipe), its parts are not n strings or its text does not decode to the store's document for
--- this username (garbled), its sum does not match (edited), or its age or its record's latest stamp
--- (K.resume.latest) is past the world clock (a copy from a world that has not happened). A player with no readable
--- modData answers "unavailable" and is not counted. The sum catches a wipe, a truncation and a stray edit; it is not
--- a signature, so a client that rebuilds a matching sum can forge a copy, which only the load rule's two cases read.
+-- absent or not a table (a wipe), its parts are not n strings or its text does not decode to the store's finished
+-- document for this username (garbled), or its sum does not match (edited). A player with no readable modData answers
+-- "unavailable" and is not counted. The sum catches a wipe, a truncation and a stray edit; it is not a signature, so
+-- a client that rebuilds a matching sum can forge a copy, which only the load rule's two cases read.
 --
 -- Rule 6: a write cuts the text and sums it (one string.byte call per four characters) and makes one modData
--- assignment and one send, once a save; no read happens outside a first sight. Runs in both Lua states; the write
--- and the send run only behind the store's isServer() path. Slow-clock code: no @fastpath region in this file.
+-- assignment, once a save; no read happens outside a first sight. The engine then serialises the 6-13 KB copy into
+-- each player save (every 180 s and at a world save), a cost not measured here. Runs in both Lua states; the write
+-- runs only behind the store's isServer() path. Slow-clock code: no @fastpath region in this file.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.backup = {
-    module = "NutritionRevamp",
     KEY = "NutritionRevamp",   -- the modData key; the copy is its field backup
-    PART = 8000,               -- not science (no row): characters a part, under the 16-bit string length the engine saves at
+    PART = 8000,               -- not science (no row): characters a part, at most 24000 UTF-8 bytes, under the engine's 32767-byte string
     MAX_PARTS = 64,            -- not science (no row): a copy longer than 512 000 characters is garbled
     MOD = 2147483647,          -- not science (no row): the sum's modulus, the prime 2^31 - 1, so every step is exact in a double
-    stats = { writes = 0, sends = 0, sendFailures = 0, bytes = 0, reads = 0, restored = 0, aheadKept = 0,
-              rejected = { absent = 0, garbled = 0, sum = 0, ahead = 0 } },
+    stats = { writes = 0, bytes = 0, reads = 0, restored = 0, aheadKept = 0,
+              rejected = { absent = 0, garbled = 0, sum = 0 } },
 }
 local BK = NR.server.backup
 
@@ -73,8 +80,8 @@ local function modData(player)
     return md
 end
 
--- The backup of the store text written at world age ageH, on player and on the owning client. False when the player
--- has no modData or the age is not finite (nothing written).
+-- The backup of the store text written at world age ageH, on player. False when the player has no modData or the age
+-- is not finite (nothing written).
 function BK.write(player, text, ageH)
     if type(text) ~= "string" or not NR.finite(ageH) then return false end
     local md = modData(player)
@@ -88,13 +95,6 @@ function BK.write(player, text, ageH)
     root.backup = doc
     BK.stats.writes = BK.stats.writes + 1
     BK.stats.bytes = BK.stats.bytes + string.len(text)
-    if sendServerCommand ~= nil then
-        if pcall(sendServerCommand, player, BK.module, "backup", doc) then
-            BK.stats.sends = BK.stats.sends + 1
-        else
-            BK.stats.sendFailures = BK.stats.sendFailures + 1
-        end
-    end
     return true
 end
 
@@ -120,9 +120,9 @@ local function textOf(doc)
     return table.concat(out)
 end
 
--- The validated backup on player for username at world age ageH: the stored record (raw, as a slot file's rec),
--- its generation and the copy's age; or nil, nil and the reason (the header's rules; "unavailable" with no modData).
-function BK.read(player, username, ageH)
+-- The validated backup on player for username: the stored record (raw, as a slot file's rec), its generation and the
+-- copy's age; or nil, nil and the reason (the header's rules; "unavailable" with no modData).
+function BK.read(player, username)
     local md = modData(player)
     if md == nil then return nil, nil, "unavailable" end
     BK.stats.reads = BK.stats.reads + 1
@@ -136,10 +136,6 @@ function BK.read(player, username, ageH)
     if not ok or type(t) ~= "table" or t.done ~= true or type(t.gen) ~= "number" or type(t.rec) ~= "table"
         or t.rec.username ~= username then
         return reject(username, "garbled")
-    end
-    local latest = K.resume.latest(t.rec)
-    if NR.finite(ageH) and (doc.age > ageH or (latest ~= nil and latest > ageH)) then
-        return reject(username, "ahead")
     end
     return t.rec, t.gen, doc.age
 end

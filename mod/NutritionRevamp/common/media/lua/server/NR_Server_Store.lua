@@ -59,11 +59,14 @@
 -- player's backup (NR_Server_Backup's BK.read: validated, else nil): a store file that is missing or unreadable loads
 -- the backup (a deleted folder, a renamed server, a moved host); a store record whose latest stamp (K.resume.latest)
 -- is past the world clock was written after the world's last save, a hard kill having rolled the world back under it
--- (#2758, #3280), and loads the backup, which the world saved with the character, so the rolled-back stretch is
--- neither integrated twice nor the food landed in it eaten twice; otherwise the store wins. A restore is then filled
--- and resumed like any load, its generation set past both the store's and the backup's, and its slot marked dirty so
--- the next store step writes it. A backup the rule rejects (absent, wiped or edited by a client's transmitModData,
--- #1042) beside a good store is rewritten at that step. A store ahead with no valid backup is kept, logged at level 1.
+-- (#2758, #3280), and loads the backup, which is saved with the character by the engine's own player save (every 3
+-- real minutes online, at a disconnect, at a world save; Task 3 review section 3), so the record matches the
+-- character's restored inventory and stats and the food landed after that snapshot is not eaten twice; otherwise the
+-- store wins. A restore is then filled and resumed like any load (K.resume.resume moves a record whose latest stamp
+-- is past the world back onto the world clock, so the rolled-back stretch is not integrated twice), its generation
+-- set past both the store's and the backup's, and its slot marked dirty so the next store step writes it. A backup
+-- the rule rejects (absent, wiped or edited) beside a good store is rewritten at that step. A store ahead with no
+-- valid backup is kept, moved back the same way, and logged at level 1.
 --
 -- The writes ride the players' queue: a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
@@ -179,9 +182,10 @@ function S.load(username, r, worldAgeHours)
     return r
 end
 
--- The resume of a loaded record at world age ageH (K.resume.resume): the gap moved is counted in S.stats.resumes and
--- S.stats.resumedH (game hours) and marks the username for S.takeResumed. An unread age moves nothing; S.get then
--- leaves the sight unmarked, so the next touch with a clock read resumes the record.
+-- The resume of a loaded record at world age ageH (K.resume.resume): a forward gap is counted in S.stats.resumes and
+-- S.stats.resumedH (game hours), a backward one (a record past a rolled-back world) in S.stats.rewound, logged at
+-- level 2; either marks the username for S.takeResumed. An unread age moves nothing; S.get then leaves the sight
+-- unmarked, so the next touch with a clock read resumes the record.
 function S.resume(username, r, ageH)
     local gapH = K.resume.resume(r, ageH)
     if gapH > 0 then
@@ -189,6 +193,11 @@ function S.resume(username, r, ageH)
         S.stats.resumes = S.stats.resumes + 1
         S.stats.resumedH = S.stats.resumedH + gapH
         NR.log.say(3, "store: " .. tostring(username) .. " resumed after " .. tostring(gapH) .. " game hours away")
+    elseif gapH < 0 then
+        S.resumed[username] = true
+        S.stats.rewound = (S.stats.rewound or 0) + 1
+        NR.log.say(2, "store: " .. tostring(username) .. "'s record moved back " .. tostring(-gapH)
+            .. " game hours onto a world clock behind it (a hard-kill rollback)")
     end
 end
 
@@ -481,7 +490,7 @@ function S.pick(username, ageH, player)
     local raw = F.load(username)
     local B = NR.server.backup
     if player == nil or B == nil or not NR.finite(ageH) then return raw end
-    local bk, gen, why = B.read(player, username, ageH)
+    local bk, gen, why = B.read(player, username)
     if raw == nil then
         if bk == nil then return nil end
         return S.restore(username, bk, gen, "the store file is missing or unreadable")

@@ -666,21 +666,3 @@ def test_clear_mirror_drops_the_copy_without_counting_an_arrival():
     received = NRC(rt).received
     rt.execute("NutritionRevamp.client.clearMirror()")
     assert NRC(rt).mirror is None and NRC(rt).received == received
-
-
-def test_a_backup_command_lays_the_copy_in_the_local_players_moddata_and_installs_no_mirror():
-    # Plan 16 Task 3: the server's backup of the record (NR_Server_Backup) is kept in the client's own player modData,
-    # so a transmitModData any mod makes carries it back instead of wiping it (#1042); it is not a mirror
-    rt = rt_env()
-    rt.execute("NR_T.player.md = { Other = 1 }; NR_T.player.getModData = function(s) return s.md end")
-    received = NRC(rt).received
-    fire(rt, "OnServerCommand", "'NutritionRevamp', 'backup', { n = 1, parts = { '{}' }, sum = 7, age = 3 }")
-    md = G(rt).NR_T.player.md
-    assert md.NutritionRevamp.backup.sum == 7 and md.NutritionRevamp.backup.parts[1] == "{}" and md.Other == 1
-    assert NRC(rt).received == received and NRC(rt).mirror is None
-    fire(rt, "OnServerCommand", "'NutritionRevamp', 'backup', { n = 1, parts = { 'x' }, sum = 8, age = 4 }")
-    assert md.NutritionRevamp.backup.sum == 8                # the newest copy replaces the last
-    rt.execute("NR_T.player.getModData = nil")
-    assert NRC(rt).keepBackup(rt.eval("{}")) is False and NRC(rt).keepBackup("x") is False
-    fire(rt, "OnServerCommand", "'Other', 'backup', { sum = 9 }")
-    assert md.NutritionRevamp.backup.sum == 8

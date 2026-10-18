@@ -137,18 +137,28 @@ function K.resume.shift(record, gapH, fromH, toH)
     return record
 end
 
--- The resume at world age ageH: every stamp moved by the gap from the record's last step age to ageH. A record no
--- step has run on, an unread age or an age not past the last step moves nothing (a world behind the record, a
--- hard-kill rollback, is the store's backup's case). Returns the gap moved, in game hours (0 when none).
+-- The resume at world age ageH: every stamp moved by the gap from the record's last step age to ageH. A record whose
+-- latest stamp (K.resume.latest) is past ageH was written after the world's last save (a hard kill rolled the world
+-- back under it, Plan 16 Task 3 fix 1): every stamp moves back by ageH - latest, so the latest lands on the world
+-- clock and no heal reads a stamp in the future (the freeze rule run backwards; the rolled-back stretch is neither
+-- integrated again nor read as elapsed). A record no step has run on, an unread age or an age equal to the last step
+-- with no stamp past it moves nothing. Returns the gap moved, in game hours: positive forward, negative back, 0 none.
 function K.resume.resume(record, ageH)
     if not K.finite(ageH) then
         return 0
     end
     local fromH = K.resume.fromH(record)
-    if fromH == nil or not (ageH > fromH) then
+    if fromH == nil then
         return 0
     end
+    local latest = K.resume.latest(record)
     local gapH = ageH - fromH
+    if latest ~= nil and latest > ageH then
+        gapH = ageH - latest
+        fromH = latest
+    elseif not (ageH > fromH) then
+        return 0
+    end
     K.resume.shift(record, gapH, fromH, ageH)
     return gapH
 end

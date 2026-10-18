@@ -104,7 +104,10 @@ def test_a_stamp_at_the_last_step_lands_on_the_touch_exactly(host):
     # not 50.4: the gap does not round-trip, fix 1 F5)
     last, back = 16.166666666666668, 50.4
     assert last + (back - last) != back
-    r = full_record(host, last)
+    # the step stamps alone, all at the last step (fix 1: full_record's anchors near 100 sit past this world, which the
+    # resume now moves back; that case is test_a_record_past_the_world_moves_back_onto_the_clock)
+    r = host.table({"lastSeen": last, "kineticsAge": last, "satiety": {"t": last}, "nutrients": {"lastAgeH": last},
+                    "body": {"lastAgeH": last}})
     gap = R(host).resume(r, back)
     assert gap == back - last
     assert r.lastSeen == r.kineticsAge == r.satiety.t == r.nutrients.lastAgeH == r.body.lastAgeH == back
@@ -115,7 +118,7 @@ def test_a_stamp_at_the_last_step_lands_on_the_touch_exactly(host):
 def test_resume_moves_nothing_without_a_gap_a_clock_or_a_step(host):
     r = full_record(host)
     assert R(host).resume(r, NAN) == 0 and R(host).resume(r, None) == 0
-    assert R(host).resume(r, 100.0) == 0 and R(host).resume(r, 99.0) == 0   # a world behind the record: the backup's case
+    assert R(host).resume(r, 100.0) == 0                     # the world at the last step, no stamp past it
     assert R(host).resume(host.table({"username": "u"}), 500.0) == 0
     assert host.py(r) == host.py(full_record(host))
     assert R(host).resume(r, 172.0) == 72.0 and r.body.dayStartH == 168.0
@@ -150,3 +153,19 @@ def test_latest_is_the_latest_finite_stamp_of_every_path(host):
     r.monotony = host.table({"t": {"Base.Odd": "corrupt"}})  # an entry that is not a table adds nothing
     assert R(host).latest(r) == 100.0
     assert R(host).latest(host.table({"username": "u", "satiety": "y"})) is None
+
+
+def test_a_record_past_the_world_moves_back_onto_the_clock(host):
+    # Plan 16 Task 3 fix 1 (review H1): a record written after the world's last save (a hard kill rolled the world back
+    # under it) moves back by world - latest, so its latest stamp lands on the world clock exactly and no stamp is in
+    # the future (until fix 1 a world behind the record moved nothing, and the heals read every stamp as ahead)
+    r = full_record(host)
+    r.monotony.t["Base.Apple"].last = 100.25                # an eat after the last step: the latest stamp
+    gap = R(host).resume(r, 97.0)
+    assert gap == 97.0 - 100.25
+    assert r.monotony.t["Base.Apple"].last == 97.0 and R(host).latest(r) == 97.0
+    assert r.lastSeen == r.kineticsAge == r.nutrients.lastAgeH == r.body.lastAgeH == 100.0 + gap
+    assert r.satiety.nicH == 70.0 + gap and r.body.dayStartH == 96.0 + gap and r.drain.fedAgeH == 97.25 + gap
+    assert r.monotony.t["Base.Bread"].n == 2.0 and r.firstSeen == 3.0 and r.body.trail.at == 100.0
+    r2 = full_record(host)
+    assert R(host).resume(r2, 99.0) == -1.0 and R(host).latest(r2) == 99.0   # the step stamps the latest
