@@ -297,14 +297,33 @@ def test_the_two_water_schedules_differ_and_the_weights_are_the_artifacts():
     guide = F.meal_returns(H(rows))["dinner"][1][0]
     shifted = F.meal_returns(H(rows_s))["dinner"][1][0]
     assert (round(guide, 2), round(shifted, 2)) == (4.07, 3.92)
-    with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261017c", "fit-compact.json"),
+    with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261018", "fit-compact.json"),
               encoding="utf-8") as fh:
         art = json.load(fh)
     w = art["search"]["weights"]
     assert w["meals"] == dict(zip(F.MEALS, F.W_MEAL)) and w["meals"]["breakfast"] == F.W_CARRY
     assert w["shares"] == F.W_SHARE == F.W_CARRY and w["others"] == 1.0
+    assert w["configs"] == F.W_CONFIG
     assert art["scenarios"]["WATER_SHIFT"] == F.WATER_SHIFT
+    assert art["scenarios"]["CONFIGS"] == list(F.CONFIGS) and art["scenarios"]["SLEEP_MIN"] == F.SLEEP_MIN
     assert F.W_CARRY == 0.5 and F.WATER_SHIFT == 60
+    X = art["chosen"]
+    K = knots_of(F.replay([], 1)[1].K)[0]
+    assert X == K[1:6] and art["atBound"] == [] and art["verify"] == 0.0     # the shipped knots are the artifact's
+
+
+def test_the_mirror_reads_the_body_clocks_hour_not_the_worlds():
+    # Plan 16 Task 4b: the stage's unfed dip reads the trace's body-clock hour (none with sleep off), never the world
+    # age: a row at the world's 19:50 peak whose body clock reads the 07:50 trough takes the dip out
+    import fit_hunger_curve as F
+    C = {"A": 0.085, "PEAK": 19.8333, "FED_M": 3.80654, "DEAD_ZONE": 0.02, "HOLD_EPS": 0.001}
+    knots = (0.097, 0.21125, 0.289531, 0.420782, 0.6825)
+    X = (0.0,) + knots + (1.0,)
+    row = {"age": 19.8333 - F.HOUR_OFFSET, "satiety.hModel": 0.25, "satiety.M": 0.0}
+    trough = 1 - 0.085
+    got = F.stage([dict(row, body=7.8333)], knots, C, 0.0)[0]
+    assert got == pytest.approx(F.curve_map(0.25 / trough, X))
+    assert F.stage([dict(row, body=None)], knots, C, 0.0)[0] == pytest.approx(F.curve_map(0.25, X))
 
 
 def test_a_meal_that_never_reaches_peckish_before_the_next_reads_censored():
