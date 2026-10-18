@@ -23,8 +23,8 @@
 --    L94-L95): a cancel after the forceComplete would eat the WHOLE item, so serverStop is guarded too.
 -- Vanilla's own pattern: serverStart then netAction:forceComplete() (ISInsertMagazine.lua:60-62, ISRestAction.lua:
 -- 101-103), and complete returning false as the reject (ISGatherBloodFromAnimal.lua:183-185). The message is vanilla's
--- server-side halo route, as ISReadABook.lua:398-400 sends it (forceComplete, then HaloTextHelper.addBadText of a
--- getText): HaloTextHelper.addText on a server sends a HaloText packet to the player (@60-@86 L158-L159), whose client
+-- server-side halo route, as ISReadABook sends it (forceComplete then doHaloText at :398-400; its
+-- HaloTextHelper.addBadText of a getText at :86): HaloTextHelper.addText on a server sends a HaloText packet to the player (@60-@86 L158-L159), whose client
 -- draws the string it carries, untranslated (HaloTextPacket.processClient @0-@15).
 --
 -- The wraps, three, on ISEatFoodAction (never `new`, CLAUDE.md § 6: the client sends the action's arguments by the
@@ -33,8 +33,10 @@
 --    it over nil and any serverStart another mod laid first is chained): at Overfull 4 it marks the action refused
 --    (action.nrRefused, a field of the server's action table, as ISReadABook's forceStopped is), forceCompletes it and
 --    sends the player Tooltip_CantEatMore; below it the saved original, if any, runs unchanged;
---  * complete: a refused action returns false (the Reject) and nothing below it runs: no Eat, no intake capture, no
---    corpus wrap's buff (QualityCooking's); any other action runs the saved original unchanged;
+--  * complete: a refused action returns false (the Reject) and nothing BELOW it runs: no Eat, no intake capture, and no
+--    corpus wrap laid before this mod; a wrap laid AROUND it (a mod loaded after this one, such as QualityCooking, whose
+--    complete wrap applies its buff whatever the result) still runs its own work (a limitation); any other action runs
+--    the saved original unchanged;
 --  * serverStop: a refused action stops with nothing eaten; any other stop (a real cancel) runs the original.
 -- THE STATED EXCEPTION: the intake's wrappers ALWAYS call the saved original (NR_Server_Intake.lua's shape, #1067).
 -- These three do not, on a refused action alone, on purpose: refusing the eat is the point. Below Overfull 4, for
@@ -53,9 +55,10 @@
 -- The rim guard: the check runs under one pcall and the refusal's steps under their own; a raising check runs the
 -- original (the eat proceeds), and a raise after the mark leaves the action refused at its own end time.
 --
--- Cadence (Rule 6): once per eat start, no clock and no per-minute work. The check reads the running mode (Lua), the
--- eater's username (one Java call), the record already in memory (a table lookup, never a load) and its Overfull level
--- (K.view.overfullOf, Lua); only at Overfull 4 does it read the item's hunger change (a second Java call). A refusal
+-- Cadence (Rule 6): once per eat start, no clock and no per-minute work. The wrapper's side test (NR.isServer, one Java
+-- call), then the check: the running mode (Lua), the eater's username (a second Java call), the record already in memory
+-- (a table lookup, never a load) and its Overfull level (K.view.overfullOf, Lua): 2 Java calls below Overfull 4; only at
+-- it does it read the item's hunger change (a third). A refusal
 -- adds forceComplete, getText and the halo send. complete and serverStop read one Lua field. No @fastpath region.
 local NR = NutritionRevamp
 local K = NR.kernel
@@ -74,6 +77,7 @@ NR.server.eatGuard = {
         "the refusal's message is vanilla's Tooltip_CantEatMore as halo text in the SERVER's language: the halo packet carries the server's string and the client draws it untranslated",
         "a later mod that replaces ISEatFoodAction.complete, serverStop or serverStart without calling the saved original removes the refusal silently, and a mod that puts its eat on the server some other way (a direct Eat call) is not refused",
         "an eat by a player whose record is not in memory yet (before the first sight's load) is not refused",
+        "a mod loaded after NutritionRevamp wraps ISEatFoodAction.complete around the guard, so its own work still runs on a refused eat: QualityCooking's complete wrapper applies its cooking buff whatever the result, so a refused tiered dish can still give its buff (nothing is eaten)",
     },
 }
 local G = NR.server.eatGuard

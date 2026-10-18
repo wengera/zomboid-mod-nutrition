@@ -415,18 +415,20 @@ def test_install_wrap_over_an_absent_method_installs_once():
 
 # --- Rule 6: the eat start's Java calls --------------------------------------------------------------------------------
 
-def test_an_eat_start_makes_one_java_call_below_4_and_two_at_4():
+def test_an_eat_start_makes_two_java_calls_below_4_and_three_at_4():
     h = host()
+    # the side test's isServer global counts as a Java call too
+    h.rt.execute("local f = isServer; isServer = function() NR_E.jcount('isServer'); return f() end")
     fill(h, "admin", 1000)
     a = action(h)
     h.G.NR_E.java = h.rt.table()
     a.serverStart(a)
-    assert dict(h.G.NR_E.java.items()) == {"getUsername": 1}
+    assert dict(h.G.NR_E.java.items()) == {"isServer": 1, "getUsername": 1}
     fill(h, "admin", 1100)
     a = action(h)
     h.G.NR_E.java = h.rt.table()
     a.serverStart(a)
-    assert dict(h.G.NR_E.java.items()) == {"getUsername": 1, "getHungChange": 1}
+    assert dict(h.G.NR_E.java.items()) == {"isServer": 1, "getUsername": 1, "getHungChange": 1}
     assert a.netAction.forced is True                         # plus forceComplete, getText and the halo on a refusal
 
 
@@ -434,5 +436,5 @@ def test_the_limitations_name_the_refusals_bounds():
     h = host()
     text = " ".join(G(h).limitations.values())
     for phrase in ("Overfull 4", "Mode 1", "hunger change", "Overlay", "language", "queue",
-                   "without calling the saved original"):
+                   "without calling the saved original", "QualityCooking", "cooking buff"):
         assert phrase in text, phrase
