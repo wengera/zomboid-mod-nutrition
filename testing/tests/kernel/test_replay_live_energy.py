@@ -85,8 +85,10 @@ from .test_replay_live_oracle import energy_run, fast_plans, meal_events, sleep_
 sys.path.insert(0, os.path.join(REPO, "tools"))
 import replay_live as RL  # noqa: E402
 
-# Plan 16 Task 4: the study oracles read the world hour (S1273), so every server-path replay here runs as a sleep-on
-# player whose body clock sits on the world hour (RL.WORLD_CLOCK); the 23:00-07:00 nights would otherwise reset it
+# Plan 16 Task 4: the study oracles read the world hour (S1273), so every server-path replay here runs with
+# K.circadian.hour on the world hour (RL.WORLD_CLOCK): a writer-only replay has no Nutrients step to seed the body
+# clock, and Karl's 05:00 and 06:00 wakes would reset it 1-2 h ahead of the world (a 23:00-07:00 night resets it onto
+# the world hour)
 MAN = {"player": {"weight": 70.0, "female": False}, "rng": "half", "constants": RL.WORLD_CLOCK}
 RATE = {"HeavyWork": 6.0, "MediumWork": 3.9, "UsingTools": 2.5, "Running10kmh": 6.9, "Running15kmh": 9.5, "DiggingSpade": 5.5}
 IDLE = 1.5                        # the engine's Default class (a live idle player, #2875)

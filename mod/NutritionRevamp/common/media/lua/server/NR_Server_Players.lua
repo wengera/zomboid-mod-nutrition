@@ -63,20 +63,29 @@ end
 -- (Rule 6, fix 1 ruling F2): lastSeen stays at the last run's age, and the player's next minutes carry on from there
 -- until the stall is integrated in full. Each run stamps lastSeen at its own age. Counted in P.stalls (slots that ran
 -- more than one sub-step or left some to carry) and P.substeps (the sub-steps those slots ran).
+-- The stall's asleep latch (Plan 16 Task 4 fix 1, the controller's ruling F2): the stalled hours were slept or woken
+-- through as they were when the stall was seen, so the slot that detects it reads isAsleep once into r.carryAsleep,
+-- and every sub-step of that stall, the carried ones in later minutes included, reads the latch (NR_Server_Minute.run
+-- seeds the pipeline's shared read with it); the slot that integrates the rest clears it. A player who wakes before
+-- the carry runs so books the night asleep. Rule 6: one isAsleep read at the detection, which the pipeline then shares.
 function P.integrate(username, player, r, age)
     local from = r.lastSeen
     local n = K.resume.substeps(from, age)
     local runs = K.min(n, K.resume.SLOT_SUBSTEPS)
+    local asleep = nil
     if n > 1 then
         P.stalls = P.stalls + 1
         P.substeps = P.substeps + runs
+        if r.carryAsleep == nil then r.carryAsleep = NR.read.asleep(nil, player) == true end
+        asleep = r.carryAsleep
     end
     for i = 1, runs do
         local a = age
         if i < n then a = from + (age - from) * i / n end
         r.lastSeen = a
-        NR.server.minute.run(username, player, r, a)
+        NR.server.minute.run(username, player, r, a, asleep)
     end
+    if runs == n then r.carryAsleep = nil end
 end
 
 -- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends

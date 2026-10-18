@@ -659,8 +659,10 @@ def _replay_catchup(rt, value):
 # The daily rhythm before the body clock (Plan 16 Task 4): the hunger factor, the fatigue circ and the carry morning band
 # read the world clock's hour whatever the sleep setting, so "replay.WORLD_CLOCK" (any true value) makes K.circadian.hour
 # read the replay's world hour on that replay's host: a ring recorded before the body clock is graded against its own
-# pipeline, and a study oracle that read the world hour runs as a sleep-on player whose body clock sits on the world hour
-# (the sleep state itself still follows sleep_allowed). Set on a replay host only, never shipped.
+# pipeline, and a study oracle that read the world hour runs as a sleep-on player whose body clock sits on the world hour:
+# a writer-only replay has no Nutrients step to seed the body clock, and Karl's 05:00 and 06:00 wakes would reset it 1-2 h
+# ahead of the world (a 23:00-07:00 night resets it onto the world hour). The sleep state itself still follows
+# sleep_allowed. Set on a replay host only, never shipped.
 _WORLD_CLOCK_LUA = ("NutritionRevamp.kernel.circadian.hour = function(record, sleepOn) "
                     "return NR_R.tod(NR_T.age) end\n")
 

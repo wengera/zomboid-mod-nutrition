@@ -853,3 +853,19 @@ def test_a_loaded_record_keeps_its_remembered_mood_targets(host):
                        "moodLast = { u = 30, b = 29 } }")
     rec = S(host).load(raw, None, None)
     assert host.py(rec.moodLast) == {"u": 30, "b": 29}
+
+
+def test_the_body_clock_survives_a_save(host):
+    # Plan 16 Task 4 fix 1 (review F1): acute.bodyHour and acute.bodyOn are inputs, so a restart keeps the phase and the
+    # setting it last ran under (a dropped field would reseed the clock at the world hour at the next minute)
+    fmt = host.rt.eval("function(x) return string.format('%.17g', x) end")
+    for on in (True, False):
+        raw = stored(host)
+        raw["acute"]["bodyHour"] = 13.25
+        raw["acute"]["bodyOn"] = on
+        text = host.K.json.encode(S(host).inputsOnly(raw), fmt)
+        decoded, err = host.K.json.decode(text)
+        assert err is None
+        a = S(host).load(decoded, order(host), recs(host))["acute"]
+        assert a["bodyHour"] == 13.25 and a["bodyOn"] is on
+    assert S(host).isInput("acute.bodyHour") and S(host).isInput("acute.bodyOn")

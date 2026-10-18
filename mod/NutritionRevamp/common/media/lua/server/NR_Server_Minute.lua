@@ -34,13 +34,15 @@ end
 
 -- One player's minute: clear the context, seed it with the minute's world age (ageH, P.work's read; nil leaves the
 -- first step to read it) and the server minute's hour of day (NR.read.minuteHour, the players' minute's one read; nil
--- leaves the step to read it), then every registered step in ORDER, each under its own pcall; the engine reads the steps
+-- leaves the step to read it) and, in a stall's sub-steps, its asleep latch (asleep, P.integrate's; nil leaves the
+-- first step to read isAsleep), then every registered step in ORDER, each under its own pcall; the engine reads the steps
 -- shared (NR.read.KEYS) are dropped at the end, so no player's Java handles outlive the minute.
-function MIN.run(username, player, record, ageH)
+function MIN.run(username, player, record, ageH, asleep)
     local ctx = MIN.ctx
     for k in pairs(ctx) do ctx[k] = nil end
     ctx.eAge = ageH
     ctx.eHour = NR.read.minuteHour
+    ctx.eAsleep = asleep
     MIN.stats.runs = MIN.stats.runs + 1
     for i = 1, #MIN.ORDER do
         local fn = MIN.steps[MIN.ORDER[i]]

@@ -400,6 +400,44 @@ end
 """
 
 
+def test_a_stalled_night_whose_carry_runs_after_the_wake_books_it_asleep():
+    # Plan 16 Task 4 fix 1 (the controller's ruling F2): a 7 h stall seen asleep latches the asleep flag for every one of
+    # its sub-steps, so the 3 h the next minute carries are booked asleep though the player has woken by then; the bout
+    # then closes once, 10 minutes into the real waking, and resets the body clock to 07:00 once
+    h = golden_trace.new_host()
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    F = h.rt.eval("{ v = false, reads = 0 }")
+    h.rt.eval("function(p, F) p.isAsleep = function(s) F.reads = F.reads + 1; return F.v end end")(g1, F)
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):
+        _minute(h, start + m / 60.0)
+    F.v = True
+    t = start + 4 / 60.0
+    _minute(h, t)
+    a = h.record("g1")["acute"]
+    assert a["boutH"] > 0
+    t += 7.0
+    _minute(h, t)                                       # the stall: 4 of its 8 sub-steps run, asleep
+    r = h.record("g1")
+    assert r["carryAsleep"] is True and a["boutH"] == pytest.approx(4.0 + 1 / 60, abs=0.02)
+    F.v = False                                         # the player wakes before the carry runs
+    t += 1 / 60.0
+    _minute(h, t)                                       # the carry: the rest, read through the latch
+    assert r["carryAsleep"] is None
+    assert a["boutH"] == pytest.approx(7.0 + 2 / 60, abs=0.02) and a["gapH"] == 0
+    hours = []
+    n = 0
+    while a["boutH"] > 0 and n < 30:
+        t += 1 / 60.0
+        n += 1
+        _minute(h, t)
+        hours.append(a["bodyHour"])
+    assert a["boutH"] == 0 and n in (10, 11)
+    assert hours[-1] == pytest.approx(7.0 + n / 60)     # one reset, at the close
+    assert all(abs(x - 7.0) > 0.5 for x in hours[:-1])  # none before it
+
+
 def test_the_hour_fallback_is_the_world_age_from_seven():
     # Plan 16 Task 4: GameTime.getWorldAgeHours counts from 07:00 of day one (nightsSurvived x 24 + timeOfDay - 7), so
     # with no readable clock the hour is (ageH + 7) mod 24 (it read ageH mod 24 before, 7 h off); 7 with no age

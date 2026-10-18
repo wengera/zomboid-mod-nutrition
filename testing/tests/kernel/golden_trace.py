@@ -39,7 +39,8 @@ heal); g4 departs at 150 and returns as a new object at 180 (Plan 16 Task 2: the
 30 minutes away are frozen and the return minute runs nothing; Plan 16 Task 4: its body clock too, so from 180 it reads
 about half an hour behind the world's); at 200 the bus answers one "mirror.request" by g5. The host's clock reads the
 engine's 07:00 world-age origin since Plan 16 Task 4 (the trace's minutes run 06:00 to 10:00), and sleep is on (no
-getServerOptions), so each record's acute.bodyHour and bodyOn run the daily rhythm.
+getServerOptions), so each record's acute.bodyHour and bodyOn run the daily rhythm. A second short trace, "sleepOff"
+(Plan 16 Task 4 fix 1), runs o1 alone on a host whose server reads SleepNeeded false: no rhythm, the sleep state frozen.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and M (g5, 140; P until Plan 11g Task 4, G until
 Task 6c); g1's M overflows (170; Kinetics' guard since Plan 11g Task 4 fix 1).
 g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.
@@ -91,6 +92,11 @@ MACROS = {
     "g6": (1250.0, 140.0, 70.0, 95.0),
 }
 RESPAWN_G3 = (900.0, 110.0, 35.0, 55.0)
+# Plan 16 Task 4 fix 1: the sleep-off player o1, on its own host (the sleep options are server-wide): SleepAllowed
+# true and SleepNeeded false, the shipped default's state (no rhythm, the sleep state frozen), asleep 40-90, the meals
+# at MEAL_MINUTES, SLEEP_OFF_MINUTES minutes from START_AGE, a snapshot every SNAPSHOT_EVERY.
+MACROS_O1 = (1100.0, 120.0, 45.0, 65.0)
+SLEEP_OFF_MINUTES = 150
 RETURN_G4 = (1700.0, 200.0, 70.0, 90.0)
 
 DRINK_LITRES = 0.25
@@ -536,6 +542,7 @@ PLAYER_CFG = {
            "parts": {"LowerLeg_L": {"fracture": 30.0}}, "nicotine": NIC_START_G5},
     "g6": {"rate": 0.8, "inv": 6, "maxW": 8, "traits": ["NEEDS_LESS_SLEEP"], "asleep": [40, 90],
            "parts": {"Hand_R": {"bite": 2.0}}, "health": DEHYD_HEALTH_G6},
+    "o1": {"rate": 1.5, "inv": 6, "maxW": 8, "traits": [], "asleep": [40, 90], "parts": {}},
 }
 
 # The HUNGER, THIRST and FATIGUE each player's stats object starts at (Plan 11e Task 1, ruling 11e-3), distinct per
@@ -547,6 +554,7 @@ STAT_START = {
     "g4": (0.45, 0.30, 0.10),
     "g5": (0.20, 0.15, 0.30),
     "g6": (0.10, 0.25, 0.60),
+    "o1": (0.25, 0.15, 0.35),
 }
 
 
@@ -786,7 +794,35 @@ def run(host):
         h.tick(TICKS)
         if m % SNAPSHOT_EVERY == 0:
             snapshots.append(_snapshot(h, m, players))
-    return {"snapshots": snapshots, "printed_count": len(h.printed())}
+    return {"snapshots": snapshots, "printed_count": len(h.printed()), "sleepOff": run_sleep_off()}
+
+
+# The server's sleep options for the sleep-off host: SleepAllowed true, SleepNeeded false (sleep off on a server).
+SLEEP_OFF_ENV = (r"getServerOptions = function() return { getBoolean = function(s, k) "
+                 r"return k ~= 'SleepNeeded' end } end")
+
+
+def run_sleep_off():
+    """o1 alone on a host whose server reads sleep off (Plan 16 Task 4 fix 1): its record and stand-in each
+    SNAPSHOT_EVERY minutes. No body rhythm runs: the hunger factor is 1, circ 0 and the sleep state frozen at rested
+    through its asleep window."""
+    h = server_host.Host(extra_env=ENV + "\n" + SLEEP_OFF_ENV + "\n")
+    o1 = _new_player(h, "o1", MACROS_O1)
+    h.rt.execute("for _, t in pairs(NR_T.meals) do t.o1 = t.g1 end")      # o1 eats g1's meals
+    h.online(o1)
+    snaps = []
+    for m in range(1, SLEEP_OFF_MINUTES + 1):
+        h.T.age = START_AGE + m / 60.0
+        h.T.m = m
+        h.T.engine()
+        if m in MEAL_MINUTES:
+            _meal(h, m, "o1")
+        h.minute()
+        h.tick(TICKS)
+        if m % SNAPSHOT_EVERY == 0:
+            snaps.append({"minute": m, "age": _Num(h.T.age), "record": walk(h.NR.server.store.records["o1"]),
+                          "player": _player_state(o1), "sleepOn": h.NR.sleepOn()})
+    return {"snapshots": snaps, "printed_count": len(h.printed())}
 
 
 def main(argv):

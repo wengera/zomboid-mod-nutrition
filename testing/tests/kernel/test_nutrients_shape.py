@@ -882,11 +882,13 @@ def _hour_all(h, record, sleep_on):
     return h.K.circadian.hour(record, sleep_on)
 
 
+@pytest.mark.parametrize("off_key", ["SleepAllowed", "SleepNeeded"])
 @pytest.mark.parametrize("hour", [0, 4, 7, 9, 13, 19.8333, 23.5])
-def test_sleep_off_gives_no_rhythm_at_every_world_hour(nut_host, hour):
+def test_sleep_off_gives_no_rhythm_at_every_world_hour(nut_host, hour, off_key):
+    # either option false is sleep off on a server (fix 1, review F1: SleepAllowed false alone was untested)
     h = nut_host
     p = player(h)
-    h.G.NR_TEST_SLEEP.SleepNeeded = False
+    h.G.NR_TEST_SLEEP[off_key] = False
     h.G.NR_TEST_TOD = hour
     try:
         assert _poll(h) is False
@@ -900,7 +902,7 @@ def test_sleep_off_gives_no_rhythm_at_every_world_hour(nut_host, hour):
         assert off == K.eAcute(0, False, 30, 13.0, False, False, 0.2)          # no morning halving (13 h: outside it)
         assert off != K.eAcute(0, False, 30, 9.0, False, False, 0.2)           # the halving a clock would give at 09
     finally:
-        h.G.NR_TEST_SLEEP.SleepNeeded = True
+        h.G.NR_TEST_SLEEP[off_key] = True
         h.G.NR_TEST_TOD = None
         _poll(h)
 
@@ -944,6 +946,94 @@ def test_the_body_clock_is_unchanged_across_a_three_day_logout(nut_host):
         assert a["bodyHour"] == pytest.approx(before)
         alone(h, p, record, back + 1 / 60)
         assert a["bodyHour"] == pytest.approx(before + 1 / 60)
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_the_body_clock_survives_a_store_round_trip(nut_host):
+    # fix 1 (review F1): the record saved and loaded through the store keeps the phase and bodyOn, so the next minute
+    # advances it rather than reseeding it at the world hour
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 10.0
+    try:
+        record = fresh(h, p)
+        for i in range(1, 31):
+            alone(h, p, record, 100.0 + i / 60)
+        K = h.K
+        fmt = h.rt.eval("function(x) return string.format('%.17g', x) end")
+        text = K.json.encode(K.store.inputsOnly(record), fmt)
+        decoded, err = K.json.decode(text)
+        assert err is None
+        loaded = K.store.load(decoded, h.G.NutritionRevamp.data.records.ORDER, h.G.NutritionRevamp.data.records)
+        assert loaded["acute"]["bodyOn"] is True and loaded["acute"]["bodyHour"] == pytest.approx(10.5)
+        h.G.NR_TEST_TOD = 17.25
+        alone(h, p, loaded, 100.0 + 31 / 60)
+        assert loaded["acute"]["bodyOn"] is True
+        assert loaded["acute"]["bodyHour"] == pytest.approx(10.5 + 1 / 60)    # advanced, not reseeded at 17.25
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_the_body_clock_is_unchanged_across_a_rewind(nut_host):
+    # fix 1 (review F1): a hard kill's rollback, a record 3 h past the world (Task 3's rewind through K.resume), leaves
+    # the phase as it was; the next online minute advances it by a minute
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 10.0
+    try:
+        record = fresh(h, p)
+        for i in range(1, 31):
+            alone(h, p, record, 100.0 + i / 60)
+        a = record["acute"]
+        before = a["bodyHour"]
+        now = 100.5 - 3.0
+        h.G.NR_TEST_TOD = 4.0
+        assert h.K.resume.resume(record, now) == pytest.approx(-3.0)
+        assert a["bodyHour"] == before
+        alone(h, p, record, now)                                               # the touch minute integrates nothing
+        alone(h, p, record, now + 1 / 60)
+        assert a["bodyHour"] == pytest.approx(before + 1 / 60)
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+@pytest.mark.parametrize("gap_min, resets", [(15, False), (9, True)])
+def test_a_nap_chain_does_not_reset_the_clock(nut_host, gap_min, resets):
+    # fix 1 (review F1): five 60-minute naps 15 minutes apart, all in one 24 h window (5 h booked there), never reset
+    # the clock; with 9-minute gaps the naps are one bout under the S1112 tolerance (an awake gap under 10 minutes is
+    # still the bout), which closes past 4 h and resets
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 15.0
+    try:
+        record = fresh(h, p)
+        a = record["acute"]
+        t, online = 100.0, 0
+        for _ in range(5):
+            p["cfg"]["asleep"] = True
+            for _ in range(60):
+                t += 1 / 60
+                online += 1
+                alone(h, p, record, t)
+            p["cfg"]["asleep"] = False
+            for _ in range(gap_min):
+                t += 1 / 60
+                online += 1
+                alone(h, p, record, t)
+            if not resets:
+                assert a["bodyHour"] == pytest.approx(15.0 + online / 60)
+        assert a["winSleptH"] == pytest.approx(5.0)
+        if resets:
+            n = gap_min                                                        # the last nap's gap is under way
+            while a["boutH"] > 0 and n < 30:
+                t += 1 / 60
+                n += 1
+                alone(h, p, record, t)
+            assert a["boutH"] == 0 and n in (10, 11)
+            assert a["bodyHour"] == pytest.approx(7.0 + n / 60)                # one bout of 5 h: woke at 07:00
+        else:
+            assert a["boutH"] == 0 and a["bodyHour"] == pytest.approx(15.0 + online / 60)
     finally:
         h.G.NR_TEST_TOD = None
 

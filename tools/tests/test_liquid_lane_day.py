@@ -2,7 +2,8 @@
 docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md section 7).
 
 A fresh record (its seed plate at 07:00: 514 kcal, 501 since the hunger curve's re-fit moved the curve's
-inverse), then a 667 kcal plate and the guide's 500 g of water at 08:00, run
+inverse, larger on a sleep-off server since Plan 16 Task 4 (no morning trough: the stomach reads 382.2 g
+at minute 0 against 344.7 g)), then a 667 kcal plate and the guide's 500 g of water at 08:00, run
 through the mod's server pipeline on the lupa host (tools/mod_guide_series.server_run). The stomach's mass each minute
 (both lanes, K.stomach.mass's keys) is read through K.view.fullnessLevel, the level the Overfull moodle shows. Before
 the liquid lane read only drink-borne kcal, the water sat beside the plate at a half-time of about 85 min and held
@@ -33,7 +34,7 @@ def day():
     return masses, levels
 
 
-def test_the_ordinary_day_spends_five_minutes_at_overfull_4(day):
+def test_the_ordinary_day_spends_six_minutes_at_overfull_4(day):
     _, levels = day
     exact = {lv: sum(1 for x in levels if x == lv) for lv in (1, 2, 3, 4)}
     # 23, 26, 28 and 30 under the plate-kcal rule; level 3 read 6 before the curve's re-fit (a 514 kcal seed plate)
