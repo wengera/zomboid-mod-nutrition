@@ -1,18 +1,21 @@
 -- NR_Server_Store.lua -- the durable per-player store: an in-memory table of the
 -- records seen this uptime, persisted per player to two alternating JSON slot files under the server's Lua cache
--- folder through getFileWriter, with a real-time last-seen index pruned at NR.RecordKeepDays; nothing per-player is
--- kept under a global modData name (#3417: any client could request it). A pruned player's slots are emptied, not
--- deleted: Lua has no file delete or rename (J2). The folder is keyed by the server name, so a world wiped under the
+-- folder through getFileWriter, with a real-time last-seen index; nothing per-player is
+-- kept under a global modData name (#3417: any client could request it). A record is kept for good (Plan 16
+-- Task 3, spec section 1.3: no prune, so neither a long absence nor long downtime resets a character).
+-- The folder is keyed by the server name, so a world wiped under the
 -- same name finds the old files, and every returning player's record, resets included, carries over; an operator
 -- who wants a fresh start deletes the folder by hand. The load at first sight is fillInPlace (the load, below).
--- Inputs only (K.store.inputsOnly), never transmitted (#2416) and never player modData (#1042). Runs in both Lua
--- states; every write below is behind NutritionRevamp.isServer().
+-- Inputs only (K.store.inputsOnly), never transmitted (#2416). The authoritative copy is never player modData
+-- (#1042): the copy NR_Server_Backup keeps on the character is a validated backup that the load rule reads only when
+-- this store's copy is lost or ahead of the world. Runs in both Lua states; every write below is behind
+-- NutritionRevamp.isServer().
 --
 -- The files (42.21 jar, Task 2's J2: T1102.3, T1102.4, T1102.6). getFileWriter TRUNCATES the file at the call, not
 -- at close, so the writer never opens the file of a pair that holds the newest complete copy: a host killed
 -- between open and close loses only the file being written, and the other still holds the last complete one. The
 -- index (real-time last-seen stamps) is a pair too, index_a.json and index_b.json, for the same reason: one index
--- file emptied by a crash mid-write would lose every stamp, and a player who never came back would never be pruned.
+-- file emptied by a crash mid-write would lose every name, and the deferral below reads the index's names.
 -- Each file is one JSON object on one line, written with ONE write (writeln appends the host's separator, CRLF on
 -- Windows) and read with getFileReader(path, false) (true would create an empty file; a missing file reads nil).
 -- The guard: LuaFileWriter is a PrintWriter, which swallows I/O errors, so writeFailures counts only a writer that
@@ -52,13 +55,24 @@
 -- sight's (a reconnect the minute's walk never saw leave) starts a new one; a stall on the same object is no sight. A
 -- load that raises lays a fresh record in place, counted and logged.
 --
+-- The load rule (S.pick, Plan 16 Task 3, spec section 1.4), at the read of a record not in memory, with the touching
+-- player's backup (NR_Server_Backup's BK.read: validated, else nil): a store file that is missing or unreadable loads
+-- the backup (a deleted folder, a renamed server, a moved host); a store record whose latest stamp (K.resume.latest)
+-- is past the world clock was written after the world's last save, a hard kill having rolled the world back under it
+-- (#2758, #3280), and loads the backup, which the world saved with the character, so the rolled-back stretch is
+-- neither integrated twice nor the food landed in it eaten twice; otherwise the store wins. A restore is then filled
+-- and resumed like any load, its generation set past both the store's and the backup's, and its slot marked dirty so
+-- the next store step writes it. A backup the rule rejects (absent, wiped or edited by a client's transmitModData,
+-- #1042) beside a good store is rewritten at that step. A store ahead with no valid backup is kept, logged at level 1.
+--
 -- The writes ride the players' queue: a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
 -- (K.store.savePhase), so the players seen at a boot do not all save in one drain; a departure's flush, the index
--- write and the hourly prune are one-shot tasks. The index is debounced: a departure flush writes
+-- write and the hourly re-read of a locked index are one-shot tasks. The index is debounced: a departure flush writes
 -- only the player's slot and marks the index dirty, and the one task "store.index" writes it at most once every
--- S.INDEX_GAP_MS while dirty; the hourly prune writes it too. A task
--- name carries a "." ("store.flush.<hex>", "store.index", "store.prune"), which no username can:
+-- S.INDEX_GAP_MS while dirty. Each slot save also writes the record's backup on the player (BK.write, the same text),
+-- so the backup follows the save cadence and never the minute; a departure's flush has no player and writes none. A
+-- task name carries a "." ("store.flush.<hex>", "store.index", "store.reread"), which no username can:
 -- ServerWorldDatabase.isValidUserName refuses a name holding "." (42.21 @75-@81 L776) and authClient refuses an
 -- invalid name (@61-@84 L1041-L1044), and a task named like an online user would be merged into that user's queue
 -- entry and never run.
@@ -78,15 +92,15 @@ NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
                     fresh = {}, filled = {}, resumed = {}, stats = { loads = 0, created = 0, failures = 0, resumes = 0, resumedH = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
-                             lastPrune = nil, fmt = tostring, warned = false,
-                             stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0, pruned = 0,
+                             lastReread = nil, fmt = tostring, warned = false,
+                             stats = { writes = 0, reads = 0, readFailures = 0, writeFailures = 0,
                                        bytes = 0, repaired = 0, recovered = 0, deferred = 0, deferGiveUps = 0 }, deferWarned = {}, deferSince = {},
                              dirty = {} } }
 local S = NR.server.store
 local F = S.file
 
 S.SAVE_GAP_MS = 60000      -- game choice (ruling 8): a player's slot is written at most once a real minute
-S.PRUNE_GAP_MS = 3600000   -- game choice (ruling 8): the prune walks the index once a real hour
+S.REREAD_GAP_MS = 3600000  -- game choice (ruling 8): a locked index is read again once a real hour
 S.INDEX_GAP_MS = 300000    -- game choice (Task 11 fix 1): a dirty index is written at most once every 5 real minutes
 S.DEFER_MAX_MS = 600000    -- game choice (ruling T11-1a): ten real minutes, so a briefly locked file is never overwritten
 
@@ -323,8 +337,10 @@ end
 -- One player's record into the slot that does NOT hold the newest complete copy (target: unless a swallowed write
 -- left the newest slot unreadable): { gen, rec = the inputs, done = true } on one line. A failed write leaves the
 -- newest where it was, so the next save opens the same slot. A record created fresh this sight whose files the
--- preload finds is recovered from them instead of written over them (false: nothing written).
-function F.save(username, record)
+-- preload finds is recovered from them instead of written over them (false: nothing written). With the player
+-- (absent at a departure's flush), the same text is the record's backup on the character at world age ageH (BK.write),
+-- written whether or not the file write held, so a store that cannot write still leaves the copy.
+function F.save(username, record, player, ageH)
     if record == nil then return false end
     if F.gen[username] == nil then
         local raw, bad = loadSlots(username)
@@ -356,6 +372,7 @@ function F.save(username, record)
     local gen = (F.gen[username] or 0) + 1
     local which = target(F.at[username], F.slot(username, F.at[username] or "a"), F.last[username], username)
     local text = K.json.encode({ gen = gen, rec = K.store.inputsOnly(record), done = true }, F.fmt)
+    if player ~= nil and NR.server.backup ~= nil then NR.server.backup.write(player, text, ageH) end
     if not F.write(F.slot(username, which), text) then return false end
     F.gen[username] = gen
     F.last[username] = text
@@ -392,13 +409,13 @@ function F.writeIndex()
     return true
 end
 
--- The index read at boot, and again at the hourly prune while it is locked. When no file of the pair reads and
+-- The index read at boot, and again once a real hour while it is locked. When no file of the pair reads and
 -- either is present but unreadable (a torn or locked-open copy, not a missing one):
 --   * exactly one is unreadable and the other missing: every index write this boot goes to the missing file
 --     (F.indexPin) and the unreadable one is never opened, so the next boot reads what was written;
 --   * both are unreadable: the index is locked for this boot, since a gen-1 write would land on one file and the
---     next on the other, so the real index, with every stamp, would be written over. The players then go unpruned
---     and only an unreadable slot file defers their saves until a re-read at the hourly prune (or a restart).
+--     next on the other, so the real index, with every name, would be written over. Only an unreadable slot file
+--     then defers a player's save, until the hourly re-read (or a restart) reads the index.
 -- Logged once each, at level 1.
 function F.readIndex()
     local a, ta, badA = readDoc(F.indexPath("a"), "players")
@@ -412,8 +429,8 @@ function F.readIndex()
         if F.indexLocked then
             if not F.lockWarned then
                 F.lockWarned = true
-                NR.log.say(1, "store: the index files are present but unreadable; the index is not written this boot, "
-                    .. "so no record is pruned until a restart or an hourly re-read reads it")
+                NR.log.say(1, "store: the index files are present but unreadable; the index is not written this boot "
+                    .. "until a restart or an hourly re-read reads it")
             end
         elseif badA or badB then
             F.indexPin = badA and "b" or "a"
@@ -446,6 +463,42 @@ function S.takeResumed(username)
     return true
 end
 
+-- A restore from the backup (the load rule): the next write's generation set past the store's newest (loadSlots'
+-- F.gen, nil for a missing store) and the backup's own, one more past both so a store file that went unread at this
+-- touch never outranks the restore, and the slot marked so the next store step writes it. Returns raw.
+function S.restore(username, raw, gen, why)
+    F.gen[username] = K.max(F.gen[username] or 0, gen) + 1
+    S.mark(username)
+    local B = NR.server.backup
+    B.stats.restored = B.stats.restored + 1
+    NR.log.say(1, "store: " .. tostring(username) .. "'s record restored from the backup on the character: " .. why)
+    return raw
+end
+
+-- The load rule (the header): the raw record of username read at world age ageH, from the store's newest slot or the
+-- backup on player (BK.read), or nil when neither holds one. With no player or no clock, the store is read alone.
+function S.pick(username, ageH, player)
+    local raw = F.load(username)
+    local B = NR.server.backup
+    if player == nil or B == nil or not NR.finite(ageH) then return raw end
+    local bk, gen, why = B.read(player, username, ageH)
+    if raw == nil then
+        if bk == nil then return nil end
+        return S.restore(username, bk, gen, "the store file is missing or unreadable")
+    end
+    local latest = K.resume.latest(raw)
+    if latest ~= nil and latest > ageH then
+        if bk ~= nil then
+            return S.restore(username, bk, gen, "the store record is past the world clock (a hard-kill rollback)")
+        end
+        B.stats.aheadKept = B.stats.aheadKept + 1
+        NR.log.say(1, "store: " .. tostring(username) .. "'s record is past the world clock (a hard-kill rollback) and "
+            .. "the character holds no valid backup; the store's record is kept")
+    end
+    if bk == nil and why ~= "unavailable" then S.mark(username) end  -- a rejected backup: rewritten at the next store step
+    return raw
+end
+
 -- The record of username at world age worldAgeHours, loaded and resumed at the first touch of a sight (the header).
 -- player (optional) is the touching player object: the sight set holds the object of each sight (true when the first
 -- touch named none, which the next touch with an object adopts), and a touch with another object starts a new sight.
@@ -454,7 +507,7 @@ function S.get(username, worldAgeHours, player)
     local seen = sights(t)
     local r = t[username]
     if r == nil then
-        r = F.load(username)
+        r = S.pick(username, worldAgeHours, player)
         if r ~= nil then t[username] = r end
     end
     local mark = player
@@ -485,11 +538,11 @@ function S.get(username, worldAgeHours, player)
     return r
 end
 
--- A departure flush: the record held now (a pruned one is gone and nothing is written), and the index marked dirty
+-- A departure flush: the record held now (one no longer held writes nothing), and the index marked dirty
 -- for the debounced store.index task (ten departures in a minute write it once, not ten times). A save that writes
 -- nothing (a failed write, a deferral) keeps the dirty mark and stamps the attempt as the slot's last write, so the
 -- minute's retry (S.retryAway) comes once per save gap, not every minute; a returned player's own store step takes
--- the mark instead. A record no longer held (pruned) ends the retries. Only a flush that writes marks the index.
+-- the mark instead. A record no longer held ends the retries. Only a flush that writes marks the index.
 local function flush(username)
     local r = S.records and S.records[username]
     F.dirty[username] = nil                                -- the flush is the dirty slot's save
@@ -517,7 +570,7 @@ function S.retryAway(now)
     if P == nil or P.online == nil then return end
     for username in pairs(F.dirty) do
         if S.records == nil or S.records[username] == nil then
-            F.dirty[username] = nil                        -- a pruned record ends the retries
+            F.dirty[username] = nil                        -- a record no longer held ends the retries
         elseif P.online[username] == nil and K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then
             queueFlush(username)
         end
@@ -581,57 +634,17 @@ function S.step(username, player, record, ctx)
     local dirty = F.dirty[username] == true
     if not dirty and not K.store.due(F.lastWrite[username], now, S.SAVE_GAP_MS) then return end
     F.dirty[username] = nil
-    if not F.save(username, record) and dirty then F.dirty[username] = true end  -- retried at the next step
+    local ageH = record.lastSeen
+    if ctx ~= nil and ctx.eAge ~= nil then ageH = ctx.eAge end      -- the age the minute ran at: no clock read
+    if not F.save(username, record, player, ageH) and dirty then F.dirty[username] = true end  -- retried at the next step
 end
 
--- The prune: offline players unseen for more than keepDays real days lose their record. Both slots are EMPTIED, not
--- deleted -- Lua has no delete or rename (J2) -- so an emptied pair reads as no record; the index entry and the
--- in-memory record are dropped, and the index is written (keepDays 0 keeps everything and still writes it, so the
--- online players' stamps reach the file once an hour). Returns the count.
-function S.prune(now, keepDays)
-    if now == nil or keepDays == nil then return 0 end
-    local P = NR.server.players
-    local online = (P and P.online) or {}
-    local doomed = K.store.expired(F.index, K.store.seconds(now), K.store.keepSeconds(keepDays), online)
-    for i = 1, #doomed do
-        local u = doomed[i]
-        F.write(F.slot(u, "a"), "")
-        F.write(F.slot(u, "b"), "")
-        F.index[u] = nil
-        F.gen[u] = nil
-        F.at[u] = nil
-        F.last[u] = nil
-        F.lastWrite[u] = nil
-        F.dirty[u] = nil
-        if S.records ~= nil then S.records[u] = nil end
-        if S.loaded ~= nil then S.loaded[u] = nil end
-    end
-    F.stats.pruned = F.stats.pruned + #doomed
-    F.lastPrune = now
-    F.writeIndex()
-    if #doomed > 0 then
-        NR.log.say(1, "store: pruned " .. tostring(#doomed) .. " record(s) unseen for " .. tostring(keepDays) .. " real days")
-    end
-    return #doomed
-end
-
-local function keepDays()
-    local o = NR.server.options
-    if o ~= nil and type(o.recordKeepDays) == "number" then return o.recordKeepDays end
-    return 30
-end
-
-local function pruneNow()
-    S.prune(nowMs(), keepDays())
-end
-
--- The hourly task: a locked index is read again first (a file that reads now lifts the lock), then the prune.
-local function hourly()
+-- The hourly task: a locked index is read again (a file that reads now lifts the lock).
+local function reread()
     if F.indexLocked then F.readIndex() end
-    pruneNow()
 end
 
--- The debounced index write: a clean index (the prune wrote it since) is left alone.
+-- The debounced index write: a clean index is left alone.
 function S.indexNow()
     if F.indexDirty then F.writeIndex() end
 end
@@ -647,8 +660,8 @@ local function queue(name, fn)
     end
 end
 
--- Wiring at OnServerStarted (this file sorts after NR_Server_Options and NR_Server_Players): the index read and a
--- first prune (no player is online yet), the departure hook and the pipeline's "store" step.
+-- Wiring at OnServerStarted (this file sorts after NR_Server_Options and NR_Server_Players): the index read, the
+-- departure hook and the pipeline's "store" step.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
@@ -656,15 +669,14 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         S.wired = true
         S.attach()
         F.readIndex()
-        pruneNow()
         local P = NR.server.players
         if P ~= nil then P.onDeparture[#P.onDeparture + 1] = S.forget end
         NR.server.minute.register("store", S.step)
     end)
 end
 
--- The dirty index's write and the hourly prune, each queued as a one-shot task so it runs in a queue slot under
--- the budget, not in the minute event.
+-- The dirty index's write and the hourly re-read of a locked index, each queued as a one-shot task so it runs in a
+-- queue slot under the budget, not in the minute event.
 if Events ~= nil and Events.EveryOneMinute ~= nil then
     Events.EveryOneMinute.Add(function()
         if not NR.isServer() then return end
@@ -672,13 +684,8 @@ if Events ~= nil and Events.EveryOneMinute ~= nil then
         if now == nil then return end
         if F.indexDirty and K.store.due(F.lastIndexWrite, now, S.INDEX_GAP_MS) then queue("store.index", indexNow) end
         S.retryAway(now)
-        if not K.store.due(F.lastPrune, now, S.PRUNE_GAP_MS) then return end
-        F.lastPrune = now
-        local P = NR.server.players
-        if P ~= nil and P.task ~= nil then
-            P.task("store.prune", hourly)
-        else
-            hourly()
-        end
+        if not F.indexLocked or not K.store.due(F.lastReread, now, S.REREAD_GAP_MS) then return end
+        F.lastReread = now
+        queue("store.reread", reread)
     end)
 end

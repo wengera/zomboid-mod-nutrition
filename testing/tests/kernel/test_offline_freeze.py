@@ -521,3 +521,18 @@ def test_every_world_age_field_is_a_stamp_or_kept():
             if any(abs(x - a) < 1e-9 for a in ages):
                 hits.add(k)
     assert hits and hits <= stamps | kept, hits - stamps - kept
+
+
+def test_a_recovery_that_fails_stamps_the_fresh_record_at_the_world_age():
+    # Task 2 re-review L1 (folded into Plan 16 Task 3): S.recover's failure branch lays a fresh record whose lastSeen
+    # is the world age at the recovery, never its first sight, so the players' minute reads no stall
+    h = host()
+    p, dep = play(h)
+    raw = h.K.store.inputsOnly(h.record(NAME))
+    raw.body.fm = "corrupt"
+    S = h.NR.server.store
+    rec = h.K.store.new(NAME, dep)
+    S.records[NAME] = rec
+    h.T.age = dep + 72.0
+    S.recover(NAME, rec, raw)
+    assert S.stats.failures == 1 and rec.firstSeen == dep and rec.lastSeen == dep + 72.0

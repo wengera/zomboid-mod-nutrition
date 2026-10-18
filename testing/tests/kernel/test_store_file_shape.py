@@ -1,5 +1,5 @@
 """The server-local store (Plan 11 Task 11; Decision 3): per-player slot files, the two index files, the migration
-from global modData, the prune. The file API is a Lua stand-in over NR_T.files that follows the 42.21 jar (J2,
+from global modData; no prune (Plan 16 Task 3: records are kept for good). The file API is a Lua stand-in over NR_T.files that follows the 42.21 jar (J2,
 T1102.3, T1102.4): getFileWriter TRUNCATES the file at the call (FileOutputStream at open, not at close) and answers
 nil for a name holding `..`; the text lands at close; writeln raises here, because on a Windows host it appends CRLF
 (the store writes with one write); getFileReader raises unless createIfNull is false (true would create an empty
@@ -215,39 +215,29 @@ def test_the_store_tasks_carry_a_dot_so_no_username_can_equal_one():
     names = list(h.NR.server.players.tasks.keys())
     assert names == ["store.flush." + "006f006c0064"]
     assert all("." in n for n in names)
+    h.NR.server.store.file.indexLocked = True
     h.T.now = h.T.now + 3600001
-    h.minute()                                       # the hourly prune rides the queue as a task too
-    assert "store.prune" in list(h.NR.server.players.tasks.keys())
+    h.minute()                                       # the hourly re-read of a locked index rides the queue too
+    assert "store.reread" in list(h.NR.server.players.tasks.keys())
 
 
-def test_prune_empties_offline_records_past_the_keep_in_real_days():
+def test_a_record_is_kept_for_good_past_any_real_time_away():
+    # Plan 16 Task 3 (spec section 1.3): no prune, so ten real years offline, at the minute and at a restart, keep it
     h = boot()
     h.online(h.player("old"), h.player("live"))
     run_minutes(h, 2)
     h.online(h.player("live"))
-    run_minutes(h, 1, start=3)
+    run_minutes(h, 5, start=3)                       # old departs: the flush, then the debounced index write
+    h.T.now = h.T.now + 3650 * 86400000
+    run_minutes(h, 3, start=8)
     S = h.NR.server.store
-    h.T.now = h.T.now + 31 * 86400000
-    assert S.prune(h.T.now, 30) == 1
-    assert S.records["old"] is None and S.records["live"] is not None
-    assert h.T.files[ROOT + OLDP + "a.json"] == ""                # emptied, not deleted: no Lua delete (J2)
-    assert S.file.load("old") is None
-    assert '"old":' not in index_text(h)
-    assert S.prune(h.T.now, 0) == 0
+    assert S.records["old"] is not None and '"old":' in index_text(h)
+    h2 = boot(files=files_of(h), env="\nNR_T.now = %d\n" % (h.T.now + 3650 * 86400000))
+    assert h2.NR.server.store.file.load("old") is not None and h2.NR.server.store.file.index["old"] is not None
+    assert h2.NR.server.store.prune is None and h2.NR.server.options.recordKeepDays is None
 
 
-def test_the_hourly_prune_runs_from_its_queue_slot():
-    h = boot()
-    h.online(h.player("old"), h.player("live"))
-    run_minutes(h, 2)
-    h.online(h.player("live"))
-    run_minutes(h, 1, start=3)
-    h.T.now = h.T.now + 31 * 86400000
-    run_minutes(h, 2, start=4)                       # the minute queues the prune; the next minute's drain runs it
-    assert h.NR.server.store.file.stats.pruned == 1 and h.NR.server.store.records["old"] is None
-
-
-def test_a_crash_mid_index_write_keeps_the_previous_index_and_the_prune_clock():
+def test_a_crash_mid_index_write_keeps_the_previous_index():
     h = boot()
     h.online(h.player("old"), h.player("live"))
     run_minutes(h, 2)
@@ -262,9 +252,8 @@ def test_a_crash_mid_index_write_keeps_the_previous_index_and_the_prune_clock():
     assert h.T.files[other] == "" and h.T.files[top] == before[top]
     h.T.crashOn = None
     h2 = boot(files=files_of(h))                     # a restart: the stamps survive in the other index file
-    h2.T.now = h.T.now + 31 * 86400000
-    assert h2.NR.server.store.prune(h2.T.now, 30) == 2           # old and live, both offline after the restart
-    assert h2.NR.server.store.file.load("old") is None and h2.NR.server.store.file.load("live") is None
+    assert h2.NR.server.store.file.index["old"] is not None and h2.NR.server.store.file.index["live"] is not None
+    assert h2.NR.server.store.file.indexAt == ("a" if top.endswith("a.json") else "b")
 
 
 def test_a_save_is_written_at_most_once_a_real_minute():
@@ -277,19 +266,6 @@ def test_a_save_is_written_at_most_once_a_real_minute():
         h.T.now = h.T.now + 1000                     # one real second a game minute
         h.minute(); h.tick(25)
     assert h.NR.server.store.file.stats.writes == w0
-
-
-def test_a_returning_player_after_a_prune_gets_a_fresh_record():
-    h = boot()
-    h.online(h.player("bob"))
-    run_minutes(h, 2)
-    h.online()
-    run_minutes(h, 1, start=3)
-    h.T.now = h.T.now + 31 * 86400000
-    h.NR.server.store.prune(h.T.now, 30)
-    h.online(h.player("bob"))
-    run_minutes(h, 1, start=5)
-    assert h.record("bob").firstSeen == 100.0 + 5 / 60 and h.record("bob").resets == 0
 
 
 def test_the_reader_is_always_called_with_create_false():
@@ -312,7 +288,7 @@ def test_a_server_name_holding_dot_dot_still_writes():
 def test_a_nil_writer_is_counted_every_time_and_logged_once():
     h = boot(env="\nNR_T.nilWriter = true\n")
     h.online(h.player("admin"))
-    run_minutes(h, 3)
+    run_minutes(h, 4)                                # no boot index write since the prune went (Plan 16 Task 3)
     F = h.NR.server.store.file
     assert F.stats.writes == 0 and F.stats.writeFailures >= 3
     assert len([p for p in h.printed() if "getFileWriter answered nil" in p]) == 1
@@ -338,25 +314,6 @@ def test_an_exact_formatter_round_trips_the_record_exactly():
     h2 = boot(files=files_of(h))
     raw = h2.NR.server.store.file.load("admin")
     assert py(h2.K.store.inputsOnly(raw)) == want
-
-
-def test_the_keep_is_read_from_the_sandbox_option():
-    h = boot(env="\nSandboxVars = { NR = { RecordKeepDays = 7 } }\n")
-    assert h.NR.server.options.recordKeepDays == 7
-    h.G.SandboxVars.NR.RecordKeepDays = 5000                      # out of range reads the default
-    h.NR.server.readOptions("poll")
-    assert h.NR.server.options.recordKeepDays == 30
-
-
-def test_the_boot_prune_reads_the_option():
-    h = boot()
-    h.online(h.player("old"))
-    run_minutes(h, 2)
-    h.online()
-    run_minutes(h, 5, start=3)                       # the departure, then the debounced index write
-    saved = files_of(h)
-    h2 = boot(files=saved, env="\nSandboxVars = { NR = { RecordKeepDays = 1 } }\nNR_T.now = %d\n" % (h.T.now + 2 * 86400000))
-    assert h2.NR.server.store.file.stats.pruned == 1 and h2.NR.server.store.file.load("old") is None
 
 
 # --- Task 11 fix 1: every guard pinned, and the hazards closed -----------------------------------------------------
@@ -390,7 +347,8 @@ def test_a_restart_over_a_newer_a_file_writes_b_first_for_the_slots_and_the_inde
     files = {ROOT + ADMIN + "a.json": slot_doc(3, 4), ROOT + ADMIN + "b.json": slot_doc(2, 1),
              ROOT + "index_a.json": index_doc(3, {"admin": 990}), ROOT + "index_b.json": index_doc(2, {"admin": 900})}
     h = boot(files=files)
-    assert opened_with(h, ROOT + "index_")[:1] == [ROOT + "index_b.json"]     # the boot prune's index write
+    assert h.NR.server.store.file.writeIndex()
+    assert opened_with(h, ROOT + "index_")[:1] == [ROOT + "index_b.json"]     # the index's write opens b
     h.online(h.player("admin"))
     until_saved(h, "admin")
     assert h.record("admin").resets == 4                                        # the newest copy was loaded
@@ -827,7 +785,7 @@ def test_a_landed_intake_on_a_skipped_name_writes_nothing():
 
 def test_a_new_players_first_save_is_followed_by_an_index_write_at_the_next_tick():
     h = boot()
-    n0 = len(h.T.opened)                                                        # after the boot prune's index write
+    n0 = len(h.T.opened)
     h.online(h.player("admin"))
     t, slot_at, index_at = 0, None, None
     for m in range(1, 5):
@@ -1021,7 +979,7 @@ def test_an_unreadable_index_pair_is_never_written_over_this_boot():
         h.online()                                                              # a departure dirties the index
         run_minutes(h, 8, start=4)
         h.T.now = h.T.now + 3600001
-        run_minutes(h, 2, start=12)                                             # the hourly prune
+        run_minutes(h, 2, start=12)                                             # the hourly re-read
         for k, v in files.items():
             assert h.T.files[k] == v                                            # the real index kept as it was
         assert opened_with(h, ROOT + "index_") == []
@@ -1032,7 +990,12 @@ def test_an_unreadable_index_pair_is_never_written_over_this_boot():
 
 def test_a_missing_index_pair_is_written_as_new():
     h = boot()
-    assert opened_with(h, ROOT + "index_")[:1] == [ROOT + "index_a.json"]       # the boot prune writes gen 1
+    assert opened_with(h, ROOT + "index_") == []                                # no boot write: nothing to prune
+    h.online(h.player("admin"))
+    until_saved(h, "admin")
+    run_minutes(h, 1, start=10)
+    assert opened_with(h, ROOT + "index_")[:1] == [ROOT + "index_a.json"]       # a new name writes gen 1
+    assert gen_of(h.T.files[ROOT + "index_a.json"]) == 1
 
 
 # --- Plan 12 (S B5): a departure flush that writes nothing is retried while the record is held --------------------
@@ -1063,7 +1026,7 @@ def test_a_failed_departure_flush_is_retried_once_per_save_gap():
     assert "store.flush.00610064006d0069006e" not in list(h.NR.server.players.tasks.keys())
 
 
-def test_a_failed_flush_of_a_pruned_record_is_not_retried():
+def test_a_failed_flush_of_a_record_no_longer_held_is_not_retried():
     h = boot()
     h.online(h.player("admin"))
     until_saved(h, "admin")
@@ -1103,12 +1066,12 @@ def test_both_index_files_torn_lock_the_index_and_a_later_good_read_lifts_it():
     h.online(h.player("admin"))                                                 # the queue runs tasks while a player is on
     assert F.indexLocked is True
     h.T.now = h.T.now + 3600001
-    run_minutes(h, 2)                                                           # the hourly prune: still torn
+    run_minutes(h, 2)                                                           # the hourly re-read: still torn
     assert F.indexLocked is True
     assert len([p for p in h.printed() if "index files are present but unreadable" in p]) == 1
     h.T.files[ROOT + "index_b.json"] = index_doc(9, {"old": 990, "admin": 980})
     h.T.now = h.T.now + 3600001
-    run_minutes(h, 2, start=3)                                                  # the next hourly prune re-reads
+    run_minutes(h, 2, start=3)                                                  # the next hourly re-read reads it
     assert not F.indexLocked
     assert F.index["old"] == 990 and F.indexGen >= 9
     assert F.index["admin"] > 980                                               # the stamp laid while locked wins the merge

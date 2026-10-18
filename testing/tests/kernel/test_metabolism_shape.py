@@ -1176,7 +1176,11 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
     assert ("nothing changes offline: the resume at a return moves every world-age stamp past the absence, so no "
             "time away is integrated and a record day closes after 24 online game hours, drifting from the world's "
             "day boundary by every absence; a server stall with the player online is integrated in sub-steps of at "
-            "most 60 game minutes, and a stall over a day of them has its excess frozen as an absence") in lim
+            "most 60 game minutes, at most four a queue slot and the rest carried to the player" + chr(39) + "s next "
+            "minutes, so a player who leaves mid-carry has the part not yet integrated frozen as absence; after a "
+            "stall over 4 h an eat during the carry lands at the current world age while the integration catches up "
+            "over a few minutes, so that meal is digested across the carried hours and its monotony count reads high "
+            "until the carry ends") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
     assert ("rmod" + chr(39) + "s alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: "
             "the arm resets at the day close, not on a rolling 24 h") in lim
@@ -1868,7 +1872,8 @@ def test_an_intake_at_an_hour_turn_lands_in_the_new_hours_slot(met_host):
 
 
 def test_the_fresh_record_over_a_changed_character_is_a_stated_limitation(met_host):
-    # Plan 12 (S B2, ruling P12-4: documented, not fixed until a durable marker is designed)
+    # Plan 12 (S B2, ruling P12-4); Plan 16 Task 3: the record's backup on the character narrows it to a store lost
+    # with no valid backup, a record that raises at its load, or a deferral that gives up
     lim = list(MET(met_host).limitations.values())
     assert any(x.startswith("a fresh record laid over a character the mod has already changed") for x in lim)
 

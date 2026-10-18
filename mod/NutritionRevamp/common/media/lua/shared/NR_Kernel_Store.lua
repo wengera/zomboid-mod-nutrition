@@ -475,28 +475,6 @@ function K.store.hexName(username)
     return table.concat(out)
 end
 
--- One index entry into out when it is offline and unseen for more than keepS seconds (K.store.expired's body:
--- a pairs loop whose body ends in an if leaves that end unexecuted under the line hook, so the test lives here).
-function K.store.addExpired(out, u, seen, isOnline, nowS, keepS)
-    if isOnline == nil and type(seen) == "number" and nowS - seen > keepS then
-        out[#out + 1] = u
-    end
-end
-
--- The usernames of an index { username = lastSeen seconds } not online and unseen for more than keepS seconds,
--- sorted; keepS 0 or less keeps everything.
-function K.store.expired(index, nowS, keepS, online)
-    local out = {}
-    if keepS <= 0 then
-        return out
-    end
-    for u, seen in pairs(index) do
-        K.store.addExpired(out, u, seen, online[u], nowS, keepS)
-    end
-    table.sort(out)
-    return out
-end
-
 -- Which of a pair of decoded files { gen = n, ... } is the newer: "a", "b", or nil when both are absent; a tie reads
 -- "a"; a file whose gen is not a number reads as absent, so no comparison can raise. The store's writer opens the
 -- OTHER file of the pair, never this one (getFileWriter truncates at the call, T1102.4).
@@ -523,11 +501,6 @@ end
 -- A millisecond stamp as whole seconds (the index's unit).
 function K.store.seconds(ms)
     return math.floor(ms / 1000) -- milliseconds a second; no row needed
-end
-
--- A keep in real days as seconds.
-function K.store.keepSeconds(days)
-    return days * 86400 -- seconds a day; no row needed
 end
 
 -- A decoded file when its gen is a number, else nil (K.store.newest's guard).

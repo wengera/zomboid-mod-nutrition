@@ -24,8 +24,6 @@
     "Sandbox_NR_VisibilityModeValues_option1": "Symptoms",
     "Sandbox_NR_VisibilityModeValues_option2": "Bands",
     "Sandbox_NR_VisibilityModeValues_option3": "Numbers",
-    "Sandbox_NR_RecordKeepDays": "Keep records for (real days)",
-    "Sandbox_NR_RecordKeepDays_tooltip": "Delete a player's nutrition record after this many real days without them online; a returning player then starts a fresh record, and the vanilla character is untouched. 0 keeps every record. Counted in real time, because game days pass at each server's own speed.",
     "Sandbox_NR_SexSpecific": "Sex-specific values",
     "Sandbox_NR_SexSpecific_tooltip": "Off: every character uses the male values wherever the mod indexes by sex (requirements, body-fat bands, alcohol, iron, calcium). On: a female character uses the female values.",
     "Sandbox_NR_StimulantRealism": "Coffee and alcohol strength",

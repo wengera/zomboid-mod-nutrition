@@ -22,7 +22,7 @@ local K = NutritionRevamp.kernel
 K.resume = {}
 
 K.resume.STEP_M = 60 -- game minutes, not science (no row): the longest step an adapter integrates at once, the bound the adapters clamped a step at until Plan 16
-K.resume.SLOT_SUBSTEPS = 4 -- not science (no row), Rule 6 (Plan 16 Task 2 fix 1): the pipelines one queue slot runs for a stall, read off the slot bench (task-2-report.md fix 1): four hour-long sub-steps cost 2.25 ms on the lupa host against 0.23 ms for a minute, about 10 to 13 ms in play at the 4.5-5.8 x host-to-play ratio of a minute (#3462, #3457), under the drain's 15 ms tick budget (#3497); five would pass it
+K.resume.SLOT_SUBSTEPS = 4 -- not science (no row), Rule 6 (Plan 16 Task 2 fix 1): the pipelines one queue slot runs for a stall, read off the slot bench (tools/bench_slot.py): four hour-long sub-steps cost 2.25 ms on the lupa host against 0.23 ms for a minute, about 10 to 13 ms in play at the 4.5-5.8 x host-to-play ratio of a minute (#3462, #3457), under the drain's 15 ms tick budget (#3497); five would pass it
 
 -- Every world-age stamp a record holds, by dotted path (a `*` segment is every key of the table at that level). The
 -- step stamps (the age each adapter last stepped at) and the anchors the mod reads elapsed world time from. A record
@@ -165,4 +165,35 @@ function K.resume.substeps(fromH, ageH)
         return 1
     end
     return math.ceil(spanH / stepH - 1e-9)
+end
+
+-- The record's latest world-age stamp over every path of K.resume.STAMPS, or nil when none is finite. The store reads
+-- a record whose latest stamp is past the world clock as written after the world's last save (a hard-kill rollback,
+-- NR_Server_Store's load rule, Plan 16 Task 3), and the record backup rejects a copy whose stamps are past it.
+function K.resume.latest(record)
+    local best = nil
+    local segs = K.resume.SEGS
+    for i = 1, #segs do
+        best = K.resume.peak(record, segs[i], 1, best)
+    end
+    return best
+end
+
+-- The later of best and every stamp the path segs names under table t from index i (K.resume.later's rule: a stamp
+-- that is not finite is ignored, and a path whose table is absent adds nothing).
+function K.resume.peak(t, segs, i, best)
+    if type(t) ~= "table" then
+        return best
+    end
+    local seg = segs[i]
+    if i == #segs then
+        return K.resume.later(best, t[seg])
+    end
+    if seg == "*" then
+        for _, v in pairs(t) do
+            best = K.resume.peak(v, segs, i + 1, best)
+        end
+        return best
+    end
+    return K.resume.peak(t[seg], segs, i + 1, best)
 end

@@ -17,8 +17,6 @@ local K = NR.kernel
 -- The Plan 7 option: visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers (default 2, T13-1), the level of
 -- detail every player's interface shows; the client reads its own SandboxVars copy and this server read is
 -- the diagnostic copy. It changes no simulation, so it fires no changed hook.
--- The Plan 11 option: recordKeepDays, an integer 0-3650 (default 30), the REAL days an offline
--- player's record is kept (NR_Server_Store's prune reads it at call time, so it fires no changed hook); 0 keeps all.
 -- The Plan 13 strength options: O.strength is K.strength.params of the NR.Strength* and NR.LeanLoss* leaves
 -- (params(nil) until one differs from the default), rebuilt only when a leaf changed since the last read, by one
 -- comparison loop over the raw leaves (Rule 6: the table is not rebuilt per minute); a load-guard fallback logs once at
@@ -32,7 +30,7 @@ local K = NR.kernel
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      recordKeepDays = 30, sexSpecific = false, stimulantRealism = 1, strength = K.strength.params(nil) }
+                      sexSpecific = false, stimulantRealism = 1, strength = K.strength.params(nil) }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
@@ -53,7 +51,6 @@ function NR.server.readOptions(where)
     O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
-    O.recordKeepDays = readLeaf(sv, "RecordKeepDays", 30, 0, 3650)
     O.sexSpecific = readLeaf(sv, "SexSpecific", false)
     O.stimulantRealism = readLeaf(sv, "StimulantRealism", 1, 1, 2)
     if O.stimulantRealism ~= K.acute.C.MODE then

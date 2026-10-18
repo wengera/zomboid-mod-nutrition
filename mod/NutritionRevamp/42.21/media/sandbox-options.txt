@@ -58,14 +58,6 @@ option NR.VisibilityMode
     page = NutritionRevamp, translation = NR_VisibilityMode, valueTranslation = NR_VisibilityModeValues,
 }
 
-/* RecordKeepDays: a player's nutrition record is deleted after this many REAL
-   days without the player online (the vanilla character is untouched); 0 keeps every record. */
-option NR.RecordKeepDays
-{
-    type = integer, min = 0, max = 3650, default = 30,
-    page = NutritionRevamp, translation = NR_RecordKeepDays,
-}
-
 /* SexSpecific: off, every character uses the male values wherever the mod indexes by sex; on, a female
    character uses the female values. */
 option NR.SexSpecific

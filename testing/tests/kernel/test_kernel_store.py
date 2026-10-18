@@ -758,16 +758,6 @@ def test_two_names_that_collided_under_two_digits_now_differ(host):
     assert (a, b) == ("01230041", "00120341")
 
 
-def test_expired_lists_the_offline_entries_past_the_keep(host):
-    index = host.rt.eval("{ old = 100, recent = 9000, online = 100, odd = 'x' }")
-    online = host.rt.eval("{ online = true }")
-    out = S(host).expired(index, 10000, 5000, online)
-    assert [out[i] for i in range(1, len(out) + 1)] == ["old"]
-    assert len(S(host).expired(index, 10000, 0, online)) == 0
-    two = S(host).expired(host.rt.eval("{ b = 1, a = 2 }"), 10000, 5000, host.rt.eval("{}"))
-    assert [two[i] for i in range(1, len(two) + 1)] == ["a", "b"]
-
-
 def test_newest_names_the_slot_with_the_larger_gen(host):
     a = host.rt.eval("{ gen = 3 }")
     b = host.rt.eval("{ gen = 4 }")
@@ -782,13 +772,7 @@ def test_due_is_true_with_no_last_stamp_or_a_full_gap(host):
 
 
 def test_seconds_and_keep_seconds(host):
-    assert S(host).seconds(1999) == 1 and S(host).keepSeconds(30) == 2592000
-
-
-def test_expired_keeps_an_entry_at_exactly_the_keep(host):
-    index = host.rt.eval("{ edge = 5000, past = 4999 }")
-    out = S(host).expired(index, 10000, 5000, host.rt.eval("{}"))
-    assert [out[i] for i in range(1, len(out) + 1)] == ["past"]
+    assert S(host).seconds(1999) == 1 and S(host).keepSeconds is None and S(host).expired is None
 
 
 def test_newest_reads_a_file_with_no_numeric_gen_as_absent(host):

@@ -135,3 +135,18 @@ def test_substeps_split_an_online_stall(host, span_m, want):
 
 def test_substeps_of_an_unread_age_is_one_step(host):
     assert R(host).substeps(None, 5.0) == 1 and R(host).substeps(5.0, NAN) == 1
+
+
+def test_latest_is_the_latest_finite_stamp_of_every_path(host):
+    # Plan 16 Task 3: the store's hard-kill test and the backup's ahead check read the latest of every STAMPS path,
+    # the anchors and every monotony entry included, not only the step stamps fromH reads
+    r = full_record(host)
+    assert R(host).latest(r) == 100.0
+    r.monotony.t["Base.Apple"].last = 100.25                # an eat after the last step
+    assert R(host).latest(r) == 100.25 and R(host).fromH(r) == 100.0
+    r.acute.winStartH = 101.0
+    assert R(host).latest(r) == 101.0
+    r.acute.winStartH = NAN                                 # a stamp that is not finite is ignored
+    r.monotony = host.table({"t": {"Base.Odd": "corrupt"}})  # an entry that is not a table adds nothing
+    assert R(host).latest(r) == 100.0
+    assert R(host).latest(host.table({"username": "u", "satiety": "y"})) is None
