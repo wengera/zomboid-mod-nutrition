@@ -1157,11 +1157,12 @@ def _(kh, sid):
     r = rows[-1]
     assert pt(sid, 3.0) == r["body.fm"] + r["body.lm"] + r["body.lx"]
     v = VIAB["j_s2d"]
-    assert v["death"][1] == 1 and max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0)
-    # the death point is BMI 12 (S2234) on lm + fm; the drawn mass adds the small labile lean lx, so the last day
-    # close's mass over the mod's height squared sits just under or at it
+    assert v["death"][1] == 3 and max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0)
+    # Plan 16 Task 5 (the deficit arm on Forbes, no fat ceiling): wet beriberi (state 3) kills at day 77.2, before the
+    # BMI-12 starvation point (S2234, about day 90), so the last day close's mass over the mod's height squared reads
+    # about 13.7 (it read just under or at 12 under the ceiling's starvation death at day 62)
     bmi = SER[sid]["points"][-2][1] / float(kh.K.HEIGHT_M) ** 2
-    assert 11.9 < bmi < 12.1
+    assert 13.0 < bmi < 14.5
     return [3.0, max(xs_of(sid))]
 
 
@@ -1173,7 +1174,7 @@ def _(kh, sid):
     onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
     assert health == pytest.approx(100 - 25 * (72 - onset) / 24, abs=0.05)
     v = VIAB["j_s2d"]
-    assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0] and v["death_name"] == "starvation"
+    assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0] and v["death_name"] == "beriberi"   # Plan 16 Task 5
     return [3.0, v["death_age"] / 24.0]
 
 

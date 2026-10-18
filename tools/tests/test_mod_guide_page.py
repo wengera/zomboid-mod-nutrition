@@ -599,7 +599,7 @@ class Scenarios(_Base):
         self.assertEqual(self.series["S6b-m-hangover"]["provenance"]["proof_run"], "x447-regrade-20261015")
 
     PINNED = [
-        ("S2d-m-drain", "last.x|r0", "62"),
+        ("S2d-m-drain", "last.x|r0", "77"),     # Plan 16 Task 5: beriberi at day 77 (starvation at 62 under the ceiling)
         ("S4a-v-model-x1", "last.y|r0", "9"),
         ("H3-v-model-x15", "x@y>=10|r0", "292"),
         ("S5a-v-model-level", "y@x=Weak + Overweight|r0", "0"),
