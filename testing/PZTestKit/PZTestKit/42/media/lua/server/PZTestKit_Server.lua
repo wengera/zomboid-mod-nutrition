@@ -4967,3 +4967,38 @@ TK.register("bt.stored", function(argv)
     out.ok = true
     return out
 end)
+
+-- ==== Plan 16 Task 8 additions (server: the minute ring's cold field) ===========================================
+-- Appended after the file's last line on purpose (no existing line moves). One more field on every minute.ring row,
+-- a third wrap of TK.MR.sample after sampleExtra's and sampleMoving's (Plan 11f), so the offline ring test
+-- (testing/tests/kernel/test_harness_minute_ring.py) loads it with the rest of its section:
+--   cold  the mod record's body.coldMult (NutritionRevamp.server.store.records[<user>].body.coldMult), the minute's cold
+--         multiplier the mod stamped from the thermoregulator's getEnergyMultiplier (NR_Server_Metabolism, 1 when the
+--         read is not finite) and that NR_Server_Nutrients' cold diuresis and shivering glycogen draw read; a number.
+-- Read under its own pcall and ABSENT from the row when the record, its body or the field is missing or not a number;
+-- the row itself still lands. The same leaf was reachable before as a start path (`minute.ring <user> start
+-- body.coldMult`); the fixed field puts it on every ring without a path slot (carries section 3, #3947). The block is
+-- inert where TK.MR is absent (the Plan 11b offline test loads this file's tail on a stub TK).
+TK.TMC = TK.TMC or {}
+
+function TK.TMC.sampleCold(row, R)
+    pcall(function()
+        local NR = NutritionRevamp
+        if type(NR) ~= "table" or type(NR.server) ~= "table" or type(NR.server.store) ~= "table" then return end
+        local recs = NR.server.store.records
+        if type(recs) ~= "table" then return end
+        local rec = recs[R.user]
+        if type(rec) ~= "table" or type(rec.body) ~= "table" then return end
+        local v = rec.body.coldMult
+        if type(v) == "number" then row.cold = v end
+    end)
+end
+
+if type(TK.MR) == "table" and type(TK.MR.sample) == "function" and TK.MR.sampleBaseCold == nil then
+    TK.MR.sampleBaseCold = TK.MR.sample
+    function TK.MR.sample(R, gt, age)
+        local row = TK.MR.sampleBaseCold(R, gt, age)
+        TK.TMC.sampleCold(row, R)
+        return row
+    end
+end

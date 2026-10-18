@@ -1405,3 +1405,198 @@ TK.register("weapon.equip", function(argv)
     if not ran then out.queueError = tostring(err) end
     return out
 end)
+
+-- ==== Plan 16 Task 8 additions (client: tooltip.measure) =======================================================
+-- Appended after the file's last line on purpose: the claims register holds `repo:` pointers into this file by line
+-- number, so new sites go at the end and no existing line moves. The section's state hangs off TK.TM and it uses
+-- TK.call only (no file-scope local of this file), so it loads on its own in the offline test
+-- (testing/tests/kernel/test_harness_tooltip_measure.py), which reads it from this marker line to the end.
+
+-- ---- Plan 16 Task 8: the item tooltip's measured height with the mod's band option on and off (carries section 6) --
+-- tooltip.measure <fullType> <hideOn 0|1>. TEST-ONLY, never shipped (the harness is never in the mod's tree). It
+-- measures, without a hover, whether the mod's tooltip wrapper hides vanilla's hunger line:
+--   * the item is the local player's first inventory item of the full type (getInventory():getFirstTypeRecurse, the
+--     mod's own T.probe lookup); none is ever created here, so a driver adds it with the server's inventory.add first;
+--   * one arm runs per option state, OFF first, then ON: NutritionRevamp.client.options.tooltipLines (the accessor the
+--     mod's T.optionOn looks up per call) is swapped for a function answering the forced state, and the accessor read
+--     before the first arm is put back after the second (the options table itself removed again when it was absent);
+--     the stored mod option is never written;
+--   * each arm calls ISToolTipInv.render -- the mod's wrapper when it is installed (`wrapped`), vanilla's render
+--     otherwise -- on a stand-in panel: a table carrying a fresh ObjectTooltip.new() (character set to the player),
+--     the item, followMouse false, and no-op geometry and draw members. Vanilla's render (client/ISUI/ISToolTipInv.lua
+--     :63-66) runs its measure-only pass, reads getHeight and hands it to self:setHeight (:97); the stand-in records
+--     that height and sets the ObjectTooltip measure-only again, so vanilla's second DoTooltip (:105) also only
+--     measures. Nothing is drawn: every ObjectTooltip draw returns at once under measureOnly (jar 42.21, ObjectTooltip
+--     DrawText @0-@7 L77-L78, DrawTextureScaled @0-@7 L142-L143, DrawTextureScaledAspect @0-@7 L150-L151,
+--     DrawProgressBar @0-@7 L157-L158), and the stand-in's drawRect, drawRectBorder and drawText only count, so the
+--     command needs no render frame. The mod's band (T.after) draws onto the stand-in, so `bandShown` is its
+--     drawText count in the arm above 0;
+--   * hungerLineDrawn comes from the height difference: ObjectTooltip$Layout exposes addItem, setMinLabelWidth,
+--     setMinValueWidth, render and free only (pz.sh methods on the class), and endLayout frees every layout back to
+--     the pool (ObjectTooltip.endLayout L531-L536) before InventoryItem.DoTooltipEmbedded sets the height (@4245
+--     L1163), so no line is readable after the pass. Food.DoTooltip adds the hunger line only while getHungerChange is
+--     not 0 and the item lacks ItemTag.HIDE_HUNGER_CHANGE (@67-@83 L1391-L1393), so `vanilla` is that predicate read
+--     before the arms, lineDrop = heightOff - heightOn, and
+--       hungerLineDrawn (hideOn 1) = vanilla and lineDrop <= 0;  (hideOn 0) = vanilla or lineDrop > 0.
+--     `height`, `bandShown` and `hungerLineDrawn` are the requested arm's; heightOn, heightOff, lineDrop, lineSpacing,
+--     both arms' band flags, the wrapper's hidden and shown counter deltas in the ON arm, the entry's fill flag and the
+--     tag read after both arms (`tagAfter`: false unless the item carries it natively) let a driver grade the raw
+--     readings.
+-- Every Java read is index-first (TK.call); each render call runs under pcall, and a raise leaves the wrapper reset
+-- (T.unhide, depth 0) and the accessor restored before the reply names it. On the -debug client a pcall does not stop
+-- a Java raise from parking it (docs/platform/lua-platform.md#debug-break).
+TK.TM = TK.TM or {}
+
+-- The value of obj:name(...) or nil when the member is absent.
+function TK.TM.got(obj, name, ...)
+    local _, v = TK.call(obj, name, ...)
+    return v
+end
+
+-- The mod's tooltip table, or nil.
+function TK.TM.mod()
+    local nr = NutritionRevamp
+    if type(nr) ~= "table" or type(nr.client) ~= "table" then return nil end
+    if type(nr.client.tooltip) ~= "table" then return nil end
+    return nr.client.tooltip
+end
+
+-- A stand-in panel for ISToolTipInv.render: the fields vanilla's render reads, its geometry and draw members as
+-- no-ops that record, and the first setHeight (vanilla's :97, the measured height) re-arming measure-only.
+function TK.TM.panel(item, player)
+    local okT, tt = pcall(function() return ObjectTooltip.new() end)
+    if not okT or tt == nil then return nil end
+    if player ~= nil then TK.call(tt, "setCharacter", player) end
+    local el = { tooltip = tt, item = item, followMouse = false, x = 0, y = 0, width = 0, height = 0,
+                 backgroundColor = { r = 0, g = 0, b = 0, a = 0.5 }, borderColor = { r = 0.4, g = 0.4, b = 0.4, a = 1 },
+                 heights = {}, texts = 0, rects = 0 }
+    el.getX = function(s) return s.x end
+    el.getY = function(s) return s.y end
+    el.setX = function(s, v) s.x = v end
+    el.setY = function(s, v) s.y = v end
+    el.getWidth = function(s) return s.width end
+    el.setWidth = function(s, v) s.width = v end
+    el.getHeight = function(s) return s.height end
+    el.getAbsoluteY = function(s) return s.y end
+    el.setHeight = function(s, v)
+        s.height = v
+        s.heights[#s.heights + 1] = v
+        if #s.heights == 1 then TK.call(s.tooltip, "setMeasureOnly", true) end
+    end
+    el.drawRect = function(s) s.rects = s.rects + 1 end
+    el.drawRectBorder = function(s) s.rects = s.rects + 1 end
+    el.drawText = function(s) s.texts = s.texts + 1 end
+    el.adjustPositionToAvoidOverlap = function(s) end
+    return el
+end
+
+-- One arm: the accessor forced to `on`, ISToolTipInv.render on a fresh stand-in under pcall. Replies the arm's table.
+function TK.TM.arm(item, player, on, T)
+    local arm = { on = on }
+    NutritionRevamp.client.options.tooltipLines = function() return on end
+    local h0, s0 = 0, 0
+    if T ~= nil and type(T.stats) == "table" then h0, s0 = T.stats.hidden or 0, T.stats.shown or 0 end
+    local el = TK.TM.panel(item, player)
+    if el == nil then
+        arm.error = "no ObjectTooltip.new()"
+        return arm
+    end
+    local ok, err = pcall(ISToolTipInv.render, el)
+    if not ok then
+        arm.error = tostring(err)
+        if T ~= nil then
+            if type(T.unhide) == "function" then pcall(T.unhide) end
+            T.depth = 0
+        end
+    end
+    arm.height = el.heights[1]
+    arm.texts = el.texts
+    arm.bandShown = el.texts > 0
+    arm.lineSpacing = TK.TM.got(el.tooltip, "getLineSpacing")
+    if T ~= nil and type(T.stats) == "table" then
+        arm.hidden = (T.stats.hidden or 0) - h0
+        arm.shown = (T.stats.shown or 0) - s0
+    end
+    if arm.height == nil and arm.error == nil then arm.error = "render measured nothing (a context menu is up?)" end
+    return arm
+end
+
+-- @args <fullType> <hideOn 0|1>
+-- @reply {ok, fullType, hideOn, height, hungerLineDrawn, bandShown, wrapped, vanilla, hungerChange, nativeTag, fill, heightOn, heightOff, lineDrop, lineSpacing, bandOn, bandOff, hiddenOn, shownOn, tagAfter, optionBefore, restored [, reason] [, error]} | string
+-- @purpose Test-only: measures a local inventory item's tooltip through vanilla's measure-only pass and the mod's ISToolTipInv.render wrapper, once with the mod's tooltip option forced off and once on (the accessor restored after), and replies the requested arm's height, whether vanilla's hunger line was drawn (by the height difference) and whether the band drew; never creates an item.
+TK.register("tooltip.measure", function(argv)
+    local usage = "usage: tooltip.measure <fullType> <hideOn 0|1>"
+    local fullType, flag = argv[1], argv[2]
+    if fullType == nil or (flag ~= "0" and flag ~= "1") then return usage end
+    local out = { ok = false, fullType = fullType, hideOn = flag == "1" }
+    local p = nil
+    if getPlayer ~= nil then p = getPlayer() end
+    if p == nil then
+        out.reason = "no local player"
+        return out
+    end
+    if ISToolTipInv == nil or type(ISToolTipInv.render) ~= "function" or ObjectTooltip == nil then
+        out.reason = "no ISToolTipInv.render or ObjectTooltip"
+        return out
+    end
+    local nr = NutritionRevamp
+    if type(nr) ~= "table" or type(nr.client) ~= "table" then
+        out.reason = "no NutritionRevamp.client"
+        return out
+    end
+    local item = TK.TM.got(TK.TM.got(p, "getInventory"), "getFirstTypeRecurse", fullType)
+    if item == nil then
+        out.reason = "no " .. tostring(fullType) .. " in the local inventory"
+        return out
+    end
+    local T = TK.TM.mod()
+    local inst = NR_ClientTooltip_Installed
+    out.wrapped = type(inst) == "table" and ISToolTipInv.render == inst.wrapper
+    local tag = nil
+    if ItemTag ~= nil then tag = ItemTag.HIDE_HUNGER_CHANGE end
+    local hc = TK.TM.got(item, "getHungerChange")
+    out.hungerChange = hc
+    if tag ~= nil then out.nativeTag = TK.TM.got(item, "hasTag", tag) == true end
+    out.vanilla = type(hc) == "number" and hc ~= 0 and out.nativeTag ~= true
+    if T ~= nil and type(T.linesFor) == "function" then
+        local okL, lines = pcall(T.linesFor, item)
+        if okL and type(lines) == "table" then out.fill = lines.fill == true else out.fill = false end
+    end
+    -- the accessor read before, put back after both arms whatever they did
+    local hadOptions = type(nr.client.options) == "table"
+    if not hadOptions then nr.client.options = {} end
+    local before = nr.client.options.tooltipLines
+    if T ~= nil and type(T.optionOn) == "function" then
+        local okO, v = pcall(T.optionOn)
+        if okO then out.optionBefore = v end
+    end
+    local offArm = TK.TM.arm(item, p, false, T)
+    local onArm = TK.TM.arm(item, p, true, T)
+    if hadOptions then nr.client.options.tooltipLines = before else nr.client.options = nil end
+    if hadOptions then
+        out.restored = nr.client.options.tooltipLines == before
+    else
+        out.restored = nr.client.options == nil
+    end
+    out.heightOff, out.heightOn = offArm.height, onArm.height
+    out.bandOff, out.bandOn = offArm.bandShown, onArm.bandShown
+    out.hiddenOn, out.shownOn = onArm.hidden, onArm.shown
+    out.lineSpacing = onArm.lineSpacing
+    if tag ~= nil then out.tagAfter = TK.TM.got(item, "hasTag", tag) == true end
+    if offArm.error ~= nil or onArm.error ~= nil then
+        out.error = tostring(offArm.error or onArm.error)
+        return out
+    end
+    out.lineDrop = out.heightOff - out.heightOn
+    if out.hideOn then
+        out.height = out.heightOn
+        out.bandShown = out.bandOn
+        out.hungerLineDrawn = out.vanilla and out.lineDrop <= 0
+    else
+        out.height = out.heightOff
+        out.bandShown = out.bandOff
+        out.hungerLineDrawn = out.vanilla or out.lineDrop > 0
+    end
+    out.ok = true
+    return out
+end)

@@ -363,3 +363,33 @@ def test_minute_ring_an_unreachable_or_raising_movement_leaves_the_field_absent_
     assert rd.rows == 2 and rd.errors == 0
     assert rows[1].moving is None and rows[2].moving is None and rows[2].HUNGER == 0.25
 
+
+# ---- Plan 16 Task 8: the record's cold multiplier on every row -------------------------------------------------------
+
+def test_minute_ring_rows_carry_the_records_cold_multiplier():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start", "body.coldMult")
+    rec = h.record("admin")
+    rec.body.coldMult = 2.5                                        # stamped by the mod; the row reads the record as held
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    row = h.TK.results[cmd(h, "minute.ring", "admin", "read").result].rows_list[1]
+    assert row.cold == 2.5 and row["body.coldMult"] == 2.5          # the fixed field equals the path read
+    assert row.HUNGER == 0.25 and row.on is True                    # the earlier fields are untouched
+
+
+def test_minute_ring_a_missing_or_non_number_cold_leaves_the_field_absent_and_the_row_lands():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start")
+    cmd(h, "minute.ring", "nobody", "start")
+    h.record("admin").body.coldMult = "warm"
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    ra = cmd(h, "minute.ring", "admin", "read")
+    rn = cmd(h, "minute.ring", "nobody", "read")
+    row = h.TK.results[ra.result].rows_list[1]
+    nob = h.TK.results[rn.result].rows_list[1]
+    assert row.cold is None and row.HUNGER == 0.25 and ra.errors == 0
+    assert nob.cold is None and nob.norec is True and rn.errors == 0
+    assert h.TK.MR.sampleBaseCold is not None                       # installed once, over the movement wrap
+    assert h.TK.MR.sampleBaseCold != h.TK.MR.sample
