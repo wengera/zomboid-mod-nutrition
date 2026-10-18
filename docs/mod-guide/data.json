@@ -627,7 +627,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "eat": {
       "cal": 540.0,
@@ -1165,7 +1165,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.fm",
      "plate": [
@@ -1335,7 +1335,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.lm + body.lx",
      "plate": [
@@ -1505,7 +1505,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "plate": [
@@ -3366,7 +3366,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -4863,7 +4863,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -8789,7 +8789,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -10928,7 +10928,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "HUNGER",
      "read": "vanilla's Hungry level of the written HUNGER (#0508)",
@@ -12583,7 +12583,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00, no drink, 24 h",
@@ -15172,7 +15172,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "clock": "minute 0 is 00:00",
      "plate": [
@@ -17262,7 +17262,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "body": "the oracle's 70 kg man (MAN)",
      "plate": [
@@ -17364,7 +17364,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "depletions": [
       0.0,
@@ -19104,7 +19104,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -19696,7 +19696,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -20043,7 +20043,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "replay": "90 days, no food, the replay's water",
@@ -21917,7 +21917,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -22493,7 +22493,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -23259,7 +23259,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating through Base.Bread, Base.CannedBologneseOpen, Base.Burger, Base.Apple, Base.Orange, Base.TunaTinOpen, with the replay's water",
@@ -24136,7 +24136,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "orange": {
       "cal": 65.0,
@@ -25104,575 +25104,575 @@
     ],
     [
      224,
-     6.9678726834398415
+     6.910037056433986
     ],
     [
      225,
-     6.970669272720091
+     6.826392893631932
     ],
     [
      226,
-     6.973457732038554
+     6.742584478951985
     ],
     [
      227,
-     6.976238093164817
+     6.6586098628536305
     ],
     [
      228,
-     6.979010387628072
+     6.574467052613257
     ],
     [
      229,
-     6.981774646722672
+     6.490154010940891
     ],
     [
      230,
-     6.984530901513532
+     6.4056686545368136
     ],
     [
      231,
-     6.987279182841272
+     6.321008852584824
     ],
     [
      232,
-     6.990019521327153
+     6.236172425178764
     ],
     [
      233,
-     6.992751947377818
+     6.151157141678682
     ],
     [
      234,
-     6.995476491189861
+     6.065960718992828
     ],
     [
      235,
-     6.998193182754177
+     5.980580819781284
     ],
     [
      236,
-     7.000902051860192
+     5.895015050576909
     ],
     [
      237,
-     7.003603128099867
+     5.8092609598188085
     ],
     [
      238,
-     7.006296440871597
+     5.723316035793436
     ],
     [
      239,
-     7.00898201938392
+     5.63717770447781
     ],
     [
      240,
-     7.011659892659116
+     5.550843327279182
     ],
     [
      241,
-     7.014330089536646
+     5.464310198664942
     ],
     [
      242,
-     7.016992638676459
+     5.377575543676156
     ],
     [
      243,
-     7.019647568562193
+     5.290636515317644
     ],
     [
      244,
-     7.022294907504232
+     5.203490191816941
     ],
     [
      245,
-     7.024934683642671
+     5.116133573743958
     ],
     [
      246,
-     7.027566924950149
+     5.028563580982534
     ],
     [
      247,
-     7.030191659234607
+     4.940777049544326
     ],
     [
      248,
-     7.032808914141908
+     4.852770728214879
     ],
     [
      249,
-     7.035418717158402
+     4.764541275020735
     ],
     [
      250,
-     7.038021095613372
+     4.67608525350573
     ],
     [
      251,
-     7.040616076681397
+     4.58739912880355
     ],
     [
      252,
-     7.043203687384645
+     4.49847926349262
     ],
     [
      253,
-     7.045783954595072
+     4.409321913218206
     ],
     [
      254,
-     7.048356905036558
+     4.319923222065393
     ],
     [
      255,
-     7.050922565286956
+     4.230279217665145
     ],
     [
      256,
-     7.053480961780076
+     4.140385806014179
     ],
     [
      257,
-     7.056032120807624
+     4.0502387659876575
     ],
     [
      258,
-     7.05857606852103
+     3.959833743521858
     ],
     [
      259,
-     7.061112830933267
+     3.8691662454419067
     ],
     [
      260,
-     7.0636424339205774
+     3.7782316329074366
     ],
     [
      261,
-     7.066164903224172
+     3.6870251144464135
     ],
     [
      262,
-     7.068680264451826
+     3.5955417385446884
     ],
     [
      263,
-     7.071188543079492
+     3.50377638575565
     ],
     [
      264,
-     7.0736897644528085
+     3.411723760290931
     ],
     [
      265,
-     7.076183953788595
+     3.319378381049259
     ],
     [
      266,
-     7.078671136176285
+     3.226734572036242
     ],
     [
      267,
-     7.081151336579314
+     3.1337864521230805
     ],
     [
      268,
-     7.083624579836497
+     3.0405279240868017
     ],
     [
      269,
-     7.086090890663316
+     2.946952662868561
     ],
     [
      270,
-     7.08855029365322
+     2.853054102979772
     ],
     [
      271,
-     7.091002813278862
+     2.7588254249781743
     ],
     [
      272,
-     7.093448473893305
+     2.6642595409272554
     ],
     [
      273,
-     7.095887299731196
+     2.5693490787427455
     ],
     [
      274,
-     7.098319314909906
+     2.474086365318736
     ],
     [
      275,
-     7.100744543430666
+     2.378463408313421
     ],
     [
      276,
-     7.103163009179622
+     2.2824718764601273
     ],
     [
      277,
-     7.105574735928911
+     2.186103078252875
     ],
     [
      278,
-     7.107979747337685
+     2.0893479388370153
     ],
     [
      279,
-     7.110378066953118
+     1.9921969749139894
     ],
     [
      280,
-     7.112769718211383
+     1.8946402674444816
     ],
     [
      281,
-     7.115154724438611
+     1.7966674319057585
     ],
     [
      282,
-     7.117533108851827
+     1.6982675858259353
     ],
     [
      283,
-     7.119904894559864
+     1.5994293132796105
     ],
     [
      284,
-     7.122270104564247
+     1.500140625984733
     ],
     [
      285,
-     7.124628761760078
+     1.400388920588434
     ],
     [
      286,
-     7.12698088893687
+     1.3001609316685618
     ],
     [
      287,
-     7.12932650877941
+     1.1994426799058138
     ],
     [
      288,
-     7.131665643868541
+     1.0982194147965894
     ],
     [
      289,
-     7.133998316681991
+     0.9964755511762693
     ],
     [
      290,
-     7.136324549595143
+     0.8941945987029349
     ],
     [
      291,
-     7.138644364881809
+     0.7913590833087119
     ],
     [
      292,
-     7.140957784714972
+     0.687950459454215
     ],
     [
      293,
-     7.14326483116754
+     0.5839490118144957
     ],
     [
      294,
-     7.145565526213061
+     0.4793337447737551
     ],
     [
      295,
-     7.147859891726431
+     0.37408225779996673
     ],
     [
      296,
-     7.150147949484602
+     0.2681706043951504
     ],
     [
      297,
-     7.152429721167255
+     0.16157313185414068
     ],
     [
      298,
-     7.154705228357489
+     0.05426229849009179
     ],
     [
      299,
-     7.15697449254247
+     -0.05379153573297213
     ],
     [
      300,
-     7.159237535114089
+     -0.16262035012381038
     ],
     [
      301,
-     7.161494377369593
+     -0.2722587418529301
     ],
     [
      302,
-     7.163745040512232
+     -0.38274424978085353
     ],
     [
      303,
-     7.165989545651859
+     -0.49411773298923567
     ],
     [
      304,
-     7.168227913805556
+     -0.6064238159382604
     ],
     [
      305,
-     7.170460165898222
+     -0.7197114154089181
     ],
     [
      306,
-     7.172686322763171
+     -0.8340343686904381
     ],
     [
      307,
-     7.174906405142724
+     -0.9494521882607314
     ],
     [
      308,
-     7.177120433688756
+     -1.0660309760958526
     ],
     [
      309,
-     7.1793284289633
+     -1.1838445416475976
     ],
     [
      310,
-     7.1815304114390734
+     -1.3029757828334265
     ],
     [
      311,
-     7.183726401500045
+     -1.4235184112349524
     ],
     [
      312,
-     7.18591641944198
+     -1.5455791344936545
     ],
     [
      313,
-     7.188100485472963
+     -1.6692804561259358
     ],
     [
      314,
-     7.190278619713938
+     -1.794764324820096
     ],
     [
      315,
-     7.1924508421992375
+     -1.9221969774783174
     ],
     [
      316,
-     7.194617172877088
+     -2.0517755008659195
     ],
     [
      317,
-     7.196777631610109
+     -2.183736937674083
     ],
     [
      318,
-     7.198932238175852
+     -2.318371284892046
     ],
     [
      319,
-     7.2010810122672595
+     -2.4560406821262637
     ],
     [
      320,
-     7.203223973493184
+     -2.597208916148613
     ],
     [
      321,
-     7.205361141378865
+     -2.742489141819216
     ],
     [
      322,
-     7.207492535366407
+     -2.8927262158582856
     ],
     [
      323,
-     7.209618174815255
+     -3.049151456919624
     ],
     [
      324,
-     7.21173807900268
+     -3.2137106443965333
     ],
     [
      325,
-     7.2138522671242225
+     -3.3898989741726986
     ],
     [
      326,
-     7.215960758294171
+     -3.5857162459547673
     ],
     [
      327,
-     7.2180635715460095
+     -3.847966850397654
     ],
     [
      328,
-     7.220160725832873
+     -3.847966850397654
     ],
     [
      329,
-     7.2222522400279825
+     -3.847966850397654
     ],
     [
      330,
-     7.224338132925107
+     -3.847966850397654
     ],
     [
      331,
-     7.226418423238992
+     -3.847966850397654
     ],
     [
      332,
-     7.228493129605791
+     -3.847966850397654
     ],
     [
      333,
-     7.230562270583494
+     -3.847966850397654
     ],
     [
      334,
-     7.2326258646523645
+     -3.847966850397654
     ],
     [
      335,
-     7.234683930215348
+     -3.847966850397654
     ],
     [
      336,
-     7.236736485598502
+     -3.847966850397654
     ],
     [
      337,
-     7.238783549051401
+     -3.847966850397654
     ],
     [
      338,
-     7.240825138747554
+     -3.847966850397654
     ],
     [
      339,
-     7.242861272784805
+     -3.847966850397654
     ],
     [
      340,
-     7.244891969185744
+     -3.847966850397654
     ],
     [
      341,
-     7.246917245898114
+     -3.847966850397654
     ],
     [
      342,
-     7.248937120795178
+     -3.847966850397654
     ],
     [
      343,
-     7.250951611676149
+     -3.847966850397654
     ],
     [
      344,
-     7.252960736266561
+     -3.847966850397654
     ],
     [
      345,
-     7.254964512218656
+     -3.847966850397654
     ],
     [
      346,
-     7.2569629571117815
+     -3.847966850397654
     ],
     [
      347,
-     7.258956088452752
+     -3.847966850397654
     ],
     [
      348,
-     7.260943923676246
+     -3.847966850397654
     ],
     [
      349,
-     7.262926480145168
+     -3.847966850397654
     ],
     [
      350,
-     7.264903775151026
+     -3.847966850397654
     ],
     [
      351,
-     7.266875825914313
+     -3.847966850397654
     ],
     [
      352,
-     7.268842649584842
+     -3.847966850397654
     ],
     [
      353,
-     7.270804263242152
+     -3.847966850397654
     ],
     [
      354,
-     7.272760683895822
+     -3.847966850397654
     ],
     [
      355,
-     7.274711928485881
+     -3.847966850397654
     ],
     [
      356,
-     7.276658013883125
+     -3.847966850397654
     ],
     [
      357,
-     7.278598956889487
+     -3.847966850397654
     ],
     [
      358,
-     7.280534774238386
+     -3.847966850397654
     ],
     [
      359,
-     7.282465482595066
+     -3.847966850397654
     ],
     [
      360,
-     7.284391098556965
+     -3.847966850397654
     ],
     [
      361,
-     7.286311638654041
+     -3.847966850397654
     ],
     [
      362,
-     7.288227119349109
+     -3.847966850397654
     ],
     [
      363,
-     7.290137557038194
+     -3.847966850397654
     ],
     [
      364,
-     7.292042968050864
+     -3.847966850397654
     ],
     [
      365,
-     7.293943368650551
+     -3.847966850397654
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -27168,7 +27168,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -28664,7 +28664,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -33793,7 +33793,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -35920,7 +35920,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -38837,7 +38837,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 5,
@@ -40343,7 +40343,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -40756,7 +40756,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 5,
      "path": "body.wroteL",
@@ -41167,7 +41167,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -41578,7 +41578,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -41991,7 +41991,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 9,
      "path": "body.wroteL",
@@ -42404,7 +42404,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "native_strength": 0,
      "path": "body.wroteL",
@@ -42987,7 +42987,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -43176,7 +43176,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -43822,7 +43822,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "day": 1,
      "path": "acute.caf",
@@ -44448,7 +44448,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "day": 14,
      "path": "acute.caf",
@@ -45070,7 +45070,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -45693,7 +45693,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -45800,7 +45800,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "acute.cafTol",
      "plate": [
@@ -46456,7 +46456,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "acute.bac",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -47070,7 +47070,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "acute.hang",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -47684,7 +47684,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -48298,7 +48298,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -54697,7 +54697,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "acute.debtH",
      "plate": [
@@ -55080,7 +55080,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55358,7 +55358,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55636,7 +55636,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55914,7 +55914,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55960,7 +55960,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "bodies": [
       [
@@ -56052,7 +56052,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "acute.debtH",
      "read": "at each close's s_after",
@@ -57590,7 +57590,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "from": "full health at the onset",
      "function": "K.drain.floor and K.drain.rate",
@@ -57666,7 +57666,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -57741,7 +57741,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -58129,7 +58129,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "stomachFill",
      "replay": "x363's events.json from its start.json at HEAD",
@@ -58165,7 +58165,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "clock": "09:00",
      "preloads_kcal": [
@@ -58255,7 +58255,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal arm (x27_grade.row8)",
      "window": "world age 25 to 49"
@@ -58315,7 +58315,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
@@ -58343,7 +58343,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "meal": "dinner, to the next morning's breakfast",
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
@@ -58850,7 +58850,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "x343's events.json from its start.json at HEAD",
@@ -59051,7 +59051,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -59458,7 +59458,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00 at rest, no drink, the first 10 h",
@@ -59774,7 +59774,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "body": "the 80 kg reference man",
      "function": "test_sodium_balance.simulate(days=5, na_day=0)"
@@ -60840,7 +60840,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "function": "K.view.fullnessLevel(mass)",
      "grams": [
@@ -60961,7 +60961,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "classes": [
       [
@@ -61234,7 +61234,7 @@
     ]
    ],
    "provenance": {
-    "commit": "0a4baa8c19",
+    "commit": "648b4a83e8",
     "inputs": {
      "billed_met": [
       7.5
