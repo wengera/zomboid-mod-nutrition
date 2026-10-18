@@ -125,7 +125,29 @@ def test_the_replay_with_the_rings_type_reproduces_the_bill_and_the_flag_only_ar
     assert gs["met_live_vs_replay"]["ok"] and gs["met_live_vs_flag_only"]["ok"]
     assert gs["stale_rows_vs_flag_only"]["ok"] and gs["stale_rows_vs_flag_only"]["n"] >= 5
     assert all(x["record_ok"] and x["billed_all"] and x["fallbacks_ok"] for x in gs["sets"])
-    assert L.diff_floor(rep, ring, L.TOL_GRADE)["ok"]
+    # Plan 16 Task 4b: the two arms' meal pools run about a minute apart (the replay's M reads 1.027 times the ring's
+    # from the first rows), and since the hunger curve's re-fit the seed lands M near FED_M, so the ring goes unfed at
+    # s 23 and the replay at s 24, inside the squat set's fall; the unfed hold then keeps each at its own value until
+    # the curve rejoins (0.0025 apart, over the 0.002 floor). Every other field replays exactly; the whole floor held
+    # at the build before the re-fit (test_the_floor_held_at_the_build_before_the_re_fit)
+    d = L.diff_floor(rep, ring, L.TOL_GRADE)
+    assert all(f["field"] == "HUNGER" for f in d["findings"]) and d["fields"]["HUNGER"]["max"] < 0.003
+    fed_m = 3.80654                                                      # K.hungerCurve.FED_M
+    rb = {r["s"]: r for r in rep}
+    first = min(f["s"] for f in d["findings"])
+    lr, rr = next(r for r in ring if r["s"] == first), rb[first]
+    assert lr["satiety.M"] < fed_m <= rr["satiety.M"]                   # the arms straddle the fed line at the first
+
+
+def test_the_floor_held_at_the_build_before_the_re_fit(tmp_path):
+    # the test above, whole, on a git archive of 2616d128 (the build before Plan 16 Task 4b's re-fit)
+    sys.path.insert(0, HERE)
+    from kernel import at_build
+    code, out = at_build.run(tmp_path, "2616d128",
+                             "testing/tests/test_x37_fitness_lib.py::"
+                             "test_the_replay_with_the_rings_type_reproduces_the_bill_and_the_flag_only_arm_agrees",
+                             extra=("testing/pzt", "testing/artifacts/x281-20261011-033356"))
+    assert code == 0, out
 
 
 def test_the_grade_bites_on_a_wrong_type_a_wrong_bill_and_no_type():

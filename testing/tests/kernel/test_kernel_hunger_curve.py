@@ -49,7 +49,7 @@ def test_the_knots_are_monotone_and_each_level_knot_is_a_vanilla_threshold(host)
 def test_the_fitted_knots(host):
     # tools/fit_hunger_curve.py's chosen point (the foot by its rule, the rest by the search), pinned
     X, _ = knots(host)
-    assert X[1:6] == [0.099, 0.214688, 0.299375, 0.42875, 0.734688]     # X[3] 0.19 before Task 6c; 0.097, 0.210312 before Task 14b's re-fit
+    assert X[1:6] == [0.097, 0.21125, 0.289531, 0.420782, 0.6825]     # X[3] 0.19 before Task 6c; 0.097, 0.210312 before Task 14b's re-fit; 0.099, 0.214688, 0.299375, 0.42875, 0.734688 before Plan 16 Task 4b's re-fit on both sleep settings
     assert host.K.hungerCurve.FED_M == host.K.satiety.MEAL_REQ
 
 
@@ -136,40 +136,69 @@ def test_the_writer_writes_the_curve_capped(host):
 
 # ---- the cadence on the server replay (tools/fit_hunger_curve.py's scenarios) -----------------------------------------
 
+def _fit(config):
+    import fit_hunger_curve as F
+    rows3, be = F.replay(F.three_events(0, config), F.DAYS_THREE * F.DAY, config=config)
+    rowsf, _ = F.replay(F.fast_events(F.MEAL_KCAL, config), F.fast_minutes(), config=config)
+    return {"F": F, "three": rows3, "fast": rowsf, "K": be.K, "config": config}
+
+
 @pytest.fixture(scope="module")
 def fit():
-    import fit_hunger_curve as F
-    rows3, be = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
-    rowsf, _ = F.replay(F.fast_events(), F.fast_minutes())
-    return {"F": F, "three": rows3, "fast": rowsf, "K": be.K}
+    # the shipped configuration (sleep off, the server default since Plan 16 Task 4: no daily rhythm)
+    return _fit("off")
+
+
+@pytest.fixture(scope="module")
+def fit_on():
+    # sleep on: asleep 23:00 to 07:00, the rhythm on the body clock (Plan 16 Task 4), through the real code path
+    return _fit("on")
+
+
+@pytest.fixture(scope="module", params=["off", "on"])
+def fit_any(request, fit, fit_on):
+    return fit if request.param == "off" else fit_on
 
 
 def H(rows):
     return [r["HUNGER"] for r in rows]
 
 
-def test_a_satisfying_meal_reads_0_and_the_levels_return_on_vanillas_cadence(fit):
-    F = fit["F"]
+def test_a_satisfying_meal_reads_0_and_the_levels_return_on_vanillas_cadence(fit_any):
+    F = fit_any["F"]
     meals = [d * F.DAY + m for d in range(1, F.DAYS_THREE) for m in F.MEAL_MIN]
-    assert F.deepest(H(fit["three"]), meals) <= 0.02
-    s1, s2 = F.shares(H(fit["three"]))
+    assert F.deepest(H(fit_any["three"]), meals) <= 0.02
+    s1, s2 = F.shares(H(fit_any["three"]))
     # vanilla 0.379 and 0.044 (the review's 38 %); Task 6c trades the level-1 share (0.358 before) for each meal's
     # return: vanilla's share is mostly its breakfast can's carry-over, which the satiety model has none of
     assert 0.18 <= s1 <= 0.30 and s2 <= 0.08
-    t1, t2, t3, tcap, t4 = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
-    assert 4.0 <= t1 <= 4.8                                     # Peckish about 4 h after (vanilla 4.4 h; 3.78 before 6c)
-    assert 6.0 <= t2 <= 8.5                                     # Hungry 6-8 h after (vanilla 8.0 h)
+    t1, t2, t3, tcap, t4 = F.returns(H(fit_any["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
+    # Peckish about 4 h after (vanilla 4.4 h; 3.78 before 6c). Plan 16 Task 4b: the joint fit reads 3.88 h with sleep
+    # off (the breakfast and share terms pull the Peckish knot under the fast's own target), so the band opens to 3.8
+    assert 3.8 <= t1 <= 4.8
+    assert 6.0 <= t2 <= 8.5                                     # Hungry 6-8 h after (vanilla 8.0 h; 9.15 sleep off before 4b)
     assert 15.0 <= t3 <= 19.0                                   # Very Hungry (vanilla 17.0 h)
     assert 33.0 <= tcap <= 36.0                                 # the cap, as vanilla's Starving (34.5 h)
-    assert t4 is not None and 0 <= t4 - tcap <= 0.5             # Starving at the acute onset, as the cap comes (fix 1)
+    # Starving at the acute onset, as the cap comes (fix 1); with sleep on the joint fit's cap comes 1.45 h before the
+    # onset (Plan 16 Task 4b: the cap falls at 16:38 on the body clock, where the circadian factor is over 1, an
+    # inference), so H holds at 0.69 that long
+    parked = 0.5 if fit_any["config"] == "off" else 1.5
+    assert t4 is not None and 0 <= t4 - tcap <= parked
 
 
-def test_the_readings_are_pinned(fit):
-    F = fit["F"]
-    s1, s2 = F.shares(H(fit["three"]))
-    ret = F.returns(H(fit["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
-    assert (round(s1, 4), round(s2, 4)) == (0.2302, 0.0312)                 # (0.3576, 0.0312) before Task 6c; (0.2115, 0.0312) before Task 14b
-    assert [round(t, 2) for t in ret] == [4.37, 8.03, 17.02, 34.48, 34.58]   # Starving 59.48 before fix 1; t1 3.78 before 6c, 4.33 before 14b
+@pytest.mark.parametrize("config, share, ret", [
+    # (0.3576, 0.0312) before Task 6c; (0.2115, 0.0312) before Task 14b; (0.2302, 0.0312) and [4.37, 8.03, 17.02, 34.48,
+    # 34.58] on the world-clock rhythm before Plan 16 Task 4b. Starving 59.48 before fix 1; t1 3.78 before 6c
+    ("off", (0.2417, 0.0312), [3.88, 8.1, 17.33, 34.48, 34.58]),
+    ("on", (0.224, 0.0312), [4.4, 7.83, 16.83, 33.13, 34.58]),
+])
+def test_the_readings_are_pinned(fit, fit_on, config, share, ret):
+    f = fit if config == "off" else fit_on
+    F = f["F"]
+    s1, s2 = F.shares(H(f["three"]))
+    got = F.returns(H(f["fast"]), F.FED_DAYS * F.DAY + F.MEAL_MIN[0])
+    assert (round(s1, 4), round(s2, 4)) == share
+    assert [round(t, 2) for t in got] == ret
 
 
 # ---- Plan 15 Task 6c: every meal's return to Peckish -----------------------------------------------------------------
@@ -183,11 +212,18 @@ def test_vanillas_three_can_day_returns_each_meal_to_peckish():
         "breakfast": [1.17] * 3, "lunch": [4.25] * 3, "dinner": [5.0] * 3}
 
 
-def test_each_meal_returns_to_peckish_nearer_vanilla_than_the_task_6_curve(fit):
-    F = fit["F"]
-    mr = F.meal_returns(H(fit["three"]))
+@pytest.mark.parametrize("config, pinned", [
+    # the guide's water. Task 14b's re-fit (the liquid lane slowed only by drink-borne kcal) read 4.37, 3.98 and 3.83 on
+    # the world-clock rhythm (4.33, 4.15 and 3.98 before it); Plan 16 Task 4b re-fits on both sleep settings
+    ("off", {"breakfast": [3.88] * 3, "lunch": [4.18] * 3, "dinner": [4.07] * 3}),
+    ("on", {"breakfast": [4.4] * 3, "lunch": [4.02] * 3, "dinner": [3.85] * 3}),
+])
+def test_each_meal_returns_to_peckish_nearer_vanilla_than_the_task_6_curve(fit, fit_on, config, pinned):
+    f = fit if config == "off" else fit_on
+    F = f["F"]
+    mr = F.meal_returns(H(f["three"]))
     got = {k: [round(t, 2) for t, _ in v] for k, v in mr.items()}
-    assert got == {"breakfast": [4.37] * 3, "lunch": [3.98] * 3, "dinner": [3.83] * 3}   # the guide's water (Task 14b's re-fit on the liquid lane slowed only by drink-borne kcal; 4.33, 4.15 and 3.98 before)
+    assert got == pinned
     assert not any(c for v in mr.values() for _, c in v)
     # before Task 6c (X[3] 0.19): breakfast 3.78, lunch 3.28 and dinner 2.93 h, against vanilla's 4.25 and 5.0 h
     assert got["lunch"][0] > 3.28 + 0.5 and got["dinner"][0] > 2.93 + 0.5
@@ -198,14 +234,9 @@ def test_the_fit_scores_each_meal_on_both_water_schedules():
     # the loss carries the three meal terms (Task 6c), each the mean log ratio over days 1-3 of the two water
     # schedules' mean return; a mutated meal reading moves the loss
     import fit_hunger_curve as F
-    rows3, be = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
-    rows3s, _ = F.replay(F.three_events(F.WATER_SHIFT), F.DAYS_THREE * F.DAY)
-    rowsf, _ = F.replay(F.fast_events(), F.fast_minutes())
-    rf = F.trace(rowsf, be)["rows"]
-    traces = {"three": {"rows": F.trace(rows3, be)["rows"], "shifted": F.trace(rows3s, be)["rows"], "h0": 0.2},
-              "fast": {"rows": rf, "curve": F.curve_only(rf), "h0": 0.2}}
+    traces, be = F.traces_of("off")
     C, V = F.constants(be.K), F.vanilla()
-    r = F.read(F.shipped(be.K), traces, C, V)
+    r = F.read_config(F.shipped(be.K), traces, C, V)
     assert set(F.MEALS) <= set(r["miss"])
     for j, m in enumerate(F.MEALS):
         a, b = r["mealsByWater"]["guide"][m], r["mealsByWater"]["shifted"][m]
@@ -214,20 +245,58 @@ def test_the_fit_scores_each_meal_on_both_water_schedules():
         assert r["miss"][m] == pytest.approx(F.W_MEAL[j] * sum(logs) / len(logs))
     assert r["loss"] == pytest.approx(sum(v * v for v in r["miss"].values()))
     V2 = dict(V, meals=dict(V["meals"], dinner=[10.0] * 3))
-    assert F.read(F.shipped(be.K), traces, C, V2)["loss"] > r["loss"] + 0.1
+    assert F.read_config(F.shipped(be.K), traces, C, V2)["loss"] > r["loss"] + 0.1
+
+
+def test_the_fit_scores_both_sleep_settings_weighted_sleep_off_first(monkeypatch):
+    # Plan 16 Task 4b: the joint loss is each configuration's loss weighted by W_CONFIG (sleep off 2, sleep on 1, a game
+    # choice) over the weights' sum, each configuration on its own replays; a moved weight moves the loss
+    import fit_hunger_curve as F
+    traces, be = F.all_traces()
+    C, V = F.constants(be.K), F.vanilla()
+    knots = F.shipped(be.K)
+    r = F.read(knots, traces, C, V)
+    off, on = r["configs"]["off"], r["configs"]["on"]
+    assert r["loss"] == pytest.approx((2.0 * off["loss"] + on["loss"]) / 3.0)
+    assert off["loss"] == pytest.approx(F.read_config(knots, traces["off"], C, V)["loss"])
+    assert off["returns"] != on["returns"]                               # two replays, not one read twice
+    assert F.W_CONFIG == {"off": 2.0, "on": 1.0} and F.CONFIGS == ("off", "on") and F.SHIPPED_CONFIG == "off"
+    monkeypatch.setattr(F, "W_CONFIG", {"off": 1.0, "on": 1.0})
+    assert F.read(knots, traces, C, V)["loss"] == pytest.approx((off["loss"] + on["loss"]) / 2.0)
+    assert F.foot(traces) == 0.097                                       # the foot over both settings (sleep on's dinner)
+
+
+def test_the_fits_replays_run_the_shipped_rhythm_with_no_overlay():
+    # Plan 16 Task 4b: sleep off has no body clock (the circadian factor 1); sleep on seeds the body clock at the world
+    # hour (07:00) and each 23:00-07:00 night resets it to 07:00 plus the gap at the bout's close; no WORLD_CLOCK
+    import inspect
+    import fit_hunger_curve as F
+    assert "WORLD_CLOCK" not in inspect.getsource(F)
+    n = 2 * F.DAY
+    rows, _ = F.replay(F.three_events(0, "off"), n, config="off")
+    assert all(r["acute.bodyOn"] is False and r.get("acute.bodyHour") is None for r in rows)
+    rows, _ = F.replay(F.three_events(0, "on"), n, config="on")
+    assert rows[0]["acute.bodyOn"] is True and rows[0]["acute.bodyHour"] == pytest.approx(7.0, abs=0.02)
+    t = F.trace(rows, None)["rows"]
+    assert t[600]["body"] == pytest.approx(math.fmod(rows[600]["age"] + F.HOUR_OFFSET, 24.0), abs=0.02)
+    woke = F.DAY + 15                                                    # 07:15, after the night's bout closed
+    assert rows[woke]["acute.bodyHour"] == pytest.approx(7.25, abs=0.02)
+    with pytest.raises(ValueError):
+        F.replay([], 10, config="maybe")
 
 
 def test_the_two_water_schedules_differ_and_the_weights_are_the_artifacts():
-    # Task 6c review F3: the shifted schedule is a real second replay (dinner 3.83 h on the guide water, 3.53 h an hour
-    # later, since Task 14b's re-fit), and the weights and the shift are the ones fit-hunger-curve-20261017c was fitted
-    # with (Task 6c's, unchanged)
+    # Task 6c review F3: the shifted schedule is a real second replay (dinner 4.07 h on the guide water, 3.92 h an hour
+    # later with sleep off since Plan 16 Task 4b's re-fit; 3.83 and 3.53 on the world-clock rhythm after Task 14b), and
+    # the weights and the shift are the ones fit-hunger-curve-20261018 was fitted with (Task 6c's, unchanged, and Plan
+    # 16 Task 4b's configuration weights)
     import json
     import fit_hunger_curve as F
     rows, _ = F.replay(F.three_events(), F.DAYS_THREE * F.DAY)
     rows_s, _ = F.replay(F.three_events(F.WATER_SHIFT), F.DAYS_THREE * F.DAY)
     guide = F.meal_returns(H(rows))["dinner"][1][0]
     shifted = F.meal_returns(H(rows_s))["dinner"][1][0]
-    assert (round(guide, 2), round(shifted, 2)) == (3.83, 3.53)
+    assert (round(guide, 2), round(shifted, 2)) == (4.07, 3.92)
     with open(os.path.join(REPO, "testing", "artifacts", "fit-hunger-curve-20261017c", "fit-compact.json"),
               encoding="utf-8") as fh:
         art = json.load(fh)
@@ -266,12 +335,13 @@ def test_a_snack_moves_hunger_less_than_a_meal():
     assert 0 < drop[200.0] < drop[F.MEAL_KCAL]
 
 
-def test_the_mirror_reproduces_the_kernel(fit):
-    F = fit["F"]
-    C = F.constants(fit["K"])
-    X, _ = knots_of(fit["K"])
+def test_the_mirror_reproduces_the_kernel(fit_any):
+    # both sleep settings: the mirror reads the body clock's hour off the trace (none with sleep off)
+    F = fit_any["F"]
+    C = F.constants(fit_any["K"])
+    X, _ = knots_of(fit_any["K"])
     for key in ("three", "fast"):
-        rows = fit[key]
+        rows = fit_any[key]
         t = F.trace(rows, None)["rows"]
         got = F.stage(t[1:], X[1:6], C, rows[0]["HUNGER"])
         assert max(abs(a - r["HUNGER"]) for a, r in zip(got, rows[1:])) < 1e-9

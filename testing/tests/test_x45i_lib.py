@@ -94,23 +94,29 @@ def test_the_bands_are_the_head_replay_of_x452s_schedule(monkeypatch):
     # driver's HYDRATED names; a later mod change that moves them fails here before any boot. Plan 16 Task 4 (after
     # x452b ran): a sleep-off server has no hunger rhythm since, so the bands are read on the recording build's
     # world-clock rhythm (replay_live's WORLD_CLOCK overlay on the pre-run's own backend), and the HEAD sleep-off
-    # returns are pinned beside them as the named move
+    # returns are pinned beside them as the named move. Plan 16 Task 4b re-fits the hunger curve on both sleep
+    # settings, so the band check runs on a git archive of 2616d128, the last build whose curve x452b's bands read
+    # (test_the_bands_held_at_the_build_before_the_re_fit), and HEAD's sleep-off returns are pinned here (3.833, 4.0
+    # and 3.733 before the re-fit); the hydration and stomach readings do not read the curve and are graded at HEAD
     import x45g_prerun as P
-    import replay_live as RL
     head = P.x452()
     assert {m: head["meals"][m]["peckish_h"] for m in ("lunch", "dinner", "breakfast")} == {
-        "lunch": 3.833, "dinner": 4.0, "breakfast": 3.733}
-    monkeypatch.setattr(P, "backend", lambda: RL.ServerReplay(hour_offset=P.L.HOUR_OFFSET, rng="half",
-                                                             sleep_allowed=False, constants=RL.WORLD_CLOCK))
-    r = P.x452()
-    got = {m: r["meals"][m]["peckish_h"] for m in ("lunch", "dinner", "breakfast")}
-    assert got == I.CAD_P_TARGETS_B
-    assert r["meals"]["dinner"]["hungry_h"] == I.CAD_H_TARGET_B
+        "lunch": 3.717, "dinner": 3.883, "breakfast": 3.617}
+    r = head
     assert r["max_dehydPct"] == I.PRERUN_B["max_dehydPct"] and r["dehydrated_rows"] == 0
     assert r["max_THIRST"] == I.PRERUN_B["max_THIRST"] and r["max_stomach_g"] == I.PRERUN_B["max_stomach_g"]
     assert r["max_overfull"] == I.PRERUN_B["max_overfull"]
     assert all(r["meals"][m]["well_fed_h"] == I.PRERUN_B["well_fed_h"] for m in r["meals"])
     assert all(r["meals"][m]["eat0_max"] == 0 for m in r["meals"])
+
+
+def test_the_bands_held_at_the_build_before_the_re_fit(tmp_path):
+    # the band check, whole, on a git archive of 2616d128 (Plan 16 Task 4b moved the curve x452b's bands read)
+    from kernel import at_build
+    code, out = at_build.run(tmp_path, "2616d128",
+                             "testing/tests/test_x45i_lib.py::test_the_bands_are_the_head_replay_of_x452s_schedule",
+                             extra=("testing/pzt",))
+    assert code == 0, out
 
 
 def test_the_driver_names_its_session_and_the_lib_its_bands():

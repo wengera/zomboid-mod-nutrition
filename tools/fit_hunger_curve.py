@@ -1,5 +1,5 @@
-"""The calibrated hunger curve's fit (Plan 15 Tasks 6 and 6c; spec docs/superpowers/specs/2026-10-16-game-feel-design.md
-section 2.1).
+"""The calibrated hunger curve's fit (Plan 15 Tasks 6 and 6c, Plan 16 Task 4b; spec
+docs/superpowers/specs/2026-10-16-game-feel-design.md section 2.1).
 
     python tools/fit_hunger_curve.py [--out <dir>]
 
@@ -7,11 +7,22 @@ The satiety model's own hunger, h_model (record.satiety.hModel), does not depend
 HUNGER written to the game (K.hungerCurve.write): the curve reads h_model, the meal pool M (fed or not), the hour's
 circadian factor and the HUNGER it wrote last, and writes nothing the model reads after a record's first minute (the
 seed). So the fit runs the mod's server pipeline (tools/replay_live.py ServerReplay, the default body from a fresh
-record at 07:00, sleep off, the guide's water: 500 g every 2 h from 08:00 to 22:00) once per scenario, keeps each
-minute's h_model, M, hour and starvation flags, and scores candidate knots on a Python mirror of the curve stage
-(stage()). The chosen knots are then set on the Lua kernel and replayed for real, and the mirror must reproduce the
-written HUNGER within 1e-9 at every minute (verify()). The Task 6 knots (PREVIOUS) are read beside the chosen
-point.
+record at 07:00, the guide's water: 500 g every 2 h from 08:00 to 22:00) once per scenario and configuration, keeps
+each minute's h_model, M, body-clock hour and starvation flags, and scores candidate knots on a Python mirror of the
+curve stage (stage()). The chosen knots are then set on the Lua kernel and replayed for real, and the mirror must
+reproduce the written HUNGER within 1e-9 at every minute of every configuration (verify()). The knots shipped before
+(PREVIOUS, fit-hunger-curve-20261017c) are read beside the chosen point.
+
+The configurations (Plan 16 Task 4b): every scenario runs on both server sleep settings, through the shipped code path
+(no replay overlay):
+- off: SleepAllowed or SleepNeeded false, vanilla multiplayer's default; the mod has no daily rhythm (K.circadian.hour
+  is nil, the circadian factor 1, Plan 16 Task 4), and the character never sleeps;
+- on: both true; the character sleeps 23:00 to 07:00 each night (SLEEP_MIN, 8 h, over the 7.5 h need, so no sleep
+  debt), and the body clock (seeded at the world hour on the record's first minute) is reset to 07:00 by each full
+  sleep, so the rhythm reads the body clock's hour.
+The loss is the configurations' losses weighted by W_CONFIG (sleep off first, 2:1, a game choice), over their sum. The
+vanilla targets are the same for both (the controller's ruling: the targets unchanged); vanilla's own sleep-on cadence
+(the same nights, vanilla_model's asleep hunger rate) is read beside them, never scored.
 
 The scenarios (meals of PLATE, the guide's foods, sized to MEAL_KCAL, a third of 2,000 kcal):
 - three: three meals a day at 07:30, 12:30 and 18:30 for DAYS_THREE days; read on days 1 to 3, waking hours 07:00 to
@@ -103,7 +114,7 @@ VANILLA_START = 0.25
 SWEEP_KCAL = (200.0, 400.0, 667.0, 1000.0, 1300.0)
 Y = (0.0, 0.0, 0.15, 0.25, 0.45, 0.70, 1.0)
 START = (0.105, 0.225, 0.275, 0.38, 0.63)
-PREVIOUS = (0.097, 0.19, 0.299375, 0.42875, 0.734688)   # the Task 6 knots (fit-hunger-curve-20261016), read beside
+PREVIOUS = (0.099, 0.214688, 0.299375, 0.42875, 0.734688)   # fit-hunger-curve-20261017c's knots (Plan 15 Task 14b), read beside
 MEALS = ("breakfast", "lunch", "dinner")
 W_CARRY = 0.5                          # Task 6c: the terms that read vanilla's breakfast carry-over (the docstring)
 W_MEAL = (W_CARRY, 1.0, 1.0)           # breakfast, lunch, dinner
@@ -114,7 +125,11 @@ PROFILE_STEP = 0.005
 BOUNDS = ((0.02, 0.30), (0.10, 0.45), (0.12, 0.55), (0.20, 0.65), (0.40, 0.95))
 STEP0 = 0.02
 STEP_MIN = 1e-4
-PATHS = ("satiety.hModel", "satiety.M", "drain.starving", "drain.starveAcute")
+PATHS = ("satiety.hModel", "satiety.M", "drain.starving", "drain.starveAcute", "acute.bodyHour", "acute.bodyOn")
+SLEEP_MIN = 960                        # 23:00: a sleep-on scenario sleeps 23:00 to 07:00 each night (the docstring)
+CONFIGS = ("off", "on")                # Plan 16 Task 4b: the server's sleep setting, off (the default) and on
+W_CONFIG = {"off": 2.0, "on": 1.0}     # game choice (Plan 16 Task 4b, spec section 6): sleep off, vanilla multiplayer's default, weighs first
+SHIPPED_CONFIG = "off"                 # the configuration a server runs unless its admin turns sleep on
 
 
 # ---- the scenarios -------------------------------------------------------------------------------------------------
@@ -127,29 +142,41 @@ def meal(minute, kcal):
     return {"minute": minute, "kind": "meal", "size": kcal, "plate": list(PLATE)}
 
 
-def three_events(shift=0):
-    return [meal(d * DAY + m, MEAL_KCAL) for d in range(DAYS_THREE) for m in MEAL_MIN] + water(DAYS_THREE, shift)
+def nights(days):
+    """Asleep 23:00 to 07:00 on each of the days (a sleep-on scenario's nights)."""
+    ev = []
+    for d in range(days):
+        ev.append({"minute": d * DAY + SLEEP_MIN, "kind": "sleep", "asleep": True})
+        ev.append({"minute": (d + 1) * DAY, "kind": "sleep", "asleep": False})
+    return ev
+
+
+def three_events(shift=0, config=SHIPPED_CONFIG):
+    ev = [meal(d * DAY + m, MEAL_KCAL) for d in range(DAYS_THREE) for m in MEAL_MIN] + water(DAYS_THREE, shift)
+    return ev + nights(DAYS_THREE) if config == "on" else ev
 
 
 def fast_minutes():
     return FED_DAYS * DAY + MEAL_MIN[0] + FAST_H * 60
 
 
-def fast_events(kcal=MEAL_KCAL):
+def fast_events(kcal=MEAL_KCAL, config=SHIPPED_CONFIG):
     n = fast_minutes()
     days = n // DAY + 1
     ev = [meal(d * DAY + m, MEAL_KCAL) for d in range(FED_DAYS) for m in MEAL_MIN]
     ev.append(meal(FED_DAYS * DAY + MEAL_MIN[0], kcal))
-    return [e for e in ev + water(days) if e["minute"] < n]
+    ev = ev + water(days) + (nights(days) if config == "on" else [])
+    return [e for e in ev if e["minute"] < n]
 
 
-def replay(events, minutes, knots=None):
+def replay(events, minutes, knots=None, config=SHIPPED_CONFIG):
     """The server pipeline from a fresh record; knots (X[2] to X[6]) set on the kernel first. Returns (rows, backend).
-    The daily rhythm reads the world hour (RL.WORLD_CLOCK, Plan 16 Task 4), as it did when fit-hunger-curve-20261017c
-    was fitted: the curve's fit and its gates keep the configuration they were read under, the sleep state still frozen
-    (sleep off). On a sleep-off server the shipped mod has no rhythm since that task; its readings there are Task 4's
-    report's, not this fit's."""
-    be = RL.ServerReplay(hour_offset=HOUR_OFFSET, rng="half", sleep_allowed=False, constants=RL.WORLD_CLOCK)
+    config is the server's sleep setting ("off" or "on", CONFIGS), answered to the options poll the mod reads every
+    minute; the rhythm is the shipped code's (Plan 16 Task 4: none with sleep off, the body clock with sleep on), no
+    replay overlay. A sleep-on scenario's nights are its events' (three_events, fast_events)."""
+    if config not in CONFIGS:
+        raise ValueError("unknown configuration %r" % (config,))
+    be = RL.ServerReplay(hour_offset=HOUR_OFFSET, rng="half", sleep_allowed=(config == "on"))
     if knots is not None:
         set_knots(be.K, knots)
     ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])   # none past the window
@@ -177,9 +204,11 @@ def curve_map(h, X):
     return Y[-1]
 
 
-def circadian(K, age):
-    tod = math.fmod(age + HOUR_OFFSET, 24.0)
-    return 1 + K["A"] * math.cos(6.283185307179586 * (tod - K["PEAK"]) / 24)
+def circadian(K, hour):
+    """K.satiety.circadian at the body clock's hour; 1 with no hour (sleep off, or the clock not running)."""
+    if hour is None:
+        return 1.0
+    return 1 + K["A"] * math.cos(6.283185307179586 * (hour - K["PEAK"]) / 24)
 
 
 def stage(trace, knots, C, h0):
@@ -195,7 +224,7 @@ def stage(trace, knots, C, h0):
         if prev > cap:                                   # a lifted cap or the starving minimum just ended: re-seeded
             prev = 0.0
         if not fed:
-            c = circadian(C, r["age"])
+            c = circadian(C, r["body"])
             x = h / c if 0 < c < 1 else h
             H = max(curve_map(x, X), prev)
         else:
@@ -266,26 +295,42 @@ def meal_returns(H, days=range(1, DAYS_THREE)):
     return out
 
 
-def vanilla():
-    """vanilla_model's three-can day shares and the fast's returns (levels 1-4, hours after the breakfast can)."""
+def vanilla(config=SHIPPED_CONFIG):
+    """vanilla_model's three-can day shares and the fast's returns (levels 1-4, hours after the breakfast can). The
+    scored targets are config "off"'s; "on" sleeps the same nights as the mod's sleep-on scenarios (23:00 to 07:00,
+    sleep allowed) and is read beside them, never scored, its meals with their censored names (a return the night
+    outlasts reads the hours to the next meal) and a level never reached in the fast None."""
+    sleep = config == "on"
+    nights_h = [dict(kind="sleep", t_h=d * 24 + SLEEP_MIN / 60.0, duration_h=8.0) for d in range(DAYS_THREE)]
     ev = [dict(VANILLA_CAN, t_h=d * 24 + m / 60.0, kind="eat") for d in range(DAYS_THREE) for m in MEAL_MIN]
-    out = VM.simulate({"hours": DAYS_THREE * 24, "dt_min": 1, "start": {"hunger": VANILLA_START}, "events": ev})
+    out = VM.simulate({"hours": DAYS_THREE * 24, "dt_min": 1, "start": {"hunger": VANILLA_START},
+                       "settings": {"sleep_allowed": sleep}, "events": ev + (nights_h if sleep else [])})
     H = [v for _, v in out["hunger"]][1:]
     s1, s2 = shares(H)
     meals = meal_returns([v for _, v in out["hunger"]])     # index = minute: the eat lands on its own minute
-    assert not any(c for v in meals.values() for _, c in v)
+    censored = sorted(k for k, v in meals.items() if any(c for _, c in v))
+    if not sleep:
+        assert not censored
     meals = {k: [t for t, _ in v] for k, v in meals.items()}
     ev = [dict(VANILLA_CAN, t_h=0.0, kind="eat")]
-    out = VM.simulate({"hours": FAST_H, "dt_min": 1, "start": {"hunger": VANILLA_START}, "events": ev})
+    first = (SLEEP_MIN - MEAL_MIN[0]) / 60.0                 # the fast's first night, from its 07:30 breakfast
+    nights_f = [dict(kind="sleep", t_h=first + 24 * k, duration_h=8.0) for k in range(int(FAST_H // 24) + 1)]
+    out = VM.simulate({"hours": FAST_H, "dt_min": 1, "start": {"hunger": VANILLA_START},
+                       "settings": {"sleep_allowed": sleep}, "events": ev + (nights_f if sleep else [])})
     F = [v for _, v in out["hunger"]]
     ret = []
     for t in THRESHOLDS:
-        k = next(i for i in range(len(F)) if F[i] > t)
-        ret.append(k / 60.0)
-    return {"share1": s1, "share2": s2, "returns": ret, "after": min(F[:AFTER_MIN]), "meals": meals}
+        k = next((i for i in range(len(F)) if F[i] > t), None)
+        ret.append(None if k is None else k / 60.0)
+    r = {"share1": s1, "share2": s2, "returns": ret, "after": min(F[:AFTER_MIN]), "meals": meals}
+    if sleep:
+        r["censored"] = censored
+    return r
 
 
-def read(knots, traces, C, V):
+def read_config(knots, traces, C, V):
+    """One configuration's readings and loss: traces holds its "three" (rows, shifted, h0) and "fast" (rows, curve,
+    h0) traces."""
     three, fast = traces["three"], traces["fast"]
     H3 = stage(three["rows"], knots, C, three["h0"])
     HF = stage(fast["rows"], knots, C, fast["h0"])
@@ -315,6 +360,14 @@ def read(knots, traces, C, V):
     return r
 
 
+def read(knots, traces, C, V):
+    """Both configurations (traces[config], read_config) and the joint loss: their losses weighted by W_CONFIG, over
+    the weights' sum."""
+    per = {c: read_config(knots, traces[c], C, V) for c in CONFIGS}
+    loss = sum(W_CONFIG[c] * per[c]["loss"] for c in CONFIGS) / sum(W_CONFIG[c] for c in CONFIGS)
+    return {"loss": loss, "configs": per}
+
+
 def ordered(knots):
     if any(k <= 0 or k >= 1 for k in knots):
         return False
@@ -325,12 +378,13 @@ def inside(knots):
     return all(lo <= k <= hi for k, (lo, hi) in zip(knots, BOUNDS))
 
 
-def foot(trace3):
+def foot(traces):
     """The flat foot's end: the highest of the three-meal days' lowest h_model over AFTER_MIN minutes after each meal,
-    rounded up to 0.001, so every such meal reads 0 and a smaller one reads above it (the most graded snacks)."""
-    rows = trace3["rows"]
+    over every configuration's traces (traces[config]["three"]), rounded up to 0.001, so every such meal reads 0 and a
+    smaller one reads above it (the most graded snacks)."""
     meals = [d * DAY + m for d in range(1, DAYS_THREE) for m in MEAL_MIN]
-    low = max(min(r["satiety.hModel"] for r in rows[m:m + AFTER_MIN]) for m in meals)
+    low = max(min(r["satiety.hModel"] for r in traces[c]["three"]["rows"][m:m + AFTER_MIN])
+              for c in CONFIGS for m in meals)
     return math.ceil(low * 1000.0) / 1000.0
 
 
@@ -378,22 +432,53 @@ def curve_only(rows):
 
 
 def trace(rows, be):
+    """The rows the stage reads; body is the body clock's hour the writer read (acute.bodyHour while acute.bodyOn is
+    true, else None: Nutrients steps the clock before the writer, and nothing after it moves it in the minute)."""
     keep = [{"age": r["age"], "satiety.hModel": r["satiety.hModel"], "satiety.M": r["satiety.M"],
              "drain.starving": bool(r.get("drain.starving")), "drain.starveAcute": bool(r.get("drain.starveAcute")),
+             "body": r.get("acute.bodyHour") if r.get("acute.bodyOn") is True else None,
              "HUNGER": r["HUNGER"]} for r in rows]
     return {"rows": keep}
 
 
+def traces_of(config):
+    """One configuration's traces at the kernel's knots: (traces, backend)."""
+    rows3, be = replay(three_events(0, config), DAYS_THREE * DAY, config=config)
+    rows3s, _ = replay(three_events(WATER_SHIFT, config), DAYS_THREE * DAY, config=config)
+    rowsf, _ = replay(fast_events(MEAL_KCAL, config), fast_minutes(), config=config)
+    rf = trace(rowsf, be)["rows"]
+    return ({"three": {"rows": trace(rows3, be)["rows"], "shifted": trace(rows3s, be)["rows"], "h0": 0.2},
+             "fast": {"rows": rf, "curve": curve_only(rf), "h0": 0.2}}, be)
+
+
+def all_traces():
+    """Every configuration's traces: ({config: traces}, the last backend)."""
+    out = {}
+    be = None
+    for c in CONFIGS:
+        out[c], be = traces_of(c)
+    return out, be
+
+
 def verify(knots, C):
-    """The chosen knots replayed for real: the mirror on the run's own trace reproduces its written HUNGER."""
+    """The chosen knots replayed for real: the mirror on the run's own trace reproduces its written HUNGER, in every
+    configuration."""
     worst = 0.0
-    for events, n in ((three_events(), DAYS_THREE * DAY), (three_events(WATER_SHIFT), DAYS_THREE * DAY),
-                      (fast_events(), fast_minutes())):
-        rows, be = replay(events, n, knots)
-        t = trace(rows, be)
-        H = stage(t["rows"][1:], knots, C, rows[0]["HUNGER"])
-        worst = max(worst, max(abs(a - r["HUNGER"]) for a, r in zip(H, rows[1:])))
+    for c in CONFIGS:
+        for events, n in ((three_events(0, c), DAYS_THREE * DAY), (three_events(WATER_SHIFT, c), DAYS_THREE * DAY),
+                          (fast_events(MEAL_KCAL, c), fast_minutes())):
+            rows, be = replay(events, n, knots, config=c)
+            t = trace(rows, be)
+            H = stage(t["rows"][1:], knots, C, rows[0]["HUNGER"])
+            worst = max(worst, max(abs(a - r["HUNGER"]) for a, r in zip(H, rows[1:])))
     return worst
+
+
+def summary(r):
+    """One configuration's cadence (read_config): each meal's return on day 2 (the two waters' mean), the shares, the
+    fast's returns and the loss."""
+    return {"loss": r["loss"], "deepest": r["deepest"], "share1": r["share1"], "share2": r["share2"],
+            "returns": r["returns"], "meals": {m: r["meals"][m][1] for m in MEALS}}
 
 
 def stability(best, traces, C, V):
@@ -407,32 +492,38 @@ def stability(best, traces, C, V):
                 out["knots"].append({"knot": i + 2, "factor": f, "ordered": False})
                 continue
             r = read(cand, traces, C, V)
-            out["knots"].append({"knot": i + 2, "factor": f, "loss": r["loss"], "deepest": r["deepest"],
-                                 "share1": r["share1"], "share2": r["share2"], "returns": r["returns"],
-                                 "meals": r["meals"]})
+            out["knots"].append({"knot": i + 2, "factor": f, "loss": r["loss"],
+                                 "configs": {c: summary(r["configs"][c]) for c in CONFIGS}})
     b = FED_DAYS * DAY + MEAL_MIN[0]
-    for kcal in SWEEP_KCAL:
-        rows, be = replay(fast_events(kcal), fast_minutes())
-        t = trace(rows, be)
-        H = stage(t["rows"], best, C, 0.2)
-        ret = returns(H, b)
-        out["sweep"].append({"kcal": kcal, "before": H[b - 1], "lowest": min(H[b:b + AFTER_MIN]),
-                             "hModelLowest": min(r["satiety.hModel"] for r in rows[b:b + AFTER_MIN]),
-                             "t1": ret[0], "t2": ret[1]})
+    for c in CONFIGS:
+        for kcal in SWEEP_KCAL:
+            rows, be = replay(fast_events(kcal, c), fast_minutes(), config=c)
+            t = trace(rows, be)
+            H = stage(t["rows"], best, C, 0.2)
+            ret = returns(H, b)
+            out["sweep"].append({"config": c, "kcal": kcal, "before": H[b - 1], "lowest": min(H[b:b + AFTER_MIN]),
+                                 "hModelLowest": min(r["satiety.hModel"] for r in rows[b:b + AFTER_MIN]),
+                                 "t1": ret[0], "t2": ret[1]})
     return out
 
 
-def profile(best, traces, C, V):
-    """The Peckish knot (X[3]) across its bounds at PROFILE_STEP, the others at the chosen point: the loss, each meal's
-    return on day 2, the shares and the fast's Peckish return."""
+def profile(best, traces, C, V, knot=3):
+    """One knot (X[3], the Peckish knot, or X[4], the Hungry knot) across its bounds at PROFILE_STEP, the others at the
+    chosen point: the joint loss and, per configuration, its loss, each meal's return on day 2, the shares and the
+    fast's Peckish and Hungry returns."""
+    i = knot - 2
     out = []
-    for x in grid(BOUNDS[1][0], BOUNDS[1][1], PROFILE_STEP):
-        cand = (best[0], x) + tuple(best[2:])
+    for x in grid(BOUNDS[i][0], BOUNDS[i][1], PROFILE_STEP):
+        cand = tuple(x if j == i else best[j] for j in range(len(best)))
         if not ordered(cand):
             continue
         r = read(cand, traces, C, V)
-        out.append({"x3": x, "loss": r["loss"], "meals": [r["meals"][m][1] for m in MEALS],
-                    "share1": r["share1"], "share2": r["share2"], "t1": r["returns"][0]})
+        row = {"x%d" % knot: x, "loss": r["loss"]}
+        for c in CONFIGS:
+            rc = r["configs"][c]
+            row[c] = {"loss": rc["loss"], "meals": [rc["meals"][m][1] for m in MEALS], "share1": rc["share1"],
+                      "share2": rc["share2"], "t1": rc["returns"][0], "t2": rc["returns"][1]}
+        out.append(row)
     return out
 
 
@@ -447,32 +538,28 @@ def at_bound(best):
 
 
 def fit():
-    rows3, be = replay(three_events(), DAYS_THREE * DAY)
+    traces, be = all_traces()
     C = constants(be.K)
-    rows3s, _ = replay(three_events(WATER_SHIFT), DAYS_THREE * DAY)
-    traces = {"three": {"rows": trace(rows3, be)["rows"], "shifted": trace(rows3s, be)["rows"], "h0": 0.2}}
-    rowsf, _ = replay(fast_events(), fast_minutes())
-    rf = trace(rowsf, be)["rows"]
-    traces["fast"] = {"rows": rf, "curve": curve_only(rf), "h0": 0.2}
     V = vanilla()
-    x0 = foot(traces["three"])
+    x0 = foot(traces)
     best, r, tried = search(traces, C, V, (x0,) + tuple(START[1:]))
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True).stdout.strip()
     return {"head": head, "search": {"method": "scan, then coordinate", "scanStep": SCAN_STEP, "step0": STEP0,
                                      "stepMin": STEP_MIN, "bounds": "BOUNDS", "foot": "foot(): not searched",
                                      "weights": {"meals": dict(zip(MEALS, W_MEAL)), "shares": W_SHARE,
-                                                 "others": 1.0}},
+                                                 "others": 1.0, "configs": dict(W_CONFIG)}},
             "scenarios": {"MEAL_MIN": list(MEAL_MIN), "MEAL_KCAL": MEAL_KCAL, "PLATE": list(PLATE),
                           "WATER_MIN": list(WATER_MIN), "WATER_G": WATER_G, "WATER_SHIFT": WATER_SHIFT,
                           "DAYS_THREE": DAYS_THREE,
                           "FED_DAYS": FED_DAYS, "FAST_H": FAST_H, "HOUR_OFFSET": HOUR_OFFSET,
                           "SWEEP_KCAL": list(SWEEP_KCAL), "VANILLA_CAN": dict(VANILLA_CAN),
-                          "VANILLA_START": VANILLA_START},
-            "vanilla": V, "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
+                          "VANILLA_START": VANILLA_START, "CONFIGS": list(CONFIGS), "SLEEP_MIN": SLEEP_MIN},
+            "vanilla": V, "vanillaSleepOn": vanilla("on"), "start": list(START), "foot": x0, "bounds": [list(b) for b in BOUNDS], "candidates": tried,
             "chosen": list(best), "reading": r, "atBound": at_bound(best), "shipped": list(shipped(be.K)),
             "shippedReading": read(shipped(be.K), traces, C, V), "previous": list(PREVIOUS),
             "previousReading": read(PREVIOUS, traces, C, V), "verify": verify(best, C),
-            "stability": stability(best, traces, C, V), "profile": profile(best, traces, C, V)}
+            "stability": stability(best, traces, C, V), "profile": profile(best, traces, C, V, 3),
+            "profileHungry": profile(best, traces, C, V, 4)}
 
 
 def main(argv=None):
@@ -488,11 +575,12 @@ def main(argv=None):
     print("shipped", res["shipped"], json.dumps(res["shippedReading"]))
     print("previous", res["previous"], json.dumps(res["previousReading"]))
     print("vanilla", json.dumps(res["vanilla"]))
+    print("vanillaSleepOn", json.dumps(res["vanillaSleepOn"]))
     for s in res["stability"]["knots"]:
         print("knot", json.dumps(s))
     for s in res["stability"]["sweep"]:
         print("sweep", json.dumps(s))
-    for s in res["profile"]:
+    for s in res["profile"] + res["profileHungry"]:
         print("profile", json.dumps(s))
     return 0
 

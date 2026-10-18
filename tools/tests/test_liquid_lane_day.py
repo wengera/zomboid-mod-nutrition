@@ -3,7 +3,7 @@ docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md section
 
 A fresh record (its seed plate at 07:00: 514 kcal, 501 since the hunger curve's re-fit moved the curve's
 inverse, larger on a sleep-off server since Plan 16 Task 4 (no morning trough: the stomach reads 382.2 g
-at minute 0 against 344.7 g)), then a 667 kcal plate and the guide's 500 g of water at 08:00, run
+at minute 0 against 344.7 g; 390.2 g since Plan 16 Task 4b's re-fit)), then a 667 kcal plate and the guide's 500 g of water at 08:00, run
 through the mod's server pipeline on the lupa host (tools/mod_guide_series.server_run). The stomach's mass each minute
 (both lanes, K.stomach.mass's keys) is read through K.view.fullnessLevel, the level the Overfull moodle shows. Before
 the liquid lane read only drink-borne kcal, the water sat beside the plate at a half-time of about 85 min and held
@@ -40,10 +40,12 @@ def test_the_ordinary_day_spends_six_minutes_at_overfull_4(day):
     # 23, 26, 28 and 30 under the plate-kcal rule; level 3 read 6 before the curve's re-fit (a 514 kcal seed plate)
     # Plan 16 Task 4: a sleep-off server has no hunger rhythm, so the 07:00 seed plate is no longer sized under the
     # morning trough's factor and lands larger: 5, 5, 8 and 13 before
-    assert exact == {4: 6, 3: 6, 2: 9, 1: 14}
+    # Plan 16 Task 4b: the curve re-fit on both sleep settings moves its inverse, so the seed plate lands larger again
+    # (390.2 g at minute 0): 6, 6, 9 and 14 before
+    assert exact == {4: 6, 3: 7, 2: 9, 1: 14}
 
 
 def test_the_peak_is_the_drink_landing_whole(day):
     masses, _ = day
-    assert max(masses) == pytest.approx(1239.23, abs=0.01)    # 1206.96 before Plan 16 Task 4 (the seed plate under the morning trough), 1214.80 before the re-fit
+    assert max(masses) == pytest.approx(1246.08, abs=0.01)    # 1239.23 before Plan 16 Task 4b's re-fit, 1206.96 before Plan 16 Task 4 (the seed plate under the morning trough), 1214.80 before the re-fit
     assert max(masses) > 1100                        # past the 1100 g hard capacity for the landing minute
