@@ -8,7 +8,8 @@ on, the four forms the spec states and the fit did not run apply: detraining int
 labile lean decaying on every day with no surplus left after growth; growth's energy charged at grow / ts (ruling
 13-3); and the biology clock P['ts'] (default 1.0) scaling growth, regain, detraining and the peak decay and dividing
 the grace days. Task 11c (Task 11 review I-2) adds a fifth: the regain integrated exactly over the day. Plan 16
-Task 5 adds a sixth: the deficit arm reads no fat ceiling (Alpert's 69 kcal/kg/d stays in the fit's step only).
+Task 5 adds a sixth: the deficit arm reads no fat ceiling (Alpert's 69 kcal/kg/d stays in the fit's step only),
+and its fix 1 a seventh: the fat draw past the 0.5 kg floor is paid by lean, energy for energy.
 """
 # Proposed lean-mass Strength model with the two partitions (review of the 2026-10-14 spec).
 # Daily step. Muscle lean F (the level), labile lean X (water, glycogen, organ: weight, not level), fat M.
@@ -213,6 +214,12 @@ class Body:
                 over = (fatLoss - cap) * RHO_F
                 fatLoss = cap + over * (1 - prot) / RHO_F
                 leanLoss += over * prot / RHO_L
+            if exact:
+                # Plan 16 Task 5 fix 1: the fat draw (the deficit's and growth's recomposition, grow / ts) past the fat
+                # floor 0.5 kg is paid by lean, energy for energy, so the floor drops no energy
+                over = max(0.0, fatLoss + grow / ts * RHO_L / RHO_F - max(0.0, self.M - 0.5))
+                fatLoss -= over
+                leanLoss += over * RHO_F / RHO_L
             # labile lean pays first
             fromX = min(self.X, leanLoss)
             dX -= fromX

@@ -547,7 +547,11 @@ REGISTRY = [
     # Forbes (S1056, S2278-S2288); the old Alpert ceiling sent the overflow above 69 kcal/kg fat/d to lean, which is
     # what met these bands at 12 kg fat and -1200 kcal/d. Mettler's 14-day DXA lean includes the early glycogen and
     # its water, a reserve the model's lean (F + X, X already the labile water, glycogen and organ) does not carry
-    # apart, so no DXA-equivalent reading exists; the protection weights are not re-fitted.
+    # apart, so no DXA-equivalent reading exists; the protection weights are not re-fitted. The same change moved the
+    # two longer report-only deficit studies further out the same way (buechel26_contest_ffm -0.564 -> -0.380,
+    # roth23_minus30pct_lean -0.270 -> -0.075, both less lean lost), where an early glycogen-water artefact is small:
+    # the protection weights wT and wP, fitted under the ceiling, may now under-predict lean loss in fed training
+    # deficits (review F3), for a later re-fit to weigh.
     ("mettler_lp_share", o_mettler_lp, 0.35, 0.70, "Mettler 2010 (PMID 19927027) 1.0 g/kg: 1.6 of 3.0 kg lean (report)", 0),
     ("mettler_hp_share", o_mettler_hp, 0.05, 0.35, "Mettler 2010 2.3 g/kg: 0.3 of 1.5 kg lean (report)", 0),
     ("quarter_rule_share", o_quarter_rule, 0.15, 0.35, "Heymsfield 2014 (PMID 24447775); S0072 Weinheimer", 1),

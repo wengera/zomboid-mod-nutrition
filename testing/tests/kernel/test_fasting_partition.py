@@ -67,10 +67,19 @@ def test_each_body_dies_of_what_the_science_gives_first(fast, name, day, state):
 # --- the lean share of energy (S2282 Jackson, S2283 Benedict, S2278 Elia) ------------------------------------------
 
 def test_the_default_share_sits_in_jacksons_range_to_day_30(fast):
+    # readings, not S2282's own window (its 13.0-17.1 % is over the whole 44-day fast: the near-miss below); days
+    # 14-30 alone read 0.174 (Benedict's, below)
     daily = fast["default"][0]
-    # S2282: 13.0-17.1 % over 44 days; read from the fast's start (days 14-30 alone read 0.174, Benedict's below)
     for a, b in ((0, 14), (0, 30)):
         assert 0.130 <= energy_share(daily, a, b) <= 0.171, (a, b)
+
+
+def test_the_default_share_over_jacksons_44_days_is_a_near_miss(fast):
+    # named near-miss (Plan 16 Task 5 review F1): on S2282's own window, days 0-44, the share reads 0.176, just over
+    # its 17.1 % (Forbes' share rises as fat falls)
+    s = energy_share(fast["default"][0], 0, 44)
+    assert s == pytest.approx(0.176, abs=0.002)
+    assert s > 0.171
 
 
 def test_the_default_share_after_day_13_is_benedicts(fast):
@@ -144,7 +153,7 @@ def test_the_fat_floor_can_be_reached(fast, host):
     fm_min = host.K.strength.DEFAULTS.fmMin
     first = next(d for d, (fm, _) in enumerate(daily) if fm <= fm_min + 1e-9)
     assert first == 46
-    assert daily[41][0] == pytest.approx(0.616, abs=0.01)                 # fat at the day close after the death
+    assert daily[41][0] == pytest.approx(0.616, abs=0.01)                 # fat at the last day close before the death
 
 
 # --- the arm itself ----------------------------------------------------------------------------------------------------
@@ -159,3 +168,52 @@ def test_the_deficit_arm_reads_no_ceiling(host):
     assert dF == pytest.approx(-s * dW, rel=1e-12)
     assert dM == pytest.approx(-(1 - s) * dW, rel=1e-12)
     assert -dM * RF_KCAL > 69 * 2.0
+
+
+# --- the fat floor conserves energy (Plan 16 Task 5 fix 1, review F2) -----------------------------------------------
+
+def _floor_body(host):
+    return host.table({"lm": 50.0, "F0": 50.0, "Fc": 60.0, "Pk": 50.0, "fm": 0.5, "lx": 0.0, "grace": 0,
+                       "T": 1.0, "Tgrace": 0})
+
+
+def test_a_protected_body_at_the_fat_floor_pays_the_whole_deficit_from_lean(host):
+    # trained (20 sets a week) and on 2.0 g/kg protein, prot at its floor: with fat at fmMin the whole deficit is paid
+    # by lean at 1816 kcal/kg, so the day's mass change carries the deficit's energy (no floor clamp drops it)
+    D = host.K.strength.DEFAULTS
+    b = _floor_body(host)
+    dF, dX, dM = host.call("partition.deficitLean", b, 0.0, 20.0, 2.0, -1500.0, D, 1.0)
+    assert dM == pytest.approx(0.0, abs=1e-12)
+    assert (dF + dX) * RL_KCAL == pytest.approx(-1500.0, rel=1e-12)
+
+
+def test_the_floor_split_pays_the_part_past_the_floor_from_lean(host):
+    # just above the floor the fat side pays down to fmMin and the rest goes to lean, energy for energy
+    D = host.K.strength.DEFAULTS
+    b = host.table({"lm": 50.0, "fm": 0.52, "lx": 0.0})
+    dF, dX, dM = host.call("partition.deficitLean", b, 0.0, 0.0, 0.0, -1800.0, D, 1.0)
+    assert dM == pytest.approx(-0.02, abs=1e-12)
+    assert (dF + dX) * RL_KCAL + dM * RF_KCAL == pytest.approx(-1800.0, rel=1e-12)
+
+
+def test_a_protected_body_at_the_floor_starves_on_the_conserved_clock(host):
+    # a trained, protein-fed body held at -1500 kcal/d from the fat floor: each closed day's mass loss is the day's
+    # energy at the lean density, so lean falls to the BMI-12 starvation point (S2234) on the day the energy says;
+    # before fix 1 the floor clamp dropped about 98 % of the deficit and such a body barely lost mass
+    D = host.K.strength.DEFAULTS
+    H2 = float(host.K.HEIGHT_M) ** 2
+    b = _floor_body(host)
+    E = -1500.0
+    days = 0
+    while (b.lm + b.lx + b.fm) / H2 > 12.0 and days < 200:
+        m0 = b.lm + b.lx + b.fm
+        e0 = (b.lm + b.lx) * RL_KCAL + b.fm * RF_KCAL
+        dF, dX, dM = host.call("strength.day", b, 20.0, 2.0, E, 2600.0, 0.0, D, 1.0)
+        days += 1
+        assert b.fm == pytest.approx(D.fmMin, abs=1e-12)
+        e1 = (b.lm + b.lx) * RL_KCAL + b.fm * RF_KCAL
+        if b.lm > D.fMinShare * b.F0:
+            assert e1 - e0 == pytest.approx(E, rel=1e-6), days            # the energy lost is the day's deficit
+            assert m0 - (b.lm + b.lx + b.fm) == pytest.approx(-E / RL_KCAL, rel=1e-6)
+    want = math.ceil((50.5 - 12.0 * H2) / (1500.0 / RL_KCAL))
+    assert days == want

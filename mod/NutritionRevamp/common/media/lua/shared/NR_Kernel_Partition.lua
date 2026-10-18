@@ -59,8 +59,10 @@ end
 -- it): the lean weight share forbes(fm) * prot, prot = 1 - wT * T - wP * the protein ramp over pdef_lo ..
 -- pdef_hi, clamped to [prot_floor, 1], splits the whole deficit and fat pays the rest, with no ceiling (Plan 16
 -- Task 5, the science pass's form (a)): in a water-only fast the share gives about 13 % of the energy from lean at
--- 20 % fat and about 6 % at 37 % (S2278, S2282, S2283; S1056), so fat can reach its floor. lx pays the lean loss
--- first and F the remainder; what is left of lx decays on x_tau_d days; fat funds the day's growth (recomposition).
+-- 20 % fat and about 6 % at 37 % (S2278, S2282, S2283; S1056), so fat can reach its floor. Fat funds the day's
+-- growth (recomposition); the fat draw past the floor fmMin (a game choice) is paid by lean instead, energy for energy
+-- (Plan 16 Task 5 fix 1), so the day's floor clamp never drops energy and a body at the floor keeps losing mass. lx
+-- pays the lean loss first and F the remainder; what is left of lx decays on x_tau_d days.
 function K.partition.deficitLean(body, grow, S, p, E, P, ts)
     local RL = K.partition.RHO_LEAN
     local RF = K.partition.RHO_FAT
@@ -68,11 +70,12 @@ function K.partition.deficitLean(body, grow, S, p, E, P, ts)
     local prot = K.clamp(1 - P.wT * K.partition.training(S, P) - P.wP * gP, P.prot_floor, 1)
     local share = K.partition.forbes(body.fm, P) * prot
     local dW = -E / (share * RL + (1 - share) * RF)
-    local leanLoss = share * dW
-    local fatLoss = (1 - share) * dW
+    local fatDraw = (1 - share) * dW + grow / ts * RL / RF
+    local over = K.max(0, fatDraw - K.max(0, body.fm - P.fmMin))
+    local leanLoss = share * dW + over * RF / RL
     local fromX = K.min(body.lx, leanLoss)
     local dX = -fromX - (body.lx - fromX) / P.x_tau_d
-    local dM = -fatLoss - grow / ts * RL / RF
+    local dM = over - fatDraw
     return -(leanLoss - fromX), dX, dM
 end
 

@@ -57,7 +57,9 @@ def test_exact_detraining_halves_in_its_half_life():
 # report oracle outside its band under the record and still outside it; the total did not move. Plan 16 Task 5 (the
 # deficit arm without Alpert's ceiling) moved seven: garthe11_fast_lean, pasiakos and chk4 inside their bands, the
 # report-only buechel26 and roth23 still outside theirs, and both Mettler shares out of their bands, which the
-# controller's ruling made report only (strength_oracles.py); the weighted total did not move.
+# controller's ruling made report only (strength_oracles.py); the weighted total did not move only because of that
+# demotion (Mettler sat inside its bands, miss 0, before; at weight 1 the total would read 0.6284, +0.1002). Its fix 1
+# (the fat draw past the floor paid by lean) moved none.
 EXACT_TOTAL = 0.5281803643283429
 EXACT_PINS = {
     'year1_kg_20sets': 7.556450473517981,
