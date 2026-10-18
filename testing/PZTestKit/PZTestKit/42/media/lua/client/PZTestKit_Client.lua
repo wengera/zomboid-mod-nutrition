@@ -1417,10 +1417,12 @@ end)
 -- measures, without a hover, whether the mod's tooltip wrapper hides vanilla's hunger line:
 --   * the item is the local player's first inventory item of the full type (getInventory():getFirstTypeRecurse, the
 --     mod's own T.probe lookup); none is ever created here, so a driver adds it with the server's inventory.add first;
---   * one arm runs per option state, OFF first, then ON: NutritionRevamp.client.options.tooltipLines (the accessor the
---     mod's T.optionOn looks up per call) is swapped for a function answering the forced state, and the accessor read
---     before the first arm is put back after the second (the options table itself removed again when it was absent);
---     the stored mod option is never written;
+--   * three arms: a BASELINE first, through the saved original (NR_ClientTooltip_Installed.original when the wrapper
+--     is installed, else ISToolTipInv.render) with no accessor swap, so its height is vanilla's own (`heightBase`);
+--     then one arm per option state, OFF, then ON: NutritionRevamp.client.options.tooltipLines (the accessor the mod's
+--     T.optionOn looks up per call) is swapped for a function answering the forced state, and the accessor read before
+--     is put back after the arms, under one pcall around them (the options table itself removed again when it was
+--     absent); the stored mod option is never written;
 --   * each arm calls ISToolTipInv.render -- the mod's wrapper when it is installed (`wrapped`), vanilla's render
 --     otherwise -- on a stand-in panel: a table carrying a fresh ObjectTooltip.new() (character set to the player),
 --     the item, followMouse false, and no-op geometry and draw members. Vanilla's render (client/ISUI/ISToolTipInv.lua
@@ -1436,12 +1438,15 @@ end)
 --     the pool (ObjectTooltip.endLayout L531-L536) before InventoryItem.DoTooltipEmbedded sets the height (@4245
 --     L1163), so no line is readable after the pass. Food.DoTooltip adds the hunger line only while getHungerChange is
 --     not 0 and the item lacks ItemTag.HIDE_HUNGER_CHANGE (@67-@83 L1391-L1393), so `vanilla` is that predicate read
---     before the arms, lineDrop = heightOff - heightOn, and
---       hungerLineDrawn (hideOn 1) = vanilla and lineDrop <= 0;  (hideOn 0) = vanilla or lineDrop > 0.
---     `height`, `bandShown` and `hungerLineDrawn` are the requested arm's; heightOn, heightOff, lineDrop, lineSpacing,
---     both arms' band flags, the wrapper's hidden and shown counter deltas in the ON arm, the entry's fill flag and the
---     tag read after both arms (`tagAfter`: false unless the item carries it natively) let a driver grade the raw
---     readings.
+--     before the arms, and each arm is graded against the baseline (Task 8 review finding 1):
+--       hungerLineDrawn (hideOn 1) = vanilla and heightOn >= heightBase;  (hideOn 0) = vanilla and heightOff >= heightBase;
+--     lineDrop = heightOff - heightOn stays raw. `height`, `bandShown` and `hungerLineDrawn` are the requested arm's;
+--     heightBase, heightOn, heightOff, lineDrop, lineSpacing, both arms' band flags, the wrapper's hidden and shown
+--     counter deltas in the ON arm, the entry's fill flag and the tag read after the arms (`tagAfter`) let a driver
+--     grade the raw readings;
+--   * a leaked hide (finding 2): tagLeft = tagAfter and not nativeTag; when true the reply is ok false with an error.
+--     `nativeTag` is the tag read BEFORE the arms, which an earlier leak would also set, so a driver asserts
+--     nativeTag == false on its untagged food at the first call.
 -- Every Java read is index-first (TK.call); each render call runs under pcall, and a raise leaves the wrapper reset
 -- (T.unhide, depth 0) and the accessor restored before the reply names it. On the -debug client a pcall does not stop
 -- a Java raise from parking it (docs/platform/lua-platform.md#debug-break).
@@ -1490,10 +1495,12 @@ function TK.TM.panel(item, player)
     return el
 end
 
--- One arm: the accessor forced to `on`, ISToolTipInv.render on a fresh stand-in under pcall. Replies the arm's table.
-function TK.TM.arm(item, player, on, T)
+-- One arm: the accessor forced to `on` (left alone when on is nil, the baseline), `render` (default
+-- ISToolTipInv.render) on a fresh stand-in under pcall. Replies the arm's table.
+function TK.TM.arm(item, player, on, T, render)
     local arm = { on = on }
-    NutritionRevamp.client.options.tooltipLines = function() return on end
+    if on ~= nil then NutritionRevamp.client.options.tooltipLines = function() return on end end
+    render = render or ISToolTipInv.render
     local h0, s0 = 0, 0
     if T ~= nil and type(T.stats) == "table" then h0, s0 = T.stats.hidden or 0, T.stats.shown or 0 end
     local el = TK.TM.panel(item, player)
@@ -1501,7 +1508,7 @@ function TK.TM.arm(item, player, on, T)
         arm.error = "no ObjectTooltip.new()"
         return arm
     end
-    local ok, err = pcall(ISToolTipInv.render, el)
+    local ok, err = pcall(render, el)
     if not ok then
         arm.error = tostring(err)
         if T ~= nil then
@@ -1522,8 +1529,8 @@ function TK.TM.arm(item, player, on, T)
 end
 
 -- @args <fullType> <hideOn 0|1>
--- @reply {ok, fullType, hideOn, height, hungerLineDrawn, bandShown, wrapped, vanilla, hungerChange, nativeTag, fill, heightOn, heightOff, lineDrop, lineSpacing, bandOn, bandOff, hiddenOn, shownOn, tagAfter, optionBefore, restored [, reason] [, error]} | string
--- @purpose Test-only: measures a local inventory item's tooltip through vanilla's measure-only pass and the mod's ISToolTipInv.render wrapper, once with the mod's tooltip option forced off and once on (the accessor restored after), and replies the requested arm's height, whether vanilla's hunger line was drawn (by the height difference) and whether the band drew; never creates an item.
+-- @reply {ok, fullType, hideOn, height, hungerLineDrawn, bandShown, wrapped, vanilla, hungerChange, nativeTag, fill, heightBase, heightOn, heightOff, lineDrop, lineSpacing, bandOn, bandOff, hiddenOn, shownOn, tagAfter, tagLeft, optionBefore, restored [, reason] [, error]} | string
+-- @purpose Test-only: measures a local inventory item's tooltip through vanilla's measure-only pass and the mod's ISToolTipInv.render wrapper, first unwrapped as a baseline, then with the mod's tooltip option forced off and on (the accessor restored after), and replies the requested arm's height, whether vanilla's hunger line was drawn (the arm's height against the baseline's), a leaked hide tag as ok false and whether the band drew; never creates an item.
 TK.register("tooltip.measure", function(argv)
     local usage = "usage: tooltip.measure <fullType> <hideOn 0|1>"
     local fullType, flag = argv[1], argv[2]
@@ -1570,32 +1577,47 @@ TK.register("tooltip.measure", function(argv)
         local okO, v = pcall(T.optionOn)
         if okO then out.optionBefore = v end
     end
-    local offArm = TK.TM.arm(item, p, false, T)
-    local onArm = TK.TM.arm(item, p, true, T)
+    local base = ISToolTipInv.render
+    if out.wrapped and type(inst.original) == "function" then base = inst.original end
+    local baseArm, offArm, onArm = nil, nil, nil
+    local okA, errA = pcall(function()
+        baseArm = TK.TM.arm(item, p, nil, T, base)
+        offArm = TK.TM.arm(item, p, false, T)
+        onArm = TK.TM.arm(item, p, true, T)
+    end)
     if hadOptions then nr.client.options.tooltipLines = before else nr.client.options = nil end
     if hadOptions then
         out.restored = nr.client.options.tooltipLines == before
     else
         out.restored = nr.client.options == nil
     end
-    out.heightOff, out.heightOn = offArm.height, onArm.height
+    if tag ~= nil then out.tagAfter = TK.TM.got(item, "hasTag", tag) == true end
+    out.tagLeft = out.tagAfter == true and out.nativeTag ~= true
+    if not okA then
+        out.error = tostring(errA)
+        return out
+    end
+    out.heightBase, out.heightOff, out.heightOn = baseArm.height, offArm.height, onArm.height
     out.bandOff, out.bandOn = offArm.bandShown, onArm.bandShown
     out.hiddenOn, out.shownOn = onArm.hidden, onArm.shown
     out.lineSpacing = onArm.lineSpacing
-    if tag ~= nil then out.tagAfter = TK.TM.got(item, "hasTag", tag) == true end
-    if offArm.error ~= nil or onArm.error ~= nil then
-        out.error = tostring(offArm.error or onArm.error)
+    if baseArm.error ~= nil or offArm.error ~= nil or onArm.error ~= nil then
+        out.error = tostring(baseArm.error or offArm.error or onArm.error)
+        return out
+    end
+    if out.tagLeft then
+        out.error = "the hide tag was left on the item's script tag set"
         return out
     end
     out.lineDrop = out.heightOff - out.heightOn
     if out.hideOn then
         out.height = out.heightOn
         out.bandShown = out.bandOn
-        out.hungerLineDrawn = out.vanilla and out.lineDrop <= 0
+        out.hungerLineDrawn = out.vanilla and out.heightOn >= out.heightBase
     else
         out.height = out.heightOff
         out.bandShown = out.bandOff
-        out.hungerLineDrawn = out.vanilla or out.lineDrop > 0
+        out.hungerLineDrawn = out.vanilla and out.heightOff >= out.heightBase
     end
     out.ok = true
     return out

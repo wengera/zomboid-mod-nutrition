@@ -117,7 +117,12 @@ def section():
     return src[src.index(MARK):]
 
 
-def rt_with(mod=True):
+# the mod's wrapper mutated as the Task 8 review's M1 (the hide ignores the option) and M4 (the unhide dropped)
+M1 = ("if lines ~= nil and lines.fill == true and t.optionOn() then", "if lines ~= nil and lines.fill == true then")
+M4 = ("        original(self)\n        t.unhide()\n", "        original(self)\n")
+
+
+def rt_with(mod=True, mutate=None):
     rt = tts.lua51.LuaRuntime(unpack_returned_tuples=True)
     rt.execute(tts.ENV)
     rt.execute(VANILLA)
@@ -127,7 +132,11 @@ def rt_with(mod=True):
     rt.execute(tts.DATA)
     rt.execute("NutritionRevamp.client.view = { level = 3, listeners = {} }")
     if mod:
-        tts._load(rt, tts.TOOLTIP)
+        src = tts._src(tts.TOOLTIP)
+        if mutate is not None:
+            assert src.count(mutate[0]) == 1
+            src = src.replace(mutate[0], mutate[1])
+        rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@NR_Client_Tooltip.lua")()
     rt.execute(tts.FILLS)
     rt.execute(ITEMS)
     rt.execute(STUB_TK)
@@ -148,7 +157,8 @@ def test_the_mods_hide_drops_one_line_in_the_on_arm_and_the_off_arm_keeps_vanill
     on = cmd(rt, "Base.Apple", "1")
     assert on.ok is True and on.fullType == "Base.Apple" and on.hideOn is True and on.wrapped is True
     assert on.vanilla is True and on.nativeTag is False and on.fill is True and on.optionBefore is True
-    assert on.heightOff == 40 and on.heightOn == 25 and on.lineDrop == 15 and on.lineSpacing == 15
+    assert on.heightBase == 40 and on.heightOff == 40 and on.heightOn == 25 and on.lineDrop == 15
+    assert on.lineSpacing == 15 and on.tagLeft is False
     assert on.height == 25 and on.hungerLineDrawn is False and on.bandShown is True
     assert on.bandOn is True and on.bandOff is False                # the band follows the forced option
     assert on.hiddenOn == 1 and on.shownOn == 1                     # the wrapper's one add and its one remove
@@ -199,7 +209,8 @@ def test_the_accessor_read_before_is_put_back_and_an_absent_options_table_remove
 def test_a_raising_render_names_the_error_and_leaves_the_wrapper_and_the_accessor_clean():
     rt = rt_with()
     # getHeight raises in the ON arm only, after the wrapper put the tag on
-    rt.execute("NR_V.raiseOn = function() return NutritionRevamp.client.options.tooltipLines() == true end")
+    rt.execute("NR_V.raiseOn = function() local f = NutritionRevamp.client.options.tooltipLines; "
+               "return f ~= nil and f() == true end")
     r = cmd(rt, "Base.Apple", "1")
     assert r.ok is False and "getHeight boom" in r.error and r.heightOff == 40 and r.heightOn is None
     assert r.restored is True and rt.eval("NutritionRevamp.client.options == nil") is True
@@ -228,3 +239,33 @@ def test_refusals_and_a_context_menu():
     rt.execute("getPlayer = function() return nil end")
     n = cmd(rt, "Base.Apple", "1")
     assert n.ok is False and n.reason == "no local player"
+
+
+def test_a_hide_that_ignores_the_option_reads_the_line_not_drawn_in_the_off_arm():
+    # review M1: the OFF arm is graded against the unwrapped baseline, not the vanilla predicate
+    rt = rt_with(mutate=M1)
+    off = cmd(rt, "Base.Apple", "0")
+    assert off.ok is True and off.heightBase == 40 and off.heightOff == 25 and off.heightOn == 25
+    assert off.hungerLineDrawn is False and off.lineDrop == 0
+    good = cmd(rt_with(), "Base.Apple", "0")
+    assert good.hungerLineDrawn is True and good.heightOff == good.heightBase == 40
+
+
+def test_a_leaked_hide_tag_reads_ok_false():
+    # review M4: the wrapper's unhide dropped, so the tag stays on the script item's set past the draw
+    rt = rt_with(mutate=M4)
+    r = cmd(rt, "Base.Apple", "1")
+    assert r.ok is False and r.tagAfter is True and r.nativeTag is False and r.tagLeft is True
+    assert r.error == "the hide tag was left on the item's script tag set" and r.hungerLineDrawn is None
+    assert r.restored is True
+
+
+def test_a_raise_outside_the_render_pcall_still_restores_the_accessor():
+    # review finding 3: an arm that raises outside its render pcall (here the panel build) skips no restore
+    rt = rt_with()
+    rt.execute("NR_T.userOpt = function() return true end; "
+               "NutritionRevamp.client.options = { tooltipLines = NR_T.userOpt }; "
+               "TK.TM.panel = function() error('panel boom') end")
+    r = cmd(rt, "Base.Apple", "1")
+    assert r.ok is False and "panel boom" in r.error and r.restored is True
+    assert rt.eval("NutritionRevamp.client.options.tooltipLines == NR_T.userOpt") is True
