@@ -355,6 +355,11 @@ def test_circadian_peaks_at_19_50_and_troughs_at_07_50(host, hour, expected):
     assert host.call("satiety.circadian", hour) == pytest.approx(expected, abs=1e-5)
 
 
+def test_circadian_with_no_hour_is_one(host):
+    # Plan 16 Task 4: sleep off has no body clock (K.circadian.hour reads nil), so no hunger rhythm (a game choice)
+    assert host.call("satiety.circadian", None) == 1
+
+
 def test_circadian_is_periodic_across_midnight(host):
     for h in (23.5, 0.25, 6, 19.8333):
         assert host.call("satiety.circadian", h) == pytest.approx(host.call("satiety.circadian", h + 24))

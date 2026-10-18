@@ -282,7 +282,8 @@ end
 -- suppression state S and the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or
 -- L, or a negative L, is stamped 0 and counted in guarded; S is clamped to [0, 1]) and S is stepped over the elapsed
 -- world age toward the vigorous kind's weight; then W.satietyMeal seeds M at first sight. The target is
--- K.satiety.target(F, M, es) = hungerTarget(sated(F, mealRead(M)), es), times circadian(hour) x acuteFactor(S) x
+-- K.satiety.target(F, M, es) = hungerTarget(sated(F, mealRead(M)), es), times circadian(the body clock's hour,
+-- K.circadian.hour: 1 with sleep off, Plan 16 Task 4) x acuteFactor(S) x
 -- W.nicotine's factor x sleepFactor(record.acute.debtH): h_model, kept on record.satiety.hModel (a derived field, not
 -- saved: the study oracles read it, never the written HUNGER). K.hybrid.write maps it through the calibrated curve
 -- (K.hungerCurve.write, which reads inp.fed, the meal pool at K.hungerCurve.FED_M or more, and inp.circ, the minute's
@@ -309,7 +310,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local dtH = W.satietyDtH(h, s, inp, ageH)
     local vigorous, kind = W.vigorous(h, player, record, ctx)
     s.S = K.satiety.exerciseSuppression(s.S, dtH, vigorous, kind)
-    local circ = K.satiety.circadian(NR.read.hour(ctx, ageH))
+    local circ = K.satiety.circadian(K.circadian.hour(record, NR.sleepOn()))   -- the body clock's hour; 1 with sleep off
     local factor = circ * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
     factor = W.satietyFactor(factor, record)
     if s.M == nil then F = W.seedPlate(h, record, inp, F, es, factor, circ) end -- a fresh record (Plan 15 Task 13 fix 1)

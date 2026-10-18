@@ -422,7 +422,7 @@ def test_kinetics_hands_off_the_absorbed_vector(met_host):
 def _activity(h, p):
     r = MET(h).readActivity(p)
     return dict(className=r[0], moving=r[1], modifier=r[2], loadKg=r[3], heavyLevel=r[4], coldMult=r[5],
-                exercising=r[6], swiping=r[7], immobilised=r[8], hourOfDay=r[9], maxW=r[10], climbClass=r[11])
+                exercising=r[6], swiping=r[7], immobilised=r[8], maxW=r[9], climbClass=r[10], rate=r[11])
 
 
 def test_read_activity_classifies_the_rate(met_host):
@@ -487,13 +487,19 @@ def test_read_activity_flags_and_moodles(met_host):
     assert _activity(h, player(h, splint={"UpperLeg_L": True}))["immobilised"] is True
 
 
-def test_read_activity_hour_of_day(met_host):
+def test_read_activity_reads_no_hour_of_day(met_host):
+    # Plan 16 Task 4: the activity read's hour of day had no reader, so it is gone (the hour is read once a server
+    # minute, NR.read.hoist, for the body clock's seed alone)
     h = met_host
-    h.G.NR_TEST_TOD = 7.5
+    C = h.rt.eval("{ n = 0 }")
+    saved = h.G.getGameTime
+    h.G.getGameTime = h.rt.eval("function(C, gt) return function() C.n = C.n + 1; return gt() end end")(C, saved)
     try:
-        assert _activity(h, player(h))["hourOfDay"] == 7.5
+        r = MET(h).readActivity(player(h))
+        assert C.n == 0
+        assert r[11] is None or isinstance(r[11], float)    # the raw rate is the last value
     finally:
-        h.G.NR_TEST_TOD = None
+        h.G.getGameTime = saved
 
 
 # --- the day close -------------------------------------------------------------------------------------
@@ -1116,9 +1122,9 @@ def test_a_climb_state_minute_credits_its_class_once(met_host, state, cls):
 
 def test_read_activity_reads_the_climb_state(met_host):
     h = met_host
-    assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[11] == "JumpFence"
-    assert MET(h).readActivity(player(h, climb="WINDOW"), 100.0)[11] == "ClimbRope"
-    assert MET(h).readActivity(player(h), 100.0)[11] is None
+    assert MET(h).readActivity(player(h, climb="FENCE"))[10] == "JumpFence"
+    assert MET(h).readActivity(player(h, climb="WINDOW"))[10] == "ClimbRope"
+    assert MET(h).readActivity(player(h))[10] is None
 
 
 def test_absent_climb_state_globals_read_no_climb(met_host):
@@ -1128,7 +1134,7 @@ def test_absent_climb_state_globals_read_no_climb(met_host):
     G.ClimbOverFenceState = None
     G.ClimbThroughWindowState = h.table({})    # a class global without instance
     try:
-        assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[11] is None
+        assert MET(h).readActivity(player(h, climb="FENCE"))[10] is None
         got, _ = _climb_credit(h, "FENCE")
         assert got == 0
     finally:

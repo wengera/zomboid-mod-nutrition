@@ -140,8 +140,8 @@ end
 -- hours-awake, caffeine and vitamin D inputs read off the record (acuteInputs) at the body mass fm + lm + lx; written
 -- when it differs from the live delta by more than CARRY_EPS, so any other writer is re-asserted against (#2143,
 -- #2565).
-local function carry(player, record, body, ageH, ctx, level)
-    local hourOfDay = NR.read.hour(ctx, ageH)
+local function carry(player, record, body, level)
+    local hourOfDay = K.circadian.hour(record, NR.sleepOn())   -- the body clock's hour; nil (no halving) with sleep off
     local w = body.fm + body.lm + body.lx
     local bf = 0
     if w > 0 then bf = body.fm / w end
@@ -174,7 +174,7 @@ local function step(username, player, record, ctx)
         STR.write(player, body, perk, level, ctx)
     end
     if body.wroteL == nil then return end
-    carry(player, record, body, ageH, ctx, body.wroteL)          -- the written level's band (ruling 13-7)
+    carry(player, record, body, body.wroteL)                     -- the written level's band (ruling 13-7)
 end
 
 -- One player's minute: the pipeline's strength step (NR_Server_Minute.run, called from P.work).

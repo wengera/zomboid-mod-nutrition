@@ -9,7 +9,8 @@
 -- activityClass and exercising (Metabolism's), which the writer reads; body,
 -- dtM and ageH (Nutrients stamps them where its minute reaches its end; the Effects step runs only when they are
 -- stamped); and the minute's shared engine reads under NR.read's e-prefixed keys (eAge, the world age P.work read,
--- seeded here; eHour, eAsleep, eTraits, eBd, eThermo and eNut, each kept at its first read, and eFlags, the trait
+-- seeded here; eHour, the hour of day the players' minute read once for every player, seeded here; eAsleep, eTraits,
+-- eBd, eThermo and eNut, each kept at its first read, and eFlags, the trait
 -- flags NR.read.trait keeps). An adapter that wraps
 -- its own body in a pcall keeps it, with its own counters and log lines; this guard is the outer net, so a step that
 -- raises inside its own pcall never reaches stats.failures here.
@@ -32,12 +33,14 @@ function MIN.register(name, fn)
 end
 
 -- One player's minute: clear the context, seed it with the minute's world age (ageH, P.work's read; nil leaves the
--- first step to read it), then every registered step in ORDER, each under its own pcall; the engine reads the steps
+-- first step to read it) and the server minute's hour of day (NR.read.minuteHour, the players' minute's one read; nil
+-- leaves the step to read it), then every registered step in ORDER, each under its own pcall; the engine reads the steps
 -- shared (NR.read.KEYS) are dropped at the end, so no player's Java handles outlive the minute.
 function MIN.run(username, player, record, ageH)
     local ctx = MIN.ctx
     for k in pairs(ctx) do ctx[k] = nil end
     ctx.eAge = ageH
+    ctx.eHour = NR.read.minuteHour
     MIN.stats.runs = MIN.stats.runs + 1
     for i = 1, #MIN.ORDER do
         local fn = MIN.steps[MIN.ORDER[i]]

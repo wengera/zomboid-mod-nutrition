@@ -81,6 +81,8 @@ def _ea(host, dehyd=0, sweat=False, awake=10, hour=15, caf=False, vitd=False, bf
     (dict(awake=28, hour=8), -0.02),
     (dict(awake=28, hour=6), -0.02),
     (dict(awake=28, hour=12), -0.04),
+    (dict(awake=28, hour=None), -0.04),             # no body clock (sleep off, Plan 16 Task 4): no morning halving
+    (dict(awake=28, hour=None, dehyd=2), -0.07),
     (dict(awake=60), -0.08),
     (dict(awake=18), 0.0),
     (dict(caf=True), 0.02),

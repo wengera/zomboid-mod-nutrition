@@ -85,7 +85,9 @@ from .test_replay_live_oracle import energy_run, fast_plans, meal_events, sleep_
 sys.path.insert(0, os.path.join(REPO, "tools"))
 import replay_live as RL  # noqa: E402
 
-MAN = {"player": {"weight": 70.0, "female": False}, "rng": "half"}
+# Plan 16 Task 4: the study oracles read the world hour (S1273), so every server-path replay here runs as a sleep-on
+# player whose body clock sits on the world hour (RL.WORLD_CLOCK); the 23:00-07:00 nights would otherwise reset it
+MAN = {"player": {"weight": 70.0, "female": False}, "rng": "half", "constants": RL.WORLD_CLOCK}
 RATE = {"HeavyWork": 6.0, "MediumWork": 3.9, "UsingTools": 2.5, "Running10kmh": 6.9, "Running15kmh": 9.5, "DiggingSpade": 5.5}
 IDLE = 1.5                        # the engine's Default class (a live idle player, #2875)
 
@@ -164,7 +166,8 @@ def six_held_sum(n, gap):
     a0 = 8.0
     start = {"username": "admin", "firstSeen": a0, "lastSeen": a0, "kineticsAge": a0,
              "satiety": {"M": 0.0, "S": 0, "L": 0, "t": a0}}
-    rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=1440, start_age=a0, steps=("kinetics", "writer"))
+    rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=1440, start_age=a0, steps=("kinetics", "writer"),
+                            constants=RL.WORLD_CLOCK)   # the body clock on the world hour (Plan 16 Task 4)
     total = 0.0
     for r in rows:
         total = total + r[RL.H_MODEL]
@@ -346,7 +349,7 @@ def karl_rows(arm, vigorous=True, paths=()):
     """(the server-path replay's per-minute rows of twin K's `arm`, its day count, the morning walk's minutes)."""
     ev, days, am_dur = karl_events(arm, vigorous)
     rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, paths=paths,
-                            player={"weight": KARL_KG, "female": False}, rng="half")
+                            player={"weight": KARL_KG, "female": False}, rng="half", constants=RL.WORLD_CLOCK)
     return rows, days, am_dur
 
 
@@ -440,7 +443,7 @@ def king_steady_server(host, bypass=None):
             ev.append({"minute": 2 * day + bout, "kind": "activity", "rate": IDLE})
         ev.sort(key=lambda e: e["minute"])
         rows, _ = RL.replay_arm(ev, minutes=3 * day + 480, backend="server", start_age=8.0,
-                                player={"weight": KING_KG, "female": False}, rng="half")
+                                player={"weight": KING_KG, "female": False}, rng="half", constants=RL.WORLD_CLOCK)
         late = [r[RL.H_MODEL] for r in rows[2 * day + 180:2 * day + 480]]
         return sum(late) / len(late)
 
@@ -534,7 +537,7 @@ def lag_run(w, cls, bout_min, days, dtM, meal_kcal):
             ev.append({"minute": int(d * spd + h * 60 // dtM), "kind": "meal", "size": meal_kcal})
     ev.sort(key=lambda e: e["minute"])
     return RL.replay_arm(ev, minutes=days * spd, dtM=dtM, backend="server", paths=("satiety.L", "body.exKcalDay"),
-                         player={"weight": w, "female": False}, rng="half")
+                         player={"weight": w, "female": False}, rng="half", constants=RL.WORLD_CLOCK)
 
 
 def lag_shares(rows, be, days, dtM, bout_min, from_day):
@@ -630,7 +633,7 @@ def fat_loss_intake(host, dep, days=S1254_DAYS):
         for h in M.FAST_MEAL_H:
             ev.append({"minute": int(d * 1440 + h * 60), "kind": "meal", "size": "maint" if d == 0 else "request"})
     ev.sort(key=lambda e: e["minute"])
-    _, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", player={"female": False}, rng="half")
+    _, be = RL.replay_arm(ev, minutes=days * 1440, backend="server", player={"female": False}, rng="half", constants=RL.WORLD_CLOCK)
     by = RL.intake_by_day(be.eats)
     return sum(by[d] for d in S1254_READ) / len(S1254_READ), fm_ref * dep
 

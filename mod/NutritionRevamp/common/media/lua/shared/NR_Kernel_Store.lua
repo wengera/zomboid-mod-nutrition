@@ -84,14 +84,15 @@ K.store.INPUTS = {
     -- blood glucose (each relaxes from its last value); the sleep state, its bout, gap and window; the
     -- refeeding close's counts, mass window, BMI, risk, day count and event; the exercise and cold EMAs and
     -- the vigorous latch; the retinol EMA; the adapter's 7-day alcohol mean, day alcohol, last fed age and the
-    -- band baselines. bac, g, wd, circ, frozen, iu, iuSleep and av are recomputed each minute: derived.
+    -- band baselines; the body clock's phase and the sleep setting it last ran under (K.circadian, Plan 16 Task 4).
+    -- bac, g, wd, circ, frozen, iu, iuSleep and av are recomputed each minute: derived.
     "acute.gutAlc", "acute.gutCaf", "acute.caf", "acute.cafMean", "acute.cafTol", "acute.cafLowH",
     "acute.slowMet", "acute.alc", "acute.alcPeak", "acute.hang", "acute.hangH", "acute.glyc", "acute.bg",
     "acute.awakeH", "acute.debtH", "acute.sleptH", "acute.boutH", "acute.gapH", "acute.winStartH",
     "acute.winSleptH", "acute.S", "acute.starvedDays", "acute.lowDay", "acute.mass90max", "acute.mass90ageH",
     "acute.bmi", "acute.refeedRisk", "acute.refeedDayN", "acute.refeedEvent", "acute.exEma",
     "acute.lastVigAgeH", "acute.boutVig", "acute.coldH", "acute.retEma", "acute.alc7", "acute.alcDayG",
-    "acute.lastFedAgeH", "acute.lastB1", "acute.lastB2",
+    "acute.lastFedAgeH", "acute.lastB1", "acute.lastB2", "acute.bodyHour", "acute.bodyOn",
     -- fluids (K.fluids.intake, losses and clearance; the writer's sip fold): the water, sodium
     -- and potassium balances, the once-per-character sweat draws, the 6 h EMAs and the pending sip. dehydPct,
     -- c, naPlasma, thirstTarget, sweatActive, sweatLmin, viewPct and fv are recomputed each minute: derived.

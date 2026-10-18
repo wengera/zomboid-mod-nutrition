@@ -835,35 +835,247 @@ def test_caffeine_glycogen_and_glucose_step(nut_host):
     assert a["iu"] >= 0
 
 
+def _poll(h):
+    # the options poll (Plan 16 Task 4: the sleep options are read every server minute) on a server
+    h.G.isServer = h.rt.eval("function() return true end")
+    try:
+        h.G.NutritionRevamp.server.readOptions("poll")
+    finally:
+        h.G.isServer = None
+    return h.G.NutritionRevamp.sleepOn()
+
+
 def test_sleep_disabled_freezes_and_enabled_runs(nut_host):
     h = nut_host
     p = player(h)
     h.G.NR_TEST_SLEEP.SleepNeeded = False
     try:
-        assert NUT(h).readSleepOptions() is True
+        assert _poll(h) is False
         record = fresh(h, p)
         alone(h, p, record, 100.0 + 1)
         assert record["acute"]["frozen"] is True
         assert record["acute"]["awakeH"] == 0
     finally:
         h.G.NR_TEST_SLEEP.SleepNeeded = True
-    assert NUT(h).readSleepOptions() is False
+    assert _poll(h) is True
     alone(h, p, record, 100.0 + 2)
     assert record["acute"]["frozen"] is False
     assert abs(record["acute"]["awakeH"] - 1.0) < TOL
     saved = h.G.getServerOptions
     h.G.getServerOptions = None
     try:
-        assert NUT(h).readSleepOptions() is False             # unreadable: not disabled
+        assert _poll(h) is True                               # unreadable: sleep on
     finally:
         h.G.getServerOptions = saved
+    h.G.NR_TEST_SLEEP.SleepAllowed = False
+    try:
+        h.G.NutritionRevamp.server.readOptions("poll")        # not a server: single player's sleep is always on
+        assert h.G.NutritionRevamp.sleepOn() is True
+    finally:
+        h.G.NR_TEST_SLEEP.SleepAllowed = True
+
+
+# --- the body clock (Plan 16 Task 4, spec section 2) ------------------------------------------------------------------
+
+def _hour_all(h, record, sleep_on):
+    # the three consumers' hour: the hunger factor, the fatigue circ and the carry halving read K.circadian.hour
+    return h.K.circadian.hour(record, sleep_on)
+
+
+@pytest.mark.parametrize("hour", [0, 4, 7, 9, 13, 19.8333, 23.5])
+def test_sleep_off_gives_no_rhythm_at_every_world_hour(nut_host, hour):
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_SLEEP.SleepNeeded = False
+    h.G.NR_TEST_TOD = hour
+    try:
+        assert _poll(h) is False
+        record = fresh(h, p)
+        alone(h, p, record, 100.0 + 1 / 60)
+        assert _hour_all(h, record, False) is None
+        assert h.K.satiety.circadian(_hour_all(h, record, False)) == 1        # the hunger factor
+        assert record["acute"]["circ"] == 0                                    # the fatigue circ
+        K = h.K.strength
+        off = K.eAcute(0, False, 30, None, False, False, 0.2)
+        assert off == K.eAcute(0, False, 30, 13.0, False, False, 0.2)          # no morning halving (13 h: outside it)
+        assert off != K.eAcute(0, False, 30, 9.0, False, False, 0.2)           # the halving a clock would give at 09
+    finally:
+        h.G.NR_TEST_SLEEP.SleepNeeded = True
+        h.G.NR_TEST_TOD = None
+        _poll(h)
+
+
+def test_sleep_on_starts_the_clock_at_the_world_hour_and_advances_it_by_online_time(nut_host):
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 21.0
+    try:
+        assert _poll(h) is True
+        record = fresh(h, p)
+        a = record["acute"]
+        assert a["bodyOn"] is True and a["bodyHour"] == 21.0                  # a fresh record's first minute: the world hour
+        h.G.NR_TEST_TOD = 3.0                                                  # the world clock no longer steers it
+        for i in range(1, 61):
+            alone(h, p, record, 100.0 + i / 60)
+        assert a["bodyHour"] == pytest.approx(22.0)
+        assert _hour_all(h, record, True) == pytest.approx(22.0)
+        assert a["circ"] == pytest.approx(h.K.acute.circ(a["bodyHour"]))
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_the_body_clock_is_unchanged_across_a_three_day_logout(nut_host):
+    # the store's resume (Plan 16 Task 2) moves no phase: the clock advances only by integrated online time
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 10.0
+    try:
+        record = fresh(h, p)
+        for i in range(1, 31):
+            alone(h, p, record, 100.0 + i / 60)
+        a = record["acute"]
+        before = a["bodyHour"]
+        assert before == pytest.approx(10.5)
+        back = 100.5 + 72.0
+        h.G.NR_TEST_TOD = 17.25                                               # whatever the world reads at the return
+        assert h.K.resume.resume(record, back) == pytest.approx(72.0)
+        assert a["bodyHour"] == before
+        alone(h, p, record, back)                                              # the return minute integrates nothing
+        assert a["bodyHour"] == pytest.approx(before)
+        alone(h, p, record, back + 1 / 60)
+        assert a["bodyHour"] == pytest.approx(before + 1 / 60)
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def _sleep(h, p, record, start, steps, step=1 / 60):
+    # one awake minute at start (the clock seeded at the world hour by the record's first minute), then steps asleep of
+    # step hours each
+    alone(h, p, record, start)
+    p["cfg"]["asleep"] = True
+    t = start
+    for _ in range(steps):
+        t += step
+        alone(h, p, record, t)
+    p["cfg"]["asleep"] = False
+    return t
+
+
+def _wake_until_close(h, p, record, t):
+    # awake minutes until the bout's 10-minute gap closes it (the tenth or, by the float sum, the eleventh): the end
+    # age and the gap at the close, the hours since the waking
+    n = 0
+    while record["acute"]["boutH"] > 0 and n < 20:
+        t += 1 / 60
+        n += 1
+        alone(h, p, record, t)
+    assert record["acute"]["boutH"] == 0 and n in (10, 11)
+    return t, n / 60
+
+
+def test_a_four_hour_sleep_resets_the_body_clock_to_seven(nut_host):
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 15.0
+    try:
+        record = fresh(h, p)
+        a = record["acute"]
+        t = _sleep(h, p, record, 100.0 + 1 / 60, 240)                          # 4 h booked
+        assert a["boutH"] == pytest.approx(4.0)
+        assert a["bodyHour"] == pytest.approx(19.0 + 1 / 60)                   # it ran on through the sleep
+        t, gap = _wake_until_close(h, p, record, t)
+        assert a["bodyHour"] == pytest.approx(7.0 + gap)                       # woke at 07:00, the gap ago
+        assert a["circ"] == pytest.approx(h.K.acute.circ(7.0 + gap))           # the minute's circ reads the reset hour
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+@pytest.mark.parametrize("minutes", [60, 6, 230])                              # a 1 h nap, a 0.1 h bout, just short
+def test_a_nap_or_an_accelerated_bout_does_not_reset_the_clock(nut_host, minutes):
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 15.0
+    try:
+        record = fresh(h, p)
+        a = record["acute"]
+        t = _sleep(h, p, record, 100.0 + 1 / 60, minutes)
+        assert a["boutH"] == pytest.approx(minutes / 60)
+        t, gap = _wake_until_close(h, p, record, t)
+        assert a["bodyHour"] == pytest.approx(15.0 + (1 + minutes) / 60 + gap)  # it ran on: no reset
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_a_fast_forwarded_night_resets_the_clock(nut_host):
+    # the fast-forwarded night: the server's steps come in large sub-steps (here 20 game minutes each), asleep, and book
+    # the night in full; the bout closes on the wake and the clock reads 07:00 plus the gap
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 23.0
+    try:
+        record = fresh(h, p)
+        a = record["acute"]
+        t = _sleep(h, p, record, 100.0 + 1 / 60, 21, step=20 / 60)           # 7 h in 21 sub-steps
+        assert a["boutH"] == pytest.approx(7.0)
+        assert a["bodyHour"] == pytest.approx(6.0 + 1 / 60)                    # 23:00 plus a minute and the 7 h night
+        t, gap = _wake_until_close(h, p, record, t)
+        assert a["bodyHour"] == pytest.approx(7.0 + gap)
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_an_accelerated_sleep_mod_night_does_not_reset_the_clock(nut_host):
+    # an accelerated-sleep mod's pattern: the night passes in a few game minutes of sleep (fatigue cleared in about
+    # 0.1 h), so it books 0.1 h and the clock runs on
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 23.0
+    try:
+        record = fresh(h, p)
+        a = record["acute"]
+        t = _sleep(h, p, record, 100.0 + 1 / 60, 6)
+        assert a["boutH"] == pytest.approx(0.1)
+        t, gap = _wake_until_close(h, p, record, t)
+        assert a["bodyHour"] == pytest.approx(23.1 + 1 / 60 + gap)
+    finally:
+        h.G.NR_TEST_TOD = None
+
+
+def test_an_admin_toggle_is_followed_within_a_minute(nut_host):
+    # sleep on -> off keeps the phase unused; off -> on restarts it at the world hour; each takes effect at the next poll
+    h = nut_host
+    p = player(h)
+    h.G.NR_TEST_TOD = 9.0
+    try:
+        assert _poll(h) is True
+        record = fresh(h, p)
+        a = record["acute"]
+        for i in range(1, 31):
+            alone(h, p, record, 100.0 + i / 60)
+        h.G.NR_TEST_SLEEP.SleepNeeded = False                                  # the admin changes the option
+        alone(h, p, record, 100.0 + 31 / 60)                                   # before the poll: still on
+        assert a["frozen"] is False and _hour_all(h, record, h.G.NutritionRevamp.sleepOn()) is not None
+        kept = a["bodyHour"]
+        assert _poll(h) is False                                               # the next minute's poll
+        alone(h, p, record, 100.0 + 32 / 60)
+        assert a["frozen"] is True and a["bodyOn"] is False
+        assert a["bodyHour"] == kept                                           # kept, unused
+        assert _hour_all(h, record, False) is None and a["circ"] == 0
+        h.G.NR_TEST_SLEEP.SleepNeeded = True
+        h.G.NR_TEST_TOD = 14.5
+        assert _poll(h) is True
+        alone(h, p, record, 100.0 + 33 / 60)
+        assert a["bodyOn"] is True and a["bodyHour"] == 14.5                   # restarted at the world hour
+    finally:
+        h.G.NR_TEST_SLEEP.SleepNeeded = True
+        h.G.NR_TEST_TOD = None
+        _poll(h)
 
 
 @pytest.mark.parametrize("traits, need", [({}, 7.5), ({"NEEDS_MORE_SLEEP": True}, 7.5 * 1.3),
                                           ({"NEEDS_LESS_SLEEP": True}, 7.5 * 0.7)])
 def test_the_sleep_need_takes_the_trait_factor(nut_host, traits, need):
     h = nut_host
-    NUT(h).sleepDisabled = False
     p = player(h, traits=traits)
     record = fresh(h, p)
     for i in range(1, 25):
@@ -873,7 +1085,6 @@ def test_the_sleep_need_takes_the_trait_factor(nut_host, traits, need):
 
 def test_asleep_accrues_sleep(nut_host):
     h = nut_host
-    NUT(h).sleepDisabled = False
     p = player(h, asleep=True)
     record = fresh(h, p)
     alone(h, p, record, 100.0 + 1)
@@ -1079,7 +1290,6 @@ def test_the_minute_band_across_a_day_close(nut_host):
 
 def test_a_vigorous_minute_latches_the_next_bout(nut_host):
     h = nut_host
-    NUT(h).sleepDisabled = False
     p = player(h)
     record = fresh(h, p)
     body, a = record["body"], record["acute"]
@@ -1123,7 +1333,7 @@ def test_limitations_name_the_close_fix_wave(nut_host):
     k = math.log(2) / 60
     assert abs(math.log(1 / 0.17) / k - 153.4) < 0.05 and abs(math.log(1 / 0.17) / k / 30 - 5.1) < 0.05
     assert "vitamin D has no cutaneous term (no outdoor-daylight read, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)" in lims
-    assert "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed" in lims
+    assert not any("read once at OnServerStarted" in x for x in lims)   # Plan 16 Task 4: the sleep options are polled
     assert "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water" in lims
     assert "the fat factor reads the stomach buffer's lipids before each minute's emptying: it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %" in lims
     assert not any("the ingested vector is empty" in x for x in lims)   # the stale Task 12 string is gone
@@ -1430,7 +1640,7 @@ def test_nutrients_runs_after_metabolism_and_before_strength():
     order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
     assert [n for n in order if n in ("kinetics", "metabolism", "nutrients", "strength", "weight")] ==         ["kinetics", "metabolism", "nutrients", "strength", "weight"]
     assert S.nutrients.wired is True
-    assert S.nutrients.sleepDisabled is False               # no getServerOptions: not disabled
+    assert G.NutritionRevamp.sleepOn() is True             # no options poll yet: sleep on
 
 
 def test_the_file_loads_with_no_engine_and_names_no_stat_write():
@@ -1477,7 +1687,6 @@ def test_an_offline_gap_books_no_sleep_debt_and_moves_every_acute_anchor(nut_hos
     # so no missed window is booked as unslept and the return minute integrates nothing (until Plan 16 it
     # integrated one hour and skipped 71)
     h = nut_host
-    NUT(h).sleepDisabled = False
     p = player(h)
     record = fresh(h, p)
     for i in range(1, 17):
@@ -1507,7 +1716,6 @@ def test_an_offline_gap_books_no_sleep_debt_and_moves_every_acute_anchor(nut_hos
 def test_an_integrated_hour_moves_no_anchor(nut_host):
     # a step the cap does not shorten skips nothing
     h = nut_host
-    NUT(h).sleepDisabled = False
     p = player(h)
     record = fresh(h, p)
     a = record["acute"]

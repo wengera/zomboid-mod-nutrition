@@ -89,10 +89,19 @@ def test_the_installed_bands_grade_the_cadence(tmp_path, monkeypatch):
     assert v["CAD_FEEL_P"] == "falsified"
 
 
-def test_the_bands_are_the_head_replay_of_x452s_schedule():
+def test_the_bands_are_the_head_replay_of_x452s_schedule(monkeypatch):
     # x45g_prerun.py x452 at HEAD: each Peckish return and dinner's Hungry, and the hydration and stomach readings the
-    # driver's HYDRATED names; a later mod change that moves them fails here before any boot
+    # driver's HYDRATED names; a later mod change that moves them fails here before any boot. Plan 16 Task 4 (after
+    # x452b ran): a sleep-off server has no hunger rhythm since, so the bands are read on the recording build's
+    # world-clock rhythm (replay_live's WORLD_CLOCK overlay on the pre-run's own backend), and the HEAD sleep-off
+    # returns are pinned beside them as the named move
     import x45g_prerun as P
+    import replay_live as RL
+    head = P.x452()
+    assert {m: head["meals"][m]["peckish_h"] for m in ("lunch", "dinner", "breakfast")} == {
+        "lunch": 3.833, "dinner": 4.0, "breakfast": 3.733}
+    monkeypatch.setattr(P, "backend", lambda: RL.ServerReplay(hour_offset=P.L.HOUR_OFFSET, rng="half",
+                                                             sleep_allowed=False, constants=RL.WORLD_CLOCK))
     r = P.x452()
     got = {m: r["meals"][m]["peckish_h"] for m in ("lunch", "dinner", "breakfast")}
     assert got == I.CAD_P_TARGETS_B

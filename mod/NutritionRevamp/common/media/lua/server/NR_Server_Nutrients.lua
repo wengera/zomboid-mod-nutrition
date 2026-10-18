@@ -34,7 +34,6 @@ NR.server.nutrients = {
     lastError = nil,
     lastHealed = nil,
     wired = false,
-    sleepDisabled = false,
     limitations = {
         "the one-minute lag: Metabolism's rmod reads the previous minute's nutrient, fluid and acute stamps",
         "metabolic water is omitted: the basal loss is the net figure, 2000 g/day at the no-trait body's lean mass and 32 g/day a kg of lean mass either side (S2218, S2220; the anchor and the total are game choices inside S1688's net range), sex-neutral; High Thirst (x1.5), Low Thirst (x0.5) and StatsDecrease scale it and never the sweat",
@@ -43,7 +42,8 @@ NR.server.nutrients = {
         "respiratory water loss is 0 beyond basal (S1052 open)",
         "caffeine diuresis is 0 for a habitual drinker (S0528/S0529)",
         "liver glycogen is not modelled (S0110 open)",
-        "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets a FATIGUE write made outside its own stat update",
+        "the sleep state freezes at rested while the server's SleepAllowed and SleepNeeded are not both true (x151s, #2947): the engine resets a FATIGUE write made outside its own stat update; the two options are polled every server minute, so an admin's change takes effect at the next minute",
+        "with sleep off there is no daily rhythm (a game choice): the hunger circadian factor is 1, the fatigue circadian term 0 and there is no carry morning halving; with sleep on the rhythm reads the character's body clock, which advances only by online time and wakes at 07:00 at the close of a sleep bout of at least 4 booked hours (a game choice: in real bodies light, not sleep, sets the phase), so naps and an accelerated-sleep mod's few-minute nights never reset it; it starts at the world hour on a new record and when sleep turns on, and the off-to-on seed reads the server minute's hour, so a switch during a stall's carried sub-steps lands up to the carry ahead",
         "the thirst view reads the water pool plus the stomach's pending water, in its volume and its osmotic term (satiation precedes absorption, S1698, S1699; the weight 1.0 is a game choice); the solid buffer's water counts as the liquid lane's does (gastrointestinal receptors, S1704; a game choice), and pending water satiates for as long as it is pending, with no rebound (how long pre-absorptive satiation lasts is open, S1735; a game choice); the performance dehydration, plasma sodium and its grade are the pool alone",
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
@@ -55,7 +55,6 @@ NR.server.nutrients = {
         "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying: two meals in the buffer act as one meal, and the inhibition eases as the buffer empties",
         "a sleep bout tolerates awake gaps under 10 game minutes (S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",
         "vitamin D has no cutaneous term (no outdoor-daylight read, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
-        "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
         "the fat factor reads the stomach buffer's lipids before each minute's emptying: it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %",
         "the minute's training band is read off the growth of Metabolism's day accumulators band1Day/band2Day (no per-minute band is stamped); a minute whose day close skipped days reads the new day's growth alone",
         "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal",
@@ -79,7 +78,7 @@ NUT.refNut = nil
 -- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite
 -- (testing/tests/kernel/test_heal_once.py CROSS names each read). viewPct and c are read inside this step only.
 NUT.GUARD_FLUIDS = { "dehydPct", "thirstTarget", "naPlasma" }
-NUT.GUARD_ACUTE = { "bac", "caf", "cafTol", "debtH", "S", "circ", "iu", "hang", "coldH", "lastVigAgeH", "wd", "alcPeak",
+NUT.GUARD_ACUTE = { "bac", "caf", "cafTol", "debtH", "S", "circ", "bodyHour", "iu", "hang", "coldH", "lastVigAgeH", "wd", "alcPeak",
                     "bg", "iuSleep", "exEma", "bmi", "starvedDays", "retEma", "awakeH", "g", "refeedRisk" }
 NUT.GUARD_STATE = { "epoch" }
 NUT.snapF = {}
@@ -114,26 +113,6 @@ local num = NR.num
 
 -- A uniform roll in [0, 1) (NR.roll).
 local roll = NR.roll
-
--- The server's sleep options, read once at OnServerStarted (the Task 5 verdict, x151s #2947/#2948): the
--- engine resets an out-of-handler FATIGUE write unless SleepAllowed and SleepNeeded are both true, so the
--- sleep state freezes when they are not. An unreadable option reads true (sleep NOT disabled).
-function NUT.readSleepOptions()
-    local allowed, needed = true, true
-    if getServerOptions ~= nil then
-        local ok, so = pcall(getServerOptions)
-        local okA, a = NR.call(ok and so or nil, "getBoolean", "SleepAllowed")
-        if okA and type(a) == "boolean" then allowed = a end
-        local okN, n = NR.call(ok and so or nil, "getBoolean", "SleepNeeded")
-        if okN and type(n) == "boolean" then needed = n end
-    end
-    NUT.sleepDisabled = not (allowed and needed)
-    if NUT.sleepDisabled then
-        NR.log.say(2, "nutrients: SleepAllowed=" .. tostring(allowed) .. " SleepNeeded=" .. tostring(needed)
-            .. ": the sleep state freezes at rested")
-    end
-    return NUT.sleepDisabled
-end
 
 -- The sleep-need factor off the character's trait set (the CharacterTrait registry objects); ctx is the pipeline's.
 -- Rule 6: each flag is the minute's shared read (NR.read.trait), which the writer's sleep traits reuse.
@@ -353,6 +332,10 @@ local function step(username, player, record, ctx)
     end
     local dtM = K.max((ageH - n.lastAgeH) * 60, 0)          -- the pipeline's step (offline time never reaches it: the resume)
     n.lastAgeH = ageH
+    -- the body clock (Plan 16 Task 4), ahead of the no-time return so a new record's first minute seeds it: with the
+    -- options poll's sleep on it advances by this step's online hours, or seeds at the server minute's world hour
+    local sleepOn = NR.sleepOn()
+    K.circadian.step(a, sleepOn, NR.read.hour(ctx, ageH), dtM / 60)
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
     -- the minute's ingested sum, taken only by a minute that integrates: a minute skipped above leaves it for the
     -- next one, as it leaves the pending doses
@@ -447,7 +430,6 @@ local function step(username, player, record, ctx)
 
     -- the acute states
     local asleep = NR.read.asleep(ctx, player)
-    local hourOfDay = NR.read.hour(ctx, ageH)
     K.acute.caffeine(a, cafDose, w, dtH)                   -- the gut lane's dose (CAF_ABSORB applied there)
     K.acute.alcohol(a, alcDose, w, sex, dtH)
     local ethIng = ingested.ethanol or 0
@@ -469,7 +451,8 @@ local function step(username, player, record, ctx)
         if finite(eff.mAcc) and eff.mAcc > 0 then mAcc = eff.mAcc end
         if finite(eff.rRec) and eff.rRec > 0 then rRec = eff.rRec end
     end
-    K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player, ctx), ageH, dtH, NUT.sleepDisabled, mAcc, rRec)
+    K.acute.sleepMinute(a, asleep, K.circadian.hour(record, sleepOn), needFactor(player, ctx), ageH, dtH, not sleepOn,
+        mAcc, rRec)                                         -- the body clock's hour, nil with sleep off (circ 0)
     K.acute.iu(a, f.dehydPct, n.ironGrade)
 
     local ng = K.heal.guard(f, NUT.GUARD_FLUIDS, NUT.snapF) + K.heal.guard(a, NUT.GUARD_ACUTE, NUT.snapA)
@@ -511,7 +494,6 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         if not NR.isServer() then return end
         if NUT.wired then return end
         NUT.wired = true
-        NUT.readSleepOptions()
         local MIN = NR.server.minute
         MIN.register("nutrients", NUT.minute)
     end)

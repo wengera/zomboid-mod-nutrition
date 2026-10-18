@@ -92,7 +92,8 @@ function K.hungerCurve.hold(H, prev)
 end
 
 -- The circadian dip an unfed write takes out of h_model: the minute's factor circ when it is a positive number under 1
--- (the morning trough), else 1 (no dip: the evening rise stays).
+-- (the morning trough of the body clock, Plan 16), else 1 (no dip: the evening rise stays; with sleep off the factor is
+-- 1, so there is no dip).
 function K.hungerCurve.dip(circ)
     if circ ~= nil and circ > 0 and circ < 1 then
         return circ

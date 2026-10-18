@@ -44,7 +44,7 @@ def test_the_stamp_list_names_every_world_age_clock(host):
     assert lst(R(host).SEGS[13]) == ["monotony", "t", "*", "last"]
     assert lst(R(host).split("lastSeen")) == ["lastSeen"]
     kept = host.py(R(host).KEPT)
-    assert sorted(kept) == ["body.bornAge", "body.trail.at", "body.trail.ch", "firstSeen"]
+    assert sorted(kept) == ["acute.bodyHour", "body.bornAge", "body.trail.at", "body.trail.ch", "firstSeen"]
     assert not set(kept) & set(stamps)
     assert R(host).STEP_M == 60 and R(host).SLOT_SUBSTEPS == 4 and R(host).MAX_SUBSTEPS is None
 

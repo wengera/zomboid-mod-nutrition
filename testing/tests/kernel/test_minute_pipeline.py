@@ -8,6 +8,8 @@ a recorder around the Effects minute (what the step hands it) pins them here on 
 on the minute a player returns after 30 game minutes away, ctx.ageH is the world age, and a record forced lethal
 on that minute takes ReduceGeneralHealth == the drain's rate x 30 minutes (K.drain, Plan 15 Task 4).
 """
+import math
+
 import pytest
 
 from . import golden_trace
@@ -325,7 +327,8 @@ def test_the_shared_trait_flag_is_read_once_a_minute_and_afresh_with_no_context(
 # on the pipeline's context. Before, a player-minute read isAsleep 4 times, getCharacterTraits 4, getBodyDamage and
 # getThermoregulator 3, getNutrition 2, the clock's getTimeOfDay 4 and the world age 6 (P.work's and five steps').
 # Counted inside P.work (the player-minute: its age read, then the pipeline) on golden_trace's decorated player over
-# ten steady minutes (the writer's per-object hoists done).
+# ten steady minutes (the writer's per-object hoists done). Plan 16 Task 4: the hour of day is read once a server minute
+# at the players' minute (NR.read.hoist), outside every player's work, so a player-minute reads it 0 times.
 SHARED_READS = ("isAsleep", "getCharacterTraits", "getBodyDamage", "getThermoregulator", "getNutrition",
                 "getTimeOfDay", "getWorldAgeHours")
 
@@ -378,7 +381,59 @@ def test_a_player_minute_reads_each_shared_engine_member_once():
         _minute(h, start + m / 60.0)
     assert h.NR.server.minute.stats.runs - runs0 == n
     per = {k: (C[k] - base[k]) / n for k in SHARED_READS}
-    assert per == {k: 1 for k in SHARED_READS}, per
+    assert per == {k: (0 if k == "getTimeOfDay" else 1) for k in SHARED_READS}, per
+
+
+# Plan 16 Task 4: the hour read is hoisted to the server minute. Counted everywhere (not only inside P.work) with three
+# players online: one getTimeOfDay a server minute whatever the player count; at the build before it was one a
+# player-minute (each player's pipeline read and kept its own).
+COUNT_HOUR = r"""
+function(C)
+    local gt = getGameTime
+    getGameTime = function()
+        local t = gt()
+        local f = t.getTimeOfDay
+        t.getTimeOfDay = function(...) C.n = C.n + 1; return f(...) end
+        return t
+    end
+end
+"""
+
+
+def test_the_hour_fallback_is_the_world_age_from_seven():
+    # Plan 16 Task 4: GameTime.getWorldAgeHours counts from 07:00 of day one (nightsSurvived x 24 + timeOfDay - 7), so
+    # with no readable clock the hour is (ageH + 7) mod 24 (it read ageH mod 24 before, 7 h off); 7 with no age
+    h = Host()
+    R = h.NR.read
+    saved = h.G.getGameTime
+    try:
+        h.G.getGameTime = None
+        assert R.hour(None, 100.0) == 11.0 and R.hour(None, 17.5) == 0.5 and R.hour(None, None) == 7
+        h.G.getGameTime = h.rt.eval("function() error('no clock') end")
+        assert R.hour(None, 100.25) == 11.25
+        h.G.getGameTime = h.rt.eval("function() return { getTimeOfDay = function(s) return 0 / 0 end } end")
+        assert R.hour(None, 41.0) == 0.0                # a non-finite read falls back too
+        assert R.hoist(41.0) == 0.0 and R.minuteHour == 0.0
+    finally:
+        h.G.getGameTime = saved
+
+
+def test_the_hour_of_day_is_read_once_a_server_minute():
+    h = golden_trace.new_host()
+    C = h.rt.eval("{ n = 0 }")
+    h.rt.eval(COUNT_HOUR)(C)
+    ps = [golden_trace._new_player(h, g, golden_trace.MACROS[g]) for g in ("g1", "g2", "g3")]
+    h.online(*ps)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):
+        _minute(h, start + m / 60.0)
+    n0, runs0 = C.n, h.NR.server.minute.stats.runs
+    n = 10
+    for m in range(4, 4 + n):
+        _minute(h, start + m / 60.0)
+    assert h.NR.server.minute.stats.runs - runs0 == 3 * n
+    assert C.n - n0 == n
+    assert h.NR.read.minuteHour == pytest.approx(math.fmod(start + (3 + n) / 60.0 + 7, 24))
 
 
 def test_the_shared_reads_keep_a_nil_answer_and_read_afresh_with_no_context():
@@ -501,6 +556,11 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
         rec["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
     if case == "unfed":
         rec["satiety"]["M"] = 1.0
+    if case != "unfed":
+        # Plan 16 Task 4: the host's clock now reads the engine's 07:00 origin, so g1's first-sight seed reads another
+        # circadian hour and seeds an unfed pool (56 weighted kcal); the sated pool the steady case counts (912, the
+        # seed under the old clock) is set by hand, as the unfed case sets its own
+        rec["satiety"]["M"] = 912.0
     _minute(h, start + 4 / 60.0)
     base, health0, day0 = C.n, C.by["getOverallBodyHealth"] or 0, D.day
     timer0 = C.by["setHealthFromFoodTimer"] or 0

@@ -656,10 +656,27 @@ def _replay_catchup(rt, value):
     rt.execute(_CATCHUP_LUA % (v, v, v))
 
 
+# The daily rhythm before the body clock (Plan 16 Task 4): the hunger factor, the fatigue circ and the carry morning band
+# read the world clock's hour whatever the sleep setting, so "replay.WORLD_CLOCK" (any true value) makes K.circadian.hour
+# read the replay's world hour on that replay's host: a ring recorded before the body clock is graded against its own
+# pipeline, and a study oracle that read the world hour runs as a sleep-on player whose body clock sits on the world hour
+# (the sleep state itself still follows sleep_allowed). Set on a replay host only, never shipped.
+_WORLD_CLOCK_LUA = ("NutritionRevamp.kernel.circadian.hour = function(record, sleepOn) "
+                    "return NR_R.tod(NR_T.age) end\n")
+
+
+def _replay_world_clock(rt, value):
+    if value:
+        rt.execute(_WORLD_CLOCK_LUA)
+
+
 REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off,
-               "replay.SEED_PLATE_OFF": _replay_seed_plate_off, "replay.RETURN_CATCHUP_H": _replay_catchup}
-# The reconnect before the offline freeze, for a ring recorded before Plan 16 Task 2.
-PRE_FREEZE = {"replay.RETURN_CATCHUP_H": 1.0}
+               "replay.SEED_PLATE_OFF": _replay_seed_plate_off, "replay.RETURN_CATCHUP_H": _replay_catchup,
+               "replay.WORLD_CLOCK": _replay_world_clock}
+# The world-clock rhythm, for a ring recorded before Plan 16 Task 4, and for a study oracle that reads the world hour.
+WORLD_CLOCK = {"replay.WORLD_CLOCK": 1}
+# The reconnect before the offline freeze, for a ring recorded before Plan 16 Task 2 (so before the body clock too).
+PRE_FREEZE = dict({"replay.RETURN_CATCHUP_H": 1.0}, **WORLD_CLOCK)
 # The writer before the seed plate, for a ring recorded before Plan 15 Task 13 fix 1 (x452-x457 and x453b, a97fec05),
 # so before the freeze too.
 PRE_PLATE = dict({"replay.SEED_PLATE_OFF": 1}, **PRE_FREEZE)
@@ -712,10 +729,11 @@ class ServerReplay(_Backend):
         if steps is not None:
             self.NR.server.minute.ORDER = self.rt.table(*steps)
         if sleep_allowed is not None:
-            # the live server's SleepAllowed and SleepNeeded as NUT.readSleepOptions computes them (the host has no
-            # getServerOptions, so the mod reads an unset option as sleep allowed): the field that single reader sets
-            self.rt.execute("NutritionRevamp.server.nutrients.sleepDisabled = %s"
-                            % ("false" if sleep_allowed else "true"))
+            # the live server's SleepAllowed and SleepNeeded, answered by a getServerOptions stand-in the options poll
+            # reads every minute (NR.server.readSleep; the host has none, so the mod reads an unset option as sleep on)
+            self.rt.execute("getServerOptions = function() return { getBoolean = function(s, k) return %s end } end;"
+                            " NutritionRevamp.server.options.sleepOn = NutritionRevamp.server.readSleep()"
+                            % ("true" if sleep_allowed else "false"))
         if sex_specific:                                    # NR.SexSpecific on: a female stand-in reads the female values
             self.rt.execute("SandboxVars = { NR = { SexSpecific = true } }")   # the options poll reads it every minute
             self.NR.server.options.sexSpecific = True
@@ -1466,9 +1484,11 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
-               M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False):
+               M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False,
+               constants=None):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
-    start_age at dtM). Returns (rows, backend)."""
+    start_age at dtM). `constants` (the server backend's, set_constants; e.g. WORLD_CLOCK) as ServerReplay takes them.
+    Returns (rows, backend)."""
     synthetic = False
     if ages is None:
         if ring_rows is not None:
@@ -1481,7 +1501,8 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
         sa = start_age
     else:
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
-                          hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed, sex_specific=sex_specific)
+                          hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed, sex_specific=sex_specific,
+                          constants=constants)
         sa = be.start_age()
         if sa is None:
             sa = start_age

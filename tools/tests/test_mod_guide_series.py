@@ -135,7 +135,7 @@ def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
-    assert len(built) == 146 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12   # Plan 15 Task 14b: SE1's live lines (x363)
+    assert len(built) == 144 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 14   # Plan 15 Task 14b: SE1's live lines (x363); Plan 16 Task 4: SH3's (x452b)
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -143,7 +143,7 @@ def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
 def test_no_id_is_pending_and_every_vanilla_live_series_is_built():
     vl = {i for c in S.MAP_CHARTS.values() for i in c["series"] if "-v-live" in i}
     assert S.PENDING_LIVE == () and vl <= set(SER) and "SV1-m-live-b" in set(SER)
-    assert {"SH3-m-live", "SH3-m-live-hungry"} <= set(SER)            # x452b's (Plan 15 Task 14b), x452's before
+    assert not {"SH3-m-live", "SH3-m-live-hungry"} & set(SER)         # x452b's, DROPPED since Plan 16 Task 4
     assert all(SER[i]["badge"] == "vanilla-live" for i in vl)
 
 
@@ -159,13 +159,15 @@ def test_plan15_the_older_rings_fail_at_head_and_x452b_proves_the_hunger_lines()
     x452 = adm["x452:HUNGER"]
     assert not x452["admitted"] and x452["run"] == S.RUN["x452"] and x452["max_miss"]["HUNGER"] > 0.002
     assert x452["proves"] == [] and x452["draws"] == []
+    # Plan 16 Task 4: x452b ran sleep off under the world clock's hunger rhythm, which a sleep-off server no longer has,
+    # so it fails at HEAD too (0.023 against 0.002) and its lines name no passing proof run
     x452b = adm["x452b:HUNGER"]
-    assert x452b["admitted"] and x452b["run"] == S.RUN["x452b"] and x452b["max_miss"]["HUNGER"] < 0.002
+    assert not x452b["admitted"] and x452b["run"] == S.RUN["x452b"] and 0.02 < x452b["max_miss"]["HUNGER"] < 0.03
     assert {"H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"} <= set(x452b["proves"])
     for sid in ("H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"):
         assert SER[sid]["provenance"]["proof_run"] == S.RUN["x452b"], sid
-        assert "no passing proof run exists" not in SER[sid].get("note", ""), sid
-    for sid in ("SH1-m-live", "S1c-m-live", "SD1-m-live", "SE1-m-live-liquid"):
+        assert "no passing proof run exists" in SER[sid].get("note", ""), sid
+    for sid in ("SH1-m-live", "S1c-m-live", "SD1-m-live", "SE1-m-live-liquid", "SH3-m-live", "SH3-m-live-hungry"):
         assert sid in S.DROPPED and sid not in SER, sid
     assert not {"x364:levels", "x446:levels", "x405:HUNGER", "x362:HUNGER", "x364:THIRST"} & set(adm)
 
@@ -196,8 +198,8 @@ def test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_pr
         named += says
     assert named >= 4
     assert SER["S1b-m-kernel"]["provenance"]["proof_run"] == S.RUN["x454"]
-    # Plan 15 Task 14b: x452 proves nothing at HEAD; x452b, its day on this build, proves H1
-    assert S.proof_note("H1-m-kernel") == "" and S.proofs_passing("H1-m-kernel") == ["x452b:HUNGER"]
+    # Plan 15 Task 14b: x452 proves nothing at HEAD; x452b, its day on that build, proved H1 until Plan 16 Task 4
+    assert "x452b:HUNGER" in S.proof_note("H1-m-kernel") and S.proofs_passing("H1-m-kernel") == []
 
 
 def test_task_11_the_hangover_proof_and_h1_s_pre_eat_point():
@@ -328,7 +330,7 @@ def test_r2_the_admission_grades_what_a_run_draws():
     stored = next(v for v in ADM if v["key"] == "x452:HUNGER")
     assert stored["max_miss"]["HUNGER"] == rec["max_miss"]["HUNGER"]
     rec, _ = S.admission("x452b", False, dict(S.HUNGER_TOL))
-    assert rec["admitted"] and rec["max_miss"]["HUNGER"] < 0.002         # x452b, this build's day
+    assert not rec["admitted"] and rec["max_miss"]["HUNGER"] > 0.002     # x452b's world-clock rhythm (Plan 16 Task 4)
     stored = next(v for v in ADM if v["key"] == "x452b:HUNGER")
     assert stored["max_miss"]["HUNGER"] == rec["max_miss"]["HUNGER"]
     rec, _ = S.admission("x361", False, dict(S.HUNGER_TOL))
@@ -1306,15 +1308,8 @@ def x452_windows():
     return d["CAD_FEEL_P"]["observed"]["windows"], d["CAD_FEEL_H"]["observed"]["windows"]
 
 
-# Plan 15 Task 14b: returned with x452b, after its removal while x452 failed at HEAD (0e973d50)
-@check("SH3-m-live", "SH3-m-live-hungry")
-def _(kh, sid):
-    p, h = x452_windows()
-    if sid.endswith("hungry"):
-        assert SER[sid]["points"] == [["dinner", h[0]["ret"]]] and h[0]["label"] == "dinner"
-    else:
-        assert SER[sid]["points"] == [[w["label"], w["ret"]] for w in p] and tuple(w["label"] for w in p) == SH3_LABELS
-    return xs_of(sid)
+# SH3's live lines returned with x452b in Plan 15 Task 14b and are DROPPED again since Plan 16 Task 4 (sleep off has no
+# hunger rhythm, so x452b's HEAD replay misses its HUNGER)
 
 
 @check("SH3-m-kernel", "SH3-m-kernel-hungry")
@@ -1333,8 +1328,9 @@ def _(kh, sid):
         assert SER[sid]["points"] == [["dinner", ret(ages[1], ends[1], 0.25)]]
     else:
         assert SER[sid]["points"] == [[lab, ret(a, e, 0.15)] for lab, a, e in zip(SH3_LABELS, ages, ends)]
-        for (_, k), w in zip(SER[sid]["points"], p):                       # the replay lands each live return
-            assert abs(k - w["ret"]) <= 0.05
+        # the replay landed each live return within 0.05 h until Plan 16 Task 4; sleep off has no hunger rhythm since,
+        # so lunch's return moves by about half an hour (the named move behind x452b's failed admission)
+        assert max(abs(k - w["ret"]) for (_, k), w in zip(SER[sid]["points"], p)) > 0.05
     return xs_of(sid)
 
 
@@ -1347,7 +1343,7 @@ def _(kh, sid):
     assert [x for x, _ in pts] == (["lunch", "dinner", "breakfast"] if sid == "SH3-v-model" else ["dinner"])
     assert all(2.0 < y < 12.0 for _, y in pts)
     if sid == "SH3-v-model":
-        assert pts[0][1] > pt("SH3-m-live", "lunch")                      # vanilla holds the lunch longer
+        assert pts[0][1] > x452_windows()[0][0]["ret"]                    # vanilla holds the lunch longer than x452b did
     return xs_of(sid)
 
 

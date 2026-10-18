@@ -117,6 +117,7 @@ function P.minute()
     if not okS or type(n) ~= "number" then return end
     P.minutes = P.minutes + 1
     local age = NR.worldAge()
+    NR.read.hoist(age)                                  -- the hour of day, once a server minute for every player (Rule 6)
     local roster = {}
     local seen = {}
     local i = 0

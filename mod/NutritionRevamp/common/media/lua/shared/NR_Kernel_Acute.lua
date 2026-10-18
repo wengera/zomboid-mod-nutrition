@@ -422,10 +422,86 @@ function K.acute.chiS(rRec)
     return K.acute.CHI_S / r
 end
 
--- One sleep step over dtH game hours at world age ageH. sleepDisabled (the server's SleepAllowed and
+-- The body clock (Plan 16 spec section 2, Angus's design): record.acute.bodyHour, the character's own phase in hours of
+-- the day (0-24), the hour the three daily-rhythm consumers read in place of the world clock's (the hunger factor,
+-- K.satiety.circadian; the fatigue term circ, K.acute.circ; the carry morning halving, K.strength.eAcute). It runs
+-- only while sleep is on (NR.sleepOn: SleepAllowed and SleepNeeded both true on a server): with sleep off there is
+-- no rhythm (K.circadian.hour reads nil, so the hunger factor is 1, circ 0 and no halving; a game choice, spec
+-- section 6). With sleep on it advances by each step's integrated online hours, so it freezes offline (the resume
+-- leaves it, K.resume.KEPT); it is seeded at the world hour on a record that has none and on the first sleep-on step
+-- after a sleep-off one (bodyOn, the setting the clock last ran under); a sleep-off step keeps the phase unused; and
+-- the close of a main sleep (a bout of at least MAIN_SLEEP_H booked hours, K.acute.sleepMinute) sets it to WAKE_H
+-- at the waking, plus the gap since (a game choice, spec section 6). Pure: no Java.
+K.circadian = {}
+K.circadian.WAKE_H = 7 -- game choice (Plan 16 spec section 6, Angus's): a full sleep wakes the body clock at 07:00, the waking the mod's world-clock phases already assume (the hunger trough 07:50, S1273; the fatigue peak 04:00)
+K.circadian.MAIN_SLEEP_H = 4 -- game choice (Plan 16 spec section 6, Angus's): the booked hours of one bout that make a full sleep and reset the clock; game pacing, no row (in real bodies light, not sleep, sets the phase)
+K.circadian.SUM_TOL_H = 1 / 3600 -- not science (no row): one game second of slack on MAIN_SLEEP_H, so a bout booked in minute steps whose float sum falls a hair short of 4 h (240 x 1/60 reads 3.9999999999999) still counts
+
+-- An hour wrapped into [0, 24).
+function K.circadian.wrap(h)
+    return h - math.floor(h / 24) * 24
+end
+
+-- One body-clock step of dtH online game hours (a.bodyHour, a.bodyOn). sleepOn false marks the clock off and keeps
+-- its phase; sleepOn true advances it by dtH, or seeds it at worldHour (the hour of the world clock this minute)
+-- when it has no finite phase or last ran under sleep off. A worldHour that is not finite seeds nothing: the clock
+-- stays off and the next step seeds it.
+function K.circadian.step(a, sleepOn, worldHour, dtH)
+    if not sleepOn then
+        a.bodyOn = false
+        return a
+    end
+    local h = a.bodyHour
+    if a.bodyOn == true and K.finite(h) then
+        a.bodyHour = K.circadian.wrap(h + dtH)
+        return a
+    end
+    if not K.finite(worldHour) then
+        a.bodyOn = false
+        return a
+    end
+    a.bodyHour = K.circadian.wrap(worldHour)
+    a.bodyOn = true
+    return a
+end
+
+-- The close of a main sleep: the body woke at WAKE_H, sinceH game hours ago (the bout's awake gap at its close).
+function K.circadian.wake(a, sinceH)
+    a.bodyHour = K.circadian.wrap(K.circadian.WAKE_H + sinceH)
+    return a
+end
+
+-- The hour the daily-rhythm consumers read: record.acute.bodyHour when sleepOn and the clock runs (bodyOn) on a
+-- finite phase, else nil (no rhythm).
+function K.circadian.hour(record, sleepOn)
+    if not sleepOn or type(record) ~= "table" then
+        return nil
+    end
+    local a = record.acute
+    if type(a) ~= "table" or a.bodyOn ~= true then
+        return nil
+    end
+    local h = a.bodyHour
+    if K.finite(h) then
+        return h
+    end
+    return nil
+end
+
+-- The circadian term of fatigue at body hour hourOfDay: CIRC_AMP x cos(2 pi (hourOfDay - CIRC_PEAK_H) / 24); 0 when
+-- hourOfDay is nil (no rhythm).
+function K.acute.circ(hourOfDay)
+    if hourOfDay == nil then
+        return 0
+    end
+    return K.acute.CIRC_AMP * math.cos(2 * math.pi * (hourOfDay - K.acute.CIRC_PEAK_H) / 24)
+end
+
+-- One sleep step over dtH game hours at world age ageH; hourOfDay is the body clock's hour (K.circadian.hour), nil
+-- with no rhythm. sleepDisabled (the server's SleepAllowed and
 -- SleepNeeded not both true, the reset ahead of the hook, run x151s) freezes the state at rested: hours
 -- awake, debt, the sleep run and the window's sleep are 0, S is S_RESTED and the window restarts at ageH,
--- so a later re-enable opens a fresh window; frozen is set and circ still computed. Otherwise: asleep, the
+-- so a later re-enable opens a fresh window; frozen is set and circ is K.acute.circ(hourOfDay). Otherwise: asleep, the
 -- run (sleptH), the bout (boutH) and the window's sleep accrue, the bout's gap clears, hours awake reset to 0
 -- once the bout reaches NAP_MIN_H (at that minute) and otherwise hold, and S decays on chi_s to
 -- a debt floor capped at S_FLOOR_MAX; awake, the run clears, a bout in progress counts its gap (gapH) and ends
@@ -440,11 +516,13 @@ end
 -- mAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
 -- multiplier), each 1 when nil; their clamps are the caller's. At a bout's first asleep minute (boutH 0
 -- before this step) boutVig latches whether a band-2 minute ended within VIG_WINDOW_H before ageH; it holds
--- until the next bout starts.
+-- until the next bout starts. A bout that closes with at least K.circadian.MAIN_SLEEP_H booked (boutH, asleep hours
+-- only) is a main sleep: the body clock wakes at WAKE_H (K.circadian.wake) and this step's circ reads the reset hour;
+-- a nap or an accelerated-sleep mod's few-minute bout leaves it.
 function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepDisabled, mAcc, rRec)
     local A = K.acute
-    a.circ = A.CIRC_AMP * math.cos(2 * math.pi * (hourOfDay - A.CIRC_PEAK_H) / 24)
     if sleepDisabled then
+        a.circ = A.circ(hourOfDay)
         a.frozen = true
         a.awakeH = 0
         a.debtH = 0
@@ -478,6 +556,12 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
                 if a.boutH >= A.NAP_MIN_H then
                     a.awakeH = a.gapH - dtH -- the gap before this step; this step accrues below
                 end
+                if a.boutH + K.circadian.SUM_TOL_H >= K.circadian.MAIN_SLEEP_H then
+                    K.circadian.wake(a, a.gapH)
+                    if hourOfDay ~= nil then
+                        hourOfDay = a.bodyHour
+                    end
+                end
                 a.boutH = 0
                 a.gapH = 0
             end
@@ -487,6 +571,7 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
         end
         a.S = 1 - (1 - a.S) * math.exp(-dtH / A.chiW(a.debtH, mAcc))
     end
+    a.circ = A.circ(hourOfDay)
     -- every elapsed window closes (a long step can span several); a window books at most its own WINDOW_H
     while ageH - a.winStartH >= A.WINDOW_H do
         local need = A.SLEEP_NEED_H * needFactor

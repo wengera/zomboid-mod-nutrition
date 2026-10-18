@@ -1024,3 +1024,108 @@ def test_refeed_a_partial_first_day_is_never_low(host):
     assert a.starvedDays == 1 and a.lowDay is True
     A.refeedDay(a, 0, 70, 72.0, False, False, False)                # no flag: a whole day
     assert a.starvedDays == 2
+
+
+# --- the body clock (Plan 16 Task 4, spec section 2: K.circadian) ---
+
+def test_the_body_clock_wraps_into_the_day(host):
+    C = host.K.circadian
+    assert C.wrap(25.5) == 1.5 and C.wrap(-1.0) == 23.0 and C.wrap(24.0) == 0.0 and C.wrap(7.0) == 7.0
+    assert C.WAKE_H == 7 and C.MAIN_SLEEP_H == 4
+
+
+def test_the_body_clock_seeds_at_the_world_hour_and_advances_by_online_time(host):
+    C = host.K.circadian
+    a = _new(host, 0.0)
+    assert a.bodyHour is None and a.bodyOn is None              # a fresh record has no phase
+    C.step(a, True, 22.5, MIN)
+    assert a.bodyOn is True and a.bodyHour == 22.5              # seeded, not advanced, at its first step
+    C.step(a, True, 3.0, 2.0)                                   # the world hour no longer steers it
+    assert _close(a.bodyHour, 0.5)                              # 22.5 + 2 h, wrapped
+    C.step(a, False, 9.0, 5.0)
+    assert a.bodyOn is False and _close(a.bodyHour, 0.5)        # sleep off: kept, unused, not advanced
+    C.step(a, True, 9.0, MIN)
+    assert a.bodyOn is True and a.bodyHour == 9.0               # off -> on: restarted at the world hour
+    a.bodyHour = float("nan")
+    C.step(a, True, 11.0, MIN)
+    assert a.bodyHour == 11.0                                   # a non-finite phase reseeds
+    b = _new(host, 0.0)
+    C.step(b, True, float("nan"), MIN)
+    assert b.bodyOn is False and b.bodyHour is None             # no world hour: nothing seeded, retried next step
+
+
+def test_the_body_clock_hour_reads_only_a_running_clock_under_sleep_on(host):
+    C = host.K.circadian
+    r = host.rt.eval("{ acute = { bodyOn = true, bodyHour = 13.25 } }")
+    assert C.hour(r, True) == 13.25
+    assert C.hour(r, False) is None                              # sleep off: no rhythm
+    r.acute.bodyOn = False
+    assert C.hour(r, True) is None                               # a clock that last ran under sleep off
+    r.acute.bodyOn = True
+    r.acute.bodyHour = float("inf")
+    assert C.hour(r, True) is None
+    assert C.hour(None, True) is None
+    assert C.hour(host.rt.eval("{ acute = 5 }"), True) is None
+
+
+def test_the_fatigue_circ_is_zero_with_no_hour(host):
+    A = host.K.acute
+    assert A.circ(None) == 0
+    assert _close(A.circ(4.0), 0.12)
+    a = _new(host, 0.0)
+    A.sleepMinute(a, False, None, 1.0, 0.0, MIN, False)
+    assert a.circ == 0
+    A.sleepMinute(a, True, None, 1.0, MIN, MIN, True)           # frozen, no hour
+    assert a.circ == 0 and a.frozen is True
+    A.sleepMinute(a, True, 4.0, 1.0, 2 * MIN, MIN, True)        # frozen with an hour (a caller that passes one)
+    assert _close(a.circ, 0.12)
+
+
+def _bout(host, a, booked_min, step=MIN, hour=22.0):
+    # a bout of booked_min asleep steps of `step` hours, then awake minutes until the bout closes; returns the gap the
+    # close counted (the hours since the waking)
+    A = host.K.acute
+    t = 1.0
+    for _ in range(booked_min):
+        t += step
+        A.sleepMinute(a, True, hour, 1.0, t, step, False)
+    n = 0
+    while a.boutH > 0 and n < 20:
+        t += MIN
+        n += 1
+        A.sleepMinute(a, False, hour, 1.0, t, MIN, False)
+    assert a.boutH == 0
+    return n * MIN
+
+
+def test_a_main_sleep_wakes_the_body_clock_at_seven(host):
+    a = _new(host, 0.0)
+    a.bodyHour = 3.0
+    gap = _bout(host, a, 240)                                   # 240 x 1/60 sums a hair under 4 h: the slack counts it
+    assert _close(a.bodyHour, 7.0 + gap)
+    assert _close(a.circ, host.K.acute.circ(7.0 + gap))         # the close minute's circ reads the reset hour
+    b = _new(host, 0.0)
+    b.bodyHour = 3.0
+    gap = _bout(host, b, 21, step=20 / 60)                      # a fast-forwarded night: 7 h in 20-minute sub-steps
+    assert _close(b.bodyHour, 7.0 + gap)
+
+
+@pytest.mark.parametrize("booked", [6, 60, 239 - 1])
+def test_a_nap_or_a_short_bout_leaves_the_body_clock(host, booked):
+    a = _new(host, 0.0)
+    a.bodyHour = 3.0
+    _bout(host, a, booked)
+    assert a.bodyHour == 3.0                                    # sleepMinute alone never advances it (K.circadian.step does)
+
+
+def test_a_main_sleep_with_no_hour_resets_the_phase_and_keeps_circ_zero(host):
+    a = _new(host, 0.0)
+    A = host.K.acute
+    t = 1.0
+    for _ in range(300):
+        t += MIN
+        A.sleepMinute(a, True, None, 1.0, t, MIN, False)
+    while a.boutH > 0:
+        t += MIN
+        A.sleepMinute(a, False, None, 1.0, t, MIN, False)
+    assert a.bodyHour is not None and a.circ == 0

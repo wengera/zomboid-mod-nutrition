@@ -32,9 +32,11 @@ for _, n in ipairs({ "OnServerStarted", "OnInitGlobalModData", "EveryOneMinute",
 end
 isServer = function() return NR_T.server end
 isClient = function() return false end
+-- the engine's clock identity (GameTime.getWorldAgeHours = nightsSurvived x 24 + timeOfDay - 7): world age 0 is 07:00
+-- (Plan 16 Task 4; until then this read fmod(age, 24), 7 h off the engine)
 getGameTime = function()
     return { getWorldAgeHours = function(s) return NR_T.age end,
-             getTimeOfDay = function(s) return math.fmod(NR_T.age, 24) end }
+             getTimeOfDay = function(s) return math.fmod(NR_T.age + 7, 24) end }
 end
 print = function(s) NR_T.printed[#NR_T.printed + 1] = tostring(s) end
 """

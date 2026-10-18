@@ -93,11 +93,11 @@ CROSS = (
     + _rows("nutrients", "acute", [
         ("effects", ("caf", "wd", "cafTol", "bac", "alcPeak", "hang", "bg", "iuSleep", "debtH", "iu", "exEma",
                      "bmi", "starvedDays", "coldH", "lastVigAgeH", "retEma")),
-        ("strength", ("awakeH", "caf")),
-        ("writer", ("S", "circ", "debtH")),   # debtH: the sleep factor (Plan 11d Task 6, W.satietyFactor)
+        ("strength", ("awakeH", "caf", "bodyHour")),   # bodyHour: the body clock's carry morning band (Plan 16 Task 4)
+        ("writer", ("S", "circ", "debtH", "bodyHour")),   # debtH: the sleep factor (Plan 11d Task 6, W.satietyFactor); bodyHour: the circadian factor's hour (Plan 16 Task 4)
         ("bus", ("awakeH", "bac", "bg", "caf", "debtH", "g", "iu", "refeedRisk")),
         ("store", ("caf", "cafTol", "alcPeak", "hang", "bg", "awakeH", "debtH", "S", "starvedDays", "bmi", "exEma",
-                   "lastVigAgeH", "coldH", "retEma", "refeedRisk")),
+                   "lastVigAgeH", "coldH", "retEma", "refeedRisk", "bodyHour")),
     ])
     + _rows("nutrients", "nutrients", [("effects", ("epoch",)), ("store", ("epoch",))])
     + _rows("effects", "effects", [
@@ -340,7 +340,7 @@ SUB_PRODUCER = {"body": "metabolism", "fluids": "nutrients", "acute": "nutrients
 # itself (W.stats.guarded, test_writer_shape.py). The writer's satiety F (W.satietyF, ruling T5-2) reads the stomach's
 # liquid lane and the buffer's mass keys, each guarded by the kinetics heal (a non-finite F also falls back to
 # record.stomachFill); the buffer table itself is a container read, so the test proxies it one level down.
-WRITER_UNGUARDED = {"acute.frozen", "fluids.autoDrop", "satiety.M", "satiety.S", "satiety.t"}
+WRITER_UNGUARDED = {"acute.frozen", "acute.bodyOn", "fluids.autoDrop", "satiety.M", "satiety.S", "satiety.t"}
 
 BUFFER_PROXY = r"""
 function(rec, log)
@@ -376,6 +376,8 @@ def test_the_writers_cross_rows_are_its_reads():
     p = h.rt.eval("NR_T.statsPlayer")(h.player("a"), h.rt.eval(STATS))
     rec = record(h)
     rec.stomach = h.K.stomach.new()
+    rec.acute.bodyOn = True                                 # a running body clock (Plan 16 Task 4), so its hour is read
+    rec.acute.bodyHour = 4.0
     log = h.rt.table()
     h.rt.eval(BUFFER_PROXY)(rec, log)
     h.rt.eval(PROXY)(rec, log)

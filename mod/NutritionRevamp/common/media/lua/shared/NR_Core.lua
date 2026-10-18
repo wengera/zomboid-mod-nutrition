@@ -21,6 +21,13 @@ function NR.isServer()
     return ok and v == true
 end
 
+-- The polled sleep setting (NR_Server_Options' sleepOn, read each server minute): true unless the server's
+-- SleepAllowed and SleepNeeded are not both true; true before the first poll and with no options table. No Java.
+function NR.sleepOn()
+    local o = NR.server ~= nil and NR.server.options or nil
+    return o == nil or o.sleepOn ~= false
+end
+
 function NR.isClient()
     if isClient == nil then return false end
     local ok, v = pcall(isClient)
@@ -198,8 +205,11 @@ end
 -- context (NR_Server_Minute's ctx, cleared per player), and the steps after the first share that read. A nil ctx (a
 -- step called outside the pipeline) reads afresh. A read that answers nil is kept as NONE, so it is not read again.
 -- The world age is the pipeline's own read (P.work's, seeded by NR_Server_Minute.run); the hour of day is the clock's
--- getTimeOfDay, else the world age's hour (0 with no age). The failure meaning is NR.flag's and NR.obj's: a raise
--- reads false or nil.
+-- getTimeOfDay, else the world age's hour, (ageH + 7) mod 24 (GameTime.getWorldAgeHours counts from 07:00 of day one:
+-- nightsSurvived x 24 + timeOfDay - 7; 7 with no age). The hour is read once a server minute (RD.hoist, from the
+-- players' minute, Plan 16 Task 4) and shared by every player's minute through the context (NR_Server_Minute.run seeds
+-- eHour from RD.minuteHour); only the body clock's seed reads it (K.circadian.step). The failure meaning is NR.flag's and
+-- NR.obj's: a raise reads false or nil.
 NR.read = {}
 local RD = NR.read
 local NONE = {}
@@ -217,8 +227,8 @@ local function memo(ctx, key, read, a, b, c)
 end
 
 local function readHour(ageH)
-    local hour = 0
-    if ageH ~= nil then hour = ageH - math.floor(ageH / 24) * 24 end
+    local hour = 7
+    if ageH ~= nil then hour = (ageH + 7) - math.floor((ageH + 7) / 24) * 24 end
     if getGameTime ~= nil then
         local ok, gt = pcall(getGameTime)
         hour = NR.num(ok and gt or nil, "getTimeOfDay", hour)
@@ -237,6 +247,13 @@ local function readDayMin() return NR.num(NR.sandbox(), "getDayLengthMinutes", n
 
 function RD.ageH(ctx) return memo(ctx, "eAge", NR.worldAge) end
 function RD.hour(ctx, ageH) return memo(ctx, "eHour", readHour, ageH) end
+-- The server minute's hour of day, read once at the players' minute (P.minute) for every player's pipeline; nil until
+-- the first read.
+RD.minuteHour = nil
+function RD.hoist(ageH)
+    RD.minuteHour = readHour(ageH)
+    return RD.minuteHour
+end
 function RD.asleep(ctx, p) return memo(ctx, "eAsleep", readAsleep, p) end
 function RD.traits(ctx, p) return memo(ctx, "eTraits", readTraits, p) end
 function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end

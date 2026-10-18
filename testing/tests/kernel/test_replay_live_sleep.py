@@ -1,9 +1,10 @@
 """The replay's explicit sleep option and opt-in auto-drink detection (Plan 11f Task 4 fix round 1, F-T4-1, F-T4-2).
 
-The replay host has no getServerOptions, so an unset option reads sleep as allowed (NUT.readSleepOptions: an unreadable
+The replay host has no getServerOptions, so an unset option reads sleep as allowed (NR.server.readSleep: an unreadable
 option reads true), while a live server with SleepAllowed or SleepNeeded false freezes the sleep state: the replay then
 booked the stand-in's waking hours as debt at the acute record's 24 h window close. replay_live now takes
-sleep_allowed (required), and the stand-in's NutritionRevamp.server.nutrients.sleepDisabled is set from it."""
+sleep_allowed (required), answered by a getServerOptions stand-in the options poll reads every minute
+(NutritionRevamp.sleepOn(), Plan 16 Task 4)."""
 import json
 import os
 import sys
@@ -37,8 +38,8 @@ def run_sleep(allowed):
 def test_sleep_off_books_no_debt_at_the_window_close_and_sleep_on_does():
     off, be_off = run_sleep(False)
     on, be_on = run_sleep(True)
-    assert be_off.rt.eval("function() return NutritionRevamp.server.nutrients.sleepDisabled end")() is True
-    assert be_on.rt.eval("function() return NutritionRevamp.server.nutrients.sleepDisabled end")() is False
+    assert be_off.rt.eval("function() return NutritionRevamp.sleepOn() end")() is False
+    assert be_on.rt.eval("function() return NutritionRevamp.sleepOn() end")() is True
     assert max(r["acute.debtH"] for r in off) == 0
     assert on[-1]["acute.debtH"] > 1.0
 
@@ -51,7 +52,7 @@ def test_replay_live_refuses_a_missing_sleep_option():
 def test_the_start_document_may_carry_the_option():
     rows = synthetic_ring(26)
     out, be = RL.replay_live(rows, [], {"sleepAllowed": False}, paths=["acute.debtH"], hour_offset=8.0 - 100.0 % 24)
-    assert be.rt.eval("function() return NutritionRevamp.server.nutrients.sleepDisabled end")() is True
+    assert be.rt.eval("function() return NutritionRevamp.sleepOn() end")() is False
     assert max(r["acute.debtH"] for r in out) == 0
 
 

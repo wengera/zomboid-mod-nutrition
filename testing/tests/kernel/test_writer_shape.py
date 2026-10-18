@@ -80,8 +80,10 @@ def player(h, name="a"):
 # NR_Kernel_Deficit.lua): mealRead(M) = 1 - 1 / (1 + 3 (M / MEAL_REQ)^MEAL_STEEP); sated(F, Mn) = 1 - (1 - FULL_WEIGHT F) (1 - Mn),
 # MEAL_REQ, MEAL_STEEP and FULL_WEIGHT read off the kernel file (fitted in Plan 11g Task 6c, so no value is re-typed here); hungerTarget(x, es) = clamp((1 - x) es, 0, 1), with no deficit floor since Plan 11g Task 7 fix 1 (ruling T7-1; 0.02 max(0, es - 1) was added from Plan 11f Task 2c fix 1, 1.0 before);
 # circadian(h) = 1 + 0.085 cos(2 pi (h - 19.8333) / 24); acuteFactor(S) = 1 - 0.7 S; the writer's composition
-# (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The host's clock
-# reads the hour of day as fmod(age, 24), and step() sets age 100 + minute / 60, so minute m is hour 4 + m / 60.
+# (amendment 3) min(0.69, hungerTarget x circadian x acuteFactor), the 0.69 the hybrid's hungerCap. The writer reads the
+# body clock's hour (record.acute.bodyHour under sleep on, K.circadian.hour; Plan 16 Task 4), which the Nutrients step
+# advances; step() sets age 100 + minute / 60 and, on a record with an acute table, the clock to fmod(age, 24) as a
+# running clock would read, so minute m is hour 4 + m / 60.
 
 
 def _satiety_constant(name):
@@ -129,6 +131,10 @@ def record(h, **over):
 
 def step(h, p, rec, minute, name="a", ctx=None):
     h.T.age = 100.0 + minute / 60
+    a = rec.acute
+    if h.rt.eval("type")(a) == "table":
+        a.bodyOn = True
+        a.bodyHour = math.fmod(100 + minute / 60, 24)
     h.NR.server.writer.step(name, p, rec, ctx)
 
 
@@ -1106,7 +1112,7 @@ def test_a_record_with_no_acute_state_reads_factor_one():
     p = player(h)
     rec = record(h, acute=None)
     step(h, p, rec, 1)
-    assert p.st.sets.HUNGER == pytest.approx(H1)
+    assert p.st.sets.HUNGER == pytest.approx(H0)        # no acute state: sleep factor 1, and no body clock, circadian 1
 
 
 @pytest.mark.parametrize("minute", [1, 721])               # 04:01 and 16:01: the circadian factor 0.954 and 1.046

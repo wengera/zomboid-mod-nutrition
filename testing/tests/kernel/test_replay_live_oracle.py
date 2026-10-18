@@ -66,7 +66,7 @@ def server_hunger(host, events, minutes, M0=None, h0=None):
     start = {"username": "admin", "firstSeen": a0, "lastSeen": a0, "kineticsAge": a0,
              "satiety": {"M": M0, "S": 0, "L": 0, "t": a0}}
     rows, _ = RL.replay_arm(meal_events(events), start=start, minutes=minutes, start_age=a0, steps=SATIETY_STEPS,
-                            hold_hour=RL.NEUTRAL_HOUR if h0 is None else None)
+                            hold_hour=RL.NEUTRAL_HOUR if h0 is None else None, constants=RL.WORLD_CLOCK)   # the body clock on the world hour (Plan 16 Task 4)
     assert [r["age"] for r in rows] == RL.synthetic_ages(minutes, a0)
     return [r[RL.H_MODEL] for r in rows]
 
@@ -145,7 +145,7 @@ def sleep_events(days):
 def energy_run(plan, days, backend="oracle", **kw):
     ev = sleep_events(days) + [{"minute": m, "kind": "meal", "size": k} for m, k in sorted(plan.items())]
     ev.sort(key=lambda e: e["minute"])
-    extra = {"satiety": False} if backend == "oracle" else {}
+    extra = {"satiety": False} if backend == "oracle" else {"constants": RL.WORLD_CLOCK}   # the server path on the world hour (Plan 16 Task 4)
     extra.update(kw)
     return RL.replay_arm(ev, minutes=days * 1440, backend=backend, paths=("body.energyState", "body.eb24"), **extra)
 
@@ -239,7 +239,7 @@ def nicotine_written(host, ageH, w, anchorH):
         sat["nicH"] = anchorH + M.CLOCK_H
     rec = {"username": "admin", "firstSeen": 0.0, "lastSeen": 0.0, "satiety": sat}
     rows, _ = RL.replay_arm([], start=rec, ages=[ageH + M.CLOCK_H], steps=("writer",),
-                            stats={"NICOTINE_WITHDRAWAL": w})
+                            stats={"NICOTINE_WITHDRAWAL": w}, constants=RL.WORLD_CLOCK)   # the body clock on the world hour (Plan 16 Task 4)
     return rows[0][RL.H_MODEL]
 
 

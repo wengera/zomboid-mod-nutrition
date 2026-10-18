@@ -251,6 +251,11 @@ DROPPED = {
                   "Task 3)",
     "SD1-m-live": "G8: x161b read the Plan 5 scurvy drain, 100 health over 168 game hours; Plan 15 Task 4's engine "
                   "drains to a floor at its own rate (VALIDATION x161b:drain)",
+    # Plan 16 Task 4: a sleep-off server has no daily rhythm, so a sleep-off ring's world-clock hunger factor is gone
+    "SH3-m-live": "G8: x452b's HEAD replay misses its HUNGER by 0.023 against 0.002 (sleep off has no hunger rhythm "
+                  "since Plan 16 Task 4; the run read the world clock's)",
+    "SH3-m-live-hungry": "G8: x452b's HEAD replay misses its HUNGER by 0.023 against 0.002 (sleep off has no hunger "
+                         "rhythm since Plan 16 Task 4)",
 }
 
 CHARTS = {cid: dict(c, series=[i for i in c["series"] if i not in DROPPED]) for cid, c in MAP_CHARTS.items()}
@@ -645,10 +650,12 @@ ADMISSIONS = (
      ["SE1-m-live-liquid", "SE1-m-live-fill"], ["SE1-m-kernel-fill"], False),    # False since Plan 15 Task 14b
     ("x364:HUNGER", "x364", False, HUNGER_TOL, SRC_DEFAULT, ["S2a-m-live"], [], False),
     ("x446:THIRST", "x446", False, {"THIRST": ("abs", 0.002)}, SRC_M1, ["S1c-m-live"], [], False),
-    # Plan 15 Task 14b: x452 ran the old liquid lane and fails at HEAD; x452b, its day on this build, proves the lines
+    # Plan 15 Task 14b: x452 ran the old liquid lane and fails at HEAD; x452b, its day on this build, proved the lines
+    # until Plan 16 Task 4: x452b ran sleep off with the world-clock hunger rhythm, and a sleep-off server has no rhythm
+    # since (the hunger circadian factor is 1), so its HEAD replay misses HUNGER by 0.023 against 0.002
     ("x452:HUNGER", "x452", False, HUNGER_TOL, SRC_X452, [], [], False),
     ("x452b:HUNGER", "x452b", False, HUNGER_TOL, SRC_X452B, ["SH3-m-live", "SH3-m-live-hungry"],
-     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"], True),
+     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"], False),
     ("x271:HUNGER", "x271", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x272:HUNGER", "x272", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x276:HUNGER", "x276", False, HUNGER_TOL, SRC_DEFAULT, ["SH2-m-live"], ["SH2-m-kernel"], False),
@@ -2686,14 +2693,13 @@ def sh3_vanilla(meal_ages, h0, tail_h=12.0):
 
 def s_sh3():
     """SH3: x452b's three-meal day (Plan 15 Task 14b; x452's, Task 11, on the build that slows the liquid lane only by
-    drink-borne kcal and carries the curve's re-fit): each meal's return to Peckish and dinner's to Hungry, measured
-    live, in the HEAD replay of the run's own inputs, and in the vanilla model on the same meals."""
-    rec = adm("x452b:HUNGER")
+    drink-borne kcal and carries the curve's re-fit): each meal's return to Peckish and dinner's to Hungry in the HEAD
+    replay of the run's own inputs and in the vanilla model on the same meals. Its live returns are DROPPED since
+    Plan 16 Task 4 (the run read the world clock's hunger rhythm, which a sleep-off server no longer has)."""
+    adm("x452b:HUNGER")
     f = "day.json"
     ages = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].meal_age")
     labels = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].label")
-    live_p = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].ret")
-    live_h = read("x452b", f, "verdicts.CAD_FEEL_H.observed.windows[*].ret")
     if tuple(labels) != SH3_MEALS:
         raise D.ProvenanceError("x452b's windows are %r, not %r" % (labels, SH3_MEALS))
     rows = adm_rows("x452b:HUNGER")
@@ -2708,7 +2714,7 @@ def s_sh3():
            "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 "
                    "(Hungry), inside the meal's window"}
     common = ("Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the "
-              "mod at this build, DayLength 1, sleep off).")
+              "Plan 15 Task 14b build, DayLength 1, sleep off).")
     return [
         series("SH3-v-model", "Vanilla, from the game's code: Peckish", "meal", "game hours", "vanilla-model",
                [[m, p] for m, (p, _) in zip(SH3_MEALS, van) if p is not None], vmodel("VM1", "VM3", "VM4"),
@@ -2721,22 +2727,15 @@ def s_sh3():
                "circadian rise in hunger (S1273), a stated bend." % (h0, van[1][1])),
         series("SH3-m-kernel", "Nutrition Revamp, simulated: Peckish", "meal", "game hours", "kernel",
                [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x452b"),
-               "The HEAD replay of x452b's own inputs, which reproduces the run's HUNGER within %.2g (VALIDATION "
-               "x452b:HUNGER). %s" % (rec["max_miss"]["HUNGER"], common)),
-        series("SH3-m-live", "Nutrition Revamp, measured: Peckish", "meal", "game hours", "live",
-               list(zip(SH3_MEALS, live_p)),
-               artifact("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].ret"),
-               "x452b's Peckish returns, read off the ring's HUNGER from each can's landing row. %s" % common),
+               "The HEAD replay of x452b's own inputs; the run's live returns fail the admission test and are not "
+               "drawn (VALIDATION x452b:HUNGER). %s %s" % (common, proof_note("SH3-m-kernel"))),
         series("SH3-v-model-hungry", "Vanilla, from the game's code: Hungry", "meal", "game hours", "vanilla-model",
                [["dinner", van[1][1]]], vmodel("VM1", "VM3", "VM4"),
                "Dinner's return to Hungry (HUNGER over 0.25) in the same vanilla model run (SH3-v-model)."),
         series("SH3-m-kernel-hungry", "Nutrition Revamp, simulated: Hungry", "meal", "game hours", "kernel",
                [["dinner", ker[1][1]]], kernel(dict(inp, meal="dinner, to the next morning's breakfast"), "x452b"),
                "Dinner's return to Hungry in the HEAD replay of x452b (SH3-m-kernel); the lunch and breakfast windows "
-               "end before Hungry."),
-        series("SH3-m-live-hungry", "Nutrition Revamp, measured: Hungry", "meal", "game hours", "live",
-               [["dinner", live_h[0]]], artifact("x452b", f, "verdicts.CAD_FEEL_H.observed.windows[*].ret"),
-               "x452b's dinner, Hungry %.2f game hours after the can. %s" % (live_h[0], common)),
+               "end before Hungry. " + proof_note("SH3-m-kernel-hungry")),
     ]
 
 

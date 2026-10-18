@@ -36,7 +36,10 @@ Wine for g1 and Tea for g5 at minute 50, 0.25 L of water for g2 at 60 (K.vector.
 8.25 % water deficit at minute 30 on an overall health of 45, the dehydration drain state (Plan 15 Task 4); g3 dies at minute
 100 and at 101 OnNewGame fires for a new g3 object; a NaN written into g2's body (at, inDay) at minute 115 (the
 heal); g4 departs at 150 and returns as a new object at 180 (Plan 16 Task 2: the store resumes its record, so the
-30 minutes away are frozen and the return minute runs nothing); at 200 the bus answers one "mirror.request" by g5.
+30 minutes away are frozen and the return minute runs nothing; Plan 16 Task 4: its body clock too, so from 180 it reads
+about half an hour behind the world's); at 200 the bus answers one "mirror.request" by g5. The host's clock reads the
+engine's 07:00 world-age origin since Plan 16 Task 4 (the trace's minutes run 06:00 to 10:00), and sleep is on (no
+getServerOptions), so each record's acute.bodyHour and bodyOn run the daily rhythm.
 Writer guards (11e T1 fix 1): NaN into satiety S (g2, 80), t (g4, 120) and M (g5, 140; P until Plan 11g Task 4, G until
 Task 6c); g1's M overflows (170; Kinetics' guard since Plan 11g Task 4 fix 1).
 g5 smokes (NIC_*): its withdrawal reads 0, then 0.4 at 25 (the anchor held), a smoke to 0.1 at 105 (reset), 0.3 at 160.

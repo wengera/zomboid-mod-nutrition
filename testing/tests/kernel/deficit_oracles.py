@@ -92,7 +92,8 @@ ALT_RATE = {"ClimbRope": 8.0, "Running10kmh": 6.9, "Walking5kmh": 3.1}   # the e
 def karl_alt_mean(arm, alt):
     """The mean HUNGER at the VAS rows of the arm's study days under twin K's alternative `alt`."""
     ev, days, am_dur, player = karl_alt_events(arm, alt)
-    rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, player=player, rng="half")
+    rows, _ = RL.replay_arm(ev, minutes=days * 1440, backend="server", start_age=0.0, player=player, rng="half",
+                            constants=RL.WORLD_CLOCK)   # the study oracles read the world hour (Plan 16 Task 4)
     reads = [rows[m][RL.H_MODEL] for d in range(E.KARL_WARM, days) for m in E.karl_vas(d * 1440, am_dur)]
     return sum(reads) / len(reads)
 

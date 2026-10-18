@@ -525,7 +525,8 @@ function K.strength.bandOf(level)
 end
 
 -- The acute carry factor: dehydration in two steps (x DEHYD_SWEAT_K from sweat or heat), hours awake
--- past the knee (halved from AM_FROM_H to AM_TO_H, capped), caffeine, clinical vitamin D deficiency and
+-- past the knee (halved from AM_FROM_H to AM_TO_H of the body clock's hourOfDay, K.circadian.hour; nil, with sleep
+-- off, halves nothing: a game choice, Plan 16 spec section 6), capped, caffeine, clinical vitamin D deficiency and
 -- body fat above FAT_KNEE, the sum clamped to [E_ACUTE_MIN, E_ACUTE_MAX].
 function K.strength.eAcute(dehydPct, sweatActive, hoursAwake, hourOfDay, caffeineActive, vitDClinical, bf)
     local S = K.strength
@@ -540,7 +541,7 @@ function K.strength.eAcute(dehydPct, sweatActive, hoursAwake, hourOfDay, caffein
         e = S.DEHYD_STEP1 * sweatK
     end
     local eSleep = K.max(S.SLEEP_CAP, S.SLEEP_PER_H * K.max(0, hoursAwake - S.SLEEP_KNEE_H))
-    if hourOfDay >= S.AM_FROM_H and hourOfDay < S.AM_TO_H then
+    if hourOfDay ~= nil and hourOfDay >= S.AM_FROM_H and hourOfDay < S.AM_TO_H then
         eSleep = eSleep * S.SLEEP_AM_FACTOR
     end
     e = e + eSleep

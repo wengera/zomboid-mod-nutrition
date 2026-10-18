@@ -892,7 +892,8 @@ def test_strength_runs_after_metabolism_in_the_players_list():
 
 # --- the Plan 4 acute inputs: the current minute's fluids, acute and nutrients sub-tables ---------------
 
-def _acute_delta(h, nutrients=None, fluids=None, acute=None, tod=14.0):
+def _acute_delta(h, nutrients=None, fluids=None, acute=None, tod=14.0, sleep_on=True):
+    # tod is the body clock's hour (record.acute.bodyHour, which the carry's morning band reads since Plan 16 Task 4)
     p = player(h, level=5, xp=40000, delta=1.0)
     record = record_for(h)
     if nutrients is not None:
@@ -903,9 +904,17 @@ def _acute_delta(h, nutrients=None, fluids=None, acute=None, tod=14.0):
         a = h.K.acute["new"](99.0)
         for k, v in acute.items():
             a[k] = v
+        a.bodyOn = True
+        a.bodyHour = tod
         record.acute = a
     h.G.NR_TEST_TOD = tod
-    minute(h, p, record, 100.0)
+    S = h.G.NutritionRevamp.server
+    saved = S.options
+    S.options = h.table(dict(sleepOn=sleep_on))                # the options poll's sleep setting, NR.sleepOn()
+    try:
+        minute(h, p, record, 100.0)
+    finally:
+        S.options = saved
     return record["body"]["delta"]
 
 
@@ -930,6 +939,8 @@ def test_twenty_eight_hours_awake_is_minus_four(str_host):
     h = str_host
     assert _acute_delta(h, acute=dict(awakeH=28.0)) == pytest.approx(1 - 0.04, abs=1e-12)
     assert _acute_delta(h, acute=dict(awakeH=28.0), tod=8.0) == pytest.approx(1 - 0.02, abs=1e-12)
+    # Plan 16 Task 4: with sleep off there is no body clock, so no morning halving (and the hour of the world is not read)
+    assert _acute_delta(h, acute=dict(awakeH=28.0), tod=8.0, sleep_on=False) == pytest.approx(1 - 0.04, abs=1e-12)
 
 
 def test_caffeine_active_is_plus_two(str_host):

@@ -199,7 +199,12 @@ end
 -- The circadian factor on hunger at hourOfDay (0-24, the game clock): 1 + CIRCADIAN_A x
 -- cos(2 pi (hourOfDay - CIRCADIAN_PEAK_H) / 24), peaking at 19:50 and troughing at 07:50 (the multiplicative form and the game-clock phase are game choices; Scheer's model is additive). The writer applies
 -- keeps hungerTarget(Z, es) x circadian(h) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor(w, d) as h_model and writes it through K.hungerCurve under K.hybrid.caps, awake and asleep.
+-- The hour is the body clock's (K.circadian.hour, Plan 16); nil, with sleep off, is no rhythm: the factor is 1 (a game
+-- choice, Plan 16 spec section 6: the server has no sleep cycle and vanilla no hunger rhythm, so S1273 is set aside there).
 function K.satiety.circadian(hourOfDay)
+    if hourOfDay == nil then
+        return 1
+    end
     return 1 + K.satiety.CIRCADIAN_A * math.cos(6.283185307179586 * (hourOfDay - K.satiety.CIRCADIAN_PEAK_H) / 24)
 end
 

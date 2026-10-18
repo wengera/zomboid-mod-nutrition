@@ -144,8 +144,12 @@ def fast_events(kcal=MEAL_KCAL):
 
 
 def replay(events, minutes, knots=None):
-    """The server pipeline from a fresh record; knots (X[2] to X[6]) set on the kernel first. Returns (rows, backend)."""
-    be = RL.ServerReplay(hour_offset=HOUR_OFFSET, rng="half", sleep_allowed=False)
+    """The server pipeline from a fresh record; knots (X[2] to X[6]) set on the kernel first. Returns (rows, backend).
+    The daily rhythm reads the world hour (RL.WORLD_CLOCK, Plan 16 Task 4), as it did when fit-hunger-curve-20261017c
+    was fitted: the curve's fit and its gates keep the configuration they were read under, the sleep state still frozen
+    (sleep off). On a sleep-off server the shipped mod has no rhythm since that task; its readings there are Task 4's
+    report's, not this fit's."""
+    be = RL.ServerReplay(hour_offset=HOUR_OFFSET, rng="half", sleep_allowed=False, constants=RL.WORLD_CLOCK)
     if knots is not None:
         set_knots(be.K, knots)
     ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])   # none past the window

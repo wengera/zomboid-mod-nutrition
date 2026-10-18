@@ -543,6 +543,14 @@ def request_written(wh, ageH):
     return max(H_REQ, (1 - wh.K.satiety.mealRead(wh.K.satiety.MEAL_SEED_MAX)) * c)
 
 
+def body_clock(a, ageH):
+    """Plan 16 Task 4: the writer reads the body clock (record.acute.bodyHour under sleep on), not the world's; these
+    oracles (the hunger circadian, S1273) run with sleep on and the body clock on the world hour, as a player online
+    since the clock started reads it."""
+    a.bodyOn = True
+    a.bodyHour = (ageH + CLOCK_H) % 24
+
+
 def written_hunger(wh, a, ageH):
     """The model's hunger (h_model) the writer composes at world age ageH for a record whose acute table is the live record a, eaten at the
     request (see above). A fresh player name each call, so each meal is its own hoist."""
@@ -555,6 +563,7 @@ def written_hunger(wh, a, ageH):
     rec = record(wh, stomachFill=0.0, acute=a)
     rec.satiety.M = wh.K.satiety.seedMeal(H_REQ / c, 0, 1)
     rec.satiety.S = 0
+    body_clock(a, ageH)
     wh.NR.server.writer.step(name, p, rec, None)
     return rec.satiety.hModel        # h_model, before the calibrated curve (Plan 15 Task 6)
 
@@ -965,6 +974,7 @@ def nicotine_written(wh, ageH, w, anchorH):
     rec.satiety.M = wh.K.satiety.seedMeal(H_REQ / c, 0, 1)
     if anchorH is not None:
         rec.satiety.nicH = anchorH + CLOCK_H
+    body_clock(rec.acute, ageH)
     wh.NR.server.writer.step(name, p, rec, None)
     return rec.satiety.hModel        # h_model, before the calibrated curve (Plan 15 Task 6)
 

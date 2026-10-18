@@ -27,8 +27,16 @@ local K = NR.kernel
 -- A read that finds the kernel's active set on another value selects it once (K.acute.useStimulants), so the next step reads
 -- it and no step branches on the option; the effects rebuild key carries the set (NR_Server_Effects), so the hangover
 -- rows follow at the next minute; a hangover already counting down keeps the length its set gave it. It fires no changed hook.
+-- The Plan 16 sleep poll (Task 4, spec section 2.2): sleepOn, the server's SleepAllowed and SleepNeeded both true, read
+-- by NR.server.readSleep in every poll (two getBoolean calls and one getServerOptions a server minute, never per
+-- player), so an admin's live change takes effect at the next minute (no Lua event fires on a server-option change);
+-- the engine resets an out-of-handler FATIGUE write unless both are true (x151s, #2947), so with sleep off the sleep
+-- state freezes at rested (K.acute.sleepMinute) and the body clock does not run (K.circadian). The test copies the
+-- engine's own (IsoGameCharacter.calculateStats gates the reset on GameServer.server): sleep is off only on a server,
+-- isServer() and not (allowed and needed), so single player reads on. An unreadable option reads true. A change is
+-- logged; it fires no changed hook (the steps read NR.sleepOn() each minute).
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
-                      nutritionOn = false, onsetSpeed = 1.0,
+                      nutritionOn = false, onsetSpeed = 1.0, sleepOn = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
                       sexSpecific = false, stimulantRealism = 1, strength = K.strength.params(nil) }
 local O = NR.server.options
@@ -37,6 +45,21 @@ O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength
 local MODE_NAMES = { "managed", "overlay" }
 
 local readLeaf = K.readLeaf -- the one clamp rule (ruling 13-32)
+
+-- The server's sleep setting (the header): true unless this is a server whose SleepAllowed and SleepNeeded are not
+-- both true. Reads the options afresh; the steps read the polled copy through NR.sleepOn().
+function NR.server.readSleep()
+    if not NR.isServer() then return true end
+    local allowed, needed = true, true
+    if getServerOptions ~= nil then
+        local ok, so = pcall(getServerOptions)
+        local okA, a = NR.call(ok and so or nil, "getBoolean", "SleepAllowed")
+        if okA and type(a) == "boolean" then allowed = a end
+        local okN, n = NR.call(ok and so or nil, "getBoolean", "SleepNeeded")
+        if okN and type(n) == "boolean" then needed = n end
+    end
+    return allowed and needed
+end
 
 function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
@@ -52,6 +75,12 @@ function NR.server.readOptions(where)
     O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.sexSpecific = readLeaf(sv, "SexSpecific", false)
+    local oldSleep = O.sleepOn
+    O.sleepOn = NR.server.readSleep()
+    if O.sleepOn ~= oldSleep or where == "OnServerStarted" then
+        NR.log.say(2, "options: sleep " .. (O.sleepOn and "on" or "off")
+            .. (O.sleepOn and "" or ": the sleep state freezes at rested and the body clock stops"))
+    end
     O.stimulantRealism = readLeaf(sv, "StimulantRealism", 1, 1, 2)
     if O.stimulantRealism ~= K.acute.C.MODE then
         K.acute.useStimulants(O.stimulantRealism)

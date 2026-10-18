@@ -49,6 +49,7 @@ K.resume.KEPT = {
     ["body.trail.ch"] = "derived: the hour the closed sums were built for, on the trail's online clock",
     ["body.bornAge"] = "the age the body was made: read only as its record day, floor(bornAge / 24), against the day count dayIndex, which counts online closes",
     ["body.trail.at"] = "the trailing-24 h window's clock, which runs on online hours (Metabolism moves it by each step's own length), so it needs no move",
+    ["acute.bodyHour"] = "the body clock's phase, an hour of the day advanced only by integrated online hours (K.circadian.step), not a world age: an absence leaves it as the player left it",
 }
 
 -- The segments of a dotted path (a fresh array of strings).

@@ -92,10 +92,10 @@ def test_read_billed_returns_the_exercise_met_last_and_only_on_a_set_minute(mh):
     h = mh
     _fit(h, "burpees")
     p = player(h, rate=1.6, exe="flag", moving=False)
-    got = list(MET(h).readBilled("admin", p, 100.0))
+    got = list(MET(h).readBilled("admin", p))
     assert got[0] == "Fitness" and got[-1] == 7.5
     p = player(h, rate=3.1, exe=None, moving=False)
-    got = list(MET(h).readBilled("admin", p, 100.0))
+    got = list(MET(h).readBilled("admin", p))
     assert got[0] != "Fitness" and got[-1] is None
 
 
@@ -246,8 +246,9 @@ end
 """
 
 # The Java calls one flagged minute made at cbca565c (before this task), counted by this proxy on the same stand-in:
-# 32 then, 31 since the hyperthermia moodle read, which fed only the drain coefficient, went with it (Plan 12 3a).
-JAVA_CALLS_PER_SET_MINUTE = 31
+# 32 then, 31 since the hyperthermia moodle read, which fed only the drain coefficient, went with it (Plan 12 3a), 29
+# since Metabolism's unused hour of day (getGameTime and getTimeOfDay) went (Plan 16 Task 4).
+JAVA_CALLS_PER_SET_MINUTE = 29
 
 
 def _count(h, exe_type):
