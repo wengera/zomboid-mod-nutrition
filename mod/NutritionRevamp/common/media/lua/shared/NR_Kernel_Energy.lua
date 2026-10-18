@@ -249,8 +249,8 @@ function K.energy.atStep(at, target, deficitWeek, dtD)
     return at * math.exp(-dtD / K.energy.AT_TAU_OFF)
 end
 
--- One expenditure step of dtM game minutes (the caller clamps dtM to [0, 60]; offline time is not
--- integrated). REE per minute, reduced by adaptive thermogenesis, times the cold multiplier at rest
+-- One expenditure step of dtM game minutes (the pipeline bounds dtM at K.resume.STEP_M, the players' sub-steps;
+-- offline time never reaches it, the store's resume). REE per minute, reduced by adaptive thermogenesis, times the cold multiplier at rest
 -- (clamped to [1, COLD_MAX]); activity above MET_REST times the total mass fm + lm + lx per hour. Mutates body's day
 -- accumulators, balance and trailing-24 h window (ee and ex, body.trail's current hour); returns the energy spent
 -- and the activity part. Beside actKcalDay (net activity above 1 MET) it banks exKcalDay, the MET above the idle

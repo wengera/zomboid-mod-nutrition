@@ -12,7 +12,9 @@
 --
 -- The stall: a step longer than K.resume.STEP_M game minutes on the same player object (a slow server, the
 -- fast-forwarded night) is online time, never an absence. The players' minute integrates it in K.resume.substeps
--- equal sub-steps of at most STEP_M, so nothing the minute books (sleep included) is lost.
+-- equal sub-steps of at most STEP_M, so nothing the minute books (sleep included) is lost; a queue slot runs at most
+-- K.resume.SLOT_SUBSTEPS of them and the rest carry to the player's next minutes (Plan 16 Task 2 fix 1, ruling F2:
+-- a stall is integrated in full, never frozen, and no frame runs more than the cap).
 --
 -- Pure: Lua tables and numbers in and out, no Java. Slow-clock and join-time code with no fast region. This file
 -- sorts before NR_Kernel_Store.lua, so it keeps its own path splitter.
@@ -20,7 +22,7 @@ local K = NutritionRevamp.kernel
 K.resume = {}
 
 K.resume.STEP_M = 60 -- game minutes, not science (no row): the longest step an adapter integrates at once, the bound the adapters clamped a step at until Plan 16
-K.resume.MAX_SUBSTEPS = 24 -- not science (no row), Rule 6: a stall longer than a day of STEP_M sub-steps is a stopped server, not play; its excess is frozen as an absence, so one queue slot runs at most 24 pipelines
+K.resume.SLOT_SUBSTEPS = 4 -- not science (no row), Rule 6 (Plan 16 Task 2 fix 1): the pipelines one queue slot runs for a stall, read off the slot bench (task-2-report.md fix 1): four hour-long sub-steps cost 2.25 ms on the lupa host against 0.23 ms for a minute, about 10 to 13 ms in play at the 4.5-5.8 x host-to-play ratio of a minute (#3462, #3457), under the drain's 15 ms tick budget (#3497); five would pass it
 
 -- Every world-age stamp a record holds, by dotted path (a `*` segment is every key of the table at that level). The
 -- step stamps (the age each adapter last stepped at) and the anchors the mod reads elapsed world time from. A record
@@ -44,6 +46,7 @@ K.resume.STAMPS = {
 -- The fields that hold a world age and are never moved, with the reason.
 K.resume.KEPT = {
     firstSeen = "the age the record was made: identity, read only by the creation handler at the record's first sight",
+    ["body.trail.ch"] = "derived: the hour the closed sums were built for, on the trail's online clock",
     ["body.bornAge"] = "the age the body was made: read only as its record day, floor(bornAge / 24), against the day count dayIndex, which counts online closes",
     ["body.trail.at"] = "the trailing-24 h window's clock, which runs on online hours (Metabolism moves it by each step's own length), so it needs no move",
 }
@@ -151,20 +154,15 @@ function K.resume.resume(record, ageH)
 end
 
 -- The sub-steps of an online step from fromH to ageH: 1 when it is at most STEP_M (or either age is not finite), else
--- the fewest equal sub-steps of at most STEP_M, capped at MAX_SUBSTEPS. Second: the game hours past the cap, which the
--- caller freezes (K.resume.shift) before it integrates the rest (0 under the cap).
+-- the fewest equal sub-steps of at most STEP_M. The caller runs at most SLOT_SUBSTEPS of them a slot.
 function K.resume.substeps(fromH, ageH)
     if not K.finite(fromH) or not K.finite(ageH) then
-        return 1, 0
+        return 1
     end
     local stepH = K.resume.STEP_M / 60
     local spanH = ageH - fromH
     if spanH <= stepH then
-        return 1, 0
+        return 1
     end
-    local n = math.ceil(spanH / stepH - 1e-9)
-    if n <= K.resume.MAX_SUBSTEPS then
-        return n, 0
-    end
-    return K.resume.MAX_SUBSTEPS, spanH - K.resume.MAX_SUBSTEPS * stepH
+    return math.ceil(spanH / stepH - 1e-9)
 end

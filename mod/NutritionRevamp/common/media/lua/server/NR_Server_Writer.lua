@@ -443,7 +443,12 @@ function W.step(username, player, record, ctx)
     local eng = W.readEngine(username, h, player, ctx)
     local inp, out = W.input, W.output
     inp.dtS = 0
-    if h.ageH ~= nil then inp.dtS = (ageH - h.ageH) * 3600 end
+    local st = record.satiety                                       -- the stored step stamp, which the resume moves (fix 1, F3)
+    if type(st) == "table" and NR.finite(st.t) then
+        inp.dtS = (ageH - st.t) * 3600
+    elseif h.ageH ~= nil then
+        inp.dtS = (ageH - h.ageH) * 3600                            -- a stamp the satiety guard heals this minute
+    end
     h.ageH = ageH
     inp.mode = W.mode
     local D = record.drain

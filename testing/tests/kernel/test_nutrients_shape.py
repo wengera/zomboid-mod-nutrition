@@ -1557,11 +1557,13 @@ def test_an_offline_gap_moves_the_monotony_and_nicotine_anchors(nut_host):
 
 def test_a_stamp_laid_at_the_departure_minute_lands_on_the_return(nut_host):
     # Plan 12 B2 F1's successor (Plan 16 Task 2): a stamp laid at the last step's age lands exactly on the return's
-    # age (K.resume.moved), whatever the rounding of the gap, so the anchor reads the same elapsed time as at departure
+    # age (K.resume.moved), whatever the rounding of the gap (here last + (back - last) is not back), so the anchor reads
+    # the same elapsed time as at departure
     h = nut_host
     p = player(h)
-    record = fresh(h, p)
-    last, back = 159.21666666666667, 232.6
+    record = fresh(h, p, 10.0)
+    last, back = 16.166666666666668, 50.4
+    assert last + (back - last) != back
     alone(h, p, record, last)
     record["satiety"] = h.table({"nicH": last})
     h.G.NutritionRevamp.kernel.resume.resume(record, back)

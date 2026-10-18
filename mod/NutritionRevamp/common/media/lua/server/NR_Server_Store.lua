@@ -137,12 +137,15 @@ end
 -- a number sits) lays a fresh record in target's OWN table, so every handle held on it stays valid, and the character
 -- runs the fresh-character path (its sub-tables laid at first sight) instead of a raw table every step fails on. The
 -- record's mod state is lost; the username and its first sight are kept. Counted in S.stats.failures and logged.
-local function freshInPlace(username, target, firstSeen)
+-- lastSeen is stamped at the touch's world age ageH (when read), so the players' minute never reads the time since
+-- the first sight as a stall (Plan 16 Task 2 fix 1, F1).
+local function freshInPlace(username, target, firstSeen, ageH)
     local age = firstSeen
     if type(age) ~= "number" or age ~= age then age = NR.worldAge() end   -- nil when unread: P.work stamps lastSeen
     local rec = K.store.new(username, age)
     for k in pairs(target) do target[k] = nil end
     for k, v in pairs(rec) do target[k] = v end
+    if NR.finite(ageH) then target.lastSeen = ageH end
     return target
 end
 
@@ -154,7 +157,7 @@ function S.load(username, r, worldAgeHours)
         S.stats.failures = S.stats.failures + 1
         NR.log.say(1, "store: load failed for " .. tostring(username) .. ": " .. tostring(err) .. "; a fresh record laid")
         S.filled[username] = r
-        return freshInPlace(username, r, r.firstSeen)
+        return freshInPlace(username, r, r.firstSeen, worldAgeHours)
     end
     S.stats.loads = S.stats.loads + 1
     S.filled[username] = r
@@ -308,7 +311,7 @@ function S.recover(username, record, raw)
     if not ok then
         S.stats.failures = S.stats.failures + 1
         NR.log.say(1, "store: load failed for " .. tostring(username) .. " (recovery): " .. tostring(err) .. "; a fresh record laid")
-        freshInPlace(username, record, record.firstSeen)
+        freshInPlace(username, record, record.firstSeen, NR.worldAge())
         return
     end
     S.filled[username] = record

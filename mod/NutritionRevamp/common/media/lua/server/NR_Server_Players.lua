@@ -58,29 +58,25 @@ end
 
 -- The minute's pipeline from the record's last step (lastSeen) to age, on the same player object (an absence never
 -- reaches here: the store's resume moved lastSeen at the sight). A step of at most K.resume.STEP_M runs once; a longer
--- one is an online stall (a slow server, the fast-forwarded night), run in K.resume.substeps equal sub-steps so nothing
--- it books is lost (Plan 16 Task 2, spec section 1.1), its excess past K.resume.MAX_SUBSTEPS frozen first
--- (K.resume.shift). Each run stamps lastSeen at its own age. Counted in P.stalls and P.substeps.
+-- one is an online stall (a slow server, the fast-forwarded night), split into K.resume.substeps equal sub-steps so
+-- nothing it books is lost (Plan 16 Task 2, spec section 1.1). One slot runs at most K.resume.SLOT_SUBSTEPS of them
+-- (Rule 6, fix 1 ruling F2): lastSeen stays at the last run's age, and the player's next minutes carry on from there
+-- until the stall is integrated in full. Each run stamps lastSeen at its own age. Counted in P.stalls (slots that ran
+-- more than one sub-step or left some to carry) and P.substeps (the sub-steps those slots ran).
 function P.integrate(username, player, r, age)
     local from = r.lastSeen
-    local n, frozenH = K.resume.substeps(from, age)
-    if frozenH > 0 then
-        K.resume.shift(r, frozenH)
-        from = from + frozenH
-        NR.log.say(2, "players: a stall of " .. tostring(username) .. " past " .. tostring(K.resume.MAX_SUBSTEPS)
-            .. " sub-steps; " .. tostring(frozenH) .. " game hours frozen")
-    end
+    local n = K.resume.substeps(from, age)
+    local runs = K.min(n, K.resume.SLOT_SUBSTEPS)
     if n > 1 then
         P.stalls = P.stalls + 1
-        P.substeps = P.substeps + n
+        P.substeps = P.substeps + runs
     end
-    for i = 1, n - 1 do
-        local a = from + (age - from) * i / n
+    for i = 1, runs do
+        local a = age
+        if i < n then a = from + (age - from) * i / n end
         r.lastSeen = a
         NR.server.minute.run(username, player, r, a)
     end
-    r.lastSeen = age
-    NR.server.minute.run(username, player, r, age)
 end
 
 -- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends

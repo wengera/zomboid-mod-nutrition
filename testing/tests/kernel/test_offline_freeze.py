@@ -127,6 +127,40 @@ def stamp_paths(h, rec_leaves):
     return {k for k in rec_leaves if any(pt.match(k) for pt in pats)}
 
 
+# Every pipeline run's age and its Nutrients dtM (read where the Effects step receives it), and the runs each queue
+# slot made (P.runOne), so a stall's sub-steps and the slot cap are visible.
+RUNLOG = r"""
+function(log)
+    log.slots = {}
+    local MIN = NutritionRevamp.server.minute
+    local run = MIN.run
+    MIN.run = function(u, p, r, a)
+        log.slot = (log.slot or 0) + 1
+        log[#log + 1] = { age = a }
+        return run(u, p, r, a)
+    end
+    local eff = MIN.steps.effects
+    MIN.steps.effects = function(u, p, r, ctx)
+        if ctx ~= nil and #log > 0 then log[#log].dtM = ctx.dtM end
+        return eff(u, p, r, ctx)
+    end
+    local P = NutritionRevamp.server.players
+    local one = P.runOne
+    P.runOne = function(name)
+        log.slot = 0
+        one(name)
+        log.slots[#log.slots + 1] = log.slot
+    end
+end
+"""
+
+
+def runlog(h):
+    log = h.rt.eval("{}")
+    h.rt.eval(RUNLOG)(log)
+    return log
+
+
 def leave_and_return(h, p, dep, gap_h, eat_first=False):
     """The player leaves after the minute at dep, the minute sees it gone, and it returns gap_h game hours after dep as
     a new object carrying its stats and macro stores. eat_first lands the trace's Steak with the new object before the
@@ -201,6 +235,134 @@ def test_a_reconnect_the_minute_never_saw_is_still_a_sight():
     assert stats1 == stats0
 
 
+def test_a_load_failure_at_the_return_integrates_none_of_the_absence():
+    # fix 1 F1: a slot file that does not load lays a fresh record in place; its lastSeen is the touch's age, so the
+    # players' minute reads no stall and none of the 72 h away is lived (until fix 1 it ran 24 sub-steps of it)
+    h = host()
+    p, dep = play(h)
+    store = h.NR.server.store
+    h.online()
+    minute(h, dep + 1 / 60.0)
+    bad = h.K.store.inputsOnly(h.record(NAME))  # the file's copy, a new table
+    bad.body.fm = "corrupt"
+    store.records[NAME] = bad
+    q = new_player(h, sv={k: p.sv[k] for k in STATS})
+    h.online(q)
+    minute(h, dep + 72.0)
+    P = h.NR.server.players
+    assert store.stats.failures == 1 and P.stalls == 0 and P.substeps == 0
+    r = h.record(NAME)
+    assert r.lastSeen == dep + 72.0
+    assert r.acute is None or r.acute.awakeH <= 1 / 60.0 + 1e-9
+
+
+def unseen_reconnect(h, p, dep, gap_h):
+    """A new object in place of p between two minutes (no departure seen), the clock gap_h on; returns it."""
+    sv = {k: p.sv[k] for k in ("HUNGER", "THIRST", "FATIGUE", "NICOTINE_WITHDRAWAL")}
+    q = new_player(h, sv=sv, nut={k: p.nut[k] for k in ("cal", "carb", "lip", "pro", "weight")})
+    h.online(q)
+    h.T.age = dep + gap_h
+    return q
+
+
+def test_an_eat_as_the_first_touch_of_an_unseen_reconnect_resumes_before_it_lands():
+    # fix 1 F6 (i): the eat passes its eater, so the store sees a new object and resumes at the eat, before the landing
+    h0 = host()
+    _, dep0 = play(h0)
+    h0.T.age = dep0
+    h0.T.eat(10, NAME)
+    n0 = h0.record(NAME).monotony.t["Base.Steak"].n
+    h = host()
+    p, dep = play(h)
+    unseen_reconnect(h, p, dep, 2.0)
+    h.T.eat(10, NAME)                           # before the minute: the eat is the sight's first touch
+    assert h.NR.server.store.stats.resumes == 1
+    assert h.record(NAME).monotony.t["Base.Steak"].n == pytest.approx(n0, rel=1e-12)
+
+
+def test_a_mirror_request_as_the_first_touch_of_an_unseen_reconnect_resumes():
+    # fix 1 F6 (ii): the bus passes the requesting object
+    h = host()
+    p, dep = play(h)
+    q = unseen_reconnect(h, p, dep, 2.0)
+    h.fire("OnClientCommand", "NutritionRevamp", "mirror.request", q, None)
+    assert h.NR.server.store.stats.resumes == 1
+
+
+def test_a_respawn_holds_its_new_object_as_the_sight():
+    # fix 1 F6 (iii): the reset takes OnNewGame's object, so the next minute neither resumes nor reads a stall
+    h = host()
+    p, dep = play(h)
+    q = new_player(h)
+    h.T.age = dep + 1 / 60.0
+    h.fire("OnNewGame", q, None)
+    assert h.G.rawequal(h.NR.server.store.loaded[NAME], q)
+    h.online(q)
+    minute(h, dep + 2 / 60.0)
+    assert h.NR.server.store.stats.resumes == 0 and h.NR.server.players.stalls == 0
+
+
+def test_a_first_touch_with_no_clock_leaves_the_sight_open_for_the_resume():
+    # fix 1 F6 (iv): an unread world age loads but does not resume, and leaves the sight unmarked, so the next touch
+    # with a clock resumes
+    h = host()
+    p, dep = play(h)
+    q = unseen_reconnect(h, p, dep, 2.0)
+    S = h.NR.server.store
+    S.get(NAME, None, q)
+    assert S.stats.resumes == 0 and h.G.rawequal(S.loaded[NAME], p)
+    S.get(NAME, dep + 2.0, q)
+    assert S.stats.resumes == 1 and h.G.rawequal(S.loaded[NAME], q)
+
+
+def test_a_sight_opened_with_no_object_adopts_the_first_one():
+    # fix 1 F6: a first touch naming no object marks the sight true; the next touch with an object adopts it, so a
+    # later reconnect with another object is a new sight
+    h = host()
+    p, dep = play(h)
+    S = h.NR.server.store
+    h.online()
+    minute(h, dep + 1 / 60.0)                   # the departure, seen
+    S.get(NAME, dep + 1.0, None)                # a touch with no object (a resume)
+    assert S.stats.resumes == 1 and S.loaded[NAME] is True
+    q = new_player(h)
+    S.get(NAME, dep + 1.0, q)
+    assert h.G.rawequal(S.loaded[NAME], q) and S.stats.resumes == 1
+    q2 = new_player(h)
+    S.get(NAME, dep + 3.0, q2)
+    assert S.stats.resumes == 2
+
+
+def test_a_recovered_record_is_resumed():
+    # fix 1 F6 (v): a record found in its file after a failed first read is filled from the file and resumed, so the
+    # file's departure stamps move by the gap
+    h = host()
+    p, dep = play(h)
+    raw = h.K.store.inputsOnly(h.record(NAME))
+    S = h.NR.server.store
+    rec = h.K.store.new(NAME, dep + 72.0)
+    S.records[NAME] = rec
+    h.T.age = dep + 72.0
+    S.recover(NAME, rec, raw)
+    assert S.stats.resumes == 1
+    assert rec.lastSeen == dep + 72.0 and rec.body.lastAgeH == dep + 72.0 and rec.kineticsAge == dep + 72.0
+
+
+def test_the_writer_steps_from_the_resumed_stamp_when_the_same_object_returns():
+    # fix 1 F3: a departure the minute saw, then the same object back 30 minutes on: the store resumes the record, and
+    # the writer's first step back reads its step from the stamp the resume moved (satiety.t), never from its hoist's
+    # age, so S and the regeneration units step one online minute, not the half hour away
+    h = host()
+    p, dep = play(h)
+    h.online()
+    minute(h, dep + 1 / 60.0)
+    h.online(p)
+    minute(h, dep + 0.5)                        # the return minute: resumed, runs nothing
+    minute(h, dep + 0.5 + 1 / 60.0)
+    assert h.NR.server.store.stats.resumes == 1
+    assert h.NR.server.writer.input.dtS == pytest.approx(60.0, abs=1e-6)
+
+
 def test_a_restart_while_away_changes_nothing_and_writes_nothing_at_the_return():
     # the record read back from its slot file holds only its inputs (K.store.inputsOnly): the load fills it and the
     # resume moves its stamps; the return minute runs nothing, so no stat is written from a record whose derived fields
@@ -243,28 +405,47 @@ def test_a_stall_online_integrates_every_hour_in_sub_steps_and_keeps_the_booked_
     a = h.record(NAME).acute
     slept0, win0, lean0 = a.winSleptH, a.winStartH, h.record(NAME).body.lm
     assert a.sleptH > 0 and slept0 > 0
+    log = runlog(h)
     minute(h, START + 30 / 60.0 + 3.0, 31)      # the stall
     P = h.NR.server.players
     assert P.stalls == 1 and P.substeps == 3
+    runs = [log[i] for i in range(1, len(log) + 1)]
+    assert [r.age for r in runs] == pytest.approx([START + 30 / 60.0 + k for k in (1.0, 2.0, 3.0)], abs=1e-12)
+    assert [r.dtM for r in runs] == pytest.approx([60.0, 60.0, 60.0], abs=1e-9)   # each sub-step at its own age (fix 1, F4)
     assert a.winStartH == win0                  # the window did not close in the stall
     assert a.winSleptH == pytest.approx(slept0 + 3.0, abs=1e-9)
     assert h.record(NAME).lastSeen == START + 30 / 60.0 + 3.0
     assert h.NR.server.store.stats.resumes == 0
 
 
-def test_a_stall_past_a_day_of_sub_steps_freezes_its_excess():
+def test_a_30_hour_stall_is_integrated_in_full_over_the_next_minutes_with_no_slot_over_the_cap():
+    # fix 1 ruling F2 (the successor of test_a_stall_past_a_day_of_sub_steps_freezes_its_excess): nothing is frozen;
+    # each queue slot runs at most K.resume.SLOT_SUBSTEPS pipelines of at most 60 minutes, and the player's next
+    # minutes carry the rest until lastSeen meets the world age, so every hour of the stall is integrated
     h = host()
     p = new_player(h)
     h.online(p)
     for m in range(1, 4):
         minute(h, START + m / 60.0, m)
     r = h.record(NAME)
-    day0 = r.body.dayStartH
-    minute(h, START + 3 / 60.0 + 30.0, 4)       # 30 h on the same object: 24 sub-steps, 6 h frozen
-    P = h.NR.server.players
-    assert P.stalls == 1 and P.substeps == 24
-    assert r.body.dayStartH == pytest.approx(day0 + 6.0 + 24.0, abs=1e-9)   # moved 6 h, then one close
-    assert r.body.dayIndex == math.floor(START / 24) + 1
+    cap = h.K.resume.SLOT_SUBSTEPS
+    log = runlog(h)
+    t0 = r.lastSeen
+    age = START + 3 / 60.0 + 30.0
+    minute(h, age, 4)                           # 30 h on the same object
+    for k in range(1, 40):
+        if r.lastSeen == age:
+            break
+        age = age + 1 / 60.0
+        minute(h, age, 4 + k)
+    assert r.lastSeen == age and k > 5          # caught up, over several minutes
+    slots = [log.slots[i] for i in range(1, len(log.slots) + 1)]
+    assert max(slots) == cap and all(n <= cap for n in slots)
+    runs = [log[i] for i in range(1, len(log) + 1)]
+    assert all(x.dtM is not None and x.dtM <= 60.0 + 1e-9 for x in runs)
+    assert sum(x.dtM for x in runs) == pytest.approx((age - t0) * 60.0, abs=1e-6)   # the whole span, nothing frozen
+    assert r.body.dayIndex == math.floor(START / 24) + 2   # two record days closed inside the stall (at 120 and 144)
+    assert h.NR.server.store.stats.resumes == 0
 
 
 def test_an_eat_before_the_first_step_back_decays_no_monotony_across_the_gap():

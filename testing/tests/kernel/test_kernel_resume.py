@@ -44,9 +44,9 @@ def test_the_stamp_list_names_every_world_age_clock(host):
     assert lst(R(host).SEGS[13]) == ["monotony", "t", "*", "last"]
     assert lst(R(host).split("lastSeen")) == ["lastSeen"]
     kept = host.py(R(host).KEPT)
-    assert sorted(kept) == ["body.bornAge", "body.trail.at", "firstSeen"]
+    assert sorted(kept) == ["body.bornAge", "body.trail.at", "body.trail.ch", "firstSeen"]
     assert not set(kept) & set(stamps)
-    assert R(host).STEP_M == 60 and R(host).MAX_SUBSTEPS == 24
+    assert R(host).STEP_M == 60 and R(host).SLOT_SUBSTEPS == 4 and R(host).MAX_SUBSTEPS is None
 
 
 def test_from_h_is_the_latest_finite_step_stamp(host):
@@ -100,8 +100,10 @@ def test_shift_leaves_absent_or_unreadable_tables_and_stamps(host):
 
 def test_a_stamp_at_the_last_step_lands_on_the_touch_exactly(host):
     # Plan 12 B2 F1's successor: a stamp laid at the departure minute lands on the return's age with no rounding, so
-    # the first step back integrates exactly 0 (159.21666666666667 + (232.6 - 159.21666666666667) is not 232.6)
-    last, back = 159.21666666666667, 232.6
+    # the first step back integrates exactly 0 (16.166666666666668 + (50.4 - 16.166666666666668) is 50.400000000000006,
+    # not 50.4: the gap does not round-trip, fix 1 F5)
+    last, back = 16.166666666666668, 50.4
+    assert last + (back - last) != back
     r = full_record(host, last)
     gap = R(host).resume(r, back)
     assert gap == back - last
@@ -120,18 +122,16 @@ def test_resume_moves_nothing_without_a_gap_a_clock_or_a_step(host):
 
 
 @pytest.mark.parametrize("span_m,want", [
-    (0.0, (1, 0)), (60.0, (1, 0)),                          # at the bound: one step
-    (60.9375, (2, 0)), (180.0, (3, 0)),                     # past it: the fewest equal sub-steps of at most 60
-    (24 * 60.0, (24, 0)),                                   # a day of sub-steps: the cap, nothing frozen
-    (24 * 60.0 + 30.0, (24, 0.5)),                          # past the cap: the excess frozen
-    (-30.0, (1, 0)),                                        # a world behind: one step (the adapters clamp it at 0)
+    (0.0, 1), (60.0, 1),                                    # at the bound: one step
+    (60.9375, 2), (180.0, 3),                               # past it: the fewest equal sub-steps of at most 60
+    (30 * 60.0, 30),                                        # no cap here: the players' slot runs SLOT_SUBSTEPS of them
+    (-30.0, 1),                                             # a world behind: one step (the adapters clamp it at 0)
 ])
 def test_substeps_split_an_online_stall(host, span_m, want):
     # the successor of test_the_gap_threshold_is_k_body_gap_m: the ages are exact in binary, so the 60.9375-minute
     # span kills a `> 61` mutant and the 60-minute one a `> 59`
-    n, frozen = R(host).substeps(100.0, 100.0 + span_m / 60)
-    assert (n, frozen) == pytest.approx(want)
+    assert R(host).substeps(100.0, 100.0 + span_m / 60) == want
 
 
 def test_substeps_of_an_unread_age_is_one_step(host):
-    assert R(host).substeps(None, 5.0) == (1, 0) and R(host).substeps(5.0, NAN) == (1, 0)
+    assert R(host).substeps(None, 5.0) == 1 and R(host).substeps(5.0, NAN) == 1
