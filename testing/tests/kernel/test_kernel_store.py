@@ -189,11 +189,11 @@ def test_inputs_are_dotted_strings(host):
 
 # Plan 13 Task 12: the lean-mass body's inputs, and the Plan 3 fields no longer saved.
 NEW_BODY_INPUTS = ("body.F0", "body.Fc", "body.Pk", "body.lx", "body.grace", "body.sigDay", "body.sig7.*", "body.S",
-                   "body.fatT", "body.thinT", "body.band", "body.wroteL", "body.wday", "body.N0", "body.T",
+                   "body.fatT", "body.thinT", "body.band", "body.wroteL", "body.dayStartH", "body.N0", "body.T",
                    "body.Tgrace")
 REMOVED_BODY_PATHS = ("body.fm0", "body.lm0", "body.l0", "body.r", "body.traitCarry", "body.strAgeH", "body.vStr",
                       "body.vHyp", "body.vStrHigh", "body.n", "body.nPeak", "body.tPeakD", "body.nHist.*",
-                      "body.cumDef", "body.shownL", "body.riseHeldH", "body.lastFallAge")
+                      "body.cumDef", "body.shownL", "body.riseHeldH", "body.lastFallAge", "body.wday")
 
 
 def test_the_lean_mass_body_fields_are_inputs_and_the_plan_3_ones_are_not(host):
@@ -209,14 +209,14 @@ def test_every_new_input_round_trips_and_a_removed_field_is_dropped(host):
     raw = stored(host)
     b = raw["body"]
     for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "vStr", "vHyp", "vStrHigh", "n", "nPeak", "tPeakD",
-              "cumDef", "shownL", "riseHeldH", "lastFallAge"):
+              "cumDef", "shownL", "riseHeldH", "lastFallAge", "wday"):
         b[k] = 1.25
     b["nHist"] = host.table({1: 0.4})
     b["F0"] = b["F0"] + 0.5
     b["Fc"] = b["Fc"] - 0.5
     b["N0"] = 1.07
     b["thinT"] = 0
-    b["wday"] = 3
+    b["dayStartH"] = 75.5
     saved = S(host).inputsOnly(raw)
     text = host.K.json.encode(saved, host.rt.eval("function(x) return string.format('%.17g', x) end"))
     decoded, err = host.K.json.decode(text)
@@ -227,7 +227,7 @@ def test_every_new_input_round_trips_and_a_removed_field_is_dropped(host):
         k = p.split(".")[1]
         assert got[k] == want[k], k
     for k in ("fm0", "lm0", "l0", "r", "traitCarry", "strAgeH", "vStr", "vHyp", "vStrHigh", "n", "nPeak", "tPeakD",
-              "nHist", "cumDef", "shownL", "riseHeldH", "lastFallAge"):
+              "nHist", "cumDef", "shownL", "riseHeldH", "lastFallAge", "wday"):
         assert k not in got, k
 
 
@@ -277,9 +277,10 @@ def test_the_default_body_is_built_with_the_servers_strength_table(host):
 
 
 def test_the_record_calendar_is_an_input(host):
-    # Plan 13 Task 4 (ruling 13-5): the world day of the open record day is saved beside the record's day count
+    # Plan 13 Task 4 (ruling 13-5); Plan 16 Task 2: the open record day's start (an online-hours anchor the resume
+    # moves) is saved beside the record's day count, and the world day it replaced is not
     paths = lst(S(host).INPUTS)
-    assert "body.wday" in paths and "body.dayIndex" in paths
+    assert "body.dayStartH" in paths and "body.dayIndex" in paths and "body.wday" not in paths
 
 
 def test_identity_fields_are_inputs(host):

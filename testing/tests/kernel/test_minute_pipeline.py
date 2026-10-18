@@ -139,7 +139,9 @@ def _minute(h, age):
     h.tick(golden_trace.TICKS)
 
 
-def test_the_effects_step_reads_this_minutes_body_dtm_and_age_after_a_30_minute_gap():
+def test_the_effects_step_reads_this_minutes_body_dtm_and_age_after_a_30_minute_absence():
+    # Plan 16 Task 2 (until then the return minute integrated the 30 minutes away): the store's resume freezes the
+    # absence, so the return minute integrates nothing (Nutrients dtM 0, no Effects step) and the next minute steps one
     h = golden_trace.new_host()
     log = h.rt.eval("{}")
     h.rt.eval(RECORDER)(log)
@@ -162,14 +164,16 @@ def test_the_effects_step_reads_this_minutes_body_dtm_and_age_after_a_30_minute_
     h.online(g1)                                        # and returns, 30 game minutes after its last minute
     log.forceLethal = True
     _minute(h, start + 33 / 60.0)
+    assert len(log) == 2                                # the return minute: nothing integrated
+    _minute(h, start + 34 / 60.0)
     assert len(log) == 3
     e = log[3]
     assert e.bodyIsRecord is True
-    assert abs(e.dtM - 30.0) < 1e-9
-    assert e.ageH == start + 33 / 60.0 and e.ageH == e.age
+    assert abs(e.dtM - 1.0) < 1e-9
+    assert e.ageH == start + 34 / 60.0 and e.ageH == e.age
     assert e.state == 6 and e.drain > 0                 # the dehydration state, its floor 0 past the death point
     assert e.reduced == e.drain                         # the whole of rate x dtM: health is far above the floor
-    assert abs(e.drain - e.rate * 30 / 1440) < 1e-12 * e.rate
+    assert abs(e.drain - e.rate * 1 / 1440) < 1e-12 * e.rate
 
 
 def test_the_effects_step_is_skipped_when_nutrients_did_not_reach_its_end():

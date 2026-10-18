@@ -500,47 +500,6 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     return a
 end
 
--- Skip gapH game hours the adapter does not integrate (an offline gap past the step's cap from fromH; every offline
--- skip takes gapH, then fromH): every world-age anchor laid at or before fromH moves forward by the gap -- the sleep
--- window's start, the 90-day mass stamp, the last fed minute (the adapter's lastFedAgeH) and the last band-2 minute --
--- so no window closes, and no fasting, vigorous or mass clock runs, over time the model never saw. An anchor laid after
--- fromH was laid at the return (an eat in the return minute) and stays. Offline time is not simulated (README).
-function K.acute.skip(a, gapH, fromH)
-    if a.winStartH <= fromH then
-        a.winStartH = a.winStartH + gapH
-    end
-    if a.mass90ageH <= fromH then
-        a.mass90ageH = a.mass90ageH + gapH
-    end
-    if a.lastFedAgeH <= fromH then
-        a.lastFedAgeH = a.lastFedAgeH + gapH
-    end
-    if a.lastVigAgeH <= fromH then
-        a.lastVigAgeH = a.lastVigAgeH + gapH
-    end
-    return a
-end
-
--- The record's one offline skip (the adapter's call when its capped step from fromH leaves gapH game hours
--- unintegrated): the acute anchors (K.acute.skip), and every monotony stamp (K.monotony.skip), the writer's nicotine
--- anchor satiety.nicH and the drain's unfed stamp drain.fedAgeH laid by fromH, move forward by the gap, so no world-age clock the mod reads counts the time
--- offline: an absence neither fades a repeated food nor counts toward a quit. A stamp laid after fromH was laid at the
--- return (an eat before the first step back) and stays. A nicH that is absent or not a finite number is left for the
--- writer's own heal. Returns the record.
-function K.acute.skipRecord(record, gapH, fromH)
-    K.acute.skip(record.acute, gapH, fromH)
-    K.monotony.skip(record.monotony, gapH, fromH)
-    local s = record.satiety
-    if type(s) == "table" and K.finite(s.nicH) and s.nicH <= fromH then
-        s.nicH = s.nicH + gapH
-    end
-    local D = record.drain
-    if type(D) == "table" and K.finite(D.fedAgeH) and D.fedAgeH <= fromH then
-        D.fedAgeH = D.fedAgeH + gapH                    -- the unfed clock (K.drain.unfedH), as lastFedAgeH (Plan 15 Task 6 fix 2)
-    end
-    return record
-end
-
 -- The sleep term of the impairment unit: 0 at 16 h awake, 1 at 24 h (S0892), plus debt / 10.5, cap 1.5.
 function K.acute.iuSleep(a)
     local A = K.acute

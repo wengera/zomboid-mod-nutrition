@@ -558,41 +558,6 @@ def test_sleep_long_step_closes_every_window(host):
     assert _close(a.winStartH, 48.0)
 
 
-def test_skip_moves_every_age_anchor_by_the_gap(host):
-    # time the adapter does not integrate (an offline gap) moves the world-age anchors forward by it, so no window,
-    # fasting clock, vigorous latch or 90-day mass window counts the gap (lastFedAgeH is the adapter's stamp)
-    A = host.K.acute
-    a = _new(host, 10.0)
-    a.lastFedAgeH = 12.0
-    a.lastVigAgeH = 11.0
-    A.skip(a, 72.0, 17.0)
-    assert a.winStartH == 82.0 and a.mass90ageH == 82.0 and a.lastFedAgeH == 84.0 and a.lastVigAgeH == 83.0
-
-
-def test_skip_leaves_an_anchor_laid_in_the_return_minute(host):
-    # a lastFedAgeH stamped at the return (ageH, after the step's start fromH) is not shifted again by the gap
-    A = host.K.acute
-    a = _new(host, 10.0)
-    a.lastFedAgeH = 100.0
-    a.lastVigAgeH = 100.0
-    A.skip(a, 72.0, 17.0)
-    assert a.lastFedAgeH == 100.0 and a.lastVigAgeH == 100.0
-    assert a.winStartH == 82.0 and a.mass90ageH == 82.0
-
-
-def test_a_night_slept_then_a_skipped_gap_books_no_debt(host):
-    # 16 h awake and 8 h asleep close a window with no debt; 72 h skipped, then one integrated hour, books none
-    A = host.K.acute
-    a = _new(host, 0.0)
-    t = _awake(host, a, 16.0, 0.0)
-    t = _sleep(host, a, 8.0, t)
-    assert a.debtH == 0 and _close(a.winStartH, 24.0, 1e-6)
-    a.lastFedAgeH = t
-    A.skip(a, 72.0, t)
-    A.sleepMinute(a, False, 9.0, 1.0, t + 73.0, 1.0, False)
-    assert a.debtH == 0 and _close(a.winStartH, 96.0, 1e-6)
-
-
 def test_sleep_window_long_sleep_repays(host):
     a = _new(host, 0.0)
     a.debtH = 2.5
@@ -1040,45 +1005,6 @@ def test_iu_stores_the_sleep_term(host):
     A.iu(a, 0, 1)
     assert _close(a.iuSleep, 0.5)  # the term before the caffeine credit
     assert a.iu == 0
-
-
-def test_skip_record_moves_the_acute_monotony_and_nicotine_anchors(host):
-    # Plan 12 B8: the record's one offline skip -- the acute anchors (K.acute.skip), and every monotony stamp and the
-    # writer's nicotine anchor laid by the step's start (17), move forward by the gap; a stamp laid at the return stays
-    a = _new(host, 10.0)
-    a.lastFedAgeH = 12.0
-    a.lastVigAgeH = 11.0
-    rec = host.table({"monotony": {"t": {"Base.Bread": {"n": 2.0, "last": 10.0},
-                                         "Base.Apple": {"n": 1.0, "last": 88.0},
-                                         "Base.Edge": {"n": 1.0, "last": 17.0},
-                                         "Base.Odd": "corrupt"}},
-                      "satiety": {"nicH": 5.0}})
-    rec.acute = a
-    host.K.acute.skipRecord(rec, 72.0, 17.0)
-    assert a.winStartH == 82.0 and a.lastFedAgeH == 84.0
-    t = rec.monotony.t
-    assert t["Base.Bread"].last == 82.0 and t["Base.Bread"].n == 2.0
-    assert t["Base.Apple"].last == 88.0                         # an eat at the return: not moved
-    assert t["Base.Odd"] == "corrupt"                           # left for the heal
-    assert t["Base.Edge"].last == 89.0                          # stamped at the step's start: moved
-    assert rec.satiety.nicH == 77.0
-    rec.satiety.nicH = 50.0                                     # laid after the start: not moved
-    host.K.acute.skipRecord(rec, 72.0, 17.0)
-    assert rec.satiety.nicH == 50.0
-
-
-def test_skip_record_leaves_absent_or_unreadable_monotony_and_nicotine(host):
-    for extra in ({}, {"monotony": "x", "satiety": "y"}, {"monotony": {"t": 3}, "satiety": {"nicH": float("nan")}}):
-        rec = host.table(extra)
-        rec.acute = _new(host, 10.0)
-        rec.acute.lastFedAgeH = 10.0                            # the adapter's stamp
-        host.K.acute.skipRecord(rec, 5.0, 20.0)
-        assert rec.acute.winStartH == 15.0
-    rec = host.table({"satiety": {}})
-    rec.acute = _new(host, 10.0)
-    rec.acute.lastFedAgeH = 10.0
-    host.K.acute.skipRecord(rec, 5.0, 20.0)
-    assert rec.satiety.nicH is None
 
 
 # --- the shared height (Plan 13 Task 4, ruling 13-4) ---

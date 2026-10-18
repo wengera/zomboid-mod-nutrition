@@ -42,9 +42,15 @@
 -- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
 -- newest slot when the record is not in memory, then runs K.store.fillInPlace on the record: the inputs are kept,
 -- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
--- on it reads the loaded record with no re-point. The load is idempotent and runs at every first sight (derived on
--- read). A departure forgets the sight, so a return loads again, and queues the record's flush as one task. A load
--- that raises lays a fresh record in place, counted and logged.
+-- on it reads the loaded record with no re-point. The load is idempotent and runs once per record table this uptime
+-- (S.filled): a record held in memory since its fill keeps its derived fields at a return, so it comes back exactly as
+-- it left. Then, at every first touch of a sight, the resume (K.resume.resume, Plan 16 Task 2): every world-age stamp
+-- moved past the absence, so nothing about the character changes offline, and the players' minute runs nothing at the
+-- return (S.takeResumed): the first step back is the next minute, from the stamps the resume laid, so a record read
+-- from a file rebuilds its derived fields before any stat is written. A sight is keyed on the player object: a
+-- departure forgets it (and queues the record's flush as one task), and a touch with a player object other than the
+-- sight's (a reconnect the minute's walk never saw leave) starts a new one; a stall on the same object is no sight. A
+-- load that raises lays a fresh record in place, counted and logged.
 --
 -- The writes ride the players' queue: a player's slot is written at most once a real minute from
 -- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
@@ -69,7 +75,7 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
-                    fresh = {}, stats = { loads = 0, created = 0, failures = 0 },
+                    fresh = {}, filled = {}, resumed = {}, stats = { loads = 0, created = 0, failures = 0, resumes = 0, resumedH = 0 },
                     file = { root = nil, index = {}, indexGen = 0, indexAt = nil, gen = {}, at = {}, lastWrite = {},
                              last = {}, lastIndex = nil, indexDirty = false, lastIndexWrite = nil, repairWarned = {},
                              lastPrune = nil, fmt = tostring, warned = false,
@@ -140,17 +146,33 @@ local function freshInPlace(username, target, firstSeen)
     return target
 end
 
--- The load of a stored record r, in place (the header). Returns r.
-function S.load(username, r)
+-- The load of a stored record r, in place, then its resume at world age worldAgeHours (the header). Returns r.
+function S.load(username, r, worldAgeHours)
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records, NR.sexSpecific(), NR.strengthP())
     if not ok then
         S.stats.failures = S.stats.failures + 1
         NR.log.say(1, "store: load failed for " .. tostring(username) .. ": " .. tostring(err) .. "; a fresh record laid")
+        S.filled[username] = r
         return freshInPlace(username, r, r.firstSeen)
     end
     S.stats.loads = S.stats.loads + 1
+    S.filled[username] = r
+    S.resume(username, r, worldAgeHours)
     return r
+end
+
+-- The resume of a loaded record at world age ageH (K.resume.resume): the gap moved is counted in S.stats.resumes and
+-- S.stats.resumedH (game hours) and marks the username for S.takeResumed. An unread age moves nothing; S.get then
+-- leaves the sight unmarked, so the next touch with a clock read resumes the record.
+function S.resume(username, r, ageH)
+    local gapH = K.resume.resume(r, ageH)
+    if gapH > 0 then
+        S.resumed[username] = true
+        S.stats.resumes = S.stats.resumes + 1
+        S.stats.resumedH = S.stats.resumedH + gapH
+        NR.log.say(3, "store: " .. tostring(username) .. " resumed after " .. tostring(gapH) .. " game hours away")
+    end
 end
 
 -- The file root: NutritionRevamp/<server name>/ under the Lua cache folder (the folder is per host, J2).
@@ -289,8 +311,10 @@ function S.recover(username, record, raw)
         freshInPlace(username, record, record.firstSeen)
         return
     end
+    S.filled[username] = record
     F.stats.recovered = F.stats.recovered + 1
     NR.log.say(2, "store: " .. tostring(username) .. " recovered from file after a failed first read")
+    S.resume(username, record, NR.worldAge())               -- the file's stamps are the departure's
 end
 
 -- One player's record into the slot that does NOT hold the newest complete copy (target: unless a swallowed write
@@ -411,7 +435,18 @@ function F.readIndex()
     F.indexAt = which
 end
 
-function S.get(username, worldAgeHours)
+-- Whether username's record was resumed since the players' minute last asked (cleared by the asking): that minute is
+-- the return, which integrates nothing, so it runs nothing (P.work).
+function S.takeResumed(username)
+    if S.resumed[username] ~= true then return false end
+    S.resumed[username] = nil
+    return true
+end
+
+-- The record of username at world age worldAgeHours, loaded and resumed at the first touch of a sight (the header).
+-- player (optional) is the touching player object: the sight set holds the object of each sight (true when the first
+-- touch named none, which the next touch with an object adopts), and a touch with another object starts a new sight.
+function S.get(username, worldAgeHours, player)
     local t = S.attach()
     local seen = sights(t)
     local r = t[username]
@@ -419,20 +454,30 @@ function S.get(username, worldAgeHours)
         r = F.load(username)
         if r ~= nil then t[username] = r end
     end
+    local mark = player
+    if mark == nil then mark = true end
     if r == nil then
         -- A failed clock read never creates a record stamped 0
         if worldAgeHours == nil then return nil end
         r = S.new(username, worldAgeHours)
         t[username] = r
-        seen[username] = true
+        seen[username] = mark
+        S.filled[username] = r
         S.fresh[username] = true
         S.stats.created = S.stats.created + 1
         NR.log.say(3, "store: new record for " .. tostring(username))
         return r
     end
-    if seen[username] ~= true then
-        seen[username] = true
-        S.load(username, r)
+    local cur = seen[username]
+    if cur == nil or (player ~= nil and cur ~= true and cur ~= player) then
+        if S.filled[username] == r then
+            S.resume(username, r, worldAgeHours)            -- held in memory since its fill: its derived fields stand
+        else
+            S.load(username, r, worldAgeHours)
+        end
+        if NR.finite(worldAgeHours) then seen[username] = mark end   -- no clock: not resumed, the sight left open
+    elseif cur == true and player ~= nil then
+        seen[username] = player                            -- the sight's first object: adopted, no new sight
     end
     return r
 end
@@ -487,7 +532,7 @@ end
 -- A respawn: the character is new, the record starts fresh, the reset count carries over so a later reading can
 -- tell a returning player from a new one. S.reset REPLACES the table (the one place a handle held on the record goes
 -- stale until it is read again).
-function S.reset(username, worldAgeHours)
+function S.reset(username, worldAgeHours, player)
     local t = S.attach()
     local old = t[username]
     if old == nil then old = F.load(username) end
@@ -500,7 +545,9 @@ function S.reset(username, worldAgeHours)
         r.resets = 0                                       -- a first character
     end
     t[username] = r
-    sights(t)[username] = true
+    S.filled[username] = r
+    S.resumed[username] = nil
+    sights(t)[username] = player or true                   -- the respawn's object (OnNewGame's) holds the new sight
     local IN = NR.server.intake
     if IN ~= nil and IN.forget ~= nil then IN.forget(username) end  -- nothing the dead character ate carries over
     -- a reset reaches the file at the next store step

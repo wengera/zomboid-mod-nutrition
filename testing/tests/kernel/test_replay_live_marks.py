@@ -101,9 +101,9 @@ def test_offline_minutes_are_marked_and_not_drained(offline_run):
     for r in out:
         if r.get("offline") and r["s"] - 1 in off:
             assert r["on"] is False                  # no drain ran for that row
-    # the reconnect drain is the mod's own: the offline span is clamped at 60 game minutes
+    # the reconnect is the mod's own: its resume integrates none of the offline span (Plan 16 Task 2; 60 until then)
     rec = next(r for r in out if r.get("gapM") is not None)
-    assert rec["gapM"] == pytest.approx(90.0) and rec["clampM"] == RL.OFFLINE_CAP_M == 60
+    assert rec["gapM"] == pytest.approx(90.0) and rec["clampM"] == RL.OFFLINE_CAP_M == 0
 
 
 def test_the_replay_matches_the_live_ring_across_the_offline_window(offline_run):

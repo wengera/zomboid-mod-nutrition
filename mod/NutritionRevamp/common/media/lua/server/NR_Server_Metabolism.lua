@@ -1,7 +1,7 @@
 -- NR_Server_Metabolism.lua -- the body model's slow-clock adapter (spec § 4.3): once per player
 -- per game minute, on the players' OnTick stagger and after the stomach step, it creates record.body at
 -- first sight, bills the minute's expenditure off the server's metabolic rate, banks the absorbed intake
--- Kinetics handed off, samples the aerobic training signal, closes the record day at an online world-day boundary
+-- Kinetics handed off, samples the aerobic training signal, closes the record day after 24 online game hours
 -- (the lean-mass body's day, the body traits, adaptive thermogenesis, TAC, the rings), and stamps the
 -- drain and regeneration coefficients and the energy state the writer reads. Since Plan 11c Task 6 (spec § 5c,
 -- rulings 11c-29 and 11c-32 amended) the energy state is K.deficit.activityState: the exercise share of the deficit
@@ -33,7 +33,7 @@ NR.server.metabolism = {
     limitations = {
         "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity (a first-order lag fixed in real seconds, so its game-time length scales with the day length), and only a Fitness exercise bills its class from the first minute, from the server's exercise flag; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, and Fitness only from the exercise flag",
-        "offline time is not integrated and the record calendar does not advance offline: a return after a step over 60 game minutes closes no day and continues the day open at departure as today's record day, so record days count online days only; a server stall over 60 game minutes with the player online reads as a gap and folds those world days into one record day",
+        "nothing changes offline: the resume at a return moves every world-age stamp past the absence, so no time away is integrated and a record day closes after 24 online game hours, drifting from the world's day boundary by every absence; a server stall with the player online is integrated in sub-steps of at most 60 game minutes, and a stall over a day of them has its excess frozen as an absence",
         "the disuse arm needs a leg fracture or splint",
         "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; the pipeline's ORDER runs the nutrients step after this one)",
         "the drain coefficient is stamped and mirrored and drives no stat write",
@@ -42,7 +42,7 @@ NR.server.metabolism = {
         "the engine's inventory weight is read as kilograms",
         "an exhausted idle character's metabolic rate sits at the tired floor (up to the DefaultExercise class), so exhaustion bills as activity",
         "rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured 0.904 for a predicted 0.848 (#2899)",
-        "a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last close",
+        "a day closes at 07:00 on the default fixture (#2890) until the player's first absence moves the record day off the world's boundary; the 24 h blends count hours since the last close",
         "an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror without the body, which the next readable minute builds",
         "rmod's alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: the arm resets at the day close, not on a rolling 24 h",
         "a field the step's own arithmetic leaves non-finite and no later step reads in the same minute stays so until the next minute's pre-step heal",
@@ -420,10 +420,8 @@ local function step(username, player, record, ctx)
     local body = MET.ensureBody(username, player, record, ageH)
     heal(username, record, body, ageH)
     local sat = MET.healActivity(username, record, body)
-    local stepM = (ageH - body.lastAgeH) * 60
-    local dtM = K.clamp(stepM, 0, K.body.GAP_M)           -- offline time is not integrated
-    if stepM > K.body.GAP_M then K.body.trailShift(body.trail, ageH - dtM / 60) end   -- nor kept in the window: it skips the gap
-    K.body.trailTo(body.trail, ageH)                      -- the window to this minute, before its intake and expenditure land
+    local dtM = K.max((ageH - body.lastAgeH) * 60, 0)    -- the pipeline's step (offline time never reaches it: the resume)
+    K.body.trailTo(body.trail, K.body.trailClock(body, ageH))   -- the window to this minute on its online clock, before its intake and expenditure land
     snapAll(body, sat)
     local w = body.fm + body.lm + body.lx                 -- the body mass (ruling 13-20)
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff,
@@ -449,7 +447,7 @@ local function step(username, player, record, ctx)
     K.training.sample(body, K.energy.CLASS_MET[rateClass], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     local ironGrade, allReplete, dehydPct, g, debtH = nutrientInputs(record)
-    if K.body.calendar(body, ageH, stepM > K.body.GAP_M) == 1 then   -- a return after a gap closes nothing (ruling 13-5)
+    if K.body.calendar(body, ageH) == 1 then             -- 24 online hours since the record day's start (Plan 16 Task 2)
         closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     end
     w = body.fm + body.lm + body.lx

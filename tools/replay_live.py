@@ -67,8 +67,8 @@ The ring's own bookkeeping marks each compared row (link_marks): a jump in s or 
 tick granularity alternates dtM 0.8 and 1.6 at speed 5 and 0.94-1.11 at speed 1; ruling S0-1), is a gap (the replay
 still steps the real age delta; graded, its findings marked gap); a drained count that did not advance between two rows
 makes the later one suspect (the drain had not finished; not graded); a row with on false is offline: that minute is
-not drained (it fires with the user away) and the reconnect drain is the mod's own, whose adapters clamp the offline
-span at OFFLINE_CAP_M, 60 game minutes (NR_Server_Metabolism.lua:375). A row with on true and norec is the first
+not drained (it fires with the user away) and the reconnect is the mod's own, whose resume integrates OFFLINE_CAP_M,
+0 game minutes, of the offline span (Plan 16 Task 2: the store's K.resume). A row with on true and norec is the first
 sight, not offline: the mod loads the record in that minute's queue slot and drains it (NR_Server_Players.lua
 P.firstSight, then the writer), so the replay drains it (ruling S0-3). The diff counts each class.
 
@@ -120,8 +120,8 @@ GRADED_FEED = ("HUNGER", "M", "S", "L", "es", "satiety.M", "satiety.S", "satiety
 DEFAULT_FEED = ALLOWED_FEED
 GAP_DTM = 2.05                        # a ring row whose dtM exceeds this is a long minute: marked gap (ruling S0-1:
                                       # tick quantization puts normal rows at 0.8-1.6, so 1.05 marked them)
-OFFLINE_CAP_M = 60                    # the mod's reconnect clamp (NR_Server_Metabolism.lua:375, NR_Server_Nutrients.lua:367,
-                                      # K.satiety.MAX_GAP_M): offline time is not integrated past 60 game minutes
+OFFLINE_CAP_M = 0                     # the game minutes of an offline span the mod integrates at the reconnect: none
+                                      # since Plan 16 Task 2 (the store's resume, K.resume), 60 until then
 DEFAULT_TOL = {"HUNGER": ("abs", 0.002), "body.energyState": ("abs", 0.005), "satiety.L": ("rel", 0.005)}
 MIXED = {"p": 0.15, "c": 0.50, "f": 0.35}
 MAX_TICKS = 64
@@ -503,8 +503,8 @@ function NR_O.minute(o, ageH, dtM)
         local ex0 = body.exKcalDay
         K.energy.minute(body, met, true, 1, dtM)
         o.L = K.deficit.exerciseLag(o.L, body.exKcalDay - ex0, dtM / 60)
-        if o.wdaySeeded == nil then body.wday = math.floor(ageH / 24); o.wdaySeeded = true end   -- the ring's first age
-        if K.body.calendar(body, ageH, dtM > 60) == 1 then   -- the mod's record calendar (ruling 13-5)
+        if o.daySeeded == nil then body.dayStartH = math.floor(ageH / 24) * 24; o.daySeeded = true end   -- the ring's first age
+        if K.body.calendar(body, ageH) == 1 then             -- the mod's record calendar (Plan 16 Task 2: 24 online hours)
             K.drain.closeDay(body)                          -- the mod's day close (NR_Server_Metabolism)
             K.partition.closeDay(body)
         end
@@ -514,7 +514,7 @@ function NR_O.minute(o, ageH, dtM)
         o.es = K.deficit.activityState(o.eb24, ex24, o.L, 0, ee24)
     end
     if o.satiety then
-        K.satiety.drain(o.st, K.min(dtM, K.satiety.MAX_GAP_M), o)   -- KIN.drain's: the kernel's gap cap, one-minute substeps, each clearing o.M
+        K.satiety.drain(o.st, K.min(dtM, K.resume.STEP_M), o)   -- one-minute substeps, each clearing o.M, a step capped at the pipeline's bound
         local F = K.satiety.fullness(o.st)
         local x = o.es
         if o.holdEs then x = 1 end
@@ -633,10 +633,36 @@ def _replay_seed_plate_off(rt, value):
         rt.execute(_SEED_PLATE_OFF_LUA)
 
 
+# The reconnect before the offline freeze (Plan 16 Task 2): a return integrated min(gap, 60) game minutes as online time
+# and skipped the rest, and re-stamped the open record day to the world day (ruling 13-5), so "replay.RETURN_CATCHUP_H"
+# (game hours, 1 for those builds) makes the store's resume on that replay's host move every stamp by the gap less that
+# catch-up and start the record day at the world day's start, and the return minute itself integrates the catch-up
+# (the store never asks the players' minute to skip it), as a ring recorded before the freeze did at its reconnects.
+# Set on a replay host only, never shipped.
+_CATCHUP_LUA = ("local K = NutritionRevamp.kernel\n"
+                "K.resume.resume = function(record, ageH)\n"
+                "    local fromH = K.resume.fromH(record)\n"
+                "    if not K.finite(ageH) or fromH == nil or not (ageH - fromH > %r) then return 0 end\n"
+                "    local gapH = ageH - fromH - %r\n"
+                "    K.resume.shift(record, gapH, fromH, ageH - %r)\n"
+                "    if type(record.body) == 'table' then record.body.dayStartH = math.floor(ageH / 24) * 24 end\n"
+                "    return gapH\n"
+                "end\n"
+                "NutritionRevamp.server.store.takeResumed = function(username) return false end\n")
+
+
+def _replay_catchup(rt, value):
+    v = float(value)
+    rt.execute(_CATCHUP_LUA % (v, v, v))
+
+
 REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off,
-               "replay.SEED_PLATE_OFF": _replay_seed_plate_off}
-# The writer before the seed plate, for a ring recorded before Plan 15 Task 13 fix 1 (x452-x457 and x453b, a97fec05).
-PRE_PLATE = {"replay.SEED_PLATE_OFF": 1}
+               "replay.SEED_PLATE_OFF": _replay_seed_plate_off, "replay.RETURN_CATCHUP_H": _replay_catchup}
+# The reconnect before the offline freeze, for a ring recorded before Plan 16 Task 2.
+PRE_FREEZE = {"replay.RETURN_CATCHUP_H": 1.0}
+# The writer before the seed plate, for a ring recorded before Plan 15 Task 13 fix 1 (x452-x457 and x453b, a97fec05),
+# so before the freeze too.
+PRE_PLATE = dict({"replay.SEED_PLATE_OFF": 1}, **PRE_FREEZE)
 # The pre-curve writer, for a ring recorded before Plan 15 Task 6 (so before the seed plate too): merged into the ring's
 # own constants.
 PRE_CURVE = dict({"replay.HUNGER_CURVE_OFF": 1}, **PRE_PLATE)
@@ -927,6 +953,12 @@ class ServerReplay(_Backend):
         if getattr(self, "away", False):
             self.h.online(self.p)                       # back: the mod sights the player at this minute
             self.away = False
+        elif not getattr(self, "began", False) and self.record() is not None:
+            # the start record continues the live server's: its first minute is no return and no stall, so lastSeen
+            # reads this minute, the store's resume moves nothing and each adapter steps from its own stamp, as the
+            # live pipeline's next minute did (Plan 16 Task 2)
+            self.record().lastSeen = age
+        self.began = True
         self._minute(age)
 
     def step_offline(self, age):
@@ -935,6 +967,7 @@ class ServerReplay(_Backend):
         if not getattr(self, "away", False):
             self.h.online()
             self.away = True
+        self.began = True
         self._minute(age)
 
     def _minute(self, age):
@@ -1112,7 +1145,7 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
     A k in `offline` is not drained: its events still fall due, nothing is fed, the backend's step_offline runs (the
     minute with the user away) when it has one, and the row carries on = false and offline. The first drained row
     after such a window carries gapM, the game minutes since the last drain, and clampM, min(gapM, OFFLINE_CAP_M): the
-    mod's own reconnect clamp, which its adapters apply themselves."""
+    offline minutes the mod's own reconnect integrates (none: its resume freezes the absence)."""
     check_feed(feed)
     offline = set(offline or ())
     evs = list(events or [])

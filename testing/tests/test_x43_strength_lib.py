@@ -340,6 +340,7 @@ def pre_body(kern, muscle=None, T=1.0, ageH=100.5):
     b.T = T
     f = flat(b)
     f = {k: v for k, v in f.items() if not k.startswith("trail")}
+    f["wday"] = math.floor(ageH / 24.0)          # the fake world's calendar: the x43 builds closed at the world day (Plan 16 Task 2 moved the mod to dayStartH)
     return f
 
 

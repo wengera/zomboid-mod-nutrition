@@ -360,18 +360,20 @@ def test_second_minute_bills_expenditure_and_banks_met_minutes(met_host):
     assert nonfinite(h, record) == ""
 
 
-def test_minute_dt_is_clamped_to_an_hour(met_host):
+def test_minute_bills_the_whole_step_it_is_handed(met_host):
+    # Plan 16 Task 2 (the successor of test_minute_dt_is_clamped_to_an_hour): Metabolism no longer clamps a step; the
+    # pipeline bounds it (the players' sub-steps of an online stall) and the store's resume keeps offline time out
     h = met_host
     p = player(h, moving=False, rate=1.5)      # idle Default, billed at its Compendium MET
     record = fresh(h, p)
     body = record["body"]
     body.lx = 1.25                             # the body mass the bill reads is fm + lm + lx (ruling 13-20)
     mass = body["fm"] + body["lm"] + 1.25
-    minute(h, p, record, 100.0 + 5.0)          # five hours later: billed as 60 minutes
+    minute(h, p, record, 100.0 + 5.0)          # a five-hour step: billed as 300 minutes
     ree = h.K.energy.ree(body["lm"])
     act = max(h.K.energy.activityMet("Default", False, 1, 0) - 1.0, 0) * mass
-    assert abs(body["actKcalDay"] - act) < 1e-6
-    assert abs(body["eeDay"] - (ree / 1440 * 60 + act)) < 1e-6
+    assert abs(body["actKcalDay"] - 5 * act) < 1e-6
+    assert abs(body["eeDay"] - (ree / 1440 * 300 + 5 * act)) < 1e-6
 
 
 def test_lastabsorbed_is_read_not_cleared(met_host):
@@ -498,7 +500,7 @@ def test_read_activity_hour_of_day(met_host):
 
 def online(h, p, record, age):
     """The minute at world age `age` after an hour online: body.lastAgeH set one hour back, so the step is 60 game
-    minutes, at the gap threshold and not over it (ruling 13-5: a step over 60 minutes is a return after a gap)."""
+    minutes, the pipeline's sub-step bound (Plan 16 Task 2)."""
     record["body"].lastAgeH = age - 1.0
     return minute(h, p, record, age)
 
@@ -506,11 +508,11 @@ def online(h, p, record, age):
 def test_an_online_world_day_boundary_closes_one_day(met_host):
     h = met_host
     p = player(h)
-    record = fresh(h, p, 100.0)                # dayIndex 4, wday 4
+    record = fresh(h, p, 100.0)                # dayIndex 4, the record day from 96.0
     days = MET(h).stats.days
-    online(h, p, record, 124.0)
+    online(h, p, record, 120.0)
     body = record["body"]
-    assert body["dayIndex"] == 5 and body["wday"] == 5
+    assert body["dayIndex"] == 5 and body["dayStartH"] == 120.0
     assert MET(h).stats.days == days + 1
     assert body["eeDay"] == 0 and body["inDay"] == 0  # the day accumulators closed
     assert body["eb7"][7] < 0                  # the closed day's balance: an hour of expenditure
@@ -534,8 +536,8 @@ def test_an_online_minute_closes_at_most_one_day(met_host):
     p = player(h)
     record = fresh(h, p, 100.0)
     days = MET(h).stats.days
-    online(h, p, record, 172.0)                # three world days on, inside an hour's step
-    assert record["body"]["dayIndex"] == 5 and record["body"]["wday"] == 7
+    online(h, p, record, 172.0)                # three days on, inside an hour's step: one close, the start brought up
+    assert record["body"]["dayIndex"] == 5 and record["body"]["dayStartH"] == 168.0
     assert MET(h).stats.days == days + 1
     minute(h, p, record, 172.0 + 1 / 60)
     assert record["body"]["dayIndex"] == 5 and MET(h).stats.days == days + 1
@@ -558,8 +560,9 @@ def _ring(t):
     return out
 
 
-def test_a_step_just_over_an_hour_across_midnight_is_a_gap(met_host):
-    # the threshold pinned from above: 61 game minutes is a return after a gap, so it closes nothing (ruling 13-5)
+def test_a_step_just_over_an_hour_across_the_day_end_closes_once(met_host):
+    # Plan 16 Task 2 (the successor of test_a_step_just_over_an_hour_across_midnight_is_a_gap): no step is a return
+    # (the store's resume keeps offline time out of every step), so 61 game minutes across the day's end close it
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
@@ -567,8 +570,8 @@ def test_a_step_just_over_an_hour_across_midnight_is_a_gap(met_host):
     record["body"].lastAgeH = 120.0 + 1 / 60 - 61 / 60
     minute(h, p, record, 120.0 + 1 / 60)
     body = record["body"]
-    assert body["dayIndex"] == 4 and body["wday"] == 5
-    assert MET(h).stats.days == days
+    assert body["dayIndex"] == 5 and body["dayStartH"] == 120.0
+    assert MET(h).stats.days == days + 1
 
 
 def test_a_step_of_exactly_an_hour_across_midnight_closes_once(met_host):
@@ -580,33 +583,35 @@ def test_a_step_of_exactly_an_hour_across_midnight_closes_once(met_host):
     record["body"].lastAgeH = 119.5
     minute(h, p, record, 120.5)
     body = record["body"]
-    assert body["dayIndex"] == 5 and body["wday"] == 5
+    assert body["dayIndex"] == 5 and body["dayStartH"] == 120.0
     assert MET(h).stats.days == days + 1
 
 
 def test_a_return_after_three_days_changes_nothing_and_resumes_the_calendar(met_host):
-    # ruling 13-5: the record calendar advances on online days only; a return re-stamps wday and closes nothing
+    # ruling 13-5 under Plan 16 Task 2: the store's resume moves the record day's start by the 75.5 h away, so the
+    # return minute closes nothing and changes nothing, a world boundary closes nothing, and the day open at departure
+    # (4 online hours in) closes 20 online hours after the return
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
     body = record["body"]
-    online(h, p, record, 124.0)                # one online close, so the rings hold a closed day
-    minute(h, p, record, 124.0 + 1 / 60)
+    online(h, p, record, 120.0)                # one online close, so the rings hold a closed day
+    minute(h, p, record, 124.0)
     days = MET(h).stats.days
-    keep = {"dayIndex": body["dayIndex"], "fm": body["fm"], "lm": body["lm"]}
+    keep = {k: body[k] for k in ("dayIndex", "fm", "lm", "lx", "inDay", "eeDay", "ebDay", "actKcalDay", "Pk", "at")}
     rings = {k: _ring(body[k]) for k in ("eb7", "p7", "mass7", "bandWeek")}
-    minute(h, p, record, 124.0 + 1 / 60 + 72.0)   # away three game days: the return minute
+    back = 124.0 + 75.5
+    assert h.K.resume.resume(record, back) == 75.5    # the store's load at the return
+    minute(h, p, record, back)                 # the return minute: a zero step
     for k, v in keep.items():
         assert body[k] == v, k
     for k, v in rings.items():
         assert _ring(body[k]) == v, k
-    assert MET(h).stats.days == days
-    assert body["wday"] == 8                   # floor(196.0167 / 24): re-stamped to today's world day
-    minute(h, p, record, 196.5)                # online through the rest of world day 8: nothing closes
-    online(h, p, record, 199.0)
+    assert MET(h).stats.days == days and body["dayStartH"] == 120.0 + 75.5
+    online(h, p, record, 216.0 + 1 / 60)       # a world-day boundary: nothing closes
     assert body["dayIndex"] == keep["dayIndex"] and MET(h).stats.days == days
-    online(h, p, record, 216.0 + 1 / 60)       # the next world-day boundary closes exactly one day
-    assert body["dayIndex"] == keep["dayIndex"] + 1 and body["wday"] == 9
+    online(h, p, record, 144.0 + 75.5)         # 24 online hours after the day's start: exactly one close
+    assert body["dayIndex"] == keep["dayIndex"] + 1 and body["dayStartH"] == 144.0 + 75.5
     assert MET(h).stats.days == days + 1
     assert nonfinite(h, record) == ""
 
@@ -933,22 +938,25 @@ def test_energy_state_reads_the_window_across_a_day_close_and_never_the_clock(me
     assert body["energyState"] > 1 + 0.5 * 1000 / h.K.deficit.BALANCE_SPAN_KCAL
 
 
-def test_the_window_moves_with_the_world_age(met_host):
-    # Plan 11d Task 9c: each minute moves the window to its age, and no close stamp is kept; a jump past the hour the
-    # step integrates skips the rest (Plan 12 A1: offline time is not simulated), so the window carries its contents
-    # to the start of the integrated hour and zeroes only the hours that hour passes
+def test_the_window_moves_with_the_online_age(met_host):
+    # Plan 11d Task 9c: each minute moves the window to its clock, and no close stamp is kept. Plan 16 Task 2 (the
+    # successor of Plan 12 A1's carry): the clock runs on online hours, so a return the store's resume moved leaves
+    # every slot's hour where the player left it, and the window reads the same at the return minute
     h = met_host
     p = player(h)
     record = fresh(h, p, 100.0)
-    t = record["body"]["trail"]
-    assert t["at"] == 100.0 and "lastCloseAgeH" not in h.py(record["body"])
+    body = record["body"]
+    t = body["trail"]
+    assert t["at"] == 100.0 and "lastCloseAgeH" not in h.py(body)
     minute(h, p, record, 100.5)
     assert t["at"] == 100.5 and t.ee[h.K.body.trailSlot(100)] > 0
     ee100 = t.ee[h.K.body.trailSlot(100)]
-    minute(h, p, record, 124.25)
-    assert t["at"] == 124.25
-    assert t.ee[h.K.body.trailSlot(110)] == 0 and t.ee[h.K.body.trailSlot(124)] > 0
-    assert t.ee[h.K.body.trailSlot(123)] == ee100              # hour 100's slot carried to the integrated hour's start
+    ee24 = h.K.body.trail24(t, "ee")
+    h.K.resume.resume(record, 100.5 + 23.75)  # 23.75 h away
+    minute(h, p, record, 100.5 + 23.75)
+    assert t["at"] == 100.5 and t.ee[h.K.body.trailSlot(100)] == ee100 and h.K.body.trail24(t, "ee") == ee24
+    minute(h, p, record, 124.25 + 1.0)         # an online hour later: the window's clock reads 101.5
+    assert t["at"] == 101.5 and t.ee[h.K.body.trailSlot(101)] > 0 and t.ee[h.K.body.trailSlot(100)] == ee100
 
 
 def test_a_non_finite_stamp_heals_and_counts(met_host):
@@ -1165,10 +1173,10 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "bill at the class rate") in lim
     assert ("an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as "
             "HeavyWork, and Fitness only from the exercise flag") in lim
-    assert ("offline time is not integrated and the record calendar does not advance offline: a "
-            "return after a step over 60 game minutes closes no day and continues the day open at departure as "
-            "today's record day, so record days count online days only; a server stall over 60 game minutes "
-            "with the player online reads as a gap and folds those world days into one record day") in lim
+    assert ("nothing changes offline: the resume at a return moves every world-age stamp past the absence, so no "
+            "time away is integrated and a record day closes after 24 online game hours, drifting from the world's "
+            "day boundary by every absence; a server stall with the player online is integrated in sub-steps of at "
+            "most 60 game minutes, and a stall over a day of them has its excess frozen as an absence") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
     assert ("rmod" + chr(39) + "s alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: "
             "the arm resets at the day close, not on a rolling 24 h") in lim
@@ -1186,8 +1194,8 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "class), so exhaustion bills as activity") in lim
     assert ("rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured "
             "0.904 for a predicted 0.848 (#2899)") in lim
-    assert ("a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last "
-            "close") in lim
+    assert ("a day closes at 07:00 on the default fixture (#2890) until the player's first absence moves the record "
+            "day off the world's boundary; the 24 h blends count hours since the last close") in lim
     assert ("an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror "
             "without the body, which the next readable minute builds") in lim
     assert not any("Task " in x or "ruling" in x for x in lim)

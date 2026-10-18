@@ -178,14 +178,15 @@ def test_second_call_moves_the_substepped_zero_order_share_into_the_pool(kin_hos
     assert abs(left - 100 * (1 - _frac(100, 60))) > 1e-3                # the substeps are not one closed-form step
 
 
-def test_a_gap_over_sixty_minutes_drains_sixty_minutes_only(kin_host):
-    # offline time is not integrated (as Metabolism and Nutrients clamp at 60 game minutes): three game hours drain
-    # the same 60 one-minute substeps as one game hour
+def test_a_step_drains_its_whole_length_in_minute_substeps(kin_host):
+    # Plan 16 Task 2 (the successor of test_a_gap_over_sixty_minutes_drains_sixty_minutes_only): Kinetics no longer
+    # caps a step; the pipeline bounds it (K.resume.STEP_M, the players' sub-steps of an online stall) and offline time
+    # never reaches it (the store's resume), so a three-hour step handed to it drains 180 one-minute substeps
     h = kin_host
     record = rec(h, 100)
     run(h, record, 100.0)
     run(h, record, 103.0)
-    assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 60.0)) < 1e-9
+    assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 180.0)) < 1e-9
     assert abs(record["kineticsAge"] - 103.0) < TOL
 
 
@@ -578,16 +579,17 @@ def test_a_non_finite_clearance_keeps_m_and_counts_a_failure(kin_host):
 
 
 def test_meal_clears_at_its_half_life_of_game_time(kin_host):
-    # one MEAL_HALF_LIFE_H of game time on an empty stomach halves M; a gap past 60 minutes clears over one hour only
+    # one MEAL_HALF_LIFE_H of game time on an empty stomach halves M, and a three-hour step clears its whole three
+    # hours (Plan 16 Task 2: no gap cap in Kinetics; the pipeline bounds a step)
     h = kin_host
     r = rec(h, 0)
     r.satiety = h.rt.eval("{ M = 6, S = 0, L = 0 }")
     run(h, r, 1.0)
-    run(h, r, 1.0 + HL / 2)                                       # two steps: each under the 60-minute gap cap
+    run(h, r, 1.0 + HL / 2)
     run(h, r, 1.0 + HL)
     assert r.satiety.M == pytest.approx(3.0)
     run(h, r, 1.0 + HL + 3)
-    assert r.satiety.M == pytest.approx(3.0 * 2 ** (-1 / HL))
+    assert r.satiety.M == pytest.approx(3.0 * 2 ** (-3 / HL))
 
 
 def _meal(h, r):
@@ -659,7 +661,7 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
         r = rec(h, 0)
         r.satiety = h.rt.eval("{ M = 6, S = 0, L = 0 }")
         h.rt.eval(CASE_PLAYER)(r, 1.0, p)
-        h.rt.eval(CASE_PLAYER)(r, 1.0 + HL / 2, p)                 # each step under the 60-minute gap cap
+        h.rt.eval(CASE_PLAYER)(r, 1.0 + HL / 2, p)                 # each step under the pipeline's 60-minute bound
         h.rt.eval(CASE_PLAYER)(r, 1.0 + HL, p)
         assert r.satiety.M == pytest.approx(expected)
     finally:
@@ -668,8 +670,10 @@ def test_the_appetite_trait_and_the_sandbox_scale_the_clearance(kin_host, trait,
         h.G.NutritionRevamp.so = None
 
 
-def test_a_restart_through_the_store_clears_m_over_the_gap(kin_host):
-    # the stamp kineticsAge and M are stored (K.store.INPUTS), so a restart three hours later clears one capped hour
+def test_a_restart_through_the_store_resumes_m_unchanged(kin_host):
+    # Plan 16 Task 2 (the successor of test_a_restart_through_the_store_clears_m_over_the_gap): the stamp kineticsAge
+    # and M are stored (K.store.INPUTS) and the store's load resumes the record (K.resume.resume), so a restart three
+    # hours later clears nothing at the first step back, and the next step clears only its own online minute
     h = kin_host
     K = h.G.NutritionRevamp.kernel
     r = rec(h, 0)
@@ -677,8 +681,11 @@ def test_a_restart_through_the_store_clears_m_over_the_gap(kin_host):
     run(h, r, 1.0)
     back = K.store.load(K.store.inputsOnly(r), None, None)
     assert back.kineticsAge == 1.0 and back.satiety.M == 6
+    assert K.resume.resume(back, 4.0) == 3.0 and back.kineticsAge == 4.0
     run(h, back, 4.0)
-    assert back.satiety.M == pytest.approx(6 * 2 ** (-1 / HL))
+    assert back.satiety.M == 6
+    run(h, back, 4.0 + 1 / 60)
+    assert back.satiety.M == pytest.approx(6 * 2 ** (-(1 / 60) / HL))
 
 
 def test_a_stamp_rounded_to_fourteen_digits_adds_no_substep(kin_host):
@@ -721,17 +728,18 @@ def test_the_traits_handle_is_cached_per_player_object_and_dropped_at_departure(
     assert C.n == 4
 
 
-def test_the_gap_cap_is_the_kernels_max_gap_m(kin_host):
-    # Plan 11g close: the gap cap lives in the kernel, K.satiety.MAX_GAP_M, which KIN.drain and replay_live's stand-in
-    # both read (the stand-in's copy NR_O.MAX_GAP_M is gone); patched to 30, three game hours drain 30 substeps
+def test_the_step_bound_is_the_resume_kernels_step_m(kin_host):
+    # Plan 16 Task 2 (the successor of test_the_gap_cap_is_the_kernels_max_gap_m): the bound lives in K.resume.STEP_M,
+    # which the players' sub-steps and replay_live's study stand-in read; K.satiety.MAX_GAP_M is gone, and Kinetics
+    # reads no bound, so patching STEP_M to 30 leaves a three-hour step's 180 substeps
     h = kin_host
-    S = h.G.NutritionRevamp.kernel.satiety
-    assert S.MAX_GAP_M == 60
-    S.MAX_GAP_M = 30
+    K = h.G.NutritionRevamp.kernel
+    assert K.resume.STEP_M == 60 and K.satiety.MAX_GAP_M is None
+    K.resume.STEP_M = 30
     try:
         record = rec(h, 100)
         run(h, record, 100.0)
         run(h, record, 103.0)
-        assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 30.0)) < 1e-9
+        assert abs(record["stomach"]["buffer"]["calories"] - _substeps(100.0, 180.0)) < 1e-9
     finally:
-        S.MAX_GAP_M = 60
+        K.resume.STEP_M = 60

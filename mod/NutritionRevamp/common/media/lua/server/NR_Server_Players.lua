@@ -12,7 +12,7 @@ local K = NR.kernel
 NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {}, onNewGame = {},
                       minutes = 0, drained = 0, served = 0, sight = {}, resetPending = {}, extraSet = {},
                       tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
-                      budgetMs = 15, runCap = 1, wired = false, deadHealed = 0 }
+                      budgetMs = 15, runCap = 1, wired = false, deadHealed = 0, stalls = 0, substeps = 0 }
 local P = NR.server.players
 
 local function fire(list, username, player, record)
@@ -24,8 +24,8 @@ end
 
 local nowMs = NR.nowMs
 
--- One player's minute work: refresh lastSeen and the dead flag (OnNewGame's eviction keeps a respawn's reset from
--- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua).
+-- One player's minute work: the dead flag (OnNewGame's eviction keeps a respawn's reset from
+-- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua, P.integrate), which stamps lastSeen.
 -- A dead record is never stepped: from its death minute until OnNewGame's reset only its store
 -- step runs (MIN.runDead), so the record a slot file holds is the record at death. A dead flag under a player that
 -- reads alive with no reset pending is a stuck flag: logged, cleared and counted in
@@ -34,9 +34,8 @@ local nowMs = NR.nowMs
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
-    local r = NR.server.store.get(username, age)
+    local r = NR.server.store.get(username, age, player)
     if r == nil then return end
-    r.lastSeen = age
     local okD, dead = NR.call(player, "isDead")
     if okD and dead == true and r.dead ~= true then
         r.dead = true
@@ -48,9 +47,39 @@ function P.work(username, player)
         NR.log.say(2, "players: " .. tostring(username) .. " reads alive under a dead record with no reset pending; the flag is cleared")
     end
     if r.dead == true then
+        r.lastSeen = age
         NR.server.minute.runDead(username, player, r)
         return
     end
+    local S = NR.server.store
+    if S.takeResumed ~= nil and S.takeResumed(username) then return end   -- the return: nothing to integrate, nothing written
+    P.integrate(username, player, r, age)
+end
+
+-- The minute's pipeline from the record's last step (lastSeen) to age, on the same player object (an absence never
+-- reaches here: the store's resume moved lastSeen at the sight). A step of at most K.resume.STEP_M runs once; a longer
+-- one is an online stall (a slow server, the fast-forwarded night), run in K.resume.substeps equal sub-steps so nothing
+-- it books is lost (Plan 16 Task 2, spec section 1.1), its excess past K.resume.MAX_SUBSTEPS frozen first
+-- (K.resume.shift). Each run stamps lastSeen at its own age. Counted in P.stalls and P.substeps.
+function P.integrate(username, player, r, age)
+    local from = r.lastSeen
+    local n, frozenH = K.resume.substeps(from, age)
+    if frozenH > 0 then
+        K.resume.shift(r, frozenH)
+        from = from + frozenH
+        NR.log.say(2, "players: a stall of " .. tostring(username) .. " past " .. tostring(K.resume.MAX_SUBSTEPS)
+            .. " sub-steps; " .. tostring(frozenH) .. " game hours frozen")
+    end
+    if n > 1 then
+        P.stalls = P.stalls + 1
+        P.substeps = P.substeps + n
+    end
+    for i = 1, n - 1 do
+        local a = from + (age - from) * i / n
+        r.lastSeen = a
+        NR.server.minute.run(username, player, r, a)
+    end
+    r.lastSeen = age
     NR.server.minute.run(username, player, r, age)
 end
 
@@ -59,7 +88,7 @@ end
 function P.firstSight(username, player)
     local age = NR.worldAge()
     if age == nil then return false end
-    local r = NR.server.store.get(username, age)
+    local r = NR.server.store.get(username, age, player)
     NR.log.say(2, "players: first sight of " .. tostring(username))
     fire(P.onFirstSight, username, player, r)
     return true
@@ -71,7 +100,7 @@ end
 function P.makeReset(username, player)
     local age = NR.worldAge()
     if age == nil then return false end
-    local r = NR.server.store.reset(username, age)
+    local r = NR.server.store.reset(username, age, player)
     if r == nil then return false end
     P.resetPending[username] = nil
     NR.log.say(2, "players: the pending reset of " .. tostring(username) .. " is made")
@@ -237,7 +266,7 @@ if Events ~= nil then
                 return
             end
             P.resetPending[username] = nil
-            local r = NR.server.store.reset(username, age)
+            local r = NR.server.store.reset(username, age, player)
             if r ~= nil then fire(P.onNewGame, username, player, r) end
         end)
     end

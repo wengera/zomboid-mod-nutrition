@@ -4,11 +4,12 @@
 -- (lm, fm, F0, Fc, Pk) heal to the no-trait body's values (K.body.create(nil, nil, P) at the effective sex, Plan 13
 -- Task 12), N0 to the no-trait 1 and T to 1; fmRef to the current fat; rmod's protein input to the neutral P_LOW;
 -- dayIndex to the record-day lower bound the adapter passes (the Nutrients step's last seen day, else the Effects
--- day), else to the world day (a NaN would stop every day close; the world day is the limitation: it counts the
--- offline days the record calendar skips, ruling 13-5); wday to the world day; lastAgeH to the world age; the labile
+-- day), else to the birth day floor(bornAge / 24), else to the world day (a NaN would stop every day close; the
+-- birth day forgets the closes since birth but counts no offline day, Plan 16 Task 2); dayStartH to the world day's
+-- start; lastAgeH to the world age; the labile
 -- lean, the grace counters, the signal, the closed week's sets and the day accumulators to 0; a fat rung that is not
 -- a whole number in 0..2, or a thin rung not in 0..3, to 0; lm0dis to the current lean; a ring slot to 0 (mass7's to
--- the current body mass fm + lm + lx); the trailing-24 h window's age to the world age with every ring emptied, and a
+-- the current body mass fm + lm + lx); the trailing-24 h window's age (its online clock, K.body.trailClock) to the world age with every ring emptied, and a
 -- window slot to 0, its ring named once a slot (K.heal.trail). Every field and ring is laid by K.body.new, so the heal
 -- creates none. Pure: a Lua table and numbers in; the adapter counts and logs. Slow-clock code: no fast region. Every
 -- K.body / K.aerobic / K.strength reference is at call time.
@@ -68,14 +69,16 @@ function K.heal.body(body, ageH, specific, P, dayFloor)
     if not K.finite(body.dayIndex) then
         if K.finite(dayFloor) then
             body.dayIndex = dayFloor
+        elseif K.finite(body.bornAge) then
+            body.dayIndex = math.floor(body.bornAge / 24)
         else
             body.dayIndex = math.floor(ageH / 24)
         end
         bad = K.heal.mark(bad, "dayIndex")
     end
-    if not K.finite(body.wday) then
-        body.wday = math.floor(ageH / 24)
-        bad = K.heal.mark(bad, "wday")
+    if not K.finite(body.dayStartH) then
+        body.dayStartH = math.floor(ageH / 24) * 24
+        bad = K.heal.mark(bad, "dayStartH")
     end
     if not K.finite(body.lastAgeH) then
         body.lastAgeH = ageH
@@ -128,7 +131,11 @@ function K.heal.body(body, ageH, specific, P, dayFloor)
             end
         end
     end
-    return K.heal.trail(body.trail, ageH, bad)
+    local clock = K.body.trailClock(body, ageH)
+    if not K.finite(clock) then
+        clock = ageH
+    end
+    return K.heal.trail(body.trail, clock, bad)
 end
 
 -- The post-step guard: copy the guarded keys of t before the step, and after it
@@ -158,8 +165,9 @@ function K.heal.guard(t, keys, snap)
 end
 
 -- The trailing-24 h window's heal (the Task 9c review), from K.heal.body, before the
--- minute moves the window. A non-finite age leaves no slot's hour known: every ring takes K.body.newTrail(ageH)'s
--- values (every slot and closed sum 0, unbuilt) at the world age ageH, and only the age is named. Otherwise the heal
+-- minute moves the window; ageH is the window's clock at the minute (K.body.trailClock, the world age when that is not
+-- finite). A non-finite age leaves no slot's hour known: every ring takes K.body.newTrail(ageH)'s
+-- values (every slot and closed sum 0, unbuilt) at ageH, and only the age is named. Otherwise the heal
 -- walks the rings (K.body.trailRingSum, which zeroes every non-finite slot and counts them) when the closed sums are
 -- unbuilt or stand for another hour, when the hour turns at ageH (so a closed hour's slot gone non-finite is zeroed
 -- here, named, and not by a reader's rebuild), or that ring alone when its read is non-finite (K.body.trail24: the

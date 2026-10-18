@@ -70,7 +70,7 @@ if Events ~= nil and Events.OnClientCommand ~= nil then
             end
             B.requests.last[username] = now
             B.requests.stats.answered = B.requests.stats.answered + 1
-            local r = NR.server.store.get(username, NR.worldAge())
+            local r = NR.server.store.get(username, NR.worldAge(), player)
             if r ~= nil and r.dead ~= true then B.sendMirror(player, r) end
         end
     end)

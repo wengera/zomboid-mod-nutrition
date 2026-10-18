@@ -209,7 +209,7 @@ end
 
 -- The hours since the meal pool was last fed (record.satiety.M at K.hungerCurve.FED_M or more; inside the acute state,
 -- acuteH over 0, only a meal spell, K.drain.mealFed), counted continuously across days, sleep and restarts (record.drain.fedAgeH, a stored input, moved past an offline gap by
--- K.acute.skipRecord): a fed minute, a record seen for the first time (no stamp), a pool not yet seeded or a stamp
+-- the resume, K.resume.STAMPS): a fed minute, a record seen for the first time (no stamp), a pool not yet seeded or a stamp
 -- ahead of the minute stamps the world age and reads 0.
 function K.drain.unfedH(D, sat, ageH)
     if not K.finite(ageH) then

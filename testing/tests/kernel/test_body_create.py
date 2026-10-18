@@ -304,7 +304,7 @@ def test_new_lays_the_spec_and_the_surviving_fields(host):
     assert (b.lx, b.grace, b.sigDay, b.T, b.Tgrace, b.S) == (0, 0, 0, 1, 0, 0)
     assert [b.sig7[i] for i in range(1, 8)] == [0] * 7
     assert b.fmRef == b.fm and b.lm0dis == b.lm
-    assert b.sex == 2 and b.bornAge == 50.0 and b.lastAgeH == 50.0 and b.wday == 2 and b.dayIndex == 2
+    assert b.sex == 2 and b.bornAge == 50.0 and b.lastAgeH == 50.0 and b.dayStartH == 48.0 and b.dayIndex == 2
     for i in range(1, 8):
         assert b.mass7[i] == b.lm + b.lx + b.fm
         assert b.eb7[i] == 0 and b.p7[i] == 0

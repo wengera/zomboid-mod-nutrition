@@ -166,10 +166,11 @@ end
 
 -- The satiety step's length in game hours, S's step (M's clearance is Kinetics'). A minute on the same
 -- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
--- of a restart, whose hoist holds no age (h.fresh), reads the gap from the stamp record.satiety.t the writer leaves at
--- every step (game hours; stored, K.store.INPUTS), so S decays across the gap as Kinetics and Metabolism catch it
--- up. Both clamp at maxStepS (60 min). A non-finite stamp reads none and is counted in guarded; a record with no stamp
--- (a fresh record) steps 0 on its first minute. Stamps t = ageH.
+-- of a restart, whose hoist holds no age (h.fresh), reads the step from the stamp record.satiety.t the writer leaves at
+-- every step (game hours; stored, K.store.INPUTS), which the resume moved past any absence (Plan 16 Task 2), so S
+-- steps only the online time since the return. Both clamp at maxStepS (60 min, the pipeline's sub-step bound). A
+-- non-finite stamp reads none and is counted in guarded; a record with no stamp (a fresh record) steps 0 on its first
+-- minute. Stamps t = ageH.
 function W.satietyDtH(h, s, inp, ageH)
     local dtS = inp.dtS
     if s.t ~= nil and not NR.finite(s.t) then
@@ -248,8 +249,8 @@ end
 -- keeps the anchor s.nicH (record.satiety.nicH; stored, K.store.INPUTS): the world age in game hours at the last minute
 -- the stat read 0 or fell below the previous minute's read (h.nicLast, per hoist: a fall across a reconnect or a
 -- restart is not seen, and the anchor holds), so the days since the last smoke are (ageH - nicH) / 24, exact in game
--- time whatever the time speed (where the vanilla timer is not, #3636), an offline gap skipped (Nutrients'
--- K.acute.skipRecord moves the anchor past it).
+-- time whatever the time speed (where the vanilla timer is not, #3636), an offline gap skipped (the resume moves the
+-- anchor past it, K.resume.STAMPS).
 -- A record with no anchor lays it at the minute; a stored anchor that is not a finite number, or that lies ahead of
 -- the minute, is dropped (counted in guarded) and laid again.
 -- A first or healed anchor laid while the stat reads above 0 starts fully faded, at ageH - NIC_FADE_DAYS x 24, so

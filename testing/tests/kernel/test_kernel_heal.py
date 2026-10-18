@@ -16,7 +16,7 @@ TOL = 1e-9
 NAN = float("nan")
 INF = float("inf")
 
-SCALARS = ["lm", "fm", "F0", "Fc", "Pk", "fmRef", "pPrevKg", "dayIndex", "wday", "lastAgeH",
+SCALARS = ["lm", "fm", "F0", "Fc", "Pk", "fmRef", "pPrevKg", "dayIndex", "dayStartH", "lastAgeH",
            "energyState", "rmod", "tac", "at", "inDay", "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay",
            "carbDay", "lipDay", "alcDay", "metMinDay", "band1Day", "band2Day", "tDisuse", "lx", "grace", "Tgrace",
            "sigDay", "S", "N0", "T", "fatT", "thinT", "lm0dis"]
@@ -148,23 +148,29 @@ def test_day_index_ages_and_the_record_day_floor(host):
     h = host
     body = new_body(h)
     body.dayIndex = NAN
-    body.wday = NAN
+    body.dayStartH = NAN
     body.lastAgeH = INF
     bad = heal(h, body, 168.0, None, None, 3)
     assert body["dayIndex"] == 3                            # the record's day, never the world's 7 (ruling 13-5)
-    assert body["wday"] == 7                                # the world day of the heal's age (ruling 13-5)
+    assert body["dayStartH"] == 168.0                       # the world day's start at the heal's age (Plan 16 Task 2)
     assert body["lastAgeH"] == 168.0
-    assert names(bad) == ["dayIndex", "wday", "lastAgeH"]
+    assert names(bad) == ["dayIndex", "dayStartH", "lastAgeH"]
 
 
-def test_day_index_falls_back_to_the_world_day_without_a_record_day(host):
-    # the limitation: with no surviving record day the world day counts the offline days the calendar skips
+def test_day_index_falls_back_to_the_birth_day_without_a_record_day(host):
+    # Plan 16 Task 2 (the successor of test_day_index_falls_back_to_the_world_day_without_a_record_day): with no
+    # surviving record day the birth day floor(bornAge / 24) counts no offline day; with no birth age, the world day
     h = host
     for floor in (None, NAN):
-        body = new_body(h)
+        body = new_body(h)                                  # born at 100.0: record day 4
         body.dayIndex = NAN
         assert names(heal(h, body, 168.0, None, None, floor)) == ["dayIndex"]
-        assert body["dayIndex"] == 7
+        assert body["dayIndex"] == 4
+    body = new_body(h)
+    body.dayIndex = NAN
+    body.bornAge = NAN
+    assert names(heal(h, body, 168.0)) == ["dayIndex"]
+    assert body["dayIndex"] == 7
 
 
 def test_the_rungs_heal_when_not_a_whole_number_in_range(host):

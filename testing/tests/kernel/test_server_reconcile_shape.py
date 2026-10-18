@@ -408,7 +408,10 @@ def test_mark_band_is_the_effects_mark(h):
 
 # --- the store: the load at every first sight, in place -----------------------------------------------
 
-def test_a_stored_record_reloads_in_place_at_every_first_sight(h):
+def test_a_stored_record_is_filled_once_and_kept_in_memory_across_a_return(h):
+    # Plan 16 Task 2 (the successor of test_a_stored_record_reloads_in_place_at_every_first_sight): a record is filled
+    # (K.store.fillInPlace) once per table this uptime; held in memory since, it keeps its derived fields at a return,
+    # where only the resume runs, so it comes back exactly as it left; a new table (a slot file's copy) is filled
     t = h.NR.server.store.records
     t["admin"] = h.K.store.new("admin", 2.0)
     p = h.player()
@@ -420,7 +423,14 @@ def test_a_stored_record_reloads_in_place_at_every_first_sight(h):
         fn("admin", None, None)
     h.NR.server.players.online = h.rt.table()
     again = h.first_sight(p)
-    assert h.G.rawequal(again, rec) and rec["junk"] is None
+    assert h.G.rawequal(again, rec) and rec["junk"] == 1
+    t["admin"] = h.K.store.inputsOnly(rec)                # a restart: the file's copy
+    t["admin"]["junk"] = 1
+    for fn in h.NR.server.players.onDeparture.values():
+        fn("admin", None, None)
+    h.NR.server.players.online = h.rt.table()
+    third = h.first_sight(p)
+    assert h.G.rawequal(third, t["admin"]) and third["junk"] is None
 
 
 def test_a_new_record_is_made_by_the_kernel(h):

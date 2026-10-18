@@ -32,6 +32,9 @@ def test_the_trace_records_the_written_stats_at_every_snapshot():
     for snap in trace["snapshots"]:
         for name in golden_trace.NAMES:
             written = snap["players"][name]["written"]
+            if name == "g4" and snap["minute"] == 180:
+                assert written == {}        # Plan 16 Task 2: g4's return minute is frozen, so it writes nothing
+                continue
             for stat in ("HUNGER", "THIRST", "FATIGUE"):
                 assert isinstance(written[stat], golden_trace._Num), (snap["minute"], name, stat)
             hungers.add(written["HUNGER"].text)

@@ -4,8 +4,9 @@
 -- emptied vector is absorbed and the absorbed vector accumulates into the pool, and the physical fill (the stomach's
 -- whole mass, both lanes, over its maximal capacity, K.stomach.fill; the writer's F reads K.stomach.fullnessMass through W.satietyF) is stamped on the record as record.stomachFill for the
 -- writer's fallback and the mirror to read (the "fed" gates read the food fill, K.stomach.recordFoodFill). A gap of more than a minute drains in one-minute substeps (the
--- solid rate rises with the load, and the oracle's replays step a minute), and a gap is capped at 60 game minutes:
--- offline time is not integrated, as Metabolism and Nutrients clamp. A record with no stomach starts with an empty one
+-- solid rate rises with the load, and the oracle's replays step a minute); the step is the pipeline's, at most
+-- K.resume.STEP_M (an online stall is sub-stepped), and offline time never reaches it (the resume moves kineticsAge past
+-- the absence, Plan 16 Task 2). A record with no stomach starts with an empty one
 -- (spec § 4); hunger carries over through the meal pool M (record.satiety.M), which the intake feeds at the eat and this step clears
 -- on every substep (K.satiety.drain); the writer seeds M from HUNGER at its first minute and reads it. The energy-state term is NR_Server_Metabolism's per-minute stamp
 -- (record.body.energyState; the writer reads nil or NaN as 1).
@@ -50,12 +51,11 @@ local function nonFinite(stomach)
     return false
 end
 
--- A gap's drain: dtM game minutes, capped at K.satiety.MAX_GAP_M, in one-minute substeps
--- (K.satiety.drain, the kernel's since Plan 11g Task 6, so the replays' stand-ins split a step as the server does).
--- Returns the emptied vector. pool is nil or KIN.meal's state, whose M each substep clears (K.satiety.mealClear).
--- The cap is the kernel's since the Plan 11g close, so replay_live's stand-in reads the same constant.
+-- A step's drain: dtM game minutes in one-minute substeps (K.satiety.drain, the kernel's since Plan 11g Task 6, so
+-- the replays' stand-ins split a step as the server does). Returns the emptied vector. pool is nil or KIN.meal's
+-- state, whose M each substep clears (K.satiety.mealClear). No cap: the pipeline bounds the step (Plan 16 Task 2).
 function KIN.drain(stomach, dtM, pool)
-    return K.satiety.drain(stomach, K.min(dtM, K.satiety.MAX_GAP_M), pool)
+    return K.satiety.drain(stomach, dtM, pool)
 end
 
 -- The buffer check the step runs before the meal context and the drain, which raise on a

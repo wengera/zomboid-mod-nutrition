@@ -48,7 +48,7 @@ NR.server.nutrients = {
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
-        "a step longer than 60 minutes (offline time) is integrated as 60 minutes and the rest skipped, so no sleep window, fed, vigorous or 90-day mass clock, monotony stamp or nicotine anchor counts it; a multi-day jump closes one refeeding day",
+        "offline time is never integrated: the resume at a return moves every world-age clock past the absence (the sleep window, the fed, vigorous and 90-day mass clocks, the monotony stamps, the nicotine anchor and the record day), and a return closes no refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "this step writes no stat, moodle or health; the writer owns the stat writes (INTOXICATION and FATIGUE included) and the effects layer the health writes",
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (S1102 open): a drink with a meal peaks as early as one on an empty stomach",
@@ -276,7 +276,7 @@ local function closeDay(record, body, w, ageH)
     a.alcDayG = 0
     local mg = n.magnesium
     local mgDepleted = mg ~= nil and mg.g >= NUT.MG_DEPLETED_GRADE
-    local partial = finite(body.bornAge) and ageH - body.bornAge < 24   -- the character's first, partial day
+    local partial = finite(body.bornAge) and body.dayIndex - 1 <= math.floor(body.bornAge / 24)   -- the character's first, partial day: the close of its birth record day
     K.acute.refeedDay(a, kcalPerKg, w, ageH, false, mgDepleted, a.alc7 > NUT.ALC_HISTORY_GKG, partial)
     K.acute.refeedEvent(a, kcalPerKg, roll(0.5))
     n.lastDayIndex = body.dayIndex
@@ -351,9 +351,7 @@ local function step(username, player, record, ctx)
         a.gutCaf = a.gutCaf + (intake.pendingCaf[username] or 0)
         intake.pendingCaf[username] = nil
     end
-    local stepM = (ageH - n.lastAgeH) * 60
-    local dtM = K.clamp(stepM, 0, K.body.GAP_M)             -- offline time is not integrated
-    local fromH = n.lastAgeH                                -- the skip starts at the previous step's own age, not a recomputed one
+    local dtM = K.max((ageH - n.lastAgeH) * 60, 0)          -- the pipeline's step (offline time never reaches it: the resume)
     n.lastAgeH = ageH
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
     -- the minute's ingested sum, taken only by a minute that integrates: a minute skipped above leaves it for the
@@ -364,7 +362,6 @@ local function step(username, player, record, ctx)
         intake.lastIngested[username] = nil
     end
     local dtH = dtM / 60
-    if stepM > K.body.GAP_M then K.acute.skipRecord(record, (stepM - K.body.GAP_M) / 60, fromH) end   -- nor counted by any world-age clock (before closeDay's refeedDay)
     local w = body.fm + body.lm + body.lx
     local O = NR.server.options or EMPTY
     local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex; 0 or 1 (ruling 13-5)

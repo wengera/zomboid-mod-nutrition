@@ -458,11 +458,13 @@ def test_the_day_close_reads_the_closed_day_and_the_alcohol_mean(nut_host):
 
 
 def test_a_return_after_a_gap_closes_no_refeeding_day(nut_host):
-    # ruling 13-5: a return after three game days closes no record day, so the nutrients close does not run
+    # ruling 13-5 under Plan 16 Task 2: the store's resume moves the record day past three game days away, so the
+    # return closes no record day and the nutrients close does not run
     h = nut_host
     p = player(h)
     record = fresh(h, p)
     skipped, days = NUT(h).stats.skippedDays, NUT(h).stats.days
+    assert h.G.NutritionRevamp.kernel.resume.resume(record, 100.0 + 72.0) == 72.0
     chain(h, p, record, 100.0 + 72.0)
     assert record["nutrients"]["lastDayIndex"] == record["body"]["dayIndex"] == 4
     assert NUT(h).stats.skippedDays == skipped and NUT(h).stats.days == days
@@ -1467,12 +1469,13 @@ def test_the_fed_gate_reads_the_food_fill_not_drunk_water(nut_host):
     assert a["lastFedAgeH"] == 100.0 + 2 / 60
 
 
-# --- an offline gap is skipped, not simulated (Plan 12 A1) ---------------------------------------------------
+# --- nothing changes offline (Plan 12 A1; Plan 16 Task 2: the store's resume) ---------------------------------
 
 def test_an_offline_gap_books_no_sleep_debt_and_moves_every_acute_anchor(nut_host):
-    # a full night slept closes the window with no debt; the player is then away 72 h and the first minute back
-    # integrates one hour: the 71 h it does not integrate move the window, the 90-day mass stamp, the fed stamp and
-    # the vigorous stamp forward, so no missed window is booked as unslept (README: offline time is not simulated)
+    # a full night slept closes the window with no debt; the player is then away 72 h, and the store's resume
+    # (K.resume.resume) moves the window, the 90-day mass stamp, the fed stamp and the vigorous stamp by the whole gap,
+    # so no missed window is booked as unslept and the return minute integrates nothing (until Plan 16 it
+    # integrated one hour and skipped 71)
     h = nut_host
     NUT(h).sleepDisabled = False
     p = player(h)
@@ -1489,13 +1492,15 @@ def test_an_offline_gap_books_no_sleep_debt_and_moves_every_acute_anchor(nut_hos
     a["lastVigAgeH"] = 110.0
     a["mass90max"] = 500.0
     m90 = a["mass90ageH"]
+    awake = a["awakeH"]
+    assert h.G.NutritionRevamp.kernel.resume.resume(record, 124.0 + 72.0) == 72.0
     alone(h, p, record, 124.0 + 72.0)
     assert a["debtH"] == 0
-    assert a["winStartH"] == 124.0 + 71.0
-    assert a["mass90ageH"] == m90 + 71.0
-    assert a["lastFedAgeH"] == 120.0 + 71.0
-    assert a["lastVigAgeH"] == 110.0 + 71.0
-    assert abs(a["awakeH"] - 1.0) < TOL                     # the one integrated hour
+    assert a["winStartH"] == 124.0 + 72.0
+    assert a["mass90ageH"] == m90 + 72.0
+    assert a["lastFedAgeH"] == 120.0 + 72.0
+    assert a["lastVigAgeH"] == 110.0 + 72.0
+    assert a["awakeH"] == awake                             # the return minute integrates nothing
     assert nonfinite(h, record) == ""
 
 
@@ -1533,52 +1538,32 @@ def test_a_skipped_minute_keeps_the_ingested_sum(nut_host):
 
 
 def test_an_offline_gap_moves_the_monotony_and_nicotine_anchors(nut_host):
-    # Plan 12 B8: monotony's per-type stamps and the writer's nicotine anchor skip the gap too, so an absence neither
-    # fades a repeated food nor counts toward a quit (README: offline time is not simulated)
+    # Plan 12 B8 under Plan 16 Task 2: the resume moves monotony's per-type stamps and the writer's nicotine anchor by
+    # the whole gap too, so an absence neither fades a repeated food nor counts toward a quit
     h = nut_host
     p = player(h)
     record = fresh(h, p)
     alone(h, p, record, 100.5)
     record["monotony"] = h.table({"t": {"Base.Bread": {"n": 3.0, "last": 100.25}}})
     record["satiety"] = h.table({"nicH": 90.0})
-    alone(h, p, record, 100.5 + 72.0)                       # 72 h away: one hour integrated, 71 skipped
-    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 71.0
+    assert h.G.NutritionRevamp.kernel.resume.resume(record, 100.5 + 72.0) == 72.0   # 72 h away
+    alone(h, p, record, 100.5 + 72.0)
+    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 72.0
     assert record["monotony"]["t"]["Base.Bread"]["n"] == 3.0
-    assert record["satiety"]["nicH"] == 90.0 + 71.0
+    assert record["satiety"]["nicH"] == 90.0 + 72.0
     alone(h, p, record, 100.5 + 73.0)                       # an integrated hour moves nothing
-    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 71.0
+    assert record["monotony"]["t"]["Base.Bread"]["last"] == 100.25 + 72.0
 
 
-def test_a_stamp_laid_at_the_departure_minute_moves_by_the_gap(nut_host):
-    # Plan 12 B2 F1: the skip's start point is the previous step's age itself; recomputing it as ageH - stepM / 60
-    # came out one ulp low in about 0.3 % of gaps, and a stamp laid at the last online minute stayed put
+def test_a_stamp_laid_at_the_departure_minute_lands_on_the_return(nut_host):
+    # Plan 12 B2 F1's successor (Plan 16 Task 2): a stamp laid at the last step's age lands exactly on the return's
+    # age (K.resume.moved), whatever the rounding of the gap, so the anchor reads the same elapsed time as at departure
     h = nut_host
     p = player(h)
     record = fresh(h, p)
     last, back = 159.21666666666667, 232.6
     alone(h, p, record, last)
     record["satiety"] = h.table({"nicH": last})
+    h.G.NutritionRevamp.kernel.resume.resume(record, back)
     alone(h, p, record, back)
-    assert abs(record["satiety"]["nicH"] - (back - 1.0)) < 1e-9
-    assert record["satiety"]["nicH"] > last + 70.0
-
-
-def test_the_gap_threshold_is_k_body_gap_m(nut_host):
-    # Task 24 M-5: a step over K.body.GAP_M (60) game minutes skips its excess, one of exactly 60 skips nothing; the
-    # ages are exact in binary, so the 60.9375-minute step kills a `> 61` mutant and the 60-minute one a `> 59`
-    h = nut_host
-    assert h.G.NutritionRevamp.kernel.body.GAP_M == 60
-    p = player(h)
-    record = fresh(h, p)
-    alone(h, p, record, 100.5)
-    acute = h.G.NutritionRevamp.kernel.acute
-    saved = acute.skipRecord
-    calls = []
-    acute.skipRecord = lambda rec, hours, fromH: calls.append((hours, fromH))
-    try:
-        alone(h, p, record, 101.5)                          # exactly 60 game minutes: integrated, nothing skipped
-        assert calls == []
-        alone(h, p, record, 101.5 + 1 + 1 / 64)             # 60.9375 game minutes: 0.9375 of them skipped
-        assert calls == [(0.9375 / 60, 101.5)]
-    finally:
-        acute.skipRecord = saved
+    assert record["satiety"]["nicH"] == back and record["nutrients"]["lastAgeH"] == back

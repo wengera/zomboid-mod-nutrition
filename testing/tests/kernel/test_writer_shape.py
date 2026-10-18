@@ -905,8 +905,10 @@ def test_the_writer_stamps_its_step_age_on_the_satiety_record():
     assert rec.satiety.t == pytest.approx(100.0 + 7 / 60)
 
 
-def test_a_reconnect_decays_s_as_the_same_object_does():
-    # the review's probe2: a player away 180 game minutes returns as a new object; S takes the 60-minute catch-up
+def test_a_reconnect_keeps_s_where_the_same_object_steps_it():
+    # the review's probe2 under Plan 16 Task 2: a player away 180 game minutes returns as a new object, and the store's
+    # resume moved satiety.t to the return, so S steps nothing; the same object handed a 180-minute step (a stall the
+    # pipeline did not sub-step) is held to the writer's own 60-minute guard (maxStepS)
     h = boot()
     p, same = _fed(h, "a")
     M2, S2 = same.satiety.M, same.satiety.S
@@ -914,24 +916,30 @@ def test_a_reconnect_decays_s_as_the_same_object_does():
     h2 = boot()
     _, back = _fed(h2, "a")
     assert back.satiety.M == M2 and back.satiety.S == S2
+    assert h2.K.resume.resume(back, 100.0 + 182 / 60) > 0                   # the store's load at the return
     step(h2, player(h2, "a"), back, 182, name="a")                          # a new object, 180 minutes later
     assert same.satiety.M == M2
     assert same.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
     assert back.satiety.M == M2
-    assert back.satiety.S == pytest.approx(same.satiety.S)
+    assert back.satiety.S == S2
     assert back.satiety.t == pytest.approx(100.0 + 182 / 60)
 
 
-def test_a_reconnect_inside_the_clamp_decays_s_over_the_gap():
+def test_a_reconnect_after_the_resume_keeps_s():
+    # Plan 16 Task 2 (the successor of test_a_reconnect_inside_the_clamp_decays_s_over_the_gap): 21 minutes away, the
+    # resume moves satiety.t to the return, so the new object's first minute steps 0 and S is unchanged
     h = boot()
     _, rec = _fed(h)
     M2, S2 = rec.satiety.M, rec.satiety.S
+    assert h.K.resume.resume(rec, 100.0 + 23 / 60) == pytest.approx(21 / 60)
     step(h, player(h), rec, 23)                                             # a new object 21 minutes later
-    assert rec.satiety.S == pytest.approx(S2 * 2 ** (-(21 / 60) / 0.15))
+    assert rec.satiety.S == S2
     assert rec.satiety.M == M2
 
 
-def test_a_restart_through_the_store_decays_s():
+def test_a_restart_through_the_store_keeps_s():
+    # Plan 16 Task 2 (the successor of test_a_restart_through_the_store_decays_s): the store's load resumes the record,
+    # so 180 minutes of server downtime and absence step S by nothing
     h = boot()
     W = h.NR.server.writer
     _, rec = _fed(h)
@@ -943,10 +951,11 @@ def test_a_restart_through_the_store_decays_s():
     back.stomachFill = 0.6
     back.body = h.rt.eval("{ energyState = 1, rmod = 1 }")
     W.h["a"] = None                                                         # the restart: no hoist survives
+    assert h.K.resume.resume(back, 100.0 + 182 / 60) > 0                    # the store's load
     step(h, player(h), back, 182)
     assert W.stats.seeded == 0
     assert back.satiety.M == M2                                             # stored and left: Kinetics clears it
-    assert back.satiety.S == pytest.approx(S2 * 2 ** (-1 / 0.15))
+    assert back.satiety.S == S2
 
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])

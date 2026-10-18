@@ -125,30 +125,12 @@ function K.body.trailTo(t, ageH)
     return t
 end
 
--- Carry window t forward to world age toH with its contents, for hours the adapter skips rather than integrates (an
--- offline gap): every slot keeps its age behind the window's hour, so the hours before the gap stay inside the 24 h and
--- none of the gap's is booked; the closed sums rebuild at the next read. An age not past the window's (behind it,
--- equal or not a number) leaves it. Allocates one copy per ring: it runs once per return, never per minute.
-function K.body.trailShift(t, toH)
-    if not (toH > t.at) then
-        return t
-    end
-    local n = K.body.TRAIL_N
-    local d = math.floor(toH) - math.floor(t.at)
-    local keys = K.body.TRAIL_KEYS
-    for k = 1, #keys do
-        local ring = t[keys[k]]
-        local old = {}
-        for i = 1, n do
-            old[i] = ring[i]
-        end
-        for i = 1, n do
-            ring[(i - 1 + d) % n + 1] = old[i]
-        end
-    end
-    t.at = toH
-    t.ch = -1
-    return t
+-- The window's clock at world age ageH: the window runs on online hours, its own age moved by the step's length
+-- (ageH - body.lastAgeH; Plan 16 Task 2), so the resume, which moves body.lastAgeH past an offline gap
+-- (K.resume.shift), leaves every slot's hour where the player left it, and no hour of the gap is booked or rolls one
+-- off. Equal to ageH for a body never away (the difference of two close ages is exact, so the sum lands on ageH).
+function K.body.trailClock(body, ageH)
+    return body.trail.at + (ageH - body.lastAgeH)
 end
 
 -- Add x to ring key's current hour.
@@ -215,26 +197,26 @@ function K.body.trailIntake(t, absorbed)
     K.body.trailAdd(t, "lip", absorbed.lipids)
 end
 
--- The record calendar (Plan 13 ruling 13-5): body.dayIndex counts the record's closed online days and body.wday is
--- the world day the open record day belongs to. At world age ageH a minute closes the day when the world day
--- floor(ageH / 24) has passed body.wday, and then stamps that world day: at most one close a minute, whatever the
--- world days between. A gapped minute (a return whose step exceeds 60 game minutes) re-stamps body.wday to today's
--- world day and closes nothing, so the day open at departure continues as today's record day and nothing advances
--- while the player is offline. Returns the closes the caller runs, 0 or 1; dayIndex is never touched here: the
--- caller's K.partition.closeDay advances it by one.
-K.body.GAP_M = 60 -- game minutes: a step longer than this is a return after a gap, never integrated (ruling 13-5)
+-- The record calendar (Plan 13 ruling 13-5; Plan 16 Task 2, spec section 1.2): body.dayIndex counts the record's
+-- closed days and body.dayStartH is the world age the open record day started at. The day closes after 24 online
+-- game hours: a minute at world age ageH closes it when ageH - dayStartH reaches DAY_H, and moves dayStartH on by one
+-- day. The resume moves dayStartH past an offline gap (K.resume.STAMPS), so a record day counts online hours only,
+-- whatever the world days between; a body never away closes at the world's day boundary, where K.body.new starts
+-- its first day. At most one close a minute: a start still a day or more behind after the move (a stall the pipeline
+-- did not sub-step) is brought up to the last whole day before ageH, closing nothing more. Returns the closes the
+-- caller runs, 0 or 1; dayIndex is never touched here: the caller's K.partition.closeDay advances it by one.
+K.body.DAY_H = 24 -- game hours in a record day
 
-function K.body.calendar(body, ageH, gapped)
-    local today = math.floor(ageH / 24)
-    if gapped then
-        body.wday = today
+function K.body.calendar(body, ageH)
+    if ageH - body.dayStartH < K.body.DAY_H then
         return 0
     end
-    if today > body.wday then
-        body.wday = today
-        return 1
+    body.dayStartH = body.dayStartH + K.body.DAY_H
+    local behind = ageH - body.dayStartH
+    if behind >= K.body.DAY_H then
+        body.dayStartH = ageH - math.fmod(behind, K.body.DAY_H)
     end
-    return 0
+    return 1
 end
 
 -- ============================================================ the creation body (Plan 13 Task 9; spec section 3.2)
@@ -319,8 +301,8 @@ end
 
 -- A fresh record.body from a creation spec (K.body.create), the engine's sex (1 male, 2 female) and the world age in
 -- hours: the spec's lean, set point, cap, peak, N0, fat and rungs; the labile lean, the grace counters and the signal
--- ring at 0; T at 1; fmRef the spec's (the no-pick fat for a thin start) and lm0dis at the start; the calendar at the
--- world day, the day accumulators at 0, the seven-day rings (mass7 at the body mass lm + lx + fm), the trailing-24 h
+-- ring at 0; T at 1; fmRef the spec's (the no-pick fat for a thin start) and lm0dis at the start; the record day from the
+-- world day's start, the day accumulators at 0, the seven-day rings (mass7 at the body mass lm + lx + fm), the trailing-24 h
 -- window (K.body.newTrail, empty at birth) and the neutral rmod, tac, pPrevKg and energyState. Numbers and tables of
 -- numbers only (#1495).
 -- body.band is K.traits.axes over the spec's rungs at its effective sex sexIdx (ruling 13-30). The closed week's
@@ -352,7 +334,7 @@ function K.body.new(spec, sex, ageH)
     body.lastAgeH = ageH
     body.at = 0
     body.dayIndex = day
-    body.wday = day
+    body.dayStartH = day * K.body.DAY_H
     body.inDay = 0
     body.eeDay = 0
     body.ebDay = 0

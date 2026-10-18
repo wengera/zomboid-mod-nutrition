@@ -48,7 +48,6 @@ K.satiety.SLEEP_DEBT_FULL_H = 2 -- game choice, Plan 11d (ruling 11d-2): the deb
 K.satiety.NIC_MAX = 0.1313 -- game choice, Plan 11e (rulings 11e-2 and T2-D): the factor's rise at the stat's cap, fitted to the 48-day mean of S1576 (Stamford 1986: intake +227 kcal/d, the period mean over the 48 days after quitting): the replay's 48-day mean intake ratio reads S1576's 1.1135, which is 227 kcal over a 2,000 kcal baseline that is an ASSUMPTION (the row gives no baseline intake), under the request-anchored mapping (ruling 11c-31, an assumption); the next-day ratio then reads 1.1304, both in the band 1.08-1.14; the size is low certainty, one experiment with n = 13 sedentary women and no certainty rating; S1577 sets the fade's end
 K.satiety.NIC_FADE_DAYS = 182 -- game choice, Plan 11e (ruling 11e-2): 26 weeks, the fade's end, from S1577 (Hall 1989: abstinent women's intake about baseline by week 26, men's below it), linear between; the size it fades is S1576's (n = 13, low certainty) and the shape of the fade is not measured
 K.satiety.NIC_WITHDRAWAL_MAX = 0.51 -- CharacterStat.NICOTINE_WITHDRAWAL's maximum, the stat's cap a full smoke removes (#3632)
-K.satiety.MAX_GAP_M = 60 -- not science, no row needed (Plan 11g close; Kinetics' local until then): the gap cap, a step's drain integrating at most this many game minutes, the pipeline's offline cap (Metabolism's and Nutrients' dtM clamp), read by KIN.drain and replay_live's stand-in
 
 -- Fullness: the stomach's F (spec § 3.1; Plan 11g spec § 7).
 -- The physical fill: a mass over a capacity, clamped to [0, 1]; K.stomach.fill passes the whole mass, both lanes at
@@ -108,7 +107,7 @@ end
 -- amendment 5; moved here from KIN.drain in Plan 11g Task 6), the emptied vectors summed into the first, which is
 -- returned. pool is nil or a {M, trait} state whose M is cleared over each substep (mealClear; nothing feeds it here:
 -- the eat does). A float one-minute gap (60 x 1/60 h, or a stamp a 14-digit slot rounded) is one substep (ruling
--- T4-4). Kinetics calls it with its gap capped, and the replays' stand-ins call it, so every path splits a step alike.
+-- T4-4). Kinetics calls it with the step the pipeline bounds (K.resume.STEP_M), and the replays' stand-ins call it, so every path splits a step alike.
 function K.satiety.drain(stomach, dtM, pool)
     local n = math.ceil(dtM - 1e-6)
     if n < 1 then

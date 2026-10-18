@@ -390,7 +390,7 @@ function IN.readBefore(action)
     if username == nil then return nil end
     local rawBefore = read(item, "getHungChange")          -- the RAW stored hunger (#0002)
     if type(rawBefore) ~= "number" then return nil end
-    local b = { item = item, username = username, rawBefore = rawBefore }
+    local b = { item = item, username = username, rawBefore = rawBefore, player = char }   -- player: the store's sight key (Plan 16 Task 2)
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
@@ -472,7 +472,7 @@ function IN.readAfterAndLand(b)
     end
     if bad ~= nil then return IN.reject(bad) end
     if vec == nil then return nil end                      -- a cancel under vanilla's guards, or a no-op
-    local record = NR.server.store.get(b.username, worldAge())
+    local record = NR.server.store.get(b.username, worldAge(), b.player)
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
@@ -568,7 +568,7 @@ function IN.credit(b)
     local RC = NR.server.reconcile
     local after = RC.read(b.nrChar)
     if after == nil then return false end
-    local record = NR.server.store.get(b.username, worldAge())
+    local record = NR.server.store.get(b.username, worldAge(), b.player)
     return RC.credit(record, b.nrStores, after)
 end
 
@@ -706,7 +706,7 @@ function IN.readDrinkBefore(action)
     if fc == nil then return nil end
     local litresBefore = read(fc, "getAmount")             -- litres (#2685)
     if type(litresBefore) ~= "number" or litresBefore <= 0 then return nil end
-    local d = { item = item, fc = fc, username = username, litresBefore = litresBefore, mix = {} }
+    local d = { item = item, fc = fc, username = username, litresBefore = litresBefore, mix = {}, player = char }
     d.fullType = tostring(read(item, "getFullType"))
     -- the mix: getPercentage(i) is the fluid's proportion 0..1 of the container's amount (the
     -- instance amount over the container total); getFluidTypeString is never null on a Fluid (#2684),
@@ -743,7 +743,7 @@ function IN.readDrinkAfterAndLand(d)
     local bad = IN.firstNonFinite(vec)
     if not IN.isFinite(litres) then bad = "litres" end
     if bad ~= nil then return IN.reject(bad) end
-    local record = NR.server.store.get(d.username, worldAge())
+    local record = NR.server.store.get(d.username, worldAge(), d.player)
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()
@@ -803,7 +803,7 @@ function IN.readWorldBefore(action, amount)
     if litres <= 0 then
         return nil
     end
-    return { username = username, litres = litres, fullType = "world water", action = action }
+    return { username = username, litres = litres, fullType = "world water", action = action, player = char }
 end
 
 -- After the original: the step's litres as the Water seed, the landing.
@@ -820,7 +820,7 @@ function IN.readWorldAfterAndLand(d)
     end
     local bad = IN.firstNonFinite(vec)
     if bad ~= nil then return IN.reject(bad) end
-    local record = NR.server.store.get(d.username, worldAge())
+    local record = NR.server.store.get(d.username, worldAge(), d.player)
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
     record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
     record.pool = record.pool or K.vector.new()

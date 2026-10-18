@@ -26,12 +26,12 @@ def floor(h, code, t=0.0, lm=52.02, fm=10.0, bmi0=22.0, dehyd=0.0):
     return h.K.drain.floor(code, t, h.table({"lm": lm, "fm": fm, "bmi0": bmi0, "dehydPct": dehyd}))
 
 
-def record(h, unfed=None, inDay=0.0, wday=4, lm=52.02, fm=10.0, lx=0.0, dehyd=0.0, na=140.0, vitC=(1, 0),
+def record(h, unfed=None, inDay=0.0, day=4, lm=52.02, fm=10.0, lx=0.0, dehyd=0.0, na=140.0, vitC=(1, 0),
            thiamine=(1, 0), niacin=(1, 0), iron=0, lastAgeH=100.0, at=100.0):
     """A record at world age `at`: fed (the meal pool at 10) unless `unfed` hours ago its pool was last fed (M 0 and
     drain.fedAgeH at - unfed, Plan 15 Task 6 fix 1)."""
     t = {
-        "body": {"lm": lm, "fm": fm, "lx": lx, "inDay": inDay, "wday": wday},
+        "body": {"lm": lm, "fm": fm, "lx": lx, "inDay": inDay, "dayStartH": day * 24.0},
         "nutrients": {"vitC": {"g": vitC[0], "ah": vitC[1]}, "thiamine": {"g": thiamine[0], "ah": thiamine[1]},
                       "niacin": {"g": niacin[0], "ah": niacin[1]}, "iron": {"x": iron}, "lastAgeH": lastAgeH},
         "fluids": {"dehydPct": dehyd, "naPlasma": na},
@@ -426,9 +426,9 @@ def test_a_water_only_fast_kills_the_default_body_by_starvation_and_a_90_kg_body
 # --- Plan 15 Task 6 fix 1: the unfed hours and the trailing 72 h -----------------------------------------------------
 
 def test_the_unfed_hours_count_across_a_record_day_with_no_reset(host, D):
-    rec = record(host, unfed=0.0, at=23.5, wday=0)
+    rec = record(host, unfed=0.0, at=23.5, day=0)
     assert D.step(rec, 1.0, 23.5).starvedH == 0
-    rec.body.wday = 1                                                          # the record day closes at 24
+    rec.body.dayStartH = 24.0                                                  # the record day closes at 24
     d = D.step(rec, 1.0, 24.5)
     assert d.starvedH == pytest.approx(1.0, abs=TOL) and d.fedAgeH == 23.5
     rec.body.inDay = 10000.0                                                   # the day's intake no longer matters
@@ -578,15 +578,17 @@ def test_a_200_kcal_snack_every_33_h_still_enters_the_acute_state(host, D):
 
 
 def test_an_offline_gap_neither_counts_as_unfed_nor_moves_the_window(host, D):
-    # Plan 15 Task 6 fix 2 (re-review H1): a 199 h logout 5 h after the pool emptied comes back 5 h unfed
+    # Plan 15 Task 6 fix 2 (re-review H1), under Plan 16 Task 2's freeze: a 200 h logout 5 h after the pool emptied
+    # comes back exactly 5 h unfed (the resume moves drain.fedAgeH by the whole gap; until Plan 16 the return
+    # integrated one hour and read 6)
     rec = record(host, unfed=5.0, at=100.0)
     rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = 2000.0, 2000.0, 2000.0
     rec.body.recentDays = 3
     rec.acute = host.K.acute.new(90.0)
     rec.acute.lastFedAgeH, rec.acute.lastVigAgeH = 95.0, 95.0                  # the adapter lays these
-    host.K.acute.skipRecord(rec, 199.0, 100.0)
+    assert host.K.resume.resume(rec, 300.0) == 200.0                           # the last step: nutrients.lastAgeH 100
     d = D.step(rec, 1.0, 300.0)
-    assert d.starvedH == pytest.approx(6.0, abs=1e-9) and d.starveAcute is False
+    assert d.starvedH == pytest.approx(5.0, abs=1e-9) and d.starveAcute is False
     assert D.starvePhase(d.starvedH) == 0
     assert d.recentKcal == 6000.0                                              # the record days did not move
 

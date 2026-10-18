@@ -15,7 +15,7 @@ function K.hybrid.defaults()
         moodRiseUnhappy = 22 / 3600,     -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
         moodRiseSick = 25 / 3600,        -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
         moodRiseStress = 5.0e-5, moodRiseBored = 25 / 3600, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
-        maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (the pipeline's clamp)
+        maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
         liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
         starvingMin = 0.71,              -- HUNGER at least this under starvation's acute onset, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
     }

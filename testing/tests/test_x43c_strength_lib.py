@@ -559,6 +559,7 @@ class World:
             spec["fm"] *= 1.01
         nb = T.flat(self.k.K.body.new(self.k.table(spec), 1, self.age))
         nb = {k: v for k, v in nb.items() if not k.startswith("trail")}
+        nb["wday"] = math.floor(self.age / 24.0)   # the fake world's world-day calendar (see T.pre_body)
         if self.f.get("rung_lost"):
             nb["thinT"] = 0
         self.body = nb

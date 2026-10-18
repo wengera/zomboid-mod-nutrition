@@ -115,7 +115,7 @@ def test_new_rings_are_distinct_tables(host):
     week[1][1] = 5
     assert week[2][1] == 0
     py = host.py(body)
-    assert py["dayIndex"] == 1 and py["wday"] == 1
+    assert py["dayIndex"] == 1 and py["dayStartH"] == 24.0   # the record day from the world day's start (Plan 16 Task 2)
 
 
 # --- the trailing-24 h window (Plan 11d Task 9c, ruling C-8) ---
@@ -193,33 +193,27 @@ def test_trail_to_a_gap_longer_than_the_ring_empties_it(host):
         assert _ring(t, k) == [0] * 25, k
 
 
-def test_trail_shift_carries_the_window_forward_with_its_contents(host):
-    # Plan 12 A1: an offline gap is skipped, so the window moves to the start of the integrated step with every slot
-    # keeping its age behind the window's hour, and the closed sums rebuild at the next read
+def test_the_window_clock_runs_on_online_hours(host):
+    # Plan 16 Task 2 (the successor of Plan 12 A1's trailShift tests): the window's clock is its own age moved by the
+    # step's length, so a resume that moves body.lastAgeH past an offline gap leaves every slot's hour where it was and
+    # the trailing-24 h sum reads the same at the return; a body never away reads its clock at the world age exactly
     b = host.K.body
-    t = b.newTrail(76.0)
+    body = host.table({"lastAgeH": 100.5})
+    body.trail = b.newTrail(76.0)
+    t = body.trail
     b.trailAdd(t, "ex", 240.0)
     for h in range(77, 101):
         b.trailTo(t, float(h))
         b.trailAdd(t, "ex", float(h))
-    t.at = 100.5
+    b.trailTo(t, 100.5)
+    assert b.trailClock(body, 100.5 + 1 / 60) == 100.5 + 1 / 60
     before = b.trail24(t, "ex")
-    b.trailShift(t, 100.5 + 71.75)                       # 71.75 h skipped: the hour moves from 100 to 172
-    assert t.at == 172.25 and t.ch == -1
-    for back in range(25):
-        assert t.ex[b.trailSlot(172 - back)] == ([240.0] + [float(h) for h in range(77, 101)])[24 - back], back
-    b.trailTo(t, 172.5)
-    assert _close(b.trail24(t, "ex"), before)
-
-
-def test_trail_shift_backwards_or_in_place_moves_nothing(host):
-    b = host.K.body
-    t = b.newTrail(10.5)
-    b.trailAdd(t, "p", 30.0)
-    b.trailShift(t, 10.5)
-    b.trailShift(t, 9.0)
-    b.trailShift(t, float("nan"))
-    assert t.at == 10.5 and t.p[b.trailSlot(10)] == 30.0 and _ring(t, "p").count(0) == 24
+    body.lastAgeH = 100.5 + 71.75                       # the resume: 71.75 h away
+    assert b.trailClock(body, 100.5 + 71.75) == 100.5
+    b.trailTo(t, b.trailClock(body, 100.5 + 71.75))
+    assert t.at == 100.5 and b.trail24(t, "ex") == before
+    b.trailTo(t, b.trailClock(body, 100.5 + 71.75 + 0.5))   # half an online hour later: hour 101 opens over hour 76's slot
+    assert t.at == 101.0 and t.ex[b.trailSlot(101)] == 0
 
 
 def test_trail24_weights_the_oldest_hour_by_its_share_still_inside(host):
@@ -309,30 +303,31 @@ def test_trail_ring_sum_sums_all_but_the_current_slot_and_counts_what_it_zeroed(
 
 # --- the record calendar (Plan 13 Task 4, ruling 13-5) ---
 
-def test_calendar_closes_once_on_a_new_world_day(host):
-    b = host.table({"wday": 5, "dayIndex": 5})
-    assert host.call("body.calendar", b, 5 * 24 + 23.9, False) == 0
-    assert host.call("body.calendar", b, 6 * 24 + 0.1, False) == 1
-    assert b["wday"] == 6 and b["dayIndex"] == 5
-    assert host.call("body.calendar", b, 6 * 24 + 0.2, False) == 0   # the new world day closes once
+def test_calendar_closes_after_24_online_hours(host):
+    # Plan 16 Task 2 (the successor of ruling 13-5's world-day close): a body never away starts its day at the world
+    # day's start, so it closes at the world's boundary, once
+    b = host.table({"dayStartH": 120.0, "dayIndex": 5})
+    assert host.call("body.calendar", b, 5 * 24 + 23.9) == 0
+    assert host.call("body.calendar", b, 6 * 24 + 0.0) == 1
+    assert b["dayStartH"] == 144.0 and b["dayIndex"] == 5
+    assert host.call("body.calendar", b, 6 * 24 + 0.2) == 0   # the new day closes once
 
 
-def test_calendar_closes_nothing_after_a_gap(host):
-    b = host.table({"wday": 5, "dayIndex": 5})
-    assert host.call("body.calendar", b, 9 * 24 + 3.0, True) == 0
-    assert b["wday"] == 9 and b["dayIndex"] == 5
-    assert host.call("body.calendar", b, 9 * 24 + 23.0, False) == 0  # the day open at departure continues
-    assert host.call("body.calendar", b, 10 * 24 + 0.05, False) == 1
+def test_calendar_counts_online_hours_whatever_the_world_day(host):
+    # the successor of test_calendar_closes_nothing_after_a_gap: a resume moved the day's start by the 75.5 h away, so
+    # the day open at departure (8 online hours in) closes 16 online hours after the return, at no world boundary
+    b = host.table({"dayStartH": 120.0 + 75.5, "dayIndex": 5})
+    assert host.call("body.calendar", b, 128.0 + 75.5) == 0          # the return, 8 online hours into the day
+    assert host.call("body.calendar", b, 9 * 24 + 0.05) == 0         # a world boundary closes nothing
+    assert host.call("body.calendar", b, 144.0 + 75.5 - 0.01) == 0
+    assert host.call("body.calendar", b, 144.0 + 75.5) == 1
+    assert b["dayStartH"] == 144.0 + 75.5 and b["dayIndex"] == 5
 
 
 def test_calendar_closes_at_most_one_day_a_minute(host):
-    b = host.table({"wday": 5, "dayIndex": 5})
-    assert host.call("body.calendar", b, 8 * 24 + 0.5, False) == 1
-    assert b["wday"] == 8 and b["dayIndex"] == 5
-    assert host.call("body.calendar", b, 8 * 24 + 0.6, False) == 0
-
-
-def test_calendar_after_a_gap_restamps_a_behind_world_day(host):
-    b = host.table({"wday": 9, "dayIndex": 5})
-    assert host.call("body.calendar", b, 9 * 24 + 1.0, True) == 0
-    assert b["wday"] == 9
+    # a start two days behind (a stall the pipeline did not sub-step) closes once and is brought up to the last whole
+    # day before the minute, closing nothing more
+    b = host.table({"dayStartH": 120.0, "dayIndex": 5})
+    assert host.call("body.calendar", b, 8 * 24 + 0.5) == 1
+    assert b["dayStartH"] == 192.0 and b["dayIndex"] == 5
+    assert host.call("body.calendar", b, 8 * 24 + 0.6) == 0
