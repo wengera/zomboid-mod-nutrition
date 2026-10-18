@@ -4645,9 +4645,9 @@ end)
 --                   getTimestampMs bracket; the newest copy is never opened for writing, and both files end holding it.
 --                   The store's read, write and byte counters are put back after the loops (the reply carries the
 --                   deltas), so a later reading of store.file.stats counts only the mod's own saves. n is 1 to 10000.
---   clear           S.prune's route for one name: both slots emptied (written ""), the index entry, gen, slot, last
---                   text, last write and dirty mark dropped, the in-memory record and sight dropped if present, and the
---                   index written (F.writeIndex).
+--   clear           a lost store's route for the probe name: both slots emptied (written ""), the index entry, gen, slot,
+--                   last text, last write and dirty mark dropped, the in-memory record and sight dropped if present, the
+--                   index written (F.writeIndex); the probe name has no character, so no backup copy exists to clear.
 TK.SP = TK.SP or { MAX = 10000 }
 TK.SP.LEAVES = { "firstSeen", "lastSeen", "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH",
                  "reconcile.count" }
