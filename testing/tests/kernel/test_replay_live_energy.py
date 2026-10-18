@@ -223,8 +223,7 @@ def test_the_36_h_fast_on_the_server_path(host):
     f = fast_server()
     assert f["r2"] > 1 and f["r3"] < f["r2"], f
     assert M.ratio(f["r2"], 1.20) <= M.TOL and M.ratio(f["r3"], 1.0) <= M.TOL, f
-    # Plan 16 Task 5 (the deficit arm on Forbes, no fat ceiling): day 3 0.980 (0.979 before)
-    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.145, 0.98), f
+    assert (round(f["r2"], 3), round(f["r3"], 3)) == (1.145, 0.98), f    # Plan 16 Task 5 (the deficit arm on Forbes): day 3 0.980 (0.979)
     assert [round(x) for x in f["fed"]] == [1946, 1939] and round(f["fast"]) == 2229, f    # Plan 16 Task 5: 2229 (2228)
     assert [round(x["body.energyState"], 3) for x in f["log"]] == [1.0, 1.164, 1.245], f
     assert [round(x["body.eb24"]) for x in f["log"]] == [-1, -1300, -1948], f    # Plan 16 Task 5: -1948 at 36 h (-1945)
@@ -397,9 +396,7 @@ def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
     assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
     assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-49.2, 30.1), k    # Plan 16 Task 5: dfc 30.1 (30.0 before)
     # the calibration check against the doubly labelled water: the gap is a reading, never tuned
-    # Plan 16 Task 5 (the deficit arm on Forbes): DEF keeps more lean, so its days 2 and 3 read 19.96 and 19.90 MJ
-    # (19.90 and 19.78 before)
-    assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.96, 19.9], k["ee"]
+    assert [round(x, 2) for x in k["ee"]["DEF"]] == [19.79, 19.96, 19.9], k["ee"]   # Plan 16 Task 5: DEF keeps more lean (19.90 and 19.78 before)
     assert [round(x, 2) for x in k["ee"]["BAL"]] == [19.79, 20.01, 20.03], k["ee"]
     assert round(sum(k["ee"]["DEF"]) / 3 - KARL_TDEE_MJ["DEF"], 2) == 0.78, k["ee"]   # Plan 16 Task 5: 0.78 (0.72)
     assert round(sum(k["ee"]["BAL"]) / 3 - KARL_TDEE_MJ["BAL"], 2) == -0.06, k["ee"]
@@ -527,8 +524,7 @@ def test_karl_2021_the_ramp_passes_where_no_bypass_fails_and_a_25_percent_step_n
     assert karl_pass(ramp["bal"], ramp["dfc"]) == (True, True), ramp
     assert karl_pass(none["bal"], none["dfc"])[1] is False and none["dfc"] < 17.3, none
     assert karl_pass(step["bal"], step["dfc"]) == (True, True) and ramp["dfc"] <= step["dfc"] < 39.0, step
-    # Plan 16 Task 5: the step reads 31.5 (31.4 before)
-    assert (round(none["dfc"], 1), round(step["dfc"], 1)) == (7.6, 31.5), (none["dfc"], step["dfc"])
+    assert (round(none["dfc"], 1), round(step["dfc"], 1)) == (7.6, 31.5), (none["dfc"], step["dfc"])   # Plan 16 Task 5: 31.5 (31.4)
 
 
 # --- the lag: Whybrow 2008 (S1318) and E-MECHANIC (S1320, S1664) ---------------------------------------------------
@@ -701,8 +697,7 @@ def test_karl_2021_over_twin_k_five_billings_the_fit_ranks_by(host):
     assert {a: (round(r["bal"], 1), round(r["dfc"], 1)) for a, r in k.items()} == {
         "asbuilt": (-49.2, 30.1), "climb": (-48.4, 33.4), "run10": (-49.1, 32.6), "loadwalk": (-49.4, 25.3),
         "nobattery": (-49.3, 29.1)}, k   # Plan 16 Task 5: each dfc up 0.1-0.2 (30.0, 33.2, 32.4, 25.2, 29.0 before)
-    # Plan 16 Task 5 (the deficit arm on Forbes): ClimbRope's margin 0.521 (0.531 before)
-    assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.521, k
+    assert round(DO.BY_NAME["karl_def"].margin(DO.BY_NAME["karl_def"].pick({"karl": k})), 3) == 0.521, k   # Plan 16 Task 5: 0.521 (0.531)
 
 
 # --- a resting fast's energy state and drain line (Plan 15 Task 9; the energy moodle is removed) -----------------------
@@ -756,14 +751,9 @@ def test_a_sedentary_fasts_energy_state_and_starvation_line(host):
         starving, es = long_fast_levels({"weight": w, "female": female})
         lines[(w, female)] = level_changes(starving)
         got[(w, female)] = (round(largest_drawdown(es), 5), round(es[48 * 60], 4), round(es[-1], 4))
-    # Plan 16 Task 5 (the deficit arm on Forbes, no fat ceiling): fat now pays most of the deficit, so the fat
-    # depletion passes K.deficit.FAT_DEP_LO within the six days and the fat term lifts es late in the fast: the
-    # drawdowns shrink and es at six days rises (before: 50 F (0.00844, 1.1864, 1.1792), 60 F (0.00769, 1.2078,
-    # 1.2011), 70 (0.01124, 1.2438, 1.234), 72.6 (0.01087, 1.2487, 1.2392), 74 (0.01065, 1.2513, 1.242), 100 (0.00295,
-    # 1.286, 1.2833))
-    assert got == {(50.0, True): (0.00387, 1.1872, 1.1838), (60.0, True): (0.00325, 1.2085, 1.2056),
-                   (70.0, False): (0.00466, 1.2449, 1.2512), (72.6, False): (0.00434, 1.2498, 1.2464),
-                   (74.0, False): (0.00418, 1.2524, 1.2486), (100.0, False): (0.0024, 1.286, 1.2838)}, got
+    assert got == {(50.0, True): (0.00387, 1.1872, 1.1838), (60.0, True): (0.00325, 1.2085, 1.2056),   # Plan 16 Task 5 (the deficit arm on Forbes): fat pays most of the deficit, its depletion passes K.deficit.FAT_DEP_LO and the fat term lifts es late in the fast;
+                   (70.0, False): (0.00466, 1.2449, 1.2512), (72.6, False): (0.00434, 1.2498, 1.2464),   # before: 50 F (0.00844, 1.1864, 1.1792), 60 F (0.00769, 1.2078, 1.2011), 70 (0.01124, 1.2438, 1.234),
+                   (74.0, False): (0.00418, 1.2524, 1.2486), (100.0, False): (0.0024, 1.286, 1.2838)}, got   # 72.6 (0.01087, 1.2487, 1.2392), 74 (0.01065, 1.2513, 1.242), 100 (0.00295, 1.286, 1.2833)
     assert lines == {(50.0, True): [(True, 34.2)], (60.0, True): [(True, 34.3)], (70.0, False): [(True, 34.5)],
                      (72.6, False): [(True, 34.5)], (74.0, False): [(True, 34.5)],
                      (100.0, False): [(True, 34.6)]}, lines   # vanilla's Starving at 34.55 h (Plan 15 Task 6)
@@ -771,8 +761,7 @@ def test_a_sedentary_fasts_energy_state_and_starvation_line(host):
 
 def test_a_long_sedentary_fast_keeps_the_starvation_line(host):
     # Plan 15 Task 9: over a 16-day resting fast the starvation line, once on, never goes off; es peaked at 1.25011 for
-    # the 72.6 kg man (the Plan 13 Task 10c fix 1 reading) until Plan 16 Task 5's deficit arm on Forbes: with fat paying
-    # most of the deficit the depletion passes FAT_DEP_LO and the fat term lifts the peak to 1.40528
+    # the 72.6 kg man (Plan 13 Task 10c fix 1) until Plan 16 Task 5's deficit arm on Forbes lifted it to 1.40528 (FAT_DEP_LO passed)
     starving, es = long_fast_levels({"weight": 72.6, "female": False}, fast_days=16)
     assert level_changes(starving) == [(True, 34.5)], level_changes(starving)
     assert round(max(es), 5) == 1.40528
