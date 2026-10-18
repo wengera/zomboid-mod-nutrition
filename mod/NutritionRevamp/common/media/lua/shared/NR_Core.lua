@@ -162,13 +162,14 @@ end
 -- The sentinel install of a vanilla method wrap (Intake and Fitness): S is a persistent global table keeping orig,
 -- wrapper and class across reloads. Idempotent: when ours is the outermost, or still in the chain below a later wrap,
 -- nothing changes, so the wrapper is never saved as its own original. make(S, kind) builds the wrapper once, kept in
--- S; it names nothing from its file's load. label names the method in the log line. Returns whether the wrap is in
--- place.
-function NR.installWrap(S, cls, method, make, kind, label)
+-- S; it names nothing from its file's load. label names the method in the log line. absentOk installs over a method
+-- the class does not define (ISEatFoodAction's serverStart): S.orig is then nil, and the wrapper must skip it. Returns
+-- whether the wrap is in place.
+function NR.installWrap(S, cls, method, make, kind, label, absentOk)
     if cls == nil then return false end
     local cur = cls[method]
-    if cur == nil then return false end
-    if cur == S.wrapper or (S.wrapper ~= nil and S.class == cls) then return true end
+    if cur == nil and not absentOk then return false end
+    if (cur ~= nil and cur == S.wrapper) or (S.wrapper ~= nil and S.class == cls) then return true end
     S.orig = cur
     S.wrapper = S.wrapper or make(S, kind)
     S.class = cls
