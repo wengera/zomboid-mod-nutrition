@@ -71,8 +71,8 @@
     "SH2": { yMin: 0 },
     "SH3": {
       facets: [
-        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel", "SH3-m-live"], unit: "game hours until Peckish", yMin: 0 },
-        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry", "SH3-m-live-hungry"], unit: "game hours until Hungry", yMin: 0 }
+        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel"], unit: "game hours until Peckish", yMin: 0 },
+        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry"], unit: "game hours until Hungry", yMin: 0 }
       ]
     },
     "ST1": { yMin: 0, yMax: 1 },
