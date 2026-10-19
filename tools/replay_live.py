@@ -34,7 +34,10 @@ step m, at its start). Kinds:
            an eat's kcal comes from the item (its script values, or the vector given) and its fraction from the item
            (the driver's before/after read) or from lastIntake.frac, never from satiety.M; the replay derives
            nothing from M
-  drink    {fluid, litres} or {vec}: the liquid lane
+  drink    {fluid, litres} or {vec}: the liquid lane. With a day length (--day-length) a whole drink (one event
+           of {fluid, litres}, its label shared with no other drink; maxTime its action length where the fluid
+           has a HungerChange) lands sip by sip over its action's span, as the game drinks it (spread_drinks);
+           a live ring's drinks are logged per sip row and land as logged
   autodrop {g}: g grams of water added to the record's fluids.autoDrop before the drain, which the mod's own Nutrients
            step lands after Kinetics (the writer's sip; a `drink` event would land it one drain early, F-T9-4). The row
            before it is `between`, as for any event: the live ring row already shows the autoDrop the replay's lacks
@@ -43,9 +46,9 @@ step m, at its start). Kinds:
            650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
            ruling 11c-31; research section 3.7 form 1), es the state the last drain left and hour the event's
   sleep    {asleep}
-  activity {rate | raw, moving, exercising}: rate is the engine MET before the stand-in's load factor, raw the
-           engine's raw rate the thermoregulator answers as is (a ring row's `rate`; null hands back to rate), and
-           the flags
+  activity {rate | raw, moving, exercising, cold}: rate is the engine MET before the stand-in's load factor, raw
+           the engine's raw rate the thermoregulator answers as is (a ring row's `rate`; null hands back to rate),
+           the flags, and cold the thermoregulator's getEnergyMultiplier (null hands back to 1)
   stat     {stat, value}: the stand-in's stat
   setpath  {path, value}: a record path (lua.read grammar)
   trait    {trait, on}
@@ -63,6 +66,18 @@ raw or exercising is refused; --ring-activity off keeps the log's own. The row i
 drain reads the rate a few ticks later, so the input carries that sub-minute skew; the ring has no moving flag, so the
 stand-in stays still unless the log moves it, and its load factor is the stand-in's (--player inv, maxW).
 
+The cold multiplier of a live replay (Plan 16 Task 7, #3947): the thermoregulator's getEnergyMultiplier drives the
+cold diuresis (K.fluids.COLD_DIURESIS_LH x (coldMult - 1)) and the energy bill's cold term, and the stand-in answers 1.
+When the ring's rows carry the harness's `cold` field (106dafa1) or a `body.coldMult` path (x456, x457), mode live
+feeds it as an exogenous input (ring_cold_events: the mod stamps it in drain k and row k + 1 reads that stamp, so the
+event before drain k carries row k + 1's value); --ring-cold off answers 1, as a ring without it does.
+
+The overlays (REPLAY_ONLY, "replay.NAME" constants): a ring recorded before a later rule change replays on its own
+pipeline through a named replay-only overlay of the lost rule, set on the replay's host and never shipped or used by
+the guide (CLAUDE.md section 5): DEFICIT_FLOOR (Plan 11g Task 7), HUNGER_CURVE_OFF (Plan 15 Task 6), SEED_PLATE_OFF
+(Task 13 fix 1), LIQUID_SOLID_KCAL (Task 14b), RETURN_CATCHUP_H (Plan 16 Task 2), WORLD_CLOCK (Task 4) and FAT_CEILING
+(Task 5), composed by build in PRE_SPLIT, PRE_FREEZE, PRE_LIQUID, PRE_PLATE and PRE_CURVE.
+
 The ring's own bookkeeping marks each compared row (link_marks): a jump in s or ev, or a dtM above 2.05 (the server's
 tick granularity alternates dtM 0.8 and 1.6 at speed 5 and 0.94-1.11 at speed 1; ruling S0-1), is a gap (the replay
 still steps the real age delta; graded, its findings marked gap); a drained count that did not advance between two rows
@@ -78,14 +93,17 @@ or reads the start record with no eat since the last drain.
 
     python tools/replay_live.py live --ring PAGE.json [PAGE.json ...] --events EV.json --start START.json
                                      --sleep-allowed true|false [--detect-autodrink]
+                                     [--ring-activity auto|on|off] [--ring-cold auto|on|off]
+                                     [--day-length N [--speed X]]
                                      [--start-read-age A] [--start-stats STATS.json]
                                      [--user admin] [--player CFG.json] [--out OUT.json]
     python tools/replay_live.py arm  --events EV.json [--start START.json] (--ring PAGE.json ... |
-                                     --minutes N [--start-age A]) [--backend server|oracle] [--out OUT.json]
+                                     --minutes N [--start-age A]) [--backend server|oracle]
+                                     [--day-length N [--speed X]] [--out OUT.json]
 
 The start record is a slot file's JSON ({gen, rec, done}), the record itself, or an H1 `lua.read` reply
-({values: {path: value}}). Output: {rows, diff, eats, offset, mode}; the diff grades HUNGER within 0.002, es
-(body.energyState) within 0.005 and satiety.L within 0.5 % (the plan's pre-registered tolerances) and skips every
+({values: {path: value}}). Output: {rows, diff, eats, offset, mode, injected, spread}; the diff grades HUNGER within
+0.002, es (body.energyState) within 0.005 and satiety.L within 0.5 % (the plan's pre-registered tolerances) and skips every
 row an event landed before (vanilla's own eat moves HUNGER between writes), every suspect row and every offline row.
 A tolerance field compared on no row is a finding. Exits 1 when the diff has a finding.
 """
@@ -323,6 +341,10 @@ def nest(values):
 
 REPLAY_ENV = r"""
 NR_R = { u = {}, holdHour = nil, offset = 0 }
+-- the thirst traits the golden stand-in's CharacterTrait lacks (NR_Server_Nutrients.lua basalScale reads them), so a
+-- trait event can set them; a stand-in holds neither unless an event or its cfg adds it
+CharacterTrait.HIGH_THIRST = CharacterTrait.HIGH_THIRST or "trait:HIGH_THIRST"
+CharacterTrait.LOW_THIRST = CharacterTrait.LOW_THIRST or "trait:LOW_THIRST"
 function NR_R.tod(age)
     if NR_R.holdHour ~= nil then return NR_R.holdHour end
     local t = math.fmod(age + NR_R.offset, 24)
@@ -337,9 +359,10 @@ getGameTime = function()
              getMinutes = function(s) return math.floor((tod - math.floor(tod)) * 60) end }
 end
 -- the replay's own control of a decorated stand-in: asleep, moving, a Fitness exercise, the engine MET (rate, before
--- the load factor; raw, when set, the rate answered as is: a ring row's raw engine rate)
+-- the load factor; raw, when set, the rate answered as is: a ring row's raw engine rate) and the thermoregulator's
+-- cold multiplier (cold, when set, getEnergyMultiplier's answer: a ring row's cold; 1 otherwise, the golden stand-in's)
 function NR_R.adopt(p, name, rate, inv, maxW)
-    local u = { asleep = false, rate = rate, moving = false, exercising = false, raw = nil }
+    local u = { asleep = false, rate = rate, moving = false, exercising = false, raw = nil, cold = nil }
     NR_R.u[name] = u
     p.isAsleep = function(s) return u.asleep end
     p.isPlayerMoving = function(s) return u.moving end
@@ -350,6 +373,10 @@ function NR_R.adopt(p, name, rate, inv, maxW)
     th.getMetabolicRate = function(s)
         if u.raw ~= nil then return u.raw end
         return u.rate * (1 + 0.35 * f * f)
+    end
+    th.getEnergyMultiplier = function(s)
+        if u.cold ~= nil then return u.cold end
+        return 1.0
     end
     return u
 end
@@ -672,16 +699,79 @@ def _replay_world_clock(rt, value):
         rt.execute(_WORLD_CLOCK_LUA)
 
 
+# The liquid lane before Plan 15 Task 14b (8a34a7de): its half-time grew with the solid lane's whole energy, a plate's
+# included (K.stomach.liquidHalfMin(energy), 13 + 0.12 x the buffer's kcal), where it now grows with the drink-borne
+# share only (stomach.liqKcal capped at the lane's energy). So "replay.LIQUID_SOLID_KCAL" (any true value) wraps
+# K.stomach.drain on that replay's host to set the counter far above any lane's energy (finite, so Kinetics' guard keeps
+# it) before each call: K.min(liqKcal, energy) is then the energy, the old rule exactly (the drain's only change since
+# bcf99149 is that K.min and the counter's own update, which the next call's set overwrites). Set on a replay host only,
+# never shipped, and never used by the guide (CLAUDE.md section 5, Plan 14 Task 4: an old run is drawn only where the HEAD
+# replay matches); it exists so a ring recorded before that change is graded against its own pipeline.
+_LIQUID_SOLID_KCAL_LUA = ("local K = NutritionRevamp.kernel\n"
+                          "local drain = K.stomach.drain\n"
+                          "K.stomach.drain = function(stomach, dtH)\n"
+                          "    stomach.liqKcal = 1e18\n"
+                          "    return drain(stomach, dtH)\n"
+                          "end\n")
+
+
+def _replay_liquid_solid_kcal(rt, value):
+    if value:
+        rt.execute(_LIQUID_SOLID_KCAL_LUA)
+
+
+# The deficit arm before Plan 16 Task 5 (0a4baa8c, 648b4a83): fat paid a deficit up to Alpert's ceiling
+# (K.partition.FAT_CEIL_KCAL x fm a day) and the overflow split by the protection prot, where it now splits the whole
+# deficit by Forbes' share with no ceiling and the draw past fmMin is paid by lean. So "replay.FAT_CEILING" (any true
+# value) sets K.partition.deficitLean on that replay's host to the recording build's (NR_Kernel_Partition.lua at
+# 3a93d51c, lines 61-80, verbatim): Task 5's other change is a comment, so a ring recorded before it is graded against
+# its own pipeline. Set on a replay host only, never shipped, never used by the guide.
+_FAT_CEILING_LUA = ("local K = NutritionRevamp.kernel\n"
+                    "K.partition.deficitLean = function(body, grow, S, p, E, P, ts)\n"
+                    "    local RL = K.partition.RHO_LEAN\n"
+                    "    local RF = K.partition.RHO_FAT\n"
+                    "    local gP = K.clamp((p - P.pdef_lo) / (P.pdef_hi - P.pdef_lo), 0, 1)\n"
+                    "    local prot = K.clamp(1 - P.wT * K.partition.training(S, P) - P.wP * gP, P.prot_floor, 1)\n"
+                    "    local share = K.partition.forbes(body.fm, P) * prot\n"
+                    "    local dW = -E / (share * RL + (1 - share) * RF)\n"
+                    "    local leanLoss = share * dW\n"
+                    "    local fatLoss = (1 - share) * dW\n"
+                    "    local cap = K.partition.FAT_CEIL_KCAL * body.fm / RF\n"
+                    "    if fatLoss > cap then\n"
+                    "        local over = (fatLoss - cap) * RF\n"
+                    "        fatLoss = cap + over * (1 - prot) / RF\n"
+                    "        leanLoss = leanLoss + over * prot / RL\n"
+                    "    end\n"
+                    "    local fromX = K.min(body.lx, leanLoss)\n"
+                    "    local dX = -fromX - (body.lx - fromX) / P.x_tau_d\n"
+                    "    local dM = -fatLoss - grow / ts * RL / RF\n"
+                    "    return -(leanLoss - fromX), dX, dM\n"
+                    "end\n")
+
+
+def _replay_fat_ceiling(rt, value):
+    if value:
+        rt.execute(_FAT_CEILING_LUA)
+
+
 REPLAY_ONLY = {"replay.DEFICIT_FLOOR": _replay_floor, "replay.HUNGER_CURVE_OFF": _replay_curve_off,
                "replay.SEED_PLATE_OFF": _replay_seed_plate_off, "replay.RETURN_CATCHUP_H": _replay_catchup,
-               "replay.WORLD_CLOCK": _replay_world_clock}
+               "replay.WORLD_CLOCK": _replay_world_clock, "replay.LIQUID_SOLID_KCAL": _replay_liquid_solid_kcal,
+               "replay.FAT_CEILING": _replay_fat_ceiling}
 # The world-clock rhythm, for a ring recorded before Plan 16 Task 4, and for a study oracle that reads the world hour.
 WORLD_CLOCK = {"replay.WORLD_CLOCK": 1}
-# The reconnect before the offline freeze, for a ring recorded before Plan 16 Task 2 (so before the body clock too).
-PRE_FREEZE = dict({"replay.RETURN_CATCHUP_H": 1.0}, **WORLD_CLOCK)
+# The deficit arm before Forbes' split, for a ring recorded before Plan 16 Task 5 (never a study oracle's: those test the
+# shipped arm).
+PRE_SPLIT = {"replay.FAT_CEILING": 1}
+# The reconnect before the offline freeze, for a ring recorded before Plan 16 Task 2 (so before the body clock and the
+# deficit split too).
+PRE_FREEZE = dict({"replay.RETURN_CATCHUP_H": 1.0}, **dict(WORLD_CLOCK, **PRE_SPLIT))
+# The liquid lane slowed by the solid lane's whole kcal, for a ring recorded before Plan 15 Task 14b (8a34a7de: x452-x457
+# and x453b, a97fec05, and every earlier ring), so before the freeze too.
+PRE_LIQUID = dict({"replay.LIQUID_SOLID_KCAL": 1}, **PRE_FREEZE)
 # The writer before the seed plate, for a ring recorded before Plan 15 Task 13 fix 1 (x452-x457 and x453b, a97fec05),
-# so before the freeze too.
-PRE_PLATE = dict({"replay.SEED_PLATE_OFF": 1}, **PRE_FREEZE)
+# so before the liquid lane's change and the freeze too.
+PRE_PLATE = dict({"replay.SEED_PLATE_OFF": 1}, **PRE_LIQUID)
 # The pre-curve writer, for a ring recorded before Plan 15 Task 6 (so before the seed plate too): merged into the ring's
 # own constants.
 PRE_CURVE = dict({"replay.HUNGER_CURVE_OFF": 1}, **PRE_PLATE)
@@ -941,12 +1031,16 @@ class ServerReplay(_Backend):
             u.moving = bool(ev["moving"])
         if "exercising" in ev:
             u.exercising = bool(ev["exercising"])
+        if "cold" in ev:
+            u.cold = None if ev["cold"] is None else float(ev["cold"])
 
     def ev_stat(self, ev, at):
         self.p.sv[ev["stat"]] = ev["value"]
 
     def ev_trait(self, ev, at):
         key = self.G.CharacterTrait[ev["trait"]]
+        if key is None:
+            raise ValueError("trait: the stand-in's CharacterTrait has no %r" % (ev["trait"],))
         self.p.st.traits[key] = True if ev.get("on", True) else None
 
     def ev_setpath(self, ev, at):
@@ -1250,6 +1344,123 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
     return out
 
 
+# A drink sip by sip (Plan 16 Task 7, spec section 4.3; carries section 1). Vanilla drinks over its action's length: the server's
+# AnimEventEmulator calls ISDrinkFluidAction.updateEat about every 100 ms with the action's progress, server wall time
+# over its duration (#0085), and a networked action's server length is 20 real ms a unit of its duration (#3766). A
+# fluid whose properties carry no HungerChange (Water) drinks in 460 units whatever the volume (vanilla
+# ISDrinkFluidAction.new, shared/TimedActions/ISDrinkFluidAction.lua:167; 9.2 s), and the mod lands each sip as it is
+# drunk (NR_Server_Intake.lua IN.installDrink), so a drink's water reaches the liquid lane over its wall span, which
+# the game clock turns into game minutes at the day length and the speed: 14.7 game minutes at DayLength 1, 2.5 at the
+# default 4 (x452b's 0.5 L landed over 15 ring rows at DayLength 1).
+DRINK_UNIT_MS = 20.0                 # #3766: 20 real ms a unit of a networked action's duration
+DRINK_SIP_MS = 100.0                 # the AnimEventEmulator's drinkFluid cadence (ISDrinkFluidAction.serverStart)
+DRINK_MAX_TIME = 460                 # ISDrinkFluidAction.new: hungerConsumed 0 (no HungerChange) reads 460
+DRINK_NO_HUNGER = ("Water", "TaintedWater", "CarbonatedWater")   # media/scripts/generated/fluids.txt: no HungerChange
+# The sandbox DayLength index -> real minutes a game day (media/lua/shared/Translate/EN/Sandbox.json, the
+# Sandbox_DayLength options: 15 and 30 minutes, then 1, 1.5, 2 and 3 to 23 hours, then real time).
+DAY_LENGTH_REAL_MIN = {1: 15.0, 2: 30.0, 3: 60.0, 4: 90.0, 5: 120.0, 27: 1440.0}
+DAY_LENGTH_REAL_MIN.update({n: (n - 3) * 60.0 for n in range(6, 27)})
+
+
+def drink_units(ev):
+    """A whole drink's action length in units: the event's maxTime, else DRINK_MAX_TIME for a fluid with no
+    HungerChange; a fluid with one needs maxTime (vanilla's 232 x its eating loop, or a popcan's 160)."""
+    mt = ev.get("maxTime")
+    if mt is None:
+        if ev.get("fluid") not in DRINK_NO_HUNGER:
+            raise ValueError("a whole drink of %r needs maxTime (vanilla's action length; only a fluid with no "
+                             "HungerChange reads %d): %r" % (ev.get("fluid"), DRINK_MAX_TIME, ev))
+        mt = DRINK_MAX_TIME
+    if isinstance(mt, bool) or not isinstance(mt, (int, float)) or not mt > 0:
+        raise ValueError("maxTime must be a positive action length: %r" % (ev,))
+    return float(mt)
+
+
+def drink_span_h(ev, day_length, speed=1.0):
+    """A whole drink's span in game hours: drink_units times DRINK_UNIT_MS of wall time, at the day length's real
+    seconds a game minute over the true time multiplier `speed`."""
+    if day_length not in DAY_LENGTH_REAL_MIN:
+        raise ValueError("unknown DayLength %r (the sandbox index, 1-27)" % (day_length,))
+    if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not speed > 0:
+        raise ValueError("speed must be a positive true time multiplier: %r" % (speed,))
+    real_s = drink_units(ev) * DRINK_UNIT_MS / 1000.0
+    real_s_per_game_min = DAY_LENGTH_REAL_MIN[day_length] * 60.0 / 1440.0
+    return real_s * speed / real_s_per_game_min / 60.0
+
+
+def whole_drinks(events):
+    """The indices of the whole drinks in `events`: a drink event of {fluid, litres} (never a vec, a sip the writer or
+    a driver already booked) whose label no other drink event shares (an unlabelled one is whole), unless it carries
+    spread false; spread true makes any {fluid, litres} drink whole. A live ring's drinks are logged per ring row their
+    sips landed on (x45g_lib.build_events and every earlier lib's: the eats-or-sips rows of x263, x264, x265, x363,
+    x447, x452 and x452b), so they share their label and are already spread; a synthetic arm's one drink is whole."""
+    drinks = [(i, e) for i, e in enumerate(events) if e.get("kind") == "drink" and "vec" not in e
+              and "litres" in e]
+    count = {}
+    for _, e in drinks:
+        if e.get("label") is not None:
+            count[e["label"]] = count.get(e["label"], 0) + 1
+    out = []
+    for i, e in drinks:
+        if e.get("spread") is False:
+            continue
+        if e.get("spread") is True or e.get("label") is None or count[e["label"]] == 1:
+            out.append(i)
+    return out
+
+
+def spread_drinks(events, ages, seqs=None, start_age=None, day_length=None, speed=1.0):
+    """Each whole drink (whole_drinks) replaced by its sips over its span (drink_span_h): sip j of n (n the span's
+    DRINK_SIP_MS cadence, j from 0) carries litres / n and falls at the drink's start plus span x j / n, and the sips
+    falling before one drain are landed as one drink event keyed to that step (`minute`, the step index), the drain
+    that first follows them; the first at the step the drink itself fell due, so a vanishing span lands as before.
+    A sip past the clock's last step lands at the last. A drink that never falls due is left as it is (run refuses it).
+    Without a day length nothing is spread. Returns (events, report): one report row a spread drink {label, step,
+    steps, litres, spanM}."""
+    evs = list(events or [])
+    if day_length is None:
+        return evs, []
+    idx = set(whole_drinks(evs))
+    if not idx:
+        return evs, []
+    ages = list(ages)
+    out, report = [], []
+    for i, e in enumerate(evs):
+        if i not in idx:
+            out.append(e)
+            continue
+        k0 = None
+        for k, age in enumerate(ages):
+            prev = start_age if k == 0 else ages[k - 1]
+            if _due(e, k, prev, age, seqs[k] if seqs is not None else None):
+                k0 = k
+                break
+        if k0 is None:
+            out.append(e)
+            continue
+        prev0 = start_age if k0 == 0 else ages[k0 - 1]
+        a0 = _event_age(e, prev0, ages[k0])
+        if a0 is None:
+            a0 = ages[k0]
+        span = drink_span_h(e, day_length, speed)
+        n = max(1, int(round(drink_units(e) * DRINK_UNIT_MS / DRINK_SIP_MS)))
+        litres = float(e["litres"]) / n
+        buckets = {}
+        k = k0
+        for j in range(n):
+            a = a0 + span * j / n
+            while k + 1 < len(ages) and ages[k] < a - 1e-12:
+                k += 1
+            buckets[k] = buckets.get(k, 0) + 1
+        for k in sorted(buckets):
+            sip = {key: v for key, v in e.items() if key not in ("age", "s", "minute", "litres", "spread")}
+            sip.update({"minute": k, "litres": litres * buckets[k], "spread": False})
+            out.append(sip)
+        report.append({"label": e.get("label"), "step": k0, "steps": len(buckets), "litres": float(e["litres"]),
+                       "spanM": span * 60.0})
+    return out, report
+
+
 def synthetic_ages(minutes, start_age=0.0, dtM=1.0):
     """A synthetic clock: step m ends at start_age + (m + 1) x dtM / 60 (the oracles' minute m)."""
     return [start_age + (m + 1) * dtM / 60.0 for m in range(minutes)]
@@ -1389,9 +1600,52 @@ def ring_carries_activity(rows):
     return any(r.get("rate") is not None or r.get("exe") is not None for r in rows)
 
 
+# The ring's cold multiplier (Plan 16 Task 8, 106dafa1: the harness's `cold` field, the record's body.coldMult; a ring
+# armed on the `body.coldMult` start path carries the same leaf, x456 and x457): the field first, the path where the
+# row lacks the field.
+RING_COLD_KEYS = ("cold", "body.coldMult")
+
+
+def _ring_cold(r):
+    for key in RING_COLD_KEYS:
+        v = r.get(key)
+        if _num(v):
+            return float(v)
+    return None
+
+
+def ring_carries_cold(rows):
+    """Whether any ring row carries the cold multiplier (RING_COLD_KEYS)."""
+    return any(_ring_cold(r) is not None for r in rows)
+
+
+def ring_cold_events(rows):
+    """The thermoregulator's cold multiplier read off the ring (Plan 16 Task 7; #3947): the mod stamps body.coldMult
+    from getEnergyMultiplier in drain k's Metabolism step and reads it back in the same drain's Nutrients step (the cold
+    diuresis, the shivering glycogen draw), and ring row k + 1 is read before drain k + 1, so row k + 1's value is the
+    one drain k used. For each online row k whose successor is online and carries the value, an event {s: row k's s,
+    kind activity, cold} due before row k's drain, emitted where the value changed since the last event (the last row,
+    and a row before an offline one, keep the last value). The stand-in's getEnergyMultiplier answers it, which also
+    scales the energy bill (K.energy.minute's coldK) exactly as live. It reads the record's copy of an exogenous input
+    one row ahead, never an output the mod derives."""
+    out = []
+    last = None
+    for k in range(len(rows) - 1):
+        a, b = rows[k], rows[k + 1]
+        if offline_row(a) or offline_row(b) or a.get("s") is None:
+            continue
+        v = _ring_cold(b)
+        if v is None or v == last:
+            continue
+        out.append({"s": a["s"], "kind": "activity", "cold": v, "label": RING_ACTIVITY_LABEL})
+        last = v
+    return out
+
+
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
                 hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
-                sleep_allowed=None, detect_autodrink=False, ring_activity=None, constants=None):
+                sleep_allowed=None, detect_autodrink=False, ring_activity=None, constants=None, ring_cold=None,
+                day_length=None, speed=1.0):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1413,6 +1667,14 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     `ring_activity` (None: on when the ring carries the harness's `rate` or `exe`): the activity comes from the ring's
     exogenous fields (ring_activity_events, named on backend.ring_activity), and an activity event in `events` that
     names rate, raw or exercising is refused (the inputs would come from two places). False keeps the log's own.
+
+    `ring_cold` (None: on when the ring carries the cold multiplier, the harness's `cold` field or a `body.coldMult`
+    path): the thermoregulator's getEnergyMultiplier answers the ring's value (ring_cold_events, named on
+    backend.ring_cold), and an activity event in `events` that names cold is refused. False answers 1, as before.
+
+    `day_length` (the server's sandbox DayLength index; None: no spreading) and `speed` (the true time multiplier,
+    1 by default) spread each whole drink over its action's span, sip by sip (spread_drinks, named on backend.spread);
+    a recorded ring's drinks are logged per sip row already and are left as they are (whole_drinks).
 
     `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants."""
     rows = [r for r in ring_rows if r.get("age") is not None]
@@ -1444,6 +1706,14 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
             if e.get("kind") == "activity" and any(k in e for k in RING_ACTIVITY_KEYS):
                 raise ValueError("an activity event naming %s while the activity comes from the ring's rate and exe: "
                                  "%r (pass ring_activity=False to keep the log's)" % (", ".join(RING_ACTIVITY_KEYS), e))
+    if ring_cold is None:
+        ring_cold = ring_carries_cold(rows)
+    sr.ring_cold = []
+    if ring_cold:
+        for e in events or []:
+            if e.get("kind") == "activity" and "cold" in e:
+                raise ValueError("an activity event naming cold while the cold multiplier comes from the ring: %r "
+                                 "(pass ring_cold=False to keep the log's)" % (e,))
     sa = sr.start_age()
     use = [r for r in rows if sa is None or r["age"] > sa + 1e-9]
     if not use:
@@ -1462,10 +1732,14 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     if ring_activity:
         sr.ring_activity = ring_activity_events(use)
         keep = keep + sr.ring_activity
+    if ring_cold:
+        sr.ring_cold = ring_cold_events(use)
+        keep = keep + sr.ring_cold
     marks = link_marks(use)
     offline = [k for k, r in enumerate(use) if offline_row(r)]
-    out = run(sr, [r["age"] for r in use], keep, paths, start_age=sa, seqs=[r["s"] for r in use],
-              ring_rows=use, feed=feed, offline=offline)
+    ages, seqs = [r["age"] for r in use], [r["s"] for r in use]
+    keep, sr.spread = spread_drinks(keep, ages, seqs, sa, day_length, speed)
+    out = run(sr, ages, keep, paths, start_age=sa, seqs=seqs, ring_rows=use, feed=feed, offline=offline)
     for k, row in enumerate(out):
         if k + 1 < len(use):
             nxt = use[k + 1]
@@ -1487,10 +1761,11 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
                M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False,
-               constants=None):
+               constants=None, day_length=None, speed=1.0):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
     start_age at dtM). `constants` (the server backend's, set_constants; e.g. WORLD_CLOCK) as ServerReplay takes them.
-    Returns (rows, backend)."""
+    `day_length` and `speed` spread each whole drink sip by sip (spread_drinks, named on backend.spread), as
+    replay_live's do. Returns (rows, backend)."""
     synthetic = False
     if ages is None:
         if ring_rows is not None:
@@ -1509,6 +1784,7 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
         if sa is None:
             sa = start_age
     dtms = [float(dtM)] * len(ages) if synthetic else None
+    events, be.spread = spread_drinks(events, ages, None, sa, day_length, speed)
     out = run(be, ages, events, paths, start_age=sa, dtms=dtms)
     for k, row in enumerate(out):
         row["s"] = k + 1
@@ -1619,6 +1895,12 @@ def main(argv=None):
         p.add_argument("--hour-offset", type=float)
         p.add_argument("--hold-hour", type=float)
         p.add_argument("--out")
+        p.add_argument("--day-length", type=int,
+                       help="the server's sandbox DayLength index: spreads each whole drink sip by sip over its "
+                            "action's span (without it a whole drink lands in its minute); a ring's per-sip drinks "
+                            "are left as logged")
+        p.add_argument("--speed", type=float, default=1.0,
+                       help="the true time multiplier the drinks ran at (1 by default; getMultiplier is not it, #3762)")
         if name == "live":
             p.add_argument("--start-read-age", type=float,
                            help="the world age (hours) the start record was read at, logged by the driver: events "
@@ -1633,6 +1915,9 @@ def main(argv=None):
             p.add_argument("--ring-activity", choices=("auto", "on", "off"), default="auto",
                            help="the activity from the ring's raw engine rate and exercise flag (auto: when the ring "
                                 "carries them; Plan 11f C-17)")
+            p.add_argument("--ring-cold", choices=("auto", "on", "off"), default="auto",
+                           help="the thermoregulator's cold multiplier from the ring's cold field or body.coldMult "
+                                "path, one row ahead (auto: when the ring carries it; Plan 16 Task 7)")
             p.add_argument("--detect-autodrink", action="store_true",
                            help="opt in: inject each unlogged liquid-lane rise in the ring as a drink event of its "
                                 "water mass (the engine auto-drink, F-T4-2); named under `injected`")
@@ -1656,7 +1941,9 @@ def main(argv=None):
                               hour_offset=a.hour_offset, hold_hour=a.hold_hour, start_read_age=a.start_read_age,
                               start_stats=_read_json(a.start_stats), sleep_allowed=a.sleep_allowed,
                               detect_autodrink=a.detect_autodrink,
-                              ring_activity={"auto": None, "on": True, "off": False}[a.ring_activity])
+                              ring_activity={"auto": None, "on": True, "off": False}[a.ring_activity],
+                              ring_cold={"auto": None, "on": True, "off": False}[a.ring_cold],
+                              day_length=a.day_length, speed=a.speed)
         d = diff(out, rows)
         offset = be.R.offset
     else:
@@ -1664,11 +1951,12 @@ def main(argv=None):
             ap.error("arm needs --ring or --minutes")
         out, be = replay_arm(events, start=start, ring_rows=rows or None, minutes=a.minutes, start_age=a.start_age,
                              paths=paths, backend=a.backend, user=a.user, player=player, steps=a.steps,
-                             hour_offset=a.hour_offset or 0.0, hold_hour=a.hold_hour)
+                             hour_offset=a.hour_offset or 0.0, hold_hour=a.hold_hour, day_length=a.day_length,
+                             speed=a.speed)
         d = diff(out, rows) if rows else None
         offset = a.hour_offset or 0.0
     doc = {"mode": a.mode, "offset": offset, "rows": out, "diff": d, "eats": be.eats,
-           "injected": list(getattr(be, "injected", []))}
+           "injected": list(getattr(be, "injected", [])), "spread": list(getattr(be, "spread", []))}
     text = json.dumps(doc, indent=1, sort_keys=True)
     if a.out:
         with open(a.out, "w", encoding="utf-8", newline="\n") as fh:

@@ -621,7 +621,8 @@ def test_ring_activity_events_never_mark_a_row_between_f_t7_1(ring_live):
     out, be = RL.replay_live(rows, [], slot, ring_paths=paths, sleep_allowed=True)
     assert len(be.ring_activity) > 20                   # an event on many rows
     assert not any(r["between"] for r in out)
-    assert sum(r["ringEvents"] for r in out) == len(be.ring_activity)
+    # the ring's cold multiplier (a body.coldMult path, Plan 16 Task 7) lands on the ring's own timing too
+    assert sum(r["ringEvents"] for r in out) == len(be.ring_activity) + len(be.ring_cold)
     d = RL.diff(out, rows, tol={"body.energyState": ("abs", 1e-9)})
     assert d["ok"] and d["fields"]["body.energyState"]["n"] == len(rows) - 1 and d["skipped"] == [], d
 

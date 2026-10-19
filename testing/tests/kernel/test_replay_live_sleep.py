@@ -11,7 +11,6 @@ import sys
 
 import pytest
 
-from . import at_build
 from .server_host import REPO
 
 sys.path.insert(0, os.path.join(REPO, "tools"))
@@ -69,14 +68,36 @@ def load_run(run):
     return rd, rr, rp
 
 
-def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it(tmp_path):
-    # Plan 15 Task 14b: x263's ring ran the old liquid lane (slowed by the solid lane's whole kcal), so the replay that
-    # follows its auto-drink holds on the build before that change and is re-run there, frozen (CLAUDE.md § 5)
-    code, out = at_build.run(tmp_path, at_build.PRE_LIQUID_LANE,
-                             "testing/tests/kernel/test_replay_live_sleep.py::"
-                             "test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it",
-                             ("testing/artifacts/x263-20261010-122318", "testing/artifacts/x265-20261010-124149"))
-    assert code == 0 and " passed" in out, out
+def test_x263_detects_exactly_the_unlogged_auto_drink_and_the_replay_follows_it():
+    rd, rr, rp = load_run(X263)
+    found = RL.detect_autodrinks(rr, rd["events"])
+    assert [x["s"] for x in found] == [179]
+    assert found[0]["litres"] == pytest.approx(0.2, abs=0.002)
+    kw = dict(paths=rp, user="admin", player=rd["player"], start_stats=rd["start-stats"], sleep_allowed=False,
+              constants=dict(RL.DEFICIT_11F, **RL.PRE_CURVE))
+    # the ring's build's deficit drive (Plan 11g Task 7) and its own pipeline since (RL.PRE_CURVE): the pre-curve
+    # writer (Plan 15 Task 6), no seed plate (Task 13 fix 1), the liquid lane slowed by the solid lane's whole kcal
+    # (Task 14b, RL.PRE_LIQUID), the reconnect before the freeze (Plan 16 Task 2), the world clock (Task 4) and the
+    # deficit arm's fat ceiling (Task 5, RL.PRE_SPLIT); Plan 16 Task 7 restored this test at HEAD through those
+    # replay-only overlays, where Plan 15 Task 14b had frozen it on a git archive of bcf99149 (CLAUDE.md section 5)
+    rows_off, be_off = RL.replay_live(rr, rd["events"], rd["start"], **kw)
+    assert be_off.injected == []
+    rows_on, be_on = RL.replay_live(rr, rd["events"], rd["start"], detect_autodrink=True, **kw)
+    assert [x["s"] for x in be_on.injected] == [179]
+    # Plan 11g Task 4: the artifact's ring was taken on the P model (its start record's satiety.P is no longer
+    # loaded, so the replay seeds M from HUNGER), and HUNGER no longer replays within DEFAULT_TOL (the P model's replay
+    # held it under 0.002 with the drink injected: this test at 0f14044f). The injected drink is read off the liquid
+    # lane, which no satiety constant enters (since Plan 11g Task 6c fix 1 the stomach fill reads the lane whole, where the
+    # ring's was taken at 0.2, so the fill no longer replays to 0.002); HUNGER's fidelity under the
+    # meal pool M is tested on x361's ring (testing/tests/test_x36_gut_lib.py::test_the_x361_ring_replays_within_the_default_tolerances, Plan 11g Task 8)
+    tol = {"body.energyState": RL.DEFAULT_TOL["body.energyState"], "satiety.L": RL.DEFAULT_TOL["satiety.L"],
+           "stomach.liquid": ("abs", 1.0)}
+    d_off = RL.diff(rows_off, rr, tol)
+    d_on = RL.diff(rows_on, rr, tol)
+    assert not d_off["ok"] and d_on["ok"], (d_off["findings"][:2], d_on["findings"][:2])
+    assert d_off["fields"]["stomach.liquid"]["over"] > 0 and d_on["fields"]["stomach.liquid"]["max"] < 0.5
+    h = RL.diff(rows_on, rr, {"HUNGER": RL.DEFAULT_TOL["HUNGER"]})["fields"]["HUNGER"]
+    assert round(h["max"], 4) == 0.0121, h                              # the P ring against the refit M (Plan 11g Task 6c fix 1, and fix 2's alike): a reading (0.0171 under Task 6c's fit, 0.031 under the gut stage's fit), at DEFICIT_11F, the ring's deficit drive (Plan 11g Task 7)
 
 
 def test_x265_logged_milk_is_not_injected():

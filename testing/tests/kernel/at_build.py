@@ -14,10 +14,6 @@ import pytest
 
 from .server_host import REPO
 
-# The last build whose liquid lane read the solid lane's whole kcal (Plan 15 Task 14b's parent): the old live rings'
-# replay tests were last recorded there.
-PRE_LIQUID_LANE = "bcf99149"
-
 
 def run(tmp, commit, nodeid, extra=()):
     try:
