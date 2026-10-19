@@ -22347,3 +22347,9 @@ x467-20261019-025016,constants_x46,x46_lib's constants,The driver's settings; no
 x467-20261019-025016,prerun_x46,x46_prerun.json's session block,The HEAD replay's predictions written before the run; not a live reading.,`verdicts.<name>.observed`
 x467-20261019-025016,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
 x467-20261019-025016,verdicts.REPLAY_THIRST.verdict,falsified,"Two rows, s 286 and s 1425, at THIRST 0 live: the auto-drink's signature, not the cold multiplier.",`verdicts.REPLAY_THIRST.observed`
+x463b-20261019-030402,session,the driver's text,Written before the run; not a reading.,
+x463b-20261019-030402,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x463b-20261019-030402,constants_x46,x46_lib's constants,The driver's settings; not a reading.,
+x463b-20261019-030402,prerun_x46,x46_prerun.json's session block,The HEAD replay's predictions written before the run; not a live reading.,`verdicts.<name>.observed`
+x463b-20261019-030402,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
+x463b-20261019-030402,checks.UP.copy,the copy after the restore,"The restore marks the slot, so the next store step rewrites the copy: this is the rewritten copy, not the one restored.","`checks.UP.record`, `checks.UP.backup`"
