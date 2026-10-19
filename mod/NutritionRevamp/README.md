@@ -147,7 +147,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Heavy work the model does not class as vigorous raises hunger more than heavy labour does in studies.
 - A resting fast's hunger drive levels off after about a day and a half; it climbs further only as fat is burned.
 - Heat does not lower appetite (cold reaches hunger through the extra energy it costs), and an injury costs no extra energy.
-- A drink lands whole in the minute it is drunk, so a large drink right after a meal can reach the top Overfull step for a few minutes.
+- A drink lands sip by sip over its action, so a large drink right after a full meal can still reach the top Overfull step for a few minutes.
 - Short sleep raises hunger by a capped factor. The rise steps in once a day, when the mod's 24-hour sleep tally closes, not on waking, so a short night that crosses that close raises hunger in two steps a day apart. After a short night, nights of exactly the needed length repay nothing, so the rise holds until a longer night.
 - Right at the end of hard exercise, hunger reads lower than studies show.
 - On a generous diet, hunger dips less after meals than in the overfeeding study the model was checked against.
@@ -212,7 +212,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - The refeeding sickness holds for the whole day of the event.
 - Endurance stays vanilla's while awake. Asleep, the mod's recovery factor applies one minute late.
 - The sleep-onset delay is the game's. A wake of under 10 game minutes during the night counts as sleep.
-- The sleep model needs `SleepAllowed` and `SleepNeeded` both on, and reads them once at start.
+- The sleep model needs `SleepAllowed` and `SleepNeeded` both on, and reads them once a game minute, so a change takes effect within a minute.
 - The cold-catching effect is not yet measured.
 - A dead character's record stops until the respawn.
 - Several model steps read the previous minute's values, so some effects act a minute late, and a number that goes bad in one step is repaired at the next minute.
@@ -225,7 +225,7 @@ The mod's own code lists these. Some are game choices, some are walls the game p
 - Another mod that replaces the game's eat or drink action without calling the original stops the mod seeing those eats.
 - Calories another mod adds straight to the calorie store are counted as eaten food, as calories and macros only, with no nutrients; a very small rise is ignored, and a fall is never counted. A write by another mod inside an eat counts as part of that eat. With vanilla Nutrition on, a missed intake smaller than vanilla's drain is lost.
 - The food tooltip shows a whole item's values; for a dish or a crafted item it does not show the ingredients the eat will count. Its fill hours are for the whole item eaten alone, even when the Overfull refusal would stop the eat partway (a whole watermelon, a block of butter), and even when part of it is gone.
-- Whether the tooltip's hiding of vanilla's hunger line, and the band below the box, show on screen is not yet measured: the test harness cannot hover.
+- The tooltip's hiding of vanilla's hunger line, with the band below the box, was measured live only through the tooltip's height, never on a drawn frame: the test harness cannot hover.
 
 **The interface and sync**
 - Updates reach the player's panel and moodles with the next game minute, at most once a minute of real time.

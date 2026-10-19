@@ -1,9 +1,9 @@
 """The record backup bench (Plan 16 Task 3; Rule 6): the cost NR_Server_Backup adds to a store save.
 
 On test_offline_freeze.py's host (the golden trace's decorated player after 4 h of play) it times BK.write (the cut,
-the sum, one modData assignment, one send) against the save's own encode (K.json.encode of the record's inputs, which
+the sum, one modData assignment; no send) against the save's own encode (K.json.encode of the record's inputs, which
 F.save already runs), for the 4 h record's text and that text padded to the 30-day and the 60-monotony-entry sizes;
-the median of 7 runs of 200 calls each, and the Java calls a save adds (getModData and sendServerCommand, counted).
+the median of 7 runs of 200 calls each, and the Java calls a save adds (getModData; the send went in Task 3 fix 1).
 
     python tools/bench_backup.py
 """

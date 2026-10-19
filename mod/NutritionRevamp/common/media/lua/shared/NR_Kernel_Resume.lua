@@ -180,7 +180,7 @@ end
 
 -- The record's latest world-age stamp over every path of K.resume.STAMPS, or nil when none is finite. The store reads
 -- a record whose latest stamp is past the world clock as written after the world's last save (a hard-kill rollback,
--- NR_Server_Store's load rule, Plan 16 Task 3), and the record backup rejects a copy whose stamps are past it.
+-- NR_Server_Store's load rule, Plan 16 Task 3) and restores the backup, whose copy may itself be past it (fix 1).
 function K.resume.latest(record)
     local best = nil
     local segs = K.resume.SEGS

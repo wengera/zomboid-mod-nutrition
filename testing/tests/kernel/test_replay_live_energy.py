@@ -391,7 +391,7 @@ def test_karl_2021_as_the_paper_ran_it_on_the_server_path(host):
     # and the sleep factor's 1.18 from the 4 h nights; BAL's surplus excludes the lagged exercise share, so it reads a
     # large one. Under Plan 13 Task 12's lean partition at the day close BAL and DEF hold; DEF's expenditure reads 19.79, 19.90 and 19.78 MJ (19.88 and 19.75 before),
     # 0.72 over the doubly labelled water (0.71), BAL's day 3 20.03 (20.02). Under Plan 13 Task 10c's low-fat ramp DEF
-    # reads +30.0 (BAL -49.2)
+    # read +30.0 and under Plan 16 Task 5's deficit arm +30.1 (BAL -49.2)
     k = karl_k()
     assert karl_pass(k["bal"], k["dfc"]) == (True, True), k
     assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-49.2, 30.1), k    # Plan 16 Task 5: dfc 30.1 (30.0 before)
@@ -411,7 +411,7 @@ def test_karl_2021_not_vigorous_overshoots_a_named_non_reproduction(host):
     # Task 2c). The writer's limitation names it:
     # heavy work the model does not class as vigorous overshoots the hunger rise of a heavy labour deficit (S1325)
     # Under Plan 13 Task 12's lean partition at the day close: DEF +41.6, BAL -45.8; under Task 10c's low-fat ramp DEF
-    # +41.1, still over the 39 ceiling
+    # +41.1 and under Plan 16 Task 5's deficit arm +41.2, still over the 39 ceiling
     k = karl_k(vigorous=False)
     assert karl_pass(k["bal"], k["dfc"]) == (False, False), k
     assert (round(k["bal"], 1), round(k["dfc"], 1)) == (-45.8, 41.2), k    # Plan 16 Task 5: dfc 41.2 (41.1 before)
