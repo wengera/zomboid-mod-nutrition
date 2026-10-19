@@ -1072,11 +1072,37 @@ def test_refusal_grades():
 
 # ---------------------------------------------------------------- the pre-boot checks on the real repository
 @pytest.mark.parametrize("key", list(L.SESSIONS))
-def test_preboot_passes_on_the_repository(key):
+def test_preboot_on_the_repository_refuses_only_the_committed_artifact(key):
+    """Every session has run (Task 9 phase 2): its artifact is committed, so preboot now refuses a second boot on that
+    check alone; every other check still passes on the repository."""
     spec = L.SESSIONS[key]
     checks, ok = L.preboot(key, spec["profile"], key, spec["driver"],
                            compute=lambda keys: {k: L.PRERUN[k] for k in keys})
-    assert ok, {k: v for k, v in checks.items() if v is not True}
+    skip = ("profile_checks", "harness_found", "fixture", "prerun")
+    bad = {k: v for k, v in checks.items() if k not in skip and v is not True}
+    assert ok is False and bad == {"no_prior_artifact": False}, bad
+    assert all(v is True for k, v in checks["profile_checks"].items() if k != "error")
+
+
+def test_preboot_refuses_a_committed_artifact(tmp_path):
+    import shutil
+    for d in ("testing/profiles",):
+        shutil.copytree(os.path.join(REPO, d), tmp_path / d)
+    for rel in list(L.HARNESS_FILES.values()) + [L.FIXTURE_PLAYERS_DB, L.PRERUN_FILE]:
+        dst = tmp_path / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(os.path.join(REPO, rel), dst)
+    (tmp_path / "testing" / "artifacts").mkdir()
+    real_head = L.mod_head
+    try:
+        L.mod_head = lambda repo=None: real_head()
+        c, ok = L.preboot("x462", "x46-mod", "x462", "x462_tooltip.py", repo=str(tmp_path))
+        assert ok is True, {k: v for k, v in c.items() if v is not True}
+        (tmp_path / "testing" / "artifacts" / "x462-20261019-000000").mkdir()
+        c, ok = L.preboot("x462", "x46-mod", "x462", "x462_tooltip.py", repo=str(tmp_path))
+        assert ok is False and c["no_prior_artifact"] is False
+    finally:
+        L.mod_head = real_head
 
 
 def test_preboot_refuses_a_wrong_prefix_profile_file_or_stale_prerun():
@@ -1090,7 +1116,7 @@ def test_preboot_refuses_a_wrong_prefix_profile_file_or_stale_prerun():
     checks, ok = L.preboot("x461a", "x46-mod", "x461a", "x461a_plate.py", compute=lambda k: {"x461a": stale})
     assert ok is False and checks["prerun_current"] is False
     checks, ok = L.preboot("x462", "x46-mod", "x462", "x462_tooltip.py", compute=lambda k: 1 / 0)
-    assert ok is True and checks["prerun"]["needed"] is False                 # no replay prediction to check
+    assert checks["prerun"]["needed"] is False and checks["prerun_current"] is True   # no replay prediction to check
     c = L.prerun_current("x464", compute=lambda k: 1 / 0)
     assert c["ok"] is False and "ZeroDivisionError" in c["error"]
 
