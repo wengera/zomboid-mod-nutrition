@@ -1072,9 +1072,12 @@ def test_refusal_grades():
 
 # ---------------------------------------------------------------- the pre-boot checks on the real repository
 @pytest.mark.parametrize("key", list(L.SESSIONS))
-def test_preboot_on_the_repository_refuses_only_the_committed_artifact(key):
+def test_preboot_on_the_repository_refuses_only_the_committed_artifact(key, monkeypatch):
     """Every session has run (Task 9 phase 2): its artifact is committed, so preboot now refuses a second boot on that
-    check alone; every other check still passes on the repository."""
+    check alone; every other check still passes on the repository. mod/'s head is held at the runs' STAGED_FROM: a
+    later mod/ commit (Plan 16 Task 10's COMPATIBILITY.md, e69499be) moves it, and the staged-copy check is a pre-boot
+    gate of runs that are done."""
+    monkeypatch.setattr(L, "mod_head", lambda repo=None: L.STAGED_FROM)
     spec = L.SESSIONS[key]
     checks, ok = L.preboot(key, spec["profile"], key, spec["driver"],
                            compute=lambda keys: {k: L.PRERUN[k] for k in keys})
@@ -1095,7 +1098,7 @@ def test_preboot_refuses_a_committed_artifact(tmp_path):
     (tmp_path / "testing" / "artifacts").mkdir()
     real_head = L.mod_head
     try:
-        L.mod_head = lambda repo=None: real_head()
+        L.mod_head = lambda repo=None: L.STAGED_FROM   # the runs' staged commit: mod/ has moved past it (Plan 16 Task 10)
         c, ok = L.preboot("x462", "x46-mod", "x462", "x462_tooltip.py", repo=str(tmp_path))
         assert ok is True, {k: v for k, v in c.items() if v is not True}
         (tmp_path / "testing" / "artifacts" / "x462-20261019-000000").mkdir()
