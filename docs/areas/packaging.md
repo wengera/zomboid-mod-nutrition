@@ -61,6 +61,7 @@ As shipped, the mod's folder holds `42.21/`, which carries `mod.info` and `media
 The version dir is named for the build its files were verified on, `42.21` (it was `42.20.4` before the 42.21 re-baseline), because the resolver scores a name as the major times 1000 plus the minor and ignores the third component, so that dir is read on this build and on every later one until a newer-named dir ships [#0826/C/C-only].
 That shape, a version dir shipping a file that collides with nothing, booted clean on both sides in the acceptance session [#2746/M/n=1].
 A mod option declared only in the version dir's `media/sandbox-options.txt`, a file colliding with nothing in `common/`, loaded: `NR.Severity` 1.5 set in the server's sandbox file read 1.5 as the mod's server option and as `SandboxVars.NR.Severity` on the server and both clients, against 1 on a control boot with no override. [#3361/M/n=1]
+On 42.21 the staged 1.0.0 upload copy carried a set value the same way: `NR.VisibilityMode` 3, against its declared default 2, set in the server's options file before the boot, read 3 as `SandboxVars.NR.VisibilityMode` and as the mod's own option on the server, the -debug client `admin` and the release client `bob`, while the next boot with no override read the default 2 [#4001/M/n=1].
 The staged pre-release build of 1a8e207, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
 Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1].
 Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
@@ -123,11 +124,13 @@ The bypass turns a loud failure into a silent disagreement over exactly the numb
 
 The Lua arm gates as the script arm does: one byte changed inside a comment of one of this mod's Lua files disconnected a `user`-role client at the join, while a copy differing only in line endings joined ([#3374/M/n=1], [#3376/M/n=1]).
 The mod's Lua ships under the same one-build discipline as its scripts, so an update touching any `.lua` file is a server event too [#3378/C/inference, #3374/M/n=1].
+On 42.21 the staged 1.0.0 upload copy met the Lua arm the same way: a `user`-role client holding a copy of `NR_Core.lua` one byte off inside its first comment line was kicked with the anti-cheat reason `Lua incorrect checksum` and never reached the game, while the admin client stayed connected [#4003/M/n=1].
 The animation arm is unread, so the plan treats it as if it gated, and a nutrition overhaul has no reason to ship an animation at all.
 
 The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
 The staged pre-release build of 1a8e207 met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect, and `bob` sat in the server's player list when it was read [#3314/M/n=1].
+The staged 1.0.0 upload copy of 1c02d0e9 met the gate the same way on 42.21: `bob` fully connected 29.017 s after its join attempt, the version read `1.0.0` on the server and both clients, and no anti-cheat or checksum-mismatch line appeared in the server's logs or either client's console [#4002/M/n=1].
 
 <a id="resident-stack"></a>
 ### The mods beside it on a live server
