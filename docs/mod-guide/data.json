@@ -17463,7 +17463,7 @@
    "chart": "S2d",
    "id": "S2d-m-drain",
    "label": "Nutrition Revamp health, with water",
-   "note": "The same fast's health. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows; health drains 25 a game day (K.drain.STARVE_RATE, a game choice) to the first floor of 50, reached on day 3.43, then follows the floor as the body's BMI falls from 22.42 at the onset: 10 at BMI 12.5 (K.drain.BMI_KNEE), and 0 at BMI 12, starvation's death point (S2234). The drain states open in order: starvation on day 1.44, beriberi on day 67.81; with several active the lowest floor wins (#3901). The fatal state is beriberi: health is gone at day 77.23, where the line ends, before the BMI reaches 12 (#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day 41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231). The live x454, its unfed clock set near the onset, drained 25.01 a game day to the first floor and held it (#3938).",
+   "note": "The same fast's health. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows; health drains 25 a game day (K.drain.STARVE_RATE, a game choice) to the first floor of 50, reached on day 3.43, then follows the floor as the body's BMI falls from 22.42 at the onset: 10 at BMI 12.5 (K.drain.BMI_KNEE), and 0 at BMI 12, starvation's death point (S2234). The lowest floor, the one health follows, belongs to starvation from day 1.44, then beriberi from day 67.81 (the day each state's floor first sinks under the others'; beriberi opens when thiamine turns Clinical, weeks before its floor takes over; #3901). The fatal state is beriberi: health is gone at day 77.23, where the line ends, before the BMI reaches 12 (#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day 41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231). The live x454, its unfed clock set near the onset, drained 25.01 a game day to the first floor and held it (#3938).",
    "points": [
     [
      0.0006944444444444445,
@@ -57529,7 +57529,7 @@
    "chart": "SE1",
    "id": "SE1-m-kernel-fill",
    "label": "Stomach fill, simulated",
-   "note": "The physical fill, the stomach's mass over its comfortable maximum. 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's. Its proof run fails the admission test at HEAD (VALIDATION x461b:fill); no passing proof run exists for it.",
+   "note": "The physical fill, the stomach's mass over its comfortable maximum. 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), and its liquid there missed the replay by up to 6.09 g at the water's last sips, the event log's even per-sip split (#3997), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's. Its proof run fails the admission test at HEAD (VALIDATION x461b:fill); no passing proof run exists for it.",
    "points": [
     [
      0.0,
@@ -58173,7 +58173,7 @@
    "chart": "SE1",
    "id": "SE1-m-kernel-liquid",
    "label": "Liquid in the stomach, simulated",
-   "note": "0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
+   "note": "0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), and its liquid there missed the replay by up to 6.09 g at the water's last sips, the event log's even per-sip split (#3997), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
    "points": [
     [
      0.0,
@@ -58817,7 +58817,7 @@
    "chart": "SE1",
    "id": "SE1-m-live-liquid",
    "label": "Liquid in the stomach, measured",
-   "note": "The ring's liquid lane; the milk peaked it at 438.47 g (checks.liquid.milk.peak, #3981). The HEAD replay holds it within 1.5 g on the drawn rows (VALIDATION x461b:milk). 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
+   "note": "The ring's liquid lane; the milk peaked it at 438.47 g (checks.liquid.milk.peak, #3981). The HEAD replay holds it within 1.5 g on the drawn rows (VALIDATION x461b:milk). 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), and its liquid there missed the replay by up to 6.09 g at the water's last sips, the event log's even per-sip split (#3997), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
    "points": [
     [
      0.0,
@@ -59725,7 +59725,7 @@
    "chart": "SH3",
    "id": "SH3-v-model",
    "label": "Vanilla, from the game's code: Peckish",
-   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's, breakfast's soonest on a sleep-off server, a stated bend; the curve's fit on both sleep settings is #3975.",
+   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's, breakfast's by the most, a stated bend; the curve's fit on both sleep settings is #3975.",
    "points": [
     [
      "lunch",

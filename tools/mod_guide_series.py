@@ -743,7 +743,8 @@ def replay_of(run, sleep_allowed, events=None):
 # An admission graded on a window of its ring (the drawing rule: a live point is drawn only where the HEAD replay of
 # its run's inputs matches the drawn quantity): key -> the label of the event whose first logged row opens the window,
 # the window running from the ring row before it to the ring's end. x461b's water course before its milk held an
-# engine auto-drink of 395.45 g (events.json's autodrop at s 266; #3981's bound) and is not drawn.
+# engine auto-drink of 395.45 g (events.json's autodrop at s 266; #3981's bound) and is not drawn, and its liquid there
+# missed the replay by up to 6.09 g at the water's last sips, the event log's even per-sip split (#3997).
 ADM_WINDOW = {"x461b:milk": "MI_milk", "x461b:fill": "MI_milk"}
 
 
@@ -2299,7 +2300,7 @@ def s_s2d():
     fat_text = (("fat reaches its %g kg floor on day %.0f and lean pays from there" % (fm_min, fat_floor)) if fat_floor
                 else ("fat falls to %.2f kg by the last day close before the death, above its %g kg floor"
                       % (fm_end, fm_min)))
-    opened = ", ".join("%s on day %.2f" % (state_name(c, K), a / 24.0) for a, c in k["states"])
+    lowest = ", then ".join("%s from day %.2f" % (state_name(c, K), a / 24.0) for a, c in k["states"])
     fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g "
              "(#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day "
              "41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231)"
@@ -2342,11 +2343,13 @@ def s_s2d():
                "%.2f h, when Starving shows; health drains %g a game day (K.drain.STARVE_RATE, a game choice) to the "
                "first floor of %g, reached on day %.2f, then follows the floor as the body's BMI falls from %.2f at "
                "the onset: %g at BMI %g (K.drain.BMI_KNEE), and 0 at BMI %g, starvation's death point (S2234). The "
-               "drain states open in order: %s; with several active the lowest floor wins (#3901). %s. The live x454, "
+               "lowest floor, the one health follows, belongs to %s (the day each state's floor first sinks under the "
+               "others'; beriberi opens when thiamine turns Clinical, weeks before its floor takes over; #3901). %s. "
+               "The live x454, "
                "its unfed clock set near the onset, drained %.4g a game day to the first floor and held it (#3938)."
                % (float(K.drain.STARVE_ONSET_H), v["drain"][0], float(K.drain.STARVE_RATE), first,
                   k["floor_age"] / 24.0, k["bmi0"], float(K.drain.SLEEP_FLOOR), float(K.drain.BMI_KNEE),
-                  float(K.drain.BMI_DEATH), opened, fatal,
+                  float(K.drain.BMI_DEATH), lowest, fatal,
                   read("x454", "starve.json", "verdicts.DRAIN_RATE.observed.rate_per_day"))),
         series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
                kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
@@ -2739,8 +2742,9 @@ def s_se1():
                      "drawn from ring s %d" % s0, "sleep_allowed": False}
     common = ("0.5 L of CowMilk from a carton from ring s %d, then the same milk eaten as a food (TKX.MilkSolid) at "
               "ring s %d (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s %d. The run's water course "
-              "before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not "
-              "drawn, and the lane held %.2f g at the milk's start, part of it the auto-drink's." % (s0 + 1, s_solid + 1, s0, liq[0][2]))
+              "before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), and its liquid "
+              "there missed the replay by up to 6.09 g at the water's last sips, the event log's even per-sip split "
+              "(#3997), so it is not drawn, and the lane held %.2f g at the milk's start, part of it the auto-drink's." % (s0 + 1, s_solid + 1, s0, liq[0][2]))
     return [
         series("SE1-m-live-liquid", "Liquid in the stomach, measured", "game minutes", "grams", "live",
                se1_thin([(s, (a - a0) * 60.0, v) for s, a, v in liq], marks),
@@ -2847,7 +2851,7 @@ def s_sh3():
                "landing row (%.4f); each can and banana take their script HungerChange off at once and fill the food "
                "timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry "
                "after dinner at %.2f h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's, "
-               "breakfast's soonest on a sleep-off server, a stated bend; the curve's fit on both sleep settings is "
+               "breakfast's by the most, a stated bend; the curve's fit on both sleep settings is "
                "#3975." % (h0, van[1][1])),
         series("SH3-m-live", "Nutrition Revamp, measured: Peckish", "meal", "game hours", "live",
                [[m, p] for m, p in zip(SH3_MEALS, live_p)],

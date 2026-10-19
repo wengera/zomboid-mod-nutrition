@@ -255,7 +255,9 @@ def test_plan16_s2d_names_wet_beriberi_and_the_lean_share():
     v = VIAB["j_s2d"]
     assert v["death_name"] == "beriberi" and round(v["death_age"] / 24.0, 2) == 77.23
     drain, mass = SER["S2d-m-drain"]["note"], SER["S2d-m-mass"]["note"]
-    assert "starvation on day 1.44, beriberi on day" in drain and "#3978" in drain and "41.14" in drain
+    # review I2: the drain state is the lowest floor's code, not the state's opening (beriberi opens at Clinical)
+    assert "belongs to starvation from day 1.44, then beriberi from day" in drain and "open in order" not in drain
+    assert "#3978" in drain and "41.14" in drain
     assert "#3977" in mass and "#3978" in mass and "above its 0.5 kg floor" in mass
 
 

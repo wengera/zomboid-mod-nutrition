@@ -637,7 +637,7 @@ class Scenarios(_Base):
         self.assertGreaterEqual(start, cleared)
 
     def test_every_cited_claim_is_live_in_the_register(self):
-        """Plan 16 Task 11: every #-id the page cites is a row of the claims register that is not superseded."""
+        """Plan 16 Task 11: every #-id the page and data.json's series cite is a claims-register row not superseded."""
         status = {}
         with open(os.path.join(REPO, "docs", "reference", "claims.tsv"), encoding="utf-8") as fh:
             head = fh.readline().rstrip("\n").split("\t")
@@ -646,7 +646,12 @@ class Scenarios(_Base):
                 status[cells["id"]] = cells["status"]
         cited = set(re.findall(r"#\d{4}\b", self.html))
         self.assertGreaterEqual(len(cited), 100)
-        for cid in sorted(cited):
+        # review M7: the data file's notes, which the source popovers show, and its provenance cells
+        noted = set()
+        for s in self.data["series"]:
+            noted |= set(re.findall(r"#\d{4}\b", s.get("note", "") + " " + json.dumps(s["provenance"])))
+        self.assertGreaterEqual(len(noted), 40)
+        for cid in sorted(cited | noted):
             with self.subTest(claim=cid):
                 self.assertIn(cid, status)
                 self.assertIn(status[cid], ("settled", "open"), cid)
