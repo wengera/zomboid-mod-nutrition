@@ -1,0 +1,18 @@
+[19-10-26 09:22:04.342] Connection add index=0 guid=234189939481811922 id=null.
+[19-10-26 09:22:04.348] 127.0.0.1 "admin" attempting to join.
+[19-10-26 09:22:04.349] 127.0.0.1 "admin" allowed to join.
+[19-10-26 09:22:09.521] 127.0.0.1 "admin" attempting to join used preferred queue.
+[19-10-26 09:22:26.247] player admin loading time was: 16297 ms.
+[19-10-26 09:22:27.365] 127.0.0.1 "admin" fully connected (10911,10037,0).
+[19-10-26 09:22:58.855] Connection add index=1 guid=319758332438633359 id=null.
+[19-10-26 09:22:58.855] 127.0.0.1 "bob" attempting to join.
+[19-10-26 09:22:58.856] 127.0.0.1 "bob" allowed to join.
+[19-10-26 09:23:11.374] 127.0.0.1 "bob" attempting to join used queue.
+[19-10-26 09:23:26.613] player bob loading time was: 13168 ms.
+[19-10-26 09:23:27.872] 127.0.0.1 "bob" fully connected (10720,10195,0).
+[19-10-26 09:23:57.034] Connection disconnect index=0 guid=234189939481811922 id=127.0.0.1.
+[19-10-26 09:23:57.035] Connection remove index=0 guid=234189939481811922 id=127.0.0.1.
+[19-10-26 09:23:57.055] 127.0.0.1 "admin" disconnected player (10911,10037,0).
+[19-10-26 09:23:59.378] Connection disconnect index=1 guid=319758332438633359 id=127.0.0.1.
+[19-10-26 09:23:59.384] Connection remove index=1 guid=319758332438633359 id=127.0.0.1.
+[19-10-26 09:23:59.397] 127.0.0.1 "bob" disconnected player (10720,10195,0).

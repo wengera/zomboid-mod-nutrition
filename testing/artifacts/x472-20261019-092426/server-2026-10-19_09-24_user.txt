@@ -1,0 +1,16 @@
+[19-10-26 09:25:18.527] Connection add index=0 guid=671039103531058312 id=null.
+[19-10-26 09:25:18.528] 127.0.0.1 "admin" attempting to join.
+[19-10-26 09:25:18.529] 127.0.0.1 "admin" allowed to join.
+[19-10-26 09:25:23.632] 127.0.0.1 "admin" attempting to join used preferred queue.
+[19-10-26 09:25:42.574] player admin loading time was: 18505 ms.
+[19-10-26 09:25:44.021] 127.0.0.1 "admin" fully connected (10911,10037,0).
+[19-10-26 09:26:05.423] Connection add index=1 guid=450362721830008372 id=null.
+[19-10-26 09:26:05.423] 127.0.0.1 "bob" attempting to join.
+[19-10-26 09:26:05.425] 127.0.0.1 "bob" allowed to join.
+[19-10-26 09:26:15.831] 127.0.0.1 "bob" attempting to join used queue.
+[19-10-26 09:26:17.438] Anti-cheat="ChecksumUpdate" is triggered for connection="bob" server-option="AntiCheatChecksum" reason="Lua incorrect checksum" counter=1/1 action="Kick" ping=0.
+[19-10-26 09:26:18.651] Connection disconnect index=1 guid=450362721830008372 id=127.0.0.1.
+[19-10-26 09:26:18.654] Connection remove index=1 guid=450362721830008372 id=127.0.0.1.
+[19-10-26 09:28:48.173] Connection disconnect index=0 guid=671039103531058312 id=127.0.0.1.
+[19-10-26 09:28:48.176] Connection remove index=0 guid=671039103531058312 id=127.0.0.1.
+[19-10-26 09:28:48.193] 127.0.0.1 "admin" disconnected player (10911,10037,0).

@@ -22360,3 +22360,22 @@ x461b-20261019-022954,verdicts.REPLAY_stomachFill.verdict,falsified,Not a readin
 x461b-20261019-022954,checks.liquid.water,the water's course,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,`events.json` autodrop at s 266
 x461b-20261019-022954,verdicts.W_PEAK.observed,477.85 g,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,
 x461b-20261019-022954,verdicts.W_HALF.observed,14.00 game minutes,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,
+x471-20261019-092114,session,the driver's text,Written before the run; not a reading.,
+x471-20261019-092114,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x471-20261019-092114,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x471-20261019-092114,world_changes,the driver's text,Written before the run; not readings.,
+x471-20261019-092114,meta.budget_s,540.0,The driver's own budget; not a reading.,
+x471-20261019-092114,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
+x471-20261019-092114,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x471-20261019-092114,logs.bob_connections.force_any,one force-disconnect exit line,"The teardown's own quit, not a kick.",`logs.bob_connections.force_checksum`
+x472-20261019-092426,session,the driver's text,Written before the run; not a reading.,
+x472-20261019-092426,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x472-20261019-092426,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x472-20261019-092426,world_changes,the driver's text,Written before the run; not readings.,
+x472-20261019-092426,meta.budget_s,540.0,The driver's own budget; not a reading.,
+x472-20261019-092426,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
+x472-20261019-092426,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x472-20261019-092426,verdicts.KICK.observed.alive_at_end,true,"Bob's process alive at a disconnected client, not a connection.",`verdicts.ADMIN_STAYS.observed.players_end`
+x472-20261019-092426,bob.alive_at_end,true,"Bob's process alive at a disconnected client, not a connection.",`verdicts.ADMIN_STAYS.observed.players_end`
+x472-20261019-092426,logs.client_mismatch.admin,one line,"Admin's console relaying the server's admin-chat copy of the anti-cheat line about bob, not a mismatch on admin.",`verdicts.ADMIN_STAYS.observed`
+x472-20261019-092426,sandbox_seeded,null,"No [sandbox.NR] block was seeded; an absent block, not a reading.",
