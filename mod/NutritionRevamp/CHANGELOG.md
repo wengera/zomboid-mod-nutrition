@@ -38,6 +38,15 @@ The mod now plays alongside the game's own rhythm: hunger and thirst follow vani
 - **A fresh start:** a new character eats a fresh plate of ordinary food before the mod's first minute, so its first hunger reads like the game's own spawn.
 - **Overlay:** vanilla's own starvation and thirst deaths run there as in the base game; the mod's starvation and dehydration drains do not, and its other drains still do.
 
+### Before the upload (since 2026-10-18)
+
+- **Nothing changes while you are logged off:** a survivor comes back exactly as they left: the stomach, hunger, thirst, sleep debt, nutrients, body and Strength wait, no clock the mod keeps runs, and a record day closes after 24 online game hours. The game's own clocks are not the mod's: carried food keeps spoiling over the absence, and vanilla's exercise regularity counts calendar days. A server stall while you stay online is caught up in full, a few hours at a time.
+- **Records kept for good:** a player's record is never pruned, however long they stay away; the `NR.RecordKeepDays` option is removed.
+- **The backup:** each save also keeps a validated copy of the record on the character, which the game saves with the character; a lost or damaged record file comes back from it, and after a hard kill the copy saved with the character is restored and moved back to the world's clock, so nothing eaten is counted twice.
+- **The body clock:** with `SleepAllowed` and `SleepNeeded` both on, each survivor keeps a body clock that runs while they play and resets to morning after a full sleep, and hunger's daily rhythm follows it instead of the world's hour; with either off, hunger has no daily rhythm.
+- **Fasting:** on a long fast the body draws on lean and fat by the share real bodies show, with no cap on the fat drawn, and a fast on water alone kills by whatever the science says comes first: with plenty of water an average or heavy survivor dies of beriberi after about eleven weeks, a very thin one of starvation in about six.
+- **The server refuses an eat at the top Overfull level:** in Managed mode an eat queued past the menus is refused on the server too, with vanilla's cannot-eat-more line; a drink with no food value is never refused, a drink with food value from a bottle or carton is refused only by the menu, and an eat another mod makes by calling the game's eat directly is not refused.
+
 ### Compatibility
 
 The full table is `COMPATIBILITY.md`. In short:

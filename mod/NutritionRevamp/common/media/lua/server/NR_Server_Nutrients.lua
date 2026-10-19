@@ -48,7 +48,7 @@ NR.server.nutrients = {
         "auto-drink litres land in the stomach one minute after the writer folds the sip into the THIRST target",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (K.body.new's neutral pPrevKg)",
-        "offline time is never integrated: the resume at a return moves every world-age clock past the absence (the sleep window, the fed, vigorous and 90-day mass clocks, the monotony stamps, the nicotine anchor and the record day), and a return closes no refeeding day",
+        "offline time is never integrated: the resume at a return moves every world-age clock past the absence (the sleep window, the fed, vigorous and 90-day mass clocks, the monotony stamps, the nicotine anchor and the record day), and a return closes no refeeding day; the game's own clocks on the character are not the mod's: food it carries keeps ageing over the absence (vanilla's spoilage), and vanilla's Fitness regularity counts calendar days",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "this step writes no stat, moodle or health; the writer owns the stat writes (INTOXICATION and FATIGUE included) and the effects layer the health writes",
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (S1102 open): a drink with a meal peaks as early as one on an empty stomach",
