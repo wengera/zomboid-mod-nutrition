@@ -6,8 +6,9 @@ made before the boot (`python tools/release_pack.py stage mod/NutritionRevamp --
 against mod/ at that commit; the engine is testing/experiments/x46_lib.py (its docstring holds the phases, the reads
 and the grades with every tolerance). This file names the session, the prefix, the profile, the artifact, the wall
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
+PRE-RUN EDIT: the driver review's fix round 1 (task-9-driver-review.md H1-H3, M1, M2, L1-L7), before any boot.
 
-THE SESSION: S (auto-drink off), H (x46_lib.GUT_RING), W, F (TKX.MilkSolid), E (speed 5 until the seed plate has left
+THE SESSION: S (auto-drink off; restored at C from the flag read before), H (x46_lib.GUT_RING), W, F (TKX.MilkSolid), E (speed 5 until the seed plate has left
 the stomach under 30 g), WA (0.5 L of Water from a WaterBottle at once at speed 1, 45 game minutes watched), MI (0.5 L
 of CowMilk from a Base.Milk carton at once, 45 game minutes), SO (speed 5 until the server's HUNGER reaches 0.25, then
 TKX.MilkSolid eaten at speed 1 and 45 game minutes watched), C, R.

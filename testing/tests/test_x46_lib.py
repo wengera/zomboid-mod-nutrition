@@ -38,15 +38,27 @@ FF_FAKE = 20.0                         # the fake's fast-forward: game time runs
 
 
 # ---------------------------------------------------------------- the fake world
+class FakeProc:
+    def __init__(self, pid):
+        self.pid = pid
+
+
 class Client46(T.FakeClient):
-    def __init__(self, user, world):
+    def __init__(self, user, world, pid=7001):
         super().__init__(user)
         self.w = world
+        self.proc = FakeProc(pid)
+        self.killed = False
 
     def quit(self, timeout=60):
         self.w.online = False
         self.alive = False
         return 0
+
+    def kill(self):
+        self.killed = True
+        self.alive = False
+        self.w.online = False
 
 
 class Server46(T.FakeServer):
@@ -101,6 +113,12 @@ class World46(T.World):
         self.saved = None
         self.dead = False
         self.fluids_by = {}
+        self.file = None                 # the slot file's record (the text the load rule reads)
+        self.copy = None                 # the character's copy (modData), written with each slot write
+        self.last_write = None           # the store's lastWrite (wall ms)
+        self.last_write_t = -30.0        # the first write about 30 wall s after the start
+        self.dirty = False
+        self.pending_pick = False
         super().__init__(results_dir, flags)
         R = self.rec
         R["lastSeen"] = self.age
@@ -161,6 +179,11 @@ class World46(T.World):
                 self.row_offline()
             return
         R = self.rec
+        if self.resume_due and self.pending_pick:
+            self.pick()
+            self.resume_due, self.skip_next = False, True
+            self._ring_only()
+            return
         if self.resume_due:
             gap = self.age - R["lastSeen"]
             for p in L.FREEZE_STAMPS:
@@ -189,6 +212,49 @@ class World46(T.World):
         super().minute()
         if self.ring and self.ring_on and self.ring[-1]["s"] == self.s:
             self.ring[-1]["cold"] = R["body"]["coldMult"]
+        if self.dirty or (self.t - self.last_write_t >= 60.0 and "no_first_write" not in self.f):
+            self.write_file()
+
+    def write_file(self):
+        """A slot write (S.step: at most once a real minute, or after a dirty mark) and its copy on the character."""
+        self.file = copy.deepcopy(self.rec)
+        self.copy = copy.deepcopy(self.rec)
+        self.backup["writes"] += 1
+        self.last_write_t, self.dirty = self.t, False
+        self.last_write = 1000.0 + self.t * 1000.0
+
+    @staticmethod
+    def latest(rec):
+        vs = []
+        for p in L.FREEZE_STAMPS:
+            d = rec
+            for seg in p.split("."):
+                d = d.get(seg) if isinstance(d, dict) else None
+            if isinstance(d, (int, float)):
+                vs.append(d)
+        return max(vs) if vs else None
+
+    def pick(self):
+        """S.pick at the sight after a restart: the file ahead of the world loads the copy, else the file; then the
+        resume puts the record on the world clock, forward (resumes) or back (rewound)."""
+        self.pending_pick = False
+        ahead = self.file is not None and self.latest(self.file) > self.age
+        sv_copy = (self.saved or {}).get("copy")
+        if ahead and sv_copy is not None and "keep_store" not in self.f:
+            self.rec = copy.deepcopy(sv_copy)
+            self.backup["restored"] += 1
+        else:
+            self.rec = copy.deepcopy(self.file)
+            if ahead and sv_copy is None:
+                self.backup["aheadKept"] += 1
+        gap = self.age - max(self.rec["lastSeen"], self.rec["kineticsAge"])
+        for p in L.FREEZE_STAMPS:
+            self._set(p, self._get(p) + gap)
+        if gap > 0:
+            self.stats46["resumes"] += 1
+            self.stats46["resumedH"] += gap
+        elif gap < 0:
+            self.stats46["rewound"] += 1
 
     def _ring_only(self):
         if not self.ring_on:
@@ -247,7 +313,9 @@ class World46(T.World):
 
     def globals_(self):
         g_ = super().globals_()
-        circ = 1.0 if not self.sleep_on else 1.0 + 0.05 * math.cos(2 * math.pi * self.rec["acute"]["bodyHour"] / 24)
+        bh = (self.rec.get("acute") or {}).get("bodyHour", 0.0)
+        circ = 1.0 if not self.sleep_on else 1.0 + 0.05 * math.cos(2 * math.pi * bh / 24)
+        g_["NutritionRevamp.server.store.file.lastWrite.admin"] = self.last_write
         g_.update({"NutritionRevamp.server.writer.input.circ": circ,
                    "NutritionRevamp.server.options.sleepOn": self.sleep_on,
                    "NutritionRevamp.server.players.stalls": 0, "NutritionRevamp.server.players.substeps": 0,
@@ -288,6 +356,7 @@ class World46(T.World):
         super().land(full)
         if self.inv.get(full, 0) < n0:
             self.rec["monotony"]["t"][full] = {"n": 1, "last": self.age}
+            self.dirty = True                                    # an eat marks the slot (S.mark)
 
     def drink_done(self, full):
         super().drink_done(full)
@@ -296,7 +365,7 @@ class World46(T.World):
     # -- RCON
     def rcon(self, cmd):
         if cmd == "save":
-            self.saved = {"rec": copy.deepcopy(self.rec), "age": self.age, "inv": dict(self.inv)}
+            self.saved = {"copy": copy.deepcopy(self.copy), "age": self.age, "inv": dict(self.inv)}
             return True, "World saved"
         m = re.match(r"changeoption (\w+) (true|false)", cmd)
         if m:
@@ -307,29 +376,31 @@ class World46(T.World):
 
     # -- the hooks the driver's main gives the session
     def launch(self, S, user, sub):
+        """A fresh client restore: about 40 wall s from the call to the sight (x432: 34 s to ready), the world running
+        (PauseEmpty false)."""
         self.online, self.resume_due = True, True
-        S.xs.clients[user] = Client46(user, self)
-        self.advance(5.0)
-        return {"restored": True, "ready_took": 5.0}
+        S.xs.clients[user] = Client46(user, self, pid=7002)
+        self.advance(40.0)
+        return {"restored": True, "ready_took": 40.0}
 
     def kill(self, S):
         self.dead = True
         self.online = False
         pid = 4242
-        return {"pid_recorded": pid, "pid_killed": 4343 if "kill_other" in self.f else pid, "exited": True, "rc": 1}
+        return {"pid_recorded": pid, "pid_killed": 4343 if "kill_other" in self.f else pid, "alive_before": True,
+                "taskkill_rc": 0, "exited": True, "rc": 1}
 
     def restart(self, S, tag):
+        """The world and the characters as last saved (map_t.bin and players.db at the RCON save), the store's
+        files as last written; the record leaves memory until the sight's load (pick)."""
         self.dead = False
         sv = self.saved
         if sv is not None:
-            store_latest = self.rec["lastSeen"]
-            self.rec = copy.deepcopy(sv["rec"]) if "keep_store" not in self.f else self.rec
             self.age = sv["age"]
             self.inv = dict(sv["inv"]) if "keep_inv" not in self.f else self.inv
-            if "keep_store" not in self.f:
-                self.backup["restored"] += 1
-                self.stats46["rewound"] += 1
-            _ = store_latest
+        self.rec = {}
+        self.pending_pick = True
+        self.speed = 1.0
         self.advance(2.0)
         return {"ok": True, "took": 2.0, "pid": 5151, "log": f"server-stdout-{tag}.log"}
 
@@ -372,6 +443,10 @@ class World46(T.World):
                     "heightOn": 106, "heightOff": 120, "lineDrop": 14, "lineSpacing": 14, "bandOn": True,
                     "bandOff": False, "hiddenOn": 1, "shownOn": 0, "tagAfter": leak, "tagLeft": leak,
                     "optionBefore": True, "restored": "not_restored" not in self.f}
+        if cmd == "lua.global" and a[0] == L.FILE_LAST:
+            doc = {"gen": 1, "rec": self.file if self.file is not None else {"satiety": {"t": self.age}},
+                   "done": True}
+            return {"side": "server", "name": a[0], "resolved": True, "type": "string", "value": json.dumps(doc)}
         if cmd == "lua.call" and not srv and a[0] == "NutritionRevamp.client.tooltip.optionOn":
             return {"ok": True, "side": "client", "path": a[0], "nargs": 0, "r1": True}
         if cmd == "fluid.fill":
@@ -386,6 +461,9 @@ class World46(T.World):
         if cmd == "eat.action":
             st = self.rec["stomach"]
             m = L.mass_of({f"stomach.buffer.{k}": v for k, v in st["buffer"].items()} | {"stomach.liquid": st["liquid"]})
+            if G.overfull_level(m) == 4 and "client_refuses" in self.f:          # never reaches the server
+                return {"queued": True, "fraction": 1, "spawned": "found", "itemId": 7, "itemBefore": {},
+                        "validStart": False, "maxTime": 120, "moodleFoodEaten": 3, "before": {}}
             if G.overfull_level(m) == 4 and "guard_off" not in self.f:
                 self.guard["checks"] += 1
                 self.guard["refused"] += 1
@@ -419,7 +497,10 @@ def run_session(key, tmp_path, monkeypatch, flags=(), budget=1e9, replay=None, p
     w = World46(d, flags, sleep_on=sleep_on)
     ini = os.path.join(d, "pzt.ini")
     with open(ini, "w", encoding="utf-8") as fh:
-        fh.write("PauseEmpty=false\nFastForwardMultiplier=%s\n" % ("10.0" if "ff_changed" in flags else "40.0"))
+        fh.write("PauseEmpty=false\nFastForwardMultiplier=%s\nSleepAllowed=%s\n"
+                 % ("10.0" if "ff_changed" in flags else "40.0", "true" if sleep_on else "false"))
+    if "no_late_write" in flags:
+        monkeypatch.setattr(L, "LATE_WRITE_CAP_S", 0.0)
     out = fresh_out()
     xs = X.Xs(out, node=lambda side: side, clients={"admin": Client46("admin", w)}, ask=w.ask, budget_s=budget,
               clock=w.clock, sleep=w.sleep, spawn_wait_s=0.5)
@@ -466,7 +547,7 @@ NAMES = {
               "REPLAY_stomach.liquid", "COLD_FED", "W_PEAK", "W_HALF", "M_PEAK"},
     "x462": {"T_ON", "T_OFF", "T_NATIVE", "T_RESTORED"},
     "x463a": {"AWAY_STILL", "FREEZE", "STAMPS", "WRITTEN"},
-    "x463b": {"KILL_OWN", "ROLLBACK", "RESTORED", "CONSISTENT", "COPY_SAVED"},
+    "x463b": {"KILL_OWN", "ROLLBACK", "RESTORED", "ON_CLOCK", "CONSISTENT", "COPY_SAVED"},
     "x464": {"TRACK", "NAP_KEEP", "FULL_RESET", "POLL_OFF", "NO_RHYTHM", "POLL_ON", "RESEED"},
     "x465": {"FF_DEFAULT", "NO_LOSS", "CAUGHT_UP"},
     "x466": {"REACHED", "REFUSED", "ITEM_INTACT", "RECORD_KEPT", "QUEUE_CLEARED", "DRINK_LANDS"},
@@ -530,10 +611,25 @@ def test_x463b_kills_only_its_own_pid_and_restarts(tmp_path, monkeypatch):
     v, out, w, S = run_session("x463b", tmp_path, monkeypatch)
     K = out["checks"]["KILL"]
     assert K["pid_recorded"] == K["pid_killed"] == 4242 and K["players_db"]["has_key"] is True
+    assert K["client_pid"] == 7001 and K["client_killed"] is True and S.xs.clients.get("admin") is not None
+    sv = out["checks"]["SAVE"]
+    assert sv["copy_ready"] and sv["write_after_adv"] and sv["rcon"]["ok"]
+    E = out["checks"]["EAT"]
+    assert E["entry"] is not None and E["saved"] is True and E["late_write"] is True
+    assert E["file_latest"] is not None and E["file_latest"] > sv["age"] + L.LATE_H     # read off the file's text
     U = out["checks"]["UP"]
     assert U["restart"]["ok"] and U["launch"]["ready_took"] and U["entry"] is None and U["count"] == 2
     assert out["verdicts"]["CONSISTENT"]["observed"]["eat_in_record"] is False
-    assert out["checks"]["EAT"]["entry"] is not None and out["checks"]["EAT"]["saved"] is True
+    assert out["verdicts"]["RESTORED"]["observed"]["direction"] == "forward"               # the save's copy
+    assert out["verdicts"]["ROLLBACK"]["observed"]["file_latest_before_kill"] > U["sight_lastSeen"]
+
+
+def test_x466_reads_the_queue_empty_before_the_eat(tmp_path, monkeypatch):
+    v, out, w, S = run_session("x466", tmp_path, monkeypatch)
+    q = out["checks"]["X"]["queue_before"]
+    assert q["ok"] is True and q["before"] == 0 and q["current"] is None
+    steps = [s["cmd"] for s in out["steps"] if s["phase"] == "X"]
+    assert steps.index("action.cancel") < steps.index("eat.action")
 
 
 def test_x464_the_clock_resets_only_on_the_full_sleep(tmp_path, monkeypatch):
@@ -543,6 +639,25 @@ def test_x464_the_clock_resets_only_on_the_full_sleep(tmp_path, monkeypatch):
     assert o["FULL_RESET"]["observed"]["bout_h"] >= L.MAIN_SLEEP_H
     assert o["FULL_RESET"]["observed"]["min_world_off_h"] > L.DISCRIM_H
     assert out["checks"]["NAP"]["reached"] and out["checks"]["FULL"]["reached"]
+    off = out["checks"]["OFF"]
+    assert off["flip_age"] is not None and off["flip_age"] > off["change_age"] and off["poll_age"] is not None
+    assert out["checks"]["sleep_allowed_before"] is True and out["checks"]["sleep_restored"] is True
+    assert "sleep_restore" not in out["checks"] and w.sleep_on is True
+
+
+def test_x464_restores_sleep_allowed_at_c_when_on_never_ran(tmp_path, monkeypatch):
+    real = L.Sess.phase_ON464
+    monkeypatch.setattr(L.Sess, "phase_ON464", lambda self: (_ for _ in ()).throw(RuntimeError("ON skipped")))
+    v, out, w, S = run_session("x464", tmp_path, monkeypatch)
+    assert out["checks"]["sleep_restore"]["ok"] and w.sleep_opt is True
+    assert real is not None
+
+
+def test_x461a_restores_the_auto_drink_flag(tmp_path, monkeypatch):
+    v, out, w, S = run_session("x461a", tmp_path, monkeypatch)
+    assert out["checks"]["S"]["autodrink"]["before"] is True
+    assert out["checks"]["autodrink_restore"]["requested"] is True
+    assert out["checks"]["overfull"]["reached_3"] in (True, False)
 
 
 @pytest.mark.parametrize("key,flag,grades", [
@@ -559,6 +674,8 @@ def test_x464_the_clock_resets_only_on_the_full_sleep(tmp_path, monkeypatch):
     ("x463b", "keep_store", {"RESTORED"}),
     ("x463b", "keep_inv", {"CONSISTENT"}),
     ("x463b", "no_copy", {"COPY_SAVED"}),
+    ("x463b", "no_late_write", {"ROLLBACK"}),
+    ("x463b", "no_first_write", {"COPY_SAVED", "RESTORED"}),
     ("x464", "nap_resets", {"NAP_KEEP"}),
     ("x464", "no_reset", {"FULL_RESET"}),
     ("x464", "poll_slow", {"POLL_OFF", "POLL_ON"}),
@@ -568,6 +685,7 @@ def test_x464_the_clock_resets_only_on_the_full_sleep(tmp_path, monkeypatch):
     ("x465", "lose_sleep", {"NO_LOSS"}),
     ("x466", "guard_off", {"REFUSED", "RECORD_KEPT", "ITEM_INTACT"}),
     ("x466", "queue_left", {"QUEUE_CLEARED"}),
+    ("x466", "client_refuses", {"REFUSED", "ITEM_INTACT", "RECORD_KEPT", "QUEUE_CLEARED"}),
     ("x466", "fill_refused", {"DRINK_LANDS"}),
     ("x467", "fast_hunger", {"CAD_FEEL_P", "CAD_FEEL_H"}),
     ("x467", "client_stale", {"PAIRS_foodEaten", "PAIRS_hungry"}),
@@ -696,26 +814,42 @@ def test_freeze_grades():
 
 
 def test_hardkill_grades(tmp_path):
-    assert L.grade_kill_own({"pid_recorded": 5, "pid_killed": 5, "exited": True})[0] == "as_predicted"
-    assert L.grade_kill_own({"pid_recorded": 5, "pid_killed": 6, "exited": True})[0] == "falsified"
-    assert L.grade_kill_own({"pid_recorded": 5, "pid_killed": 5, "exited": False})[0] == "falsified"
+    k = {"pid_recorded": 5, "pid_killed": 5, "alive_before": True, "taskkill_rc": 0, "exited": True}
+    assert L.grade_kill_own(k)[0] == "as_predicted"
+    assert L.grade_kill_own(dict(k, pid_killed=6))[0] == "falsified"
+    assert L.grade_kill_own(dict(k, exited=False))[0] == "falsified"
+    assert L.grade_kill_own(dict(k, alive_before=False))[0] == "falsified"
+    assert L.grade_kill_own(dict(k, taskkill_rc=128))[0] == "falsified"
     assert L.grade_kill_own({})[0] == "unmeasured"
     up = {"age_restart": 4.0, "sight_lastSeen": 5.0}
-    assert L.grade_rollback(up, {"latest": 6.0})[0] == "as_predicted"
-    assert L.grade_rollback(up, {"latest": 4.5})[0] == "falsified"           # behind again by the sight
-    assert L.grade_rollback({"age_restart": 4.0}, {"latest": 6.0})[0] == "unmeasured"
-    U = {"backup": {L.BACKUP_STATS[3]: 1}, "store": {L.STORE_STATS[4]: 1}}
-    assert L.grade_restored_copy(U, True)[0] == "as_predicted"
-    assert L.grade_restored_copy({"backup": {L.BACKUP_STATS[3]: 0}, "store": {L.STORE_STATS[4]: 1}},
-                                 True)[0] == "falsified"
-    assert L.grade_restored_copy({"backup": {L.BACKUP_STATS[3]: 1}, "store": {L.STORE_STATS[4]: 0}},
-                                 True)[0] == "falsified"
-    assert L.grade_restored_copy(U, False)[0] == "unmeasured"
-    assert L.grade_consistent({"entry": None, "count": 2}, {"count_before": 2}, True)[0] == "as_predicted"
-    assert L.grade_consistent({"entry": 5.1, "count": 1}, {"count_before": 2}, True)[0] == "as_predicted"
-    assert L.grade_consistent({"entry": None, "count": 1}, {"count_before": 2}, True)[0] == "falsified"
-    assert L.grade_consistent({"entry": 5.1, "count": 2}, {"count_before": 2}, True)[0] == "falsified"
-    assert L.grade_consistent({"entry": None, "count": 2}, {"count_before": 2}, False)[0] == "unmeasured"
+    assert L.grade_rollback(up, {"file_latest": 6.0, "latest": 6.5})[0] == "as_predicted"
+    assert L.grade_rollback(up, {"file_latest": 4.5, "latest": 6.5})[0] == "falsified"   # the FILE behind by the sight
+    assert L.grade_rollback(up, {"latest": 6.5})[0] == "unmeasured"                       # the file unread
+    assert L.grade_rollback({"age_restart": 4.0}, {"file_latest": 6.0})[0] == "unmeasured"
+
+    def U(restored, ahead, rewound=0, resumes=0):
+        return {"backup": {L.BACKUP_STATS[3]: restored, L.BACKUP_STATS[4]: ahead},
+                "store": {L.STORE_STATS[4]: rewound, L.STORE_STATS[2]: resumes, L.STORE_STATS[3]: 1.1}}
+    assert L.grade_restored_copy(U(1, 0, 0, 1), True)[0] == "as_predicted"           # forward: restored 1, rewound 0
+    assert L.grade_restored_copy(U(1, 0, 0, 1), True)[1]["direction"] == "forward"
+    assert L.grade_restored_copy(U(1, 0, 1, 0), True)[0] == "as_predicted"
+    assert L.grade_restored_copy(U(0, 1), True)[0] == "falsified"                    # aheadKept 1
+    assert L.grade_restored_copy(U(1, 1), True)[0] == "falsified"
+    assert L.grade_restored_copy(U(0, 0), True)[0] == "falsified"
+    assert L.grade_restored_copy(U(1, 0), False)[0] == "unmeasured"
+    assert L.grade_restored_copy({"backup": {L.BACKUP_STATS[3]: 1}}, True)[0] == "unmeasured"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 + 1 / 60})[0] == "as_predicted"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 - 1 / 60})[0] == "as_predicted"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.1})[0] == "falsified"
+    assert L.grade_on_clock({"record": {"latest": None}, "age": 5.1})[0] == "unmeasured"
+    rec = {"values": {"lastSeen": 5.0}}
+    assert L.grade_consistent({"entry": None, "count": 2, "record": rec}, {"count_before": 2}, True)[0] == "as_predicted"
+    assert L.grade_consistent({"entry": 5.1, "count": 1, "record": rec}, {"count_before": 2}, True)[0] == "as_predicted"
+    assert L.grade_consistent({"entry": None, "count": 1, "record": rec}, {"count_before": 2}, True)[0] == "falsified"
+    assert L.grade_consistent({"entry": 5.1, "count": 2, "record": rec}, {"count_before": 2}, True)[0] == "falsified"
+    assert L.grade_consistent({"entry": None, "count": 2, "record": rec}, {"count_before": 2}, False)[0] == "unmeasured"
+    assert L.grade_consistent({"entry": None, "count": 2, "record": {"values": {}}}, {"count_before": 2},
+                              True)[0] == "unmeasured"                                # review L4: a failed record read
     assert L.grade_copy_saved({"length": 9000, "has_key": True})[0] == "as_predicted"
     assert L.grade_copy_saved({"length": 4086, "has_key": False})[0] == "falsified"
     assert L.grade_copy_saved({"error": "locked"})[0] == "unmeasured"
@@ -733,6 +867,19 @@ def test_players_db_read_and_the_fixture_is_fresh(tmp_path):
     assert L.players_db_read(p) == {"path": p, "length": 21, "has_key": True}
     assert "error" in L.players_db_read(str(tmp_path / "none.db"))
     assert L.fixture_fresh(str(tmp_path))["fresh"] is False
+    # review L7: a store slot folder in the fixture defeats the first sight too
+    fake = tmp_path / "repo"
+    db = fake / L.FIXTURE_PLAYERS_DB
+    db.parent.mkdir(parents=True)
+    c = sqlite3.connect(str(db))
+    c.execute("create table networkPlayers (id INTEGER PRIMARY KEY, username TEXT, data BLOB)")
+    c.execute("insert into networkPlayers (username, data) values ('admin', ?)", (b"plain",))
+    c.commit()
+    c.close()
+    assert L.fixture_fresh(str(fake))["fresh"] is True
+    (fake / L.FIXTURE_STORE_DIR).mkdir(parents=True)
+    r = L.fixture_fresh(str(fake))
+    assert r["fresh"] is False and r["store_dir"] is True
 
 
 def _clock_rows(a0, hours, body=None, on=True, **extra):
@@ -798,6 +945,10 @@ def test_nap_keep_and_full_reset():
 
 
 def test_poll_no_rhythm_and_the_day():
+    ring = [{"s": i, "age": 5.0 + i / 60.0, "on": True, L.SLEEPON_G: i < 3} for i in range(6)]
+    assert L.ring_flip(ring, 5.0 + 0.5 / 60.0, False) == pytest.approx(5.0 + 3 / 60.0)
+    assert L.ring_flip(ring, 5.0, True) == pytest.approx(5.0 + 1 / 60.0)
+    assert L.ring_flip(ring, None, False) is None and L.ring_flip(ring, 9.0, False) is None
     assert L.grade_poll(5.0, 5.0 + 1.0 / 60.0)[0] == "as_predicted"
     assert L.grade_poll(5.0, 5.0 + 3.0 / 60.0)[0] == "falsified"
     assert L.grade_poll(5.0, None)[0] == "falsified"
@@ -870,6 +1021,10 @@ def test_refusal_grades():
     assert L.grade_refused(_x(intake_after={"landed": 4, "eats": 4}))[0] == "falsified"
     assert L.grade_refused(_x(guard_after={L.GUARD_PATHS[1]: 0, L.GUARD_PATHS[2]: 0}))[0] == "falsified"
     assert L.grade_refused(_x(guard_after={}))[0] == "unmeasured"
+    assert L.server_saw(_x()) is True
+    assert L.server_saw(_x(guard_after={L.GUARD_PATHS[1]: 0, L.GUARD_PATHS[2]: 0})) is False
+    assert L.server_saw(_x(guard_after={L.GUARD_PATHS[1]: 1, L.GUARD_PATHS[2]: 0})) is False
+    assert L.server_saw(_x(guard_after={})) is False
     assert L.grade_item_intact(_x())[0] == "as_predicted"
     assert L.grade_item_intact(_x(count_after=1))[0] == "falsified"
     assert L.grade_item_intact(_x(item_after={"id": 8, "hungChange": -9}))[0] == "falsified"
