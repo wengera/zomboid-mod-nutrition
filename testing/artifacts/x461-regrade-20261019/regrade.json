@@ -1,0 +1,49 @@
+{
+ "kind": "derived artifact (analysis, not a live run)",
+ "script": "testing/experiments/x461_regrade.py",
+ "sources": {
+  "x461a": {
+   "artifact": "plate.json",
+   "pages": [
+    "minute-ring-admin-1.json"
+   ],
+   "run": "x461a-20261019-022413",
+   "sha256": "113a7949840e35424a6bc70f78d491727a061e3510c6284da885fc3c9411a750"
+  },
+  "x461b": {
+   "artifact": "drinks.json",
+   "pages": [
+    "minute-ring-admin-1.json",
+    "minute-ring-admin-721.json"
+   ],
+   "run": "x461b-20261019-022954",
+   "sha256": "ad2aebfc226e21b5a202bdc6b0f7239b19fbdad5c4be4463e55e21b1a3d235ef"
+  }
+ },
+ "verdicts": {
+  "x461a.COLD_FED_RG": {
+   "falsifier": "a ring row without cold, an empty recorded list, or a recorded event the ring does not give",
+   "observed": {
+    "derived_events": 455,
+    "frozen_verdict": "falsified",
+    "recorded_events": 375,
+    "rows": 461,
+    "rows_with_cold": 461,
+    "stray": []
+   },
+   "verdict": "as_predicted"
+  },
+  "x461b.COLD_FED_RG": {
+   "falsifier": "a ring row without cold, an empty recorded list, or a recorded event the ring does not give",
+   "observed": {
+    "derived_events": 875,
+    "frozen_verdict": "falsified",
+    "recorded_events": 796,
+    "rows": 879,
+    "rows_with_cold": 879,
+    "stray": []
+   },
+   "verdict": "as_predicted"
+  }
+ }
+}
