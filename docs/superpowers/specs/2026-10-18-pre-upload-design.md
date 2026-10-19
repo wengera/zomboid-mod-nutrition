@@ -23,6 +23,10 @@ The brainstorm's evidence is in `.superpowers/sdd/plan-16-brainstorm/`:
 - **One resume step.** It runs at the first touch of every sight (`S.get` / `S.load`), before any step. It shifts every world-age stamp and anchor in the record by the full offline gap. The list comes from the audit: L1, L3, and the stamps in the stomach, the nutrients, fluids, body, acute, drain, satiety, monotony, the writer and the nicotine anchor.
 - **What the shift prevents.** No step integrates offline time. The current 60-minute clamp on a return's first step goes, and every test that pins that hour as intended is rewritten to the freeze (the audit lists them).
 - **Absence against a stall.** An absence is keyed on a new player object (a real logout and login). A stall while the player stays online (a slow server, the fast-forwarded night) is never an absence. It is integrated in sub-steps no longer than the existing step bound, so booked sleep is not lost (audit L6, circadian-systems § 6).
+  - **The carry (as built).** A queue slot runs at most `K.resume.SLOT_SUBSTEPS` (4) sub-steps; the rest carry to the player's next minutes until the whole span is integrated (Task 2 fix 1, ruling F2).
+  - **The stalled hours** read the asleep state latched at the detection (Task 4 ruling F2).
+  - **A departure mid-carry** freezes the un-integrated rest as absence (Task 2 fix 1 ruling).
+  - **A stamp laid after the last step** (an eat during a carry, or after the last minute before a logout) lands at the return's touch, never past it (the close review's L1).
 
 ### 1.2 The record day counts online time
 - **The rule.** The body's day closes after 24 online game hours, from a record-day start anchor shifted by the gap. It no longer closes at the world's day boundary (audit L2).
@@ -39,9 +43,9 @@ The brainstorm's evidence is in `.superpowers/sdd/plan-16-brainstorm/`:
 - **The effect.** Records are kept for good, so neither a long absence nor long server downtime can reset a character.
 
 ### 1.4 A backup of the record on the character
-- **What it is.** A compact copy of the player's record kept in the character's own modData. It is refreshed on each store save, mirrored to the owning client and validated on read, because a client `transmitModData` can overwrite the server copy (#1042).
+- **What it is.** A compact copy of the player's record kept in the character's own modData. It is refreshed on each store save, never sent to the client (Task 3 ruling M1: the send would multiply server-to-client traffic 3.5-5.5 times; another mod's client transmit wipes the copy until the next save, a stated limitation), and validated on read, because a client `transmitModData` can overwrite the server copy (#1042).
 - **Restoring a lost file.** A missing or corrupt store file restores from the copy exactly. This covers a corrupt file, a renamed server, a moved host and a deleted folder.
-- **A hard kill.** When the store's record is newer than the world (stamps ahead of the clock, after a hard-kill rollback), the copy saved with the world wins. That prevents a double integration and re-eating already-landed food (audit L5).
+- **A hard kill.** When the store's record is newer than the world (stamps ahead of the clock, after a hard-kill rollback), the copy wins (ruling H1, as built). It is saved with the character by the engine's player save on its own cadence (#3970), not with the world, so it is usually ahead of the rolled-back world, and `K.resume.resume` moves it back onto the world clock. A store ahead of the world with no valid copy is kept and moved back the same way (logged). That prevents a double integration and re-eating already-landed food (audit L5).
 - **Cost.**
   - Size: a few KB per character in the world save. Measure it, and keep the copy to the store's INPUTS.
   - Rule 6: the copy is written only at the store's save cadence, never per minute.
@@ -50,6 +54,8 @@ The brainstorm's evidence is in `.superpowers/sdd/plan-16-brainstorm/`:
 These belong to the item or to vanilla, not to the mod's character, and are stated as limitations:
 - carried food spoiling over the gap (vanilla `Food.updateAge`);
 - vanilla Fitness regularity counting calendar time.
+
+As built, both are stated in the README, the limitation string at `NR_Server_Nutrients.lua:51`, the guide and COMPATIBILITY (the close fix wave).
 
 ### 1.6 Tests
 For each item above, a kernel or server-replay test logs a character out for at least 3 game days, logs it back in, and asserts that every record value and every written stat is unchanged. That covers:
@@ -109,12 +115,14 @@ A science pass reads the following, and its rows are applied before the fix:
   - drop the ceiling from the deficit arm;
   - re-base it on a corrected lean energy density;
   - keep it with the protein-sparing term the research supports.
+- **Chosen (as built):** form (a), no fat ceiling in the deficit arm (Task 1's recommendation). The floor rule: past `fmMin` the fat draw is paid by lean, energy for energy (Task 5 fix 1, F2).
 - **Fit discipline:** the fit rules apply (CLAUDE.md § 6: stability checks, constants at bounds reported).
 
 ### 3.3 Death follows the science
 - Whatever state kills first on the science kills first.
 - The default fast with water is expected to die of wet beriberi at about day 77, past the strikers' 46–73 days (S2231). That is stated, not tuned away.
 - Report the outcomes for the default, heavy (Obese) and thin (Gaunt) bodies: cause and day.
+- **The outcomes (as built, #3978):** the default and Obese bodies die of beriberi on d77.23, the Gaunt body of starvation on d41.14.
 
 ### 3.4 Knock-on work
 - **Plan 13's fitted Strength constants** are re-scored against their oracles on the new partition. A moved oracle is reported and re-fit only if it leaves its band.
@@ -127,7 +135,7 @@ A science pass reads the following, and its rows are applied before the fix:
 ## 4. Eating and fullness
 
 ### 4.1 Server-side refusal at Overfull 4
-- **The hook.** The mod installs a `serverStart` on `ISEatFoodAction` (vanilla defines none). At Overfull 4 it refuses through `netAction:forceComplete()`, the pattern of about 20 vanilla actions (carries § 2). It never wraps `new` (CLAUDE.md § 6).
+- **The hook.** The file is `NR_Server_IntakeGuard.lua`, and the refusal runs in Managed mode (Mode 1) only; in Overlay the game's own fullness decides. The mod installs a `serverStart` on `ISEatFoodAction` (vanilla defines none). At Overfull 4 it refuses through `netAction:forceComplete()`, the pattern of about 20 vanilla actions (carries § 2). It never wraps `new` (CLAUDE.md § 6).
 - **What the player sees.** The player gets vanilla's `Tooltip_CantEatMore` message.
 - **Guard.** A `serverStop` guard ensures a refused or cancelled eat never consumes the item.
 - **Rulings.** This supersedes the Plan 15 Task 11 ruling that kept the menu refusal only (#3599). It is a deliberate exception to the intake's rule of always calling the original, stated in the code and the register.
@@ -137,7 +145,7 @@ A full meal followed at once by 500 mL holds Overfull 4 for about 3 minutes at t
 
 ### 4.3 Drinks in the replay
 - `tools/replay_live.py` spreads a drink over its action's duration as the game does (20 ms per unit of the action length, landed per sip).
-- The "a drink lands whole in its minute" sentence is corrected in the spec, the README limitation, the writer's limitation and the guide.
+- A drink lands sip by sip over its action, never whole in its minute, so a large drink right after a full meal can still hold Overfull 4 for a few minutes; the README limitation, the writer's limitation and the guide say so.
 
 ### 4.4 Folic acid
 Not tracked (Angus). The existing limitation stays.
@@ -183,6 +191,10 @@ These run last, on the exact staged bytes, on fixture `two`, 42.21:
 - No body rhythm on sleep-off servers.
 - A full sleep (≥ 4 h) resets the body clock to 07:00.
 - The fast's death is whatever the science gives first (beriberi about day 77 for the default body), not tuned to the strikers' range.
+- The hunger curve's joint fit weighs the two sleep configurations 2:1, sleep off (vanilla multiplayer's default) first (Task 4b, `tools/fit_hunger_curve.py`'s `W_CONFIG`).
+- `K.resume.SLOT_SUBSTEPS` 4: a queue slot runs at most four hour-long sub-steps of a stall, a Rule 6 bound read off the slot bench (Task 2 fix 1), not science.
+- `fmMin` 0.5 kg, the fat floor, stays a game choice under S1910's ~2.5 kg (Task 1 F10).
+- The meal spell's `SUSPEND_M` is Plan 15's, not this plan's.
 
 ## 7. Verification
 - Every § 1 freeze test.

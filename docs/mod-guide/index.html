@@ -427,7 +427,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <td>Tinned tuna is a protein food, and a burger's bun has carbohydrate in it.</td></tr>
         <tr><th scope="row"><a href="#sys-deficiency">Death by hunger, thirst or deficiency</a></th>
           <td>Hunger or thirst at their top moodle drain your health until you die.</td>
-          <td>Starving, going without water and the severe deficiencies damage your health down to a floor, half your health, within days of the crisis. The floor sinks as your body gives way and reaches zero only when a real body would die.</td>
+          <td>Starving, going without water and the severe deficiencies damage your health down to a floor, half your health, within days of the crisis. The floor sinks as your body gives way and reaches zero when whatever the science says comes first would kill a real body.</td>
           <td>A day without food costs you health, not your life. Weeks without food, days without water or months of untreated scurvy still kill. A real meal stops starvation's damage, and drinking enough water stops dehydration's.</td></tr>
       </tbody>
     </table>
@@ -1135,7 +1135,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p>When you log off, the server saves your character and takes it out of the world until you come back.</p>
       </div>
       <div class="side side-mod" data-block="mod"><h3>This mod</h3>
-        <p>Nothing about your survivor changes while you are logged off. Your stomach, your nutrient stores, your sleep debt, your body and your Strength wait exactly as you left them, and none of the mod's clocks runs, so a meal half digested is still half digested when you return. Your body's day counts the hours you play, not the world's days.</p>
+        <p>Nothing about your survivor changes while you are logged off. Your stomach, your nutrient stores, your sleep debt, your body and your Strength wait exactly as you left them (the game's own spoilage still ages the food you carry, and vanilla's exercise regularity still counts calendar days), and none of the mod's clocks runs, so a meal half digested is still half digested when you return. Your body's day counts the hours you play, not the world's days.</p>
         <p>The mod keeps your record in files on the server and a backup copy on your character, which the game saves with it. If the files are lost, your record comes back from the copy. If the server is killed and the world goes back to its last save, the copy saved with your character wins, so food you ate after that save is not counted twice. Records are kept for good: a long absence or a long shutdown never resets you.</p>
       </div>
     </div>
@@ -1216,6 +1216,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     <li>Another mod that syncs your character's data from your game wipes the backup copy until the mod's next save, at most a real minute later while you are online, so a restore in that window cannot use it.</li>
     <li>If your record's files are ahead of the world after a crash and your character holds no valid copy, the files are kept and moved back onto the world's clock, so food you ate after the world's last save stays counted.</li>
     <li>A server stall while you stay online is caught up in hour-long steps, a few at a time. If you log off before the catch-up ends, the rest is frozen with your absence.</li>
+    <li>The food you carry keeps spoiling while you are logged off, and vanilla's exercise regularity counts the world's days: both are the game's, not the mod's.</li>
     <li>A drink arrives sip by sip, so a big drink right after a full meal can still reach the top Overfull level for a few minutes.</li>
     <li>At the top Overfull level the server refuses an eat only in the default Managed mode. In Overlay mode the game's own fullness decides, as in vanilla.</li>
     <li>A drink with food value, such as milk or juice from a bottle or carton, is refused at the top Overfull level only by the menu. One queued past the menu still goes down.</li>
