@@ -1,0 +1,149 @@
+{
+ "_provenance": {
+  "first_sight": {
+   "age": 3.05,
+   "stats": {
+    "FATIGUE": 0.0,
+    "HUNGER": 0.0253,
+    "THIRST": 0.0
+   }
+  },
+  "mod_commit": "648b4a83",
+  "replay_tool_commit": "dec29870",
+  "replay_tool_dirty": false,
+  "tool": "tools/replay_live.py ServerReplay, rng half"
+ },
+ "x461a": {
+  "empty_age": 6.916667,
+  "of_m3": 2.0,
+  "of_m4": 0.0,
+  "of_peak": 988.0,
+  "plate_start_age": 6.933333,
+  "seed_kcal": 465.607356,
+  "spread": [
+   {
+    "label": "plate-water",
+    "litres": 0.5,
+    "spanM": 14.719999999999999,
+    "step": 259,
+    "steps": 15
+   }
+  ],
+  "water_span_m": 14.72
+ },
+ "x461b": {
+  "m_peak": 438.360984,
+  "milk_age": 7.966667,
+  "milk_span_m": 7.424,
+  "request_h_after_so": 6.866667,
+  "so_age": 8.866667,
+  "spread": [
+   {
+    "label": "WA",
+    "litres": 0.5,
+    "spanM": 14.719999999999999,
+    "step": 232,
+    "steps": 15
+   },
+   {
+    "label": "MI",
+    "litres": 0.5,
+    "spanM": 7.4239999999999995,
+    "step": 294,
+    "steps": 8
+   }
+  ],
+  "start_age": 6.933333,
+  "w_half_m": 13.0,
+  "w_peak": 330.433169,
+  "water_span_m": 14.72
+ },
+ "x464": {
+  "full_bout_h": 5.0,
+  "full_close_body": 7.166667,
+  "full_close_reset_off_h": 0.0,
+  "full_close_world_off_h": -10.583333,
+  "nap_bout_h": 1.5,
+  "nap_close_off_h": -0.0,
+  "seed_off_h": -0.0
+ },
+ "x465": {
+  "asleep_h": 8.146667,
+  "booked_h": 8.146667,
+  "lag_gm": 0.0,
+  "miss_h": 0.0,
+  "night_dtm": 3.2,
+  "stall_m": 75.0,
+  "stalls": [
+   0,
+   1
+  ],
+  "substeps": [
+   0,
+   2
+  ]
+ },
+ "x466": {
+  "level4_minutes": 14,
+  "mass_after_seed": 1147.0,
+  "seed_age": 3.716667,
+  "seed_level": 4
+ },
+ "x467": {
+  "M_first_row": 616.482278,
+  "cad_h": 10.2,
+  "cad_p": {
+   "breakfast": 3.883,
+   "dinner": 4.467,
+   "lunch": 4.733
+  },
+  "dehydrated_rows": 0,
+  "max_THIRST": 0.261728,
+  "max_dehydPct": 1.409587,
+  "max_stomach_g": 753.0,
+  "meals": {
+   "breakfast": {
+    "eat0_max": 0.0,
+    "hungry_h": null,
+    "well_fed_h": 0.367,
+    "window_h": 4.733
+   },
+   "dinner": {
+    "eat0_max": 0.0,
+    "hungry_h": 10.2,
+    "well_fed_h": 0.367,
+    "window_h": 12.733
+   },
+   "lunch": {
+    "eat0_max": 0.0,
+    "hungry_h": null,
+    "well_fed_h": 0.4,
+    "window_h": 5.733
+   }
+  },
+  "seed_kcal": 465.607356,
+  "spread": [
+   {
+    "label": "lunch-drink",
+    "litres": 0.5,
+    "spanM": 14.719999999999999,
+    "step": 296,
+    "steps": 15
+   },
+   {
+    "label": "dinner-drink",
+    "litres": 0.5,
+    "spanM": 14.719999999999999,
+    "step": 656,
+    "steps": 15
+   },
+   {
+    "label": "breakfast-drink",
+    "litres": 0.5,
+    "spanM": 14.719999999999999,
+    "step": 1436,
+    "steps": 15
+   }
+  ]
+ }
+}

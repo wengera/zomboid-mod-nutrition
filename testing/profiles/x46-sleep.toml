@@ -1,0 +1,31 @@
+# testing/profiles/x46-sleep.toml - Plan 16 Task 9 (runs x463a, x464, x465): the pre-upload changes live, one boot per session.
+# PZTestKit + the STAGED copy of mod/NutritionRevamp (release/plan16-x46, staged before the boot with
+# `python tools/release_pack.py stage mod/NutritionRevamp --out release/plan16-x46`; release/ is gitignored; mod/ is
+# never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 1, SleepAllowed and SleepNeeded true (the body clock runs; the night fast-forwards at the default FastForwardMultiplier).
+# Fixture default, admin (-debug), build 42.21.0. The drivers are testing/experiments/x46*_*.py on x46_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp copy (release/plan16-x46), fixture default, admin (debug), Nutrition off, DayLength 1, sleep on, build 42.21.0 - Plan 16 Task 9: x463a, x464, x465."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/plan16-x46/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game hour 37.5 s at speed 1
