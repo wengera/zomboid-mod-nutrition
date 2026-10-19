@@ -36,6 +36,17 @@ Every onset rule stays as it is: the acute and chronic starvation onsets, the 4 
 
   A heavier body loses BMI more slowly, so it opens more gently in time as well as dying later. Recorded as a game choice.
 
+### 1.2a Smoothing the BMI clock (controller ruling T1-4, Task 1 review F3)
+
+The body model moves BMI only at a record-day close, once every 24 online hours. A curve read off the raw BMI would staircase: a day at full health, then a 30-point ramp. Realistic starvation instead reads a **smoothed progress**:
+- `p_s = p_close + rate · (ageH − body.dayStartH)`, where:
+  - `p_close` is the true progress at the last close;
+  - `rate` is the last closed day's progress per hour;
+  - before the state has seen a close, `rate` is the calibrated `starve_dpdt_per_h` (Task 1's artifact) and the anchor is the onset.
+- `p_s` is clamped to [0, 1] and never falls within a state, so the target never rises from a close's correction while the state holds.
+- Every input is an online clock (`body.dayStartH` is a resume stamp) or a record field. The smoothing therefore freezes offline like everything else (Plan 16).
+- The death comes at `p_s = 1`, which is BMI 12 as estimated within the day. A close's correction moves the target by at most the gap between the estimate and the true BMI, and the § 1.4 cap ramps it.
+
 ### 1.3 Combining: `NR.HealthCombine`
 
 The minute's **target** is computed from every active state's fraction `f_i`:
