@@ -178,3 +178,32 @@ def test_input_hashes_fold_crlf_to_lf(tmp_path, monkeypatch):
     (crlf / "a.lua").write_bytes(b"x = 1\r\ny = 2\r\n")
     monkeypatch.setattr(C, "input_files", lambda root=None: [os.path.join(str(root), "a.lua")])
     assert C.input_hashes(root=str(lf)) == C.input_hashes(root=str(crlf))
+
+
+def test_the_onsets_and_courses_the_calibration_read_hold_at_head(art):
+    """Ruling T2-4: the recalibration tripwire at HEAD. The calibration's own replays (the S2d fast with water and the
+    no-water arm), read here off the body's true BMI, (lm + fm) / K.HEIGHT_M squared, and the deficit, never
+    drain.bmi0: the onset rows and hours, the onset and window-end BMIs and the deficits match calibration.json."""
+    tools = os.path.join(REPO, "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import mod_guide_series as S
+    st, dh = art["starve"], art["dehyd"]
+    days = st["run_days"]
+    rows, be = S.server_run([S.FRESH] + S.autodrops(days), days * S.DAY_MIN, ("body.fm", "body.lm", "drain.starving"))
+    h2 = float(be.K.HEIGHT_M) ** 2
+    k0 = next(i for i, r in enumerate(rows) if r.get("drain.starving"))
+    k1 = k0 + art["window_h"]["starve"] * 60
+    assert (k0, k1) == (st["onset_row"], st["end_row"])
+    assert rows[k0]["age"] == st["onset_age_h"] and rows[k1]["age"] == st["end_age_h"]
+    true = lambda r: (r["body.lm"] + r["body.fm"]) / h2
+    assert true(rows[k0]) == pytest.approx(st["bmi0"], abs=1e-12)
+    assert true(rows[k1]) == pytest.approx(st["bmi_end"], abs=1e-12)
+    days = dh["run_days"]
+    rows, _ = S.server_run([S.FRESH], days * S.DAY_MIN, ("drain.dehydrated",))
+    k0 = next(i for i, r in enumerate(rows) if r.get("drain.dehydrated"))
+    k1 = k0 + art["window_h"]["dehyd"] * 60
+    assert (k0, k1) == (dh["onset_row"], dh["end_row"])
+    assert rows[k0]["age"] == dh["onset_age_h"] and rows[k1]["age"] == dh["end_age_h"]
+    assert rows[k0]["fluids.dehydPct"] == pytest.approx(dh["d_onset"], abs=1e-12)
+    assert rows[k1]["fluids.dehydPct"] == pytest.approx(dh["d_end"], abs=1e-12)
