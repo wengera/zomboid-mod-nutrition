@@ -22353,3 +22353,10 @@ x463b-20261019-030402,constants_x46,x46_lib's constants,The driver's settings; n
 x463b-20261019-030402,prerun_x46,x46_prerun.json's session block,The HEAD replay's predictions written before the run; not a live reading.,`verdicts.<name>.observed`
 x463b-20261019-030402,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
 x463b-20261019-030402,checks.UP.copy,the copy after the restore,"The restore marks the slot, so the next store step rewrites the copy: this is the rewritten copy, not the one restored.","`checks.UP.record`, `checks.UP.backup`"
+x461a-20261019-022413,verdicts.REPLAY_stomach.liquid.verdict,falsified,Not a reading of the mod's emptying: the per-row sip apportioning of the event log.,`verdicts.REPLAY_stomach.liquid.observed`
+x461a-20261019-022413,verdicts.REPLAY_stomachFill.verdict,falsified,Not a reading of the mod's emptying: the per-row sip apportioning of the event log.,`verdicts.REPLAY_stomachFill.observed`
+x461b-20261019-022954,verdicts.REPLAY_stomach.liquid.verdict,falsified,Not a reading of the mod's emptying: the per-row sip apportioning of the event log.,`verdicts.REPLAY_stomach.liquid.observed`
+x461b-20261019-022954,verdicts.REPLAY_stomachFill.verdict,falsified,Not a reading of the mod's emptying: the per-row sip apportioning of the event log.,`verdicts.REPLAY_stomachFill.observed`
+x461b-20261019-022954,checks.liquid.water,the water's course,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,`events.json` autodrop at s 266
+x461b-20261019-022954,verdicts.W_PEAK.observed,477.85 g,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,
+x461b-20261019-022954,verdicts.W_HALF.observed,14.00 game minutes,Includes a 395.45 g engine auto-drink; not a reading of 0.5 L of water alone.,
