@@ -146,10 +146,19 @@ def test_check_fails_when_a_value_differs(tmp_path, fresh):
     assert len(bad) == 1 and bad[0].startswith("value a_starve:")
 
 
-def test_the_committed_values_match_a_fresh_write(art, fresh):
-    """The committed calibration against a recomputation, inputs aside: the a values and the reads they rest on."""
-    for k in ("a_starve", "a_dehyd", "starve_dpdt_per_h", "dehyd_dpdt_per_h", "starve", "dehyd"):
-        assert fresh[1][k] == art[k], k
+def test_the_committed_values_match_a_fresh_write(tmp_path):
+    """The committed calibration against a recomputation, inputs aside: the a values and the reads they rest on.
+    Frozen (CLAUDE.md s5, a frozen tool broken at HEAD by a later mod change runs on a git archive): Plan 17 Task 2
+    fix 1 (ruling T2-1) made record.drain.bmi0 the smoothed BMI estimate at the onset, which the frozen tool reads as
+    the onset BMI, so the recomputation runs on 7ba6d4d9, the last build whose bmi0 was the onset BMI."""
+    tests = os.path.join(REPO, "testing", "tests")
+    if tests not in sys.path:
+        sys.path.insert(0, tests)
+    from kernel import at_build
+    code, out = at_build.run(tmp_path, "7ba6d4d9",
+                             "tools/tests/test_calibrate_drain_curve.py::test_the_committed_values_match_a_fresh_write",
+                             extra=("testing/artifacts/calibrate-drain-20261019",))
+    assert code == 0, out
 
 
 def test_main_check_exits_non_zero_on_a_finding(monkeypatch):
