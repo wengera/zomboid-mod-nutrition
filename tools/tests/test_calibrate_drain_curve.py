@@ -157,3 +157,15 @@ def test_main_check_exits_non_zero_on_a_finding(monkeypatch):
     assert C.main(["--check"]) == 1
     monkeypatch.setattr(C, "check", lambda: [])
     assert C.main(["--check"]) == 0
+
+
+def test_input_hashes_fold_crlf_to_lf(tmp_path, monkeypatch):
+    """A CRLF and an LF checkout of one file hash alike (the fold in input_hashes)."""
+    lf = tmp_path / "lf"
+    crlf = tmp_path / "crlf"
+    lf.mkdir()
+    crlf.mkdir()
+    (lf / "a.lua").write_bytes(b"x = 1\ny = 2\n")
+    (crlf / "a.lua").write_bytes(b"x = 1\r\ny = 2\r\n")
+    monkeypatch.setattr(C, "input_files", lambda root=None: [os.path.join(str(root), "a.lua")])
+    assert C.input_hashes(root=str(lf)) == C.input_hashes(root=str(crlf))

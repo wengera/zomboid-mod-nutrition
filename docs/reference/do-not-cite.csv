@@ -22381,6 +22381,17 @@ x472-20261019-092426,logs.client_mismatch.admin,one line,"Admin's console relayi
 x472-20261019-092426,sandbox_seeded,null,"No [sandbox.NR] block was seeded; an absent block, not a reading.",
 calibrate-drain-20261019,opening_health_per_h.starve,3.5640000000000005,"Equal to vanilla's hunger rate by construction; a check of the solver, not a reading.",`a_starve`
 calibrate-drain-20261019,opening_health_per_h.dehyd,17.819999999999997,"Equal to vanilla's thirst rate by construction; a check of the solver, not a reading.",`a_dehyd`
-calibrate-drain-20261019,constants,the tool's constants,"r_hunger_90, r_thirst_90, day_minutes, window_h.*, starve.run_days, dehyd.run_days, starve.bmi_death, dehyd.d_from and dehyd.d_to are settings and formula values of the tool, not readings.",
+calibrate-drain-20261019,a_dehyd,69.64685478441292,"The full-span (1 to 0) solve; the shipped dehydration curve is the 1 to 0.1 form under ruling T1-1, whose constant is 79.83361067025903, solved from dehyd_dpdt_per_h.",`dehyd_dpdt_per_h`
+calibrate-drain-20261019,r_hunger_90,3.5640000000000005,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,r_thirst_90,17.82,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,day_minutes,90,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,window_h.starve,24,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,window_h.dehyd,6,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,starve.run_days,4,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,dehyd.run_days,3,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,starve.bmi_death,12.0,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,dehyd.d_from,4.0,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,dehyd.d_to,15.0,"A setting or formula value of the tool, not a reading.",
+calibrate-drain-20261019,inputs_sha256,cda476d122fb1e53e81aabc31fd60e05edb74983a65934237427dfeb9c862a38,"Provenance, not a reading.",
 calibrate-drain-20261019,tool_commit,869ef685,"Provenance, not a reading.",
-calibrate-drain-20261019,inputs,the input hashes,"Provenance, not readings; inputs_sha256 likewise.",
+calibrate-drain-20261019,inputs,the input hashes,"Provenance, not readings.",
