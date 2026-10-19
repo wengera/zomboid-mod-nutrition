@@ -596,6 +596,9 @@ def grade_on_clock(up):
     poll iteration (a missed backward resume is 60 game minutes off or more)."""
     latest, a = num(g(up, "record", "latest")), num(g(up, "age"))
     res, rew = num(g(up, "store", STORE_STATS[2])), num(g(up, "store", STORE_STATS[4]))
+    if res is not None and rew is None:
+        rew = 0     # re-review N4: rewound is created lazily (NR_Server_Store.lua:95 has no key, :198 adds it at the
+        #             first backward resume), so an absent key beside an answered resumes counts 0
     o = {"latest": latest, "age": a, "resumes": res, "rewound": rew}
     if latest is None or a is None or res is None or rew is None:
         return "unmeasured", dict(o, why="no record, no age or no store counters at the sight")

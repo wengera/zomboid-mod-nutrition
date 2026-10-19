@@ -7,7 +7,7 @@ against mod/ at that commit; the engine is testing/experiments/x46_lib.py (its d
 and the grades with every tolerance). This file names the session, the prefix, the profile, the artifact, the wall
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
 PRE-RUN EDIT: the driver review's fix round 1 (task-9-driver-review.md H1-H3, M1, M2, L1-L7) and fix round 2
-(task-9-driver-rereview.md N1-N3), before any boot.
+(task-9-driver-rereview.md N1-N3) and N4 (task-9-driver-rereview2.md), before any boot.
 
 THE SESSION: S, H (x46_lib.FREEZE_PATHS: 8 stamps and 22 values), PRE (a can and 0.25 L of Coffee from a
 WaterBottle, 0.3 game h at speed 1: a stomach, a meal pool and caffeine in flight), OFF (the record read; admin quits;
@@ -26,7 +26,9 @@ nothing):
 
 WALL: about 6 min (boot about 80 s, S/H/PRE about 45 s, the quit and departure about 10 s, the gap about 100 s, the
 rejoin about 40 s, the return about 15 s, closing and teardown about 50 s); BUDGET_S 480. No split was needed: the
-hard-kill arm is its own session, x463b.
+hard-kill arm is its own session, x463b. The rejoin waits at most x46_lib.RELAUNCH_TIMEOUT_S, 120 s (the lib's cap,
+shared with x463b; the slowest relaunch observed took 62.5 s); a timeout there is a phase error, so the return's grades
+read unmeasured, never a false pass.
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.

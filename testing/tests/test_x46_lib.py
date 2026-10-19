@@ -105,7 +105,8 @@ class World46(T.World):
         self.asleep = False
         self.resume_due = False
         self.skip_next = False
-        self.stats46 = {"resumes": 0, "resumedH": 0.0, "rewound": 0, "loads": 0, "created": 1, "failures": 0}
+        self.stats46 = {"resumes": 0, "resumedH": 0.0, "loads": 0, "created": 1, "failures": 0}   # no rewound
+        # key until the first backward resume (NR_Server_Store.lua:95, :198; re-review N4)
         self.backup = {"writes": 0, "bytes": 0, "reads": 0, "restored": 0, "aheadKept": 0, "rejected.absent": 0,
                        "rejected.garbled": 0, "rejected.sum": 0}
         self.guard = {"checks": 0, "refused": 0, "held": 0, "stopped": 0, "failures": 0, "passthrough": 0}
@@ -263,7 +264,7 @@ class World46(T.World):
             self.stats46["resumes"] += 1
             self.stats46["resumedH"] += gap
         elif gap < 0:
-            self.stats46["rewound"] += 1
+            self.stats46["rewound"] = self.stats46.get("rewound", 0) + 1
 
     def _ring_only(self):
         if not self.ring_on:
@@ -861,6 +862,9 @@ def test_hardkill_grades(tmp_path):
     assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0,                   # re-review N2: no resume ran
                              "store": {L.STORE_STATS[2]: 0, L.STORE_STATS[4]: 0}})[0] == "falsified"
     assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0})[0] == "unmeasured"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0,                   # re-review N4: no rewound key
+                             "store": {L.STORE_STATS[2]: 1}})[0] == "as_predicted"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0, "store": {}})[0] == "unmeasured"
     assert L.grade_on_clock({"record": {"latest": None}, "age": 5.1, "store": st})[0] == "unmeasured"
     rec = {"values": {"lastSeen": 5.0}}
     assert L.grade_consistent({"entry": None, "count": 2, "record": rec}, {"count_before": 2}, True)[0] == "as_predicted"

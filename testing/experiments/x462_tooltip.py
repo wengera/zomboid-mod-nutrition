@@ -7,7 +7,7 @@ against mod/ at that commit; the engine is testing/experiments/x46_lib.py (its d
 and the grades with every tolerance). This file names the session, the prefix, the profile, the artifact, the wall
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
 PRE-RUN EDIT: the driver review's fix round 1 (task-9-driver-review.md H1-H3, M1, M2, L1-L7) and fix round 2
-(task-9-driver-rereview.md N1-N3), before any boot.
+(task-9-driver-rereview.md N1-N3) and N4 (task-9-driver-rereview2.md), before any boot.
 
 THE SESSION: S, F (a Banana: a fills-table food, Base.Banana 1.32 h at 105.11 kcal), TM (lua.call
 NutritionRevamp.client.tooltip.optionOn before; tooltip.measure Base.Banana 1, then 0; optionOn after), C.
