@@ -1,0 +1,155 @@
+[
+ {
+  "cal": 540.0,
+  "carb": 61.83000183105469,
+  "foodType": "Meat",
+  "fullType": "Base.CannedBologneseOpen",
+  "hunger": -0.24,
+  "kind": "eat",
+  "label": "P_eat0",
+  "lip": 22.190000534057617,
+  "pro": 23.600000381469727,
+  "s": 277
+ },
+ {
+  "cal": 105.11000061035156,
+  "carb": 26.969999313354492,
+  "foodType": "Fruits",
+  "fullType": "Base.Banana",
+  "hunger": -0.16,
+  "kind": "eat",
+  "label": "P_eat1",
+  "lip": 0.38999998569488525,
+  "pro": 1.2899999618530273,
+  "s": 290
+ },
+ {
+  "cal": 11.020000457763672,
+  "carb": 2.1500000953674316,
+  "foodType": "Vegetables",
+  "fullType": "Base.Broccoli",
+  "hunger": -0.09,
+  "kind": "eat",
+  "label": "P_eat2",
+  "lip": 0.11999999731779099,
+  "pro": 0.9100000262260437,
+  "s": 301
+ },
+ {
+  "cal": 11.020000457763672,
+  "carb": 2.1500000953674316,
+  "foodType": "Vegetables",
+  "fullType": "Base.Broccoli",
+  "hunger": -0.09,
+  "kind": "eat",
+  "label": "P_eat3",
+  "lip": 0.11999999731779099,
+  "pro": 0.9100000262260437,
+  "s": 312
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.016666666666666666,
+  "s": 323
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 324
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 325
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.025,
+  "s": 326
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 327
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 328
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 329
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.041666666666666664,
+  "s": 330
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 331
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 332
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.041666666666666664,
+  "s": 333
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 334
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 335
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.041666666666666664,
+  "s": 336
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "P_water",
+  "litres": 0.03333333333333333,
+  "s": 337
+ }
+]
