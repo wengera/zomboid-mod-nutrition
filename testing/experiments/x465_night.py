@@ -6,7 +6,8 @@ made before the boot (`python tools/release_pack.py stage mod/NutritionRevamp --
 against mod/ at that commit; the engine is testing/experiments/x46_lib.py (its docstring holds the phases, the reads
 and the grades with every tolerance). This file names the session, the prefix, the profile, the artifact, the wall
 budget and the predictions. Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
-PRE-RUN EDIT: the driver review's fix round 1 (task-9-driver-review.md H1-H3, M1, M2, L1-L7), before any boot.
+PRE-RUN EDIT: the driver review's fix round 1 (task-9-driver-review.md H1-H3, M1, M2, L1-L7) and fix round 2
+(task-9-driver-rereview.md N1-N3), before any boot.
 
 THE SESSION: S, H (x46_lib.NIGHT_RING), PRE (the server ini's FastForwardMultiplier read; 0.2 game h awake),
 NIGHT (player.sleep.hold, acute.winSleptH polled to 7 h more (CLAUDE.md s5: never the unbroken run), the hold

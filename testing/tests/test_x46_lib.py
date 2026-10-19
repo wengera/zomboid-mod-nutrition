@@ -116,7 +116,7 @@ class World46(T.World):
         self.file = None                 # the slot file's record (the text the load rule reads)
         self.copy = None                 # the character's copy (modData), written with each slot write
         self.last_write = None           # the store's lastWrite (wall ms)
-        self.last_write_t = -30.0        # the first write about 30 wall s after the start
+        self.last_write_t = -60.0 if "early_write" in flags else -30.0   # the first write 30 wall s in (0: early)
         self.dirty = False
         self.pending_pick = False
         super().__init__(results_dir, flags)
@@ -170,8 +170,15 @@ class World46(T.World):
     def minute(self):
         if self.dead:
             return
-        if self.opt_due is not None and self.age >= self.opt_due:
-            self.sleep_on, self.opt_due = self.sleep_opt, None
+        try:
+            self.minute_body()
+        finally:
+            # re-review N1: PZTestKit's EveryOneMinute hook (the ring) runs before the mod's poll (Mods= order), so a
+            # change made since the last minute shows on the NEXT ring row
+            if self.opt_due is not None and self.age >= self.opt_due:
+                self.sleep_on, self.opt_due = self.sleep_opt, None
+
+    def minute_body(self):
         if not self.online:
             if "away_step" in self.f:
                 self.rec["satiety"]["M"] *= 0.99
@@ -247,6 +254,8 @@ class World46(T.World):
             self.rec = copy.deepcopy(self.file)
             if ahead and sv_copy is None:
                 self.backup["aheadKept"] += 1
+        if "no_resume" in self.f:
+            return
         gap = self.age - max(self.rec["lastSeen"], self.rec["kineticsAge"])
         for p in L.FREEZE_STAMPS:
             self._set(p, self._get(p) + gap)
@@ -370,7 +379,8 @@ class World46(T.World):
         m = re.match(r"changeoption (\w+) (true|false)", cmd)
         if m:
             self.sleep_opt = m.group(2) == "true"
-            self.opt_due = self.age + (5.0 if "poll_slow" in self.f else 0.5) / 60.0
+            self.opt_due = self.age + (5.0 if "poll_slow" in self.f else 0.0) / 60.0
+            self.advance(0.3)                       # the RCON's round trip: about 0.5 game minutes between the reads
             return True, f"Option : {m.group(1)} is now : {m.group(2)}"
         return super().rcon(cmd)
 
@@ -614,6 +624,8 @@ def test_x463b_kills_only_its_own_pid_and_restarts(tmp_path, monkeypatch):
     assert K["client_pid"] == 7001 and K["client_killed"] is True and S.xs.clients.get("admin") is not None
     sv = out["checks"]["SAVE"]
     assert sv["copy_ready"] and sv["write_after_adv"] and sv["rcon"]["ok"]
+    assert sv["existing_write"] is False                       # the fake's first write falls after ADV: SAVE waited
+    assert out["verdicts"]["ON_CLOCK"]["observed"]["resumes"] + out["verdicts"]["ON_CLOCK"]["observed"]["rewound"] >= 1
     E = out["checks"]["EAT"]
     assert E["entry"] is not None and E["saved"] is True and E["late_write"] is True
     assert E["file_latest"] is not None and E["file_latest"] > sv["age"] + L.LATE_H     # read off the file's text
@@ -640,7 +652,9 @@ def test_x464_the_clock_resets_only_on_the_full_sleep(tmp_path, monkeypatch):
     assert o["FULL_RESET"]["observed"]["min_world_off_h"] > L.DISCRIM_H
     assert out["checks"]["NAP"]["reached"] and out["checks"]["FULL"]["reached"]
     off = out["checks"]["OFF"]
-    assert off["flip_age"] is not None and off["flip_age"] > off["change_age"] and off["poll_age"] is not None
+    assert off["flip_age"] is not None and off["flip_age"] > off["change_age_after"] > off["change_age"]
+    assert off["poll_age"] is not None and off["gap_from_before_gm"] > out["verdicts"]["POLL_OFF"]["observed"]["gm"]
+    assert out["verdicts"]["POLL_OFF"]["observed"]["change_age"] == off["change_age_after"]
     assert out["checks"]["sleep_allowed_before"] is True and out["checks"]["sleep_restored"] is True
     assert "sleep_restore" not in out["checks"] and w.sleep_on is True
 
@@ -676,6 +690,7 @@ def test_x461a_restores_the_auto_drink_flag(tmp_path, monkeypatch):
     ("x463b", "no_copy", {"COPY_SAVED"}),
     ("x463b", "no_late_write", {"ROLLBACK"}),
     ("x463b", "no_first_write", {"COPY_SAVED", "RESTORED"}),
+    ("x463b", "no_resume", {"ON_CLOCK"}),
     ("x464", "nap_resets", {"NAP_KEEP"}),
     ("x464", "no_reset", {"FULL_RESET"}),
     ("x464", "poll_slow", {"POLL_OFF", "POLL_ON"}),
@@ -838,10 +853,15 @@ def test_hardkill_grades(tmp_path):
     assert L.grade_restored_copy(U(0, 0), True)[0] == "falsified"
     assert L.grade_restored_copy(U(1, 0), False)[0] == "unmeasured"
     assert L.grade_restored_copy({"backup": {L.BACKUP_STATS[3]: 1}}, True)[0] == "unmeasured"
-    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 + 1 / 60})[0] == "as_predicted"
-    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 - 1 / 60})[0] == "as_predicted"
-    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.1})[0] == "falsified"
-    assert L.grade_on_clock({"record": {"latest": None}, "age": 5.1})[0] == "unmeasured"
+    st = {L.STORE_STATS[2]: 1, L.STORE_STATS[4]: 0}
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 + 4 / 60, "store": st})[0] == "as_predicted"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0 - 4 / 60,
+                             "store": {L.STORE_STATS[2]: 0, L.STORE_STATS[4]: 1}})[0] == "as_predicted"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.1, "store": st})[0] == "falsified"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0,                   # re-review N2: no resume ran
+                             "store": {L.STORE_STATS[2]: 0, L.STORE_STATS[4]: 0}})[0] == "falsified"
+    assert L.grade_on_clock({"record": {"latest": 5.0}, "age": 5.0})[0] == "unmeasured"
+    assert L.grade_on_clock({"record": {"latest": None}, "age": 5.1, "store": st})[0] == "unmeasured"
     rec = {"values": {"lastSeen": 5.0}}
     assert L.grade_consistent({"entry": None, "count": 2, "record": rec}, {"count_before": 2}, True)[0] == "as_predicted"
     assert L.grade_consistent({"entry": 5.1, "count": 1, "record": rec}, {"count_before": 2}, True)[0] == "as_predicted"
@@ -950,6 +970,7 @@ def test_poll_no_rhythm_and_the_day():
     assert L.ring_flip(ring, 5.0, True) == pytest.approx(5.0 + 1 / 60.0)
     assert L.ring_flip(ring, None, False) is None and L.ring_flip(ring, 9.0, False) is None
     assert L.grade_poll(5.0, 5.0 + 1.0 / 60.0)[0] == "as_predicted"
+    assert L.grade_poll(5.0, 5.0 + 2.2 / 60.0)[0] == "as_predicted"                # re-review N1: two events
     assert L.grade_poll(5.0, 5.0 + 3.0 / 60.0)[0] == "falsified"
     assert L.grade_poll(5.0, None)[0] == "falsified"
     assert L.grade_poll(None, 5.0)[0] == "unmeasured"
@@ -1094,7 +1115,10 @@ def test_the_drivers_name_their_own_file_profile_and_artifact():
     for key, spec in L.SESSIONS.items():
         m = runpy.run_path(os.path.join(REPO, "testing", "experiments", spec["driver"]), run_name="not_main")
         assert m["KEY"] == m["PREFIX"] == key and m["PROFILE"] == spec["profile"] and m["ARTIFACT"] == spec["artifact"]
-        assert m["BUDGET_S"] + 60 <= 570                                        # under the 10-minute foreground cap
+        if key == "x463b":                                                      # detached by the controller (N3)
+            assert m["BUDGET_S"] == 600.0
+        else:
+            assert m["BUDGET_S"] + 60 <= 570                                    # under the 10-minute foreground cap
         assert set(m["PRED"]) >= NAMES[key] | {"Z"}
 
 
@@ -1159,3 +1183,59 @@ def test_install_bands_reads_the_prerun(monkeypatch):
                     setattr_=lambda o, k, v: seen.__setitem__(k, v))
     assert seen == {"CAD_P_TARGETS": {"lunch": 1.0, "dinner": 2.0, "breakfast": 3.0}, "CAD_H_TARGET": 9.0}
     assert G.CAD_H_TARGET == 9.550                                                   # the frozen module untouched
+
+
+def test_x463b_takes_an_existing_write_without_waiting(tmp_path, monkeypatch):
+    v, out, w, S = run_session("x463b", tmp_path, monkeypatch, flags=("early_write",))
+    sv = out["checks"]["SAVE"]
+    assert sv["existing_write"] is True and sv["write_after_adv"] is True and sv["copy_ready"] is True
+    assert not [s_ for s_ in out["steps"] if s_["step"].startswith("SAVE_lw")]               # no wait
+    assert v["RESTORED"] == "as_predicted" and v["ON_CLOCK"] == "as_predicted"
+
+
+def test_the_x463b_caps_are_the_rereview_s(monkeypatch):
+    assert L.RELAUNCH_TIMEOUT_S == 120.0 and L.RESTART_TIMEOUT_S == 150.0 and L.ON_CLOCK_GM == 5.0
+    assert L.POLL_GM == 2.5
+
+    class Prof:
+        client_timeout, server_timeout, safemode, launcher = 180, 420, False, "java"
+    seen = {}
+
+    class C:
+        proc = None
+
+        def start(self):
+            pass
+
+        def wait_ready(self, timeout):
+            seen["ready"] = timeout
+            return 1.0
+
+    class Srv:
+        class bus:
+            @staticmethod
+            def reset():
+                pass
+
+        class _started:
+            @staticmethod
+            def clear():
+                pass
+
+        class proc:
+            pid = 9
+
+        def start(self, timeout):
+            seen["start"] = timeout
+            return 1.0
+
+    class Tl:
+        def mark(self, *a, **k):
+            pass
+
+    class Xs:
+        server, clients, copied = Srv(), {}, []
+    S = type("S", (), {"xs": Xs, "run_dir": "."})()
+    L.launch_real(lambda *a, **k: (C(), True), Prof, {}, [], Tl())(S, "admin", "c1b")
+    L.restart_real(Prof, ".", Tl())(S, "up")
+    assert seen == {"ready": 120.0, "start": 150.0}

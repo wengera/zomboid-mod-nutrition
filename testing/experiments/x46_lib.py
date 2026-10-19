@@ -46,8 +46,9 @@ THE SESSIONS (each under 10 wall minutes; a driver per session names its prefix,
                   world age passes the departure by AWAY_MIN_H; restored and read back; the record read again; the ring
                   started again; admin rejoins from a fresh client restore in <run>/c1b; the resume polled; RETURN_H at
                   speed 1), C, R.
-  x463b hardkill  (x46-mod)   S, F (two Bananas), ADV (ADV_H at speed 5), SAVE (a slot write after ADV polled and the
-                  backup's writes read, so the character holds its copy; then RCON save: the world and the players
+  x463b hardkill  (x46-mod)   S, F (two Bananas), ADV (ADV_H at speed 5), SAVE (an existing slot write with the
+                  backup's writes at 1 or more taken as it is, else a write after ADV polled, so the character holds
+                  its copy; then RCON save: the world and the players
                   saved; else the arm is skipped), EAT (one Banana; the store's after-eat save polled; LATE_H at speed
                   5; the slot file's next write polled and its latest stamp read off its text), KILL (the session's own
                   server PID read, recorded and killed with taskkill; players.db read offline; the session's own client
@@ -93,7 +94,8 @@ never as_predicted; every tolerance is named below, before any run):
                        else RESTORED, ON_CLOCK and CONSISTENT are unmeasured).
            RESTORED    NutritionRevamp.server.backup.stats.restored 1 and aheadKept 0 (the copy is the world save's
                        or a later snapshot's, so the restored record resumes forward or back: a reading).
-           ON_CLOCK    the restored record's latest stamp within ON_CLOCK_GM of the world age at the sight.
+           ON_CLOCK    the store's resumes + rewound at 1 or more at the sight, and the restored record's latest
+                       stamp within ON_CLOCK_GM of the world age there.
            CONSISTENT  graded on a RESTORED as predicted and a record read that answered: the restored record holds the
                        banana's eat (monotony entry) iff the inventory lost the banana.
            COPY_SAVED  the admin blob of players.db read after the kill holds the "NutritionRevamp" key (the copy saved
@@ -104,8 +106,9 @@ never as_predicted; every tolerance is named below, before any run):
            FULL_RESET  the full sleep's bout booked at least 4 h; after its close bodyHour within RESET_TOL_H of 07:00
                        plus the game hours since the last asleep row, that reset hour more than DISCRIM_H off the world
                        hour (else unmeasured: a reset and a clock on the world hour read alike).
-           POLL_OFF, POLL_ON  the ring's polled sleep setting follows the RCON change within POLL_GM game minutes of
-                       the age read before the change (the live poll a reading).
+           POLL_OFF, POLL_ON  the first ring row after the change whose polled sleep setting reads the new value
+                       within POLL_GM game minutes of an age read right AFTER the RCON (the gap from the age read
+                       before it and the live poll are readings).
            NO_RHYTHM   sleep off: bodyOn false, the writer's hunger factor 1, acute.circ 0 and bodyHour held on every
                        ring row from the first row after the flip.
            RESEED      sleep on again: the first row with bodyOn true reads bodyHour within TRACK_TOL_H of the world hour.
@@ -275,7 +278,10 @@ LATE_H = 2.0                             # game hours at speed 5 after the eat: 
 SAVE_SETTLE_S = 8.0
 SAVE_CAP_S = 70.0                        # a slot write comes at most once a real minute (S.SAVE_GAP_MS 60000)
 LATE_WRITE_CAP_S = 70.0                  # review H1: the file's write after LATE_H, the one the load rule reads
-ON_CLOCK_GM = 2.0                        # review H3: the restored record's latest stamp on the world clock
+ON_CLOCK_GM = 5.0                        # review H3, N2: the restored record's latest stamp on the world clock (a
+                                         # stamp up to a minute stale plus the age read a round trip later)
+RELAUNCH_TIMEOUT_S = 120.0               # re-review N3: x463b's relaunch to ready (observed 34-63 s), not the profile's
+RESTART_TIMEOUT_S = 150.0                # re-review N3: x463b's server restart (observed starts mostly 10-50 s)
 KILL_WAIT_S = 30.0
 UP_CAP_S = 60.0
 TRACK_H = 0.25
@@ -293,7 +299,9 @@ SLEEP_POLL_S = 0.25
 POLL_S_FAST = 0.25
 HOLD_S = 600
 WAKE_SETTLE_S = 3.0
-POLL_GM = 2.0
+POLL_GM = 2.5                            # review N1: two minute events of at most 1.11 game minutes (the ring
+                                         # samples before the mod's poll, PZTestKit first in Mods=), from an age read
+                                         # AFTER the change
 POLL_CAP_S = 15.0
 OFF_H = 0.4
 ON_H = 0.2
@@ -582,14 +590,18 @@ def grade_restored_copy(up, rolled):
 
 
 def grade_on_clock(up):
-    """The restored record's latest stamp (over FREEZE_STAMPS, at the first record read) within ON_CLOCK_GM of the
-    world age read in the same poll iteration: the resume put it on the world clock, in either direction (review H3)."""
+    """The restored record resumed onto the world clock: the store's resumes + rewound at 1 or more in the first-sight
+    snapshot (re-review N2: the step stamps sit on the clock after any step, so the stamp alone passes a load that
+    skipped the resume), and its latest stamp (over FREEZE_STAMPS) within ON_CLOCK_GM of the world age read in the same
+    poll iteration (a missed backward resume is 60 game minutes off or more)."""
     latest, a = num(g(up, "record", "latest")), num(g(up, "age"))
-    o = {"latest": latest, "age": a}
-    if latest is None or a is None:
-        return "unmeasured", dict(o, why="no record or no age at the sight")
+    res, rew = num(g(up, "store", STORE_STATS[2])), num(g(up, "store", STORE_STATS[4]))
+    o = {"latest": latest, "age": a, "resumes": res, "rewound": rew}
+    if latest is None or a is None or res is None or rew is None:
+        return "unmeasured", dict(o, why="no record, no age or no store counters at the sight")
     o["off_gm"] = (latest - a) * 60.0
-    return ("as_predicted" if abs(o["off_gm"]) <= ON_CLOCK_GM else "falsified"), o
+    ok = res + rew >= 1 and abs(o["off_gm"]) <= ON_CLOCK_GM
+    return ("as_predicted" if ok else "falsified"), o
 
 
 def grade_consistent(up, eat, restored):
@@ -1305,6 +1317,7 @@ class Sess(G.Sess):
         self.D["ADV"] = {"end": self.watch("ADV_fast", ADV_H, G.SPEED_FAST)}
         self.set_speed(1, "ADV_one")
         self.D["ADV"]["lastWrite"] = num(self.glob_read("ADV_lw", (LASTWRITE,)).get(LASTWRITE))
+        self.D["ADV"]["backup"] = self.glob_read("ADV_bk", BACKUP_STATS, log=True)
 
     def file_latest(self, tag):
         """The slot file's latest stamp (the max over FREEZE_STAMPS of the text the store last wrote, W's read):
@@ -1337,10 +1350,16 @@ class Sess(G.Sess):
         """Review H2: the character's copy exists before the world save: a slot write after ADV's end (each writes the
         copy, BK.write) and the backup's writes at 1 or more; else the arm is skipped (its grades unmeasured)."""
         P = self.D["SAVE"] = {}
-        w = self.wait_write("SAVE_lw", num(g(self.D, "ADV", "lastWrite")), SAVE_CAP_S)
-        P["write_after_adv"], P["lastWrite"] = w["done"], w["last"]
+        adv_writes = num(g(self.D, "ADV", "backup", BACKUP_STATS[0])) or 0
+        if num(g(self.D, "ADV", "lastWrite")) is not None and adv_writes >= 1:
+            P["existing_write"] = True                           # re-review N3: the copy already predates the save
+            P["write_after_adv"], P["lastWrite"] = True, num(g(self.D, "ADV", "lastWrite"))
+        else:
+            P["existing_write"] = False
+            w = self.wait_write("SAVE_lw", num(g(self.D, "ADV", "lastWrite")), SAVE_CAP_S)
+            P["write_after_adv"], P["lastWrite"] = w["done"], w["last"]
         P["backup_before"] = self.glob_read("SAVE_bk0", BACKUP_STATS, log=True)
-        P["copy_ready"] = w["done"] and (num(P["backup_before"].get(BACKUP_STATS[0])) or 0) >= 1
+        P["copy_ready"] = P["write_after_adv"] is True and (num(P["backup_before"].get(BACKUP_STATS[0])) or 0) >= 1
         if not P["copy_ready"]:
             self.xs.note("SAVE: no slot write after ADV or no backup write; the kill arm is skipped")
             return
@@ -1483,6 +1502,7 @@ class Sess(G.Sess):
         self.set_speed(1, label + "_one")
         P["change_age"] = self.age(label + "_a0")
         P["rcon"] = self.change_sleep(label + "_rcon", value)
+        P["change_age_after"] = self.age(label + "_a0b")            # re-review N1: the gap is graded from here
 
         def fn():
             v = self.glob_read(label + "_poll", (SLEEPON_G[3:],)).get(SLEEPON_G[3:])
@@ -1794,7 +1814,10 @@ class Sess(G.Sess):
                 f"a full sleep's close not at 07:00 plus the time since waking within {RESET_TOL_H} h")
         OFF["flip_age"] = ring_flip(rows, num(OFF.get("change_age")), False)
         ON["flip_age"] = ring_flip(rows, num(ON.get("change_age")), True)
-        self._g("POLL_OFF", grade_poll(num(OFF.get("change_age")), num(OFF.get("flip_age"))),
+        for P_ in (OFF, ON):                                     # re-review N1: the before-read gap, a reading
+            c0, f_ = num(P_.get("change_age")), num(P_.get("flip_age"))
+            P_["gap_from_before_gm"] = None if c0 is None or f_ is None else (f_ - c0) * 60.0
+        self._g("POLL_OFF", grade_poll(num(OFF.get("change_age_after")), num(OFF.get("flip_age"))),
                 f"the sleep poll not following SleepAllowed false within {POLL_GM} game minutes")
         flip = num(OFF.get("flip_age"))
         nxt = None
@@ -1802,7 +1825,7 @@ class Sess(G.Sess):
             nxt = next((ring_age(r) for r in online(rows) if ring_age(r) > flip), None)
         self._g("NO_RHYTHM", grade_no_rhythm(rows, nxt if nxt is not None else 1e18, num(OFF.get("a2")) or 0.0),
                 "with sleep off, the clock on, a hunger factor not 1, circ not 0 or the phase moved")
-        self._g("POLL_ON", grade_poll(num(ON.get("change_age")), num(ON.get("flip_age"))),
+        self._g("POLL_ON", grade_poll(num(ON.get("change_age_after")), num(ON.get("flip_age"))),
                 f"the sleep poll not following SleepAllowed true within {POLL_GM} game minutes")
         self._g("RESEED", grade_reseed(rows, num(ON.get("change_age")) or 1e18),
                 "sleep on again, the clock not seeded at the world hour")
@@ -1865,7 +1888,7 @@ def launch_real(make_client, prof, rec_fx, started, tl):
         started.append(c)
         S.xs.clients[user] = c
         tl.mark("client_launch", user=user, which=sub, restored=restored)
-        took = c.wait_ready(timeout=prof.client_timeout)
+        took = c.wait_ready(timeout=min(prof.client_timeout, RELAUNCH_TIMEOUT_S))      # re-review N3
         tl.mark("client_ready", user=user, which=sub, took=took)
         return {"restored": restored, "ready_took": took}
     return launch
@@ -1907,7 +1930,7 @@ def restart_real(prof, run_dir, tl):
             srv._started.clear()
             srv.log_path = os.path.join(run_dir, out["log"])
             srv.bus.reset()
-            out["took"] = srv.start(timeout=prof.server_timeout)
+            out["took"] = srv.start(timeout=min(prof.server_timeout, RESTART_TIMEOUT_S))  # re-review N3
             out["pid"] = srv.proc.pid
             out["ok"] = True
             tl.mark("server_restarted", pid=out["pid"], took=out["took"])
