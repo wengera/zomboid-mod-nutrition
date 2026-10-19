@@ -1,0 +1,56 @@
+{
+ "kind": "derived artifact (analysis, not a live run)",
+ "script": "testing/experiments/x463a_regrade.py",
+ "source": "testing/artifacts/x463a-20261019-023729/freeze.json",
+ "source_sha256": "3044d697928c688e690964c2a9ef0e840568b133540450f850b5610d8876d42c",
+ "verdicts": {
+  "WRITTEN_RG": {
+   "falsifier": "a written stat beyond one step of the last pre-quit row's rate",
+   "observed": {
+    "frozen_verdict": "falsified",
+    "per_stat": {
+     "FATIGUE": {
+      "admitted": true,
+      "last": 0.157974973320961,
+      "next_at_rate": 0.1576979011297226,
+      "prev": 0.1582520455121994,
+      "ret": 0.15771619975566864
+     },
+     "HUNGER": {
+      "admitted": true,
+      "last": 0,
+      "next_at_rate": 0,
+      "prev": 0,
+      "ret": 0
+     },
+     "THIRST": {
+      "admitted": true,
+      "last": 0,
+      "next_at_rate": 0,
+      "prev": 0,
+      "ret": 0
+     }
+    },
+    "pre": [
+     {
+      "FATIGUE": 0.1582520455121994,
+      "HUNGER": 0,
+      "THIRST": 0
+     },
+     {
+      "FATIGUE": 0.157974973320961,
+      "HUNGER": 0,
+      "THIRST": 0
+     }
+    ],
+    "ret": {
+     "FATIGUE": 0.15771619975566864,
+     "HUNGER": 0,
+     "THIRST": 0
+    },
+    "row_s": 55
+   },
+   "verdict": "as_predicted"
+  }
+ }
+}
