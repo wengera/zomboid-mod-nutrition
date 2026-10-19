@@ -63,3 +63,27 @@ def test_x463a_regrade_on_its_artifact():
     v = res["verdicts"]["WRITTEN_RG"]
     assert v["verdict"] == "as_predicted" and v["observed"]["frozen_verdict"] == "falsified"
     assert v["observed"]["per_stat"]["FATIGUE"]["admitted"] is True
+
+
+def test_x467_cold_ablation_grade():
+    import x467_cold_ablation as A
+    rows = [{"s": 1}, {"s": 2, "fluids.autoDrop": 0.12}, {"s": 3, "fluids.autoDrop": 0}, {"s": 4},
+            {"s": 5, "fluids.autoDrop": 0.2}]
+    auto = A.autodrink_rows(rows)
+    assert auto == [1, 4]
+    off = list(range(100, 100 + A.MIN_OFF_GAP + 2))
+    assert A.grade([1, 4], off, auto, 1000)[0] == "as_predicted"
+    assert A.grade([1, 4, 77], off, auto, 1000)[0] == "falsified"                 # a cold-fed miss off an auto-drink
+    assert A.grade([1, 4], off[:10], auto, 1000)[0] == "falsified"                # the cold changed nothing
+    assert A.grade([], [], auto, 0)[0] == "unmeasured"
+    assert A.over_rows({"findings": [{"field": "THIRST", "s": 9}, {"field": "HUNGER", "s": 3},
+                                     {"field": "THIRST", "n": 0, "why": "x"}]}) == [9]
+
+
+def test_x467_cold_ablation_on_its_artifact():
+    import x467_cold_ablation as A
+    with tempfile.TemporaryDirectory() as d:
+        res = A.main(["--out", d])
+    o = res["verdicts"]["COLD_DISCRIMINATES"]["observed"]
+    assert res["verdicts"]["COLD_DISCRIMINATES"]["verdict"] == "as_predicted"
+    assert o["on_over"] == 2 and o["off_over"] > 300
