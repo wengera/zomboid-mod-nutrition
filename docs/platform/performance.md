@@ -459,6 +459,7 @@ Not covered: a listen server or single-player, real network latency, jitter or l
 - Why the spread cap's spread runs cost more a run than the mod's front-loaded drain at 37 ticks a game minute, the batches' own overhead or the runs themselves, is unresolved [#3745/M/n=1].
 - A send's cost per key is unmeasured: one 138-key payload was priced, about 0.1 ms a send [#3464/M/n=1] [#3437/C/C-only].
 - What a client's request of a global modData table costs the server's frame between 60 records and the 1,000,000-byte buffer, and when repeated, is unmeasured: at 60 it was within the idle jitter [#3469/M/n=1] [#3470/M/n=1].
+- Whether a stall's carry keeps the server's worst frame under the drain's tick budget live is unmeasured: a queue slot runs at most 4 hour-long sub-steps of a stall, projected at about 10 to 13 ms in play from a bench on the lupa host, never read as a server frame, and no step over 60 game minutes has occurred in a live run. [#4000/C/open] [#3956/C/inference]
 
 ## Procedure
 <a id="procedure"></a>
